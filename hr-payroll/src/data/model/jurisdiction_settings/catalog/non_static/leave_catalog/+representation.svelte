@@ -38,24 +38,23 @@
 					name="rule"
 					title="Rule"
 					icon="lucide:code"
-					hint="Eligibility and the quantity conversion."
+					hint="Eligibility, the share of a normal day a slot pays and what a cashed-out entry pays."
 				>
 					<Columns count={2} gap="md">
 						<CodeField name="eligibility" />
-						<CodeField name="conversion" />
+						<CodeField name="paid_share" />
+						<CodeField name="payout" />
 					</Columns>
 				</Section>
 				<Section
 					name="posting"
 					title="Posting"
 					icon="lucide:arrow-down-up"
-					hint="The subtotal, pay treatment and posting direction."
+					hint="The subtotal that receives a payout and a reversal's refund."
 					defaultOpen={false}
 				>
 					<Columns count={2} gap="md">
 						<Field name="subtotal_id" />
-						<Field name="pay_treatment" />
-						<Field name="direction" />
 					</Columns>
 				</Section>
 				<Section

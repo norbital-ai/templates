@@ -43,6 +43,7 @@
 		'registered_address',
 		'final_pay_loan_floor_percent',
 		'overtime_full_award_percent',
+		'pay_methods',
 		'entity_extension_data',
 		'reason'
 	] as const;

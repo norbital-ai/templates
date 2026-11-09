@@ -28,7 +28,7 @@ type Seed = ReturnType<typeof pack>;
 const malaysia = (allowances = {}): Seed =>
 	pack('MY', 'Asia/Kuala_Lumpur', terms(allowances), {}, [], [], '2026-06-15');
 const noPay = (seed: Seed) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = seed.leave_catalog?.find(
 		(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
 	);
@@ -203,14 +203,16 @@ describe('a no-pay day', () => {
 	});
 });
 
-describe('an allowance and its prorate switch', () => {
+describe('an allowance and the share of the period paid', () => {
 	const SUA = { SUA: { amount: 300 } };
 	const switched = (prorate: boolean): Seed => {
 		const seed = malaysia(SUA);
 		return {
 			...seed,
 			allowance_catalog: (seed.allowance_catalog ?? []).map((row) =>
-				row.code === 'SUA' ? { ...row, prorate } : row
+				row.code === 'SUA' && !prorate
+					? { ...row, conversion: String(row.conversion).replace(' * ctx.paid_share', '') }
+					: row
 			),
 			employee_contract: (seed.employee_contract ?? []).map((row) => ({
 				...row,
@@ -218,7 +220,7 @@ describe('an allowance and its prorate switch', () => {
 			}))
 		};
 	};
-	it.live('on, a joiner’s allowance takes the days employed', () => {
+	it.live('read, a joiner’s allowance takes the days employed', () => {
 		const seed = switched(true);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -226,7 +228,7 @@ describe('an allowance and its prorate switch', () => {
 			assert.equal((yield* paid(t, '2026-06'))['SUA'], 150);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
-	it.live('off, it pays whole', () => {
+	it.live('unread, it pays whole', () => {
 		const seed = switched(false);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;

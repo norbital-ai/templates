@@ -6,7 +6,7 @@ import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 export default model('loan_catalog_entry', {
 	description: 'One employee loan advance and its repayment period.',
 	record_label:
-		"record.employment_id.employee_name + ' · ' + string(record.recovered) + ' recovered'",
+		"record.employment_id.employee_number + ' · ' + string(record.recovered) + ' recovered'",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'loan_catalog_entry' },

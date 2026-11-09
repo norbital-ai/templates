@@ -549,3 +549,108 @@ prove the notice gap does not disturb the existing `monthly_minimum_wage_floor` 
 - Regression: `tests/tw_reduced_hours.test.ts` covers the first notice (due 2027-01-04), an extension to 2027-02-28
   (due 2027-02-01, distinct key), a description-only edit (none) and a shortening (none). The reduced-hours catalog still
   declares the full-time monthly minimum floor and insurance/pension retention; the payslip itself is not re-run here.
+
+## Seed round 3 (2026-11-10)
+
+Scope: seed changes in `seed/public/jurisdiction/TW/version_1`–`version_5/leave_catalog.json`; the only other change
+is this note. No source, schema, test, migration or generated-registry change; no `bolt build`, test, reset, publish or
+deploy. Gate: `node_modules/.bin/bolt check .` passed (`.tmp/hr-seed3/TW/check.log`).
+
+### Compensatory time off (勞動基準法 §32-1)
+
+`COMPENSATORY_TIME_OFF` in all five versions now has `lookup.unit: "HOUR"` and
+`lookup.overtime_as_time_off: true`. Its reference was rewritten to the mechanism that exists: a roster day's
+`overtime_as_time_off` marks the overtime hours, the run pays no overtime for them, and this row takes them in hours.
+`window: SERVICE_YEAR` stays because 施行細則 §22-2(2) ends the period no later than the §24(2) annual-leave year's last
+day, which is this row's service year. The description now says hours, not days.
+
+`COMP_TIME_PAYOUT_VALUE` was deleted from all five versions. No expression, rule, effect or source formula reads it;
+the exit duty remains `OVERTIME_COMP_TIME_SETTLEMENT`. 勞動基準法 §32-1(2) prices untaken hours at the wage
+calculation standard of the day they were worked; 施行細則 §22-2(3) sets the payment deadline at termination under §9.
+
+### Annual leave payout (勞動基準法 §38(4))
+
+`ANNUAL_LEAVE` in all five versions now carries:
+
+```js
+return ctx.day_rate * ctx.entry.quantity;
+```
+
+and its `subtotal_id` names that version's `SALARY_INCOME` checkpoint (`1fcfaf05…` v1, `d84b1aaa…` v2, `9e458e6d…`
+v3, `8d8f6f8a…` v4, `9360f4c5…` v5). A leave payout is priced only inside the subtotal its row names; without a target
+the line is built and never printed. `SALARY_INCOME` also puts it in the resident income-tax base, which is right for
+§38(4) pay: 施行細則 §24-1(2)(1) — 按勞工未休畢之特別休假日數，乘以其一日工資計發；其為計月者，為年度終結或契約
+終止前最近一個月正常工作時間所得之工資除以三十所得之金額. TW's `day` conversion is `FIXED 30`, so `ctx.day_rate` is
+that day and includes the fixed allowances the contract counts in the rate. A part-timer's pro-rated days are paid at
+their own day rate. A monthly worker therefore receives the statute's `monthly wage ÷ 30` per unused day, never a
+working-days share.
+
+Limit, for the owner: 施行細則 §24-1(2)(1)(三) prices leave deferred by agreement at the **original** year-end day rate.
+The run prices the entry at the run's wage. If HR files a deferred cash-out after a wage cut, the payout is short; no
+stored prior rate and no new field are available. The encashment automation dates the entry in the final settlement
+month, where the run's wage is the statute's last month; a deferred case must be dated at the year end or recorded for
+the owner.
+
+The row's first reference says the unused days are raised by its schedule on the leave year's last day, but no effect
+or automation does that: only the **exit** encashment is automated. At a year end while the person stays employed, HR
+must file the cash-out by hand (the payout now exists). That sentence is an unsupported claim in the seed, not dead
+configuration to copy; the owner should either add a year-end effect or remove the claim in a future version.
+
+### Leave shares checked
+
+Every row is 0–1 with an empty share meaning 1; no row states a payout except `ANNUAL_LEAVE`.
+
+| Share          | Rows                                                                                                                                                                                                                                                                                                  | Statute                                                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 (empty)      | `ANNUAL_LEAVE`; `MARRIAGE_LEAVE`; `BEREAVEMENT_LEAVE`; `OCCUPATIONAL_INJURY_LEAVE`; `PATERNITY_LEAVE`; `PRENATAL_CHECKUP_LEAVE`; `BREASTFEEDING_TIME`; `PUBLIC_HOLIDAY_IN_LIEU`; `OFFICIAL_LEAVE`; `JOB_SEARCH_LEAVE`; `STATUTORY_REST_IN_LIEU`; `COMPENSATORY_TIME_OFF`; `INDIGENOUS_RITUAL_HOLIDAY` | 勞基法 §38(1), §37, §39, §40, §16(2), §32-1; 勞工請假規則 §2, §3, §6 (with 勞基法 §59), §8; 性平法 §15(4)–(5), §18; 紀念日及節日實施條例 §6(1)(3) |
+| 0.5            | `SICK_LEAVE`; `HOSPITALISED_SICK_LEAVE`; `MENSTRUAL_LEAVE`; `MATERNITY_LEAVE` before six months                                                                                                                                                                                                       | 勞工請假規則 §4(3); 性平法 §14(2); 勞基法 §50(2)                                                                                                  |
+| 1 (expression) | `MATERNITY_LEAVE` after six months                                                                                                                                                                                                                                                                    | 勞基法 §50(2)                                                                                                                                     |
+| 0              | `PERSONAL_LEAVE`; `MENSTRUAL_LEAVE_UNPAID`; `FAMILY_CARE_LEAVE`; `PARENTAL_LEAVE`; `PARENTAL_LEAVE_BY_DAY`; `SICK_LEAVE_UNPAID`; `SICK_LEAVE_SUSPENSION`; `CHILDCARE_REDUCED_HOURS`; `NATURAL_DISASTER_ABSENCE`                                                                                       | 勞工請假規則 §7, §4(1), §5; 性平法 §14, §16(1), §19(1)(1), §20; 天然災害出勤要點                                                                  |
+
+The half-pay rows now pass through `proration: DAY_RATE`: a full sick, menstrual or pre-six-month maternity day costs
+`ctx.day_rate × 0.5` (monthly wage ÷ 30 × 0.5), not a share of the period's working days. That is the statute's day for
+勞工請假規則 §4(3), 性平法 §14(2) and 勞基法 §50(2). The 56-day birth and 28-day miscarriage leaves run by calendar
+days, as §50 does.
+
+### Parental rows and dead configuration
+
+`BASIC_AFTER_PARENTAL_LEAVE` now has no producer. Both parental rows are `paid_share` 0 with no payout, so no payroll
+line points at it; the leave taken leaves BASIC through `proration: DAY_RATE`. The checkpoint stays in the chain only
+because `BASIC_AFTER_UNPAID_LEAVE.previous_id` names it and sealed payslip checkpoints keep their IDs. The rows'
+`subtotal_id` still names it (v1 `0f186443…`; v2 `b6ab1009…`; v3 `69a8cfb0…`; v4 `4c9178af…`; v5 `850b7311…`); that
+target is unreachable until a parental row gets a payout. This is dead configuration, not a pricing rule; do not add a
+field to mark it, and do not remove the checkpoint without an owner decision on the sealed IDs.
+
+### Premium and meal rows after the parental change
+
+The five premium rows in every version read the run's priced `ctx.leave` slots and subtract `PARENTAL_LEAVE` /
+`PARENTAL_LEAVE_BY_DAY` days in the month. v1 lists both codes although v1 has no `PARENTAL_LEAVE_BY_DAY` row; the extra
+name matches nothing. `WAGE_ARREARS_FUND`'s citation already says 育嬰留職停薪 days are left out. The LI, EI,
+LABOR_PENSION and OCC_INJURY references cite their Acts but not the parental rule.
+
+Substantively, 性別平等工作法 §16(2) provides that during parental leave the employee may continue the original
+social insurance, the **employer-borne** premium is **exempt**, and the **employee-borne** premium may be **deferred
+three years**. The rows zero both shares. The employer shares are right; the employee LI/EI share is currently waived
+rather than deferred. No deferral ledger or field exists here, so this is an owner question, not a seed edit.
+勞工退休金條例 §20 requires the employer to stop contributions during unpaid leave, so `LABOR_PENSION` 0 is right;
+`OCC_INJURY` has no employee share.
+
+The two meal rows now fall only with `ctx.paid_share`. That is the employer's method, not a statutory amount. Their
+勞工請假規則 §7 citation is about unpaid personal leave; the same factor also cuts half-pay sick/maternity and parental
+days. No citation is false, but the owner should confirm that a half-pay day cuts the meal by the salary's paid share
+rather than by the whole day.
+
+### Owner questions
+
+1. Employee LI/EI share during parental leave: §16(2) defers it, the rows currently waive it; a deferral needs a
+   mechanism the design does not have.
+2. Deferred annual leave cash-out after a wage cut: §24-1(2)(1)(三) fixes the original year-end rate; the run has no
+   stored prior rate.
+3. `BASIC_AFTER_PARENTAL_LEAVE`: keep as a pass-through checkpoint (recommended, sealed IDs) or remove it in a future
+   settings version.
+4. `MATERNITY_LEAVE` pays the one-week and five-day miscarriage events at the same 0.5/1 share, while the row's own
+   citation reads 性平法 §15(1)'s one-week and five-day miscarriages as leave the employer need not pay. If that reading
+   stands this is an overpayment, not an underpayment; the row cannot state a per-event share today.
+5. Meal allowance on a half-pay day: confirm the company method cuts it by the salary's paid share, not by the whole day.
+6. Year-end annual leave: only exit encashment is automated. Either add a year-end effect for §38(4) or remove the
+   annual leave reference's claim that "its schedule" raises the unused days on the leave year's last day.

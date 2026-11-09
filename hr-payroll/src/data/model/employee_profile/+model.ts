@@ -23,10 +23,10 @@ export default model('employee_profile', {
 	unique: [{ fields: ['invitation_id'] }, { fields: ['user_id'] }],
 	fields: {
 		source_reference: { kind: 'text', optional: true, label: 'Source reference' },
-		first_hired_on: {
-			kind: 'date',
-			optional: true,
-			help: 'The first day this person joined the employer group. Company service stays with the person across entity and jurisdiction transfers.'
+		cumulative_service: {
+			kind: 'bool',
+			default: false,
+			help: 'Service counts every stint at the employer, rehires included. Off, only the current unbroken stint counts: the statutory continuous service.'
 		},
 		name: {
 			kind: 'text'
@@ -98,7 +98,8 @@ export default model('employee_profile', {
 	},
 	read: {
 		employee_profile: { fields: 'all' },
-		'employee_profile.employee_contract': { fields: 'all' }
+		'employee_profile.employee_contract': { fields: 'all' },
+		'employee_profile.employee_contract.entity_id': { fields: 'all' }
 	},
 	outputs: {
 		// the attendance kiosk: who may punch and their enrolled face
@@ -123,7 +124,7 @@ export default model('employee_profile', {
 			employee_profile: [
 				'name',
 				'source_reference',
-				'first_hired_on',
+				'cumulative_service',
 				'email',
 				'phone',
 				'address',
@@ -155,7 +156,7 @@ export default model('employee_profile', {
 			employee_profile: [
 				'name',
 				'source_reference',
-				'first_hired_on',
+				'cumulative_service',
 				'email',
 				'phone',
 				'address',
@@ -184,6 +185,12 @@ export default model('employee_profile', {
 			);
 		},
 		updated: function* (changes, ctx) {
+			// how service counts moves every service window and band: the person's entitlements sync again
+			const counted = changes.filter(
+				({ before, after }) => before.cumulative_service !== after.cumulative_service
+			);
+			if (counted.length > 0)
+				yield* ctx.schedule('ledger', { employees: counted.map(({ after }) => after.id) });
 			// s.113 register particulars only: email, phone, user_id, face, documents and location are not
 			// register changes, so they do not raise EMPLOYEE_REGISTER_UPDATE.
 			const register = registerChanged(changes);
@@ -194,29 +201,6 @@ export default model('employee_profile', {
 					{ collection: 'employee_profile', ids: register.map(({ after }) => after.id) },
 					register
 				);
-			// a renamed person's employments carry the new name (their pickers and links name them by it)
-			const renamed = new Map(
-				changes
-					.filter(({ before, after }) => before.name !== after.name)
-					.map(({ after }) => [after.id, after.name])
-			);
-			if (renamed.size === 0) return;
-			const { employee_contract } = yield* ctx.query({
-				employee_contract: {
-					where: { employee_id: { in: [...renamed.keys()] }, status: { eq: 'DRAFT' } },
-					fields: ['employee_id']
-				}
-			});
-			if (employee_contract.rows.length > 0)
-				yield* ctx.act.checked([
-					{
-						callable: 'employee_contract.update',
-						input: employee_contract.rows.map((row) => ({
-							target: row.id,
-							set: { employee_name: renamed.get(row.employee_id) ?? null }
-						}))
-					}
-				]);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(

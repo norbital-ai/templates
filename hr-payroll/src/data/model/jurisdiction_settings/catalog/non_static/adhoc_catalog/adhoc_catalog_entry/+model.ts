@@ -11,7 +11,7 @@ import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
 export default model('adhoc_catalog_entry', {
 	description: 'One ad-hoc payment or deduction for an employment.',
-	record_label: "record.employment_id.employee_name + ' · ' + string(record.quantity)",
+	record_label: "record.employment_id.employee_number + ' · ' + string(record.quantity)",
 	label: 'description',
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
@@ -38,6 +38,7 @@ export default model('adhoc_catalog_entry', {
 	read: {
 		adhoc_catalog_entry: { fields: 'all' },
 		'adhoc_catalog_entry.employment_id': { fields: 'all' },
+		'adhoc_catalog_entry.employment_id.employee_id': { fields: ['name'] },
 		'adhoc_catalog_entry.catalog_id': { fields: 'all' },
 		'adhoc_catalog_entry.payroll_run_id': { fields: 'all' }
 	},

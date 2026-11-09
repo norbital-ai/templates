@@ -1,7 +1,6 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"lookup": {
 			"service_bands": [
@@ -202,13 +201,11 @@
 	},
 	{
 		"code": "PRENATAL_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"lookup": {
 			"days": 42,
-			"multiple_pregnancy_days": 98,
-			"no_cap": true
+			"multiple_pregnancy_days": 98
 		},
 		"references": [
 			{
@@ -217,17 +214,15 @@
 		],
 		"id": "2db5a5b9-8824-59cf-98b6-02676e02cc8e",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"description": "Leave before childbirth."
+		"description": "Leave before childbirth.",
+		"paid_share": "0"
 	},
 	{
 		"code": "POSTNATAL_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"lookup": {
-			"days": 56,
-			"no_cap": true
+			"days": 56
 		},
 		"references": [
 			{
@@ -236,12 +231,11 @@
 		],
 		"id": "ca0ec21d-bdf8-5f8b-a89f-c5b172bbe4c0",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"description": "Leave after childbirth."
+		"description": "Leave after childbirth.",
+		"paid_share": "0"
 	},
 	{
 		"code": "CHILDCARE_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"references": [
 			{
@@ -250,19 +244,15 @@
 		],
 		"id": "69ef3ac4-153f-5f07-8859-a1fd84b20487",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"lookup": {
-			"no_cap": true
-		},
-		"description": "Childcare leave."
+		"lookup": {},
+		"description": "Childcare leave.",
+		"paid_share": "0"
 	},
 	{
 		"code": "POSTNATAL_PATERNITY_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"lookup": {
-			"days": 28,
-			"no_cap": true
+			"days": 28
 		},
 		"references": [
 			{
@@ -271,16 +261,14 @@
 		],
 		"id": "2addb296-3699-5994-b7ab-e7f648461ead",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"description": "Paternity leave after childbirth."
+		"description": "Paternity leave after childbirth.",
+		"paid_share": "0"
 	},
 	{
 		"code": "FAMILY_CARE_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"lookup": {
-			"days": 93,
-			"no_cap": true
+			"days": 93
 		},
 		"references": [
 			{
@@ -289,12 +277,11 @@
 		],
 		"id": "a032ee44-b6c4-5af1-9bd9-719942643cf2",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"description": "Leave to care for a family member."
+		"description": "Leave to care for a family member.",
+		"paid_share": "0"
 	},
 	{
 		"code": "CHILD_NURSING_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"lookup": {
 			"days_one_child": 5,
@@ -309,12 +296,11 @@
 		],
 		"id": "263127cb-3cbd-5eef-a8d5-0fc113f308dd",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"description": "Nursing breaks or leave for a child."
+		"description": "Nursing breaks or leave for a child.",
+		"paid_share": "0"
 	},
 	{
 		"code": "FAMILY_CARE_DAYS",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"lookup": {
 			"days_one_recipient": 5,
@@ -329,12 +315,11 @@
 		],
 		"id": "abee30d3-d3bf-56e3-a1c7-c9f57cd51583",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"description": "Days to care for a family member."
+		"description": "Days to care for a family member.",
+		"paid_share": "0"
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"references": [
@@ -344,15 +329,12 @@
 		],
 		"id": "dd3d0415-5835-5a65-9b21-9f98ec09a03f",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"lookup": {
-			"no_cap": true
-		},
-		"description": "Menstrual leave days."
+		"lookup": {},
+		"description": "Menstrual leave days.",
+		"paid_share": "0"
 	},
 	{
 		"code": "CIVIC_DUTY_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"references": [
 			{
@@ -361,15 +343,12 @@
 		],
 		"id": "17619ae2-909f-5a09-9c42-3bc0e48b2e75",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"lookup": {
-			"no_cap": true
-		},
-		"description": "Leave for civic duty."
+		"lookup": {},
+		"description": "Leave for civic duty.",
+		"paid_share": "0"
 	},
 	{
 		"code": "SICKNESS_ABSENCE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"references": [
 			{
@@ -378,15 +357,12 @@
 		],
 		"id": "a06ea0bc-3ee9-53c8-8793-68a52899cde2",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"lookup": {
-			"no_cap": true
-		},
-		"description": "Unpaid sickness absence."
+		"lookup": {},
+		"description": "Unpaid sickness absence.",
+		"paid_share": "0"
 	},
 	{
 		"code": "OCCUPATIONAL_INJURY_ABSENCE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"references": [
 			{
@@ -395,15 +371,12 @@
 		],
 		"id": "7f1d95b8-229a-5ccc-9d4d-afc408935265",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"lookup": {
-			"no_cap": true
-		},
-		"description": "Absence from an occupational injury."
+		"lookup": {},
+		"description": "Absence from an occupational injury.",
+		"paid_share": "0"
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"references": [
 			{
@@ -412,15 +385,12 @@
 		],
 		"id": "984c794b-eae4-51f2-a752-509999d74013",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"lookup": {
-			"no_cap": true
-		},
-		"description": "Unpaid absence from work."
+		"lookup": {},
+		"description": "Unpaid absence from work.",
+		"paid_share": "0"
 	},
 	{
 		"code": "ANNUAL_LEAVE_HOURS",
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"lookup": {
 			"annual_days_cap": 5,
@@ -444,7 +414,6 @@
 	},
 	{
 		"code": "NURSING_TIME",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"references": [
 			{
@@ -453,15 +422,12 @@
 		],
 		"id": "ca71f3c0-87ce-516f-9ada-1279672e28fd",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"lookup": {
-			"no_cap": true
-		},
-		"description": "Paid nursing time."
+		"lookup": {},
+		"description": "Nursing time.",
+		"paid_share": "0"
 	},
 	{
 		"code": "MATERNAL_HEALTH_CHECK",
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"references": [
@@ -471,24 +437,32 @@
 		],
 		"id": "676da764-fff8-5105-b014-8f0fb7064313",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"direction": "DEDUCT",
-		"lookup": {
-			"no_cap": true
-		},
-		"description": "Maternal health-check leave."
+		"lookup": {},
+		"description": "Maternal health-check leave.",
+		"paid_share": "0"
 	},
 	{
 		"code": "SUBSTITUTE_LEAVE_FOR_OVERTIME",
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"references": [
 			{
-				"title": "労働基準法 art.37(3) with 施行規則 art.19の2: paid leave in place of the extra 25% for overtime beyond 60 hours, taken within two months, in half days or days, under a labour-management agreement; it reduces OVERTIME_OVER_60 by OVERTIME_SUBSTITUTED."
+				"title": "労働基準法 art.37(3): under a written labour-management agreement, paid leave (通常の労働時間の賃金が支払われる休暇) may be given in place of the 割増賃金 for overtime beyond 60 hours in a month; the worker takes it.",
+				"locator": "第37条第3項",
+				"url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+				"effective_from": "2010-04-01"
+			},
+			{
+				"title": "労働基準法施行規則 art.19の2: the agreement fixes the hours (overtime hours beyond 60 in the month × the 25% difference between the 50% and 25% rates), the half-day or day unit, and a period from the day after that month ends within two months; art.19の2(3) gives four overtime hours for each hour of leave for which the 50% premium is not paid.",
+				"locator": "第19条の2",
+				"url": "https://laws.e-gov.go.jp/law/322M40000100023",
+				"effective_from": "2010-04-01"
 			}
 		],
 		"id": "7201648f-b505-57e0-8046-2bb2ed2ebe58",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"lookup": {},
+		"lookup": {
+			"grant_days": 0
+		},
 		"description": "Time off in lieu of overtime."
 	}
 ]

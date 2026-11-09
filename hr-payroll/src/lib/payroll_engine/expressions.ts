@@ -649,6 +649,26 @@ export function checkExpression(
 	};
 	visit(tree);
 }
+/** The `ctx` roots a source reads. */
+export function contextRoots(source: string): ReadonlySet<string> {
+	const roots = new Set<string>();
+	const visit = (node: unknown): void => {
+		if (Array.isArray(node)) return node.forEach(visit);
+		if (!isDynObject(node)) return;
+		if (
+			node.type === 'MemberExpression' &&
+			isDynObject(node.object) &&
+			node.object.type === 'Identifier' &&
+			node.object.name === 'ctx' &&
+			isDynObject(node.property) &&
+			typeof node.property.name === 'string'
+		)
+			roots.add(node.property.name);
+		for (const value of Object.values(node)) visit(value);
+	};
+	visit(parseProgram(source));
+	return roots;
+}
 const pure: Readonly<Record<string, FunctionValue>> = {
 	add_minutes: fn((a) => addMinutes(text(a[0]), numeric(a[1]))),
 	elapsed_minutes: fn((a) => elapsedMinutes(a[0], a[1])),

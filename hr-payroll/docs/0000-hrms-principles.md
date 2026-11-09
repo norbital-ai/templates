@@ -41,7 +41,7 @@ An item says who it applies to, how much it is worth, where it sits in the calcu
 
 A published public holiday applies by its date, whether the employee was due to work that day or was on a weekly rest day. Work on a holiday pays the holiday bands, not the rest-day bands. Not coming to work on a holiday is not an absence by itself; HR marks an absence explicitly.
 
-When a public holiday falls on an employee's weekly rest day, the next working day is a paid holiday in substitution. HR records that day as a **PUBLIC_HOLIDAY_IN_LIEU** leave entry; the system does not grant it automatically. The employee's normal week decides eligibility: a five-day week rests on Saturday and Sunday, a six-day week rests on Sunday, and a seven-day roster has no weekly rest day. A Saturday holiday therefore substitutes for a five-day week but not for a six-day week, which works that Saturday. The entry is refused when its date is not the next working day after a rest-day holiday.
+When a public holiday falls on an employee's weekly rest day, HR publishes the substitute day as a holiday that replaces it, given only to those who were off on the replaced date. It is never a leave entry. **PUBLIC_HOLIDAY_IN_LIEU** is a leave balance of its own: nothing by default, a yearly grant only if its rule says so, plus the days HR adds by hand on the employee's balance, each a dated **manual adjustment** naming its cause. A request draws on what is left like any other leave.
 
 ## 2. Entries record what happened
 

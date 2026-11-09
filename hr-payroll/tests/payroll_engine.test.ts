@@ -7,6 +7,7 @@ import {
 	statutoryOrder,
 	type PayrollInput
 } from '../src/lib/payroll_engine/engine.ts';
+import { read } from './kit.ts';
 
 const subtotal = (id: string, code: string, previous_id: string | null) => ({
 	id,
@@ -48,11 +49,10 @@ const input = (): PayrollInput => ({
 		})
 	],
 	leave_catalog: [
-		catalog('npl', 'NPL', { pay_treatment: 'UNPAID' }),
+		catalog('npl', 'NPL', { paid_share: '0' }),
 		catalog('annual', 'ANNUAL_LEAVE', {
-			pay_treatment: 'PAID',
 			subtotal_id: 'gross',
-			conversion: 'return ctx.entry.quantity * 227.27;'
+			payout: 'return ctx.entry.quantity * 227.27;'
 		})
 	],
 	claim_catalog: [],
@@ -90,6 +90,7 @@ const input = (): PayrollInput => ({
 			{
 				id: 'encash-entry',
 				catalog_id: 'annual',
+				encashment: true,
 				days: [
 					{ date: '2026-03-09', part: 'AM' },
 					{ date: '2026-03-09', part: 'PM' },
@@ -136,10 +137,8 @@ describe('linear payroll engine', () => {
 			statutory: [],
 			leave_catalog: [
 				catalog('encash', 'ANNUAL_LEAVE', {
-					pay_treatment: 'PAID',
 					subtotal_id: 'final',
-					conversion:
-						"return get(ctx.entry, 'encashment', false) === true ? ctx.entry.quantity * 100 : 0;"
+					payout: 'return ctx.entry.quantity * 100;'
 				})
 			],
 			entries: {
@@ -211,10 +210,7 @@ describe('linear payroll engine', () => {
 			allowance: [
 				catalog('fixed', 'FIXED_ALLOWANCE', {
 					subtotal_id: 'gross',
-					direction: 'ADD',
-					party: 'EMPLOYEE',
-					conversion: 'return 300;',
-					prorate: true
+					conversion: 'return 300 * ctx.paid_share;'
 				})
 			],
 			entries: {
@@ -241,6 +237,170 @@ describe('linear payroll engine', () => {
 				['CPF', 3854.54],
 				['NET', 3854.54]
 			]
+		);
+	});
+
+	describe('a leave slot pays its paid_share of a normal day', () => {
+		// 5,000 over March's 22 working days: 227.27 a day; two days
+		const TWO_DAYS = [
+			{ date: '2026-03-05', part: 'AM' },
+			{ date: '2026-03-05', part: 'PM' },
+			{ date: '2026-03-06', part: 'AM' },
+			{ date: '2026-03-06', part: 'PM' }
+		];
+		const priced = (
+			row: Record<string, unknown>,
+			extra: Record<string, unknown> = {},
+			over: Partial<PayrollInput> = {}
+		) =>
+			calculatePayroll({
+				...input(),
+				statutory: [],
+				leave_catalog: [catalog('leave', 'LEAVE', { subtotal_id: 'base', ...row })],
+				entries: {
+					leave_catalog_entry: [
+						{ id: 'leave-entry', catalog_id: 'leave', days: TWO_DAYS, ...extra }
+					]
+				},
+				...over
+			});
+		const leaveLines = (result: ReturnType<typeof calculatePayroll>) =>
+			result.lines.filter((row) => row.code === 'LEAVE').map((row) => [row.direction, row.amount]);
+		const base = (result: ReturnType<typeof calculatePayroll>) =>
+			result.subtotals.find((row) => row.code === 'BASE')?.value;
+
+		it('empty or 1 is a normal paid day: no line, the salary stands', () => {
+			for (const row of [{}, { paid_share: '1' }]) {
+				const result = priced(row);
+				assert.deepEqual(leaveLines(result), []);
+				assert.equal(base(result), 5000);
+			}
+		});
+		it('0 takes the days off the salary by the share of the period paid', () => {
+			const result = priced({ paid_share: '0' });
+			assert.deepEqual(leaveLines(result), []);
+			assert.equal(base(result), 4545.45);
+		});
+		it('0.5 takes half of each day off, as a number or an expression', () => {
+			for (const paid_share of ['0.5', 'return 0.5;']) {
+				const result = priced({ paid_share });
+				assert.deepEqual(leaveLines(result), []);
+				// one day of 22 lost
+				assert.equal(base(result), 4772.73);
+			}
+		});
+		it('refuses a share outside 0 to 1', () => {
+			for (const paid_share of ['1.5', 'return -0.5;'])
+				assert.throws(() => priced({ paid_share }), /from 0 to 1 of a normal day/);
+		});
+		it('a reversal gives back the original month’s unpaid part on its refund line', () => {
+			const result = priced({ paid_share: '0.5' }, { reverses: 'earlier' });
+			assert.deepEqual(leaveLines(result), [['ADD', 227.27]]);
+			assert.equal(base(result), 5227.27);
+		});
+		it('an encashment takes no day off and pays its payout', () => {
+			const result = priced(
+				{ paid_share: '0', payout: 'return ctx.entry.quantity * 100;' },
+				{ encashment: true }
+			);
+			assert.deepEqual(leaveLines(result), [['ADD', 200]]);
+			assert.equal(base(result), 5200);
+		});
+		it('steps down inside one entry where the illness passes its fourth month (Indonesia)', () => {
+			const medical = read('seed/public/jurisdiction/ID/version_3/leave_catalog.json').find(
+				(row) => row.code === 'MEDICAL_LEAVE'
+			);
+			const result = priced(
+				{
+					paid_share: medical?.paid_share,
+					lookup: {
+						opened_by: { LONG_ILLNESS: { days: 0 } },
+						pay_steps: [
+							{ until_month: 4, unpaid_share: 0 },
+							{ until_month: null, unpaid_share: 0.25 }
+						]
+					}
+				},
+				{
+					days: [
+						{ date: '2026-03-19', part: 'AM' },
+						{ date: '2026-03-19', part: 'PM' },
+						{ date: '2026-03-20', part: 'AM' },
+						{ date: '2026-03-20', part: 'PM' }
+					]
+				},
+				{
+					employment: {
+						...input().employment,
+						events: [{ kind: 'LONG_ILLNESS', on: '2025-11-20' }]
+					}
+				}
+			);
+			// 19 March is the illness's third month, paid in full; 20 March its fourth, which loses a quarter
+			assert.equal(base(result), 4943.18);
+		});
+		it('reads the days its window used before each slot (a sick pool at half pay)', () => {
+			const result = priced(
+				{
+					paid_share: 'return ctx.used < ctx.lookup.pool_days ? 0.5 : 0;',
+					lookup: { pool_days: 1 }
+				},
+				{},
+				{
+					balance: {
+						...input().balance,
+						// half a day earlier in the year, and this entry's two
+						leave: { LEAVE: { 'SG.Y.2026-01-01': { used: 2.5 } } }
+					}
+				}
+			);
+			// the first slot is inside the pool at half pay; the other three are past it and pay nothing
+			assert.equal(base(result), 4602.27);
+		});
+	});
+
+	it('prorates an allowance for a mid-month joiner by the share of the period paid', () => {
+		const result = calculatePayroll({
+			...input(),
+			statutory: [],
+			employed: [{ from: '2026-03-16', to: null }],
+			allowance: [
+				catalog('fixed', 'FIXED_ALLOWANCE', {
+					subtotal_id: 'gross',
+					conversion: 'return 300 * ctx.paid_share;'
+				})
+			],
+			entries: {}
+		});
+		// 12 of March's 22 working days, as the salary: 300 × 12 ÷ 22
+		assert.equal(result.lines.find((row) => row.code === 'FIXED_ALLOWANCE')?.amount, 163.64);
+		assert.equal(result.subtotals.find((row) => row.code === 'BASE')?.value, 2727.27);
+	});
+
+	it('pays a claim to the employee, and its reversal flips the line', () => {
+		const claimed = (reverses: string | null) =>
+			calculatePayroll({
+				...input(),
+				statutory: [],
+				claim_catalog: [
+					catalog('medical', 'MEDICAL', {
+						subtotal_id: 'net',
+						conversion: 'return ctx.entry.quantity;'
+					})
+				],
+				entries: {
+					claim_catalog_entry: [
+						{ id: 'claim', catalog_id: 'medical', quantity: 80, unit: 'MONEY', reverses }
+					]
+				}
+			}).lines.filter((row) => row.code === 'MEDICAL');
+		assert.deepEqual(
+			claimed(null).map((row) => [row.direction, row.party, row.amount]),
+			[['ADD', 'EMPLOYEE', 80]]
+		);
+		assert.deepEqual(
+			claimed('earlier').map((row) => [row.direction, row.amount]),
+			[['DEDUCT', 80]]
 		);
 	});
 

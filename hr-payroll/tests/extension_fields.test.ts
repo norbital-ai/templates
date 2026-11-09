@@ -139,6 +139,8 @@ describe('country extension fields', () => {
 							'calculation',
 							'eligibility',
 							'conversion',
+							'paid_share',
+							'payout',
 							'incurred_on',
 							'employee_amount',
 							'employer_amount',

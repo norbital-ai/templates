@@ -22,7 +22,8 @@ export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reade
 	const second = yield* queryRows(read, {
 		jurisdiction_settings: { where: { id: { eq: settingsId } }, limit: 1 },
 		entity: { where: { id: { eq: text(run.entity_id) } }, limit: 1 },
-		employee_contract: { where: { id: { in: employmentIds } }, limit: 10000 }
+		employee_contract: { where: { id: { in: employmentIds } }, limit: 10000 },
+		'employee_contract.employee_id': { fields: ['name'] }
 	});
 	const currency = text((second.jurisdiction_settings ?? [])[0]?.currency);
 	const entityName = text((second.entity ?? [])[0]?.name);
@@ -31,11 +32,13 @@ export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reade
 	return slips.map((slip): PayrollExportRow => {
 		const contract = contracts.get(text(slip.employment_id)),
 			bank = contract !== undefined && isJsonObject(contract.bank) ? contract.bank : {};
-		const bankAccountName = text(bank.bank_account_name) || text(contract?.employee_name);
+		const person =
+			contract !== undefined && isJsonObject(contract.employee_id) ? contract.employee_id : {};
+		const bankAccountName = text(bank.bank_account_name) || text(person.name);
 		return {
 			payroll_run_id: runId,
 			employee_number: text(contract?.employee_number),
-			employee_name: text(contract?.employee_name),
+			employee_name: text(person.name),
 			entity_name: entityName,
 			bank_name: text(bank.bank_name),
 			bank_code: text(bank.bank_code),

@@ -40,7 +40,7 @@ A model with many optional attributes is not flexible; it is a table of independ
 nobody wrote down. The producer catalogs are the current example:
 
 ```text
-subtotal_id, direction, party, off_cycle_eligible, prorate, include_in_rate, conversion, eligibility, ...
+subtotal_id, direction, party, off_cycle_eligible, include_in_rate, conversion, eligibility, ...
 ```
 
 Every combination is representable, but only a few are legal. The seed audit shows the field product is larger than the
@@ -73,7 +73,7 @@ workplace case; removed `party` from overtime, leave and loan; removed `directio
 | what was agreed: rate, hours, allowances, facts        | `employee_contract`                                                     |
 | how this law converts: day/hour/proration/rounding     | one typed `conversions` block on `jurisdiction_settings`                |
 | whether an allowance is in the rate a day/hour divides | that `allowance_catalog` row (`include_in_rate`)                        |
-| whether an allowance line follows absence              | that `allowance_catalog` row (`prorate`)                                |
+| whether an allowance line follows absence              | that `allowance_catalog` row (`conversion` reads `ctx.paid_share`)      |
 | what one catalog family pays or decides                | that row's `lookup`/params                                              |
 | what one rule or effect decides                        | that rule/effect                                                        |
 | a rate table read by many rows                         | `jurisdiction_settings.lookup`, with a declared shape                   |
@@ -90,7 +90,7 @@ These are the owner's words, recorded as rules.
 
 1. **One owner per fact.** A link, date or child row decides a state; do not store a second boolean for it.
 2. **No global behaviour switch.** Per-row behaviour belongs on the row. `allowance_catalog.include_in_rate` owns rate
-   inclusion; `prorate` owns absence reduction; they are independent.
+   inclusion; a conversion reading `ctx.paid_share` owns absence reduction; they are independent.
 3. **No variable allowances.** Every allowance amount is fixed. `purpose`, `variability`, `fixed` and the old
    `allowance_inclusion` enum are gone.
 4. **No constant hoisting.** Each constant lives with its reader:

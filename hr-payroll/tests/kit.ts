@@ -106,17 +106,8 @@ export const pack = (
 		normal_days_per_week: 5,
 		...terms
 	};
-	const {
-		events,
-		work_region,
-		children,
-		dependents_count,
-		only_child,
-		nationality,
-		birth_city,
-		passport_number,
-		...statutory
-	} = extension;
+	const { events, work_region, family, nationality, birth_city, passport_number, ...statutory } =
+		extension;
 	terms = { ...terms, ...(work_region === undefined ? {} : { work_region }) };
 	const root = join(process.cwd(), 'seed/public/jurisdiction', code);
 	let settings = '';
@@ -181,16 +172,12 @@ export const pack = (
 				employee_id: uuid(4),
 				entity_id: ENTITY,
 				employee_number: 'W1',
-				employee_name: 'Worker',
 				engagement: 'EMPLOYEE',
 				status: 'SEALED',
 				effective_range: { from: '2025-01-01', to: null },
-				input_schema_version_id: settings,
 				terms,
 				...(events === undefined ? {} : { events }),
-				...(children === undefined ? {} : { children }),
-				...(dependents_count === undefined ? {} : { dependents_count }),
-				...(only_child === undefined ? {} : { only_child }),
+				...(family === undefined ? {} : { family }),
 				payroll: {
 					date_of_birth: '1990-01-01',
 					gender: 'MALE',
@@ -287,9 +274,9 @@ export const reversalSlots = (t: Kit, entry: Id<'leave_catalog_entry'>) =>
 			)
 		);
 
-/** A catalog row's id on the version a pack's contract is sealed on. */
+/** A catalog row's id on the version in force on the pack's day. */
 export const catalogRow = (seed: ReturnType<typeof pack>, model: string, code: string): string => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed[model] ?? []).find((r) => r.code === code && r.settings_id === version);
 	if (row === undefined) throw new Error(`No ${code} on ${model}`);
 	return String(row.id);
@@ -366,10 +353,7 @@ export const sealEvents = (t: Kit, on: string, events: readonly JsonObject[], by
 				terms: held.terms,
 				payroll: held.payroll,
 				bank: held.bank,
-				children: held.children,
-				dependents_count: held.dependents_count,
-				only_child: held.only_child,
-				input_schema_version_id: held.input_schema_version_id,
+				family: held.family,
 				employee_extension_data: held.employee_extension_data,
 				events: events.map((event) => ({
 					...event,

@@ -7,7 +7,7 @@ Norbius reads [`+agent.md`](./+agent.md). This file maps the source and the refa
 Read [section 0 of the calculation architecture](../../docs/0001-hrms-calculation-architecture.md#0-the-design-is-fixed) before you touch anything here. It is the owner's design, and you wire around it. In short:
 
 1. Catalogs, catalog entries and reversal entries. A refund or correction is a reversal or adjustment entry against a catalog item.
-2. `ledger_entry` moves only by posting, in the write of the entry or run that posts, or by sync, through the `ledger` automation. Loans stay out. The balance is its projection and replaces payroll history.
+2. `ledger_entry` moves only by posting, in the write of the entry or run that posts, by sync, through the `ledger` automation, or by HR's manual adjustment on the employee profile (`manual:<id>`, with its `note`). Loans stay out. The balance is its projection and replaces payroll history.
 3. Linear computation: one subtotal chain, then statutory schemes in dependency order.
 4. Jurisdiction settings hold only shared rate tables, each with a declared shape; a value read by one row lives on that row. Registered rules validate; registered effects are side effects; reads happen once, up front.
 5. Simplicity: thin models, a thin payroll run, and no field or engine concept the owner did not ask for.
@@ -66,7 +66,7 @@ roster_entry/
 
 - Apps: `hr_controller/{entities,events,formats,payroll,people,settings}`, `hr_employee`
 - Kiosk: `attendance`
-- Automations: `contract_exits`, `contract_materialize`, `encashment`, `entity_materialize`, `invitation_profile`, `ledger`, `statutory_research`, `statutory_materialize`
+- Automations: `contract_materialize`, `encashment`, `entity_materialize`, `invitation_profile`, `ledger`, `statutory_research`, `statutory_materialize`
 - Policies: `configuration_execution`, `employee`, `hr_controller`, `hr_manager`, `invitation_profile_automation`, `kiosk`, `manager`, `payroll_execution`, `senior_management`, `supervisor`
 - Shared code: `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
 

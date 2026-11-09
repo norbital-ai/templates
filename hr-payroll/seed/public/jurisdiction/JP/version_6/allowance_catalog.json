@@ -11,7 +11,6 @@
 		"subtotal_id": "c28714f9-4434-5a8d-87af-9e01d2f12515",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.ATTENDANCE_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.ATTENDANCE_ALLOWANCE.amount', 0));",
-		"party": "EMPLOYEE",
 		"id": "69f2cac0-3273-5759-b47a-39754a2030ec",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"include_in_rate": true
@@ -30,7 +29,6 @@
 		"subtotal_id": "474bac3b-7e80-5a4e-a3c5-b0345528667a",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\n// 所得税法施行令 art.20の2: transit to 150,000 a month; a car or bicycle by one-way distance, plus a car park and any transit fare, within that 150,000.\nconst facts = ctx.subject.employment.employee_extension_data;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0));\nconst km = get(facts, 'commute_car_km_one_way', null);\nconst band = km == null ? null : ctx.lookup.car_distance_bands.find((row) => row.below == null || Number(km) < row.below);\nconst parking = band == null || band.amount === 0 ? 0 : Math.min(Number(get(facts, 'commute_parking_fee', 0)), ctx.lookup.parking_monthly_cap);\nconst car = band == null ? ctx.lookup.commuting_monthly_limit : band.amount + parking + Number(get(facts, 'commute_transit_fare', 0));\nconst limit = Math.min(car, ctx.lookup.commuting_monthly_limit);\nreturn Math.min(amount, limit);",
-		"party": "EMPLOYEE",
 		"id": "e3d23fb2-39b4-5a9f-b145-578105bf9e92",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"include_in_rate": true
@@ -50,7 +48,6 @@
 		"subtotal_id": "c28714f9-4434-5a8d-87af-9e01d2f12515",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\n// 所得税法施行令 art.20の2: transit to 150,000 a month; a car or bicycle by one-way distance, plus a car park and any transit fare, within that 150,000.\nconst facts = ctx.subject.employment.employee_extension_data;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0));\nconst km = get(facts, 'commute_car_km_one_way', null);\nconst band = km == null ? null : ctx.lookup.car_distance_bands.find((row) => row.below == null || Number(km) < row.below);\nconst parking = band == null || band.amount === 0 ? 0 : Math.min(Number(get(facts, 'commute_parking_fee', 0)), ctx.lookup.parking_monthly_cap);\nconst car = band == null ? ctx.lookup.commuting_monthly_limit : band.amount + parking + Number(get(facts, 'commute_transit_fare', 0));\nconst limit = Math.min(car, ctx.lookup.commuting_monthly_limit);\nreturn Math.max(0, amount - limit);",
-		"party": "EMPLOYEE",
 		"id": "cd06679e-4dbb-51d5-82c6-e33cd890a2cd",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"include_in_rate": true
@@ -69,7 +66,6 @@
 		"subtotal_id": "c28714f9-4434-5a8d-87af-9e01d2f12515",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FAMILY_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FAMILY_ALLOWANCE.amount', 0));",
-		"party": "EMPLOYEE",
 		"id": "debe60a9-3a79-5b83-a6fb-4cd899573350",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"include_in_rate": true
@@ -85,11 +81,9 @@
 		],
 		"subtotal_id": "c28714f9-4434-5a8d-87af-9e01d2f12515",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) > 0;",
-		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));",
-		"party": "EMPLOYEE",
+		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) * ctx.paid_share;",
 		"id": "ecdc0474-ba41-5049-a395-8e7442d7d9fa",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"prorate": true,
 		"include_in_rate": true
 	},
 	{
@@ -104,7 +98,6 @@
 		"subtotal_id": "c28714f9-4434-5a8d-87af-9e01d2f12515",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.HOUSING_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.HOUSING_ALLOWANCE.amount', 0));",
-		"party": "EMPLOYEE",
 		"id": "3f1cf3bb-5b34-5e7e-a050-68a793db6436",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"include_in_rate": true

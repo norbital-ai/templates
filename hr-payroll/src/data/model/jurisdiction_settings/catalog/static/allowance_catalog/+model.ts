@@ -30,8 +30,6 @@ export default model('allowance_catalog', {
 		references: { kind: 'custom', of: 'references', optional: true },
 		eligibility: { kind: 'text', max: 65536 },
 		conversion: { kind: 'text', max: 65536 },
-		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
-		prorate: { kind: 'bool', default: false },
 		/** Whether this allowance is part of the wage a day or hour rate divides. */
 		include_in_rate: { kind: 'bool', default: false },
 		settings_id: {
@@ -58,15 +56,11 @@ export default model('allowance_catalog', {
 				'references',
 				'eligibility',
 				'conversion',
-				'party',
-				'prorate',
 				'include_in_rate',
 				'settings_id'
 			]
 		},
 		transform: function* (rows, ctx) {
-			if (rows.some((row) => row.include_in_rate === true && row.party === 'EMPLOYER'))
-				return yield* ctx.refuse('An employer-only allowance cannot be part of the employee rate.');
 			yield* guardConfigurationRows(
 				ctx.db.query,
 				'allowance_catalog',
@@ -86,20 +80,10 @@ export default model('allowance_catalog', {
 				'references',
 				'eligibility',
 				'conversion',
-				'party',
-				'prorate',
 				'include_in_rate'
 			]
 		},
 		transform: function* (changes, ctx) {
-			if (
-				changes.some(
-					({ before, set }) =>
-						({ ...before, ...set }).include_in_rate === true &&
-						{ ...before, ...set }.party === 'EMPLOYER'
-				)
-			)
-				return yield* ctx.refuse('An employer-only allowance cannot be part of the employee rate.');
 			yield* guardConfigurationRows(
 				ctx.db.query,
 				'allowance_catalog',

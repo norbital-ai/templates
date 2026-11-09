@@ -5,8 +5,7 @@
 	import { contractCategories } from './contract_categories.js';
 	import AllowanceTermsEditor from './allowance_terms_editor.svelte';
 
-	let { field }: { field: FieldEditor } = $props();
-	const versionId = $derived(field.form.values['input_schema_version_id']);
+	let { field, versionId }: { field: FieldEditor; versionId: string | null } = $props();
 	const settings = $derived(
 		typeof versionId === 'string'
 			? bolt.query({
@@ -58,6 +57,14 @@
 		set('statutory_work_category', categories.statutory);
 		set('work_authorisation_category', categories.pass);
 		set('work_classification', categories.classification);
+		// the employee-borne tax items are the agreed allowances
+		const items = fields['employee_borne_tax_items'];
+		const agreed =
+			valueObject(field.value) && valueObject(field.value['allowances'])
+				? Object.keys(field.value['allowances'])
+				: [];
+		if (items?.kind === 'list' && agreed.length > 0)
+			fields['employee_borne_tax_items'] = { ...items, of: { kind: 'enum', values: agreed } };
 		return { ...field.kind, fields };
 	});
 	const terms = $derived(valueObject(field.value) ? field.value : {});

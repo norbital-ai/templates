@@ -1,5 +1,5 @@
 import { model } from '@norbital-ai/bolt';
-import { syncLate, writesLedger } from '../../../../../lib/ledger/service.js';
+import { manualAdjustments, syncLate, writesLedger } from '../../../../../lib/ledger/service.js';
 import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 
 export default model('ledger_entry', {
@@ -33,6 +33,11 @@ export default model('ledger_entry', {
 			kind: 'text',
 			optional: true,
 			help: 'What caused this movement. Plain text, so a movement outlives what caused it.'
+		},
+		note: {
+			kind: 'text',
+			optional: true,
+			help: "The cause of HR's manual adjustment."
 		}
 	},
 	read: 'all',
@@ -48,13 +53,19 @@ export default model('ledger_entry', {
 				'effective_on',
 				'period',
 				'measure',
-				'source'
+				'source',
+				'note'
 			]
 		},
 		transform: function* (rows, ctx) {
-			if (!writesLedger(ctx))
-				return yield* ctx.refuse('Only posting and sync write the ledger, an admin included.');
-			return rows;
+			if (writesLedger(ctx)) return rows;
+			// HR's manual adjustment is the one write by hand, and only of its own shape
+			if (!ctx.policies.includes('hr_controller'))
+				return yield* ctx.refuse(
+					"Only posting, sync and HR's manual adjustments write the ledger, an admin included."
+				);
+			const { keys, onApproved } = yield* manualAdjustments(ctx.db.query, rows.map(jsonObject));
+			return { rows: rows.map((row, index) => ({ ...row, ...keys[index] })), onApproved };
 		}
 	},
 	effect: {

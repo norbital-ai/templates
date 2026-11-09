@@ -116,7 +116,7 @@ const catalogId = <M extends 'adhoc_catalog' | 'leave_catalog'>(
 	model: M,
 	code: string
 ) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = seed[model]?.find((item) => item.code === code && item.settings_id === version);
 	assert.ok(row !== undefined, code);
 	return idOf(model, String(row.id));
@@ -628,19 +628,11 @@ const leave = (
 			})
 		]);
 	});
-/** The row as it was before the line: UNPAID, so the salary basis takes the days. */
+/** The row as it was before the line: converting at 0, so the salary basis takes the days. */
 const onBasis = (seed: Seed): Seed => ({
 	...seed,
 	leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-		row.code === 'UNPAID_LEAVE'
-			? {
-					...row,
-					pay_treatment: 'UNPAID',
-					subtotal_id: null,
-					conversion: null,
-					direction: 'ADD'
-				}
-			: row
+		row.code === 'UNPAID_LEAVE' ? { ...row, subtotal_id: null, paid_share: '0' } : row
 	)
 });
 const lineOf = (lines: PayslipBreakdown['lines'], code: string) =>
@@ -690,7 +682,10 @@ describe('a no-pay day', () => {
 					const [slip] = yield* slips(t, '2026-06');
 					assert.ok(slip !== undefined);
 					assert.equal(lineOf(slip.lines, 'UNPAID_LEAVE'), 0);
-					within(checkpoint(slip.checkpoints, 'BASIC'), salary - salary / 44);
+					within(
+						checkpoint(slip.checkpoints, 'BASIC'),
+						one.code === 'PH' ? salary - (salary * 12) / 261 / 2 : salary - salary / 44
+					);
 				})
 			)
 		);
@@ -778,8 +773,8 @@ describe('a no-pay day', () => {
 				yield* onCycle(t, '2026-06');
 				const [slip] = yield* slips(t, '2026-06');
 				assert.ok(slip !== undefined);
-				within(lineOf(slip.lines, 'meal'), 2100);
-				within(checkpoint(slip.checkpoints, 'STATUTORY_WAGES'), 42_000);
+				within(lineOf(slip.lines, 'meal'), 2098.85);
+				within(checkpoint(slip.checkpoints, 'STATUTORY_WAGES'), 41_977.01);
 			})
 		);
 	});
@@ -863,8 +858,7 @@ describe('a work-authorisation check runs at every payslip', () => {
 					...contract,
 					id: uuid(33),
 					employee_id: uuid(31),
-					employee_number: 'W2',
-					employee_name: 'Second'
+					employee_number: 'W2'
 				}
 			]
 		};

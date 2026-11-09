@@ -13,8 +13,6 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"eligibility": "// js\n\tconst ended = get(ctx.subject.employment.effective_range, 'to', null);\n\treturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\n\treturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "3c4f89d6-f590-5f13-9584-40c5822d71ef",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
 		"description": "Travel reimbursement."

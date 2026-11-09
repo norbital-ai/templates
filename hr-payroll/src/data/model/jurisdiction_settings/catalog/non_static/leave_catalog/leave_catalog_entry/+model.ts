@@ -13,7 +13,6 @@ import {
 	entryRead
 } from '../../../../../../../lib/ledger/service.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
-import { assertInLieu } from '../../../../../../../lib/ledger/in_lieu.js';
 
 const slots = (days: unknown): Set<string> =>
 	new Set(
@@ -23,7 +22,7 @@ const slots = (days: unknown): Set<string> =>
 	);
 export default model('leave_catalog_entry', {
 	description: 'One leave request: dated half-day slots for an employment.',
-	record_label: "record.employment_id.employee_name + ' · ' + record.catalog_id.code",
+	record_label: "record.employment_id.employee_number + ' · ' + record.catalog_id.code",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'leave_catalog_entry' },
@@ -88,7 +87,6 @@ export default model('leave_catalog_entry', {
 				yield* assertReversals(known, 'leave_catalog_entry', entries);
 				yield* assertLeft(known, entries, String(ctx.today));
 				yield* assertOpenPeriod(known, entries);
-				yield* assertInLieu(ctx.db.query, known, entries);
 			}
 			return { rows, onApproved: entryPostings(known, 'leave_catalog_entry', entries) };
 		}
@@ -169,7 +167,6 @@ export default model('leave_catalog_entry', {
 					changes.map((change) => jsonObject(change.before))
 				);
 				yield* assertOpenPeriod(known, proposed);
-				yield* assertInLieu(ctx.db.query, known, proposed);
 			}
 			return {
 				rows: changes.map((c) => c.set),
@@ -192,18 +189,24 @@ export default model('leave_catalog_entry', {
 						leave_entry_id: { in: rows.map((row) => row.id) },
 						payroll_run_id: { isNull: false }
 					},
-					fields: ['id'],
+					fields: ['leave_entry_id'],
 					limit: 1
 				}
 			});
-			if (captured.leave_catalog_entry_day.rows.length > 0)
+			const [paid] = captured.leave_catalog_entry_day.rows;
+			if (paid !== undefined)
 				return yield* ctx.refuse(
-					'Leave days already paid by a payroll run cannot be deleted. Create a reversal for those days.'
+					rows.find((row) => row.id === paid.leave_entry_id)?.reverses != null
+						? 'A payroll run has paid this reversal back, so it can no longer be cancelled.'
+						: 'Leave days already paid by a payroll run cannot be deleted. Create a reversal for those days.'
 				);
 			if (!ctx.approving) {
+				// a deleted entry takes nothing; a cancelled reversal takes back the half-days it freed
 				yield* assertLeft(
 					known,
-					rows.map((row) => jsonObject({ ...row, reverses: row.reverses ?? 'delete' })),
+					rows.map((row) =>
+						jsonObject({ ...row, reverses: row.reverses == null ? 'delete' : null })
+					),
 					String(ctx.today)
 				);
 			}

@@ -2,48 +2,8 @@
 	{
 		"code": "ANNUAL_LEAVE",
 		"lookup": {
-			"encash_on_exit": {
-				"allowed": true,
-				"refused_on": ["MISCONDUCT_DISMISSAL"]
-			},
 			"window": "SERVICE_YEAR",
 			"service_bands": [
-				{
-					"service_months": 3,
-					"days": 2
-				},
-				{
-					"service_months": 4,
-					"days": 2
-				},
-				{
-					"service_months": 5,
-					"days": 3
-				},
-				{
-					"service_months": 6,
-					"days": 4
-				},
-				{
-					"service_months": 7,
-					"days": 4
-				},
-				{
-					"service_months": 8,
-					"days": 5
-				},
-				{
-					"service_months": 9,
-					"days": 5
-				},
-				{
-					"service_months": 10,
-					"days": 6
-				},
-				{
-					"service_months": 11,
-					"days": 6
-				},
 				{
 					"service_months": 12,
 					"days": 8
@@ -73,12 +33,13 @@
 					"days": 14
 				}
 			],
+			"proration": "COMPLETED_MONTHS",
+			"first_year_days": 7,
 			"eligibility_months": 3,
 			"carry": {
 				"windows": 1
 			}
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": "7d653d26-e890-5ffa-a47a-b434e3698f51",
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -89,8 +50,8 @@
 				"effective_from": "2027-01-01"
 			},
 			{
-				"title": "Employment Act 1968 s.88A(3) — unused annual leave is paid on termination except misconduct; MOM termination guidance",
-				"locator": "s.88A(3)",
+				"title": "Employment Act 1968 s.88A(8) — unused annual leave is paid on termination except misconduct; MOM termination guidance",
+				"locator": "s.88A(8)",
 				"url": "https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice",
 				"effective_from": "2027-01-01"
 			},
@@ -115,8 +76,8 @@
 		],
 		"id": "21cf365f-8cc3-59b9-ade4-0b5ab10e22b5",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n",
-		"description": "Paid annual leave accrued by service."
+		"description": "Paid annual leave accrued by service.",
+		"payout": "// js\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n"
 	},
 	{
 		"code": "SICK_LEAVE",
@@ -142,7 +103,6 @@
 			],
 			"eligibility_months": 3
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -187,7 +147,6 @@
 			],
 			"eligibility_months": 3
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -221,7 +180,6 @@
 			},
 			"eligibility_months": 3
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -255,7 +213,6 @@
 			},
 			"eligibility_months": 3
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'MALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -303,7 +260,6 @@
 				}
 			]
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"references": [
 			{
@@ -325,10 +281,7 @@
 	},
 	{
 		"code": "UNPAID_INFANT_CARE_LEAVE",
-		"lookup": {
-			"no_cap": true
-		},
-		"pay_treatment": "UNPAID",
+		"lookup": {},
 		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
 		"references": [
 			{
@@ -340,8 +293,8 @@
 		],
 		"id": "0df1479b-c088-5b86-8f9b-aa100013bd2a",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"direction": "DEDUCT",
-		"description": "UNPAID_INFANT_CARE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "UNPAID_INFANT_CARE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "ADOPTION_LEAVE",
@@ -356,7 +309,6 @@
 			},
 			"eligibility_months": 3
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -386,9 +338,8 @@
 				"CHILD_BIRTH": {}
 			},
 			"eligibility_months": 3,
-			"entitlement": "// js\n// Child leave is a shared pool: 10 weeks from 1 April 2026, 6 weeks before. Each parent defaults to half;\n// an HR-approved transfer is recorded as a manual per-child allocation under the leave catalogue code.\nconst birth = String(get(ctx, 'event.on', ctx.as_of));\nconst allocated = get(ctx.subject.employment, 'child_leave_allocations.SHARED_PARENTAL_LEAVE.' + birth, null);\nif (allocated != null) return Number(allocated);\nreturn (birth >= '2026-04-01' ? 70 : 42) / 2;"
+			"entitlement": "// js\n// Child leave is a shared pool: 10 weeks from 1 April 2026, 6 weeks before. Each parent defaults to half;\n// an HR-approved transfer is the child's own allocation under the leave catalogue code.\nconst birth = String(get(ctx, 'event.on', ctx.as_of));\nconst allocated = get(get(ctx.subject.employment, 'family', []).find((member) => member.relation === 'CHILD' && get(member, 'born_on', null) === birth), 'allocations.SHARED_PARENTAL_LEAVE', null);\nif (allocated != null) return Number(allocated);\nreturn (birth >= '2026-04-01' ? 70 : 42) / 2;"
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -411,10 +362,7 @@
 	},
 	{
 		"code": "NS_LEAVE",
-		"lookup": {
-			"no_cap": true
-		},
-		"pay_treatment": "UNPAID",
+		"lookup": {},
 		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
 		"references": [
 			{
@@ -426,32 +374,37 @@
 		],
 		"id": "bdc7a030-5b6c-5b05-8eba-ebc330a74b4b",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"direction": "DEDUCT",
-		"description": "NS_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "NS_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"lookup": {},
-		"pay_treatment": "PAID",
+		"lookup": {
+			"grant_days": 0,
+			"window": "LIFETIME"
+		},
 		"subtotal_id": null,
 		"references": [
 			{
-				"title": "Employment Act 1968 s.88(1)(a),(1)(c),(4A) — a substituted day off in lieu of a public holiday",
-				"locator": "s.88",
+				"title": "Employment Act 1968 s.88(1)(a),(1)(c),(4A) — another day by agreement, a day off in substitution for a holiday on a non-working day, or time off in lieu of a holiday worked; each paid; the Act sets no time limit to take the day, so it stands until taken",
+				"locator": "s.88(1)(a),(1)(c),(4A)",
 				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "MOM, Public holidays: entitlement and pay — another day off or a day's salary for a holiday on a non-working day; time off in lieu of a holiday worked by agreement; no deadline to take either",
+				"locator": "Public holidays",
+				"url": "https://www.mom.gov.sg/employment-practices/public-holidays-entitlement-and-pay",
 				"effective_from": "2027-01-01"
 			}
 		],
 		"id": "7bc6f926-4063-52fc-9c12-fc811581633a",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"description": "A paid day in lieu of a public holiday worked."
+		"description": "A paid day off in substitution for a public holiday worked or falling on a non-working day; HR grants each through a leave adjustment."
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"lookup": {
-			"no_cap": true
-		},
-		"pay_treatment": "UNPAID",
+		"lookup": {},
 		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
 		"references": [
 			{
@@ -463,50 +416,14 @@
 		],
 		"id": "4ca40a49-ea75-5239-9497-9113700197ac",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"direction": "DEDUCT",
-		"description": "Unpaid absence from work."
+		"description": "Unpaid absence from work.",
+		"paid_share": "0"
 	},
 	{
 		"code": "ANNUAL_LEAVE_PART_TIME",
 		"lookup": {
 			"window": "SERVICE_YEAR",
 			"service_bands": [
-				{
-					"service_months": 3,
-					"days": 2
-				},
-				{
-					"service_months": 4,
-					"days": 2
-				},
-				{
-					"service_months": 5,
-					"days": 3
-				},
-				{
-					"service_months": 6,
-					"days": 4
-				},
-				{
-					"service_months": 7,
-					"days": 4
-				},
-				{
-					"service_months": 8,
-					"days": 5
-				},
-				{
-					"service_months": 9,
-					"days": 5
-				},
-				{
-					"service_months": 10,
-					"days": 6
-				},
-				{
-					"service_months": 11,
-					"days": 6
-				},
 				{
 					"service_months": 12,
 					"days": 8
@@ -536,6 +453,8 @@
 					"days": 14
 				}
 			],
+			"proration": "COMPLETED_MONTHS",
+			"first_year_days": 7,
 			"eligibility": {
 				"engagement": "PART_TIME"
 			},
@@ -544,10 +463,11 @@
 				"windows": 1
 			},
 			"part_time_pro_rata": true,
-			"full_time_weekly_hours": 44
+			"full_time_weekly_hours": 44,
+			"full_time_days_per_week": 5.5,
+			"entitlement": "// js\n// Employment (Part-Time Employees) Regulations reg.7(1): the similar full-time annual leave under EA s.88A in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst bands = ctx.lookup.service_bands;\nconst firstBand = bands[0];\nconst at = bands.filter((band) => band.service_months <= months);\nlet full = 0;\nif (months < firstBand.service_months) full = (ctx.lookup.first_year_days * calendar_completed_months(start, add_days(ctx.as_of, 1))) / firstBand.service_months;\nelse if (at.length > 0) full = at[at.length - 1].days;\nif (!(full > 0)) return 0;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
 		},
-		"pay_treatment": "PAID",
-		"subtotal_id": null,
+		"subtotal_id": "7d653d26-e890-5ffa-a47a-b434e3698f51",
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
@@ -555,11 +475,36 @@
 				"locator": "regs.2,7",
 				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/leave",
 				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "Employment Act 1968 s.88A(1)-(3) — the comparable full-time employee’s 7 days for the first 12 months of service, one more for every 12 months after, to 14; under 12 months in proportion to completed months, a half day or more a day",
+				"locator": "s.88A(1)-(3)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr88A-",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "Employment (Part-Time Employees) Regulations regs.2(2),7(1),(4) — without a similar full-time employee the comparable full-time employee works 8 hours a day and 44 hours a week; annual leave is the EA s.88A entitlement in proportion to the part-timer’s hours, taken in the part-timer’s own normal hours; s.88A(3) rounding does not apply to a part-timer",
+				"locator": "regs.2(2),7(1),(4)",
+				"url": "https://sso.agc.gov.sg/SL/EmA1968-RG8",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "Employment (Part-Time Employees) Regulations reg.7(2) — EA s.88A(7) and (8) apply with payment at the part-timer’s hourly gross rate for annual leave taken, or for leave not taken on dismissal otherwise than for misconduct",
+				"locator": "reg.7(2)",
+				"url": "https://sso.agc.gov.sg/SL/EmA1968-RG8",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "CPF Board, Are CPF contributions payable on encashment of leave; Which allowances and payments attract CPF contributions — payment in lieu of leave attracts CPF; not paid for the month, so an Additional Wage",
+				"locator": "Leave pay",
+				"url": "https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-encashment-of-leave",
+				"effective_from": "2027-01-01"
 			}
 		],
 		"id": "43e31cee-7f29-5b94-86b6-341043cee546",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"description": "ANNUAL_LEAVE_PART_TIME: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "ANNUAL_LEAVE_PART_TIME: Leave days granted and drawn under this jurisdiction’s rules.",
+		"payout": "// js\n// Employment (Part-Time Employees) Regulations reg.7(2): EA s.88A(8) pays annual leave not taken on dismissal otherwise than for misconduct at the part-timer's hourly gross rate; a day is the part-timer's own normal hours.\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n"
 	},
 	{
 		"code": "SICK_LEAVE_PART_TIME",
@@ -588,16 +533,23 @@
 			},
 			"eligibility_months": 3,
 			"part_time_pro_rata": true,
-			"full_time_weekly_hours": 44
+			"full_time_weekly_hours": 44,
+			"full_time_days_per_week": 5.5,
+			"entitlement": "// js\n// Employment (Part-Time Employees) Regulations reg.8(1): the similar full-time sick leave under EA s.89(1)(a),(2) in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst at = ctx.lookup.service_bands.filter((band) => band.service_months <= months);\nif (at.length === 0) return 0;\nconst full = at[at.length - 1].days;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
-				"title": "Employment Act 1968 s.89(1)(a),(2); Employment (Part-Time Employees) Regulations reg.7 — part-time sick leave prorated to contracted hours",
-				"locator": "s.89; reg.7",
+				"title": "Employment Act 1968 s.89(1)(a),(2); Employment (Part-Time Employees) Regulations reg.8 — part-time sick leave prorated to contracted hours",
+				"locator": "s.89; reg.8",
 				"url": "https://www.mom.gov.sg/employment-practices/leave/sick-leave/eligibility-and-entitlement",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "Employment (Part-Time Employees) Regulations regs.2(2),8(1) — without a similar full-time employee the comparable full-time employee works 8 hours a day and 44 hours a week; sick and hospitalisation leave are the EA s.89 entitlement in proportion to the part-timer’s hours, taken in the part-timer’s own normal hours",
+				"locator": "regs.2(2),8(1)",
+				"url": "https://sso.agc.gov.sg/SL/EmA1968-RG8",
 				"effective_from": "2027-01-01"
 			}
 		],
@@ -632,16 +584,23 @@
 			},
 			"eligibility_months": 3,
 			"part_time_pro_rata": true,
-			"full_time_weekly_hours": 44
+			"full_time_weekly_hours": 44,
+			"full_time_days_per_week": 5.5,
+			"entitlement": "// js\n// Employment (Part-Time Employees) Regulations reg.8(1): the similar full-time hospitalisation leave under EA s.89(1)(b),(2) in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst at = ctx.lookup.service_bands.filter((band) => band.service_months <= months);\nif (at.length === 0) return 0;\nconst full = at[at.length - 1].days;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
 		},
-		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
-				"title": "Employment Act 1968 s.89(1)(b),(2); Employment (Part-Time Employees) Regulations reg.7 — part-time hospitalisation leave prorated to contracted hours",
-				"locator": "s.89; reg.7",
+				"title": "Employment Act 1968 s.89(1)(b),(2); Employment (Part-Time Employees) Regulations reg.8 — part-time hospitalisation leave prorated to contracted hours",
+				"locator": "s.89; reg.8",
 				"url": "https://www.mom.gov.sg/employment-practices/leave/sick-leave/eligibility-and-entitlement",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "Employment (Part-Time Employees) Regulations regs.2(2),8(1) — without a similar full-time employee the comparable full-time employee works 8 hours a day and 44 hours a week; sick and hospitalisation leave are the EA s.89 entitlement in proportion to the part-timer’s hours, taken in the part-timer’s own normal hours",
+				"locator": "regs.2(2),8(1)",
+				"url": "https://sso.agc.gov.sg/SL/EmA1968-RG8",
 				"effective_from": "2027-01-01"
 			}
 		],
@@ -652,41 +611,63 @@
 	{
 		"code": "WORK_INJURY_MEDICAL_LEAVE",
 		"lookup": {
-			"no_cap": true
+			"opened_by": {
+				"WORK_ACCIDENT": {
+					"days": 0
+				}
+			},
+			"days": 14,
+			"max_months": 12
 		},
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
 		"references": [
 			{
-				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) — medical leave wages at the pre-accident average monthly earnings",
+				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) — medical leave wages: full average monthly earnings for up to 14 days of outpatient medical leave, two-thirds after, to one year from the accident",
 				"locator": "First Schedule para.4(1)",
 				"url": "https://sso.agc.gov.sg/Act/WICA2019",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "MOM, Types of compensation: medical leave wages — full AME for up to 14 days of outpatient MC or 60 days of hospitalisation leave, 2/3 AME from the 15th or 61st day to 1 year from the accident, paid by the next pay day",
+				"locator": "Medical leave wages",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/types-of-compensation",
 				"effective_from": "2027-01-01"
 			}
 		],
 		"id": "506f36b7-5d11-57f5-86dc-6be30ab53808",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"direction": "DEDUCT",
-		"description": "WORK_INJURY_MEDICAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Outpatient medical leave for a work injury, paid as WICA medical leave wages.",
+		"paid_share": "// js\n// WICA 2019 First Schedule para.4(1): full average monthly earnings for up to 14 days of outpatient medical leave, two-thirds from day 15, to one year from the accident.\nif (ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.max_months) return 0;\nreturn ctx.used < ctx.lookup.days ? 1 : 2 / 3;"
 	},
 	{
 		"code": "WORK_INJURY_HOSPITALISATION_LEAVE",
 		"lookup": {
-			"no_cap": true
+			"opened_by": {
+				"WORK_ACCIDENT": {
+					"days": 0
+				}
+			},
+			"days": 60,
+			"max_months": 12
 		},
-		"pay_treatment": "UNPAID",
 		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
 		"references": [
 			{
-				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) — hospitalisation leave wages at the pre-accident average monthly earnings",
+				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) — medical leave wages: full average monthly earnings for up to 60 days of hospitalisation leave, two-thirds after, to one year from the accident",
 				"locator": "First Schedule para.4(1)",
 				"url": "https://sso.agc.gov.sg/Act/WICA2019",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "MOM, Types of compensation: medical leave wages — full AME for up to 14 days of outpatient MC or 60 days of hospitalisation leave, 2/3 AME from the 15th or 61st day to 1 year from the accident, paid by the next pay day",
+				"locator": "Medical leave wages",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/types-of-compensation",
 				"effective_from": "2027-01-01"
 			}
 		],
 		"id": "2a7a4d00-8374-580a-ba75-62d0007cec70",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"direction": "DEDUCT",
-		"description": "WORK_INJURY_HOSPITALISATION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Hospitalisation leave for a work injury, paid as WICA medical leave wages.",
+		"paid_share": "// js\n// WICA 2019 First Schedule para.4(1): full average monthly earnings for up to 60 days of hospitalisation leave, two-thirds from day 61, to one year from the accident.\nif (ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.max_months) return 0;\nreturn ctx.used < ctx.lookup.days ? 1 : 2 / 3;"
 	}
 ]

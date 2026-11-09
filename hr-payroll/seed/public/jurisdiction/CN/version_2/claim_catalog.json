@@ -10,8 +10,6 @@
 		],
 		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nif (get(ctx.subject.employer.entity_extension_data, 'state_owned', false) !== true) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end === null) return true;\nreturn ctx.entry.incurred_on <= end;",
 		"conversion": "return ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"subtotal_id": "ceee4d79-a7d9-5ec5-845f-f744a7dd7b12",
 		"id": "4a6965be-d54b-5831-8cab-d92092f3ca7e",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"

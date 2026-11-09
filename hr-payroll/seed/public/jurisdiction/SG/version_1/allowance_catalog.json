@@ -13,11 +13,9 @@
 		],
 		"subtotal_id": "676c0928-2fb7-5a38-a2b3-2917d597b3bf",
 		"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
-		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.FIXED_MONTHLY.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
-		"party": "EMPLOYEE",
+		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.FIXED_MONTHLY.amount', 0);\nreturn (typeof amount === 'number' ? amount : get(amount, 'value', 0)) * ctx.paid_share;",
 		"id": "98426ff2-82c4-5711-b673-d9317cf091e0",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
-		"prorate": true,
 		"include_in_rate": false
 	},
 	{
@@ -35,7 +33,6 @@
 		"subtotal_id": "2757e927-84b7-563a-9aaa-895408d0b415",
 		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_AW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
-		"party": "EMPLOYEE",
 		"id": "a708ad10-ea8a-5e55-87db-fc183c3da668",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"include_in_rate": false
@@ -55,7 +52,6 @@
 		"subtotal_id": "676c0928-2fb7-5a38-a2b3-2917d597b3bf",
 		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_OW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
-		"party": "EMPLOYEE",
 		"id": "6fd24b96-371d-5395-b9c2-a3e2c3e857dc",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"include_in_rate": false

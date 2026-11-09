@@ -13,8 +13,6 @@
 		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "97321997-b96b-5bf7-aeac-6ab2a4a45777",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Medical treatment reimbursement."
@@ -33,8 +31,6 @@
 		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "342b1745-6e19-5e85-ba55-e12bae321990",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Medical consultation fee."
@@ -53,8 +49,6 @@
 		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "35a8b9d3-9991-5a17-9305-2dfbd2b3bbdd",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Official per-diem reimbursement."
@@ -70,11 +64,9 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
+		"subtotal_id": null,
 		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\n// MSF: the lesser of the leave's gross pay with the employer's CPF on it and the cap, which includes that CPF\nconst terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst perWeek = Number(terms.normal_days_per_week);\nconst basic = ctx.month_wage;\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nconst monthly = get(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY' && basic > 0;\nconst gross = monthly ? ctx.day_rate * ((basic + fixed) / basic) : ctx.day_rate;\n// CPF stops at the OW ceiling\nconst wage = monthly ? ctx.day_rate * (Math.min(basic + fixed, ctx.lookup.ordinary_ceiling) / basic) : ctx.day_rate;\nconst employerRate = () => {\n\tconst status = get(terms, 'residency_status', '');\n\tif (!ctx.lookup.local_residencies.includes(status)) return 0;\n\tconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\n\tif (dob === '') return 0;\n\tconst from = ctx.run.salary_coverage.from;\n\tconst age = age_on(dob, add_days(month_start(from), -1));\n\tconst elections = get(facts, 'statutory.CPF', {});\n\tconst since = get(facts, 'residency_since', '');\n\tconst graduated = status === 'PERMANENT_RESIDENT' && since !== '';\n\tconst early = graduated && get(elections, 'spr_full_rates', false) !== true;\n\tconst suffix = get(elections, 'spr_employer_full_rates', false) === true ? '_full_employer' : '';\n\tlet phase = 'full';\n\tif (early && from <= String(month_end(add_years(since, 2)))) phase = 'second_year' + suffix;\n\tif (early && from <= String(month_end(add_years(since, 1)))) phase = 'first_year' + suffix;\n\tconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\n\tlet key = bands[0].key;\n\tfor (const band of bands) if (age >= band.age) key = band.key;\n\treturn get(ctx.lookup.cpf_rates, key + '_total', 0) - get(ctx.lookup.cpf_rates, key + '_high', 0);\n};\nconst weekly = get(ctx.lookup, 'weekly_limit', null);\nconst cap = weekly === null ? ctx.lookup.daily_limit : weekly / perWeek;\nreturn Number(ctx.entry.quantity) * Math.min(gross + employerRate() * wage, cap);\n",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
 		"id": "aa290bac-1a53-5b45-b36f-2fc7c9cab163",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Adoption reimbursement."
@@ -90,11 +82,9 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
+		"subtotal_id": null,
 		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\n// MSF: the lesser of the leave's gross pay with the employer's CPF on it and the cap, which includes that CPF\nconst terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst perWeek = Number(terms.normal_days_per_week);\nconst basic = ctx.month_wage;\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nconst monthly = get(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY' && basic > 0;\nconst gross = monthly ? ctx.day_rate * ((basic + fixed) / basic) : ctx.day_rate;\n// CPF stops at the OW ceiling\nconst wage = monthly ? ctx.day_rate * (Math.min(basic + fixed, ctx.lookup.ordinary_ceiling) / basic) : ctx.day_rate;\nconst employerRate = () => {\n\tconst status = get(terms, 'residency_status', '');\n\tif (!ctx.lookup.local_residencies.includes(status)) return 0;\n\tconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\n\tif (dob === '') return 0;\n\tconst from = ctx.run.salary_coverage.from;\n\tconst age = age_on(dob, add_days(month_start(from), -1));\n\tconst elections = get(facts, 'statutory.CPF', {});\n\tconst since = get(facts, 'residency_since', '');\n\tconst graduated = status === 'PERMANENT_RESIDENT' && since !== '';\n\tconst early = graduated && get(elections, 'spr_full_rates', false) !== true;\n\tconst suffix = get(elections, 'spr_employer_full_rates', false) === true ? '_full_employer' : '';\n\tlet phase = 'full';\n\tif (early && from <= String(month_end(add_years(since, 2)))) phase = 'second_year' + suffix;\n\tif (early && from <= String(month_end(add_years(since, 1)))) phase = 'first_year' + suffix;\n\tconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\n\tlet key = bands[0].key;\n\tfor (const band of bands) if (age >= band.age) key = band.key;\n\treturn get(ctx.lookup.cpf_rates, key + '_total', 0) - get(ctx.lookup.cpf_rates, key + '_high', 0);\n};\nconst weekly = get(ctx.lookup, 'weekly_limit', null);\nconst cap = weekly === null ? ctx.lookup.daily_limit : weekly / perWeek;\nreturn Number(ctx.entry.quantity) * Math.min(gross + employerRate() * wage, cap);\n",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
 		"id": "cdb3ab34-aea8-5e49-9d08-4b0a9325f145",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Government-paid maternity leave reimbursement."
@@ -110,11 +100,9 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
+		"subtotal_id": null,
 		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\n// MSF: the lesser of the leave's gross pay with the employer's CPF on it and the cap, which includes that CPF\nconst terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst perWeek = Number(terms.normal_days_per_week);\nconst basic = ctx.month_wage;\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nconst monthly = get(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY' && basic > 0;\nconst gross = monthly ? ctx.day_rate * ((basic + fixed) / basic) : ctx.day_rate;\n// CPF stops at the OW ceiling\nconst wage = monthly ? ctx.day_rate * (Math.min(basic + fixed, ctx.lookup.ordinary_ceiling) / basic) : ctx.day_rate;\nconst employerRate = () => {\n\tconst status = get(terms, 'residency_status', '');\n\tif (!ctx.lookup.local_residencies.includes(status)) return 0;\n\tconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\n\tif (dob === '') return 0;\n\tconst from = ctx.run.salary_coverage.from;\n\tconst age = age_on(dob, add_days(month_start(from), -1));\n\tconst elections = get(facts, 'statutory.CPF', {});\n\tconst since = get(facts, 'residency_since', '');\n\tconst graduated = status === 'PERMANENT_RESIDENT' && since !== '';\n\tconst early = graduated && get(elections, 'spr_full_rates', false) !== true;\n\tconst suffix = get(elections, 'spr_employer_full_rates', false) === true ? '_full_employer' : '';\n\tlet phase = 'full';\n\tif (early && from <= String(month_end(add_years(since, 2)))) phase = 'second_year' + suffix;\n\tif (early && from <= String(month_end(add_years(since, 1)))) phase = 'first_year' + suffix;\n\tconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\n\tlet key = bands[0].key;\n\tfor (const band of bands) if (age >= band.age) key = band.key;\n\treturn get(ctx.lookup.cpf_rates, key + '_total', 0) - get(ctx.lookup.cpf_rates, key + '_high', 0);\n};\nconst weekly = get(ctx.lookup, 'weekly_limit', null);\nconst cap = weekly === null ? ctx.lookup.daily_limit : weekly / perWeek;\nreturn Number(ctx.entry.quantity) * Math.min(gross + employerRate() * wage, cap);\n",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
 		"id": "9d331a82-3c04-54a8-9bf3-9d3c36e56487",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Government-paid paternity leave reimbursement."
@@ -130,11 +118,9 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
+		"subtotal_id": null,
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
 		"id": "8220816b-10d1-581b-8477-771dc3b353a9",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Work-injury medical claim."
@@ -150,11 +136,9 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
+		"subtotal_id": null,
 		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\n// MSF: the lesser of the leave's gross pay with the employer's CPF on it and the cap, which includes that CPF\nconst terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst perWeek = Number(terms.normal_days_per_week);\nconst basic = ctx.month_wage;\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nconst monthly = get(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY' && basic > 0;\nconst gross = monthly ? ctx.day_rate * ((basic + fixed) / basic) : ctx.day_rate;\n// CPF stops at the OW ceiling\nconst wage = monthly ? ctx.day_rate * (Math.min(basic + fixed, ctx.lookup.ordinary_ceiling) / basic) : ctx.day_rate;\nconst employerRate = () => {\n\tconst status = get(terms, 'residency_status', '');\n\tif (!ctx.lookup.local_residencies.includes(status)) return 0;\n\tconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\n\tif (dob === '') return 0;\n\tconst from = ctx.run.salary_coverage.from;\n\tconst age = age_on(dob, add_days(month_start(from), -1));\n\tconst elections = get(facts, 'statutory.CPF', {});\n\tconst since = get(facts, 'residency_since', '');\n\tconst graduated = status === 'PERMANENT_RESIDENT' && since !== '';\n\tconst early = graduated && get(elections, 'spr_full_rates', false) !== true;\n\tconst suffix = get(elections, 'spr_employer_full_rates', false) === true ? '_full_employer' : '';\n\tlet phase = 'full';\n\tif (early && from <= String(month_end(add_years(since, 2)))) phase = 'second_year' + suffix;\n\tif (early && from <= String(month_end(add_years(since, 1)))) phase = 'first_year' + suffix;\n\tconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\n\tlet key = bands[0].key;\n\tfor (const band of bands) if (age >= band.age) key = band.key;\n\treturn get(ctx.lookup.cpf_rates, key + '_total', 0) - get(ctx.lookup.cpf_rates, key + '_high', 0);\n};\nconst weekly = get(ctx.lookup, 'weekly_limit', null);\nconst cap = weekly === null ? ctx.lookup.daily_limit : weekly / perWeek;\nreturn Number(ctx.entry.quantity) * Math.min(gross + employerRate() * wage, cap);\n",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
 		"id": "583e964e-13ca-5084-bf72-48bda9a838b8",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Government-paid shared parental leave reimbursement."
@@ -170,11 +154,9 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
+		"subtotal_id": null,
 		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\n// MSF: the lesser of the leave's gross pay with the employer's CPF on it and the cap, which includes that CPF\nconst terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst perWeek = Number(terms.normal_days_per_week);\nconst basic = ctx.month_wage;\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nconst monthly = get(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY' && basic > 0;\nconst gross = monthly ? ctx.day_rate * ((basic + fixed) / basic) : ctx.day_rate;\n// CPF stops at the OW ceiling\nconst wage = monthly ? ctx.day_rate * (Math.min(basic + fixed, ctx.lookup.ordinary_ceiling) / basic) : ctx.day_rate;\nconst employerRate = () => {\n\tconst status = get(terms, 'residency_status', '');\n\tif (!ctx.lookup.local_residencies.includes(status)) return 0;\n\tconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\n\tif (dob === '') return 0;\n\tconst from = ctx.run.salary_coverage.from;\n\tconst age = age_on(dob, add_days(month_start(from), -1));\n\tconst elections = get(facts, 'statutory.CPF', {});\n\tconst since = get(facts, 'residency_since', '');\n\tconst graduated = status === 'PERMANENT_RESIDENT' && since !== '';\n\tconst early = graduated && get(elections, 'spr_full_rates', false) !== true;\n\tconst suffix = get(elections, 'spr_employer_full_rates', false) === true ? '_full_employer' : '';\n\tlet phase = 'full';\n\tif (early && from <= String(month_end(add_years(since, 2)))) phase = 'second_year' + suffix;\n\tif (early && from <= String(month_end(add_years(since, 1)))) phase = 'first_year' + suffix;\n\tconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\n\tlet key = bands[0].key;\n\tfor (const band of bands) if (age >= band.age) key = band.key;\n\treturn get(ctx.lookup.cpf_rates, key + '_total', 0) - get(ctx.lookup.cpf_rates, key + '_high', 0);\n};\nconst weekly = get(ctx.lookup, 'weekly_limit', null);\nconst cap = weekly === null ? ctx.lookup.daily_limit : weekly / perWeek;\nreturn Number(ctx.entry.quantity) * Math.min(gross + employerRate() * wage, cap);\n",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
 		"id": "49c82f9c-6648-5c9c-a5d9-e119771f3e6e",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"description": "Government-paid childcare leave reimbursement."

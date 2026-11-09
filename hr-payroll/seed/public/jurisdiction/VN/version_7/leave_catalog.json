@@ -1,7 +1,6 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
@@ -50,7 +49,6 @@
 					"days": 22
 				}
 			],
-			"proration": "COMPLETED_MONTHS",
 			"extra_days": [
 				{
 					"fact": "minor_listed_job",
@@ -69,35 +67,27 @@
 					"days": 4
 				}
 			],
-			"encash_on_exit": {
-				"allowed": true
-			}
+			"entitlement": "// js\n// Labour Code 45/2019/QH14 art.113(1): 12 working days, 14 for a minor, a worker with a disability or arduous, toxic or\n// dangerous work, 16 for especially arduous, toxic or dangerous work; art.114: one more day for every five full years.\nconst contract = ctx.subject.employment;\nconst facts = get(contract, 'employee_extension_data', {});\nconst category = get(contract, 'terms.statutory_work_category', null);\nconst extra = Math.max(0, ...ctx.lookup.extra_days.filter((row) => {\n\tconst fact = get(row, 'fact', null);\n\tconst kind = get(row, 'category', null);\n\treturn (fact != null && get(facts, fact, false) === true) || (kind != null && kind === category);\n}).map((row) => Number(get(row, 'days', 0))));\nconst service = calendar_completed_months(get(contract, 'service_started_on', contract.effective_range.from), ctx.as_of);\nconst [opening] = ctx.lookup.service_bands;\nconst days = ctx.lookup.service_bands.filter((band) => band.service_months <= Math.max(service, opening.service_months)).at(-1).days + extra;\nconst joined = get(contract, 'employment_started_on', contract.effective_range.from);\nif (joined <= ctx.as_of.slice(0, 4) + '-01-01') return days;\n// Labour Code art.113(2); Decree 145/2020/ND-CP art.66(1): in the joining year, those days, seniority included, / 12 x the\n// months worked in the year, each counted once its last day is served.\n// Decree 145/2020/ND-CP art.66(2): the joining month counts when its working days from the start reach 50% of its normal\n// working days in the agreed week.\nconst off = [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - get(contract, 'terms.normal_days_per_week', 5));\nconst working = (from, to) => {\n\tlet count = 0;\n\tfor (let day = from; day <= to; day = add_days(day, 1)) if (!off.includes(weekday(day))) count += 1;\n\treturn count;\n};\nconst end = month_end(joined);\nconst countedFirst = end <= ctx.as_of && working(joined, end) >= 0.5 * working(month_start(joined), end) ? 1 : 0;\nconst months = countedFirst + Math.max(0, calendar_completed_months(add_days(end, 1), add_days(ctx.as_of, 1)));\nreturn round((days * months) / 12, 0.01);"
 		},
 		"subtotal_id": "ef16e5c9-f532-5011-88ac-71c7024e59f2",
 		"references": [
 			{
-				"title": "Decree 145/2020 arts.65-66: exact countable annual-leave service includes protected absences with distinct calendar-month caps. Aggregated attendance cannot reconstruct those caps. A dated annual_leave_service_review supplies countable months; missing/stale review refuses a request and final settlement. No unsupported worked-days approximation remains. The review date must equal the accrual/request date. For a combining agreement, carry_previous_year_days and carry_second_previous_year_days give the reviewed opening balances; the old recursive attendance-based carry approximation is disabled.",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf"
-			},
-			{
-				"title": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `terms.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person)."
-			},
-			{
-				"title": "Labour Code 45/2019/QH14 art.113(1)(a): 12 working days in normal conditions; art.113(2) with Decree 145/2020/ND-CP art.66(1): under twelve months, the share of the months worked in the year; art.114: one more day for every full five years with the employer. art.113(1)(b)–(c) set 14 and 16 days for minors, workers with disabilities and arduous, toxic or dangerous work. art.113(4): leave is combined over at most three years only by agreement.",
+				"title": "Labour Code 45/2019/QH14 art.113(1): 12 working days in normal conditions, 14 for a minor, a worker with a disability or arduous, toxic or dangerous work, 16 for especially arduous, toxic or dangerous work; art.114: one more day for every full five years with the employer; art.113(2): under twelve months, the share of the months worked; art.113(3): untaken days are paid on leaving or losing the job; art.113(4): combined over at most three years only by agreement.",
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/ND-CP art.66(1): with fewer than twelve months worked in the year, the annual days plus seniority days (if any) / 12 x the months actually worked in the year; art.66(2): a part month counts when its working and paid leave days reach 50% of its normal working days as agreed; art.65: periods counted as work (sickness up to two months a year, agreed unpaid leave up to one month, maternity, occupational accident up to six months); a month art.65 does not count is HR's manual adjustment, reviewed at exit (annual_leave_service_review); art.67(3): untaken days are paid at the contract wage of the month before the exit month.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf"
 			}
 		],
 		"id": "08b07c6c-0749-58e1-8bee-42b53d954680",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
 		"description": "Paid annual leave accrued by service.",
-		"conversion": "// js\n// Labour Code art.113(3); Decree 145/2020 art.67(3): the untaken days are paid at the contractual daily wage\n// of the month before the exit month, recorded on the exit review.\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst review = get(ctx.subject.employment, 'employee_extension_data.encashment_review', {});\nconst daily = Number(get(review, 'daily_wage_vnd', 0));\nreturn daily * Number(get(ctx.entry, 'quantity', 0));"
+		"payout": "// js\n// Labour Code art.113(3); Decree 145/2020 art.67(3): the untaken days are paid at the contractual daily wage\n// of the month before the exit month, recorded on the exit review.\nconst review = get(ctx.subject.employment, 'employee_extension_data.encashment_review', {});\nconst daily = Number(get(review, 'daily_wage_vnd', 0));\nreturn daily * Number(get(ctx.entry, 'quantity', 0));"
 	},
 	{
 		"code": "SICK_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -106,15 +96,12 @@
 		],
 		"id": "70842487-07ef-5b61-ae56-23aa9d424997",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "Paid sick leave."
+		"description": "Paid sick leave.",
+		"paid_share": "0"
 	},
 	{
 		"code": "MATERNITY_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -124,15 +111,12 @@
 		],
 		"id": "554a290b-916b-54e1-b6fe-53758431caf9",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "Maternity leave around childbirth."
+		"description": "Maternity leave around childbirth.",
+		"paid_share": "0"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -150,12 +134,11 @@
 		],
 		"id": "6c68ec9b-ee76-5d9b-8d18-6c1092188dfa",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "Paternity leave around childbirth."
+		"description": "Paternity leave around childbirth.",
+		"paid_share": "0"
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 3,
@@ -179,7 +162,6 @@
 	},
 	{
 		"code": "CHILD_MARRIAGE_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 1,
@@ -203,7 +185,6 @@
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 3,
@@ -227,10 +208,7 @@
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE_UNPAID",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -239,15 +217,12 @@
 		],
 		"id": "7c2b9eab-d02f-5d28-9278-d00077115a74",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "BEREAVEMENT_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "BEREAVEMENT_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -257,12 +232,11 @@
 		],
 		"id": "bb2d95bf-b9b3-58fe-abd6-4330691d3e03",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "Unpaid absence from work."
+		"description": "Unpaid absence from work.",
+		"paid_share": "0"
 	},
 	{
 		"code": "PUBLIC_HOLIDAY",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"grant_days": 12
@@ -287,23 +261,24 @@
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"grant_days": 0
+		},
 		"subtotal_id": null,
 		"id": "40fa96f3-5ed5-55f0-a76c-eb8c20722cd5",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14",
-				"locator": "art.112(3)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+				"locator": "art.111(3), art.112(1)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf",
+				"quote": "Art.111(3): a weekly rest day that falls on an art.112(1) public holiday is rested on the next working day; art.112(1): the holiday is off on full pay. No yearly days in lieu."
 			}
 		],
-		"description": "A paid day in lieu of a public holiday worked."
+		"description": "A paid day off in place of a public holiday that fell on a weekly rest day."
 	},
 	{
 		"code": "FOREIGN_NATIONAL_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"grant_days": 2
@@ -324,10 +299,7 @@
 	},
 	{
 		"code": "STOPPAGE_WORKER_FAULT",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -336,15 +308,12 @@
 		],
 		"id": "5d62e626-10a8-5bf8-a58e-ae029478c263",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "STOPPAGE_WORKER_FAULT: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "STOPPAGE_WORKER_FAULT: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "CHILD_SICK_CARE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -354,15 +323,12 @@
 		],
 		"id": "63d396e6-5a99-5bd4-9e2a-db36597acb39",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "CHILD_SICK_CARE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "CHILD_SICK_CARE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "PRENATAL_CHECKUP",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -373,15 +339,12 @@
 		],
 		"id": "74ecc5b7-54a2-5c5a-bc92-a0b98f5be1cc",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "PRENATAL_CHECKUP: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "PRENATAL_CHECKUP: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "MISCARRIAGE_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -399,15 +362,12 @@
 		],
 		"id": "5f72f24e-7e1a-513f-8ed5-71fd9ba47d8f",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "MISCARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "MISCARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "CONTRACEPTION_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -417,15 +377,12 @@
 		],
 		"id": "6becd37e-c90d-5760-abbb-b3c13aa761b6",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "CONTRACEPTION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "CONTRACEPTION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "CONVALESCENCE_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"subtotal_id": "dba4d1a0-9393-5494-bcb7-237c3f660ee1",
 		"references": [
 			{
@@ -435,12 +392,11 @@
 		],
 		"id": "84a27679-1342-5375-ad18-d162cbaf25bd",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT",
-		"description": "CONVALESCENCE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "CONVALESCENCE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"subtotal_id": null,
 		"references": [
@@ -454,17 +410,17 @@
 	},
 	{
 		"code": "SUSPENSION_PENDING_DISCIPLINE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"subtotal_id": null,
 		"references": [
 			{
-				"title": "Labour Code 2019 art.128(1)–(2): at most 15 days, 90 in special cases (entry fact special_case); 50% of the wage is advanced (work line SUSPENSION_ADVANCE).",
+				"title": "Labour Code 45/2019/QH14 art.128(2): suspension of at most 15 days, 90 in special cases (entry fact special_case); during it the worker is advanced 50% of the wage before the suspension; a worker then disciplined keeps the advance, one not disciplined is paid the full wage for the suspension (adhoc SUSPENSION_SETTLEMENT).",
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
 		"id": "4a84504c-3cb3-584f-99cc-dba708ef52a7",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"description": "SUSPENSION_PENDING_DISCIPLINE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "SUSPENSION_PENDING_DISCIPLINE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0.5"
 	}
 ]

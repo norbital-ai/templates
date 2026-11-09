@@ -247,12 +247,6 @@
 									"title": "PND1: of those, second and later children born in or after 2018",
 									"description": "Revenue Code s.47(1)(c) as amended by the Revenue Code Amendment Act (No. 49) B.E. 2562: a further 30,000 baht (60,000 in all) for the second and each later legitimate child born on or after 1 January 2018; adopted children do not count (\"ยกเว้นบุตรบุญธรรม\", Revenue Department https://www.rd.go.th/62777.html)."
 								},
-								"spouse_income_status": {
-									"type": "string",
-									"enum": ["WITHOUT_INCOME", "WITH_INCOME"],
-									"title": "PND1: spouse income status",
-									"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income. s.47(3): a non-resident gets this only for a spouse in Thailand, on the annual return, not in payroll."
-								},
 								"registration_number": {
 									"type": "string",
 									"title": "PND1 registration number",
@@ -643,7 +637,7 @@
 			"hour": {
 				"basis": "CONTRACT_HOURS"
 			},
-			"proration": "CALENDAR_DAYS",
+			"proration": "DAY_RATE",
 			"rounding": {
 				"mode": "HALF_UP",
 				"scale": 2

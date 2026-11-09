@@ -22,7 +22,15 @@ const terms = {
 const CONTRACT = idOf('employee_contract', uuid(6));
 type ChildFact = { readonly expected_on?: string; readonly born_on?: string };
 const seedOf = (children: readonly ChildFact[]) => {
-	const base = pack('VN', 'Asia/Ho_Chi_Minh', terms, { children }, [], [], '2027-05-15');
+	const base = pack(
+		'VN',
+		'Asia/Ho_Chi_Minh',
+		terms,
+		{ family: children.map((child) => ({ relation: 'CHILD', ...child })) },
+		[],
+		[],
+		'2027-05-15'
+	);
 	return {
 		...base,
 		employee_contract: (base.employee_contract ?? []).map((row) => ({

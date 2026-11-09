@@ -94,3 +94,13 @@ Land the changes in the CN seed version that is current at implementation; if th
 - An existing consent or recognition obligation keeps its original `due_on`; adding an earlier slot later does not move it.
 - `SEALED` is a prerequisite for the contract reminder; a never-sealed contract raises nothing.
 - `CN_STANDARD_SHIFT_LIMIT` is a template guard, not a contract-category check; a longer template is refused even for a comprehensive-only pattern.
+
+## Seed round 3 (2026-11-10)
+
+Edited in place across versions 1–4 (corrections to what each version says).
+
+- **Joining-year annual leave.** 企业职工带薪年休假实施办法 第五条: a joiner with 12 months already worked (credited service, or a rehire under `cumulative_service`) gets the joining year by the calendar days left at this employer, `employment_started_on` to 31 December ÷ 365, whole days. The `ANNUAL_LEAVE` entitlement starts the share at the later of that date and the qualifying date. The exit `payout` (第十二条) counts the year's days served at this employer from the same date.
+- **Elder-care leave.** 上海市老年人权益保障条例 第二十四条 (in force 2025-11-01) and 云南省老年人权益保障条例 第二十四条 both grant it only while the elderly parent is in hospital (患病住院治疗期间). New rule `ELDER_CARE_HOSPITALISATION`: every slot must fall inside a `PARENT_HOSPITALISATION` contract event (`on` admission, `ended_on` discharge, empty while still admitted). The yearly figures are unchanged.
+- **IIT.** 国家税务总局公告2018年第61号 第六条 counts 累计减除费用 by the months employed at this employer this year. The cumulative months now start at `employment_started_on`, not the service start, so credited service or earlier stints no longer add deduction months. Earlier months with the same withholding agent stay in `prior_employment`.
+- **Leave `paid_share` and `payout` reviewed.** Sick leave: the larger of the agreed share, the Shanghai scale (to 2026-08-15) and 80% of the local monthly minimum wage ÷ month wage (劳部发〔1995〕309号 第59条), capped at 1. Prenatal and nursing leave in Shanghai: 0.8. Kunming family-planning leave: 0 (paid by the fund). Maternity leave: 0. Unpaid leave: 0. Annual-leave `payout`: the day rate × 2. 第十条's 300% includes the normal wage the month already paid. Stale "this line takes…" wording is removed from the descriptions.
+- **Proration basis.** `conversions.proration` is `WORKING_DAYS`. 劳社部发〔2008〕3号 fixes the day at monthly wage ÷ 21.75,, the day commonly used to deduct an absent day. The proration union has no fixed-divisor arm, so a missed day costs monthly ÷ the month's working days. This is open for the owner.

@@ -11,7 +11,7 @@ import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 export default model('claim_catalog_entry', {
 	description: 'One claim against an employment.',
 	record_label:
-		"record.employment_id.employee_name + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)",
+		"record.employment_id.employee_number + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'claim_catalog_entry' },

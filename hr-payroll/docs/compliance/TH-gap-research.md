@@ -232,7 +232,7 @@ if (registerChanged.length > 0)
 
 Keep the existing rename propagation for all changes. In the seed effect:
 
-- compare only `name` and `address`; do not treat `email`, `phone`, `user_id`, `face_*`, `documents`, `location`, or `first_hired_on` as register changes. If the employer's own register form includes email or phone as contact particulars, add them to the same filter; the statutory minimum list does not require them;
+- compare only `name` and `address`; do not treat `email`, `phone`, `user_id`, `face_*`, `documents` or `location` as register changes. If the employer's own register form includes email or phone as contact particulars, add them to the same filter; the statutory minimum list does not require them;
 - set the key to `EMPLOYEE_REGISTER_UPDATE:<entity_id>:<employee_id>:<dueOn>` and remove the value hash. One correction per person per change date is enough; two changes on the same day share one 15-day task;
 - keep `due_on = updated_at + 15` and the `headcount >= 10` condition, using the deduped in-force count from gap 2. Pick the entity from the employee's sealed contract covering `dueOn`; if none is in force, use the latest sealed contract so a leaver's register correction still has an employer.
 
@@ -408,3 +408,27 @@ Ordinary employee with 8 hours of actual work a day (with the recorded rest brea
   refused; six hazardous seven-hour days pass, the seventh is refused; planned overtime is excluded from normal time.
 - The hazardous daily seven-hour check is still the separate finding below; this change only makes the weekly cap
   effective for both categories.
+
+## Seed round 3 (2026-11-10), every TH version
+
+- **LPA s.67 leave pay at exit.** `ANNUAL_LEAVE` gets a `payout` (so the exit encashment raises it) and posts in
+  `ADDITIONAL_WAGES`, beside s.64 holiday pay: outside the SSO, WCF, PVD and EWF bases, withheld whole in its month by
+  PND1 (Por.96/2543 cl.1(5)). The exit request carries the newest window's days left. The payout pays the days above
+  the current service year's s.30 grant (carried under s.30 para 3) on any exit, a s.119 dismissal included (the
+  automation skips only `misconduct_dismissal`, which TH does not set); and, only where `exit_ground` is an employer
+  termination (dismissal, dismissal for cause, redundancy, retirement (s.118/1), end of contract) and
+  `section_119_ground` is not set, the current year's grant × completed months served ÷ 12 less the days already taken.
+  Days taken count against carried days first. Day value: `ctx.day_rate` (monthly ÷ 30).
+- **s.29 and the `PUBLIC_HOLIDAY` row.** s.29 requires at least 13 announced traditional holidays; they are the
+  entity's holiday calendar, and a holiday on a weekly holiday moves to the next working day as a calendar `replaces`
+  row. A 13-day leave balance on top granted them twice. The row is now `PUBLIC_HOLIDAY_IN_LIEU` (same ids), 0 by
+  default: the day off agreed under s.29 para 4 for a holiday worked, granted by HR's manual adjustment. A holiday
+  never given is paid as `HOLIDAY_NOT_GRANTED` (s.64).
+- **Part-paid leave.** `SUSPENSION` (s.116) and `CHILD_CARE_LEAVE` (s.59/1) read `ctx.lookup.paid_share`, which only
+  version 1's suspension row held: the run could not price them in versions 2–7. Both are now `paid_share` `0.5`.
+- **Proration basis.** The statute's day is monthly ÷ 30; `conversions.proration` offers only `CALENDAR_DAYS` (kept,
+  the nearest) and `WORKING_DAYS` (÷ about 22). A half-paid day therefore deducts monthly ÷ 28–31: 7% more than the
+  statute in February (below the s.116 and s.59/1 half), 3% less in a 31-day month. Left for the owner.
+- **WCF and PND1** read `employment_started_on` (the current unbroken stint) for the calendar-year ceiling (MOL
+  notification of 21 February 2019 cl.11) and the benefit-in-kind months; severance and the s.48(5) election keep
+  `service_started_on`.

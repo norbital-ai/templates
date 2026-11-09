@@ -10,12 +10,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Encash Leave On Exit\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? get(ctx.entry, 'effective_range.to', null),\n\t\toccurrence_key: \"encash-leave-on-exit:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Encash Leave On Exit\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? ctx.entry.effective_range.to,\n\t\toccurrence_key: \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "3fa32de5-47d7-5b6d-9ba6-02ec0e26eaa5",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -30,12 +42,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"raise-exit-pay:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"raise-exit-pay:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Raise Exit Pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? get(ctx.entry, 'effective_range.to', null),\n\t\toccurrence_key: \"raise-exit-pay:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"raise-exit-pay:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Raise Exit Pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? ctx.entry.effective_range.to,\n\t\toccurrence_key: \"raise-exit-pay:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "6eeb01de-70d7-5d09-9f74-95adfdde97de",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -144,12 +168,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"FINAL_PAY_RELEASE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"FINAL_PAY_RELEASE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Final pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? add_days(get(ctx.entry, 'effective_range.to', null), ctx.lookup.final_pay_maximum_days),\n\t\toccurrence_key: \"FINAL_PAY_RELEASE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"FINAL_PAY_RELEASE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Final pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? add_days(ctx.entry.effective_range.to, ctx.lookup.final_pay_maximum_days),\n\t\toccurrence_key: \"FINAL_PAY_RELEASE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "cd93827b-4e6e-517d-a406-c098d1836574",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -167,12 +203,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"HDMF_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Report the separation to Pag-IBIG\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.to', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"HDMF_SEPARATION_REPORT:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Report the separation to Pag-IBIG\",\n\t\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.due_days),\n\t\toccurrence_key: \"HDMF_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "b6876050-d36c-56e1-8cf1-6441d3f25dbd",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -210,12 +258,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null &&\n\tget(ctx.entry, 'employee_extension_data.termination_cause', null) !== null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn get(ctx.entry, 'employee_extension_data.termination_cause', null) !== null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Written notice of an authorised-cause termination to the employee and DOLE\",\n\t\tdue_on: add_months(get(ctx.entry, 'effective_range.to', null), -ctx.lookup.notice_months),\n\t\toccurrence_key: \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Written notice of an authorised-cause termination to the employee and DOLE\",\n\t\tdue_on: add_months(ctx.entry.effective_range.to, -ctx.lookup.notice_months),\n\t\toccurrence_key: \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "9536cdf1-da8d-54c7-90a1-1b7b6021396c",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -233,12 +293,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Report the separated employee to PhilHealth (RF-1)\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.to', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Report the separated employee to PhilHealth (RF-1)\",\n\t\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.due_days),\n\t\toccurrence_key: \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "1230aba7-03f1-5261-8df1-55be8dec5cde",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -322,12 +394,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'effective_range.to', null) === null) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Five days\\u2019 notice to end a kasambahay\\u2019s employment\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.to', null), -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Five days’ notice to end a kasambahay’s employment\",\n\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "d369305e-5fa5-543f-a7d0-b4ec12f97fdb",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -365,12 +449,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null &&\n\tget(ctx.entry, 'employee_extension_data.just_cause_dismissal', false) === true;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn get(ctx.entry, 'employee_extension_data.just_cause_dismissal', false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Serve the first written notice (notice to explain) for a just-cause dismissal\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.to', null), -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Serve the first written notice (notice to explain) for a just-cause dismissal\",\n\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "a71c2414-77ba-5a40-b367-2a8985f8714f",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -408,13 +504,53 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "\"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Dispose of a former employee\\u2019s personal data after retention\",\n\t\tdue_on: String(Number(get(ctx.entry, 'effective_range.to', '').substring(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n\t\toccurrence_key: \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Dispose of a former employee’s data after retention\",\n\t\tdue_on: String(Number(ctx.entry.effective_range.to.substring(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n\t\toccurrence_key: \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "fc2df725-d0a8-5211-9fbc-628da160c871",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "retract-exit-effects",
+		"name": "Retract Exit Effects",
+		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
+		"lookup": {},
+		"references": [],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "occurrence_key", "state"],
+				"limit": 100
+			}
+		},
+		"condition": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nreturn get(ctx, \"reads.obligation\", []).some((task) => task.state === \"OPEN\" && stale(task));",
+		"target_collection": "obligation",
+		"target_action": "update",
+		"effects": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nconst reason =\n\tctx.after == null\n\t\t? \"A later version continues the employment; the exit was cancelled.\"\n\t\t: \"The exit date moved; this task answered the earlier date.\";\nreturn get(ctx, \"reads.obligation\", [])\n\t.filter((task) => task.state === \"OPEN\" && stale(task))\n\t.map((task) => ({ target: task.id, set: { state: \"WAIVED\", waiver_reason: reason } }));",
+		"id": "707ec2ed-3be8-5503-854f-822120beba4b",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
 	{

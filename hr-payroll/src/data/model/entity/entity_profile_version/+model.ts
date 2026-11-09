@@ -41,6 +41,31 @@ export default model('entity_profile_version', {
 			default: 100,
 			help: 'How much of planned overtime the clock must cover to pay all of it. Below this, the clocked time pays, rounded down to the half hour.'
 		},
+		pay_methods: {
+			kind: 'object',
+			optional: true,
+			help: "The employer's own pay methods. Each pays only where it pays more than the law; otherwise the law stands.",
+			fields: {
+				overtime_hour_basis: {
+					kind: 'enum',
+					values: ['STATUTORY', 'CONTRACT_WEEKLY'],
+					default: 'STATUTORY',
+					help: "CONTRACT_WEEKLY prices an overtime hour at the monthly wage × 12 ÷ (52 × the contract's weekly hours)."
+				},
+				rest_day_hourly_multiplier: {
+					kind: 'number',
+					min: 1,
+					optional: true,
+					help: 'Every rest-day hour pays this multiple of the hour rate.'
+				},
+				night_differential_basis: {
+					kind: 'enum',
+					values: ['WORKED', 'CLOCK_SPAN'],
+					default: 'WORKED',
+					help: 'CLOCK_SPAN pays the night premium on every clocked hour in the night window, unpaid breaks and overtime included, at the ordinary hour rate; a shift where the law pays more keeps the law.'
+				}
+			}
+		},
 		entity_extension_data: {
 			kind: 'json',
 			shape: { kind: 'record', of: { kind: 'json' } },
@@ -99,6 +124,7 @@ export default model('entity_profile_version', {
 				'registered_address',
 				'final_pay_loan_floor_percent',
 				'overtime_full_award_percent',
+				'pay_methods',
 				'bank',
 				'entity_extension_data',
 				'status',
@@ -143,6 +169,7 @@ export default model('entity_profile_version', {
 				'registered_address',
 				'final_pay_loan_floor_percent',
 				'overtime_full_award_percent',
+				'pay_methods',
 				'bank',
 				'entity_extension_data',
 				'status',

@@ -1173,33 +1173,6 @@
 		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
 	},
 	{
-		"code": "JP_SUBSTITUTE_LEAVE_REVIEW",
-		"description": "Refuses to consume a substitute-leave entry until the overtime-month allocation and premium settlement have been reviewed outside the automatic path.",
-		"target_collection": "leave_catalog_entry",
-		"events": ["create", "update"],
-		"reads": {
-			"leave_catalog": {
-				"limit": 10000
-			}
-		},
-		"condition": "return (get(get(ctx, 'reads', {}), 'leave_catalog', [])).length > 0;",
-		"validate": "const catalog = ctx.reads.leave_catalog.find((c) => c.id === ctx.entry.catalog_id);\nif (catalog == null || catalog.code !== ctx.lookup.catalog_code) return true;\nreturn get(ctx.entry, 'payroll_run_id', null) == null;",
-		"order": 36,
-		"lookup": {
-			"name": "Automatic overtime substitute-leave allocation is unsupported",
-			"message": "Automatic substitute-leave offsets are unsupported. Review the overtime-month allocation and premium settlement outside this automatic path before payroll; do not treat the current-period offset as a correct result.",
-			"catalog_code": "SUBSTITUTE_LEAVE_FOR_OVERTIME"
-		},
-		"references": [
-			{
-				"title": "Automatic overtime substitute-leave allocation is unsupported",
-				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000"
-			}
-		],
-		"id": "d098b78e-f2a9-5b6b-bd47-1af61ca353d0",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
-	},
-	{
 		"code": "JP_PRENATAL_WINDOW",
 		"description": "Refuses prenatal leave days outside the 6-week (14-week multiple pregnancy) window before the expected birth.",
 		"target_collection": "leave_catalog_entry",

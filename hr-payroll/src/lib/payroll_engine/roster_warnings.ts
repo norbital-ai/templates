@@ -1,6 +1,9 @@
 import { Effect } from 'effect';
 import { queryRows, type Reader } from './reads.js';
+import { lawOn, startOf } from './registrations.js';
 import { isJsonObject, type Json } from './foundation.js';
+import type { JsonObject } from './contracts.js';
+import { addDays, monthOf } from '@norbital-ai/std/date';
 
 const minutes = (value: unknown): number => {
 	if (!Array.isArray(value)) return 0;
@@ -35,74 +38,57 @@ const week = (date: string): string => {
 	return monday.toISOString().slice(0, 10);
 };
 
-const limits = (
+export type DayType = 'WORK' | 'REST' | 'OFF' | 'ABS';
+/** A roster day's type, as the run reads it: its shift's, and a day with no shift is a working day. */
+const dayTypeOf = (shift: unknown): DayType => {
+	const type = isJsonObject(shift) && isJsonObject(shift.variant) ? shift.variant.day_type : null;
+	return type === 'REST' || type === 'OFF' || type === 'ABS' ? type : 'WORK';
+};
+
+/**
+ * A law's roster caps. The monthly overtime cap is hours, counted on every day, or `{ hours, day_types }`, counted on
+ * the days of the types the statute names.
+ */
+export const limits = (
 	lookup: Json
 ): {
 	daily_hours: number | null;
 	daily_overtime_hours: number | null;
 	monthly_overtime_hours: number | null;
+	monthly_overtime_day_types: readonly string[] | null;
 	consecutive_days: number | null;
 	weekly_rest_days: number | null;
 } => {
-	const value =
+	const value: JsonObject =
 		isJsonObject(lookup) && isJsonObject(lookup.roster_warnings) ? lookup.roster_warnings : {};
-	const number = (key: string) =>
-		typeof value[key] === 'number' && Number.isFinite(value[key]) ? (value[key] as number) : null;
+	const number = (held: Json | undefined) =>
+		typeof held === 'number' && Number.isFinite(held) ? held : null;
+	const monthly = value.monthly_overtime_hours;
+	const counted =
+		isJsonObject(monthly) && Array.isArray(monthly.day_types) ? monthly.day_types : null;
 	return {
-		daily_hours: number('daily_hours'),
-		daily_overtime_hours: number('daily_overtime_hours'),
-		monthly_overtime_hours: number('monthly_overtime_hours'),
-		consecutive_days: number('consecutive_days'),
-		weekly_rest_days: number('weekly_rest_days')
+		daily_hours: number(value.daily_hours),
+		daily_overtime_hours: number(value.daily_overtime_hours),
+		monthly_overtime_hours: number(isJsonObject(monthly) ? monthly.hours : monthly),
+		monthly_overtime_day_types:
+			counted === null ? null : counted.filter((type): type is string => typeof type === 'string'),
+		consecutive_days: number(value.consecutive_days),
+		weekly_rest_days: number(value.weekly_rest_days)
 	};
 };
 
+type Finding = { code: string; message: string };
+const EMPLOYMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * Roster-time warnings. A day sheet is accepted, but every cap it crosses is recorded on the entry
- * so the month board and the importer can show it before payroll runs.
+ * Each supplied day's findings against the caps, counted over every day the employment has in view. `typeOf` answers a
+ * day's type, which a monthly cap that names day types counts by.
  */
-export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
-	read: Reader,
-	employmentId: string,
-	supplied: readonly import('./contracts.js').JsonObject[]
-) {
-	if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(employmentId))
-		return supplied.map((entry) => ({ ...entry, findings: [] }));
-	const contracts = yield* queryRows(read, {
-		employee_contract: {
-			where: { id: { eq: employmentId } },
-			fields: ['input_schema_version_id'],
-			limit: 1
-		}
-	});
-	const settingsId = contracts.employee_contract?.[0]?.input_schema_version_id;
-	if (typeof settingsId !== 'string') return supplied.map((entry) => ({ ...entry, findings: [] }));
-	const rules = yield* queryRows(read, {
-		registered_rule: {
-			where: {
-				settings_id: { eq: settingsId },
-				target_collection: { in: ['roster', 'roster_entry'] }
-			},
-			fields: ['lookup'],
-			limit: 10000
-		}
-	});
-	const caps = limits(
-		rules.registered_rule?.find(
-			(rule) => isJsonObject(rule.lookup) && isJsonObject(rule.lookup.roster_warnings)
-		)?.lookup ?? {}
-	);
-	const stored =
-		(yield* queryRows(read, {
-			roster_entry: {
-				where: { employment_id: { eq: employmentId } },
-				fields: ['id', 'work_date', 'actual_worked_intervals', 'planned_overtime_intervals'],
-				limit: 10000
-			}
-		})).roster_entry ?? [];
-	const byId = new Map(stored.map((row) => [String(row.id), row]));
-	for (const entry of supplied) if (typeof entry.id === 'string') byId.set(entry.id, entry);
-	const all = [...byId.values()];
+export const dayFindings = (
+	caps: ReturnType<typeof limits>,
+	all: readonly JsonObject[],
+	typeOf: (entry: JsonObject) => DayType
+) => {
 	const totalOvertime = new Map<string, number>();
 	const worked = new Set<string>();
 	const workedByWeek = new Map<string, number>();
@@ -112,7 +98,8 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 		const hours = minutes(entry.actual_worked_intervals) / 60;
 		const overtime = minutes(entry.planned_overtime_intervals) / 60;
 		const month = date.slice(0, 7);
-		totalOvertime.set(month, (totalOvertime.get(month) ?? 0) + overtime);
+		if (caps.monthly_overtime_day_types?.includes(typeOf(entry)) !== false)
+			totalOvertime.set(month, (totalOvertime.get(month) ?? 0) + overtime);
 		if (hours > 0) {
 			worked.add(date);
 			const key = week(date);
@@ -130,10 +117,10 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 		},
 		{ last: null as string | null, run: 0, longest: 0 }
 	).longest;
-	return supplied.map((entry) => {
-		const findings: { code: string; message: string }[] = [];
+	return (entry: JsonObject): Finding[] => {
+		const findings: Finding[] = [];
 		const date = day(entry.work_date);
-		if (date === null) return { ...entry, findings };
+		if (date === null) return findings;
 		const hours = minutes(entry.actual_worked_intervals) / 60;
 		const overtime = minutes(entry.planned_overtime_intervals) / 60;
 		if (caps.daily_hours !== null && hours > caps.daily_hours)
@@ -164,6 +151,139 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 				code: 'roster.weekly_rest',
 				message: `${week(date)}: ${weekCount} worked days leave fewer than ${caps.weekly_rest_days} rest day(s).`
 			});
-		return { ...entry, findings };
+		return findings;
+	};
+};
+
+/**
+ * Roster-time warnings. A day sheet is accepted, but every cap it crosses is recorded on the entry
+ * so the month board and the importer can show it before payroll runs. Every employment in the batch is read in one
+ * wave: the contracts with every version's roster rules, the law each answers to, then the stored days of the months
+ * and weeks the batch touches, reaching back as far as the longest consecutive run its laws check. The answer is
+ * each supplied row's findings, in order.
+ */
+export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
+	read: Reader,
+	supplied: readonly JsonObject[]
+) {
+	const findings: Finding[][] = supplied.map(() => []);
+	const groups = new Map<string, number[]>();
+	supplied.forEach((entry, index) => {
+		const employment = String(entry.employment_id);
+		if (EMPLOYMENT.test(employment))
+			groups.set(employment, [...(groups.get(employment) ?? []), index]);
 	});
+	const dates = supplied.flatMap((entry) => day(entry.work_date) ?? []);
+	if (groups.size === 0 || dates.length === 0) return findings;
+	// the roster rules of every version ride with the contracts; the law in force picks its own below
+	const { employee_contract: contracts = [], registered_rule: rules = [] } = yield* queryRows(
+		read,
+		{
+			employee_contract: {
+				where: { id: { in: [...groups.keys()] } },
+				fields: ['id', 'entity_id', 'effective_range'],
+				limit: 10000
+			},
+			registered_rule: {
+				where: { target_collection: { in: ['roster', 'roster_entry'] } },
+				fields: ['settings_id', 'lookup'],
+				limit: 10000
+			}
+		}
+	);
+	// the caps of the law in force on each sheet's first day
+	const asked = contracts.map((contract) => ({
+		employment: String(contract.id),
+		entity: contract.entity_id,
+		on: day(supplied[groups.get(String(contract.id))?.[0] ?? -1]?.work_date) ?? startOf(contract)
+	}));
+	const laws = yield* lawOn(read, asked);
+	const lawOf = new Map(
+		asked.flatMap(({ employment }, at) => {
+			const id = laws[at]?.id;
+			return typeof id === 'string' ? [[employment, id] as const] : [];
+		})
+	);
+	if (lawOf.size === 0) return findings;
+	const capsOf = (law: string) =>
+		limits(
+			rules.find(
+				(rule) =>
+					rule.settings_id === law &&
+					isJsonObject(rule.lookup) &&
+					isJsonObject(rule.lookup.roster_warnings)
+			)?.lookup ?? {}
+		);
+	// a streak can start before the batch: reach back by the longest run any law in force checks
+	const streak = Math.max(
+		0,
+		...[...lawOf.values()].map((law) => capsOf(law).consecutive_days ?? 0)
+	);
+	// the whole months and weeks the batch touches: what its monthly and weekly counts read
+	const bounds = dates
+		.flatMap((date) => [
+			monthOf(date).from,
+			monthOf(date).to ?? date,
+			week(date),
+			addDays(week(date), 6),
+			addDays(date, -streak)
+		])
+		.map(String)
+		.sort();
+	// each day's shift, for its type: the stored days carry theirs, the supplied days name theirs
+	const named = [
+		...new Set(
+			supplied.flatMap((entry) =>
+				typeof entry.shift_definition_id === 'string' ? [entry.shift_definition_id] : []
+			)
+		)
+	];
+	const { roster_entry: stored = [], shift_definition: shifts = [] } = yield* queryRows(read, {
+		roster_entry: {
+			where: {
+				employment_id: { in: [...lawOf.keys()] },
+				work_date: { gte: bounds[0]!, lte: bounds.at(-1)! }
+			},
+			fields: [
+				'employment_id',
+				'work_date',
+				'shift_definition_id',
+				'actual_worked_intervals',
+				'planned_overtime_intervals'
+			],
+			limit: 10000
+		},
+		'roster_entry.shift_definition_id': { fields: ['variant'] },
+		...(named.length === 0
+			? {}
+			: {
+					shift_definition: {
+						where: { id: { in: named } },
+						fields: ['variant'],
+						limit: 10000
+					}
+				})
+	});
+	const shiftOf = new Map(shifts.map((row) => [String(row.id), row]));
+	const typeOf = (entry: JsonObject) =>
+		dayTypeOf(
+			isJsonObject(entry.shift_definition_id)
+				? entry.shift_definition_id
+				: shiftOf.get(String(entry.shift_definition_id))
+		);
+	for (const [employment, indexes] of groups) {
+		const law = lawOf.get(employment);
+		if (law === undefined) continue;
+		const caps = capsOf(law);
+		// a supplied day replaces the stored one: an employment has one entry a day
+		const days = new Map(
+			stored
+				.filter((row) => String(row.employment_id) === employment)
+				.map((row) => [day(row.work_date), row] as const)
+		);
+		for (const index of indexes) days.set(day(supplied[index]?.work_date), supplied[index]!);
+		const own = dayFindings(caps, [...days.values()], typeOf);
+		for (const index of indexes) findings[index] = own(supplied[index]!);
+	}
+	return findings;
 });

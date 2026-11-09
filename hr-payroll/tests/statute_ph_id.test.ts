@@ -55,10 +55,10 @@ const person = (
 	gender,
 	maritalStatus,
 	employment: {
-		...(Array.isArray(extension.children) ? { children: extension.children } : {}),
+		...(Array.isArray(extension.family) ? { family: extension.family } : {}),
 		events,
 		employee_extension_data: Object.fromEntries(
-			Object.entries(extension).filter(([key]) => key !== 'children')
+			Object.entries(extension).filter(([key]) => key !== 'family')
 		)
 	}
 });
@@ -254,7 +254,7 @@ describe('on a real workspace', () => {
 			yield* t
 				.as(t.admin)
 				.act('employee_contract.update', [
-					{ target: version, set: { employee_name: 'Renamed Worker' } }
+					{ target: version, set: { reason: 'Details confirmed' } }
 				]);
 			yield* t.runDue();
 			const after = yield* t.storedQuery({ obligation: { limit: 200 } });
@@ -347,8 +347,6 @@ describe('on a real workspace', () => {
 			const t = yield* TestWorkspace;
 			yield* sealEvents(t, '2026-11-02', []);
 			yield* t.runDue();
-			const exits = yield* t.storedQuery({ contract_exit: { limit: 10 } });
-			assert.equal(exits.contract_exit.rows.length, 0);
 			const after = yield* t.storedQuery({ obligation: { limit: 200 } });
 			for (const code of [
 				'encash-leave-on-exit',
@@ -449,7 +447,7 @@ describe('Indonesian TER', () => {
 			subject: {
 				employment: {
 					payroll: { marital_status: 'MARRIED', gender: 'MALE' },
-					dependents_count: dependants,
+					family: Array.from({ length: dependants }, () => ({ relation: 'CHILD' })),
 					effective_range: { from: '2025-01-01', to: null }
 				}
 			},

@@ -154,6 +154,15 @@
 					.join('\n\n') || 'return 0;'
 			);
 		}
+		if (model === 'leave_catalog')
+			return (
+				[
+					codeOf(row.paid_share) === '' ? '' : `// Paid share\n${codeOf(row.paid_share)}`,
+					codeOf(row.payout) === '' ? '' : `// Payout\n${codeOf(row.payout)}`
+				]
+					.filter((part) => part !== '')
+					.join('\n\n') || '// Paid share\n1'
+			);
 		return codeOf(row.conversion) || codeOf(row.amount) || 'return 0;';
 	};
 	const nodeDirection = (code: string): string =>

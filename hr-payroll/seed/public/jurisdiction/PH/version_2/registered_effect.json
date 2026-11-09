@@ -8,25 +8,25 @@
 				"title": "Labor Code art.95; DOLE Handbook 2024 ch.7: unused service incentive leave is commuted on separation; company policy may provide more."
 			}
 		],
-		"source_collection": "contract_exit",
-		"events": ["create"],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"encash-leave-on-exit:\" + ctx.entry.employment_id"
+							"var": "\"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"encash-leave-on-exit:\" + ctx.entry.employment_id)) return false;\nreturn true;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"encash-leave-on-exit:\" + ctx.entry.employment_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: \"Encash Leave On Exit\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? ctx.entry.effective_to,\n\t\toccurrence_key: \"encash-leave-on-exit:\" + ctx.entry.employment_id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Encash Leave On Exit\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? ctx.entry.effective_range.to,\n\t\toccurrence_key: \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "32da7795-1f9d-596c-9324-f7e72b0417cd",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -39,25 +39,25 @@
 				"title": "Labor Code arts.297-302; DOLE Labor Advisory 06-20: separation or retirement pay and final pay on exit."
 			}
 		],
-		"source_collection": "contract_exit",
-		"events": ["create"],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"raise-exit-pay:\" + ctx.entry.employment_id"
+							"var": "\"raise-exit-pay:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"raise-exit-pay:\" + ctx.entry.employment_id)) return false;\nreturn true;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"raise-exit-pay:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"raise-exit-pay:\" + ctx.entry.employment_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: \"Raise Exit Pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? ctx.entry.effective_to,\n\t\toccurrence_key: \"raise-exit-pay:\" + ctx.entry.employment_id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"raise-exit-pay:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Raise Exit Pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? ctx.entry.effective_range.to,\n\t\toccurrence_key: \"raise-exit-pay:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "6dfe53aa-6a2b-52be-8125-d4669b36afcb",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -208,25 +208,25 @@
 				"url": "https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf"
 			}
 		],
-		"source_collection": "contract_exit",
-		"events": ["create"],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"FINAL_PAY_RELEASE:\" + ctx.entry.employment_id"
+							"var": "\"FINAL_PAY_RELEASE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"FINAL_PAY_RELEASE:\" + ctx.entry.employment_id)) return false;\nreturn true;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"FINAL_PAY_RELEASE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"FINAL_PAY_RELEASE:\" + ctx.entry.employment_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: \"Final pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? add_days(ctx.entry.effective_to, ctx.lookup.final_pay_maximum_days),\n\t\toccurrence_key: \"FINAL_PAY_RELEASE:\" + ctx.entry.employment_id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"FINAL_PAY_RELEASE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Final pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? add_days(ctx.entry.effective_range.to, ctx.lookup.final_pay_maximum_days),\n\t\toccurrence_key: \"FINAL_PAY_RELEASE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "260cfa7c-d3e0-5d97-82b8-057673f66eaa",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -242,25 +242,25 @@
 				"url": "https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf"
 			}
 		],
-		"source_collection": "contract_exit",
-		"events": ["create"],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"HDMF_SEPARATION_REPORT:\" + ctx.entry.employment_id"
+							"var": "\"HDMF_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_SEPARATION_REPORT:\" + ctx.entry.employment_id)) return false;\nreturn true;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_SEPARATION_REPORT:\" + ctx.entry.employment_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: \"Report the separation to Pag-IBIG\",\n\t\tdue_on: add_days(ctx.entry.effective_to, ctx.lookup.due_days),\n\t\toccurrence_key: \"HDMF_SEPARATION_REPORT:\" + ctx.entry.employment_id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Report the separation to Pag-IBIG\",\n\t\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.due_days),\n\t\toccurrence_key: \"HDMF_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "755f575c-e039-5d0b-9afd-63590881f92a",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -308,24 +308,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id"
+							"var": "\"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id)) return false;\nreturn ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null &&\n\tget(ctx.entry, 'employee_extension_data.termination_cause', null) !== null;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn get(ctx.entry, 'employee_extension_data.termination_cause', null) !== null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Written notice of an authorised-cause termination to the employee and DOLE\",\n\t\tdue_on: add_months(get(ctx.entry, 'effective_range.to', null), -ctx.lookup.notice_months),\n\t\toccurrence_key: \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Written notice of an authorised-cause termination to the employee and DOLE\",\n\t\tdue_on: add_months(ctx.entry.effective_range.to, -ctx.lookup.notice_months),\n\t\toccurrence_key: \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "f82795e6-132a-5ee8-bc7b-96d3c4ab12c1",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -341,25 +341,25 @@
 				"url": "https://www.philhealth.gov.ph/partners/employers/report.php"
 			}
 		],
-		"source_collection": "contract_exit",
-		"events": ["create"],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.employment_id"
+							"var": "\"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.employment_id)) return false;\nreturn true;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.employment_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: \"Report the separated employee to PhilHealth (RF-1)\",\n\t\tdue_on: add_days(ctx.entry.effective_to, ctx.lookup.due_days),\n\t\toccurrence_key: \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.employment_id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Report the separated employee to PhilHealth (RF-1)\",\n\t\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.due_days),\n\t\toccurrence_key: \"PHILHEALTH_SEPARATION_REPORT:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "89b0c3ef-c997-5245-97bf-8fc34feb5c47",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -475,24 +475,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id"
+							"var": "\"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id)) return false;\nif (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'effective_range.to', null) === null) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Five days\\u2019 notice to end a kasambahay\\u2019s employment\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.to', null), -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Five days’ notice to end a kasambahay’s employment\",\n\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "a1cb44ff-64cc-50f1-9440-5f6f758fc3be",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -540,24 +540,24 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "seal"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id"
+							"var": "\"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id)) return false;\nreturn ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn get(ctx.entry, 'employee_extension_data.just_cause_dismissal', false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Twin-notice due process for a just-cause dismissal\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.to', null), -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Twin-notice due process for a just-cause dismissal\",\n\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"JUST_CAUSE_TWIN_NOTICE:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "9d5ce8ae-ca23-568c-90a3-0c45fd3560b5",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -604,26 +604,54 @@
 				"title": "NIRC s.235 as amended by RA 11976 (Ease of Paying Taxes Act) s.33 (https://lawphil.net/statutes/repacts/ra2024/ra_11976_2024.html, read 2026-10-07; officialgazette.gov.ph answers 403): books of accounts and other accounting records \"shall be preserved by them for a period of five (5) years reckoned from the day following the deadline in filing a return ... for the taxable year when the last entry was made\"; the exit year’s last payroll entry falls in the employer’s return for that year, due 15 April of the next year for a calendar-year taxpayer, so the records are kept to 15 April of the exit year + 6 — recorded as 31 December of the exit year + 6, which also covers a fiscal year ending by the following June. Longer than the Labor Code’s three years: Omnibus Rules Book III Rule X s.12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819): employment records \"preserved for at least three (3) years from the date of the last entry\", and Labor Code art.306 (money claims prescribe in three years). RA 10173 (Data Privacy Act) s.11(e) (https://lawphil.net/statutes/repacts/ra2012/ra_10173_2012.html; privacy.gov.ph answers 403): personal information is \"Retained only for as long as necessary for the fulfillment of the purposes for which the data was obtained or for the establishment, exercise or defense of legal claims ... or as provided by law\" — so it is disposed of after."
 			}
 		],
-		"source_collection": "contract_exit",
-		"events": ["create"],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.employment_id"
+							"var": "\"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
-		"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.employment_id)) return false;\nreturn true;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.employment_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: \"Dispose of a former employee’s data after retention\",\n\t\tdue_on: String(Number(ctx.entry.effective_to.substring(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n\t\toccurrence_key: \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.employment_id\n\t}\n];",
+		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Dispose of a former employee’s data after retention\",\n\t\tdue_on: String(Number(ctx.entry.effective_range.to.substring(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n\t\toccurrence_key: \"PERSONAL_DATA_DISPOSAL:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
 		"id": "f35aaaed-94f6-50af-852a-3178f2304ad7",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "retract-exit-effects",
+		"name": "Retract Exit Effects",
+		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
+		"lookup": {},
+		"references": [],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "occurrence_key", "state"],
+				"limit": 100
+			}
+		},
+		"condition": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nreturn get(ctx, \"reads.obligation\", []).some((task) => task.state === \"OPEN\" && stale(task));",
+		"target_collection": "obligation",
+		"target_action": "update",
+		"effects": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nconst reason =\n\tctx.after == null\n\t\t? \"A later version continues the employment; the exit was cancelled.\"\n\t\t: \"The exit date moved; this task answered the earlier date.\";\nreturn get(ctx, \"reads.obligation\", [])\n\t.filter((task) => task.state === \"OPEN\" && stale(task))\n\t.map((task) => ({ target: task.id, set: { state: \"WAIVED\", waiver_reason: reason } }));",
+		"id": "2e702b7f-695f-5d9e-9a81-adca89e82605",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
 	{

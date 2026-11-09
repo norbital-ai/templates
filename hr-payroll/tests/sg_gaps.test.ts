@@ -6,8 +6,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { pack, uuid, workspace } from './kit.ts';
+import { accountsIn, measureOf, pack, syncAll, workspace } from './kit.ts';
 
 type Rule = {
 	readonly code: string;
@@ -72,7 +71,7 @@ const splDays = (
 	birth: string,
 	allocated?: number,
 	row: typeof spl = spl,
-	children: Readonly<Record<string, Readonly<Record<string, number>>>> = {}
+	allocations: Readonly<Record<string, number>> = {}
 ) =>
 	evaluate(
 		String(row.lookup!['entitlement']),
@@ -83,15 +82,14 @@ const splDays = (
 			event: { kind: 'CHILD_BIRTH', on: birth },
 			subject: {
 				employment: {
-					child_leave_allocations:
-						allocated === undefined
-							? children
-							: {
-									SHARED_PARENTAL_LEAVE: {
-										...children['SHARED_PARENTAL_LEAVE'],
-										[birth]: allocated
-									}
-								}
+					// each child carries HR's allocation under the leave code
+					family: Object.entries(
+						allocated === undefined ? allocations : { ...allocations, [birth]: allocated }
+					).map(([born_on, days]) => ({
+						relation: 'CHILD',
+						born_on,
+						allocations: { SHARED_PARENTAL_LEAVE: days }
+					}))
 				}
 			}
 		},
@@ -124,39 +122,19 @@ describe('SG remaining gaps', () => {
 		assert.equal(Number(Number(splDays('2026-04-01', 45)) + Number(splDays('2026-04-01', 25))), 70);
 	});
 	it('allocations are per child and per leave code', () => {
-		const children = {
-			SHARED_PARENTAL_LEAVE: { '2026-04-01': 45, '2026-08-01': 35 }
-		};
-		assert.equal(Number(splDays('2026-04-01', undefined, spl, children)), 45);
-		assert.equal(Number(splDays('2026-08-01', undefined, spl, children)), 35);
-		assert.equal(Number(splDays('2026-12-01', undefined, spl, children)), 35);
+		const allocations = { '2026-04-01': 45, '2026-08-01': 35 };
+		assert.equal(Number(splDays('2026-04-01', undefined, spl, allocations)), 45);
+		assert.equal(Number(splDays('2026-08-01', undefined, spl, allocations)), 35);
+		assert.equal(Number(splDays('2026-12-01', undefined, spl, allocations)), 35);
 	});
-	it('HR can record an allocation on a sealed contract', () =>
+	it.live('sync grants the allocation the child carries', () =>
 		Effect.gen(function* () {
-			const terms = {
-				rate: { amount: 5000, unit: 'MONTHLY' },
-				normal_hours_per_day: 8,
-				normal_hours_per_week: 44,
-				normal_days_per_week: 5,
-				statutory_work_category: 'NON_MANUAL',
-				work_classification: 'EA_COVERED',
-				residency_status: 'CITIZEN',
-				wage_payment_method: 'BANK',
-				allowances: {}
-			};
-			const seed = pack('SG', 'Asia/Singapore', terms, {}, [], [], '2026-06-15');
-			const contract = idOf('employee_contract', uuid(6));
 			const t = yield* TestWorkspace;
-			yield* t.as(t.admin).act('employee_contract.update', [
-				{
-					target: contract,
-					set: { child_leave_allocations: { SHARED_PARENTAL_LEAVE: { '2026-04-01': 45 } } }
-				}
-			]);
-			const { employee_contract } = yield* t.storedQuery({ employee_contract: { limit: 1 } });
-			assert.deepEqual(employee_contract.rows[0]?.child_leave_allocations, {
-				SHARED_PARENTAL_LEAVE: { '2026-04-01': 45 }
-			});
+			yield* syncAll(t);
+			assert.equal(
+				measureOf(yield* accountsIn(t), 'leave', 'SHARED_PARENTAL_LEAVE', 'entitled'),
+				45
+			);
 		}).pipe(
 			Effect.provide(
 				workspace({
@@ -174,7 +152,15 @@ describe('SG remaining gaps', () => {
 							wage_payment_method: 'BANK',
 							allowances: {}
 						},
-						{},
+						{
+							family: [
+								{
+									relation: 'CHILD',
+									born_on: '2026-04-01',
+									allocations: { SHARED_PARENTAL_LEAVE: 45 }
+								}
+							]
+						},
 						[],
 						[],
 						'2026-06-15'
@@ -182,7 +168,8 @@ describe('SG remaining gaps', () => {
 					now: '2026-07-01T02:00:00.000Z'
 				})
 			)
-		));
+		)
+	);
 	it('a contract work category must be declared', () => {
 		assert.equal(category('NON_MANUAL'), true);
 		assert.equal(category('MANUAL_LABOUR'), true);

@@ -40,7 +40,7 @@ export default model('registered_effect', {
 				'mark_paid',
 				'daily',
 				'calendar',
-				'after_exit'
+				'exit'
 			],
 			many: true
 		},

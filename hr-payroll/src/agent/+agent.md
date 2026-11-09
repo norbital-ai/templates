@@ -33,8 +33,9 @@ reversal or adjustment entry against a catalog item, never an edit.
   hours/days, agreed allowances, terms, bank, dated facts and exit facts. A payroll detail belongs
   to the contract, not the person. Documents upload on the profile. A change known ahead of its day
   is a `contract_change`; payroll and the ledger read only the sealed version it becomes.
-- Catalogue definitions and entries — eligibility, conversion, target subtotal, party and direction
-  on the definition; the dated employee activity and its evidence on the entry.
+- Catalogue definitions and entries — eligibility, conversion (a leave row's `paid_share` and `payout`) and target subtotal on the definition
+  (adhoc adds direction and party, overtime direction); the dated employee activity and its evidence on
+  the entry.
 - `employee_balance` and `ledger_entry` — one append-only ledger and one rebuildable projection.
   Never edit a balance directly.
 - `payroll_run` and `payslip` — the run owns coverage, captured sources and row locks; the payslip
@@ -43,8 +44,8 @@ reversal or adjustment entry against a catalog item, never an edit.
 ## The calculation order
 
 1. The first `subtotal` (`previous_id = null`) computes base pay from the contract: monthly salary,
-   daily rate × ordinary days or hourly rate × ordinary hours. Unpaid
-   leave prorates base pay by half-days.
+   daily rate × ordinary days or hourly rate × ordinary hours. A leave day pays its `paid_share` of a
+   normal day (empty 1, no pay 0); the unpaid part prorates base pay by half-days.
 2. Each later subtotal is the previous subtotal plus every employee line whose `subtotal_id` points
    at it. `EMPLOYEE` amounts enter net; `EMPLOYER` amounts are employer cost and never enter net.
 3. Statutory schemes run in `depends_on` order and see only earlier schemes. Evaluation is transient;

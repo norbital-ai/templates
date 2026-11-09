@@ -350,3 +350,50 @@ Test path: `templates/hr-payroll/tests/minimum_wage.test.ts` (the JP case alread
 - MHLW, 最低賃金制度: <https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/chingin/newpage_43875.html>
 - MHLW, パートタイム・有期雇用労働法: <https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000046152.html>
 - MHLW, 2026年10月からパートタイム・有期雇用のルールが変わります: <https://www.mhlw.go.jp/web_magazine/column/20260803.html>
+
+---
+
+## 2026-11-10 — seed round 3
+
+Scope: `seed/public/jurisdiction/JP/**` only, applied as a correction to every JP version (`version_1`–`version_17`); the expressions and references being corrected are identical in every version. No source, schema, test or migration change. Gate: `node_modules/.bin/bolt check .` → ok (discover → bundle → evaluate → manifest → names → seed → schema → rules → types).
+
+### 1. Annual leave: five-day designation and register from the service start
+
+The grant day is the 六箇月経過日 and its yearly anniversaries, counted from the person's service start, not from the current contract version's first day (労働基準法 art.39(1)–(2): grant six months after hire, then every year; art.39(7): the 基準日 is the first day of each one-year period divided from the 六箇月経過日). Both effects now declare an `employee_contract` read and take the worked-out `service_started_on` from it (`cumulative_service` and stints included), then compute the current or first grant day:
+
+- `ANNUAL_LEAVE_FIVE_DAY_DESIGNATION`: `grant_months` corrected from 12 to 6. The obligation is due on the last day of the one-year period that starts on the current grant day (grant + 12 months − 1 day), the deadline in art.39(7)–(8); the grant day replaces the contract version's start in the occurrence key.
+- `ANNUAL_LEAVE_REGISTER`: due on the current grant day (施行規則 art.24の7: the 年次有給休暇管理簿 is made when the leave is given).
+
+Citations added to the rows: 労働基準法 art.39(1)–(2), (7)–(8) <https://laws.e-gov.go.jp/law/322AC0000000049>; 施行規則 arts.24の5–24の7 <https://laws.e-gov.go.jp/law/322M40000100023>; effective 2019-04-01.
+
+### 2. 代替休暇 (substitute leave)
+
+- Deleted registered rule `JP_SUBSTITUTE_LEAVE_REVIEW` in every version. Its validate refused every update that carried a `payroll_run_id`, so it refused the run's seal of a substitute-leave entry; it had no statutory basis (the review it demanded was a workaround for the unsupported offset below). The leave model's capture lock still refuses edits after a run.
+- `SUBSTITUTE_LEAVE_FOR_OVERTIME` stays a paid leave row: `paid_share` empty (1), no `payout`, day-unit entry slots (half days at AM/PM), which matches 労働基準法 art.37(3) and 施行規則 art.19の2(1) (paid at the ordinary wage; half-day or day units; no cash-out). Its reference now cites art.37(3) and art.19の2 (換算率 25%, one hour of leave per four overtime hours; taken from the day after the overtime month ends within two months).
+- `OVERTIME_SUBSTITUTED` was reviewed and is **not functional**. It is an overtime row with `direction: DEDUCT`, but overtime producers are evaluated with `subject`, `lookup`, `hour_rate`, `subtotals`, `balances` and the work days — never `ctx.entry` (the expression-context contract gives `ctx.entry` only to catalogue entries). Its eligibility reads `ctx.entry.unit === 'HOUR'` and its conversion reads `ctx.entry.quantity`, so it never fires and the extra 25% is never withheld. The run therefore pays the full 1.5× premium for the hours and prices the substitute leave as paid leave: more than the statute, so lawful, but not the statutory 代休 settlement.
+- The two-month window (施行規則 art.19の2(1)(iii)) cannot be validated from the existing fields: a leave entry has no link to the overtime month whose >60-hour hours it replaces, and the leave balance is a calendar-year `used` total, so an overtime expression cannot read the month's converted hours without double-counting. Both points need the owner's decision: (a) add a link/field from the leave entry to the overtime month, or (b) remove `OVERTIME_SUBSTITUTED` and the promise that the leave nets the premium; the same window would still be manual. No seed-only fix exists.
+
+### 3. Leave `paid_share` and `payout`, row by row
+
+`paid_share` is empty (1) unless stated; no JP row is outside 0..1 and no JP leave row carries a `payout`.
+
+| Row                                                                 | Share | Statute                                                                                              |
+| ------------------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
+| `ANNUAL_LEAVE`, `ANNUAL_LEAVE_HOURS`                                | 1     | 労働基準法 art.39(9): average or ordinary wage during leave                                          |
+| `SUBSTITUTE_LEAVE_FOR_OVERTIME`                                     | 1     | art.37(3): 通常の労働時間の賃金が支払われる休暇                                                      |
+| `PRENATAL_LEAVE`, `POSTNATAL_LEAVE`                                 | 0     | art.65: no employer pay duty; 健康保険法 art.102 出産手当金                                          |
+| `CHILDCARE_LEAVE`, `POSTNATAL_PATERNITY_LEAVE`, `FAMILY_CARE_LEAVE` | 0     | 育児・介護休業法; 雇用保険法 benefits                                                                |
+| `CHILD_NURSING_LEAVE`, `FAMILY_CARE_DAYS`                           | 0     | 育児・介護休業法 arts.16の2, 16の5 (no pay duty)                                                     |
+| `MENSTRUAL_LEAVE`                                                   | 0     | art.68 (no pay duty)                                                                                 |
+| `CIVIC_DUTY_LEAVE`                                                  | 0     | art.7 (time off, no pay duty)                                                                        |
+| `SICKNESS_ABSENCE`                                                  | 0     | no statutory paid sick leave; 健康保険法 art.99 傷病手当金                                           |
+| `OCCUPATIONAL_INJURY_ABSENCE`                                       | 0     | art.76 first three days through adhoc `INJURY_WAITING_COMPENSATION`; 労災保険法 art.14 from day four |
+| `UNPAID_LEAVE`                                                      | 0     | art.89(i) work rules; 民法 art.624(1)                                                                |
+| `NURSING_TIME`                                                      | 0     | art.67 (time, no pay duty)                                                                           |
+| `MATERNAL_HEALTH_CHECK`                                             | 0     | 男女雇用機会均等法 arts.12–13 (no pay duty)                                                          |
+
+`NURSING_TIME`'s description said "Paid nursing time." against its `paid_share` 0; corrected to "Nursing time." (the law requires the time, not pay). No JP statute allows unused annual leave to be cashed out (art.39; the 2-year lapse in art.115), so the absence of `payout` on every row is the statutory position; a company cash-out belongs to a workspace row, not the public seed.
+
+### 4. Proration basis
+
+JP keeps `conversions.proration: WORKING_DAYS`. The Labour Standards Act sets no divisor for an unpaid day (art.24 requires full payment; art.89(i) leaves absence deductions to the work rules, which may use the month's scheduled working days or its calendar days). The seeded basis is therefore a lawful work-rule method, not a statutory day; no change.

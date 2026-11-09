@@ -5,8 +5,6 @@
 		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"eligibility": "const ended = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "return ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "81ea63c7-2eb2-5e9b-904c-23e626c32d41",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"references": [
@@ -24,8 +22,6 @@
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
 		"eligibility": "const ended = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "return ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "2e14aee3-497c-509e-85a9-8b6c28359728",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"references": [

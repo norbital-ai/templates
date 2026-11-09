@@ -178,7 +178,7 @@ describe('a VN exit cash-out', () => {
 				(seed.subtotal ?? []).find(
 					(row) =>
 						row.code === 'FINAL_PAY' &&
-						row.settings_id === seed.employee_contract?.[0]?.input_schema_version_id
+						row.settings_id === seed.entity_profile_version?.[0]?.input_schema_version_id
 				)?.id
 			)
 		);

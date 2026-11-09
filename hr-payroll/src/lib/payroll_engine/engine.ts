@@ -1,10 +1,11 @@
 import { datePeriod, eachDay, isPlainDate } from '@norbital-ai/std/date';
 import type { JsonObject, Lookup, Party, Direction, Rounding, Unit } from './contracts.js';
 import { lookupOf, settingsConstants } from './contracts.js';
-import { evaluate } from './expressions.js';
+import { contextRoots, evaluate } from './expressions.js';
 import { programOf } from './programs.js';
 import { Refusal, isJsonObject, leaveEntry } from './foundation.js';
 import { rounded } from './money.js';
+import { accountsOf, eventOn, eventsOf, periodOn } from '../ledger/core.js';
 
 export interface PayLine {
 	readonly code: string;
@@ -62,8 +63,6 @@ export interface PayrollInput {
 	readonly entries: Readonly<Record<string, readonly JsonObject[]>>;
 	/** Dated work events applicable to this employment, entity-wide and employment-specific. */
 	readonly work_events?: readonly JsonObject[];
-	/** The entries a run's reversal entries undo: their own days price the refund, wherever they were taken. */
-	readonly reversals?: readonly JsonObject[];
 	readonly work?: { readonly days: readonly JsonObject[] };
 	/** The person's contracts, whichever one pays: days outside all of them were never owed. */
 	readonly employed?: readonly { readonly from: string; readonly to: string | null }[];
@@ -71,10 +70,19 @@ export interface PayrollInput {
 	readonly projected_days?: readonly ProjectedDay[];
 }
 
+/** Overtime a run owes as time off: its hours, on the leave row that takes them, in the window of the day worked. */
+export interface TimeOff {
+	readonly code: string;
+	readonly period: string;
+	readonly hours: number;
+	readonly on: string;
+}
+
 export interface PayrollResult {
 	readonly lines: readonly PayLine[];
 	readonly subtotals: readonly SubtotalResult[];
 	readonly statutory: readonly StatutoryResult[];
+	readonly time_off: readonly TimeOff[];
 	readonly net_pay: number;
 	readonly employer_cost: number;
 }
@@ -248,17 +256,54 @@ const unemployedDays = (input: PayrollInput, days: readonly string[]): number =>
 				(day) => !input.employed?.some(({ from, to }) => from <= day && (to === null || day <= to))
 			).length;
 
-/** Unpaid days by date: unpaid leave, half days included, and days the roster marks ABS. */
-const unpaidByDate = (input: PayrollInput): Map<string, number> => {
+type Slot = { readonly date: string; readonly part: string };
+type SlotShare = (row: JsonObject, entry: JsonObject, slot: Slot) => number;
+const slotsOf = (entry: JsonObject): readonly Slot[] =>
+	(Array.isArray(entry.days) ? entry.days : []).flatMap((day) =>
+		isJsonObject(day) && isPlainDate(day.date)
+			? [{ date: String(day.date), part: String(day.part) }]
+			: []
+	);
+/** A row whose `paid_share` is set: a slot of it may pay less than a normal day. */
+export const sharesPay = (row: JsonObject): boolean =>
+	typeof row.paid_share === 'string' && row.paid_share.trim() !== '';
+
+/**
+ * What one half-day slot of a leave row pays of a normal day: empty 1, a number as written, else its expression on the
+ * slot. Always 0 to 1: what pays more than a normal day is a payout or overtime, never leave.
+ */
+export const paidShareOf = (row: JsonObject, context: () => object): number => {
+	const source = row.paid_share;
+	if (typeof source !== 'string' || source.trim() === '') return 1;
+	const field = `${String(row.code)}.paid_share`;
+	const constant = Number(source);
+	const share = Number.isFinite(constant)
+		? constant
+		: number(
+				evaluate(source, 'CALCULATION', context(), field, programOf('leave_catalog')?.roots),
+				field
+			);
+	if (share < 0 || share > 1)
+		throw new Refusal({
+			message: `${field}: a leave day pays from 0 to 1 of a normal day, not ${share}. Pay more as a payout or overtime.`
+		});
+	return share;
+};
+
+/** Unpaid days by date: each leave slot's unpaid half day, `(1 − paid_share) / 2`, and days the roster marks ABS. */
+const unpaidByDate = (input: PayrollInput, share: SlotShare): Map<string, number> => {
 	const unpaid = new Map<string, number>();
 	const add = (date: string, days: number) => unpaid.set(date, (unpaid.get(date) ?? 0) + days);
 	const catalogs = catalogById(input.leave_catalog);
 	for (const entry of input.entries.leave_catalog_entry ?? []) {
-		if (catalogs.get(String(entry.catalog_id))?.pay_treatment !== 'UNPAID') continue;
-		// a reversal is refunded by its own line in the original month; it never changes this period's share
-		if (entry.reverses != null) continue;
-		for (const day of Array.isArray(entry.days) ? entry.days : [])
-			if (isJsonObject(day)) add(String(day.date), 0.5);
+		const row = catalogs.get(String(entry.catalog_id));
+		// an encashment takes no day off; a reversal is refunded by its own line in the original month
+		if (row === undefined || !sharesPay(row) || entry.encashment === true || entry.reverses != null)
+			continue;
+		for (const slot of slotsOf(entry)) {
+			const lost = (1 - share(row, entry, slot)) / 2;
+			if (lost > 0) add(slot.date, lost);
+		}
 	}
 	for (const day of input.work?.days ?? []) if (day.day_type === 'ABS') add(String(day.date), 1);
 	return unpaid;
@@ -292,31 +337,56 @@ const unpaidRestDays = (
 	}).length;
 };
 
+/** A 30-day divisor prices every calendar day, so a missed day is one of the month's thirty. */
+const dayRateCalendar = (input: PayrollInput): boolean => {
+	const dayBasis = settingsConstants(input.settings).day_basis;
+	const typed: JsonObject = isJsonObject(dayBasis) ? dayBasis : {};
+	return typed.basis === 'FIXED' && Number(typed.days) === 30;
+};
+
+/** The days a period's share counts, by `proration_basis`: its calendar days, or the person's own working days. */
+const basisDays = (
+	input: PayrollInput,
+	coverage: { from: string; to: string },
+	basis: unknown
+): readonly string[] => {
+	const calendar = basis === 'CALENDAR_DAYS' || (basis === 'DAY_RATE' && dayRateCalendar(input));
+	return calendar
+		? eachDay(datePeriod(coverage.from, coverage.to)).map(String)
+		: plannedDays(input, coverage)
+				.filter(({ date, work }) => work && date >= coverage.from && date <= coverage.to)
+				.map(({ date }) => date);
+};
+
 /**
  * The share of a period someone is paid for, by the jurisdiction's `proration_basis`. Joiners, leavers,
- * unpaid leave and ABS all pass through this one rule.
+ * the unpaid part of leave and ABS all pass through this one rule.
  */
 const paidShare = (
 	input: PayrollInput,
 	coverage: { from: string; to: string },
-	basis: unknown
+	basis: unknown,
+	unpaid: ReadonlyMap<string, number>
 ): number => {
-	const days = plannedDays(input, coverage);
-	const unpaid = unpaidByDate(input);
 	const unpaidDays = [...unpaid.values()].reduce((total, value) => total + value, 0);
-	const share = (total: number, lost: number) =>
-		total <= 0 ? 1 : Math.min(1, Math.max(0, total - lost) / total);
-	if (basis === 'CALENDAR_DAYS') {
-		const calendar = eachDay(datePeriod(coverage.from, coverage.to)).map(String);
-		return share(
-			calendar.length,
-			unemployedDays(input, calendar) + unpaidDays + unpaidRestDays(days, unpaid)
-		);
+	const counted = basisDays(input, coverage, basis);
+	const lost =
+		unemployedDays(input, counted) +
+		unpaidDays +
+		(basis === 'CALENDAR_DAYS' ? unpaidRestDays(plannedDays(input, coverage), unpaid) : 0);
+	// a missed day takes the statute's day rate, not a share of the period's days (PH 313/261, TW/TH ÷30, etc.)
+	if (basis === 'DAY_RATE') {
+		const { day_rate, month_wage } = payBasis(input, coverage);
+		// the wage the coverage pays for: a half-month cycle pays half the month, so its day is that half's share
+		const schedule = isJsonObject(input.employer.payment_schedule)
+			? input.employer.payment_schedule
+			: {};
+		const frequency = String(schedule.frequency ?? 'MONTHLY');
+		const parts = frequency === 'SEMI_MONTHLY' ? 2 : frequency === 'TEN_DAY' ? 3 : 1;
+		const periodWage = month_wage / parts;
+		return periodWage <= 0 ? 1 : Math.min(1, Math.max(0, 1 - (lost * day_rate) / periodWage));
 	}
-	const workDays = days
-		.filter(({ date, work }) => work && date >= coverage.from && date <= coverage.to)
-		.map(({ date }) => date);
-	return share(workDays.length, unemployedDays(input, workDays) + unpaidDays);
+	return counted.length <= 0 ? 1 : Math.min(1, Math.max(0, counted.length - lost) / counted.length);
 };
 
 /**
@@ -389,7 +459,8 @@ const includedAllowances = (input: PayrollInput, terms: JsonObject): number => {
 /**
  * The conversions a jurisdiction sets: its day basis (`CALENDAR_DAYS`, `WORKING_DAYS`, `YEAR` = 52 contract weeks,
  * `YEAR_REST_DAYS` = 365 − 52 rest days, `HOUR` = the hour rate × contract hours, or the FIXED arm's days) and its hour
- * basis (`CONTRACT_HOURS`, `CONTRACT_WEEKLY` = 52 contract weeks, or the FIXED arm's hours).
+ * basis (`CONTRACT_HOURS`, `CONTRACT_WEEKLY` = 52 contract weeks, or the FIXED arm's hours). The overtime hour is the
+ * employer's `pay_methods.overtime_hour_basis` where it pays more than the jurisdiction's hour.
  */
 export const payBasis = (input: PayrollInput, coverage: { from: string; to: string }) => {
 	const { terms, amount: rate, unit, hoursPerDay, daysPerWeek, weeklyHours } = rateOf(input);
@@ -442,27 +513,39 @@ export const payBasis = (input: PayrollInput, coverage: { from: string; to: stri
 								? hour_rate * hoursPerDay
 								: month_wage / (fixedDay ?? monthWorking);
 	if (hour_rate === 0 && day_rate !== 0) hour_rate = day_rate / hoursPerDay;
-	return { month_wage, day_rate, hour_rate, calendar_days, working_days };
+	const methods = isJsonObject(input.employer.pay_methods) ? input.employer.pay_methods : {};
+	const overtime_hour_rate =
+		methods.overtime_hour_basis === 'CONTRACT_WEEKLY' && unit === 'MONTHLY' && weeklyHours > 0
+			? Math.max(hour_rate, (month_wage * 12) / (52 * weeklyHours))
+			: hour_rate;
+	return { month_wage, day_rate, hour_rate, overtime_hour_rate, calendar_days, working_days };
 };
-/** What a reversal of an unpaid entry gives back: the original month's wage over the share its days took. */
-const unpaidRefund = (input: PayrollInput, entry: JsonObject): number => {
-	const days = Array.isArray(entry.days) ? entry.days.filter(isJsonObject) : [];
-	const dates = days.flatMap((day) => (isPlainDate(day.date) ? [String(day.date)] : [])).sort();
-	const first = dates[0];
+/** What a reversal gives back: the original month's wage over the share its slots' unpaid parts took. */
+const unpaidRefund = (
+	input: PayrollInput,
+	entry: JsonObject,
+	share: (slot: Slot) => number
+): number => {
+	const slots = slotsOf(entry).toSorted((left, right) => left.date.localeCompare(right.date));
+	const first = slots[0]?.date;
 	if (first === undefined) return 0;
 	const month = monthBounds(first),
 		coverage = { from: month.from, to: month.to },
 		basis = payBasis(input, coverage),
-		{ unit } = rateOf(input);
-	if (unit !== 'MONTHLY') return basis.day_rate * (days.length / 2);
+		{ unit } = rateOf(input),
+		unpaid = new Map<string, number>();
+	for (const slot of slots)
+		unpaid.set(slot.date, (unpaid.get(slot.date) ?? 0) + (1 - share(slot)) / 2);
+	if (unit !== 'MONTHLY')
+		return basis.day_rate * [...unpaid.values()].reduce((total, value) => total + value, 0);
 	const off = offDaysOf(input),
 		planned = eachDay(datePeriod(month.from, month.to)).map((date) => ({
 			date: String(date),
 			work: isWorkingDay(String(date), off)
-		})),
-		unpaid = new Map<string, number>();
-	for (const date of dates) unpaid.set(date, (unpaid.get(date) ?? 0) + 0.5);
+		}));
 	const lost = [...unpaid.values()].reduce((total, value) => total + value, 0);
+	if (settingsConstants(input.settings).proration_basis === 'DAY_RATE')
+		return Math.min(basis.month_wage, lost * basis.day_rate);
 	if (settingsConstants(input.settings).proration_basis === 'CALENDAR_DAYS') {
 		const calendar = eachDay(datePeriod(coverage.from, coverage.to)).length;
 		return (
@@ -472,8 +555,8 @@ const unpaidRefund = (input: PayrollInput, entry: JsonObject): number => {
 	const work = planned.filter((day) => day.work).length;
 	return work <= 0 ? 0 : (basis.month_wage * Math.min(work, lost)) / work;
 };
-/** Default opening checkpoint: contract salary, prorated by UNPAID leave; reversal undoes the absence. */
-function defaultBasePay(input: PayrollInput, coverage: { from: string; to: string }): number {
+/** The contract salary of a period and the basis its share follows. */
+function salaryOf(input: PayrollInput, coverage: { from: string; to: string }) {
 	const { amount: rate, unit, hoursPerDay } = rateOf(input);
 	const off = offDaysOf(input);
 	const workingDays = eachDay(datePeriod(coverage.from, coverage.to)).filter((date) =>
@@ -481,14 +564,14 @@ function defaultBasePay(input: PayrollInput, coverage: { from: string; to: strin
 	).length;
 	if (workingDays <= 0) throw new Refusal({ message: 'Working days must be positive.' });
 	const hoursPerMonth = workingDays * hoursPerDay;
-	const salaryAmount =
-		unit === 'DAILY' ? rate * workingDays : unit === 'HOURLY' ? rate * hoursPerMonth : rate;
-	// a day or hour rate pays the days worked; only a salary follows the statute's basis
-	const basis =
-		unit === 'DAILY' || unit === 'HOURLY'
-			? 'WORKING_DAYS'
-			: settingsConstants(input.settings).proration_basis;
-	return salaryAmount * paidShare(input, coverage, basis);
+	return {
+		amount: unit === 'DAILY' ? rate * workingDays : unit === 'HOURLY' ? rate * hoursPerMonth : rate,
+		// a day or hour rate pays the days worked; only a salary follows the statute's basis
+		basis:
+			unit === 'DAILY' || unit === 'HOURLY'
+				? 'WORKING_DAYS'
+				: settingsConstants(input.settings).proration_basis
+	} as const;
 }
 
 const heldBalance = (input: PayrollInput): JsonObject => {
@@ -516,8 +599,73 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			: input.employment;
 	const subject = { employee: input.employee, employment, employer: input.employer };
 	const basis = payBasis(input, coverage);
+	const salary = input.run.kind === 'OFF_CYCLE' ? undefined : salaryOf(input, coverage);
 	// the constants view: a row reads the jurisdiction's settings fields under ctx.lookup, then its own lookup
 	const settingsView: Lookup = settingsConstants(input.settings);
+	const leaveRows = catalogById(input.leave_catalog);
+	const leaveUsed = accountsOf({ leave: input.balance.leave }).leave ?? {};
+	const person = {
+		scope: String(input.settings.code),
+		started: String(
+			input.employment.service_started_on ??
+				(isJsonObject(input.employment.effective_range)
+					? input.employment.effective_range.from
+					: '')
+		),
+		events: eventsOf(input.employment)
+	};
+	const order = (slot: Slot) => `${slot.date}:${slot.part === 'PM' ? 1 : 0}`;
+	/** Days of a row already used in a slot's window before it: what the balance holds less the days at or after it. */
+	const usedBefore = (row: JsonObject, slot: Slot): number => {
+		const code = String(row.code),
+			lookup = lookupOf(row),
+			period = periodOn(lookup, person, slot.date);
+		// ponytail: a day posted after this run's window still counts as used; read those slots if a rule needs it exact
+		const after = (input.entries.leave_catalog_entry ?? [])
+			.filter(
+				(entry) => entry.reverses == null && leaveRows.get(String(entry.catalog_id))?.code === code
+			)
+			.flatMap(slotsOf)
+			.filter(
+				(other) => order(other) >= order(slot) && periodOn(lookup, person, other.date) === period
+			).length;
+		return Math.max(0, (leaveUsed[code]?.[period]?.used ?? 0) - after / 2);
+	};
+	const shareOf: SlotShare = (row, entry, slot) =>
+		paidShareOf(row, () => {
+			const lookup = lookupOf(row);
+			return {
+				subject,
+				entry: leaveEntry(entry),
+				lookup: { ...settingsView, ...lookup },
+				calendar_days: basis.calendar_days,
+				working_days: basis.working_days,
+				month_wage: basis.month_wage,
+				day_rate: basis.day_rate,
+				hour_rate: basis.hour_rate,
+				work: input.work ?? { days: [] },
+				work_events: input.work_events ?? [],
+				run: input.run,
+				as_of: slot.date,
+				event: eventOn(lookup, person.events, slot.date) ?? null,
+				...(contextRoots(String(row.paid_share)).has('used') ? { used: usedBefore(row, slot) } : {})
+			};
+		});
+	const unpaid = unpaidByDate(input, shareOf);
+	// the run's priced leave slots: a statutory base that counts a leave code's days reads them here
+	const leave = (input.entries.leave_catalog_entry ?? []).flatMap((entry) => {
+		const row = leaveRows.get(String(entry.catalog_id));
+		if (row === undefined || entry.encashment === true || entry.reverses != null) return [];
+		const code = String(row.code);
+		return slotsOf(entry).map((slot) => ({
+			code,
+			date: slot.date,
+			part: slot.part,
+			paid_share: shareOf(row, entry, slot)
+		}));
+	});
+	// the share of the period paid, by the statute's basis: an allowance that reads it falls with the salary
+	const paid_share = paidShare(input, coverage, settingsView.proration_basis, unpaid);
 	const base = (context: unknown, lookup: Lookup) => ({
 		subject,
 		lookup: { ...settingsView, ...lookup },
@@ -529,6 +677,8 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		month_wage: basis.month_wage,
 		day_rate: basis.day_rate,
 		hour_rate: basis.hour_rate,
+		paid_share,
+		leave,
 		work: input.work ?? { days: [] },
 		work_events: input.work_events ?? [],
 		run: input.run,
@@ -536,13 +686,11 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	});
 	/**
 	 * A reversal refunds the salary basis through its one line. Where allowances are not part of that basis, the
-	 * prorated producer lines the absence also cut are refunded at the same share of the original month.
+	 * allowances that read `ctx.paid_share`, which the absence also cut, are refunded at the same share of the
+	 * original month.
 	 */
 	const producerRefund = (original: JsonObject, salaryRefund: number): number => {
 		if (salaryRefund === 0) return 0;
-		const inRate = new Map(
-			input.allowance.map((row) => [String(row.code), row.include_in_rate === true])
-		);
 		const dates = (Array.isArray(original.days) ? original.days : [])
 			.flatMap((day) => (isJsonObject(day) && isPlainDate(day.date) ? [String(day.date)] : []))
 			.sort();
@@ -553,26 +701,30 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		if (monthWage <= 0) return 0;
 		const share = Math.min(1, salaryRefund / monthWage);
 		let total = 0;
-		for (const producer of [...input.allowance, ...input.overtime]) {
-			if (producer.prorate !== true || input.run.kind === 'OFF_CYCLE') continue;
-			if (inRate.get(text(producer, 'code')) === true) continue;
-			const lookup = lookupOf(producer);
-			const model = input.allowance.includes(producer) ? 'allowance_catalog' : 'overtime_catalog';
+		for (const producer of input.allowance) {
+			if (input.run.kind === 'OFF_CYCLE' || producer.include_in_rate === true) continue;
+			if (
+				typeof producer.conversion !== 'string' ||
+				!contextRoots(producer.conversion).has('paid_share')
+			)
+				continue;
 			const context = {
-				...base(0, lookup),
+				...base(0, lookupOf(producer)),
+				paid_share: 1,
 				subtotals: Object.fromEntries(results.map((result) => [result.code, result.value]))
 			};
 			const raw = evaluateNumber(
 				producer.conversion,
 				context,
 				`${text(producer, 'code')}.conversion`,
-				programOf(model)?.roots
+				programOf('allowance_catalog')?.roots
 			);
 			total += raw * share;
 		}
 		return total;
 	};
-	const openingPay = input.run.kind === 'OFF_CYCLE' ? 0 : defaultBasePay(input, coverage);
+	const openingPay =
+		salary === undefined ? 0 : salary.amount * paidShare(input, coverage, salary.basis, unpaid);
 	const lines: PayLine[] = [];
 	const values = new Map<string, number>();
 	const results: SubtotalResult[] = [];
@@ -622,14 +774,11 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			const roots = programOf(model)?.roots;
 			const context = {
 				...base(previousValue + computed, lookup),
+				...(model === 'overtime_catalog' ? { hour_rate: basis.overtime_hour_rate } : {}),
 				subtotals: Object.fromEntries(results.map((r) => [r.code, r.value]))
 			};
 			if (!eligible(producer.eligibility, context, `${code}.eligibility`, roots)) continue;
-			const raw = evaluateNumber(producer.conversion, context, `${code}.conversion`, roots);
-			const value =
-				producer.prorate === true
-					? raw * paidShare(input, coverage, settingsConstants(input.settings).proration_basis)
-					: raw;
+			const value = evaluateNumber(producer.conversion, context, `${code}.conversion`, roots);
 			if (value === 0) continue;
 			subtotalLines.push(
 				line({
@@ -639,8 +788,6 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					amount: round(input.settings, value),
 					direction:
 						model === 'overtime_catalog' ? ((producer.direction as Direction) ?? 'ADD') : 'ADD',
-					party:
-						model === 'overtime_catalog' ? 'EMPLOYEE' : ((producer.party as Party) ?? 'EMPLOYEE'),
 					incurred_on: coverage.to,
 					coverage,
 					source: producer,
@@ -683,16 +830,13 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				)
 					continue;
 				const code = text(catalog, 'code');
-				if (catalog.pay_treatment === 'UNPAID') {
-					// no line for the absence itself: BASIC carries it through paidShare; a reversal gives back the original month
-					if (entry.reverses == null) continue;
-					const undone =
-						typeof entry.reverses === 'string'
-							? input.reversals?.find((row) => String(row.id) === entry.reverses)
-							: undefined;
-					const original = undone ?? entry;
-					const salaryRefund = unpaidRefund(input, original);
-					const refund = salaryRefund + producerRefund(original, salaryRefund);
+				const leave = group.model === 'leave_catalog';
+				// leave taken prints nothing: its unpaid part leaves BASIC through the share of the period paid. A reversal of
+				// a row that shares pay gives back the original month, its slots the original's captured days
+				if (leave && entry.encashment !== true) {
+					if (entry.reverses == null || !sharesPay(catalog)) continue;
+					const salaryRefund = unpaidRefund(input, entry, (slot) => shareOf(catalog, entry, slot));
+					const refund = salaryRefund + producerRefund(entry, salaryRefund);
 					if (refund === 0) continue;
 					subtotalLines.push(
 						line({
@@ -701,7 +845,6 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 							subtotal,
 							amount: round(input.settings, refund),
 							direction: 'ADD',
-							party: (catalog.party as Party) ?? 'EMPLOYEE',
 							incurred_on: String(entry.incurred_on ?? coverage.to),
 							coverage,
 							source: entry,
@@ -721,24 +864,26 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				};
 				const roots = programOf(group.model)?.roots;
 				if (!eligible(catalog.eligibility, context, `${code}.eligibility`, roots)) continue;
-				const value = evaluateNumber(catalog.conversion, context, `${code}.conversion`, roots);
-				if (value === 0) continue;
+				// a cash-out takes no day off and pays its row's payout
+				const field = leave ? 'payout' : 'conversion';
+				const value = evaluateNumber(catalog[field], context, `${code}.${field}`, roots);
+				// only adhoc states a direction and a party; a reversal flips its entry's line
+				const net =
+					(group.model === 'adhoc_catalog' && catalog.direction === 'DEDUCT' ? -value : value) *
+					(entry.reverses == null ? 1 : -1);
+				const paid = round(input.settings, Math.abs(net));
+				if (paid === 0) continue;
 				subtotalLines.push(
 					line({
 						code,
 						label: text(catalog, 'code'),
 						subtotal,
-						amount: round(input.settings, value),
-						direction:
-							((catalog.direction as Direction) ?? 'ADD') === 'ADD' && entry.reverses != null
-								? 'DEDUCT'
-								: ((catalog.direction as Direction) ?? 'ADD') === 'DEDUCT' && entry.reverses != null
-									? 'ADD'
-									: ((catalog.direction as Direction) ?? 'ADD'),
+						amount: paid,
+						direction: net < 0 ? 'DEDUCT' : 'ADD',
 						party:
-							group.model === 'leave_catalog'
-								? 'EMPLOYEE'
-								: ((catalog.party as Party) ?? 'EMPLOYEE'),
+							group.model === 'adhoc_catalog'
+								? ((catalog.party as Party) ?? 'EMPLOYEE')
+								: 'EMPLOYEE',
 						incurred_on: String(entry.incurred_on ?? coverage.to),
 						coverage,
 						source: entry,
@@ -921,7 +1066,37 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		lines,
 		subtotals: results,
 		statutory,
+		time_off: timeOffOf(input, person),
 		net_pay: net,
 		employer_cost: employerCost
 	};
 }
+
+/**
+ * The overtime a run's days took as time off (`time_off_hours`), owed by the hour on the one leave row of the law that
+ * takes it (`overtime_as_time_off`), an hour-unit row (`unit: 'HOUR'`).
+ */
+const timeOffOf = (
+	input: PayrollInput,
+	person: Parameters<typeof periodOn>[1]
+): readonly TimeOff[] => {
+	const owed =
+		input.run.kind === 'OFF_CYCLE'
+			? []
+			: (input.work?.days ?? []).filter((day) => Number(day.time_off_hours ?? 0) > 0);
+	if (owed.length === 0) return [];
+	const [taker, ...more] = input.leave_catalog.filter(
+		(row) => lookupOf(row).overtime_as_time_off === true
+	);
+	if (taker === undefined || more.length > 0 || lookupOf(taker).unit !== 'HOUR')
+		throw new Refusal({
+			message:
+				'Overtime taken as time off needs one leave row of this law that takes it (overtime_as_time_off), counted in hours (unit HOUR).'
+		});
+	return owed.map((day) => ({
+		code: text(taker, 'code'),
+		period: periodOn(lookupOf(taker), person, String(day.date)),
+		hours: Number(day.time_off_hours),
+		on: String(day.date)
+	}));
+};

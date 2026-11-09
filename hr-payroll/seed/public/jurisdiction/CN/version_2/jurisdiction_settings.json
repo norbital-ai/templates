@@ -782,7 +782,7 @@
 				"basis": "FIXED",
 				"hours": 174
 			},
-			"proration": "WORKING_DAYS",
+			"proration": "DAY_RATE",
 			"rounding": {
 				"mode": "HALF_UP",
 				"scale": 2

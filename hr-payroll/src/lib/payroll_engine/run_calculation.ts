@@ -16,11 +16,11 @@ import { calculatePayroll, isWorkingDay, offDaysFor, type ProjectedDay } from '.
 import type { JsonObject } from './contracts.js';
 import type { PayWindow } from './pay_cycle.js';
 import { idOf, objectValue, queryRows, type Reader } from './reads.js';
-import { PlainDate } from '@norbital-ai/std/date';
 import { Refusal, isJsonObject } from './foundation.js';
 import { breakdownOf, type PayslipBreakdown } from './payslip_breakdown.js';
 import { accountsOf, totalsScope, viewOf } from '../ledger/core.js';
-import { claimLeft, claimWanted, startedOn } from '../ledger/service.js';
+import { claimLeft, claimWanted } from '../ledger/service.js';
+import { chainOf, isExit, startsOf } from './contract_change.js';
 
 /** One payslip row the run's create transform attaches as a child. */
 
@@ -53,10 +53,9 @@ const covers = (range: unknown, from: string, to: string): boolean => {
 	);
 };
 
-/** A run's frame: the attendance it prices, how far back open entries reach, and an off-cycle run's entries. */
+/** A run's frame: the attendance it prices and an off-cycle run's entries. */
 export interface RunFrame {
 	readonly attendance: PayWindow;
-	readonly since: string;
 	/** An off-cycle run: the entries it pays. Only their people get a payslip. */
 	readonly pays?: ReadonlySet<string>;
 }
@@ -121,7 +120,7 @@ const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
 			const [wanted] = claimWanted(
 				row,
 				catalog,
-				{ scope, started: startedOn(employment), events: [] },
+				{ scope, started: String(employment.service_started_on), events: [] },
 				undefined,
 				(period) => claimLeft(accounts, catalog, period) - (drawn.get(keyOf(period)) ?? 0)
 			);
@@ -135,24 +134,50 @@ const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
 export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	read: Reader,
 	run: JsonObject,
-	{ attendance, since, pays }: RunFrame
+	{ attendance, pays }: RunFrame
 ) {
 	const coverage = objectValue(run.salary_coverage);
 	const companyId = String(run.entity_id);
 	const settingsId = String(run.settings_id);
-	const [opens] = [since, attendance.from, String(coverage.from)].sort();
-	const closes = [attendance.to, String(coverage.to)].sort().at(-1);
+	const [opens = attendance.from] = [attendance.from, String(coverage.from)].sort();
+	const closes = [attendance.to, String(coverage.to)].sort().at(-1) ?? attendance.to;
 	const own = { entity_id: { eq: companyId } };
 	const inVersion = { where: { settings_id: { eq: settingsId } }, limit: 10000 };
+	// to the salary period's end: a leaver's last run pays what falls after its attendance, up to their last day
+	const window = { gte: attendance.from, lte: closes };
+	const unsealed = { payroll_run_id: { isNull: true } };
+	// a claim or adhoc entry no run has paid is due whatever its date: one entered late, or a statutory adjustment dated
+	// in the month it corrects
+	const unpaid =
+		pays === undefined
+			? { ...own, ...unsealed, incurred_on: { lte: closes } }
+			: { id: { in: [...pays] } };
+	// an instalment is read in its own window; only a reversal not yet paid reaches back
+	const repaid =
+		pays === undefined
+			? {
+					...own,
+					...unsealed,
+					or: [{ paid_on: window }, { reverses: { isNull: false }, paid_on: { lte: closes } }]
+				}
+			: { id: { in: [...pays] } };
+	// a reversal or a cash-out with a slot not yet paid, whatever its date
+	const pendingLeave = {
+		leave_catalog_entry_day: { some: unsealed },
+		or: [{ reverses: { isNull: false } }, { encashment: { eq: true } }]
+	};
+	// the contracts in force in the window, and any an unpaid entry was raised on before it
 	const contract = {
 		...own,
 		status: { eq: 'SEALED' },
-		effective_range: { overlaps: { from: opens ?? since, to: closes ?? attendance.to } }
+		or: [
+			{ effective_range: { overlaps: { from: opens, to: closes } } },
+			{ claim_catalog_entry: { some: unpaid } },
+			{ adhoc_catalog_entry: { some: unpaid } },
+			{ leave_catalog_entry: { some: pendingLeave } },
+			{ loan_catalog_entry_repayment: { some: repaid } }
+		]
 	};
-	const openIn = (field: string) =>
-		pays === undefined
-			? { ...own, payroll_run_id: { isNull: true }, [field]: { gte: since, lte: attendance.to } }
-			: { id: { in: [...pays] } };
 	const data = yield* queryRows(read, {
 		jurisdiction_settings: {
 			where: { id: { eq: settingsId } },
@@ -169,10 +194,7 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			limit: 1
 		},
 		subtotal: { ...inVersion, fields: ['id', 'code', 'name', 'previous_id', 'calculation'] },
-		allowance_catalog: {
-			...inVersion,
-			fields: [...CATALOG, 'party', 'prorate', 'include_in_rate']
-		},
+		allowance_catalog: { ...inVersion, fields: [...CATALOG, 'include_in_rate'] },
 		overtime_catalog: { ...inVersion, fields: [...CATALOG, 'direction'] },
 		statutory_contribution_catalog: {
 			...inVersion,
@@ -189,8 +211,11 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 				'employer_amount'
 			]
 		},
-		leave_catalog: { ...inVersion, fields: [...CATALOG, 'direction', 'pay_treatment'] },
-		claim_catalog: { ...inVersion, fields: [...CATALOG, 'direction', 'party'] },
+		leave_catalog: {
+			...inVersion,
+			fields: ['id', 'code', 'subtotal_id', 'lookup', 'eligibility', 'paid_share', 'payout']
+		},
+		claim_catalog: { ...inVersion, fields: CATALOG },
 		adhoc_catalog: {
 			...inVersion,
 			fields: [...CATALOG, 'direction', 'party', 'off_cycle_eligible']
@@ -208,41 +233,56 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 		entity_profile_version: { where: { ...own, status: { eq: 'SEALED' } }, limit: 10000 },
 		employee_contract: { where: contract, limit: 10000 },
 		employee_profile: { where: { employee_contract: { some: contract } }, limit: 10000 },
+		// each person's stints, for the service start their contracts carry
+		'employee_profile.employee_contract': {
+			where: { status: { eq: 'SEALED' } },
+			fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
+			limit: 10000
+		},
+		'employee_profile.employee_contract.entity_id': { fields: ['settings_code'] },
 		employee_balance: {
 			where: { employee_id: { is: { employee_contract: { some: contract } } } },
 			limit: 10000
 		},
-		// a leave stays answerable after its first run: its later days fall in later windows
-		leave_catalog_entry: { where: own, limit: 10000 },
-		'leave_catalog_entry.catalog_id': CODE_OF_CATALOG,
-		'leave_catalog_entry.leave_catalog_entry_day': {
-			fields: ['leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
+		// a leave with a slot in this window, or one still pending
+		leave_catalog_entry: {
+			where: {
+				...own,
+				or: [{ leave_catalog_entry_day: { some: { incurred_on: window } } }, pendingLeave]
+			},
 			limit: 10000
 		},
-		claim_catalog_entry: { where: openIn('incurred_on'), limit: 10000 },
+		'leave_catalog_entry.catalog_id': CODE_OF_CATALOG,
+		'leave_catalog_entry.leave_catalog_entry_day': {
+			fields: ['id', 'leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
+			limit: 10000
+		},
+		claim_catalog_entry: { where: unpaid, limit: 10000 },
 		'claim_catalog_entry.catalog_id': CODE_OF_CATALOG,
-		adhoc_catalog_entry: { where: openIn('incurred_on'), limit: 10000 },
+		adhoc_catalog_entry: { where: unpaid, limit: 10000 },
 		'adhoc_catalog_entry.catalog_id': CODE_OF_CATALOG,
-		loan_catalog_entry: { where: own, limit: 10000 },
+		loan_catalog_entry: { where: { ...own, repayments: { some: repaid } }, limit: 10000 },
 		'loan_catalog_entry.catalog_id': CODE_OF_CATALOG,
-		loan_catalog_entry_repayment: { where: openIn('paid_on'), limit: 10000 },
+		loan_catalog_entry_repayment: { where: repaid, limit: 10000 },
 		workplace_case_catalog_entry: {
 			where: { ...own, payroll_run_id: { isNull: true } },
-			fields: ['id', 'opened_on', 'closed_on'],
+			fields: ['id', 'employment_id', 'opened_on', 'closed_on'],
 			limit: 10000
 		},
 		roster_entry: {
 			where: {
 				employment_id: { is: { entity_id: { eq: companyId } } },
-				work_date: { gte: since, lte: attendance.to }
+				work_date: window
 			},
 			fields: [
+				'id',
 				'employment_id',
 				'payroll_run_id',
 				'work_date',
 				'shift_definition_id',
 				'actual_worked_intervals',
-				'planned_overtime_intervals'
+				'planned_overtime_intervals',
+				'overtime_as_time_off'
 			],
 			limit: 10000
 		},
@@ -255,50 +295,37 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			limit: 10000
 		}
 	});
-	return yield* claimsAsPosted(read, data);
+	// a contract carries the service start worked out from its stints, as windows and expressions read it
+	const { chain, lineage } = chainOf(
+		(data.employee_profile ?? []).flatMap((row) =>
+			Array.isArray(row.employee_contract) ? row.employee_contract.filter(isJsonObject) : []
+		)
+	);
+	const cumulative = new Set(
+		(data.employee_profile ?? []).flatMap((row) =>
+			row.cumulative_service === true ? [String(row.id)] : []
+		)
+	);
+	return yield* claimsAsPosted(read, {
+		...data,
+		employee_profile: (data.employee_profile ?? []).map((row) =>
+			Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'employee_contract'))
+		),
+		employee_contract: (data.employee_contract ?? []).map((row) => ({
+			...row,
+			...startsOf(row, chain, lineage, cumulative.has(String(row.employee_id))),
+			// the employment ends with this version only at an exit: a later version of the lineage continues it
+			exit: isExit(row, chain, lineage)
+		}))
+	});
 });
 
 export type RunData = Readonly<Record<string, readonly JsonObject[]>>;
 
-/** The rows a run seals, all from what `loadRun` read. One `attaches` write stamps them together. */
-export const attachmentsOf = (data: RunData, { attendance: cover, pays }: RunFrame) => {
-	const idsOf = <C extends string>(model: C, keep: (row: JsonObject) => boolean = () => true) =>
-		(data[model] ?? []).filter(keep).map((row) => idOf(model, row.id));
-	const due = (date: unknown) => typeof date === 'string' && date <= cover.to;
-	if (pays !== undefined)
-		return {
-			leave: [],
-			claim: idsOf('claim_catalog_entry'),
-			adhoc: idsOf('adhoc_catalog_entry'),
-			repayment: [],
-			case: [],
-			roster_entry: []
-		};
-	const within = (date: unknown) => typeof date === 'string' && date >= cover.from && due(date);
-	const leaveDue = (row: JsonObject) => {
-		const slots = (Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
-			.filter(isJsonObject)
-			.filter((child) => child.payroll_run_id == null);
-		return row.reverses != null
-			? slots.length > 0
-			: slots.some((child) => within(child.incurred_on));
-	};
-	return {
-		leave: idsOf('leave_catalog_entry', leaveDue),
-		claim: idsOf('claim_catalog_entry', (row) => due(row.incurred_on)),
-		adhoc: idsOf('adhoc_catalog_entry', (row) => due(row.incurred_on)),
-		repayment: idsOf('loan_catalog_entry_repayment', (row) => due(row.paid_on)),
-		case: idsOf(
-			'workplace_case_catalog_entry',
-			(row) =>
-				String(row.opened_on) <= cover.to &&
-				(row.closed_on == null || String(row.closed_on) >= cover.from)
-		),
-		roster_entry: idsOf('roster_entry', (row) => row.payroll_run_id == null && due(row.work_date))
-	};
-};
-
-/** One run's payslips from what `loadRun` read: pure calculation, one pass per person. */
+/**
+ * One run's payslips from what `loadRun` read: pure calculation, one pass per person. `attaches` is what those payslips
+ * priced, so the one write seals exactly that: nothing of someone the run does not pay, no slot it did not price.
+ */
 export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	data: RunData,
 	run: JsonObject,
@@ -340,7 +367,25 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	const covering = (data.employee_contract ?? []).filter((row) =>
 		covers(row.effective_range, from, to)
 	);
-	if (covering.length === 0) return { payslips: [] };
+	const sealing = {
+		leave: new Set<string>(),
+		leave_day: new Set<string>(),
+		claim: new Set<string>(),
+		adhoc: new Set<string>(),
+		repayment: new Set<string>(),
+		case: new Set<string>(),
+		roster_entry: new Set<string>()
+	};
+	const sealed = () => ({
+		leave: [...sealing.leave].map((id) => idOf('leave_catalog_entry', id)),
+		leave_day: [...sealing.leave_day].map((id) => idOf('leave_catalog_entry_day', id)),
+		claim: [...sealing.claim].map((id) => idOf('claim_catalog_entry', id)),
+		adhoc: [...sealing.adhoc].map((id) => idOf('adhoc_catalog_entry', id)),
+		repayment: [...sealing.repayment].map((id) => idOf('loan_catalog_entry_repayment', id)),
+		case: [...sealing.case].map((id) => idOf('workplace_case_catalog_entry', id)),
+		roster_entry: [...sealing.roster_entry].map((id) => idOf('roster_entry', id))
+	});
+	if (covering.length === 0) return { payslips: [], attaches: sealed() };
 	// one payslip a person: a renewal inside the period pays on the contract in force at its end
 	const startOf = (row: JsonObject) => String(objectValue(row.effective_range).from ?? '');
 	const contracts = [
@@ -351,13 +396,26 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		).values()
 	];
 
-	const { since, pays } = frame;
+	const { pays } = frame;
+	// a leaver's last run is the one covering their last day: it also pays what falls after its attendance, up to then
+	const until = new Map(
+		contracts.map((row) => {
+			const last = objectValue(row.effective_range).to;
+			const leaves = row.exit === true && typeof last === 'string' && last > end && last <= to;
+			return [String(row.employee_id), leaves ? last : end];
+		})
+	);
+	const employeeOf = new Map(
+		(data.employee_contract ?? []).map((row) => [String(row.id), String(row.employee_id)])
+	);
+	const untilOf = (row: JsonObject) =>
+		until.get(employeeOf.get(String(row.employment_id)) ?? '') ?? end;
 	// what was entered after an earlier run closed is paid here, a cycle late
 	const due = (row: JsonObject, date: unknown): boolean =>
 		pays?.has(String(row.id)) ??
 		(typeof date === 'string' &&
-			date <= end &&
-			(date >= start || (row.payroll_run_id == null && date >= since)));
+			date <= untilOf(row) &&
+			(date >= start || row.payroll_run_id == null));
 	const employeeIds = [...new Set(contracts.map((row) => String(row.employee_id)))];
 	// every contract of the person answers for its entries by their dates, a run pays on the one in force
 	const answering = (data.employee_contract ?? []).filter((row) =>
@@ -459,36 +517,48 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		// the clock proves the person came and awards the plan; it never adds time of its own
 		const clock = closedSpans(row.actual_worked_intervals);
 		const planned = closedSpans(row.planned_overtime_intervals);
-		const overtime = awardedMinutes(planned, clock, fullAward) / 60;
+		const awarded = awardedMinutes(planned, clock, fullAward) / 60;
+		// overtime the worker takes as time off is owed by the hour, never also paid: the day prices none of it
+		const timeOff = row.overtime_as_time_off === true ? awarded : 0;
+		const overtime = awarded - timeOff;
 		const worked = clock.length === 0 ? 0 : scheduledHours(plan) + overtime;
+		const paidSpans = timeOff > 0 ? [] : planned;
 		days.push({
 			date,
 			day_type: plan.day_type,
 			scheduled_hours: scheduledHours(plan),
 			holiday_kind: typeof holiday?.kind === 'string' ? holiday.kind : '',
-			worked: worked > 0,
+			worked: worked + timeOff > 0,
 			worked_hours: worked,
 			overtime_hours: overtime,
-			intervals: stamped(overlapSpans(clock, [...plan.spans, ...planned])),
-			overtime_intervals: stamped(overlapSpans(planned, clock))
+			time_off_hours: timeOff,
+			intervals: stamped(overlapSpans(clock, [...plan.spans, ...paidSpans])),
+			overtime_intervals: stamped(overlapSpans(paidSpans, clock))
 		});
 		workDays.set(owner, days);
 	}
 
-	const within = (date: unknown): boolean =>
-		typeof date === 'string' && date >= start && date <= end;
+	// the slots a run prices: open ones in the person's window. A cash-out is a balance settled, not leave taken on its
+	// placeholder dates, and a reversal returns what it names: every open slot of those prices
+	const slotsDue = (row: JsonObject) =>
+		(Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
+			.filter(isJsonObject)
+			.filter(
+				(child) =>
+					child.payroll_run_id == null &&
+					(row.reverses != null ||
+						row.encashment === true ||
+						(typeof child.incurred_on === 'string' &&
+							child.incurred_on >= start &&
+							child.incurred_on <= untilOf(row)))
+			);
+	// a sealed entry still answers for its dates in later runs: only its own period's days are here
 	const leaveWithin = (rows: readonly JsonObject[]): readonly JsonObject[] =>
 		rows.flatMap((row) => {
-			const days = (Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
-				.filter(isJsonObject)
-				.flatMap((child) =>
-					child.payroll_run_id == null &&
-					(row.reverses != null || row.encashment === true || within(child.incurred_on))
-						? [{ date: String(child.incurred_on), part: String(child.part) }]
-						: []
-				);
-			// a cash-out is a balance settled, not leave taken on its placeholder dates: every slot prices.
-			// a sealed entry still answers for its dates in later runs: only its own period's days are here
+			const days = slotsDue(row).map((child) => ({
+				date: String(child.incurred_on),
+				part: String(child.part)
+			}));
 			return days.length === 0 ? [] : [{ ...row, days, payroll_run_id: null }];
 		});
 
@@ -553,30 +623,11 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		const own = new Set(
 			answering.filter((row) => row.employee_id === employeeId).map((row) => String(row.id))
 		);
-		// a reversal's refund is priced on the entry it undoes, so that entry travels with the run for its days
-		const heldLeave = data.leave_catalog_entry ?? [];
-		const undoneIds = new Set(
-			heldLeave.flatMap((row) =>
-				row.reverses != null && typeof row.reverses === 'string' ? [row.reverses] : []
-			)
-		);
+		// only the person's own entries
 		const entries = (rows: readonly JsonObject[] | undefined) =>
 			(rows ?? []).filter(
-				(row) =>
-					undoneIds.has(String(row.id)) ||
-					(own.has(String(row.employment_id)) && (pays?.has(String(row.id)) ?? true))
+				(row) => own.has(String(row.employment_id)) && (pays?.has(String(row.id)) ?? true)
 			);
-		const reversals = heldLeave
-			.filter((row) => undoneIds.has(String(row.id)))
-			.map((row) => ({
-				...row,
-				days: (Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
-					.filter(isJsonObject)
-					.map((child) => ({
-						date: PlainDate(String(child.incurred_on)),
-						part: String(child.part)
-					}))
-			}));
 		if (
 			pays !== undefined &&
 			[data.adhoc_catalog_entry, data.claim_catalog_entry].every(
@@ -613,6 +664,15 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 				}
 			];
 		});
+		const leave = entries(data.leave_catalog_entry);
+		const claims = entries(data.claim_catalog_entry).filter((row) => due(row, row.incurred_on));
+		const adhoc = entries(data.adhoc_catalog_entry).filter((row) => due(row, row.incurred_on));
+		const repayments = entries(data.loan_catalog_entry_repayment).filter((row) =>
+			due(row, row.paid_on)
+		);
+		// expressions read the employment, not the version: it ends with this version only at an exit
+		const { exit, ...version } = contract;
+		const range = objectValue(contract.effective_range);
 		const result = yield* Effect.try({
 			try: () =>
 				calculatePayroll({
@@ -627,7 +687,10 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					adhoc_catalog: data.adhoc_catalog ?? [],
 					loan_catalog: data.loan_catalog ?? [],
 					employee,
-					employment: contract,
+					employment: {
+						...version,
+						effective_range: { ...range, to: exit === true ? (range.to ?? null) : null }
+					},
 					employer,
 					balance: {
 						account: viewOf(
@@ -635,26 +698,16 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 							totalsScope(settings, companyId),
 							Number(settings.tax_year_start_month ?? 1),
 							String(run.pay_date ?? objectValue(run.salary_coverage).to)
-						)
+						),
+						// the days each leave row's windows have used, for a `paid_share` that reads them
+						leave: accountsOf(balance?.account).leave ?? {}
 					},
-					reversals,
 					entries: {
-						leave_catalog_entry: inRunVersion(
-							leaveWithin(entries(data.leave_catalog_entry)),
-							data.leave_catalog
-						),
-						claim_catalog_entry: inRunVersion(
-							entries(data.claim_catalog_entry).filter((row) => due(row, row.incurred_on)),
-							data.claim_catalog
-						),
-						adhoc_catalog_entry: inRunVersion(
-							entries(data.adhoc_catalog_entry).filter((row) => due(row, row.incurred_on)),
-							data.adhoc_catalog
-						),
+						leave_catalog_entry: inRunVersion(leaveWithin(leave), data.leave_catalog),
+						claim_catalog_entry: inRunVersion(claims, data.claim_catalog),
+						adhoc_catalog_entry: inRunVersion(adhoc, data.adhoc_catalog),
 						loan_catalog_entry: inRunVersion(entries(data.loan_catalog_entry), data.loan_catalog),
-						loan_catalog_entry_repayment: entries(data.loan_catalog_entry_repayment).filter((row) =>
-							due(row, row.paid_on)
-						)
+						loan_catalog_entry_repayment: repayments
 					},
 					work: { days: [...own].flatMap((id) => workDays.get(id) ?? []) },
 					work_events: workEvents,
@@ -706,6 +759,27 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			tax_withheld: money(Math.max(0, taxWithheld)),
 			breakdown: breakdownOf(result)
 		});
+		// what this payslip priced is sealed by its run, and nothing else
+		for (const row of leave) {
+			const slots = slotsDue(row);
+			if (slots.length === 0) continue;
+			if (row.payroll_run_id == null) sealing.leave.add(String(row.id));
+			for (const slot of slots) sealing.leave_day.add(String(slot.id));
+		}
+		for (const row of claims) sealing.claim.add(String(row.id));
+		for (const row of adhoc) sealing.adhoc.add(String(row.id));
+		for (const row of repayments) sealing.repayment.add(String(row.id));
+		if (pays !== undefined) continue;
+		for (const row of data.workplace_case_catalog_entry ?? [])
+			if (
+				own.has(String(row.employment_id)) &&
+				String(row.opened_on) <= untilOf(row) &&
+				(row.closed_on == null || String(row.closed_on) >= start)
+			)
+				sealing.case.add(String(row.id));
+		for (const row of workRows)
+			if (own.has(String(row.employment_id)) && row.payroll_run_id == null)
+				sealing.roster_entry.add(String(row.id));
 	}
-	return { payslips: paid };
+	return { payslips: paid, attaches: sealed() };
 });

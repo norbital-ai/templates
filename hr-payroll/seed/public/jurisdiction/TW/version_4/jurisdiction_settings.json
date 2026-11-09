@@ -459,7 +459,7 @@
 			"hour": {
 				"basis": "CONTRACT_HOURS"
 			},
-			"proration": "CALENDAR_DAYS",
+			"proration": "DAY_RATE",
 			"rounding": {
 				"mode": "HALF_UP",
 				"scale": 0

@@ -4,9 +4,14 @@
 	import { idOf } from '../../payroll_engine/reads.js';
 	let {
 		field,
+		versionId,
 		subject
-	}: { field: FieldEditor; subject: 'EMPLOYEE' | 'EMPLOYER' | 'TERMS' | 'EXIT' } = $props();
-	const versionId = $derived(field.form.values['input_schema_version_id']);
+	}: {
+		field: FieldEditor;
+		/** The settings version in force for the record; a contract's is worked out from its entity and first day. */
+		versionId: string | null;
+		subject: 'EMPLOYEE' | 'EMPLOYER' | 'TERMS' | 'EXIT';
+	} = $props();
 	const read = $derived(
 		typeof versionId === 'string'
 			? bolt.query({

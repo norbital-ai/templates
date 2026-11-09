@@ -694,6 +694,9 @@ export const ROW_PARAMS = {
 			monthly_regular_income_ceiling: Schema.Number,
 			tax_year: Schema.Number
 		}),
+		PPH21_EMPLOYER_BORNE: Schema.Struct({
+			below_zero: Schema.String
+		}),
 		PPH21_FINAL_PENSION: Schema.Struct({
 			below_zero: Schema.String,
 			ladder: Schema.Array(
@@ -905,7 +908,6 @@ export const ROW_PARAMS = {
 				})
 			),
 			attendance_ratio: Schema.optional(Schema.Number),
-			can_encash: Schema.optional(Schema.Boolean),
 			carry: Schema.optional(
 				Schema.Struct({
 					company_cap_days: Schema.optional(Schema.Number),
@@ -919,12 +921,6 @@ export const ROW_PARAMS = {
 				Schema.Struct({ excluded_employment_types: Schema.Array(Schema.String) })
 			),
 			eligibility_months: Schema.optional(Schema.Number),
-			encash_on_exit: Schema.optional(
-				Schema.Struct({
-					allowed: Schema.Boolean,
-					refused_on: Schema.optional(Schema.Array(Schema.String))
-				})
-			),
 			encashment_factor: Schema.optional(Schema.Number),
 			entitlement: Schema.optional(Schema.String),
 			extra_days: Schema.optional(
@@ -936,6 +932,7 @@ export const ROW_PARAMS = {
 					})
 				)
 			),
+			first_year_days: Schema.optional(Schema.Number),
 			first_year_proration_days: Schema.optional(Schema.Number),
 			full_time_days_per_week: Schema.optional(Schema.Number),
 			full_time_weekly_hours: Schema.optional(Schema.Number),
@@ -969,7 +966,6 @@ export const ROW_PARAMS = {
 			unit: Schema.optional(Schema.String)
 		}),
 		ANNUAL_LEAVE_DOMESTIC: Schema.Struct({
-			can_encash: Schema.Boolean,
 			grant_days: Schema.Number,
 			service_months: Schema.Number,
 			window: Schema.String
@@ -985,8 +981,12 @@ export const ROW_PARAMS = {
 			carry: Schema.Struct({ windows: Schema.Number }),
 			eligibility: Schema.Struct({ engagement: Schema.String }),
 			eligibility_months: Schema.Number,
+			entitlement: Schema.String,
+			first_year_days: Schema.Number,
+			full_time_days_per_week: Schema.Number,
 			full_time_weekly_hours: Schema.Number,
 			part_time_pro_rata: Schema.Boolean,
+			proration: Schema.String,
 			service_bands: Schema.Array(
 				Schema.Struct({ days: Schema.Number, service_months: Schema.Number })
 			),
@@ -1002,9 +1002,7 @@ export const ROW_PARAMS = {
 			opened_by: Schema.optional(Schema.Struct({ BEREAVEMENT: Schema.Struct({}) })),
 			window: Schema.optional(Schema.String)
 		}),
-		BEREAVEMENT_LEAVE_UNPAID: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		BEREAVEMENT_LEAVE_UNPAID: Schema.Struct({}),
 		BREASTFEEDING_TIME: Schema.Struct({}),
 		CHILD_BAPTISM_LEAVE: Schema.Struct({
 			grant_days: Schema.Number,
@@ -1033,9 +1031,7 @@ export const ROW_PARAMS = {
 			fiscal_year_start_month: Schema.Number,
 			school_age_limit_years: Schema.Number
 		}),
-		CHILD_SICK_CARE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		CHILD_SICK_CARE: Schema.Struct({}),
 		CHILDCARE_LEAVE: Schema.Struct({
 			child_age_limit_years: Schema.optional(Schema.Number),
 			days_by_children_by_region: Schema.optional(
@@ -1044,7 +1040,6 @@ export const ROW_PARAMS = {
 				)
 			),
 			entitlement: Schema.optional(Schema.String),
-			no_cap: Schema.optional(Schema.Boolean),
 			per_child_days_by_region: Schema.optional(
 				Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
 			),
@@ -1053,28 +1048,21 @@ export const ROW_PARAMS = {
 			),
 			window: Schema.optional(Schema.String)
 		}),
-		CHILDCARE_REDUCED_HOURS: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
-		CIVIC_DUTY_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
-		COMP_TIME_PAYOUT_VALUE: Schema.Struct({}),
+		CHILDCARE_REDUCED_HOURS: Schema.Struct({}),
+		CIVIC_DUTY_LEAVE: Schema.Struct({}),
 		COMPANY_TRAINING_LEAVE: Schema.Struct({}),
 		COMPASSIONATE_LEAVE: Schema.Struct({
-			can_encash: Schema.optional(Schema.Boolean),
-			no_cap: Schema.optional(Schema.Boolean),
 			unit: Schema.optional(Schema.String)
 		}),
-		COMPENSATORY_TIME_OFF: Schema.Struct({}),
-		CONTRACEPTION_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
+		COMPENSATORY_TIME_OFF: Schema.Struct({
+			grant_days: Schema.Number,
+			overtime_as_time_off: Schema.Boolean,
+			unit: Schema.String,
+			window: Schema.String
 		}),
-		CONVALESCENCE_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		CONTRACEPTION_LEAVE: Schema.Struct({}),
+		CONVALESCENCE_LEAVE: Schema.Struct({}),
 		COURT_CUSTODY_ABSENCE: Schema.Struct({
-			no_cap: Schema.Boolean,
 			unit: Schema.String
 		}),
 		ELDER_CARE_LEAVE: Schema.Struct({
@@ -1088,8 +1076,6 @@ export const ROW_PARAMS = {
 			entitlement: Schema.String
 		}),
 		EMERGENCY_LEAVE: Schema.Struct({
-			can_encash: Schema.optional(Schema.Boolean),
-			no_cap: Schema.optional(Schema.Boolean),
 			unit: Schema.optional(Schema.String)
 		}),
 		EMPLOYER_IDLE: Schema.Struct({}),
@@ -1100,7 +1086,6 @@ export const ROW_PARAMS = {
 			recipient_threshold: Schema.Number
 		}),
 		FAMILY_CARE_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean,
 			days: Schema.optional(Schema.Number)
 		}),
 		FAMILY_PLANNING_LEAVE: Schema.Struct({
@@ -1164,14 +1149,12 @@ export const ROW_PARAMS = {
 		}),
 		HOSPITALISED_SICK_LEAVE: Schema.Struct({}),
 		HOSPITALIZATION_LEAVE: Schema.Struct({
-			can_encash: Schema.optional(Schema.Boolean),
 			eligibility: Schema.optional(
 				Schema.Struct({ excluded_employment_types: Schema.Array(Schema.String) })
 			),
 			eligibility_months: Schema.optional(Schema.Number),
 			entitlement: Schema.optional(Schema.String),
 			grant_days: Schema.optional(Schema.Number),
-			no_cap: Schema.optional(Schema.Boolean),
 			service_bands: Schema.optional(
 				Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
 			),
@@ -1181,6 +1164,8 @@ export const ROW_PARAMS = {
 		HOSPITALIZATION_LEAVE_PART_TIME: Schema.Struct({
 			eligibility: Schema.Struct({ engagement: Schema.String }),
 			eligibility_months: Schema.Number,
+			entitlement: Schema.String,
+			full_time_days_per_week: Schema.Number,
 			full_time_weekly_hours: Schema.Number,
 			part_time_pro_rata: Schema.Boolean,
 			service_bands: Schema.Array(
@@ -1210,11 +1195,8 @@ export const ROW_PARAMS = {
 			opened_by: Schema.Struct({ MARRIAGE: Schema.Struct({}) }),
 			window: Schema.String
 		}),
-		MATERNAL_HEALTH_CHECK: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		MATERNAL_HEALTH_CHECK: Schema.Struct({}),
 		MATERNITY_ALLOCATION_LEAVE: Schema.Struct({
-			can_encash: Schema.Boolean,
 			entitlement: Schema.String,
 			grant_days: Schema.Number,
 			opened_by: Schema.Struct({ MATERNITY_ALLOCATION: Schema.Struct({}) }),
@@ -1230,7 +1212,6 @@ export const ROW_PARAMS = {
 		MATERNITY_LEAVE: Schema.Struct({
 			additional_baby_extra_days: Schema.optional(Schema.Number),
 			allocation_days: Schema.optional(Schema.Number),
-			can_encash: Schema.optional(Schema.Boolean),
 			difficult_birth_extra_days: Schema.optional(Schema.Number),
 			eligibility: Schema.optional(
 				Schema.Struct({
@@ -1249,7 +1230,6 @@ export const ROW_PARAMS = {
 			miscarriage_from_threshold_days: Schema.optional(Schema.Number),
 			miscarriage_month_threshold: Schema.optional(Schema.Number),
 			miscarriage_under_threshold_days: Schema.optional(Schema.Number),
-			no_cap: Schema.optional(Schema.Boolean),
 			opened_by: Schema.optional(
 				Schema.Struct({
 					ADDITIONAL_BABY: Schema.optional(Schema.Struct({})),
@@ -1276,9 +1256,7 @@ export const ROW_PARAMS = {
 			window: Schema.optional(Schema.String)
 		}),
 		MATERNITY_LEAVE_EXTENSION: Schema.Struct({
-			can_encash: Schema.Boolean,
 			grant_days: Schema.Number,
-			no_cap: Schema.Boolean,
 			opened_by: Schema.Struct({ BIRTH_EXTENSION: Schema.Struct({}) }),
 			window: Schema.String
 		}),
@@ -1300,16 +1278,12 @@ export const ROW_PARAMS = {
 			unit: Schema.String,
 			window: Schema.String
 		}),
-		MATERNITY_LEAVE_SSO: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		MATERNITY_LEAVE_SSO: Schema.Struct({}),
 		MEDICAL_LEAVE: Schema.Struct({
-			can_encash: Schema.optional(Schema.Boolean),
 			eligibility: Schema.optional(
 				Schema.Struct({ excluded_employment_types: Schema.Array(Schema.String) })
 			),
 			entitlement: Schema.optional(Schema.String),
-			no_cap: Schema.optional(Schema.Boolean),
 			opened_by: Schema.optional(
 				Schema.Struct({ LONG_ILLNESS: Schema.Struct({ days: Schema.Number }) })
 			),
@@ -1334,31 +1308,21 @@ export const ROW_PARAMS = {
 			days_by_region: Schema.optional(
 				Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
 			),
-			no_cap: Schema.optional(Schema.Boolean),
 			requires_by_region: Schema.optional(
 				Schema.Array(Schema.Struct({ region: Schema.String, requires: Schema.String }))
 			)
 		}),
-		MENSTRUAL_LEAVE_UNPAID: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		MENSTRUAL_LEAVE_UNPAID: Schema.Struct({}),
 		MILITARY_LEAVE: Schema.Struct({
 			grant_days: Schema.Number,
 			window: Schema.String
 		}),
-		MISCARRIAGE_LEAVE: Schema.Struct({
-			no_cap: Schema.optional(Schema.Boolean)
-		}),
+		MISCARRIAGE_LEAVE: Schema.Struct({}),
 		NATIONAL_SERVICE_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean,
 			unit: Schema.String
 		}),
-		NATURAL_DISASTER_ABSENCE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
-		NS_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		NATURAL_DISASTER_ABSENCE: Schema.Struct({}),
+		NS_LEAVE: Schema.Struct({}),
 		NURSING_BREAK: Schema.Struct({
 			child_age_limit_years: Schema.Number,
 			daily_hours: Schema.Number
@@ -1373,13 +1337,9 @@ export const ROW_PARAMS = {
 			),
 			window: Schema.String
 		}),
-		NURSING_TIME: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		NURSING_TIME: Schema.Struct({}),
 		OCCUPATIONAL_ACCIDENT_LEAVE: Schema.Struct({}),
-		OCCUPATIONAL_INJURY_ABSENCE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		OCCUPATIONAL_INJURY_ABSENCE: Schema.Struct({}),
 		OCCUPATIONAL_INJURY_LEAVE: Schema.Struct({}),
 		OFFICIAL_LEAVE: Schema.Struct({}),
 		PARENTAL_LEAVE: Schema.Struct({}),
@@ -1396,7 +1356,6 @@ export const ROW_PARAMS = {
 			window: Schema.String
 		}),
 		PATERNITY_LEAVE: Schema.Struct({
-			can_encash: Schema.optional(Schema.Boolean),
 			days_by_region: Schema.optional(
 				Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
 			),
@@ -1413,7 +1372,6 @@ export const ROW_PARAMS = {
 			entitlement: Schema.optional(Schema.String),
 			grant_days: Schema.optional(Schema.Number),
 			max_events: Schema.optional(Schema.Number),
-			no_cap: Schema.optional(Schema.Boolean),
 			opened_by: Schema.optional(
 				Schema.Struct({
 					CHILD_BIRTH: Schema.Struct({}),
@@ -1427,21 +1385,15 @@ export const ROW_PARAMS = {
 			grant_days: Schema.Number,
 			window: Schema.String
 		}),
-		PERSONAL_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		PERSONAL_LEAVE: Schema.Struct({}),
 		PERSONAL_LEAVE_PAID: Schema.Struct({}),
 		POSTNATAL_LEAVE: Schema.Struct({
-			days: Schema.Number,
-			no_cap: Schema.Boolean
+			days: Schema.Number
 		}),
 		POSTNATAL_PATERNITY_LEAVE: Schema.Struct({
-			days: Schema.Number,
-			no_cap: Schema.Boolean
+			days: Schema.Number
 		}),
-		PRENATAL_CHECKUP: Schema.Struct({
-			no_cap: Schema.optional(Schema.Boolean)
-		}),
+		PRENATAL_CHECKUP: Schema.Struct({}),
 		PRENATAL_CHECKUP_LEAVE: Schema.Struct({
 			grant_days: Schema.Number,
 			opened_by: Schema.Struct({ PREGNANCY: Schema.Struct({}) }),
@@ -1455,7 +1407,6 @@ export const ROW_PARAMS = {
 			eligibility: Schema.optional(Schema.Struct({ gender: Schema.String })),
 			entitlement: Schema.optional(Schema.String),
 			multiple_pregnancy_days: Schema.optional(Schema.Number),
-			no_cap: Schema.optional(Schema.Boolean),
 			opened_by: Schema.optional(Schema.Struct({ PREGNANCY: Schema.Struct({}) })),
 			paid_share_by_region: Schema.optional(
 				Schema.Array(Schema.Struct({ region: Schema.String, share: Schema.Number }))
@@ -1467,13 +1418,14 @@ export const ROW_PARAMS = {
 			window: Schema.String
 		}),
 		PUBLIC_HOLIDAY_IN_LIEU: Schema.Struct({
-			can_encash: Schema.optional(Schema.Boolean),
-			no_cap: Schema.optional(Schema.Boolean),
-			unit: Schema.optional(Schema.String)
+			grant_days: Schema.Number,
+			unit: Schema.optional(Schema.String),
+			window: Schema.optional(Schema.String)
 		}),
 		RELIGIOUS_DUTY_LEAVE: Schema.Struct({}),
 		SHARED_PARENTAL_LEAVE: Schema.Struct({
 			eligibility_months: Schema.Number,
+			entitlement: Schema.String,
 			grant_days: Schema.Number,
 			opened_by: Schema.Struct({ CHILD_BIRTH: Schema.Struct({}) }),
 			window: Schema.String
@@ -1483,7 +1435,6 @@ export const ROW_PARAMS = {
 			grant_days: Schema.optional(Schema.Number),
 			medical_period_max_months: Schema.optional(Schema.Number),
 			minimum_wage_floor_share: Schema.optional(Schema.Number),
-			no_cap: Schema.optional(Schema.Boolean),
 			opened_by: Schema.optional(
 				Schema.Struct({ ILLNESS: Schema.Struct({ days: Schema.Number }) })
 			),
@@ -1513,6 +1464,8 @@ export const ROW_PARAMS = {
 		SICK_LEAVE_PART_TIME: Schema.Struct({
 			eligibility: Schema.Struct({ engagement: Schema.String }),
 			eligibility_months: Schema.Number,
+			entitlement: Schema.String,
+			full_time_days_per_week: Schema.Number,
 			full_time_weekly_hours: Schema.Number,
 			part_time_pro_rata: Schema.Boolean,
 			service_bands: Schema.Array(
@@ -1520,25 +1473,17 @@ export const ROW_PARAMS = {
 			),
 			window: Schema.String
 		}),
-		SICK_LEAVE_SUSPENSION: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
-		SICK_LEAVE_UNPAID: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
-		SICKNESS_ABSENCE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		SICK_LEAVE_SUSPENSION: Schema.Struct({}),
+		SICK_LEAVE_UNPAID: Schema.Struct({}),
+		SICKNESS_ABSENCE: Schema.Struct({}),
 		SOCIAL_ACTIVITY: Schema.Struct({}),
 		SOLO_PARENT_LEAVE: Schema.Struct({
-			can_encash: Schema.Boolean,
 			entitlement: Schema.String,
 			grant_days: Schema.Number,
 			service_months: Schema.Number,
 			window: Schema.String
 		}),
 		SPECIAL_LEAVE_FOR_WOMEN: Schema.Struct({
-			can_encash: Schema.Boolean,
 			eligibility: Schema.Struct({ gender: Schema.String }),
 			grant_days: Schema.Number,
 			opened_by: Schema.Struct({ GYNECOLOGICAL_SURGERY: Schema.Struct({}) }),
@@ -1546,48 +1491,42 @@ export const ROW_PARAMS = {
 			window: Schema.String
 		}),
 		STATE_DUTY_LEAVE: Schema.Struct({}),
-		STATUTORY_REST_IN_LIEU: Schema.Struct({}),
-		STERILISATION_LEAVE: Schema.Struct({}),
-		STOPPAGE_WORKER_FAULT: Schema.Struct({
-			no_cap: Schema.Boolean
+		STATUTORY_REST_IN_LIEU: Schema.Struct({
+			grant_days: Schema.Number
 		}),
-		SUBSTITUTE_LEAVE_FOR_OVERTIME: Schema.Struct({}),
+		STERILISATION_LEAVE: Schema.Struct({}),
+		STOPPAGE_WORKER_FAULT: Schema.Struct({}),
+		SUBSTITUTE_LEAVE_FOR_OVERTIME: Schema.Struct({
+			grant_days: Schema.Number
+		}),
 		SUSPENSION: Schema.Struct({
 			grant_days: Schema.optional(Schema.Number),
 			opened_by: Schema.optional(Schema.Struct({ DISCIPLINARY_SUSPENSION: Schema.Struct({}) })),
-			paid_share: Schema.optional(Schema.Number),
 			window: Schema.optional(Schema.String)
 		}),
 		SUSPENSION_PENDING_DISCIPLINE: Schema.Struct({}),
-		TRAINING_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		TRAINING_LEAVE: Schema.Struct({}),
 		UNION_DUTY_LEAVE: Schema.Struct({}),
-		UNPAID_INFANT_CARE_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
-		}),
+		UNPAID_INFANT_CARE_LEAVE: Schema.Struct({}),
 		UNPAID_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean,
-			can_encash: Schema.optional(Schema.Boolean),
 			unit: Schema.optional(Schema.String)
 		}),
 		VAWC_LEAVE: Schema.Struct({
-			can_encash: Schema.Boolean,
 			grant_days: Schema.Number,
 			opened_by: Schema.Struct({ VAWC: Schema.Struct({}) }),
 			window: Schema.String
 		}),
 		WORK_ACCIDENT_LEAVE: Schema.Struct({}),
-		WORK_FROM_HOME: Schema.Struct({}),
 		WORK_INJURY_HOSPITALISATION_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
+			days: Schema.Number,
+			max_months: Schema.Number,
+			opened_by: Schema.Struct({ WORK_ACCIDENT: Schema.Struct({ days: Schema.Number }) })
 		}),
-		WORK_INJURY_LEAVE: Schema.Struct({
-			max_months: Schema.optional(Schema.Number),
-			no_cap: Schema.optional(Schema.Boolean)
-		}),
+		WORK_INJURY_LEAVE: Schema.Struct({}),
 		WORK_INJURY_MEDICAL_LEAVE: Schema.Struct({
-			no_cap: Schema.Boolean
+			days: Schema.Number,
+			max_months: Schema.Number,
+			opened_by: Schema.Struct({ WORK_ACCIDENT: Schema.Struct({ days: Schema.Number }) })
 		}),
 		YOUNG_WORKER_TRAINING_LEAVE: Schema.Struct({
 			grant_days: Schema.Number,
@@ -1636,11 +1575,6 @@ export const ROW_PARAMS = {
 		BANKRUPTCY_ESTATE: Schema.Struct({
 			ceiling: Schema.Number
 		}),
-		BIK_CAR: Schema.Struct({}),
-		BIK_HOTEL_ACCOMMODATION: Schema.Struct({}),
-		BIK_OTHER: Schema.Struct({}),
-		BIK_PLACE_OF_RESIDENCE: Schema.Struct({}),
-		BIK_UTILITIES_HOUSEKEEPING: Schema.Struct({}),
 		BIK_VOLA: Schema.Struct({}),
 		bonus: Schema.Struct({}),
 		BONUS: Schema.Struct({}),
@@ -2230,9 +2164,7 @@ export const ROW_PARAMS = {
 				})
 			)
 		}),
-		LONG_SERVICE_AWARD: Schema.Struct({
-			minimum_service_years: Schema.optional(Schema.Number)
-		}),
+		LONG_SERVICE_AWARD: Schema.Struct({}),
 		LOSS_DAMAGE_DEDUCTION: Schema.Struct({
 			max_share_of_basic: Schema.Number
 		}),
@@ -2390,7 +2322,6 @@ export const ROW_PARAMS = {
 			service_bands: Schema.Array(Schema.Struct({ days: Schema.Number, months: Schema.Number }))
 		}),
 		NR_PUBLIC_ENTERTAINER_FEE: Schema.Struct({}),
-		NS_MAKEUP_PAY: Schema.Struct({}),
 		OCC_DEATH_COMPENSATION: Schema.Struct({
 			months: Schema.Number
 		}),
@@ -2451,6 +2382,7 @@ export const ROW_PARAMS = {
 		OCCUPATIONAL_ACCIDENT_MEDICAL: Schema.Struct({}),
 		ORDINARY_BACKPAY: Schema.Struct({}),
 		OT_MEAL_ALLOWANCE: Schema.Struct({}),
+		OVERTIME_ARREARS: Schema.Struct({}),
 		PAY_IN_LIEU_OF_NOTICE: Schema.Struct({}),
 		PAYEE_PAYMENT: Schema.Struct({}),
 		PENSION_ADJUSTMENT: Schema.Struct({
@@ -2602,8 +2534,6 @@ export const ROW_PARAMS = {
 			old_months_per_year: Schema.optional(Schema.Number),
 			severance_grounds: Schema.optional(Schema.Array(Schema.String))
 		}),
-		SHARE_PLAN_DEEMED_GAIN: Schema.Struct({}),
-		SHARE_PLAN_GAIN: Schema.Struct({}),
 		SHUTDOWN_ALLOWANCE: Schema.Struct({
 			rate: Schema.Number
 		}),
@@ -2778,7 +2708,6 @@ export const ROW_PARAMS = {
 		SUSPENSION_BACK_PAY: Schema.Struct({}),
 		SUSPENSION_SETTLEMENT: Schema.Struct({}),
 		TASK_MONTHLY_WAGE: Schema.Struct({}),
-		TAXABLE_BENEFIT: Schema.Struct({}),
 		TECHNOLOGY_NOTICE_IN_LIEU: Schema.Struct({
 			notice_days: Schema.Number
 		}),
@@ -2791,7 +2720,6 @@ export const ROW_PARAMS = {
 		TRAINING_COST_REFUND: Schema.Struct({}),
 		TRAINING_SUPPORT: Schema.Struct({}),
 		TRAVEL_OFFICIAL: Schema.Struct({}),
-		TRIP_MONTHLY_WAGE: Schema.Struct({}),
 		UANG_PISAH: Schema.Struct({
 			separation_pay_causes: Schema.Array(Schema.String)
 		}),
@@ -2899,7 +2827,6 @@ export const ROW_PARAMS = {
 		ZAKAT: Schema.Struct({})
 	},
 	loan_catalog: {
-		AIR_TICKET_DEDUCTION: Schema.Struct({}),
 		APPROVED_HOUSING_LOAN: Schema.Struct({}),
 		EMERGENCY_ADVANCE: Schema.Struct({}),
 		FESTIVE_ADVANCE: Schema.Struct({}),
@@ -3159,7 +3086,6 @@ export const PARAM_KEYS = {
 		'allocation_days',
 		'annual_days_cap',
 		'attendance_ratio',
-		'can_encash',
 		'carry',
 		'carry_forward_years',
 		'child_age_limit_years',
@@ -3173,10 +3099,10 @@ export const PARAM_KEYS = {
 		'difficult_birth_extra_days',
 		'eligibility',
 		'eligibility_months',
-		'encash_on_exit',
 		'encashment_factor',
 		'entitlement',
 		'extra_days',
+		'first_year_days',
 		'first_year_proration_days',
 		'fiscal_year_start_month',
 		'full_pay_service_months',
@@ -3194,10 +3120,9 @@ export const PARAM_KEYS = {
 		'miscarriage_month_threshold',
 		'miscarriage_under_threshold_days',
 		'multiple_pregnancy_days',
-		'no_cap',
 		'opened_by',
+		'overtime_as_time_off',
 		'paid_personal_leave_disqualification_days',
-		'paid_share',
 		'paid_share_by_region',
 		'part_time_pro_rata',
 		'part_time_service_bands',
@@ -3254,7 +3179,6 @@ export const PARAM_KEYS = {
 		'max_years',
 		'maximum_days',
 		'minimum_months',
-		'minimum_service_years',
 		'monthly_cap',
 		'months',
 		'months_of_wage',

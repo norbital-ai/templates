@@ -4,9 +4,10 @@ import { evaluate } from './expressions.js';
 import { Refusal, isJsonObject, jsonObject, type Json } from './foundation.js';
 import { JsonObject, settingsConstants } from './contracts.js';
 import { queryRows, type Reader } from './reads.js';
+import { chainOf, startsOf, versionOn } from './contract_change.js';
 import { ReadRequestSchema } from '@norbital-ai/bolt/protocol';
 
-export type Operation = 'create' | 'update' | 'delete' | 'seal';
+export type Operation = 'create' | 'update' | 'delete' | 'seal' | 'exit';
 const CATALOG_OF: Readonly<Record<string, string>> = {
 	leave_catalog_entry: 'leave_catalog',
 	claim_catalog_entry: 'claim_catalog',
@@ -26,7 +27,7 @@ const pathValue = (value: unknown, path: string): unknown => {
 	return current;
 };
 
-const rangeObject = (value: unknown): JsonObject | undefined => {
+export const rangeObject = (value: unknown): JsonObject | undefined => {
 	if (isJsonObject(value)) return value;
 	if (typeof value !== 'string') return undefined;
 	const match = /^\[([^,]*),([^)]*)\)$/.exec(value);
@@ -44,6 +45,32 @@ const refId = (value: unknown): string | undefined =>
 		: isJsonObject(value) && typeof value.id === 'string'
 			? value.id
 			: undefined;
+
+/**
+ * The law each asker answers to: the sealed version of its entity's lineage (`settings_code`) in force on its day, all
+ * from one read. Nothing stores a contract's version.
+ */
+export const lawOn = Effect.fn('payroll.lawOn')(function* (
+	read: Reader,
+	asked: readonly { readonly entity: unknown; readonly on: unknown }[]
+) {
+	const entities = [...new Set(asked.flatMap(({ entity }) => refId(entity) ?? []))];
+	if (entities.length === 0) return asked.map((): JsonObject | undefined => undefined);
+	const { entity = [], jurisdiction_settings: versions = [] } = yield* queryRows(read, {
+		entity: { where: { id: { in: entities } }, fields: ['id', 'settings_code'], limit: 10000 },
+		jurisdiction_settings: {
+			where: { status: { eq: 'SEALED' } },
+			fields: ['id', 'code', 'effective_range'],
+			limit: 10000
+		}
+	});
+	const code = new Map(entity.map((row) => [String(row.id), row.settings_code]));
+	return asked.map(({ entity, on }) =>
+		versionOn(versions, code.get(String(refId(entity))), String(on))
+	);
+});
+/** A contract's first day, from a written row or its stored half-open range. */
+export const startOf = (row: JsonObject): unknown => rangeObject(row.effective_range)?.from;
 
 const dateText = (value: unknown): string | null =>
 	typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
@@ -125,20 +152,17 @@ export const resolveRead = (value: Json, data: Record<string, unknown>): Json =>
 
 const SUBJECT_CONTRACT = [
 	'id',
+	'employee_number',
 	'employee_id',
 	'entity_id',
-	'input_schema_version_id',
 	'effective_range',
 	'terms',
 	'payroll',
 	'engagement',
 	'events',
-	'dependents_count',
-	'children',
-	'only_child',
+	'family',
 	'employee_extension_data',
-	'exit_ground',
-	'child_leave_allocations'
+	'exit_ground'
 ] as const;
 const SUBJECT_EMPLOYER = [
 	'id',
@@ -311,6 +335,46 @@ const subjectValue = Effect.fnUntraced(function* (
 
 type Layer = { readonly [key: string]: Json };
 const whereOf = (layer: Layer): Layer => (isJsonObject(layer.where) ? layer.where : {});
+const STINT = ['id', 'employee_id', 'status', 'effective_range', 'entity_id'];
+/** Worked out from the stints, never stored: a read asks for it as a field and gets it beside the service start. */
+const EMPLOYMENT_START = 'employment_started_on';
+/** A contract read that asks for service reads the person's stints beside it, in the same request. */
+const withStints = (layer: Layer): Record<string, Layer> =>
+	Array.isArray(layer.fields) &&
+	!layer.fields.includes('service_started_on') &&
+	!layer.fields.includes(EMPLOYMENT_START)
+		? { employee_contract: layer }
+		: {
+				employee_contract: Array.isArray(layer.fields)
+					? {
+							...layer,
+							fields: [
+								...new Set([
+									...layer.fields.filter((field) => field !== EMPLOYMENT_START),
+									'service_started_on',
+									...STINT
+								])
+							]
+						}
+					: layer,
+				'employee_contract.employee_id': { fields: ['id', 'cumulative_service'] },
+				'employee_contract.employee_id.employee_contract': {
+					where: { status: { eq: 'SEALED' } },
+					fields: STINT
+				},
+				'employee_contract.employee_id.employee_contract.entity_id': {
+					fields: ['settings_code']
+				}
+			};
+/** A contract read with its stints carries the service and employment starts sync and the run work out, on its plain person id. */
+const serviced = (row: JsonObject): JsonObject => {
+	const person = row.employee_id;
+	if (!isJsonObject(person)) return row;
+	const stints = person.employee_contract;
+	const { chain, lineage } = chainOf(Array.isArray(stints) ? stints.filter(isJsonObject) : []);
+	const contract = { ...row, employee_id: person.id ?? null };
+	return { ...contract, ...startsOf(contract, chain, lineage, person.cumulative_service === true) };
+};
 /**
  * Every read a batch of rows declares, for every rule at once (`requests[rule][row]`), in as few requests as their roots
  * allow (a root reads once per request), all sent together. Rows that differ only by `eq` values gather into one `in`,
@@ -405,7 +469,10 @@ const batchRead = Effect.fnUntraced(function* (
 	for (const [key, { name, layer }] of needs) {
 		let pack = packs.find((candidate) => !(name in candidate.request));
 		if (pack === undefined) packs.push((pack = { request: {}, keys: {} }));
-		pack.request[name] = layer;
+		Object.assign(
+			pack.request,
+			name === 'employee_contract' ? withStints(layer) : { [name]: layer }
+		);
 		pack.keys[name] = key;
 	}
 	const found = yield* Effect.forEach(
@@ -415,7 +482,10 @@ const batchRead = Effect.fnUntraced(function* (
 	);
 	for (const [index, rows] of found.entries())
 		for (const [name, key] of Object.entries(packs[index]?.keys ?? {}))
-			cache.set(key, rows[name] ?? []);
+			cache.set(
+				key,
+				name === 'employee_contract' ? (rows[name] ?? []).map(serviced) : (rows[name] ?? [])
+			);
 	for (const deal of deals) deal();
 	return answers;
 });
@@ -451,6 +521,13 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 		const id = refId(row.settings_id ?? row.input_schema_version_id);
 		if (id !== undefined) settings.add(id);
 	}
+	// a contract answers to the law in force on its first day
+	if (collection === 'employee_contract')
+		for (const version of yield* lawOn(
+			read,
+			rows.map((row) => ({ entity: row.entity_id, on: startOf(row) }))
+		))
+			if (version !== undefined) settings.add(String(version.id));
 	// the law a write answers to: named on its rows, or reached through what they name
 	let law: JsonObject | undefined;
 	if (settings.size === 0 && collection === 'payslip') {
@@ -495,11 +572,19 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 					limit: 10000
 				}
 			});
-			for (const row of found.employee_contract ?? []) {
-				if (typeof row.input_schema_version_id === 'string')
-					settings.add(row.input_schema_version_id);
-				if (typeof row.id === 'string') cache.contracts.set(row.id, row);
-			}
+			const contracts = new Map(
+				(found.employee_contract ?? []).map((row) => [String(row.id), row])
+			);
+			for (const row of contracts.values()) cache.contracts.set(String(row.id), row);
+			// a day sheet answers to the law in force on its work date
+			for (const version of yield* lawOn(
+				read,
+				rows.map((row) => ({
+					entity: contracts.get(String(row.employment_id))?.entity_id,
+					on: row.work_date
+				}))
+			))
+				if (version !== undefined) settings.add(String(version.id));
 		}
 	}
 	law ??= settings.size === 0 ? undefined : { id: { in: [...settings] } };
@@ -551,9 +636,12 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 		}),
 		readCache
 	);
+	// a row stops at its first refusing rule, in rule order; the other rows go on
+	const refused = new Map<number, string>();
 	for (const [at, rule] of rules.entries()) {
 		const code = String(rule.code ?? '');
 		for (const [index, row] of rows.entries()) {
+			if (refused.has(index)) continue;
 			const context = {
 				entry: row,
 				before: row,
@@ -576,10 +664,25 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 					message: `${code}: a registered rule needs its validation expression.`
 				});
 			const answer = evaluate(validate, 'CALCULATION', context, `${code}.validate`);
-			if (!truth(answer))
-				throw new Refusal({ message: `${code}: the row is refused by its registered rule.` });
+			if (!truth(answer)) refused.set(index, code);
 		}
 	}
+	// every refused row, each named by its person and day, so a batch is fixed in one pass
+	if (refused.size > 0)
+		throw new Refusal({
+			message: [...refused]
+				.toSorted(([left], [right]) => left - right)
+				.map(([index, code]) => {
+					const key = [
+						pathValue(subjects[index], 'employment.employee_number'),
+						rows[index]?.work_date
+					]
+						.filter((part) => typeof part === 'string' && part !== '')
+						.join(' ');
+					return `${key === '' ? '' : `${key}: `}${code}: the row is refused by its registered rule.`;
+				})
+				.join('\n')
+		});
 });
 
 const CATALOG_ENTRY = /^(.*_catalog)_entry$/;
@@ -590,7 +693,8 @@ const CATALOG_ENTRY = /^(.*_catalog)_entry$/;
 const versionsOf = Effect.fn('payroll.versionsOf')(function* (
 	read: Reader,
 	collection: string,
-	rows: readonly JsonObject[]
+	rows: readonly JsonObject[],
+	operation: Operation
 ) {
 	const ids = (field: string) => [
 		...new Set(
@@ -615,11 +719,31 @@ const versionsOf = Effect.fn('payroll.versionsOf')(function* (
 			: employees.length > 0
 				? { employee_id: { in: employees } }
 				: null;
-	if (contract !== null) {
-		const { employee_contract: found = [] } = yield* queryRows(read, {
-			employee_contract: { where: contract, fields: ['input_schema_version_id'], limit: 10000 }
-		});
-		return new Set(found.map((row) => String(row.input_schema_version_id)));
+	const contracts =
+		collection === 'employee_contract'
+			? rows
+			: contract === null
+				? null
+				: ((yield* queryRows(read, {
+						employee_contract: {
+							where: contract,
+							fields: ['entity_id', 'effective_range'],
+							limit: 10000
+						}
+					})).employee_contract ?? []);
+	if (contracts !== null) {
+		// a contract answers to the law of its first day; its exit, to the law of its last
+		const law = yield* lawOn(
+			read,
+			contracts.map((row) => ({
+				entity: row.entity_id,
+				on:
+					operation === 'exit' && collection === 'employee_contract'
+						? (rangeObject(row.effective_range)?.to ?? startOf(row))
+						: startOf(row)
+			}))
+		);
+		return new Set(law.flatMap((version) => (version === undefined ? [] : [String(version.id)])));
 	}
 	const entities = collection === 'entity' ? ids('id') : ids('entity_id');
 	if (entities.length === 0) return new Set<string>();
@@ -649,7 +773,7 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 			...(isJsonObject(change.after) ? change.after : {})
 		})
 	);
-	const settings = yield* versionsOf(ctx.query, collection, rows);
+	const settings = yield* versionsOf(ctx.query, collection, rows, operation);
 	if (settings.size === 0) return;
 	const written = (change: { readonly before?: object; readonly after?: object }): JsonObject => {
 		const row: JsonObject = {

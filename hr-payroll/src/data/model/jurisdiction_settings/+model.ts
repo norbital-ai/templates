@@ -76,7 +76,7 @@ export default model('jurisdiction_settings', {
 						}
 					}
 				},
-				proration: { kind: 'enum', values: ['CALENDAR_DAYS', 'WORKING_DAYS'] },
+				proration: { kind: 'enum', values: ['CALENDAR_DAYS', 'WORKING_DAYS', 'DAY_RATE'] },
 				rounding: {
 					kind: 'object',
 					fields: {

@@ -41,6 +41,7 @@ export default model('payslip', {
 	read: {
 		payslip: { fields: 'all' },
 		'payslip.employment_id': { fields: 'all' },
+		'payslip.employment_id.employee_id': { fields: ['name'] },
 		'payslip.employee_id': { fields: ['name', 'user_id'] },
 		'payslip.payroll_run_id': { fields: 'all' },
 		'payslip.settings_id': { fields: ['code', 'currency'] }

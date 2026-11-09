@@ -21,8 +21,6 @@ export default model('claim_catalog', {
 		description: { kind: 'text', optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
 		eligibility: { kind: 'text', max: 65536, optional: true },
-		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'], default: 'ADD' },
-		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
 		conversion: { kind: 'text', max: 65536, optional: true },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'claim_catalog', owned: true }
 	},
@@ -42,8 +40,6 @@ export default model('claim_catalog', {
 				'description',
 				'references',
 				'eligibility',
-				'direction',
-				'party',
 				'conversion',
 				'settings_id'
 			]
@@ -67,8 +63,6 @@ export default model('claim_catalog', {
 				'description',
 				'references',
 				'eligibility',
-				'direction',
-				'party',
 				'conversion'
 			]
 		},

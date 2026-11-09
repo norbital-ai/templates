@@ -33,6 +33,8 @@ const expressionOf = (row: Record<string, unknown>): string =>
 		'calculation',
 		'eligibility',
 		'conversion',
+		'paid_share',
+		'payout',
 		'incurred_on',
 		'employee_amount',
 		'employer_amount',
@@ -144,20 +146,14 @@ describe('configuration ownership', () => {
 				for (const path of files(code, version))
 					for (const row of rows(path)) {
 						const name = path.split('/').at(-1);
-						if (name === 'allowance_catalog.json')
-							assert.ok(
-								!(row.party === 'EMPLOYER' && row.include_in_rate === true),
-								`${path}: an employer-only allowance is in the employee rate`
-							);
-						if (name === 'leave_catalog.json')
-							assert.ok(
-								!(
-									row.pay_treatment === 'UNPAID' &&
-									typeof row.conversion === 'string' &&
-									row.conversion.trim() !== ''
-								),
-								`${path}: an unpaid leave row carries a conversion`
-							);
+						// one pricing rule per catalog (a leave's paid_share and payout), with no flag beside it
+						if (
+							['allowance_catalog.json', 'claim_catalog.json', 'leave_catalog.json'].includes(
+								String(name)
+							)
+						)
+							for (const key of ['pay_treatment', 'direction', 'party', 'prorate'])
+								assert.equal(Object.hasOwn(row, key), false, `${path}: ${key} is not a field`);
 						if (name !== 'adhoc_catalog.json')
 							assert.equal(
 								Object.hasOwn(row, 'off_cycle_eligible'),

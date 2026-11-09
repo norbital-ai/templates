@@ -41,7 +41,7 @@ const readKnown = Effect.fnUntraced(function* (grids: WorkbookGrids) {
 		entity: { fields: ['name', 'code'], limit: 10000 },
 		entity_profile_version: { fields: ['entity_id', 'effective_range', 'status'], limit: 10000 },
 		employee_profile: {
-			fields: ['name', 'email', 'phone', 'address', 'first_hired_on', 'source_reference'],
+			fields: ['name', 'email', 'phone', 'address', 'source_reference'],
 			limit: 10000
 		},
 		employee_contract: {
@@ -109,7 +109,6 @@ const readKnown = Effect.fnUntraced(function* (grids: WorkbookGrids) {
 			email: row.email ?? null,
 			phone: row.phone ?? null,
 			address: row.address ?? null,
-			first_hired_on: row.first_hired_on == null ? null : String(row.first_hired_on),
 			source_reference: row.source_reference ?? null
 		})),
 		contracts: held.employee_contract.rows.map((row) => ({

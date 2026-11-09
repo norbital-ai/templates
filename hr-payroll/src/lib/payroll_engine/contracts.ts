@@ -36,6 +36,8 @@ const CALCULATION_ROOTS = [
 	'month_wage',
 	'day_rate',
 	'hour_rate',
+	'paid_share',
+	'used',
 	'subtotals',
 	'overtime',
 	'statutory',

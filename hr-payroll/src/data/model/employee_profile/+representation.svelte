@@ -20,6 +20,7 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Stack, Cluster } from '@norbital-ai/ui/layout';
+	import BalanceAdjustment from '../../../lib/ui/person/balance_adjustment.svelte';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
 	import { addDays, PlainDate } from '@norbital-ai/std/date';
@@ -33,6 +34,7 @@
 	const JSON_KIND = { kind: 'json' } as const;
 	const caseName = listedKindNames('case_kinds');
 	let enrolling = $state(false),
+		adjusting = $state(false),
 		saving = $state(false);
 	function status(value: 'APPROVED' | 'NONE' | 'SUSPENDED') {
 		if (record === null || saving) return;
@@ -64,8 +66,7 @@
 							'entity_id',
 							'terms',
 							'engagement',
-							'status',
-							'input_schema_version_id'
+							'status'
 						]
 					},
 					'employee_contract.entity_id': { fields: ['name'] }
@@ -180,6 +181,12 @@
 						</h3>
 						<Field name="documents" />
 					</section>
+					<section class="grid gap-3">
+						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Service
+						</h3>
+						<Field name="cumulative_service" />
+					</section>
 					{#if record}{@render face()}{/if}
 				</div>
 			{/snippet}</Form
@@ -250,14 +257,26 @@
 					columns={[{ field: 'kind', cell: caseCell }, 'entity_id', 'opened_on', 'closed_on']}
 				/></Stack
 			>{/if}{/if}{/snippet}
-{#snippet finances()}{#if record}<Stack gap="lg"
+{#snippet finances()}{#if record}{@const held = balance?.current?.employee_balance.rows[0]}<Stack
+			gap="lg"
+			><Cluster justify="end"
+				><Button variant="outline" disabled={held === undefined} onclick={() => (adjusting = true)}
+					><Icon name="lucide:pencil" class="size-4" />{t('balance.adjust')}</Button
+				></Cluster
 			><StructuredData
 				name="employee_balance_account"
 				mode="view"
 				frame={false}
 				kind={JSON_KIND}
-				value={balance?.current?.employee_balance.rows[0]?.account ?? {}}
-			/></Stack
+				value={held?.account ?? {}}
+			/>{#if held !== undefined}<Table
+					of="ledger_entry"
+					key="person-balance-adjustments"
+					where={{ balance_id: { eq: held.id }, source: { like: 'manual:%' } }}
+					orderBy={{ effective_on: 'desc' }}
+					toolbar={{ new: false, title: t('balance.adjustments') }}
+					columns={['effective_on', 'account', 'code', 'operation', 'amount', 'note', 'created_by']}
+				/>{/if}</Stack
 		>{/if}{/snippet}
 {#snippet face()}{#if record}{@const faceStatus = record.face_enrollment_status ?? 'NONE'}<Cluster
 			gap="sm"
@@ -325,6 +344,11 @@
 			]}
 		/>{/if}
 </RecordShell>
+{#if adjusting && record && balance?.current?.employee_balance.rows[0]}<BalanceAdjustment
+		employeeId={record.id}
+		balanceId={balance.current.employee_balance.rows[0].id}
+		onclose={() => (adjusting = false)}
+	/>{/if}
 {#if enrolling && record}<Sheet
 		open
 		onOpenChange={(open) => !open && (enrolling = false)}

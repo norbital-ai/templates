@@ -472,3 +472,50 @@ Gates after each group: lint → build → the VN payroll/leave suites → the m
   `entity_id = ctx.entry.entity_id`.
 - Regression: the read declaration is asserted, and the validate cases prove that a covering agreement demands both
   carry fields while no covering agreement passes.
+
+## Seed round 3 decision record (2026-11-10)
+
+Scope: `seed/public/jurisdiction/VN/**` and this note only. No source, schema, test or migration change; no model field. The seven seed versions in the tree (v1–v7) are not released, so the seed-round rule is an edit in place across all seven, not a new sealed version.
+
+### Annual leave in the joining year (Labour Code art.113(1)–(2); Decree 145/2020 arts.66(1)–(2))
+
+The predecessor seed used `lookup.proration = COMPLETED_MONTHS`. The generic `entitlementOf` branch prorated only the opening band (`first.days`, 12) and dropped `lookup.extra_days`, so a joiner entitled to 14 or 16 days was prorated on 12. The row now declares one `lookup.entitlement` expression in every version:
+
+- `days` is the service band (12 plus the art.114 seniority increment) plus the largest matching `extra_days` (+2 for a minor, a disabled worker or arduous/toxic/dangerous work; +4 for especially arduous/toxic/dangerous work). Art.113(1) sets 14 and 16; art.114 adds one day for every full five years.
+- In the joining calendar year only, it returns `days / 12 × months worked in the year`; in a later calendar year it returns `days`. The reference cites Decree 145 art.66(1). The seed uses `employment_started_on` (the current unbroken stint), not `service_started_on`: credited service raises the band, but the months prorated are the months actually worked here in the year.
+- A month counts when the working days from the join date reach 50% of that month's normal working days, and only once the month's last day is served. The window is `CALENDAR_YEAR`, not `SERVICE_YEAR`.
+
+**The art.66(1) reading.** “Số tháng làm việc thực tế trong năm” is the months actually worked in the calendar year, not the first twelve months of service. A person who joined on 2025-07-01 therefore closes 2025 at 6 days (July–December) and opens 2026 at the full 12, because 2026 is a full calendar year of work. `tests/leave_settlement.test.ts` line 92 in this tree still expects 6 for the 2026 window; that is the stale pre-fix expectation. The reading is 12. This round does not edit tests; the test round must update that assertion.
+
+**The art.66(2) gap.** The expression counts _scheduled_ working days from the join date to month end against the month's normal working days, using the contract's `terms.normal_days_per_week` and the standard VN week (Sunday off; Saturday too at five days). It cannot see attendance: the entitlement context exposes `subject.employment` and the sealed employer's `entity_extension_data`, while the ledger sync reads `entity_profile_version` without `payment_schedule`. Exact gap: unpaid absence (or fund-paid sick/maternity) in the joining month is counted as worked, and a non-standard working week changes which days count. The month-end rule also means the joining month's day is not posted until the month ends. HR's manual `entitled` adjustment on the leave row is the correction until a source read for attendance or the agreed week exists; no new field is implied.
+
+### Leave shares and payouts
+
+| Row family                                                                                                                                                   | `paid_share` | Payout                                                                                           | Statute                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| `ANNUAL_LEAVE`                                                                                                                                               | empty (1)    | exit cash-out: days × the prior month's contract daily wage (`encashment_review.daily_wage_vnd`) | Labour Code art.113(1), (3); Decree 145 art.67(3) |
+| `PUBLIC_HOLIDAY`, `PUBLIC_HOLIDAY_IN_LIEU`, `FOREIGN_NATIONAL_LEAVE`                                                                                         | empty (1)    | none                                                                                             | Labour Code art.111(3), art.112(1)–(2)            |
+| `MARRIAGE_LEAVE` (3), `CHILD_MARRIAGE_LEAVE` (1), `BEREAVEMENT_LEAVE` (3)                                                                                    | empty (1)    | none                                                                                             | Labour Code art.115(1)                            |
+| `SICK_LEAVE`, `MATERNITY_LEAVE`, `PATERNITY_LEAVE`, `CHILD_SICK_CARE`, `PRENATAL_CHECKUP`, `MISCARRIAGE_LEAVE`, `CONTRACEPTION_LEAVE`, `CONVALESCENCE_LEAVE` | 0            | none; the SI fund pays the benefit, not the employer                                             | Law 41/2024 arts.42–57; Labour Code art.139       |
+| `BEREAVEMENT_LEAVE_UNPAID`, `UNPAID_LEAVE`, `STOPPAGE_WORKER_FAULT`                                                                                          | 0            | none                                                                                             | Labour Code art.99(2), art.115(2)–(3)             |
+| `OCCUPATIONAL_ACCIDENT_LEAVE`                                                                                                                                | empty (1)    | none                                                                                             | Law 84/2015 art.38(3)                             |
+| `SUSPENSION_PENDING_DISCIPLINE`                                                                                                                              | 0.5          | none; the adhoc `SUSPENSION_SETTLEMENT` pays the rest where the worker is not disciplined        | Labour Code art.128(2)                            |
+
+- Every `paid_share` is numeric in 0..1 or empty (=1); no value exceeds a normal day. Only `ANNUAL_LEAVE` carries a `payout`; no other row prices a day off in money.
+- **In-lieu row.** `PUBLIC_HOLIDAY_IN_LIEU` cited `art.112(3)` (the Prime Minister's holiday list), which is not the in-lieu rule. It now cites **art.111(3)** (a weekly rest day falling on an art.112(1) holiday is taken on the next working day) and **art.112(1)** (the holiday is off on full pay), with its quote. The description was corrected from “a public holiday worked” to “a public holiday that fell on a weekly rest day”; `lookup.grant_days` is 0, so the calendar row that `replaces` it or HR's manual adjustment supplies the day, and it is not encashable. No other leave row lacks a citation.
+- The owner's 2026-11-10 design made the presence of `payout` the encashment switch. `encash_on_exit` is gone from `ANNUAL_LEAVE`; the exit automation reads `payout`, so gap 1's substantive decision (annual leave only; no mid-employment cash-out) still stands.
+
+### Statutes added to rules and effects that had no reference
+
+- `ENCASHMENT_PRIOR_WAGE_REVIEW` and `encash-leave-on-exit`: Labour Code art.113(3) and Decree 145 art.67(3).
+- `ANNUAL_LEAVE_COMBINING_MAXIMUM`: Labour Code art.113(4).
+- `ANNUAL_SERVICE_EXIT_REVIEW`: Decree 145 arts.65–66 and Labour Code art.113(3)–(4).
+
+`retract-exit-effects` still carries no reference: it implements the owner's 2026-11-09 decision that a moved or cancelled exit waives its open duties, which is not a statute.
+
+### Open owner questions
+
+1. **Test expectation.** The 2026 window is 12 under the reading above; `tests/leave_settlement.test.ts` still asserts 6. The test round should update it; this round does not.
+2. **The 14-day minor leg.** `extra_days` uses `minor_listed_job` — the art.146(1)(b) fact for a job listed for minors' overtime and night work — not every minor. A minor in a non-listed job gets 12, although art.113(1) gives 14 to any “người lao động chưa thành niên”. The expression could read `payroll.date_of_birth` with `age_on(dob, as_of)`, but that would make the entitlement change on the 18th birthday and needs an accrual rule; owner to decide.
+3. **Fund-paid leave.** The employer pays no wage for the eight fund rows; the employer submits the SI benefit claim under `SI_BENEFIT_CLAIMS` and the fund pays the employee. If the employer's practice is to advance the fund benefit in payroll, that is a separate payment, not a `paid_share`: paying 0.75 of a normal day would use the contract wage, while the fund uses the contribution salary.
+4. **`BEREAVEMENT_LEAVE_UNPAID`.** The row is unpaid (`paid_share` 0), so no wage effect, but its `lookup` is `{}`: the statutory one day per event under art.115(2) is not capped. Capping it needs an event relationship filter so it does not overlap the paid three-day `BEREAVEMENT_LEAVE`; owner to decide.

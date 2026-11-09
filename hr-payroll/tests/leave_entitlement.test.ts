@@ -7,11 +7,17 @@ import {
 	diff,
 	leftOn,
 	type Accounts,
+	unlimited,
 	type Event,
 	type Movement
 } from '../src/lib/ledger/core.ts';
 import type { LeavePerson, LeaveRow } from '../src/lib/ledger/entitlement.ts';
-import { entitlementPlans, leaveWanted, unlimited, type Plan } from '../src/lib/ledger/service.ts';
+import {
+	entitlementPlans,
+	leaveWanted,
+	type ClosingRule,
+	type Plan
+} from '../src/lib/ledger/service.ts';
 
 type Held = {
 	readonly accounts: Accounts;
@@ -39,7 +45,8 @@ const sync = (
 	person: LeavePerson,
 	held: Held,
 	on: string,
-	events: readonly Event[] = []
+	events: readonly Event[] = [],
+	closing?: ClosingRule
 ) =>
 	settled(
 		held,
@@ -49,7 +56,8 @@ const sync = (
 			subjectOf(person, events),
 			'balance',
 			held.accounts,
-			on
+			on,
+			closing
 		)
 	);
 /** Whole days taken on one day, posted as an entry posts. */
@@ -69,7 +77,8 @@ const take = (
 				{ days: Array.from({ length: days * 2 }, () => ({ date: on })) },
 				row,
 				() => row,
-				subjectOf(person, events)
+				subjectOf(person, events),
+				8
 			)
 		}
 	]);
@@ -117,7 +126,7 @@ const ANNUAL: LeaveRow = {
 		carry: { windows: 1 }
 	}
 };
-const NO_PAY: LeaveRow = { code: 'NO_PAY', lookup: { no_cap: true } };
+const NO_PAY: LeaveRow = { code: 'NO_PAY', lookup: { opened_by: { LONG_ILLNESS: { days: 0 } } } };
 const NO_FIGURE: LeaveRow = { code: 'COMPASSIONATE', lookup: {} };
 const withBands = (row: LeaveRow, days: number): LeaveRow => ({
 	...row,
@@ -146,7 +155,7 @@ describe('a newcomer', () => {
 			10
 		);
 	});
-	it('opens no account for a row with no figure, or no_cap: it has no limit', () => {
+	it('opens no account for a row with no figure, or an event that opens no days: it has no limit', () => {
 		const opened = sync([NO_PAY, NO_FIGURE], PERSON, EMPTY, '2026-11-01');
 		assert.deepEqual(opened.accounts, {});
 		assert.equal(unlimited(NO_PAY.lookup), true);
@@ -226,17 +235,20 @@ describe('a catalog change', () => {
 			lookup: { ...withBands(MEDICAL, 14).lookup, carry: {} }
 		};
 		const used = take(opened, MEDICAL, PERSON, 10, '2026-03-02');
-		const cut = sync(
-			[{ ...row, lookup: { ...row.lookup, service_bands: [{ service_months: 0, days: 5 }] } }],
-			PERSON,
-			used,
-			'2026-04-01'
-		);
+		const lower = {
+			...row,
+			lookup: { ...row.lookup, service_bands: [{ service_months: 0, days: 5 }] }
+		};
+		const cut = sync([lower], PERSON, used, '2026-04-01');
 		assert.deepEqual(cut.accounts.leave?.['MEDICAL']?.['MY.Y.2026-01-01'], {
 			entitled: 5,
 			used: 13
 		});
-		const next = sync([row], PERSON, cut, '2027-01-01');
+		// 2026 closes under its own law, the cut
+		const next = sync([row], PERSON, cut, '2027-01-01', [], () => ({
+			lookup: lower.lookup,
+			person: PERSON
+		}));
 		assert.deepEqual(next.accounts.leave?.['MEDICAL']?.['MY.Y.2027-01-01'], { entitled: 14 });
 	});
 	it('applied once, whatever runs next', () => {
@@ -427,7 +439,7 @@ describe('an event row', () => {
 	it('a fact that grants nothing opens nothing', () => {
 		const sick = {
 			code: 'SICK',
-			lookup: { no_cap: true, opened_by: { LONG_ILLNESS: { days: 0 } } }
+			lookup: { opened_by: { LONG_ILLNESS: { days: 0 } } }
 		};
 		assert.deepEqual(
 			sync([sick], PERSON, EMPTY, '2026-03-01', [{ kind: 'LONG_ILLNESS', on: '2026-02-02' }])

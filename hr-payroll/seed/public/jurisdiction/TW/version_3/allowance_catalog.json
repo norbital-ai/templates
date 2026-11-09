@@ -11,7 +11,6 @@
 		"subtotal_id": "9e458e6d-3931-408d-8a4c-c72e5cda9d37",
 		"eligibility": "return ctx.subject.employment.engagement !== 'PAYEE' && get(ctx.subject.employment.terms, 'allowances.FULL_ATTENDANCE_BONUS.amount', 0) !== 0;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FULL_ATTENDANCE_BONUS.amount', 0);",
-		"party": "EMPLOYEE",
 		"id": "c5af1c69-9dcc-50ef-9202-010f407ddd52",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
 		"include_in_rate": true
@@ -28,11 +27,9 @@
 		],
 		"subtotal_id": "66ef72f3-f033-55e2-8d6d-87f52d51abe1",
 		"eligibility": "return ctx.subject.employment.engagement !== 'PAYEE' && get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0) !== 0;",
-		"conversion": "// 營利事業所得稅查核準則 §88(2)(1): up to NT$3,000 a month is not salary income; this row stays out of SALARY_INCOME.\n// 勞工請假規則 §7: no wage for a no-pay day, so the exempt meal falls and returns with BASIC_AFTER_UNPAID_LEAVE and the days stay out of SALARY_INCOME.\nconst basic = ctx.subtotals.BASIC;\nconst taken = ctx.subtotals.BASIC_AFTER_PARENTAL_LEAVE - ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE;\nconst left = basic > 0 ? Math.max(0, 1 - taken / basic) : 1;\nreturn Math.min(Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)), ctx.lookup.meal_exempt_monthly) * left;",
-		"party": "EMPLOYEE",
+		"conversion": "// 營利事業所得稅查核準則 §88(2)(1): up to NT$3,000 a month is not salary income; this row stays out of SALARY_INCOME.\n// 勞工請假規則 §7: no wage for a no-pay day, so the exempt meal falls with ctx.paid_share.\nreturn Math.min(Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)), ctx.lookup.meal_exempt_monthly) * ctx.paid_share;",
 		"id": "0e04468f-74d0-5eab-bc0e-e2e7e6edc126",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"prorate": true,
 		"include_in_rate": true
 	},
 	{
@@ -48,11 +45,9 @@
 		],
 		"subtotal_id": "9e458e6d-3931-408d-8a4c-c72e5cda9d37",
 		"eligibility": "return ctx.subject.employment.engagement !== 'PAYEE' && Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)) > ctx.lookup.meal_exempt_monthly;",
-		"conversion": "// 勞工請假規則 §7: no wage for a no-pay day; the part above the exempt meal falls and returns with BASIC_AFTER_UNPAID_LEAVE.\nconst basic = ctx.subtotals.BASIC;\nconst taken = ctx.subtotals.BASIC_AFTER_PARENTAL_LEAVE - ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE;\nconst left = basic > 0 ? Math.max(0, 1 - taken / basic) : 1;\nreturn (Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)) - ctx.lookup.meal_exempt_monthly) * left;",
-		"party": "EMPLOYEE",
+		"conversion": "// 勞工請假規則 §7: no wage for a no-pay day; the part above the exempt meal falls with ctx.paid_share.\nreturn (Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)) - ctx.lookup.meal_exempt_monthly) * ctx.paid_share;",
 		"id": "696b17b6-22a8-43b8-b6d6-a1dce8f80234",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"prorate": true,
 		"include_in_rate": true
 	}
 ]

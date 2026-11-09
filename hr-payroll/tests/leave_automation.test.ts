@@ -143,9 +143,28 @@ describe('run by hand', () => {
 	});
 
 	it.live('a window held from before stands, and carries what it left', () => {
-		const seed = seedOf('2023-01-01', {
+		const held = seedOf('2023-01-01', {
 			leave: { ANNUAL_LEAVE: { 'MY.S.2025-01-01': { entitled: 12, used: 5 } } }
 		});
+		// a seeded balance comes with what its sync posted, so the window settles on what it holds
+		const seed: Seed = {
+			...held,
+			ledger_entry: [
+				{
+					id: uuid(900),
+					balance_id: uuid(5),
+					operation: 'ADD',
+					account: 'leave',
+					code: 'ANNUAL_LEAVE',
+					period: 'MY.S.2025-01-01',
+					measure: 'entitled',
+					amount: 12,
+					unit: 'DAY',
+					effective_on: '2025-01-01',
+					source: `entitlement:${uuid(5)}:ANNUAL_LEAVE:MY.S.2025-01-01`
+				}
+			]
+		};
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
@@ -246,7 +265,6 @@ describe('the events that call it', () => {
 					terms: held.terms,
 					payroll: held.payroll,
 					bank: held.bank,
-					input_schema_version_id: held.input_schema_version_id,
 					employee_extension_data: held.employee_extension_data,
 					service_started_on: PlainDate('2026-11-02'),
 					effective_range: { from: PlainDate('2026-11-02'), to: null },

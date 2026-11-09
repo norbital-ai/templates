@@ -51,13 +51,14 @@ describe('the salary listing', () => {
 				'payslip.employment_id': {
 					fields: [
 						'employee_number',
-						'employee_name',
+						'employee_id',
 						'terms',
 						'payroll',
 						'service_started_on',
 						'effective_range'
 					]
-				}
+				},
+				'payslip.employment_id.employee_id': { fields: ['name'] }
 			});
 			const { employee_contract } = yield* t.storedQuery({
 				employee_contract: { fields: ['employee_id', 'effective_range'], limit: 100 }

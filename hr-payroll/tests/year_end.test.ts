@@ -25,7 +25,7 @@ const terms = (amount: number, residency = 'RESIDENT', category = 'NON_MANUAL') 
 type Seed = ReturnType<typeof pack>;
 
 const itemId = (seed: Seed, family: string, code: string) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed[family] ?? []).find((r) => r.code === code && r.settings_id === version);
 	assert.ok(row !== undefined, code);
 	return String(row.id);

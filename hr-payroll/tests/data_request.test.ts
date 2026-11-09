@@ -225,7 +225,6 @@ describe('data request plan', () => {
 						email: 'aisha@example.test',
 						phone: null,
 						address: null,
-						first_hired_on: null,
 						source_reference: 'A1'
 					}
 				],
@@ -298,7 +297,6 @@ describe('data request plan', () => {
 								email: null,
 								phone: null,
 								address: null,
-								first_hired_on: null,
 								source_reference: null
 							}
 						]

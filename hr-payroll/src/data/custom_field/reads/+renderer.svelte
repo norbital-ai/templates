@@ -43,8 +43,7 @@
 			'ctx.entry.payroll_run_id',
 			'ctx.subject.employment.id',
 			'ctx.subject.employment.employee_id',
-			'ctx.subject.employment.entity_id',
-			'ctx.subject.employment.input_schema_version_id'
+			'ctx.subject.employment.entity_id'
 		],
 		validate: (text) =>
 			text.trim().startsWith('ctx.') ? undefined : 'A variable names a ctx.… fact.'

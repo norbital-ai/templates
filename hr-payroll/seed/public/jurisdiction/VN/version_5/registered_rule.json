@@ -288,7 +288,7 @@
 		"target_collection": "roster_entry",
 		"events": ["update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
-		"validate": "// js\n// Labour Code art.137(1): pregnancy (a) has no consent exception; an infant under 12 months (b) needs the day's consent.\nconst contract = ctx.subject.employment;\nconst date = ctx.entry.work_date;\nconst consent = get(ctx.entry, 'consent', {});\nconst children = get(contract, 'children', []);\nconst pregnant = children.some((child) => {\n\tconst due = get(child, 'expected_on', null);\n\tconst born = get(child, 'born_on', null);\n\treturn due !== null && born === null && date >= add_months(due, -ctx.lookup.advance_months);\n});\nconst night = clock_window_minutes(\n\tget(ctx.entry, 'actual_worked_intervals', []) ?? [],\n\t\"Asia/Ho_Chi_Minh\",\n\tctx.lookup.night_from,\n\tctx.lookup.night_to\n);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []);\nif (pregnant) return night === 0 && overtime === 0;\nconst infant = children.some((child) => {\n\tconst born = get(child, 'born_on', null);\n\treturn born !== null && add_months(born, ctx.lookup.infant_months) > date;\n});\nif (!infant) return true;\nreturn (\n\t(night === 0 || get(consent, 'night_work', false) === true) &&\n\t(overtime === 0 || get(consent, 'overtime', false) === true)\n);",
+		"validate": "// js\n// Labour Code art.137(1): pregnancy (a) has no consent exception; an infant under 12 months (b) needs the day's consent.\nconst contract = ctx.subject.employment;\nconst date = ctx.entry.work_date;\nconst consent = get(ctx.entry, 'consent', {});\nconst children = get(contract, 'family', []).filter((member) => member.relation === 'CHILD');\nconst pregnant = children.some((child) => {\n\tconst due = get(child, 'expected_on', null);\n\tconst born = get(child, 'born_on', null);\n\treturn due !== null && born === null && date >= add_months(due, -ctx.lookup.advance_months);\n});\nconst night = clock_window_minutes(\n\tget(ctx.entry, 'actual_worked_intervals', []) ?? [],\n\t\"Asia/Ho_Chi_Minh\",\n\tctx.lookup.night_from,\n\tctx.lookup.night_to\n);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []);\nif (pregnant) return night === 0 && overtime === 0;\nconst infant = children.some((child) => {\n\tconst born = get(child, 'born_on', null);\n\treturn born !== null && add_months(born, ctx.lookup.infant_months) > date;\n});\nif (!infant) return true;\nreturn (\n\t(night === 0 || get(consent, 'night_work', false) === true) &&\n\t(overtime === 0 || get(consent, 'overtime', false) === true)\n);",
 		"order": 10,
 		"lookup": {
 			"advance_months": 3,
@@ -519,7 +519,7 @@
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
-		"validate": "// js\n// Labour Code art.137(1): pregnancy (a) has no consent exception; an infant under 12 months (b) needs the day's consent.\nconst contract = ctx.subject.employment;\nconst date = ctx.entry.work_date;\nconst consent = get(ctx.entry, 'consent', {});\nconst children = get(contract, 'children', []);\nconst pregnant = children.some((child) => {\n\tconst due = get(child, 'expected_on', null);\n\tconst born = get(child, 'born_on', null);\n\treturn due !== null && born === null && date >= add_months(due, -ctx.lookup.advance_months);\n});\nif (pregnant) return false;\nconst infant = children.some((child) => {\n\tconst born = get(child, 'born_on', null);\n\treturn born !== null && add_months(born, ctx.lookup.infant_months) > date;\n});\nif (!infant) return true;\nreturn get(consent, 'overtime', false) === true;",
+		"validate": "// js\n// Labour Code art.137(1): pregnancy (a) has no consent exception; an infant under 12 months (b) needs the day's consent.\nconst contract = ctx.subject.employment;\nconst date = ctx.entry.work_date;\nconst consent = get(ctx.entry, 'consent', {});\nconst children = get(contract, 'family', []).filter((member) => member.relation === 'CHILD');\nconst pregnant = children.some((child) => {\n\tconst due = get(child, 'expected_on', null);\n\tconst born = get(child, 'born_on', null);\n\treturn due !== null && born === null && date >= add_months(due, -ctx.lookup.advance_months);\n});\nif (pregnant) return false;\nconst infant = children.some((child) => {\n\tconst born = get(child, 'born_on', null);\n\treturn born !== null && add_months(born, ctx.lookup.infant_months) > date;\n});\nif (!infant) return true;\nreturn get(consent, 'overtime', false) === true;",
 		"order": 19,
 		"lookup": {
 			"advance_months": 3,
@@ -583,6 +583,16 @@
 		"validate": "// js\nconst contract = ctx.subject.employment;\nconst exit = contract.effective_range.to;\nconst review = get(contract, 'employee_extension_data.encashment_review', null);\nreturn (\n\treview !== null &&\n\tget(review, 'month', '') === add_months(month_start(exit), -1).substring(0, 7) &&\n\tNumber(get(review, 'daily_wage_vnd', 0)) > 0\n);",
 		"order": 23,
 		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.113(3): an employee who leaves or loses the job without having taken, or without having taken all, annual leave is paid the wages for the untaken days.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/ND-CP art.67(3): the wage basis for the untaken days is the contractual wage of the month immediately preceding the month of termination or job loss.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf"
+			}
+		],
 		"id": "c48cb6a0-9aab-5d0a-a2c9-2efa08f3d200",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -614,6 +624,16 @@
 		"validate": "// js\nconst exit = ctx.entry.effective_range.to;\nconst review = get(ctx.entry, 'employee_extension_data.annual_leave_service_review', null);\nif (review === null) return false;\nif (String(get(review, 'year', '')) !== exit.substring(0, 4) || get(review, 'as_of', '') !== exit) return false;\nconst covered = ctx.reads.workplace_case_catalog_entry.some((record) => {\n\tif (!(record.opened_on <= exit)) return false;\n\tif (record.closed_on != null && !(record.closed_on >= exit)) return false;\n\tif (!(get(record, 'inputs.effective_from', '') <= exit)) return false;\n\treturn get(record, 'inputs.effective_to', '') >= exit;\n});\nif (!covered) return true;\nif (get(review, 'carry_previous_year_days', null) === null) return false;\nreturn get(review, 'carry_second_previous_year_days', null) !== null;",
 		"order": 24,
 		"lookup": {},
+		"references": [
+			{
+				"title": "Decree 145/2020/ND-CP arts.65-66: periods counted as work and the months of annual-leave service.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf"
+			},
+			{
+				"title": "Labour Code 45/2019/QH14 art.113(3)-(4): untaken days are paid on leaving; leave may be combined for at most three years by agreement.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
 		"id": "7c617629-c44d-5769-846d-5fdb96ddc51c",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -739,6 +759,12 @@
 		"lookup": {
 			"maximum_years": 3
 		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.113(4): annual leave may be taken in several parts or combined for at most three years by agreement.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
 		"id": "7934df5c-8b7f-5399-80db-87a1b407cf79",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},

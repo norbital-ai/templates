@@ -2,8 +2,6 @@
 	{
 		"code": "DENTAL_CLAIM",
 		"subtotal_id": "7b6355ac-59b1-5e12-8bc6-452cf772388e",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "d9814e5e-55a6-58b5-9786-3dde260b0a63",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318",
@@ -26,9 +24,7 @@
 		"lookup": {
 			"annual_limit": 1000
 		},
-		"subtotal_id": "7b6355ac-59b1-5e12-8bc6-452cf772388e",
-		"direction": "ADD",
-		"party": "EMPLOYER",
+		"subtotal_id": null,
 		"conversion": "return ctx.entry.quantity;",
 		"id": "2d547f94-75b6-51bc-8af5-d1495e75bbdc",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318",
@@ -45,8 +41,6 @@
 			"annual_limit": 1000
 		},
 		"subtotal_id": "7b6355ac-59b1-5e12-8bc6-452cf772388e",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "fe7e2cba-338e-59bb-b4e7-67816c66611a",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318",

@@ -134,7 +134,6 @@ describe('a birth on the contract', () => {
 					terms: held.terms,
 					payroll: held.payroll,
 					bank: held.bank,
-					input_schema_version_id: held.input_schema_version_id,
 					employee_extension_data: held.employee_extension_data,
 					events: [{ kind: BIRTH.kind, on: PlainDate(BIRTH.on) }],
 					service_started_on: held.service_started_on,
@@ -287,16 +286,38 @@ describe('pay that steps down, on one row', () => {
 			.as(t.admin)
 			.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
 			.pipe(Effect.andThen(t.runDue()));
-	const taken = (t: Kit, code: string) =>
-		t.storedQuery({ payslip: { limit: 12 } }).pipe(
-			Effect.map(({ payslip }) =>
-				payslip.rows
-					.flatMap((slip) => Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown).lines)
+	const breakdowns = (t: Kit) =>
+		t
+			.storedQuery({ payslip: { limit: 12 } })
+			.pipe(
+				Effect.map(({ payslip }) =>
+					payslip.rows.map((slip) => Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown))
+				)
+			);
+	/** What the unpaid part of the days took off the salary: no line, BASIC falls by the share of the period paid. */
+	const taken = (t: Kit) =>
+		breakdowns(t).pipe(
+			Effect.map((slips) =>
+				slips.reduce(
+					(sum, slip) =>
+						sum + 11_000_000 - (slip.checkpoints.find((row) => row.code === 'BASIC')?.value ?? 0),
+					0
+				)
+			)
+		);
+	/** What a reversal's refund line gave back. */
+	const refunded = (t: Kit, code: string) =>
+		breakdowns(t).pipe(
+			Effect.map((slips) =>
+				slips
+					.flatMap((slip) => slip.lines)
 					.filter((line) => line.code === code)
 					.reduce((sum, line) => sum + line.amount, 0)
 			)
 		);
 	const JUNE = ['2026-06-09', '2026-06-10'];
+	// Indonesia prices a missed day at monthly wage ÷ 173 × 8 hours
+	const DAY = (11_000_000 * 8) / 173;
 
 	it.live('a sick day with no fact is at full pay', () =>
 		Effect.gen(function* () {
@@ -304,7 +325,7 @@ describe('pay that steps down, on one row', () => {
 			yield* take(t, WOMAN, 'MEDICAL_LEAVE', JUNE);
 			yield* t.runDue();
 			yield* run(t, '2026-06');
-			assert.equal(yield* taken(t, 'MEDICAL_LEAVE'), 0);
+			assert.equal(yield* taken(t), 0);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
 	for (const [started, share] of [
@@ -320,8 +341,7 @@ describe('pay that steps down, on one row', () => {
 				yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
 				yield* t.runDue();
 				yield* run(t, '2026-06');
-				// the statutory day rate PP 35/2021: the month over 173, times the contract's eight hours
-				near(yield* taken(t, 'MEDICAL_LEAVE'), 2 * (11_000_000 / 173) * 8 * share);
+				near(yield* taken(t), Math.round(2 * DAY * share));
 			}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 		});
 	it.live('days taken in an illness do not stop the next version, which keeps it', () => {
@@ -343,7 +363,7 @@ describe('pay that steps down, on one row', () => {
 			yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
 			yield* t.runDue();
 			yield* run(t, '2026-06');
-			assert.equal(yield* taken(t, 'MEDICAL_LEAVE'), 0);
+			assert.equal(yield* taken(t), 0);
 		}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 	});
 	it.live('a reversal gives back the month it corrects, at that month’s share', () => {
@@ -354,8 +374,8 @@ describe('pay that steps down, on one row', () => {
 			yield* take(t, born, 'MATERNITY_LEAVE', ['2026-06-09']);
 			yield* t.runDue();
 			yield* run(t, '2026-06');
-			const before = yield* taken(t, 'MATERNITY_LEAVE');
-			near(before, (11_000_000 / 173) * 8 * 0.25);
+			const before = yield* taken(t);
+			near(before, Math.round(DAY * 0.25));
 			const [first] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
 				.leave_catalog_entry.rows;
 			assert.ok(first !== undefined);
@@ -370,7 +390,7 @@ describe('pay that steps down, on one row', () => {
 			]);
 			yield* t.runDue();
 			yield* run(t, '2026-07');
-			assert.equal(yield* taken(t, 'MATERNITY_LEAVE'), 2 * before);
+			near(yield* refunded(t, 'MATERNITY_LEAVE'), before);
 		}).pipe(Effect.provide(workspace({ seed: born, now: NOW })));
 	});
 	it.live('a long sick spell with no fact asks HR to record one, once', () =>
@@ -405,7 +425,7 @@ describe('pay that steps down, on one row', () => {
 			yield* take(t, born, 'MATERNITY_LEAVE', ['2026-05-27', '2026-06-09', '2026-06-10']);
 			yield* t.runDue();
 			yield* run(t, '2026-06');
-			near(yield* taken(t, 'MATERNITY_LEAVE'), 2 * (11_000_000 / 173) * 8 * 0.25);
+			near(yield* taken(t), Math.round(2 * DAY * 0.25));
 		}).pipe(Effect.provide(workspace({ seed: born, now: NOW })));
 	});
 });

@@ -55,23 +55,23 @@ Rules:
 
 `employee_balance` is one row per employee. Payroll reads the row by `employee_id`.
 
-| Scenario                                      | Leave                                                              | Loans                                                    | Ledger history      |
-| --------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------- | ------------------- |
-| Promotion, same entity                        | Carry unchanged                                                    | Carry unchanged                                          | Keep                |
-| Transfer, same jurisdiction                   | Carry unchanged                                                    | Carry, repointed to the successor                        | Keep                |
-| Cross-jurisdiction, row sets `encash_on_exit` | Exit encashment: the days post as used, paid in the old final run  | Transfer or settle                                       | Keep; old rows stay |
-| Cross-jurisdiction, no `encash_on_exit`       | Nothing moves: the old days stay under the old jurisdiction's keys | Transfer or settle                                       | Keep; old rows stay |
-| Termination                                   | Encash where the row allows; otherwise nothing moves               | Recover from final pay; the rest stays open, with a task | Keep                |
+| Scenario                               | Leave                                                              | Loans                                                    | Ledger history      |
+| -------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------- | ------------------- |
+| Promotion, same entity                 | Carry unchanged                                                    | Carry unchanged                                          | Keep                |
+| Transfer, same jurisdiction            | Carry unchanged                                                    | Carry, repointed to the successor                        | Keep                |
+| Cross-jurisdiction, row has a `payout` | Exit encashment: the days post as used, paid in the old final run  | Transfer or settle                                       | Keep; old rows stay |
+| Cross-jurisdiction, no `payout`        | Nothing moves: the old days stay under the old jurisdiction's keys | Transfer or settle                                       | Keep; old rows stay |
+| Termination                            | Encash where the row allows; otherwise nothing moves               | Recover from final pay; the rest stays open, with a task | Keep                |
 
 ### 3.1 Leave
 
 Leave is jurisdiction law, not a portable company currency. Periods are keyed by jurisdiction, so
 the new law's keys start empty and sync opens them from the new contract.
 
-Where the old jurisdiction's `ANNUAL_LEAVE` row sets `encash_on_exit.allowed`, ending the contract
+Where the old jurisdiction's `ANNUAL_LEAVE` row has a `payout`, ending the contract
 with no same-jurisdiction successor creates a normal `leave_catalog_entry` with `encashment: true`,
 for the days left. Its own write posts them as used, and the old jurisdiction's final run
-pays the conversion in `FINAL_PAY`. A misconduct dismissal recorded in `employee_extension_data.misconduct_dismissal` encashes
+pays its payout in `FINAL_PAY`. A misconduct dismissal recorded in `employee_extension_data.misconduct_dismissal` encashes
 nothing.
 
 ### 3.2 Loans
@@ -99,11 +99,21 @@ catalogue, so the old loan's `catalog_id` may not exist and the deduction silent
 Service for leave bands is a property of the **employment**, not of the latest contract. A
 promotion or transfer must not reset annual-leave service.
 
-`employee_contract.service_started_on` stores the service start for the contract's jurisdiction. A
-same-jurisdiction replacement copies the predecessor date; a cross-jurisdiction replacement starts
-new statutory service but the profile keeps `first_hired_on` for company service. The payroll
-engine exposes `service_started_on` as `effective_range.from` to expressions, so leave formulas read
-service continuity without a per-formula change.
+Service is worked out from the person's contracts, never stored as a second date. With `employee_profile.cumulative_service` on, every
+stint under the same jurisdiction lineage counts, rehires included (an employer's practice, giving at least the
+statutory continuous service); off (the default), only the current unbroken stint counts. A replacement keeps its
+stint's start. A cross-jurisdiction replacement starts new statutory service.
+`employee_contract.service_started_on` is only an override for service credited from elsewhere. Sync and the payroll
+engine hand the worked-out start to expressions as `service_started_on`, so leave formulas need no change, and the
+current unbroken stint's start as `employment_started_on`, for statutes that count employment in the year.
+
+### 3.4 Exit
+
+An exit is read from the chain: a sealed version that ends with no successor of the same jurisdiction lineage. No
+separate record holds it. The contract's write raises the `exit` event when a save makes it true (or moves or cancels
+it); encashment and exit duties listen to that event and key their work by the employment, so a repeat is a no-op.
+The save that ends the version, or moves its end, states its exit answers with it: `exit_ground`, and the exit keys of
+`employee_extension_data` the version did not hold (Indonesia's `termination_cause`).
 
 ## 4. Payroll consequences
 

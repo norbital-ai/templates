@@ -1,6 +1,7 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
+		"payout": "// js\n// 勞動基準法 §38(4); 施行細則 §24-1(2)(1): each unused day is paid at one day's wage. For a monthly wage, that day is\n// the last month's normal working-time wage ÷ 30; ctx.day_rate is that statutory day (TW day = FIXED 30), and it\n// includes the fixed allowances the contract counts in the rate.\nreturn ctx.day_rate * ctx.entry.quantity;",
 		"lookup": {
 			"window": "SERVICE_YEAR",
 			"service_bands": [
@@ -93,12 +94,11 @@
 				"title": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason."
 			},
 			{
-				"title": "勞動基準法 §38(1): 3 days after six months, 7 after one year, 10 after two, 14 after three, 15 after five, and from ten years one more for each year to 30 at twenty-four years. 施行細則 §24(2)(1): each year from the day of hire. §38(4): unused days are paid; they carry only where the parties agree.",
+				"title": "勞動基準法 §38(1): 3 days after six months, 7 after one year, 10 after two, 14 after three, 15 after five, and from ten years one more for each year to 30 at twenty-four years. 施行細則 §24(2)(1): each year from the day of hire. §38(4): 勞工之特別休假，因年度終結或契約終止而未休之日數，雇主應發給工資. 施行細則 §24-1(2)(1): 按勞工未休畢之特別休假日數，乘以其一日工資計發；其為計月者，為年度終結或契約終止前最近一個月正常工作時間所得之工資除以三十所得之金額.",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38"
 			}
 		],
-		"subtotal_id": null,
-		"pay_treatment": "PAID",
+		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
 		"id": "d8166b1c-3e76-5ec8-9c07-e70f387938a5",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "Paid annual leave accrued by service."
@@ -119,18 +119,14 @@
 			}
 		],
 		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
-		"pay_treatment": "PAID",
 		"id": "61c02549-4ab7-5fa2-b67f-54856c6bbebb",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"conversion": "// 勞工請假規則 §4(3): half wages for an ordinary sick day; the rule SICK_LEAVE_PAY_POOL holds the thirty days.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;",
-		"description": "Paid sick leave."
+		"description": "Paid sick leave.",
+		"paid_share": "// js\n// 勞工請假規則 §4(3): half wages for an ordinary sick day; the rule SICK_LEAVE_PAY_POOL holds the thirty days.\nreturn ctx.lookup.half_pay_share;"
 	},
 	{
 		"code": "PERSONAL_LEAVE",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "勞工請假規則 §7(1) ordinary personal leave is at most 14 unpaid days annually; the 2025-12-09 §7(2) amendment, effective 2026-01-01 under §12(2), grants an hourly unit only where the employee personally cares for a family member. Use the separate FAMILY_CARE_LEAVE row for that case; it consumes this 14-day quota. https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=7&id=FL014935 勞工請假規則 §7: 一年內合計不得超過十四日 — metered by calendar year.",
@@ -138,11 +134,10 @@
 			}
 		],
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
-		"pay_treatment": "UNPAID",
 		"id": "ed875e88-be30-56c2-9ca4-1083cdf440af",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"description": "PERSONAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "PERSONAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
@@ -163,7 +158,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "ae565791-7957-504b-9572-5e0dadeb07ca",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "Marriage leave."
@@ -177,7 +171,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "57259111-e843-5ad9-886a-87f6b9d03bb5",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "Bereavement leave."
@@ -191,7 +184,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "8bb7ff44-dda6-58d9-b5c5-0ae5eefd75f4",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "OCCUPATIONAL_INJURY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
@@ -207,12 +199,10 @@
 			}
 		],
 		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
-		"pay_treatment": "PAID",
 		"id": "cde31318-07f8-5a21-99f9-ce50adb614c1",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"conversion": "// 勞動基準法 §50(2): full wages after six months' service, half before.\nconst earliest = ctx.entry.days.map((slot) => slot.date).toSorted()[0];\nif (calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), earliest) >= ctx.lookup.full_pay_service_months) return 0;\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;",
-		"description": "Maternity leave around childbirth."
+		"description": "Maternity leave around childbirth.",
+		"paid_share": "// js\n// 勞動基準法 §50(2): full wages after six months' service, half before.\nconst earliest = ctx.entry.days.map((slot) => slot.date).toSorted()[0];\nreturn calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), earliest) >= ctx.lookup.full_pay_service_months ? 1 : ctx.lookup.half_pay_share;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -233,7 +223,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "2116c800-35dc-5a91-a5ed-5413faddccdb",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "Paternity leave around childbirth."
@@ -257,7 +246,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "3add5daa-61de-588a-9364-823136618b27",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "PRENATAL_CHECKUP_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
@@ -272,46 +260,38 @@
 			}
 		],
 		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
-		"pay_treatment": "PAID",
 		"id": "966c2bc9-45b2-51ef-a4f1-151284cf475b",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"conversion": "// 性別平等工作法 §14: half wages; the rule SICK_LEAVE_PAY_POOL holds the monthly day, the three free days and the thirty-day pool.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;",
-		"description": "Menstrual leave days."
+		"description": "Menstrual leave days.",
+		"paid_share": "// js\n// 性別平等工作法 §14: half wages; the rule SICK_LEAVE_PAY_POOL holds the monthly day, the three free days and the thirty-day pool.\nreturn ctx.lookup.half_pay_share;"
 	},
 	{
 		"code": "MENSTRUAL_LEAVE_UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "性別平等工作法 §14 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=14): one menstrual day a month; three a year outside the sick pool, the rest inside it at half pay. Once the three days and the thirty-day half-paid pool (勞工請假規則 §4(3)) are spent, the monthly day is still granted, unpaid (Ministry of Labor clarification 2021-03-12, https://www.mol.gov.tw/1607/1632/1640/32923/post). Open only then, one day a calendar month together with MENSTRUAL_LEAVE; not an absence for the attendance bonus (§21(2))."
 			}
 		],
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
-		"pay_treatment": "UNPAID",
 		"id": "4435300a-37dd-53be-bbb4-1a0e76ab1f48",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"description": "MENSTRUAL_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "MENSTRUAL_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "FAMILY_CARE_LEAVE",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "性別平等工作法 §20: seven days a year of unpaid family-care leave inside the fourteen days of personal leave; the 2025-12-09 勞工請假規則 §7(2) amendment lets it be taken by the hour from 2026-01-01."
 			}
 		],
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
-		"pay_treatment": "UNPAID",
 		"id": "3228e3ce-b128-591e-babc-4bacc396df53",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"description": "Leave to care for a family member."
+		"description": "Leave to care for a family member.",
+		"paid_share": "0"
 	},
 	{
 		"code": "PARENTAL_LEAVE",
@@ -322,12 +302,10 @@
 			}
 		],
 		"subtotal_id": "4c9178af-f00f-4e41-9b54-fdf123407a38",
-		"pay_treatment": "PAID",
 		"id": "00a3259a-4b82-5e9f-a7f4-544d99919a61",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"conversion": "// 性別平等工作法 §16; 民法 §123(2): no wage for the stretch, on a 30-day month. PAID so this line, not the salary basis, takes the days: BASIC_AFTER_PARENTAL_LEAVE tells the premium rows how many (§16(2): employer share waived, worker's deferred).\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'MONTHLY') return Math.min(ctx.base_pay, ctx.day_rate * ctx.entry.quantity);\nconst dates = ctx.entry.days.map((slot) => slot.date).toSorted();\nconst last = dates.at(-1);\nconst month_days = 30;\nconst first_day = Math.min(month_days, Number(dates[0].substring(8)));\nconst last_day = last === month_end(last) ? month_days : Number(last.substring(8));\nreturn (ctx.month_wage * (last_day - first_day + 1)) / month_days;",
-		"description": "PARENTAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "PARENTAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "BREASTFEEDING_TIME",
@@ -338,22 +316,26 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "58f6a546-1369-58ec-808d-4517c6c84fa5",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "BREASTFEEDING_TIME: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"lookup": {},
+		"lookup": {
+			"grant_days": 0
+		},
 		"references": [
 			{
 				"title": "Not for an election or referendum 投票日 that falls on a rest day: no day is given in lieu (MOL, https://www.mol.gov.tw/1607/1632/1640/11674/post).",
 				"url": "https://www.mol.gov.tw/1607/1632/1640/11674/post"
+			},
+			{
+				"title": "勞動基準法 §37, §39: a holiday is paid, and one worked is paid double (HOLIDAY_WORK); 施行細則 §23-1: a §37 holiday that falls on a 例假 or 休息日 is made up on a day the parties agree — the calendar’s holiday row that replaces it, for those off on the replaced date, never this row. This row grants nothing by itself (grant_days 0): a day in lieu the parties agree is HR’s manual balance adjustment on it.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=23-1"
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "26ef82cd-994f-5ded-aa7a-2233b449e5d6",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "A paid day in lieu of a public holiday worked."
@@ -367,12 +349,10 @@
 			}
 		],
 		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
-		"pay_treatment": "PAID",
 		"id": "fb54cf4c-1c3d-5067-afa8-62ba5582e485",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"conversion": "// 勞工請假規則 §4(3): half wages inside the thirty-day pool; the rule SICK_LEAVE_PAY_POOL holds it and the days beyond are SICK_LEAVE_UNPAID.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;",
-		"description": "HOSPITALISED_SICK_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "HOSPITALISED_SICK_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "// js\n// 勞工請假規則 §4(3): half wages inside the thirty-day pool; the rule SICK_LEAVE_PAY_POOL holds it and the days beyond are SICK_LEAVE_UNPAID.\nreturn ctx.lookup.half_pay_share;"
 	},
 	{
 		"code": "OFFICIAL_LEAVE",
@@ -383,7 +363,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "f1f66b11-f2f0-5306-8cc3-bb14f8734d08",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "OFFICIAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
@@ -398,86 +377,72 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "a6e3f66d-056b-5caa-be60-c9b33185007d",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "JOB_SEARCH_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "STATUTORY_REST_IN_LIEU",
-		"lookup": {},
+		"lookup": {
+			"grant_days": 0
+		},
 		"references": [
 			{
-				"title": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE)."
+				"title": "勞動基準法 §40(1): 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — a day of rest owed for each day stopped, which HR grants on this row by a manual balance adjustment (grant_days 0: it grants nothing by itself); payroll pays the day worked at a further day’s wage (STATUTORY_REST_WORK). The 補假 is a paid rest day (§39).",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=40"
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "662cee87-6d1d-5fb4-a037-652ba8be4180",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "STATUTORY_REST_IN_LIEU: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "COMPENSATORY_TIME_OFF",
-		"lookup": {},
+		"lookup": {
+			"grant_days": 0,
+			"window": "SERVICE_YEAR",
+			"unit": "HOUR",
+			"overtime_as_time_off": true
+		},
 		"references": [
 			{
-				"title": "勞動基準法 §32-1(1): overtime or 休息日 work the worker elects to take as time off is banked by the hour (roster_entry.banked_overtime_hours, unpaid as overtime: work.days[].overtime_hours excludes it); 施行細則 §22-2: the hours are taken within the agreed period. Metered in hours over the leave (service) year: the hours banked so far less those taken. §32-1(2): hours untaken at the period’s end or on termination are paid at the wage of the day they were worked (COMP_TIME_YEAR_END_PAYMENT, OVERTIME_COMP_TIME_SETTLEMENT)."
+				"title": "勞動基準法 §32-1(1): 雇主依第三十二條第一項及第二項規定使勞工延長工作時間，或使勞工於第三十六條所定休息日工作後，依勞工意願選擇補休並經雇主同意者，應依勞工工作之時數計算補休時數 — the hours are owed by the hours worked. The roster's `overtime_as_time_off` marks those hours; this row takes them in hours (unit HOUR) and the run pays no overtime for them (grant_days 0: the entitlement is the hours marked, not a fixed grant). 施行細則 §22-2(1)–(2): 補休 taken in the order the hours were worked, and a period longer than the §24(2) annual-leave year ends on that year's last day, so the row counts in the service year as ANNUAL_LEAVE does. §32-1(2): 補休期限屆期或契約終止未補休之時數，應依延長工作時間或休息日工作當日之工資計算標準發給工資；未發給工資者，依違反第二十四條規定論處 (OVERTIME_COMP_TIME_SETTLEMENT at exit).",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1"
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "65a4e6b2-9560-596e-8dc6-93a841c0ba46",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"description": "COMPENSATORY_TIME_OFF: Leave days granted and drawn under this jurisdiction’s rules."
-	},
-	{
-		"code": "COMP_TIME_PAYOUT_VALUE",
-		"lookup": {},
-		"references": [
-			{
-				"title": "勞動基準法 §32-1(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1); 施行細則 §22-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2): 補休 hours untaken when the agreed period ends or the contract terminates are paid at the wage of the day they were worked. Not a leave anyone takes (a dated time-off entry is refused: !has(entry.from)): its balance is the untaken banked hours of the leave year — the oldest taken first — each at its band (roster_entry.banked_overtime_band, the §24 multiplier: 1.34 or 1.67; blank priced 1.34), in straight-time hours. The exit encashment pays it (COMP_TIME_PAYOUT at the hourly wage); at the year’s end HR encashes the balance shown (COMP_TIME_YEAR_END_PAYMENT)."
-			}
-		],
-		"subtotal_id": null,
-		"pay_treatment": "PAID",
-		"id": "d5d854f8-14bd-5acc-b254-38a4d90bbbfd",
-		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"description": "COMP_TIME_PAYOUT_VALUE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Paid compensatory time off for overtime hours taken as 補休, counted in hours."
 	},
 	{
 		"code": "SICK_LEAVE_UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "勞工請假規則 §4(1)(2)–(3): sickness beyond the thirty half-paid days a year is unpaid; non-hospitalised and hospitalised sickness together at most one year within any two (a rolling 24-month window)."
 			}
 		],
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
-		"pay_treatment": "UNPAID",
 		"id": "9f1fec0e-3d95-5935-b292-db07695f54e8",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"description": "SICK_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "SICK_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "SICK_LEAVE_SUSPENSION",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "勞工請假規則 §5: sickness beyond the §4 limits may be taken as personal or annual leave, then as unpaid suspension (留職停薪) of at most one year (per illness: event_id)."
 			}
 		],
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
-		"pay_treatment": "UNPAID",
 		"id": "e02ff963-e497-5df6-947a-20c4692c2941",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"description": "SICK_LEAVE_SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "SICK_LEAVE_SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "PARENTAL_LEAVE_BY_DAY",
@@ -499,35 +464,28 @@
 			}
 		],
 		"subtotal_id": "4c9178af-f00f-4e41-9b54-fdf123407a38",
-		"pay_treatment": "PAID",
 		"id": "ccbcf58c-8233-50cb-a02a-96e7f7cd4c6e",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"conversion": "// 育嬰留職停薪實施辦法 §2, §9: no wage for the days taken; BASIC_AFTER_PARENTAL_LEAVE tells the premium rows how many.\nreturn ctx.day_rate * ctx.entry.quantity;",
-		"description": "PARENTAL_LEAVE_BY_DAY: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "PARENTAL_LEAVE_BY_DAY: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "CHILDCARE_REDUCED_HOURS",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "性別平等工作法 §19: a worker of an employer of thirty or more with a child under three may reduce working time by one hour a day; §19(2): 受僱於僱用未滿三十人雇主之受僱者，經與雇主協商，雙方合意後，得依前項規定辦理 — at a smaller employer when the contract terms record the agreement (terms.childcare_reduction_agreed); 減少之工作時間，不得請求報酬 — recorded as an eighth of a day, deducted by this row."
 			}
 		],
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
-		"pay_treatment": "UNPAID",
 		"id": "be1e0b76-3e3a-5157-aefd-f1e6ad13ea51",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"description": "CHILDCARE_REDUCED_HOURS: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "CHILDCARE_REDUCED_HOURS: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "NATURAL_DISASTER_ABSENCE",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "天然災害發生事業單位勞工出勤管理及工資給付要點: a worker who does not work on a day the authority stops work for a typhoon or other disaster may not be treated as absent, made to take another leave, or otherwise prejudiced; the wage of the day may be withheld (it does not reduce the attendance bonus).",
@@ -535,11 +493,10 @@
 			}
 		],
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
-		"pay_treatment": "UNPAID",
 		"id": "8b31b317-00f7-5b51-baf6-9fc2978f40da",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"description": "NATURAL_DISASTER_ABSENCE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "NATURAL_DISASTER_ABSENCE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "INDIGENOUS_RITUAL_HOLIDAY",
@@ -557,7 +514,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"pay_treatment": "PAID",
 		"id": "19e666cb-b222-5bd0-8f45-3c1b35334392",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "INDIGENOUS_RITUAL_HOLIDAY: Leave days granted and drawn under this jurisdiction’s rules."

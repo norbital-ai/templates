@@ -29,6 +29,7 @@
 		readonly work_date: string;
 		readonly shift_definition_id?: string | null;
 		readonly planned_overtime_intervals?: unknown;
+		readonly overtime_as_time_off?: boolean;
 		readonly actual_worked_intervals?: unknown;
 		readonly findings?: unknown;
 		readonly consent?: unknown;
@@ -69,10 +70,11 @@
 		bolt.query({
 			employee_contract: {
 				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
-				fields: ['employee_id', 'employee_number', 'employee_name', 'effective_range', 'terms'],
+				fields: ['employee_id', 'employee_number', 'effective_range', 'terms'],
 				orderBy: { employee_number: 'asc' },
 				limit: 10000
-			}
+			},
+			'employee_contract.employee_id': { fields: ['name'] }
 		})
 	);
 	const ids = $derived((contracts.current?.employee_contract.rows ?? []).map((row) => row.id));
@@ -90,6 +92,7 @@
 							'work_date',
 							'shift_definition_id',
 							'planned_overtime_intervals',
+							'overtime_as_time_off',
 							'actual_worked_intervals',
 							'findings',
 							'consent',
@@ -152,6 +155,7 @@
 				work_date: String(entry.work_date),
 				shift_definition_id: entry.shift_definition_id,
 				planned_overtime_intervals: entry.planned_overtime_intervals,
+				overtime_as_time_off: entry.overtime_as_time_off,
 				actual_worked_intervals: entry.actual_worked_intervals,
 				findings: entry.findings,
 				consent: entry.consent
@@ -171,7 +175,7 @@
 			const range = contract.effective_range;
 			// nobody stays on the board past the month they left
 			if (String(range.from) > to || (range.to != null && String(range.to) < from)) continue;
-			const employee = String(contract.employee_id);
+			const employee = String(contract.employee_id?.id);
 			byPerson.set(employee, [...(byPerson.get(employee) ?? []), contract]);
 		}
 		return [...byPerson]
@@ -196,7 +200,7 @@
 					employee,
 					contracts: spells,
 					number: latest.employee_number,
-					name: latest.employee_name ?? '',
+					name: latest.employee_id?.name ?? '',
 					locked: entries.some((entry) => entry.payroll_run_id != null),
 					entries
 				};
@@ -241,7 +245,7 @@
 					date: String(child.incurred_on),
 					part: String(child.part)
 				})),
-				employee: String(contractById.get(String(row.employment_id))?.employee_id)
+				employee: String(contractById.get(String(row.employment_id))?.employee_id?.id)
 			})),
 			locked,
 			today
@@ -297,6 +301,7 @@
 						date,
 						shift: day.shift ?? day.projectedShift,
 						planned: closed(intervalsOf(entry?.planned_overtime_intervals)),
+						time_off: entry?.overtime_as_time_off === true,
 						worked: closed(day.intervals === null ? null : [...day.intervals])
 					}
 				];
@@ -452,6 +457,7 @@
 				'work_date',
 				'shift_definition_id',
 				'planned_overtime_intervals',
+				'overtime_as_time_off',
 				'actual_worked_intervals',
 				'consent'
 			]}

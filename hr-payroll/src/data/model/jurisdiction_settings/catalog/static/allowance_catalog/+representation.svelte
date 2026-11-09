@@ -49,13 +49,11 @@
 					name="posting"
 					title="Posting"
 					icon="lucide:arrow-down-up"
-					hint="Where the amount lands and whether it is prorated or rated."
+					hint="Where the amount lands and whether it is rated."
 					defaultOpen={false}
 				>
 					<Columns count={2} gap="md">
 						<Field name="subtotal_id" />
-						<Field name="party" />
-						<Field name="prorate" />
 						<Field name="include_in_rate" />
 					</Columns>
 				</Section>

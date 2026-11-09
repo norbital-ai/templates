@@ -100,7 +100,7 @@ describe('overtime bands', () => {
 				[],
 				[]
 			);
-			const version = seed.employee_contract?.[0]?.input_schema_version_id;
+			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 			const unpaid = seed.leave_catalog?.find(
 				(row) => row.code === 'UNPAID_LEAVE' && row.settings_id === version
 			);
@@ -338,7 +338,7 @@ describe('overtime bands', () => {
 			[],
 			[]
 		);
-		const version = seed.employee_contract?.[0]?.input_schema_version_id;
+		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const claim = (seed.claim_catalog ?? []).find(
 			(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
 		);
@@ -397,7 +397,7 @@ describe('overtime bands', () => {
 			[],
 			[]
 		);
-		const version = seed.employee_contract?.[0]?.input_schema_version_id;
+		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const bonus = (seed.adhoc_catalog ?? []).find(
 			(row) => row.code === 'BONUS' && row.settings_id === version
 		);
@@ -468,7 +468,7 @@ describe('overtime bands', () => {
 				[{ date: '2026-02-10', shift: WORK, hours: 9, overtime: 1 }],
 				[]
 			);
-			const version = seed.employee_contract?.[0]?.input_schema_version_id;
+			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 			const claim = (seed.claim_catalog ?? []).find(
 				(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
 			);
@@ -607,7 +607,7 @@ describe('overtime bands', () => {
 				[],
 				[]
 			);
-			const version = seed.employee_contract?.[0]?.input_schema_version_id;
+			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 			const unpaid = seed.leave_catalog?.find(
 				(row) => row.code === 'UNPAID_LEAVE' && row.settings_id === version
 			);
@@ -768,7 +768,8 @@ describe('overtime bands', () => {
 				const workDay = 1 * 1.5 + 1 * 2;
 				const restDay = 8 * 2 + 1 * 3 + 1 * 4;
 				const holiday = 8 * 2;
-				near(paid, 'OVERTIME', (workDay + restDay + holiday) * hourly);
+				// ID rounds money to whole rupiah
+				near(paid, 'OVERTIME', Math.round((workDay + restDay + holiday) * hourly));
 			}
 		)
 	);

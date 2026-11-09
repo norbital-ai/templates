@@ -1,3 +1,4 @@
+import { addDays } from '@norbital-ai/std/date';
 import { evaluate } from '../payroll_engine/expressions.js';
 import { completedMonths, isJsonObject } from '../payroll_engine/foundation.js';
 import type { JsonObject } from '../payroll_engine/contracts.js';
@@ -123,14 +124,22 @@ export const entitlementOf = (
 			? lookup.part_time_service_bands
 			: lookup.service_bands
 	);
-	if (lookup.no_cap === true || (bands.length === 0 && lookup.grant_days == null)) return null;
+	if (bands.length === 0 && lookup.grant_days == null) return null;
 	if (lookup.window === 'EVENT') return 0;
 	const offset = Number(lookup.service_offset_months ?? 0);
 	if (!fits(lookup, person)) return 0;
 	const first = bands[0];
-	// until the first band, a share of it by completed months of service
-	if (lookup.proration === 'COMPLETED_MONTHS' && first && months < first.service_months)
-		return Math.round((first.days * months) / first.service_months);
+	// until the first band, a share of the first year by completed months, the day itself served; the band stays the day's
+	if (lookup.proration === 'COMPLETED_MONTHS' && first && months < first.service_months) {
+		const served = completedMonths(person.started, String(addDays(on, 1)));
+		return served < qualifying(lookup)
+			? 0
+			: prorated(
+					lookup,
+					person,
+					Math.round((Number(lookup.first_year_days ?? first.days) * served) / first.service_months)
+				);
+	}
 	const scheduled = scheduledDays(lookup, person, months, offset);
 	if (scheduled !== null) return scheduled;
 	if (months < qualifying(lookup)) return 0;

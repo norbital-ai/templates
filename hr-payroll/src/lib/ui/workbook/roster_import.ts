@@ -3,7 +3,6 @@ import type { Id } from '@norbital-ai/bolt';
 import { PlainDate, monthOf } from '@norbital-ai/std/date';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { bolt } from '$bolt';
-import { toast } from '@norbital-ai/ui';
 import {
 	planRosterUpload,
 	rosterMonth,
@@ -36,9 +35,9 @@ const zoneOn = <V>(
 };
 
 /**
- * Reads one roster workbook for the scoped entity and writes what it changes: whole-roster creates
- * first, then one bounded update per existing roster. A sealed day is refused by the plan before
- * either call, naming the payroll run.
+ * Reads one roster workbook for the scoped entity and writes what it changes as one import: a dry run first, whose
+ * refusal lists every row the server refuses and writes nothing, then the import itself. A sealed day is refused by
+ * the plan before either call, naming the payroll run.
  */
 export const runRosterImport = (options: {
 	readonly entity_id: Id<'entity'>;
@@ -111,6 +110,7 @@ export const runRosterImport = (options: {
 										'work_date',
 										'shift_definition_id',
 										'planned_overtime_intervals',
+										'overtime_as_time_off',
 										'actual_worked_intervals',
 										'consent',
 										'payroll_run_id'
@@ -153,11 +153,11 @@ export const runRosterImport = (options: {
 				const stored: RosterStored[] = entries.map((entry) => {
 					const run = runs.find((candidate) => candidate.id === entry.payroll_run_id);
 					return {
-						id: entry.id,
 						employment_id: entry.employment_id,
 						work_date: String(entry.work_date),
 						shift_definition_id: entry.shift_definition_id,
 						planned_overtime_intervals: entry.planned_overtime_intervals ?? null,
+						overtime_as_time_off: entry.overtime_as_time_off,
 						actual_worked_intervals: (entry.actual_worked_intervals ?? []).flatMap((interval) =>
 							interval.end == null ? [] : [{ start: interval.start, end: interval.end }]
 						),
@@ -178,61 +178,31 @@ export const runRosterImport = (options: {
 					catch: workbookImportError
 				});
 			}).pipe(Effect.mapError(workbookImportError)),
-		submit: (plan) =>
-			Effect.gen(function* () {
-				const byEmployment = <T extends { readonly employment_id: string }>(rows: readonly T[]) => {
-					const groups = new Map<string, T[]>();
-					for (const row of rows) {
-						const group = groups.get(row.employment_id) ?? [];
-						group.push(row);
-						groups.set(row.employment_id, group);
-					}
-					return [...groups.values()];
-				};
-				const creates = byEmployment(plan.creates);
-				const updates = byEmployment(plan.updates);
-				const total = creates.length + updates.length;
-				const notice = (done: number) =>
-					toast.info(bolt.t('roster.importing', { done, total }), { duration: 600_000 });
-				let done = 0;
-				let shown = notice(0);
-				const written = Effect.sync(() => {
-					done += 1;
-					if (done % 10 !== 0) return;
-					toast.dismiss(shown);
-					shown = notice(done);
-				});
-				yield* Effect.forEach(
-					creates,
-					(group) => bolt.act('roster_entry.create', group).pipe(Effect.andThen(written)),
-					{ concurrency: 4, discard: true }
-				).pipe(
-					Effect.andThen(
-						Effect.forEach(
-							updates,
-							(group) =>
-								bolt
-									.act(
-										'roster_entry.update',
-										group.map((update) => ({ target: update.target, set: update.set }))
-									)
-									.pipe(Effect.andThen(written)),
-							{ concurrency: 4, discard: true }
-						)
-					),
-					Effect.catchTag('ActUnknown', () =>
-						Effect.fail(
-							new WorkbookImportError({ message: bolt.t('roster.import_interrupted'), detail: [] })
-						)
-					),
-					Effect.ensuring(Effect.sync(() => toast.dismiss(shown)))
-				);
-				return {
-					imported: plan.count,
+		submit: (plan) => {
+			const input = { rows: plan.rows, onConflict: 'update' } as const;
+			// the server judges the whole file through the write itself, then writes all of it or nothing
+			return bolt.act('roster_entry.import', { ...input, dryRun: true }).pipe(
+				Effect.andThen(bolt.act('roster_entry.import', input)),
+				Effect.as({
+					imported: plan.rows.length,
 					overwritten: plan.overwritten,
 					warnings: plan.warnings
-				};
-			})
+				}),
+				Effect.catchTag('ActRefused', (refused) =>
+					Effect.fail(
+						new WorkbookImportError({
+							message: bolt.t('roster.import_refused'),
+							detail: refused.message.split('\n')
+						})
+					)
+				),
+				Effect.catchTag('ActUnknown', () =>
+					Effect.fail(
+						new WorkbookImportError({ message: bolt.t('roster.import_interrupted'), detail: [] })
+					)
+				)
+			);
+		}
 	});
 
 /** The month as its two sheets: what the board shows, ready to fill in and import. */

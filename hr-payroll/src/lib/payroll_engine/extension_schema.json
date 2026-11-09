@@ -614,11 +614,6 @@
 			"title": "ID employee extension data",
 			"additionalProperties": false,
 			"properties": {
-				"husband_no_income_certified": {
-					"type": "boolean",
-					"title": "Husband has no income (reviewed kecamatan statement)",
-					"description": "Explicit reviewed PTKP declaration for a married female employee. True requires a written local-government statement at least at kecamatan level and its recorded reference; false takes the employee-only allowance. No inferred or default declaration (PMK168/2023 art.9(2)-(3))."
-				},
 				"zakat_monthly": {
 					"type": "number",
 					"minimum": 0,
@@ -2045,12 +2040,6 @@
 									"title": "PCB: claim SOCSO and EIS contributions as TP1 relief",
 									"description": "Form TP1 2026 item C14 (Income Tax Act 1967 s.46(1)(n); MTD Specification 2026 D.2(ii) item k): the employee claims the SOCSO, EIS and LINDUNG 24 Jam (SKBBK) employee contributions deducted this year as LP1, up to RM350 a year; the relief follows the contributions this payroll actually charged. Payroll never relieves them unclaimed, so the default is false; do not also include them in tp1_monthly_deductions."
 								},
-								"spouse_disabled": {
-									"type": "boolean",
-									"default": false,
-									"title": "Disabled spouse (certified)",
-									"description": "Income Tax Act 1967 s.47(1)(b)/(2): the further RM6,000 is for a disabled spouse living together, certified by the Department of Social Welfare. Without a declared certification there is no deduction, so the default is false."
-								},
 								"tax_residency": {
 									"type": "string",
 									"enum": ["RESIDENT", "NON_RESIDENT"],
@@ -2121,12 +2110,6 @@
 									"maximum": 2100,
 									"title": "PCB: tax year of TP3 previous-employer amounts",
 									"description": "The calendar tax year of the TP3 figures. They affect this year only and never roll into the next tax year."
-								},
-								"spouse_without_income": {
-									"type": "boolean",
-									"default": false,
-									"title": "Spouse without income",
-									"description": "Income Tax Act 1967 s.47(1)(a): RM4,000 for a spouse with no total income, and the s.6A(2)(b) RM400 rebate when chargeable income is RM35,000 or less."
 								},
 								"registration_number": {
 									"type": "string",
@@ -3149,12 +3132,6 @@
 									"default": 0,
 									"title": "PND1: of those, second and later children born in or after 2018",
 									"description": "Revenue Code s.47(1)(c) as amended by the Revenue Code Amendment Act (No. 49) B.E. 2562: a further 30,000 baht (60,000 in all) for the second and each later legitimate child born on or after 1 January 2018; adopted children do not count (\"ยกเว้นบุตรบุญธรรม\", Revenue Department https://www.rd.go.th/62777.html)."
-								},
-								"spouse_income_status": {
-									"type": "string",
-									"enum": ["WITHOUT_INCOME", "WITH_INCOME"],
-									"title": "PND1: spouse income status",
-									"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income. s.47(3): a non-resident gets this only for a spouse in Thailand, on the annual return, not in payroll."
 								},
 								"registration_number": {
 									"type": "string",

@@ -140,7 +140,7 @@ export type Event = {
 	readonly ended_on?: string | undefined;
 };
 const record = (value: unknown): JsonObject => (isJsonObject(value) ? value : {});
-/** The dated facts on a contract: statutory events plus one child-birth event per structured child. */
+/** The dated facts on a contract: statutory events plus one child-birth event per child born in the family. */
 export const eventsOf = (contract: JsonObject): readonly Event[] => {
 	const events = contract.events;
 	const statutory = (Array.isArray(events) ? events : []).flatMap((item) =>
@@ -159,9 +159,9 @@ export const eventsOf = (contract: JsonObject): readonly Event[] => {
 	// birth, so two children born on one day must not grant twice.
 	const births = [
 		...new Map(
-			(Array.isArray(contract.children) ? contract.children : []).flatMap((child) =>
-				isJsonObject(child) && typeof child.born_on === 'string'
-					? [[child.born_on, { kind: 'CHILD_BIRTH', on: child.born_on }] as const]
+			(Array.isArray(contract.family) ? contract.family : []).flatMap((member) =>
+				isJsonObject(member) && member.relation === 'CHILD' && typeof member.born_on === 'string'
+					? [[member.born_on, { kind: 'CHILD_BIRTH', on: member.born_on }] as const]
 					: []
 			)
 		).values()
@@ -169,6 +169,17 @@ export const eventsOf = (contract: JsonObject): readonly Event[] => {
 	return [...statutory, ...births];
 };
 export const openedBy = (lookup: JsonObject) => record(lookup.opened_by);
+/**
+ * A row with no figure (no bands, grant, limit, entitlement rule or event that opens days) has no limit: the ledger
+ * read a rule needs, what a person has left of a row on a day, is unbounded.
+ */
+export const unlimited = (lookup: JsonObject) =>
+	lookup.service_bands == null &&
+	lookup.part_time_service_bands == null &&
+	lookup.grant_days == null &&
+	lookup.annual_limit == null &&
+	lookup.entitlement == null &&
+	!Object.values(openedBy(lookup)).some((event) => isJsonObject(event) && Number(event.days) > 0);
 /** The day an event's window opens, and its key: a later contract change can move `on` under it. */
 export const opensOn = (event: Event) => event.opened_on ?? event.on;
 /** The event a day counts under for a row it opens: the latest that has started and not ended. */
@@ -252,20 +263,24 @@ export const windowOn = (lookup: JsonObject, day: string, events: readonly Event
 	return event === undefined ? windowOf(lookup) : { kind: 'EVENT', on: opensOn(event) };
 };
 
+type Person = {
+	readonly scope: string;
+	readonly started: string;
+	readonly events: readonly Event[];
+};
+/** The window of a row a day falls in, as its period key. */
+export const periodOn = (lookup: JsonObject, subject: Person, on: string) =>
+	periodKey(subject.scope, windowOn(lookup, on, subject.events), on, subject.started);
+
 /** What a person has left of a code on a day, for pages and rules. */
 export const leftOn = (
 	accounts: Accounts,
 	account: string,
 	code: string,
 	lookup: JsonObject,
-	subject: { readonly scope: string; readonly started: string; readonly events: readonly Event[] },
+	subject: Person,
 	on: string
-): number =>
-	leftIn(
-		accounts[account]?.[code]?.[
-			periodKey(subject.scope, windowOn(lookup, on, subject.events), on, subject.started)
-		]
-	);
+): number => leftIn(accounts[account]?.[code]?.[periodOn(lookup, subject, on)]);
 
 /** What is left in a code's newest window, where a page or an exit has no date of its own to ask about. */
 export const latestLeft = (accounts: Accounts, account: string, code: string): number => {

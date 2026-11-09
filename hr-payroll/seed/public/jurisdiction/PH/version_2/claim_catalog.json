@@ -7,11 +7,9 @@
 				"title": "BIR RR 2-98 s.2.78.1(A)(3)(f) as amended by RR 29-2025: actual medical assistance is de minimis to PHP12,000 a year; the excess is an 'other benefit' within the PHP90,000 exclusion."
 			}
 		],
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"subtotal_id": null,
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYER",
 		"id": "f052b818-73e0-518b-9b6e-cf307dd04777",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
 		"description": "Direct medical claim against the annual limit."
@@ -27,8 +25,6 @@
 		"subtotal_id": "27d37d27-1788-4b6f-9b67-6d9c49d92e96",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "e2cb5cff-8de3-53dc-ad16-2a6c8ac2a929",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
 		"description": "Medical claim against the annual limit."
@@ -44,8 +40,6 @@
 		"subtotal_id": "27d37d27-1788-4b6f-9b67-6d9c49d92e96",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "80893171-14c5-5b2a-8101-c32d51c161f2",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
 		"description": "Dental claim."

@@ -81,10 +81,9 @@
 		],
 		"subtotal_id": "17392858-1346-5af6-bb95-adae6ef77cf0",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) > 0;",
-		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));",
+		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) * ctx.paid_share;",
 		"id": "734a305b-c739-5784-888a-7efa87762930",
 		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
-		"prorate": true,
 		"include_in_rate": true
 	},
 	{

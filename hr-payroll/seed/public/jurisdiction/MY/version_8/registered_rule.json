@@ -182,7 +182,7 @@
 	},
 	{
 		"code": "ROSTER_CONTINUOUS_HOURS",
-		"description": "Requires a thirty-minute break when planned overtime would run more than five consecutive hours.",
+		"description": "Requires a thirty-minute break in planned overtime that would run more than five consecutive hours, judged on the breaks each span records.",
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"lookup": {
@@ -191,40 +191,65 @@
 		},
 		"references": [
 			{
-				"title": "Employment Act 1955 s.60A(1)(a)",
-				"locator": "no more than five consecutive hours without a period of leisure of at least thirty minutes.",
+				"title": "Employment Act 1955 s.60A(1)(a) and proviso (i)",
+				"locator": "no more than five consecutive hours without a period of leisure of not less than thirty minutes; a break of less than thirty minutes does not break the continuity of the five hours.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"validate": "// EA s.60A(1)(a): planned overtime beyond five continuous hours needs a thirty-minute break.\nconst planned = get(ctx.entry, 'planned_overtime_intervals', []);\nif (planned.length !== 1) return true;\nconst breaks = interval_minutes(flatten(planned.map((i) => get(i, 'breaks', []))));\nreturn !(interval_minutes(planned) > ctx.lookup.elapsed_minutes && breaks < ctx.lookup.break_minutes);",
+		"validate": "// EA s.60A(1)(a) and proviso (i): five consecutive hours at most between periods of leisure of thirty minutes;\n// a shorter break does not end the run. A span is judged on the breaks it records: the roster workbook takes one\n// span net of its breaks and records none.\nconst longest = (span) => {\n\tconst pauses = get(span, 'breaks', []).toSorted((a, b) => elapsed_minutes(span.start, a.start) - elapsed_minutes(span.start, b.start));\n\tlet from = span.start;\n\tlet run = 0;\n\tlet most = 0;\n\tfor (const pause of pauses) {\n\t\trun = run + elapsed_minutes(from, pause.start);\n\t\tif (elapsed_minutes(pause.start, pause.end) >= ctx.lookup.break_minutes) {\n\t\t\tmost = Math.max(most, run);\n\t\t\trun = 0;\n\t\t}\n\t\tfrom = pause.end;\n\t}\n\treturn Math.max(most, run + elapsed_minutes(from, span.end));\n};\nreturn get(ctx.entry, 'planned_overtime_intervals', []).every((span) =>\n\t(get(span, 'breaks', null) == null && get(span, 'break_minutes', null) == null) || longest(span) <= ctx.lookup.elapsed_minutes\n);",
 		"order": 18,
 		"id": "3d394662-2f2a-541d-8f10-a2265f528e05",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318"
 	},
 	{
 		"code": "ROSTER_DAILY_TOTAL",
-		"description": "Checks that planned overtime does not take a rostered day beyond twelve hours.",
+		"description": "Checks that the rostered shift and its planned overtime do not take a day beyond twelve hours of work, and that a month's overtime on working or off days stays within the statutory cap; rest-day work is outside that cap.",
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"lookup": {
 			"minutes_per_day": 720,
-			"normal_minutes_per_day": 480,
 			"roster_warnings": {
 				"daily_hours": 12,
 				"daily_overtime_hours": 4,
-				"monthly_overtime_hours": 104,
+				"monthly_overtime_hours": {
+					"hours": 104,
+					"day_types": ["WORK", "OFF"]
+				},
 				"consecutive_days": 6,
 				"weekly_rest_days": 1
+			}
+		},
+		"reads": {
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.subject.employment.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
 			}
 		},
 		"references": [
 			{
 				"title": "Employment Act 1955 s.60A(7) and s.60C(2)",
-				"locator": "outside the listed emergencies, no employee works more than twelve hours in one day, overtime included.",
+				"locator": "except in the emergencies of s.60A(2)(a) to (e), no employer shall require any employee to work for more than twelve hours in any one day, overtime and rest-day work included.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Employment Act 1955 s.60A(9)",
+				"locator": "hours of work: the time the employee is at the disposal of the employer; an unpaid break is not.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Employment Act 1955 s.60A(4)(a); Employment (Limitation of Overtime Work) Regulations 1980 reg.2",
+				"locator": "overtime is limited to one hundred and four hours in any one month. The proviso in s.60A(4)(a) leaves work on a rest day or a gazetted public holiday out of the cap, though it is still paid at the rest-day and holiday rates. Off days are not that statutory rest day, so their hours count.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"validate": "// EA s.60A(7): planned overtime may not push the day past twelve hours.\nconst limit = ctx.lookup.minutes_per_day - ctx.lookup.normal_minutes_per_day;\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', [])) <= limit;",
+		"validate": "// EA s.60A(7), s.60C(2): the day's rostered hours, net of unpaid breaks (s.60A(9)) and none on a rest or off day,\n// plus its planned overtime, stay within twelve hours.\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst variant = get(shift, 'variant', {});\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst length = (from, to) => (clock(to) - clock(from) + 1440) % 1440;\nlet rostered = 0;\nif (get(variant, 'day_type', 'WORK') === 'WORK') {\n\tif (get(variant, 'untimed_hours', null) != null) rostered = variant.untimed_hours * 60;\n\telse if (get(variant, 'start_time', null) != null && get(variant, 'end_time', null) != null) {\n\t\trostered = length(variant.start_time, variant.end_time);\n\t\tif (rostered === 0 && variant.ends_next_day === true) rostered = 1440;\n\t\tfor (const pause of get(variant, 'breaks', [])) if (pause.paid !== true) rostered = rostered - length(pause.start_time, pause.end_time);\n\t}\n}\nreturn rostered + interval_minutes(get(ctx.entry, 'planned_overtime_intervals', [])) <= ctx.lookup.minutes_per_day;",
 		"order": 22,
 		"id": "d6308537-f10d-5439-ba5f-edd7717e90e1",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318"

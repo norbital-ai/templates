@@ -2,7 +2,7 @@
 	{
 		"code": "WITHIN_HOURS_OVERTIME",
 		"lookup": {
-			"multiplier": 1.0
+			"multiplier": 1
 		},
 		"references": [
 			{
@@ -65,7 +65,7 @@
 		],
 		"subtotal_id": "8fde21b2-77a1-59bb-aa43-5dc20517461b",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'terms.work_classification', 'ORDINARY') === 'ORDINARY';",
-		"conversion": "// js\n// 労働基準法 art.37(1), 割増賃金令: every clock-proven hour on the statutory rest day.\nconst hourly = ctx.hour_rate;\nconst hours = sum(get(ctx, 'work.days', []).filter((day) => get(day, 'day_type', 'WORK') === 'REST').map((day) => Number(get(day, 'worked_hours', 0))));\nreturn hours * hourly * ctx.lookup.multiplier;",
+		"conversion": "// js\n// 労働基準法 art.37(1), 割増賃金令: every clock-proven hour on the statutory rest day; art.13: the employer's own rest-day multiple stands where it pays more.\nconst hourly = ctx.hour_rate;\nconst hours = sum(get(ctx, 'work.days', []).filter((day) => get(day, 'day_type', 'WORK') === 'REST').map((day) => Number(get(day, 'worked_hours', 0))));\nconst multiple = Math.max(ctx.lookup.multiplier, Number(get(ctx.subject.employer, 'pay_methods.rest_day_hourly_multiplier', 0)));\nreturn hours * hourly * multiple;",
 		"direction": "ADD",
 		"id": "9427d52f-83be-55b6-897e-39dc6881de83",
 		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
@@ -99,7 +99,16 @@
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.37(3) with 施行規則 art.19の2: under a labour-management agreement (entity_extension_data.substitute_leave_agreement) a worker may take paid substitute leave instead of the extra 25% for overtime beyond 60 hours (the statutory hours OVERTIME_OVER_60 prices); each hour of 代替休暇 (leave SUBSTITUTE_LEAVE_FOR_OVERTIME) replaces the extra 25% of four overtime hours. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (the FAMILY_ALLOWANCE catalog row; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (the COMMUTING_ALLOWANCE catalog row; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+				"title": "労働基準法 art.37(3): where the agreement provides paid substitute leave and the worker takes it, the 50% premium for the overtime hours it corresponds to is not paid.",
+				"locator": "第37条第3項",
+				"url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+				"effective_from": "2010-04-01"
+			},
+			{
+				"title": "労働基準法施行規則 art.19の2(2)–(3): leave hours are the overtime hours beyond 60 in the month × 25% (the difference between the 50% and 25% rates), so one hour of leave corresponds to four overtime hours; the leave is taken within two months after that month, in half-day or day units.",
+				"locator": "第19条の2",
+				"url": "https://laws.e-gov.go.jp/law/322M40000100023",
+				"effective_from": "2010-04-01"
 			}
 		],
 		"subtotal_id": "8fde21b2-77a1-59bb-aa43-5dc20517461b",

@@ -2,6 +2,16 @@ import { model } from '@norbital-ai/bolt';
 import { validateRegistered } from '../../../../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../../lib/payroll_engine/taps.js';
+import { assertUnpriced } from '../../../../../../../../lib/payroll_engine/pay_cycle.js';
+
+const NEXT = 'Date the instalment in the next period to run.';
+/** An instalment is deducted by the run whose attendance holds its date; a reversal is paid by the next run. */
+const instalments = (
+	rows: readonly { employment_id: string; paid_on?: string | null; reverses?: string | null }[]
+) =>
+	rows.flatMap(({ employment_id, paid_on, reverses }) =>
+		paid_on == null || reverses != null ? [] : [{ employment: employment_id, date: paid_on }]
+	);
 
 export default model('loan_catalog_entry_repayment', {
 	description: 'One repayment against a loan entry.',
@@ -57,6 +67,7 @@ export default model('loan_catalog_entry_repayment', {
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
+			yield* assertUnpriced(ctx.db.query, instalments(rows), NEXT);
 			return rows;
 		}
 	},
@@ -83,6 +94,11 @@ export default model('loan_catalog_entry_repayment', {
 			yield* validateRegistered(ctx.db.query, 'loan_catalog_entry_repayment', 'update', proposed);
 			if (changes.some((c) => c.before.payroll_run_id != null))
 				return yield* ctx.refuse('This record is locked by a payroll run.');
+			yield* assertUnpriced(
+				ctx.db.query,
+				instalments(changes.map(({ before, set }) => ({ ...before, ...set }))),
+				NEXT
+			);
 			return changes.map((c) => c.set);
 		}
 	},

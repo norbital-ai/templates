@@ -14,7 +14,6 @@ import { parseAdhocSheet, parseLeaveSheet } from '../src/lib/payroll_engine/entr
 const entity = idOf('entity', '11111111-1111-4111-8111-111111111111');
 const employee = idOf('employee_contract', '22222222-2222-4222-8222-222222222222');
 const shift = idOf('shift_definition', '33333333-3333-4333-8333-333333333333');
-const entry = idOf('roster_entry', '55555555-5555-4555-8555-555555555555');
 const run = idOf('payroll_run', '66666666-6666-4666-8666-666666666666');
 const settings = idOf('jurisdiction_settings', '77777777-7777-4777-8777-777777777777');
 const leaveCatalog = idOf('leave_catalog', '88888888-8888-4888-8888-888888888888');
@@ -43,10 +42,10 @@ const span = (start: string, end: string) => ({ start: Instant(start), end: Inst
 const stored = (
 	over: Partial<RosterKnown['entries'][number]> & { readonly work_date: string }
 ): RosterKnown['entries'][number] => ({
-	id: entry,
 	employment_id: employee,
 	shift_definition_id: shift,
 	planned_overtime_intervals: null,
+	overtime_as_time_off: false,
 	actual_worked_intervals: null,
 	consent: null,
 	payroll_run_id: null,
@@ -95,8 +94,10 @@ describe('roster workbook', () => {
 			rosterSheet(['1001', '2026-03-02', 'DAY', '08:00', '17:00']),
 			rosterKnown([stored({ work_date: '2026-03-03' })])
 		);
-		assert.equal(plan.creates.length, 1);
-		assert.equal(plan.updates.length, 0);
+		assert.deepEqual(
+			plan.rows.map((day) => String(day.work_date)),
+			['2026-03-02']
+		);
 	});
 
 	it('carries the day\u2019s consent columns onto the roster entry', () => {
@@ -116,7 +117,7 @@ describe('roster workbook', () => {
 			]),
 			rosterKnown()
 		);
-		assert.deepEqual(plan.creates[0]?.consent, {
+		assert.deepEqual(plan.rows[0]?.consent, {
 			night_work: true,
 			overtime: true,
 			reference: 'form-1'
@@ -180,10 +181,9 @@ describe('roster workbook', () => {
 			rosterKnown([sealed])
 		);
 		assert.deepEqual(
-			plan.creates.map((day) => String(day.work_date)),
+			plan.rows.map((day) => String(day.work_date)),
 			['2026-03-03']
 		);
-		assert.equal(plan.updates.length, 0);
 	});
 
 	it('normalises local clocks in the entity zone and rolls an overnight interval', () => {
@@ -199,7 +199,7 @@ describe('roster workbook', () => {
 			rosterMonth(rosterSheet(['1001', '2026-03-02', 'DAY', '08:00', '17:00'])),
 			'2026-03'
 		);
-		const intervals = days.creates.map((day) => day.actual_worked_intervals?.[0]);
+		const intervals = days.rows.map((day) => day.actual_worked_intervals?.[0]);
 		assert.deepEqual(intervals[0], span('2026-03-02T00:00:00.000Z', '2026-03-02T09:00:00.000Z'));
 		assert.deepEqual(intervals[1], span('2026-03-03T14:00:00.000Z', '2026-03-03T22:00:00.000Z'));
 		assert.deepEqual(intervals[2], span('2026-03-04T14:00:00.000Z', '2026-03-04T22:00:00.000Z'));
@@ -223,7 +223,7 @@ describe('roster workbook', () => {
 			]),
 			rosterKnown()
 		);
-		assert.deepEqual(both.creates[0], {
+		assert.deepEqual(both.rows[0], {
 			employment_id: employee,
 			work_date: '2026-03-02',
 			shift_definition_id: shift,
@@ -231,16 +231,21 @@ describe('roster workbook', () => {
 			actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T11:05:00.000Z')]
 		});
 		// the blank work row made no clock: the plan row alone wrote that day
-		assert.equal(both.creates[1]?.actual_worked_intervals, undefined);
+		assert.equal(both.rows[1]?.actual_worked_intervals, undefined);
 
 		const planned = stored({
 			work_date: '2026-03-02',
 			planned_overtime_intervals: [span('2026-03-02T09:00:00.000Z', '2026-03-02T11:00:00.000Z')]
 		});
 		const clocks = planRosterUpload(new Map([['Work entries', workSheet]]), rosterKnown([planned]));
-		assert.deepEqual(clocks.updates[0]?.set, {
-			actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T11:05:00.000Z')]
-		});
+		// a stored day takes only the fields the file changes
+		assert.deepEqual(clocks.rows, [
+			{
+				employment_id: employee,
+				work_date: '2026-03-02',
+				actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T11:05:00.000Z')]
+			}
+		]);
 		// a first clock replaces nothing
 		assert.deepEqual(clocks.overwritten, []);
 
@@ -249,8 +254,8 @@ describe('roster workbook', () => {
 			actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T09:00:00.000Z')]
 		});
 		const replan = planRosterUpload(new Map([['Plan', planSheet]]), rosterKnown([worked]));
-		assert.equal(replan.updates[0]?.set.actual_worked_intervals, undefined);
-		assert.equal(replan.updates[0]?.set.planned_overtime_intervals?.length, 1);
+		assert.equal(replan.rows[0]?.actual_worked_intervals, undefined);
+		assert.equal(replan.rows[0]?.planned_overtime_intervals?.length, 1);
 	});
 
 	it('a bare overtime time falls on the side of a night shift it is nearer', () => {
@@ -276,7 +281,7 @@ describe('roster workbook', () => {
 					['1001', '2026-03-02', 'DAY', start, end]
 				]),
 				known
-			).creates[0]?.planned_overtime_intervals?.[0];
+			).rows[0]?.planned_overtime_intervals?.[0];
 		// the morning after the shift ends
 		assert.deepEqual(
 			overtime('06:30', '08:30'),
@@ -299,7 +304,7 @@ describe('roster workbook', () => {
 			rosterSheet(['1001', '2026-03-02', 'DAY', 8 / 24, 17 / 24]),
 			rosterKnown()
 		);
-		assert.deepEqual(plan.creates[0]?.actual_worked_intervals, [
+		assert.deepEqual(plan.rows[0]?.actual_worked_intervals, [
 			span('2026-03-02T00:00:00.000Z', '2026-03-02T09:00:00.000Z')
 		]);
 		throwsRows(
@@ -332,6 +337,7 @@ describe('roster workbook', () => {
 					date: '2026-03-02',
 					shift: 'DAY',
 					planned: span('2026-03-02T22:30:00.000Z', '2026-03-03T00:30:00.000Z'),
+					time_off: false,
 					worked: span('2026-03-02T12:21:37.000Z', '2026-03-03T01:11:00.000Z')
 				}
 			],
@@ -345,7 +351,42 @@ describe('roster workbook', () => {
 			'2026-03-03 09:11'
 		]);
 		const plan = planRosterUpload(sheets, known);
-		assert.deepEqual([plan.creates, plan.updates], [[], []]);
+		assert.deepEqual(plan.rows, []);
+	});
+
+	it("marks a day's planned overtime as time off; a blank leaves the mark, `no` takes it off", () => {
+		const planSheet = (timeOff: string) =>
+			grid([
+				['employee_number', 'work_date', 'shift_code', 'ot_start', 'ot_end', 'ot_as_time_off'],
+				['1001', '2026-03-02', 'DAY', '17:00', '19:00', timeOff]
+			]);
+		const marked = planRosterUpload(planSheet('yes'), rosterKnown());
+		assert.equal(marked.rows[0]?.overtime_as_time_off, true);
+		const held = rosterKnown([
+			stored({
+				work_date: '2026-03-02',
+				planned_overtime_intervals: [span('2026-03-02T09:00:00.000Z', '2026-03-02T11:00:00.000Z')],
+				overtime_as_time_off: true
+			})
+		]);
+		assert.deepEqual(planRosterUpload(planSheet(''), held).rows, []);
+		assert.equal(planRosterUpload(planSheet('no'), held).rows[0]?.overtime_as_time_off, false);
+		const written = rosterSheets(
+			[
+				{
+					number: '1001',
+					name: 'A',
+					date: '2026-03-02',
+					shift: 'DAY',
+					planned: span('2026-03-02T09:00:00.000Z', '2026-03-02T11:00:00.000Z'),
+					time_off: true,
+					worked: null
+				}
+			],
+			'Asia/Singapore'
+		);
+		assert.equal(written.get('Plan')?.[1]?.[6], 'yes');
+		assert.deepEqual(planRosterUpload(written, held).rows, []);
 	});
 });
 

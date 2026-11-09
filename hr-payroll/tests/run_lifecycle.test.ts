@@ -52,8 +52,7 @@ const twoPeople = (): Seed => {
 				...contractOf(seed),
 				id: SECOND,
 				employee_id: uuid(904),
-				employee_number: 'W2',
-				employee_name: 'Second'
+				employee_number: 'W2'
 			}
 		]
 	};
@@ -113,7 +112,7 @@ const ytdNet = (t: Kit) =>
 			)
 		);
 const catalog = (seed: Seed, family: string, code: string) => {
-	const version = contractOf(seed).input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed[family] ?? []).find(
 		(candidate) => candidate.code === code && candidate.settings_id === version
 	);
@@ -360,7 +359,7 @@ describe('what an off-cycle run may name', () => {
 	it.live('a recurring item is refused, not paid', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const version = contractOf(seed).input_schema_version_id;
+			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 			const recurring = (seed.adhoc_catalog ?? []).find(
 				(row) => row.settings_id === version && row.off_cycle_eligible === false
 			);

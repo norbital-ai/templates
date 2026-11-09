@@ -664,7 +664,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -680,10 +680,10 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nreturn ctx.entry.effective_range.to != null;",
+		"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nreturn ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = occurrence_key(['ID', 'PPH21_BPA1_EXIT', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Bukti potong 1721-A1 (BPA1) for a leaver',\n  due_on: month_end(add_months(ctx.entry.effective_range.to, 1)),\n  occurrence_key: key,\n}];",
+		"effects": "const key = 'PPH21_BPA1_EXIT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Bukti potong 1721-A1 (BPA1) for a leaver',\n  due_on: month_end(add_months(ctx.entry.effective_range.to, 1)),\n  occurrence_key: key,\n}];",
 		"id": "54bf56ff-41c2-5026-8c7c-13f62cae85c3",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -706,7 +706,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -732,10 +732,10 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nconst birth = get(ctx.entry, 'payroll.date_of_birth', null);\nconst cause = get(exit, 'termination_cause', null);\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (cause == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (get(exit, 'indonesia_work_months_planned', null) != null) return false;\nif (['VOLUNTARY_RESIGNATION', 'RETIREMENT', 'DEATH', 'LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY'].includes(cause)) return false;\nif (birth == null || birth === '') return true;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
+		"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nconst birth = get(ctx.entry, 'payroll.date_of_birth', null);\nconst cause = get(exit, 'termination_cause', null);\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (cause == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (get(exit, 'indonesia_work_months_planned', null) != null) return false;\nif (['VOLUNTARY_RESIGNATION', 'RETIREMENT', 'DEATH', 'LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY'].includes(cause)) return false;\nif (birth == null || birth === '') return true;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = occurrence_key(['ID', 'JKP_PHK_NOTIFICATION', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Termination notice to BPJS Ketenagakerjaan (JKP)',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"effects": "const key = 'JKP_PHK_NOTIFICATION:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Termination notice to BPJS Ketenagakerjaan (JKP)',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
 		"id": "67ddf1c1-ea47-5133-b8bf-4116cad7b2f5",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -752,7 +752,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -768,10 +768,10 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nconst cause = get(exit, 'termination_cause', null);\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (cause == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn !['VOLUNTARY_RESIGNATION', 'DEATH'].includes(cause);",
+		"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nconst cause = get(exit, 'termination_cause', null);\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (cause == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn !['VOLUNTARY_RESIGNATION', 'DEATH'].includes(cause);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = occurrence_key(['ID', 'TERMINATION_REPORT', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Report of a termination of employment',\n  due_on: ctx.entry.effective_range.to,\n  occurrence_key: key,\n}];",
+		"effects": "const key = 'TERMINATION_REPORT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Report of a termination of employment',\n  due_on: ctx.entry.effective_range.to,\n  occurrence_key: key,\n}];",
 		"id": "022b0edc-27f5-5270-bbcf-ab474e67541a",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -1597,7 +1597,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1623,10 +1623,10 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nconst planned = get(exit, 'indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
+		"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nconst planned = get(exit, 'indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_EXIT_REPORT', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_EXIT_REPORT',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"effects": "const key = 'BPJS_KETENAGAKERJAAN_EXIT_REPORT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_EXIT_REPORT',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
 		"id": "a0f871a4-5f2d-50d8-93ae-601813a269c8",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -1815,10 +1815,10 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.foreign_employee_minimum_months) return false;\nconst earlierSealed = (c) => {\n  if (c.id === ctx.entry.id) return false;\n  if (c.status !== 'SEALED') return false;\n  return c.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(earlierSealed)\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst beforeMarital = get(previous, 'payroll.marital_status', null);\nconst afterMarital = get(ctx.entry, 'payroll.marital_status', null);\nconst beforeDependents = get(previous, 'dependents_count', null);\nconst afterDependents = get(ctx.entry, 'dependents_count', null);\nreturn beforeMarital !== afterMarital || beforeDependents !== afterDependents;",
+		"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.foreign_employee_minimum_months) return false;\nconst earlierSealed = (c) => {\n  if (c.id === ctx.entry.id) return false;\n  if (c.status !== 'SEALED') return false;\n  return c.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(earlierSealed)\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst beforeMarital = get(previous, 'payroll.marital_status', null);\nconst afterMarital = get(ctx.entry, 'payroll.marital_status', null);\nconst beforeDependents = get(previous, 'family', []).length;\nconst afterDependents = get(ctx.entry, 'family', []).length;\nreturn beforeMarital !== afterMarital || beforeDependents !== afterDependents;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE', ctx.entry.entity_id, ctx.entry.employee_id, ctx.entry.effective_range.from, get(ctx.entry, 'payroll.marital_status', null), get(ctx.entry, 'dependents_count', null)]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE', ctx.entry.entity_id, ctx.entry.employee_id, ctx.entry.effective_range.from, get(ctx.entry, 'payroll.marital_status', null), get(ctx.entry, 'family', []).length]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
 		"id": "e5156a94-e911-5795-ab95-9341f917405d",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -1842,7 +1842,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1858,10 +1858,10 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nreturn ctx.entry.effective_range.to != null;",
+		"condition": "if (ctx.after == null) return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nreturn ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = occurrence_key(['ID', 'PERSONAL_DATA_DISPOSAL', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PERSONAL_DATA_DISPOSAL',\n  due_on: add_years(ctx.entry.effective_range.to.substring(0, 4) + ctx.lookup.annual_due_month_day, ctx.lookup.retention_years),\n  occurrence_key: key,\n}];",
+		"effects": "const key = 'PERSONAL_DATA_DISPOSAL:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PERSONAL_DATA_DISPOSAL',\n  due_on: add_years(ctx.entry.effective_range.to.substring(0, 4) + ctx.lookup.annual_due_month_day, ctx.lookup.retention_years),\n  occurrence_key: key,\n}];",
 		"id": "01e3ec88-dd01-5168-8b7b-518b4dbe81a2",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -2116,6 +2116,34 @@
 			}
 		],
 		"id": "75cf7b4d-3453-5e9d-ad03-a037b955cff1",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "retract-exit-effects",
+		"name": "Retract Exit Effects",
+		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
+		"lookup": {},
+		"references": [],
+		"source_collection": "employee_contract",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "occurrence_key", "state"],
+				"limit": 100
+			}
+		},
+		"condition": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nreturn get(ctx, \"reads.obligation\", []).some((task) => task.state === \"OPEN\" && stale(task));",
+		"target_collection": "obligation",
+		"target_action": "update",
+		"effects": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nconst reason =\n\tctx.after == null\n\t\t? \"A later version continues the employment; the exit was cancelled.\"\n\t\t: \"The exit date moved; this task answered the earlier date.\";\nreturn get(ctx, \"reads.obligation\", [])\n\t.filter((task) => task.state === \"OPEN\" && stale(task))\n\t.map((task) => ({ target: task.id, set: { state: \"WAIVED\", waiver_reason: reason } }));",
+		"id": "4d56b7a2-41cc-543c-b8a0-5c0c5b58f213",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	}
 ]

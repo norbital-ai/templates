@@ -7,7 +7,7 @@ import { objectValue } from '../../../../lib/payroll_engine/reads.js';
 
 const REFUSED = {
 	field_path:
-		'Only an employer fact can be scheduled: name, representative, address, time zone, loan floor, overtime award, bank or extension data.',
+		'Only an employer fact can be scheduled: name, representative, address, time zone, loan floor, overtime award, pay methods, bank or extension data.',
 	effective_from:
 		'A scheduled change takes effect on the first of a month to come. One due now is a new employer version.'
 };
@@ -36,7 +36,7 @@ export default model('entity_change', {
 		},
 		field_path: {
 			kind: 'text',
-			help: 'One of name, representative_name, registered_address, time_zone, final_pay_loan_floor_percent, overtime_full_award_percent, bank or entity_extension_data. A dotted path changes one nested value.'
+			help: 'One of name, representative_name, registered_address, time_zone, final_pay_loan_floor_percent, overtime_full_award_percent, pay_methods, bank or entity_extension_data. A dotted path changes one nested value.'
 		},
 		old_value: { kind: 'json', optional: true, hidden: true },
 		new_value: {
@@ -90,6 +90,7 @@ export default model('entity_change', {
 						'time_zone',
 						'final_pay_loan_floor_percent',
 						'overtime_full_award_percent',
+						'pay_methods',
 						'bank',
 						'entity_extension_data'
 					] as const,

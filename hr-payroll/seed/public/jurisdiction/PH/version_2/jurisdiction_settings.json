@@ -171,12 +171,6 @@
 					],
 					"description": "Labor Code arts.298–299 and DOLE Handbook 2024 ch.14 §C (customer input): the authorised cause. Labour-saving devices, redundancy and an impossible reinstatement pay a month a year; retrenchment, a closure not due to serious losses, disease, a security guard without assignment for six months (DO 150-16) and a contractor’s worker without assignment for three months (DO 174-17 s.13) half a month a year, at least a month; a closure due to serious losses pays none. A bona fide suspension of operations past six months (art.301; DO 215-20) is retrenchment pay, half a month a year."
 				},
-				"just_cause_dismissal": {
-					"type": "boolean",
-					"default": false,
-					"title": "Dismissed for a just cause",
-					"description": "Labor Code art.297 and DOLE Department Order 147-15 s.5.1: a dismissal for serious misconduct, willful disobedience, gross and habitual neglect, fraud or willful breach of trust, loss of confidence, commission of a crime, or an analogous cause. Raises the twin-notice reminder; it does not by itself prove that due process was observed."
-				},
 				"kasambahay_unjust_dismissal": {
 					"type": "boolean",
 					"description": "RA 10361 s.32: fifteen days’ pay as indemnity."
@@ -184,6 +178,12 @@
 				"kasambahay_unjustified_departure": {
 					"type": "boolean",
 					"description": "RA 10361 s.32: up to fifteen days’ unpaid salary forfeited."
+				},
+				"just_cause_dismissal": {
+					"type": "boolean",
+					"default": false,
+					"title": "Dismissed for a just cause",
+					"description": "Labor Code art.297 and DOLE Department Order 147-15 s.5.1: a dismissal for serious misconduct, willful disobedience, gross and habitual neglect, fraud or willful breach of trust, loss of confidence, commission of a crime, or an analogous cause. Raises the twin-notice reminder; it does not by itself prove that due process was observed."
 				}
 			}
 		},
@@ -1071,7 +1071,7 @@
 			"hour": {
 				"basis": "CONTRACT_HOURS"
 			},
-			"proration": "WORKING_DAYS",
+			"proration": "DAY_RATE",
 			"rounding": {
 				"mode": "HALF_UP",
 				"scale": 2

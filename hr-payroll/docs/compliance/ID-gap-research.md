@@ -492,3 +492,42 @@ Only existing mechanisms are used.
 - Gap 7 fixed in the template invariant: `payPeriodOf` for `TEN_DAY` now mirrors `attendanceOf` when
   `pay_cutoff_day > 1` — a day before the cutoff is in the current month's first part, a day on/after it is in the next
   month's first part. Regression runs a cutoff-25 first part and refuses a 12 February no-pay entry.
+
+## 11. Seed round 3 (2026-11-10)
+
+### Rounding
+
+- `conversions.rounding` is `HALF_UP` at scale 0 in versions 1–3 (was 2): every line and checkpoint is in whole rupiah.
+  The BPJS and PPh 21 rows already rounded each share half-up to the rupiah (`whole_unit`); JKK, the other lines and
+  the checkpoints kept sen. The statutes fix no sen rounding; whole rupiah half-up is the Company B listing's method
+  (`manual-probe-matrix.md` §8.1a), which the owner adopted.
+- Kesehatan employer share = round(base × (4% + 1% × (1 + further members))) − the worker's rounded share, never less
+  than round(base × 4%). The employer remits the whole contribution and deducts the worker's share (UU 24/2011
+  art.19(1)–(2)); the split is 4% / 1% (Perpres 82/2018 art.30 as amended by Perpres 64/2020). Without the floor, the
+  difference alone is 1 rupiah below the 4% on 9 of any 100 consecutive bases (e.g. 1,000,068: 40,002 vs 40,003).
+
+### Proration basis
+
+`WORKING_DAYS` stays. PP 36/2021 art.41(1) (sickness) and UU 4/2024 art.5(2) (maternity) pay a share of the monthly
+wage by month of illness or leave; working-day proration prices a whole month exactly and a part month pro rata. The
+1/173 hour is the overtime hour (PP 35/2021 art.32(2)); PP 36/2021 art.17(2)'s ÷ 25 / ÷ 21 converts a wage set by the
+day. Before the paid-share change the rows deducted `day_rate` (8/173 of the month) per unpaid day: a whole month at 75%
+took 25.4% of the wage with 22 working days and 23.1% with 20, not 25%.
+
+### Leave rows (`paid_share`, `payout`)
+
+Checked against PP 36/2021 arts.40–46, UU 13/2003 arts.79, 82, 84, 157A, UU 4/2024 arts.5–6 and PP 35/2021 art.40(4):
+unpaid 0; medical and maternity by `pay_steps`; the event and duty leaves paid; annual leave the only `payout`
+(unused, unlapsed days on any exit). `ANNUAL_LEAVE`'s reference now says how `cumulative_service` reads art.79(3)'s
+continuous work.
+
+Open for the owner:
+
+- `WORK_ACCIDENT_LEAVE` pays in full throughout; PP 44/2015 Lampiran III as amended by PP 82/2019 pays 50% after 12
+  months. Pricing that tail needs the accident date on the row (`opened_by`, a typed lookup in `params.ts`).
+- `PATERNITY_EXTENSION_LEAVE` pays in full; UU 4/2024 art.6(2)(a) grants the 3 further days but states no pay
+  (PP 36/2021 art.41(3)(e) pays the first 2).
+- The annual-leave payout day: no statute fixes it. The row pays `day_rate` (8/173 of the month on 8 h × 5, 7/173 on
+  [amount] h × [amount]). Company B pays ÷ [amount] (the bank's dropped `leave_cash_out_day_divisor: [amount]`): EMP-REDACTED's [amount] days are [amount] in
+  the listing and [amount] in the run. §[amount]'s match needs Company B's workspace payout `ctx.month_wage / [amount] * ctx.entry.quantity`
+  (company method, pays more), set in Settings.

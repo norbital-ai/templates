@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
@@ -43,7 +44,7 @@ const seedOf = (category: string, facts: JsonObject) => {
 		})),
 		employee_contract: (base.employee_contract ?? []).map((row) => ({
 			...row,
-			effective_range: { from: '2027-01-01', to: '2027-03-31' },
+			effective_range: { from: '2027-01-01', to: null },
 			signed_contract_period: { from: '2027-01-01', to: '2027-03-31' },
 			final_pay_due_on: '2027-04-15'
 		}))
@@ -51,9 +52,15 @@ const seedOf = (category: string, facts: JsonObject) => {
 };
 const returns = (t: Kit) =>
 	Effect.gen(function* () {
-		yield* t
-			.as(t.admin)
-			.act('employee_contract.update', [{ target: CONTRACT, set: { reason: 'Resignation' } }]);
+		yield* t.as(t.admin).act('employee_contract.update', [
+			{
+				target: CONTRACT,
+				set: {
+					effective_range: { from: PlainDate('2027-01-01'), to: PlainDate('2027-03-31') },
+					reason: 'Resignation'
+				}
+			}
+		]);
 		yield* t.runDue();
 		const { obligation } = yield* t.storedQuery({ obligation: { limit: 300 } });
 		return obligation.rows.filter((row) =>

@@ -8,10 +8,6 @@ import { objectValue, queryAllRows, queryRows } from '../lib/payroll_engine/read
 import { raiseFailure } from '../lib/ledger/service.js';
 
 const fromOf = (row: JsonObject) => String(objectValue(row.effective_range).from);
-const covers = (row: JsonObject, day: string) => {
-	const { from, to } = objectValue(row.effective_range);
-	return String(from) <= day && (typeof to !== 'string' || day <= to);
-};
 const changeOf = (row: JsonObject): ContractChange => ({
 	field_path: String(row.field_path),
 	old_value: row.old_value ?? null,
@@ -63,20 +59,6 @@ export default automation('contract_materialize', {
 					try: () => jsonObject(changes.map(changeOf).reduce(withChange, open)),
 					catch: (error) => new Refusal({ message: getErrorMessage(error) })
 				});
-				const { jurisdiction_settings: law = [] } = yield* queryRows(ctx.query, {
-					jurisdiction_settings: {
-						where: { id: { eq: String(open.input_schema_version_id) } },
-						fields: ['code'],
-						limit: 1
-					}
-				});
-				const { jurisdiction_settings: lineage = [] } = yield* queryRows(ctx.query, {
-					jurisdiction_settings: {
-						where: { code: { eq: String(law[0]?.code) }, status: { eq: 'SEALED' } },
-						fields: ['effective_range'],
-						limit: 100
-					}
-				});
 				const reason = changes.flatMap((row) => row.notes ?? []).join(' · ') || 'Scheduled change';
 				const held = versions.find((row) => row.status === 'DRAFT' && fromOf(row) === on);
 				const draft =
@@ -89,12 +71,8 @@ export default automation('contract_materialize', {
 						terms: next.terms ?? null,
 						payroll: next.payroll ?? null,
 						bank: next.bank ?? open.bank ?? null,
-						children: next.children ?? null,
 						events: next.events ?? null,
-						dependents_count: next.dependents_count ?? null,
-						only_child: next.only_child ?? null,
-						input_schema_version_id:
-							lineage.find((row) => covers(row, on))?.id ?? open.input_schema_version_id ?? null,
+						family: next.family ?? null,
 						employee_extension_data: next.employee_extension_data ?? null,
 						service_started_on: next.service_started_on ?? open.service_started_on ?? null,
 						signed_contract_period:

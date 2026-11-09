@@ -166,7 +166,7 @@
 							id: idOf('leave_catalog_entry', id),
 							employment_id: idOf('employee_contract', employment),
 							catalog_id: idOf('leave_catalog', catalog),
-							// a reversal of a cash-out must stay a cash-out: its conversion returns money only with the flag
+							// a reversal of a cash-out must stay a cash-out: only a cash-out pays its row's payout
 							encashment: row.encashment === true
 						};
 					}
@@ -187,14 +187,14 @@
 		open
 		onOpenChange={(open) => !open && (creating = false)}
 		title={bolt.t('v2.leave_requests')}
-		><LeaveEntryForm allowReversal entityId={scope.id} onDone={() => (creating = false)} /></Sheet
+		><LeaveEntryForm entityId={scope.id} onDone={() => (creating = false)} /></Sheet
 	>{/if}
 {#if reversingRow !== null && scope.id !== null}{#key reversingRow.id}<Sheet
 			open
 			onOpenChange={(open) => !open && (reversingRow = null)}
 			title="Reverse leave"
 			><LeaveEntryForm
-				allowReversal
+				person
 				entityId={scope.id}
 				employmentId={reversingRow.employment_id}
 				catalogId={reversingRow.catalog_id}

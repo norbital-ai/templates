@@ -15,14 +15,14 @@ Paths name `version_8` for orientation. `version_8` is sealed (effective 2031-06
 
 ## Summary
 
-| Gap                       | Lawful trigger                                                                                             | Decision                                                                                                                                                                         | Payroll amount?                                                                         |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 1. Exit ground            | Redundancy/closure for Form PK; age-based retirement for the MRA review; a redundancy selection for s.60N  | Native contract enum; Form PK and s.60N are exercise-level, retirement is per-contract                                                                                           | Yes — the same fact excludes resignation/retirement/misconduct from termination benefit |
-| 2. Work pass expiry       | The pass expiry date; the renewal window opens three months before. No statutory 90-day notice             | Native contract date, editable when SEALED; reminder key includes the expiry                                                                                                     | No                                                                                      |
-| 3. Employer registration  | First contribution month (EPF); first employee (SOCSO/EIS), with a 30-day deadline                         | Two registration dates on the mutable `entity`; stop the reminder once recorded                                                                                                  | No                                                                                      |
-| 4. Accident report        | A reportable employment-injury accident, not a boolean                                                     | `WORKPLACE_ACCIDENT` catalog kind with an `accident_type` input                                                                                                                  | No                                                                                      |
-| 5. HRD registration       | Compulsory only for a covered employer with 10+ Malaysian employees; approved deregistration ends the duty | Raise only for `NOT_REGISTERED` with a liability date; suppress `DEREGISTERED`, missing and `OUT_OF_SCOPE`                                                                       | No (the levy row is separate)                                                           |
-| 6. Public holiday in lieu | A public holiday that falls on the employee's weekly rest day (s.60D(1))                                   | Stays a manual `PUBLIC_HOLIDAY_IN_LIEU` entry; eligibility is implicit from `terms.normal_days_per_week`; the entry date must be the next working day after the rest-day holiday | Yes as a paid leave day; exit cash-out is priced by the catalog conversion              |
+| Gap                       | Lawful trigger                                                                                             | Decision                                                                                                                                                                         | Payroll amount?                                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Exit ground            | Redundancy/closure for Form PK; age-based retirement for the MRA review; a redundancy selection for s.60N  | Native contract enum; Form PK and s.60N are exercise-level, retirement is per-contract                                                                                           | Yes — the same fact excludes resignation/retirement/misconduct from termination benefit                                                                          |
+| 2. Work pass expiry       | The pass expiry date; the renewal window opens three months before. No statutory 90-day notice             | Native contract date, editable when SEALED; reminder key includes the expiry                                                                                                     | No                                                                                                                                                               |
+| 3. Employer registration  | First contribution month (EPF); first employee (SOCSO/EIS), with a 30-day deadline                         | Two registration dates on the mutable `entity`; stop the reminder once recorded                                                                                                  | No                                                                                                                                                               |
+| 4. Accident report        | A reportable employment-injury accident, not a boolean                                                     | `WORKPLACE_ACCIDENT` catalog kind with an `accident_type` input                                                                                                                  | No                                                                                                                                                               |
+| 5. HRD registration       | Compulsory only for a covered employer with 10+ Malaysian employees; approved deregistration ends the duty | Raise only for `NOT_REGISTERED` with a liability date; suppress `DEREGISTERED`, missing and `OUT_OF_SCOPE`                                                                       | No (the levy row is separate)                                                                                                                                    |
+| 6. Public holiday in lieu | A public holiday that falls on the employee's weekly rest day (s.60D(1))                                   | Stays a manual `PUBLIC_HOLIDAY_IN_LIEU` entry; eligibility is implicit from `terms.normal_days_per_week`; the entry date must be the next working day after the rest-day holiday | Yes as a paid leave day; the public row has no payout (s.60D grants another paid day, not cash); a workspace that cashes out sets the payout in its own settings |
 
 ---
 
@@ -72,7 +72,7 @@ The duty is on the **selection of local employees in a redundancy exercise**. It
 - It decides statutory money in MY (termination benefit), TH (severance tax/eligibility) and ID (severance), and obligations in MY.
 - ID and TH already duplicate it in `employee_extension_data`; MY is the third reader of the same fact.
 - The architecture already says the facts that decide severance, “such as `exit_ground` and `termination_cause`, are on the contract” (`docs/0005-target-architecture.md`).
-- The extension schema cannot carry a live exit fact: `employee_extension_data` is **not editable when the contract is SEALED**. The SEALED edit list is only `effective_range`, `final_pay_due_on`, `reason`, `employee_name`. A live exit is recorded after sealing, so an extension field would be frozen.
+- The extension schema cannot carry a live exit fact: `employee_extension_data` is **not editable when the contract is SEALED**. The SEALED edit list is only `effective_range`, `final_pay_due_on`, `reason`, `exit_ground`, `work_pass_valid_until`. A live exit is recorded after sealing, so an extension field would be frozen.
 
 Minimal field path:
 
@@ -432,12 +432,11 @@ Employment Act 1955 (Act 265) s.60D(1): "If any public holiday falls on a rest d
 
 ### 6.2 Decision
 
-OIL stays a **manual** leave entry. HR names the employee and the substitution day; no automation scans holidays and grants it. Eligibility is **implicit**, not a field or a list:
-
-- The employee's own normal week supplies the rest days: five days rests on Saturday and Sunday, six on Sunday only, seven has none. The template reads `terms.normal_days_per_week`; it does not read the roster's individual rest pattern yet.
-- The entity's published holidays supply the trigger. A holiday that is itself a `SUBSTITUTE` or a `MAKEUP_WORKDAY` does not create another substitution.
-- The entry date must be the next working day after the rest-day holiday, skipping other weekly rest days and published holidays. A Saturday holiday substitutes the following Monday for a five-day week; a six-day week works that Saturday, so it substitutes nothing. A Sunday holiday substitutes the Monday for both.
-- The check runs on `leave_catalog_entry.create` and on edits that change the slots. Reversals and exit encashments are not checked; they settle an existing position rather than create a new day in lieu.
+A public holiday on a rest day is a calendar matter, never a leave entry: the holiday row that `replaces` it, with
+`given_to = ONLY_IF_OFF_ON_REPLACED_DATE`, gives the next working day to those off on the replaced date.
+`PUBLIC_HOLIDAY_IN_LIEU` is a leave row of its own: 0 days by default, a yearly grant only if its rule says so, plus the
+HR's manual adjustments on the person's balance (each naming its cause). A request is checked against
+what is left like any other limited row.
 
 ### 6.3 The four roster cases
 
@@ -452,15 +451,15 @@ A normal holiday applies by date even on a rest day; the shift-pattern gate is t
 
 ### 6.4 Tests
 
-- `tests/my_oil_eligibility.test.ts` 4/4: five-day accepts Monday after a Sunday or Saturday holiday; six-day accepts Monday after Sunday and refuses Monday after Saturday; seven-day has no substitution.
+- `tests/leave_adjustment.test.ts` 3/3: a grant-only day-in-lieu row holds HR's +0.5 adjustment, takes one half day and refuses the next, and posts −0.5 when a new version drops the adjustment.
 - `tests/holiday_scenarios.test.ts` 5/5: the four roster cases above, plus no automatic OIL entry.
 - `tests/holiday_in_lieu.test.ts` 2/2: the substitute-holiday gate for a five-day versus six-day week.
 
 ### 6.5 Residual limits
 
-- The weekly rest days come from `terms.normal_days_per_week`, not a rotating roster or an agreed non-Saturday/Sunday week. A four-day week is treated like a five-day week until a roster-aware rule is added.
-- The statutory "next working day" is computed against weekly rest days and published holidays only; an approved off day that is not a published holiday does not move the substitution.
-- OIL remains manual by decision. Automatic granting would need an effect on holiday publication that creates one entry per eligible employee, which this template does not run.
+- The substitute day is the holiday row HR publishes with `replaces`; nothing computes it from the week.
+- A day in lieu owed for other reasons is HR's manual adjustment on the employee profile. Nothing raises one
+  automatically.
 
 ## Owner decisions and residual limits
 
@@ -544,3 +543,29 @@ A normal holiday applies by date even on a rest day; the shift-pattern gate is t
   an undated sealed `NOT_REGISTERED` version is refused rather than silently suppressing the reminder.
 - Regression: `tests/my_hrd_registration.test.ts` covers the dated reminder, the five non-triggering classes, the rule
   refusals, and the rule passing a DRAFT/out-of-scope/optional version.
+
+### Seed round 3 implementation status (2026-11-10)
+
+- `ROSTER_DAILY_TOTAL` `monthly_overtime_hours` is `{ "hours": 104, "day_types": ["WORK", "OFF"] }` in every version.
+  EA s.60A(4)(a) and the Employment (Limitation of Overtime Work) Regulations 1980 reg.2 cap overtime at 104 hours a
+  month; the s.60A(4)(a) proviso leaves work on a rest day or a gazetted public holiday out, though it is still paid at
+  the rest-day and holiday rates. Off days are not the statutory rest day, so their overtime counts.
+- `TERMINATION_BENEFIT_PAYMENT` raises no task on `RESIGNATION`, `RETIREMENT`, legacy `EMPLOYEE_RETIREMENT`,
+  `MISCONDUCT_DISMISSAL`, `TRANSFER` or `TRANSFER_TO_SUBSIDIARY`, and the `TERMINATION_BENEFIT` row refuses the same
+  grounds. Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.4(1) excludes voluntary resignation,
+  retirement and misconduct after due inquiry; reg.8 excludes a transfer of service continued on no less favourable
+  terms. `UNILATERAL` and `BREACH_BY_EMPLOYER` remain eligible.
+- `ANNUAL_LEAVE` `lookup.entitlement` prorates the service year the contract ends in by its completed months, to the
+  day after the last day (EA s.60E(1) closing words and s.60E(2A)); a first-year leaver accrues to the exit, not to the
+  day the sync ran, and a half day or more rounds up.
+- `PUBLIC_HOLIDAY_IN_LIEU` has no `payout`: s.60D(1A)–(1B) grants another day as a paid holiday in substitution, not a
+  cash payment for an unused day. A workspace that pays an unused in-lieu day at exit sets that `payout` in its own
+  settings, as the Company A demo does.
+- New adhoc `OVERTIME_ARREARS`: overtime the attendance did not record, paid in a later run. It posts to the
+  `ORDINARY_WAGES` checkpoint, the same one as `OVERTIME`, so EPF excludes it as overtime, SOCSO/EIS count it in wages,
+  and the monthly tax treats it as ordinary pay. EA s.19(2) allows overtime to be paid by the last day of the next wage
+  period; the entry carries the amount and a note.
+- Statutory bases re-checked against the Acts: EPF (Act 452 s.2) excludes overtime and gratuities; SOCSO (Act 4
+  s.2(24)) and EIS (Act 800 s.2) include overtime and commission and exclude the annual bonus; HRDF (Act 612 s.2) is
+  charged on the `WAGE_ARREARS` checkpoint plus the `FINAL_PAY` step after `OFFICIAL_TRAVEL`, so leave encashment and
+  notice pay are levied as cash emoluments of the employment.

@@ -76,8 +76,9 @@
 					adhoc_catalog_entry: openEntry,
 					'adhoc_catalog_entry.catalog_id': { fields: ['code', 'off_cycle_eligible'] },
 					'adhoc_catalog_entry.employment_id': {
-						fields: ['employee_number', 'employee_name', 'effective_range']
-					}
+						fields: ['employee_number', 'employee_id', 'effective_range']
+					},
+					'adhoc_catalog_entry.employment_id.employee_id': { fields: ['name'] }
 				})
 			: null
 	);
@@ -100,7 +101,7 @@
 							claim,
 							who: String(row.employment_id.id),
 							employed: row.employment_id.effective_range,
-							person: `${row.employment_id.employee_name} (${row.employment_id.employee_number})`,
+							person: `${row.employment_id.employee_id?.name ?? ''} (${row.employment_id.employee_number})`,
 							what: row.catalog_id.code
 						}
 					]

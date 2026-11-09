@@ -42,7 +42,6 @@ export const READ_ALL = {
 	employee_contract: { read: true, history: true },
 	contract_change: { read: true },
 	entity_change: { read: true },
-	contract_exit: { read: true },
 	jurisdiction_settings: { read: true, history: true },
 	statutory_change: { read: true, history: true },
 	statutory_finding: { read: true, history: true },
@@ -147,7 +146,6 @@ export const HR_OPERATIONS = {
 	employee_profile: { ...READ_ALL.employee_profile, create: true, update: true },
 	contract_change: { ...READ_ALL.contract_change, create: true, update: true, delete: true },
 	entity_change: { ...READ_ALL.entity_change, create: true, update: true, delete: true },
-	contract_exit: { ...READ_ALL.contract_exit, create: true },
 	employee_contract: {
 		...READ_ALL.employee_contract,
 		create: true,

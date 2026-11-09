@@ -117,7 +117,7 @@ const enter = (
 	on: string,
 	reverses: Id<'adhoc_catalog_entry'> | null = null
 ) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed.adhoc_catalog ?? []).find((r) => r.code === item && r.settings_id === version);
 	assert.ok(row !== undefined, item);
 	return t.as(t.admin).act('adhoc_catalog_entry.create', [
@@ -545,7 +545,7 @@ describe('Taiwan’s month of salary', () => {
 
 describe('a no-pay day', () => {
 	const itemOf = (seed: Seed, code: string) => {
-		const version = seed.employee_contract?.[0]?.input_schema_version_id;
+		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const row = seed.leave_catalog?.find(
 			(item) => item.code === code && item.settings_id === version
 		);
@@ -580,7 +580,7 @@ describe('a no-pay day', () => {
 	const asBasis = (seed: Seed, code: string): Seed => ({
 		...seed,
 		leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-			row.code === code ? { ...row, pay_treatment: 'UNPAID' } : row
+			row.code === code ? { ...row, paid_share: '0' } : row
 		)
 	});
 	const paidOn = (seed: Seed, code: string, days: ReturnType<typeof whole>) =>
@@ -635,7 +635,7 @@ describe('a no-pay day', () => {
 			Effect.gen(function* () {
 				const plain = seedOf(undeclared, 33_000);
 				const onLine = yield* figureOn(plain, code, whole('2026-06-10'), 'BASIC');
-				assert.equal(onLine, 31_500);
+				assert.equal(onLine, 31_482.76);
 				assert.equal(
 					onLine,
 					yield* figureOn(asBasis(plain, code), code, whole('2026-06-10'), 'BASIC')
@@ -649,8 +649,8 @@ describe('a no-pay day', () => {
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
 				assert.equal(line(june, code), undefined);
-				assert.equal(line(june, 'BASIC')?.amount, 31_500);
-				assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_500);
+				assert.equal(line(june, 'BASIC')?.amount, 31_482.758620689656);
+				assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_494.25);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
 		it.live('a half day is half', () =>
@@ -660,8 +660,8 @@ describe('a no-pay day', () => {
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
 				assert.equal(line(june, code), undefined);
-				assert.equal(line(june, 'BASIC')?.amount, 32_250);
-				assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_750);
+				assert.equal(line(june, 'BASIC')?.amount, 32_241.37931034483);
+				assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_747.13);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
 		it.live('reversed after payment, July gives back June’s day, not a July one', () =>
@@ -673,7 +673,7 @@ describe('a no-pay day', () => {
 				yield* onCycle(t, '2026-07');
 				const [july] = yield* runs(t, '2026-07');
 				// the whole month wage share: BASIC 1,500 plus the fixed allowance's 500
-				assert.equal(line(july, code)?.amount, 2000);
+				assert.equal(line(july, code)?.amount, 2022.99);
 				assert.equal(line(july, code)?.direction, 'ADD');
 				assert.equal(line(july, 'FIXED_ALLOWANCE')?.amount, 11_000);
 			}).pipe(Effect.provide(workspace({ seed, now: JULY })))
@@ -743,18 +743,18 @@ describe('a no-pay day', () => {
 				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2950);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
-		it.live('a weekend between two missed days goes with them', () =>
+		it.live('a weekend between two missed days stays paid', () =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* take(t, seed, code, [...whole('2026-06-12'), ...whole('2026-06-15')]);
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
 				assert.equal(line(june, code), undefined);
-				assert.equal(line(june, 'BASIC')?.amount, 26_000);
-				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2600);
+				assert.equal(line(june, 'BASIC')?.amount, 28_000);
+				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2800);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
-		it.live('every work day of a month missed pays nothing, its edge weekends with them', () =>
+		it.live('every work day of a month missed leaves the rest days paid', () =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				// August 2026 opens and closes around weekends
@@ -765,8 +765,8 @@ describe('a no-pay day', () => {
 				yield* onCycle(t, '2026-08');
 				const [august] = yield* runs(t, '2026-08');
 				assert.equal(line(august, code), undefined);
-				assert.equal(line(august, 'BASIC'), undefined);
-				assert.equal(line(august, 'MEAL_ALLOWANCE'), undefined);
+				assert.equal(Math.round(Number(line(august, 'BASIC')?.amount) * 100) / 100, 9_000);
+				assert.equal(Math.round(Number(line(august, 'MEAL_ALLOWANCE')?.amount) * 100) / 100, 900);
 			}).pipe(Effect.provide(workspace({ seed, now: AUGUST })))
 		);
 		it.live('reversed after payment, 31-day July gives back a day of 30-day June', () =>

@@ -1,12 +1,12 @@
 [
 	{
 		"code": "retract-exit-effects",
-		"description": "Waive open obligations for an earlier exit when a contract's exit date changes.",
+		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
 		"name": "Retract Exit Effects",
 		"lookup": {},
 		"references": [],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -21,10 +21,10 @@
 				}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nconst suffix = ':exit:' + row.effective_range.to;\nreturn get(ctx, 'reads.obligation', []).some((task) => {\n\tif (task.state !== 'OPEN') return false;\n\tif (task.employment_id !== row.id) return false;\n\tconst key = String(task.occurrence_key);\n\treturn key.includes(':exit:') && !key.endsWith(suffix);\n});",
+		"condition": "// js\nconst row = ctx.entry;\nconst suffix = ':exit:' + row.effective_range.to;\nreturn get(ctx, 'reads.obligation', []).some((task) => {\n\tif (task.state !== 'OPEN') return false;\n\tif (task.employment_id !== row.id) return false;\n\tconst key = String(task.occurrence_key);\n\treturn key.includes(':exit:') && (ctx.after == null || !key.endsWith(suffix));\n});",
 		"target_collection": "obligation",
 		"target_action": "update",
-		"effects": "// js\nconst row = ctx.entry;\nconst suffix = ':exit:' + row.effective_range.to;\nconst reason = 'The exit changed; this task answered an earlier exit.';\nreturn get(ctx, 'reads.obligation', [])\n\t.filter((task) => {\n\t\tif (task.state !== 'OPEN') return false;\n\t\tif (task.employment_id !== row.id) return false;\n\t\tconst key = String(task.occurrence_key);\n\t\treturn key.includes(':exit:') && !key.endsWith(suffix);\n\t})\n\t.map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
+		"effects": "// js\nconst row = ctx.entry;\nconst suffix = ':exit:' + row.effective_range.to;\nconst reason =\n\tctx.after == null\n\t\t? 'A later version continues the employment; the exit was cancelled.'\n\t\t: 'The exit date moved; this task answered the earlier date.';\nreturn get(ctx, 'reads.obligation', [])\n\t.filter((task) => {\n\t\tif (task.state !== 'OPEN') return false;\n\t\tif (task.employment_id !== row.id) return false;\n\t\tconst key = String(task.occurrence_key);\n\t\treturn key.includes(':exit:') && (ctx.after == null || !key.endsWith(suffix));\n\t})\n\t.map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
 		"id": "d1cb57bc-71f7-5716-91be-db5d63ae7752",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
 	},
@@ -37,7 +37,7 @@
 		},
 		"references": [],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -47,7 +47,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data.dismissed_for_misconduct', false) === true) return false;\nconst key = 'SG:encash-leave-on-exit:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (ctx.after == null) return false;\nif (get(row, 'employee_extension_data.dismissed_for_misconduct', false) === true) return false;\nconst key = 'SG:encash-leave-on-exit:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: get(row, 'final_pay_due_on', null) ?? row.effective_range.to,\n\toccurrence_key: 'SG:encash-leave-on-exit:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -615,7 +615,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -628,7 +628,7 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nconst key = 'SG:FINAL_SALARY_PAYMENT:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (ctx.after == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nconst key = 'SG:FINAL_SALARY_PAYMENT:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst impossible = get(row, 'employee_extension_data.final_pay_not_possible', false) === true;\nconst dueOn = get(row, 'final_pay_due_on', null) ?? (impossible\n\t? add_working_days(row.effective_range.to, ctx.lookup.working_days, holidays, [0, 6])\n\t: row.effective_range.to);\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:FINAL_SALARY_PAYMENT:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -649,7 +649,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -659,7 +659,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nif (get(row, 'terms.residency_status', '') === 'CITIZEN') return false;\nif (get(row, 'employee_extension_data.ir21_exemption', null) != null) return false;\nconst key = 'SG:TAX_CLEARANCE_AND_WITHHOLDING:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (ctx.after == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nif (get(row, 'terms.residency_status', '') === 'CITIZEN') return false;\nif (get(row, 'employee_extension_data.ir21_exemption', null) != null) return false;\nconst key = 'SG:TAX_CLEARANCE_AND_WITHHOLDING:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(row.effective_range.to, -ctx.lookup.advance_months),\n\toccurrence_key: 'SG:TAX_CLEARANCE_AND_WITHHOLDING:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -680,7 +680,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -690,7 +690,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nconst key = 'SG:WORK_PASS_CANCELLATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (ctx.after == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nconst key = 'SG:WORK_PASS_CANCELLATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n\toccurrence_key: 'SG:WORK_PASS_CANCELLATION:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -1104,7 +1104,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1114,7 +1114,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data.dismissed_for_misconduct', false) !== true) return false;\nconst key = 'SG:MISCONDUCT_DUE_INQUIRY:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (ctx.after == null) return false;\nif (get(row, 'employee_extension_data.dismissed_for_misconduct', false) !== true) return false;\nconst key = 'SG:MISCONDUCT_DUE_INQUIRY:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.to,\n\toccurrence_key: 'SG:MISCONDUCT_DUE_INQUIRY:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -1329,7 +1329,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": ["exit"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1339,7 +1339,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nconst key = 'SG:PDPA_RETENTION_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (ctx.after == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nconst key = 'SG:PDPA_RETENTION_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nconst year = Number(row.effective_range.to.slice(0, 4)) + ctx.lookup.retention_years;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: String(year) + '-12-31',\n\toccurrence_key: 'SG:PDPA_RETENTION_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to\n}];",

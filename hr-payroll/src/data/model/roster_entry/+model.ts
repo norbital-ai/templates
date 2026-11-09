@@ -1,13 +1,15 @@
-import { Effect } from 'effect';
 import { model } from '@norbital-ai/bolt';
-import { jsonObject, type Json } from '../../../lib/payroll_engine/foundation.js';
+import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { rosterFindings } from '../../../lib/payroll_engine/roster_warnings.js';
+import { assertUnpriced } from '../../../lib/payroll_engine/pay_cycle.js';
+
+const ARREARS = 'Pay what it missed with an arrears adhoc entry in the next run.';
 
 export default model('roster_entry', {
 	description:
-		'One roster day: its planned overtime and actual worked intervals. The employment and payroll run lock are on the entry.',
+		'One roster day: its planned overtime, whether that overtime is taken as time off, and actual worked intervals. The employment and payroll run lock are on the entry.',
 	label: 'work_date',
 	fields: {
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'roster_entry' },
@@ -38,6 +40,11 @@ export default model('roster_entry', {
 					}
 				}
 			}
+		},
+		overtime_as_time_off: {
+			kind: 'bool',
+			default: false,
+			help: "The worker takes this day's planned overtime as time off: the run pays no overtime for it and owes its hours on the leave row that takes overtime as time off."
 		},
 		findings: { kind: 'json', default: [] },
 		// Labour Code art.137(1): pregnancy has no consent exception; an infant under 12 months needs the day's consent.
@@ -98,6 +105,7 @@ export default model('roster_entry', {
 				'work_date',
 				'shift_definition_id',
 				'planned_overtime_intervals',
+				'overtime_as_time_off',
 				'actual_worked_intervals',
 				'findings',
 				'consent'
@@ -110,27 +118,16 @@ export default model('roster_entry', {
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
-			const groups = new Map<string, number[]>();
-			rows.forEach((row, index) => {
-				const employment = String(row.employment_id);
-				const group = groups.get(employment) ?? [];
-				group.push(index);
-				groups.set(employment, group);
-			});
-			const findings = new Map<number, Json>();
-			yield* Effect.forEach([...groups], ([employment, indexes]) =>
-				Effect.map(
-					rosterFindings(
-						ctx.db.query,
-						employment,
-						indexes.map((index) => jsonObject(rows[index]!))
-					),
-					(warned) => {
-						warned.forEach((row, at) => findings.set(indexes[at]!, row.findings ?? []));
-					}
-				)
+			yield* assertUnpriced(
+				ctx.db.query,
+				rows.map((row) => ({ employment: row.employment_id, date: row.work_date })),
+				ARREARS
 			);
-			return rows.map((row, index) => ({ ...row, findings: findings.get(index) ?? [] }));
+			const findings = yield* rosterFindings(
+				ctx.db.query,
+				rows.map((row) => jsonObject(row))
+			);
+			return rows.map((row, index) => ({ ...row, findings: findings[index] ?? [] }));
 		}
 	},
 	update: {
@@ -140,6 +137,7 @@ export default model('roster_entry', {
 				'work_date',
 				'shift_definition_id',
 				'planned_overtime_intervals',
+				'overtime_as_time_off',
 				'actual_worked_intervals',
 				'findings',
 				'consent'
@@ -161,31 +159,21 @@ export default model('roster_entry', {
 			);
 			if (changes.some((change) => change.before.payroll_run_id != null))
 				return yield* ctx.refuse('This roster entry is locked by a payroll run.');
-			const groups = new Map<string, number[]>();
-			changes.forEach((change, index) => {
-				const employment = String(change.before.employment_id);
-				const group = groups.get(employment) ?? [];
-				group.push(index);
-				groups.set(employment, group);
-			});
-			const findings = new Map<number, Json>();
-			yield* Effect.forEach([...groups], ([employment, indexes]) =>
-				Effect.map(
-					rosterFindings(
-						ctx.db.query,
-						employment,
-						indexes.map((index) =>
-							jsonObject({ ...changes[index]!.before, ...changes[index]!.set })
-						)
-					),
-					(warned) => {
-						warned.forEach((row, at) => findings.set(indexes[at]!, row.findings ?? []));
-					}
-				)
+			yield* assertUnpriced(
+				ctx.db.query,
+				changes.map(({ before, set }) => ({
+					employment: before.employment_id,
+					date: set.work_date ?? before.work_date
+				})),
+				ARREARS
+			);
+			const findings = yield* rosterFindings(
+				ctx.db.query,
+				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
 			);
 			return changes.map((change, index) => ({
 				...change.set,
-				findings: findings.get(index) ?? []
+				findings: findings[index] ?? []
 			}));
 		}
 	},

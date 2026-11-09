@@ -28,7 +28,7 @@ const seedOf = (dateOfBirth = '1990-01-01') => ({
 	...base,
 	employee_contract: (base.employee_contract ?? []).map((row) => ({
 		...row,
-		effective_range: { from: '2023-06-30', to: '2026-06-30' },
+		effective_range: { from: '2023-06-30', to: null },
 		service_started_on: '2023-06-30',
 		payroll: { date_of_birth: dateOfBirth, gender: 'MALE', marital_status: 'SINGLE' }
 	}))
@@ -54,10 +54,17 @@ const keys = (t: Kit, prefix: string) =>
 				obligation.rows.filter((row) => String(row.occurrence_key).startsWith(prefix))
 			)
 		);
+/** End the contract on 30 June 2026 with its ground: the write raises the exit its duties listen to. */
 const setGround = (t: Kit, ground: ExitGround) =>
-	t
-		.as(t.admin)
-		.act('employee_contract.update', [{ target: CONTRACT, set: { exit_ground: ground } }]);
+	t.as(t.admin).act('employee_contract.update', [
+		{
+			target: CONTRACT,
+			set: {
+				exit_ground: ground,
+				effective_range: { from: PlainDate('2023-06-30'), to: PlainDate('2026-06-30') }
+			}
+		}
+	]);
 
 const settings = JSON.parse(
 	readFileSync(

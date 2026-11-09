@@ -1,4 +1,4 @@
-import { addDays, addMonths, PlainDate } from '@norbital-ai/std/date';
+import { addDays, PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { CarriedWrites, EffectCtx, Id } from '@norbital-ai/bolt';
 import {
@@ -29,7 +29,9 @@ import {
 	openedBy,
 	opensOn,
 	periodKey,
+	periodOn,
 	totalsScope,
+	unlimited,
 	windowOf,
 	windowOn,
 	windowStart,
@@ -41,7 +43,15 @@ import {
 	type Unit,
 	type Wanted
 } from './core.js';
-import { validateRegistered, type Operation } from '../payroll_engine/registrations.js';
+import {
+	lawOn,
+	startOf,
+	validateRegistered,
+	type Operation
+} from '../payroll_engine/registrations.js';
+import { chainOf, startsOf, versionOn, type Starts } from '../payroll_engine/contract_change.js';
+import { sharesPay } from '../payroll_engine/engine.js';
+import { payPeriodOf } from '../payroll_engine/pay_cycle.js';
 import {
 	carriedOf,
 	entitlementOf,
@@ -95,6 +105,27 @@ const movementOf = (row: JsonObject): Omit<Movement, 'source'> => ({
 	effective_on: String(row.effective_on)
 });
 const planKey = (balance: string, source: string) => `${balance}\u0000${source}`;
+/**
+ * What no source sync settles stands beside it: HR's manual adjustments, and the overtime a run owes as time off. A sync
+ * or a seal reads them beside the balance.
+ */
+const MANUAL = {
+	or: [
+		{ source: { like: 'manual:%' } },
+		{ account: { eq: 'leave' }, source: { like: 'payroll_run:%' } }
+	]
+} as const;
+/** What each balance's manual adjustments and owed time off hold, by balance id. */
+const manualOf = (rows: readonly JsonObject[]): ReadonlyMap<string, Accounts> =>
+	new Map(
+		[...Map.groupBy(rows, (row) => String(row.balance_id))].map(([balance, held]) => [
+			balance,
+			apply(
+				{},
+				held.map((row) => ({ ...movementOf(row), source: String(row.source) }))
+			)
+		])
+	);
 
 /**
  * The ledger rows and balance moves that take each source from what it `posted` to what it should have, as a write
@@ -221,6 +252,145 @@ export const undone = Effect.fn('ledger.undone')(function* (
 	return inverted(posted, balances);
 });
 
+/** What HR adjusts by hand: a leave row's entitled days, in half days, or hours on a row that counts in hours, or a claim row's limit. */
+const ADJUSTABLE = {
+	leave: { measure: 'entitled', units: ['DAY', 'HOUR'] },
+	claim: { measure: 'limit', units: ['MONEY'] }
+} as const;
+const ADJUSTMENT_SHAPE =
+	"A manual adjustment adds to or takes from a leave row's entitled days (in half days, or hours where the row counts in hours) or a claim row's limit, on a date, with a note naming its cause. Its period and source are worked out, never typed.";
+/**
+ * HR's manual adjustment of a balance, written on the employee profile: each row moves one leave or claim row of the
+ * law in force for the person on its date, in that row's window holding the date. Its `period` and `source`
+ * (`manual:<row id>`) are worked out here; the balance move rides in the same write.
+ */
+export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function* (
+	read: Reader,
+	rows: readonly JsonObject[]
+) {
+	const refuse = (message: string) => Effect.fail(new Refusal({ message }));
+	for (const row of rows) {
+		const shape =
+			row.account === 'leave' || row.account === 'claim' ? ADJUSTABLE[row.account] : undefined;
+		const amount = Number(row.amount);
+		if (
+			shape === undefined ||
+			row.measure !== shape.measure ||
+			!shape.units.some((unit) => unit === row.unit) ||
+			(row.operation !== 'ADD' && row.operation !== 'DEDUCT') ||
+			!(amount > 0) ||
+			(row.unit === 'DAY' && !Number.isInteger(amount * 2)) ||
+			row.period != null ||
+			row.source != null ||
+			typeof row.note !== 'string' ||
+			row.note.trim() === ''
+		)
+			return yield* refuse(ADJUSTMENT_SHAPE);
+	}
+	const { employee_balance: balances = [] } = yield* queryRows(read, {
+		employee_balance: {
+			where: { id: { in: uniqueIds(rows, 'balance_id') } },
+			fields: ['employee_id', 'account', 'revision'],
+			limit: 10000
+		}
+	});
+	const codes = [...new Set(rows.map((row) => String(row.code)))];
+	const catalog = {
+		where: { code: { in: codes }, settings_id: { is: { status: { eq: 'SEALED' } } } },
+		fields: ['settings_id', 'code', 'lookup'],
+		limit: 10000
+	};
+	const found = yield* queryRows(read, {
+		employee_contract: {
+			where: { employee_id: { in: uniqueIds(balances, 'employee_id') }, status: { eq: 'SEALED' } },
+			fields: [
+				'employee_id',
+				'entity_id',
+				'status',
+				'effective_range',
+				'service_started_on',
+				'events',
+				'family'
+			],
+			limit: 10000
+		},
+		'employee_contract.entity_id': { fields: ['settings_code'] },
+		'employee_contract.employee_id': { fields: ['cumulative_service'] },
+		jurisdiction_settings: {
+			where: { status: { eq: 'SEALED' } },
+			fields: ['code', 'effective_range'],
+			limit: 10000
+		},
+		leave_catalog: catalog,
+		claim_catalog: catalog
+	});
+	const { chain, lineage, cumulative } = chainOf(found.employee_contract ?? []);
+	const balance = new Map(balances.map((row) => [String(row.id), row]));
+	const keys: { readonly period: PeriodKey; readonly source: string }[] = [];
+	const moves = new Map<string, Movement[]>();
+	for (const row of rows) {
+		const date = String(row.effective_on);
+		const held = balance.get(String(row.balance_id));
+		const contract = chain.find((version) => {
+			const { from, to } = objectValue(version.effective_range);
+			return (
+				version.employee_id === held?.employee_id &&
+				String(from) <= date &&
+				(typeof to !== 'string' || date <= to)
+			);
+		});
+		if (held === undefined || contract === undefined)
+			return yield* refuse(`No sealed contract of this person covers ${date}.`);
+		const version = versionOn(
+			found.jurisdiction_settings ?? [],
+			lineage.get(String(contract.entity_id)),
+			date
+		);
+		const target = (found[row.account === 'claim' ? 'claim_catalog' : 'leave_catalog'] ?? []).find(
+			(item) => item.code === row.code && item.settings_id === version?.id
+		);
+		if (version === undefined || target === undefined)
+			return yield* refuse(
+				`${String(row.code)} is not a ${String(row.account)} row of the law in force on ${date}.`
+			);
+		// a leave row counts in days, or in hours where it says so
+		if (
+			row.account === 'leave' &&
+			row.unit !== (objectValue(target.lookup).unit === 'HOUR' ? 'HOUR' : 'DAY')
+		)
+			return yield* refuse(ADJUSTMENT_SHAPE);
+		const period = periodOn(
+			objectValue(target.lookup),
+			{
+				scope: String(version.code),
+				started: startsOf(contract, chain, lineage, cumulative.has(String(contract.employee_id)))
+					.service_started_on,
+				events: eventsOf(contract)
+			},
+			date
+		);
+		const source = `manual:${String(row.id)}`;
+		keys.push({ period, source });
+		moves.set(String(held.id), [
+			...(moves.get(String(held.id)) ?? []),
+			{ ...movementOf({ ...row, period }), source }
+		]);
+	}
+	const onApproved = {
+		employee_balance: {
+			update: [...moves].map(([id, movements]): BalanceMove => {
+				const held = balance.get(id);
+				return {
+					target: idOf('employee_balance', id),
+					set: { account: apply(accountsOf(held?.account), movements) },
+					observed: Number(held?.revision)
+				};
+			})
+		}
+	} satisfies CarriedWrites;
+	return { keys, onApproved };
+});
+
 const uniqueIds = (rows: readonly JsonObject[], field: string) => [
 	...new Set(rows.flatMap((row) => (typeof row[field] === 'string' ? [row[field]] : [])))
 ];
@@ -232,18 +402,23 @@ export type Subject = {
 };
 const signOf = (entry: JsonObject) => (entry.reverses != null ? -1 : 1);
 
-/** What a leave entry should have posted: half a day at a time, in the window each day falls in. */
+/**
+ * What a leave entry should have posted: half a day at a time, in the window each day falls in. A row that counts in
+ * hours (`unit: 'HOUR'`) takes half the contract's normal day (`dayHours`) for each half day.
+ */
 export const leaveWanted = (
 	entry: JsonObject,
 	row: LeaveRow,
 	rowOf: (code: string) => LeaveRow | undefined,
 	subject: Subject,
+	dayHours: number,
 	original?: JsonObject
 ): readonly Wanted[] => {
 	const accounts = Array.isArray(row.lookup.accounts) ? row.lookup.accounts : [];
 	const target = accounts.find(isJsonObject);
 	const code = typeof target?.code === 'string' ? target.code : row.code;
 	const counted = rowOf(code) ?? row;
+	const hours = counted.lookup.unit === 'HOUR';
 	const days = Array.isArray(entry.days) ? entry.days.filter(isJsonObject) : [];
 	return days.map((day) => {
 		const date = String(day.date);
@@ -257,8 +432,8 @@ export const leaveWanted = (
 				subject.started
 			),
 			measure: 'used',
-			amount: signOf(entry) * 0.5,
-			unit: 'DAY',
+			amount: signOf(entry) * (hours ? dayHours / 2 : 0.5),
+			unit: hours ? 'HOUR' : 'DAY',
 			effective_on: date
 		};
 	});
@@ -356,6 +531,16 @@ export const payslipWanted = (
 	const rows = (key: string) =>
 		(Array.isArray(breakdown[key]) ? breakdown[key] : []).filter(isJsonObject);
 	return [
+		// overtime taken as time off is owed by the hour, in the window of the day it was worked
+		...rows('time_off').map((row): Wanted => ({
+			account: 'leave',
+			code: String(row.code),
+			period: periodOf(row.period),
+			measure: 'entitled',
+			amount: Number(row.hours),
+			unit: 'HOUR',
+			effective_on: String(row.on)
+		})),
 		...rows('checkpoints').flatMap((row) =>
 			Number(row.value) > 0 ? held('pay', String(row.code), 'total', Number(row.value)) : []
 		),
@@ -372,33 +557,47 @@ export const payslipWanted = (
 
 /** What a person's facts open of a row: each event's period and the days it gives. */
 const grantsOf = (lookup: JsonObject, subject: Subject, person: LeavePerson) => {
-	const opens = openedBy(lookup);
 	const grants = new Map<PeriodKey, { from: string; days: number }>();
 	for (const event of subject.events) {
-		if (!Object.hasOwn(opens, event.kind)) continue;
+		if (!Object.hasOwn(openedBy(lookup), event.kind)) continue;
 		const days =
 			typeof lookup.entitlement === 'string'
 				? (expressed(lookup, person, event.on, event) ?? 0)
-				: Number(objectValue(opens[event.kind]).days ?? lookup.grant_days ?? 0);
+				: Number(objectValue(openedBy(lookup)[event.kind]).days ?? lookup.grant_days ?? 0);
 		const from = opensOn(event);
 		const period = periodKey(subject.scope, { kind: 'EVENT', on: from }, from, subject.started);
 		grants.set(period, { from, days: (grants.get(period)?.days ?? 0) + days });
 	}
 	return grants;
 };
+/** A window sync has opened: it posted what the window grants or carries, beside HR's manual days in it. */
+const opened = (measures: Readonly<Record<string, number>> | undefined, manualDays: number) =>
+	measures?.carried !== undefined || (measures?.entitled ?? manualDays) !== manualDays;
 const eventPeriods = (periods: Accounts[string][string] | undefined, scope: string): PeriodKey[] =>
 	Object.keys(periods ?? {})
 		.filter(isPeriodKey)
 		.filter((period) => period.startsWith(`${scope}.E.`));
 
-/** One person's entitlements on a day, as plans: new law, a new fact and a new window all come to the same call. */
+/** A row's rule and the person on the last day of a window that closed; `undefined` leaves the window as it stood. */
+export type ClosingRule = (
+	row: LeaveRow,
+	day: string
+) => { readonly lookup: JsonObject; readonly person: LeavePerson } | undefined;
+
+/**
+ * One person's entitlements on a day, as plans: new law, a new fact and a new window all come to the same call. A window
+ * that closed settles once more as the next opens, under `closing`: by default the rows and person given. `manual` is
+ * what HR's manual adjustments hold (`manualOf`): no plan posts or undoes them, and the carry counts them.
+ */
 export const entitlementPlans = (
 	rows: readonly (LeaveRow & { readonly account: string })[],
 	person: LeavePerson,
 	subject: Subject,
 	balance_id: string,
 	accounts: Accounts,
-	on: string
+	on: string,
+	closing: ClosingRule = ({ lookup }) => ({ lookup, person }),
+	manual: Accounts = {}
 ): readonly Plan[] =>
 	rows.flatMap(({ account, code, lookup }) => {
 		const plan = (period: PeriodKey, measures: Readonly<Record<string, number>>, from: string) => ({
@@ -438,8 +637,8 @@ export const entitlementPlans = (
 							windowStart(windowOf(lookup), on, subject.started)
 						)
 					];
-		const days = entitlementOf(lookup, person, on);
-		if (days === null) return [];
+		const granted = entitlementOf(lookup, person, on);
+		if (granted === null) return [];
 		const window = windowOf(lookup);
 		const from = windowStart(window, on, subject.started);
 		const period = periodKey(subject.scope, window, on, subject.started);
@@ -450,19 +649,34 @@ export const entitlementPlans = (
 				: periodKey(subject.scope, window, before, subject.started);
 		const held =
 			last === undefined || last === period ? undefined : accounts[account]?.[code]?.[last];
-		const carried = carriedOf(lookup, person, leftIn(held), held?.entitled ?? 0);
-		return [plan(period, { entitled: days, carried }, from)];
+		const manualIn = (key: string) => manual[account]?.[code]?.[key]?.entitled ?? 0;
+		// the window that closed settles once, as the next opens: its rule as of its last day, its carry as it stood
+		const ended =
+			last !== undefined &&
+			opened(held, manualIn(last)) &&
+			!opened(accounts[account]?.[code]?.[period], manualIn(period))
+				? last
+				: undefined;
+		const then = ended === undefined ? undefined : closing({ code, lookup }, before);
+		const closed = then === undefined ? null : entitlementOf(then.lookup, then.person, before);
+		const settled =
+			ended === undefined || closed === null
+				? undefined
+				: {
+						period: ended,
+						measures: { entitled: closed, carried: held?.carried ?? 0 }
+					};
+		// the settled figure replaces only what sync posted: HR's manual days in the window stand beside it
+		const left =
+			settled === undefined
+				? held
+				: { ...held, entitled: settled.measures.entitled + manualIn(settled.period) };
+		const carried = carriedOf(lookup, person, leftIn(left), left?.entitled ?? 0);
+		return [
+			plan(period, { entitled: granted, carried }, from),
+			...(settled === undefined ? [] : [plan(settled.period, settled.measures, before)])
+		];
 	});
-
-/** The ledger read a rule needs: what a person has left of a row on a day. A row with no entitlement has no limit. */
-export const unlimited = (lookup: JsonObject) =>
-	lookup.no_cap === true ||
-	(lookup.service_bands == null &&
-		lookup.part_time_service_bands == null &&
-		lookup.grant_days == null &&
-		lookup.annual_limit == null &&
-		lookup.opened_by == null &&
-		lookup.entitlement == null);
 
 type Family = 'leave' | 'claim';
 const CATALOG = { leave: 'leave_catalog', claim: 'claim_catalog' } as const;
@@ -470,9 +684,13 @@ const rowOfCatalog = (row: JsonObject): LeaveRow => ({
 	code: String(row.code),
 	lookup: objectValue(row.lookup)
 });
-/** The facts a leave row can read about a person, from their contract and their employer's sealed profile. */
+/**
+ * The facts a leave row can read about a person, from their contract and their employer's sealed profile. Its rule reads
+ * the starts worked out from the stints as the contract's `service_started_on` and `employment_started_on`.
+ */
 const personOf = (
 	contract: JsonObject,
+	starts: Starts,
 	employer?: JsonObject,
 	workEvents: readonly JsonObject[] = []
 ): LeavePerson => {
@@ -483,7 +701,7 @@ const personOf = (
 	);
 	const employerExtension = objectValue(employer?.entity_extension_data ?? {});
 	return {
-		started: startedOn(contract),
+		started: starts.service_started_on,
 		partTime: contract.engagement === 'PART_TIME',
 		gender: typeof payroll.gender === 'string' ? payroll.gender : null,
 		maritalStatus: typeof payroll.marital_status === 'string' ? payroll.marital_status : null,
@@ -491,14 +709,10 @@ const personOf = (
 		facts,
 		stateOwned: employerExtension.state_owned === true,
 		workEvents,
-		employment: contract,
+		employment: { ...contract, ...starts },
 		...(employer === undefined ? {} : { employer })
 	};
 };
-
-/** When the person's service began, which anchors their service windows. */
-export const startedOn = (contract: JsonObject) =>
-	String(contract.service_started_on ?? objectValue(contract.effective_range).from);
 
 type Entries = 'leave_catalog_entry' | 'claim_catalog_entry' | 'adhoc_catalog_entry';
 const CATALOG_OF = {
@@ -516,6 +730,10 @@ const sameEmployee = (ids: readonly string[]) => ({
  */
 export type Known = {
 	readonly contract: ReadonlyMap<string, JsonObject>;
+	/** The lineage (`settings_code`) of each entity the people's contracts name, for their service start. */
+	readonly lineage: ReadonlyMap<string, string>;
+	/** The people whose service counts every stint (`cumulative_service`). */
+	readonly cumulative: ReadonlySet<string>;
 	readonly catalog: ReadonlyMap<string, JsonObject>;
 	readonly setting: ReadonlyMap<string, JsonObject>;
 	readonly rows: ReadonlyMap<string, readonly JsonObject[]>;
@@ -542,23 +760,26 @@ const known = Effect.fn('ledger.known')(function* (
 			where: people,
 			fields: [
 				'employee_id',
+				'entity_id',
+				'status',
 				'effective_range',
 				'service_started_on',
-				'input_schema_version_id',
 				'terms',
 				'events',
-				'children',
+				'family',
 				'employee_extension_data'
 			],
 			limit: 10000
 		},
+		'employee_contract.entity_id': { fields: ['settings_code'] },
+		'employee_contract.employee_id': { fields: ['cumulative_service'] },
 		[catalog]: {
 			where: { settings_id: { is: entered } },
 			fields: [
 				'code',
 				'lookup',
 				'settings_id',
-				...(model === LEAVE ? (['pay_treatment'] as const) : [])
+				...(model === LEAVE ? (['paid_share'] as const) : [])
 			],
 			limit: 10000
 		},
@@ -611,8 +832,11 @@ const known = Effect.fn('ledger.known')(function* (
 					}
 				})).leave_catalog_entry_day ?? [])
 			: [];
+	const { chain, lineage, cumulative } = chainOf(found.employee_contract ?? []);
 	return {
-		contract: new Map((found.employee_contract ?? []).map((row) => [String(row.id), row])),
+		contract: new Map(chain.map((row) => [String(row.id), row])),
+		lineage,
+		cumulative,
 		catalog: new Map(familyRows.map((row) => [String(row.id), row])),
 		setting: new Map((found.jurisdiction_settings ?? []).map((row) => [String(row.id), row])),
 		rows: Map.groupBy(familyRows, (row) => String(row.settings_id)),
@@ -677,7 +901,12 @@ const entryPlans = (
 		const settings = known.setting.get(String(catalog.settings_id));
 		const subject = {
 			scope: String(settings?.code),
-			started: startedOn(contract),
+			started: startsOf(
+				contract,
+				[...known.contract.values()],
+				known.lineage,
+				known.cumulative.has(String(contract.employee_id))
+			).service_started_on,
 			events: eventsOf(contract),
 			taxYearStart: Number(settings?.tax_year_start_month ?? 1)
 		};
@@ -725,7 +954,14 @@ const entryPlans = (
 		};
 		const wanted =
 			family === 'leave'
-				? leaveWanted(withSlots(entry), row, rowOf, subject, first)
+				? leaveWanted(
+						withSlots(entry),
+						row,
+						rowOf,
+						subject,
+						Number(objectValue(contract.terms).normal_hours_per_day ?? 0),
+						first
+					)
 				: family === 'claim'
 					? claimWanted(entry, row, subject, first, left)
 					: adhocWanted(
@@ -795,6 +1031,7 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 		jurisdiction_settings: settings = [],
 		subtotal: subtotals = [],
 		statutory_contribution_catalog: statutory = [],
+		leave_catalog: leaves = [],
 		employee_contract: contracts = [],
 		employee_balance: balances = [],
 		ledger_entry: posted = []
@@ -814,9 +1051,14 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 			fields: ['settings_id', 'code', 'balance_window'],
 			limit: 10000
 		},
+		leave_catalog: {
+			where: { settings_id: { in: uniqueIds(slips, 'settings_id') } },
+			fields: ['settings_id', 'code'],
+			limit: 10000
+		},
 		employee_contract: {
 			where: { id: { in: uniqueIds(slips, 'employment_id') } },
-			fields: ['effective_range', 'service_started_on'],
+			fields: ['effective_range'],
 			limit: 10000
 		},
 		employee_balance: {
@@ -861,12 +1103,18 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 		const id = String(row.settings_id);
 		known.set(id, (known.get(id) ?? new Set()).add(String(row.code)));
 	}
+	const leaveCodes = new Set(leaves.map((row) => `${String(row.settings_id)}/${String(row.code)}`));
 	for (const slip of slips) {
 		const codes = known.get(String(slip.settings_id)) ?? new Set<string>();
-		for (const key of ['checkpoints', 'statutory']) {
+		for (const key of ['checkpoints', 'statutory', 'time_off']) {
 			const rows = objectValue(slip.breakdown)[key];
 			for (const row of Array.isArray(rows) ? rows : [])
-				if (isJsonObject(row) && !codes.has(String(row.code)))
+				if (
+					isJsonObject(row) &&
+					!(key === 'time_off'
+						? leaveCodes.has(`${String(slip.settings_id)}/${String(row.code)}`)
+						: codes.has(String(row.code)))
+				)
 					return yield* Effect.fail(
 						new Refusal({ message: `${String(row.code)}: not a code of this sealed version.` })
 					);
@@ -885,7 +1133,8 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 				balance_id,
 				wanted: payslipWanted(objectValue(slip.breakdown), String(payDate.get(run)), {
 					scope: totalsScope(own, slip.entity_id),
-					started: startedOn(employment),
+					// a payslip posts to calendar windows, which no service start moves
+					started: String(payDate.get(run)),
 					events: [],
 					taxYearStart: Number(own.tax_year_start_month ?? 1),
 					byMonth
@@ -996,28 +1245,8 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	}
 });
 
-/** The payroll period a day falls in, by the entity's own schedule: monthly, semi-monthly or ten-day. */
-const payPeriodOf = (date: string, schedule: JsonObject): string => {
-	const month = date.slice(0, 7);
-	const dayOf = Number(date.slice(8, 10));
-	const frequency = String(schedule.frequency ?? 'MONTHLY');
-	const cutoff = Number(schedule.pay_cutoff_day ?? 1);
-	const shifted = (value: string, by: number) => addMonths(`${value}-01`, by).slice(0, 7);
-	if (frequency === 'TEN_DAY')
-		return cutoff <= 1
-			? `${month}-${Math.ceil(dayOf / 10)}`
-			: dayOf < cutoff
-				? `${month}-1`
-				: `${shifted(month, 1)}-1`;
-	if (frequency !== 'SEMI_MONTHLY')
-		return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;
-	const part = dayOf <= 15 ? 1 : 2;
-	if (cutoff <= 1) return `${month}-${part}`;
-	return part === 1 ? `${month}-2` : `${shifted(month, 1)}-1`;
-};
-
 /**
- * A no-pay entry is dated in the period that will pay it. A period already run is closed: the correction is a
+ * An entry on a row whose `paid_share` is set is dated in the period that will pay it. A period already run is closed: the correction is a
  * reversal entry dated in the next period to run. This is the template's paid-run lock, never jurisdiction law.
  */
 export const assertOpenPeriod = Effect.fn('ledger.assertOpenPeriod')(function* (
@@ -1027,7 +1256,7 @@ export const assertOpenPeriod = Effect.fn('ledger.assertOpenPeriod')(function* (
 	for (const entry of entries) {
 		if (entry.reverses != null) continue;
 		const catalog = known.catalog.get(String(entry.catalog_id));
-		if (catalog?.pay_treatment !== 'UNPAID') continue;
+		if (catalog === undefined || !sharesPay(catalog)) continue;
 		const entity = String(entry.entity_id);
 		const ran = new Set(
 			known.runs
@@ -1149,26 +1378,44 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 ) {
 	const sealing = contracts.filter((row) => row.status === 'SEALED');
 	if (sealing.length === 0) return;
-	const settingsIds = uniqueIds(sealing, 'input_schema_version_id');
+	// each contract answers to the law in force on its first day
+	const law = yield* lawOn(
+		read,
+		sealing.map((row) => ({ entity: row.entity_id, on: startOf(row) }))
+	);
+	const settingsIds = [
+		...new Set(law.flatMap((version) => (version === undefined ? [] : [String(version.id)])))
+	];
 	const {
 		leave_catalog: rows = [],
-		jurisdiction_settings: settings = [],
 		employee_balance: balances = [],
-		entity_profile_version: employerRows = []
+		ledger_entry: manualRows = [],
+		entity_profile_version: employerRows = [],
+		employee_contract: stored = []
 	} = yield* queryRows(read, {
 		leave_catalog: {
 			where: { settings_id: { in: settingsIds } },
 			fields: ['settings_id', 'code', 'lookup'],
 			limit: 10000
 		},
-		jurisdiction_settings: {
-			where: { id: { in: settingsIds } },
-			fields: ['code'],
-			limit: 100
+		employee_contract: {
+			where: { employee_id: { in: uniqueIds(sealing, 'employee_id') }, status: { eq: 'SEALED' } },
+			fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
+			limit: 10000
 		},
+		'employee_contract.entity_id': { fields: ['settings_code'] },
+		'employee_contract.employee_id': { fields: ['cumulative_service'] },
 		employee_balance: {
 			where: { employee_id: { in: uniqueIds(sealing, 'employee_id') } },
 			fields: ['employee_id', 'account'],
+			limit: 10000
+		},
+		ledger_entry: {
+			where: {
+				...MANUAL,
+				balance_id: { is: { employee_id: { in: uniqueIds(sealing, 'employee_id') } } }
+			},
+			fields: FIELDS,
 			limit: 10000
 		},
 		entity_profile_version: {
@@ -1177,29 +1424,46 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 			limit: 10000
 		}
 	});
-	const scope = new Map(settings.map((row) => [String(row.id), String(row.code)]));
+	const manual = manualOf(manualRows);
 	const employers = new Map(employerRows.map((row) => [String(row.entity_id), row]));
 	const rowsOf = Map.groupBy(rows, (row) => String(row.settings_id));
 	const balance = new Map(balances.map((row) => [String(row.employee_id), row]));
-	for (const contract of sealing) {
-		const settingsId = String(contract.input_schema_version_id);
+	const held = chainOf(stored);
+	const lineage = new Map([
+		...held.lineage,
+		...sealing.flatMap((row, index) => {
+			const code = law[index]?.code;
+			return typeof code === 'string' ? [[String(row.entity_id), code] as const] : [];
+		})
+	]);
+	for (const [index, contract] of sealing.entries()) {
+		const settingsId = String(law[index]?.id);
+		const starts = startsOf(
+			contract,
+			held.chain,
+			lineage,
+			held.cumulative.has(String(contract.employee_id))
+		);
 		const subject = {
-			scope: String(scope.get(settingsId)),
-			started: startedOn(contract),
+			scope: String(law[index]?.code),
+			started: starts.service_started_on,
 			events: eventsOf(contract)
 		};
-		const leave = accountsOf(balance.get(String(contract.employee_id))?.account).leave ?? {};
+		const own = balance.get(String(contract.employee_id));
+		const leave = accountsOf(own?.account).leave ?? {};
+		const added = manual.get(String(own?.id))?.leave ?? {};
 		for (const row of rowsOf.get(settingsId) ?? []) {
 			const { code, lookup } = rowOfCatalog(row);
 			const grants = grantsOf(
 				lookup,
 				subject,
-				personOf(contract, employers.get(String(contract.entity_id)))
+				personOf(contract, starts, employers.get(String(contract.entity_id)))
 			);
 			for (const period of eventPeriods(leave[code], subject.scope)) {
 				const used = leave[code]?.[period]?.used ?? 0;
 				const grant = grants.get(period);
-				if (used > 0 && (grant === undefined || (lookup.no_cap !== true && used > grant.days)))
+				const behind = (grant?.days ?? 0) + (added[code]?.[period]?.entitled ?? 0);
+				if (used > 0 && (grant === undefined || (!unlimited(lookup) && used > behind)))
 					return yield* Effect.fail(
 						new Refusal({
 							message: `${code}: days taken stand on a fact this version removes or moves. Where only its date moved, give the old date as Leave from.`
@@ -1239,6 +1503,7 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			where: { status: { eq: 'SEALED' } },
 			fields: [
 				'employee_id',
+				'status',
 				'effective_range',
 				'service_started_on',
 				'entity_id',
@@ -1246,10 +1511,16 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 				'payroll',
 				'terms',
 				'events',
-				'children',
-				'employee_extension_data',
-				'input_schema_version_id'
+				'family',
+				'employee_extension_data'
 			],
+			limit: 1000
+		},
+		entity: { fields: ['id', 'settings_code'], limit: 1000 },
+		// the people whose service counts every stint
+		employee_profile: {
+			where: { cumulative_service: { eq: true } },
+			fields: ['id'],
 			limit: 1000
 		},
 		entity_profile_version: {
@@ -1271,21 +1542,33 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			...(employees === undefined ? {} : { where: { employee_id: { in: [...employees] } } }),
 			fields: ['employee_id', 'account'],
 			limit: 1000
-		}
+		},
+		ledger_entry: { where: MANUAL, fields: FIELDS, limit: 1000 }
 	});
-	const covers = (range: unknown) => {
+	const manual = manualOf(read.ledger_entry ?? []);
+	const covers = (range: unknown, on = day) => {
 		const { from, to } = objectValue(range);
-		return String(from) <= day && (typeof to !== 'string' || day <= to);
+		return String(from) <= on && (typeof to !== 'string' || on <= to);
 	};
 	const versions = read.jurisdiction_settings ?? [];
-	const inForce = new Map(
-		versions.map((row) => [
-			String(row.id),
-			versions.find((other) => other.code === row.code && covers(other.effective_range))
-		])
+	// a contract's law is its entity's lineage in force on the day
+	const lineage = new Map(
+		(read.entity ?? []).map((row) => [String(row.id), String(row.settings_code)])
 	);
+	const lawIn = (entity: unknown, on: string) =>
+		versionOn(versions, lineage.get(String(entity)), on);
+	// the law in force, and the version before it, which a window that just closed ends under
+	// ponytail: a window that closed under an older version stays as last synced; read further back if syncs lag that far
 	const ids = [
-		...new Set([...inForce.values()].flatMap((row) => (row === undefined ? [] : [String(row.id)])))
+		...new Set(
+			[...new Set(lineage.values())].flatMap((code) => {
+				const row = versionOn(versions, code, day);
+				if (row === undefined) return [];
+				const from = String(objectValue(row.effective_range).from);
+				const before = versionOn(versions, code, String(addDays(from, -1)));
+				return [String(row.id), ...(before === undefined ? [] : [String(before.id)])];
+			})
+		)
 	];
 	const { leave_catalog: leave = [], claim_catalog: claims = [] } = yield* queryAllRows(ctx.query, {
 		leave_catalog: {
@@ -1320,11 +1603,6 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			)
 			.map((row) => [String(row.employee_id), row])
 	);
-	const employers = new Map(
-		(read.entity_profile_version ?? [])
-			.filter((row) => covers(row.effective_range))
-			.map((row) => [String(row.entity_id), row])
-	);
 	const workCatalog = new Map((read.work_event_catalog ?? []).map((row) => [String(row.id), row]));
 	const workEvents = (read.work_event ?? []).flatMap((row) => {
 		const catalog = workCatalog.get(String(row.catalog_id));
@@ -1346,26 +1624,45 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 				event.entity_id === String(contract.entity_id) &&
 				(event.employment_id == null || event.employment_id === String(contract.id))
 		);
+	const chains = Map.groupBy(read.employee_contract ?? [], (row) => String(row.employee_id));
+	const cumulative = new Set((read.employee_profile ?? []).map((row) => String(row.id)));
+	const employerOn = (entity: unknown, on: string) =>
+		(read.entity_profile_version ?? []).find(
+			(row) => row.entity_id === entity && covers(row.effective_range, on)
+		);
 	const plans: Plan[] = [];
 	let boundary: string | undefined;
 	for (const balance of read.employee_balance ?? []) {
 		const contract = current.get(String(balance.employee_id));
 		if (contract === undefined) continue;
-		const version = inForce.get(String(contract.input_schema_version_id));
+		const version = lawIn(contract.entity_id, day);
 		const rows = rowsOf.get(String(version?.id)) ?? [];
+		const chain = chains.get(String(contract.employee_id)) ?? [];
+		const starts = startsOf(contract, chain, lineage, cumulative.has(String(contract.employee_id)));
 		const subject = {
 			scope: String(version?.code),
-			started: startedOn(contract),
+			started: starts.service_started_on,
 			events: eventsOf(contract)
 		};
+		const personOn = (held: JsonObject, on: string) =>
+			personOf(held, starts, employerOn(held.entity_id, on), eventsFor(held));
 		plans.push(
 			...entitlementPlans(
 				rows,
-				personOf(contract, employers.get(String(contract.entity_id)), eventsFor(contract)),
+				personOn(contract, day),
 				subject,
 				String(balance.id),
 				accountsOf(balance.account),
-				day
+				day,
+				// a window that closed settles under the law and the contract of its last day
+				({ code }, on) => {
+					const held = chain.find((row) => covers(row.effective_range, on)) ?? contract;
+					const row = rowsOf
+						.get(String(lawIn(held.entity_id, on)?.id))
+						?.find((item) => item.code === code);
+					return row === undefined ? undefined : { lookup: row.lookup, person: personOn(held, on) };
+				},
+				manual.get(String(balance.id))
 			)
 		);
 		for (const row of rows) {
@@ -1412,7 +1709,7 @@ export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
 	}
 });
 
-/** A leave posting dated before this year can change what carried since: its people sync again. */
+/** A leave posting or a manual adjustment dated before this year can change what carried since: its people sync again. */
 export const syncLate = Effect.fn('ledger.syncLate')(function* (
 	ctx: Pick<EffectCtx, 'query' | 'schedule' | 'today'>,
 	rows: readonly JsonObject[]
@@ -1420,7 +1717,9 @@ export const syncLate = Effect.fn('ledger.syncLate')(function* (
 	const year = String(ctx.today).slice(0, 4);
 	const late = rows.filter(
 		(row) =>
-			String(row.source).startsWith('leave_catalog_entry:') &&
+			(String(row.source).startsWith('leave_catalog_entry:') ||
+				String(row.source).startsWith('manual:') ||
+				(String(row.source).startsWith('payroll_run:') && row.account === 'leave')) &&
 			String(row.effective_on).slice(0, 4) < year
 	);
 	if (late.length === 0) return;
@@ -1436,8 +1735,17 @@ export const syncLate = Effect.fn('ledger.syncLate')(function* (
 	});
 });
 
-/** The models whose writes post: what they post rides in their own write (`onApproved`). */
-const POSTS = ['leave_catalog_entry', 'claim_catalog_entry', 'adhoc_catalog_entry', 'payroll_run'];
+/**
+ * The models whose writes post: what they post rides in their own write (`onApproved`). A manual adjustment's ledger
+ * row carries its own balance move.
+ */
+const POSTS = [
+	'leave_catalog_entry',
+	'claim_catalog_entry',
+	'adhoc_catalog_entry',
+	'payroll_run',
+	'ledger_entry'
+];
 /** Who writes the ledger and the balance: the write of a record that posts, and sync (`payroll_execution`). */
 export const writesLedger = (ctx: {
 	readonly policies: readonly string[];

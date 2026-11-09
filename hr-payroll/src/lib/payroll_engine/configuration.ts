@@ -4,6 +4,7 @@ import { type JsonObject } from './contracts.js';
 import { queryRows, type Reader } from './reads.js';
 import { Refusal } from './foundation.js';
 import { programOf } from './programs.js';
+import { paidShareOf } from './engine.js';
 import { paramsFor } from './params.js';
 
 export const requireDraftSettings = Effect.fn('payroll.requireDraftSettings')(function* (
@@ -40,6 +41,8 @@ export const guardConfigurationRows = Effect.fn('payroll.guardConfigurationRows'
 			'calculation',
 			'eligibility',
 			'conversion',
+			'paid_share',
+			'payout',
 			'employee_amount',
 			'employer_amount',
 			'condition',
@@ -50,6 +53,13 @@ export const guardConfigurationRows = Effect.fn('payroll.guardConfigurationRows'
 			if (typeof source === 'string' && source.trim() !== '')
 				checkExpression(source, 'CALCULATION', undefined, program?.roots);
 		}
+		// a stated share is refused here, before any run: a leave day pays 0 to 1 of a normal day
+		if (model === 'leave_catalog' && Number.isFinite(Number(row.paid_share)))
+			yield* Effect.try({
+				try: () => paidShareOf(row, () => ({})),
+				catch: (cause) =>
+					cause instanceof Refusal ? cause : new Refusal({ message: String(cause) })
+			});
 		const schema = paramsFor(model, String(row.code ?? ''));
 		if (schema !== undefined) {
 			try {

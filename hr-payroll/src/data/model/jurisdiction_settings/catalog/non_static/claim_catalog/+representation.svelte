@@ -49,13 +49,11 @@
 					name="posting"
 					title="Posting"
 					icon="lucide:arrow-down-up"
-					hint="The subtotal, direction and party of the posting."
+					hint="The subtotal that receives the reimbursement."
 					defaultOpen={false}
 				>
 					<Columns count={2} gap="md">
 						<Field name="subtotal_id" />
-						<Field name="direction" />
-						<Field name="party" />
 					</Columns>
 				</Section>
 				<Section

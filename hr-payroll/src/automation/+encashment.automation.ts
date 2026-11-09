@@ -3,11 +3,13 @@ import { dynamicRead } from '@norbital-ai/bolt/protocol';
 import { addDays, addMonths, PlainDate } from '@norbital-ai/std/date';
 import { weeklyRestDays } from '../lib/payroll_engine/rest_days.js';
 import { accountsOf, latestLeft } from '../lib/ledger/core.js';
+import { isExit, versionOn } from '../lib/payroll_engine/contract_change.js';
 import { isJsonObject, jsonObject } from '../lib/payroll_engine/foundation.js';
+import { queryRows } from '../lib/payroll_engine/reads.js';
 
 /**
- * Exit encashment: when a sealed contract ends with no same-jurisdiction successor, every leave row whose catalog sets
- * `lookup.encash_on_exit.allowed` gets one encashment request for the days the person has left. It runs under
+ * Exit encashment: when a sealed contract ends with no same-jurisdiction successor, every leave row with a `payout`
+ * gets one encashment request for the days the person has left. It runs under
  * `payroll_execution`, whose leave grant holds an encashment for HR controller approval, so nothing posts to the ledger
  * until it is approved; whoever ended the contract, an administrator included. Running it again raises nothing twice.
  */
@@ -27,7 +29,6 @@ export default automation('encashment', {
 						'effective_range',
 						'employee_id',
 						'entity_id',
-						'input_schema_version_id',
 						'employee_extension_data',
 						'terms'
 					] as const,
@@ -35,7 +36,27 @@ export default automation('encashment', {
 				}
 			})
 		);
-		for (const stored of ended.employee_contract?.rows ?? []) {
+		const rows = ended.employee_contract?.rows ?? [];
+		// the people's whole chains, every entity's lineage code and the sealed law, in one read
+		const {
+			employee_contract: chain = [],
+			entity: entities = [],
+			jurisdiction_settings: versions = []
+		} = yield* queryRows(ctx.query, {
+			employee_contract: {
+				where: { employee_id: { in: [...new Set(rows.map((row) => String(row.employee_id)))] } },
+				fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
+				limit: 10000
+			},
+			entity: { fields: ['id', 'settings_code'], limit: 10000 },
+			jurisdiction_settings: {
+				where: { status: { eq: 'SEALED' } },
+				fields: ['id', 'code', 'effective_range'],
+				limit: 10000
+			}
+		});
+		const lineage = new Map(entities.map((row) => [String(row.id), String(row.settings_code)]));
+		for (const stored of rows) {
 			const row = stored as Record<string, unknown>;
 			const range: unknown = row.effective_range;
 			const effectiveTo =
@@ -61,112 +82,24 @@ export default automation('encashment', {
 			};
 			const employeeId = refId(row.employee_id);
 			if (employeeId === '') continue;
-			const settingsId = refId(row.input_schema_version_id);
-			if (settingsId === '') continue;
-			const lineage = yield* ctx.query(
-				dynamicRead({
-					jurisdiction_settings: {
-						where: { id: { eq: settingsId } },
-						fields: ['code'] as const,
-						limit: 1
-					}
-				})
-			);
-			const code = lineage.jurisdiction_settings?.rows?.[0]?.code;
-			const contracts = yield* ctx.query(
-				dynamicRead({
-					employee_contract: {
-						where: { employee_id: { eq: employeeId } },
-						fields: ['id', 'status', 'effective_range', 'input_schema_version_id'] as const,
-						limit: 10000
-					}
-				})
-			);
-			const successors = (contracts.employee_contract?.rows ?? []).filter((other) => {
-				if (String(other.id) === String(row.id)) return false;
-				if (other.status !== 'DRAFT' && other.status !== 'SEALED') return false;
-				const successor = other.effective_range;
-				return (
-					isJsonObject(successor) &&
-					typeof successor.from === 'string' &&
-					successor.from > effectiveTo
-				);
-			});
-			let sameJurisdiction = false;
-			if (successors.length > 0) {
-				const ids = [
-					...new Set(
-						successors
-							.map((other) => {
-								const value = other.input_schema_version_id;
-								return isJsonObject(value) ? value.id : value;
-							})
-							.filter((value): value is string => typeof value === 'string')
-					)
-				];
-				if (ids.length > 0) {
-					const settings = yield* ctx.query(
-						dynamicRead({
-							jurisdiction_settings: {
-								where: { id: { in: ids } },
-								fields: ['id', 'code'] as const,
-								limit: 10000
-							}
-						})
-					);
-					const codes = new Map(
-						(settings.jurisdiction_settings?.rows ?? []).map((settingsRow) => [
-							String(settingsRow.id),
-							settingsRow.code
-						])
-					);
-					sameJurisdiction = successors.some((other) => {
-						const value = other.input_schema_version_id;
-						const id = isJsonObject(value) ? value.id : value;
-						return typeof code === 'string' && typeof id === 'string' && codes.get(id) === code;
-					});
-				}
-			}
 			// a same-jurisdiction replacement continues employment; a cross-jurisdiction transfer settles leave first
-			if (sameJurisdiction) continue;
-			const versions =
-				typeof code !== 'string'
-					? []
-					: ((yield* ctx.query(
-							dynamicRead({
-								jurisdiction_settings: {
-									where: { code: { eq: code }, status: { eq: 'SEALED' } },
-									fields: ['id', 'effective_range'] as const,
-									limit: 10000
-								}
-							})
-						)).jurisdiction_settings?.rows ?? []);
-			const current = versions.find((version) => {
-				const range = version.effective_range;
-				return (
-					isJsonObject(range) &&
-					typeof range.from === 'string' &&
-					range.from <= effectiveTo &&
-					(range.to == null || String(range.to) >= effectiveTo)
-				);
-			});
-			const catalogSettingsId =
-				current !== undefined && typeof current.id === 'string' ? current.id : settingsId;
-			// every leave row whose catalog says it is encashed on exit; HR approves each before it posts
+			if (!isExit(row, chain, lineage)) continue;
+			// the law in force on the last day
+			const current = versionOn(versions, lineage.get(refId(row.entity_id)), effectiveTo);
+			if (current === undefined) continue;
+			const catalogSettingsId = String(current.id);
+			// every leave row with a payout can be cashed out; HR approves each before it posts
 			const catalogs = yield* ctx.query(
 				dynamicRead({
 					leave_catalog: {
 						where: { settings_id: { eq: catalogSettingsId } },
-						fields: ['id', 'code', 'lookup'] as const,
+						fields: ['id', 'code', 'payout', 'lookup'] as const,
 						limit: 1000
 					}
 				})
 			);
 			const encashed = (catalogs.leave_catalog?.rows ?? []).filter(
-				(catalog) =>
-					isJsonObject(catalog.lookup) &&
-					isJsonObject(catalog.lookup.encash_on_exit) &&
-					catalog.lookup.encash_on_exit.allowed === true
+				(catalog) => typeof catalog.payout === 'string' && catalog.payout.trim() !== ''
 			);
 			if (encashed.length === 0) continue;
 			const held = yield* ctx.query(
@@ -242,8 +175,12 @@ export default automation('encashment', {
 			const input = encashed.flatMap((catalog) => {
 				const code = String(catalog.code);
 				if (done.has(code)) return [];
-				const days = latestLeft(accounts, 'leave', code);
-				if (!Number.isFinite(days) || days <= 0) return [];
+				const left = latestLeft(accounts, 'leave', code);
+				if (!Number.isFinite(left) || left <= 0) return [];
+				// a row that counts in hours cashes them out as half days of the contract's normal day
+				const dayHours = Number(jsonObject(row.terms).normal_hours_per_day ?? 0);
+				const days =
+					jsonObject(catalog.lookup).unit === 'HOUR' && dayHours > 0 ? left / dayHours : left;
 				const halfDays = Math.max(1, Math.round(days * 2));
 				return [
 					{

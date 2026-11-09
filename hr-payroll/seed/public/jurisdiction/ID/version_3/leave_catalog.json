@@ -1,7 +1,6 @@
 [
 	{
 		"code": "JOINT_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"accounts": [
 				{
@@ -23,7 +22,6 @@
 	},
 	{
 		"code": "ANNUAL_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "SERVICE_YEAR",
 			"service_months": 12,
@@ -31,14 +29,11 @@
 			"carry": {
 				"windows": 1,
 				"max_days": 5
-			},
-			"encash_on_exit": {
-				"allowed": true
 			}
 		},
 		"references": [
 			{
-				"title": "Law 13/2003 Art. 79(3) as amended by Law 6/2023 Window: each year of service (`SERVICE_YEAR`): UU 13/2003 art.79(3) grants 12 days after each 12 months of continuous work. Owner ruling (ID): the balance resets each leave year and at most 5 unused days carry into the next (`carry_forward`), once. On exit the unused, unlapsed balance is paid (PP 35/2021 art.40(4)(a))."
+				"title": "Law 13/2003 Art. 79(3) as amended by Law 6/2023 Window: each year of service (`SERVICE_YEAR`): UU 13/2003 art.79(3) grants 12 days after each 12 months of continuous work. Continuous work is the current unbroken stint; where the employee profile counts cumulative service, every stint counts, which gives no less. Owner ruling (ID): the balance resets each leave year and at most 5 unused days carry into the next (`carry_forward`), once. On exit the unused, unlapsed balance is paid (PP 35/2021 art.40(4)(a))."
 			},
 			{
 				"title": "UU 13/2003 art.79(3) as amended by UU 6/2023 art.81 angka 25 — at least 12 working days after 12 months of continuous work; art.79(4) leaves how it is taken to the employment agreement, company regulation or collective agreement",
@@ -48,15 +43,12 @@
 		"subtotal_id": "fa70d3a6-859d-578b-9276-da973c4d0fa3",
 		"id": "51cea211-6a20-5945-a50a-55c7ee1153fa",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"conversion": "// js\n// UU 13/2003 art.156(4)(a) as amended by UU 6/2023, PP 35/2021 art.40(4)(a): unused annual leave that has not lapsed is compensated on termination.\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nreturn ctx.day_rate * ctx.entry.quantity;",
-		"description": "Paid annual leave accrued by service."
+		"description": "Paid annual leave accrued by service.",
+		"payout": "// js\n// UU 13/2003 art.156(4)(a) as amended by UU 6/2023, PP 35/2021 art.40(4)(a): unused annual leave that has not lapsed is compensated on termination.\nreturn ctx.day_rate * ctx.entry.quantity;"
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "PP 36/2021 art.40(1): no wage for a day not worked — except the absences art.40(2)–(5) pays (illness, menstruation, family events, state duty, religious duty, union duty, company training, work withheld by the employer, rest and leave) and a suspension during dismissal (UU 13/2003 art.157A); an unpaid absence recorded with one of those reasons is refused. Breastfeeding time is working time (UU 13/2003 art.83; UU 4/2024 art.4(1)(c)) and is never booked as unpaid.",
@@ -66,12 +58,11 @@
 		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"id": "cd2e8db6-6730-5eb8-88ca-dd54d1b6cfcb",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"direction": "DEDUCT",
-		"description": "Unpaid absence from work."
+		"description": "Unpaid absence from work.",
+		"paid_share": "0"
 	},
 	{
 		"code": "MEDICAL_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"pay_steps": [
 				{
@@ -95,8 +86,7 @@
 				"LONG_ILLNESS": {
 					"days": 0
 				}
-			},
-			"no_cap": true
+			}
 		},
 		"references": [
 			{
@@ -107,13 +97,11 @@
 		"subtotal_id": "f600adc2-8acb-5a9e-ad67-130efdace4a5",
 		"id": "ce03c7d4-9f14-5a5f-9282-57f50cf183e6",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"direction": "DEDUCT",
-		"conversion": "// js\n// PP 36/2021 art.41(1): 100% of the wage for the first four months of an illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal.\nconst events = get(ctx.subject.employment, 'events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst at = add_days(ctx.run.salary_coverage.from, -1);\nconst lost = Math.min(\n\tsum(ctx.entry.days.map((day) => shareOf(get(ctx.entry, 'reverses', null) != null ? at : day.date))) / 2,\n\tctx.entry.quantity\n);\nreturn ctx.day_rate * lost;",
-		"description": "MEDICAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "MEDICAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "// js\n// PP 36/2021 art.41(1): 100% of the wage for the first four months of an illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal.\nif (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;"
 	},
 	{
 		"code": "MATERNITY_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"pay_steps": [
 				{
@@ -145,13 +133,11 @@
 		"subtotal_id": "f600adc2-8acb-5a9e-ad67-130efdace4a5",
 		"id": "e35bb314-bf93-5695-93b4-e78ad97cab7e",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"direction": "DEDUCT",
-		"conversion": "// js\n// UU 4/2024 art.5(2): paid in full for the first four months and 75% for the fifth and sixth; the months past the third need a doctor’s certificate of a special condition of mother or child.\nconst events = get(ctx.subject.employment, 'events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst at = add_days(ctx.run.salary_coverage.from, -1);\nconst lost = Math.min(\n\tsum(ctx.entry.days.map((day) => shareOf(get(ctx.entry, 'reverses', null) != null ? at : day.date))) / 2,\n\tctx.entry.quantity\n);\nreturn ctx.day_rate * lost;",
-		"description": "Maternity leave around childbirth."
+		"description": "Maternity leave around childbirth.",
+		"paid_share": "// js\n// UU 4/2024 art.5(2): paid in full for the first four months and 75% for the fifth and sixth; the months past the third need a doctor’s certificate of a special condition of mother or child.\nif (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 2,
@@ -180,7 +166,6 @@
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 3,
@@ -205,7 +190,6 @@
 	},
 	{
 		"code": "CHILD_MARRIAGE_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 2,
@@ -230,7 +214,6 @@
 	},
 	{
 		"code": "CHILD_CIRCUMCISION_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 2,
@@ -255,7 +238,6 @@
 	},
 	{
 		"code": "CHILD_BAPTISM_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 2,
@@ -280,7 +262,6 @@
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 2,
@@ -305,7 +286,6 @@
 	},
 	{
 		"code": "BEREAVEMENT_HOUSEHOLD_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 1,
@@ -330,7 +310,6 @@
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -345,7 +324,6 @@
 	},
 	{
 		"code": "MISCARRIAGE_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -360,8 +338,9 @@
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"grant_days": 0
+		},
 		"subtotal_id": null,
 		"id": "7a8fd272-0858-5438-aadf-5d21d39625aa",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
@@ -372,13 +351,18 @@
 				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm",
 				"quote": "Pekerja/buruh tidak wajib bekerja pada hari-hari libur resmi.",
 				"effective_from": "2003-03-25"
+			},
+			{
+				"title": "UU 13/2003 art.85(2)–(3); PP 35/2021 art.31(2)–(3) — work on an official holiday is by agreement and is paid as overtime; the statute owes no day in lieu, so a day off in its place is the employer's by agreement, each granted through a leave adjustment",
+				"locator": "art.85(3)",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm",
+				"quote": "Pengusaha yang mempekerjakan pekerja/buruh yang melakukan pekerjaan pada hari libur resmi sebagaimana dimaksud dalam ayat (2) wajib membayar upah kerja lembur."
 			}
 		],
-		"description": "A paid day in lieu of a public holiday worked."
+		"description": "A paid day off in lieu of a public holiday worked, where the employer agrees one; HR grants each through a leave adjustment."
 	},
 	{
 		"code": "RELIGIOUS_DUTY_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -393,7 +377,6 @@
 	},
 	{
 		"code": "WORK_ACCIDENT_LEAVE",
-		"pay_treatment": "PAID",
 		"description": "Absence after a work accident or occupational disease, while the worker cannot work (sementara tidak mampu bekerja).",
 		"lookup": {},
 		"references": [
@@ -407,7 +390,6 @@
 	},
 	{
 		"code": "STATE_DUTY_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -422,7 +404,6 @@
 	},
 	{
 		"code": "UNION_DUTY_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -437,7 +418,6 @@
 	},
 	{
 		"code": "COMPANY_TRAINING_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -452,7 +432,6 @@
 	},
 	{
 		"code": "EMPLOYER_IDLE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -467,7 +446,6 @@
 	},
 	{
 		"code": "SUSPENSION",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -481,7 +459,6 @@
 	},
 	{
 		"code": "PATERNITY_EXTENSION_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 3,
@@ -509,7 +486,6 @@
 	},
 	{
 		"code": "LONG_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{

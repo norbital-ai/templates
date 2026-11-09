@@ -62,7 +62,7 @@ export type ListingRead = {
 		readonly breakdown: unknown;
 		readonly employment_id?: {
 			readonly employee_number?: unknown;
-			readonly employee_name?: unknown;
+			readonly employee_id?: { readonly name?: unknown } | null;
 			readonly service_started_on?: unknown;
 			readonly terms?: { readonly job_title?: unknown; readonly department?: unknown } | null;
 			readonly payroll?: { readonly identity_number?: unknown } | null;
@@ -106,7 +106,7 @@ export const sheetsOf = ({ runs, slips, versions }: ListingRead): readonly Sheet
 							position: text(contract.terms?.job_title),
 							department: text(contract.terms?.department),
 							code: text(contract.employee_number),
-							name: text(contract.employee_name),
+							name: text(contract.employee_id?.name),
 							identity: text(contract.payroll?.identity_number),
 							joined: dayOf(contract.service_started_on) || (joined.get(person) ?? ''),
 							left: left.get(person) ?? '',

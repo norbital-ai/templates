@@ -14,7 +14,6 @@
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0));",
-		"party": "EMPLOYEE",
 		"id": "c9ac7564-f3bd-5ba5-aa0c-d9a162a056da",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
 		"include_in_rate": true
@@ -33,11 +32,9 @@
 		],
 		"subtotal_id": "4653bcdf-ecf1-5503-b5af-80366f90c691",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.from)) + 1;\nreturn (amount * days) / month_days;",
-		"party": "EMPLOYEE",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.from)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
 		"id": "2a2465ea-0204-5d79-89e4-c70b48b7aa72",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"prorate": true,
 		"include_in_rate": true
 	}
 ]

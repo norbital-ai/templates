@@ -1,75 +1,79 @@
 <script lang="ts">
-	import { Button, Form, RecordShell, Sheet, Table, type RecordView } from '@norbital-ai/ui';
-	import SealedBadge from '../../../../../../../lib/ui/payroll/sealed_badge.svelte';
+	import { Button, Form, RecordShell, Sheet, type RecordView } from '@norbital-ai/ui';
 	import LeaveEntryForm from '../../../../../../../lib/ui/person/leave_entry_form.svelte';
+	import ReversalCancel from '../../../../../../../lib/ui/person/reversal_cancel.svelte';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { bolt } from '$bolt';
-	import type { Id } from '@norbital-ai/bolt';
-	import { untrack } from 'svelte';
 
 	let { view }: { view: RecordView<'leave_catalog_entry'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
-	type Slot = {
-		readonly id: Id<'leave_catalog_entry_day'>;
-		readonly incurred_on: string;
-		readonly part: string;
-		readonly payroll_run_id: Id<'payroll_run'> | null;
-	};
-	let slots = $state<readonly Slot[]>([]);
-	let reversing = $state(false);
-	const captured = $derived(slots.filter((slot) => slot.payroll_run_id != null));
+	// the entry being reversed, held apart from the shown record, which reloads under the sheet once it files
+	let reversing = $state<typeof record>(null);
+	// the HR controller changes and reverses an entry; self-service only reads its own
 	const isHr =
 		typeof window === 'undefined' || window.location.pathname.includes('/app/hr_controller/');
-	const canReverse = $derived(record !== null && record.reverses == null && captured.length > 0);
-	$effect(() => {
-		const id = record?.id ?? null;
-		if (id === null) {
-			slots = [];
-			return;
-		}
-		untrack(() => {
-			void (async () => {
-				const answer = await bolt.query({
+	const held = $derived(
+		record === null
+			? null
+			: bolt.query({
 					leave_catalog_entry_day: {
-						where: { leave_entry_id: { eq: id } },
-						fields: ['id', 'incurred_on', 'part', 'payroll_run_id'],
-						orderBy: { incurred_on: 'asc' },
-						limit: 10000
+						where: { leave_entry_id: { eq: record.id }, payroll_run_id: { isNull: false } },
+						fields: ['id'],
+						limit: 1
+					},
+					leave_catalog_entry: {
+						where: { reverses: { eq: record.id } },
+						fields: ['id'],
+						limit: 1
 					}
-				});
-				slots = answer.leave_catalog_entry_day.rows.map((row) => ({
-					id: row.id,
-					incurred_on: String(row.incurred_on),
-					part: String(row.part),
-					payroll_run_id: row.payroll_run_id ?? null
-				}));
-			})();
-		});
-	});
+				})
+	);
+	// a forward entry with a sealed half-day, reversed once
+	const canReverse = $derived(
+		record !== null &&
+			record.reverses == null &&
+			held?.current?.leave_catalog_entry_day.rows.length === 1 &&
+			held.current.leave_catalog_entry.rows.length === 0
+	);
+	// a reversal no run has paid is cancelled by the ordinary delete
+	const canCancel = $derived(
+		record !== null &&
+			record.reverses != null &&
+			view.mode !== 'create' &&
+			view.capabilities?.delete.allowed === true &&
+			held?.current?.leave_catalog_entry_day.rows.length === 0
+	);
 </script>
-
-{#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 
 {#snippet reverseAction()}
 	<Button
 		variant="outline"
-		disabled={!canReverse || !isHr}
-		title={!isHr
-			? 'A reversal is created by the HR Controller.'
-			: !canReverse
-				? 'Only a day a payroll run has captured can be reversed; an unpriced day is deleted instead.'
-				: undefined}
-		onclick={() => (reversing = true)}
+		disabled={!canReverse}
+		title={canReverse
+			? undefined
+			: 'Only a forward entry with a half-day a payroll run sealed is reversed, once; an open half-day is removed instead.'}
+		onclick={() => (reversing = record)}
 	>
 		Reverse entry
 	</Button>
 {/snippet}
 
+{#snippet cancelAction()}{#if record !== null}<ReversalCancel
+			of="leave_catalog_entry"
+			id={record.id}
+		/>{/if}{/snippet}
+
 <RecordShell
 	of="leave_catalog_entry"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
-	footerActions={record === null ? undefined : reverseAction}
+	footerActions={record === null || !isHr
+		? undefined
+		: record.reverses == null
+			? reverseAction
+			: canCancel
+				? cancelAction
+				: undefined}
 >
 	{#if record === null}
 		<Form
@@ -80,41 +84,35 @@
 		/>
 	{:else}
 		<Stack gap="md">
+			<LeaveEntryForm
+				entityId={record.entity_id}
+				employmentId={record.employment_id}
+				catalogId={record.catalog_id}
+				entry={record.id}
+				person={isHr}
+				locked={!isHr || record.reverses != null}
+			/>
 			<Form
 				of="leave_catalog_entry"
 				mode="update"
 				id={record.id}
 				{record}
-				fields={['employment_id', 'catalog_id', 'reverses', 'evidence_file']}
+				fields={record.reverses == null ? ['evidence_file'] : ['reverses', 'evidence_file']}
 			/>
-			<section class="grid gap-2" data-leave-slots>
-				<h3 class="text-sm font-medium">Leave days</h3>
-				<div class="overflow-hidden rounded-md border">
-					<Table
-						of={slots}
-						key="leave-entry-slots"
-						layout="grid"
-						columns={[
-							'incurred_on',
-							'part',
-							{ field: 'payroll_run_id', label: 'Payroll run', cell: sealCell }
-						]}
-					/>
-				</div>
-			</section>
 		</Stack>
 	{/if}
 </RecordShell>
 
-{#if reversing && record !== null}
-	<Sheet open onOpenChange={(open) => !open && (reversing = false)} title="Reverse leave">
+{#if reversing !== null}
+	<Sheet open onOpenChange={(open) => !open && (reversing = null)} title="Reverse leave">
 		<LeaveEntryForm
-			allowReversal
-			entityId={record.entity_id}
-			employmentId={record.employment_id}
-			catalogId={record.catalog_id}
-			reverses={record.id}
-			onDone={() => (reversing = false)}
+			entityId={reversing.entity_id}
+			employmentId={reversing.employment_id}
+			catalogId={reversing.catalog_id}
+			reverses={reversing.id}
+			encashment={reversing.encashment}
+			person
+			onDone={() => (reversing = null)}
 		/>
 	</Sheet>
 {/if}

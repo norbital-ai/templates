@@ -10,8 +10,6 @@
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "70f83f83-4b31-58e3-b143-3e55ccc980f8",
 		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
 		"description": "Business expense reimbursement."
@@ -27,8 +25,6 @@
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "8630276c-d6dc-5513-8bd8-73934a35ef82",
 		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
 		"description": "Business travel reimbursement."

@@ -30,6 +30,17 @@ export const PayslipBreakdown = Schema.Struct({
 			employee: Schema.Number,
 			employer: Schema.Number
 		})
+	),
+	/** Overtime taken as time off, which the payslip posts as hours owed; a payslip with none carries none. */
+	time_off: Schema.optional(
+		Schema.Array(
+			Schema.Struct({
+				code: Schema.String,
+				period: Schema.String,
+				hours: Schema.Number,
+				on: Schema.String
+			})
+		)
 	)
 });
 
@@ -61,5 +72,6 @@ export const breakdownOf = (result: PayrollResult): PayslipBreakdown => ({
 		kind,
 		employee,
 		employer
-	}))
+	})),
+	...(result.time_off.length === 0 ? {} : { time_off: result.time_off })
 });

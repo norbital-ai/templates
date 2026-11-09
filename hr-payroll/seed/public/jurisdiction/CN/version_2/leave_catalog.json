@@ -1,8 +1,8 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"description": "Statutory 5/10/15 days, the first qualifying year by the calendar days left, less school vacation days (`school_vacation_days`). One `annual_leave_year_reviews` row a year records the decision: `disqualified` and `next_year_disqualified` remove the grant, `waived_days` are spent without pay, and `deferred_days` move across one year only. ANNUAL_LEAVE_FORFEITED refuses leave once personal or sick leave passes the statute's limits. On exit an encashment entry pays the days earned so far at the extra 200%; the day is the current day rate.",
-		"pay_treatment": "PAID",
+		"description": "Statutory 5/10/15 days. The year someone first qualifies, or joins the employer with 12 months already worked, counts only the calendar days left from that day (a rehire from the rejoining date), less school vacation days (`school_vacation_days`). One `annual_leave_year_reviews` row a year records the decision: `disqualified` and `next_year_disqualified` remove the grant, `waived_days` are spent without pay, and `deferred_days` move across one year only. ANNUAL_LEAVE_FORFEITED refuses leave once personal or sick leave passes the statute's limits. On exit an encashment entry pays the days earned so far at the extra 200% (第十条: 300% including the normal wage already paid); the day is the current day rate.",
+		"payout": "// js\n// 职工带薪年休假条例 第五条; 企业职工带薪年休假实施办法 第十条: 应休未休的天数按日工资收入的300%支付, 其中包含正常工作期间的工资. 第十二条: 离职时按当年度在本单位已过日历天数折算, 不足1整天不支付.\nconst range = ctx.subject.employment.effective_range;\nconst end = get(range, 'to', null);\nconst started = get(ctx.subject.employment, 'service_started_on', range.from);\nconst joined = get(ctx.subject.employment, 'employment_started_on', range.from);\nif (end == null) return ctx.day_rate * ctx.entry.quantity * ctx.lookup.encashment_factor;\nconst band = ctx.lookup.service_bands.filter((row) => row.service_months <= calendar_completed_months(started, end)).at(-1);\nif (band == null) return 0;\nconst start = end.slice(0, 4) + '-01-01';\nconst qualified = add_months(started, ctx.lookup.qualifying_service_months);\nconst later = joined > qualified ? joined : qualified;\nconst from = later > start ? later : start;\nconst part = (to) => Math.floor((band.days * (calendar_distance_days(from, to) + 1)) / ctx.lookup.first_year_proration_days);\nconst year = from === start ? band.days : part(end.slice(0, 4) + '-12-31');\nreturn ctx.day_rate * Math.max(0, ctx.entry.quantity - year + part(end)) * ctx.lookup.encashment_factor;",
 		"lookup": {
 			"qualifying_service_months": 12,
 			"service_bands": [
@@ -38,10 +38,7 @@
 			"paid_personal_leave_disqualification_days": 20,
 			"encashment_factor": 2,
 			"window": "CALENDAR_YEAR",
-			"encash_on_exit": {
-				"allowed": true
-			},
-			"entitlement": "// js\n// 职工带薪年休假条例 第三条: 累计工作满1年5天, 满10年10天, 满20年15天. 企业职工带薪年休假实施办法 第五条: 当年度按剩余日历天数折算, 不足1整天不享受.\n// 条例 第四条第(一)项; 实施办法 第七条: 寒暑假抵扣年休假, 多于年休假的不享受. 条例 第四条; 实施办法 第八条: 年度审核认定不享受的, 当年或下一年度无年休假.\n// 条例 第五条; 实施办法 第九条: 跨年度安排只跨1个年度. 实施办法 第十条: 书面不休的天数不再计入.\nconst contract = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst facts = get(contract, 'employee_extension_data', {});\nconst reviews = get(facts, 'annual_leave_year_reviews', []);\nconst year = Number(ctx.as_of.slice(0, 4));\nconst review = (at) => first(reviews.filter((row) => row.year === at));\nconst band = ctx.lookup.service_bands.filter((row) => row.service_months <= calendar_completed_months(started, ctx.as_of)).at(-1);\nconst qualified = add_months(started, ctx.lookup.qualifying_service_months);\nconst share = Number(qualified.slice(0, 4)) === year ? (calendar_distance_days(qualified, year + '-12-31') + 1) / ctx.lookup.first_year_proration_days : 1;\nconst grant = band == null ? 0 : Math.floor(band.days * share);\nconst barred = get(review(year), 'disqualified', false) === true || get(review(year - 1), 'next_year_disqualified', false) === true;\nconst statutory = barred ? 0 : Math.max(0, grant - get(facts, 'school_vacation_days', 0));\nconst deferred = sum(reviews.filter((row) => row.year < year && row.year >= year - ctx.lookup.carry_forward_years).map((row) => row.deferred_days));\nconst spent = get(review(year), 'waived_days', 0) + get(review(year), 'deferred_days', 0);\nreturn Math.max(0, statutory + deferred - spent);"
+			"entitlement": "// js\n// 职工带薪年休假条例 第三条: 累计工作满1年5天, 满10年10天, 满20年15天. 企业职工带薪年休假实施办法 第五条: 新进用人单位且连续工作满12个月以上的, 当年度按在本单位剩余日历天数折算, 不足1整天不享受.\n// 条例 第四条第(一)项; 实施办法 第七条: 寒暑假抵扣年休假, 多于年休假的不享受. 条例 第四条; 实施办法 第八条: 年度审核认定不享受的, 当年或下一年度无年休假.\n// 条例 第五条; 实施办法 第九条: 跨年度安排只跨1个年度. 实施办法 第十条: 书面不休的天数不再计入.\nconst contract = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst joined = get(contract, 'employment_started_on', contract.effective_range.from);\nconst facts = get(contract, 'employee_extension_data', {});\nconst reviews = get(facts, 'annual_leave_year_reviews', []);\nconst year = Number(ctx.as_of.slice(0, 4));\nconst review = (at) => first(reviews.filter((row) => row.year === at));\nconst band = ctx.lookup.service_bands.filter((row) => row.service_months <= calendar_completed_months(started, ctx.as_of)).at(-1);\nconst qualified = add_months(started, ctx.lookup.qualifying_service_months);\nconst from = joined > qualified ? joined : qualified;\nconst share = Number(from.slice(0, 4)) < year ? 1 : (calendar_distance_days(from, year + '-12-31') + 1) / ctx.lookup.first_year_proration_days;\nconst grant = band == null ? 0 : Math.floor(band.days * share);\nconst barred = get(review(year), 'disqualified', false) === true || get(review(year - 1), 'next_year_disqualified', false) === true;\nconst statutory = barred ? 0 : Math.max(0, grant - get(facts, 'school_vacation_days', 0));\nconst deferred = sum(reviews.filter((row) => row.year < year && row.year >= year - ctx.lookup.carry_forward_years).map((row) => row.deferred_days));\nconst spent = get(review(year), 'waived_days', 0) + get(review(year), 'deferred_days', 0);\nreturn Math.max(0, statutory + deferred - spent);"
 		},
 		"references": [
 			{
@@ -52,20 +49,18 @@
 				"url": "https://rst.hunan.gov.cn/rst/xzfg/202211/t20221110_29122241.html"
 			},
 			{
-				"title": "企业职工带薪年休假实施办法 第七条至第十二条: 寒暑假抵扣; 已休后不享受下一年度; 跨1个年度; 300%含正常工资; 日工资收入 = 月工资 ÷ 21.75; 离职折算.",
+				"title": "企业职工带薪年休假实施办法 第五条、第七条至第十二条: 新进用人单位按在本单位剩余日历天数折算; 寒暑假抵扣; 已休后不享受下一年度; 跨1个年度; 300%含正常工资; 日工资收入 = 月工资 ÷ 21.75; 离职折算.",
 				"url": "https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html"
 			}
 		],
 		"subtotal_id": "6084bf7c-8bca-5c3c-aa11-29d319b5e84f",
 		"id": "ef8b12b4-7853-5b4b-b769-c1780f8dc5d8",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
-		"direction": "ADD",
-		"conversion": "// js\n// 职工带薪年休假条例 第五条; 企业职工带薪年休假实施办法 第十条: 应休未休的天数按日工资收入的300%支付, 其中包含正常工作期间的工资. 第十二条: 离职时按当年已过日历天数折算, 不足1整天不支付.\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst range = ctx.subject.employment.effective_range;\nconst end = get(range, 'to', null);\nif (end == null) return ctx.day_rate * ctx.entry.quantity * ctx.lookup.encashment_factor;\nconst band = ctx.lookup.service_bands.filter((row) => row.service_months <= calendar_completed_months(range.from, end)).at(-1);\nif (band == null) return 0;\nconst start = end.slice(0, 4) + '-01-01';\nconst qualified = add_months(range.from, ctx.lookup.qualifying_service_months);\nconst from = qualified > start ? qualified : start;\nconst part = (to) => Math.floor((band.days * (calendar_distance_days(from, to) + 1)) / ctx.lookup.first_year_proration_days);\nconst year = from === start ? band.days : part(end.slice(0, 4) + '-12-31');\nreturn ctx.day_rate * Math.max(0, ctx.entry.quantity - year + part(end)) * ctx.lookup.encashment_factor;"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
 		"code": "SICK_LEAVE",
-		"description": "This line takes what the wage does not pay. Shanghai to 2026-08-15: the 沪劳保发〔1995〕83号 scale by continuous service, and an ILLNESS event past six months moves to the later scale. Everywhere: at least 80% of the local minimum wage, or the higher `sick_pay_share` agreed by contract, collective contract or handbook.",
-		"pay_treatment": "PAID",
+		"description": "Shanghai to 2026-08-15: the 沪劳保发〔1995〕83号 scale by continuous service, and an ILLNESS event past six months moves to the later scale. Everywhere: at least 80% of the local minimum wage, or the higher `sick_pay_share` agreed by contract, collective contract or handbook.",
+		"paid_share": "// js\n// 沪劳保发〔1995〕83号: 连续休假6个月以内, 连续工龄不满2年60%, 满2年70%, 满4年80%, 满6年90%, 满8年100%; 超过6个月的疾病救济费, 不满1年40%, 满1年50%, 满3年60%. In force to 2026-08-15.\n// 劳部发〔1995〕309号 第59条; 沪劳保保发〔2000〕14号: 不低于最低工资的80%. 昆明市工资支付条例 第二十七条: 按有关规定支付. An agreed higher share binds.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst region = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst zones = ctx.lookup.minimum_wage_by_zone.filter((row) => row.region === region);\nif (zones.length === 0 || !(ctx.month_wage > 0)) return 1;\nconst zone = String(get(ctx.subject.employer, 'entity_extension_data.wage_zone', zones[0].default_zone));\nconst least = (ctx.lookup.minimum_wage_floor_share * zones.find((row) => row.zone === zone).monthly) / ctx.month_wage;\nconst agreed = Number(get(ctx.subject.employment, 'employee_extension_data.sick_pay_share', 0));\nconst scale = () => {\n\tif (region !== 'SH' || ctx.as_of > ctx.lookup.shanghai_scale_until) return 0;\n\tconst long = ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.shanghai_scale_first_months;\n\tconst service = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of);\n\treturn (long ? ctx.lookup.shanghai_scale_later : ctx.lookup.shanghai_scale_first).find((step) => step.completed_months == null || service <= step.completed_months).share;\n};\nreturn Math.min(1, Math.max(agreed, least, scale()));",
 		"lookup": {
 			"minimum_wage_floor_share": 0.8,
 			"medical_period_max_months": 24,
@@ -111,8 +106,7 @@
 					"days": 0
 				}
 			},
-			"shanghai_scale_until": "2026-08-15",
-			"no_cap": true
+			"shanghai_scale_until": "2026-08-15"
 		},
 		"references": [
 			{
@@ -121,14 +115,12 @@
 		],
 		"subtotal_id": "2a845cfd-af37-5c8a-9661-de431b30429b",
 		"id": "48aeccb6-c615-58e3-82e1-0f18faf142b3",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
-		"direction": "DEDUCT",
-		"conversion": "// js\n// 沪劳保发〔1995〕83号: 连续休假6个月以内, 连续工龄不满2年60%, 满2年70%, 满4年80%, 满6年90%, 满8年100%; 超过6个月的疾病救济费, 不满1年40%, 满1年50%, 满3年60%. In force to 2026-08-15.\n// 劳部发〔1995〕309号 第59条; 沪劳保保发〔2000〕14号: 不低于最低工资的80%. 昆明市工资支付条例 第二十七条: 按有关规定支付. An agreed higher share binds.\n// This line takes the share of each working day the wage does not pay; FIXED_ALLOWANCE falls with BASIC.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = get(ctx.entry, 'reverses', null) != null;\nconst back = add_days(coverage.from, -1);\nconst days = ctx.working_days;\nconst region = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst zones = ctx.lookup.minimum_wage_by_zone.filter((row) => row.region === region);\nif (zones.length === 0 || ctx.day_rate === 0) return 0;\nconst zone = String(get(ctx.subject.employer, 'entity_extension_data.wage_zone', zones[0].default_zone));\nconst least = (ctx.lookup.minimum_wage_floor_share * zones.find((row) => row.zone === zone).monthly) / ctx.month_wage;\nconst agreed = Number(get(ctx.subject.employment, 'employee_extension_data.sick_pay_share', 0));\nconst illnesses = get(ctx.subject.employment, 'events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst scale = (date) => {\n\tif (region !== 'SH' || date > ctx.lookup.shanghai_scale_until) return 0;\n\tconst illness = first(illnesses.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tconst long = illness != null && calendar_completed_months(illness.on, date) >= ctx.lookup.shanghai_scale_first_months;\n\tconst service = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), date);\n\treturn (long ? ctx.lookup.shanghai_scale_later : ctx.lookup.shanghai_scale_first).find((step) => step.completed_months == null || service <= step.completed_months).share;\n};\nconst lost = Math.min(sum(ctx.entry.days.filter((day) => worksOn(day.date)).map((day) => 1 - Math.min(1, Math.max(agreed, least, scale(reversal ? back : day.date))))) / 2, days);\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * lost;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / ctx.working_days;"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
 		"code": "MATERNITY_LEAVE",
 		"description": "Fund-paid (生育津贴): the employer does not pay salary for the days; where the allowance is lower than the salary the city rules decide any top-up (not priced). A CHILD_BIRTH event opens 98 days. A CONFINEMENT event dated the first day off before the birth opens up to 15 of them ahead of it. DIFFICULT_BIRTH and each ADDITIONAL_BABY, on the birth's date, add 15. A MISCARRIAGE event opens 15 days, or 42 where a PREGNANCY event dates it from 4 months.",
-		"pay_treatment": "UNPAID",
+		"paid_share": "0",
 		"lookup": {
 			"grant_days": 98,
 			"difficult_birth_extra_days": 15,
@@ -157,13 +149,12 @@
 		],
 		"subtotal_id": "ceee4d79-a7d9-5ec5-845f-f744a7dd7b12",
 		"id": "f3557a9e-1e07-510f-8294-6e33efa48b07",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
-		"direction": "DEDUCT"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
 		"code": "MATERNITY_EXTENSION",
 		"description": "60 days on top of MATERNITY_LEAVE (158 in all), opened by a CHILD_BIRTH event only, with the same fund-paid treatment.",
-		"pay_treatment": "UNPAID",
+		"paid_share": "0",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -191,13 +182,11 @@
 		],
 		"subtotal_id": "ceee4d79-a7d9-5ec5-845f-f744a7dd7b12",
 		"id": "921eee24-7fde-5320-b0c8-5cf43729f6ae",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
-		"direction": "DEDUCT"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
 		"description": "10 days, taken within the mother's maternity leave, at the normal wage. | 30 days; paid (第三十五条).",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -230,7 +219,6 @@
 	{
 		"code": "MARRIAGE_LEAVE",
 		"description": "Up to 3 days at full pay.",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"grant_days": 3,
 			"window": "EVENT",
@@ -254,7 +242,6 @@
 	{
 		"code": "MARRIAGE_EXTENSION",
 		"description": "7 days after MARRIAGE_LEAVE, full pay. | 15 days after MARRIAGE_LEAVE; paid (第三十五条).",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -284,7 +271,6 @@
 	{
 		"code": "CHILDCARE_LEAVE",
 		"description": "Each parent, a calendar year: Shanghai 5 days for each CHILD_BIRTH event under 3 (the regulation counts each child's year from its birth); Kunming 10 days, 15 with two or more under 3.",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"child_age_limit_years": 3,
 			"per_child_days_by_region": [
@@ -324,7 +310,6 @@
 	{
 		"code": "PRENATAL_CHECKUP",
 		"description": "Counted as working time, full pay.",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -338,7 +323,6 @@
 	{
 		"code": "BEREAVEMENT_LEAVE",
 		"description": "Up to 3 days at full pay.",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"grant_days": 3,
 			"window": "EVENT",
@@ -361,11 +345,9 @@
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"description": "Unpaid; this line takes the days.",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"description": "Unpaid.",
+		"paid_share": "0",
+		"lookup": {},
 		"references": [
 			{
 				"title": "工资支付暂行规定 第十一条、第十二条: 仅法定休假和假期支付工资; 事假由双方约定, 无薪."
@@ -373,13 +355,11 @@
 		],
 		"subtotal_id": "ceee4d79-a7d9-5ec5-845f-f744a7dd7b12",
 		"id": "17097901-18e8-56bf-939e-744ad8b960f0",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
-		"direction": "DEDUCT"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
 		"code": "PERSONAL_LEAVE_PAID",
 		"description": "Personal leave the employer pays in full; 20 days or more in a calendar year forfeit that year's annual leave (ANNUAL_LEAVE_FORFEITED).",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -393,7 +373,6 @@
 	{
 		"code": "WORK_INJURY_LEAVE",
 		"description": "Paid in full by the employer. Record the accident as a WORK_INJURY event on the contract: the entry raises the recognition task, due 30 days from it.",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -407,7 +386,6 @@
 	{
 		"code": "SOCIAL_ACTIVITY",
 		"description": "Paid as normal work.",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -421,7 +399,6 @@
 	{
 		"code": "NURSING_BREAK",
 		"description": "Counted as working time, while a CHILD_BIRTH event on the contract is under one year old (NURSING_BREAK_CHILD_AGE).",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"daily_hours": 1,
 			"child_age_limit_years": 1
@@ -437,8 +414,8 @@
 	},
 	{
 		"code": "PRENATAL_LEAVE",
-		"description": "At most 2.5 months (76 days) per PREGNANCY event; paid at 80%, and this line takes the rest.",
-		"pay_treatment": "PAID",
+		"description": "At most 2.5 months (76 days) per PREGNANCY event; paid at 80%.",
+		"paid_share": "// js\n// 上海市女职工劳动保护办法 第十八条: 产前假工资按80%发给.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nreturn held == null ? 1 : held.share;",
 		"lookup": {
 			"paid_share_by_region": [
 				{
@@ -468,14 +445,12 @@
 		],
 		"subtotal_id": "2a845cfd-af37-5c8a-9661-de431b30429b",
 		"id": "79e75863-d3f3-5241-a865-c6b370de8794",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
-		"direction": "DEDUCT",
-		"conversion": "// js\n// 上海市女职工劳动保护办法 第十八条: 产前假工资按80%发给.\n// This line takes the share of each working day the wage does not pay; FIXED_ALLOWANCE falls with BASIC.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = get(ctx.entry, 'reverses', null) != null;\nconst back = add_days(coverage.from, -1);\nconst days = ctx.working_days;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nif (held == null) return 0;\nconst lost = Math.min(ctx.entry.days.filter((day) => worksOn(day.date)).length / 2, days) * (1 - held.share);\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * lost;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / ctx.working_days;"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
 		"code": "NURSING_LEAVE",
-		"description": "At most 6.5 months (198 days) per CHILD_BIRTH event; paid at 80%, and this line takes the rest.",
-		"pay_treatment": "PAID",
+		"description": "At most 6.5 months (198 days) per CHILD_BIRTH event; paid at 80%.",
+		"paid_share": "// js\n// 上海市女职工劳动保护办法 第十八条: 哺乳假工资按80%发给.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nreturn held == null ? 1 : held.share;",
 		"lookup": {
 			"paid_share_by_region": [
 				{
@@ -505,14 +480,11 @@
 		],
 		"subtotal_id": "2a845cfd-af37-5c8a-9661-de431b30429b",
 		"id": "e7465de9-e506-5a26-9472-7abec0d24783",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
-		"direction": "DEDUCT",
-		"conversion": "// js\n// 上海市女职工劳动保护办法 第十八条: 哺乳假工资按80%发给.\n// This line takes the share of each working day the wage does not pay; FIXED_ALLOWANCE falls with BASIC.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = get(ctx.entry, 'reverses', null) != null;\nconst back = add_days(coverage.from, -1);\nconst days = ctx.working_days;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nif (held == null) return 0;\nconst lost = Math.min(ctx.entry.days.filter((day) => worksOn(day.date)).length / 2, days) * (1 - held.share);\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * lost;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / ctx.working_days;"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
 		"description": "At full pay, a calendar month (MENSTRUAL_LEAVE_CONDITIONS). Shanghai: 1 day of 公假 for a woman in the work the 办法 lists (`protected_work`), unless the employer moves her to other work for the period. Kunming: 1–2 days for diagnosed severe dysmenorrhoea (`severe_dysmenorrhea_diagnosed`); the Yunnan rule does not state the pay — seeded at full pay, unverified.",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -546,8 +518,8 @@
 	},
 	{
 		"code": "FAMILY_PLANNING_LEAVE",
-		"description": "Days by the surgery event on the contract, per event. Shanghai at full pay; Kunming paid by the fund's maternity allowance, so this line takes the wage.",
-		"pay_treatment": "PAID",
+		"description": "Days by the surgery event on the contract, per event. Shanghai at full pay; Kunming without wage: the fund's maternity allowance pays the days.",
+		"paid_share": "// js\n// 上海市计划生育奖励与补助若干规定 第十九条: 按正常出勤工资; 昆明市医保局生育保险政策: 由生育津贴支付, 单位不发工资.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nreturn held == null ? 1 : held.share;",
 		"lookup": {
 			"paid_share_by_region": [
 				{
@@ -653,14 +625,11 @@
 		],
 		"subtotal_id": "2a845cfd-af37-5c8a-9661-de431b30429b",
 		"id": "2a66c136-ffe8-5111-bfd0-20075af18726",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
-		"direction": "DEDUCT",
-		"conversion": "// js\n// 上海市计划生育奖励与补助若干规定 第十九条: 按正常出勤工资; 昆明市医保局生育保险政策: 由生育津贴支付, 单位不发工资.\n// This line takes the share of each working day the wage does not pay; FIXED_ALLOWANCE falls with BASIC.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = get(ctx.entry, 'reverses', null) != null;\nconst back = add_days(coverage.from, -1);\nconst days = ctx.working_days;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nif (held == null) return 0;\nconst lost = Math.min(ctx.entry.days.filter((day) => worksOn(day.date)).length / 2, days) * (1 - held.share);\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * lost;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / ctx.working_days;"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
 		"code": "ELDER_CARE_LEAVE",
-		"description": "5 working days a year, 7 for an only child (`employee.only_child`); paid as normal attendance here (the regulation's pay wording was not read). | 20 days a year for an only child, 10 otherwise; full pay.",
-		"pay_treatment": "PAID",
+		"description": "Only while a parent is in hospital, recorded as a PARENT_HOSPITALISATION event on the contract (admission `on`, discharge `ended_on`); ELDER_CARE_HOSPITALISATION refuses a day outside one. Shanghai 5 working days a year, 7 for an only child (`statutory.IIT.elderly_support_only_child`), paid as normal attendance; Kunming 10 days, or 20 for an only child, at full pay.",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -674,11 +643,11 @@
 					"only_child_days": 20
 				}
 			],
-			"entitlement": "// js\n// 上海市老年人权益保障条例: 每年5个工作日, 独生子女7个; 云南省老年人权益保障条例 第二十四条: 独生子女20天, 非独生子女10天.\nconst held = first(ctx.lookup.days_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nif (held == null) return 0;\nreturn get(ctx.subject.employment, 'only_child', false) === true ? held.only_child_days : held.days;"
+			"entitlement": "// js\n// 上海市老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 赡养人每年累计不超过5个工作日的陪护假, 独生子女7个工作日.\n// 云南省老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 独生子女每年累计20天、非独生子女10天的护理时间.\nconst held = first(ctx.lookup.days_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nif (held == null) return 0;\nreturn get(ctx.subject.employment, 'employee_extension_data.statutory.IIT.elderly_support_only_child', false) === true ? held.only_child_days : held.days;"
 		},
 		"references": [
 			{
-				"title": "上海市老年人权益保障条例 (2025年修正): 每年5个工作日, 独生子女7个; 云南省老年人权益保障条例 第二十四条: 独生子女20天, 非独生子女10天, 工资照发."
+				"title": "上海市老年人权益保障条例 (2025年修正, 2025年11月1日起施行) 第二十四条: 老年人患病住院治疗期间, 每年5个工作日, 独生子女7个; 云南省老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 独生子女每年累计20天, 非独生子女10天, 工资待遇与正常工作期间相同."
 			}
 		],
 		"subtotal_id": null,
@@ -688,7 +657,6 @@
 	{
 		"code": "HOME_LEAVE_SPOUSE",
 		"description": "30 calendar days a year (rest days and holidays inside), plus the travel days granted; full standard wage; state-owned units only, after a year with the employer.",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"rolling_months": 12,
 			"grant_days": 30,
@@ -715,7 +683,6 @@
 	{
 		"code": "HOME_LEAVE_PARENTS",
 		"description": "20 calendar days a year plus the travel days granted; none while a two-year 45-day visit falls in the last 24 months.",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"rolling_months": 12,
 			"grant_days": 20,
@@ -743,7 +710,6 @@
 	{
 		"code": "HOME_LEAVE_PARENTS_BIENNIAL",
 		"description": "45 calendar days once in 24 months, in place of the yearly 20 (the unit could not grant it, or the employee chose a two-year visit); none after a yearly visit in the last 12 months.",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"rolling_months": 24,
 			"grant_days": 45,
@@ -766,7 +732,6 @@
 	{
 		"code": "HOME_LEAVE_PARENTS_MARRIED",
 		"description": "20 calendar days once in 48 months plus the travel days granted.",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"rolling_months": 48,
 			"grant_days": 20,

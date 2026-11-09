@@ -1,21 +1,12 @@
 import { model } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
-import {
-	attendanceOf,
-	cycleOf,
-	payDateOf,
-	type PayWindow
-} from '../../../lib/payroll_engine/pay_cycle.js';
+import { attendanceOf, cycleOf, payDateOf } from '../../../lib/payroll_engine/pay_cycle.js';
 import { idOf } from '../../../lib/payroll_engine/reads.js';
 
 import type { FileSyncCtx } from '@norbital-ai/bolt';
 import { runPostings, undone } from '../../../lib/ledger/service.js';
-import {
-	attachmentsOf,
-	calculateRun,
-	loadRun
-} from '../../../lib/payroll_engine/run_calculation.js';
+import { calculateRun, loadRun } from '../../../lib/payroll_engine/run_calculation.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
 import { salaryListing } from '../../../lib/export_format_configuration/salary_listing.js';
@@ -83,6 +74,7 @@ export default model('payroll_run', {
 	unique: [{ fields: ['entity_id', 'period'], where: { kind: { eq: 'ON_CYCLE' } } }],
 	attaches: {
 		leave: { model: 'leave_catalog_entry', field: 'payroll_run_id' },
+		leave_day: { model: 'leave_catalog_entry_day', field: 'payroll_run_id' },
 		claim: { model: 'claim_catalog_entry', field: 'payroll_run_id' },
 		adhoc: { model: 'adhoc_catalog_entry', field: 'payroll_run_id' },
 		repayment: { model: 'loan_catalog_entry_repayment', field: 'payroll_run_id' },
@@ -143,10 +135,10 @@ export default model('payroll_run', {
 					fields: ['id', 'code', 'effective_range'],
 					limit: 10000
 				},
-				// what was entered after an earlier run closed is paid by the next one, a cycle late
+				// year-to-date only moves forward
 				payroll_run: {
 					where: { entity_id: { in: entityIds } },
-					fields: ['entity_id', 'salary_coverage', 'period', 'kind'],
+					fields: ['entity_id', 'period', 'kind'],
 					limit: 10000
 				}
 			});
@@ -188,11 +180,6 @@ export default model('payroll_run', {
 					)
 				);
 				if (offCycle && pays.size === 0) return 'Choose what this run pays.';
-				const earliest = prior.reduce<PayWindow>(
-					(low, { salary_coverage: { from, to } }) =>
-						from < low.from ? { from, to: String(to) } : low,
-					cycle
-				);
 				return {
 					id: row.id,
 					row: {
@@ -206,7 +193,6 @@ export default model('payroll_run', {
 					code: settings.code,
 					frame: {
 						attendance: offCycle ? cycle : attendanceOf(schedule, cycle),
-						since: attendanceOf(schedule, earliest).from,
 						...(offCycle ? { pays } : {})
 					}
 				};
@@ -295,7 +281,7 @@ export default model('payroll_run', {
 					tax_withheld: slip.tax_withheld,
 					breakdown: slip.breakdown
 				}));
-				calculated.push({ ...row, payslips, attaches: attachmentsOf(data, frame) });
+				calculated.push({ ...row, payslips, attaches: result.attaches });
 				posting.push({ id, pay_date: String(row.pay_date), payslips: payslips.map(jsonObject) });
 			}
 			return { rows: calculated, onApproved: yield* runPostings(ctx.db.query, posting) };
@@ -321,72 +307,6 @@ export default model('payroll_run', {
 				{ collection: 'payroll_run', ids: rows.map((row) => row.id) },
 				rows.map((after) => ({ after }))
 			);
-			// capture each leave half-day this run priced: the entry may outlive the period, but the paid slot is sealed
-			const entityIds = [...new Set(rows.map((row) => row.entity_id))];
-			if (entityIds.length === 0) return;
-			const entries = yield* ctx.query({
-				leave_catalog_entry: {
-					where: { entity_id: { in: entityIds } },
-					fields: ['id', 'employment_id', 'reverses', 'encashment'],
-					limit: 10000
-				}
-			});
-			if (entries.leave_catalog_entry.rows.length === 0) return;
-			const entryIds = entries.leave_catalog_entry.rows.map((row) => row.id);
-			const reversalIds = new Set(
-				entries.leave_catalog_entry.rows
-					.filter((row) => row.reverses != null)
-					.map((row) => String(row.id))
-			);
-			const cashOutIds = new Set(
-				entries.leave_catalog_entry.rows
-					.filter((row) => row.encashment === true)
-					.map((row) => String(row.id))
-			);
-			const slots = yield* ctx.query({
-				leave_catalog_entry_day: {
-					where: { leave_entry_id: { in: entryIds }, payroll_run_id: { isNull: true } },
-					fields: ['id', 'leave_entry_id', 'incurred_on'],
-					limit: 10000
-				}
-			});
-			const targets = rows.flatMap((run) => {
-				// a stored range excludes its upper bound; the effect's image is that string, not the written object
-				const coverage: unknown = run.salary_coverage;
-				const [from, until, exclusive] =
-					typeof coverage === 'string'
-						? (() => {
-								const [start, end] = coverage.slice(1, -1).split(',');
-								return [start ?? '', end === '' ? null : (end ?? null), true] as const;
-							})()
-						: (() => {
-								const range = jsonObject(coverage);
-								return [
-									String(range.from ?? ''),
-									range.to == null ? null : String(range.to),
-									false
-								] as const;
-							})();
-				const inRun = (day: string) =>
-					day >= from && (until == null || (exclusive ? day < until : day <= until));
-				// a cash-out is priced whole, so one slot inside this run seals every slot it paid
-				const cashOut = new Set(
-					slots.leave_catalog_entry_day.rows
-						.filter(
-							(slot) =>
-								cashOutIds.has(String(slot.leave_entry_id)) && inRun(String(slot.incurred_on))
-						)
-						.map((slot) => String(slot.leave_entry_id))
-				);
-				return slots.leave_catalog_entry_day.rows.flatMap((slot) => {
-					const reversal = reversalIds.has(String(slot.leave_entry_id));
-					const covered = inRun(String(slot.incurred_on));
-					if (!reversal && !covered && !cashOut.has(String(slot.leave_entry_id))) return [];
-					return [{ target: slot.id, set: { payroll_run_id: run.id } }];
-				});
-			});
-			if (targets.length === 0) return;
-			yield* ctx.act.checked([{ callable: 'leave_catalog_entry_day.update', input: targets }]);
 		},
 		updated: function* (changes, ctx) {
 			yield* tap(

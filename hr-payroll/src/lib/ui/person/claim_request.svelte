@@ -32,16 +32,17 @@
 			: bolt.query({
 					employee_contract: {
 						where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
-						fields: ['employee_number', 'employee_name'],
+						fields: ['employee_number', 'employee_id'],
 						orderBy: { employee_number: 'asc' },
 						limit: 10000
-					}
+					},
+					'employee_contract.employee_id': { fields: ['name'] }
 				})
 	);
 	const options = $derived(
 		(contracts?.current?.employee_contract.rows ?? []).map((row) => ({
 			value: row.id,
-			label: `${row.employee_name} · ${row.employee_number}`
+			label: `${row.employee_id?.name ?? ''} · ${row.employee_number}`
 		}))
 	);
 </script>

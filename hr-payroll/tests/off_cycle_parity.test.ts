@@ -94,6 +94,15 @@ const CASES: Readonly<Record<string, Case>> = {
 		zone: 'Asia/Bangkok',
 		terms: terms(120_000, 'CITIZEN'),
 		entity: { wcf_rate_percent: 0.2 },
+		facts: {
+			statutory: {
+				WCF: {
+					wcf_reviewed_annual_wage_ceiling: 240_000,
+					wcf_ceiling_review_tax_year: '2026',
+					wcf_ceiling_review_reference: 'test fixture: April start'
+				}
+			}
+		},
 		item: 'BONUS',
 		bonus: 360_000
 	},
@@ -161,7 +170,7 @@ const onCycle = (t: Kit, period: string) =>
 		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
 		.pipe(Effect.andThen(t.runDue()));
 const owed = (t: Kit, seed: Seed, { item, bonus }: Case, on: string) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed.adhoc_catalog ?? []).find((r) => r.code === item && r.settings_id === version);
 	assert.ok(row !== undefined, item);
 	return t.as(t.admin).act('adhoc_catalog_entry.create', [

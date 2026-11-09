@@ -59,7 +59,7 @@ const EMPLOYEE: Record<string, Parameters<typeof pack>[3]> = {
 	}
 };
 const rowsOf = (seed: Seed, model: string) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	return (seed[model] ?? []).filter((row) => row.settings_id === version);
 };
 
@@ -171,7 +171,7 @@ describe('an entry raises what its effects declare', () => {
 				assert.deepEqual(failed, []);
 				const declared = (seed.registered_effect ?? []).some(
 					(row) =>
-						row.settings_id === seed.employee_contract?.[0]?.input_schema_version_id &&
+						row.settings_id === seed.entity_profile_version?.[0]?.input_schema_version_id &&
 						row.source_collection === 'workplace_case_catalog_entry'
 				);
 				const raised = (yield* t.storedQuery({ obligation: { limit: 1000 } })).obligation.rows;

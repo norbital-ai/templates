@@ -1,7 +1,6 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "SERVICE_YEAR",
 			"service_months": 12,
@@ -21,14 +20,14 @@
 				"quote": "At least 6 working days a year after one full year of service; unused days carry only where employer and employee agreed in advance."
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "15bd40d4-002b-5049-909f-ba310ab4e00b",
 		"id": "0920d95e-f475-51be-9089-2a67d11e538a",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"description": "Paid annual leave accrued by service."
+		"description": "Paid annual leave earned by service; untaken days are paid at exit (LPA s.67).",
+		"payout": "// js\n// LPA s.67 para 1: an employer who ends the employment without a s.119 ground pays the annual holidays of the year of\n// termination in proportion to the s.30 entitlement. s.67 para 2: on any termination, the untaken days accumulated under\n// s.30 para 3 are paid.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst end = get(employment, 'effective_range.to', ctx.as_of);\nconst started = get(employment, 'service_started_on', employment.effective_range.from);\nconst year = Math.floor(calendar_completed_months(started, end) / 12);\nconst grant = year * 12 >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;\nconst current = Math.min(ctx.entry.quantity, grant);\nconst dismissed =\n  ['DISMISSAL', 'DISMISSAL_FOR_CAUSE', 'REDUNDANCY', 'RETIREMENT', 'END_OF_CONTRACT'].includes(get(facts, 'exit_ground', '')) &&\n  get(facts, 'section_119_ground', false) !== true;\nconst served = calendar_completed_months(add_months(started, 12 * year), add_days(end, 1));\nconst owed = dismissed ? Math.max(0, current - (grant * (12 - served)) / 12) : 0;\nreturn ctx.day_rate * (ctx.entry.quantity - current + owed);"
 	},
 	{
 		"code": "SICK_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"grant_days": 30
@@ -54,10 +53,7 @@
 	},
 	{
 		"code": "SICK_LEAVE_UNPAID",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.32, 57",
@@ -69,12 +65,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "4df95322-cef0-5732-ad5d-84c406d62edb",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT",
-		"description": "SICK_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "SICK_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "PERSONAL_BUSINESS_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"grant_days": 3
@@ -94,7 +89,6 @@
 	},
 	{
 		"code": "STERILISATION_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
@@ -111,7 +105,6 @@
 	},
 	{
 		"code": "MILITARY_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"grant_days": 60
@@ -137,10 +130,7 @@
 	},
 	{
 		"code": "TRAINING_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.36",
@@ -152,12 +142,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "9289d6dd-7c5e-5139-8ec5-2e0ecf7e3132",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT",
-		"description": "TRAINING_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "TRAINING_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "YOUNG_WORKER_TRAINING_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"grant_days": 30
@@ -177,7 +166,6 @@
 	},
 	{
 		"code": "MATERNITY_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 60,
@@ -209,10 +197,7 @@
 	},
 	{
 		"code": "MATERNITY_LEAVE_SSO",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41; Social Security Act B.E. 2533 (1990) s.67",
@@ -224,41 +209,30 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "d0aaa68a-1bee-5e45-8379-b921372cfb94",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT",
-		"description": "MATERNITY_LEAVE_SSO: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "MATERNITY_LEAVE_SSO: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
-		"code": "PUBLIC_HOLIDAY",
-		"pay_treatment": "PAID",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
 		"lookup": {
-			"window": "CALENDAR_YEAR",
-			"grant_days": 13
+			"grant_days": 0
 		},
 		"references": [
 			{
-				"title": "Labour Protection Act B.E. 2541 (1998) ss.29, 56(2)",
-				"locator": "ss.29, 56(2)",
+				"title": "Labour Protection Act B.E. 2541 (1998) s.29 paras 3-4",
+				"locator": "s.29 paras 3-4",
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
-				"quote": "At least 13 traditional holidays a year, announced in advance, with wages."
-			},
-			{
-				"title": "Labour Protection Act B.E. 2541 (1998) s.29",
-				"locator": "s.29",
-				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
-				"quote": "At least 13 traditional holidays a year, National Labour Day among them."
+				"quote": "A traditional holiday on a weekly holiday is taken on the next working day; where the work cannot stop for one, another day off is agreed in substitution or holiday work pay is paid."
 			}
 		],
 		"subtotal_id": null,
 		"id": "35dc2670-5b1e-575b-839c-85337eef3551",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"description": "A public holiday."
+		"description": "A paid day off agreed in substitution for a traditional holiday worked (s.29 para 4); HR grants each through a manual adjustment. The announced holidays (s.29: at least 13 a year) and their next-working-day substitutes are the entity calendar."
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.5, 70",
@@ -270,12 +244,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "98d36eb4-d002-5f1c-a86d-90b89c664e19",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT",
-		"description": "Unpaid absence from work."
+		"description": "Unpaid absence from work.",
+		"paid_share": "0"
 	},
 	{
 		"code": "CHILD_CARE_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 15,
@@ -303,13 +276,11 @@
 		"subtotal_id": "4653bcdf-ecf1-5503-b5af-80366f90c691",
 		"id": "b9102998-7717-5bd1-b0c8-7ca0fbfe9796",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT",
-		"conversion": "// js\n// LPA s.59/1: half the working-day wage. The salary pays the whole day, so the other half comes off.\nreturn ctx.day_rate * (1 - ctx.lookup.paid_share) * ctx.entry.quantity;",
-		"description": "CHILD_CARE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "CHILD_CARE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0.5"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 15,
@@ -341,10 +312,7 @@
 	},
 	{
 		"code": "WORK_INJURY_LEAVE",
-		"pay_treatment": "UNPAID",
-		"lookup": {
-			"no_cap": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.32 para 3; Workmen's Compensation Act B.E. 2537 s.18(1)",
@@ -356,12 +324,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "d8224403-781a-5896-9197-b3d6958db640",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT",
-		"description": "WORK_INJURY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "WORK_INJURY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0"
 	},
 	{
 		"code": "SUSPENSION",
-		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 7,
@@ -386,8 +353,7 @@
 		"subtotal_id": "4653bcdf-ecf1-5503-b5af-80366f90c691",
 		"id": "a93a7cf3-dd9c-5ca8-91a9-93a1b474996d",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT",
-		"conversion": "// js\n// LPA s.116: at least half the working-day wage. The salary pays the whole day, so the other half comes off.\nreturn ctx.day_rate * (1 - ctx.lookup.paid_share) * ctx.entry.quantity;",
-		"description": "SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules.",
+		"paid_share": "0.5"
 	}
 ]

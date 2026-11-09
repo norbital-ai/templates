@@ -12,11 +12,9 @@
 		],
 		"subtotal_id": "ecbb284d-5647-57cb-919d-d592652e74b2",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"party": "EMPLOYEE",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
 		"id": "66f24215-1a35-576b-ad38-3c081605d105",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318",
-		"prorate": true,
 		"include_in_rate": true
 	},
 	{
@@ -32,11 +30,9 @@
 		],
 		"subtotal_id": "aade9321-c5d9-57fd-a620-99a3826c0833",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"party": "EMPLOYEE",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
 		"id": "c9024581-0020-5683-9e3a-557a2f373d68",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318",
-		"prorate": true,
 		"include_in_rate": true
 	},
 	{
@@ -53,11 +49,9 @@
 		],
 		"subtotal_id": "4a341fcc-f2d5-55fe-bbef-25ad00723875",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"party": "EMPLOYEE",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
 		"id": "b0ca9aa9-dadd-5e6a-93f3-eb6d1eeb7118",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318",
-		"prorate": true,
 		"include_in_rate": true
 	},
 	{
@@ -73,11 +67,9 @@
 		],
 		"subtotal_id": "aade9321-c5d9-57fd-a620-99a3826c0833",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"party": "EMPLOYEE",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
 		"id": "b2e1d78b-69e8-5db9-928a-5b83f91a889c",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318",
-		"prorate": true,
 		"include_in_rate": true
 	},
 	{
@@ -93,11 +85,9 @@
 		],
 		"subtotal_id": "4a341fcc-f2d5-55fe-bbef-25ad00723875",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"party": "EMPLOYEE",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
 		"id": "9af9343a-e9bc-544a-b1c8-3f39db4d56be",
 		"settings_id": "6da43390-01db-5055-bf4f-67bc5b63c318",
-		"prorate": true,
 		"include_in_rate": true
 	}
 ]

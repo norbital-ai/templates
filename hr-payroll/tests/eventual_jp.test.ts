@@ -101,7 +101,7 @@ const enter = (
 	on: string,
 	reverses: Id<'adhoc_catalog_entry'> | null = null
 ) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed.adhoc_catalog ?? []).find((r) => r.code === item && r.settings_id === version);
 	assert.ok(row !== undefined, item);
 	return t.as(t.admin).act('adhoc_catalog_entry.create', [
@@ -406,7 +406,7 @@ describe('a second salary in a pay month', () => {
 
 describe('a no-pay day', () => {
 	const noPay = (seed: Seed) => {
-		const version = seed.employee_contract?.[0]?.input_schema_version_id;
+		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const row = seed.leave_catalog?.find(
 			(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
 		);
@@ -487,7 +487,7 @@ describe('a no-pay day', () => {
 	const onTheBasis = (seed: Seed): Seed => ({
 		...seed,
 		leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-			NO_PAY.includes(String(row.code)) ? { ...row, pay_treatment: 'UNPAID' } : row
+			NO_PAY.includes(String(row.code)) ? { ...row, paid_share: '0' } : row
 		)
 	});
 	const paid = (seed: Seed, days: ReturnType<typeof whole>) =>

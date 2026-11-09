@@ -15,11 +15,6 @@
 			"title": "ID employee extension data",
 			"additionalProperties": false,
 			"properties": {
-				"husband_no_income_certified": {
-					"type": "boolean",
-					"title": "Husband has no income (reviewed kecamatan statement)",
-					"description": "Explicit reviewed PTKP declaration for a married female employee. True requires a written local-government statement at least at kecamatan level and its recorded reference; false takes the employee-only allowance. No inferred or default declaration (PMK168/2023 art.9(2)-(3))."
-				},
 				"zakat_monthly": {
 					"type": "number",
 					"minimum": 0,
@@ -1540,10 +1535,10 @@
 				"basis": "FIXED",
 				"hours": 173
 			},
-			"proration": "WORKING_DAYS",
+			"proration": "DAY_RATE",
 			"rounding": {
 				"mode": "HALF_UP",
-				"scale": 2
+				"scale": 0
 			}
 		},
 		"ledger": {

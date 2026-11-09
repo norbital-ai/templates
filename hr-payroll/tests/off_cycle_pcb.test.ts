@@ -25,7 +25,7 @@ const malaysia = (residency?: string) =>
 type Seed = ReturnType<typeof malaysia>;
 
 const itemId = (seed: Seed, code: string) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed.adhoc_catalog ?? []).find((r) => r.code === code && r.settings_id === version);
 	assert.ok(row !== undefined, code);
 	return idOf('adhoc_catalog', String(row.id));

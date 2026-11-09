@@ -1,9 +1,9 @@
 // What the Employment Act 1955 conditions on Malaysian leave: who it covers, which confinement bears the allowance, which
-// confinement a father still has, and what absence and unpaid leave do to annual leave.
+// confinement a father still has, and what absence and unpaid leave do to annual leave; and how long a roster day runs.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { PlainDate, addDays } from '@norbital-ai/std/date';
+import { Instant, PlainDate, addDays } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
@@ -11,6 +11,8 @@ import { payBasis } from '../src/lib/payroll_engine/engine.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
+	REST,
+	WORK,
 	accountsIn,
 	catalogRow,
 	measureOf,
@@ -279,6 +281,32 @@ describe('a father', () => {
 			yield* take(t, seed, 'PATERNITY_LEAVE', ['2026-11-10']);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
+	it.live(
+		'counts the stint before a rehire toward those months where the profile counts every stint',
+		() => {
+			const base = seedOf({ started: '2025-11-10', gender: 'MALE', events: born('2026-11-02') });
+			const seed = {
+				...base,
+				employee_profile: [
+					{ id: uuid(4), user_id: uuid(3), name: 'Worker', cumulative_service: true }
+				],
+				employee_contract: (base.employee_contract ?? []).flatMap((row) => [
+					{
+						...row,
+						id: uuid(60),
+						service_started_on: '2024-01-02',
+						effective_range: { from: '2024-01-02', to: '2025-11-05' }
+					},
+					row
+				])
+			};
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				yield* take(t, base, 'PATERNITY_LEAVE', ['2026-11-03']);
+			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+		}
+	);
 });
 
 describe('absence without leave', () => {
@@ -406,4 +434,75 @@ describe('the day rate', () => {
 			110
 		);
 	});
+});
+
+describe('a roster day', () => {
+	const at = (time: string, date = '2026-11-07') =>
+		Instant(new Date(`${date}T${time}:00+08:00`).toISOString());
+	const span = (from: string, to: string, ...breaks: readonly [string, string][]) => ({
+		start: at(from),
+		end: at(to),
+		...(breaks.length === 0
+			? {}
+			: { breaks: breaks.map(([a, b]) => ({ start: at(a), end: at(b) })) })
+	});
+	const day = (shift: string, ...planned: ReturnType<typeof span>[]) => ({
+		employment_id: CONTRACT,
+		work_date: PlainDate('2026-11-07'),
+		shift_definition_id: idOf('shift_definition', shift),
+		planned_overtime_intervals: planned
+	});
+	const writes = (row: ReturnType<typeof day>) =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			return yield* t
+				.as(t.admin)
+				.act('roster_entry.create', [row])
+				.pipe(
+					Effect.as('written'),
+					Effect.catch((refused) => Effect.succeed(String(refused)))
+				);
+		}).pipe(Effect.provide(workspace({ seed: seedOf({}), now: NOW })));
+	// EA s.60A(7): twelve hours of work a day, the rostered shift's included; a rest day has none rostered
+	it.live('on a rest day runs to twelve hours of planned work', () =>
+		writes(day(REST, span('08:00', '20:00'))).pipe(
+			Effect.map((got) => assert.equal(got, 'written'))
+		)
+	);
+	it.live('on a rest day, not past them', () =>
+		writes(day(REST, span('08:00', '20:30'))).pipe(
+			Effect.map((got) => assert.match(got, /ROSTER_DAILY_TOTAL/))
+		)
+	);
+	it.live('on a workday counts its eight-hour shift', () =>
+		writes(day(WORK, span('16:00', '20:00'))).pipe(
+			Effect.map((got) => assert.equal(got, 'written'))
+		)
+	);
+	it.live('so overtime past four hours after it is refused', () =>
+		writes(day(WORK, span('16:00', '20:30'))).pipe(
+			Effect.map((got) => assert.match(got, /ROSTER_DAILY_TOTAL/))
+		)
+	);
+	// EA s.60A(1)(a) and proviso (i): five hours at most between breaks of thirty minutes
+	it.live('takes a recorded thirty-minute break after five hours', () =>
+		writes(day(REST, span('08:00', '17:00', ['13:00', '13:30']))).pipe(
+			Effect.map((got) => assert.equal(got, 'written'))
+		)
+	);
+	it.live('but not a fifteen-minute one, which does not break the run', () =>
+		writes(day(REST, span('08:00', '14:00', ['11:00', '11:15']))).pipe(
+			Effect.map((got) => assert.match(got, /ROSTER_CONTINUOUS_HOURS/))
+		)
+	);
+	it.live('nor a span that records no break at all', () =>
+		writes(day(REST, { ...span('08:00', '14:00'), breaks: [] })).pipe(
+			Effect.map((got) => assert.match(got, /ROSTER_CONTINUOUS_HOURS/))
+		)
+	);
+	it.live('while a workbook span, net of breaks it cannot hold, is judged on its hours alone', () =>
+		writes(day(REST, span('08:00', '16:00'))).pipe(
+			Effect.map((got) => assert.equal(got, 'written'))
+		)
+	);
 });

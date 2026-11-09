@@ -1,5 +1,6 @@
 // PAYEE is a Bukan Pegawai: tax withholding continues, but the employee registration and separation duties do not.
-// Personal-data disposal still applies because the person remains a data subject.
+// Personal-data disposal still applies because the person remains a data subject. A moved or cancelled exit waives the
+// open duties of the exit it replaced.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
@@ -8,6 +9,7 @@ import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 type Effect = {
 	readonly code: string;
 	readonly condition?: string;
+	readonly effects?: string;
 	readonly lookup?: Record<string, unknown>;
 };
 const effects = JSON.parse(
@@ -56,6 +58,7 @@ const holds = (code: string, entry: object) =>
 		{
 			lookup: effectOf(code).lookup ?? {},
 			entry,
+			after: entry,
 			reads: { obligation: [], employee_contract: [] }
 		},
 		code
@@ -67,5 +70,45 @@ describe('ID PAYEE statutory duties', () => {
 	});
 	it('personal-data disposal still reaches the payee', () => {
 		assert.equal(holds('PERSONAL_DATA_DISPOSAL', payee), true);
+	});
+});
+
+describe('ID exit duties', () => {
+	const run = (code: string, after: object | null, obligation: readonly object[]) =>
+		evaluate(
+			effectOf(code).effects!,
+			'CALCULATION',
+			{ lookup: effectOf(code).lookup ?? {}, entry: payee, after, reads: { obligation } },
+			code
+		) as readonly { readonly target?: string; readonly occurrence_key?: string }[];
+	const task = (code: string, to: string, state = 'OPEN') => ({
+		id: `${code}@${to}`,
+		occurrence_key: `${code}:contract-1:exit:${to}`,
+		state
+	});
+	const held = [
+		task('PERSONAL_DATA_DISPOSAL', '2026-05-31'),
+		task('TERMINATION_REPORT', '2026-05-31', 'DONE'),
+		task('PERSONAL_DATA_DISPOSAL', '2026-06-30'),
+		{ id: 'hire', occurrence_key: 'PTKP_STATUS_AT_HIRE:contract-1', state: 'OPEN' }
+	];
+	it('are keyed by employment and exit date', () => {
+		assert.equal(
+			run('PERSONAL_DATA_DISPOSAL', payee, [])[0]?.occurrence_key,
+			'PERSONAL_DATA_DISPOSAL:contract-1:exit:2026-06-30'
+		);
+	});
+	it('a moved exit waives the open duties of the earlier date', () => {
+		assert.equal(holds('retract-exit-effects', payee), false);
+		assert.deepEqual(
+			run('retract-exit-effects', payee, held).map((change) => change.target),
+			['PERSONAL_DATA_DISPOSAL@2026-05-31']
+		);
+	});
+	it('a cancelled exit waives every open exit duty', () => {
+		assert.deepEqual(
+			run('retract-exit-effects', null, held).map((change) => change.target),
+			['PERSONAL_DATA_DISPOSAL@2026-05-31', 'PERSONAL_DATA_DISPOSAL@2026-06-30']
+		);
 	});
 });

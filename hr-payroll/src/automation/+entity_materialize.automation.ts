@@ -90,6 +90,7 @@ export default automation('entity_materialize', {
 									time_zone: next.time_zone ?? null,
 									final_pay_loan_floor_percent: next.final_pay_loan_floor_percent ?? 10,
 									overtime_full_award_percent: next.overtime_full_award_percent ?? 100,
+									pay_methods: next.pay_methods ?? null,
 									bank: next.bank ?? open.bank ?? null,
 									entity_extension_data: next.entity_extension_data ?? {},
 									effective_range: { from: on, to: null },

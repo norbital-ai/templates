@@ -1,5 +1,5 @@
 // What Chinese statute and the Shanghai and Kunming rules condition on leave and its pay: dated facts open the days, a
-// region picks its figure, and a share the wage does not pay is a line. The figures are synthetic: these prove the
+// region picks its figure, and a share the wage does not pay comes off the salary. The figures are synthetic: these prove the
 // mechanism, not the seeded law.
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
@@ -12,7 +12,8 @@ import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { payBasis } from '../src/lib/payroll_engine/engine.ts';
+import { paidShareOf, payBasis } from '../src/lib/payroll_engine/engine.ts';
+import { eventOn, eventsOf } from '../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
@@ -54,17 +55,9 @@ const personOf = ({
 	term_facts = {},
 	started = '2020-01-01'
 }: Person): LeavePerson => {
-	const native = {
-		...(typeof facts.only_child === 'boolean' ? { only_child: facts.only_child } : {}),
-		...(typeof facts.dependents_count === 'number'
-			? { dependents_count: facts.dependents_count }
-			: {}),
-		...(Array.isArray(facts.children) ? { children: facts.children } : {})
-	};
+	const native = Array.isArray(facts.family) ? { family: facts.family } : {};
 	const extensionFacts = Object.fromEntries(
-		Object.entries(facts).filter(
-			([key]) => !['only_child', 'dependents_count', 'children'].includes(key)
-		)
+		Object.entries(facts).filter(([key]) => key !== 'family')
 	);
 	return {
 		started,
@@ -257,7 +250,15 @@ describe('a region picks the days', () => {
 			days_by_region: [{ region: 'SH', days: 2, only_child_days: 5 }]
 		};
 		assert.equal(yearly('ELDER_CARE_LEAVE', {}, '2026-06-15', law), 2);
-		assert.equal(yearly('ELDER_CARE_LEAVE', { facts: { only_child: true } }, '2026-06-15', law), 5);
+		assert.equal(
+			yearly(
+				'ELDER_CARE_LEAVE',
+				{ facts: { statutory: { IIT: { elderly_support_only_child: true } } } },
+				'2026-06-15',
+				law
+			),
+			5
+		);
 		assert.equal(yearly('ELDER_CARE_LEAVE', { region: 'KM' }, '2026-06-15', law), 0);
 	});
 });
@@ -330,7 +331,10 @@ type Pay = {
 	readonly law?: JsonObject;
 };
 const JUNE = { from: '2026-06-01', to: '2026-06-30' };
-/** A 22-working-day June: a day of this salary is 100. */
+/**
+ * A 22-working-day June: a day of this salary is 100. What the run takes for the entry: an encashment pays its payout;
+ * a day taken comes off at the day's share of the salary for each slot's unpaid part, `1 − paid_share`.
+ */
 const lineOf = (
 	code: string,
 	version: number,
@@ -350,41 +354,50 @@ const lineOf = (
 	}: Pay
 ) => {
 	const row = leaveRow(code, version);
-	return Number(
-		evaluate(
-			String(row.conversion),
-			'CALCULATION',
-			{
-				subject: {
-					employment: {
-						effective_range: { from: started, to },
-						terms: { rate, normal_days_per_week: 5 },
-						events,
-						employee_extension_data: { ...term_facts }
-					},
-					employer: {
-						entity_extension_data: { region, ...(zone === undefined ? {} : { wage_zone: zone }) },
-						payment_schedule: { non_working_weekdays: [0, 6] }
-					}
-				},
-				entry: { days, quantity: days.length / 2, encashment },
-				lookup: { ...objectValue(row.lookup), ...law },
-				run: { salary_coverage: coverage },
-				work: { days: [] },
-				calendar_days:
-					(Date.parse(`${coverage.to}T00:00:00Z`) - Date.parse(`${coverage.from}T00:00:00Z`)) /
-						86_400_000 +
-					1,
-				working_days: workingDays(coverage),
-				// what the law's own divisor prices a month at, as the engine's day rate does
-				month_wage: day_rate * Number(objectValue(law).monthly_divisor ?? 21.75),
-				day_rate,
-				hour_rate: day_rate / 8,
-				as_of: coverage.to
+	const lookup = { ...objectValue(row.lookup), ...law };
+	const context = {
+		subject: {
+			employment: {
+				effective_range: { from: started, to },
+				terms: { rate, normal_days_per_week: 5 },
+				events,
+				employee_extension_data: { ...term_facts }
 			},
-			`${code}.conversion`
-		)
-	);
+			employer: {
+				entity_extension_data: { region, ...(zone === undefined ? {} : { wage_zone: zone }) },
+				payment_schedule: { non_working_weekdays: [0, 6] }
+			}
+		},
+		entry: { days, quantity: days.length / 2, encashment },
+		lookup,
+		run: { salary_coverage: coverage },
+		work: { days: [] },
+		calendar_days:
+			(Date.parse(`${coverage.to}T00:00:00Z`) - Date.parse(`${coverage.from}T00:00:00Z`)) /
+				86_400_000 +
+			1,
+		working_days: workingDays(coverage),
+		// what the law's own divisor prices a month at, as the engine's day rate does
+		month_wage: day_rate * Number(objectValue(law).monthly_divisor ?? 21.75),
+		day_rate,
+		hour_rate: day_rate / 8,
+		as_of: coverage.to
+	};
+	if (encashment)
+		return Number(evaluate(String(row.payout), 'CALCULATION', context, `${code}.payout`));
+	// a salary's day is its share of the month's working days; a day rate is its own day
+	const dayPay =
+		rate.unit === 'MONTHLY' ? Number(rate.amount) / workingDays(coverage) : Number(rate.amount);
+	const held = eventsOf({ events });
+	return days.reduce((total, slot) => {
+		const date = String(slot.date);
+		const share = paidShareOf(row, () => ({
+			...context,
+			as_of: date,
+			event: eventOn(lookup, held, date) ?? null
+		}));
+		return total + (dayPay * (1 - share)) / 2;
+	}, 0);
 };
 /** The working days of a coverage period, as the engine counts them (the employer's week is Monday to Friday here). */
 const workingDays = (coverage: { from: string; to: string }) => {
@@ -580,11 +593,9 @@ describe('the only-child and high-temperature allowances', () => {
 				{
 					subject: {
 						employment: {
-							...(typeof extension.only_child === 'boolean'
-								? { only_child: extension.only_child }
-								: {}),
+							...(Array.isArray(extension.family) ? { family: extension.family } : {}),
 							employee_extension_data: Object.fromEntries(
-								Object.entries(extension).filter(([key]) => key !== 'only_child')
+								Object.entries(extension).filter(([key]) => key !== 'family')
 							)
 						},
 						employer: { entity_extension_data: { region: 'SH' } }
@@ -598,9 +609,11 @@ describe('the only-child and high-temperature allowances', () => {
 			) === true
 		);
 	};
-	it('pays the only-child allowance only when the employee fact is set', () => {
-		assert.equal(eligible('ONLY_CHILD_ALLOWANCE', { only_child: true }), true);
-		assert.equal(eligible('ONLY_CHILD_ALLOWANCE', { only_child: false }), false);
+	it('pays the only-child allowance only to the parent of one child', () => {
+		const child = { relation: 'CHILD' };
+		assert.equal(eligible('ONLY_CHILD_ALLOWANCE', { family: [child] }), true);
+		assert.equal(eligible('ONLY_CHILD_ALLOWANCE', { family: [child, child] }), false);
+		assert.equal(eligible('ONLY_CHILD_ALLOWANCE', {}), false);
 	});
 	it('pays the high-temperature allowance for a dated work event', () => {
 		const exposure = (from: string, to?: string) => [
@@ -670,12 +683,12 @@ const TERMS = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-type Seeded = Person & { readonly children?: readonly JsonObject[]; readonly account?: JsonObject };
+type Seeded = Person & { readonly family?: readonly JsonObject[]; readonly account?: JsonObject };
 const seedOf = ({
 	region = 'SH',
 	gender = 'FEMALE',
 	events = [],
-	children = [],
+	family = [],
 	facts = {},
 	term_facts = {},
 	started = '2015-01-01',
@@ -685,7 +698,7 @@ const seedOf = ({
 		'CN',
 		'Asia/Shanghai',
 		TERMS,
-		{ events, children, facts, term_facts },
+		{ events, family, facts, term_facts },
 		[],
 		[],
 		'2026-06-15'
@@ -791,7 +804,7 @@ describe('leave a person cannot take', () => {
 			);
 		}).pipe(Effect.provide(workspace({ seed: menstrual, now: NOW })))
 	);
-	const nursing = seedOf({ children: [{ born_on: '2025-06-10' }] });
+	const nursing = seedOf({ family: [{ relation: 'CHILD', born_on: '2025-06-10' }] });
 	it.live('a nursing break ends with the child’s first year', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -878,10 +891,13 @@ describe('on the ledger and the payslip', () => {
 				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]);
 			const { payslip } = yield* t.storedQuery({ payslip: { limit: 1 } });
 			const lines = Schema.decodeUnknownSync(PayslipBreakdown)(payslip.rows[0]?.breakdown).lines;
-			const line = lines.find((row) => row.code === 'SICK_LEAVE');
-			assert.equal(line?.direction, 'DEDUCT');
+			assert.equal(
+				lines.find((row) => row.code === 'SICK_LEAVE'),
+				undefined
+			);
 			const [step] = (lookupOf('SICK_LEAVE').shanghai_scale_first ?? []) as readonly JsonObject[];
-			assert.equal(line?.amount, 1000 * (1 - Number(step?.share)));
+			const expected = 22_000 - (1 - Number(step?.share)) * (22_000 / 21.75);
+			assert.equal(lines.find((row) => row.code === 'BASIC')?.amount, expected);
 		}).pipe(Effect.provide(workspace({ seed: fresh, now: NOW })))
 	);
 });

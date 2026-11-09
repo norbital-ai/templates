@@ -35,15 +35,15 @@
 	/** What each family configures, so the table is readable without opening a row. */
 	const descriptions: Record<(typeof families)[number], string> = {
 		allowance_catalog:
-			'Recurring contractual additions. Each row states who is eligible, how the amount is calculated, whether it is prorated and whether it counts toward the ordinary rate.',
+			'Recurring contractual additions. Each row states who is eligible, how the amount is calculated (a prorated amount reads the share of the period paid) and whether it counts toward the ordinary rate.',
 		overtime_catalog:
 			'Work-pattern pricing. Each row states eligibility, the paid multiplier or amount, the economic date rule and whether the line adds or deducts.',
 		statutory_contribution_catalog:
 			'Statutory schemes and their employee and employer amounts, dependencies and balance windows. The engine posts each scheme once per period.',
 		leave_catalog:
-			'Leave and absence rules. Each row states paid or unpaid treatment, eligibility, the quantity conversion and the subtotal that receives the postings.',
+			'Leave and absence rules. Each row states eligibility, what the leave is worth (empty: a normal paid day; 0: no pay) and the subtotal that receives the difference.',
 		claim_catalog:
-			'Employee claims and reimbursements. Each row states eligibility, the claim conversion, the economic date taken from the entry and the posting direction.',
+			'Employee claims and reimbursements. Each row states eligibility, what the claim reimburses and the economic date taken from the entry.',
 		adhoc_catalog:
 			'One-off payments and deductions. Each row states eligibility, conversion, off-cycle eligibility, economic date and posting direction.',
 		loan_catalog:
@@ -90,9 +90,7 @@
 					'description',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
-					'subtotal_id',
-					'party',
-					'prorate'
+					'subtotal_id'
 				]}
 			/>
 		{:else if selected === 'overtime_catalog'}<Table
@@ -133,9 +131,9 @@
 				columns={[
 					'code',
 					'description',
-					'pay_treatment',
 					{ field: 'eligibility', cell: codeCell },
-					{ field: 'conversion', cell: codeCell },
+					{ field: 'paid_share', cell: codeCell },
+					{ field: 'payout', cell: codeCell },
 					'subtotal_id'
 				]}
 			/>
@@ -149,9 +147,7 @@
 					'description',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
-					'subtotal_id',
-					'direction',
-					'party'
+					'subtotal_id'
 				]}
 			/>
 		{:else if selected === 'adhoc_catalog'}<Table

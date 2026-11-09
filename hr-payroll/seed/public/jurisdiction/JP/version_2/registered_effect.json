@@ -746,9 +746,9 @@
 	{
 		"code": "SOCIAL_INSURANCE_LOSS",
 		"name": "健康保険・厚生年金保険 被保険者資格喪失届 (social insurance exit)",
-		"description": "Raises the social-insurance loss notification when a sealed contract has an end date.",
+		"description": "Raises the social-insurance loss notification on exit.",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": ["exit"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -760,12 +760,23 @@
 				},
 				"fields": ["date"],
 				"limit": 10000
+			},
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SOCIAL_INSURANCE_LOSS:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
 			}
 		},
-		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, 'reads.obligation', []).length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.effective_range.to, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"健康保険・厚生年金保険 被保険者資格喪失届 (social insurance exit)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'SOCIAL_INSURANCE_LOSS', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.effective_range.to, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"健康保険・厚生年金保険 被保険者資格喪失届 (social insurance exit)\",\n\tdue_on: due,\n\toccurrence_key: 'SOCIAL_INSURANCE_LOSS:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to\n}];",
 		"lookup": {
 			"date_offset_days": 5
 		},
@@ -780,9 +791,9 @@
 	{
 		"code": "EMPLOYMENT_INSURANCE_LOSS",
 		"name": "雇用保険 被保険者資格喪失届・離職証明書 (employment insurance exit and separation slip)",
-		"description": "Raises the employment-insurance loss and separation-slip notification when a sealed contract has an end date.",
+		"description": "Raises the employment-insurance loss and separation-slip notification on exit.",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": ["exit"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -794,12 +805,23 @@
 				},
 				"fields": ["date"],
 				"limit": 10000
+			},
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'EMPLOYMENT_INSURANCE_LOSS:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
 			}
 		},
-		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, 'reads.obligation', []).length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.effective_range.to, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"雇用保険 被保険者資格喪失届・離職証明書 (employment insurance exit and separation slip)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'EMPLOYMENT_INSURANCE_LOSS', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.effective_range.to, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"雇用保険 被保険者資格喪失届・離職証明書 (employment insurance exit and separation slip)\",\n\tdue_on: due,\n\toccurrence_key: 'EMPLOYMENT_INSURANCE_LOSS:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to\n}];",
 		"lookup": {
 			"date_offset_days": 11
 		},
@@ -814,9 +836,9 @@
 	{
 		"code": "RESIDENT_TAX_TRANSFER",
 		"name": "給与所得者異動届出書 (resident tax special collection change)",
-		"description": "Raises the resident-tax special-collection change notification when a sealed contract ends.",
+		"description": "Raises the resident-tax special-collection change notification on exit.",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": ["exit"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -828,12 +850,23 @@
 				},
 				"fields": ["date"],
 				"limit": 10000
+			},
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'RESIDENT_TAX_TRANSFER:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
 			}
 		},
-		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, 'reads.obligation', []).length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.effective_range.to), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"給与所得者異動届出書 (resident tax special collection change)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'RESIDENT_TAX_TRANSFER', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.effective_range.to), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"給与所得者異動届出書 (resident tax special collection change)\",\n\tdue_on: due,\n\toccurrence_key: 'RESIDENT_TAX_TRANSFER:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to\n}];",
 		"lookup": {
 			"date_offset_days": 10
 		},
@@ -850,12 +883,24 @@
 		"name": "退職者の源泉徴収票の交付 (leaver's withholding slip)",
 		"description": "Raises the obligation to deliver the leaver's withholding slip within one month of exit.",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'LEAVER_WITHHOLDING_SLIP:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, 'reads.obligation', []).length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_months(ctx.entry.effective_range.to, 1);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"退職者の源泉徴収票の交付 (leaver's withholding slip)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'LEAVER_WITHHOLDING_SLIP', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
+		"effects": "const due = add_months(ctx.entry.effective_range.to, 1);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"退職者の源泉徴収票の交付 (leaver's withholding slip)\",\n\tdue_on: due,\n\toccurrence_key: 'LEAVER_WITHHOLDING_SLIP:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to\n}];",
 		"lookup": {},
 		"references": [
 			{
@@ -870,12 +915,24 @@
 		"name": "退職時の賃金の支払・金品の返還 (final wages on request)",
 		"description": "Raises the obligation to pay final wages and return property within seven days of a leaver's request.",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'FINAL_WAGES_ON_REQUEST:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, 'reads.obligation', []).length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_days(ctx.entry.effective_range.to, ctx.lookup.date_offset_days);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"退職時の賃金の支払・金品の返還 (final wages on request)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'FINAL_WAGES_ON_REQUEST', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
+		"effects": "const due = add_days(ctx.entry.effective_range.to, ctx.lookup.date_offset_days);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"退職時の賃金の支払・金品の返還 (final wages on request)\",\n\tdue_on: due,\n\toccurrence_key: 'FINAL_WAGES_ON_REQUEST:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to\n}];",
 		"lookup": {
 			"date_offset_days": 7
 		},
@@ -1573,17 +1630,32 @@
 		"description": "Raises the obligation to designate five days of annual leave on each grant day.",
 		"source_collection": "employee_contract",
 		"events": ["create", "update"],
-		"reads": {},
+		"reads": {
+			"employee_contract": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["service_started_on", "effective_range"],
+				"limit": 1
+			}
+		},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_days(add_months(ctx.entry.effective_range.from, ctx.lookup.grant_months), -1);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年次有給休暇の時季指定 (5-day designated annual leave)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_FIVE_DAY_DESIGNATION', ctx.entry.id, ctx.entry.effective_range.from])\n}];",
+		"effects": "const contract = first(ctx.reads.employee_contract) ?? ctx.entry;\nconst started = get(contract, 'service_started_on', ctx.entry.effective_range.from);\nconst months = calendar_completed_months(started, ctx.entry.effective_range.from);\nconst grant = add_months(started, ctx.lookup.grant_months + 12 * Math.max(0, Math.floor((months - ctx.lookup.grant_months) / 12)));\nconst due = add_days(add_months(grant, 12), -1);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年次有給休暇の時季指定 (5-day designated annual leave)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_FIVE_DAY_DESIGNATION', ctx.entry.id, grant])\n}];",
 		"lookup": {
-			"grant_months": 12
+			"grant_months": 6
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.39(7)–(8) with 施行規則 arts.24の5–24の7; art.120 (penalty). Raised on each grant day — 6 months after hire and every year after (the 六箇月経過日 and its anniversaries) — except for a short-week worker granted fewer than 10 days (施行規則 art.24の3: 4 days a week from 3½ years, 3 days a week from 5½ years reach 10). A grant the 80% attendance test refused (or below 10 days) raises nothing: the calendar row’s leave_balances carry the ANNUAL_LEAVE entitlement granted that day."
+				"title": "労働基準法 art.39(7)–(8) with 施行規則 arts.24の5–24の7; art.120 (penalty). Raised on each grant day — 6 months after hire and every year after (the 六箇月経過日 and its anniversaries) — except for a short-week worker granted fewer than 10 days (施行規則 art.24の3: 4 days a week from 3½ years, 3 days a week from 5½ years reach 10). A grant the 80% attendance test refused (or below 10 days) raises nothing: the calendar row’s leave_balances carry the ANNUAL_LEAVE entitlement granted that day.",
+				"locator": "第39条第7項・第8項、労働基準法施行規則第24条の5～第24条の7",
+				"url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+				"effective_from": "2019-04-01"
 			}
 		],
 		"id": "cd36d26d-2b03-59ef-8328-65091ece8f0b",
@@ -2377,12 +2449,24 @@
 		"name": "雇止めの予告 (notice of non-renewal)",
 		"description": "Raises the non-renewal notice obligation before a fixed-term contract ends.",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
-		"reads": {},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (ctx.entry.signed_contract_period == null) return false;\nif (Number(get(ctx.entry, 'employee_extension_data.renewal_count', 0)) >= ctx.lookup.renewal_count_threshold) return true;\nreturn calendar_completed_months(ctx.entry.effective_range.from, ctx.entry.effective_range.to) >= ctx.lookup.service_months_threshold;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'NON_RENEWAL_NOTICE:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, 'reads.obligation', []).length > 0) return false;\nif (ctx.entry.signed_contract_period == null) return false;\nif (Number(get(ctx.entry, 'employee_extension_data.renewal_count', 0)) >= ctx.lookup.renewal_count_threshold) return true;\nreturn calendar_completed_months(ctx.entry.effective_range.from, ctx.entry.effective_range.to) >= ctx.lookup.service_months_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_notice_days);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"雇止めの予告 (notice of non-renewal)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'NON_RENEWAL_NOTICE', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
+		"effects": "const due = add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_notice_days);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"雇止めの予告 (notice of non-renewal)\",\n\tdue_on: due,\n\toccurrence_key: 'NON_RENEWAL_NOTICE:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to\n}];",
 		"lookup": {
 			"renewal_count_threshold": 3,
 			"service_months_threshold": 12,
@@ -2444,17 +2528,32 @@
 		"description": "Raises the obligation to record the annual-leave grant in the leave register.",
 		"source_collection": "employee_contract",
 		"events": ["create", "update"],
-		"reads": {},
+		"reads": {
+			"employee_contract": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["service_started_on", "effective_range"],
+				"limit": 1
+			}
+		},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_months(ctx.entry.effective_range.from, ctx.lookup.grant_months);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年次有給休暇管理簿 (annual leave register)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_REGISTER', ctx.entry.id, ctx.entry.effective_range.from])\n}];",
+		"effects": "const contract = first(ctx.reads.employee_contract) ?? ctx.entry;\nconst started = get(contract, 'service_started_on', ctx.entry.effective_range.from);\nconst months = calendar_completed_months(started, ctx.entry.effective_range.from);\nconst grant = add_months(started, ctx.lookup.grant_months + 12 * Math.max(0, Math.floor((months - ctx.lookup.grant_months) / 12)));\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年次有給休暇管理簿 (annual leave register)\",\n\tdue_on: grant,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_REGISTER', ctx.entry.id, grant])\n}];",
 		"lookup": {
 			"grant_months": 6
 		},
 		"references": [
 			{
-				"title": "労働基準法施行規則 arts.24の7, 72 and 労働基準法 art.109, 附則 art.143: on each grant day. Only a grant made (the leave_balances entitlement): a grant refused for attendance has nothing to record."
+				"title": "労働基準法施行規則 arts.24の7, 72 and 労働基準法 art.109, 附則 art.143: on each grant day. Only a grant made (the leave_balances entitlement): a grant refused for attendance has nothing to record.",
+				"locator": "労働基準法施行規則第24条の7",
+				"url": "https://laws.e-gov.go.jp/law/322M40000100023",
+				"effective_from": "2019-04-01"
 			}
 		],
 		"id": "2c056a9f-e4a3-5341-8379-174fad09d20d",
@@ -2967,14 +3066,26 @@
 	{
 		"code": "RECORDS_RETENTION",
 		"name": "労働関係書類の保存 (retention of employment records)",
-		"description": "Raises the employment-records retention reminder when a sealed contract ends.",
+		"description": "Raises the employment-records retention reminder on exit.",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'RECORDS_RETENTION:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, 'reads.obligation', []).length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_years(ctx.entry.effective_range.to, ctx.lookup.retention_years);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"労働関係書類の保存 (retention of employment records)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'RECORDS_RETENTION', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
+		"effects": "const due = add_years(ctx.entry.effective_range.to, ctx.lookup.retention_years);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"労働関係書類の保存 (retention of employment records)\",\n\tdue_on: due,\n\toccurrence_key: 'RECORDS_RETENTION:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to\n}];",
 		"lookup": {
 			"retention_years": 5
 		},
@@ -3338,12 +3449,24 @@
 		"name": "特定個人情報・個人データの廃棄 (disposal after retention)",
 		"description": "Raises the personal-data disposal reminder after the retention period following exit.",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
-		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'PERSONAL_DATA_DISPOSAL:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+						}
+					}
+				},
+				"fields": ["occurrence_key"],
+				"limit": 1
+			}
+		},
+		"condition": "if (ctx.after == null) return false;\nif (get(ctx, 'reads.obligation', []).length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = String(Number(ctx.entry.effective_range.to.substring(0, 4)) + ctx.lookup.years_after_exit) + ctx.lookup.disposal_month_day;\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"特定個人情報・個人データの廃棄 (disposal after retention)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_DISPOSAL', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
+		"effects": "const due = String(Number(ctx.entry.effective_range.to.substring(0, 4)) + ctx.lookup.years_after_exit) + ctx.lookup.disposal_month_day;\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"特定個人情報・個人データの廃棄 (disposal after retention)\",\n\tdue_on: due,\n\toccurrence_key: 'PERSONAL_DATA_DISPOSAL:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to\n}];",
 		"lookup": {
 			"years_after_exit": 8,
 			"disposal_month_day": "-01-10"
@@ -4985,6 +5108,38 @@
 			}
 		],
 		"id": "3b561451-c50c-525d-93bd-a389b65d5f13",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "retract-exit-effects",
+		"name": "Retract Exit Effects",
+		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
+		"source_collection": "employee_contract",
+		"events": ["exit"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "occurrence_key", "state"],
+				"limit": 100
+			}
+		},
+		"condition": "const stale = (task) => String(task.occurrence_key).includes(':exit:') && (ctx.after == null || !String(task.occurrence_key).endsWith(':exit:' + ctx.entry.effective_range.to));\nreturn get(ctx, 'reads.obligation', []).some((task) => task.state === 'OPEN' && stale(task));",
+		"target_collection": "obligation",
+		"target_action": "update",
+		"effects": "const stale = (task) => String(task.occurrence_key).includes(':exit:') && (ctx.after == null || !String(task.occurrence_key).endsWith(':exit:' + ctx.entry.effective_range.to));\nconst reason = ctx.after == null ? 'A later version continues the employment; the exit was cancelled.' : 'The exit date moved; this task answered the earlier date.';\nreturn get(ctx, 'reads.obligation', []).filter((task) => task.state === 'OPEN' && stale(task)).map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
+		"lookup": {},
+		"references": [
+			{
+				"title": "健康保険法施行規則 art.29, 厚生年金保険法施行規則 art.22, 雇用保険法施行規則 art.7, 所得税法 art.226(1), 地方税法 art.321の7(1), 労働基準法 arts.23 and 109, 雇止め基準 (平成15年厚生労働省告示357号) art.1: each exit duty runs from the actual last day of employment, so a duty raised for a replaced or cancelled last day no longer stands."
+			}
+		],
+		"id": "8dc66177-26db-574b-aade-2dc75fb2a510",
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	}
 ]

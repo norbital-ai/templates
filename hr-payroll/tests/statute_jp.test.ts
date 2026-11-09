@@ -7,6 +7,7 @@ import { Effect } from 'effect';
 import { addDays, PlainDate } from '@norbital-ai/std/date';
 import { entitlementOf, type LeavePerson } from '../src/lib/ledger/entitlement.ts';
 import { entitlementPlans } from '../src/lib/ledger/service.ts';
+import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { dateWeekday } from '../src/lib/payroll_engine/time_evidence.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
@@ -28,13 +29,14 @@ import {
 } from './kit.ts';
 
 const LEAVE = read('seed/public/jurisdiction/JP/version_17/leave_catalog.json');
+const OVERTIME = read('seed/public/jurisdiction/JP/version_17/overtime_catalog.json');
 const lookupOf = (code: string) => objectValue(LEAVE.find((row) => row.code === code)?.lookup);
 const person = (
 	terms: JsonObject,
 	extension: JsonObject = {},
 	started = '2024-01-01'
 ): LeavePerson => {
-	const { events, children, ...facts } = extension;
+	const { events, family, ...facts } = extension;
 	return {
 		started,
 		partTime: false,
@@ -45,7 +47,7 @@ const person = (
 			service_started_on: started,
 			terms,
 			...(Array.isArray(events) ? { events } : {}),
-			...(Array.isArray(children) ? { children } : {}),
+			...(Array.isArray(family) ? { family } : {}),
 			employee_extension_data: facts
 		}
 	};
@@ -425,6 +427,74 @@ describe('the attendance review on an annual leave grant day', () => {
 			yield* take(t, seed, 'CHILDCARE_LEAVE', AWAY);
 			yield* run(t);
 			assert.deepEqual(yield* reviews(t), []);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+	});
+});
+
+describe('rest-day work', () => {
+	const row = OVERTIME.find((item) => item.code === 'REST_DAY_WORK');
+	const pay = (employer: JsonObject) =>
+		evaluate(
+			String(row?.conversion),
+			'CALCULATION',
+			{
+				hour_rate: 2000,
+				lookup: objectValue(row?.lookup),
+				work: { days: [{ date: '2026-07-05', day_type: 'REST', worked_hours: 8 }] },
+				subject: { employment: {}, employer }
+			},
+			'REST_DAY_WORK'
+		);
+	it('pays the employer’s own multiple only where it pays more than the statute', () => {
+		assert.equal(pay({}), 8 * 2000 * 1.35);
+		assert.equal(pay({ pay_methods: { rest_day_hourly_multiplier: 1.25 } }), 8 * 2000 * 1.35);
+		assert.equal(pay({ pay_methods: { rest_day_hourly_multiplier: 1.5 } }), 8 * 2000 * 1.5);
+	});
+});
+
+describe('an exit', () => {
+	const DUTY =
+		/^(SOCIAL_INSURANCE_LOSS|EMPLOYMENT_INSURANCE_LOSS|RESIDENT_TAX_TRANSFER|LEAVER_WITHHOLDING_SLIP|FINAL_WAGES_ON_REQUEST|RECORDS_RETENTION|PERSONAL_DATA_DISPOSAL):/;
+	const duties = (t: Kit) =>
+		t
+			.storedQuery({ obligation: { limit: 1000 } })
+			.pipe(
+				Effect.map(({ obligation }) =>
+					obligation.rows.filter((row) => DUTY.test(row.occurrence_key))
+				)
+			);
+	const end = (t: Kit, to: string) =>
+		t.as(t.admin).act('employee_contract.update', [
+			{
+				target: CONTRACT,
+				set: {
+					effective_range: { from: PlainDate('2025-11-03'), to: PlainDate(to) },
+					reason: 'Resignation'
+				}
+			}
+		]);
+	it.live('raises its duties from the last day; a moved day waives the old ones', () => {
+		const seed = seedOf();
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* end(t, '2026-07-31');
+			yield* t.runDue();
+			const first = yield* duties(t);
+			assert.equal(first.length, 7);
+			// the loss day is 1 August; five days counting it
+			assert.equal(
+				String(
+					first.find((row) => row.occurrence_key.startsWith('SOCIAL_INSURANCE_LOSS:'))?.due_on
+				),
+				'2026-08-05'
+			);
+			yield* end(t, '2026-08-31');
+			yield* t.runDue();
+			const moved = yield* duties(t);
+			assert.equal(moved.filter((row) => row.state === 'WAIVED').length, 7);
+			const open = moved.filter((row) => row.state === 'OPEN');
+			assert.equal(open.length, 7);
+			assert.ok(open.every((row) => row.occurrence_key.endsWith(`${CONTRACT}:exit:2026-08-31`)));
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });

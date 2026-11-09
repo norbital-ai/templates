@@ -354,11 +354,11 @@ describe('what cannot be done to the ledger, an admin included', () => {
 					}
 				])
 			);
-			assert.match(String(row), /Only posting and sync/);
+			assert.match(String(row), /Only posting, sync and HR's manual adjustments/);
 			const cell = yield* Effect.flip(
 				t.as(t.admin).act('employee_balance.update', [{ target: balance.id, set: { account: {} } }])
 			);
-			assert.match(String(cell), /Only posting and sync/);
+			assert.match(String(cell), /Only the ledger moves a balance/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('reverses no entry a run has not sealed: that one is deleted', () =>
@@ -461,6 +461,87 @@ describe('what cannot be done to the ledger, an admin included', () => {
 			assert.match(String(twice), new RegExp(`already covers ${OCTOBER}`));
 			yield* reverse(t, id);
 			yield* take(t, OCTOBER);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	const reversalOf = (t: Kit, id: Id<'leave_catalog_entry'>) =>
+		t
+			.storedQuery({ leave_catalog_entry: { where: { reverses: { eq: id } }, limit: 1 } })
+			.pipe(Effect.map(({ leave_catalog_entry }) => leave_catalog_entry.rows[0]?.id));
+	const cancel = (t: Kit, id: Id<'leave_catalog_entry'>) =>
+		reversalOf(t, id).pipe(
+			Effect.flatMap((target) =>
+				hr(t).act('leave_catalog_entry.delete', target === undefined ? [] : [{ target }])
+			)
+		);
+	it.live('deletes a reversal no run has paid: the balance and the original stand', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const id = yield* taken(t);
+			const before = yield* accountsIn(t);
+			yield* reverse(t, id);
+			assert.notDeepEqual(yield* accountsIn(t), before);
+			yield* cancel(t, id);
+			yield* t.runDue();
+			assert.equal(yield* reversalOf(t, id), undefined);
+			assert.deepEqual(yield* accountsIn(t), before);
+			yield* reverse(t, id);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('keeps a reversal a run has paid', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const id = yield* taken(t);
+			yield* reverse(t, id);
+			yield* pay(t, '2026-11');
+			assert.match(String(yield* Effect.flip(cancel(t, id))), /paid this reversal/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('keeps a reversal whose freed half-day is booked again', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const id = yield* taken(t);
+			yield* reverse(t, id);
+			yield* take(t, OCTOBER);
+			assert.match(String(yield* Effect.flip(cancel(t, id))), /already covers 2026-10-05/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+});
+
+describe('a claim reversal', () => {
+	const hr = (t: Kit) => t.as(t.member(['hr_controller']));
+	const reversalOf = (t: Kit, id: Id<'claim_catalog_entry'>) =>
+		t
+			.storedQuery({ claim_catalog_entry: { where: { reverses: { eq: id } }, limit: 1 } })
+			.pipe(Effect.map(({ claim_catalog_entry }) => claim_catalog_entry.rows[0]?.id));
+	const cancel = (t: Kit, id: Id<'claim_catalog_entry'>) =>
+		reversalOf(t, id).pipe(
+			Effect.flatMap((target) =>
+				hr(t).act('claim_catalog_entry.delete', target === undefined ? [] : [{ target }])
+			)
+		);
+	it.live('no run has paid is cancelled by deleting it; once paid, it stands', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* hr(t).act('claim_catalog_entry.create', [entry(300)]);
+			yield* run(t);
+			yield* t.runDue();
+			const [first] = (yield* t.storedQuery({ claim_catalog_entry: { limit: 1 } }))
+				.claim_catalog_entry.rows;
+			assert.ok(first !== undefined);
+			const back = [{ ...entry(300), incurred_on: PlainDate('2026-12-03'), reverses: first.id }];
+			yield* hr(t).act('claim_catalog_entry.create', back);
+			assert.equal(yield* used(t), 0);
+			yield* cancel(t, first.id);
+			yield* t.runDue();
+			assert.equal(yield* reversalOf(t, first.id), undefined);
+			assert.equal(yield* used(t), 300);
+			yield* hr(t).act('claim_catalog_entry.create', back);
+			yield* run(t, '2026-12');
+			yield* t.runDue();
+			assert.match(String(yield* Effect.flip(cancel(t, first.id))), /locked/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });

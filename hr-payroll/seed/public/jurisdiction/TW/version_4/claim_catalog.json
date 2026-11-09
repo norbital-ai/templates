@@ -11,8 +11,6 @@
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= ctx.run.salary_coverage.from)) return false;\nreturn ctx.entry.incurred_on <= ctx.run.salary_coverage.to;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "d6eb088a-8208-5cd6-bd95-3c3eca5832c3",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"description": "Business expense reimbursement."

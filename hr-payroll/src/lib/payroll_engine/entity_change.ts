@@ -6,6 +6,7 @@ const ROOTS = new Set([
 	'time_zone',
 	'final_pay_loan_floor_percent',
 	'overtime_full_award_percent',
+	'pay_methods',
 	'bank',
 	'entity_extension_data'
 ]);

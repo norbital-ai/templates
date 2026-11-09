@@ -28,7 +28,7 @@ describe('HRD levy', () => {
 				},
 				lookup: hrdf.lookup,
 				// overtime sits above WAGE_ARREARS, so the levy never sees it
-				subtotals: { WAGE_ARREARS: 3000, ORDINARY_WAGES: 3500 }
+				subtotals: { WAGE_ARREARS: 3000, ORDINARY_WAGES: 3500, OFFICIAL_TRAVEL: 0, FINAL_PAY: 0 }
 			},
 			'HRDF'
 		);

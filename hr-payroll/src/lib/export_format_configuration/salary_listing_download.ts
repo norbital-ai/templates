@@ -31,13 +31,14 @@ const listingRead = Effect.fn('payroll.listingRead')(function* (ids: readonly Id
 		'payslip.employment_id': {
 			fields: [
 				'employee_number',
-				'employee_name',
+				'employee_id',
 				'terms',
 				'payroll',
 				'service_started_on',
 				'effective_range'
 			]
-		}
+		},
+		'payslip.employment_id.employee_id': { fields: ['name'] }
 	});
 	const { employee_contract: versions } = yield* bolt.query({
 		employee_contract: {

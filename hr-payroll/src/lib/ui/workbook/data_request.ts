@@ -384,10 +384,7 @@ export const profileColumns: readonly SheetColumn[] = [
 	column('Full Name', 'text', ['name'], '', { required: true }),
 	column('Email', 'text', ['email'], ''),
 	column('Phone', 'text', ['phone'], '', { help: 'With country code.' }),
-	column('Address', 'text', ['address'], ''),
-	column('First Hired On', 'date', ['first_hired_on'], '', {
-		help: 'The first day this person joined the group. It stays across transfers.'
-	})
+	column('Address', 'text', ['address'], '')
 ];
 
 /** The contract terms an allowance reads: `terms.allowances.<KEY>.amount`, by its catalogue's lookup or formula. */
@@ -732,7 +729,6 @@ export type DataRequestKnown = {
 		readonly email: string | null;
 		readonly phone: string | null;
 		readonly address: string | null;
-		readonly first_hired_on: string | null;
 		readonly source_reference: string | null;
 	}[];
 	readonly contracts: readonly {
@@ -1072,11 +1068,7 @@ export const planDataRequest = (
 		contracts.push({
 			company: row.company,
 			number: row.key,
-			row: jsonObject({
-				...row.model,
-				input_schema_version_id: versionFor(known.versions, row.from) ?? known.settings.id,
-				status: 'DRAFT'
-			})
+			row: jsonObject({ ...row.model, status: 'DRAFT' })
 		});
 	}
 

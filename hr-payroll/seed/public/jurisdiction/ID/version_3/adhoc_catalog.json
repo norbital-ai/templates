@@ -539,14 +539,14 @@
 		},
 		"references": [
 			{
-				"title": "PP 35/2021 art.53(1)–(2): a worker detained by the authorities on suspicion of a crime is not paid the wage, but the employer gives the dependants aid — 25% of the wage for one dependant, 35% for two, 45% for three, 50% for four or more (`terms.dependents_count`) — for at most 6 months from the first day of detention: one entry a month, a seventh is refused.",
+				"title": "PP 35/2021 art.53(1)–(2): a worker detained by the authorities on suspicion of a crime is not paid the wage, but the employer gives the dependants aid — 25% of the wage for one dependant, 35% for two, 45% for three, 50% for four or more (the `family` members without income) — for at most 6 months from the first day of detention: one entry a month, a seventh is refused.",
 				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
 			}
 		],
 		"off_cycle_eligible": false,
 		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
-		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nreturn get(employment, 'dependents_count', 0) >= 1;",
-		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst dependants = Math.min(get(ctx.subject.employment, 'dependents_count', 0), 4);\nreturn monthly * get(ctx.lookup.dependants_share, String(dependants), 0);",
+		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nreturn get(employment, 'family', []).filter((member) => get(member, 'has_income', null) !== true).length >= 1;",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst dependants = Math.min(get(ctx.subject.employment, 'family', []).filter((member) => get(member, 'has_income', null) !== true).length, 4);\nreturn monthly * get(ctx.lookup.dependants_share, String(dependants), 0);",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "a8821671-bdf2-5f6c-85ef-61d5440cf6e7",

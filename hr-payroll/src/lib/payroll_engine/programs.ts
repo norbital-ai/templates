@@ -43,6 +43,7 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'month_wage',
 			'day_rate',
 			'hour_rate',
+			'paid_share',
 			'run',
 			'as_of'
 		],
@@ -65,18 +66,19 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'allowance',
 			'overtime',
 			'work',
+			'leave',
 			'run',
 			'as_of'
 		],
 		outputs: { eligibility: boolean, employee_amount: number, employer_amount: number }
 	},
 	leave_catalog: {
+		// a `paid_share` slot also reads its date as `as_of`, the `event` that opened the row and the days `used` before it
 		roots: [
 			'work_events',
 			'entry',
 			'subject',
 			'lookup',
-			'base_pay',
 			'calendar_days',
 			'working_days',
 			'month_wage',
@@ -84,9 +86,11 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'hour_rate',
 			'work',
 			'run',
-			'as_of'
+			'as_of',
+			'event',
+			'used'
 		],
-		outputs: { eligibility: boolean, conversion: number }
+		outputs: { eligibility: boolean, paid_share: number, payout: number }
 	},
 	claim_catalog: {
 		roots: [

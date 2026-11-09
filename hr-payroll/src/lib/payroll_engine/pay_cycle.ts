@@ -1,5 +1,7 @@
 import { addDays, addMonths, monthOf, PlainDate } from '@norbital-ai/std/date';
-import { isJsonObject, type JsonObject } from './foundation.js';
+import { Effect } from 'effect';
+import { isJsonObject, Refusal, type JsonObject } from './foundation.js';
+import { queryRows, type Reader } from './reads.js';
 
 export interface PayWindow {
 	readonly from: string;
@@ -76,3 +78,72 @@ export const attendanceOf = (schedule: JsonObject, salary: PayWindow): PayWindow
 		to: String(addDays(`${salary.from.slice(0, 7)}-${pad(day)}`, -1))
 	};
 };
+
+/** The payroll period a day falls in, by the entity's own schedule: monthly, semi-monthly or ten-day. */
+export const payPeriodOf = (date: string, schedule: JsonObject): string => {
+	const month = date.slice(0, 7);
+	const dayOf = Number(date.slice(8, 10));
+	const frequency = String(schedule.frequency ?? 'MONTHLY');
+	const cutoff = Number(schedule.pay_cutoff_day ?? 1);
+	const shifted = (value: string, by: number) => addMonths(`${value}-01`, by).slice(0, 7);
+	if (frequency === 'TEN_DAY')
+		return cutoff <= 1
+			? `${month}-${Math.ceil(dayOf / 10)}`
+			: dayOf < cutoff
+				? `${month}-1`
+				: `${shifted(month, 1)}-1`;
+	if (frequency !== 'SEMI_MONTHLY')
+		return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;
+	const part = dayOf <= 15 ? 1 : 2;
+	if (cutoff <= 1) return `${month}-${part}`;
+	return part === 1 ? `${month}-2` : `${shifted(month, 1)}-1`;
+};
+
+/**
+ * The paid-run lock for attendance: a roster day or an instalment dated in attendance an on-cycle run has already priced
+ * would never be paid or deducted, so its write is refused. An unposted run is no run yet and blocks nothing.
+ */
+export const assertUnpriced = Effect.fn('payroll.assertUnpriced')(function* (
+	read: Reader,
+	days: readonly { readonly employment: string; readonly date: string }[],
+	remedy: string
+) {
+	const [first] = days.map(({ date }) => date).sort();
+	if (first === undefined) return;
+	const known = yield* queryRows(read, {
+		employee_contract: {
+			where: { id: { in: [...new Set(days.map(({ employment }) => employment))] } },
+			fields: ['entity_id'],
+			limit: 10000
+		},
+		entity: { fields: ['payment_schedule'], limit: 10000 },
+		// a day is attended by its own month's cycle or the next one's
+		payroll_run: {
+			where: { kind: { eq: 'ON_CYCLE' }, period: { gte: first.slice(0, 7) } },
+			fields: ['entity_id', 'period'],
+			limit: 10000
+		}
+	});
+	const entityOf = new Map(
+		(known.employee_contract ?? []).map((row) => [String(row.id), String(row.entity_id)])
+	);
+	const schedule = new Map(
+		(known.entity ?? []).map((row) => [
+			String(row.id),
+			isJsonObject(row.payment_schedule) ? row.payment_schedule : {}
+		])
+	);
+	const ran = new Set(
+		(known.payroll_run ?? []).map((row) => `${String(row.entity_id)}/${String(row.period)}`)
+	);
+	const priced = days.find(({ employment, date }) => {
+		const entity = entityOf.get(employment) ?? '';
+		return ran.has(`${entity}/${payPeriodOf(date, schedule.get(entity) ?? {})}`);
+	});
+	if (priced !== undefined)
+		return yield* Effect.fail(
+			new Refusal({
+				message: `${priced.date} is in attendance a payroll run has already priced. ${remedy}`
+			})
+		);
+});

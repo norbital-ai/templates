@@ -103,7 +103,7 @@ None.
 
 - Entity E with a sealed first `entity_profile_version`. Expected: exactly one each of the seven one-time employer registrations (HDMF, BIR withholding agent, SSS, PhilHealth, DOLE, DPO, NPC), keyed by `entity_id`; one NPC renewal keyed by `entity_id:<renewal_year>` when `entity_extension_data.npc_registered_on` is recorded.
 - True leaver L: monthly basic 30,000, 5-day week, effective 2026-01-01, open-ended, `DRAFT`. Seal L. Expected: exactly one SSS, PhilHealth, HDMF and BIR TIN registration obligation each, keyed by `employee_id`; no exit obligations.
-- Edit L's `employee_name` (a later edit). Expected: no new registration obligations.
+- Edit L's `reason` (a later edit). Expected: no new registration obligations.
 - Set L's `effective_range.to = 2026-06-30` with no successor. Expected: exactly one `encash-leave-on-exit`, one `raise-exit-pay`, one `FINAL_PAY_RELEASE`, one HDMF separation, one PhilHealth separation and one personal-data-disposal obligation each, keyed by the contract; one twin-notice only if the just-cause fact is true (section 4).
 - Repeat the same update. Expected: no new obligations.
 - Void a sealed contract with a reason (`status = VOID`). Expected: no new registration or exit obligations; the void transition is not a seal and not an exit.
@@ -545,4 +545,20 @@ None; `occurred_on` and `opened_on` with the help text above.
   - remittance effects read the run's payslips and gate on scheme/loan/FBT presence, never amount;
   - `PAYEE` is excluded from the PH SSS/SSS_MPF/SSS_EC/PHIC/HDMF contribution rows.
 - `just_cause_dismissal`, NPC 5 days, `scheduled_on` planned duties, WAIR `occurred_on ?? opened_on`, and annual duty keys were already present in version_2; source inspection only.
-- **Implemented:** `contract_exit` is a separate model written by the `contract_exits` automation when an ended contract has no same-jurisdiction successor. The six exit effects now run on `contract_exit.create`; a pay-bump pair creates no exit row and raises no exit duty. The pay-bump pair regression test is in `tests/statute_ph_id.test.ts`.
+- **Implemented:** an exit is read from the contract chain: the contract's write raises `exit` when an ended version has no same-jurisdiction successor, or when its date moves or a successor cancels it. The six exit effects run on `employee_contract` `exit`, keyed by the employment and exit date; `retract-exit-effects` waives the open ones of a moved or cancelled exit. A pay-bump pair raises no exit duty. The pay-bump pair regression test is in `tests/statute_ph_id.test.ts`.
+
+## Seed round 3 (2026-11-10)
+
+- `ANNUAL_LEAVE` (versions 1 and 2) is encashable: `payout` = the day rate × the days (Labor Code art.95; Omnibus Rules
+  Book III Rule V s.5: unused service incentive leave is commutable to cash), paid in `ADDITIONAL_WAGES`, the other-benefits
+  pool (NIRC s.32(B)(7)(e)). The exit automation now raises it for HR approval. `ANNUAL_LEAVE_DOMESTIC` stays without one
+  (RA 10361 s.29: not convertible to cash); paternity, VAWC, solo-parent and special leave for women are not convertible
+  by their own Acts.
+- Every other leave row's share stands against its statute: no statute pays medical, emergency, compassionate or
+  hospitalisation leave (`paid_share` 0; an employer that pays them sets its own row in Settings); maternity leave is
+  paid by the SSS benefit and salary differential adhoc rows (RA 11210 s.5), its extension is unpaid (s.3).
+- `NIGHT_SHIFT_DIFFERENTIAL` (versions 1 and 2) reads `pay_methods.night_differential_basis`: `CLOCK_SPAN` pays 10% of the
+  ordinary hour on the whole clocked night span, never below art.86 per shift.
+- Open: the absence deduction. The DOLE daily rate (monthly × 12 ÷ 313/261, `ctx.day_rate`) is the day an absence
+  takes; `conversions.proration` offers only `CALENDAR_DAYS` and `WORKING_DAYS`, so the run deducts the half's
+  working-days share (₱601.92 against ₱600 on a 13-day half at ₱15,650). Waiting on the owner.

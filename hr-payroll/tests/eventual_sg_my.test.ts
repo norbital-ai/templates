@@ -77,7 +77,7 @@ const enter = (
 	on: string,
 	reverses: Id<'adhoc_catalog_entry'> | null = null
 ) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed.adhoc_catalog ?? []).find((r) => r.code === item && r.settings_id === version);
 	assert.ok(row !== undefined, item);
 	return t.as(t.admin).act('adhoc_catalog_entry.create', [
@@ -267,6 +267,21 @@ describe('a contribution corrected for a closed month', () => {
 			assert.equal(line?.amount, 100);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-07-28T02:00:00.000Z' })))
 	);
+	it.live('dated two runs back, the next run pays it, and the month keeps it', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* onCycle(t, '2026-06');
+			yield* onCycle(t, '2026-07');
+			const june = (yield* scheme(t))['MY.M.2026-06-01']?.['paid'] ?? 0;
+			yield* fund(t, seed, 'EPF_REFUND');
+			yield* onCycle(t, '2026-08');
+			const [august] = yield* runs(t, '2026-08');
+			const line = august?.lines.find((row) => row.code === 'EPF_REFUND');
+			assert.equal(line?.direction, 'ADD');
+			assert.equal(line?.amount, 100);
+			assert.equal((yield* scheme(t))['MY.M.2026-06-01']?.['paid'], june - 100);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-08-28T02:00:00.000Z' })))
+	);
 	it.live('an underpayment adds to the scheme, and raises the arrears', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -339,7 +354,7 @@ describe('someone on a six-day week', () => {
 				terms: { ...terms(5200), normal_days_per_week: 6 }
 			}))
 		};
-		const version = seed.employee_contract?.[0]?.input_schema_version_id;
+		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const row = seed.leave_catalog?.find(
 			(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
 		);
@@ -396,7 +411,7 @@ describe('sick and hospitalisation leave in Singapore', () => {
 				effective_range: { from: '2024-01-01', to: null }
 			}))
 		};
-		const version = seed.employee_contract?.[0]?.input_schema_version_id;
+		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const rowOf = (code: string) => {
 			const row = seed.leave_catalog?.find(
 				(item) => item.code === code && item.settings_id === version
@@ -579,7 +594,7 @@ describe('a raise past the CPF ceiling', () => {
 
 describe('no-pay leave in Singapore', () => {
 	const noPay = (seed: Seed) => {
-		const version = seed.employee_contract?.[0]?.input_schema_version_id;
+		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const row = seed.leave_catalog?.find(
 			(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
 		);

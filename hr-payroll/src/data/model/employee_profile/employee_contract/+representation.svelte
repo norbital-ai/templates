@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { changesBetween } from '../../../../lib/payroll_engine/contract_change.js';
+	import { changesBetween, versionOn } from '../../../../lib/payroll_engine/contract_change.js';
 	import { accountsOf, latestLeft } from '../../../../lib/ledger/core.js';
 	import {
 		Button,
@@ -14,13 +14,15 @@
 		Sheet,
 		Textarea,
 		toast,
+		valueObject,
 		type FieldEditor,
-		type RecordView
+		type Kind,
+		type RecordView,
+		type Value
 	} from '@norbital-ai/ui';
 	import { Cluster, Columns, Stack } from '@norbital-ai/ui/layout';
 	import { fork, run } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
-	import { watch } from 'runed';
 	import { addDays, addMonths, monthOf, PlainDate } from '@norbital-ai/std/date';
 	import {
 		buildLoanSchedule,
@@ -36,6 +38,51 @@
 	import VersionFacts from '../../../../lib/ui/person/version_facts.svelte';
 
 	type ChangeAction = 'PROMOTION' | 'LIFE_EVENT' | 'TRANSFER' | 'TERMINATE';
+	const RELATIONS = ['CHILD', 'SPOUSE', 'PARENT'] as const;
+	/** The contract's `exit_ground`, for the termination sheet's editor. */
+	const EXIT_GROUNDS = [
+		'RETRENCHMENT',
+		'RETIREMENT',
+		'RESIGNATION',
+		'DISMISSAL',
+		'MISCONDUCT_DISMISSAL',
+		'END_OF_CONTRACT',
+		'MUTUAL',
+		'DEATH',
+		'UNILATERAL',
+		'BREACH_BY_EMPLOYER'
+	] as const;
+	const EXIT_GROUND: Kind = { kind: 'enum', values: [...EXIT_GROUNDS], optional: true };
+	/** The contract's dated `events`, for the life-event sheet's editor. */
+	const EVENTS: Kind = {
+		kind: 'list',
+		of: {
+			kind: 'object',
+			fields: {
+				kind: { kind: 'text' },
+				on: { kind: 'date' },
+				opened_on: { kind: 'date', optional: true },
+				ended_on: { kind: 'date', optional: true },
+				allocated_days: { kind: 'int', optional: true }
+			}
+		}
+	};
+	/** The contract's `family` list, for the life-event sheet's editor. */
+	const FAMILY: Kind = {
+		kind: 'list',
+		of: {
+			kind: 'object',
+			fields: {
+				relation: { kind: 'enum', values: RELATIONS },
+				born_on: { kind: 'date', optional: true },
+				expected_on: { kind: 'date', optional: true },
+				has_income: { kind: 'bool', optional: true },
+				disabled: { kind: 'bool', optional: true },
+				studying: { kind: 'bool', optional: true },
+				allocations: { kind: 'record', optional: true, of: { kind: 'number', min: 0 } }
+			}
+		}
+	};
 	type SalaryUnit = 'MONTHLY' | 'DAILY' | 'HOURLY';
 	type Engagement =
 		'EMPLOYEE' | 'PART_TIME' | 'CONTRACTOR' | 'INTERN' | 'APPRENTICE' | 'CONSULTANT' | 'PAYEE';
@@ -50,9 +97,9 @@
 	let changeSaving = $state(false);
 	let changeError = $state<string | null>(null);
 	let targetEntity = $state<Id<'entity'> | null>(null);
-	let targetSettings = $state<Id<'jurisdiction_settings'> | null>(null);
 	let lastDay = $state<PlainDate | null>(null);
 	let finalPayDueOn = $state<PlainDate | null>(null);
+	let exitGround = $state<(typeof EXIT_GROUNDS)[number] | null>(null);
 	let jobTitle = $state('');
 	let department = $state('');
 	let salaryAmount = $state<number | null>(null);
@@ -60,6 +107,8 @@
 	let engagement = $state<Engagement>('EMPLOYEE');
 	let categoryEdits = $state<Readonly<Record<string, string>>>({});
 	let extensionEdits = $state<JsonObject | null>(null);
+	let eventsEdit = $state<Value | null>(null);
+	let familyEdit = $state<Value | null>(null);
 	let expectedPayEdit = $state<number | null>(null);
 	let note = $state('');
 	let settleLoans = $state(false);
@@ -80,34 +129,42 @@
 							'employee_number',
 							'effective_range',
 							'status',
-							'input_schema_version_id',
+							'entity_id',
 							'employee_extension_data'
 						],
 						limit: 10000
 					}
 				})
 	);
-	const entities = $derived(
-		record == null
-			? null
-			: bolt.query({
-					entity: {
-						fields: ['id', 'name', 'settings_code'],
-						orderBy: { name: 'asc' },
-						limit: 1000
-					}
-				})
-	);
-	const settings = $derived(
-		record == null
-			? null
-			: bolt.query({
-					jurisdiction_settings: {
-						where: { status: { eq: 'SEALED' } },
-						fields: ['id', 'code', 'name', 'effective_range', 'currency'],
-						limit: 2000
-					}
-				})
+	const entities = bolt.query({
+		entity: {
+			fields: ['id', 'name', 'settings_code'],
+			orderBy: { name: 'asc' },
+			limit: 1000
+		}
+	});
+	const settings = bolt.query({
+		jurisdiction_settings: {
+			where: { status: { eq: 'SEALED' } },
+			fields: ['id', 'code', 'name', 'effective_range', 'currency'],
+			limit: 2000
+		}
+	});
+	const codeOf = (entity: unknown) =>
+		(entities.current?.entity.rows ?? []).find((row) => row.id === entity)?.settings_code;
+	/** A contract names no version: the law is its entity's lineage in force on a day. */
+	const lawOn = (entity: unknown, day: string) =>
+		versionOn(settings.current?.jurisdiction_settings.rows ?? [], codeOf(entity), day);
+	/** The law a contract form answers to: in force on the first day it states. */
+	const formLaw = (values: { readonly [name: string]: Value }) => {
+		const range = values['effective_range'];
+		const from = valueObject(range) && typeof range['from'] === 'string' ? range['from'] : today;
+		return lawOn(values['entity_id'], String(from))?.id ?? null;
+	};
+	const nextDay = $derived(lastDay === null ? null : addDays(lastDay, 1));
+	/** The new version's law: the target entity's lineage in force on the day it starts. */
+	const targetSettings = $derived(
+		targetEntity === null ? null : (lawOn(targetEntity, nextDay ?? today)?.id ?? null)
 	);
 	const targetConfiguration = $derived(
 		targetSettings === null
@@ -175,40 +232,23 @@
 						: undefined
 	);
 	const currentSettings = $derived(
-		(settings?.current?.jurisdiction_settings.rows ?? []).find(
-			(row) => row.id === record?.input_schema_version_id
-		)
+		record === null ? undefined : lawOn(record.entity_id, record.effective_range.from)
 	);
 	const entityOptions = $derived(
-		(entities?.current?.entity.rows ?? []).map((row) => ({
+		(entities.current?.entity.rows ?? []).map((row) => ({
 			value: row.id,
 			label: row.name
 		}))
 	);
 	const targetEntityRow = $derived(
-		(entities?.current?.entity.rows ?? []).find((row) => row.id === targetEntity)
-	);
-	const settingsOptions = $derived(
-		(settings?.current?.jurisdiction_settings.rows ?? [])
-			.filter((row) => row.code === targetEntityRow?.settings_code)
-			.toSorted((left, right) =>
-				String(right.effective_range.from).localeCompare(String(left.effective_range.from))
-			)
-			.map((row) => ({
-				value: row.id,
-				label: `${row.name} · ${String(row.effective_range.from)}`
-			}))
-	);
-	const targetSettingsRow = $derived(
-		(settings?.current?.jurisdiction_settings.rows ?? []).find((row) => row.id === targetSettings)
+		(entities.current?.entity.rows ?? []).find((row) => row.id === targetEntity)
 	);
 	const sameJurisdiction = $derived(
-		(targetSettings !== null && targetSettings === record?.input_schema_version_id) ||
-			(currentSettings !== undefined &&
-				targetSettingsRow !== undefined &&
-				currentSettings.code === targetSettingsRow.code)
+		record !== null &&
+			targetEntity !== null &&
+			codeOf(targetEntity) !== undefined &&
+			codeOf(targetEntity) === codeOf(record.entity_id)
 	);
-	const nextDay = $derived(lastDay === null ? null : addDays(lastDay, 1));
 	/** The months a contract change can start: this one, if no run has taken it, and the year ahead. */
 	const months = $derived(
 		Array.from({ length: 13 }, (_, index) => {
@@ -363,15 +403,76 @@
 			.filter(
 				(row) =>
 					row.status === 'SEALED' &&
-					(settings?.current?.jurisdiction_settings.rows ?? []).find(
-						(version) => version.id === row.input_schema_version_id
-					)?.code === targetSettingsRow?.code
+					targetEntity !== null &&
+					codeOf(row.entity_id) === codeOf(targetEntity)
 			)
 			.toSorted((left, right) =>
 				String(right.effective_range.from).localeCompare(String(left.effective_range.from))
 			)[0]?.employee_extension_data
 	);
-	const targetExtension = $derived<JsonObject>(extensionEdits ?? priorExtension ?? {});
+	/** An exit states its answers on the version it ends; any other change starts from the person's latest facts. */
+	const targetExtension = $derived<JsonObject>(
+		extensionEdits ??
+			(action === 'TERMINATE' ? record?.employee_extension_data : priorExtension) ??
+			{}
+	);
+	/** The life events as the contract stores them: the editor answers plain values. */
+	const targetEvents = $derived(
+		eventsEdit === null
+			? (record?.events ?? [])
+			: (Array.isArray(eventsEdit) ? eventsEdit : []).flatMap((item) =>
+					valueObject(item) && typeof item.kind === 'string' && typeof item.on === 'string'
+						? [
+								{
+									kind: item.kind,
+									on: PlainDate(item.on),
+									...(typeof item.opened_on === 'string'
+										? { opened_on: PlainDate(item.opened_on) }
+										: {}),
+									...(typeof item.ended_on === 'string'
+										? { ended_on: PlainDate(item.ended_on) }
+										: {}),
+									...(typeof item.allocated_days === 'number'
+										? { allocated_days: item.allocated_days }
+										: {})
+								}
+							]
+						: []
+				)
+	);
+	/** The family as the contract stores it; it carries into every new version. */
+	const targetFamily = $derived(
+		familyEdit === null
+			? (record?.family ?? [])
+			: (Array.isArray(familyEdit) ? familyEdit : []).flatMap((item) => {
+					const relation = valueObject(item)
+						? RELATIONS.find((known) => known === item.relation)
+						: undefined;
+					return valueObject(item) && relation !== undefined
+						? [
+								{
+									relation,
+									...(typeof item.born_on === 'string' ? { born_on: PlainDate(item.born_on) } : {}),
+									...(typeof item.expected_on === 'string'
+										? { expected_on: PlainDate(item.expected_on) }
+										: {}),
+									...(typeof item.has_income === 'boolean' ? { has_income: item.has_income } : {}),
+									...(typeof item.disabled === 'boolean' ? { disabled: item.disabled } : {}),
+									...(typeof item.studying === 'boolean' ? { studying: item.studying } : {}),
+									...(valueObject(item.allocations)
+										? {
+												allocations: Object.fromEntries(
+													Object.entries(item.allocations).flatMap(([code, days]) =>
+														typeof days === 'number' ? [[code, days] as const] : []
+													)
+												)
+											}
+										: {})
+								}
+							]
+						: [];
+				})
+	);
 	const transferring = $derived(action === 'TRANSFER' && !sameJurisdiction);
 	const detailsValid = $derived(
 		action === 'TERMINATE'
@@ -391,19 +492,6 @@
 							categoryFields.every((field) => field.values === undefined || field.value !== '')))
 	);
 
-	function settingsFor(code: string | undefined, fallback: Id<'jurisdiction_settings'> | null) {
-		const rows = (settings?.current?.jurisdiction_settings.rows ?? [])
-			.filter((row) => row.code === code)
-			.toSorted((left, right) =>
-				String(right.effective_range.from).localeCompare(String(left.effective_range.from))
-			);
-		const current = rows.find(
-			(row) =>
-				row.effective_range.from <= today &&
-				(row.effective_range.to == null || today <= row.effective_range.to)
-		);
-		return current?.id ?? rows[0]?.id ?? fallback;
-	}
 	function beginChange(kind: ChangeAction) {
 		if (record === null) return;
 		action = kind;
@@ -412,10 +500,13 @@
 		// only an exit keeps its own day: every other change starts on the first of a month
 		lastDay = kind === 'TERMINATE' ? today : monthOf(today).to;
 		finalPayDueOn = null;
+		exitGround = record.exit_ground ?? null;
 		note = '';
 		settleLoans = false;
 		expectedPayEdit = null;
 		extensionEdits = null;
+		eventsEdit = null;
+		familyEdit = null;
 		jobTitle = String(record.terms.job_title ?? '');
 		department = String(record.terms.department ?? '');
 		salaryAmount = record.terms.rate?.amount ?? null;
@@ -430,19 +521,9 @@
 			].map((name) => [name, String(Reflect.get(record.terms, name) ?? '')])
 		);
 		targetEntity = record.entity_id;
-		targetSettings =
-			kind === 'PROMOTION' || kind === 'LIFE_EVENT'
-				? settingsFor(currentSettings?.code, record.input_schema_version_id)
-				: settingsFor(
-						(entities?.current?.entity.rows ?? []).find((row) => row.id === record.entity_id)
-							?.settings_code,
-						record.input_schema_version_id
-					);
 	}
 	function chooseEntity(next: Id<'entity'> | null) {
 		targetEntity = next;
-		const entity = (entities?.current?.entity.rows ?? []).find((row) => row.id === next);
-		targetSettings = settingsFor(entity?.settings_code, null);
 		extensionEdits = null;
 	}
 	function closeChange() {
@@ -734,7 +815,10 @@
 							set: {
 								effective_range: { from: current.effective_range.from, to: day },
 								reason: changeNote,
-								...(finalPayDueOn === null ? {} : { final_pay_due_on: finalPayDueOn })
+								...(finalPayDueOn === null ? {} : { final_pay_due_on: finalPayDueOn }),
+								...(exitGround === null ? {} : { exit_ground: exitGround }),
+								// the exit answers the jurisdiction reads (a termination cause) go in the save that ends it
+								...(extensionEdits === null ? {} : { employee_extension_data: extensionEdits })
 							}
 						}
 					])
@@ -748,7 +832,10 @@
 				return;
 			}
 			const target = targetSettings;
-			if (target === null) throw new Error('Choose the target jurisdiction settings.');
+			if (target === null)
+				throw new Error(
+					'No sealed law of the target company is in force when this version starts.'
+				);
 			const baseTerms = { ...current.terms };
 			if (!sameJurisdiction) {
 				for (const field of categoryFields) Reflect.deleteProperty(baseTerms, field.name);
@@ -786,11 +873,15 @@
 							...changesBetween(current.engagement, engagement, 'engagement'),
 							...changesBetween(current.terms, terms, 'terms'),
 							...(kind === 'LIFE_EVENT'
-								? changesBetween(
-										current.employee_extension_data,
-										targetExtension,
-										'employee_extension_data'
-									)
+								? [
+										...changesBetween(current.events, targetEvents, 'events'),
+										...changesBetween(current.family, targetFamily, 'family'),
+										...changesBetween(
+											current.employee_extension_data,
+											targetExtension,
+											'employee_extension_data'
+										)
+									]
 								: [])
 						].map((change) => ({
 							...change,
@@ -817,15 +908,21 @@
 						terms,
 						payroll: current.payroll,
 						bank: current.bank,
-						input_schema_version_id: target,
 						employee_extension_data:
 							(transferring || kind === 'LIFE_EVENT') && targetExtensionSchema !== null
 								? targetExtension
 								: current.employee_extension_data,
+						// the person's dated facts move with them inside one jurisdiction
+						...(kind === 'LIFE_EVENT'
+							? { events: targetEvents }
+							: sameJurisdiction && current.events != null
+								? { events: current.events }
+								: {}),
+						// the family is the person's, whatever the jurisdiction
+						family: targetFamily,
 						signed_contract_period: current.signed_contract_period,
-						service_started_on: sameJurisdiction
-							? (current.service_started_on ?? current.effective_range.from)
-							: (nextDay ?? day),
+						// credited service stays with the stint; worked-out service needs no copy
+						service_started_on: sameJurisdiction ? (current.service_started_on ?? null) : null,
 						effective_range: { from: nextDay ?? day, to: null },
 						reason: `${label}${changeNote === '' ? '' : ` · ${changeNote}`}`,
 						status: 'DRAFT'
@@ -940,20 +1037,17 @@
 					? t('contract.transfer')
 					: t('contract.terminate')
 	);
-	watch(
-		() => [action, settings?.current, targetEntity] as const,
-		() => {
-			if (action === null || record === null) return;
-			if (action !== 'PROMOTION' && action !== 'LIFE_EVENT' && targetEntity !== record.entity_id)
-				return;
-			if (targetSettings !== record.input_schema_version_id) return;
-			targetSettings = settingsFor(currentSettings?.code, record.input_schema_version_id);
-		}
-	);
 </script>
 
-{#snippet extension(field: FieldEditor)}<VersionFacts {field} subject="EMPLOYEE" />{/snippet}
-{#snippet terms(field: FieldEditor)}<ContractTermsEditor {field} />{/snippet}
+{#snippet extension(field: FieldEditor)}<VersionFacts
+		{field}
+		versionId={formLaw(field.form.values)}
+		subject="EMPLOYEE"
+	/>{/snippet}
+{#snippet terms(field: FieldEditor)}<ContractTermsEditor
+		{field}
+		versionId={formLaw(field.form.values)}
+	/>{/snippet}
 
 {#snippet details()}
 	<Form
@@ -964,7 +1058,7 @@
 			: { id: record.id, record }}
 	>
 		{#snippet children()}<Columns count={2}
-				>{#each ['entity_id', 'employee_id', 'engagement', 'effective_range', 'input_schema_version_id', 'terms', 'payroll', 'employee_extension_data', 'bank', 'signed_contract_period', 'final_pay_due_on', 'reason'] as name (name)}<Field
+				>{#each ['entity_id', 'employee_id', 'engagement', 'effective_range', 'terms', 'payroll', 'employee_extension_data', 'events', 'family', 'bank', 'signed_contract_period', 'final_pay_due_on', 'reason'] as name (name)}<Field
 						{name}
 						{...name === 'employee_extension_data'
 							? { editor: extension }
@@ -982,7 +1076,9 @@
 			<span class="text-xs font-medium text-muted-foreground"
 				>{action === 'LIFE_EVENT'
 					? t('contract.life_event_data')
-					: t('contract.target_extension')}</span
+					: action === 'TERMINATE'
+						? t('contract.exit_answers')
+						: t('contract.target_extension')}</span
 			>
 			<Editor
 				id="contract-target-extension"
@@ -1081,23 +1177,30 @@
 							onChange={chooseEntity}
 						/>
 					</label>
-					<label class="grid gap-1" for="contract-target-settings">
-						<span class="text-xs font-medium text-muted-foreground"
-							>{t('contract.target_settings')}</span
-						>
-						<Combobox
-							id="contract-target-settings"
-							options={settingsOptions}
-							value={targetSettings}
-							disabled={changeSaving}
-							onChange={(next) => {
-								targetSettings = next;
-								extensionEdits = null;
-							}}
-						/>
-					</label>
 				{/if}
 				{#if action === 'LIFE_EVENT'}
+					<div class="grid gap-1">
+						<span class="text-xs font-medium text-muted-foreground">{t('contract.events')}</span>
+						<Editor
+							id="contract-events"
+							name="events"
+							kind={EVENTS}
+							value={targetEvents}
+							disabled={changeSaving}
+							onChange={(next) => (eventsEdit = next)}
+						/>
+					</div>
+					<div class="grid gap-1">
+						<span class="text-xs font-medium text-muted-foreground">{t('contract.family')}</span>
+						<Editor
+							id="contract-family"
+							name="family"
+							kind={FAMILY}
+							value={targetFamily}
+							disabled={changeSaving}
+							onChange={(next) => (familyEdit = next)}
+						/>
+					</div>
 					{@render targetFacts()}
 				{:else if action !== 'TERMINATE'}
 					<label class="grid gap-1" for="contract-change-title">
@@ -1257,6 +1360,21 @@
 					</Stack>
 				{/if}
 				{#if action === 'TERMINATE'}
+					<label class="grid gap-1" for="contract-exit-ground">
+						<span class="text-xs font-medium text-muted-foreground"
+							>{t('contract.exit_ground')}</span
+						>
+						<Editor
+							id="contract-exit-ground"
+							name="exit_ground"
+							kind={EXIT_GROUND}
+							value={exitGround}
+							disabled={changeSaving}
+							onChange={(next) =>
+								(exitGround = EXIT_GROUNDS.find((ground) => ground === next) ?? null)}
+						/>
+					</label>
+					{@render targetFacts()}
 					<label class="grid gap-1" for="contract-final-pay-due">
 						<span class="text-xs font-medium text-muted-foreground"
 							>{t('contract.final_pay_due')}</span
