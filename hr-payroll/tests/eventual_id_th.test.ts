@@ -12,17 +12,7 @@ import { lookupOf } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	WORK,
-	accountsIn,
-	pack,
-	read,
-	sealedAdhoc,
-	sealedLeave,
-	uuid,
-	workspace
-} from './kit.ts';
+import { ENTITY, WORK, accountsIn, pack, read, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate, reversalSlots } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -109,7 +99,6 @@ const enter = (
 			catalog_id: idOf('adhoc_catalog', String(row.id)),
 			description: 'Correction',
 			quantity,
-			unit: 'MONEY',
 			incurred_on: PlainDate(on),
 			reverses
 		}
@@ -662,14 +651,14 @@ describe('a lump sum across a month’s runs', () => {
 describe('a month’s second salary stands alone', () => {
 	const paidOnTheFirst = (seed: Seed): Seed => ({
 		...seed,
-		entity_profile_version: (seed.entity_profile_version ?? []).map((one) => ({
+		entity: (seed.entity ?? []).map((one) => ({
 			...one,
 			payment_schedule: {
 				frequency: 'MONTHLY',
 				business_day: 'PREVIOUS',
 				non_working_weekdays: [0, 6],
 				short_month: 'LAST_DAY',
-				anchors: [{ cycle_part: 1, day: 1, month_offset: 0 }]
+				pay_days: [1]
 			}
 		}))
 	});
@@ -720,15 +709,18 @@ const take = (
 	days: ReturnType<typeof whole>,
 	reverses: Id<'leave_catalog_entry'> | null = null
 ) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: noPay(seed, code),
-			days,
-			reverses
-		}
-	]);
+	Effect.gen(function* () {
+		const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
+		yield* t.as(t.admin).act('leave_catalog_entry.create', [
+			leaveCreate({
+				entity_id: ENTITY,
+				employment_id: CONTRACT,
+				catalog_id: noPay(seed, code),
+				days: selected,
+				reverses
+			})
+		]);
+	});
 const takenIn = (t: Kit, period: string, code: string) =>
 	runs(t, period).pipe(
 		Effect.map(([slip]) => {
@@ -801,7 +793,7 @@ describe('a no-pay day in Indonesia', () => {
 			yield* take(t, ID_SEED, code, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
 			const late = yield* Effect.flip(
-				take(t, ID_SEED, code, whole('2026-06-10'), yield* sealedLeave(t))
+				take(t, ID_SEED, code, whole('2026-06-11'))
 			);
 			assert.match(String(late), /already run/);
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
@@ -819,7 +811,7 @@ const notYetPaid = (seed: Seed, code: string, full: number) =>
 			.rows;
 		assert.ok(open !== undefined);
 		const refused = yield* Effect.flip(take(t, seed, code, whole('2026-06-10'), open.id));
-		assert.match(String(refused), /not been paid yet/);
+		assert.match(String(refused), /deleted instead/);
 		yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: open.id }]);
 		yield* onCycle(t, '2026-06');
 		assert.equal(yield* takenIn(t, '2026-06', code), undefined);
@@ -881,13 +873,8 @@ describe('a no-pay day in Thailand', () => {
 			for (const [index, item] of TH_NO_PAY.entries())
 				yield* take(t, TH_SEED, item, whole(`2026-06-${15 + index}`));
 			yield* onCycle(t, '2026-06');
-			const { leave_catalog_entry } = yield* t.storedQuery({ leave_catalog_entry: { limit: 10 } });
 			for (const item of TH_NO_PAY) {
-				const original = leave_catalog_entry.rows.find(
-					(row) => row.catalog_id === noPay(TH_SEED, item)
-				);
-				assert.ok(original !== undefined);
-				const late = yield* Effect.flip(take(t, TH_SEED, item, whole('2026-06-10'), original.id));
+				const late = yield* Effect.flip(take(t, TH_SEED, item, whole('2026-06-11')));
 				assert.match(String(late), /already run/);
 			}
 		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))
@@ -972,7 +959,7 @@ describe('the catalogs', () => {
 		['ID', ID_NO_PAY, [...ID_NO_PAY, 'MEDICAL_LEAVE', 'MATERNITY_LEAVE']],
 		['TH', TH_NO_PAY, TH_NO_PAY]
 	] as const)
-		it(`${code}: every version carries the unpaid rows and the rule that opens them`, () => {
+		it(`${code}: every version marks the unpaid rows, with the lock built in`, () => {
 			for (const version of readdirSync(join(root, code))) {
 				const leave = read(join(root, code, version, 'leave_catalog.json'));
 				const unpaid = leave.filter((one) => one.pay_treatment === 'UNPAID');
@@ -983,11 +970,10 @@ describe('the catalogs', () => {
 					assert.ok(one.subtotal_id !== null, `${version} ${one.code} posts its refund`);
 				}
 				const rules = read(join(root, code, version, 'registered_rule.json'));
-				const rule = rules.find((one) => one.code === 'NO_PAY_OPEN_PERIOD');
-				const noPay = objectValue(rule?.lookup)['no_pay'];
-				assert.deepEqual(
-					(Array.isArray(noPay) ? noPay : []).map(String).sort(),
-					[...ruleTaken].sort(),
+				// the paid-run lock is a template invariant now, not a jurisdiction rule
+				assert.equal(
+					rules.some((one) => one.code === 'NO_PAY_OPEN_PERIOD'),
+					false,
 					version
 				);
 			}

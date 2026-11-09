@@ -7,16 +7,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { Accounts } from '../src/lib/ledger/core.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	accountsIn,
-	catalogRow,
-	measureOf,
-	pack,
-	sealedLeave,
-	uuid,
-	workspace
-} from './kit.ts';
+import { ENTITY, accountsIn, catalogRow, measureOf, pack, sealedLeave, uuid, workspace, leaveCreate, reversalSlots } from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -56,15 +47,26 @@ const take = (
 	count: number,
 	reverses: Id<'leave_catalog_entry'> | null = null
 ) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
-			days: dates(from, count),
-			reverses
-		}
-	]);
+	Effect.gen(function* () {
+		const days =
+			reverses == null
+				? dates(from, count)
+				: (yield* reversalSlots(t, reverses))
+					.toSorted(
+						(left, right) =>
+							left.date.localeCompare(right.date) || left.part.localeCompare(right.part)
+					)
+					.slice(0, count * 2);
+		yield* t.as(t.admin).act('leave_catalog_entry.create', [
+			leaveCreate({
+				entity_id: ENTITY,
+				employment_id: CONTRACT,
+				catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+				days,
+				reverses
+			})
+		]);
+	});
 const usedOf = (t: Kit, code: string) =>
 	accountsIn(t).pipe(Effect.map((accounts) => measureOf(accounts, 'leave', code, 'used')));
 

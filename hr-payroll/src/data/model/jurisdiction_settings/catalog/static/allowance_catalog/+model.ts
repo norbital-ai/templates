@@ -22,11 +22,14 @@ export default model('allowance_catalog', {
 			default: {}
 		},
 		code: { kind: 'text' },
-		name: { kind: 'text' },
+		description: {
+			kind: 'text',
+			optional: true,
+			help: 'What this catalog row does: its rule, behaviour and any legal or operational note.'
+		},
 		references: { kind: 'custom', of: 'references', optional: true },
 		eligibility: { kind: 'text', max: 65536 },
 		conversion: { kind: 'text', max: 65536 },
-		incurred_on: { kind: 'text', max: 65536, optional: true },
 		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
 		prorate: { kind: 'bool', default: false },
 		/** Whether this allowance is part of the wage a day or hour rate divides. */
@@ -42,6 +45,7 @@ export default model('allowance_catalog', {
 	read: {
 		allowance_catalog: { fields: 'all' },
 		'allowance_catalog.settings_id': { fields: 'all' },
+		'allowance_catalog.subtotal_id': { fields: ['code', 'name'] },
 		'allowance_catalog.settings_id.registered_rule': { fields: 'all' }
 	},
 	create: {
@@ -50,11 +54,10 @@ export default model('allowance_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
+				'description',
 				'references',
 				'eligibility',
 				'conversion',
-				'incurred_on',
 				'party',
 				'prorate',
 				'include_in_rate',
@@ -79,11 +82,10 @@ export default model('allowance_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
+				'description',
 				'references',
 				'eligibility',
 				'conversion',
-				'incurred_on',
 				'party',
 				'prorate',
 				'include_in_rate'

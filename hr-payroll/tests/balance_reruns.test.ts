@@ -6,19 +6,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import type { Accounts } from '../src/lib/ledger/core.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	accountsIn,
-	catalogRow,
-	ledgerRows,
-	measureOf,
-	pack,
-	sealEvents,
-	syncAll,
-	uuid,
-	wholeDays,
-	workspace
-} from './kit.ts';
+import { ENTITY, accountsIn, catalogRow, ledgerRows, measureOf, pack, sealEvents, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
 
 const NOW = '2026-12-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -57,12 +45,12 @@ const HOLDS = seedOf({ leave: { ANNUAL_LEAVE: { [WINDOW]: { entitled: 12 } } } }
 const EMPTY = seedOf({});
 const take = (t: Kit, seed: Seed, code: string, ...dates: string[]) =>
 	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
+		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
 			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
 			days: wholeDays(...dates)
-		}
+		})
 	]);
 const used = (t: Kit) =>
 	accountsIn(t).pipe(
@@ -85,6 +73,12 @@ const firstEntry = (t: Kit) =>
 			return row.id;
 		})
 	);
+/** A run that prices the entry's slots, so a correction is a reversal and not an edit. */
+const price = (t: Kit) =>
+	t
+		.as(t.admin)
+		.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-03', kind: 'ON_CYCLE' }])
+		.pipe(Effect.andThen(t.runDue()));
 /** Lets each queued effect and posting finish its work, kills the host as it ends, then runs it again. */
 const crashEach = (t: Kit) =>
 	Effect.gen(function* () {
@@ -144,30 +138,49 @@ describe('a posting that runs again', () => {
 			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
 	);
-	it.live('an edit is posted once', () =>
+	it.live('a priced slot is corrected only by a reversal', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, HOLDS, 'ANNUAL_LEAVE', '2026-03-03', '2026-03-04');
-			yield* t.runDue();
-			yield* t
-				.as(t.admin)
-				.act('leave_catalog_entry.update', [
-					{ target: yield* firstEntry(t), set: { days: wholeDays('2026-03-03') } }
-				]);
 			yield* crashEach(t);
-			assert.equal(yield* used(t), 1);
-			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2', 'DEDUCT used 1']);
+			yield* price(t);
+			const first = yield* firstEntry(t);
+			const { leave_catalog_entry_day } = yield* t.storedQuery({
+				leave_catalog_entry_day: {
+					where: { leave_entry_id: { eq: first } },
+					fields: ['id'],
+					limit: 1
+				}
+			});
+			const child = leave_catalog_entry_day.rows[0];
+			assert.ok(child !== undefined);
+			const failed = yield* Effect.flip(
+				t
+					.as(t.admin)
+					.act('leave_catalog_entry.update', [
+						{
+							target: first,
+							set: { leave_catalog_entry_day: { delete: [child.id] } }
+						}
+					])
+			);
+			assert.match(String(failed), /reversal/);
+			assert.equal(yield* used(t), 2);
+			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
 	);
-	it.live('a deletion gives the days back once', () =>
+	it.live('a priced entry cannot be deleted', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, HOLDS, 'ANNUAL_LEAVE', '2026-03-03', '2026-03-04');
-			yield* t.runDue();
-			yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: yield* firstEntry(t) }]);
 			yield* crashEach(t);
-			assert.equal(yield* used(t), 0);
-			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2', 'DEDUCT used 2']);
+			yield* price(t);
+			const failed = yield* Effect.flip(
+				t.as(t.admin).act('leave_catalog_entry.delete', [{ target: yield* firstEntry(t) }])
+			);
+			assert.match(String(failed), /reversal/);
+			assert.equal(yield* used(t), 2);
+			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
 	);
 	it.live('a sealed fact opens its days once', () =>
@@ -219,12 +232,7 @@ describe('a balance is its ledger', () => {
 			yield* take(t, EMPTY, 'ANNUAL_LEAVE', '2026-01-06', '2026-01-07');
 			yield* t.runDue();
 			const first = yield* firstEntry(t);
-			yield* admin.act('leave_catalog_entry.update', [
-				{ target: first, set: { days: wholeDays('2026-01-06') } }
-			]);
-			yield* t.runDue();
 			yield* take(t, EMPTY, 'ANNUAL_LEAVE', '2026-01-08');
-			yield* t.runDue();
 			const { leave_catalog_entry: later } = yield* t.storedQuery({
 				leave_catalog_entry: { limit: 2 }
 			});

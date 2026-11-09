@@ -1,7 +1,6 @@
 [
 	{
 		"code": "PERSONAL_DATA_BREACH",
-		"name": "Personal data breach (suspected or confirmed)",
 		"lookup": {},
 		"subtotal_id": null,
 		"references": [
@@ -14,11 +13,11 @@
 			}
 		],
 		"id": "c1adbedf-db93-5b48-8444-f08f9f5c51f6",
-		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1"
+		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
+		"description": "Personal-data breach and its notification workflow."
 	},
 	{
 		"code": "SEXUAL_HARASSMENT_COMPLAINT",
-		"name": "Sexual harassment complaint",
 		"lookup": {},
 		"subtotal_id": null,
 		"references": [
@@ -31,11 +30,11 @@
 			}
 		],
 		"id": "034c617d-8208-5306-b60d-fbf521d9b43a",
-		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1"
+		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
+		"description": "Sexual-harassment complaint."
 	},
 	{
 		"code": "FLEXIBLE_WORKING_REQUEST",
-		"name": "Flexible working arrangement request",
 		"lookup": {},
 		"subtotal_id": null,
 		"references": [
@@ -48,11 +47,11 @@
 			}
 		],
 		"id": "0b5ca5ea-b4f2-5ef6-8858-636ce8cd91c9",
-		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1"
+		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
+		"description": "Request for flexible working."
 	},
 	{
 		"code": "EMPLOYEE_DEATH_NOTICE",
-		"name": "Employer receives notice of employee death",
 		"lookup": {},
 		"subtotal_id": null,
 		"references": [
@@ -64,11 +63,11 @@
 			}
 		],
 		"id": "bbe66bc7-8c44-5408-a31a-306121c10a76",
-		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1"
+		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
+		"description": "Notice of an employee’s death."
 	},
 	{
 		"code": "OVERSEAS_DEPARTURE_NOTICE",
-		"name": "Actual expected departure from Malaysia",
 		"lookup": {},
 		"subtotal_id": null,
 		"references": [
@@ -80,11 +79,11 @@
 			}
 		],
 		"id": "b5f97640-6d16-585a-8ef5-1aa10d5212be",
-		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1"
+		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
+		"description": "Notice of overseas departure."
 	},
 	{
 		"code": "NON_BANK_WAGE_PAYMENT_REQUEST",
-		"name": "Employee's signed cash or cheque wage request",
 		"lookup": {},
 		"subtotal_id": null,
 		"references": [
@@ -97,6 +96,47 @@
 			}
 		],
 		"id": "a2e82b92-1269-59fc-a69b-cb27672909fc",
+		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
+		"description": "Request to pay wages outside a bank account."
+	},
+	{
+		"code": "WORKPLACE_ACCIDENT",
+		"description": "A reportable employment injury: an industrial, commuting or emergency accident. Record near misses separately.",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"accident_type": {
+						"type": "string",
+						"enum": [
+							"INDUSTRIAL",
+							"COMMUTING",
+							"EMERGENCY"
+						],
+						"title": "Accident type"
+					}
+				},
+				"required": [
+					"accident_type"
+				],
+				"additionalProperties": false,
+				"description": "opened_on is the date the employer received notice; occurred_on is the accident date; severity is the injury classification."
+			}
+		},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Employees' Social Security Act 1969 (Act 4); Employees' Social Security (General) Regulations 1971",
+				"locator": "ss.24, 25, 94(e), 94A(3); regs.68, 71",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf"
+			},
+			{
+				"title": "PERKESO, Social Security Protection (2020)",
+				"locator": "report a work-related accident within 48 hours of notification",
+				"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
+			}
+		],
+		"id": "5728d63f-7dca-51b5-92d7-eb6571db7c5e",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1"
 	}
 ]

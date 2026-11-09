@@ -7,7 +7,7 @@ import {
 export default model('workplace_case_catalog', {
 	description:
 		'Effective jurisdiction catalogue of entity-wide workplace case variants and their registered effects.',
-	label: 'name',
+	label: 'code',
 	fields: {
 		settings_id: {
 			kind: 'ref',
@@ -18,7 +18,6 @@ export default model('workplace_case_catalog', {
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
 		subtotal_id: { kind: 'ref', to: 'subtotal', optional: true, onDelete: 'restrict' },
 		code: { kind: 'text' },
-		name: { kind: 'text' },
 		description: { kind: 'text', optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
 		events: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} }
@@ -26,7 +25,8 @@ export default model('workplace_case_catalog', {
 	unique: [{ fields: ['settings_id', 'code'] }],
 	read: {
 		workplace_case_catalog: { fields: 'all' },
-		'workplace_case_catalog.settings_id': { fields: 'all' }
+		'workplace_case_catalog.settings_id': { fields: 'all' },
+		'workplace_case_catalog.subtotal_id': { fields: ['code', 'name'] },
 	},
 	create: {
 		columns: {
@@ -35,7 +35,6 @@ export default model('workplace_case_catalog', {
 				'lookup',
 				'subtotal_id',
 				'code',
-				'name',
 				'description',
 				'references',
 				'events'
@@ -57,7 +56,6 @@ export default model('workplace_case_catalog', {
 				'lookup',
 				'subtotal_id',
 				'code',
-				'name',
 				'description',
 				'references',
 				'events'

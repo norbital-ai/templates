@@ -39,13 +39,13 @@
 						fields: ['code', 'effective_range'],
 						limit: 10000
 					},
-					loan_catalog: { fields: ['code', 'name', 'settings_id'], limit: 10000 },
+					loan_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					loan_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
 						fields: ['employment_id', 'catalog_id', 'quantity', 'repayment_period'],
 						limit: 10000
 					},
-					loan_repayment_entry: {
+					loan_catalog_entry_repayment: {
 						where: { entity_id: { eq: scope.id } },
 						fields: ['employment_id', 'loan_id', 'amount', 'paid_on'],
 						limit: 10000
@@ -113,7 +113,7 @@
 		}));
 	}
 
-	function repaymentRows(grids: WorkbookGrids): ActInput<'loan_repayment_entry.create'> {
+	function repaymentRows(grids: WorkbookGrids): ActInput<'loan_catalog_entry_repayment.create'> {
 		const { current, ...base } = party();
 		const parsed = parseRepaymentSheet(grids, {
 			...base,
@@ -127,7 +127,7 @@
 				employment_id: row.employment_id,
 				catalog_id: row.catalog_id
 			})),
-			existing: current.loan_repayment_entry.rows.map((row) => ({
+			existing: current.loan_catalog_entry_repayment.rows.map((row) => ({
 				employment_id: row.employment_id,
 				loan_id: row.loan_id,
 				amount: numberOf(row.amount) ?? 0,
@@ -167,7 +167,7 @@
 		importingRepayments = true;
 		fork(
 			runWorkbookImport({
-				action: 'loan_repayment_entry.create',
+				action: 'loan_catalog_entry_repayment.create',
 				recordLabel: bolt.t('v2.repayments').toLowerCase(),
 				buildPayload: repaymentRows,
 				importedCount: (payload) => payload.length,
@@ -182,6 +182,7 @@
 		);
 	}
 </script>
+
 
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 

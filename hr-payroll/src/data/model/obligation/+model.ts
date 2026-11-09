@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { tap } from '../../../lib/payroll_engine/taps.js';
 
 export default model('obligation', {
 	description: 'A free-form task or reminder raised by an event.',
@@ -52,6 +53,20 @@ export default model('obligation', {
 		check: function* (rows, ctx) {
 			if (rows.some((r) => r.state !== 'OPEN'))
 				return yield* ctx.refuse('A completed task keeps its record.');
+		}
+	},
+	effect: {
+		updated: function* (changes, ctx) {
+			const edited = changes.filter(
+				({ before, after }) => before.state !== after.state || before.fulfilled_on !== after.fulfilled_on
+			);
+			if (edited.length === 0) return;
+			yield* tap(
+				ctx,
+				'update',
+				{ collection: 'obligation', ids: edited.map((change) => change.after.id) },
+				edited
+			);
 		}
 	},
 	notify: function* (event) {

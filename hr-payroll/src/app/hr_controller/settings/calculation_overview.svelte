@@ -17,7 +17,6 @@
 			claim_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
 			adhoc_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
 			loan_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			work_interruption_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
 			workplace_case_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 }
 		})
 	);
@@ -54,7 +53,6 @@
 			['claim_catalog', data.current?.claim_catalog.rows ?? []],
 			['adhoc_catalog', data.current?.adhoc_catalog.rows ?? []],
 			['loan_catalog', data.current?.loan_catalog.rows ?? []],
-			['work_interruption_catalog', data.current?.work_interruption_catalog.rows ?? []],
 			['workplace_case_catalog', data.current?.workplace_case_catalog.rows ?? []]
 		] as const;
 		return new Map(
@@ -135,52 +133,29 @@
 		}
 	};
 	const textOf = (value: unknown): string => (typeof value === 'string' ? value : '');
-	const summaryLine = (value: unknown): string => {
-		const lines = textOf(value)
-			.split('\n')
-			.map((line) => line.trim())
-			.filter((line) => line !== '' && line !== '// js' && !line.startsWith('//'));
-		const line = lines.find((item) => item.startsWith('return ')) ?? lines[0] ?? '';
-		const cleaned = line.replace(/^return\s+/, '').replace(/;$/, '');
-		return cleaned.length > 110 ? `${cleaned.slice(0, 110)}…` : cleaned;
-	};
 	const directionOf = (row: Record<string, unknown>, model: string): string => {
 		const direction = textOf(row.direction);
 		if (direction === 'DEDUCT') return '−';
 		if (direction === 'ADD') return '+';
 		return model === 'loan_catalog' ? '−' : '+';
 	};
-	const whenOf = (row: Record<string, unknown>, model: string): string => {
-		const source = textOf(row.incurred_on);
-		if (source.includes('ctx.as_of')) return 'Assessment date';
-		if (source.includes('salary_coverage.from')) return 'Coverage start';
-		if (source.includes('salary_coverage.to')) return 'Coverage end';
-		if (source.includes('entry.incurred_on')) return 'Entry date';
-		if (source.includes('paid_on')) return 'Payment date';
-		if (source !== '') return summaryLine(source);
-		if (model === 'loan_catalog') return 'Repayment month';
-		if (model === 'leave_catalog') return 'Leave date / run period';
-		return 'Run period end';
-	};
-	const calculationOf = (row: Record<string, unknown>, model: string): string => {
+	const codeOf = (value: unknown): string => textOf(value).replace(/^\/\/ js\n/, '');
+	const eligibilityOf = (row: object): string => codeOf(Reflect.get(row, 'eligibility'));
+	const amountOf = (row: Record<string, unknown>, model: string): string => {
 		if (model === 'statutory_contribution_catalog') {
-			const employee = summaryLine(row.employee_amount);
-			const employer = summaryLine(row.employer_amount);
-			if (employee !== '' && employer !== '') return 'Employee amount + employer amount';
-			return employee !== ''
-				? `Employee: ${employee}`
-				: employer !== ''
-					? `Employer: ${employer}`
-					: 'Scheme amount';
+			const employee = codeOf(row.employee_amount);
+			const employer = codeOf(row.employer_amount);
+			return (
+				[
+					employee === '' ? '' : `// Employee\n${employee}`,
+					employer === '' ? '' : `// Employer\n${employer}`
+				]
+					.filter((part) => part !== '')
+					.join('\n\n') || 'return 0;'
+			);
 		}
-		const conversion = summaryLine(row.conversion);
-		if (conversion !== '') return conversion;
-		if (model === 'loan_catalog') return 'Repayment amount';
-		if (row.subtotal_id == null) return 'No pay line';
-		return 'Catalogue conversion';
+		return codeOf(row.conversion) || codeOf(row.amount) || 'return 0;';
 	};
-	const hasEligibility = (row: object): boolean =>
-		'eligibility' in row && textOf(Reflect.get(row, 'eligibility')) !== '';
 	const nodeDirection = (code: string): string =>
 		code === 'CONTRIBUTIONS'
 			? '− deductions'
@@ -214,7 +189,6 @@
 					<div class="flex items-center gap-2">
 						<Accordion.Trigger class="min-w-0 flex-1 py-1.5">
 							<span class="flex w-full items-center gap-2">
-								<span class="font-mono text-[11px] text-muted-foreground">{node.code}</span>
 								<span class="min-w-0 flex-1 truncate text-sm font-medium">{node.name}</span>
 							</span>
 						</Accordion.Trigger>
@@ -226,12 +200,13 @@
 								<Icon name="lucide:info" class="size-3.5" />
 							</Popover.Trigger>
 							<Popover.Content align="start" class="max-w-sm space-y-1.5 text-xs">
-								<p><span class="font-medium">Calculation.</span> {guide(node.code).how}</p>
-								<p>
-									<span class="font-medium">Can access.</span>
-									<span class="font-mono">{guide(node.code).access}</span>
-								</p>
-							</Popover.Content>
+							<p><span class="font-medium">Code.</span> <span class="font-mono">{node.code}</span></p>
+							<p><span class="font-medium">Calculation.</span> {guide(node.code).how}</p>
+							<p>
+								<span class="font-medium">Can access.</span>
+								<span class="font-mono">{guide(node.code).access}</span>
+							</p>
+						</Popover.Content>
 						</Popover.Root>
 						<span class="shrink-0 text-[10px] text-muted-foreground"
 							>{nodeDirection(node.code)}</span
@@ -243,34 +218,50 @@
 					<Accordion.Content>
 						<div class="grid gap-1 pb-2">
 							{#each producers.get(node.id) ?? [] as producer (producer.model + producer.row.code)}
-								<div class="grid gap-1 rounded border px-2 py-1.5">
-									<div class="flex items-center justify-between gap-3">
-										<span class="flex min-w-0 items-center gap-2 text-xs">
-											<span
-												class="grid size-4 shrink-0 place-items-center rounded border font-mono text-[11px] {directionOf(
-													producer.row,
-													producer.model
-												) === '−'
-													? 'border-destructive/30 bg-destructive/10 text-destructive'
-													: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}"
-												>{directionOf(producer.row, producer.model)}</span
-											>
-											<span class="font-mono text-[10px] text-muted-foreground"
-												>{producer.row.code}</span
-											>
-											<span class="truncate">{producer.row.name}</span>
-										</span>
-										<span class="shrink-0 text-[10px] text-muted-foreground">
-											{producer.model.replaceAll('_', ' ')}
-										</span>
-									</div>
-									<div class="pl-6 text-[11px] leading-5 text-muted-foreground">
-										<span class="font-medium text-foreground/70">When</span>
-										{whenOf(producer.row, producer.model)}
-										· <span class="font-medium text-foreground/70">Calc</span>
-										<code class="break-words">{calculationOf(producer.row, producer.model)}</code>
-										{#if hasEligibility(producer.row)}
-											· eligibility checked
+								<div class="flex items-start gap-2 rounded border px-2 py-2">
+									<span
+										class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border font-mono text-[11px] {directionOf(
+											producer.row,
+											producer.model
+										) === '−'
+											? 'border-destructive/30 bg-destructive/10 text-destructive'
+											: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}"
+										>{directionOf(producer.row, producer.model)}</span
+									>
+									<div class="min-w-0 flex-1">
+										<div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+											<span class="font-mono text-xs">{producer.row.code}</span>
+											<Popover.Root>
+												<Popover.Trigger
+													class="shrink-0 text-muted-foreground hover:text-foreground"
+													aria-label={`How ${producer.row.code} is calculated`}
+													title="View eligibility and payroll amount"
+												>
+													<Icon name="lucide:info" class="size-3.5" />
+												</Popover.Trigger>
+												<Popover.Content align="start" class="max-w-md space-y-3 text-xs">
+														<div class="space-y-1">
+															<span class="text-xs font-medium text-muted-foreground">Eligibility</span>
+															{#if eligibilityOf(producer.row) !== ''}
+																<pre class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code>{eligibilityOf(producer.row)}</code></pre>
+															{:else}
+																<p class="text-muted-foreground">Always eligible</p>
+															{/if}
+														</div>
+														<div class="space-y-1">
+															<span class="text-xs font-medium text-muted-foreground">Payroll amount</span>
+															<pre class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code>{amountOf(producer.row, producer.model)}</code></pre>
+														</div>
+													</Popover.Content>
+											</Popover.Root>
+											<span class="ml-auto shrink-0 text-[10px] text-muted-foreground">
+												{producer.model.replaceAll('_', ' ')}
+											</span>
+										</div>
+										{#if textOf(producer.row.description) !== ''}
+											<p class="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+												{textOf(producer.row.description)}
+											</p>
 										{/if}
 									</div>
 								</div>
@@ -278,27 +269,44 @@
 							{#if (statutories.get(node.id) ?? []).length > 0}
 								<div class="grid gap-1">
 									{#each statutories.get(node.id) ?? [] as scheme (scheme.code)}
-										<div class="grid gap-1 rounded border px-2 py-1.5">
-											<div class="flex items-center justify-between gap-3">
-												<span class="flex min-w-0 items-center gap-2 text-xs">
-													<span
-														class="grid size-4 shrink-0 place-items-center rounded border border-destructive/30 bg-destructive/10 font-mono text-[11px] text-destructive"
-														>−</span
-													>
-													<span class="font-mono text-[10px] text-muted-foreground"
-														>{scheme.code}</span
-													>
-													<span class="truncate">{scheme.name}</span>
-												</span>
-												<span class="shrink-0 text-[10px] text-muted-foreground">{scheme.kind}</span
-												>
-											</div>
-											<div class="pl-6 text-[11px] leading-5 text-muted-foreground">
-												<span class="font-medium text-foreground/70">When</span>
-												Run period · <span class="font-medium text-foreground/70">Calc</span>
-												<code class="break-words"
-													>{calculationOf(scheme, 'statutory_contribution_catalog')}</code
-												>
+										<div class="flex items-start gap-2 rounded border px-2 py-2">
+											<span
+												class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border border-destructive/30 bg-destructive/10 font-mono text-[11px] text-destructive"
+												>−</span
+											>
+											<div class="min-w-0 flex-1">
+												<div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+													<span class="font-mono text-xs">{scheme.code}</span>
+													<Popover.Root>
+														<Popover.Trigger
+															class="shrink-0 text-muted-foreground hover:text-foreground"
+															aria-label={`How ${scheme.code} is calculated`}
+															title="View eligibility and payroll amount"
+														>
+															<Icon name="lucide:info" class="size-3.5" />
+														</Popover.Trigger>
+														<Popover.Content align="start" class="max-w-md space-y-3 text-xs">
+															<div class="space-y-1">
+																<span class="text-xs font-medium text-muted-foreground">Eligibility</span>
+																{#if eligibilityOf(scheme) !== ''}
+																	<pre class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code>{eligibilityOf(scheme)}</code></pre>
+																{:else}
+																	<p class="text-muted-foreground">Always eligible</p>
+																{/if}
+															</div>
+															<div class="space-y-1">
+																<span class="text-xs font-medium text-muted-foreground">Payroll amount</span>
+																<pre class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code>{amountOf(scheme, 'statutory_contribution_catalog')}</code></pre>
+															</div>
+														</Popover.Content>
+													</Popover.Root>
+													<span class="ml-auto shrink-0 text-[10px] text-muted-foreground">{scheme.kind}</span>
+												</div>
+												{#if textOf(scheme.description) !== ''}
+													<p class="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+														{textOf(scheme.description)}
+													</p>
+												{/if}
 											</div>
 										</div>
 									{/each}

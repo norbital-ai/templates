@@ -1,33 +1,34 @@
 import { model } from '@norbital-ai/bolt';
-import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
+import {
+	isJsonObject,
+	jsonObject,
+	type JsonObject
+} from '../../../../../../../lib/payroll_engine/foundation.js';
 import {
 	assertLeft,
+	assertOpenPeriod,
 	assertReversals,
 	entriesUndone,
 	entryPostings,
 	entryRead
 } from '../../../../../../../lib/ledger/service.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
+import { assertInLieu } from '../../../../../../../lib/ledger/in_lieu.js';
 
+const slots = (days: unknown): Set<string> =>
+	new Set(
+		(Array.isArray(days) ? days : []).flatMap((day) =>
+			isJsonObject(day) ? [`${String(day.date)}:${String(day.part)}`] : []
+		)
+	);
 export default model('leave_catalog_entry', {
 	description: 'One leave request: dated half-day slots for an employment.',
-	record_label: "string(size(record.days)) + ' half-days'",
+	record_label: "record.employment_id.employee_name + ' · ' + record.catalog_id.code",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'leave_catalog_entry' },
 		catalog_id: { kind: 'ref', to: 'leave_catalog', onDelete: 'restrict' },
 		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
-		days: {
-			kind: 'list',
-			min: 1,
-			of: {
-				kind: 'object',
-				fields: {
-					date: { kind: 'date' },
-					part: { kind: 'enum', values: ['AM', 'PM'] }
-				}
-			}
-		},
 		evidence_file: {
 			kind: 'file',
 			accept: ['application/pdf', 'image/*'],
@@ -37,29 +38,45 @@ export default model('leave_catalog_entry', {
 		reverses: { kind: 'ref', to: 'leave_catalog_entry', optional: true, onDelete: 'restrict' },
 		encashment: { kind: 'bool', default: false, hidden: true }
 	},
-	locked: { payroll_run_id: { isNull: false } },
+	unique: [{ fields: ['reverses'] }],
 	read: {
 		leave_catalog_entry: { fields: 'all' },
 		'leave_catalog_entry.employment_id': { fields: 'all' },
+		'leave_catalog_entry.payroll_run_id': { fields: 'all' },
 		'leave_catalog_entry.catalog_id': { fields: 'all' },
-		'leave_catalog_entry.payroll_run_id': { fields: 'all' }
+		'leave_catalog_entry.leave_catalog_entry_day': { fields: 'all' }
 	},
-	unique: [{ fields: ['reverses'] }],
 	create: {
 		columns: {
 			leave_catalog_entry: [
 				'entity_id',
 				'employment_id',
 				'catalog_id',
-				'days',
 				'evidence_file',
 				'reverses',
 				'encashment'
-			]
+			],
+			'leave_catalog_entry.leave_catalog_entry_day': ['incurred_on', 'part']
 		},
 		transform: function* (input, ctx) {
 			const rows = input;
-			const entries = rows.map((row) => jsonObject(row));
+			const slotsOf = (row: JsonObject) =>
+				(Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : []).flatMap(
+					(child) =>
+						isJsonObject(child) && typeof child.incurred_on === 'string'
+							? [
+									{
+										date: child.incurred_on,
+										part: child.part,
+										payroll_run_id: child.payroll_run_id ?? null
+									}
+								] 
+							: []
+				);
+			const entries = rows.map((row) => jsonObject({ ...row, days: slotsOf(row) }));
+			// A leave entry is its slots: an entry with none has no day to draw, price or reverse.
+			if (entries.some((row) => !Array.isArray(row.days) || row.days.length === 0))
+				return yield* ctx.refuse('A leave entry needs at least one day.');
 			// the approving decision asks again only for what the entry posts: what it checked stands
 			const known = yield* entryRead(
 				ctx.db.query,
@@ -70,13 +87,16 @@ export default model('leave_catalog_entry', {
 			if (!ctx.approving) {
 				yield* assertReversals(known, 'leave_catalog_entry', entries);
 				yield* assertLeft(known, entries, String(ctx.today));
+				yield* assertOpenPeriod(known, entries);
+				yield* assertInLieu(ctx.db.query, known, entries);
 			}
 			return { rows, onApproved: entryPostings(known, 'leave_catalog_entry', entries) };
 		}
 	},
 	update: {
 		columns: {
-			leave_catalog_entry: ['payroll_run_id', 'days', 'evidence_file']
+			leave_catalog_entry: ['evidence_file', 'payroll_run_id'],
+			'leave_catalog_entry.leave_catalog_entry_day': ['incurred_on', 'part']
 		},
 		transform: function* (changes, ctx) {
 			if (
@@ -86,7 +106,56 @@ export default model('leave_catalog_entry', {
 				)
 			)
 				return changes.map((change) => change.set);
-			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
+			const held = yield* ctx.db.query({
+				leave_catalog_entry_day: {
+					where: { leave_entry_id: { in: changes.map((change) => change.before.id) } },
+					fields: ['id', 'leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
+					limit: 10000
+				}
+			});
+			const slotsByEntry = Map.groupBy(
+				held.leave_catalog_entry_day.rows,
+				(row) => String(row.leave_entry_id)
+			);
+			const actionsOf = (change: { readonly set: Record<string, unknown> }) =>
+				jsonObject(change.set.leave_catalog_entry_day ?? {});
+			for (const change of changes) {
+				const actions = actionsOf(change);
+				const deleted = new Set(
+					Array.isArray(actions.delete) ? actions.delete.map(String) : []
+				);
+				const existing = slotsByEntry.get(String(change.before.id)) ?? [];
+				if (existing.some((row) => row.payroll_run_id != null && deleted.has(String(row.id))))
+					return yield* ctx.refuse(
+						'Leave days already paid by a payroll run cannot be removed. Create a reversal for those days.'
+					);
+			}
+			const proposed = changes.map((change) => {
+				const actions = actionsOf(change);
+				const created = Array.isArray(actions.create) ? actions.create.filter(isJsonObject) : [];
+				const deleted = new Set(
+					Array.isArray(actions.delete) ? actions.delete.map(String) : []
+				);
+				const existing = slotsByEntry.get(String(change.before.id)) ?? [];
+				const days = [
+					...existing
+						.filter((row) => !deleted.has(String(row.id)))
+						.map((row) => ({ date: row.incurred_on, part: row.part, payroll_run_id: row.payroll_run_id })),
+					...created.map((row) => ({ date: row.incurred_on, part: row.part }))
+				];
+				return jsonObject({
+					...change.before,
+					...change.set,
+					days,
+					// rules read the resulting slots, not the change's child actions
+					leave_catalog_entry_day: [
+						...existing.filter((row) => !deleted.has(String(row.id))),
+						...created
+					]
+				});
+			});
+			if (proposed.some((row) => !Array.isArray(row.days) || row.days.length === 0))
+				return yield* ctx.refuse('A leave entry needs at least one day.');
 			const known = yield* entryRead(
 				ctx.db.query,
 				'leave_catalog_entry',
@@ -94,14 +163,14 @@ export default model('leave_catalog_entry', {
 				ctx.approving ? undefined : 'update'
 			);
 			if (!ctx.approving) {
-				if (changes.some((c) => c.before.payroll_run_id != null))
-					return yield* ctx.refuse('This record is locked by a payroll run.');
 				yield* assertLeft(
 					known,
 					proposed,
 					String(ctx.today),
 					changes.map((change) => jsonObject(change.before))
 				);
+				yield* assertOpenPeriod(known, proposed);
+				yield* assertInLieu(ctx.db.query, known, proposed);
 			}
 			return {
 				rows: changes.map((c) => c.set),
@@ -118,9 +187,21 @@ export default model('leave_catalog_entry', {
 				entries,
 				ctx.approving ? undefined : 'delete'
 			);
+			const captured = yield* ctx.db.query({
+				leave_catalog_entry_day: {
+					where: {
+						leave_entry_id: { in: rows.map((row) => row.id) },
+						payroll_run_id: { isNull: false }
+					},
+					fields: ['id'],
+					limit: 1
+				}
+			});
+			if (captured.leave_catalog_entry_day.rows.length > 0)
+				return yield* ctx.refuse(
+					'Leave days already paid by a payroll run cannot be deleted. Create a reversal for those days.'
+				);
 			if (!ctx.approving) {
-				if (rows.some((r) => r.payroll_run_id != null))
-					return yield* ctx.refuse('This record is locked by a payroll run.');
 				yield* assertLeft(
 					known,
 					rows.map((row) => jsonObject({ ...row, reverses: row.reverses ?? 'delete' })),
@@ -141,16 +222,11 @@ export default model('leave_catalog_entry', {
 			);
 		},
 		updated: function* (changes, ctx) {
-			// sealing into a run is not an edit of the entry
-			const edited = changes.filter(
-				({ before, after }) => before.payroll_run_id === after.payroll_run_id
-			);
-			if (edited.length === 0) return;
 			yield* tap(
 				ctx,
 				'update',
-				{ collection: 'leave_catalog_entry', ids: edited.map((change) => change.after.id) },
-				edited
+				{ collection: 'leave_catalog_entry', ids: changes.map((change) => change.after.id) },
+				changes
 			);
 		}
 	}

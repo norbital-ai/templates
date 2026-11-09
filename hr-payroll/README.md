@@ -29,10 +29,10 @@ Controller)** hold `hr_controller`; **HR Manager** holds `hr_manager`; **Senior 
 
 ## Data model
 
-The 37 models group by owner:
+The 40 models group by owner:
 
-- `employee_profile` → `employee_contract` → `contract_change`; `employee_balance` → `ledger_entry`
-- `entity` → `entity_profile_version`, `holiday`, `shift_pattern` → `shift_definition`
+- `employee_profile` → `employee_contract` → `contract_change`, `contract_exit`; `employee_balance` → `ledger_entry`
+- `entity` → `entity_change`, `entity_profile_version`, `holiday`, `shift_pattern` → `shift_definition`
 - `jurisdiction_settings` → `subtotal`, static and non-static catalogues, `registered_rule`,
   `registered_effect`
 - `obligation`; `payroll_run` → `payslip`; `roster_entry`
@@ -63,11 +63,15 @@ nothing. Loans stay out of the ledger, and workplace cases never move a balance.
 | `statutory_materialize` | Started by HR                  | Merges one release (one jurisdiction, one effective date): a cumulative draft from `CONFIRMED` findings, then sealed; predecessor shortened, findings `APPLIED`. Refuses a release a later sealed version would silently revert.                                                                                                                      |
 | `ledger`                | Scheduled by writes; 1 January | Posts records to the ledger and syncs entitlements, one run at a time. Safe to run at any time. Each full sync schedules the next day anyone's window turns.                                                                                                                                                                                          |
 | `contract_materialize`  | Scheduled by `contract_change` | Seals the changes whose day has come into one contract version per person and date. A change that cannot seal stays filed and raises a task.                                                                                                                                                                                                          |
+| `entity_materialize`    | Scheduled by `entity_change`   | Seals the employer changes whose day has come into one employer version per entity and date. The open version ends the day before. A change that cannot seal stays filed and raises a task.                                                                                                                                                           |
+| `contract_exits`        | Scheduled by a contract end    | Runs the exit effects for a contract whose last day has passed, once per contract.                                                                                                                                                                                                                                                                     |
+| `encashment`            | Scheduled by a contract end    | Raises one exit leave cash-out request per encashable balance, for HR approval.                                                                                                                                                                                                                                                                         |
 | `invitation_profile`    | Every minute                   | Creates one employee profile per accepted staff invitation and links it to the accepting user.                                                                                                                                                                                                                                                        |
 
-All run as the reserved system identity with their declared policies. `ledger` and
-`contract_materialize` use `payroll_execution`; `statutory_research` and `statutory_materialize`
-use `configuration_execution`; `invitation_profile` uses `invitation_profile_automation`.
+All run as the reserved system identity with their declared policies. `ledger`, `contract_materialize`,
+`entity_materialize`, `contract_exits` and `encashment` use `payroll_execution`; `statutory_research` and
+`statutory_materialize` use `configuration_execution`; `invitation_profile` uses
+`invitation_profile_automation`.
 
 ## Seed
 

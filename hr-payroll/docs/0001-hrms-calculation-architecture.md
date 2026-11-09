@@ -25,6 +25,19 @@ This is the owner's design. Every agent working on this workspace reads this sec
 - A correction is a reversal entry or an adjustment entry against a catalog item. A statutory row may refund: where its statute has the employer repay, a result below zero pays a refund line on that run, and the balance falls with it. Where it does not, the row stops at zero and the next run nets it. No payslip line and no ledger amount is negative.
 - A company's own policy goes on the existing row, through `pay_treatment` or a cash `conversion`.
 
+### Work events (owner amendment, 2026-11-08)
+
+- A **work event** is a dated real-world condition that affects work and is not owned by one employee: a heat period,
+  hurricane, earthquake, epidemic or suspension. It is the non-person variant of an incident; a workplace case remains
+  employee-specific.
+- `work_event_catalog` is configuration under Settings → Catalog. Its row is the event type; there is no category enum
+  and no separate suspension catalog. A suspension is a work event.
+- `work_event` records the period, entity, optional employment, location, description and evidence. It pays nothing by
+  itself. Allowance, ad-hoc and leave rules read the applicable events through `ctx.work_events` and remain the rows
+  that post.
+- The payroll run and the leave-entitlement sync expose entity-wide plus employment-specific events. This is the one
+  event mechanism for real-life conditions that dispense allowances or open leave.
+
 ### Ledger and balance
 
 - The ledger moves in two ways only: **posting**, when a record is written (a leave, claim or adhoc entry that declares accounts, or a payslip, the run's entry), and **sync**, when an entitlement may have changed (a contract or its facts, an entity, a new law, or a period ending). One service writes it. Loans stay out: a loan and its repayments are their own record. Workplace cases never move a balance.
@@ -67,12 +80,45 @@ This is the owner's design. Every agent working on this workspace reads this sec
 ### Configuration ownership (owner directives, 2026-11-08)
 
 - Every value has exactly one owner. A value read by one row lives on that row; settings hold shared rate tables only.
-- No variable allowances. An allowance is a fixed amount; the allowance catalog row declares `include_in_rate` when the law counts it in the wage a day or hour rate divides.
+- No variable allowances. An allowance is either the agreed flat amount on the contract or a catalog rule that computes it; nothing is typed per payslip. The allowance catalog row declares `include_in_rate` when the law counts it in the wage a day or hour rate divides.
 - No constant hoisting. `no_part_xii_categories` is inlined in Malaysia's overtime eligibility; `wage_floor_factor` is on Indonesia's overtime row; `daily_hours` and part-time maxima are on the roster rule; `months_per_year`, `full_year_min_months` and `compensation_max_years` are literals in their reader.
 - A catalog row keeps its program, but with a declared boundary: per-family typed params, one input root set, one output type. The build checks the roots; the run decodes the output. `format: 'cel'` is removed: the expressions are JavaScript with one checker.
 - `reads` values are explicit `{ var: ... }` or literals, never bare `ctx.` strings.
 - Extension schemas are flat. `facts`, `term_facts`, `exit_facts` and `elections` do not exist; `statutory.<SCHEME>` and `events[]` stay nested. A field exists only because a formula reads it or the salary listing shows it.
 - The ledger period is a typed template and the measure is a typed union; the write boundary refuses an unknown code.
+
+### Owner amendments, 2026-11-09
+
+- **Allowances compute, or state an agreed amount.** A catalog row's `conversion` and `eligibility` are the pricing
+  rule. A row whose conversion reads `terms.allowances.<CODE>.amount` is a flat agreed amount on the contract; the
+  contract editor offers only those rows. A row whose conversion and lookup compute the amount (for example a monthly
+  heat allowance over declared months) is catalog-computed and is not stated on the contract. The run prices every
+  catalog row through eligibility, so neither kind needs a second switch or flag.
+- **A versioned catalog is chosen inside its version.** In any event or entry form, a catalog picker lists only rows
+  of the sealed settings version in force on the day; rows of other versions never appear. The row written is the
+  version's row, not a duplicate code from another version.
+- **A version-scoped representation does not repeat its version.** Catalog row representations omit the owning
+  Settings field; the page already names the version. Catalog identity is `code` plus `description`.
+- **All top-level settings sections are tabs.** Version, lookup, calculation overview, catalog, registered rules,
+  registered behaviour and compare stay visible as a tab strip; `More` holds only what genuinely overflows. The
+  sidebar highlights the active child, never the disclosure group above it.
+- **A leave entry shows its slots.** The record representation shows employment, catalog, reversal link and every
+  `leave_catalog_entry_day` slot with its sealed state. A reversal is created only from the HR Controller Events tab,
+  from a row action that opens the reversal form with the original's captured slots preselected; self-service has no
+  reversal path. A reversal returns exactly the captured slots it names, and only captured slots are reversible.
+- **The profile is one screen with vertical sections.** Face enrolment sits inside the Profile tab, not above the
+  tabs; the field layout uses two columns where the width allows; the sections are a nested vertical tab rail.
+- **Seals belong to the split part.** A leave seal is the slot's `payroll_run_id`; a loan seal is the repayment's. The
+  catalog entry itself carries no seal badge or seal column and never shows one. The leave entry keeps its run
+  roll-up only for attachment and filtering.
+- **Descriptions and references are different fields.** Every registered rule and effect states what it does in a
+  human `description`; `references` stays the law, article and quote. The calculation overview leads with the
+  description; code, expression, eligibility and references sit behind its info control.
+- **The paid-run lock is an invariant.** A no-pay entry cannot be dated in a period an on-cycle run has already
+  covered; the correction is a reversal dated in the next period to run. This belongs to the leave write path, not
+  to every jurisdiction's rules.
+- **Selection is visible.** A leave half-day is filled when selected, dimmed with a blocked cursor when unavailable,
+  and the reversal form preselects only the original's captured slots on their own month.
 
 ### Simplicity
 
@@ -100,7 +146,7 @@ Every fact has one owner. A value is read from its owner; it is not copied into 
 
 ### Ordinary hours and statutory conversion
 
-Ordinary hours are employment terms: `employee_contract.terms.normal_hours_per_day`, `normal_hours_per_week` and `normal_days_per_week`, with the employer's `payment_schedule.non_working_weekdays` defining the working week.
+Ordinary hours are employment terms: `employee_contract.terms.normal_hours_per_day`, `normal_hours_per_week` and `normal_days_per_week`, with the entity's `payment_schedule.non_working_weekdays` defining the working week.
 
 Every jurisdiction's settings declare its conversions in one typed `conversions` block, and only these:
 
@@ -187,13 +233,18 @@ Each later subtotal's value is the previous subtotal plus every employee line wh
 | --------------------- | ------------------------------------- | ------------------------------------------------- |
 | allowance             | cash, `party` from the catalogue      | none                                              |
 | overtime              | cash, employee                        | none                                              |
-| leave encashment      | cash from `conversion`                | the entry posted its days when it was created     |
+| leave encashment      | cash from `conversion`                | posted when an HR controller approves the entry   |
 | leave taken, `PAID`   | none, or a `DEDUCT` from `conversion` | the entry posted its days when it was created     |
 | leave taken, `UNPAID` | none; prorates base pay               | the entry posted its days when it was created     |
 | claim                 | reimbursement                         | the entry posted when it was created              |
 | adhoc                 | cash `ADD` or `DEDUCT`                | posted when created, if the row declares accounts |
 | loan repayment        | recovery                              | none; loans stay out of the ledger                |
 | statutory scheme      | employee and employer amounts         | posted from the payslip                           |
+
+Exit encashment: when a sealed contract ends with no same-jurisdiction successor, the `encashment` automation raises one
+encashment request for every leave row whose `lookup.encash_on_exit.allowed` is true, for the days the person has
+left. The HR grant holds every encashment request for HR controller approval, whoever ended the contract, so its days
+post to the ledger only when approved.
 
 `party EMPLOYEE` enters the running subtotal and net. `party EMPLOYER` is employer cost and never enters net.
 
@@ -371,7 +422,7 @@ ADD leave/MATERNITY_LEAVE/MY.E.2026-03-02/entitled 98
 | `leave_catalog.lookup` | `opened_by`: the kinds that open it, with `days` to override |
 | `leave_catalog.lookup` | `grant_days`, `eligibility`, `pay_steps`                     |
 
-A change known ahead of its day is filed as a `contract_change`. Nothing reads it until the `contract_materialize` automation seals it into a new version on that day.
+A change known ahead of its day is filed as a `contract_change`; nothing reads it until the `contract_materialize` automation seals it into a new version on that day. An employer fact works the same way through `entity_change` and `entity_materialize`.
 
 Each event is its own period, so days left from one birth do not stack onto the next. A complication is another event on the same date, so it adds to the same period and keeps its pay count.
 
@@ -395,7 +446,7 @@ Workplace cases file incidents, requests and notices. If one changes pay, HR mak
 Catalogues live under `jurisdiction_settings/catalog/`.
 
 - `static/` holds configured definitions with no employee rows: `allowance_catalog`, `overtime_catalog`, `statutory_contribution_catalog`.
-- `non_static/` holds a definition with an entry subfolder: `leave_catalog`, `claim_catalog`, `adhoc_catalog`, `loan_catalog`, `work_interruption_catalog`, `workplace_case_catalog`.
+- `non_static/` holds a definition with an entry subfolder: `leave_catalog`, `claim_catalog`, `adhoc_catalog`, `loan_catalog`, `work_event_catalog`, `workplace_case_catalog`.
 
 Every definition carries `code`, `name`, `settings_id`, a `lookup`, `references` and an optional `subtotal_id`. Pay-producing definitions add `eligibility`, `conversion` and an optional `incurred_on`. `direction`/`party` exist only where the family has a real choice: allowance has `party`, overtime has `direction`, leave/adhoc/claim have both. Leave adds `pay_treatment` (`PAID` or `UNPAID`); adhoc adds `off_cycle_eligible`. Statutory adds `kind`, `depends_on`, `employee_amount`, `employer_amount` and an optional `employer_cost_subtotal_id`.
 

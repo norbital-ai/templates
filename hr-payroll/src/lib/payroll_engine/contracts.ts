@@ -47,7 +47,10 @@ const CALCULATION_ROOTS = [
 	'work',
 	'event',
 	'reads',
-	'as_of'
+	'as_of',
+	// an effect compares the row before and after the write; the dispatch context already carries both
+	'before',
+	'after'
 ] as const;
 /** Parse-time and run-time expression access is limited to these actual PIT inputs. */
 export const PHASE_ROOTS: Readonly<Record<Phase, readonly string[]>> = {

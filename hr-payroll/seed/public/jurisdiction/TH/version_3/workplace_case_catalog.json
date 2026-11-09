@@ -1,7 +1,6 @@
 [
 	{
 		"code": "PERSONAL_DATA_BREACH",
-		"name": "Personal data breach (PDPA s.37(4))",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -14,11 +13,11 @@
 				"url": "https://www.mdes.go.th/uploads/tinymce/source/%E0%B8%AA%E0%B8%84%E0%B8%AA/Personal%20Data%20Protection%20Act%202019.pdf",
 				"quote": "A personal data breach must be notified to the Office of the Personal Data Protection Committee without delay and within 72 hours of awareness."
 			}
-		]
+		],
+		"description": "Personal-data breach and its notification workflow."
 	},
 	{
 		"code": "PERSONAL_DATA_TRANSFER_ABROAD",
-		"name": "Personal data to be sent or transferred abroad (PDPA s.28)",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -31,11 +30,11 @@
 				"url": "https://www.mdes.go.th/uploads/tinymce/source/%E0%B8%AA%E0%B8%84%E0%B8%AA/Personal%20Data%20Protection%20Act%202019.pdf",
 				"quote": "A transfer of personal data to a foreign country requires the protection standard and safeguards the Act prescribes."
 			}
-		]
+		],
+		"description": "Request to transfer personal data abroad."
 	},
 	{
 		"code": "WORKPLACE_RELOCATION",
-		"name": "Workplace relocation planned",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -48,11 +47,11 @@
 				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
 				"quote": "The employer posts the relocation notice at the workplace at least 30 days before the move."
 			}
-		]
+		],
+		"description": "Workplace relocation notice."
 	},
 	{
 		"code": "RELOCATION_EMPLOYEE_REFUSAL",
-		"name": "Employee declines relocation",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -65,11 +64,11 @@
 				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
 				"quote": "An employee whose ordinary living is substantially affected may refuse the relocation in writing."
 			}
-		]
+		],
+		"description": "RELOCATION_EMPLOYEE_REFUSAL: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "RELOCATION_EMPLOYER_OBJECTION",
-		"name": "Employee relocation refusal disputed (open on written-notice receipt)",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -82,11 +81,11 @@
 				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
 				"quote": "A disputed refusal is petitioned to the Labour Welfare Committee within 30 days of the refusal."
 			}
-		]
+		],
+		"description": "RELOCATION_EMPLOYER_OBJECTION: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "RELOCATION_BOARD_ORDER",
-		"name": "Relocation committee order received",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -99,11 +98,11 @@
 				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
 				"quote": "The Labour Welfare Committee orders the employer to pay compensation or the employee to work at the new place; a court challenge is filed within 30 days."
 			}
-		]
+		],
+		"description": "RELOCATION_BOARD_ORDER: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "SKILL_DEVELOPMENT_COURSE_COMPLETED",
-		"name": "Qualifying employee training completed (open on actual course completion)",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -116,11 +115,11 @@
 				"url": "https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824",
 				"quote": "An application for approval of an employee upskilling or retraining course and its costs is filed within 60 days after completion and no later than 15 January of the following year."
 			}
-		]
+		],
+		"description": "SKILL_DEVELOPMENT_COURSE_COMPLETED: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "DEDUCTION_LIMIT_CONSENT",
-		"name": "Employee’s prior written consent to specified deductions",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -133,11 +132,11 @@
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
 				"quote": "A deduction above the statutory limit needs the employee's prior written consent, naming the deduction and its amount or limit."
 			}
-		]
+		],
+		"description": "DEDUCTION_LIMIT_CONSENT: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "SECURITY_DEPOSIT_RECEIVED",
-		"name": "Actual security money received from the employee",
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -150,57 +149,7 @@
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
 				"quote": "Security money may be taken only for work, in the amounts and by the keeping method the Minister's notification allows."
 			}
-		]
-	},
-	{
-		"code": "CROSS_BORDER_WORK_RECORD",
-		"name": "Actual overseas work dates and country",
-		"lookup": {},
-		"events": {},
-		"subtotal_id": null,
-		"id": "1691a6a2-38f0-5c52-9ef0-cc5eb786b61e",
-		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"references": [
-			{
-				"title": "Labour Protection Act B.E. 2541 (1998) ss.5, 70",
-				"locator": "ss.5, 70",
-				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
-				"quote": "Wages are money paid for work in normal working time; the employer keeps the wage record that evidences the actual work dates and place."
-			}
-		]
-	},
-	{
-		"code": "EXTERNAL_WAGE_RECORD",
-		"name": "Original external wage payment or cost allocation",
-		"lookup": {},
-		"events": {},
-		"subtotal_id": null,
-		"id": "357fbd1f-7f4f-50ce-a620-f0e649501c8d",
-		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"references": [
-			{
-				"title": "Revenue Code s.40(1); Labour Protection Act B.E. 2541 (1998) s.5",
-				"locator": "Revenue Code s.40(1); LPA s.5",
-				"url": "https://www.rd.go.th/59670.html",
-				"quote": "Employment income includes wages and other benefits paid for work; the record evidences the actual payer and the cost allocation."
-			}
-		]
-	},
-	{
-		"code": "BENEFIT_SERVICE_RECORD",
-		"name": "Actual service attributable to a benefit award",
-		"lookup": {},
-		"events": {},
-		"subtotal_id": null,
-		"id": "2f92464c-0e66-54be-9356-c1b7200a38de",
-		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"references": [
-			{
-				"title": "Labour Protection Act B.E. 2541 (1998) s.118",
-				"locator": "s.118",
-				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
-				"quote": "Severance is measured by continuous service; the record evidences the service behind a benefit award."
-			}
-		]
+		],
+		"description": "SECURITY_DEPOSIT_RECEIVED: Case with its declared events and workflow inputs."
 	}
 ]

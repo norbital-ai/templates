@@ -171,7 +171,6 @@ const owed = (t: Kit, seed: Seed, { item, bonus }: Case, on: string) => {
 			catalog_id: idOf('adhoc_catalog', String(row.id)),
 			description: 'Bonus',
 			quantity: bonus,
-			unit: 'MONEY',
 			incurred_on: PlainDate(on)
 		}
 	]);
@@ -339,14 +338,14 @@ const charged = (rows: PayslipBreakdown['statutory'], code: string) =>
 describe('a second salary in a pay month', () => {
 	const paidOnTheFirst = (seed: Seed): Seed => ({
 		...seed,
-		entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+		entity: (seed.entity ?? []).map((row) => ({
 			...row,
 			payment_schedule: {
 				frequency: 'MONTHLY',
 				business_day: 'PREVIOUS',
 				non_working_weekdays: [0, 6],
 				short_month: 'LAST_DAY',
-				anchors: [{ cycle_part: 1, day: 1, month_offset: 0 }]
+				pay_days: [1]
 			}
 		}))
 	});
@@ -449,17 +448,14 @@ describe('a second salary in a pay month', () => {
 		const half = seedOf({ ...one, terms: terms(4000, 'CITIZEN') }, '2026-04-01');
 		const halves: Seed = {
 			...half,
-			entity_profile_version: (half.entity_profile_version ?? []).map((row) => ({
+			entity: (half.entity ?? []).map((row) => ({
 				...row,
 				payment_schedule: {
 					frequency: 'SEMI_MONTHLY',
 					business_day: 'PREVIOUS',
 					non_working_weekdays: [0, 6],
 					short_month: 'LAST_DAY',
-					anchors: [
-						{ cycle_part: 1, day: 15, month_offset: 0 },
-						{ cycle_part: 2, day: 31, month_offset: 0 }
-					]
+					pay_days: [15, 31]
 				}
 			}))
 		};

@@ -1,7 +1,7 @@
 [
 	{
 		"code": "FIXED_MONTHLY",
-		"name": "Fixed monthly allowance",
+		"description": "Contractual fixed monthly allowance for a monthly-rated employee; counted as Ordinary Wages for CPF.",
 		"lookup": {},
 		"references": [
 			{
@@ -14,7 +14,6 @@
 		"subtotal_id": "e173293f-ade4-5b8d-9b69-76fa380e2e67",
 		"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.FIXED_MONTHLY.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
-		"incurred_on": "return ctx.run.salary_coverage.to;",
 		"party": "EMPLOYEE",
 		"id": "c00735b5-637a-5f9c-9537-0b1cc90f23f4",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
@@ -23,7 +22,7 @@
 	},
 	{
 		"code": "PT_ANNUAL_HOURLY_AW",
-		"name": "Contractual annual leave hourly addition (AW)",
+		"description": "Contractual hourly uplift for a part-time employee's annual leave; classified as Additional Wages for CPF.",
 		"lookup": {},
 		"references": [
 			{
@@ -36,7 +35,6 @@
 		"subtotal_id": "34e24b03-b484-5a29-8020-e23b676313ab",
 		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_AW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
-		"incurred_on": "return ctx.run.salary_coverage.to;",
 		"party": "EMPLOYEE",
 		"id": "486d81ac-5dab-5522-b187-d48026958620",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
@@ -44,7 +42,7 @@
 	},
 	{
 		"code": "PT_ANNUAL_HOURLY_OW",
-		"name": "Contractual annual leave hourly addition (OW)",
+		"description": "Contractual hourly uplift for a part-time employee's annual leave; classified as Ordinary Wages for CPF.",
 		"lookup": {},
 		"references": [
 			{
@@ -57,7 +55,6 @@
 		"subtotal_id": "e173293f-ade4-5b8d-9b69-76fa380e2e67",
 		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_OW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
-		"incurred_on": "return ctx.run.salary_coverage.to;",
 		"party": "EMPLOYEE",
 		"id": "5efe6481-8cda-5ad6-a7c4-d3fc6ed5529f",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",

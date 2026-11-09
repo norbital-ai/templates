@@ -16,45 +16,6 @@
 			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields.",
 			"additionalProperties": false,
 			"properties": {
-				"events": {
-					"type": "array",
-					"title": "Dated facts",
-					"description": "What happened to this person that the law gives or takes leave for. One item per event.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": [
-									"ATTENDANCE_BELOW_RATIO",
-									"CHILD_BIRTH",
-									"EXPECTED_BIRTH",
-									"EXPECTED_MULTIPLE_BIRTH"
-								],
-								"title": "What happened",
-								"description": "ATTENDANCE_BELOW_RATIO: 労働基準法 art.39(1)–(2), dated on the annual leave grant day it refuses. CHILD_BIRTH: 育児・介護休業法 art.16の2, dated on the birthday of a child the worker raises, ended when they stop. EXPECTED_BIRTH, EXPECTED_MULTIPLE_BIRTH: 労働基準法 art.65(1), dated on the expected birth, ended on the birth."
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date"
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							}
-						}
-					}
-				},
 				"family_care_recipients": {
 					"type": "integer",
 					"minimum": 0,
@@ -78,6 +39,11 @@
 							"title": "健康保険・介護保険 (Kyokai Kenpo health and nursing care insurance)",
 							"additionalProperties": false,
 							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "HEALTH registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								},
 								"since": {
 									"type": "string",
 									"format": "date",
@@ -113,7 +79,7 @@
 									"minimum": 58000,
 									"maximum": 1390000,
 									"title": "標準報酬月額 (health)",
-									"description": "HEALTH (read by every social insurance scheme). The health insurance standard monthly remuneration the pension office decided (資格取得時決定, 定時決定, 随時改定; 健康保険法 arts.41–43). The welfare pension grade is the same amount within 88,000–680,000. Unrecorded grades the contract monthly wage."
+									"description": "HEALTH (read by every social insurance scheme). The health insurance standard monthly remuneration the pension office decided (資格取得時決定, 定時決定, 随時改定; 健康保険法 arts.41–43). The welfare pension grade is the same amount within 88,000–750,000. Unrecorded grades the contract monthly wage."
 								}
 							}
 						},
@@ -122,6 +88,11 @@
 							"title": "厚生年金保険 (employees' pension insurance)",
 							"additionalProperties": false,
 							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "PENSION registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								},
 								"apportionment_ratio": {
 									"type": "number",
 									"title": "二以上事業所勤務の按分割合",
@@ -137,11 +108,28 @@
 								}
 							}
 						},
+						"EI": {
+							"type": "object",
+							"title": "雇用保険 (employment insurance)",
+							"additionalProperties": false,
+							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "EI registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								}
+							}
+						},
 						"INCOME_TAX": {
 							"type": "object",
 							"title": "源泉所得税及び復興特別所得税 (salary and bonus withholding)",
 							"additionalProperties": false,
 							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "INCOME_TAX registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								},
 								"dependency_declaration_filed": {
 									"type": "boolean",
 									"default": false,
@@ -418,6 +406,12 @@
 					"type": "boolean",
 					"title": "退職後の年内給与受領見込み",
 					"description": "Whether the employee expects any further salary from another employer after this exit in the same tax year. Required for low-income part-time and severe-disability midyear adjustment; eligibility and tax are computed from this premise and payroll income."
+				},
+				"normal_hours_per_year": {
+					"type": "number",
+					"minimum": 0,
+					"title": "年間所定労働時間",
+					"description": "Annual prescribed hours where the monthly schedule varies; the minimum-wage conversion divides it by twelve."
 				}
 			}
 		},
@@ -427,7 +421,13 @@
 			"title": "JP entity extension data",
 			"additionalProperties": false,
 			"description": "entity_extension_data. The entity region is the prefecture code of the prefectures rule set (HOKKAIDO … OKINAWA): it selects the 協会けんぽ rate and the regional minimum wage.",
-			"required": ["workers_accident_rate_per_mille"],
+			"required": [
+				"workers_accident_rate_per_mille",
+				"social_insurance_applicable_on",
+				"labour_insurance_established_on",
+				"employment_insurance_established_on",
+				"week_start"
+			],
 			"properties": {
 				"ei_industry_class": {
 					"type": "string",
@@ -538,13 +538,6 @@
 					"description": "STANDARD, VARIABLE (変形労働時間制), FLEX (フレックスタイム制, one-month settlement) or DEEMED (みなし・裁量労働).",
 					"enum": ["STANDARD", "VARIABLE", "FLEX", "DEEMED"],
 					"default": "STANDARD"
-				},
-				"deemed_daily_hours": {
-					"type": "number",
-					"title": "みなし労働時間",
-					"description": "The deemed hours a day under a 裁量労働 or 事業場外みなし regime (労働基準法 arts.38の2–38の4).",
-					"minimum": 0,
-					"maximum": 24
 				},
 				"overtime_sector": {
 					"type": "string",
@@ -697,6 +690,20 @@
 					],
 					"title": "都道府県",
 					"description": "The prefecture of the establishment (HOKKAIDO … OKINAWA). It selects the 協会けんぽ rate and the regional minimum wage. Required for a KYOKAI insured office."
+				},
+				"work_interval_hours": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 24,
+					"title": "勤務間インターバル",
+					"description": "The company rest interval between shifts; it may raise but never lower a driver-floor."
+				},
+				"week_start": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 6,
+					"title": "週の起算日",
+					"description": "The weekday the statutory week opens on: 0 Sunday through 6 Saturday."
 				}
 			}
 		},
@@ -1077,6 +1084,55 @@
 				"taxable_share": 0.5,
 				"days_two_or_more": 10
 			}
+		},
+		"work_regions": {
+			"HOKKAIDO": "HOKKAIDO",
+			"AOMORI": "AOMORI",
+			"IWATE": "IWATE",
+			"MIYAGI": "MIYAGI",
+			"AKITA": "AKITA",
+			"YAMAGATA": "YAMAGATA",
+			"FUKUSHIMA": "FUKUSHIMA",
+			"IBARAKI": "IBARAKI",
+			"TOCHIGI": "TOCHIGI",
+			"GUNMA": "GUNMA",
+			"SAITAMA": "SAITAMA",
+			"CHIBA": "CHIBA",
+			"TOKYO": "TOKYO",
+			"KANAGAWA": "KANAGAWA",
+			"NIIGATA": "NIIGATA",
+			"TOYAMA": "TOYAMA",
+			"ISHIKAWA": "ISHIKAWA",
+			"FUKUI": "FUKUI",
+			"YAMANASHI": "YAMANASHI",
+			"NAGANO": "NAGANO",
+			"GIFU": "GIFU",
+			"SHIZUOKA": "SHIZUOKA",
+			"AICHI": "AICHI",
+			"MIE": "MIE",
+			"SHIGA": "SHIGA",
+			"KYOTO": "KYOTO",
+			"OSAKA": "OSAKA",
+			"HYOGO": "HYOGO",
+			"NARA": "NARA",
+			"WAKAYAMA": "WAKAYAMA",
+			"TOTTORI": "TOTTORI",
+			"SHIMANE": "SHIMANE",
+			"OKAYAMA": "OKAYAMA",
+			"HIROSHIMA": "HIROSHIMA",
+			"YAMAGUCHI": "YAMAGUCHI",
+			"TOKUSHIMA": "TOKUSHIMA",
+			"KAGAWA": "KAGAWA",
+			"EHIME": "EHIME",
+			"KOCHI": "KOCHI",
+			"FUKUOKA": "FUKUOKA",
+			"SAGA": "SAGA",
+			"NAGASAKI": "NAGASAKI",
+			"KUMAMOTO": "KUMAMOTO",
+			"OITA": "OITA",
+			"MIYAZAKI": "MIYAZAKI",
+			"KAGOSHIMA": "KAGOSHIMA",
+			"OKINAWA": "OKINAWA"
 		},
 		"status": "SEALED",
 		"id": "0a4fe28a-f31d-580a-86a5-c0028b975b30",

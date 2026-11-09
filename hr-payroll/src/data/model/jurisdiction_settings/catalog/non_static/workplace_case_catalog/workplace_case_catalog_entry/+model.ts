@@ -15,6 +15,30 @@ export default model('workplace_case_catalog_entry', {
 			onDelete: 'restrict'
 		},
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'workplace_case_catalog_entries' },
+		employment_id: {
+			kind: 'ref',
+			to: 'employee_contract',
+			inverse: 'workplace_case_catalog_entry',
+			onDelete: 'restrict'
+		},
+		severity: {
+			kind: 'enum',
+			values: [
+				'DEATH',
+				'PERMANENT_TOTAL_DISABILITY',
+				'SERIOUS_INJURY',
+				'MINOR_INJURY',
+				'NEAR_MISS',
+				'PROPERTY_DAMAGE',
+				'N/A'
+			],
+			default: 'N/A',
+			help: 'The injury or loss classification. Non-injury cases such as harassment or data mishandling use N/A.'
+		},
+		occurred_on: { kind: 'date', optional: true },
+		location: { kind: 'text', optional: true },
+		reference: { kind: 'text', optional: true },
+		description: { kind: 'text', optional: true },
 		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		kind: { kind: 'text' },
 		opened_on: { kind: 'date' },
@@ -40,6 +64,12 @@ export default model('workplace_case_catalog_entry', {
 			workplace_case_catalog_entry: [
 				'catalog_id',
 				'entity_id',
+				'employment_id',
+				'severity',
+				'occurred_on',
+				'location',
+				'reference',
+				'description',
 				'kind',
 				'opened_on',
 				'scheduled_on',
@@ -80,6 +110,12 @@ export default model('workplace_case_catalog_entry', {
 				'payroll_run_id',
 				'catalog_id',
 				'entity_id',
+				'employment_id',
+				'severity',
+				'occurred_on',
+				'location',
+				'reference',
+				'description',
 				'kind',
 				'opened_on',
 				'scheduled_on',

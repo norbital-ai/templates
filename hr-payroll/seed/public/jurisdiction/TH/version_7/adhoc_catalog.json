@@ -1,7 +1,6 @@
 [
 	{
 		"code": "SEVERANCE_PAY",
-		"name": "Severance pay (ค่าชดเชย)",
 		"lookup": {},
 		"references": [
 			{
@@ -13,15 +12,14 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "dc853c02-96be-5b88-86c6-41bf969c0fe3",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst served = calendar_distance_days(employment.effective_range.from, ctx.entry.incurred_on) + 1;\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.section_119_ground', false)) return false;\nif (get(employment, 'employee_extension_data.fixed_term_project', false)) return false;\nreturn served >= ctx.lookup.minimum_service_days;\n",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst months = calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn ctx.day_rate * days;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst served = calendar_distance_days(get(employment, 'service_started_on', employment.effective_range.from), ctx.entry.incurred_on) + 1;\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.section_119_ground', false)) return false;\nif (get(employment, 'employee_extension_data.fixed_term_project', false)) return false;\nreturn served >= ctx.lookup.minimum_service_days;\n",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst months = calendar_completed_months(get(employment, 'service_started_on', employment.effective_range.from), ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn ctx.day_rate * days;",
 		"id": "aa2f9e35-d9a2-50bc-a241-eea54e1f8ef7",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "SEVERANCE_PAY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "PAY_IN_LIEU_OF_NOTICE",
-		"name": "Pay in lieu of notice (สินจ้างแทนการบอกกล่าวล่วงหน้า)",
 		"lookup": {},
 		"references": [
 			{
@@ -35,13 +33,12 @@
 		"subtotal_id": "ac336309-e31a-527b-8c26-5b33eb96de1d",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (ctx.entry.unit === 'MONEY') return true;\nreturn ctx.entry.unit === 'DAY';",
 		"conversion": "// js\nif (ctx.entry.unit === 'MONEY') return ctx.entry.quantity;\nreturn ctx.day_rate * ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "c864939b-09b3-566b-8b0c-cf16365ef2cc",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "PAY_IN_LIEU_OF_NOTICE: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "MINIMUM_WAGE_ARREARS",
-		"name": "Minimum wage arrears",
 		"lookup": {
 			"business_400": 400
 		},
@@ -56,15 +53,14 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "d5cb1e8c-b72e-59dc-8f3f-c128bf73805c",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst employer = ctx.subject.employer;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employer, 'entity_extension_data.minimum_wage_exempt', false)) return false;\nif (ctx.entry.unit !== 'DAY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst rate = get(employment, 'terms.rate', {});\nif (rate.unit === 'PIECE') return false;\nconst business = get(employer, 'entity_extension_data.minimum_wage_400_business', false);\nif (business) return business;\nconst region = get(employer, 'entity_extension_data.region', null);\nif (typeof region !== 'string') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);\n",
-		"conversion": "// js\nconst employer = ctx.subject.employer;\nconst minimum =\n\tget(employer, 'entity_extension_data.minimum_wage_400_business', false)\n\t\t? ctx.lookup.business_400\n\t\t: get(ctx.lookup.by_region, String(get(employer, 'entity_extension_data.region', '')), 0);\nreturn Math.max(0, minimum - ctx.day_rate) * ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst employer = ctx.subject.employer;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employer, 'entity_extension_data.minimum_wage_exempt', false)) return false;\nif (ctx.entry.unit !== 'DAY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst facts = get(employer, 'entity_extension_data', {});\nif (get(facts, 'minimum_wage_400_business', false)) return true;\nconst worksite = get(employment, 'terms.work_region', null);\nconst region =\n\ttypeof worksite === 'string' && worksite !== ''\n\t\t? worksite\n\t\t: String(get(facts, 'region', ''));\nreturn Object.hasOwn(ctx.lookup.by_region, region);\n",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst facts = get(ctx.subject.employer, 'entity_extension_data', {});\nconst worksite = get(employment, 'terms.work_region', null);\nconst region =\n\ttypeof worksite === 'string' && worksite !== ''\n\t\t? worksite\n\t\t: String(get(facts, 'region', ''));\nconst minimum = get(facts, 'minimum_wage_400_business', false)\n\t? ctx.lookup.business_400\n\t: get(ctx.lookup.by_region, region, 0);\nreturn Math.max(0, minimum - ctx.day_rate) * ctx.entry.quantity;",
 		"id": "e1f2f88e-2919-5ebd-8501-25abb77f41e3",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "MINIMUM_WAGE_ARREARS: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "BONUS",
-		"name": "Bonus",
 		"lookup": {},
 		"references": [
 			{
@@ -78,14 +74,12 @@
 		"subtotal_id": "670757ec-b2ae-57a3-affd-dbba0185a7e0",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "d94933b2-a1e7-5ab5-9207-bcbe02ac6f15",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
 		"description": "Paid on top of ordinary wages: accumulates in ADDITIONAL_WAGES; SSO, PVD and WCF read ORDINARY_WAGES; PND1 withholds the tax this bonus adds in the month it is paid."
 	},
 	{
 		"code": "SPECIAL_SEVERANCE_TECHNOLOGY",
-		"name": "Special severance — technology redundancy (s.122)",
 		"lookup": {
 			"days_per_year": 15,
 			"maximum_days": 360,
@@ -102,15 +96,14 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "dc853c02-96be-5b88-86c6-41bf969c0fe3",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.special_severance_ground', null) !== 'TECHNOLOGY') return false;\nreturn calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on) >= ctx.lookup.qualifying_years * 12;\n",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst start = employment.effective_range.from;\nconst whole = Math.trunc(calendar_completed_months(start, ctx.entry.incurred_on) / 12);\nconst part = calendar_distance_days(add_years(start, whole), ctx.entry.incurred_on) + 1;\nconst years = whole + (part > ctx.lookup.part_year_days ? 1 : 0);\nconst days = Math.min(ctx.lookup.maximum_days, ctx.lookup.days_per_year * years);\nreturn ctx.day_rate * days;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.special_severance_ground', null) !== 'TECHNOLOGY') return false;\nreturn calendar_completed_months(get(employment, 'service_started_on', employment.effective_range.from), ctx.entry.incurred_on) >= ctx.lookup.qualifying_years * 12;\n",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst start = get(employment, 'service_started_on', employment.effective_range.from);\nconst whole = Math.trunc(calendar_completed_months(start, ctx.entry.incurred_on) / 12);\nconst part = calendar_distance_days(add_years(start, whole), ctx.entry.incurred_on) + 1;\nconst years = whole + (part > ctx.lookup.part_year_days ? 1 : 0);\nconst days = Math.min(ctx.lookup.maximum_days, ctx.lookup.days_per_year * years);\nreturn ctx.day_rate * days;",
 		"id": "c15d6d21-3749-5423-bccf-10754972454d",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "SPECIAL_SEVERANCE_TECHNOLOGY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "TECHNOLOGY_NOTICE_IN_LIEU",
-		"name": "Pay in lieu of 60 days' notice — technology redundancy (s.121)",
 		"lookup": {
 			"notice_days": 60
 		},
@@ -126,13 +119,12 @@
 		"subtotal_id": "ac336309-e31a-527b-8c26-5b33eb96de1d",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.day_rate * ctx.lookup.notice_days;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "56b8b56f-8e34-516d-9cd1-520c79173b50",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "TECHNOLOGY_NOTICE_IN_LIEU: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "SPECIAL_SEVERANCE_RELOCATION",
-		"name": "Special severance — relocation refused (s.120)",
 		"lookup": {},
 		"references": [
 			{
@@ -144,15 +136,14 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "dc853c02-96be-5b88-86c6-41bf969c0fe3",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst served = calendar_distance_days(employment.effective_range.from, ctx.entry.incurred_on) + 1;\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.special_severance_ground', null) !== 'RELOCATION') return false;\nreturn served >= ctx.lookup.minimum_service_days;\n",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst months = calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn ctx.day_rate * days;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst served = calendar_distance_days(get(employment, 'service_started_on', employment.effective_range.from), ctx.entry.incurred_on) + 1;\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.special_severance_ground', null) !== 'RELOCATION') return false;\nreturn served >= ctx.lookup.minimum_service_days;\n",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst months = calendar_completed_months(get(employment, 'service_started_on', employment.effective_range.from), ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn ctx.day_rate * days;",
 		"id": "891ef640-737e-5499-ad24-bdd71f957647",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "SPECIAL_SEVERANCE_RELOCATION: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "RELOCATION_NOTICE_IN_LIEU",
-		"name": "Pay in lieu of 30 days' relocation notice (s.120)",
 		"lookup": {
 			"notice_days": 30
 		},
@@ -168,13 +159,12 @@
 		"subtotal_id": "ac336309-e31a-527b-8c26-5b33eb96de1d",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.day_rate * ctx.lookup.notice_days;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "89405a85-9e0d-5e2d-9472-d9a548eb4ead",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "RELOCATION_NOTICE_IN_LIEU: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "SUSPENSION_BACK_PAY",
-		"name": "Wages for a suspension of a cleared employee (s.117)",
 		"lookup": {},
 		"references": [
 			{
@@ -188,13 +178,12 @@
 		"subtotal_id": "d5cb1e8c-b72e-59dc-8f3f-c128bf73805c",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "bb70a4b1-cdaf-51fe-8bf8-54c3dbe312ac",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "SUSPENSION_BACK_PAY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "LATE_PAYMENT_INTEREST",
-		"name": "Interest and surcharge on late wages or severance (s.9)",
 		"lookup": {
 			"annual_rate": 0.15,
 			"days_per_year": 365
@@ -211,13 +200,12 @@
 		"subtotal_id": "77c30db3-8211-5e54-8514-03cdd8769f52",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (ctx.entry.unit === 'MONEY') return true;\nreturn ctx.entry.unit === 'DAY';\n",
 		"conversion": "// js\nif (ctx.entry.unit === 'MONEY') return ctx.entry.quantity;\nreturn (ctx.month_wage * ctx.lookup.annual_rate * ctx.entry.quantity) / ctx.lookup.days_per_year;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "2f1058bd-8bf4-52b1-83a0-424bf5395d0f",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "LATE_PAYMENT_INTEREST: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "HOLIDAY_NOT_GRANTED",
-		"name": "Holiday not granted, paid as worked (s.64)",
 		"lookup": {},
 		"references": [
 			{
@@ -231,13 +219,12 @@
 		"subtotal_id": "670757ec-b2ae-57a3-affd-dbba0185a7e0",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (ctx.entry.unit !== 'HOUR') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst rate = get(employment, 'terms.rate', {});\nreturn ['MONTHLY', 'DAILY', 'HOURLY'].includes(rate.unit);\n",
 		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\n// s.64 pays at the s.62 rate: a monthly wage already pays the holiday (s.56(1)), so 1×; a day or hour\n// rate has no weekly-holiday pay, so 2× (s.62(2)). An entry does not say which holiday, so a daily\n// worker's traditional or annual holiday (s.62(1), 1×) is paid above the minimum.\nconst multiple = rate.unit === 'MONTHLY' ? ctx.lookup.paid_multiple : ctx.lookup.unpaid_multiple;\nreturn ctx.hour_rate * multiple * ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "00981f7b-af9f-5ccd-aa01-d5485d1bfb5b",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "HOLIDAY_NOT_GRANTED: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "SECURITY_DEPOSIT",
-		"name": "Security deposit deducted (s.10)",
 		"lookup": {},
 		"references": [
 			{
@@ -251,14 +238,13 @@
 		"subtotal_id": "42975af4-33c6-5112-bf20-496b8d83cf77",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nconst post = get(employment, 'employee_extension_data.security_deposit_post', false);\nif (!post) return post;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn ctx.entry.quantity > 0;\n",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"id": "4035e829-10ae-5815-89e2-5d7240b309d9",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "SECURITY_DEPOSIT: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "STATUTORY_REFUND",
-		"name": "Statutory refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -270,13 +256,11 @@
 		"subtotal_id": "42975af4-33c6-5112-bf20-496b8d83cf77",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "13083dd4-5410-5ef4-b8dd-a2a105868d7e",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	},
 	{
 		"code": "SSO_REFUND",
-		"name": "Social Security Fund (กองทุนประกันสังคม) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -304,13 +288,11 @@
 		"subtotal_id": "42975af4-33c6-5112-bf20-496b8d83cf77",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "5d4f044f-f43d-5c49-b5fe-de487ef2b95f",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	},
 	{
 		"code": "SSO_ADJUSTMENT",
-		"name": "Social Security Fund (กองทุนประกันสังคม) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -339,13 +321,11 @@
 		"direction": "DEDUCT",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "13098d48-e427-5f7f-9225-8c1672198400",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	},
 	{
 		"code": "PVD_REFUND",
-		"name": "Provident fund (กองทุนสำรองเลี้ยงชีพ) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -366,13 +346,11 @@
 		"subtotal_id": "42975af4-33c6-5112-bf20-496b8d83cf77",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "c8aede9a-1927-529a-80e4-c8f26febf26e",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	},
 	{
 		"code": "PVD_ADJUSTMENT",
-		"name": "Provident fund (กองทุนสำรองเลี้ยงชีพ) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -394,13 +372,11 @@
 		"direction": "DEDUCT",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "9988b80b-00d7-5ae7-adf7-a341e1db7672",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	},
 	{
 		"code": "EWF_REFUND",
-		"name": "Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -421,13 +397,11 @@
 		"subtotal_id": "42975af4-33c6-5112-bf20-496b8d83cf77",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "4cb078a0-edc0-5c84-808c-6b68aa4333fa",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	},
 	{
 		"code": "EWF_ADJUSTMENT",
-		"name": "Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -449,7 +423,6 @@
 		"direction": "DEDUCT",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "0bfbbb8d-8961-532e-986f-5111d289aee0",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	}

@@ -1,7 +1,6 @@
 [
 	{
 		"code": "HOME_LEAVE_TRAVEL",
-		"name": "探亲路费 (home-visit round-trip fare)",
 		"description": "Reimburses the employer-borne part of the round-trip fare for a home visit: the full fare for a spouse or an unmarried employee's parents visit, and for a married employee's parents visit only the excess over 30% of the monthly standard wage, which the employee bears. The claim records that reimbursable amount as `quantity` in `MONEY`.",
 		"lookup": {},
 		"references": [
@@ -11,7 +10,6 @@
 		],
 		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nif (get(ctx.subject.employer.entity_extension_data, 'state_owned', false) !== true) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end === null) return true;\nreturn ctx.entry.incurred_on <= end;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"subtotal_id": "c3890fcd-4799-5bbf-94de-776d861ade65",

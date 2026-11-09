@@ -43,7 +43,7 @@ const seed = {
 	}))
 };
 const birth = { kind: 'CHILD_BIRTH', on: '2026-03-02' };
-const PATH = 'employee_extension_data.events';
+const PATH = 'events';
 const file = (t: Kit, set: Partial<{ on: string; from: string; value: typeof birth }> = {}) =>
 	t.as(t.member(['hr_controller'])).act('contract_change.create', [
 		{
@@ -72,7 +72,7 @@ describe('the pure rules', () => {
 		});
 		assert.deepEqual(raised.terms, { rate: { amount: 120 } });
 		const added = withChange(contract, { field_path: PATH, old_value: null, new_value: birth });
-		assert.deepEqual(added.employee_extension_data, { events: [birth] });
+		assert.deepEqual(added.events, [birth]);
 	});
 	it('refuses where the contract moved since the change was filed', () => {
 		assert.throws(() =>

@@ -1,7 +1,7 @@
 [
 	{
 		"code": "BENEFIT_IN_KIND",
-		"name": "Benefit in kind (housing, car, employer-paid tax)",
+		"description": "Contractual benefit in kind such as housing, a car or employer-paid tax, paid at the agreed value when the contract sets an amount; taxable employment income.",
 		"lookup": {},
 		"references": [
 			{
@@ -14,14 +14,13 @@
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0));",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"id": "c0cd8d20-8bd8-5b88-99d9-3714b5bcae53",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
 		"include_in_rate": true
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
-		"name": "Fixed monthly allowance",
+		"description": "Contractual fixed monthly allowance paid when the contract sets an amount, prorated over the salary-coverage days; a wage that enters the social-security and workmen's compensation bases.",
 		"lookup": {},
 		"references": [
 			{
@@ -34,7 +33,6 @@
 		"subtotal_id": "d5cb1e8c-b72e-59dc-8f3f-c128bf73805c",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.from)) + 1;\nreturn (amount * days) / month_days;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"id": "168d4bce-7cd4-5ea8-b988-85f7e42a3f45",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
 		"prorate": true,

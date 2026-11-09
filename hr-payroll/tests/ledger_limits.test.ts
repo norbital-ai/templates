@@ -18,12 +18,14 @@ import {
 	catalogRow,
 	measureOf,
 	pack,
+	reversalSlots,
 	sealEvents,
 	sealedLeave,
 	syncAll,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	leaveCreate
 } from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -75,20 +77,20 @@ describe('a claim on a limited row', () => {
 			assert.equal(yield* used(t), 500);
 			yield* claim(t, 300);
 			yield* t.runDue();
-			assert.equal(yield* used(t), 576);
+			assert.equal(yield* used(t), 800);
 			yield* run(t);
-			assert.equal(yield* paid(t), 576);
+			assert.equal(yield* paid(t), 800);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('pays nothing once the limit is gone', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* claim(t, 576);
+			yield* claim(t, 1000);
 			yield* t.runDue();
 			yield* claim(t, 50);
 			yield* t.runDue();
 			yield* run(t);
-			assert.equal(yield* paid(t), 576);
+			assert.equal(yield* paid(t), 1000);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('shares the limit with a claim made in the same write', () =>
@@ -96,7 +98,7 @@ describe('a claim on a limited row', () => {
 			const t = yield* TestWorkspace;
 			yield* claim(t, 500, 300);
 			yield* t.runDue();
-			assert.equal(yield* used(t), 576);
+			assert.equal(yield* used(t), 800);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('still on its way, pays what posting it will', () =>
@@ -106,9 +108,9 @@ describe('a claim on a limited row', () => {
 			yield* t.runDue();
 			yield* claim(t, 300);
 			yield* run(t);
-			assert.equal(yield* paid(t), 576);
+			assert.equal(yield* paid(t), 800);
 			yield* t.runDue();
-			assert.equal(yield* used(t), 576);
+			assert.equal(yield* used(t), 800);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('reversed, gives back only what it drew', () =>
@@ -184,11 +186,12 @@ describe('a contract that ends', () => {
 			assert.deepEqual(yield* encashed(t), []);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
-	it.live('with none, encashes what is left', () =>
+	it.live('with none, raises what is left for HR approval and posts only once approved', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
-			yield* t.as(t.member(['hr_controller'])).act('employee_contract.update', [
+			// an administrator ends it: the encashment still waits for an HR controller
+			yield* t.as(t.admin).act('employee_contract.update', [
 				{
 					target: CONTRACT,
 					set: {
@@ -199,13 +202,85 @@ describe('a contract that ends', () => {
 			]);
 			yield* t.runDue();
 			const [entry] = yield* encashed(t);
-			assert.equal(entry?.encashment, true);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+			assert.ok(entry !== undefined);
+			assert.equal(entry.encashment, true);
+			const { leave_catalog_entry_day } = yield* t.storedQuery({
+				leave_catalog_entry_day: {
+					where: { leave_entry_id: { eq: entry.id } },
+					fields: ['incurred_on', 'part'],
+					limit: 1000
+				}
+			});
+			assert.ok(leave_catalog_entry_day.rows.length > 0);
+			for (const slot of leave_catalog_entry_day.rows) {
+				const weekday = new Date(`${String(slot.incurred_on)}T00:00:00.000Z`).getUTCDay();
+				assert.ok(weekday !== 0 && weekday !== 6, `${slot.incurred_on} is a working day`);
+			}
+			const posted = t
+				.storedQuery({
+					ledger_entry: { where: { source: { eq: `leave_catalog_entry:${entry.id}` } }, limit: 100 }
+				})
+				.pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows.length));
+			assert.equal(yield* posted, 0);
+			const hr = t.as(yield* t.signIn('payroll@example.test'));
+			const { leave_catalog_entry } = yield* hr.query({
+				leave_catalog_entry: { where: { encashment: { eq: true } }, limit: 10 }
+			});
+			const requestId = leave_catalog_entry.rows[0]?.$approval?.requestId;
+			assert.ok(requestId !== undefined);
+			yield* hr.approvals.decide(requestId, { decision: 'approve' });
+			assert.ok((yield* posted) > 0);
+			const { ledger_entry } = yield* t.storedQuery({
+				ledger_entry: {
+					where: { source: { eq: `leave_catalog_entry:${entry.id}` } },
+					fields: ['operation', 'amount', 'measure'],
+					limit: 100
+				}
+			});
+			const used = ledger_entry.rows
+				.filter((row) => row.measure === 'used')
+				.reduce(
+					(total, row) =>
+						total + (row.operation === 'DEDUCT' ? -1 : 1) * (row.amount?.toNumber() ?? 0),
+					0
+				);
+			assert.equal(used, leave_catalog_entry_day.rows.length / 2);
+		}).pipe(
+			Effect.provide(
+				workspace({
+					seed: {
+						...seed,
+						sys_user: [
+							...(seed.sys_user ?? []),
+							{
+								id: uuid(41),
+								name: 'Payroll',
+								email: 'payroll@example.test',
+								kind: 'staff',
+								team: 'hr_controller'
+							}
+						]
+					},
+					now: NOW
+				})
+			)
+		)
 	);
 });
 
 describe('what cannot be done to the ledger, an admin included', () => {
 	const MEDICAL = idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE'));
+	it.live('a leave entry with no slots is refused', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const refused = yield* Effect.flip(
+				t.as(t.admin).act('leave_catalog_entry.create', [
+					{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: MEDICAL }
+				])
+			);
+			assert.match(String(refused), /at least one day/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
 	const OCTOBER = '2026-10-05';
 	const sick = (date: string, set: object = {}) => ({
 		entity_id: ENTITY,
@@ -215,28 +290,41 @@ describe('what cannot be done to the ledger, an admin included', () => {
 		...set
 	});
 	const hr = (t: Kit) => t.as(t.member(['hr_controller']));
-	const take = (t: Kit, date: string) => hr(t).act('leave_catalog_entry.create', [sick(date)]);
+	const take = (t: Kit, date: string) =>
+		hr(t).act('leave_catalog_entry.create', [leaveCreate(sick(date))]);
 	const pay = (t: Kit, period: string) => run(t, period).pipe(Effect.andThen(t.runDue()));
 	/** An October sick day, sealed by October's run. */
 	const taken = (t: Kit) =>
 		take(t, OCTOBER).pipe(Effect.andThen(pay(t, '2026-10')), Effect.andThen(sealedLeave(t)));
 	const reverse = (t: Kit, reverses: Id<'leave_catalog_entry'>, set: object = {}) =>
-		hr(t).act('leave_catalog_entry.create', [sick('2026-11-03', { reverses, ...set })]);
+		Effect.gen(function* () {
+			const days = yield* reversalSlots(t, reverses);
+			yield* hr(t).act('leave_catalog_entry.create', [
+				leaveCreate(sick('2026-11-03', { days, reverses, ...set }))
+			]);
+		});
 	it.live('frees only the days a partial reversal gives back', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
 			yield* hr(t).act('leave_catalog_entry.create', [
-				sick(OCTOBER, { days: wholeDays(OCTOBER, '2026-10-06') })
+				leaveCreate(sick(OCTOBER, { days: wholeDays(OCTOBER, '2026-10-06') }))
 			]);
 			yield* pay(t, '2026-10');
+			const sealed = yield* sealedLeave(t);
+			const slots = (yield* reversalSlots(t, sealed)).toSorted(
+				(left, right) => left.date.localeCompare(right.date) || left.part.localeCompare(right.part)
+			);
+			const firstDate = slots[0]?.date;
+			const firstDay = slots.filter((slot) => slot.date === firstDate);
+			assert.ok(firstDay.length > 0);
 			yield* hr(t).act('leave_catalog_entry.create', [
-				sick('2026-11-03', { reverses: yield* sealedLeave(t) })
+				leaveCreate(sick('2026-11-03', { days: firstDay, reverses: sealed }))
 			]);
 			yield* t.runDue();
-			yield* hr(t).act('leave_catalog_entry.create', [sick(OCTOBER)]);
+			yield* hr(t).act('leave_catalog_entry.create', [leaveCreate(sick(OCTOBER))]);
 			const still = yield* Effect.flip(
-				hr(t).act('leave_catalog_entry.create', [sick('2026-10-06')])
+				hr(t).act('leave_catalog_entry.create', [leaveCreate(sick('2026-10-06'))])
 			);
 			assert.match(String(still), /already covers 2026-10-06/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
@@ -301,7 +389,15 @@ describe('what cannot be done to the ledger, an admin included', () => {
 				leave_catalog_entry: { where: { reverses: { isNull: false } }, limit: 1 }
 			});
 			const [reversal] = leave_catalog_entry.rows;
-			assert.ok(reversal?.payroll_run_id != null);
+			assert.ok(reversal !== undefined);
+			const { leave_catalog_entry_day } = yield* t.storedQuery({
+				leave_catalog_entry_day: {
+					where: { leave_entry_id: { eq: reversal.id } },
+					fields: ['payroll_run_id'],
+					limit: 1
+				}
+			});
+			assert.ok(leave_catalog_entry_day.rows[0]?.payroll_run_id != null);
 			const again = yield* Effect.flip(reverse(t, reversal.id));
 			assert.match(String(again), /same person/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))

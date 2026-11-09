@@ -2,6 +2,7 @@
 	{
 		"code": "SI_MONTHLY_PAYMENT",
 		"name": "Social insurance monthly declaration and payment",
+		"description": "Raises the monthly social-insurance declaration and payment task for the employer, due by the regional filing day.",
 		"lookup": {
 			"title": "Social insurance monthly declaration and payment",
 			"due_day": {
@@ -44,6 +45,7 @@
 	{
 		"code": "HPF_MONTHLY_REMITTANCE",
 		"name": "Housing provident fund monthly remittance",
+		"description": "Raises the monthly housing-provident-fund remittance task five days after the run's pay date.",
 		"lookup": {
 			"title": "Housing provident fund monthly remittance",
 			"due_days": 5
@@ -83,6 +85,7 @@
 	{
 		"code": "IIT_MONTHLY_DECLARATION",
 		"name": "IIT withholding declaration and payment",
+		"description": "Raises the monthly individual-income-tax withholding declaration and payment task for the month after the run's pay month.",
 		"lookup": {
 			"title": "IIT withholding declaration and payment",
 			"due_days": 14,
@@ -138,6 +141,7 @@
 	{
 		"code": "UNION_FUND_REMITTANCE",
 		"name": "Union fund monthly remittance",
+		"description": "Raises the monthly two-percent union fund remittance where the employer has a union or a Shanghai preparatory organisation.",
 		"lookup": {
 			"title": "Union fund monthly remittance",
 			"due_day": {
@@ -184,6 +188,7 @@
 	{
 		"code": "UNION_PREPARATORY_FUND",
 		"name": "Union preparatory fund quarterly declaration (Kunming, no union)",
+		"description": "Raises the quarterly union preparatory-fund declaration for a Kunming employer without a union.",
 		"lookup": {
 			"title": "Union preparatory fund quarterly declaration (Kunming, no union)",
 			"cutoff_month": 10,
@@ -230,6 +235,7 @@
 	{
 		"code": "IIT_INCOME_STATEMENT",
 		"name": "Annual income and withholding statement to employees",
+		"description": "Raises the annual employee income and withholding statement task after the tax year ends.",
 		"lookup": {
 			"title": "Annual income and withholding statement to employees",
 			"offset_months": 1,
@@ -270,6 +276,7 @@
 	{
 		"code": "IIT_ANNUAL_RECONCILIATION",
 		"name": "IIT annual reconciliation (综合所得汇算清缴)",
+		"description": "Raises the annual comprehensive-income reconciliation task in the March filing window.",
 		"lookup": {
 			"title": "IIT annual reconciliation (综合所得汇算清缴)",
 			"offset_months": 3,
@@ -310,6 +317,7 @@
 	{
 		"code": "SI_REGISTRATION",
 		"name": "Social insurance registration of a new employee",
+		"description": "Raises social-insurance registration for a newly sealed employee within 30 days of the start date.",
 		"lookup": {
 			"title": "Social insurance registration of a new employee",
 			"due_days": 30
@@ -349,6 +357,7 @@
 	{
 		"code": "HPF_DEPOSIT_REGISTRATION",
 		"name": "Housing provident fund deposit registration",
+		"description": "Raises housing-provident-fund deposit registration for a newly sealed employee within 30 days.",
 		"lookup": {
 			"title": "Housing provident fund deposit registration",
 			"due_days": 30
@@ -386,46 +395,9 @@
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	},
 	{
-		"code": "LABOUR_CONTRACT",
-		"name": "Written labour contract",
-		"lookup": {
-			"title": "Written labour contract"
-		},
-		"references": [
-			{
-				"title": "劳动合同法 第十条第二款: 已建立劳动关系, 未同时订立书面劳动合同的, 应当自用工之日起一个月内订立书面劳动合同; 第八十二条第一款."
-			}
-		],
-		"source_collection": "employee_contract",
-		"events": ["create", "update"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"state": {
-						"eq": "OPEN"
-					},
-					"employment_id": {
-						"eq": {
-							"var": "entry.id"
-						}
-					},
-					"employee_id": {
-						"isNull": false
-					}
-				},
-				"limit": 1000
-			}
-		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'LABOUR_CONTRACT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_months(row.effective_range.from, 1),\n  occurrence_key: 'LABOUR_CONTRACT:' + row.id\n}];",
-		"id": "25215d0e-87e9-51cc-881c-4d6df3ff7c47",
-		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
-	},
-	{
 		"code": "EMPLOYEE_ROSTER",
 		"name": "Employee roster entry (职工名册)",
+		"description": "Raises the employee-roster entry for a newly sealed contract.",
 		"lookup": {
 			"title": "Employee roster entry (职工名册)"
 		},
@@ -464,6 +436,7 @@
 	{
 		"code": "TERMINATION_CERTIFICATE",
 		"name": "Termination certificate",
+		"description": "Raises the termination certificate when a contract is voided with an end date.",
 		"lookup": {
 			"title": "Termination certificate"
 		},
@@ -502,6 +475,7 @@
 	{
 		"code": "SI_FILE_TRANSFER",
 		"name": "Personnel file and social insurance transfer",
+		"description": "Raises the personnel-file and social-insurance transfer task 15 days after an exit.",
 		"lookup": {
 			"title": "Personnel file and social insurance transfer",
 			"due_days": 15
@@ -541,6 +515,7 @@
 	{
 		"code": "HPF_CHANGE_REGISTRATION",
 		"name": "Housing provident fund change registration on exit",
+		"description": "Raises the housing-provident-fund change registration 30 days after an exit.",
 		"lookup": {
 			"title": "Housing provident fund change registration on exit",
 			"due_days": 30
@@ -580,6 +555,7 @@
 	{
 		"code": "FINAL_WAGES",
 		"name": "Final wages",
+		"description": "Raises final-wage payment on exit, allowing the regional working-day period.",
 		"lookup": {
 			"title": "Final wages",
 			"working_days": {
@@ -634,6 +610,7 @@
 	{
 		"code": "TERMINATED_CONTRACT_RETENTION",
 		"name": "Retention of the terminated labour contract",
+		"description": "Raises the two-year retention date for a terminated contract.",
 		"lookup": {
 			"title": "Retention of the terminated labour contract",
 			"retention_years": 2
@@ -673,6 +650,7 @@
 	{
 		"code": "ECONOMIC_LAYOFF_REPORT",
 		"name": "Economic layoff: explanation to the union or all staff and report to the labour authority",
+		"description": "Raises the 30-day explanation and labour-authority report when an exit is part of a qualifying economic layoff.",
 		"lookup": {
 			"title": "Economic layoff: explanation to the union or all staff and report to the labour authority",
 			"advance_days": 30,
@@ -714,6 +692,7 @@
 	{
 		"code": "SI_BASE_ANNUAL_DECLARATION",
 		"name": "Annual contribution-wage declaration",
+		"description": "Raises the annual social-insurance contribution-wage declaration in the regional filing month.",
 		"lookup": {
 			"title": "Annual contribution-wage declaration",
 			"declaration": {
@@ -762,6 +741,7 @@
 	{
 		"code": "EMPLOYMENT_REGISTRATION",
 		"name": "Employment registration of a new hire",
+		"description": "Raises employment registration for a new hire within 30 days.",
 		"lookup": {
 			"title": "Employment registration of a new hire",
 			"due_days": 30
@@ -802,6 +782,7 @@
 	{
 		"code": "EMPLOYMENT_DEREGISTRATION",
 		"name": "Employment deregistration on exit",
+		"description": "Raises employment deregistration 15 days after an exit.",
 		"lookup": {
 			"title": "Employment deregistration on exit",
 			"due_days": 15
@@ -841,6 +822,7 @@
 	{
 		"code": "WORK_INJURY_RECOGNITION",
 		"name": "Work-injury recognition application",
+		"description": "Raises the work-injury recognition application within 30 days of the accident or diagnosis recorded on the contract.",
 		"lookup": {
 			"title": "Work-injury recognition application",
 			"catalog_codes": ["WORK_INJURY_LEAVE"],
@@ -880,18 +862,30 @@
 				},
 				"fields": ["code"],
 				"limit": 1
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["incurred_on"],
+				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = first(ctx.reads.leave_catalog ?? []);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(String(get(catalog, 'code', '')))) return false;\nconst key = 'WORK_INJURY_RECOGNITION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null || (ctx.reads.leave_catalog_entry_day ?? []).length === 0) return false;\nconst catalog = first(ctx.reads.leave_catalog ?? []);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(String(get(catalog, 'code', '')))) return false;\nconst key = 'WORK_INJURY_RECOGNITION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const row = ctx.entry;\nconst injury = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'WORK_INJURY' && event.on <= row.days[0].date).map((event) => event.on).toSorted().at(-1);\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: add_days(injury ?? row.days[0].date, ctx.lookup.due_days),\n  occurrence_key: 'WORK_INJURY_RECOGNITION:' + row.id\n}];",
+		"effects": "const row = ctx.entry;\nconst firstDay = (ctx.reads.leave_catalog_entry_day ?? []).map((slot) => slot.incurred_on).toSorted().at(0);\nconst injury = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'WORK_INJURY' && event.on <= firstDay).map((event) => event.on).toSorted().at(-1);\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: add_days(injury ?? firstDay, ctx.lookup.due_days),\n  occurrence_key: 'WORK_INJURY_RECOGNITION:' + row.id\n}];",
 		"id": "1eefc32d-cd7e-55f2-b3d5-ebe1b921b6bd",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	},
 	{
 		"code": "SI_UNIT_REGISTRATION",
 		"name": "Employer social insurance registration",
+		"description": "Raises the employer's first social-insurance registration within 30 days of its first sealed profile.",
 		"lookup": {
 			"title": "Employer social insurance registration",
 			"due_days": 30
@@ -942,6 +936,7 @@
 	{
 		"code": "SI_UNIT_CHANGE_REGISTRATION",
 		"name": "Employer social insurance change registration",
+		"description": "Raises social-insurance change registration within 30 days when a later employer profile seals.",
 		"lookup": {
 			"title": "Employer social insurance change registration",
 			"due_days": 30
@@ -993,6 +988,7 @@
 	{
 		"code": "HPF_UNIT_REGISTRATION",
 		"name": "Employer housing provident fund registration",
+		"description": "Raises the employer's housing-provident-fund registration within 30 days of its first sealed profile.",
 		"lookup": {
 			"title": "Employer housing provident fund registration",
 			"due_days": 30
@@ -1043,6 +1039,7 @@
 	{
 		"code": "WRITTEN_CONTRACT_OVERDUE",
 		"name": "No written labour contract one month after hire (double wages)",
+		"description": "Raises the double-wage exposure task for a sealed contract with no signed date, due one month after the start.",
 		"lookup": {
 			"title": "No written labour contract one month after hire (double wages)"
 		},
@@ -1081,6 +1078,7 @@
 	{
 		"code": "DEEMED_OPEN_ENDED_CONTRACT",
 		"name": "No written contract after one year: deemed open-ended",
+		"description": "Raises the deemed open-ended contract task for a sealed contract with no signed date, due one year after the start.",
 		"lookup": {
 			"title": "No written contract after one year: deemed open-ended",
 			"offset_years": 1
@@ -1120,6 +1118,7 @@
 	{
 		"code": "WAGE_STATEMENT",
 		"name": "Payslip to each employee",
+		"description": "Raises the payslip delivery task on the run's pay date.",
 		"lookup": {
 			"title": "Payslip to each employee"
 		},
@@ -1158,6 +1157,7 @@
 	{
 		"code": "WAGE_RECORDS_RETENTION",
 		"name": "Wage payment records kept",
+		"description": "Raises the wage-record retention date two years after the period, or three years for migrant workers.",
 		"lookup": {
 			"title": "Wage payment records kept",
 			"retention_years": 2,
@@ -1199,6 +1199,7 @@
 	{
 		"code": "HPF_BASE_ANNUAL_ADJUSTMENT",
 		"name": "Housing provident fund annual base adjustment",
+		"description": "Raises the annual housing-fund base adjustment in the regional adjustment month.",
 		"lookup": {
 			"title": "Housing provident fund annual base adjustment",
 			"due_days": 5,
@@ -1242,6 +1243,7 @@
 	{
 		"code": "SAD_RECORD_RETENTION",
 		"name": "Special-deduction information forms kept 5 years",
+		"description": "Raises the five-year retention date for special-deduction information in January.",
 		"lookup": {
 			"title": "Special-deduction information forms kept 5 years",
 			"retention_years": 5,
@@ -1282,6 +1284,7 @@
 	{
 		"code": "IIT_RECONCILIATION_RECORDS",
 		"name": "Reconciliation records kept 5 years",
+		"description": "Raises the five-year retention date for reconciliation records after the June filing window.",
 		"lookup": {
 			"title": "Reconciliation records kept 5 years",
 			"retention_years": 5,
@@ -1322,6 +1325,7 @@
 	{
 		"code": "DISABLED_EMPLOYMENT_FUND",
 		"name": "Disabled persons' employment security fund declaration",
+		"description": "Raises the disabled-persons' employment security fund declaration in the regional month when headcount exceeds 30.",
 		"lookup": {
 			"title": "Disabled persons' employment security fund declaration",
 			"month_by_region": {
@@ -1365,6 +1369,7 @@
 	{
 		"code": "PERSONAL_DATA_DISPOSAL",
 		"name": "Delete a former employee's personal information",
+		"description": "Raises deletion of a former employee's personal data at the end of the tenth year after exit.",
 		"lookup": {
 			"title": "Delete a former employee's personal information",
 			"retention_years": 10
@@ -1404,6 +1409,7 @@
 	{
 		"code": "PI_PROCESSING_NOTICE",
 		"name": "Personal-information notice to the new employee",
+		"description": "Raises the personal-information notice for a newly sealed contract.",
 		"lookup": {
 			"title": "Personal-information notice to the new employee"
 		},
@@ -1443,6 +1449,7 @@
 	{
 		"code": "SENSITIVE_PI_CONSENT",
 		"name": "Separate consent and impact assessment for sensitive personal information",
+		"description": "Raises separate consent and an impact assessment for sensitive personal information on a sealed contract.",
 		"lookup": {
 			"title": "Separate consent and impact assessment for sensitive personal information"
 		},
@@ -1482,6 +1489,7 @@
 	{
 		"code": "SENSITIVE_PI_CONSENT_MEDICAL",
 		"name": "Separate consent for a medical certificate",
+		"description": "Raises separate consent for the medical certificate attached to a sick, work-injury or maternity leave entry.",
 		"lookup": {
 			"title": "Separate consent for a medical certificate",
 			"catalog_codes": ["SICK_LEAVE", "WORK_INJURY_LEAVE", "MATERNITY_LEAVE"]
@@ -1522,18 +1530,30 @@
 				},
 				"fields": ["code"],
 				"limit": 1
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["incurred_on"],
+				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = first(ctx.reads.leave_catalog ?? []);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(String(get(catalog, 'code', '')))) return false;\nconst key = 'SENSITIVE_PI_CONSENT_MEDICAL:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null || (ctx.reads.leave_catalog_entry_day ?? []).length === 0) return false;\nconst catalog = first(ctx.reads.leave_catalog ?? []);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(String(get(catalog, 'code', '')))) return false;\nconst key = 'SENSITIVE_PI_CONSENT_MEDICAL:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: row.days[0].date,\n  occurrence_key: 'SENSITIVE_PI_CONSENT_MEDICAL:' + row.id\n}];",
+		"effects": "const row = ctx.entry;\nconst firstDay = (ctx.reads.leave_catalog_entry_day ?? []).map((slot) => slot.incurred_on).toSorted().at(0);\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: firstDay,\n  occurrence_key: 'SENSITIVE_PI_CONSENT_MEDICAL:' + row.id\n}];",
 		"id": "0127d18a-dd1a-5ce2-8cdf-ecedf641a9a3",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	},
 	{
 		"code": "CROSS_BORDER_HR_TRANSFER",
 		"name": "Notice and separate consent for an HR transfer abroad",
+		"description": "Raises the notice and consent task when a later employer profile reports HR data going abroad.",
 		"lookup": {
 			"title": "Notice and separate consent for an HR transfer abroad"
 		},
@@ -1588,6 +1608,7 @@
 	{
 		"code": "PI_COMPLIANCE_AUDIT",
 		"name": "Periodic personal-information compliance audit",
+		"description": "Raises the annual personal-information compliance audit in December.",
 		"lookup": {
 			"title": "Periodic personal-information compliance audit",
 			"month": "12"
@@ -1627,6 +1648,7 @@
 	{
 		"code": "JUVENILE_WORKER_REGISTRATION",
 		"name": "Register a juvenile worker and the pre-job health check",
+		"description": "Raises registration and the pre-job health check for a worker aged 16 or 17.",
 		"lookup": {
 			"title": "Register a juvenile worker and the pre-job health check",
 			"min_age": 16,
@@ -1672,6 +1694,7 @@
 	{
 		"code": "JUVENILE_WORKER_ANNUAL_CHECK",
 		"name": "Juvenile worker health check after a year of work",
+		"description": "Raises the annual health check one year after a juvenile worker's contract starts.",
 		"lookup": {
 			"title": "Juvenile worker health check after a year of work",
 			"offset_years": 1,
@@ -1713,6 +1736,7 @@
 	{
 		"code": "OPEN_ENDED_CONTRACT_RIGHT",
 		"name": "Open-ended contract on the employee's request after 10 years",
+		"description": "Raises the employee's right to an open-ended contract ten years after a fixed-term contract starts.",
 		"lookup": {
 			"title": "Open-ended contract on the employee's request after 10 years",
 			"offset_years": 10
@@ -1753,6 +1777,7 @@
 	{
 		"code": "SI_LATE_SURCHARGE",
 		"name": "Social insurance paid late: the 0.05% daily surcharge",
+		"description": "Raises the social-insurance late-payment surcharge task when the monthly payment task is fulfilled late.",
 		"lookup": {
 			"title": "Social insurance paid late: the 0.05% daily surcharge"
 		},
@@ -1792,6 +1817,7 @@
 	{
 		"code": "ACCOUNTING_VOUCHER_RETENTION",
 		"name": "Keep the year's payroll vouchers 30 years",
+		"description": "Raises the 30-year retention date for the year's payroll vouchers.",
 		"lookup": {
 			"title": "Keep the year's payroll vouchers 30 years",
 			"retention_years": 30,
@@ -1833,6 +1859,7 @@
 	{
 		"code": "MINIMUM_WAGE",
 		"name": "Normal-time wage below the local minimum wage",
+		"description": "Warns when a full month's normal-time wage falls below the local monthly minimum, after the regional contribution adjustment.",
 		"lookup": {
 			"title": "Normal-time wage below the local minimum wage"
 		},
@@ -1875,6 +1902,7 @@
 	{
 		"code": "DISABILITY_ALLOWANCE_SI_BASE",
 		"name": "Disability allowance paid: contribution base must equal it",
+		"description": "Raises a correction when a paid work-injury disability allowance differs from the declared contribution base.",
 		"lookup": {
 			"title": "Disability allowance paid: contribution base must equal it",
 			"catalog_code": "WORK_INJURY_DISABILITY_ALLOWANCE",
@@ -1919,6 +1947,7 @@
 	{
 		"code": "CN_COMPREHENSIVE_REVIEW",
 		"name": "Comprehensive-hours settlement not reviewed for this month",
+		"description": "Raises a review task when a comprehensive-hours worker's monthly settlement review is missing or incomplete.",
 		"lookup": {
 			"title": "Comprehensive-hours settlement not reviewed for this month"
 		},
@@ -1961,6 +1990,7 @@
 	{
 		"code": "CN_HPF_COMMENCEMENT_REVIEW",
 		"name": "Housing-fund start not recorded for a hire this month",
+		"description": "Raises a review task when a hire month has no housing-fund commencement fact.",
 		"lookup": {
 			"title": "Housing-fund start not recorded for a hire this month"
 		},
@@ -2003,6 +2033,7 @@
 	{
 		"code": "CN_ANNUAL_LEAVE_REVIEW",
 		"name": "Annual-leave decision missing for this year",
+		"description": "Raises a review task when a service-qualified employee has no annual-leave decision for the year.",
 		"lookup": {
 			"title": "Annual-leave decision missing for this year",
 			"service_months": 12
@@ -2039,7 +2070,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "const key = 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + first(ctx.reads.payroll_run).salary_coverage.from.slice(0, 4);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)) return false;\nconst service = calendar_completed_months(\n  ctx.subject.employment.effective_range.from,\n  run.salary_coverage.from,\n);\nif (service < ctx.lookup.service_months) return false;\nconst reviews = get(\n  ctx.subject.employment.employee_extension_data,\n  'annual_leave_year_reviews',\n  [],\n);\nconst year = Number(run.salary_coverage.from.slice(0, 4));\nif (!Array.isArray(reviews)) return true;\nreturn reviews.filter((r) => Math.trunc(Number(r.year)) === year).length !== 1;",
+		"condition": "const run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nconst key = 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + run.salary_coverage.from.slice(0, 4);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)) return false;\nconst service = calendar_completed_months(\n  ctx.subject.employment.effective_range.from,\n  run.salary_coverage.from,\n);\nif (service < ctx.lookup.service_months) return false;\nconst reviews = get(\n  ctx.subject.employment.employee_extension_data,\n  'annual_leave_year_reviews',\n  [],\n);\nconst year = Number(run.salary_coverage.from.slice(0, 4));\nif (!Array.isArray(reviews)) return true;\nreturn reviews.filter((r) => Math.trunc(Number(r.year)) === year).length !== 1;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + first(ctx.reads.payroll_run).salary_coverage.from.slice(0, 4)\n}];",
@@ -2049,6 +2080,7 @@
 	{
 		"code": "CONTRIBUTION_CORRECTION",
 		"name": "Follow up a contribution corrected for a closed month",
+		"description": "Raises a follow-up task when a contribution correction for a closed month posts to a fund account.",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
 		"events": ["create"],
@@ -2061,7 +2093,7 @@
 						}
 					}
 				},
-				"fields": ["code", "name", "lookup"],
+				"fields": ["code", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2079,7 +2111,7 @@
 		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['CN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
+		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['CN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
 		"references": [
 			{
 				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."

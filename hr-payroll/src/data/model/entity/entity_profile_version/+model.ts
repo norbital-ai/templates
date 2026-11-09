@@ -8,36 +8,6 @@ export default model('entity_profile_version', {
 		'Sealed employer data. A dated replacement changes future values; consumed historical values remain protected.',
 	label: 'name',
 	fields: {
-		statutory_units: {
-			kind: 'list',
-			optional: true,
-			of: {
-				kind: 'object',
-				fields: {
-					key: { kind: 'text' },
-					kind: { kind: 'text' },
-					name: { kind: 'text' },
-					registrations: {
-						kind: 'list',
-						optional: true,
-						of: {
-							kind: 'object',
-							fields: {
-								scheme_code: {
-									kind: 'text',
-									help: 'The actual registration scheme code defined by the governing catalogue lookup.'
-								},
-								number: {
-									kind: 'text',
-									help: 'The actual assigned account or member identifier, preserving leading zeros and its original format.'
-								},
-								period: { kind: 'period', of: 'date', optional: true }
-							}
-						}
-					}
-				}
-			}
-		},
 		input_schema_version_id: {
 			kind: 'ref',
 			to: 'jurisdiction_settings',
@@ -51,23 +21,10 @@ export default model('entity_profile_version', {
 		name: {
 			kind: 'text'
 		},
-		registrations: {
-			kind: 'list',
+		representative_name: {
+			kind: 'text',
 			optional: true,
-			of: {
-				kind: 'object',
-				fields: {
-					scheme_code: {
-						kind: 'text',
-						help: 'The actual registration scheme code defined by the governing catalogue lookup.'
-					},
-					number: {
-						kind: 'text',
-						help: 'The actual assigned account or member identifier, preserving leading zeros and its original format.'
-					},
-					period: { kind: 'period', of: 'date', optional: true }
-				}
-			}
+			help: 'The responsible person the law names for filing and registration duties.'
 		},
 		registered_address: { kind: 'text', optional: true },
 		final_pay_loan_floor_percent: {
@@ -94,110 +51,6 @@ export default model('entity_profile_version', {
 			kind: 'text',
 			optional: true,
 			help: "The zone this entity's payroll windows and rostered days are counted in."
-		},
-		payment_schedule: {
-			kind: 'json',
-			shape: {
-				kind: 'union',
-				by: 'frequency',
-				arms: {
-					MONTHLY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						anchors: {
-							kind: 'list',
-							min: 1,
-							of: {
-								kind: 'object',
-								fields: {
-									cycle_part: { kind: 'int', min: 1 },
-									day: { kind: 'int', min: 1, max: 31 },
-									month_offset: { kind: 'int', min: 0, max: 2 }
-								}
-							}
-						}
-					},
-					SEMI_MONTHLY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						anchors: {
-							kind: 'list',
-							min: 1,
-							of: {
-								kind: 'object',
-								fields: {
-									cycle_part: { kind: 'int', min: 1 },
-									day: { kind: 'int', min: 1, max: 31 },
-									month_offset: { kind: 'int', min: 0, max: 2 }
-								}
-							}
-						}
-					},
-					TEN_DAY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						anchors: {
-							kind: 'list',
-							min: 1,
-							of: {
-								kind: 'object',
-								fields: {
-									cycle_part: { kind: 'int', min: 1 },
-									day: { kind: 'int', min: 1, max: 31 },
-									month_offset: { kind: 'int', min: 0, max: 2 }
-								}
-							}
-						}
-					},
-					INTEGER_MONTHS: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						anchors: {
-							kind: 'list',
-							min: 1,
-							of: {
-								kind: 'object',
-								fields: {
-									cycle_part: { kind: 'int', min: 1 },
-									day: { kind: 'int', min: 1, max: 31 },
-									month_offset: { kind: 'int', min: 0, max: 2 }
-								}
-							}
-						},
-						month_interval: { kind: 'int', min: 1, max: 12 },
-						anchor_date: { kind: 'date' }
-					},
-					WEEKLY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						weekday: { kind: 'int', min: 0, max: 6 },
-						anchor_date: { kind: 'date' }
-					},
-					BIWEEKLY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						weekday: { kind: 'int', min: 0, max: 6 },
-						anchor_date: { kind: 'date' }
-					},
-					DAILY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] }
-					}
-				}
-			}
-		},
-		pay_cutoff_day: {
-			kind: 'int',
-			min: 1,
-			max: 28,
-			help: 'The day attendance closes: 1 attends the calendar month; 2–28 attend from the previous month’s cutoff through the day before this one.'
 		},
 		bank: { kind: 'custom', of: 'bank', optional: true },
 
@@ -238,18 +91,15 @@ export default model('entity_profile_version', {
 			entity_profile_version: [
 				'entity_id',
 				'name',
+				'representative_name',
 				'effective_range',
 				'settings_code',
 				'input_schema_version_id',
 				'time_zone',
-				'payment_schedule',
-				'pay_cutoff_day',
-				'registrations',
 				'registered_address',
 				'final_pay_loan_floor_percent',
 				'overtime_full_award_percent',
 				'bank',
-				'statutory_units',
 				'entity_extension_data',
 				'status',
 				'reason'
@@ -285,18 +135,15 @@ export default model('entity_profile_version', {
 			entity_profile_version: [
 				'entity_id',
 				'name',
+				'representative_name',
 				'effective_range',
 				'settings_code',
 				'input_schema_version_id',
 				'time_zone',
-				'payment_schedule',
-				'pay_cutoff_day',
-				'registrations',
 				'registered_address',
 				'final_pay_loan_floor_percent',
 				'overtime_full_award_percent',
 				'bank',
-				'statutory_units',
 				'entity_extension_data',
 				'status',
 				'reason'
@@ -313,10 +160,17 @@ export default model('entity_profile_version', {
 			);
 		},
 		updated: function* (changes, ctx) {
-			if (
-				changes.some(({ before, after }) => before.status !== 'SEALED' && after.status === 'SEALED')
-			)
-				yield* ctx.schedule('ledger', {}, { key: 'ledger' });
+			const sealed = changes.filter(
+				({ before, after }) => before.status !== 'SEALED' && after.status === 'SEALED'
+			);
+			if (sealed.length > 0)
+				yield* tap(
+					ctx,
+					'seal',
+					{ collection: 'entity_profile_version', ids: sealed.map(({ after }) => after.id) },
+					sealed.map(({ after }) => ({ after }))
+				);
+			if (sealed.length > 0) yield* ctx.schedule('ledger', {}, { key: 'ledger' });
 			yield* tap(
 				ctx,
 				'update',

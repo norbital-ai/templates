@@ -42,10 +42,14 @@ reversed yet. An entry no run has sealed is deleted, not reversed.
 			: bolt.query({
 					leave_catalog_entry: {
 						where: { employment_id: { is: { employee_id: { eq: person } } } },
-						fields: ['days', 'payroll_run_id', 'reverses', 'catalog_id'],
+						fields: ['reverses', 'catalog_id'],
 						limit: 10000
 					},
 					'leave_catalog_entry.catalog_id': { fields: ['code'] },
+					'leave_catalog_entry.leave_catalog_entry_day': {
+						fields: ['incurred_on', 'part', 'payroll_run_id'],
+						limit: 10000
+					},
 					claim_catalog_entry: {
 						where: { employment_id: { is: { employee_id: { eq: person } } } },
 						fields: ['quantity', 'incurred_on', 'payroll_run_id', 'reverses', 'catalog_id'],
@@ -79,14 +83,21 @@ reversed yet. An entry no run has sealed is deleted, not reversed.
 	const rows = $derived(
 		family === 'leave'
 			? (held?.current?.leave_catalog_entry.rows ?? []).map((row) => {
-					const days = row.days.map((day) => String(day.date)).toSorted();
+					const days = (row.leave_catalog_entry_day ?? [])
+						.map((child) => String(child.incurred_on))
+						.toSorted();
+					const captured = (row.leave_catalog_entry_day ?? []).some(
+						(child) => child.payroll_run_id != null
+					);
 					return {
 						...row,
+						captured,
 						label: `${days[0]} – ${days.at(-1)} · ${days.length / 2} d`
 					};
 				})
 			: (held?.current?.[`${family}_catalog_entry`].rows ?? []).map((row) => ({
 					...row,
+					captured: row.payroll_run_id != null,
 					label: `${String(row.incurred_on)} · ${String(row.quantity)}`
 				}))
 	);
@@ -96,7 +107,7 @@ reversed yet. An entry no run has sealed is deleted, not reversed.
 			.filter(
 				(row) =>
 					row.catalog_id?.code === code &&
-					row.payroll_run_id != null &&
+					row.captured === true &&
 					row.reverses == null &&
 					!reversed.has(row.id)
 			)

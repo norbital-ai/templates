@@ -18,13 +18,11 @@ export default model('leave_catalog', {
 		},
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
 		code: { kind: 'text' },
-		name: { kind: 'text' },
 		description: { kind: 'text', optional: true },
 		pay_treatment: { kind: 'enum', values: ['PAID', 'UNPAID'] },
 		conversion: { kind: 'text', max: 65536, optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
 		eligibility: { kind: 'text', max: 65536, optional: true },
-		incurred_on: { kind: 'text', max: 65536, optional: true },
 		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'], default: 'ADD' },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'leave_catalog', owned: true }
 	},
@@ -32,6 +30,7 @@ export default model('leave_catalog', {
 	read: {
 		leave_catalog: { fields: 'all' },
 		'leave_catalog.settings_id': { fields: 'all' },
+		'leave_catalog.subtotal_id': { fields: ['code', 'name'] },
 		'leave_catalog.settings_id.registered_rule': { fields: 'all' }
 	},
 	create: {
@@ -40,13 +39,11 @@ export default model('leave_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
 				'description',
 				'pay_treatment',
 				'conversion',
 				'references',
 				'eligibility',
-				'incurred_on',
 				'direction',
 				'settings_id'
 			]
@@ -73,13 +70,11 @@ export default model('leave_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
 				'description',
 				'pay_treatment',
 				'conversion',
 				'references',
 				'eligibility',
-				'incurred_on',
 				'direction'
 			]
 		},

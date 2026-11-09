@@ -6,19 +6,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { leftOn, type Accounts } from '../src/lib/ledger/core.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	accountsIn,
-	catalogRow,
-	ledgerRows as allLedgerRows,
-	measureOf,
-	pack,
-	sealedLeave,
-	syncAll as compute,
-	uuid,
-	wholeDays,
-	workspace
-} from './kit.ts';
+import { ENTITY, accountsIn, catalogRow, ledgerRows as allLedgerRows, measureOf, pack, reversalSlots, sealedLeave, syncAll as compute, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -54,12 +42,12 @@ const ledgerRows = (t: Kit) =>
 	allLedgerRows(t).pipe(Effect.map((rows) => rows.filter((row) => row.account === 'leave')));
 const take = (t: Kit, seed: Seed, code: string, date: string, as = t.admin) =>
 	t.as(as).act('leave_catalog_entry.create', [
-		{
+		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
 			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
 			days: wholeDays(date)
-		}
+		})
 	]);
 
 describe('run by hand', () => {
@@ -335,18 +323,19 @@ describe('posting', () => {
 				.as(t.admin)
 				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]);
 			yield* t.runDue();
+			const sealed = yield* sealedLeave(t);
 			const reversal = {
 				entity_id: ENTITY,
 				employment_id: CONTRACT,
 				catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
-				days: wholeDays('2026-12-01'),
-				reverses: yield* sealedLeave(t)
+				days: yield* reversalSlots(t, sealed),
+				reverses: sealed
 			};
 			const refused = yield* Effect.flip(
-				t.as(t.member(['hr_manager'])).act('leave_catalog_entry.create', [reversal])
+				t.as(t.member(['hr_manager'])).act('leave_catalog_entry.create', [leaveCreate(reversal)])
 			);
 			assert.match(String(refused), /Only the HR controller makes a reversal/);
-			yield* t.as(t.member(['hr_controller'])).act('leave_catalog_entry.create', [reversal]);
+			yield* t.as(t.member(['hr_controller'])).act('leave_catalog_entry.create', [leaveCreate(reversal)]);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 

@@ -1,7 +1,6 @@
 [
 	{
 		"code": "JHT",
-		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -10,9 +9,9 @@
 			"employee_rate": 0.02,
 			"employer_rate": 0.037
 		},
-		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', '');\nconst casualBuilder = get(ctx.subject.employer, 'entity_extension_data.construction_services', false) === true &&\n\t(unit === 'DAILY' || ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')));\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < ctx.lookup.foreign_employee_minimum_months;\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (casualBuilder) return false;\nif (short) return false;\nreturn ctx.subtotals.ORDINARY_WAGES > 0;",
-		"employee_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'effective_range.from', yearStart);\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nreturn round(Math.max(0, wage()) * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
-		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'effective_range.from', yearStart);\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nreturn round(Math.max(0, wage()) * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', '');\nconst casualBuilder = get(ctx.subject.employer, 'entity_extension_data.construction_services', false) === true &&\n\t(unit === 'DAILY' || ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')));\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(employment, 'payroll.nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < ctx.lookup.foreign_employee_minimum_months;\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (casualBuilder) return false;\nif (short) return false;\nreturn ctx.subtotals.ORDINARY_WAGES > 0;",
+		"employee_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nreturn round(Math.max(0, wage()) * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
+		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nreturn round(Math.max(0, wage()) * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
 		"references": [
 			{
 				"title": "PP 46/2015",
@@ -53,11 +52,11 @@
 		],
 		"id": "4aa412a6-90c7-5148-91a6-1b6f6bac153a",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "JHT: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "JP",
-		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -70,8 +69,8 @@
 			"maximum_continued_coverage_age_years": 62
 		},
 		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', '');\nconst casualBuilder = get(ctx.subject.employer, 'entity_extension_data.construction_services', false) === true &&\n\t(unit === 'DAILY' || ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')));\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (casualBuilder) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (!(ctx.subtotals.ORDINARY_WAGES > 0)) return false;\nif (get(terms, 'residency_status', '') !== 'CITIZEN') return false;\nconst birth = get(employment, 'payroll.date_of_birth', null);\nif (birth == null) return true;\nconst age = age_on(birth, add_days(ctx.run.salary_coverage.from, -1));\nif (age < ctx.lookup.ordinary_retirement_age_years) return true;\nconst facts = get(employment, 'employee_extension_data', {});\nreturn age < ctx.lookup.maximum_continued_coverage_age_years &&\n\tget(facts, 'jp_continue_after_pension_age', false) === true;",
-		"employee_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'effective_range.from', yearStart);\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst capped = Math.min(Math.max(0, wage()), ctx.lookup.monthly_salary_ceiling);\nreturn round(capped * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
-		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'effective_range.from', yearStart);\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst capped = Math.min(Math.max(0, wage()), ctx.lookup.monthly_salary_ceiling);\nreturn round(capped * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
+		"employee_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst capped = Math.min(Math.max(0, wage()), ctx.lookup.monthly_salary_ceiling);\nreturn round(capped * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
+		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst capped = Math.min(Math.max(0, wage()), ctx.lookup.monthly_salary_ceiling);\nreturn round(capped * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
 		"references": [
 			{
 				"title": "PP 45/2015",
@@ -108,11 +107,11 @@
 		],
 		"id": "12c00b79-b334-55b1-8b10-2768db6faaff",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "JP: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "JKK",
-		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -142,9 +141,9 @@
 			],
 			"reduced_through": "2026-01"
 		},
-		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < ctx.lookup.foreign_employee_minimum_months;\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (short) return false;\nif (!(ctx.subtotals.ORDINARY_WAGES > 0)) return false;\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst unit = get(get(terms, 'rate', {}), 'unit', '');\nconst construction = get(entity, 'construction_services', false) === true &&\n\t(get(employment, 'engagement', '') === 'CONTRACTOR' || unit === 'DAILY' ||\n\t\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')));\nreturn construction || get(ctx.lookup.risk_rates, get(entity, 'risk_class', ''), null) != null;",
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(employment, 'payroll.nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < ctx.lookup.foreign_employee_minimum_months;\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (short) return false;\nif (!(ctx.subtotals.ORDINARY_WAGES > 0)) return false;\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst unit = get(get(terms, 'rate', {}), 'unit', '');\nconst construction = get(entity, 'construction_services', false) === true &&\n\t(get(employment, 'engagement', '') === 'CONTRACTOR' || unit === 'DAILY' ||\n\t\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')));\nreturn construction || get(ctx.lookup.risk_rates, get(entity, 'risk_class', ''), null) != null;",
 		"employee_amount": "return 0;",
-		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'effective_range.from', yearStart);\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst construction = get(entity, 'construction_services', false) === true &&\n\t(get(employment, 'engagement', '') === 'CONTRACTOR' ||\n\t\tunit === 'DAILY' ||\n\t\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')));\nconst base = Math.max(0, wage());\nif (construction) return base * ctx.lookup.risk_rates.V;\nconst intensive = ctx.lookup.labour_intensive_industries.includes(get(entity, 'jkk_labour_intensive_industry', '')) &&\n\tctx.run.salary_coverage.from.slice(0, 7) <= ctx.lookup.reduced_through;\nconst rates = intensive ? ctx.lookup.reduced_risk_rates : ctx.lookup.risk_rates;\nreturn base * get(rates, get(entity, 'risk_class', ''), 0);\n",
+		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst construction = get(entity, 'construction_services', false) === true &&\n\t(get(employment, 'engagement', '') === 'CONTRACTOR' ||\n\t\tunit === 'DAILY' ||\n\t\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')));\nconst base = Math.max(0, wage());\nif (construction) return base * ctx.lookup.risk_rates.V;\nconst intensive = ctx.lookup.labour_intensive_industries.includes(get(entity, 'jkk_labour_intensive_industry', '')) &&\n\tctx.run.salary_coverage.from.slice(0, 7) <= ctx.lookup.reduced_through;\nconst rates = intensive ? ctx.lookup.reduced_risk_rates : ctx.lookup.risk_rates;\nreturn base * get(rates, get(entity, 'risk_class', ''), 0);\n",
 		"references": [
 			{
 				"title": "PP 44/2015",
@@ -180,11 +179,11 @@
 		],
 		"id": "00dc383f-3c50-563d-bda3-fe24ecc9e72d",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "JKK: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "JKM",
-		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -192,9 +191,9 @@
 		"lookup": {
 			"employer_rate": 0.003
 		},
-		"eligibility": "const employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < ctx.lookup.foreign_employee_minimum_months;\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (short) return false;\nreturn ctx.subtotals.ORDINARY_WAGES > 0;",
+		"eligibility": "const employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(employment, 'payroll.nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < ctx.lookup.foreign_employee_minimum_months;\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (short) return false;\nreturn ctx.subtotals.ORDINARY_WAGES > 0;",
 		"employee_amount": "return 0;",
-		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'effective_range.from', yearStart);\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nreturn round(Math.max(0, wage()) * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
+		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nreturn round(Math.max(0, wage()) * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
 		"references": [
 			{
 				"title": "PP 44/2015",
@@ -241,11 +240,11 @@
 		],
 		"id": "3366c45a-9a39-5ad1-8a10-16d85bc1ba80",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "JKM: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "KESEHATAN",
-		"name": "BPJS Kesehatan (health insurance)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -255,9 +254,9 @@
 			"employer_rate": 0.04,
 			"monthly_salary_ceiling": 12000000
 		},
-		"eligibility": "const employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < ctx.lookup.foreign_employee_minimum_months;\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (short) return false;\nreturn ctx.subtotals.ORDINARY_WAGES > 0;",
-		"employee_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'effective_range.from', yearStart);\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst facts = get(employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = get(facts, 'work_region', '') || get(entity, 'region', '');\nconst small = get(entity, 'enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst floor = get(ctx.lookup.by_region, region, null);\nconst capped = Math.min(Math.max(0, wage()), ctx.lookup.monthly_salary_ceiling);\nconst base = !small && floor != null ? Math.min(ctx.lookup.monthly_salary_ceiling, Math.max(capped, floor)) : capped;\nconst extra = Number(get(facts, 'kesehatan_extra_members', 0));\nreturn round(base * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'HALF_UP') * (1 + extra);\n",
-		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'effective_range.from', yearStart);\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst facts = get(employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = get(facts, 'work_region', '') || get(entity, 'region', '');\nconst small = get(entity, 'enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst floor = get(ctx.lookup.by_region, region, null);\nconst capped = Math.min(Math.max(0, wage()), ctx.lookup.monthly_salary_ceiling);\nconst base = !small && floor != null ? Math.min(ctx.lookup.monthly_salary_ceiling, Math.max(capped, floor)) : capped;\nreturn round(base * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
+		"eligibility": "const employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(employment, 'payroll.nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < ctx.lookup.foreign_employee_minimum_months;\nif (employment.engagement === 'PAYEE') return false;\nif (get(ctx.run, 'kind', '') === 'OFF_CYCLE') return false;\nif (short) return false;\nreturn ctx.subtotals.ORDINARY_WAGES > 0;",
+		"employee_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst facts = get(employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = get(employment, 'terms.work_region', '') || get(entity, 'region', '');\nconst small = get(entity, 'enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst floor = get(ctx.lookup.by_region, region, null);\nconst capped = Math.min(Math.max(0, wage()), ctx.lookup.monthly_salary_ceiling);\nconst base = !small && floor != null ? Math.min(ctx.lookup.monthly_salary_ceiling, Math.max(capped, floor)) : capped;\nconst extra = Number(get(facts, 'kesehatan_extra_members', 0));\nreturn round(base * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'HALF_UP') * (1 + extra);\n",
+		"employer_amount": "// PP 44/2015 art.19: upah sebulan is the contract's wage plus fixed allowances, a day's wage × 25, piece work its average.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day/hour rate's allowance part is the difference\nconst fixed =\n\tunit === 'DAILY' || unit === 'HOURLY' ? ctx.month_wage - ctx.day_rate * ctx.working_days : 0;\nconst from = ctx.run.salary_coverage.from;\nconst yearStart = from.slice(0, 4) + '-01-01';\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst paidMonths = Number(from.slice(5, 7)) - Number((started > yearStart ? started : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nconst wage = () => {\n\tif (unit === 'HOURLY') return Number(get(ctx.subtotals, 'BASIC', 0)) + fixed;\n\tif (output && paidMonths > 0 && paidWages > 0) return paidWages / paidMonths;\n\tif (output) return Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\n\tif (unit === 'DAILY') return ctx.day_rate * ctx.lookup.bpjs_daily_wage_days + fixed;\n\treturn ctx.month_wage;\n};\nconst facts = get(employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = get(employment, 'terms.work_region', '') || get(entity, 'region', '');\nconst small = get(entity, 'enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst floor = get(ctx.lookup.by_region, region, null);\nconst capped = Math.min(Math.max(0, wage()), ctx.lookup.monthly_salary_ceiling);\nconst base = !small && floor != null ? Math.min(ctx.lookup.monthly_salary_ceiling, Math.max(capped, floor)) : capped;\nreturn round(base * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'HALF_UP');\n",
 		"references": [
 			{
 				"title": "Perpres 82/2018",
@@ -297,13 +296,15 @@
 		],
 		"id": "ff1dfff3-9f99-5bd2-a766-7091ce4412ff",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "KESEHATAN: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "JKP",
-		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["JKK"],
+		"depends_on": [
+			"JKK"
+		],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"employer_cost_subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"lookup": {},
@@ -345,13 +346,19 @@
 		],
 		"id": "26d72b2b-a1bb-53f5-ab99-a8337101926f",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "JKP: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "PPH21",
-		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
 		"kind": "TAX",
-		"depends_on": ["JHT", "JP", "JKK", "JKM", "KESEHATAN"],
+		"depends_on": [
+			"JHT",
+			"JP",
+			"JKK",
+			"JKM",
+			"KESEHATAN"
+		],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"employer_cost_subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"lookup": {
@@ -900,7 +907,7 @@
 			"below_zero": "REFUND"
 		},
 		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nif (employment.engagement === 'PAYEE') return false;\nif (!['CITIZEN', 'RESIDENT_FOREIGNER'].includes(get(terms, 'residency_status', ''))) return false;\nreturn ctx.subtotals.ADDITIONAL_WAGES !== 0;",
-		"employee_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\n// PMK 168/2023 art.1(11): paid only for the days, units or tasks worked.\nconst casual = ['DAILY', 'HOURLY'].includes(unit) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst wages = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0));\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0));\n// art.5(3)(d)–(e) puts employer premiums in a permanent employee's income only.\nconst current = casual ? wages : wages + premiums;\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? ctx.lookup.missing_tax_id_multiplier : 1;\nconst periodEnd = String(get(get(ctx.run, 'salary_coverage', {}), 'to', ctx.as_of));\n// balances close by pay date, so the tax year and its last period do too\nconst payDate = String(get(ctx.run, 'pay_date', ctx.as_of));\nconst taxYear = payDate.slice(0, 4);\nconst yearStart = taxYear + '-01-01';\nconst subjectFrom = String(get(facts, 'tax_subject_from', ''));\nconst subjectUntil = String(get(facts, 'tax_subject_until', ''));\nconst arrived = subjectFrom.slice(0, 4) === taxYear && subjectFrom.slice(5, 7) > '01';\nconst leaving = subjectUntil.slice(0, 4) === taxYear && subjectUntil.slice(5, 7) < '12';\n// art.9(4)–(5): PTKP stands as at 1 January, or the first of a new resident's arrival month.\nconst standingDate = arrived ? month_start(subjectFrom) : yearStart;\nconst standings = get(facts, 'ptkp_standings', []).filter((row) => get(row, 'as_of', '') === standingDate);\nif (standings.length > 1) throw 'Two PTKP standings on ' + standingDate + '.';\nconst standing = first(standings);\nconst marital = get(employment, 'payroll.marital_status', 'SINGLE');\nconst gender = get(employment, 'payroll.gender', '');\nconst husband = get(standing, 'husband_no_income_certified', get(facts, 'husband_no_income_certified', false)) === true;\nconst marriedFemale = marital === 'MARRIED' && gender === 'FEMALE' && !husband;\nconst dependents = Math.min(\n\tMath.max(0, Math.trunc(Number(get(standing, 'ptkp_dependents_count', get(facts, 'ptkp_dependents_count', 0))))),\n\tctx.lookup.maximum_dependants\n);\nconst status = marriedFemale ? 'TK/0' : (marital === 'MARRIED' ? 'K/' : 'TK/') + String(dependents);\nconst category = get(ctx.lookup.ptkp_ter_table, status, '1');\nconst table = category === '1' ? ctx.lookup.ter_1 : category === '2' ? ctx.lookup.ter_2 : ctx.lookup.ter_3;\n// PMK 168/2023 art.5(1): the month's gross is all its regular and irregular pay, so a month's runs are one month of income.\nconst heldMonth = get(ctx, 'balances.month', {});\nconst heldIn = (code) => {\n\tconst key = payDate.slice(0, 7) + '.' + code;\n\treturn Object.hasOwn(heldMonth, key) ? Number(heldMonth[key]) : 0;\n};\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst monthGross =\n\tcurrent +\n\tbefore('ADDITIONAL_WAGES') +\n\t(casual ? 0 : before('JKK.employer') + before('JKM.employer') + before('KESEHATAN.employer'));\nconst monthly =\n\tround(bracket(monthGross, table) * monthGross * surcharge, ctx.lookup.whole_unit, 'HALF_UP') - before('PPH21.employee');\nconst cadence = get(facts, 'pph21_payment_cadence', 'MONTHLY');\n// arts.12(2), 16(2): no non-permanent worker has a year-end reckoning.\nif (casual && cadence === 'MONTHLY') return monthly;\nif (casual) {\n\tconst worked = get(ctx, 'work.days', []).filter((day) => get(day, 'worked', false) === true).length;\n\tconst rate = Number(get(terms, 'rate.amount', 0));\n\tconst paidDays = unit === 'DAILY' && rate > 0 ? Number(get(ctx.subtotals, 'BASIC', 0)) / rate : 1;\n\tconst days = worked > 0 ? worked : Math.max(1, paidDays);\n\tconst perDay = current / days;\n\tif (perDay <= ctx.lookup.daily_ter_ceiling)\n\t\treturn round(bracket(perDay, ctx.lookup.ter_daily) * current * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\n\treturn round(ladder(perDay * ctx.lookup.daily_taxable_share, ctx.lookup.annual_ladder) * days * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\n}\nconst exit = get(employment, 'effective_range.to', null);\n// December reckons the year on its salary: an off-cycle run ahead of that salary is not the last period.\nconst december = payDate.slice(5, 7) === '12' && (get(ctx.run, 'kind', '') !== 'OFF_CYCLE' || before('ORDINARY_WAGES') > 0);\nconst last = december || (exit != null && exit <= periodEnd) || (leaving && subjectUntil <= periodEnd);\nif (!last) return monthly;\nconst ptkp = ctx.lookup.ptkp_amount[status];\nconst employedFrom = get(employment, 'effective_range.from', yearStart);\nconst joined = employedFrom > yearStart ? employedFrom : yearStart;\nconst opening = arrived && subjectFrom > joined ? subjectFrom : joined;\nconst closing = [exit, leaving ? subjectUntil : null].reduce(\n\t(end, date) => (date != null && date < end ? date : end),\n\tpayDate\n);\nconst months = Math.min(\n\t12,\n\tMath.max(\n\t\t1,\n\t\t(Number(closing.slice(0, 4)) - Number(opening.slice(0, 4))) * 12 +\n\t\t\tNumber(closing.slice(5, 7)) -\n\t\t\tNumber(opening.slice(5, 7)) +\n\t\t\t1\n\t)\n);\nconst paid = (code) => {\n\tconst held = get(ctx.balances, 'statutory_contribution', {});\n\treturn Object.hasOwn(held, code) ? held[code] : 0;\n};\nconst annualGross =\n\tNumber(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)) +\n\tpaid('JKK.employer') +\n\tpaid('JKM.employer') +\n\tpaid('KESEHATAN.employer') +\n\tcurrent;\nconst expense = Math.min(\n\tannualGross * ctx.lookup.employment_expense_share,\n\tctx.lookup.monthly_employment_expense_limit * months\n);\nconst contributions =\n\tpaid('JHT.employee') +\n\tpaid('JP.employee') +\n\tNumber(get(ctx.statutory, 'JHT.employee', 0)) +\n\tNumber(get(ctx.statutory, 'JP.employee', 0));\nconst ownDeductions = (Number(get(facts, 'dplk_employee_monthly', 0)) + Number(get(facts, 'zakat_monthly', 0))) * months;\nconst net = annualGross - expense - contributions - ownDeductions;\n// art.15(3): a part-year resident's net income is annualised and the tax taken back to the months.\nconst partYear = arrived || leaving;\nconst partMonths = (leaving ? Number(subjectUntil.slice(5, 7)) : 12) - (arrived ? Number(subjectFrom.slice(5, 7)) : 1) + 1;\nconst taxable = Math.max(0, (partYear ? (net * 12) / partMonths : net) - ptkp);\nconst yearTax = ladder(round(taxable, ctx.lookup.thousand_units, 'DOWN'), ctx.lookup.annual_ladder);\nconst due = round((partYear ? (yearTax * partMonths) / 12 : yearTax) * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\nconst withheld = paid('PPH21.employee');\n// art.21(1)–(2): the excess goes back, never the part the government bore.\nif (due >= withheld) return due - withheld;\nreturn -Math.min(withheld - due, withheld - paid('PPH21_DTP.employer'));\n",
+		"employee_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\n// PMK 168/2023 art.1(11): paid only for the days, units or tasks worked.\nconst casual = ['DAILY', 'HOURLY'].includes(unit) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst wages = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0));\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0));\n// art.5(3)(d)–(e) puts employer premiums in a permanent employee's income only.\nconst current = casual ? wages : wages + premiums;\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? ctx.lookup.missing_tax_id_multiplier : 1;\nconst periodEnd = String(get(get(ctx.run, 'salary_coverage', {}), 'to', ctx.as_of));\n// balances close by pay date, so the tax year and its last period do too\nconst payDate = String(get(ctx.run, 'pay_date', ctx.as_of));\nconst taxYear = payDate.slice(0, 4);\nconst yearStart = taxYear + '-01-01';\nconst subjectFrom = String(get(facts, 'tax_subject_from', ''));\nconst subjectUntil = String(get(facts, 'tax_subject_until', ''));\nconst arrived = subjectFrom.slice(0, 4) === taxYear && subjectFrom.slice(5, 7) > '01';\nconst leaving = subjectUntil.slice(0, 4) === taxYear && subjectUntil.slice(5, 7) < '12';\n// art.9(4)–(5): PTKP stands as at 1 January, or the first of a new resident's arrival month.\nconst standingDate = arrived ? month_start(subjectFrom) : yearStart;\nconst standings = get(facts, 'ptkp_standings', []).filter((row) => get(row, 'as_of', '') === standingDate);\nif (standings.length > 1) throw 'Two PTKP standings on ' + standingDate + '.';\nconst standing = first(standings);\nconst marital = get(employment, 'payroll.marital_status', 'SINGLE');\nconst gender = get(employment, 'payroll.gender', '');\nconst husband = get(standing, 'husband_no_income_certified', get(facts, 'husband_no_income_certified', false)) === true;\nconst marriedFemale = marital === 'MARRIED' && gender === 'FEMALE' && !husband;\nconst dependents = Math.min(\n\tMath.max(0, Math.trunc(Number(get(standing, 'ptkp_dependents_count', get(employment, 'dependents_count', 0))))),\n\tctx.lookup.maximum_dependants\n);\nconst status = marriedFemale ? 'TK/0' : (marital === 'MARRIED' ? 'K/' : 'TK/') + String(dependents);\nconst category = get(ctx.lookup.ptkp_ter_table, status, '1');\nconst table = category === '1' ? ctx.lookup.ter_1 : category === '2' ? ctx.lookup.ter_2 : ctx.lookup.ter_3;\n// PMK 168/2023 art.5(1): the month's gross is all its regular and irregular pay, so a month's runs are one month of income.\nconst heldMonth = get(ctx, 'balances.month', {});\nconst heldIn = (code) => {\n\tconst key = payDate.slice(0, 7) + '.' + code;\n\treturn Object.hasOwn(heldMonth, key) ? Number(heldMonth[key]) : 0;\n};\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst monthGross =\n\tcurrent +\n\tbefore('ADDITIONAL_WAGES') +\n\t(casual ? 0 : before('JKK.employer') + before('JKM.employer') + before('KESEHATAN.employer'));\nconst monthly =\n\tround(bracket(monthGross, table) * monthGross * surcharge, ctx.lookup.whole_unit, 'HALF_UP') - before('PPH21.employee');\nconst cadence = get(facts, 'pph21_payment_cadence', 'MONTHLY');\n// arts.12(2), 16(2): no non-permanent worker has a year-end reckoning.\nif (casual && cadence === 'MONTHLY') return monthly;\nif (casual) {\n\tconst worked = get(ctx, 'work.days', []).filter((day) => get(day, 'worked', false) === true).length;\n\tconst rate = Number(get(terms, 'rate.amount', 0));\n\tconst paidDays = unit === 'DAILY' && rate > 0 ? Number(get(ctx.subtotals, 'BASIC', 0)) / rate : 1;\n\tconst days = worked > 0 ? worked : Math.max(1, paidDays);\n\tconst perDay = current / days;\n\tif (perDay <= ctx.lookup.daily_ter_ceiling)\n\t\treturn round(bracket(perDay, ctx.lookup.ter_daily) * current * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\n\treturn round(ladder(perDay * ctx.lookup.daily_taxable_share, ctx.lookup.annual_ladder) * days * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\n}\nconst exit = get(employment, 'effective_range.to', null);\n// December reckons the year on its salary: an off-cycle run ahead of that salary is not the last period.\nconst december = payDate.slice(5, 7) === '12' && (get(ctx.run, 'kind', '') !== 'OFF_CYCLE' || before('ORDINARY_WAGES') > 0);\nconst last = december || (exit != null && exit <= periodEnd) || (leaving && subjectUntil <= periodEnd);\nif (!last) return monthly;\nconst ptkp = ctx.lookup.ptkp_amount[status];\nconst employedFrom = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst joined = employedFrom > yearStart ? employedFrom : yearStart;\nconst opening = arrived && subjectFrom > joined ? subjectFrom : joined;\nconst closing = [exit, leaving ? subjectUntil : null].reduce(\n\t(end, date) => (date != null && date < end ? date : end),\n\tpayDate\n);\nconst months = Math.min(\n\t12,\n\tMath.max(\n\t\t1,\n\t\t(Number(closing.slice(0, 4)) - Number(opening.slice(0, 4))) * 12 +\n\t\t\tNumber(closing.slice(5, 7)) -\n\t\t\tNumber(opening.slice(5, 7)) +\n\t\t\t1\n\t)\n);\nconst paid = (code) => {\n\tconst held = get(ctx.balances, 'statutory_contribution', {});\n\treturn Object.hasOwn(held, code) ? held[code] : 0;\n};\nconst annualGross =\n\tNumber(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)) +\n\tpaid('JKK.employer') +\n\tpaid('JKM.employer') +\n\tpaid('KESEHATAN.employer') +\n\tcurrent;\nconst expense = Math.min(\n\tannualGross * ctx.lookup.employment_expense_share,\n\tctx.lookup.monthly_employment_expense_limit * months\n);\nconst contributions =\n\tpaid('JHT.employee') +\n\tpaid('JP.employee') +\n\tNumber(get(ctx.statutory, 'JHT.employee', 0)) +\n\tNumber(get(ctx.statutory, 'JP.employee', 0));\nconst ownDeductions = (Number(get(facts, 'dplk_employee_monthly', 0)) + Number(get(facts, 'zakat_monthly', 0))) * months;\nconst net = annualGross - expense - contributions - ownDeductions;\n// art.15(3): a part-year resident's net income is annualised and the tax taken back to the months.\nconst partYear = arrived || leaving;\nconst partMonths = (leaving ? Number(subjectUntil.slice(5, 7)) : 12) - (arrived ? Number(subjectFrom.slice(5, 7)) : 1) + 1;\nconst taxable = Math.max(0, (partYear ? (net * 12) / partMonths : net) - ptkp);\nconst yearTax = ladder(round(taxable, ctx.lookup.thousand_units, 'DOWN'), ctx.lookup.annual_ladder);\nconst due = round((partYear ? (yearTax * partMonths) / 12 : yearTax) * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\nconst withheld = paid('PPH21.employee');\n// art.21(1)–(2): the excess goes back, never the part the government bore.\nif (due >= withheld) return due - withheld;\nreturn -Math.min(withheld - due, withheld - paid('PPH21_DTP.employer'));\n",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -962,13 +969,18 @@
 		],
 		"id": "a516ea09-a746-5894-a3c5-370dbeb0d854",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "PPH21: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "PPH21_DTP",
-		"name": "PPh 21 borne by the government (DTP)",
 		"kind": "TAX",
-		"depends_on": ["PPH21", "JKK", "JKM", "KESEHATAN"],
+		"depends_on": [
+			"PPH21",
+			"JKK",
+			"JKM",
+			"KESEHATAN"
+		],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"lookup": {
 			"tax_year": 2025,
@@ -1124,11 +1136,11 @@
 		],
 		"id": "e5cdab64-7930-5d6c-b20b-3b7c90047bdb",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "PPH21_DTP: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "PPH21_FINAL_SEVERANCE",
-		"name": "PPh 21 final atas uang pesangon",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -1170,11 +1182,11 @@
 		],
 		"id": "3b98c225-33ff-58da-9bd8-b75d9be45b5d",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "PPH21_FINAL_SEVERANCE: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "PPH21_FINAL_PENSION",
-		"name": "Final PPh 21 on a lump-sum pension, THT or JHT benefit",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -1208,11 +1220,11 @@
 		],
 		"id": "4e336854-dac0-5711-9b09-4e877f142c39",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "PPH21_FINAL_PENSION: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "PPH21_BUKAN_PEGAWAI",
-		"name": "PPh 21 on a non-employee (bukan pegawai)",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -1243,11 +1255,11 @@
 		],
 		"id": "cf07edee-0416-5135-9c89-702be549668a",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "PPH21_BUKAN_PEGAWAI: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "PPH26",
-		"name": "PPh 26 (non-resident withholding)",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -1276,11 +1288,11 @@
 		],
 		"id": "eb63a891-c2bd-5d8b-98d5-e43abb039478",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "PPH26: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "DKPTKA",
-		"name": "DKPTKA foreign-worker compensation (USD 100 a month)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
@@ -1288,7 +1300,7 @@
 		"lookup": {
 			"monthly_usd": 100
 		},
-		"eligibility": "const employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nif (employment.engagement === 'PAYEE') return false;\nif (nationality === '') return false;\nif (nationality === 'ID') return false;\nreturn get(facts, 'dkptka_exempt', false) !== true;",
+		"eligibility": "const employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(employment, 'payroll.nationality', 'ID');\nif (employment.engagement === 'PAYEE') return false;\nif (nationality === '') return false;\nif (nationality === 'ID') return false;\nreturn get(facts, 'dkptka_exempt', false) !== true;",
 		"employee_amount": "return 0;",
 		"employer_amount": "const rate = get(ctx.subject.employer, 'entity_extension_data.dkptka_usd_idr_rate', null);\nreturn rate == null ? 0 : ctx.lookup.monthly_usd * Number(rate);",
 		"references": [
@@ -1301,13 +1313,17 @@
 		],
 		"id": "c13a8f5b-9b11-50bc-a8d6-808f764bb4d3",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "DKPTKA: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "PPH21_BENEFIT_NONFINAL",
-		"name": "PPh21 non-final — benefit instalments in year three and later",
 		"kind": "TAX",
-		"depends_on": ["PPH21", "PPH21_BUKAN_PEGAWAI", "PPH26"],
+		"depends_on": [
+			"PPH21",
+			"PPH21_BUKAN_PEGAWAI",
+			"PPH26"
+		],
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"employer_cost_subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"lookup": {
@@ -1330,6 +1346,7 @@
 		],
 		"id": "61f81efb-a5bc-5269-aa15-1d0d8d0eb521",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "PPH21_BENEFIT_NONFINAL: Employee and employer contribution for the pay period."
 	}
 ]

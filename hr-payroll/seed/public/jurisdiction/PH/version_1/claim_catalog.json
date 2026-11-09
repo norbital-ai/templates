@@ -1,7 +1,6 @@
 [
 	{
 		"code": "MEDICAL_CLAIM_DIRECT",
-		"name": "Medical claim (paid by the company direct)",
 		"lookup": {},
 		"references": [
 			{
@@ -11,15 +10,14 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYER",
 		"id": "10049b3d-b420-54a3-9dd8-398b1d42d20b",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "Direct medical claim against the annual limit."
 	},
 	{
 		"code": "MEDICAL_CLAIM",
-		"name": "Medical claim",
 		"lookup": {},
 		"references": [
 			{
@@ -29,15 +27,14 @@
 		"subtotal_id": "8b9271c4-a68d-4819-be66-66da99017e17",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "1416b9a3-3b36-5b2e-9141-8b6b571819d9",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "Medical claim against the annual limit."
 	},
 	{
 		"code": "DENTAL_CLAIM",
-		"name": "Dental claim",
 		"lookup": {},
 		"references": [
 			{
@@ -47,10 +44,10 @@
 		"subtotal_id": "8b9271c4-a68d-4819-be66-66da99017e17",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "48a5cc2f-9c89-5a0a-b90a-4f0bcf3f6ef7",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "Dental claim."
 	}
 ]

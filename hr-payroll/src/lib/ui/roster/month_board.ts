@@ -29,8 +29,9 @@ export type ShiftRow = {
 export type PatternRow = {
 	readonly id: string;
 	readonly pattern: {
-		readonly anchor_date?: string | null;
-		readonly days?: readonly { readonly shift_definition_id?: string | null }[];
+		readonly week_start?: string | null;
+		readonly days?: Readonly<Record<string, string | null>> | null;
+		readonly cycle?: readonly { readonly shift_definition_id?: string | null }[] | null;
 	} | null;
 	readonly effective_range?: { readonly from: string; readonly to?: string | null } | null;
 };
@@ -198,19 +199,34 @@ export function shiftMinutes(shift: ShiftRow | undefined): number | null {
 	return Math.max(0, span - pause);
 }
 
-/** The cycle day a date falls on, or null when there is no cycle to place it in. */
+const WEEKDAYS = [
+	'SUNDAY',
+	'MONDAY',
+	'TUESDAY',
+	'WEDNESDAY',
+	'THURSDAY',
+	'FRIDAY',
+	'SATURDAY'
+] as const;
+/** The weekday's shift, or null when the pattern or date is outside its period. */
 export const cycleShiftId = (pattern: PatternRow | undefined, date: string): string | null => {
 	const days = pattern?.pattern?.days;
-	const anchor = pattern?.pattern?.anchor_date ?? pattern?.effective_range?.from;
+	const from = pattern?.effective_range?.from;
 	const to = pattern?.effective_range?.to ?? null;
-	if (days == null || days.length === 0 || anchor == null) return null;
-	if (date < anchor) return null;
+	if (from == null) return null;
+	if (date < from) return null;
 	if (to != null && date > to) return null;
-	const span =
-		Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${anchor}T00:00:00Z`)) / 86_400_000) %
-		days.length;
-	const offset = span < 0 ? span + days.length : span;
-	const id = days[offset]?.shift_definition_id;
+	const cycle = pattern?.pattern?.cycle;
+	if (Array.isArray(cycle)) {
+		if (cycle.length === 0) return null;
+		const span = Math.round(
+			(Date.parse(`${date}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000
+		);
+		const id = cycle[((span % cycle.length) + cycle.length) % cycle.length]?.shift_definition_id;
+		return id == null || id === '' ? null : String(id);
+	}
+	if (days == null) return null;
+	const id = days[WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()] ?? 'SUNDAY'];
 	return id == null || id === '' ? null : String(id);
 };
 

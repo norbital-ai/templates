@@ -57,16 +57,33 @@ describe('seeded minimum wage rules', () => {
 	it('Taiwan monthly and hourly floors', () => {
 		const monthly = ruleOf('TW', 'MINIMUM_WAGE_FLOOR');
 		const hourly = ruleOf('TW', 'MINIMUM_WAGE_HOURLY');
-		const floor = Number(monthly.lookup?.['monthly_wage']);
+		const floor = Number((monthly.lookup?.['constants'] as { monthly_wage?: number } | undefined)?.monthly_wage);
 		const hourFloor = Number(hourly.lookup?.['hourly_wage']);
 		const context = (amount: number, unit: string, engagement = 'EMPLOYEE') => ({
-			entry: { engagement, terms: { rate: { amount, unit } }, employee_extension_data: {} }
+			entry: {
+				engagement,
+				terms: { rate: { amount, unit }, allowances: {} },
+				employee_extension_data: {}
+			}
 		});
 		assert.equal(valid(monthly, context(floor, 'MONTHLY')), true);
 		assert.equal(valid(monthly, context(floor - 1, 'MONTHLY')), false);
 		assert.equal(valid(hourly, context(hourFloor, 'HOURLY')), true);
 		assert.equal(valid(hourly, context(hourFloor - 1, 'HOURLY')), false);
 		assert.equal(valid(monthly, context(floor - 1, 'MONTHLY', 'PART_TIME')), true);
+		// a domestic worker is outside the general floor; the domestic rule decides
+		const domestic = ruleOf('TW', 'DOMESTIC_MIGRANT_WAGE');
+		const domesticContext = (amount: number) => ({
+			entry: {
+				engagement: 'EMPLOYEE',
+				effective_range: { from: '2026-01-01', to: null },
+				terms: { rate: { amount, unit: 'MONTHLY' } },
+				employee_extension_data: { worker_category: 'DOMESTIC_CAREGIVER' }
+			}
+		});
+		assert.equal(valid(monthly, domesticContext(19_999)), true);
+		assert.equal(valid(domestic, domesticContext(20_000)), true);
+		assert.equal(valid(domestic, domesticContext(19_999)), false);
 	});
 
 	it('Malaysia monthly, hourly and task-basis exemptions', () => {
@@ -134,7 +151,15 @@ describe('seeded minimum wage rules', () => {
 				terms: { rate: { amount, unit } },
 				employee_extension_data: {}
 			},
-			reads: { entity_profile_version: [{ entity_extension_data: { region } }] }
+			reads: {
+				entity_profile_version: [
+					{
+						status: 'SEALED',
+						effective_range: { from: '2024-01-01', to: null },
+						entity_extension_data: { region }
+					}
+				]
+			}
 		});
 		assert.equal(valid(monthly, context(floor, 'MONTHLY')), true);
 		assert.equal(valid(monthly, context(floor - 1, 'MONTHLY')), false);
@@ -174,6 +199,44 @@ describe('seeded minimum wage rules', () => {
 		assert.equal(valid(rule, context(row.amount - 1)), false);
 	});
 
+	it('Japan annual prescribed hours convert a monthly wage', () => {
+		const rule = ruleOf('JP', 'MINIMUM_WAGE_CONTRACT');
+		const table = rule.lookup?.['minimum_wage'] as readonly {
+			region: string;
+			from: string;
+			amount: number;
+		}[];
+		const row = table[0]!;
+		const context = (amount: number, normal_hours_per_year?: number) => ({
+			entry: {
+				entity_id: 'entity-1',
+				effective_range: { from: '2027-01-01', to: null },
+				terms: {
+					rate: { amount, unit: 'MONTHLY' },
+					normal_hours_per_week: 40,
+					work_classification: 'ORDINARY'
+				},
+				employee_extension_data: {
+					insured_office_region: row.region,
+					...(normal_hours_per_year === undefined ? {} : { normal_hours_per_year })
+				}
+			},
+			reads: {
+				entity_profile_version: [
+					{
+						entity_id: 'entity-1',
+						status: 'SEALED',
+						effective_range: { from: '2024-01-01', to: null },
+						entity_extension_data: { region: row.region }
+					}
+				]
+			}
+		});
+		// 180,000 / (1,820 / 12) = 1,186.81, above the floor; the weekly fallback would say 1,038.46
+		assert.equal(valid(rule, context(180_000, 1_820)), true);
+		assert.equal(valid(rule, context(180_000)), false);
+	});
+
 	it('China regional monthly floor', () => {
 		const rule = effectOf('CN', 'MINIMUM_WAGE');
 		const table = rule.lookup?.['minimum_wage_by_zone'] as readonly {
@@ -197,6 +260,44 @@ describe('seeded minimum wage rules', () => {
 		});
 		assert.equal(clear(rule, context(row.monthly)), true);
 		assert.equal(clear(rule, context(row.monthly - 1)), false);
+	});
+
+	it('China part-time monthly rate meets the hourly floor at the worksite', () => {
+		const rule = ruleOf('CN', 'MINIMUM_WAGE_HOURLY');
+		const table = rule.lookup?.['minimum_wage_by_zone'] as readonly {
+			region: string;
+			zone: string;
+			hourly: number;
+		}[];
+		const sh = table.find((row) => row.region === 'SH' && row.zone === '1');
+		const km = table.find((row) => row.region === 'KM' && row.zone === '1');
+		assert.ok(sh !== undefined && km !== undefined);
+		const context = (amount: number, work_region: string) => ({
+			entry: {
+				engagement: 'PART_TIME',
+				effective_range: { from: '2024-01-01', to: null },
+				terms: {
+					rate: { amount, unit: 'MONTHLY' },
+					normal_hours_per_week: 24,
+					...(work_region === '' ? {} : { work_region })
+				}
+			},
+			reads: {
+				entity_profile_version: [
+					{
+						status: 'SEALED',
+						effective_range: { from: '2024-01-01', to: null },
+						entity_extension_data: { region: 'SH' }
+					}
+				]
+			}
+		});
+		const monthly = (hourly: number) => hourly * 24 * (52 / 12);
+		assert.equal(valid(rule, context(monthly(sh.hourly), 'SH')), true);
+		assert.equal(valid(rule, context(monthly(sh.hourly) - 0.01, 'SH')), false);
+		// the worksite floor governs over the employer's registered region
+		assert.equal(valid(rule, context(monthly(km.hourly), 'KM')), true);
+		assert.equal(valid(rule, context(monthly(km.hourly), '')), false);
 	});
 
 	it('Indonesia regional floor', () => {
@@ -276,10 +377,14 @@ describe('seeded minimum wage rules', () => {
 		const table = rule.lookup?.['by_region'] as Record<string, number>;
 		const region = 'BANGKOK';
 		const floor = table[region]!;
-		const context = (amount: number, unit: string, employerRegion = region) => ({
+		const context = (amount: number, unit: string, employerRegion = region, worksite = '') => ({
 			entry: {
 				engagement: 'EMPLOYEE',
-				terms: { rate: { amount, unit }, normal_hours_per_day: 8 },
+				terms: {
+					rate: { amount, unit },
+					normal_hours_per_day: 8,
+					...(worksite === '' ? {} : { work_region: worksite })
+				},
 				employee_extension_data: {}
 			},
 			subject: { employer: { entity_extension_data: { region: employerRegion } } }
@@ -290,5 +395,63 @@ describe('seeded minimum wage rules', () => {
 		assert.equal(valid(rule, context(floor * 30 - 30, 'MONTHLY')), false);
 		assert.equal(valid(rule, context(floor / 8, 'HOURLY')), true);
 		assert.equal(valid(rule, context(floor / 8 - 1, 'HOURLY')), false);
+		// the worksite floor governs over the employer's registered province
+		const other = Object.keys(table).find((name) => name !== region && table[name]! < floor);
+		assert.ok(other !== undefined);
+		assert.equal(valid(rule, context(table[other]!, 'DAILY', region, other)), true);
+		assert.equal(valid(rule, context(table[other]!, 'DAILY', region)), false);
+	});
+
+	it('Thailand Bangkok worksite sets the floor and the arrears over a Chiang Rai employer', () => {
+		const rule = ruleOf('TH', 'MINIMUM_WAGE_FLOOR');
+		const table = rule.lookup?.['by_region'] as Record<string, number>;
+		const bangkok = table['BANGKOK']!;
+		const chiangRai = table['CHIANG_RAI']!;
+		assert.ok(chiangRai < bangkok);
+		const context = (amount: number, unit: string, worksite: string) => ({
+			entry: {
+				engagement: 'EMPLOYEE',
+				terms: {
+					rate: { amount, unit },
+					normal_hours_per_day: 8,
+					...(worksite === '' ? {} : { work_region: worksite })
+				},
+				employee_extension_data: {}
+			},
+			subject: { employer: { entity_extension_data: { region: 'CHIANG_RAI' } } }
+		});
+		// 11,000 / 30 = 366.67: below Bangkok's 400 even though the employer province is cheaper
+		assert.equal(valid(rule, context(11_000, 'MONTHLY', 'BANGKOK')), false);
+		assert.equal(valid(rule, context(12_000, 'MONTHLY', 'BANGKOK')), true);
+		assert.equal(valid(rule, context(11_000, 'MONTHLY', '')), true);
+		const afile = load<readonly { code: string; eligibility?: string; conversion?: string }[]>(
+			`${latest('TH')}/adhoc_catalog.json`
+		);
+		const arrears = afile.find((row) => row.code === 'MINIMUM_WAGE_ARREARS');
+		assert.ok(arrears?.conversion !== undefined);
+		const [settings] = load<readonly { lookup?: Record<string, unknown> }[]>(
+			`${latest('TH')}/jurisdiction_settings.json`
+		);
+		const amount = (worksite: string) =>
+			evaluate(
+				arrears.conversion!,
+				'CALCULATION',
+				{
+					lookup: { ...settings?.lookup, ...rule.lookup },
+					day_rate: 350,
+					entry: { quantity: 2, unit: 'DAY', incurred_on: '2026-11-02' },
+					subject: {
+						employment: {
+							effective_range: { from: '2026-01-01', to: null },
+							terms: { work_region: worksite }
+						},
+						employer: { entity_extension_data: { region: 'CHIANG_RAI' } }
+					}
+				},
+				'MINIMUM_WAGE_ARREARS'
+			);
+		// Bangkok's 400 minus the 350 paid, for two days: 100, not Chiang Rai's 2 a day
+		assert.equal(Number(amount('BANGKOK')), 100);
+		assert.equal(Number(amount('')), (chiangRai - 350) * 2);
 	});
 });

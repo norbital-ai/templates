@@ -1,7 +1,6 @@
 [
 	{
 		"code": "JOINT_LEAVE",
-		"name": "Joint leave (cuti bersama)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"accounts": [
@@ -19,27 +18,11 @@
 		],
 		"subtotal_id": null,
 		"id": "29834058-55df-5d38-bbb0-e948b02a726a",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
-	},
-	{
-		"code": "WORK_FROM_HOME",
-		"name": "Work from home (attendance marker)",
-		"pay_treatment": "PAID",
-		"lookup": {},
-		"subtotal_id": null,
-		"id": "235002f4-4652-5e82-a9bb-03f45762dfb0",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"references": [
-			{
-				"title": "Employment agreement or company regulation",
-				"locator": "workplace arrangement",
-				"quote": "Working from home is an attendance arrangement, not a leave entitlement."
-			}
-		]
+		"description": "JOINT_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "ANNUAL_LEAVE",
-		"name": "Annual leave",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "SERVICE_YEAR",
@@ -48,6 +31,9 @@
 			"carry": {
 				"windows": 1,
 				"max_days": 5
+			},
+			"encash_on_exit": {
+				"allowed": true
 			}
 		},
 		"references": [
@@ -59,13 +45,14 @@
 				"url": "https://peraturan.bpk.go.id/Details/246523/uu-no-6-tahun-2023"
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "fa70d3a6-859d-578b-9276-da973c4d0fa3",
 		"id": "51cea211-6a20-5945-a50a-55c7ee1153fa",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"conversion": "// js\n// UU 13/2003 art.156(4)(a) as amended by UU 6/2023, PP 35/2021 art.40(4)(a): unused annual leave that has not lapsed is compensated on termination.\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nreturn ctx.day_rate * ctx.entry.quantity;",
+		"description": "Paid annual leave accrued by service."
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"name": "Unpaid leave",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -79,11 +66,11 @@
 		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"id": "cd2e8db6-6730-5eb8-88ca-dd54d1b6cfcb",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Unpaid absence from work."
 	},
 	{
 		"code": "MEDICAL_LEAVE",
-		"name": "Medical leave",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"pay_steps": [
@@ -121,11 +108,11 @@
 		"id": "ce03c7d4-9f14-5a5f-9282-57f50cf183e6",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"direction": "DEDUCT",
-		"conversion": "// js\n// PP 36/2021 art.41(1): 100% of the wage for the first four months of an illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal.\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst at = add_days(ctx.run.salary_coverage.from, -1);\nconst lost = Math.min(\n\tsum(ctx.entry.days.map((day) => shareOf(get(ctx.entry, 'reverses', null) != null ? at : day.date))) / 2,\n\tctx.entry.quantity\n);\nreturn ctx.day_rate * lost;"
+		"conversion": "// js\n// PP 36/2021 art.41(1): 100% of the wage for the first four months of an illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal.\nconst events = get(ctx.subject.employment, 'events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst at = add_days(ctx.run.salary_coverage.from, -1);\nconst lost = Math.min(\n\tsum(ctx.entry.days.map((day) => shareOf(get(ctx.entry, 'reverses', null) != null ? at : day.date))) / 2,\n\tctx.entry.quantity\n);\nreturn ctx.day_rate * lost;",
+		"description": "MEDICAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "MATERNITY_LEAVE",
-		"name": "Maternity leave",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"pay_steps": [
@@ -159,11 +146,11 @@
 		"id": "e35bb314-bf93-5695-93b4-e78ad97cab7e",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"direction": "DEDUCT",
-		"conversion": "// js\n// UU 4/2024 art.5(2): paid in full for the first four months and 75% for the fifth and sixth; the months past the third need a doctor’s certificate of a special condition of mother or child.\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst at = add_days(ctx.run.salary_coverage.from, -1);\nconst lost = Math.min(\n\tsum(ctx.entry.days.map((day) => shareOf(get(ctx.entry, 'reverses', null) != null ? at : day.date))) / 2,\n\tctx.entry.quantity\n);\nreturn ctx.day_rate * lost;"
+		"conversion": "// js\n// UU 4/2024 art.5(2): paid in full for the first four months and 75% for the fifth and sixth; the months past the third need a doctor’s certificate of a special condition of mother or child.\nconst events = get(ctx.subject.employment, 'events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst at = add_days(ctx.run.salary_coverage.from, -1);\nconst lost = Math.min(\n\tsum(ctx.entry.days.map((day) => shareOf(get(ctx.entry, 'reverses', null) != null ? at : day.date))) / 2,\n\tctx.entry.quantity\n);\nreturn ctx.day_rate * lost;",
+		"description": "Maternity leave around childbirth."
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"name": "Paternity leave",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -188,11 +175,11 @@
 		],
 		"subtotal_id": null,
 		"id": "9eab1c50-ff07-5dcb-91eb-3951da546466",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "Paternity leave around childbirth."
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
-		"name": "Marriage leave",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -213,11 +200,11 @@
 		],
 		"subtotal_id": null,
 		"id": "7bd8c75e-4e0b-5f8a-8e80-96ee1729335e",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "Marriage leave."
 	},
 	{
 		"code": "CHILD_MARRIAGE_LEAVE",
-		"name": "Child's marriage leave",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -238,11 +225,11 @@
 		],
 		"subtotal_id": null,
 		"id": "25811633-92f6-5625-a7b7-52eeb8cafbca",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "CHILD_MARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "CHILD_CIRCUMCISION_LEAVE",
-		"name": "Child's circumcision leave",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -263,11 +250,11 @@
 		],
 		"subtotal_id": null,
 		"id": "fe2d531f-7f0d-503a-a9c4-c4eea08a3b20",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "CHILD_CIRCUMCISION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "CHILD_BAPTISM_LEAVE",
-		"name": "Child's baptism leave",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -288,11 +275,11 @@
 		],
 		"subtotal_id": null,
 		"id": "9ca66dc8-de4f-5711-919a-3cfc1f654721",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "CHILD_BAPTISM_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
-		"name": "Bereavement leave (immediate family)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -313,11 +300,11 @@
 		],
 		"subtotal_id": null,
 		"id": "41ef78b7-92fc-508e-ba6c-9689ea24d80b",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "Bereavement leave."
 	},
 	{
 		"code": "BEREAVEMENT_HOUSEHOLD_LEAVE",
-		"name": "Bereavement leave (household member)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -338,11 +325,11 @@
 		],
 		"subtotal_id": null,
 		"id": "64ec5f9e-27f7-544b-9cca-8d101c6300dd",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "BEREAVEMENT_HOUSEHOLD_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
-		"name": "Menstrual leave",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -353,11 +340,11 @@
 		],
 		"subtotal_id": null,
 		"id": "6c9d7b28-8feb-539c-8833-795a3d055557",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "Menstrual leave days."
 	},
 	{
 		"code": "MISCARRIAGE_LEAVE",
-		"name": "Miscarriage leave",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -368,11 +355,11 @@
 		],
 		"subtotal_id": null,
 		"id": "162a3337-9aa2-516e-b2dc-2552e399bd2f",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "MISCARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"name": "Public holiday in lieu",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"subtotal_id": null,
@@ -386,11 +373,11 @@
 				"quote": "Pekerja/buruh tidak wajib bekerja pada hari-hari libur resmi.",
 				"effective_from": "2003-03-25"
 			}
-		]
+		],
+		"description": "A paid day in lieu of a public holiday worked."
 	},
 	{
 		"code": "RELIGIOUS_DUTY_LEAVE",
-		"name": "Cuti ibadah (religious duty leave)",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -401,11 +388,11 @@
 		],
 		"subtotal_id": null,
 		"id": "b1adf933-f984-58d8-9891-02df625c1c73",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "RELIGIOUS_DUTY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "WORK_ACCIDENT_LEAVE",
-		"name": "Work accident or occupational disease leave",
 		"pay_treatment": "PAID",
 		"description": "Absence after a work accident or occupational disease, while the worker cannot work (sementara tidak mampu bekerja).",
 		"lookup": {},
@@ -420,7 +407,6 @@
 	},
 	{
 		"code": "STATE_DUTY_LEAVE",
-		"name": "State duty",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -431,11 +417,11 @@
 		],
 		"subtotal_id": null,
 		"id": "779f7737-e3d8-5a5d-9d2c-ee8bc8f0ec6a",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "STATE_DUTY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "UNION_DUTY_LEAVE",
-		"name": "Union duty",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -446,11 +432,11 @@
 		],
 		"subtotal_id": null,
 		"id": "5dbd4eca-25d5-54ed-a925-75b9cfde3a62",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "UNION_DUTY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "COMPANY_TRAINING_LEAVE",
-		"name": "Company education or training",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -461,11 +447,11 @@
 		],
 		"subtotal_id": null,
 		"id": "1a6c1302-e5ff-537a-8463-486678d5a727",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "COMPANY_TRAINING_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "EMPLOYER_IDLE",
-		"name": "Ready to work, no work provided",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -476,11 +462,11 @@
 		],
 		"subtotal_id": null,
 		"id": "cf536240-86be-515c-b45c-c249556cf1cd",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "EMPLOYER_IDLE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "SUSPENSION",
-		"name": "Suspension during dismissal (skorsing)",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -490,11 +476,11 @@
 		],
 		"subtotal_id": null,
 		"id": "6df221b4-7726-58f5-ab99-68bedb702835",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PATERNITY_EXTENSION_LEAVE",
-		"name": "Paternity leave extension",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -518,21 +504,22 @@
 		],
 		"subtotal_id": null,
 		"id": "c4424047-bfbb-57ac-9433-6fcce6038c85",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "PATERNITY_EXTENSION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "LONG_LEAVE",
-		"name": "Long leave (istirahat panjang)",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
 			{
-				"title": "UU 13/2003 art.79(5) as amended by UU 6/2023: long leave as the employment agreement, company regulation or collective agreement grants it (`company.long_leave_granted`); PP 36/2021 arts.40(5)(c), 46: paid at the usual wage.",
+				"title": "UU 13/2003 art.79(5) as amended by UU 6/2023: long leave as the employment agreement, company regulation or collective agreement grants it; PP 36/2021 arts.40(5)(c), 46: paid at the usual wage.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
 		"subtotal_id": null,
 		"id": "b66b9500-11be-5aab-85d5-faef1f310827",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"description": "LONG_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	}
 ]

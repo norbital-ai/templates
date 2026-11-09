@@ -9,19 +9,7 @@ import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { payBasis } from '../src/lib/payroll_engine/engine.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	accountsIn,
-	catalogRow,
-	measureOf,
-	pack,
-	read,
-	sealedLeave,
-	syncAll,
-	uuid,
-	wholeDays,
-	workspace
-} from './kit.ts';
+import { ENTITY, accountsIn, catalogRow, measureOf, pack, read, sealedLeave, syncAll, uuid, wholeDays, workspace, leaveCreate, reversalSlots } from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -109,15 +97,21 @@ const take = (
 		readonly reverses?: ReturnType<typeof idOf<'leave_catalog_entry'>>;
 	} = {}
 ) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
-			days: wholeDays(...days),
-			...more
-		}
-	]);
+	Effect.gen(function* () {
+		const selected =
+			more.reverses == null
+				? wholeDays(...days)
+				: yield* reversalSlots(t, more.reverses);
+		yield* t.as(t.admin).act('leave_catalog_entry.create', [
+			leaveCreate({
+				entity_id: ENTITY,
+				employment_id: CONTRACT,
+				catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+				days: selected,
+				...more
+			})
+		]);
+	});
 const run = (t: Kit, period: string) =>
 	t
 		.as(t.admin)

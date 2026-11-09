@@ -1,7 +1,6 @@
 [
 	{
 		"code": "SALARY_ADVANCE",
-		"name": "Tạm ứng tiền lương (salary advance)",
 		"lookup": {},
 		"subtotal_id": "ea240b7f-0903-52b3-ba0f-db32f7ea156d",
 		"id": "2dbc8310-f843-59af-99a5-a53361b1e39b",
@@ -12,6 +11,7 @@
 				"locator": "art.101",
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
-		]
+		],
+		"description": "Salary advance recovered from later pay."
 	}
 ]

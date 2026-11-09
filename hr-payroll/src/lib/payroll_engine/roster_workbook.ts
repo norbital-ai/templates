@@ -54,6 +54,7 @@ export type RosterStored = {
 	readonly shift_definition_id: Id<'shift_definition'> | null;
 	readonly planned_overtime_intervals: readonly RosterStoredInterval[] | null;
 	readonly actual_worked_intervals: readonly RosterStoredInterval[] | null;
+	readonly consent: Consent | null;
 	readonly payroll_run_id: Id<'payroll_run'> | null;
 	readonly run_label: string | null;
 };
@@ -70,6 +71,7 @@ export type RosterFields = {
 	readonly shift_definition_id?: Id<'shift_definition'>;
 	readonly planned_overtime_intervals?: readonly RosterInterval[] | null;
 	readonly actual_worked_intervals?: readonly RosterInterval[];
+	readonly consent?: Consent | null;
 };
 export type RosterCreateDraft = RosterFields & {
 	readonly employment_id: Id<'employee_contract'>;
@@ -96,8 +98,12 @@ const PLAN_COLUMNS = {
 	work_date: WORK_DATE,
 	shift_code: ['shift_code', 'shift', 'planned_shift'],
 	overtime_start: ['planned_ot_start', 'planned_overtime_start', 'ot_start'],
-	overtime_end: ['planned_ot_end', 'planned_overtime_end', 'ot_end']
+	overtime_end: ['planned_ot_end', 'planned_overtime_end', 'ot_end'],
+	consent_night_work: ['consent_night_work', 'night_work_consent'],
+	consent_overtime: ['consent_overtime', 'overtime_consent'],
+	consent_reference: ['consent_reference', 'consent_form']
 };
+const CONSENT_COLUMNS = ['consent_night_work', 'consent_overtime', 'consent_reference'] as const;
 const WORK_COLUMNS = {
 	employee_number: EMPLOYEE,
 	work_date: WORK_DATE,
@@ -112,10 +118,34 @@ type RawRow = {
 	readonly shift: string;
 	readonly first: Cell | null;
 	readonly last: Cell | null;
+	readonly consentNight: Cell | null;
+	readonly consentOvertime: Cell | null;
+	readonly consentReference: Cell | null;
+};
+
+/** A per-day consent row: all three columns go together, and a blank boolean is false. */
+type Consent = { readonly night_work: boolean; readonly overtime: boolean; readonly reference: string };
+const consentOf = (row: RawRow, problems: string[]): Consent | undefined => {
+	const night = cellText(row.consentNight);
+	const overtime = cellText(row.consentOvertime);
+	const reference = cellText(row.consentReference);
+	if (night === '' && overtime === '' && reference === '') return undefined;
+	if (reference === '') {
+		problems.push(`Row ${row.at}: enter the signed consent reference.`);
+		return undefined;
+	}
+	const flag = (value: string) => ['true', 'yes', 'y', '1'].includes(value.trim().toLowerCase());
+	return { night_work: flag(night), overtime: flag(overtime), reference };
 };
 
 /** One sheet's person-days. A row with nothing in it past the person and date changes nothing, so it is dropped. */
-const sheetRows = (table: SheetTable, shiftCell: string, firstCell: string, lastCell: string) => {
+const sheetRows = (
+	table: SheetTable,
+	shiftCell: string,
+	firstCell: string,
+	lastCell: string,
+	consent = false
+) => {
 	const problems: string[] = [];
 	const rows: RawRow[] = [];
 	for (const row of table.rows) {
@@ -125,11 +155,22 @@ const sheetRows = (table: SheetTable, shiftCell: string, firstCell: string, last
 		const shift = cellText(row.cells[shiftCell]);
 		const first = row.cells[firstCell] ?? null;
 		const last = row.cells[lastCell] ?? null;
+		const consentNight = consent ? (row.cells.consent_night_work ?? null) : null;
+		const consentOvertime = consent ? (row.cells.consent_overtime ?? null) : null;
+		const consentReference = consent ? (row.cells.consent_reference ?? null) : null;
 		if (number === '') problems.push(`Row ${row.at}: enter the employee number.`);
 		if (day == null) problems.push(`Row ${row.at}: "${dateText}" is not a work date (YYYY-MM-DD).`);
 		if (number === '' || day == null) continue;
-		if (shift === '' && cellText(first) === '' && cellText(last) === '') continue;
-		rows.push({ at: row.at, number, day, shift, first, last });
+		if (
+			shift === '' &&
+			cellText(first) === '' &&
+			cellText(last) === '' &&
+			cellText(consentNight) === '' &&
+			cellText(consentOvertime) === '' &&
+			cellText(consentReference) === ''
+		)
+			continue;
+		rows.push({ at: row.at, number, day, shift, first, last, consentNight, consentOvertime, consentReference });
 	}
 	raiseProblems(problems.map((problem) => `${table.name}: ${problem}`));
 	return rows;
@@ -148,10 +189,16 @@ const rowsOf = (grids: WorkbookSheetGrids) => {
 		);
 	const plan = planned
 		? sheetRows(
-				sheetTable(grids, PLAN_COLUMNS, ['overtime_start', 'overtime_end'], ROSTER_SHEETS.plan),
+				sheetTable(
+					grids,
+					PLAN_COLUMNS,
+					['overtime_start', 'overtime_end', ...CONSENT_COLUMNS],
+					ROSTER_SHEETS.plan
+				),
 				'shift_code',
 				'overtime_start',
-				'overtime_end'
+				'overtime_end',
+				true
 			)
 		: [];
 	const work = worked
@@ -324,6 +371,10 @@ const changed = (entry: RosterStored | undefined, set: RosterFields): RosterFiel
 	set.shift_definition_id !== entry?.shift_definition_id
 		? { shift_definition_id: set.shift_definition_id }
 		: {}),
+	...(set.consent !== undefined &&
+	JSON.stringify(set.consent ?? null) !== JSON.stringify(entry?.consent ?? null)
+		? { consent: set.consent }
+		: {}),
 	...(set.planned_overtime_intervals !== undefined &&
 	intervals(set.planned_overtime_intervals) !== intervals(entry?.planned_overtime_intervals)
 		? { planned_overtime_intervals: set.planned_overtime_intervals }
@@ -419,9 +470,12 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 			problems
 		);
 		if (overtime === undefined) continue;
+		const consent = consentOf(row, problems);
+		if (consent === undefined && cellText(row.consentReference) !== '') continue;
 		put(row, employee, key, {
 			...(shift === null ? {} : { shift_definition_id: shift.id }),
-			planned_overtime_intervals: overtime
+			planned_overtime_intervals: overtime,
+			...(consent === undefined ? {} : { consent })
 		});
 	}
 	const worked = new Map<string, { at: number; day: string; interval: RosterInterval }[]>();

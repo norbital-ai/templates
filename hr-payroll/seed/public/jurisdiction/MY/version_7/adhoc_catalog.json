@@ -1,13 +1,11 @@
 [
 	{
 		"code": "BPAYBS",
-		"name": "Back pay – basic",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "61415310-b17e-5f2d-9e82-4b2c98f6082f",
@@ -19,17 +17,16 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"quote": "A shortfall in basic wages for an earlier wage period remains wages under s.2 and is paid under s.19(1), which requires payment not later than the seventh day after the last day of the wage period; it is back pay of basic wages, not a separate wage category."
 			}
-		]
+		],
+		"description": "Backpay for a prior period."
 	},
 	{
 		"code": "ADJ",
-		"name": "Adjustment",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -38,17 +35,16 @@
 			}
 		],
 		"id": "52604e20-97be-5e72-8550-a1bb7620fd4a",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Pay adjustment."
 	},
 	{
 		"code": "BONUS",
-		"name": "Annual bonus",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "e7af0d07-be82-590a-9518-1e64717502fb",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -57,17 +53,16 @@
 			}
 		],
 		"id": "7c1785fb-268e-5c9a-a587-6ea22017515a",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Bonus paid outside the ordinary wage."
 	},
 	{
 		"code": "LONG_SERVICE_AWARD",
-		"name": "Long service award",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "d8e116ab-4fb6-59ef-9cdf-4e948ca64523",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -76,17 +71,16 @@
 			}
 		],
 		"id": "691403e7-2af9-54f1-a8db-3282dc3746c4",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Long-service award."
 	},
 	{
 		"code": "EXCELLENCE_AWARD",
-		"name": "Past achievement, service excellence, innovation or productivity award",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "7e550444-91a9-5d27-bcef-7720c991eee9",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -95,17 +89,16 @@
 			}
 		],
 		"id": "257f7ddd-1b1f-5d99-884d-c5f6bfdf1155",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Excellence award."
 	},
 	{
 		"code": "TRAVEL_OFFICIAL",
-		"name": "Travelling, petrol or toll allowance for official duties",
 		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "91c5dbb6-add5-5d03-b1d6-baba27eb09ca",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -114,17 +107,16 @@
 			}
 		],
 		"id": "aa2da52a-6cfd-5628-9c79-a2b10a4dba84",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Official travel reimbursement."
 	},
 	{
 		"code": "BIK_VOLA",
-		"name": "Benefit in kind or living accommodation (monthly value, MTD Y1)",
 		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -133,39 +125,18 @@
 			}
 		],
 		"id": "699533cf-679b-5d29-9827-6163798b324e",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
-	},
-	{
-		"code": "BACKPAY_ADD_WAGES",
-		"name": "Back pay – additional wages",
-		"lookup": {},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
-		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"references": [
-			{
-				"title": "Encoded 2026-10-07 (round 7): arrears of wages are EPF wages paid as the current month's contribution (KWSP Employer Mandatory Contribution FAQ 8 and 20, https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution) and HRD levy wages (\"includes … arrears of wages\"). Arrears are SOCSO, EIS and SKBBK wages as well (Act 4 s.2(24), Act 800 s.2 \"wages\"); only an annual bonus is outside them.",
-				"url": "https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
-			}
-		],
-		"id": "d1233dac-955d-5dcd-94bf-ea9964e6c75e",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Benefit-in-kind valuation."
 	},
 	{
 		"code": "TERMINATION_BENEFIT",
-		"name": "Termination benefit",
 		"lookup": {
 			"service_months": 12
 		},
 		"off_cycle_eligible": true,
 		"subtotal_id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\n// First Schedule para 2(5): Part XIIA does not reach a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (category === 'DOMESTIC') return false;\nif (monthly <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * 12) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / 12));",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\tget(employment, 'service_started_on', employment.effective_range.from),\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst facts = get(employment, 'employee_extension_data', {});\nconst ground = get(employment, 'exit_ground', get(facts, 'exit_ground', ''));\nif (['RESIGNATION', 'RETIREMENT', 'EMPLOYEE_RETIREMENT', 'MISCONDUCT_DISMISSAL'].includes(ground)) return false;\nif (get(facts, 'misconduct_dismissal', false) === true) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\n// First Schedule para 2(5): Part XIIA does not reach a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (category === 'DOMESTIC') return false;\nif (monthly <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\tget(employment, 'service_started_on', employment.effective_range.from),\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * 12) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / 12));",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -174,17 +145,16 @@
 			}
 		],
 		"id": "9445b510-1b11-5002-870a-5669ee0ec06f",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Termination benefit."
 	},
 	{
 		"code": "NOTICE_IN_LIEU",
-		"name": "Notice in lieu",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -194,17 +164,16 @@
 			}
 		],
 		"id": "a25232ec-7527-5a4b-a5c1-c9554f6540ab",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Pay in lieu of notice."
 	},
 	{
 		"code": "NOTICE_INDEMNITY",
-		"name": "Indemnity owed for unserved notice",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"references": [
@@ -213,17 +182,16 @@
 			}
 		],
 		"id": "f91fab5a-c79a-5c22-b4e3-92c99c3296a0",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Notice indemnity."
 	},
 	{
 		"code": "TASK_MONTHLY_WAGE",
-		"name": "Monthly task remuneration",
 		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -232,36 +200,16 @@
 			}
 		],
 		"id": "96a3579e-f395-57ac-a85c-bb177a8acf8e",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
-	},
-	{
-		"code": "TRIP_MONTHLY_WAGE",
-		"name": "Monthly trip remuneration (not travel reimbursement)",
-		"lookup": {},
-		"off_cycle_eligible": false,
-		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
-		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"references": [
-			{
-				"title": "Minimum Wages Order 2024 para 5(2); EPF Act 1991 s.43; PERKESO wage guidance; LHDN 2026 MTD specification s.D; HRD Corp levy guideline"
-			}
-		],
-		"id": "4db8907e-1a3d-52bc-b1b2-e2fdfffde4a5",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Monthly wage for task work."
 	},
 	{
 		"code": "COMMISSION_MONTHLY",
-		"name": "Commission paid monthly under the contract",
 		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "6a9ac931-8c6b-59ce-a6ad-cad897f2ce8c",
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -270,17 +218,16 @@
 			}
 		],
 		"id": "eab95240-9702-54a7-8832-52a2d33394d6",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Monthly commission."
 	},
 	{
 		"code": "COMMISSION_IRREGULAR",
-		"name": "Commission not paid monthly",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "aa3b7090-5d47-530b-99d2-d5aac0be16e6",
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -289,17 +236,16 @@
 			}
 		],
 		"id": "5295b890-29f0-5ac6-823e-edba4369a722",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Irregular commission."
 	},
 	{
 		"code": "RESULTS_ZERO_MONTH",
-		"name": "Attestation of no task, trip or commission results for a full calendar month",
 		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn 0;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -308,11 +254,11 @@
 			}
 		],
 		"id": "3c1f789e-e1ca-5254-87c4-b8428a75d3f1",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Zero-results month adjustment."
 	},
 	{
 		"code": "ACCOMMODATION_RENT",
-		"name": "Accommodation rent",
 		"lookup": {
 			"monthly_cap": 150
 		},
@@ -320,7 +266,6 @@
 		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn Math.min(ctx.entry.quantity, ctx.lookup.monthly_cap);",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"references": [
@@ -329,17 +274,16 @@
 			}
 		],
 		"id": "bacdad0b-d67f-5a52-98d9-67cd226aef96",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Accommodation rent."
 	},
 	{
 		"code": "CP38_INSTALMENT",
-		"name": "CP38 tax instalment",
 		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"references": [
@@ -349,19 +293,18 @@
 			}
 		],
 		"id": "3cd4acf1-1554-529e-92b8-aae92afec370",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "CP38 instalment."
 	},
 	{
 		"code": "LAYOFF_BENEFIT",
-		"name": "Lay-off benefit",
 		"lookup": {
 			"service_months": 12
 		},
 		"off_cycle_eligible": true,
 		"subtotal_id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\n// First Schedule para 2(5): Part XIIA does not reach a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (category === 'DOMESTIC') return false;\nif (monthly <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * 12) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / 12));",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\tget(employment, 'service_started_on', employment.effective_range.from),\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\n// First Schedule para 2(5): Part XIIA does not reach a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (category === 'DOMESTIC') return false;\nif (monthly <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\tget(employment, 'service_started_on', employment.effective_range.from),\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * 12) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / 12));",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -370,17 +313,16 @@
 			}
 		],
 		"id": "91302f06-06a2-5d22-bcc6-5171eacebd38",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Lay-off benefit."
 	},
 	{
 		"code": "PAYEE_PAYMENT",
-		"name": "Payment to an agent, dealer or distributor (payee)",
 		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nreturn ctx.subject.employment.engagement === 'PAYEE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -389,17 +331,16 @@
 			}
 		],
 		"id": "35f852fd-14dc-5ddf-887d-012df69bf4d8",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Payment to a payee."
 	},
 	{
 		"code": "ZAKAT",
-		"name": "Authorised payroll zakat deduction",
 		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "9175877f-41b7-5f63-9140-a26032e34f39",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"references": [
@@ -413,11 +354,11 @@
 			}
 		],
 		"id": "0bf8a6c7-9708-5d50-9b8e-b27242e63baa",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Payroll zakat."
 	},
 	{
 		"code": "PIECE_HOLIDAY_WORK",
-		"name": "Paid-holiday work on piece rates",
 		"lookup": {
 			"piece_multiple": 2
 		},
@@ -425,7 +366,6 @@
 		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'terms.rate.unit', null) !== 'PIECE') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\n// quantity is the pieces done; the contract's rate is the ordinary rate per piece.\nreturn ctx.entry.quantity * get(ctx.subject.employment, 'terms.rate.amount', 0) * ctx.lookup.piece_multiple;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -437,11 +377,11 @@
 			}
 		],
 		"id": "1ab87ce8-b693-51f8-9c78-dbb0032d3573",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Piece-rate holiday work."
 	},
 	{
 		"code": "PIECE_HOLIDAY_OVERTIME",
-		"name": "Paid-holiday overtime on piece rates",
 		"lookup": {
 			"piece_multiple": 3
 		},
@@ -449,7 +389,6 @@
 		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'terms.rate.unit', null) !== 'PIECE') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\n// quantity is the pieces done; the contract's rate is the ordinary rate per piece.\nreturn ctx.entry.quantity * get(ctx.subject.employment, 'terms.rate.amount', 0) * ctx.lookup.piece_multiple;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
@@ -461,11 +400,11 @@
 			}
 		],
 		"id": "0fa247ee-fe5e-52e1-aa68-72480c801425",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"description": "Piece-rate holiday overtime."
 	},
 	{
 		"code": "STATUTORY_REFUND",
-		"name": "Statutory refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -479,13 +418,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "fca3605e-dee1-5ed7-bd58-b1a96388bc96",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "EPF_REFUND",
-		"name": "Employees Provident Fund refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -515,13 +452,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "46f04e77-8dab-5c4a-a4ee-92f5121a6085",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "EPF_ADJUSTMENT",
-		"name": "Employees Provident Fund adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -551,13 +486,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "367f1c1f-0e0a-50c9-b4a5-c790e59dd008",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "EPF_PR_REFUND",
-		"name": "Employees Provident Fund (permanent residents aged 60 and above) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -587,13 +520,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "239f1bfb-dc70-5058-a01b-ecd8b589934e",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "EPF_PR_ADJUSTMENT",
-		"name": "Employees Provident Fund (permanent residents aged 60 and above) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -623,13 +554,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "38a4a566-e1a7-5edf-94ca-52812d8700fc",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "EPF_NON_CITIZEN_REFUND",
-		"name": "Employees Provident Fund (non-citizen employees) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -659,13 +588,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "c06590f0-c53f-59d7-92c6-4c7e3ddb817c",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "EPF_NON_CITIZEN_ADJUSTMENT",
-		"name": "Employees Provident Fund (non-citizen employees) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -695,13 +622,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "9aaca1af-8b8a-5343-9f98-a87fa77abdf8",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "SOCSO_REFUND",
-		"name": "Social Security Organisation (PERKESO) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -731,13 +656,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "0446ce98-171c-51f5-9719-6277c4ad0d6f",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "SOCSO_ADJUSTMENT",
-		"name": "Social Security Organisation (PERKESO) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -767,13 +690,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "58c1b43f-6a67-5a31-ae0b-efbf80536441",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "SKBBK_REFUND",
-		"name": "Non-Employment Injury Security Scheme (LINDUNG 24 Jam) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -803,13 +724,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "36d5286b-d003-5ff8-bfe9-f7aaf5891b91",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "SKBBK_ADJUSTMENT",
-		"name": "Non-Employment Injury Security Scheme (LINDUNG 24 Jam) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -839,13 +758,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "f8a7b4ae-808d-55b7-9896-6654a7d9e185",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "EIS_REFUND",
-		"name": "Employment Insurance System refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -875,13 +792,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "48286f63-081e-55a5-8c8f-1d9bba43ed51",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "EIS_ADJUSTMENT",
-		"name": "Employment Insurance System adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -911,7 +826,6 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "c3ce9a97-9d40-56ca-a617-df3d02d18462",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	}

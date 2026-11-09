@@ -1,13 +1,12 @@
 [
 	{
 		"code": "WITHIN_HOURS_OVERTIME",
-		"name": "法内残業 (hours beyond the schedule within statutory hours)",
 		"lookup": {
 			"multiplier": 1.0
 		},
 		"references": [
 			{
-				"title": "労働基準法 arts.24, 32: approved overtime (every hour past the planned shift’s ordinary hours, off the statutory rest day) that stays within 8 hours a day and 40 a week (the limits OVERTIME applies) is wages at the ordinary rate, without a premium (法内残業); a monthly or daily wage covers only the scheduled hours. It is the approved overtime less the statutory part OVERTIME prices, so the two never pay the same hour. An hourly-paid worker is paid every hour by BASIC. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+				"title": "労働基準法 arts.24, 32: approved overtime (every hour past the planned shift’s ordinary hours, off the statutory rest day) that stays within 8 hours a day and 40 a week (the limits OVERTIME applies) is wages at the ordinary rate, without a premium (法内残業); a monthly or daily wage covers only the scheduled hours. It is the approved overtime less the statutory part OVERTIME prices, so the two never pay the same hour. An hourly-paid worker is paid every hour by BASIC. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (the FAMILY_ALLOWANCE catalog row; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (the COMMUTING_ALLOWANCE catalog row; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
 			}
 		],
 		"subtotal_id": "d2e6e5c6-85d5-57c6-8479-be3a71f17d1b",
@@ -15,17 +14,17 @@
 		"conversion": "// js\n// 労働基準法 arts.32, 37: ctx.work.days is the clock-proven roster. Hours past 8 a day or 40 a week are statutory overtime; other overtime stays within the legal hours.\nconst hourly = ctx.hour_rate;\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nconst limit = get(employer, 'weekly_limit_44', false) === true ? ctx.lookup.special_establishment_weekly_hours : ctx.lookup.standard_weekly_hours;\nconst opening = Number(get(employer, 'week_start', 0));\nconst days = get(ctx, 'work.days', []).filter((day) => get(day, 'day_type', 'WORK') !== 'REST').toSorted((a, b) => (a.date < b.date ? -1 : 1));\nlet week = '';\nlet used = 0;\nlet statutory = 0;\nlet within = 0;\nfor (const day of days) {\n\tconst start = add_days(day.date, 0 - ((weekday(day.date) - opening + 7) % 7));\n\tif (start !== week) {\n\t\tweek = start;\n\t\tused = 0;\n\t}\n\tconst worked = Number(get(day, 'worked_hours', 0));\n\tconst ordinary = Math.min(worked, ctx.lookup.standard_daily_hours, Math.max(0, limit - used));\n\tused = used + ordinary;\n\tconst extra = Number(get(day, 'overtime_hours', 0));\n\tconst over = Math.min(extra, worked - ordinary);\n\tstatutory = statutory + over;\n\twithin = within + extra - over;\n}\nreturn within * hourly * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "648a5824-5cfd-5fc5-bc8e-e17b1547e8b9",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
+		"description": "Overtime hours worked inside the normal daily hours, paid at the ordinary overtime multiplier."
 	},
 	{
 		"code": "OVERTIME",
-		"name": "時間外労働 割増賃金 (statutory overtime, first 60 hours a month)",
 		"lookup": {
 			"multiplier": 1.25
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.37(1) with 割増賃金令: overtime beyond the statutory hours (art.32: 40 a week, 8 a day) at 125% of the hourly wage, up to 60 hours a month; 労働基準法施行規則 art.19(1)(iv): a monthly wage over the monthly average scheduled hours (company.monthly_average_scheduled_hours). Every hour past the planned shift’s ordinary hours is approved overtime (work.days[].overtime_hours; work.days[].worked_hours are the paid hours, ordinary plus overtime). Off the statutory rest day it is split once: the statutory part is the paid hours beyond 8 a day, then beyond 40 a week counting each day’s hours up to 8 (44 at a 特例措置対象事業場 under 10 workers in commerce, cinema, health or hospitality, 施行規則 art.25の2; company.weekly_limit_44), the week starting on company.week_start_day; under a variable schedule (変形労働時間制, arts.32の2, 32の4) beyond the scheduled day and week where longer. The statutory part never exceeds the approved overtime; the rest is WITHIN_HOURS_OVERTIME at the ordinary rate, so no hour is paid twice. Under flextime (art.32の3) it is the paid hours beyond 40 a week over the month; under a discretionary or deemed regime (arts.38の2–38の4) the deemed hours beyond 8 a day (company.working_time_regime, deemed_daily_hours). A calendar week that opens before the attendance window counts its earlier days (work.week_before) toward the 40 hours, and the period pays only the excess beyond what those days alone already exceeded (昭和63年1月1日 基発1号: the week is the calendar week). Statutory rest-day hours are REST_DAY_WORK, never here. The base excludes the family, commuting and (cost-linked) housing allowances (art.37(5), 施行規則 art.21; terms.allowances[]). An hourly-paid term already has its hours in BASIC, so the line pays the premium only. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+				"title": "労働基準法 art.37(1) with 割増賃金令: overtime beyond the statutory hours (art.32: 40 a week, 8 a day) at 125% of the hourly wage, up to 60 hours a month; 労働基準法施行規則 art.19(1)(iv): a monthly wage over the monthly average scheduled hours (the contract's monthly average scheduled hours). Every hour past the planned shift’s ordinary hours is approved overtime (work.days[].overtime_hours; work.days[].worked_hours are the paid hours, ordinary plus overtime). Off the statutory rest day it is split once: the statutory part is the paid hours beyond 8 a day, then beyond 40 a week counting each day’s hours up to 8 (44 at a 特例措置対象事業場 under 10 workers in commerce, cinema, health or hospitality, 施行規則 art.25の2; entity_extension_data.weekly_limit_44), the week starting on entity_extension_data.week_start; under a variable schedule (変形労働時間制, arts.32の2, 32の4) beyond the scheduled day and week where longer. The statutory part never exceeds the approved overtime; the rest is WITHIN_HOURS_OVERTIME at the ordinary rate, so no hour is paid twice. Under flextime (art.32の3) it is the paid hours beyond 40 a week over the month; under a discretionary or deemed regime (arts.38の2–38の4) the deemed hours beyond 8 a day (entity_extension_data.working_time_regime). A calendar week that opens before the attendance window counts its earlier days (work.week_before) toward the 40 hours, and the period pays only the excess beyond what those days alone already exceeded (昭和63年1月1日 基発1号: the week is the calendar week). Statutory rest-day hours are REST_DAY_WORK, never here. The base excludes the family, commuting and (cost-linked) housing allowances (art.37(5), 施行規則 art.21; terms.allowances[]). An hourly-paid term already has its hours in BASIC, so the line pays the premium only. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (the FAMILY_ALLOWANCE catalog row; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (the COMMUTING_ALLOWANCE catalog row; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
 			}
 		],
 		"subtotal_id": "d2e6e5c6-85d5-57c6-8479-be3a71f17d1b",
@@ -33,17 +32,17 @@
 		"conversion": "// js\n// 労働基準法 arts.32, 37: ctx.work.days is the clock-proven roster. Hours past 8 a day or 40 a week are statutory overtime; other overtime stays within the legal hours.\nconst hourly = ctx.hour_rate;\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nconst limit = get(employer, 'weekly_limit_44', false) === true ? ctx.lookup.special_establishment_weekly_hours : ctx.lookup.standard_weekly_hours;\nconst opening = Number(get(employer, 'week_start', 0));\nconst days = get(ctx, 'work.days', []).filter((day) => get(day, 'day_type', 'WORK') !== 'REST').toSorted((a, b) => (a.date < b.date ? -1 : 1));\nlet week = '';\nlet used = 0;\nlet statutory = 0;\nlet within = 0;\nfor (const day of days) {\n\tconst start = add_days(day.date, 0 - ((weekday(day.date) - opening + 7) % 7));\n\tif (start !== week) {\n\t\tweek = start;\n\t\tused = 0;\n\t}\n\tconst worked = Number(get(day, 'worked_hours', 0));\n\tconst ordinary = Math.min(worked, ctx.lookup.standard_daily_hours, Math.max(0, limit - used));\n\tused = used + ordinary;\n\tconst extra = Number(get(day, 'overtime_hours', 0));\n\tconst over = Math.min(extra, worked - ordinary);\n\tstatutory = statutory + over;\n\twithin = within + extra - over;\n}\nreturn Math.min(statutory, ctx.lookup.monthly_threshold_hours) * hourly * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "a4b0cc86-072d-50e5-94d0-3c19d55f35c3",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
+		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
 	},
 	{
 		"code": "OVERTIME_OVER_60",
-		"name": "時間外労働 割増賃金 (statutory overtime beyond 60 hours a month)",
 		"lookup": {
 			"multiplier": 1.5
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.37(1) proviso: overtime beyond 60 hours in a month at 150%; the small-enterprise deferral (附則 art.138) ended on 1 April 2023 (働き方改革関連法, Law 71 of 2018). Same statutory hours and hourly base as OVERTIME (the statutory part of the approved overtime, rest-day hours excluded). Hours replaced by 代替休暇 (art.37(3)) lose the extra 25% (OVERTIME_SUBSTITUTED). The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+				"title": "労働基準法 art.37(1) proviso: overtime beyond 60 hours in a month at 150%; the small-enterprise deferral (附則 art.138) ended on 1 April 2023 (働き方改革関連法, Law 71 of 2018). Same statutory hours and hourly base as OVERTIME (the statutory part of the approved overtime, rest-day hours excluded). Hours replaced by 代替休暇 (art.37(3)) lose the extra 25% (OVERTIME_SUBSTITUTED). The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (the FAMILY_ALLOWANCE catalog row; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (the COMMUTING_ALLOWANCE catalog row; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
 			}
 		],
 		"subtotal_id": "d2e6e5c6-85d5-57c6-8479-be3a71f17d1b",
@@ -51,17 +50,17 @@
 		"conversion": "// js\n// 労働基準法 arts.32, 37: ctx.work.days is the clock-proven roster. Hours past 8 a day or 40 a week are statutory overtime; other overtime stays within the legal hours.\nconst hourly = ctx.hour_rate;\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nconst limit = get(employer, 'weekly_limit_44', false) === true ? ctx.lookup.special_establishment_weekly_hours : ctx.lookup.standard_weekly_hours;\nconst opening = Number(get(employer, 'week_start', 0));\nconst days = get(ctx, 'work.days', []).filter((day) => get(day, 'day_type', 'WORK') !== 'REST').toSorted((a, b) => (a.date < b.date ? -1 : 1));\nlet week = '';\nlet used = 0;\nlet statutory = 0;\nlet within = 0;\nfor (const day of days) {\n\tconst start = add_days(day.date, 0 - ((weekday(day.date) - opening + 7) % 7));\n\tif (start !== week) {\n\t\tweek = start;\n\t\tused = 0;\n\t}\n\tconst worked = Number(get(day, 'worked_hours', 0));\n\tconst ordinary = Math.min(worked, ctx.lookup.standard_daily_hours, Math.max(0, limit - used));\n\tused = used + ordinary;\n\tconst extra = Number(get(day, 'overtime_hours', 0));\n\tconst over = Math.min(extra, worked - ordinary);\n\tstatutory = statutory + over;\n\twithin = within + extra - over;\n}\n// Only the hours past the monthly threshold are priced here, so OVERTIME and this row never pay one hour twice.\nreturn Math.max(0, statutory - ctx.lookup.monthly_threshold_hours) * hourly * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "191c563f-268a-5c04-8fb6-e05da3ab6978",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
+		"description": "Overtime beyond the statutory 60-hour monthly limit, paid at the applicable multiplier."
 	},
 	{
 		"code": "REST_DAY_WORK",
-		"name": "法定休日労働 割増賃金 (statutory rest-day work)",
 		"lookup": {
 			"multiplier": 1.35
 		},
 		"references": [
 			{
-				"title": "労働基準法 arts.35 and 37(1) with 割増賃金令: work on the statutory weekly rest day at 135% of the hourly wage for every hour worked (work.days with day_type REST — the shift definitions mark the 法定休日; a non-statutory day off is OFF and its hours are ordinary overtime). A rest day has no ordinary hours, so all its paid hours (work.days[].worked_hours) are here and none in OVERTIME or WITHIN_HOURS_OVERTIME; an hour beyond 8 on it stays at 135% (平成11年3月31日 基発168号). Same hourly base as OVERTIME; managers and supervisors (art.41(ii)) and officers are outside it. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+				"title": "労働基準法 arts.35 and 37(1) with 割増賃金令: work on the statutory weekly rest day at 135% of the hourly wage for every hour worked (work.days with day_type REST — the shift definitions mark the 法定休日; a non-statutory day off is OFF and its hours are ordinary overtime). A rest day has no ordinary hours, so all its paid hours (work.days[].worked_hours) are here and none in OVERTIME or WITHIN_HOURS_OVERTIME; an hour beyond 8 on it stays at 135% (平成11年3月31日 基発168号). Same hourly base as OVERTIME; managers and supervisors (art.41(ii)) and officers are outside it. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (the FAMILY_ALLOWANCE catalog row; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (the COMMUTING_ALLOWANCE catalog row; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
 			}
 		],
 		"subtotal_id": "d2e6e5c6-85d5-57c6-8479-be3a71f17d1b",
@@ -69,11 +68,11 @@
 		"conversion": "// js\n// 労働基準法 art.37(1), 割増賃金令: every clock-proven hour on the statutory rest day.\nconst hourly = ctx.hour_rate;\nconst hours = sum(get(ctx, 'work.days', []).filter((day) => get(day, 'day_type', 'WORK') === 'REST').map((day) => Number(get(day, 'worked_hours', 0))));\nreturn hours * hourly * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "3571ef21-f5ef-58fd-aee3-5fd51db98402",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
+		"description": "Hours worked on a rest day, paid at the statutory rest-day multiplier."
 	},
 	{
 		"code": "NIGHT_WORK",
-		"name": "深夜労働 割増賃金 (late-night work premium)",
 		"lookup": {
 			"night_from": "22:00",
 			"night_to": "05:00",
@@ -81,7 +80,7 @@
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.37(4): work between 22:00 and 05:00 (rules.night_work) earns a further 25% of the hourly wage, on top of any overtime or rest-day premium (施行規則 art.20); it applies to managers and supervisors too (art.41 excludes only hours, breaks and rest days; 最高裁 平成21年12月18日). Hours are the paid intervals inside the window (hours_between over work.days[].intervals: the ordinary hours from the first arrival, then the overtime), ordinary, overtime and rest-day hours alike. Officers are not workers. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+				"title": "労働基準法 art.37(4): work between 22:00 and 05:00 (the night-work rule) earns a further 25% of the hourly wage, on top of any overtime or rest-day premium (施行規則 art.20); it applies to managers and supervisors too (art.41 excludes only hours, breaks and rest days; 最高裁 平成21年12月18日). Hours are the paid intervals inside the window (hours_between over work.days[].intervals: the ordinary hours from the first arrival, then the overtime), ordinary, overtime and rest-day hours alike. Officers are not workers. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (the FAMILY_ALLOWANCE catalog row; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (the COMMUTING_ALLOWANCE catalog row; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
 			}
 		],
 		"subtotal_id": "d2e6e5c6-85d5-57c6-8479-be3a71f17d1b",
@@ -89,18 +88,18 @@
 		"conversion": "// js\n// 労働基準法 art.37(4): the premium on clock-proven hours between 22:00 and 05:00.\nconst hourly = ctx.hour_rate;\nconst zone = get(ctx.subject.employer, 'time_zone', 'Asia/Tokyo');\nconst minutes = sum(get(ctx, 'work.days', []).map((day) => clock_window_minutes(get(day, 'intervals', []), zone, ctx.lookup.night_from, ctx.lookup.night_to)));\nreturn (minutes / 60) * hourly * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "5bac8912-197d-583b-8d3a-261bb32b9f52",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
+		"description": "Night-shift hours, paid the statutory night differential."
 	},
 	{
 		"code": "OVERTIME_SUBSTITUTED",
-		"name": "代替休暇による割増の控除 (premium replaced by substitute leave)",
 		"lookup": {
 			"overtime_hours_per_substitute_hour": 4,
 			"multiplier": 0.25
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.37(3) with 施行規則 art.19の2: under a labour-management agreement (company.substitute_leave_agreement) a worker may take paid substitute leave instead of the extra 25% for overtime beyond 60 hours (the statutory hours OVERTIME_OVER_60 prices); each hour of 代替休暇 (leave SUBSTITUTE_LEAVE_FOR_OVERTIME) replaces the extra 25% of four overtime hours. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+				"title": "労働基準法 art.37(3) with 施行規則 art.19の2: under a labour-management agreement (entity_extension_data.substitute_leave_agreement) a worker may take paid substitute leave instead of the extra 25% for overtime beyond 60 hours (the statutory hours OVERTIME_OVER_60 prices); each hour of 代替休暇 (leave SUBSTITUTE_LEAVE_FOR_OVERTIME) replaces the extra 25% of four overtime hours. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (the FAMILY_ALLOWANCE catalog row; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (the COMMUTING_ALLOWANCE catalog row; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
 			}
 		],
 		"subtotal_id": "d2e6e5c6-85d5-57c6-8479-be3a71f17d1b",
@@ -108,6 +107,7 @@
 		"conversion": "// js\n// ctx.entry.quantity is the substitute leave taken; each hour replaces the extra 25% of four overtime hours.\nconst entry = get(ctx, 'entry', {});\nconst hourly = ctx.hour_rate;\nconst hours = Number(get(entry, 'quantity', 0)) * ctx.lookup.overtime_hours_per_substitute_hour;\nreturn hours * hourly * ctx.lookup.multiplier;",
 		"direction": "DEDUCT",
 		"id": "08cd2dba-a08d-5ab8-a7d4-728d0359fd60",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
+		"description": "Overtime settled as paid time off in lieu instead of a cash premium."
 	}
 ]

@@ -1,7 +1,6 @@
 [
 	{
 		"code": "OVERTIME",
-		"name": "Overtime",
 		"lookup": {
 			"wage_floor_factor": 0.75,
 			"short_day_hours": 5,
@@ -71,9 +70,9 @@
 		"subtotal_id": "772bfa3c-a50d-5547-a364-f38c182d3338",
 		"eligibility": "// js\nconst exempt =\n\tget(ctx.subject.employment, 'terms.statutory_work_category', '') === 'MANAGERIAL' &&\n\tget(ctx.subject.employer, 'entity_extension_data.managerial_group_defined', false) === true;\nreturn !exempt;",
 		"conversion": "// js\nconst days = get(ctx, 'work.days', []);\nif (days.length === 0) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst unit = get(get(terms, 'rate', {}), 'unit', 'MONTHLY');\nconst sixDay = Number(get(terms, 'normal_days_per_week', 0)) === 6;\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tunit === 'DAILY'\n\t\t? ctx.day_rate * (sixDay ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day) +\n\t\t\t(ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n// PP 35/2021 art.32(4): variable allowances are not visible after B5, so the 75% floor is applied to month_wage only.\nconst hourly = Math.max(\n\tunit === 'DAILY' ? monthly / 173 : ctx.hour_rate,\n\t(ctx.lookup.wage_floor_factor * monthly) / 173\n);\nconst premium = (day) => {\n\tconst kind = String(get(day, 'holiday_kind', ''));\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst ordinary = (day) =>\n\tString(get(day, 'holiday_kind', '')) === 'MAKEUP_WORKDAY' ||\n\t(['WORK', ''].includes(String(get(day, 'day_type', ''))) && !premium(day));\nconst bandsOf = (day) => {\n\tif (ordinary(day)) return ctx.lookup.ordinary_bands;\n\tif (!sixDay) return ctx.lookup.five_day_bands;\n\treturn String(get(day, 'day_type', '')) === 'WORK' &&\n\t\tNumber(get(day, 'scheduled_hours', 0)) <= ctx.lookup.short_day_hours\n\t\t? ctx.lookup.six_day_short_bands\n\t\t: ctx.lookup.six_day_bands;\n};\nconst price = (day) => {\n\tconst hours = ordinary(day)\n\t\t? Number(get(day, 'overtime_hours', 0))\n\t\t: Number(get(day, 'worked_hours', 0)) - Number(get(day, 'banked_hours', 0));\n\tif (hours <= 0) return 0;\n\treturn ladder(hours, bandsOf(day)) * hourly;\n};\nreturn sum(days.map(price));",
-		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"id": "c8b5f9ae-2951-5388-8251-212208595aac",
-		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
+		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
 	}
 ]

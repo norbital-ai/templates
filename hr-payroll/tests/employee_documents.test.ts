@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, catalogRow, pack, syncAll, uuid, wholeDays, workspace } from './kit.ts';
+import { ENTITY, catalogRow, pack, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const PROFILE = idOf('employee_profile', uuid(4));
@@ -67,10 +67,10 @@ describe('a person asking for leave', () => {
 			};
 			const held = yield* t
 				.as(t.member(['employee'], { id: uuid(3) }))
-				.act('leave_catalog_entry.create', [request]);
+				.act('leave_catalog_entry.create', [leaveCreate(request)]);
 			assert.equal(held.kind, 'pendingApproval');
 			const refused = yield* Effect.flip(
-				t.as(t.member(['employee'])).act('leave_catalog_entry.create', [request])
+				t.as(t.member(['employee'])).act('leave_catalog_entry.create', [leaveCreate(request)])
 			);
 			assert.match(String(refused), /No readable entity/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
@@ -100,12 +100,12 @@ describe('a person asking for leave', () => {
 					payroll = t.as(yield* t.signIn('payroll@example.test'));
 				const ask = (day: string) =>
 					me.act('leave_catalog_entry.create', [
-						{
+						leaveCreate({
 							entity_id: ENTITY,
 							employment_id: idOf('employee_contract', uuid(6)),
 							catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
 							days: wholeDays(day)
-						}
+						})
 					]);
 				const posted = (id: string) =>
 					t

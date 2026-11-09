@@ -1,6 +1,17 @@
 import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 
+/** The s.113 register particulars the template owns on the profile: name and address. */
+export const registerChanged = <
+	T extends { readonly before: { readonly name?: unknown; readonly address?: unknown }; readonly after: { readonly name?: unknown; readonly address?: unknown } }
+>(
+	changes: readonly T[]
+): readonly T[] =>
+	changes.filter(
+		({ before, after }) =>
+			before.name !== after.name || (before.address ?? null) !== (after.address ?? null)
+	);
+
 export default model('employee_profile', {
 	description:
 		'One system identity for a person: name, contact details, documents, login and face enrolment. Standing payroll inputs belong to sealed employment contracts.',
@@ -170,8 +181,16 @@ export default model('employee_profile', {
 			);
 		},
 		updated: function* (changes, ctx) {
-			const ids = changes.map(({ after }) => after.id);
-			yield* tap(ctx, 'update', { collection: 'employee_profile', ids }, changes);
+			// s.113 register particulars only: email, phone, user_id, face, documents and location are not
+			// register changes, so they do not raise EMPLOYEE_REGISTER_UPDATE.
+			const register = registerChanged(changes);
+			if (register.length > 0)
+				yield* tap(
+					ctx,
+					'update',
+					{ collection: 'employee_profile', ids: register.map(({ after }) => after.id) },
+					register
+				);
 			// a renamed person's employments carry the new name (their pickers and links name them by it)
 			const renamed = new Map(
 				changes

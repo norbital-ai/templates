@@ -1,10 +1,8 @@
 [
 	{
 		"code": "FLEXIBLE_WORK_REQUEST",
-		"name": "Formal flexible work arrangement request",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "346b8885-531d-5c99-bd68-278f0aa96b77",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -14,14 +12,13 @@
 				"url": "https://www.mom.gov.sg/employment-practices/good-work-practices/flexible-work-arrangements",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "FLEXIBLE_WORK_REQUEST: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "PERSONAL_DATA_ACCESS_REQUEST",
-		"name": "Personal data access request",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "c4bc179a-26e7-5297-a669-161e8884ec51",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -31,14 +28,13 @@
 				"url": "https://sso.agc.gov.sg/Act/PDPA2012",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Request to access personal data."
 	},
 	{
 		"code": "PERSONAL_DATA_CORRECTION_REQUEST",
-		"name": "Personal data correction request",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "2f00d4b0-32ea-5d82-ac4d-6ff0cdcbcf6a",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -48,14 +44,13 @@
 				"url": "https://sso.agc.gov.sg/Act/PDPA2012",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Request to correct personal data."
 	},
 	{
 		"code": "DATA_BREACH",
-		"name": "Data breach (suspected or confirmed)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "3de16163-7918-5fa3-8af7-3d7c6342f007",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -65,14 +60,13 @@
 				"url": "https://sso.agc.gov.sg/Act/PDPA2012",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Data breach and its notification workflow."
 	},
 	{
 		"code": "WORK_ACCIDENT_LIGHT_DUTY",
-		"name": "Work-related light duty (open on first employer notice)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "3aecb6e7-b89c-5041-9b22-84a3b078cbff",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -82,14 +76,13 @@
 				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "WORK_ACCIDENT_LIGHT_DUTY: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "WORK_ACCIDENT_FATAL",
-		"name": "Employee work-related fatality (open on accident date)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "891d740d-5090-59c4-a270-280c2e4e1f14",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -99,14 +92,13 @@
 				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "WORK_ACCIDENT_FATAL: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "WORK_ACCIDENT_SUBSEQUENT_DEATH",
-		"name": "Later death from work injury/disease (open on learning the death)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "0e28a359-3573-53c7-bade-63357024bd7b",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -116,14 +108,13 @@
 				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "WORK_ACCIDENT_SUBSEQUENT_DEATH: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "OCCUPATIONAL_DISEASE_DIAGNOSIS",
-		"name": "Employee occupational disease (open on receipt of diagnosis)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "016d7bdd-a7c9-5ae5-b05f-7d0998a627f7",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -133,14 +124,13 @@
 				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "OCCUPATIONAL_DISEASE_DIAGNOSIS: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "DANGEROUS_OCCURRENCE",
-		"name": "Reportable dangerous occurrence: workplace occupier (open on occurrence date)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "687587e9-d423-5a26-a41f-5289f6610ccb",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -150,14 +140,13 @@
 				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "DANGEROUS_OCCURRENCE: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "PUBLIC_WORKPLACE_FATALITY",
-		"name": "Work-related public/self-employed fatality: occupier (open on occurrence date)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "e849e720-2d86-55d4-9d8a-8953dac0ec87",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -167,14 +156,13 @@
 				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "PUBLIC_WORKPLACE_FATALITY: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "PUBLIC_WORKPLACE_HOSPITAL_TREATMENT",
-		"name": "Work-related public/self-employed hospital treatment: occupier (open on occurrence date)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "be28be32-7c2c-5401-a135-264942043e92",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -184,11 +172,11 @@
 				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "PUBLIC_WORKPLACE_HOSPITAL_TREATMENT: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "RETRENCHMENT_EMPLOYEE_NOTICE",
-		"name": "Affected employee receives retrenchment notice",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -199,7 +187,6 @@
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "812f16d0-4f22-5365-89b3-943c6cefbb8d",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -209,11 +196,11 @@
 				"url": "https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "RETRENCHMENT_EMPLOYEE_NOTICE: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "OVERSEAS_DEPARTURE_NOTICE",
-		"name": "Employer learns of overseas posting/departure",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -224,16 +211,23 @@
 					},
 					"purpose": {
 						"type": "string",
-						"enum": ["OVERSEAS_POSTING", "OVERSEAS_EMPLOYMENT", "TRAINING", "BUSINESS", "OTHER"]
+						"enum": [
+							"OVERSEAS_POSTING",
+							"OVERSEAS_EMPLOYMENT",
+							"TRAINING",
+							"BUSINESS",
+							"OTHER"
+						]
 					}
 				},
 				"additionalProperties": false,
-				"required": ["purpose"],
+				"required": [
+					"purpose"
+				],
 				"description": "opened_on is actual employer awareness; scheduled_on is actual expected departure. Record the actual return plan where known. Existing documented IRAS exemption/clearance review determines withholding release, not the mere existence of this case."
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "7bec6324-1389-5a43-ad37-fdce7613c283",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -243,11 +237,11 @@
 				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Notice of overseas departure."
 	},
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",
-		"name": "Actual overseas work dates and country",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -276,14 +270,20 @@
 								}
 							},
 							"additionalProperties": false,
-							"required": ["date"]
+							"required": [
+								"date"
+							]
 						},
 						"title": "Actual worked dates",
 						"description": "Only dates actually worked in the stated country. Supply actual hours when the external source records them; absent hours stay unknown and may not become a full day. Do not copy hours already held in native roster records."
 					}
 				},
 				"additionalProperties": false,
-				"required": ["period", "country", "work_days"],
+				"required": [
+					"period",
+					"country",
+					"work_days"
+				],
 				"description": "One continuous actual overseas work record for one employee/country, supported by the original timesheet or equivalent factual record. A planned posting letter alone does not prove actual work or presence. Native roster/source records retain ownership of dates/hours already recorded there.",
 				"$defs": {
 					"country": {
@@ -559,14 +559,16 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					}
 				}
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "454e2b67-366e-5543-96f7-dfb9c508919b",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -576,18 +578,21 @@
 				"url": "https://sso.agc.gov.sg/Act/ITA1947",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Record of work performed across a border."
 	},
 	{
 		"code": "EXTERNAL_WAGE_RECORD",
-		"name": "Original external wage payment or cost allocation",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
 				"properties": {
 					"record_type": {
 						"type": "string",
-						"enum": ["PAYMENT", "COST_ALLOCATION"],
+						"enum": [
+							"PAYMENT",
+							"COST_ALLOCATION"
+						],
 						"title": "Original record type"
 					},
 					"original_payment_reference": {
@@ -916,7 +921,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -937,7 +945,11 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["registered_name", "country", "registration_reference"],
+						"required": [
+							"registered_name",
+							"country",
+							"registration_reference"
+						],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				},
@@ -949,10 +961,14 @@
 									"const": "COST_ALLOCATION"
 								}
 							},
-							"required": ["record_type"]
+							"required": [
+								"record_type"
+							]
 						},
 						"then": {
-							"required": ["cost_bearer"]
+							"required": [
+								"cost_bearer"
+							]
 						}
 					},
 					{
@@ -962,17 +978,20 @@
 									"exclusiveMaximum": 0
 								}
 							},
-							"required": ["amount"]
+							"required": [
+								"amount"
+							]
 						},
 						"then": {
-							"required": ["reverses_reference"]
+							"required": [
+								"reverses_reference"
+							]
 						}
 					}
 				]
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "17cf8e4d-d2ca-58db-96dd-0cdf9ac6c9d3",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -982,11 +1001,11 @@
 				"url": "https://sso.agc.gov.sg/Act/ITA1947",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Record of wages paid by another employer."
 	},
 	{
 		"code": "BENEFIT_SERVICE_RECORD",
-		"name": "Actual service attributable to a benefit award",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -1007,7 +1026,12 @@
 					}
 				},
 				"additionalProperties": false,
-				"required": ["benefit_reference", "service_period", "country", "service_employer"],
+				"required": [
+					"benefit_reference",
+					"service_period",
+					"country",
+					"service_employer"
+				],
 				"description": "One actual continuous service period attributable to the named benefit/retirement award, in its actual service country and legal employer. Record every source-supported period for that award, including external prior service; do not substitute all employment history or a domestic-service percentage. Gaps and missing source periods remain unknown rather than zero. opened_on is the actual statement/certificate issue date.",
 				"$defs": {
 					"country": {
@@ -1283,7 +1307,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -1304,14 +1331,17 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["registered_name", "country", "registration_reference"],
+						"required": [
+							"registered_name",
+							"country",
+							"registration_reference"
+						],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				}
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "544cff4d-969f-542c-8f00-0843f022a52c",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -1321,11 +1351,11 @@
 				"url": "https://sso.agc.gov.sg/Act/ITA1947",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Record of a benefit or service entitlement."
 	},
 	{
 		"code": "REEMPLOYMENT_OBLIGATION_TRANSFER_AGREEMENT",
-		"name": "Original re-employment-obligation transfer consent",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -1354,7 +1384,10 @@
 								"pattern": "^[A-Z]{3}$"
 							}
 						},
-						"required": ["amount", "currency"],
+						"required": [
+							"amount",
+							"currency"
+						],
 						"additionalProperties": false
 					}
 				},
@@ -1369,7 +1402,6 @@
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "fd8bd0cf-402b-5a73-b3e9-5b2beb21b189",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -1379,11 +1411,11 @@
 				"url": "https://www.mom.gov.sg/employment-practices/re-employment",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "REEMPLOYMENT_OBLIGATION_TRANSFER_AGREEMENT: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "NOTICE_PERIOD_EXTENSION_AGREEMENT",
-		"name": "Actual agreed unpaid-leave notice extension",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -1400,17 +1432,21 @@
 								"format": "date"
 							}
 						},
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"additionalProperties": false
 					}
 				},
-				"required": ["period"],
+				"required": [
+					"period"
+				],
 				"additionalProperties": false,
 				"description": "Original unpaid-leave period expressly agreed to extend notice. opened_on is actual agreement receipt; employment_id/reference/evidence_file identify the real agreement. Closing a case does not revoke the original agreement."
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "87c05d8a-fb52-502a-b76c-52fcfe8b985e",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -1420,11 +1456,11 @@
 				"url": "https://sso.agc.gov.sg/Act/EmA1968",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "NOTICE_PERIOD_EXTENSION_AGREEMENT: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "NOTICE_PAY_DISPUTE",
-		"name": "Actual notice-pay dispute",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -1441,21 +1477,29 @@
 								"format": "date"
 							}
 						},
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"additionalProperties": false
 					},
 					"asserted_by": {
 						"type": "string",
-						"enum": ["EMPLOYER", "EMPLOYEE"]
+						"enum": [
+							"EMPLOYER",
+							"EMPLOYEE"
+						]
 					}
 				},
-				"required": ["period", "asserted_by"],
+				"required": [
+					"period",
+					"asserted_by"
+				],
 				"additionalProperties": false,
 				"description": "Actual disputed notice period. Reference/evidence_file identify the claim and any binding finding. Ordinary direction is not inferred while the original claim needs adjudication."
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "57c8e416-ebdd-5f29-bc4e-417198a70367",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -1465,11 +1509,11 @@
 				"url": "https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "NOTICE_PAY_DISPUTE: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "EMPLOYMENT_CONTRACT_BREACH_DISPUTE",
-		"name": "Actual employment-contract breach dispute",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -1486,21 +1530,29 @@
 								"format": "date"
 							}
 						},
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"additionalProperties": false
 					},
 					"asserted_by": {
 						"type": "string",
-						"enum": ["EMPLOYER", "EMPLOYEE"]
+						"enum": [
+							"EMPLOYER",
+							"EMPLOYEE"
+						]
 					}
 				},
-				"required": ["period", "asserted_by"],
+				"required": [
+					"period",
+					"asserted_by"
+				],
 				"additionalProperties": false,
 				"description": "Actual breach claim, not a computed liable-party scalar. Retain the original claim and any court/Commissioner finding through the native case source."
 			}
 		},
 		"subtotal_id": null,
-		"events": {},
 		"id": "7a48d043-68a6-577b-a05e-f4b7713ab05e",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
 		"references": [
@@ -1510,6 +1562,21 @@
 				"url": "https://sso.agc.gov.sg/Act/ECA2016",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "EMPLOYMENT_CONTRACT_BREACH_DISPUTE: Case with its declared events and workflow inputs."
+	},
+	{
+		"code": "YOUNG_PERSON_REST_DAY_PERMISSION",
+		"lookup": {},
+		"subtotal_id": null,
+		"id": "8c795131-70a9-56d3-b65a-e1c6d29db581",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"references": [
+			{
+				"title": "MOM, Employing young persons and children — a young person in manual labour may work on a rest day only with the Commissioner’s permission",
+				"url": "https://www.mom.gov.sg/employment-practices/young-persons-and-children"
+			}
+		],
+		"description": "The Commissioner’s permission for a young person in manual labour to work on rest days, with the employment and the period it covers."
 	}
 ]

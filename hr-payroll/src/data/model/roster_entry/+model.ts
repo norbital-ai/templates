@@ -40,6 +40,20 @@ export default model('roster_entry', {
 			}
 		},
 		findings: { kind: 'json', default: [] },
+		// Labour Code art.137(1): pregnancy has no consent exception; an infant under 12 months needs the day's consent.
+		consent: {
+			kind: 'json',
+			optional: true,
+			shape: {
+				kind: 'object',
+				fields: {
+					night_work: { kind: 'bool' },
+					overtime: { kind: 'bool' },
+					reference: { kind: 'text' }
+				}
+			},
+			help: 'The signed per-day consent for night work and overtime while raising a child under 12 months. Pregnancy never takes consent.'
+		},
 		actual_worked_intervals: {
 			was: 'worked_intervals',
 			kind: 'list',
@@ -85,7 +99,8 @@ export default model('roster_entry', {
 				'shift_definition_id',
 				'planned_overtime_intervals',
 				'actual_worked_intervals',
-				'findings'
+				'findings',
+				'consent'
 			]
 		},
 		transform: function* (rows, ctx) {
@@ -126,7 +141,8 @@ export default model('roster_entry', {
 				'shift_definition_id',
 				'planned_overtime_intervals',
 				'actual_worked_intervals',
-				'findings'
+				'findings',
+				'consent'
 			]
 		},
 		transform: function* (changes, ctx) {

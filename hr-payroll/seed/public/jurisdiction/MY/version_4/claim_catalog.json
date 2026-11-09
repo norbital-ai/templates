@@ -1,7 +1,6 @@
 [
 	{
 		"code": "DENTAL_CLAIM",
-		"name": "Dental claim",
 		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -14,42 +13,43 @@
 				"quote": "Reimbursement of dental treatment the employee has already paid for; it is paid against the approved receipt and is not wages, so no statutory contribution or MTD base includes it."
 			}
 		],
-		"lookup": {}
+		"lookup": {},
+		"description": "Dental claim."
 	},
 	{
 		"code": "MEDICAL_CLAIM_DIRECT",
-		"name": "Medical claim (paid by the company direct)",
 		"references": [
 			{
 				"title": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line. Encoded 2026-10-08 (QA F10)."
 			}
 		],
 		"lookup": {
-			"annual_limit": 576
+			"annual_limit": 1000
 		},
 		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
 		"direction": "ADD",
 		"party": "EMPLOYER",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "a76c7f9d-4201-54a2-a2df-6be06065cfa2",
-		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
+		"description": "Direct medical claim against the annual limit."
 	},
 	{
 		"code": "MEDICAL_CLAIM",
-		"name": "Medical claim",
 		"references": [
 			{
 				"title": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line. Encoded 2026-10-08 (QA F10)."
 			}
 		],
 		"lookup": {
-			"annual_limit": 576
+			"annual_limit": 1000
 		},
 		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "3b4b07ec-09b3-5c93-815d-0c0ddd7cafd6",
-		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
+		"description": "Medical claim against the annual limit."
 	}
 ]

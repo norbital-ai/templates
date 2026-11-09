@@ -1,8 +1,12 @@
 [
 	{
 		"code": "MINIMUM_WAGE_MONTHLY",
+		"description": "Checks that a monthly-rated employee's agreed salary is at least the RM1,700 monthly minimum wage.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"monthly_wage": 1700
 		},
@@ -20,8 +24,12 @@
 	},
 	{
 		"code": "MINIMUM_WAGE_HOURLY_PART_TIME",
+		"description": "Checks that a part-time employee's agreed rate, converted to an hourly equivalent, meets the RM8.72 hourly minimum.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"weeks_per_year": 52,
 			"hourly_wage": 8.72
@@ -45,10 +53,17 @@
 	},
 	{
 		"code": "LABOUR_ORDINANCE_TERRITORY",
+		"description": "Rejects a Sabah or Sarawak worksite, which is governed by its own Labour Ordinance rather than the Employment Act.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
-			"excluded": ["SABAH", "SARAWAK"]
+			"excluded": [
+				"SABAH",
+				"SARAWAK"
+			]
 		},
 		"references": [
 			{
@@ -62,15 +77,19 @@
 				"url": "https://lom.agc.gov.my/"
 			}
 		],
-		"validate": "// A Sabah or Sarawak worksite belongs to a Labour Ordinance lineage, not the Employment Act.\nconst facts = get(ctx.entry, 'employee_extension_data', {});\nconst region = get(facts, 'work_region', null);\nreturn region == null || !ctx.lookup.excluded.includes(region);",
+		"validate": "// A Sabah or Sarawak worksite belongs to a Labour Ordinance lineage, not the Employment Act.\nconst region = get(ctx.entry, 'terms.work_region', null);\nreturn region == null || !ctx.lookup.excluded.includes(region);",
 		"order": 4,
 		"id": "e7f81bc5-782b-5495-96b4-e27f352f24ab",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "NORMAL_HOURS_WEEK",
+		"description": "Checks that agreed normal weekly hours do not exceed 45, except for shift work averaged over three weeks.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"normal_hours_per_week": 45
 		},
@@ -93,8 +112,12 @@
 	},
 	{
 		"code": "MINIMUM_WAGE_DAILY",
+		"description": "Checks that a daily-rated employee's agreed rate meets the daily minimum wage for a four-, five- or six-day week.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"daily_four_day_week": 98.08,
 			"daily_five_day_week": 78.46,
@@ -114,8 +137,12 @@
 	},
 	{
 		"code": "MINIMUM_WAGE_HOURLY",
+		"description": "Checks that an hourly-rated employee's agreed rate is at least RM8.72 an hour.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"hourly_wage": 8.72
 		},
@@ -133,10 +160,16 @@
 	},
 	{
 		"code": "WAGE_PAYMENT_METHOD",
+		"description": "Requires wages to be paid into the employee's bank account unless a non-bank method has the Director General's approval.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
-			"bank_methods": ["BANK"],
+			"bank_methods": [
+				"BANK"
+			],
 			"approval_fact": "wage_payment_dg_approval"
 		},
 		"references": [
@@ -155,8 +188,12 @@
 	},
 	{
 		"code": "WAGE_PERIOD",
+		"description": "Checks that the employer's payment schedule does not cover more than one month.",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"maximum_months": 1
 		},
@@ -167,15 +204,19 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"validate": "// EA s.18: the employer's payment schedule may not span more than one month.\nconst schedule = get(ctx.entry, 'payment_schedule', null);\nif (schedule == null || get(schedule, 'frequency', null) !== 'INTEGER_MONTHS') return true;\nreturn Number(get(schedule, 'month_interval', 1)) <= ctx.lookup.maximum_months;",
+		"validate": "// EA s.18: the employer's payment schedule may not span more than one month.\nconst schedule = get(ctx.subject.employer, 'payment_schedule', null);\nif (schedule == null || get(schedule, 'frequency', null) !== 'INTEGER_MONTHS') return true;\nreturn Number(get(schedule, 'month_interval', 1)) <= ctx.lookup.maximum_months;",
 		"order": 16,
 		"id": "c794c471-1328-5f70-bc54-8ae88e27821f",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "ROSTER_CONTINUOUS_HOURS",
+		"description": "Requires a thirty-minute break when planned overtime would run more than five consecutive hours.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"elapsed_minutes": 300,
 			"break_minutes": 30
@@ -194,8 +235,12 @@
 	},
 	{
 		"code": "ROSTER_DAILY_TOTAL",
+		"description": "Checks that planned overtime does not take a rostered day beyond twelve hours.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"minutes_per_day": 720,
 			"normal_minutes_per_day": 480,
@@ -221,8 +266,12 @@
 	},
 	{
 		"code": "CHILD_EMPLOYMENT",
+		"description": "Requires a permitted employment category for a worker under fifteen.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"maximum_age": 15,
 			"permitted_kinds": [
@@ -246,8 +295,12 @@
 	},
 	{
 		"code": "CHILD_LIGHT_WORK_AGE",
+		"description": "Requires a worker doing light family work to be at least thirteen.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"minimum_age": 13,
 			"kind": "LIGHT_FAMILY"
@@ -266,8 +319,12 @@
 	},
 	{
 		"code": "MINOR_HAZARDOUS_WORK",
+		"description": "Prohibits hazardous work for a child and requires personal supervision and training for a young person.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"maximum_age": 18,
 			"child_age": 15
@@ -286,8 +343,12 @@
 	},
 	{
 		"code": "MINOR_PROHIBITED_EMPLOYMENT",
+		"description": "Prohibits Fifth Schedule employment for anyone under eighteen.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"maximum_age": 18
 		},
@@ -305,8 +366,12 @@
 	},
 	{
 		"code": "CONTRACT_CATEGORIES",
+		"description": "Restricts the contract's statutory work category and residency status to the values this jurisdiction recognises.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"categories": {
 				"statutory_work_category": [
@@ -318,7 +383,11 @@
 					"VESSEL_CREW",
 					"DOMESTIC"
 				],
-				"residency_status": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"]
+				"residency_status": [
+					"CITIZEN",
+					"PERMANENT_RESIDENT",
+					"FOREIGNER"
+				]
 			}
 		},
 		"references": [
@@ -340,33 +409,13 @@
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
-		"code": "SHARED_CONTRACT_TERMS",
-		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"lookup": {
-			"limits": {
-				"normal_hours_per_day_maximum": 9,
-				"normal_hours_per_week_minimum": 1,
-				"normal_days_per_week_minimum": 1,
-				"normal_days_per_week_maximum": 7
-			}
-		},
-		"references": [
-			{
-				"title": "Employment Act 1955 s.60A(1)(b), (d) and s.60I(1)(b)",
-				"locator": "the agreed normal hours and days price the hourly and daily rates.",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"validate": "// The agreed rate and normal working time must meet this version's contract limits.\nconst limits = ctx.lookup.limits;\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate != null && get(rate, 'amount', 0) < 0) return false;\nconst day = get(ctx.entry, 'terms.normal_hours_per_day', null);\nif (day != null && !(day > 0 && day <= limits.normal_hours_per_day_maximum)) return false;\nconst week = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (week != null && week < limits.normal_hours_per_week_minimum) return false;\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return true;\nif (days !== Math.trunc(days)) return false;\nif (days < limits.normal_days_per_week_minimum) return false;\nif (days > limits.normal_days_per_week_maximum) return false;\nreturn true;",
-		"order": 36,
-		"id": "0a89c74e-e808-5099-829a-40881e3d8bfd",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
-	},
-	{
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
+		"description": "Checks the recorded worksite region and annual-leave carry limit against the jurisdiction's declared bounds.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"work_regions": [
 				"JOHOR",
@@ -399,17 +448,24 @@
 				"locator": "the contract may not agree a negative carry limit."
 			}
 		],
-		"validate": "// The extension inputs are checked against this version's declared bounds.\nconst facts = get(ctx.entry, 'employee_extension_data', {});\nconst region = get(facts, 'work_region', null);\nif (region != null && !ctx.lookup.work_regions.includes(region)) return false;\nconst carry = get(ctx.entry, 'terms.annual_leave_carry_limit_days', null);\nif (carry != null && carry < ctx.lookup.annual_leave_carry_minimum) return false;\nreturn true;",
+		"validate": "// The structured contract inputs are checked against this version's declared bounds.\nconst region = get(ctx.entry, 'terms.work_region', null);\nif (region != null && !ctx.lookup.work_regions.includes(region)) return false;\nconst carry = get(ctx.entry, 'terms.annual_leave_carry_limit_days', null);\nif (carry != null && carry < ctx.lookup.annual_leave_carry_minimum) return false;\nreturn true;",
 		"order": 37,
 		"id": "8251daff-3097-5a4b-a5f5-9c4aae2a3a31",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "HRD_LIABILITY_EVENT_DATE_REQUIRED",
+		"description": "Requires a sealed employer that is HRD-compulsory or not registered to record the date its registration liability began.",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
-			"compulsory_class": "COMPULSORY"
+			"liability_classes": [
+				"COMPULSORY",
+				"NOT_REGISTERED"
+			]
 		},
 		"references": [
 			{
@@ -418,15 +474,19 @@
 				"url": "https://lom.agc.gov.my/"
 			}
 		],
-		"validate": "// PSMB Act 2001: a sealed compulsory registration records when its liability began.\nif (get(ctx.entry, 'status', 'DRAFT') !== 'SEALED') return true;\nconst facts = get(ctx.entry, 'entity_extension_data', {});\nif (get(facts, 'hrd_registration_class', null) !== ctx.lookup.compulsory_class) return true;\nreturn typeof get(facts, 'hrd_registration_liability_on', null) === 'string' && get(facts, 'hrd_registration_liability_on', '') !== '';",
+		"validate": "// PSMB Act 2001: a sealed compulsory or unregistered employer records when its liability began.\nif (get(ctx.entry, 'status', 'DRAFT') !== 'SEALED') return true;\nconst facts = get(ctx.entry, 'entity_extension_data', {});\nif (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return true;\nif (!ctx.lookup.liability_classes.includes(get(facts, 'hrd_registration_class', ''))) return true;\nreturn typeof get(facts, 'hrd_registration_liability_on', null) === 'string' && get(facts, 'hrd_registration_liability_on', '') !== '';",
 		"order": 39,
 		"id": "1cd60296-9efc-526c-9bb0-ab9d0683bbc0",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
+		"description": "Requires a death, departure or non-bank wage case to name the employment and carry its source document.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"kinds": [
 				"EMPLOYEE_DEATH_NOTICE",
@@ -453,8 +513,12 @@
 	},
 	{
 		"code": "BUSINESS_CASE_SIGNED_CONSENT",
+		"description": "Requires a non-bank wage request to carry the employee's signed request, dated on or before the case was opened.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"kind": "NON_BANK_WAGE_PAYMENT_REQUEST"
 		},
@@ -472,8 +536,12 @@
 	},
 	{
 		"code": "DEPARTURE_CASE_ACTUAL_SCHEDULE",
+		"description": "Requires an overseas departure case to record the actual expected departure date and any later return date.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"kind": "OVERSEAS_DEPARTURE_NOTICE"
 		},
@@ -491,8 +559,12 @@
 	},
 	{
 		"code": "DEATH_NOTICE_ACTUAL_RECEIPT",
+		"description": "Checks that the employer's recorded notice of death does not precede the death.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"kind": "EMPLOYEE_DEATH_NOTICE"
 		},
@@ -509,80 +581,13 @@
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
-		"code": "NO_PAY_OPEN_PERIOD",
-		"target_collection": "leave_catalog_entry",
-		"events": ["create"],
-		"lookup": {
-			"no_pay": [
-				"MATERNITY_LEAVE_NO_ALLOWANCE",
-				"UNPAID_LEAVE",
-				"NATIONAL_SERVICE_LEAVE",
-				"COURT_CUSTODY_ABSENCE"
-			]
-		},
-		"references": [
-			{
-				"title": "A no-pay entry or its reversal is dated in the period that will pay it. A correction to a period already paid is a reversal entry on the same catalog item, dated in the next period to run."
-			}
-		],
-		"reads": {
-			"leave_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code"],
-				"limit": 1
-			},
-			"payroll_run": {
-				"where": {
-					"entity_id": {
-						"eq": {
-							"var": "ctx.entry.entity_id"
-						}
-					},
-					"kind": {
-						"eq": "ON_CYCLE"
-					}
-				},
-				"fields": ["period"],
-				"limit": 10000
-			},
-			"leave_catalog_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.employment_id"
-						}
-					},
-					"catalog_id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					},
-					"payroll_run_id": {
-						"isNull": true
-					},
-					"reverses": {
-						"isNull": true
-					}
-				},
-				"fields": ["days"],
-				"limit": 1000
-			}
-		},
-		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'reverses', null) != null && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
-		"order": 900,
-		"id": "bb61161c-1e22-5100-b172-3ce3a7865c6f",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
-	},
-	{
 		"code": "ANNUAL_LEAVE_SERVICE",
+		"description": "Applies the annual-leave service rules for unauthorised absence and more than thirty days of unpaid leave in a year.",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"references": [
 			{
 				"title": "Employment Act 1955 (Act 265) s.60E(1), second proviso",
@@ -604,7 +609,10 @@
 						}
 					}
 				},
-				"fields": ["code", "lookup"],
+				"fields": [
+					"code",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"employee_contract": {
@@ -615,7 +623,10 @@
 						}
 					}
 				},
-				"fields": ["service_started_on", "effective_range"],
+				"fields": [
+					"service_started_on",
+					"effective_range"
+				],
 				"limit": 1
 			},
 			"employee_balance": {
@@ -626,7 +637,9 @@
 						}
 					}
 				},
-				"fields": ["account"],
+				"fields": [
+					"account"
+				],
 				"limit": 1
 			},
 			"shift_definition": {
@@ -637,7 +650,9 @@
 						}
 					}
 				},
-				"fields": ["variant"],
+				"fields": [
+					"variant"
+				],
 				"limit": 1000
 			},
 			"roster_entry": {
@@ -653,11 +668,14 @@
 					},
 					"work_date": {
 						"gte": {
-							"var": "add_months(ctx.entry.days.0.date, -12)"
+							"var": "add_months(ctx.entry.leave_catalog_entry_day.0.incurred_on, -12)"
 						}
 					}
 				},
-				"fields": ["work_date", "shift_definition_id"],
+				"fields": [
+					"work_date",
+					"shift_definition_id"
+				],
 				"limit": 10000
 			},
 			"leave_catalog_entry": {
@@ -679,20 +697,59 @@
 						}
 					}
 				},
-				"fields": ["days", "reverses", "reverses"],
+				"fields": [
+					"id",
+					"reverses"
+				],
+				"limit": 10000
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"is": {
+							"employment_id": {
+								"is": {
+									"employee_id": {
+										"eq": {
+											"var": "ctx.subject.employment.employee_id"
+										}
+									}
+								}
+							},
+							"catalog_id": {
+								"is": {
+									"code": {
+										"eq": "UNPAID_LEAVE"
+									}
+								}
+							}
+						}
+					}
+				},
+				"fields": [
+					"id",
+					"leave_entry_id",
+					"incurred_on",
+					"part",
+					"payroll_run_id"
+				],
 				"limit": 10000
 			}
 		},
 		"condition": "// js\nif (get(ctx.entry, 'reverses', null) != null || get(ctx.entry, 'encashment', false) === true) return false;\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === 'ANNUAL_LEAVE';",
-		"validate": "// js\nconst lookup = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst employment = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst yearOf = (date) => add_months(started, 12 * Math.max(0, Math.floor(calendar_completed_months(started, date) / 12)));\nconst dates = ctx.entry.days.map((day) => day.date).toSorted();\nconst years = dates.map(yearOf).filter((year, index, all) => all.indexOf(year) === index);\n// EA s.60E(1), second proviso: absent without permission and without reasonable excuse for more than ten per cent of the working days of the twelve months of continuous service in respect of which the leave accrues, the employee is not entitled to it.\nconst { weeks, max_absent_share, fallback_days_per_week } = lookup.absence_forfeiture;\nconst absence = ctx.reads.shift_definition.filter((row) => row.variant.day_type === 'ABS').map((row) => row.id);\nconst absent = ctx.reads.roster_entry.filter((row) => absence.includes(row.shift_definition_id)).map((row) => row.work_date);\nconst working = weeks * get(employment, 'terms.normal_days_per_week', fallback_days_per_week);\nfor (const year of years)\n\tif (absent.filter((date) => date >= year && date < add_months(year, 12)).length > working * max_absent_share)\n\t\tthrow 'Absent without leave on more than ' + max_absent_share * 100 + ' per cent of the working days of the service year beginning ' + year + ': no annual leave is due for it.';\nif (ctx.event.operation !== 'create') return true;\n// EA s.60E(3B): leave of absence without pay exceeding thirty days in the aggregate in any twelve months is disregarded in computing the length of service.\nconst unpaid = ctx.reads.leave_catalog_entry;\nconst freed = (id) =>\n\tunpaid.filter((row) => get(row, 'reverses', '') === id).reduce((total, row) => total + row.days.length, 0);\nconst slots = unpaid\n\t.filter((row) => get(row, 'reverses', null) == null)\n\t.flatMap((row) => row.days.slice(freed(row.id)).map((day) => day.date))\n\t.filter((date) => date < dates.at(0))\n\t.toSorted();\nconst reach = 2 * lookup.service_unpaid_leave_ignored_after_days;\nlet until = '';\nlet disregarded = 0;\nfor (let at = 0; at < slots.length; at += 1) {\n\tif (at + reach < slots.length && slots.at(at + reach) < add_months(slots.at(at), 12)) until = add_months(slots.at(at), 12);\n\tif (slots.at(at) < until) disregarded += 1;\n}\nif (disregarded === 0) return true;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? lookup.part_time_service_bands : lookup.service_bands;\nconst [opening] = bands;\nconst due = (months) =>\n\tmonths < opening.service_months\n\t\t? Math.round((opening.days * months) / opening.service_months)\n\t\t: bands.filter((band) => band.service_months <= months).at(-1).days;\nconst periods = get(first(ctx.reads.employee_balance), 'account.leave.ANNUAL_LEAVE', {});\nfor (const year of years) {\n\tconst held = Object.hasOwn(periods, 'MY.S.' + year) ? periods['MY.S.' + year] : {};\n\tconst from = dates.find((date) => yearOf(date) === year);\n\tconst net = Math.max(0, calendar_completed_months(add_days(started, Math.floor(disregarded / 2)), from));\n\tconst left = Math.min(get(held, 'entitled', 0), due(net)) + get(held, 'carried', 0) - get(held, 'used', 0);\n\tif (dates.filter((date) => yearOf(date) === year).length / 2 > left)\n\t\tthrow 'Unpaid leave of more than ' + lookup.service_unpaid_leave_ignored_after_days + ' days does not count as service for annual leave: ' + left + ' days are left.';\n}\nreturn true;",
+		"validate": "// js\nconst lookup = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst employment = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst yearOf = (date) => add_months(started, 12 * Math.max(0, Math.floor(calendar_completed_months(started, date) / 12)));\nconst dates = get(ctx.entry, 'leave_catalog_entry_day', [])\n\t.map((slot) => String(slot.incurred_on))\n\t.toSorted();\nconst years = dates.map(yearOf).filter((year, index, all) => all.indexOf(year) === index);\n// EA s.60E(1), second proviso: absent without permission and without reasonable excuse for more than ten per cent of the working days of the twelve months of continuous service in respect of which the leave accrues, the employee is not entitled to it.\nconst { weeks, max_absent_share, fallback_days_per_week } = lookup.absence_forfeiture;\nconst absence = ctx.reads.shift_definition.filter((row) => row.variant.day_type === 'ABS').map((row) => row.id);\nconst absent = ctx.reads.roster_entry.filter((row) => absence.includes(row.shift_definition_id)).map((row) => row.work_date);\nconst working = weeks * get(employment, 'terms.normal_days_per_week', fallback_days_per_week);\nfor (const year of years)\n\tif (absent.filter((date) => date >= year && date < add_months(year, 12)).length > working * max_absent_share)\n\t\tthrow 'Absent without leave on more than ' + max_absent_share * 100 + ' per cent of the working days of the service year beginning ' + year + ': no annual leave is due for it.';\nif (ctx.event.operation !== 'create') return true;\n// EA s.60E(3B): leave of absence without pay exceeding thirty days in the aggregate in any twelve months is disregarded in computing the length of service.\nconst unpaid = ctx.reads.leave_catalog_entry;\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst slotsOf = (id) => get(grouped, String(id), []);\nconst freed = (id) =>\n\tunpaid.filter((row) => get(row, 'reverses', '') === id).reduce((total, row) => total + slotsOf(row.id).length, 0);\nconst slots = unpaid\n\t.filter((row) => get(row, 'reverses', null) == null)\n\t.flatMap((row) => slotsOf(row.id).map((slot) => String(slot.incurred_on)).toSorted().slice(freed(row.id)))\n\t.filter((date) => date < dates.at(0))\n\t.toSorted();\nconst reach = 2 * lookup.service_unpaid_leave_ignored_after_days;\nlet until = '';\nlet disregarded = 0;\nfor (let at = 0; at < slots.length; at += 1) {\n\tif (at + reach < slots.length && slots.at(at + reach) < add_months(slots.at(at), 12)) until = add_months(slots.at(at), 12);\n\tif (slots.at(at) < until) disregarded += 1;\n}\nif (disregarded === 0) return true;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? lookup.part_time_service_bands : lookup.service_bands;\nconst [opening] = bands;\nconst due = (months) =>\n\tmonths < opening.service_months\n\t\t? Math.round((opening.days * months) / opening.service_months)\n\t\t: bands.filter((band) => band.service_months <= months).at(-1).days;\nconst periods = get(first(ctx.reads.employee_balance), 'account.leave.ANNUAL_LEAVE', {});\nfor (const year of years) {\n\tconst held = Object.hasOwn(periods, 'MY.S.' + year) ? periods['MY.S.' + year] : {};\n\tconst from = dates.find((date) => yearOf(date) === year);\n\tconst net = Math.max(0, calendar_completed_months(add_days(started, Math.floor(disregarded / 2)), from));\n\tconst left = Math.min(get(held, 'entitled', 0), due(net)) + get(held, 'carried', 0) - get(held, 'used', 0);\n\tif (dates.filter((date) => yearOf(date) === year).length / 2 > left)\n\t\tthrow 'Unpaid leave of more than ' + lookup.service_unpaid_leave_ignored_after_days + ' days does not count as service for annual leave: ' + left + ' days are left.';\n}\nreturn true;",
 		"order": 901,
 		"id": "f233c467-78a9-52fa-a60a-21afd61fd17b",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
 		"code": "PATERNITY_QUALIFYING_SERVICE",
+		"description": "Requires twelve months' continuous service before paternity leave begins.",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"references": [
 			{
 				"title": "Employment Act 1955 (Act 265) s.60FA(3)(a)",
@@ -709,7 +766,10 @@
 						}
 					}
 				},
-				"fields": ["code", "lookup"],
+				"fields": [
+					"code",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"employee_contract": {
@@ -720,65 +780,15 @@
 						}
 					}
 				},
-				"fields": ["service_started_on", "effective_range"],
+				"fields": [
+					"service_started_on",
+					"effective_range"
+				],
 				"limit": 1
-			},
-			"shift_definition": {
-				"where": {
-					"entity_id": {
-						"eq": {
-							"var": "ctx.entry.entity_id"
-						}
-					}
-				},
-				"fields": ["variant"],
-				"limit": 1000
-			},
-			"roster_entry": {
-				"where": {
-					"employment_id": {
-						"is": {
-							"employee_id": {
-								"eq": {
-									"var": "ctx.subject.employment.employee_id"
-								}
-							}
-						}
-					},
-					"work_date": {
-						"gte": {
-							"var": "add_months(ctx.entry.days.0.date, -12)"
-						}
-					}
-				},
-				"fields": ["work_date", "shift_definition_id"],
-				"limit": 10000
-			},
-			"leave_catalog_entry": {
-				"where": {
-					"employment_id": {
-						"is": {
-							"employee_id": {
-								"eq": {
-									"var": "ctx.subject.employment.employee_id"
-								}
-							}
-						}
-					},
-					"catalog_id": {
-						"is": {
-							"code": {
-								"eq": "UNPAID_LEAVE"
-							}
-						}
-					}
-				},
-				"fields": ["days", "reverses"],
-				"limit": 10000
 			}
 		},
 		"condition": "// js\nif (get(ctx.entry, 'reverses', null) != null) return false;\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === 'PATERNITY_LEAVE';",
-		"validate": "// js\n// EA s.60FA(3)(a): employed by the same employer at least twelve months immediately before the leave commences.\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst from = ctx.entry.days.map((day) => day.date).toSorted().at(0);\nconst needed = first(ctx.reads.leave_catalog).lookup.eligibility.min_service_months;\nif (calendar_completed_months(started, from) < needed)\n\tthrow 'Paternity leave needs ' + needed + ' months with this employer before it begins.';\nreturn true;",
+		"validate": "// js\n// EA s.60FA(3)(a): employed by the same employer at least twelve months immediately before the leave commences.\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst from = get(ctx.entry, 'leave_catalog_entry_day', [])\n\t.map((slot) => String(slot.incurred_on))\n\t.toSorted()\n\t.at(0);\nconst needed = first(ctx.reads.leave_catalog).lookup.eligibility.min_service_months;\nif (calendar_completed_months(started, from) < needed)\n\tthrow 'Paternity leave needs ' + needed + ' months with this employer before it begins.';\nreturn true;",
 		"order": 902,
 		"id": "2d78f7a0-fd8a-5f46-80ec-0a628e81a6cc",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"

@@ -43,7 +43,6 @@ const pay = (t: Kit, seed: Seed, code: string, amount: number, on: string) =>
 			catalog_id: idOf('adhoc_catalog', itemId(seed, 'adhoc_catalog', code)),
 			description: code,
 			quantity: amount,
-			unit: 'MONEY',
 			incurred_on: PlainDate(on)
 		}
 	]);
@@ -344,17 +343,14 @@ describe('figures a month holds, across runs', () => {
 		const monthly = pack('PH', 'Asia/Manila', terms(30_000), {}, [], [], '2026-06-15');
 		const semi = {
 			...monthly,
-			entity_profile_version: (monthly.entity_profile_version ?? []).map((row) => ({
+			entity: (monthly.entity ?? []).map((row) => ({
 				...row,
 				payment_schedule: {
 					frequency: 'SEMI_MONTHLY',
 					business_day: 'PREVIOUS',
 					non_working_weekdays: [0, 6],
 					short_month: 'LAST_DAY',
-					anchors: [
-						{ cycle_part: 1, day: 15, month_offset: 0 },
-						{ cycle_part: 2, day: 30, month_offset: 0 }
-					]
+					pay_days: [15, 30]
 				}
 			}))
 		};

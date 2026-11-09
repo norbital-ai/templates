@@ -15,39 +15,6 @@
 			"title": "TW employee extension data",
 			"additionalProperties": false,
 			"properties": {
-				"events": {
-					"type": "array",
-					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": ["CHILD_BIRTH", "MARRIAGE", "PREGNANCY"],
-								"title": "What happened"
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date"
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							}
-						}
-					}
-				},
 				"foreign_spouse_of_national": {
 					"type": "boolean",
 					"default": false,
@@ -57,6 +24,16 @@
 					"type": "number",
 					"minimum": 0,
 					"description": "The monthly food and lodging amount in the migrant worker’s signed 外國人入國工作費用及工資切結書; FOOD_LODGING deductions above it are refused."
+				},
+				"foreign_professional": {
+					"type": "boolean",
+					"default": false,
+					"description": "外國專業人才延攬及僱用法 §24–25 as amended (公布 2025-09-24, 施行 2026-01-01), in force 2026-01-01: a foreign professional, special professional or senior professional. Without permanent residence they enter the new labour pension (unless an existing worker elected in writing by 30 June 2026 to keep the LSA pension: record pension_system LSA); with permanent residence they also enter employment insurance. Unrecorded is no."
+				},
+				"migrant_worker": {
+					"type": "boolean",
+					"default": false,
+					"description": "就業服務法 §46(1)(8)–(10) migrant worker. 勞動部 114年10月14日勞動福3字第1140153402A號令: from 1 April 2026 such a worker with under ten years at the unit may be left out of the 勞動基準法 §56 reserve wage total. Unrecorded is no."
 				},
 				"fixed_term_category": {
 					"type": "string",
@@ -131,7 +108,7 @@
 								"continued_after_65": {
 									"type": "boolean",
 									"default": false,
-									"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged at 11.5%, the ordinary-risk rate cut by 1% (no employment insurance after 65)."
+									"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged at 12%, the ordinary-risk rate cut by 1% (no employment insurance after 65)."
 								},
 								"disability_subsidy": {
 									"type": "number",
@@ -142,6 +119,11 @@
 									"type": "number",
 									"minimum": 0,
 									"description": "LI, NHI, LABOR_PENSION, OCC_INJURY — the insurer-confirmed monthly insured grade (月投保薪資 / 投保金額 / 月提繳工資) declared for that scheme (勞工保險條例 §14, 全民健康保險法 §20, 勞工退休金條例 §14–15, 勞工職業災害保險及保護法 §17). EI and the wage arrears levy read the LI one. Unrecorded is the grade of the month's wage."
+								},
+								"registration_number": {
+									"type": "string",
+									"title": "LI registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
 								}
 							}
 						},
@@ -170,6 +152,11 @@
 									"type": "boolean",
 									"default": false,
 									"description": "NHI — 全民健康保險法 §31(1)(2): the worker is not insured for NHI through this unit (another employer, a union or as a dependant). No regular NHI premium is charged here and every salary payment of at least the minimum wage attracts the 2.11% NHI_PART_TIME premium. Unrecorded is no."
+								},
+								"registration_number": {
+									"type": "string",
+									"title": "NHI registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
 								}
 							}
 						},
@@ -298,6 +285,11 @@
 									"type": "boolean",
 									"default": false,
 									"description": "INCOME_TAX — the salary here is 兼職所得 (a second employer, no 免稅額申報表 here): withheld 5% of each payment reaching the 起扣標準 (薪資所得扣繳辦法 §7)."
+								},
+								"registration_number": {
+									"type": "string",
+									"title": "INCOME_TAX registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
 								}
 							}
 						}
@@ -395,6 +387,10 @@
 				"sexual_harassment_prevention_rules": {
 					"type": "boolean",
 					"description": "性別平等工作法 §13(1)(2): prevention measures and complaint and discipline rules adopted and posted (thirty or more)."
+				},
+				"pension_reserve_excludes_short_service_migrants": {
+					"type": "boolean",
+					"description": "勞動部 114年10月14日勞動福3字第1140153402A號令: from 2026-04-01 the employer may leave a blue-collar migrant worker with under ten years at the unit out of the §56(1) reserve wage total (其工資可不計入). Unrecorded: they stay in."
 				}
 			},
 			"description": "Additional local compliance data on the sealed entity profile, stored as entity_extension_data. The 職業災害保險 industry class is the 1–55 class of 勞工職業災害保險適用行業別及費率表, not a fact."

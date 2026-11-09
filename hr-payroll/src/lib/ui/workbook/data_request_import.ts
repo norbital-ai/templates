@@ -71,7 +71,7 @@ const readKnown = Effect.fnUntraced(function* (grids: WorkbookGrids) {
 		},
 		allowance_catalog: {
 			where: { settings_id: { eq: settings.id } },
-			fields: ['code', 'name', 'lookup', 'eligibility', 'conversion'],
+			fields: ['code', 'lookup', 'eligibility', 'conversion'],
 			limit: 10000
 		}
 	});
@@ -173,6 +173,21 @@ const submit = Effect.fnUntraced(function* (plan: DataRequestPlan) {
 		);
 	const { entity } = yield* bolt.query({ entity: { fields: ['name'], limit: 10000 } });
 	const entityIds = new Map(entity.rows.map((row) => [row.name.trim().toLowerCase(), row.id]));
+	for (const row of plan.entitySchedules) {
+		const target = entityIds.get(row.name.trim().toLowerCase());
+		if (target === undefined) continue;
+		yield* write('entity.update', [
+			{
+				target,
+				set: {
+					payment_schedule: {
+						...row.payment_schedule,
+						pay_cutoff_day: row.pay_cutoff_day
+					}
+				}
+			}
+		]);
+	}
 	const sealVersions = [...plan.sealVersions];
 	for (const group of batches(plan.versions)) {
 		const records = yield* write(

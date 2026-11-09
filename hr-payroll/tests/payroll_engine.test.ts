@@ -306,14 +306,14 @@ describe('linear payroll engine', () => {
 			loan_catalog: [catalog('staff-loan', 'STAFF_LOAN', { subtotal_id: 'net' })],
 			entries: {
 				loan_catalog_entry: [{ id: 'loan-1', catalog_id: 'staff-loan' }],
-				loan_repayment_entry: [
+				loan_catalog_entry_repayment: [
 					repayment('due', amount, '2026-03-15'),
 					repayment('later', 700, '2026-04-01')
 				]
 			}
 		});
 		const lines = calculatePayroll(value(300)).lines.filter(
-			(line) => line.source_id?.model === 'loan_repayment_entry'
+			(line) => line.source_id?.model === 'loan_catalog_entry_repayment'
 		);
 		assert.deepEqual(
 			lines.map((line) => line.amount),

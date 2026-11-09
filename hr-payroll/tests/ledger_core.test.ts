@@ -6,6 +6,7 @@ import {
 	accountsOf,
 	apply,
 	diff,
+	eventsOf,
 	leftIn,
 	periodKey,
 	windowOf,
@@ -173,5 +174,23 @@ describe('windows', () => {
 		assert.deepEqual(windowOf({ fiscal_year_start_month: 4 }), { kind: 'YEAR', start_month: 4 });
 		assert.deepEqual(windowOf({ rolling_months: 24 }), { kind: 'BLOCK', months: 24 });
 		assert.deepEqual(windowOf({ window: 'LIFETIME' }), { kind: 'LIFETIME' });
+	});
+});
+
+describe('eventsOf', () => {
+	it('a multiple birth is one birth event', () => {
+		assert.deepEqual(
+			eventsOf({
+				children: [
+					{ born_on: '2026-04-01' },
+					{ born_on: '2026-04-01' },
+					{ born_on: '2026-08-01' }
+				]
+			}),
+			[
+				{ kind: 'CHILD_BIRTH', on: '2026-04-01' },
+				{ kind: 'CHILD_BIRTH', on: '2026-08-01' }
+			]
+		);
 	});
 });

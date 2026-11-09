@@ -38,11 +38,11 @@ jurisdiction_settings/
         claim_catalog_entry/
       leave_catalog/
         leave_catalog_entry/
+          leave_catalog_entry_day/
       loan_catalog/
         loan_catalog_entry/
-          loan_repayment_entry/
-      work_interruption_catalog/
-        work_interruption_catalog_entry/
+          loan_catalog_entry_repayment/
+      work_event_catalog/
       workplace_case_catalog/
         workplace_case_catalog_entry/
     static/
@@ -66,7 +66,7 @@ roster_entry/
 
 - Apps: `hr_controller/{entities,events,formats,payroll,people,settings}`, `hr_employee`
 - Kiosk: `attendance`
-- Automations: `contract_materialize`, `invitation_profile`, `ledger`, `statutory_research`, `statutory_materialize`
+- Automations: `contract_exits`, `contract_materialize`, `encashment`, `entity_materialize`, `invitation_profile`, `ledger`, `statutory_research`, `statutory_materialize`
 - Policies: `configuration_execution`, `employee`, `hr_controller`, `hr_manager`, `invitation_profile_automation`, `kiosk`, `manager`, `payroll_execution`, `senior_management`, `supervisor`
 - Shared code: `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
 

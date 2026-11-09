@@ -42,17 +42,14 @@ export const cycleOf = (schedule: JsonObject, key: string): PayCycle | undefined
 export const cycleOn = (schedule: JsonObject, day: string): PayCycle | undefined =>
 	cyclesIn(schedule, day.slice(0, 7)).find((cycle) => cycle.from <= day && day <= cycle.to);
 
-/** The day a cycle pays: its anchor, kept inside its month and moved off the non-working days. */
+/** The day a cycle pays: its `pay_days` entry, kept inside its month and moved off the non-working days. */
 export const payDateOf = (schedule: JsonObject, key: string): PlainDate => {
-	const anchors = Array.isArray(schedule.anchors) ? schedule.anchors.filter(isJsonObject) : [];
+	const days = Array.isArray(schedule.pay_days) ? schedule.pay_days : [];
 	const part = Number(key.slice(8) || 1);
-	const anchor = anchors.find((row) => row.cycle_part === part) ?? anchors[0];
-	const first = String(addMonths(`${key.slice(0, 7)}-01`, Number(anchor?.month_offset ?? 0))).slice(
-		0,
-		7
-	);
+	const day = Number(days[part - 1] ?? days.at(-1) ?? 0);
+	const first = key.slice(0, 7);
 	const end = lastDay(`${first}-01`);
-	const wanted = `${first}-${pad(Number(anchor?.day ?? end.slice(8)))}`;
+	const wanted = day > 0 ? `${first}-${pad(day)}` : end;
 	let date = wanted > end ? end : wanted;
 	const off = Array.isArray(schedule.non_working_weekdays) ? schedule.non_working_weekdays : [];
 	const step = schedule.business_day === 'PREVIOUS' ? -1 : schedule.business_day === 'NEXT' ? 1 : 0;
@@ -65,12 +62,8 @@ export const payDateOf = (schedule: JsonObject, key: string): PlainDate => {
  * The attendance a cycle pays. A cutoff of 1 attends the salary days; a later one attends from last month's cutoff to
  * the day before this one, and a half-month cycle attends the half before it.
  */
-export const attendanceOf = (
-	schedule: JsonObject,
-	cutoff: unknown,
-	salary: PayWindow
-): PayWindow => {
-	const day = Number(cutoff ?? 1);
+export const attendanceOf = (schedule: JsonObject, salary: PayWindow): PayWindow => {
+	const day = Number(schedule.pay_cutoff_day ?? 1);
 	if (day <= 1) return salary;
 	if (schedule.frequency === 'SEMI_MONTHLY') {
 		const to = String(addDays(salary.from, -1));

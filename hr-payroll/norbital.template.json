@@ -6,8 +6,8 @@
 	"description": "Multi-country HR and payroll: sealed jurisdiction data, an append-only ledger, a linear subtotal chain and statutory obligations.",
 	"visibility": "public",
 	"counts": {
-		"models": 37,
-		"apps": 7,
+		"models": 38,
+		"apps": 8,
 		"automations": 5
 	},
 	"tags": ["HR", "Finance", "Approvals"],

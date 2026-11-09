@@ -8,7 +8,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Option, Schema } from 'effect';
 import { periodKey, windowOf } from '../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, read, uuid, workspace } from './kit.ts';
+import { ENTITY, pack, read, uuid, workspace, leaveCreate } from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -127,6 +127,7 @@ describe('an entry raises what its effects declare', () => {
 							{
 								catalog_id: idOf('workplace_case_catalog', String(row.id)),
 								entity_id: ENTITY,
+								employment_id: CONTRACT,
 								kind: String(row.code),
 								opened_on: ON,
 								inputs: {}
@@ -139,7 +140,7 @@ describe('an entry raises what its effects declare', () => {
 						t,
 						row.code,
 						admin.act('leave_catalog_entry.create', [
-							{
+							leaveCreate({
 								entity_id: ENTITY,
 								employment_id: CONTRACT,
 								catalog_id: idOf('leave_catalog', String(row.id)),
@@ -147,7 +148,7 @@ describe('an entry raises what its effects declare', () => {
 									{ date: ON, part: 'AM' },
 									{ date: ON, part: 'PM' }
 								]
-							}
+							})
 						]),
 						failed
 					);
@@ -162,7 +163,6 @@ describe('an entry raises what its effects declare', () => {
 								catalog_id: idOf('adhoc_catalog', String(row.id)),
 								description: 'Sweep',
 								quantity: 100,
-								unit: 'MONEY',
 								incurred_on: ON
 							}
 						]),
@@ -211,7 +211,6 @@ describe('a month’s runs run every effect they declare', () => {
 						catalog_id: idOf('adhoc_catalog', String(refund.id)),
 						description: 'Sweep',
 						quantity: 100,
-						unit: 'MONEY',
 						incurred_on: ON
 					}
 				]);

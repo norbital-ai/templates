@@ -8,7 +8,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, sealedAdhoc, sealedLeave, uuid, workspace } from './kit.ts';
+import { ENTITY, pack, reversalSlots, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -102,7 +102,6 @@ const enter = (
 			catalog_id: idOf('adhoc_catalog', String(row.id)),
 			description: 'Correction',
 			quantity,
-			unit: 'MONEY',
 			incurred_on: PlainDate(on),
 			reverses
 		}
@@ -373,14 +372,14 @@ describe('a second salary in a pay month', () => {
 		const base = seedOf(500_000);
 		const seed: Seed = {
 			...base,
-			entity_profile_version: (base.entity_profile_version ?? []).map((row) => ({
+			entity: (base.entity ?? []).map((row) => ({
 				...row,
 				payment_schedule: {
 					frequency: 'MONTHLY',
 					business_day: 'PREVIOUS',
 					non_working_weekdays: [0, 6],
 					short_month: 'LAST_DAY',
-					anchors: [{ cycle_part: 1, day: 1, month_offset: 0 }]
+					pay_days: [1]
 				}
 			}))
 		};
@@ -415,11 +414,20 @@ describe('a no-pay day', () => {
 		days: ReturnType<typeof whole>,
 		reverses: Id<'leave_catalog_entry'> | null = null
 	) =>
-		t
-			.as(t.admin)
-			.act('leave_catalog_entry.create', [
-				{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: noPay(seed), days, reverses }
-			]);
+		Effect.gen(function* () {
+			const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
+			yield* t
+				.as(t.admin)
+				.act('leave_catalog_entry.create', [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: noPay(seed),
+						days: selected,
+						reverses
+					})
+				]);
+		});
 	const line = (slip: PayslipBreakdown | undefined) =>
 		slip?.lines.find((row) => row.code === 'UNPAID_LEAVE');
 	// 22 working days in June, 23 in July
@@ -546,9 +554,9 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
-			const late = yield* Effect.flip(take(t, seed, whole('2026-06-10'), yield* sealedLeave(t)));
+			const late = yield* Effect.flip(take(t, seed, whole('2026-06-11')));
 			assert.match(String(late), /already run/);
-			const missed = yield* Effect.flip(take(t, seed, whole('2026-06-11')));
+			const missed = yield* Effect.flip(take(t, seed, whole('2026-06-12')));
 			assert.match(String(missed), /already run/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});

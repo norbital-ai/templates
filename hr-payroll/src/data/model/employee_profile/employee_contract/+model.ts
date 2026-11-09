@@ -1,12 +1,10 @@
 import { addDays, PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { model } from '@norbital-ai/bolt';
-import { accountsOf, latestLeft } from '../../../../lib/ledger/core.js';
 import { assertFactsHold } from '../../../../lib/ledger/service.js';
-import { dynamicRead } from '@norbital-ai/bolt/protocol';
-import { isJsonObject, jsonObject } from '../../../../lib/payroll_engine/foundation.js';
+import { isJsonObject, jsonObject, numberOf } from '../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
-import { objectValue, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
+import { idOf, objectValue, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
 /** What a writer may set; the contract number, seal stamps and the derived label are server-owned. */
@@ -21,9 +19,16 @@ const columns = [
 	'final_pay_due_on',
 	'terms',
 	'payroll',
+	'events',
+	'dependents_count',
+	'children',
+	'child_leave_allocations',
+	'only_child',
 	'bank',
 	'input_schema_version_id',
 	'employee_extension_data',
+	'exit_ground',
+	'work_pass_valid_until',
 	'reason',
 	'status'
 ] as const;
@@ -78,6 +83,148 @@ const startsAfterService = (
 			String(row.service_started_on) > String(from)
 		);
 	});
+const CLOCK = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+const clockMinutes = (clock: string): number =>
+	Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3, 5));
+/** The paid minutes of one shift code, net of its unpaid breaks. */
+const shiftMinutes = (variant: unknown): number | null => {
+	if (!isJsonObject(variant)) return null;
+	if (variant.day_type !== 'WORK') return 0;
+	const start = typeof variant.start_time === 'string' ? variant.start_time : null;
+	const end = typeof variant.end_time === 'string' ? variant.end_time : null;
+	const untimed = typeof variant.untimed_hours === 'number' ? variant.untimed_hours : null;
+	if (start === null || end === null || !CLOCK.test(start) || !CLOCK.test(end))
+		return untimed === null ? null : Math.round(untimed * 60);
+	let span = clockMinutes(end) - clockMinutes(start);
+	if (span <= 0 || variant.ends_next_day === true) span += 1440;
+	let pause = 0;
+	for (const item of Array.isArray(variant.breaks) ? variant.breaks : []) {
+		if (!isJsonObject(item) || item.paid === true) continue;
+		const pauseStart = typeof item.start_time === 'string' ? item.start_time : null;
+		const pauseEnd = typeof item.end_time === 'string' ? item.end_time : null;
+		if (
+			pauseStart === null ||
+			pauseEnd === null ||
+			!CLOCK.test(pauseStart) ||
+			!CLOCK.test(pauseEnd)
+		)
+			continue;
+		pause += Math.max(0, clockMinutes(pauseEnd) - clockMinutes(pauseStart));
+	}
+	return Math.max(0, span - pause);
+};
+const shiftIdsOf = (pattern: unknown): readonly string[] => {
+	if (!isJsonObject(pattern)) return [];
+	const ids = new Set<string>();
+	if (isJsonObject(pattern.days))
+		for (const value of Object.values(pattern.days))
+			if (typeof value === 'string' && value !== '') ids.add(value);
+	if (Array.isArray(pattern.cycle))
+		for (const slot of pattern.cycle)
+			if (isJsonObject(slot) && typeof slot.shift_definition_id === 'string')
+				ids.add(slot.shift_definition_id);
+	return [...ids];
+};
+/** The contract's agreed rate and normal working time against the version's limits, where the version states them. */
+const assertTerms = (
+	rows: readonly { readonly terms?: unknown; readonly input_schema_version_id?: unknown }[],
+	lookups: ReadonlyMap<string, unknown>
+): string | null => {
+	const first = (lookup: Readonly<Record<string, unknown>>, names: readonly string[]): number | null => {
+		for (const name of names) {
+			const value = lookup[name];
+			const number = numberOf(value);
+			if (number !== null) return number;
+			if (isJsonObject(value)) {
+				const nested = numberOf(value.maximum ?? value.max);
+				if (nested !== null) return nested;
+			}
+		}
+		return null;
+	};
+	for (const row of rows) {
+		const terms = isJsonObject(row.terms) ? row.terms : {};
+		const rate = isJsonObject(terms.rate) ? terms.rate : null;
+		if (rate === null || !(numberOf(rate.amount) !== null && Number(rate.amount) > 0))
+			return 'The agreed rate must be more than zero.';
+		const lookup = lookups.get(String(row.input_schema_version_id));
+		if (!isJsonObject(lookup)) continue;
+		const limits = isJsonObject(lookup.limits) ? lookup.limits : {};
+		const limit = (names: readonly string[]) =>
+			first({ ...lookup, ...limits }, names) ?? first(limits, names);
+		const day = numberOf(terms.normal_hours_per_day);
+		if (day !== null) {
+			const min = limit(['normal_hours_per_day_minimum', 'minimum_daily_hours', 'hours_per_day_minimum', 'normal_hours_per_day_min']);
+			const max = limit(['normal_hours_per_day_maximum', 'maximum_daily_hours', 'daily_hours', 'normal_hours_per_day_max', 'hours_per_day_maximum']);
+			if (!(day > 0) || (min !== null && day < min) || (max !== null && day > max))
+				return 'The normal hours a day must be within the jurisdiction’s contract limits.';
+		}
+		const week = numberOf(terms.normal_hours_per_week);
+		if (week !== null) {
+			const min = limit(['normal_hours_per_week_minimum', 'hours_per_week_minimum', 'normal_hours_per_week_min']);
+			const max = limit(['normal_hours_per_week_maximum', 'weekly_hours', 'normal_hours_per_week_max']);
+			if (!(week > 0) || (min !== null && week < min) || (max !== null && week > max))
+				return 'The normal hours a week must be within the jurisdiction’s contract limits.';
+		}
+		const days = numberOf(terms.normal_days_per_week);
+		if (days !== null) {
+			const allowed = lookup.normal_days_per_week;
+			if (Array.isArray(allowed) && !allowed.map(Number).includes(days))
+				return 'The normal days a week must be one the jurisdiction allows.';
+			const min = limit(['days_per_week_minimum', 'normal_days_per_week_minimum']);
+			const max = limit(['days_per_week_maximum', 'normal_days_per_week_maximum']);
+			if (days !== Math.trunc(days) || (min !== null && days < min) || (max !== null && days > max))
+				return 'The normal days a week must be within the jurisdiction’s contract limits.';
+		}
+	}
+	return null;
+};
+/** A shift code a contract schedules may not run longer than the contract's normal day. */
+const overlongShift = Effect.fnUntraced(function* (
+	read: Reader,
+	rows: readonly { readonly terms?: unknown }[]
+) {
+	const wanted = rows.flatMap((row) => {
+		const terms = isJsonObject(row.terms) ? row.terms : null;
+		const patternId = terms?.shift_pattern_id;
+		const hours = terms?.normal_hours_per_day;
+		return typeof patternId === 'string' && typeof hours === 'number' && Number.isFinite(hours)
+			? [{ patternId, hours }]
+			: [];
+	});
+	if (wanted.length === 0) return null;
+	const patterns = yield* queryRows(read, {
+		shift_pattern: {
+			where: { id: { in: [...new Set(wanted.map((row) => row.patternId))] } },
+			fields: ['id', 'pattern'],
+			limit: 10000
+		}
+	});
+	const patternById = new Map(patterns.shift_pattern?.map((row) => [String(row.id), row]) ?? []);
+	const shiftIds = [
+		...new Set([...patternById.values()].flatMap((row) => shiftIdsOf(row.pattern)))
+	];
+	if (shiftIds.length === 0) return null;
+	const shifts = yield* queryRows(read, {
+		shift_definition: {
+			where: { id: { in: shiftIds } },
+			fields: ['id', 'code', 'variant'],
+			limit: 10000
+		}
+	});
+	const shiftById = new Map(shifts.shift_definition?.map((row) => [String(row.id), row]) ?? []);
+	for (const { patternId, hours } of wanted) {
+		const pattern = patternById.get(patternId)?.pattern;
+		for (const id of shiftIdsOf(pattern)) {
+			const shift = shiftById.get(id);
+			if (shift === undefined) continue;
+			const minutes = shiftMinutes(shift.variant);
+			if (minutes !== null && minutes > hours * 60)
+				return `Shift ${String(shift.code)} lasts ${Math.round((minutes / 60) * 100) / 100}h, longer than the contract's ${hours} normal hours per day.`;
+		}
+	}
+	return null;
+});
 /**
  * A contract changes from the first of a month, a move to another entity included, so a run never prices a month on
  * two versions or two employers. A hire, a rehire and an exit keep their real date, and a run pays those days.
@@ -109,6 +256,12 @@ const startsMidMonth = Effect.fnUntraced(function* (
 		});
 	});
 });
+
+/** Whether a range, stored (`[from,to)`) or as an object, has a last day. */
+const endsOn = (range: unknown): boolean =>
+	typeof range === 'string'
+		? range.slice(range.indexOf(',') + 1, -1) !== ''
+		: isJsonObject(range) && range.to != null;
 
 type Reach = {
 	readonly entity_id: string;
@@ -178,7 +331,15 @@ export default model('employee_contract', {
 				DRAFT: { to: ['SEALED'], edit: 'all' },
 				SEALED: {
 					to: ['VOID'],
-					edit: ['effective_range', 'final_pay_due_on', 'reason', 'employee_name']
+					edit: [
+						'effective_range',
+						'final_pay_due_on',
+						'reason',
+						'employee_name',
+						'exit_ground',
+						'work_pass_valid_until',
+						'child_leave_allocations'
+					]
 				},
 				VOID: { to: [], edit: 'none' }
 			}
@@ -249,6 +410,16 @@ export default model('employee_contract', {
 				work_classification: { kind: 'text', optional: true },
 				residency_status: { kind: 'text', optional: true },
 				work_authorisation_category: { kind: 'text', optional: true },
+				work_region: {
+					kind: 'text',
+					optional: true,
+					help: 'The worksite region key the jurisdiction minimum-wage tables use, where it differs from the employer region.'
+				},
+				worksite: {
+					kind: 'text',
+					optional: true,
+					help: 'The establishment or site the person works at, where the law applies thresholds by site.'
+				},
 				shift_pattern_id: { kind: 'id', of: 'shift_pattern', optional: true },
 				notice_period: {
 					kind: 'object',
@@ -288,10 +459,57 @@ export default model('employee_contract', {
 					kind: 'enum',
 					values: ['SINGLE', 'MARRIED', 'SEPARATED', 'DIVORCED', 'WIDOWED'],
 					optional: true
-				}
+				},
+				nationality: { kind: 'text', optional: true, help: 'ISO 3166-1 alpha-2 country code.' },
+				birth_city: { kind: 'text', optional: true },
+				passport_number: { kind: 'text', optional: true }
 			},
 			optional: true,
 			label: 'Person details'
+		},
+		events: {
+			kind: 'list',
+			optional: true,
+			help: 'Dated statutory events on this contract: illness, bereavement, marriage, work injury, confinement and similar. Child birth is the structured `children` list; termination is the contract status and reason.',
+			of: {
+				kind: 'object',
+				fields: {
+					kind: { kind: 'text' },
+					on: { kind: 'date' },
+					opened_on: { kind: 'date', optional: true },
+					ended_on: { kind: 'date', optional: true },
+					allocated_days: { kind: 'int', optional: true }
+				}
+			}
+		},
+		dependents_count: {
+			kind: 'int',
+			min: 0,
+			optional: true,
+			help: 'The number of dependants the person supports. Each statutory scheme decides how many count.'
+		},
+		children: {
+			kind: 'list',
+			optional: true,
+			help: 'Children under one year, with the expected or actual birth date.',
+			of: {
+				kind: 'object',
+				fields: {
+					expected_on: { kind: 'date', optional: true },
+					born_on: { kind: 'date', optional: true }
+				}
+			}
+		},
+		child_leave_allocations: {
+			kind: 'json',
+			optional: true,
+			shape: { kind: 'record', of: { kind: 'record', of: { kind: 'number', min: 0 } } },
+			help: 'Manual per-child leave-day allocations keyed by catalogue code, then the child’s birth date: { SHARED_PARENTAL_LEAVE: { "2026-04-01": 45 } }. Empty uses the jurisdiction default.'
+		},
+		only_child: {
+			kind: 'bool',
+			optional: true,
+			help: 'The employee is an only child.'
 		},
 		bank: { kind: 'custom', of: 'bank', optional: true },
 		final_pay_due_on: {
@@ -310,6 +528,28 @@ export default model('employee_contract', {
 			kind: 'text',
 			optional: true,
 			help: 'Why this record was voided or the employment ended.'
+		},
+		work_pass_valid_until: {
+			kind: 'date',
+			optional: true,
+			help: 'The actual expiry date of the current work pass. Renewal changes it while the contract is sealed; the reminder key follows the date.'
+		},
+		exit_ground: {
+			kind: 'enum',
+			optional: true,
+			values: [
+				'RETRENCHMENT',
+				'RETIREMENT',
+				'RESIGNATION',
+				'DISMISSAL',
+				'MISCONDUCT_DISMISSAL',
+				'END_OF_CONTRACT',
+				'MUTUAL',
+				'DEATH',
+				'UNILATERAL',
+				'BREACH_BY_EMPLOYER'
+			],
+			help: 'The statutory ground for ending the employment. It decides severance eligibility and exit duties; reason carries the narrative.'
 		},
 		employee_extension_data: {
 			kind: 'json',
@@ -362,13 +602,19 @@ export default model('employee_contract', {
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
+			const overlong = yield* overlongShift(ctx.db.query, rows);
+			if (overlong !== null) return yield* ctx.refuse(overlong, { field: 'terms' });
 			yield* assertFactsHold(
 				ctx.db.query,
 				rows.map((row) => jsonObject(row))
 			);
 			const ids = [...new Set(rows.map((row) => row.input_schema_version_id))];
 			const settings = yield* ctx.db.query({
-				jurisdiction_settings: { where: { id: { in: ids } }, fields: ['lookup'], limit: 10000 }
+				jurisdiction_settings: {
+					where: { id: { in: ids } },
+					fields: ['lookup', 'work_regions', 'code'],
+					limit: 10000
+				}
 			});
 			const allowed = new Map(
 				settings.jurisdiction_settings.rows.map((row) => {
@@ -385,12 +631,36 @@ export default model('employee_contract', {
 					] as const;
 				})
 			);
+			const lookups = new Map(
+				settings.jurisdiction_settings.rows.map((row) => [String(row.id), row.lookup])
+			);
+			const termsRefusal = assertTerms(rows, lookups);
+			if (termsRefusal !== null) return yield* ctx.refuse(termsRefusal, { field: 'terms' });
 			for (const row of rows) {
 				const category = row.terms?.statutory_work_category;
 				if (category == null) continue;
 				const declared = allowed.get(String(row.input_schema_version_id));
 				if (declared !== undefined && !declared.has(category))
 					return yield* ctx.refuse(`Choose one of the jurisdiction's statutory work categories.`, {
+						field: 'terms'
+					});
+			}
+			const regions = new Map(
+				settings.jurisdiction_settings.rows.map((row) => [
+					String(row.id),
+					row.work_regions !== null &&
+					typeof row.work_regions === 'object' &&
+					!Array.isArray(row.work_regions)
+						? Object.keys(row.work_regions)
+						: []
+				])
+			);
+			for (const row of rows) {
+				const region = row.terms?.work_region;
+				if (typeof region !== 'string' || region === '') continue;
+				const declared = regions.get(String(row.input_schema_version_id)) ?? [];
+				if (declared.length > 0 && !declared.includes(region))
+					return yield* ctx.refuse(`Choose one of the jurisdiction's declared work regions.`, {
 						field: 'terms'
 					});
 			}
@@ -454,10 +724,16 @@ export default model('employee_contract', {
 			if (startsAfterService(proposed))
 				return yield* ctx.refuse(SERVICE_AFTER_START, { field: 'service_started_on' });
 			yield* validateRegistered(ctx.db.query, 'employee_contract', 'update', proposed);
+			const overlong = yield* overlongShift(ctx.db.query, proposed);
+			if (overlong !== null) return yield* ctx.refuse(overlong, { field: 'terms' });
 			yield* assertFactsHold(ctx.db.query, proposed);
 			const ids = [...new Set(changes.map((change) => change.before.input_schema_version_id))];
 			const settings = yield* ctx.db.query({
-				jurisdiction_settings: { where: { id: { in: ids } }, fields: ['lookup'], limit: 10000 }
+				jurisdiction_settings: {
+					where: { id: { in: ids } },
+					fields: ['lookup', 'work_regions', 'code'],
+					limit: 10000
+				}
 			});
 			const allowed = new Map(
 				settings.jurisdiction_settings.rows.map((row) => {
@@ -474,15 +750,42 @@ export default model('employee_contract', {
 					] as const;
 				})
 			);
+			const lookups = new Map(
+				settings.jurisdiction_settings.rows.map((row) => [String(row.id), row.lookup])
+			);
+			const termsRefusal = assertTerms(proposed, lookups);
+			if (termsRefusal !== null) return yield* ctx.refuse(termsRefusal, { field: 'terms' });
+			const regions = new Map(
+				settings.jurisdiction_settings.rows.map((row) => [
+					String(row.id),
+					row.work_regions !== null &&
+					typeof row.work_regions === 'object' &&
+					!Array.isArray(row.work_regions)
+						? Object.keys(row.work_regions)
+						: []
+				])
+			);
 			for (const { before, set } of substantive) {
 				const terms = { ...before.terms, ...set.terms };
 				const category = terms.statutory_work_category;
-				if (typeof category !== 'string') continue;
-				const declared = allowed.get(String(before.input_schema_version_id));
-				if (declared !== undefined && !declared.has(category))
-					return yield* ctx.refuse(`Choose one of the jurisdiction's statutory work categories.`, {
-						field: 'terms'
-					});
+				if (typeof category === 'string') {
+					const declared = allowed.get(String(before.input_schema_version_id));
+					if (declared !== undefined && !declared.has(category))
+						return yield* ctx.refuse(
+							`Choose one of the jurisdiction's statutory work categories.`,
+							{
+								field: 'terms'
+							}
+						);
+				}
+				const region = terms.work_region;
+				if (typeof region === 'string' && region !== '') {
+					const declared = regions.get(String(before.input_schema_version_id)) ?? [];
+					if (declared.length > 0 && !declared.includes(region))
+						return yield* ctx.refuse(`Choose one of the jurisdiction's declared work regions.`, {
+							field: 'terms'
+						});
+				}
 			}
 			for (const { set } of changes) {
 				if (set.status === 'VOID' && !set.reason?.trim())
@@ -504,189 +807,24 @@ export default model('employee_contract', {
 			);
 		},
 		updated: function* (changes, ctx) {
-			for (const change of changes) {
-				const row = { ...change.before, ...change.after } as Record<string, unknown>;
-				const range: unknown = row.effective_range;
-				const effectiveTo =
-					typeof range === 'string'
-						? (() => {
-								// a stored range excludes its upper bound: the last day is the one before
-								const end = range.slice(range.indexOf(',') + 1, -1);
-								return end === '' ? null : String(addDays(PlainDate(end), -1));
-							})()
-						: isJsonObject(range) && typeof range.to === 'string'
-							? range.to
-							: null;
-				if (row.status !== 'SEALED' || effectiveTo == null) continue;
-				const extension = isJsonObject(row.employee_extension_data)
-					? row.employee_extension_data
-					: {};
-				if (extension.misconduct_dismissal === true) continue;
-				const settingsId = isJsonObject(row.input_schema_version_id)
-					? row.input_schema_version_id.id
-					: row.input_schema_version_id;
-				if (typeof settingsId !== 'string') continue;
-				const lineage = yield* ctx.query(
-					dynamicRead({
-						jurisdiction_settings: {
-							where: { id: { eq: settingsId } },
-							fields: ['code'] as const,
-							limit: 1
-						}
-					})
+			// sealing is a transition, not a fresh create: create-only effects read it as their own event
+			const newlySealed = changes.filter(
+				({ before, after }) => before.status !== 'SEALED' && after.status === 'SEALED'
+			);
+			if (newlySealed.length > 0)
+				yield* tap(
+					ctx,
+					'seal',
+					{ collection: 'employee_contract', ids: newlySealed.map(({ after }) => after.id) },
+					newlySealed.map(({ after }) => ({ after }))
 				);
-				const code = lineage.jurisdiction_settings?.rows?.[0]?.code;
-				const contracts = yield* ctx.query(
-					dynamicRead({
-						employee_contract: {
-							where: { employee_id: { eq: String(row.employee_id) } },
-							fields: ['id', 'status', 'effective_range', 'input_schema_version_id'] as const,
-							limit: 10000
-						}
-					})
-				);
-				const successors = (contracts.employee_contract?.rows ?? []).filter((other) => {
-					if (String(other.id) === String(row.id)) return false;
-					if (other.status !== 'DRAFT' && other.status !== 'SEALED') return false;
-					const successor = other.effective_range;
-					return (
-						isJsonObject(successor) &&
-						typeof successor.from === 'string' &&
-						successor.from > effectiveTo
-					);
-				});
-				let sameJurisdiction = false;
-				if (successors.length > 0) {
-					const ids = [
-						...new Set(
-							successors
-								.map((other) => {
-									const value = other.input_schema_version_id;
-									return isJsonObject(value) ? value.id : value;
-								})
-								.filter((value): value is string => typeof value === 'string')
-						)
-					];
-					if (ids.length > 0) {
-						const settings = yield* ctx.query(
-							dynamicRead({
-								jurisdiction_settings: {
-									where: { id: { in: ids } },
-									fields: ['id', 'code'] as const,
-									limit: 10000
-								}
-							})
-						);
-						const codes = new Map(
-							(settings.jurisdiction_settings?.rows ?? []).map((settingsRow) => [
-								String(settingsRow.id),
-								settingsRow.code
-							])
-						);
-						sameJurisdiction = successors.some((other) => {
-							const value = other.input_schema_version_id;
-							const id = isJsonObject(value) ? value.id : value;
-							return typeof code === 'string' && typeof id === 'string' && codes.get(id) === code;
-						});
-					}
-				}
-				// a same-jurisdiction replacement continues employment; a cross-jurisdiction transfer settles leave first
-				if (sameJurisdiction) continue;
-				const versions =
-					typeof code !== 'string'
-						? []
-						: ((yield* ctx.query(
-								dynamicRead({
-									jurisdiction_settings: {
-										where: { code: { eq: code }, status: { eq: 'SEALED' } },
-										fields: ['id', 'effective_range'] as const,
-										limit: 10000
-									}
-								})
-							)).jurisdiction_settings?.rows ?? []);
-				const current = versions.find((version) => {
-					const range = version.effective_range;
-					return (
-						isJsonObject(range) &&
-						typeof range.from === 'string' &&
-						range.from <= effectiveTo &&
-						(range.to == null || String(range.to) >= effectiveTo)
-					);
-				});
-				const catalogSettingsId =
-					current !== undefined && typeof current.id === 'string' ? current.id : settingsId;
-				const catalogs = yield* ctx.query(
-					dynamicRead({
-						leave_catalog: {
-							where: { code: { eq: 'ANNUAL_LEAVE' }, settings_id: { eq: catalogSettingsId } },
-							fields: ['id', 'lookup'] as const,
-							limit: 1
-						}
-					})
-				);
-				const catalog = catalogs.leave_catalog?.rows?.[0];
-				if (
-					catalog === undefined ||
-					!isJsonObject(catalog.lookup) ||
-					!isJsonObject(catalog.lookup.encash_on_exit) ||
-					catalog.lookup.encash_on_exit.allowed !== true
-				)
-					continue;
-				const held = yield* ctx.query(
-					dynamicRead({
-						leave_catalog_entry: {
-							where: { employment_id: { eq: String(row.id) }, encashment: { eq: true } },
-							fields: ['id'] as const,
-							limit: 1
-						}
-					})
-				);
-				if ((held.leave_catalog_entry?.rows ?? []).length > 0) continue;
-				const balances = yield* ctx.query(
-					dynamicRead({
-						employee_balance: {
-							where: { employee_id: { eq: String(row.employee_id) } },
-							fields: ['account'] as const,
-							limit: 1
-						}
-					})
-				);
-				const days = latestLeft(
-					accountsOf(balances.employee_balance?.rows?.[0]?.account),
-					'leave',
-					'ANNUAL_LEAVE'
-				);
-				if (!Number.isFinite(days) || days <= 0) continue;
-				const employer = yield* ctx.query(
-					dynamicRead({
-						entity_profile_version: {
-							where: { entity_id: { eq: String(row.entity_id) }, status: { eq: 'SEALED' } },
-							fields: ['pay_cutoff_day'] as const,
-							limit: 1
-						}
-					})
-				);
-				const cutoff = Number(employer.entity_profile_version?.rows?.[0]?.pay_cutoff_day ?? 1);
-				const day = Math.min(Number(effectiveTo.slice(8, 10)), cutoff);
-				const date = `${effectiveTo.slice(0, 7)}-${String(day).padStart(2, '0')}`;
-				const halfDays = Math.max(1, Math.round(days * 2));
-				yield* ctx.act.checked([
-					{
-						callable: 'leave_catalog_entry.create',
-						input: [
-							{
-								entity_id: String(row.entity_id),
-								employment_id: String(row.id),
-								catalog_id: String(catalog.id),
-								encashment: true,
-								days: Array.from({ length: halfDays }, (_, index) => ({
-									date,
-									part: index % 2 === 0 ? 'AM' : 'PM'
-								}))
-							}
-						]
-					}
-				]);
+			// an ending contract settles the leave its catalog encashes: the automation raises it for HR approval
+			const exits = changes.filter(
+				({ after }) => after.status === 'SEALED' && endsOn(after.effective_range)
+			);
+			if (exits.length > 0) {
+				yield* ctx.schedule('encashment', { employments: exits.map(({ after }) => after.id) });
+				yield* ctx.schedule('contract_exits', { employments: exits.map(({ after }) => after.id) });
 			}
 			const sealed = changes.filter(({ after }) => after.status === 'SEALED');
 			if (sealed.length > 0)

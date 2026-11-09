@@ -16,7 +16,7 @@ const claimColumns = [
 	'evidence_file'
 ] as const;
 const claimUpdateColumns = ['quantity', 'incurred_on', 'evidence_file'] as const;
-const leaveColumns = ['entity_id', 'employment_id', 'catalog_id', 'days', 'evidence_file'] as const;
+const leaveColumns = ['entity_id', 'employment_id', 'catalog_id', 'evidence_file'] as const;
 export default policy({
 	description:
 		'Own identity and documents, admitted requests, work, loans, balances, immutable ledger and payslips. User identity is the linked member ID.',
@@ -98,7 +98,10 @@ export default policy({
 		leave_catalog_entry: {
 			read: { leave_catalog_entry: { where: OWN } },
 			create: {
-				columns: { leave_catalog_entry: leaveColumns },
+				columns: {
+					leave_catalog_entry: leaveColumns,
+					'leave_catalog_entry.leave_catalog_entry_day': ['incurred_on', 'part']
+				},
 				check: function* (rows, ctx) {
 					if (
 						!(yield* ownsEmployments(
@@ -113,7 +116,7 @@ export default policy({
 		},
 		adhoc_catalog_entry: { read: { adhoc_catalog_entry: { where: OWN } } },
 		loan_catalog_entry: { read: { loan_catalog_entry: { where: OWN } } },
-		loan_repayment_entry: { read: { loan_repayment_entry: { where: OWN } } },
+		loan_catalog_entry_repayment: { read: { loan_catalog_entry_repayment: { where: OWN } } },
 		employee_balance: {
 			read: { employee_balance: { where: { employee_id: { is: OWN_EMPLOYEE } } } }
 		},

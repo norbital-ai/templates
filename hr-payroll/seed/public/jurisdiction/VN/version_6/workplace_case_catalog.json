@@ -1,7 +1,6 @@
 [
 	{
 		"code": "PERSONAL_DATA_BREACH",
-		"name": "Personal data protection violation (Law 91/2025 art.23; Decree 13/2023 art.23 before 2026)",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -14,11 +13,11 @@
 				"url": "https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Personal-data breach and its notification workflow."
 	},
 	{
 		"code": "ANNUAL_LEAVE_COMBINING_AGREEMENT",
-		"name": "Written agreement combining annual leave across years",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -30,11 +29,11 @@
 				"locator": "art.113(3)",
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
-		]
+		],
+		"description": "Agreement to combine annual leave."
 	},
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",
-		"name": "Actual overseas work dates and country",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -45,11 +44,11 @@
 				"title": "Law 109/2025/QH15 on Personal Income Tax",
 				"effective_from": "2026-01-01"
 			}
-		]
+		],
+		"description": "Record of work performed across a border."
 	},
 	{
 		"code": "EXTERNAL_WAGE_RECORD",
-		"name": "Original external wage payment or cost allocation",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -62,11 +61,11 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
 				"effective_from": "2026-07-01"
 			}
-		]
+		],
+		"description": "Record of wages paid by another employer."
 	},
 	{
 		"code": "BENEFIT_SERVICE_RECORD",
-		"name": "Actual service attributable to a benefit award",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -78,6 +77,7 @@
 				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
 				"effective_from": "2025-07-01"
 			}
-		]
+		],
+		"description": "Record of a benefit or service entitlement."
 	}
 ]

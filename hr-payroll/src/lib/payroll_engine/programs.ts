@@ -11,11 +11,11 @@ export type Program = {
 
 const number = Schema.Number;
 const boolean = Schema.Boolean;
-const date = Schema.String;
 
 export const PROGRAMS: Readonly<Record<string, Program>> = {
 	overtime_catalog: {
 		roots: [
+			'work_events',
 			'entry',
 			'subject',
 			'lookup',
@@ -30,10 +30,11 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'run',
 			'as_of'
 		],
-		outputs: { eligibility: boolean, conversion: number, incurred_on: date }
+		outputs: { eligibility: boolean, conversion: number }
 	},
 	allowance_catalog: {
 		roots: [
+			'work_events',
 			'subject',
 			'lookup',
 			'subtotals',
@@ -45,10 +46,11 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'run',
 			'as_of'
 		],
-		outputs: { eligibility: boolean, conversion: number, incurred_on: date }
+		outputs: { eligibility: boolean, conversion: number }
 	},
 	statutory_contribution_catalog: {
 		roots: [
+			'work_events',
 			'subject',
 			'lookup',
 			'base_pay',
@@ -70,6 +72,7 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 	},
 	leave_catalog: {
 		roots: [
+			'work_events',
 			'entry',
 			'subject',
 			'lookup',
@@ -83,14 +86,24 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'run',
 			'as_of'
 		],
-		outputs: { eligibility: boolean, conversion: number, incurred_on: date }
+		outputs: { eligibility: boolean, conversion: number }
 	},
 	claim_catalog: {
-		roots: ['entry', 'subject', 'lookup', 'month_wage', 'day_rate', 'hour_rate', 'run'],
-		outputs: { eligibility: boolean, conversion: number, incurred_on: date }
+		roots: [
+			'work_events',
+			'entry',
+			'subject',
+			'lookup',
+			'month_wage',
+			'day_rate',
+			'hour_rate',
+			'run'
+		],
+		outputs: { eligibility: boolean, conversion: number }
 	},
 	adhoc_catalog: {
 		roots: [
+			'work_events',
 			'entry',
 			'subject',
 			'lookup',
@@ -105,11 +118,11 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'run',
 			'as_of'
 		],
-		outputs: { eligibility: boolean, conversion: number, incurred_on: date }
+		outputs: { eligibility: boolean, conversion: number }
 	},
 	loan_catalog: {
-		roots: ['entry', 'subject', 'lookup'],
-		outputs: { eligibility: boolean, conversion: number, incurred_on: date }
+		roots: ['work_events', 'entry', 'subject', 'lookup'],
+		outputs: { eligibility: boolean, conversion: number }
 	}
 };
 

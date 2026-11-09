@@ -40,13 +40,9 @@
 		'settings_code',
 		'input_schema_version_id',
 		'time_zone',
-		'payment_schedule',
-		'pay_cutoff_day',
-		'registrations',
 		'registered_address',
 		'final_pay_loan_floor_percent',
 		'overtime_full_award_percent',
-		'statutory_units',
 		'entity_extension_data',
 		'reason'
 	] as const;

@@ -112,6 +112,7 @@ export const runRosterImport = (options: {
 										'shift_definition_id',
 										'planned_overtime_intervals',
 										'actual_worked_intervals',
+										'consent',
 										'payroll_run_id'
 									],
 									limit: 10000
@@ -160,6 +161,7 @@ export const runRosterImport = (options: {
 						actual_worked_intervals: (entry.actual_worked_intervals ?? []).flatMap((interval) =>
 							interval.end == null ? [] : [{ start: interval.start, end: interval.end }]
 						),
+						consent: entry.consent ?? null,
 						payroll_run_id: entry.payroll_run_id ?? null,
 						run_label: run?.run_number == null ? null : String(run.run_number)
 					};

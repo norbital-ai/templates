@@ -13,6 +13,8 @@ export type LeavePerson = {
 	readonly terms?: JsonObject;
 	readonly facts?: JsonObject;
 	readonly stateOwned?: boolean;
+	/** Dated work events applicable to this employment, entity-wide and employment-specific. */
+	readonly workEvents?: readonly JsonObject[];
 	/** The rows a row's own `entitlement` expression reads as `ctx.subject`. */
 	readonly employment?: JsonObject;
 	readonly employer?: JsonObject;
@@ -98,9 +100,11 @@ export const expressed = (
 			lookup,
 			as_of: on,
 			event,
+			work_events: person.workEvents ?? [],
 			subject: { employment: person.employment ?? {}, employer: person.employer ?? {} }
 		},
-		'entitlement'
+		'entitlement',
+		['lookup', 'as_of', 'event', 'work_events', 'subject']
 	);
 	return days === null || days === undefined ? null : Number(days);
 };

@@ -1,7 +1,6 @@
 [
 	{
 		"code": "WELFARE_LOAN",
-		"name": "Welfare or savings loan repayment",
 		"lookup": {},
 		"references": [
 			{
@@ -14,8 +13,8 @@
 		"subtotal_id": "b8b56286-1ac1-59e4-a6e0-492607ab62fe",
 		"eligibility": "// js\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.amount;",
-		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
 		"id": "e86563c2-0665-573c-996b-f278548a5df2",
-		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"description": "Welfare loan recovered from pay."
 	}
 ]

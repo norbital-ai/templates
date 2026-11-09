@@ -39,9 +39,17 @@ const nightShift: ShiftRow = {
 
 const pattern: PatternRow = {
 	id: 'cycle',
+	effective_range: { from: '2026-03-02', to: null },
 	pattern: {
-		anchor_date: '2026-03-02',
-		days: [{ shift_definition_id: 'day' }, { shift_definition_id: 'night' }]
+		days: {
+			MONDAY: 'day',
+			TUESDAY: 'night',
+			WEDNESDAY: 'day',
+			THURSDAY: 'night',
+			FRIDAY: 'day',
+			SATURDAY: 'night',
+			SUNDAY: 'night'
+		}
 	}
 };
 
@@ -60,7 +68,7 @@ describe('month board', () => {
 		assert.equal(shiftMinutes(nightShift), 480);
 	});
 
-	it('places a date in the pattern cycle from its anchor', () => {
+	it('places a date in a weekly pattern by weekday, inside its effective range', () => {
 		assert.equal(cycleShiftId(pattern, '2026-03-02'), 'day');
 		assert.equal(cycleShiftId(pattern, '2026-03-03'), 'night');
 		assert.equal(cycleShiftId(pattern, '2026-03-04'), 'day');

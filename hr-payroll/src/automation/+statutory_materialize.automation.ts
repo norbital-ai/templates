@@ -28,7 +28,6 @@ const CHILDREN = [
 	'overtime_catalog',
 	'statutory_contribution_catalog',
 	'workplace_case_catalog',
-	'work_interruption_catalog',
 	'registered_rule',
 	'registered_effect'
 ] as const;

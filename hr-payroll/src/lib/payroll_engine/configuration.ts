@@ -40,7 +40,6 @@ export const guardConfigurationRows = Effect.fn('payroll.guardConfigurationRows'
 			'calculation',
 			'eligibility',
 			'conversion',
-			'incurred_on',
 			'employee_amount',
 			'employer_amount',
 			'condition',

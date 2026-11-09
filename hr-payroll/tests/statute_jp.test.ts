@@ -10,21 +10,7 @@ import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import { dateWeekday } from '../src/lib/payroll_engine/time_evidence.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	REST,
-	WORK,
-	accountsIn,
-	catalogRow,
-	measureOf,
-	pack,
-	read,
-	sealEvents,
-	syncAll,
-	uuid,
-	wholeDays,
-	workspace
-} from './kit.ts';
+import { ENTITY, REST, WORK, accountsIn, catalogRow, measureOf, pack, read, sealEvents, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
 
 const LEAVE = read('seed/public/jurisdiction/JP/version_17/leave_catalog.json');
 const lookupOf = (code: string) => objectValue(LEAVE.find((row) => row.code === code)?.lookup);
@@ -32,14 +18,23 @@ const person = (
 	terms: JsonObject,
 	extension: JsonObject = {},
 	started = '2024-01-01'
-): LeavePerson => ({
-	started,
-	partTime: false,
-	gender: null,
-	maritalStatus: null,
-	terms,
-	employment: { service_started_on: started, terms, employee_extension_data: extension }
-});
+): LeavePerson => {
+	const { events, children, ...facts } = extension;
+	return {
+		started,
+		partTime: false,
+		gender: null,
+		maritalStatus: null,
+		terms,
+		employment: {
+			service_started_on: started,
+			terms,
+			...(Array.isArray(events) ? { events } : {}),
+			...(Array.isArray(children) ? { children } : {}),
+			employee_extension_data: facts
+		}
+	};
+};
 const FULL = { normal_hours_per_week: 40, normal_days_per_week: 5 };
 const SHORT = { normal_hours_per_week: 20, normal_days_per_week: 2 };
 
@@ -149,7 +144,7 @@ const TERMS = {
 	normal_hours_per_week: 40,
 	normal_days_per_week: 5,
 	statutory_work_category: 'SOCIAL_AND_EMPLOYMENT',
-	work_classification: 'EMPLOYEE',
+	work_classification: 'ORDINARY',
 	residency_status: 'RESIDENT',
 	wage_payment_method: 'BANK',
 	allowances: {}
@@ -208,12 +203,12 @@ const seedOf = (
 };
 const take = (t: Kit, seed: Seed, code: string, days: ReturnType<typeof wholeDays>) =>
 	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
+		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
 			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
 			days
-		}
+		})
 	]);
 const refused = (write: Effect.Effect<unknown, unknown>, reason: RegExp) =>
 	Effect.flip(write).pipe(Effect.map((error) => assert.match(String(error), reason)));

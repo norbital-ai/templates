@@ -32,10 +32,15 @@
 						fields: ['code', 'effective_range'],
 						limit: 10000
 					},
-					workplace_case_catalog: { fields: ['code', 'name', 'settings_id'], limit: 10000 },
+					workplace_case_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					workplace_case_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
-						fields: ['entity_id', 'kind', 'opened_on'],
+						fields: ['entity_id', 'employment_id', 'kind', 'opened_on'],
+						limit: 10000
+					},
+					employee_contract: {
+						where: { entity_id: { eq: scope.id }, status: { eq: 'SEALED' } },
+						fields: ['employee_number', 'entity_id', 'effective_range'],
 						limit: 10000
 					}
 				})
@@ -63,7 +68,13 @@
 				name: company.name,
 				settings_code: company.settings_code
 			},
-			employees: [],
+			employees: current.employee_contract.rows.map((row) => ({
+				id: row.id,
+				number: row.employee_number,
+				entity_id: row.entity_id,
+				from: row.effective_range.from,
+				to: row.effective_range.to
+			})),
 			versions: current.jurisdiction_settings.rows.map((row) => ({
 				id: row.id,
 				code: row.code,
@@ -78,6 +89,7 @@
 			entities,
 			existing: current.workplace_case_catalog_entry.rows.map((row) => ({
 				entity_id: row.entity_id,
+				employment_id: row.employment_id,
 				kind: row.kind,
 				opened_on: row.opened_on
 			}))
@@ -85,8 +97,10 @@
 		warnings = parsed.warnings;
 		return parsed.rows.map((row) => ({
 			entity_id: row.entity_id,
+			employment_id: row.employment_id,
 			catalog_id: row.catalog_id,
 			kind: row.kind,
+			...(row.severity == null ? {} : { severity: row.severity }),
 			opened_on: PlainDate(row.opened_on),
 			...(row.scheduled_on == null ? {} : { scheduled_on: PlainDate(row.scheduled_on) }),
 			...(row.closed_on == null ? {} : { closed_on: PlainDate(row.closed_on) }),

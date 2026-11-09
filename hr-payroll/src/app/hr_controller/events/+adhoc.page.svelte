@@ -34,7 +34,7 @@
 						fields: ['code', 'effective_range'],
 						limit: 10000
 					},
-					adhoc_catalog: { fields: ['code', 'name', 'settings_id'], limit: 10000 },
+					adhoc_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					adhoc_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
 						fields: ['employment_id', 'catalog_id', 'quantity', 'description', 'incurred_on'],
@@ -114,6 +114,7 @@
 	}
 </script>
 
+
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 
 <AppShell
@@ -145,7 +146,7 @@
 				'catalog_id',
 				'description',
 				'quantity',
-				'unit',
+				
 				'incurred_on',
 				{ field: 'payroll_run_id', cell: sealCell }
 			]}

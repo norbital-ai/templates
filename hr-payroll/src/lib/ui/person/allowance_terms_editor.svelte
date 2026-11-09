@@ -22,21 +22,24 @@
 			? bolt.query({
 					allowance_catalog: {
 						where: { settings_id: { eq: idOf('jurisdiction_settings', versionId) } },
-						fields: ['code', 'name', 'lookup'],
+						fields: ['code', 'lookup', 'conversion'],
 						limit: 1000
 					}
 				})
 			: null
 	);
+	// a catalogue row whose conversion reads the agreed amount is stated on the contract; a formula row computes itself
 	const choices = $derived(
-		(catalog?.current?.allowance_catalog.rows ?? []).map((row) => {
-			const lookup = valueObject(row.lookup) ? row.lookup : {};
-			return {
-				value: typeof lookup.allowance === 'string' ? lookup.allowance : row.code,
-				label: row.name,
-				description: row.code
-			};
-		})
+		(catalog?.current?.allowance_catalog.rows ?? [])
+			.filter((row) => /allowances\.[A-Z0-9_]+/.test(String(row.conversion ?? '')))
+			.map((row) => {
+				const lookup = valueObject(row.lookup) ? row.lookup : {};
+				return {
+					value: typeof lookup.allowance === 'string' ? lookup.allowance : row.code,
+					label: row.code,
+					description: row.code
+				};
+			})
 	);
 	const entries = $derived(
 		Object.entries(valueObject(field.value) ? field.value : {}) as [string, Value][]

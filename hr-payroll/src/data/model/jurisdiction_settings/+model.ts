@@ -100,6 +100,12 @@ export default model('jurisdiction_settings', {
 		employee_extension_schema: { kind: 'json', optional: true },
 		entity_extension_schema: { kind: 'json', optional: true },
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
+		work_regions: {
+			kind: 'json',
+			shape: { kind: 'record', of: { kind: 'text' } },
+			default: {},
+			help: 'The work-region keys this jurisdiction recognises, mapped to their display names. A contract picks one key.'
+		},
 		status: {
 			kind: 'state',
 			initial: 'DRAFT',
@@ -145,6 +151,7 @@ export default model('jurisdiction_settings', {
 				'employee_extension_schema',
 				'entity_extension_schema',
 				'lookup',
+				'work_regions',
 				'status',
 				'reason'
 			]
@@ -173,6 +180,7 @@ export default model('jurisdiction_settings', {
 				'employee_extension_schema',
 				'entity_extension_schema',
 				'lookup',
+				'work_regions',
 				'status',
 				'reason'
 			]

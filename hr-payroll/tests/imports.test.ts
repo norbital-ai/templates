@@ -48,6 +48,7 @@ const stored = (
 	shift_definition_id: shift,
 	planned_overtime_intervals: null,
 	actual_worked_intervals: null,
+	consent: null,
 	payroll_run_id: null,
 	run_label: null,
 	...over
@@ -96,6 +97,50 @@ describe('roster workbook', () => {
 		);
 		assert.equal(plan.creates.length, 1);
 		assert.equal(plan.updates.length, 0);
+	});
+
+	it('carries the day\u2019s consent columns onto the roster entry', () => {
+		const plan = planRosterUpload(
+			grid([
+				[
+					'employee_number',
+					'work_date',
+					'shift_code',
+					'planned_ot_start',
+					'planned_ot_end',
+					'consent_night_work',
+					'consent_overtime',
+					'consent_reference'
+				],
+				['1001', '2026-03-02', 'DAY', '22:00', '23:00', 'yes', 'true', 'form-1']
+			]),
+			rosterKnown()
+		);
+		assert.deepEqual(plan.creates[0]?.consent, {
+			night_work: true,
+			overtime: true,
+			reference: 'form-1'
+		});
+	});
+	it('refuses a consent flag without its signed reference', () => {
+		throwsRows(
+			() =>
+				planRosterUpload(
+					grid([
+						[
+							'employee_number',
+							'work_date',
+							'shift_code',
+							'consent_night_work',
+							'consent_overtime',
+							'consent_reference'
+						],
+						['1001', '2026-03-02', 'DAY', 'yes', '', '']
+					]),
+					rosterKnown()
+				),
+			/signed consent reference/
+		);
 	});
 
 	it('rejects an overnight interval that overlaps the next day', () => {
@@ -390,26 +435,26 @@ describe('the one-workbook data request', () => {
 			'Leave',
 			[
 				['Employee Number', 'Leave Type', 'From', 'To'],
-				['1001', 'Annual leave', '2026-03-02', '2026-03-02']
+				['1001', 'ANNUAL_LEAVE', '2026-03-02', '2026-03-02']
 			]
 		],
 		[
 			'Claims',
 			[
 				['Employee Number', 'Claim Type', 'Incurred On', 'Amount', 'Description'],
-				['1001', 'Dental', '2026-03-02', 10, 'wrong sheet']
+				['1001', 'DENTAL', '2026-03-02', 10, 'wrong sheet']
 			]
 		],
 		[
 			'Ad Hoc',
 			[
 				['Employee Number', 'Ad Hoc Type', 'Incurred On', 'Amount', 'Description'],
-				['1001', 'Back pay – basic', '2026-03-02', 75, 'March']
+				['1001', 'BPAYBS', '2026-03-02', 75, 'March']
 			]
 		]
 	]);
 
-	it('reads each family from its own sheet, by the name a person picks', () => {
+	it('reads each family from its own sheet, by the catalogue code', () => {
 		const leave = parseLeaveSheet(workbook, {
 			...known,
 			catalogs: [

@@ -1,7 +1,6 @@
 [
 	{
 		"code": "OVERTIME",
-		"name": "Overtime (平日延長工時)",
 		"lookup": {},
 		"references": [
 			{
@@ -12,14 +11,13 @@
 		"subtotal_id": "16346347-0ca1-5c03-aaa8-923c37d3c545",
 		"eligibility": "return true;",
 		"conversion": "// js\n// 勞動基準法 §24(1): each working day's first two overtime hours at 1.34, each further hour at 1.67.\nconst unit_wage = ctx.hour_rate;\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => get(day, 'day_type', '') === 'WORK' && !holiday(day))\n  .map((day) => {\n    const hours = Math.max(0, Number(get(day, 'overtime_hours', 0)));\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "044a9d37-c10e-5a66-a6df-2a8c0571d2b4",
-		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
+		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
 	},
 	{
 		"code": "STATUTORY_REST_WORK",
-		"name": "Work on the regular day off (例假工作)",
 		"lookup": {},
 		"references": [
 			{
@@ -29,14 +27,13 @@
 		"subtotal_id": "16346347-0ca1-5c03-aaa8-923c37d3c545",
 		"eligibility": "return true;",
 		"conversion": "// js\n// 勞動基準法 §40(1): one further day's wage for each 例假 worked; an hourly worker is paid the recorded hourly wage.\nconst day_hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day'));\nconst unit_wage = ctx.hour_rate;\nconst worked = ctx.work.days.filter((day) => get(day, 'day_type', '') === 'REST' && Number(get(day, 'worked_hours', 0)) > 0);\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'HOURLY') return worked.length * ctx.day_rate;\nreturn unit_wage * sum(worked.map((day) => Math.min(Number(get(day, 'worked_hours', 0)), day_hours)));",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "e9d15501-411b-5afc-9070-12bff1b4d446",
-		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
+		"description": "Hours worked on the statutory weekly rest day, paid at the rest-day multiplier."
 	},
 	{
 		"code": "REST_DAY_WORK",
-		"name": "Rest-day work (休息日工作)",
 		"lookup": {},
 		"references": [
 			{
@@ -46,14 +43,13 @@
 		"subtotal_id": "16346347-0ca1-5c03-aaa8-923c37d3c545",
 		"eligibility": "return true;",
 		"conversion": "// js\n// 勞動基準法 §24(2): each 休息日 worked, 1.34 for the first two hours and 1.67 for every further hour.\nconst unit_wage = ctx.hour_rate;\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => get(day, 'day_type', '') === 'OFF' && !holiday(day))\n  .map((day) => {\n    const hours = Math.max(0, Number(get(day, 'worked_hours', 0)));\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "c8f9ee15-7b57-575f-ba32-3b1a1dd9eaee",
-		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
+		"description": "Hours worked on a rest day, paid at the statutory rest-day multiplier."
 	},
 	{
 		"code": "HOLIDAY_WORK",
-		"name": "Public-holiday work",
 		"lookup": {},
 		"references": [
 			{
@@ -64,14 +60,13 @@
 		"subtotal_id": "16346347-0ca1-5c03-aaa8-923c37d3c545",
 		"eligibility": "return true;",
 		"conversion": "// js\n// 勞動基準法 §39: one further day's wage for each published holiday worked; an hourly worker is paid the recorded hourly wage for its ordinary hours.\nconst day_hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day'));\nconst unit_wage = ctx.hour_rate;\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst worked = ctx.work.days.filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', '')) && holiday(day) && Number(get(day, 'worked_hours', 0)) > 0);\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'HOURLY') return worked.length * ctx.day_rate;\nreturn unit_wage * sum(worked.map((day) => Math.min(Number(get(day, 'worked_hours', 0)), day_hours)));",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "66391362-1151-5b53-a7e5-07a840a5b366",
-		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
+		"description": "Hours worked on a statutory holiday, paid at the statutory holiday multiplier."
 	},
 	{
 		"code": "HOLIDAY_OVERTIME",
-		"name": "Holiday work beyond eight hours",
 		"lookup": {},
 		"references": [
 			{
@@ -81,9 +76,9 @@
 		"subtotal_id": "16346347-0ca1-5c03-aaa8-923c37d3c545",
 		"eligibility": "return true;",
 		"conversion": "// js\n// 勞動基準法 §39 with §24(1): hours after the planned shift on a holiday (on a planned off day, after the eighth), 1.34 for the first two and 1.67 after.\nconst day_hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day'));\nconst unit_wage = ctx.hour_rate;\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', '')) && holiday(day))\n  .map((day) => {\n    const hours = get(day, 'day_type', '') === 'WORK' ? Math.max(0, Number(get(day, 'overtime_hours', 0))) : Math.max(0, Number(get(day, 'worked_hours', 0)) - day_hours);\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "a0258cd3-1517-5ef8-8e6c-b58ea09d0cc2",
-		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
+		"description": "Overtime hours worked on a statutory holiday, paid at the holiday-overtime multiplier."
 	}
 ]

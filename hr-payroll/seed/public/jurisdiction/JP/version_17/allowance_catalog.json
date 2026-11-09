@@ -1,7 +1,7 @@
 [
 	{
 		"code": "ATTENDANCE_ALLOWANCE",
-		"name": "精皆勤手当 (attendance allowance)",
+		"description": "Contractual attendance allowance paid when the terms set a positive amount; treated as remuneration and included in the overtime base.",
 		"lookup": {},
 		"references": [
 			{
@@ -17,7 +17,7 @@
 	},
 	{
 		"code": "COMMUTING_ALLOWANCE",
-		"name": "通勤手当 (commuting allowance)",
+		"description": "Non-taxable portion of the contractual commuting allowance, paid up to the statutory monthly limit for transit or car commuting, including parking.",
 		"lookup": {},
 		"references": [
 			{
@@ -35,7 +35,7 @@
 	},
 	{
 		"code": "COMMUTING_ALLOWANCE_TAXABLE",
-		"name": "通勤手当 非課税限度超過分 (commuting allowance above the non-taxable limit)",
+		"description": "Taxable excess of the contractual commuting allowance above the statutory non-taxable monthly limit.",
 		"lookup": {},
 		"references": [
 			{
@@ -54,7 +54,7 @@
 	},
 	{
 		"code": "FAMILY_ALLOWANCE",
-		"name": "家族手当 (family allowance)",
+		"description": "Contractual family allowance paid when the terms set a positive amount; treated as remuneration.",
 		"lookup": {},
 		"references": [
 			{
@@ -72,7 +72,7 @@
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
-		"name": "役職手当・固定手当 (fixed allowance)",
+		"description": "Contractual fixed allowance paid when the terms set a positive amount; treated as remuneration, salary income and part of the overtime base.",
 		"lookup": {},
 		"references": [
 			{
@@ -89,7 +89,7 @@
 	},
 	{
 		"code": "HOUSING_ALLOWANCE",
-		"name": "住宅手当 (housing allowance)",
+		"description": "Contractual housing allowance paid when the terms set a positive amount; treated as remuneration, and excluded from the overtime base when it varies with housing cost.",
 		"lookup": {},
 		"references": [
 			{

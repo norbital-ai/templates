@@ -10,7 +10,7 @@ import { Effect, Schema } from 'effect';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, sealedAdhoc, sealedLeave, uuid, workspace } from './kit.ts';
+import { ENTITY, pack, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -127,7 +127,6 @@ const enter = (
 			catalog_id: idOf('adhoc_catalog', String(row.id)),
 			description: 'Correction',
 			quantity,
-			unit: 'MONEY',
 			incurred_on: PlainDate(on),
 			reverses
 		}
@@ -442,7 +441,7 @@ describe('corrected in the next month', () => {
 describe('Taiwan’s month of salary', () => {
 	const schedule = (seed: Seed, payment_schedule: Facts): Seed => ({
 		...seed,
-		entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+		entity: (seed.entity ?? []).map((row) => ({
 			...row,
 			payment_schedule
 		}))
@@ -453,10 +452,7 @@ describe('Taiwan’s month of salary', () => {
 			business_day: 'PREVIOUS',
 			non_working_weekdays: [0, 6],
 			short_month: 'LAST_DAY',
-			anchors: [
-				{ cycle_part: 1, day: 15, month_offset: 0 },
-				{ cycle_part: 2, day: 31, month_offset: 0 }
-			]
+			pay_days: [15, 31]
 		});
 		const tax = (seed: Seed, cycles: readonly string[]) =>
 			Effect.gen(function* () {
@@ -480,7 +476,7 @@ describe('Taiwan’s month of salary', () => {
 			business_day: 'PREVIOUS',
 			non_working_weekdays: [0, 6],
 			short_month: 'LAST_DAY',
-			anchors: [{ cycle_part: 1, day: 1, month_offset: 0 }]
+			pay_days: [1]
 		});
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -568,13 +564,13 @@ describe('a no-pay day', () => {
 		reverses: Id<'leave_catalog_entry'> | null = null
 	) =>
 		t.as(t.admin).act('leave_catalog_entry.create', [
-			{
+			leaveCreate({
 				entity_id: ENTITY,
 				employment_id: CONTRACT,
 				catalog_id: itemOf(seed, code),
 				days,
 				reverses
-			}
+			})
 		]);
 	const line = (slip: PayslipBreakdown | undefined, code: string) =>
 		slip?.lines.find((row) => row.code === code);
@@ -673,7 +669,7 @@ describe('a no-pay day', () => {
 				const t = yield* TestWorkspace;
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
-				yield* take(t, seed, code, whole('2026-07-06'), yield* sealedLeave(t));
+				yield* take(t, seed, code, whole('2026-06-10'), yield* sealedLeave(t));
 				yield* onCycle(t, '2026-07');
 				const [july] = yield* runs(t, '2026-07');
 				// the whole month wage share: BASIC 1,500 plus the fixed allowance's 500
@@ -688,7 +684,7 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
 				const late = yield* Effect.flip(
-					take(t, seed, code, whole('2026-06-10'), yield* sealedLeave(t))
+					take(t, seed, code, whole('2026-06-11'))
 				);
 				assert.match(String(late), /already run/);
 			}).pipe(Effect.provide(workspace({ seed, now: JULY })))
@@ -780,7 +776,7 @@ describe('a no-pay day', () => {
 				const t = yield* TestWorkspace;
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
-				yield* take(t, seed, code, whole('2026-07-06'), yield* sealedLeave(t));
+				yield* take(t, seed, code, whole('2026-06-10'), yield* sealedLeave(t));
 				yield* onCycle(t, '2026-07');
 				const [july] = yield* runs(t, '2026-07');
 				// the whole month wage share: BASIC 1,000 plus the meal allowance's 100
@@ -795,10 +791,54 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
 				const late = yield* Effect.flip(
-					take(t, seed, code, whole('2026-06-10'), yield* sealedLeave(t))
+					take(t, seed, code, whole('2026-06-11'))
 				);
 				assert.match(String(late), /already run/);
 			}).pipe(Effect.provide(workspace({ seed, now: JULY })))
 		);
 	});
+});
+
+describe('CN prior employment in the same tax year', () => {
+	/** One prior-employment row, and whether it was withheld by this same agent. */
+	const withPrior = (same: boolean) => {
+		const seed = seedOf(CHINA, 30_000);
+		return {
+			...seed,
+			employee_contract: (seed.employee_contract ?? []).map((row) => ({
+				...row,
+				employee_extension_data: {
+					prior_employment: [
+						{
+							tax_year: 2026,
+							months: 3,
+							gross_income: 90_000,
+							iit_withheld: 0,
+							employee_social_contributions: 9_000,
+							same_withholding_agent: same
+						}
+					]
+				}
+			}))
+		};
+	};
+	const taxOf = (same: boolean) =>
+		Effect.gen(function* () {
+			const seed = withPrior(same);
+			return yield* Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* onCycle(t, '2026-06');
+				const debug = yield* t.storedQuery({ payslip: { limit: 5 } });
+				return figure(yield* month(t, '2026-06', ['IIT'], EMPLOYEE), 'IIT.employee');
+			}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
+		});
+	it.live('a prior period from the same agent joins the cumulative base', () =>
+		Effect.gen(function* () {
+			const same = yield* taxOf(true);
+			const other = yield* taxOf(false);
+			const none = yield* taxOf(false);
+			assert.ok(same > other, `${same} should exceed ${other}`);
+			assert.equal(other, none);
+		})
+	);
 });

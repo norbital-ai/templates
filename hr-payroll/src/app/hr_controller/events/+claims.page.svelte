@@ -35,7 +35,7 @@
 						fields: ['code', 'effective_range'],
 						limit: 10000
 					},
-					claim_catalog: { fields: ['code', 'name', 'settings_id'], limit: 10000 },
+					claim_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					claim_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
 						fields: ['employment_id', 'catalog_id', 'quantity', 'incurred_on'],
@@ -112,6 +112,7 @@
 		);
 	}
 </script>
+
 
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 

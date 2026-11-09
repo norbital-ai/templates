@@ -15,39 +15,6 @@
 			"title": "TH employee extension data",
 			"additionalProperties": false,
 			"properties": {
-				"events": {
-					"type": "array",
-					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": ["CHILD_BIRTH", "DISCIPLINARY_SUSPENSION"],
-								"title": "What happened"
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date"
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							}
-						}
-					}
-				},
 				"work_permit_basis": {
 					"type": "string",
 					"enum": ["ROYAL_ORDINANCE", "SECTION_62"],
@@ -72,12 +39,6 @@
 					"default": false,
 					"title": "Insured under SSA s.33 before 60 and still insured",
 					"description": "SSA s.33 para 2: an employee who was an insured person before reaching 60 and joins this employer without a break in insured employment stays insured after 60; true registers and charges them whatever their age at this contract’s start."
-				},
-				"nationality": {
-					"type": "string",
-					"minLength": 2,
-					"title": "Nationality (ISO 3166-1 alpha-2)",
-					"description": "The employee nationality used by the foreign-worker notification duties."
 				},
 				"overtime_category": {
 					"type": "string",
@@ -291,6 +252,35 @@
 									"enum": ["WITHOUT_INCOME", "WITH_INCOME"],
 									"title": "PND1: spouse income status",
 									"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income. s.47(3): a non-resident gets this only for a spouse in Thailand, on the annual return, not in payroll."
+								},
+								"registration_number": {
+									"type": "string",
+									"title": "PND1 registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								}
+							}
+						},
+						"EWF": {
+							"type": "object",
+							"title": "Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง)",
+							"additionalProperties": false,
+							"properties": {
+								"kind": {
+									"type": "string",
+									"enum": ["MEMBER", "VOLUNTARY", "EXEMPT"],
+									"title": "Registration or exemption status"
+								}
+							}
+						},
+						"SSO": {
+							"type": "object",
+							"title": "Social Security Office (สำนักงานประกันสังคม)",
+							"additionalProperties": false,
+							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "SSO registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
 								}
 							}
 						}
@@ -311,7 +301,7 @@
 					"minimum": 0.01,
 					"maximum": 1.5,
 					"title": "Experience-rated WCF rate the SSO notified (%)",
-					"description": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.19: from the fifth year of contributions the rate is lowered or raised by the employer's loss ratio and notified by the SSO; recorded here it overrides the Table 1 rate of the employer's WCF business code. https://www.mol.go.th/wp-content/uploads/sites/2/2021/02/6-ประกาศกระทรวงแรงงาน-เรื่อง-ประเภท-ขนาดของกิจการ-ท้องที่ที่ให้นายจ้างจ่ายเงินสมทบฯ.pdf Record the actual SSO-notified experience rate, which may be outside the base-table 0.20%–1.00% range; require the notification as evidence."
+					"description": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.19: from the fifth year of contributions the rate is lowered or raised by the employer's loss ratio and notified by the SSO; recorded here it overrides the Table 1 rate of the employer's WCF business code. https://www.mol.go.th/wp-content/uploads/sites/2/2021/02/6-ประกาศกระทรวงแรงงาน-เรื่อง-ประเภท-ขนาดของกิจการ-ท้องที่ที่ให้นายจ้างจ่ายเงินสมทบฯ.pdf This records the actual SSO-notified rate, not a base-table selection; experience discounts or increases can take it outside0.20%–1.00%. Verify the notification; the numeric input range is not proof of legal eligibility."
 				},
 				"pvd_employer_percent": {
 					"type": "number",
@@ -337,6 +327,12 @@
 					"default": false,
 					"title": "Files PND1 / PND1 Kor online",
 					"description": "Ministry of Finance e-filing extension: an online PND1 is due the 15th after month-end and an online PND1 Kor by 8 March, for returns due to 31 January 2027 (https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet7A.pdf, https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet9A.pdf)."
+				},
+				"ewf_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Business-wide legal or equivalent-welfare EWF exemption",
+					"description": "Record only a verified legal business exemption or qualifying equivalent termination/death welfare covering the employees. Offering a provident fund to only some employees does not exempt others, including probationers and opt-outs. Individual PVD membership is read separately from each employee’s dated statutory standing. DLPW Legal Division guidance 2.2(5)(2), page 6. https://www.siamsafety.com/Employee_welfare_fund.pdf"
 				},
 				"wcf_instalments": {
 					"type": "boolean",
@@ -555,6 +551,88 @@
 				"minimum_service_days": 120,
 				"first_tier_days": 30
 			}
+		},
+		"work_regions": {
+			"BANGKOK": "BANGKOK",
+			"CHACHOENGSAO": "CHACHOENGSAO",
+			"CHON_BURI": "CHON_BURI",
+			"PHUKET": "PHUKET",
+			"RAYONG": "RAYONG",
+			"SURAT_THANI_KO_SAMUI": "SURAT_THANI_KO_SAMUI",
+			"CHIANG_MAI_MUEANG": "CHIANG_MAI_MUEANG",
+			"SONGKHLA_HAT_YAI": "SONGKHLA_HAT_YAI",
+			"NAKHON_PATHOM": "NAKHON_PATHOM",
+			"NONTHABURI": "NONTHABURI",
+			"PATHUM_THANI": "PATHUM_THANI",
+			"SAMUT_PRAKAN": "SAMUT_PRAKAN",
+			"SAMUT_SAKHON": "SAMUT_SAKHON",
+			"NAKHON_RATCHASIMA": "NAKHON_RATCHASIMA",
+			"SAMUT_SONGKHRAM": "SAMUT_SONGKHRAM",
+			"KHON_KAEN": "KHON_KAEN",
+			"CHIANG_MAI": "CHIANG_MAI",
+			"PRACHIN_BURI": "PRACHIN_BURI",
+			"PHRA_NAKHON_SI_AYUTTHAYA": "PHRA_NAKHON_SI_AYUTTHAYA",
+			"SARABURI": "SARABURI",
+			"LOP_BURI": "LOP_BURI",
+			"NAKHON_NAYOK": "NAKHON_NAYOK",
+			"SUPHAN_BURI": "SUPHAN_BURI",
+			"NONG_KHAI": "NONG_KHAI",
+			"KRABI": "KRABI",
+			"TRAT": "TRAT",
+			"KANCHANABURI": "KANCHANABURI",
+			"CHANTHABURI": "CHANTHABURI",
+			"CHIANG_RAI": "CHIANG_RAI",
+			"TAK": "TAK",
+			"NAKHON_PHANOM": "NAKHON_PHANOM",
+			"BURI_RAM": "BURI_RAM",
+			"PRACHUAP_KHIRI_KHAN": "PRACHUAP_KHIRI_KHAN",
+			"PHANGNGA": "PHANGNGA",
+			"PHITSANULOK": "PHITSANULOK",
+			"MUKDAHAN": "MUKDAHAN",
+			"SAKON_NAKHON": "SAKON_NAKHON",
+			"SONGKHLA": "SONGKHLA",
+			"SA_KAEO": "SA_KAEO",
+			"SURAT_THANI": "SURAT_THANI",
+			"UBON_RATCHATHANI": "UBON_RATCHATHANI",
+			"CHUMPHON": "CHUMPHON",
+			"PHETCHABURI": "PHETCHABURI",
+			"SURIN": "SURIN",
+			"NAKHON_SAWAN": "NAKHON_SAWAN",
+			"YASOTHON": "YASOTHON",
+			"LAMPHUN": "LAMPHUN",
+			"KALASIN": "KALASIN",
+			"NAKHON_SI_THAMMARAT": "NAKHON_SI_THAMMARAT",
+			"BUENG_KAN": "BUENG_KAN",
+			"PHETCHABUN": "PHETCHABUN",
+			"ROI_ET": "ROI_ET",
+			"CHAI_NAT": "CHAI_NAT",
+			"CHAIYAPHUM": "CHAIYAPHUM",
+			"PHATTHALUNG": "PHATTHALUNG",
+			"SING_BURI": "SING_BURI",
+			"ANG_THONG": "ANG_THONG",
+			"KAMPHAENG_PHET": "KAMPHAENG_PHET",
+			"PHICHIT": "PHICHIT",
+			"MAHA_SARAKHAM": "MAHA_SARAKHAM",
+			"MAE_HONG_SON": "MAE_HONG_SON",
+			"RANONG": "RANONG",
+			"RATCHABURI": "RATCHABURI",
+			"LAMPANG": "LAMPANG",
+			"LOEI": "LOEI",
+			"SI_SA_KET": "SI_SA_KET",
+			"SATUN": "SATUN",
+			"SUKHOTHAI": "SUKHOTHAI",
+			"NONG_BUA_LAM_PHU": "NONG_BUA_LAM_PHU",
+			"AMNAT_CHAROEN": "AMNAT_CHAROEN",
+			"UDON_THANI": "UDON_THANI",
+			"UTTARADIT": "UTTARADIT",
+			"UTHAI_THANI": "UTHAI_THANI",
+			"TRANG": "TRANG",
+			"NAN": "NAN",
+			"PHAYAO": "PHAYAO",
+			"PHRAE": "PHRAE",
+			"NARATHIWAT": "NARATHIWAT",
+			"PATTANI": "PATTANI",
+			"YALA": "YALA"
 		},
 		"status": "SEALED",
 		"id": "72c83ae6-a735-53d4-b411-57a8edf42253",

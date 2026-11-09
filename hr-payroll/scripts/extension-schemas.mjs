@@ -8,11 +8,13 @@ for (const [code, schemas] of Object.entries(source)) {
 	const versions = readdirSync(join(root, code))
 		.filter((name) => /^version_\d+$/.test(name))
 		.toSorted((left, right) => Number(left.slice(8)) - Number(right.slice(8)));
-	const path = join(root, code, versions.at(-1), 'jurisdiction_settings.json');
-	const rows = JSON.parse(readFileSync(path, 'utf8'));
-	for (const row of rows) {
-		row.employee_extension_schema = schemas.employee;
-		row.entity_extension_schema = schemas.entity;
+	for (const version of versions) {
+		const path = join(root, code, version, 'jurisdiction_settings.json');
+		const rows = JSON.parse(readFileSync(path, 'utf8'));
+		for (const row of rows) {
+			row.employee_extension_schema = schemas.employee;
+			row.entity_extension_schema = schemas.entity;
+		}
+		writeFileSync(path, `${JSON.stringify(rows, null, '\t')}\n`);
 	}
-	writeFileSync(path, `${JSON.stringify(rows, null, '\t')}\n`);
 }

@@ -1,7 +1,6 @@
 [
 	{
 		"code": "EXPENSE_REIMBURSEMENT",
-		"name": "立替経費精算 (expense reimbursement)",
 		"lookup": {},
 		"references": [
 			{
@@ -11,15 +10,14 @@
 		"subtotal_id": "2cae333a-89b2-5ff2-b0bf-c38ff0944f08",
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "2b673960-7b6f-5221-9c78-10c188acc177",
-		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79",
+		"description": "Business expense reimbursement."
 	},
 	{
 		"code": "BUSINESS_TRAVEL",
-		"name": "出張旅費 (business travel expenses)",
 		"lookup": {},
 		"references": [
 			{
@@ -29,10 +27,10 @@
 		"subtotal_id": "2cae333a-89b2-5ff2-b0bf-c38ff0944f08",
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "2d666eb1-034c-5bda-abcc-d92c188473da",
-		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79",
+		"description": "Business travel reimbursement."
 	}
 ]

@@ -8,7 +8,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, sealedAdhoc, sealedLeave, uuid, workspace } from './kit.ts';
+import { ENTITY, pack, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate, reversalSlots } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 type Seed = ReturnType<typeof pack>;
@@ -82,7 +82,7 @@ const seedOf = (
 };
 const reschedule = (seed: Seed, payment_schedule: Row[string]): Seed => ({
 	...seed,
-	entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+	entity: (seed.entity ?? []).map((row) => ({
 		...row,
 		payment_schedule
 	}))
@@ -92,10 +92,7 @@ const TWICE = {
 	business_day: 'PREVIOUS',
 	non_working_weekdays: [0, 6],
 	short_month: 'LAST_DAY',
-	anchors: [
-		{ cycle_part: 1, day: 15, month_offset: 0 },
-		{ cycle_part: 2, day: 31, month_offset: 0 }
-	]
+	pay_days: [15, 31]
 };
 // 1 August 2026 is a Saturday, so August's salary is paid on 31 July, in July's pay month
 const ON_THE_FIRST = {
@@ -103,7 +100,7 @@ const ON_THE_FIRST = {
 	business_day: 'PREVIOUS',
 	non_working_weekdays: [0, 6],
 	short_month: 'LAST_DAY',
-	anchors: [{ cycle_part: 1, day: 1, month_offset: 0 }]
+	pay_days: [1]
 };
 const catalogId = <M extends 'adhoc_catalog' | 'leave_catalog'>(
 	seed: Seed,
@@ -135,7 +132,6 @@ const adhoc = (
 			catalog_id: catalogId(seed, 'adhoc_catalog', item),
 			description: 'Adjustment',
 			quantity: amount,
-			unit: 'MONEY',
 			incurred_on: PlainDate(on),
 			reverses
 		}
@@ -538,12 +534,12 @@ describe('twice a month', () => {
 			Effect.gen(function* () {
 				yield* onCycle(t, '2026-06-1');
 				yield* t.as(t.admin).act('leave_catalog_entry.create', [
-					{
+					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
 						catalog_id: noPay,
 						days
-					}
+					})
 				]);
 				yield* onCycle(t, '2026-06-2');
 				const [, second] = yield* slips(t, '2026-06');
@@ -611,15 +607,18 @@ const leave = (
 	reverses: Id<'leave_catalog_entry'> | null = null,
 	code = 'UNPAID_LEAVE'
 ) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: catalogId(seed, 'leave_catalog', code),
-			days,
-			reverses
-		}
-	]);
+	Effect.gen(function* () {
+		const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
+		yield* t.as(t.admin).act('leave_catalog_entry.create', [
+			leaveCreate({
+				entity_id: ENTITY,
+				employment_id: CONTRACT,
+				catalog_id: catalogId(seed, 'leave_catalog', code),
+				days: selected,
+				reverses
+			})
+		]);
+	});
 /** The row as it was before the line: UNPAID, so the salary basis takes the days. */
 const onBasis = (seed: Seed): Seed => ({
 	...seed,
@@ -735,11 +734,9 @@ describe('a no-pay day', () => {
 				Effect.gen(function* () {
 					yield* leave(t, monthly, whole('2026-06-10'));
 					yield* onCycle(t, '2026-06');
-					const late = yield* Effect.flip(
-						leave(t, monthly, whole('2026-06-10'), yield* sealedLeave(t))
-					);
+					const late = yield* Effect.flip(leave(t, monthly, whole('2026-06-11')));
 					assert.match(String(late), /already run/);
-					const missed = yield* Effect.flip(leave(t, monthly, whole('2026-06-11')));
+					const missed = yield* Effect.flip(leave(t, monthly, whole('2026-06-12')));
 					assert.match(String(missed), /already run/);
 				})
 			)

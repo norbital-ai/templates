@@ -86,6 +86,10 @@
 				where: { employment_id: { in: ids } },
 				limit: 10000
 			},
+			'leave_catalog_entry.leave_catalog_entry_day': {
+				fields: ['incurred_on', 'part'],
+				limit: 10000
+			},
 			jurisdiction_settings: {
 				where: { code: { eq: company.settings_code }, status: { eq: 'SEALED' } },
 				fields: ['effective_range', 'timezone'],
@@ -164,7 +168,15 @@
 				};
 			});
 			const dayTypes = Object.fromEntries(plans.map((p) => [p.date, p.plan.day_type]));
-			const leave = data.current.leave_catalog_entry.rows.filter((row) => row.reverses == null);
+			const leave = data.current.leave_catalog_entry.rows
+				.filter((row) => row.reverses == null)
+				.map((row) => ({
+					...row,
+					days: (row.leave_catalog_entry_day ?? []).map((child) => ({
+						date: String(child.incurred_on),
+						part: String(child.part)
+					}))
+				}));
 			for (const date of eachDay(datePeriod(from, to)).map(String)) {
 				if (
 					!(versions.current?.employee_contract.rows ?? []).some((c) =>

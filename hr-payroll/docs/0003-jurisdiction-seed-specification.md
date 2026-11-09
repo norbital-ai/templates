@@ -23,7 +23,7 @@ seed/public/jurisdiction/
       claim_catalog.json
       adhoc_catalog.json
       loan_catalog.json
-      work_interruption_catalog.json
+      work_event_catalog.json
       workplace_case_catalog.json
       registered_rule.json
       registered_effect.json

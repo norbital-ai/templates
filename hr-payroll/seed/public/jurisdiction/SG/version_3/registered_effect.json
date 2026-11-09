@@ -1,6 +1,7 @@
 [
 	{
 		"code": "retract-exit-effects",
+		"description": "Waive open obligations for an earlier exit when a contract's exit date changes.",
 		"name": "Retract Exit Effects",
 		"lookup": {},
 		"references": [],
@@ -9,8 +10,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					},
 					"employee_id": {
-						"isNull": true
+						"isNull": false
 					}
 				}
 			}
@@ -24,6 +30,7 @@
 	},
 	{
 		"code": "encash-leave-on-exit",
+		"description": "Raise the untaken annual leave encashment task on exit, except for a misconduct dismissal.",
 		"name": "Encash Leave On Exit",
 		"lookup": {
 			"title": "Encash Leave On Exit"
@@ -49,6 +56,7 @@
 	},
 	{
 		"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+		"description": "Raise the CPF monthly submission and payment task, due on the 14th of the following month.",
 		"name": "CPF monthly submission and payment",
 		"lookup": {
 			"title": "CPF monthly submission and payment",
@@ -82,12 +90,13 @@
 	},
 	{
 		"code": "SDL_REMITTANCE",
+		"description": "Raise the Skills Development Levy remittance task with the employer-month total.",
 		"name": "Skills Development Levy remittance",
 		"lookup": {
 			"title": "Skills Development Levy remittance",
 			"offset_days": 14,
 			"sdl_rate": 0.0025,
-			"sdl_minimum": 2.0,
+			"sdl_minimum": 2,
 			"sdl_maximum": 11.25
 		},
 		"references": [
@@ -131,6 +140,7 @@
 	},
 	{
 		"code": "SHG_DEDUCTION_REMITTANCE",
+		"description": "Raise the self-help group fund remittance task for the month.",
 		"name": "Self-help group fund remittance",
 		"lookup": {
 			"title": "Self-help group fund remittance",
@@ -165,6 +175,7 @@
 	},
 	{
 		"code": "NR_DIRECTOR_WITHHOLDING",
+		"description": "Raise the IR37 withholding task on non-resident director fees.",
 		"name": "Withholding tax on non-resident director fees (IR37)",
 		"lookup": {
 			"title": "Withholding tax on non-resident director fees (IR37)",
@@ -206,6 +217,7 @@
 	},
 	{
 		"code": "NR_ENTERTAINER_WITHHOLDING",
+		"description": "Raise the S45 withholding task on non-resident public entertainer income.",
 		"name": "Withholding tax on non-resident public entertainers (S45)",
 		"lookup": {
 			"title": "Withholding tax on non-resident public entertainers (S45)",
@@ -247,6 +259,7 @@
 	},
 	{
 		"code": "encash-leave-at-window-end",
+		"description": "Raise the task to encash annual leave at the end of its one-year carry window.",
 		"name": "Encash Leave At Window End",
 		"lookup": {
 			"title": "Encash Leave At Window End",
@@ -273,6 +286,7 @@
 	},
 	{
 		"code": "FOREIGN_WORKER_LEVY",
+		"description": "Raise the foreign worker levy payment task when a Work Permit or S Pass holder is on the run.",
 		"name": "Foreign worker levy payment",
 		"lookup": {
 			"title": "Foreign worker levy payment",
@@ -310,6 +324,7 @@
 	},
 	{
 		"code": "SALARY_PAYMENT_DEADLINE",
+		"description": "Raise the salary payment deadline task seven days after the covered period.",
 		"name": "Salary payment",
 		"lookup": {
 			"title": "Salary payment",
@@ -342,6 +357,7 @@
 	},
 	{
 		"code": "OVERTIME_PAYMENT_DEADLINE",
+		"description": "Raise the overtime payment deadline task fourteen days after the covered period.",
 		"name": "Overtime payment",
 		"lookup": {
 			"title": "Overtime payment",
@@ -374,6 +390,7 @@
 	},
 	{
 		"code": "ITEMISED_PAYSLIP",
+		"description": "Raise an itemised payslip task for every payslip of a paid run.",
 		"name": "Itemised payslips",
 		"lookup": {
 			"title": "Itemised payslips",
@@ -418,6 +435,7 @@
 	},
 	{
 		"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+		"description": "Raise the IR8A/AIS annual return task for the December run.",
 		"name": "Form IR8A / AIS annual return",
 		"lookup": {
 			"title": "Form IR8A / AIS annual return",
@@ -453,6 +471,7 @@
 	},
 	{
 		"code": "KEY_EMPLOYMENT_TERMS",
+		"description": "Raise the key employment terms task within 14 days of a sealed contract's start.",
 		"name": "Key employment terms",
 		"lookup": {
 			"title": "Key employment terms",
@@ -485,6 +504,7 @@
 	},
 	{
 		"code": "WORK_PASS_IN_FORCE",
+		"description": "Raise the work pass task before a foreign employee starts.",
 		"name": "Work pass before the start",
 		"lookup": {
 			"title": "Work pass before the start"
@@ -519,6 +539,7 @@
 	},
 	{
 		"code": "WORK_INJURY_COMPENSATION_INSURANCE",
+		"description": "Raise the work injury compensation insurance task for a covered employee.",
 		"name": "Work injury compensation insurance",
 		"lookup": {
 			"title": "Work injury compensation insurance",
@@ -550,6 +571,7 @@
 	},
 	{
 		"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
+		"description": "Raise the PDPA purpose notification task when a contract is sealed.",
 		"name": "PDPA purpose notification",
 		"lookup": {
 			"title": "PDPA purpose notification"
@@ -579,6 +601,7 @@
 	},
 	{
 		"code": "FINAL_SALARY_PAYMENT",
+		"description": "Raise the final salary payment task on exit, with the notice or dismissal deadline.",
 		"name": "Final salary payment",
 		"lookup": {
 			"title": "Final salary payment",
@@ -614,6 +637,7 @@
 	},
 	{
 		"code": "TAX_CLEARANCE_AND_WITHHOLDING",
+		"description": "Raise the IR21 tax clearance task a month before a foreign employee's exit.",
 		"name": "IR21 tax clearance",
 		"lookup": {
 			"title": "IR21 tax clearance",
@@ -644,6 +668,7 @@
 	},
 	{
 		"code": "WORK_PASS_CANCELLATION",
+		"description": "Raise the work pass cancellation task within a week of a foreign employee's exit.",
 		"name": "Work pass cancellation",
 		"lookup": {
 			"title": "Work pass cancellation",
@@ -674,6 +699,7 @@
 	},
 	{
 		"code": "RETRENCHMENT_NOTIFICATION",
+		"description": "Raise the mandatory retrenchment notification task within five working days.",
 		"name": "Mandatory retrenchment notification",
 		"lookup": {
 			"title": "Mandatory retrenchment notification",
@@ -711,6 +737,7 @@
 	},
 	{
 		"code": "GOVERNMENT_PAID_LEAVE_CLAIM",
+		"description": "Raise the government-paid leave reimbursement claim for maternity, paternity, adoption or shared parental leave.",
 		"name": "Government-paid leave reimbursement claim",
 		"lookup": {
 			"title": "Government-paid leave reimbursement claim",
@@ -740,17 +767,29 @@
 			},
 			"leave_catalog": {
 				"where": {}
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "leave_entry_id", "incurred_on", "part", "payroll_run_id"],
+				"limit": 10000
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.reverses != null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst row = ctx.entry;\nconst last = row.days.map((day) => day.date).toSorted().at(-1);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(last, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id\n}];",
+		"effects": "// js\nconst row = ctx.entry;\nconst last = ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted().at(-1);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(last, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id\n}];",
 		"id": "7c23f4c1-ae15-55c6-ab02-3d785d7181a3",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "CHILDCARE_LEAVE_CLAIM",
+		"description": "Raise the childcare and extended childcare leave claim at the year end.",
 		"name": "Childcare and extended childcare leave claim",
 		"lookup": {
 			"title": "Childcare and extended childcare leave claim",
@@ -782,6 +821,7 @@
 	},
 	{
 		"code": "WORK_ACCIDENT_REPORT",
+		"description": "Raise the MOM work accident report task for work-injury leave.",
 		"name": "Work accident report to MOM",
 		"lookup": {
 			"title": "Work accident report to MOM",
@@ -805,17 +845,29 @@
 			},
 			"leave_catalog": {
 				"where": {}
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "leave_entry_id", "incurred_on", "part", "payroll_run_id"],
+				"limit": 10000
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:WORK_ACCIDENT_REPORT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.reverses != null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:WORK_ACCIDENT_REPORT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst row = ctx.entry;\nconst opening = row.days.map((day) => day.date).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(opening, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:WORK_ACCIDENT_REPORT:' + row.id\n}];",
+		"effects": "// js\nconst row = ctx.entry;\nconst opening = ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(opening, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:WORK_ACCIDENT_REPORT:' + row.id\n}];",
 		"id": "037fef76-2c34-5a5c-b70f-b01af48cad6d",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "CPF_SUBMISSION_NUMBER",
+		"description": "Raise the CPF submission number task when a CPF-liable run has no CPF registration.",
 		"name": "CPF Submission Number registration",
 		"lookup": {
 			"title": "CPF Submission Number registration",
@@ -847,7 +899,7 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).some((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (contract.status !== 'SEALED') return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''));\n});\nif (!active) return false;\nconst registered = get(ctx, 'reads.entity_profile_version', []).some((version) => {\n\tif (version.entity_id !== run.entity_id) return false;\n\tif (version.status !== 'SEALED') return false;\n\tif (!(version.effective_range.from <= run.salary_coverage.from)) return false;\n\tconst end = version.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn (version.registrations ?? []).some((registration) => registration.scheme_code === 'CPF');\n});\nif (registered) return false;\nconst key = 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).some((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (contract.status !== 'SEALED') return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''));\n});\nif (!active) return false;\nconst registered = get(ctx, 'reads.entity_profile_version', []).some((version) => {\n\tif (version.entity_id !== run.entity_id) return false;\n\tif (version.status !== 'SEALED') return false;\n\tif (!(version.effective_range.from <= run.salary_coverage.from)) return false;\n\tconst end = version.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn get(version, 'entity_extension_data.registrations', []).some((registration) => registration.scheme_code === 'CPF');\n});\nif (registered) return false;\nconst key = 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id\n}];",
@@ -856,6 +908,7 @@
 	},
 	{
 		"code": "REEMPLOYMENT_OFFER",
+		"description": "Raise the re-employment offer task six months before retirement age.",
 		"name": "Re-employment offer",
 		"lookup": {
 			"title": "Re-employment offer",
@@ -908,6 +961,7 @@
 	},
 	{
 		"code": "IR21_LEAVING_SINGAPORE",
+		"description": "Raise the IR21 task for an overseas posting or a departure of more than three months.",
 		"name": "IR21 for an overseas posting or departure over 3 months",
 		"lookup": {
 			"title": "IR21 for an overseas posting or departure over 3 months",
@@ -939,6 +993,7 @@
 	},
 	{
 		"code": "WORK_PASS_MEDICAL_INSURANCE",
+		"description": "Raise the medical insurance task for a Work Permit or S Pass holder.",
 		"name": "Medical insurance for a Work Permit or S Pass holder",
 		"lookup": {
 			"title": "Medical insurance for a Work Permit or S Pass holder"
@@ -969,6 +1024,7 @@
 	},
 	{
 		"code": "WORK_PERMIT_SECURITY_BOND",
+		"description": "Raise the security bond task for a non-Malaysian Work Permit holder.",
 		"name": "Security bond for a non-Malaysian Work Permit holder",
 		"lookup": {
 			"title": "Security bond for a non-Malaysian Work Permit holder"
@@ -999,6 +1055,7 @@
 	},
 	{
 		"code": "YOUNG_PERSON_NOTIFICATION",
+		"description": "Raise the MOM notification task for a child or young person employed in an industrial undertaking.",
 		"name": "Notify MOM of a child or young person in an industrial undertaking",
 		"lookup": {
 			"title": "Notify MOM of a child or young person in an industrial undertaking",
@@ -1035,6 +1092,7 @@
 	},
 	{
 		"code": "MISCONDUCT_DUE_INQUIRY",
+		"description": "Raise the due inquiry task when a contract ends for misconduct.",
 		"name": "Due inquiry before a misconduct dismissal",
 		"lookup": {
 			"title": "Due inquiry before a misconduct dismissal"
@@ -1065,6 +1123,7 @@
 	},
 	{
 		"code": "PDPA_DATA_PROTECTION_OFFICER",
+		"description": "Raise the data protection officer designation task when a sealed entity version records none.",
 		"name": "Designate a data protection officer",
 		"lookup": {
 			"title": "Designate a data protection officer"
@@ -1096,6 +1155,7 @@
 	},
 	{
 		"code": "CPF_CONDITIONAL_WAGE_REFUND",
+		"description": "Raise the CPF refund task when conditional wages are repaid.",
 		"name": "CPF refund on repaid conditional wages",
 		"lookup": {
 			"title": "CPF refund on repaid conditional wages",
@@ -1131,6 +1191,7 @@
 	},
 	{
 		"code": "FLEXIBLE_WORK_REQUEST_DECISION",
+		"description": "Raise the written decision task for a formal flexible work arrangement request.",
 		"name": "Written decision on a formal FWA request",
 		"lookup": {
 			"title": "Written decision on a formal FWA request",
@@ -1162,6 +1223,7 @@
 	},
 	{
 		"code": "PDPA_ACCESS_CORRECTION_REPLY",
+		"description": "Raise the reply task for a personal data access or correction request.",
 		"name": "Reply to a personal data access or correction request",
 		"lookup": {
 			"title": "Reply to a personal data access or correction request",
@@ -1193,6 +1255,7 @@
 	},
 	{
 		"code": "PDPA_BREACH_ASSESSMENT",
+		"description": "Raise the assessment task for a data breach.",
 		"name": "Assess whether a data breach is notifiable",
 		"lookup": {
 			"title": "Assess whether a data breach is notifiable",
@@ -1223,6 +1286,7 @@
 	},
 	{
 		"code": "PDPA_BREACH_NOTIFICATION",
+		"description": "Raise the PDPC notification task within three days of a breach being assessed as notifiable.",
 		"name": "Notify the PDPC of a notifiable data breach",
 		"lookup": {
 			"title": "Notify the PDPC of a notifiable data breach",
@@ -1253,6 +1317,7 @@
 	},
 	{
 		"code": "PDPA_RETENTION_DISPOSAL",
+		"description": "Raise the disposal task six years after the exit year.",
 		"name": "Dispose of a former employee’s personal data after retention",
 		"lookup": {
 			"title": "Dispose of a former employee’s personal data after retention",
@@ -1283,6 +1348,7 @@
 	},
 	{
 		"code": "NS_MAKE_UP_PAY_CLAIM",
+		"description": "Raise the NS make-up pay claim review for NS leave.",
 		"name": "NS make-up pay claim review",
 		"lookup": {
 			"title": "NS make-up pay claim review",
@@ -1306,17 +1372,29 @@
 			},
 			"leave_catalog": {
 				"where": {}
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "leave_entry_id", "incurred_on", "part", "payroll_run_id"],
+				"limit": 10000
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || catalog.code !== 'NS_LEAVE') return false;\nconst key = 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.reverses != null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || catalog.code !== 'NS_LEAVE') return false;\nconst key = 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst row = ctx.entry;\nconst opening = row.days.map((day) => day.date).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(opening, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id\n}];",
+		"effects": "// js\nconst row = ctx.entry;\nconst opening = ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(opening, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id\n}];",
 		"id": "fbff0888-5880-5cb1-b872-4d0566e98c60",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "WORK_INCIDENT_CASE_REPORT",
+		"description": "Raise the MOM work incident report task for a light-duty, fatal, dangerous or public-workplace case.",
 		"name": "Report a work incident to MOM",
 		"lookup": {
 			"title": "Report a work incident to MOM",
@@ -1354,6 +1432,7 @@
 	},
 	{
 		"code": "WORK_INCIDENT_NOTIFICATION",
+		"description": "Raise the immediate Commissioner notification task for a fatal or dangerous incident.",
 		"name": "Notify the Commissioner of a workplace incident",
 		"lookup": {
 			"title": "Notify the Commissioner of a workplace incident",
@@ -1390,6 +1469,7 @@
 	},
 	{
 		"code": "SUBSEQUENT_WORK_DEATH_NOTIFICATION",
+		"description": "Raise the immediate notification task for a later death from work injury or disease.",
 		"name": "Immediately notify a subsequent death from work injury or disease",
 		"lookup": {
 			"title": "Immediately notify a subsequent death from work injury or disease"
@@ -1420,6 +1500,7 @@
 	},
 	{
 		"code": "OCCUPATIONAL_DISEASE_REPORT",
+		"description": "Raise the MOM occupational disease report task.",
 		"name": "Report an employee occupational disease diagnosis",
 		"lookup": {
 			"title": "Report an employee occupational disease diagnosis",
@@ -1451,6 +1532,7 @@
 	},
 	{
 		"code": "IR21_FINAL_PAY_HOLD",
+		"description": "Raise the hold on a foreign employee's final pay until IRAS clears the IR21.",
 		"name": "IR21 clearance before final pay",
 		"lookup": {
 			"title": "Hold final pay until IRAS clears the IR21"
@@ -1494,6 +1576,7 @@
 	},
 	{
 		"code": "DEDUCTION_LIMIT",
+		"description": "Raise the over-limit task when deductions outside the statutory exclusions exceed half the salary.",
 		"name": "Salary deductions over the limit",
 		"lookup": {
 			"title": "Deductions over 50% of the salary",
@@ -1537,6 +1620,7 @@
 	},
 	{
 		"code": "OVERTIME_MONTHLY_LIMIT",
+		"description": "Raise the task when actual overtime exceeds 72 hours in the month.",
 		"name": "Overtime over the monthly limit",
 		"lookup": {
 			"title": "Overtime over 72 hours in the month",
@@ -1587,6 +1671,7 @@
 	},
 	{
 		"code": "DAMAGE_DEDUCTION_LIMIT",
+		"description": "Raise the task when damage recovery exceeds a quarter of the salary.",
 		"name": "Damage recovery over the limit",
 		"lookup": {
 			"title": "Damage recovery over 25% of the salary",
@@ -1623,6 +1708,7 @@
 	},
 	{
 		"code": "ACCOMMODATION_DEDUCTION_LIMIT",
+		"description": "Raise the task when accommodation or amenities recovery exceeds a quarter of the salary.",
 		"name": "Accommodation recovery over the limit",
 		"lookup": {
 			"title": "Accommodation or amenities recovery over 25% of the salary",
@@ -1659,6 +1745,7 @@
 	},
 	{
 		"code": "INSTALMENT_LIMIT",
+		"description": "Raise the task when an advance instalment exceeds a quarter of the salary.",
 		"name": "Advance instalment over the limit",
 		"lookup": {
 			"title": "An advance instalment over 25% of the salary",
@@ -1695,6 +1782,7 @@
 	},
 	{
 		"code": "MOM_DECLARED_SALARY",
+		"description": "Raise the task when fixed monthly pay is below the salary declared to MOM.",
 		"name": "Pay under the salary declared to MOM",
 		"lookup": {
 			"title": "Pay under the salary declared to MOM"
@@ -1729,6 +1817,7 @@
 	},
 	{
 		"code": "PWM_WAGE_FLOOR",
+		"description": "Raise the task when pay is below the Progressive Wage floor for the employee's role.",
 		"name": "Pay under the Progressive Wage floor",
 		"lookup": {
 			"title": "Pay under the Progressive Wage floor",
@@ -1770,6 +1859,7 @@
 	},
 	{
 		"code": "DAILY_HOURS_LIMIT",
+		"description": "Raise the task when a roster day records more than 12 hours worked.",
 		"name": "Work over the daily limit",
 		"lookup": {
 			"title": "Over 12 hours worked in a day",
@@ -1819,6 +1909,7 @@
 	},
 	{
 		"code": "WEEKLY_REST_DAY",
+		"description": "Raise the task when seven or more days are worked in a row.",
 		"name": "No rest day in a week",
 		"lookup": {
 			"title": "Seven or more days worked in a row",
@@ -1869,6 +1960,7 @@
 	},
 	{
 		"code": "IR21_ADDITIONAL_PAYMENT_HOLD",
+		"description": "Raise the hold on a payment after IR21 clearance until IRAS clears the additional payment.",
 		"name": "Payment after IR21 clearance",
 		"lookup": {
 			"title": "Hold this payment until IRAS clears it"
@@ -1903,6 +1995,7 @@
 	},
 	{
 		"code": "PWM_BONUS",
+		"description": "Raise the task when the year's PWM bonus is below the sector minimum.",
 		"name": "PWM bonus under the minimum",
 		"lookup": {
 			"title": "PWM bonus under the minimum for the year",
@@ -1970,6 +2063,7 @@
 	},
 	{
 		"code": "REST_DAY_NORMAL_HOURS_MISSING",
+		"description": "Raise the task when rest-day pay is due but the contract states no normal daily hours.",
 		"name": "Rest-day pay without normal hours",
 		"lookup": {
 			"title": "Rest-day pay needs the normal daily hours"
@@ -2003,6 +2097,7 @@
 	},
 	{
 		"code": "PART_TIME_HOLIDAY_HOURS_MISSING",
+		"description": "Raise the task when part-time holiday work is paid without the contract's weekly hours.",
 		"name": "Part-time holiday work without weekly hours",
 		"lookup": {
 			"title": "Part-time holiday work needs the weekly hours"
@@ -2036,6 +2131,7 @@
 	},
 	{
 		"code": "DAILY_RATE_WORKING_WEEK_MISSING",
+		"description": "Raise the task when a daily-rate line needs the contract's normal days per week.",
 		"name": "Daily rate without a working week",
 		"lookup": {
 			"title": "A daily rate needs the working week",
@@ -2071,6 +2167,7 @@
 	},
 	{
 		"code": "PART_TIME_LEAVE_INPUTS_REQUIRED",
+		"description": "Raise the task when part-time leave is paid without the contract or comparable full-time hours.",
 		"name": "Part-time leave without contract hours",
 		"lookup": {
 			"title": "Part-time leave needs the contract hours"
@@ -2110,6 +2207,7 @@
 	},
 	{
 		"code": "PART_TIME_ONGOING_ENCASHMENT_LIMIT",
+		"description": "Raise the task when annual leave is encashed during part-time service.",
 		"name": "Part-time annual leave cashed out in service",
 		"lookup": {
 			"title": "Part-time annual leave cashed out in service"
@@ -2152,6 +2250,7 @@
 	},
 	{
 		"code": "WICA_AME_EVIDENCE_REQUIRED",
+		"description": "Raise the task when work-injury leave is paid without its evidence.",
 		"name": "Work-injury leave without evidence",
 		"lookup": {
 			"title": "Work-injury leave needs its evidence"
@@ -2198,6 +2297,7 @@
 	},
 	{
 		"code": "IR21_DEPARTURE_PAY_HOLD",
+		"description": "Raise the hold on pay that the departure clearance does not cover.",
 		"name": "Departure clearance does not cover this pay",
 		"lookup": {
 			"title": "Hold pay until IRAS clears the departure"
@@ -2226,6 +2326,7 @@
 	},
 	{
 		"code": "UNPAID_QUALIFYING_SERVICE_REVIEW",
+		"description": "Raise the review task when unpaid service is excluded from annual leave.",
 		"name": "Unpaid service excluded from annual leave",
 		"lookup": {
 			"title": "Review the unpaid service excluded from annual leave"
@@ -2260,6 +2361,7 @@
 	},
 	{
 		"code": "MIXED_LEAVE_YEAR_REVIEW",
+		"description": "Raise the review task for a leave year spanning full-time and part-time service.",
 		"name": "Mixed full-time and part-time leave year",
 		"lookup": {
 			"title": "Review the mixed full-time and part-time leave year"
@@ -2294,6 +2396,7 @@
 	},
 	{
 		"code": "PART_TIME_INCOMPLETE_MONTH_REVIEW",
+		"description": "Raise the review task for a part-time salary covering part of a month.",
 		"name": "Part-time salary for an incomplete month",
 		"lookup": {
 			"title": "Review the part-time salary for this incomplete month"
@@ -2322,6 +2425,7 @@
 	},
 	{
 		"code": "PART_TIME_HOURLY_ALLOWANCE_REVIEW",
+		"description": "Raise the review task when annual leave is paid as hourly wages.",
 		"name": "Annual leave paid in hourly wages",
 		"lookup": {
 			"title": "Review the annual leave paid in hourly wages",
@@ -2354,6 +2458,7 @@
 	},
 	{
 		"code": "LQS_WAGE_FLOOR",
+		"description": "Raise the task when a local employee's pay is below the Local Qualifying Salary.",
 		"name": "Pay under the Local Qualifying Salary",
 		"lookup": {
 			"title": "Pay under the Local Qualifying Salary",
@@ -2412,6 +2517,7 @@
 	},
 	{
 		"code": "CPF_AW_YEAR_END_RECALCULATION",
+		"description": "Raise the task to settle CPF on additional wages at the year end or on exit.",
 		"name": "Additional Wage ceiling recalculation",
 		"lookup": {
 			"title": "Re-calculate CPF on Additional Wages: pay any shortfall, apply for a refund of any excess",
@@ -2469,6 +2575,7 @@
 	},
 	{
 		"code": "CONTRIBUTION_CORRECTION",
+		"description": "Raise the task to settle a CPF or self-help group correction with the fund.",
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
@@ -2482,7 +2589,7 @@
 						}
 					}
 				},
-				"fields": ["code", "name", "lookup"],
+				"fields": ["code", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2500,7 +2607,7 @@
 		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['SG', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
+		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['SG', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
 		"references": [
 			{
 				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."

@@ -7,8 +7,8 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, sealedLeave, uuid, workspace } from './kit.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
+import { ENTITY, pack, sealedLeave, uuid, workspace, leaveCreate, reversalSlots } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
@@ -45,11 +45,20 @@ const entry = (
 	days: ReturnType<typeof whole>,
 	reverses: Id<'leave_catalog_entry'> | null = null
 ) =>
-	t
-		.as(t.admin)
-		.act('leave_catalog_entry.create', [
-			{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: noPay(seed), days, reverses }
-		]);
+	Effect.gen(function* () {
+		const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
+		yield* t
+			.as(t.admin)
+			.act('leave_catalog_entry.create', [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: noPay(seed),
+					days: selected,
+					reverses
+				})
+			]);
+	});
 const run = (t: Kit, period: string) =>
 	t
 		.as(t.admin)
@@ -86,6 +95,33 @@ describe('a no-pay day', () => {
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
+	it.live('adding a day to a priced entry is refused, while an evidence edit is allowed', () => {
+		const seed = malaysia();
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* entry(t, seed, whole('2026-06-10'));
+			yield* run(t, '2026-06');
+			const [held] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
+				.leave_catalog_entry.rows;
+			assert.ok(held !== undefined);
+			const added = yield* Effect.flip(
+				t.as(t.admin).act('leave_catalog_entry.update', [
+					{
+						target: held.id,
+						set: {
+							leave_catalog_entry_day: {
+								create: [{ incurred_on: PlainDate('2026-06-11'), part: 'AM' }]
+							}
+						}
+					}
+				])
+			);
+			assert.match(String(added), /already run/);
+			yield* t.as(t.admin).act('leave_catalog_entry.update', [
+				{ target: held.id, set: { evidence_file: null } }
+			]);
+		}).pipe(Effect.provide(inMonth(seed)));
+	});
 	it.live('a half day is half, a variable allowance stays out', () => {
 		const seed = malaysia({ ONCALL: { amount: 300 } });
 		return Effect.gen(function* () {
@@ -115,7 +151,7 @@ describe('a no-pay day', () => {
 				.leave_catalog_entry.rows;
 			assert.ok(open !== undefined);
 			const refused = yield* Effect.flip(entry(t, seed, whole('2026-06-10'), open.id));
-			assert.match(String(refused), /not been paid yet/);
+			assert.match(String(refused), /deleted instead/);
 			yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: open.id }]);
 			yield* run(t, '2026-06');
 			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120 });
@@ -143,9 +179,9 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, whole('2026-06-10'));
 			yield* run(t, '2026-06');
-			const late = yield* Effect.flip(entry(t, seed, whole('2026-06-10'), yield* sealedLeave(t)));
+			const late = yield* Effect.flip(entry(t, seed, whole('2026-06-11')));
 			assert.match(String(late), /already run/);
-			const missed = yield* Effect.flip(entry(t, seed, whole('2026-06-11')));
+			const missed = yield* Effect.flip(entry(t, seed, whole('2026-06-12')));
 			assert.match(String(missed), /already run/);
 		}).pipe(Effect.provide(inMonth(seed, '2026-07-20T02:00:00.000Z')));
 	});
@@ -154,9 +190,9 @@ describe('a no-pay day', () => {
 		const base = malaysia();
 		const seed: Seed = {
 			...base,
-			entity_profile_version: (base.entity_profile_version ?? []).map((row) => ({
+			entity: (base.entity ?? []).map((row) => ({
 				...row,
-				pay_cutoff_day: 25
+				payment_schedule: { ...objectValue(row.payment_schedule), pay_cutoff_day: 25 }
 			}))
 		};
 		return Effect.gen(function* () {

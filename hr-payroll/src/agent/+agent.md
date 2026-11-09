@@ -66,7 +66,7 @@ balance.
 - **Life event:** a birth, marriage or long illness is a fact on a new sealed contract version. Its
   document uploads on the employee profile. A workplace case only files what happened.
 - **Loan:** create the principal with its catalogue, employment, principal amount and repayment
-  period, then one `loan_repayment_entry` per instalment. Payroll settles each on its payslip.
+  period, then one `loan_catalog_entry_repayment` per instalment. Payroll settles each on its payslip.
 - **Attendance:** write `roster_entry` rows for the employment's day. A roster locked by a payroll
   run cannot change.
 - **Payroll:** create `payroll_run` through its guarded operation with entity, period and kind; an

@@ -1,7 +1,7 @@
 [
 	{
 		"code": "CHILDCARE_ALLOWANCE",
-		"name": "Child care allowance (children aged 12 and under)",
+		"description": "Contractual childcare allowance for children up to 12, paid pro rata for the days in the payroll period when the contract sets an amount; exempt from tax up to RM3,000 a year.",
 		"lookup": {
 			"allowance": "CHILDCARE_ALLOWANCE"
 		},
@@ -13,7 +13,6 @@
 		"subtotal_id": "02164513-95cc-5004-b488-2291be7db03d",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"party": "EMPLOYEE",
 		"id": "7f7288a1-0e68-5525-bb9f-08e05f0f2436",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
@@ -22,7 +21,7 @@
 	},
 	{
 		"code": "MEAL_ALLOWANCE",
-		"name": "Meal allowance (regular, same rate for all)",
+		"description": "Contractual meal allowance paid pro rata for the days in the payroll period when the contract sets an amount; exempt from tax when paid regularly at the same rate to all employees.",
 		"lookup": {
 			"allowance": "MEAL_ALLOWANCE"
 		},
@@ -34,7 +33,6 @@
 		"subtotal_id": "ef5dfd3a-eb85-591b-b70e-058885aad0fc",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"party": "EMPLOYEE",
 		"id": "fea55ed3-8560-543d-a501-111c4185c718",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
@@ -43,7 +41,7 @@
 	},
 	{
 		"code": "ONCALL",
-		"name": "On-call allowance",
+		"description": "Contractual on-call allowance paid pro rata for the days in the payroll period when the contract sets an amount; normal remuneration for tax and EPF.",
 		"lookup": {
 			"allowance": "ONCALL"
 		},
@@ -56,7 +54,6 @@
 		"subtotal_id": "0312c7b4-1ad2-5f0d-ae49-89dd4a4dc11a",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"party": "EMPLOYEE",
 		"id": "0c19aee0-b1cf-5873-bf36-008cb54852ad",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
@@ -65,7 +62,7 @@
 	},
 	{
 		"code": "PARKING_ALLOWANCE",
-		"name": "Parking allowance",
+		"description": "Contractual parking allowance paid pro rata for the days in the payroll period when the contract sets an amount; exempt from tax up to RM180 a month.",
 		"lookup": {
 			"allowance": "PARKING_ALLOWANCE"
 		},
@@ -77,7 +74,6 @@
 		"subtotal_id": "ef5dfd3a-eb85-591b-b70e-058885aad0fc",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"party": "EMPLOYEE",
 		"id": "c6564529-9368-5706-90ea-fc90c215ba80",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
@@ -86,7 +82,7 @@
 	},
 	{
 		"code": "SUA",
-		"name": "Scale-up allowance",
+		"description": "Contractual fixed allowance (SUA) paid pro rata for the days in the payroll period when the contract sets an amount; treated as wages.",
 		"lookup": {
 			"allowance": "SUA"
 		},
@@ -98,7 +94,6 @@
 		"subtotal_id": "0312c7b4-1ad2-5f0d-ae49-89dd4a4dc11a",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"party": "EMPLOYEE",
 		"id": "b7331de0-3992-5392-82bd-e876e4062b71",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",

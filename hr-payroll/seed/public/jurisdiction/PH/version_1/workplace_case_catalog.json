@@ -1,7 +1,6 @@
 [
 	{
 		"code": "WORK_ACCIDENT",
-		"name": "Work accident or occupational illness resulting in a disabling condition",
 		"references": [
 			{
 				"title": "Labor Code Book IV (Employees' Compensation) and PD 626; DOLE OSH Standards: report a work accident or occupational illness."
@@ -11,11 +10,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "adcc8e10-f938-5d4d-aa5c-b0d2e1cfd609",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "WORK_ACCIDENT: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "DANGEROUS_OCCURRENCE",
-		"name": "Dangerous occurrence (OSHS Rule 1053.02)",
 		"references": [
 			{
 				"title": "DOLE OSH Standards Rule 1053.02: notify the DOLE regional office of a dangerous occurrence."
@@ -25,11 +24,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "1b4468a8-b506-5515-aa79-75b9618ae810",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "DANGEROUS_OCCURRENCE: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "FLEXIBLE_WORK_ARRANGEMENT",
-		"name": "Flexible work arrangement adopted (DA 02-09)",
 		"references": [
 			{
 				"title": "DOLE Department Advisory 02-09: flexible work arrangements are adopted by agreement and notified to DOLE."
@@ -39,11 +38,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "091f7f0a-6a64-53ee-a72d-41a6de6b6ff2",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "FLEXIBLE_WORK_ARRANGEMENT: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "TELECOMMUTING_PROGRAM",
-		"name": "Telecommuting program implemented (RA 11165)",
 		"references": [
 			{
 				"title": "RA 11165 (Telecommuting Act) and its IRR: a voluntary telecommuting program with written terms."
@@ -53,11 +52,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "d81837aa-76f9-5d09-944b-2c1721461ee9",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "TELECOMMUTING_PROGRAM: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "SUSPENSION_EXTENSION",
-		"name": "Extension of a suspension of employment beyond six months (DO 215-20)",
 		"references": [
 			{
 				"title": "Labor Code art.301; DO 215-20: a bona fide suspension of operations may be extended beyond six months only on notice to DOLE."
@@ -67,11 +66,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "652e9461-b027-575c-8359-a1f98d20755b",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "SUSPENSION_EXTENSION: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "SOLO_PARENT_FLEXIBLE_SCHEDULE",
-		"name": "Solo parent’s flexible work schedule request (RA 8972 s.6)",
 		"references": [
 			{
 				"title": "RA 8972 s.6 as amended by RA 11861: a solo parent may request a flexible work schedule."
@@ -81,11 +80,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "0094a7a4-d690-526a-b718-0d8b70cb8beb",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "SOLO_PARENT_FLEXIBLE_SCHEDULE: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "PERSONAL_DATA_BREACH",
-		"name": "Personal data breach (NPC Circular 16-03)",
 		"references": [
 			{
 				"title": "RA 10173 (Data Privacy Act) s.20 and NPC Circular 16-03: notify the NPC and affected data subjects within 72 hours."
@@ -95,11 +94,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "dd6f5d2f-dc16-5123-8de2-b38d2d617c4f",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "Personal-data breach and its notification workflow."
 	},
 	{
 		"code": "EMPLOYMENT_CERTIFICATE_REQUEST",
-		"name": "Employment certificate request",
 		"references": [
 			{
 				"title": "DOLE Labor Advisory 06-20: issue a certificate of employment within three days of the employee's request."
@@ -109,11 +108,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "3d325eae-8003-55e8-b1d3-95aa7ef831f1",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "Request for an employment certificate."
 	},
 	{
 		"code": "FINAL_COMPENSATION_PAYMENT",
-		"name": "Reviewed final compensation payment on departure",
 		"references": [
 			{
 				"title": "DOLE Labor Advisory 06-20: final pay within 30 days of separation; BIR RR 2-98 s.2.79 for the final withholding."
@@ -123,25 +122,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "2b550f4b-7f63-5ba9-ab5a-03238350a018",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
-	},
-	{
-		"code": "ANNUAL_FINAL_COMPENSATION_PAYMENT",
-		"name": "Reviewed last compensation payment of the calendar year",
-		"references": [
-			{
-				"title": "BIR RR 2-98 s.2.79(B)(5) as amended by RR 11-2018: annualise the year's taxable compensation at the last payment."
-			}
-		],
-		"lookup": {},
-		"subtotal_id": null,
-		"events": {},
-		"id": "8f094190-e4e0-5a72-a3e0-e51cf05f8df4",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "FINAL_COMPENSATION_PAYMENT: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "BIR_2316_DELIVERED",
-		"name": "BIR Form2316 actually furnished to the employee",
 		"references": [
 			{
 				"title": "BIR RR 2-98 s.2.83.1 as amended by RR 11-2018 s.12: BIR Form 2316 to the employee on or before 31 January of the following year, or on the day of the last payment of compensation when employment ends earlier."
@@ -161,18 +146,21 @@
 					}
 				},
 				"additionalProperties": false,
-				"required": ["tax_year", "compensation_payment_case_id"],
+				"required": [
+					"tax_year",
+					"compensation_payment_case_id"
+				],
 				"description": "opened_on is actual delivery, not preparation. Link the exact final-compensation payment case. Reference and evidence identify the furnished certificate and delivery. Close when the factual delivery record is reviewed."
 			}
 		},
 		"subtotal_id": null,
 		"events": {},
 		"id": "9e53518e-b3f6-5e46-ad57-48b4211ebcb6",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "BIR_2316_DELIVERED: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",
-		"name": "Actual overseas work dates and country",
 		"references": [
 			{
 				"title": "NIRC ss.23-24: residence and source determine whether foreign work days and pay are taxable in the Philippines."
@@ -206,14 +194,20 @@
 								}
 							},
 							"additionalProperties": false,
-							"required": ["date"]
+							"required": [
+								"date"
+							]
 						},
 						"title": "Actual worked dates",
 						"description": "Only dates actually worked in the stated country. Supply actual hours when the external source records them; absent hours stay unknown and may not become a full day. Do not copy hours already held in native roster records."
 					}
 				},
 				"additionalProperties": false,
-				"required": ["period", "country", "work_days"],
+				"required": [
+					"period",
+					"country",
+					"work_days"
+				],
 				"description": "One continuous actual overseas work record for one employee/country, supported by the original timesheet or equivalent factual record. A planned posting letter alone does not prove actual work or presence. Native roster/source records retain ownership of dates/hours already recorded there.",
 				"$defs": {
 					"country": {
@@ -489,7 +483,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					}
 				}
@@ -498,11 +495,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "6391ddfe-8b83-5104-9fa8-fc50cb0ac072",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "Record of work performed across a border."
 	},
 	{
 		"code": "EXTERNAL_WAGE_RECORD",
-		"name": "Original external wage payment or cost allocation",
 		"references": [
 			{
 				"title": "NIRC s.32(A) and s.34; RR 2-98: record external compensation and the employer's related cost."
@@ -514,7 +511,10 @@
 				"properties": {
 					"record_type": {
 						"type": "string",
-						"enum": ["PAYMENT", "COST_ALLOCATION"],
+						"enum": [
+							"PAYMENT",
+							"COST_ALLOCATION"
+						],
 						"title": "Original record type"
 					},
 					"original_payment_reference": {
@@ -843,7 +843,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -864,7 +867,11 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["registered_name", "country", "registration_reference"],
+						"required": [
+							"registered_name",
+							"country",
+							"registration_reference"
+						],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				},
@@ -876,10 +883,14 @@
 									"const": "COST_ALLOCATION"
 								}
 							},
-							"required": ["record_type"]
+							"required": [
+								"record_type"
+							]
 						},
 						"then": {
-							"required": ["cost_bearer"]
+							"required": [
+								"cost_bearer"
+							]
 						}
 					},
 					{
@@ -889,10 +900,14 @@
 									"exclusiveMaximum": 0
 								}
 							},
-							"required": ["amount"]
+							"required": [
+								"amount"
+							]
 						},
 						"then": {
-							"required": ["reverses_reference"]
+							"required": [
+								"reverses_reference"
+							]
 						}
 					}
 				]
@@ -901,11 +916,11 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "da2ef2b9-eb84-5bf3-837a-3202c0b08c6b",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "Record of wages paid by another employer."
 	},
 	{
 		"code": "BENEFIT_SERVICE_RECORD",
-		"name": "Actual service attributable to a benefit award",
 		"references": [
 			{
 				"title": "RA 7641 and Labor Code arts.298-299: length of service is the basis of retirement and separation pay."
@@ -931,7 +946,12 @@
 					}
 				},
 				"additionalProperties": false,
-				"required": ["benefit_reference", "service_period", "country", "service_employer"],
+				"required": [
+					"benefit_reference",
+					"service_period",
+					"country",
+					"service_employer"
+				],
 				"description": "One actual continuous service period attributable to the named benefit/retirement award, in its actual service country and legal employer. Record every source-supported period for that award, including external prior service; do not substitute all employment history or a domestic-service percentage. Gaps and missing source periods remain unknown rather than zero. opened_on is the actual statement/certificate issue date.",
 				"$defs": {
 					"country": {
@@ -1207,7 +1227,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -1228,7 +1251,11 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["registered_name", "country", "registration_reference"],
+						"required": [
+							"registered_name",
+							"country",
+							"registration_reference"
+						],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				}
@@ -1237,6 +1264,7 @@
 		"subtotal_id": null,
 		"events": {},
 		"id": "2845d703-2f00-5af7-96c5-6c579e251fec",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"description": "Record of a benefit or service entitlement."
 	}
 ]

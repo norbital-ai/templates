@@ -18,8 +18,8 @@
 		'claim_catalog',
 		'adhoc_catalog',
 		'loan_catalog',
-		'work_interruption_catalog',
-		'workplace_case_catalog'
+		'workplace_case_catalog',
+		'work_event_catalog'
 	] as const;
 	const labels: Record<(typeof families)[number], string> = {
 		allowance_catalog: 'Allowances',
@@ -29,8 +29,29 @@
 		claim_catalog: 'Claims',
 		adhoc_catalog: 'Ad hoc',
 		loan_catalog: 'Loans',
-		work_interruption_catalog: 'Work interruptions',
-		workplace_case_catalog: 'Workplace cases'
+		workplace_case_catalog: 'Workplace cases',
+		work_event_catalog: 'Work events'
+	};
+	/** What each family configures, so the table is readable without opening a row. */
+	const descriptions: Record<(typeof families)[number], string> = {
+		allowance_catalog:
+			'Recurring contractual additions. Each row states who is eligible, how the amount is calculated, whether it is prorated and whether it counts toward the ordinary rate.',
+		overtime_catalog:
+			'Work-pattern pricing. Each row states eligibility, the paid multiplier or amount, the economic date rule and whether the line adds or deducts.',
+		statutory_contribution_catalog:
+			'Statutory schemes and their employee and employer amounts, dependencies and balance windows. The engine posts each scheme once per period.',
+		leave_catalog:
+			'Leave and absence rules. Each row states paid or unpaid treatment, eligibility, the quantity conversion and the subtotal that receives the postings.',
+		claim_catalog:
+			'Employee claims and reimbursements. Each row states eligibility, the claim conversion, the economic date taken from the entry and the posting direction.',
+		adhoc_catalog:
+			'One-off payments and deductions. Each row states eligibility, conversion, off-cycle eligibility, economic date and posting direction.',
+		loan_catalog:
+			'Loan and salary-advance rules. Each row states eligibility, conversion and the subtotal that receives advances and repayments.',
+		workplace_case_catalog:
+			'Workplace cases such as accidents, harassment or data breaches. Each row declares the events and the lookup that drives the case workflow.',
+		work_event_catalog:
+			'Event types such as a heat period, hurricane or epidemic. A work event references this row directly; the row itself is the type, with no separate category enum.'
 	};
 	let selected = $state<(typeof families)[number]>('allowance_catalog');
 	const firstLine = (value: unknown): string =>
@@ -57,7 +78,8 @@
 {/snippet}
 
 {#snippet catalog()}
-	<section class="min-w-0">
+	<section class="min-w-0 space-y-3">
+		<p class="max-w-4xl text-sm text-muted-foreground">{descriptions[selected]}</p>
 		{#if selected === 'allowance_catalog'}<Table
 				of="allowance_catalog"
 				key="allowance_catalog"
@@ -65,7 +87,7 @@
 				toolbar={{ new: draft, title: labels.allowance_catalog }}
 				columns={[
 					'code',
-					'name',
+					'description',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id',
@@ -80,7 +102,7 @@
 				toolbar={{ new: draft, title: labels.overtime_catalog }}
 				columns={[
 					'code',
-					'name',
+					'description',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id',
@@ -94,7 +116,7 @@
 				toolbar={{ new: draft, title: labels.statutory_contribution_catalog }}
 				columns={[
 					'code',
-					'name',
+					'description',
 					'kind',
 					'depends_on',
 					{ field: 'employee_amount', cell: codeCell },
@@ -110,7 +132,7 @@
 				toolbar={{ new: draft, title: labels.leave_catalog }}
 				columns={[
 					'code',
-					'name',
+					'description',
 					'pay_treatment',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
@@ -124,7 +146,7 @@
 				toolbar={{ new: draft, title: labels.claim_catalog }}
 				columns={[
 					'code',
-					'name',
+					'description',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id',
@@ -139,7 +161,7 @@
 				toolbar={{ new: draft, title: labels.adhoc_catalog }}
 				columns={[
 					'code',
-					'name',
+					'description',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id',
@@ -154,25 +176,25 @@
 				toolbar={{ new: draft, title: labels.loan_catalog }}
 				columns={[
 					'code',
-					'name',
+					'description',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id'
 				]}
 			/>
-		{:else if selected === 'work_interruption_catalog'}<Table
-				of="work_interruption_catalog"
-				key="work_interruption_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.work_interruption_catalog }}
-				columns={['code', 'name', 'events', { field: 'lookup', cell: jsonCell }]}
-			/>
-		{:else}<Table
+		{:else if selected === 'workplace_case_catalog'}<Table
 				of="workplace_case_catalog"
 				key="workplace_case_catalog"
 				where={{ settings_id: { eq: versionId } }}
 				toolbar={{ new: draft, title: labels.workplace_case_catalog }}
-				columns={['code', 'name', 'events', { field: 'lookup', cell: jsonCell }]}
+				columns={['code', 'description', 'events', { field: 'lookup', cell: jsonCell }]}
+			/>
+		{:else}<Table
+				of="work_event_catalog"
+				key="work_event_catalog"
+				where={{ settings_id: { eq: versionId } }}
+				toolbar={{ new: draft, title: labels.work_event_catalog }}
+				columns={['code', 'description', { field: 'lookup', cell: jsonCell }]}
 			/>{/if}
 	</section>
 {/snippet}

@@ -15,39 +15,6 @@
 			"title": "SG employee inputs",
 			"additionalProperties": false,
 			"properties": {
-				"events": {
-					"type": "array",
-					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": ["ADOPTION", "CHILD_BIRTH"],
-								"title": "What happened"
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date"
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							}
-						}
-					}
-				},
 				"tax_resident": {
 					"type": "boolean",
 					"description": "Income Tax Act 1947 s.2: Singapore tax resident. A non-resident director’s fees are withheld at 24% (WHT_NR_DIRECTOR). Customer input."
@@ -276,6 +243,11 @@
 							"title": "Central Provident Fund",
 							"additionalProperties": false,
 							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "CPF registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								},
 								"spr_employer_full_rates": {
 									"type": "boolean",
 									"default": false,
@@ -295,6 +267,11 @@
 							"title": "Chinese Development Assistance Council Fund",
 							"additionalProperties": false,
 							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "CDAC registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								},
 								"shg_monthly_amount": {
 									"type": "number",
 									"minimum": 0,
@@ -312,6 +289,11 @@
 							"title": "Eurasian Community Fund",
 							"additionalProperties": false,
 							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "ECF registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								},
 								"shg_monthly_amount": {
 									"type": "number",
 									"minimum": 0,
@@ -324,11 +306,28 @@
 								}
 							}
 						},
+						"IRAS": {
+							"type": "object",
+							"title": "Inland Revenue Authority of Singapore",
+							"additionalProperties": false,
+							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "IRAS registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								}
+							}
+						},
 						"MBMF": {
 							"type": "object",
 							"title": "Mosque Building and Mendaki Fund",
 							"additionalProperties": false,
 							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "MBMF registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								},
 								"shg_monthly_amount": {
 									"type": "number",
 									"minimum": 0,
@@ -346,6 +345,11 @@
 							"title": "Singapore Indian Development Association Fund",
 							"additionalProperties": false,
 							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "SINDA registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								},
 								"shg_monthly_amount": {
 									"type": "number",
 									"minimum": 0,
@@ -397,6 +401,24 @@
 					"type": "string",
 					"minLength": 1,
 					"description": "Name and contact of the designated data protection officer (PDPA 2012 s.11(3)). Customer input."
+				},
+				"registrations": {
+					"type": "array",
+					"title": "Statutory registrations",
+					"description": "Scheme registration numbers this entity holds, by scheme code.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"scheme_code": {
+								"type": "string"
+							},
+							"number": {
+								"type": "string"
+							}
+						},
+						"required": ["scheme_code", "number"]
+					}
 				}
 			}
 		},
@@ -884,13 +906,14 @@
 				}
 			},
 			"constants": {
-				"ordinary_ceiling": 8000.0,
-				"annual_ceiling": 102000.0,
+				"ordinary_ceiling": 8000,
+				"annual_ceiling": 102000,
 				"weekly_limit": 2500,
 				"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
 				"max_months": 12
 			}
 		},
+		"work_regions": {},
 		"status": "SEALED",
 		"id": "519aae39-121e-506a-a69a-6fb253cf85ed",
 		"conversions": {

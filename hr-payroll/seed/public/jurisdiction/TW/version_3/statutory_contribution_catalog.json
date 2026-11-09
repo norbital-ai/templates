@@ -1,7 +1,6 @@
 [
 	{
 		"code": "LI",
-		"name": "Labor Insurance (勞工保險)",
 		"kind": "CONTRIBUTION",
 		"lookup": {
 			"rate": 0.115
@@ -26,11 +25,11 @@
 		],
 		"id": "d0f80f71-45d1-5f9b-8149-623af5cf7019",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "LI: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "WAGE_ARREARS_FUND",
-		"name": "積欠工資墊償基金 (wage arrears payment fund)",
 		"kind": "CONTRIBUTION",
 		"lookup": {
 			"employer_rate": 0.00025
@@ -49,11 +48,11 @@
 		],
 		"id": "22929602-55e5-5504-98ac-d7a3bdf1ab7b",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "WAGE_ARREARS_FUND: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "EI",
-		"name": "Employment Insurance (就業保險)",
 		"kind": "CONTRIBUTION",
 		"lookup": {
 			"rate": 0.01
@@ -72,11 +71,11 @@
 		],
 		"id": "6c783cca-ee1c-502d-b68d-b236ca673be5",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "Employment insurance contribution."
 	},
 	{
 		"code": "NHI",
-		"name": "National Health Insurance (全民健康保險)",
 		"kind": "CONTRIBUTION",
 		"lookup": {
 			"rate": 0.0517,
@@ -105,11 +104,11 @@
 		],
 		"id": "1970a29e-d766-5173-89ac-55b17562d179",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "NHI: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "NHI_SUPPLEMENT",
-		"name": "健保補充保險費 (NHI supplementary premium)",
 		"kind": "CONTRIBUTION",
 		"lookup": {
 			"bonus_salary_multiple": 4
@@ -128,11 +127,11 @@
 		],
 		"id": "da90e87d-3572-5349-8ce2-910e6620444b",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "NHI_SUPPLEMENT: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "NHI_PART_TIME",
-		"name": "健保補充保險費—兼職薪資所得 (NHI supplementary premium on part-time salary)",
 		"kind": "CONTRIBUTION",
 		"lookup": {},
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
@@ -155,20 +154,77 @@
 		],
 		"id": "02e15c19-0417-5527-8e0e-9b7d965c5d7f",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "NHI_PART_TIME: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "LABOR_PENSION",
-		"name": "Labor Pension (勞工退休金, new system)",
 		"kind": "CONTRIBUTION",
 		"lookup": {
 			"employer_rate": 6,
 			"lp_grades": [
-				1500, 3000, 4500, 6000, 7500, 8700, 9900, 11100, 12540, 13500, 15840, 16500, 17280, 17880,
-				19047, 20008, 21009, 22000, 23100, 24000, 25250, 26400, 27600, 28590, 29500, 30300, 31800,
-				33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800, 48200, 50600, 53000, 55400, 57800,
-				60800, 63800, 66800, 69800, 72800, 76500, 80200, 83900, 87600, 92100, 96600, 101100, 105600,
-				110100, 115500, 120900, 126300, 131700, 137100, 142500, 147900, 150000
+				1500,
+				3000,
+				4500,
+				6000,
+				7500,
+				8700,
+				9900,
+				11100,
+				12540,
+				13500,
+				15840,
+				16500,
+				17280,
+				17880,
+				19047,
+				20008,
+				21009,
+				22000,
+				23100,
+				24000,
+				25250,
+				26400,
+				27600,
+				28590,
+				29500,
+				30300,
+				31800,
+				33300,
+				34800,
+				36300,
+				38200,
+				40100,
+				42000,
+				43900,
+				45800,
+				48200,
+				50600,
+				53000,
+				55400,
+				57800,
+				60800,
+				63800,
+				66800,
+				69800,
+				72800,
+				76500,
+				80200,
+				83900,
+				87600,
+				92100,
+				96600,
+				101100,
+				105600,
+				110100,
+				115500,
+				120900,
+				126300,
+				131700,
+				137100,
+				142500,
+				147900,
+				150000
 			]
 		},
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
@@ -191,11 +247,11 @@
 		],
 		"id": "cc2e7a97-2ad0-5279-b395-9ded009007d9",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "LABOR_PENSION: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "OCC_INJURY",
-		"name": "Occupational Accident Insurance (勞工職業災害保險)",
 		"kind": "CONTRIBUTION",
 		"lookup": {
 			"default_rate_percent": 0.2,
@@ -258,8 +314,27 @@
 				"55": 0.12
 			},
 			"occ_grades": [
-				29500, 30300, 31800, 33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800, 48200, 50600,
-				53000, 55400, 57800, 60800, 63800, 66800, 69800, 72800
+				29500,
+				30300,
+				31800,
+				33300,
+				34800,
+				36300,
+				38200,
+				40100,
+				42000,
+				43900,
+				45800,
+				48200,
+				50600,
+				53000,
+				55400,
+				57800,
+				60800,
+				63800,
+				66800,
+				69800,
+				72800
 			]
 		},
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
@@ -283,11 +358,11 @@
 		],
 		"id": "f38f99c5-485b-58dc-bb07-83993542c7a5",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "OCC_INJURY: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "INCOME_TAX",
-		"name": "Resident income tax withholding (薪資所得扣繳)",
 		"kind": "TAX",
 		"lookup": {
 			"minimum_withholding": 2000,
@@ -339,14 +414,16 @@
 				"quote": "如納稅義務人配偶及受扶養親屬之人數或每月薪資收入超過本表規定之數額，應由扣繳義務人依下列公式計算每月應扣繳稅額 (https://www.ntbna.gov.tw/download/6f827d6fedac4e1dad682819b626e121)."
 			}
 		],
-		"depends_on": ["LABOR_PENSION"],
+		"depends_on": [
+			"LABOR_PENSION"
+		],
 		"id": "63ee61f7-862a-5b6c-bd68-4cdbb58584cb",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Employee income tax withheld for the pay period."
 	},
 	{
 		"code": "INCOME_TAX_NON_RESIDENT",
-		"name": "Individual Income Tax withholding, non-resident (非居住者薪資扣繳)",
 		"kind": "TAX",
 		"lookup": {
 			"lower_rate": 0.06,
@@ -366,18 +443,18 @@
 		],
 		"id": "9e202f5b-b502-5a44-80d0-2e198f3f5590",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "INCOME_TAX_NON_RESIDENT: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "LABOR_PENSION_RESERVE",
-		"name": "勞工退休準備金（舊制）",
 		"kind": "CONTRIBUTION",
 		"lookup": {},
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
 		"employee_amount": "return 0;",
-		"employer_amount": "// 勞動基準法 §56(1): 2%–15% of the wages of the workers still on the old pension system, at the rate the entity declares.\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst pension = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW');\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\n// 勞動部 114年10月14日勞動福3字第1140153402A號令: from 2026-04-01 a 就業服務法 §46(1)(8)–(10) worker under ten years at the unit may leave the wage total.\nconst excludable = get(entity, 'pension_reserve_excludes_short_service_migrants', false) === true && get(facts, 'migrant_worker', false) === true;\nif (excludable && calendar_completed_months(ctx.subject.employment.effective_range.from, add_days(ctx.run.salary_coverage.to, 1)) < 120) return 0;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst covered = residency !== 'FOREIGNER' || professional || spouse;\nif (pension !== 'LSA' && covered) return 0;\nconst declared = get(entity, 'pension_reserve_rate', null);\nif (declared == null) throw 'Record the entity pension_reserve_rate: ' + get(ctx.subject, 'employee.name', 'a worker') + ' is on the LSA pension.';\nreturn round(wage * Number(declared) / 100, 1, 'HALF_UP');",
+		"employer_amount": "// 勞動基準法 §56(1): 2%–15% of the wages of the workers still on the old pension system, at the rate the entity declares.\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst pension = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW');\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\n// 勞動部 114年10月14日勞動福3字第1140153402A號令: from 2026-04-01 a 就業服務法 §46(1)(8)–(10) worker under ten years at the unit may leave the wage total.\nconst excludable = get(entity, 'pension_reserve_excludes_short_service_migrants', false) === true && get(facts, 'migrant_worker', false) === true;\nif (excludable && calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), add_days(ctx.run.salary_coverage.to, 1)) < 120) return 0;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst covered = residency !== 'FOREIGNER' || professional || spouse;\nif (pension !== 'LSA' && covered) return 0;\nconst declared = get(entity, 'pension_reserve_rate', null);\nif (declared == null) throw 'Record the entity pension_reserve_rate: ' + get(ctx.subject, 'employee.name', 'a worker') + ' is on the LSA pension.';\nreturn round(wage * Number(declared) / 100, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "勞動基準法",
@@ -393,11 +470,11 @@
 		],
 		"id": "e57fc49a-514a-52df-8929-3d4b0e4c644c",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "LABOR_PENSION_RESERVE: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "INCOME_TAX_BONUS",
-		"name": "Income tax — bonus withholding",
 		"kind": "TAX",
 		"lookup": {},
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
@@ -414,11 +491,11 @@
 		],
 		"id": "9909b85b-c65f-5ba6-9759-9dcd866a77e0",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "INCOME_TAX_BONUS: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "SEVERANCE_TAX",
-		"name": "Resident retirement and severance withholding (居住者退職所得扣繳)",
 		"kind": "TAX",
 		"lookup": {
 			"rate": 0.06
@@ -426,7 +503,7 @@
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 6% withheld on the exit pay above the per-service-year exemption, truncated; a tail under six months counts as half a year.\n// the exemption is on the whole exit pay: a further payment or a reversal owes what the year's total leaves\nconst now = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nif (now === 0) return 0;\nconst pay = Math.max(0, now + Number(get(ctx.balances, 'ytd.RETIREMENT', 0)) - Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom === null || residentFrom > payDate) return 0;\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\nconst end = add_days(get(ctx.subject.employment, 'effective_range.to', payDate), 1);\nconst months = calendar_completed_months(start, end);\nconst tail = months % 12;\nconst part = tail > 0 || add_months(start, months) < end;\nconst tail_years =\n  tail >= ctx.lookup.tail_threshold_months ? ctx.lookup.long_tail_years\n  : part ? ctx.lookup.short_tail_years\n  : 0;\nconst years = Math.floor(months / 12) + tail_years;\nconst exempt = ctx.lookup.retirement_exemption_per_service_year * years;\nconst schemes = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(schemes, 'SEVERANCE_TAX.employee') ? Number(schemes['SEVERANCE_TAX.employee']) : 0;\nreturn round(Math.max(0, pay - exempt) * ctx.lookup.rate, 1, 'DOWN') - withheld;",
+		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 6% withheld on the exit pay above the per-service-year exemption, truncated; a tail under six months counts as half a year.\n// the exemption is on the whole exit pay: a further payment or a reversal owes what the year's total leaves\nconst now = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nif (now === 0) return 0;\nconst pay = Math.max(0, now + Number(get(ctx.balances, 'ytd.RETIREMENT', 0)) - Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom === null || residentFrom > payDate) return 0;\nconst start = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from));\nconst end = add_days(get(ctx.subject.employment, 'effective_range.to', payDate), 1);\nconst months = calendar_completed_months(start, end);\nconst tail = months % 12;\nconst part = tail > 0 || add_months(start, months) < end;\nconst tail_years =\n  tail >= ctx.lookup.tail_threshold_months ? ctx.lookup.long_tail_years\n  : part ? ctx.lookup.short_tail_years\n  : 0;\nconst years = Math.floor(months / 12) + tail_years;\nconst exempt = ctx.lookup.retirement_exemption_per_service_year * years;\nconst schemes = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(schemes, 'SEVERANCE_TAX.employee') ? Number(schemes['SEVERANCE_TAX.employee']) : 0;\nreturn round(Math.max(0, pay - exempt) * ctx.lookup.rate, 1, 'DOWN') - withheld;",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -437,11 +514,11 @@
 		],
 		"id": "b7383dce-223c-5123-a36a-7f3bda7e354e",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "SEVERANCE_TAX: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "WELFARE_FUND",
-		"name": "職工福利金（薪津扣繳）",
 		"kind": "CONTRIBUTION",
 		"lookup": {
 			"employee_rate": 0.005
@@ -461,17 +538,17 @@
 		],
 		"id": "d62a85c0-8726-587e-89d5-8cfe218d4892",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "WELFARE_FUND: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "SEVERANCE_TAX_NON_RESIDENT",
-		"name": "Nonresident retirement and severance withholding (非居住者退職所得扣繳)",
 		"kind": "TAX",
 		"lookup": {},
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 18% withheld on the exit pay above the per-service-year exemption, truncated; a tail under six months counts as half a year.\n// the exemption is on the whole exit pay: a further payment or a reversal owes what the year's total leaves\nconst now = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nif (now === 0) return 0;\nconst pay = Math.max(0, now + Number(get(ctx.balances, 'ytd.RETIREMENT', 0)) - Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom !== null && residentFrom <= payDate) return 0;\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\nconst end = add_days(get(ctx.subject.employment, 'effective_range.to', payDate), 1);\nconst months = calendar_completed_months(start, end);\nconst tail = months % 12;\nconst part = tail > 0 || add_months(start, months) < end;\nconst tail_years =\n  tail >= ctx.lookup.tail_threshold_months ? ctx.lookup.long_tail_years\n  : part ? ctx.lookup.short_tail_years\n  : 0;\nconst years = Math.floor(months / 12) + tail_years;\nconst exempt = ctx.lookup.retirement_exemption_per_service_year * years;\nconst schemes = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(schemes, 'SEVERANCE_TAX_NON_RESIDENT.employee') ? Number(schemes['SEVERANCE_TAX_NON_RESIDENT.employee']) : 0;\nreturn round(Math.max(0, pay - exempt) * ctx.lookup.non_resident_rate, 1, 'DOWN') - withheld;",
+		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 18% withheld on the exit pay above the per-service-year exemption, truncated; a tail under six months counts as half a year.\n// the exemption is on the whole exit pay: a further payment or a reversal owes what the year's total leaves\nconst now = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nif (now === 0) return 0;\nconst pay = Math.max(0, now + Number(get(ctx.balances, 'ytd.RETIREMENT', 0)) - Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom !== null && residentFrom <= payDate) return 0;\nconst start = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from));\nconst end = add_days(get(ctx.subject.employment, 'effective_range.to', payDate), 1);\nconst months = calendar_completed_months(start, end);\nconst tail = months % 12;\nconst part = tail > 0 || add_months(start, months) < end;\nconst tail_years =\n  tail >= ctx.lookup.tail_threshold_months ? ctx.lookup.long_tail_years\n  : part ? ctx.lookup.short_tail_years\n  : 0;\nconst years = Math.floor(months / 12) + tail_years;\nconst exempt = ctx.lookup.retirement_exemption_per_service_year * years;\nconst schemes = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(schemes, 'SEVERANCE_TAX_NON_RESIDENT.employee') ? Number(schemes['SEVERANCE_TAX_NON_RESIDENT.employee']) : 0;\nreturn round(Math.max(0, pay - exempt) * ctx.lookup.non_resident_rate, 1, 'DOWN') - withheld;",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -482,6 +559,7 @@
 		],
 		"id": "59e75462-8209-5f74-9df8-1b06b76d8f9b",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "SEVERANCE_TAX_NON_RESIDENT: Employee and employer contribution for the pay period."
 	}
 ]

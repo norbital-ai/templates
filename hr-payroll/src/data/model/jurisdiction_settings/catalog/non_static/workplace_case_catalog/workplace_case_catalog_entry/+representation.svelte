@@ -21,6 +21,12 @@
 		fields={[
 			'catalog_id',
 			'entity_id',
+			'employment_id',
+			'severity',
+			'occurred_on',
+			'location',
+			'reference',
+			'description',
 			'kind',
 			'opened_on',
 			'scheduled_on',

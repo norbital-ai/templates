@@ -1,7 +1,7 @@
 [
 	{
 		"code": "DEPENDANT_MEDICAL_ALLOWANCE",
-		"name": "Medical cash allowance to dependants",
+		"description": "Medical cash allowance for dependants, paid pro rata for the days in the payroll period when the contract sets an amount; a de minimis benefit up to the statutory semester ceiling.",
 		"lookup": {
 			"allowance": "DEPENDANT_MEDICAL_ALLOWANCE"
 		},
@@ -20,7 +20,7 @@
 	},
 	{
 		"code": "LAUNDRY_ALLOWANCE",
-		"name": "Laundry allowance",
+		"description": "Monthly laundry allowance, paid pro rata for the days in the payroll period when the contract sets an amount; a de minimis benefit up to the statutory monthly ceiling.",
 		"lookup": {
 			"allowance": "LAUNDRY_ALLOWANCE"
 		},
@@ -40,7 +40,7 @@
 	},
 	{
 		"code": "allowance",
-		"name": "Allowance",
+		"description": "Contractual non-statutory allowance, paid pro rata for the days in the payroll period when the contract sets an amount; a company or CBA benefit that may not be reduced unilaterally.",
 		"references": [
 			{
 				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
@@ -60,7 +60,7 @@
 	},
 	{
 		"code": "communication",
-		"name": "Communication allowance",
+		"description": "Contractual communication allowance, paid pro rata for the days in the payroll period when the contract sets an amount; a non-statutory company or CBA benefit.",
 		"references": [
 			{
 				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
@@ -80,7 +80,7 @@
 	},
 	{
 		"code": "corporate_duty_allowance",
-		"name": "Corporate duty allowance",
+		"description": "Contractual corporate-duty allowance, paid pro rata for the days in the payroll period when the contract sets an amount; a non-statutory company or CBA benefit.",
 		"references": [
 			{
 				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
@@ -100,7 +100,7 @@
 	},
 	{
 		"code": "duty_allowance",
-		"name": "Duty allowance",
+		"description": "Contractual duty allowance, paid pro rata for the days in the payroll period when the contract sets an amount; a non-statutory company or CBA benefit.",
 		"references": [
 			{
 				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
@@ -120,7 +120,7 @@
 	},
 	{
 		"code": "leader",
-		"name": "Leader allowance",
+		"description": "Contractual leader allowance, paid pro rata for the days in the payroll period when the contract sets an amount; a non-statutory company or CBA benefit.",
 		"references": [
 			{
 				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
@@ -140,7 +140,7 @@
 	},
 	{
 		"code": "meal",
-		"name": "Meal allowance (rice subsidy)",
+		"description": "Rice or meal subsidy, paid pro rata for the days in the payroll period when the contract sets an amount; a de minimis benefit up to the statutory monthly ceiling.",
 		"lookup": {
 			"allowance": "meal"
 		},
@@ -160,7 +160,7 @@
 	},
 	{
 		"code": "position",
-		"name": "Position allowance",
+		"description": "Contractual position allowance, paid pro rata for the days in the payroll period when the contract sets an amount; a non-statutory company or CBA benefit.",
 		"references": [
 			{
 				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
@@ -180,7 +180,7 @@
 	},
 	{
 		"code": "transport",
-		"name": "Transport allowance",
+		"description": "Contractual transport allowance, paid pro rata for the days in the payroll period when the contract sets an amount; a non-statutory company or CBA benefit.",
 		"references": [
 			{
 				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."

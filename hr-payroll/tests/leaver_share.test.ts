@@ -36,12 +36,18 @@ const seed = {
 			entity_id: ENTITY,
 			code: 'WEEKDAYS',
 			name: 'Weekdays',
+			effective_range: { from: '2026-01-01', to: null },
 			pattern: {
-				// a Monday: five working days, then a rest day and an off day
-				anchor_date: '2026-06-01',
-				days: [WORK, WORK, WORK, WORK, WORK, REST, OFF].map((shift_definition_id) => ({
-					shift_definition_id
-				}))
+				week_start: 'MONDAY',
+				days: {
+					MONDAY: WORK,
+					TUESDAY: WORK,
+					WEDNESDAY: WORK,
+					THURSDAY: WORK,
+					FRIDAY: WORK,
+					SATURDAY: REST,
+					SUNDAY: OFF
+				}
 			}
 		}
 	],

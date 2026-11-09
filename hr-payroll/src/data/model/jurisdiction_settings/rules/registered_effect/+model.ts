@@ -15,6 +15,7 @@ export default model('registered_effect', {
 			default: {}
 		},
 		code: { kind: 'text' },
+		description: { kind: 'text', optional: true },
 		name: { kind: 'text' },
 		references: { kind: 'custom', of: 'references', optional: true },
 		source_collection: { kind: 'text' },
@@ -66,6 +67,7 @@ export default model('registered_effect', {
 			registered_effect: [
 				'lookup',
 				'code',
+				'description',
 				'name',
 				'references',
 				'source_collection',
@@ -93,6 +95,7 @@ export default model('registered_effect', {
 			registered_effect: [
 				'lookup',
 				'code',
+				'description',
 				'name',
 				'references',
 				'source_collection',

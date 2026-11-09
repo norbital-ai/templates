@@ -13,17 +13,7 @@ import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { objectValue, idOf } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	accountsIn,
-	catalogRow,
-	measureOf,
-	pack,
-	read,
-	sealEvents,
-	wholeDays,
-	workspace
-} from './kit.ts';
+import { ENTITY, accountsIn, catalogRow, measureOf, pack, read, sealEvents, wholeDays, workspace, leaveCreate } from './kit.ts';
 
 const ROOT = 'seed/public/jurisdiction';
 const rowOf = (code: string, version: number, file: string, name: string) => {
@@ -53,7 +43,13 @@ const person = (
 	partTime: false,
 	gender,
 	maritalStatus,
-	employment: { employee_extension_data: { ...extension, events } }
+	employment: {
+		...(Array.isArray(extension.children) ? { children: extension.children } : {}),
+		events,
+		employee_extension_data: Object.fromEntries(
+			Object.entries(extension).filter(([key]) => key !== 'children')
+		)
+	}
 });
 /** What the events on a contract open of a Philippine row, by event date. */
 const opened = (
@@ -185,25 +181,26 @@ const seed = {
 };
 const take = (t: Kit, employment: Id<'employee_contract'>, dates: readonly string[]) =>
 	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
+		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: employment,
 			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MATERNITY_LEAVE')),
 			days: wholeDays(...dates)
-		}
+		})
 	]);
 const CASE = 'CROSS_BORDER_WORK_RECORD';
+const EMPLOYMENT = idOf('employee_contract', String(base.employee_contract?.[0]?.id));
 const file = (t: Kit, inputs: JsonObject) =>
 	t.as(t.admin).act('workplace_case_catalog_entry.create', [
 		{
 			catalog_id: idOf('workplace_case_catalog', catalogRow(seed, 'workplace_case_catalog', CASE)),
 			entity_id: ENTITY,
+			employment_id: EMPLOYMENT,
 			kind: CASE,
 			opened_on: PlainDate('2026-11-03'),
 			inputs
 		}
 	]);
-const live = workspace({ seed, now: '2026-11-20T02:00:00.000Z' });
 
 describe('on a real workspace', () => {
 	it.live('the leave holds at what the birth left her', () =>
@@ -221,7 +218,152 @@ describe('on a real workspace', () => {
 			yield* take(t, version, ['2026-11-03', '2026-11-04']);
 			yield* t.runDue();
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MATERNITY_LEAVE', 'used'), 2);
-		}).pipe(Effect.provide(live))
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
+	);
+	it.live('sealing a contract raises the employee registration duties once', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* sealEvents(t, '2026-11-02', []);
+			yield* t.runDue();
+			const { obligation } = yield* t.storedQuery({ obligation: { limit: 200 } });
+			for (const code of [
+				'SSS_EMPLOYEE_REPORT',
+				'PHILHEALTH_EMPLOYEE_REPORT',
+				'HDMF_EMPLOYEE_REGISTRATION',
+				'BIR_EMPLOYEE_TIN_REGISTRATION'
+			])
+				assert.equal(
+					obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`))
+						.length,
+					1,
+					code
+				);
+			const version = (yield* t.storedQuery({ employee_contract: { limit: 1 } })).employee_contract
+				.rows[0]?.id;
+			assert.ok(version !== undefined);
+			yield* t.as(t.admin).act('employee_contract.update', [
+				{ target: version, set: { employee_name: 'Renamed Worker' } }
+			]);
+			yield* t.runDue();
+			const after = yield* t.storedQuery({ obligation: { limit: 200 } });
+			assert.equal(
+				after.obligation.rows.filter((row) =>
+					String(row.occurrence_key).startsWith('SSS_EMPLOYEE_REPORT:')
+				).length,
+				1
+			);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
+	);
+	it.live('a true leaver raises each exit duty once', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* t.as(t.admin).act('employee_contract.update', [
+				{
+					target: EMPLOYMENT,
+					set: {
+						effective_range: { from: '2025-01-01', to: '2026-06-30' },
+						final_pay_due_on: '2026-07-30',
+						reason: 'Resignation'
+					}
+				}
+			]);
+			yield* t.runDue();
+			const exit = [
+				'encash-leave-on-exit',
+				'raise-exit-pay',
+				'FINAL_PAY_RELEASE',
+				'HDMF_SEPARATION_REPORT',
+				'PHILHEALTH_SEPARATION_REPORT',
+				'PERSONAL_DATA_DISPOSAL'
+			];
+			const first = yield* t.storedQuery({ obligation: { limit: 200 } });
+			for (const code of exit)
+				assert.equal(
+					first.obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`))
+						.length,
+					1,
+					code
+				);
+			yield* t.as(t.admin).act('employee_contract.update', [
+				{ target: EMPLOYMENT, set: { reason: 'Resignation confirmed' } }
+			]);
+			yield* t.runDue();
+			const second = yield* t.storedQuery({ obligation: { limit: 200 } });
+			for (const code of exit)
+				assert.equal(
+					second.obligation.rows.filter((row) =>
+						String(row.occurrence_key).startsWith(`${code}:`)
+					).length,
+					1,
+					code
+				);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
+	);
+	it.live('a payee-only run raises no remittance duty', () => {
+		const payee = {
+			...seed,
+			employee_contract: (seed.employee_contract ?? []).map((row) => ({
+				...row,
+				engagement: 'PAYEE'
+			}))
+		};
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* t
+				.as(t.admin)
+				.act('payroll_run.create', [
+					{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }
+				]);
+			yield* t.runDue();
+			const { obligation } = yield* t.storedQuery({ obligation: { limit: 300 } });
+			for (const code of [
+				'SSS_CONTRIBUTION_REMITTANCE',
+				'PHILHEALTH_PREMIUM_REMITTANCE',
+				'HDMF_CONTRIBUTION_REMITTANCE',
+				'BIR_1603Q_FRINGE_BENEFITS',
+				'SSS_LOAN_REMITTANCE',
+				'PAGIBIG_LOAN_REMITTANCE'
+			])
+				assert.equal(
+					obligation.rows.filter((row) =>
+						String(row.occurrence_key).startsWith(`${code}:`)
+					).length,
+					0,
+					code
+				);
+		}).pipe(Effect.provide(workspace({ seed: payee, now: '2026-11-20T02:00:00.000Z' })));
+	});
+	it.live('a pay-bump pair raises no predecessor exit and does not re-register', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* sealEvents(t, '2026-11-02', []);
+			yield* t.runDue();
+			const exits = yield* t.storedQuery({ contract_exit: { limit: 10 } });
+			assert.equal(exits.contract_exit.rows.length, 0);
+			const after = yield* t.storedQuery({ obligation: { limit: 200 } });
+			for (const code of [
+				'encash-leave-on-exit',
+				'raise-exit-pay',
+				'FINAL_PAY_RELEASE',
+				'HDMF_SEPARATION_REPORT',
+				'PHILHEALTH_SEPARATION_REPORT',
+				'PERSONAL_DATA_DISPOSAL'
+			])
+				assert.equal(
+					after.obligation.rows.filter((row) =>
+						String(row.occurrence_key).startsWith(`${code}:`)
+					).length,
+					0,
+					code
+				);
+			assert.equal(
+				after.obligation.rows.filter((row) =>
+					String(row.occurrence_key).startsWith('SSS_EMPLOYEE_REPORT:')
+				).length,
+				1,
+				'one employee registration, not one per contract'
+			);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
 	);
 	it.live('a case filed without what its form requires is refused, naming it', () =>
 		Effect.gen(function* () {
@@ -233,7 +375,7 @@ describe('on a real workspace', () => {
 				period: { from: '2026-11-03', to: '2026-11-03' },
 				work_days: [{ date: '2026-11-03' }]
 			});
-		}).pipe(Effect.provide(live))
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
 	);
 });
 
@@ -299,7 +441,7 @@ describe('Indonesian TER', () => {
 			subject: {
 				employment: {
 					payroll: { marital_status: 'MARRIED', gender: 'MALE' },
-					employee_extension_data: { ptkp_dependents_count: dependants },
+					dependents_count: dependants,
 					effective_range: { from: '2025-01-01', to: null }
 				}
 			},

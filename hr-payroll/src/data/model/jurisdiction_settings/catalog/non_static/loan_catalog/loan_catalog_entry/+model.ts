@@ -5,13 +5,15 @@ import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
 export default model('loan_catalog_entry', {
 	description: 'One employee loan advance and its repayment period.',
-	record_label: 'string(record.quantity)',
+	record_label:
+		"record.employment_id.employee_name + ' · ' + string(record.recovered) + ' recovered'",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'loan_catalog_entry' },
 		catalog_id: { kind: 'ref', to: 'loan_catalog', onDelete: 'restrict' },
 		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		quantity: { kind: 'decimal', scale: 12, min: 0 },
+		recovered: { kind: 'sum', of: 'repayments.amount', where: { reverses: { isNull: true } }, hidden: true },
 		repayment_period: { kind: 'period', of: 'date' },
 		evidence_file: {
 			kind: 'file',
@@ -69,14 +71,14 @@ export default model('loan_catalog_entry', {
 			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
 			yield* validateRegistered(ctx.db.query, 'loan_catalog_entry', 'update', proposed);
 			const sealed = yield* ctx.db.query({
-				loan_repayment_entry: {
+				loan_catalog_entry_repayment: {
 					where: { loan_id: { in: changes.map((c) => c.before.id) } },
 					fields: ['loan_id', 'amount', 'payroll_run_id'],
 					limit: 10000
 				}
 			});
 			for (const change of changes) {
-				const paid = (sealed.loan_repayment_entry.rows ?? [])
+				const paid = (sealed.loan_catalog_entry_repayment.rows ?? [])
 					.filter((row) => row.loan_id === change.before.id && row.payroll_run_id != null)
 					.reduce((total, row) => total + (numberOf(row.amount) ?? 0), 0);
 				const principal = numberOf(change.set.quantity ?? change.before.quantity) ?? 0;

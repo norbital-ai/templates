@@ -1,7 +1,6 @@
 [
 	{
 		"code": "HEALTH",
-		"name": "健康保険・介護保険 (Kyokai Kenpo health and nursing care insurance)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
@@ -19,13 +18,15 @@
 		],
 		"id": "bc3c31e1-de29-53d2-bb33-ab2eeb6b5845",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Health insurance contribution."
 	},
 	{
 		"code": "HEALTH_BONUS",
-		"name": "健康保険・介護保険 標準賞与額 (health insurance on bonuses)",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["HEALTH"],
+		"depends_on": [
+			"HEALTH"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
@@ -46,13 +47,15 @@
 		],
 		"id": "37b0b95d-2bd6-599f-b694-734289cbb103",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Health insurance bonus contribution."
 	},
 	{
 		"code": "CHILD_SUPPORT",
-		"name": "子ども・子育て支援金 (child and childrearing support levy)",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["HEALTH"],
+		"depends_on": [
+			"HEALTH"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
@@ -73,13 +76,15 @@
 		],
 		"id": "c316637b-5527-5813-9e10-325db08a3ea6",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Child-support contribution."
 	},
 	{
 		"code": "CHILD_SUPPORT_BONUS",
-		"name": "子ども・子育て支援金 標準賞与額 (support levy on bonuses)",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["CHILD_SUPPORT"],
+		"depends_on": [
+			"CHILD_SUPPORT"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
@@ -100,13 +105,15 @@
 		],
 		"id": "83de0b79-38d9-55b7-9cb2-94b145565888",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Child-support bonus contribution."
 	},
 	{
 		"code": "PENSION",
-		"name": "厚生年金保険 (employees' pension insurance)",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["HEALTH"],
+		"depends_on": [
+			"HEALTH"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {},
@@ -123,13 +130,15 @@
 		],
 		"id": "f17fd3e6-5de3-50ca-8f02-bb33352a1624",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Pension contribution shared by employee and employer."
 	},
 	{
 		"code": "PENSION_BONUS",
-		"name": "厚生年金保険 標準賞与額 (pension on bonuses)",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["PENSION"],
+		"depends_on": [
+			"PENSION"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
@@ -150,13 +159,15 @@
 		],
 		"id": "85c93a5a-11f6-51b6-b28d-09755992b4b8",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Pension bonus contribution."
 	},
 	{
 		"code": "CHILD_CONTRIBUTION",
-		"name": "子ども・子育て拠出金 (employer child contribution)",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["PENSION"],
+		"depends_on": [
+			"PENSION"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
@@ -175,11 +186,11 @@
 		],
 		"id": "968b858a-6487-56de-bb16-00d608787ded",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "Child contribution."
 	},
 	{
 		"code": "EI",
-		"name": "雇用保険 (employment insurance)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
@@ -200,13 +211,15 @@
 		],
 		"id": "c0cf75c9-be3c-5d71-986c-5039c808447d",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Employment insurance contribution."
 	},
 	{
 		"code": "EI_BONUS",
-		"name": "雇用保険 賞与 (employment insurance on bonuses)",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["EI"],
+		"depends_on": [
+			"EI"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
@@ -224,11 +237,11 @@
 		],
 		"id": "73388fd8-b15b-574d-8ee4-fef42d739852",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Employment insurance bonus contribution."
 	},
 	{
 		"code": "WORKERS_ACCIDENT",
-		"name": "労災保険 (workers' accident compensation insurance)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
@@ -246,17 +259,17 @@
 		],
 		"id": "b9804e67-1442-54ab-996c-a2729fc0df5d",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Workers’ accident insurance contribution."
 	},
 	{
 		"code": "ASBESTOS_LEVY",
-		"name": "一般拠出金 (asbestos relief general levy)",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
-			"rate": 2e-5
+			"rate": 2e-05
 		},
 		"eligibility": "// js\nconst classification = get(ctx.subject.employment.terms, 'work_classification', 'EMPLOYEE');\nreturn classification !== 'OFFICER' && get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) > 0;",
 		"employee_amount": "// js\nreturn 0;",
@@ -271,11 +284,11 @@
 		],
 		"id": "c8353d68-9e45-5b80-b26f-a19352957d9f",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Asbestos levy."
 	},
 	{
 		"code": "INCOME_TAX",
-		"name": "源泉所得税及び復興特別所得税 (salary and bonus withholding)",
 		"kind": "TAX",
 		"depends_on": [
 			"HEALTH",
@@ -2635,13 +2648,18 @@
 		],
 		"id": "468ed748-6b0f-5f72-89b4-a2182f1b8511",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "Employee income tax withheld for the pay period."
 	},
 	{
 		"code": "YEAR_END_ADJUSTMENT",
-		"name": "年末調整 (year-end adjustment)",
 		"kind": "TAX",
-		"depends_on": ["INCOME_TAX", "HEALTH", "PENSION", "EI"],
+		"depends_on": [
+			"INCOME_TAX",
+			"HEALTH",
+			"PENSION",
+			"EI"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
@@ -2740,11 +2758,11 @@
 		],
 		"id": "bb0c6842-ebf4-5472-afe5-c90da16fa30a",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "Year-end tax adjustment."
 	},
 	{
 		"code": "RETIREMENT_TAX",
-		"name": "退職所得の源泉徴収 (retirement income withholding)",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
@@ -2753,7 +2771,7 @@
 			"no_declaration_rate": 0.2042
 		},
 		"eligibility": "// js\nconst residency = get(ctx.subject.employment.terms, 'residency_status', '');\nreturn get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) > 0 && ['RESIDENT', 'NON_RESIDENT'].includes(residency);",
-		"employee_amount": "// js\nconst pick = (rows, value) => {\n\tfor (const row of rows) if (row.up_to == null || value <= row.up_to) return row;\n\treturn rows[rows.length - 1];\n};\nconst allowance = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\n// 所得税法 art.212: a non-resident's retirement pay is taxed flat.\nif (get(ctx.subject.employment.terms, 'residency_status', '') === 'NON_RESIDENT') return round(allowance * ctx.lookup.nonresident_rate, 1, 'DOWN');\n// 所得税法 art.201(3): without the 退職所得の受給に関する申告書 the payment is taxed flat, with no deduction.\nconst undeclared = get(ctx.subtotals, 'RETIREMENT_UNDECLARED', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nconst flat = round(undeclared * ctx.lookup.no_declaration_rate, 1, 'DOWN');\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\n// 所得税法施行令 art.69: service runs to the retirement day and a part year counts as a whole year.\nconst after = add_days(get(ctx.subject.employment, 'effective_range.to', ctx.run.pay_date), 1);\nconst months = calendar_completed_months(start, after);\nconst years = divide_round(add_months(start, months) < after ? months + 1 : months, 12, 0, 'UP');\nconst deduction = years <= 20 ? Math.max(years * ctx.lookup.annual_service_deduction, ctx.lookup.minimum_service_deduction) : ctx.lookup.breakpoint_deduction + (years - 20) * ctx.lookup.extended_annual_service_deduction;\nconst remainder = allowance - undeclared - deduction;\nif (remainder <= 0) return flat;\n// 所得税法 art.30(2): five years of service or less: no half for an officer, and only the first 3,000,000 halved for others.\nlet income = remainder * ctx.lookup.taxable_share;\nif (years <= 5 && get(ctx.subject.employment.terms, 'work_classification', '') === 'OFFICER') income = remainder;\nelse if (years <= 5 && remainder > 3000000) income = remainder - 1500000;\nconst taxable = round(income, 1000, 'DOWN');\nconst band = pick(ctx.lookup.annual_tax, taxable);\nreturn flat + round((taxable * band.rate + band.offset) * ctx.lookup.reconstruction_multiplier, 1, 'DOWN');",
+		"employee_amount": "// js\nconst pick = (rows, value) => {\n\tfor (const row of rows) if (row.up_to == null || value <= row.up_to) return row;\n\treturn rows[rows.length - 1];\n};\nconst allowance = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\n// 所得税法 art.212: a non-resident's retirement pay is taxed flat.\nif (get(ctx.subject.employment.terms, 'residency_status', '') === 'NON_RESIDENT') return round(allowance * ctx.lookup.nonresident_rate, 1, 'DOWN');\n// 所得税法 art.201(3): without the 退職所得の受給に関する申告書 the payment is taxed flat, with no deduction.\nconst undeclared = get(ctx.subtotals, 'RETIREMENT_UNDECLARED', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nconst flat = round(undeclared * ctx.lookup.no_declaration_rate, 1, 'DOWN');\nconst start = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from));\n// 所得税法施行令 art.69: service runs to the retirement day and a part year counts as a whole year.\nconst after = add_days(get(ctx.subject.employment, 'effective_range.to', ctx.run.pay_date), 1);\nconst months = calendar_completed_months(start, after);\nconst years = divide_round(add_months(start, months) < after ? months + 1 : months, 12, 0, 'UP');\nconst deduction = years <= 20 ? Math.max(years * ctx.lookup.annual_service_deduction, ctx.lookup.minimum_service_deduction) : ctx.lookup.breakpoint_deduction + (years - 20) * ctx.lookup.extended_annual_service_deduction;\nconst remainder = allowance - undeclared - deduction;\nif (remainder <= 0) return flat;\n// 所得税法 art.30(2): five years of service or less: no half for an officer, and only the first 3,000,000 halved for others.\nlet income = remainder * ctx.lookup.taxable_share;\nif (years <= 5 && get(ctx.subject.employment.terms, 'work_classification', '') === 'OFFICER') income = remainder;\nelse if (years <= 5 && remainder > 3000000) income = remainder - 1500000;\nconst taxable = round(income, 1000, 'DOWN');\nconst band = pick(ctx.lookup.annual_tax, taxable);\nreturn flat + round((taxable * band.rate + band.offset) * ctx.lookup.reconstruction_multiplier, 1, 'DOWN');",
 		"employer_amount": "// js\nreturn 0;",
 		"references": [
 			{
@@ -2765,13 +2783,15 @@
 		],
 		"id": "a6da910b-7c28-579f-9be9-ecd73692531a",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "Retirement income tax withheld."
 	},
 	{
 		"code": "RESIDENT_TAX_RETIREMENT",
-		"name": "退職所得の分離課税 住民税 (resident tax on retirement income)",
 		"kind": "TAX",
-		"depends_on": ["RETIREMENT_TAX"],
+		"depends_on": [
+			"RETIREMENT_TAX"
+		],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"employer_cost_subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
 		"lookup": {
@@ -2779,7 +2799,7 @@
 			"prefectural_rate": 0.04
 		},
 		"eligibility": "// js\nconst residency = get(ctx.subject.employment.terms, 'residency_status', '');\nreturn get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) > 0 && ['RESIDENT', 'NON_RESIDENT'].includes(residency);",
-		"employee_amount": "// js\nconst allowance = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\n// 所得税法施行令 art.69: service runs to the retirement day and a part year counts as a whole year.\nconst after = add_days(get(ctx.subject.employment, 'effective_range.to', ctx.run.pay_date), 1);\nconst months = calendar_completed_months(start, after);\nconst years = divide_round(add_months(start, months) < after ? months + 1 : months, 12, 0, 'UP');\nconst deduction = years <= 20 ? Math.max(years * ctx.lookup.annual_service_deduction, ctx.lookup.minimum_service_deduction) : ctx.lookup.breakpoint_deduction + (years - 20) * ctx.lookup.extended_annual_service_deduction;\nconst remainder = allowance - deduction;\nif (remainder <= 0) return 0;\nif (get(ctx.subject.employment.employee_extension_data, 'statutory.RESIDENT_TAX_RETIREMENT.not_domiciled_on_january_1', false) === true) return 0;\n// 所得税法 art.30(2): five years of service or less: no half for an officer, and only the first 3,000,000 halved for others.\nlet income = remainder * ctx.lookup.taxable_share;\nif (years <= 5 && get(ctx.subject.employment.terms, 'work_classification', '') === 'OFFICER') income = remainder;\nelse if (years <= 5 && remainder > 3000000) income = remainder - 1500000;\nconst taxable = round(income, 1000, 'DOWN');\n// Each tax is truncated to 100 yen on its own.\nreturn round(taxable * ctx.lookup.municipal_rate, 100, 'DOWN') + round(taxable * ctx.lookup.prefectural_rate, 100, 'DOWN');",
+		"employee_amount": "// js\nconst allowance = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nconst start = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from));\n// 所得税法施行令 art.69: service runs to the retirement day and a part year counts as a whole year.\nconst after = add_days(get(ctx.subject.employment, 'effective_range.to', ctx.run.pay_date), 1);\nconst months = calendar_completed_months(start, after);\nconst years = divide_round(add_months(start, months) < after ? months + 1 : months, 12, 0, 'UP');\nconst deduction = years <= 20 ? Math.max(years * ctx.lookup.annual_service_deduction, ctx.lookup.minimum_service_deduction) : ctx.lookup.breakpoint_deduction + (years - 20) * ctx.lookup.extended_annual_service_deduction;\nconst remainder = allowance - deduction;\nif (remainder <= 0) return 0;\nif (get(ctx.subject.employment.employee_extension_data, 'statutory.RESIDENT_TAX_RETIREMENT.not_domiciled_on_january_1', false) === true) return 0;\n// 所得税法 art.30(2): five years of service or less: no half for an officer, and only the first 3,000,000 halved for others.\nlet income = remainder * ctx.lookup.taxable_share;\nif (years <= 5 && get(ctx.subject.employment.terms, 'work_classification', '') === 'OFFICER') income = remainder;\nelse if (years <= 5 && remainder > 3000000) income = remainder - 1500000;\nconst taxable = round(income, 1000, 'DOWN');\n// Each tax is truncated to 100 yen on its own.\nreturn round(taxable * ctx.lookup.municipal_rate, 100, 'DOWN') + round(taxable * ctx.lookup.prefectural_rate, 100, 'DOWN');",
 		"employer_amount": "// js\nreturn 0;",
 		"references": [
 			{
@@ -2791,11 +2811,11 @@
 		],
 		"id": "c23e0370-f8dc-5530-96db-0542aa904f32",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "Resident retirement income tax withheld."
 	},
 	{
 		"code": "RESIDENT_TAX",
-		"name": "住民税 特別徴収 (resident tax special collection)",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
@@ -2813,6 +2833,7 @@
 		],
 		"id": "c6431e28-318a-5433-b710-6dd8253df5b2",
 		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4",
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "Resident income tax withheld."
 	}
 ]

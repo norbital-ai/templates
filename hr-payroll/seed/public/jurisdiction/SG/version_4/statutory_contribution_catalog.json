@@ -1,7 +1,6 @@
 [
 	{
 		"code": "CPF_AW",
-		"name": "Additional wages that attracted CPF (memo for the AW ceiling)",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
@@ -17,13 +16,15 @@
 		"id": "3eefff3b-b863-5dfb-99ab-58acf3c9e339",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
 		"employer_cost_subtotal_id": null,
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "CPF_AW: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "CPF",
-		"name": "Central Provident Fund",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["CPF_AW"],
+		"depends_on": [
+			"CPF_AW"
+		],
 		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
 		"employer_cost_subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
 		"lookup": {
@@ -60,11 +61,11 @@
 		],
 		"id": "8ab65a6d-cb36-5aa4-a7b5-056078b8846f",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "CPF: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "CDAC",
-		"name": "Chinese Development Assistance Council Fund",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
@@ -91,7 +92,12 @@
 					"amount": 3
 				}
 			],
-			"races": ["CHINESE", "SINO INDIAN", "SINO JAPANESE", "SINO KADAZAN"]
+			"races": [
+				"CHINESE",
+				"SINO INDIAN",
+				"SINO JAPANESE",
+				"SINO KADAZAN"
+			]
 		},
 		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nif (!ctx.lookup.races.includes(get(facts, 'race', ''))) return false;\nreturn get(facts, 'statutory.CDAC.shg_opted_out', false) !== true;",
 		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'statutory.CDAC.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('CDAC.employee');",
@@ -114,11 +120,11 @@
 		"id": "5cc275ca-de14-5a7b-a7c1-7ed6506fea1b",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
 		"employer_cost_subtotal_id": null,
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "CDAC: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "ECF",
-		"name": "Eurasian Community Fund",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
@@ -184,11 +190,11 @@
 		"id": "52a69689-921b-5054-8274-f8a1154a2964",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
 		"employer_cost_subtotal_id": null,
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "ECF: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "MBMF",
-		"name": "Mosque Building and Mendaki Fund",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
@@ -243,11 +249,11 @@
 		"id": "04b7875d-91bd-5489-91fd-589effdb898f",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
 		"employer_cost_subtotal_id": null,
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "MBMF: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "SINDA",
-		"name": "Singapore Indian Development Association Fund",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
@@ -340,11 +346,11 @@
 		"id": "5824e886-d13d-55e4-9ec8-e2f69c91cca9",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
 		"employer_cost_subtotal_id": null,
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "SINDA: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "SDL",
-		"name": "Skills Development Levy",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
@@ -382,11 +388,11 @@
 		],
 		"id": "458d2f72-6b4a-56bc-83c4-76e1c2eea69a",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"balance_window": "MONTH"
+		"balance_window": "MONTH",
+		"description": "SDL: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "WHT_NR_DIRECTOR",
-		"name": "Withholding tax on non-resident director fees",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "8c740b41-2ac1-50aa-8866-4834bb4678bb",
@@ -407,11 +413,11 @@
 		"id": "b3c08176-094e-52f0-920d-da4bc0ffaf3e",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
 		"employer_cost_subtotal_id": null,
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "WHT_NR_DIRECTOR: Employee and employer contribution for the pay period."
 	},
 	{
 		"code": "WHT_NR_ENTERTAINER",
-		"name": "Withholding tax on non-resident public entertainers",
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "3d3a5894-7802-51bb-b0af-0e99864fd80c",
@@ -432,6 +438,7 @@
 		"id": "8f9b72df-1a07-5500-ab19-8a96ab3c69dc",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
 		"employer_cost_subtotal_id": null,
-		"balance_window": "YEAR"
+		"balance_window": "YEAR",
+		"description": "WHT_NR_ENTERTAINER: Employee and employer contribution for the pay period."
 	}
 ]

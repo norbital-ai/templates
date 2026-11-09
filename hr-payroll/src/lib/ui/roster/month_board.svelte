@@ -31,6 +31,7 @@
 		readonly planned_overtime_intervals?: unknown;
 		readonly actual_worked_intervals?: unknown;
 		readonly findings?: unknown;
+		readonly consent?: unknown;
 	};
 	type BoardPerson = Person & {
 		readonly number: string;
@@ -91,6 +92,7 @@
 							'planned_overtime_intervals',
 							'actual_worked_intervals',
 							'findings',
+							'consent',
 							'payroll_run_id'
 						],
 						limit: 10000
@@ -116,10 +118,14 @@
 					},
 					leave_catalog_entry: {
 						where: { employment_id: { in: [...ids] } },
-						fields: ['employment_id', 'days', 'catalog_id', 'reverses'],
+						fields: ['employment_id', 'catalog_id', 'reverses'],
 						limit: 10000
 					},
-					'leave_catalog_entry.catalog_id': { fields: ['code', 'name'] }
+					'leave_catalog_entry.catalog_id': { fields: ['code'] },
+					'leave_catalog_entry.leave_catalog_entry_day': {
+						fields: ['incurred_on', 'part'],
+						limit: 10000
+					}
 				})
 	);
 	const versions = $derived(
@@ -147,7 +153,8 @@
 				shift_definition_id: entry.shift_definition_id,
 				planned_overtime_intervals: entry.planned_overtime_intervals,
 				actual_worked_intervals: entry.actual_worked_intervals,
-				findings: entry.findings
+				findings: entry.findings,
+				consent: entry.consent
 			});
 			grouped.set(employment, list);
 		}
@@ -230,6 +237,10 @@
 			holidays: data?.current?.holiday.rows ?? [],
 			leave: (data?.current?.leave_catalog_entry.rows ?? []).map((row) => ({
 				...row,
+				days: (row.leave_catalog_entry_day ?? []).map((child) => ({
+					date: String(child.incurred_on),
+					part: String(child.part)
+				})),
 				employee: String(contractById.get(String(row.employment_id))?.employee_id)
 			})),
 			locked,
@@ -441,7 +452,8 @@
 				'work_date',
 				'shift_definition_id',
 				'planned_overtime_intervals',
-				'actual_worked_intervals'
+				'actual_worked_intervals',
+				'consent'
 			]}
 			values={{
 				employment_id: creating.employmentId,

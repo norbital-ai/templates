@@ -8,19 +8,7 @@ import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	accountsIn,
-	catalogRow,
-	ledgerRows,
-	measureOf,
-	pack,
-	sealEvents,
-	syncAll,
-	uuid,
-	wholeDays,
-	workspace
-} from './kit.ts';
+import { ENTITY, accountsIn, catalogRow, ledgerRows, measureOf, pack, sealEvents, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
 
 const NOW = '2026-12-20T02:00:00.000Z';
 const near = (actual: number, expected: number) =>
@@ -66,12 +54,12 @@ const MAN = seedOf('MALE');
 const BIRTH = { kind: 'CHILD_BIRTH', on: '2026-03-02' };
 const take = (t: Kit, seed: Seed, code: string, dates: readonly string[], employment = CONTRACT) =>
 	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
+		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: employment,
 			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
 			days: wholeDays(...dates)
-		}
+		})
 	]);
 const seal = (t: Kit, from: string, ...events: readonly JsonObject[]) =>
 	sealEvents(t, from, events).pipe(Effect.tap(t.runDue()));
@@ -134,7 +122,8 @@ describe('a birth on the contract', () => {
 					payroll: held.payroll,
 					bank: held.bank,
 					input_schema_version_id: held.input_schema_version_id,
-					employee_extension_data: { ...held.employee_extension_data, events: [BIRTH] },
+					employee_extension_data: held.employee_extension_data,
+					events: [{ kind: BIRTH.kind, on: PlainDate(BIRTH.on) }],
 					service_started_on: held.service_started_on,
 					effective_range: { from: PlainDate('2026-07-01'), to: null },
 					signed_contract_period: held.signed_contract_period,
@@ -263,6 +252,7 @@ describe('a workplace case', () => {
 			yield* t.as(t.admin).act('workplace_case_catalog_entry.create', [
 				{
 					entity_id: ENTITY,
+					employment_id: CONTRACT,
 					catalog_id: idOf(
 						'workplace_case_catalog',
 						catalogRow(WOMAN, 'workplace_case_catalog', 'PERSONAL_DATA_BREACH')
@@ -357,13 +347,13 @@ describe('pay that steps down, on one row', () => {
 				.leave_catalog_entry.rows;
 			assert.ok(first !== undefined);
 			yield* t.as(t.admin).act('leave_catalog_entry.create', [
-				{
+				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
 					catalog_id: idOf('leave_catalog', catalogRow(born, 'leave_catalog', 'MATERNITY_LEAVE')),
-					days: wholeDays('2026-07-06'),
+					days: wholeDays('2026-06-09'),
 					reverses: first.id
-				}
+				})
 			]);
 			yield* t.runDue();
 			yield* run(t, '2026-07');

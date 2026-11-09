@@ -141,7 +141,7 @@ const STATUTORY = 'statutory_contribution_catalog';
 const sectionOf = (line: Line): Section => {
 	if (line.party === 'EMPLOYER') return 'employer';
 	if (line.source === STATUTORY) return 'employee';
-	if (line.source === 'loan_repayment_entry') return 'loans';
+	if (line.source === 'loan_catalog_entry_repayment') return 'loans';
 	if (line.direction === 'DEDUCT') return 'deductions';
 	if (line.source === 'employee_contract') return 'basic';
 	if (line.source === 'allowance_catalog') return 'allowances';

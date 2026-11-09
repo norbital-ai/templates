@@ -1,7 +1,6 @@
 [
 	{
 		"code": "TRAVEL_REIMBURSEMENT",
-		"name": "Travel and transport for work (reimbursed)",
 		"lookup": {},
 		"references": [
 			{
@@ -15,6 +14,7 @@
 		"eligibility": "// js\n\tconst ended = get(ctx.subject.employment.effective_range, 'to', null);\n\treturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\n\treturn ctx.entry.quantity;",
 		"id": "08e291cb-19e0-5cd4-86fc-6e6264efc3f0",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"description": "Travel reimbursement."
 	}
 ]

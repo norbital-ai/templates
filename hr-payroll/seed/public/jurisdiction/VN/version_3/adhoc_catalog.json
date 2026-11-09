@@ -1,7 +1,6 @@
 [
 	{
 		"code": "SEVERANCE_ALLOWANCE",
-		"name": "Trợ cấp thôi việc (severance allowance)",
 		"lookup": {
 			"qualifying_service_months": 12
 		},
@@ -12,17 +11,16 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "a1f3ee3c-3886-51f7-b3b7-5afb26398d4f",
-		"eligibility": "// js\nconst start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nif (get(facts, 'pension_eligible', false) === true) return false;\nif (get(facts, 'absent_five_days', false) === true) return false;\nif (get(facts, 'unlawful_resignation', false) === true) return false;\nreturn true;",
+		"eligibility": "// js\nconst start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nif (get(facts, 'pension_eligible', false) === true) return false;\nif (get(facts, 'absent_five_days', false) === true) return false;\nif (get(facts, 'unlawful_resignation', false) === true) return false;\nreturn true;",
 		"conversion": "// js\n// quantity: the months HR counted under art.46(2), service less unemployment-insured time and time already paid.\nconst wage = ctx.month_wage;\nconst full_years = Math.trunc(ctx.entry.quantity / 12);\nconst remainder = ctx.entry.quantity % 12;\nconst half_month = wage * ctx.lookup.half_month_share;\nif (remainder > ctx.lookup.half_year_remainder_months) return half_month * (full_years + 1);\nif (remainder > 0) return half_month * (full_years + ctx.lookup.half_year_share);\nreturn half_month * full_years;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "f03abc1b-1581-5f2e-a94b-4340fac9bf89",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "Severance allowance."
 	},
 	{
 		"code": "JOB_LOSS_ALLOWANCE",
-		"name": "Trợ cấp mất việc làm (job-loss allowance)",
 		"lookup": {
 			"minimum_months": 2,
 			"qualifying_service_months": 12
@@ -39,17 +37,16 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "a1f3ee3c-3886-51f7-b3b7-5afb26398d4f",
-		"eligibility": "// js\nconst start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nreturn get(facts, 'unlawful_resignation', false) !== true;",
+		"eligibility": "// js\nconst start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nreturn get(facts, 'unlawful_resignation', false) !== true;",
 		"conversion": "// js\n// quantity: the months HR counted under art.47(2); zero still pays the two-month minimum (Decree 145/2020 art.8(2)).\nconst wage = ctx.month_wage;\nconst full_years = Math.trunc(ctx.entry.quantity / 12);\nconst remainder = ctx.entry.quantity % 12;\nconst pay = (years) => wage * Math.max(years, ctx.lookup.minimum_months);\nif (remainder > ctx.lookup.half_year_remainder_months) return pay(full_years + 1);\nif (remainder > 0) return pay(full_years + ctx.lookup.half_year_share);\nreturn pay(full_years);",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "54a428d5-1673-5013-80bf-8a4dcd7930c6",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "Job-loss allowance."
 	},
 	{
 		"code": "LATE_WAGE_COMPENSATION",
-		"name": "Tiền đền bù trả lương chậm (late-wage compensation)",
 		"lookup": {},
 		"references": [
 			{
@@ -60,15 +57,14 @@
 		"subtotal_id": "c331f4ca-e086-5ed3-a8ca-237cfb6b7a60",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "f5800889-c65c-5c74-9bd9-b1d7d8599941",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "Compensation for late wages."
 	},
 	{
 		"code": "BONUS",
-		"name": "Tiền thưởng (bonus, Labour Code art.104)",
 		"lookup": {},
 		"references": [
 			{
@@ -79,15 +75,14 @@
 		"subtotal_id": "bf9e1a02-e1fb-55d7-83f8-f04e42f311bc",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "a7fed34c-5b62-5f71-9a03-64d8111604c9",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "Bonus paid outside the ordinary wage."
 	},
 	{
 		"code": "PROPERTY_DAMAGE_COMPENSATION",
-		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
 		"lookup": {
 			"deduction_share": 0.3
 		},
@@ -101,15 +96,14 @@
 		"subtotal_id": "17a00dad-28db-564a-bf96-8961e6eca4ad",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nconst wage = get(ctx.subject.employment, 'terms.rate.amount', null);\nreturn wage == null\n\t? ctx.entry.quantity\n\t: Math.min(\n\t\t\tctx.entry.quantity,\n\t\t\tNumber(wage) * ctx.lookup.deduction_share\n\t\t);",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "8a8f09b1-def8-5e8d-a168-3bd0a6c8015d",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "Property-damage compensation."
 	},
 	{
 		"code": "UNLAWFUL_TERMINATION_COMPENSATION",
-		"name": "Compensation for unlawful termination by the employer",
 		"lookup": {
 			"months_of_wage": 2
 		},
@@ -123,15 +117,14 @@
 		"subtotal_id": "a1f3ee3c-3886-51f7-b3b7-5afb26398d4f",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity * ctx.lookup.months_of_wage;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "841dc280-04f3-556c-a15f-ad393bdd9040",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "UNLAWFUL_TERMINATION_COMPENSATION: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "EMPLOYEE_UNLAWFUL_TERMINATION",
-		"name": "Worker’s unlawful termination: half a month and unserved notice",
 		"lookup": {},
 		"references": [
 			{
@@ -143,15 +136,14 @@
 		"subtotal_id": "17a00dad-28db-564a-bf96-8961e6eca4ad",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity * ctx.lookup.half_month_share;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "f70917d7-ef61-5ae5-94aa-56c054dea687",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "EMPLOYEE_UNLAWFUL_TERMINATION: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "TRAINING_COST_REFUND",
-		"name": "Training cost refund",
 		"lookup": {},
 		"references": [
 			{
@@ -163,15 +155,14 @@
 		"subtotal_id": "17a00dad-28db-564a-bf96-8961e6eca4ad",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "3cfabafb-e14b-5fd0-8ca1-f7dd4bf1ce82",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "TRAINING_COST_REFUND: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT_COMPENSATION",
-		"name": "Occupational accident or disease compensation",
 		"lookup": {},
 		"references": [
 			{
@@ -182,15 +173,14 @@
 		"subtotal_id": "a1f3ee3c-3886-51f7-b3b7-5afb26398d4f",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "06bb2051-2794-57f6-b49c-6a601e163644",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "OCCUPATIONAL_ACCIDENT_COMPENSATION: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT_MEDICAL",
-		"name": "Occupational accident medical costs",
 		"lookup": {},
 		"references": [
 			{
@@ -201,15 +191,14 @@
 		"subtotal_id": "a1f3ee3c-3886-51f7-b3b7-5afb26398d4f",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "5843483f-bd73-5d9c-be78-900fdbb9b5f0",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "OCCUPATIONAL_ACCIDENT_MEDICAL: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "SUSPENSION_SETTLEMENT",
-		"name": "Suspension settled without discipline",
 		"lookup": {},
 		"references": [
 			{
@@ -221,15 +210,14 @@
 		"subtotal_id": "c331f4ca-e086-5ed3-a8ca-237cfb6b7a60",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "74d451cf-c46f-5215-b962-f7ed11d45467",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "SUSPENSION_SETTLEMENT: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "EMPLOYER_PENSION_CONTRIBUTION",
-		"name": "Employer voluntary pension / life-insurance contribution",
 		"lookup": {},
 		"references": [
 			{
@@ -240,15 +228,14 @@
 		"subtotal_id": "76d26741-8d20-5fb0-a804-f58c59c7d204",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYER",
 		"id": "1f0fc470-2709-550f-bea1-5e654281e904",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "EMPLOYER_PENSION_CONTRIBUTION: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "NON_ACCUMULATING_INSURANCE",
-		"name": "Employer-paid non-compulsory insurance without accumulation",
 		"lookup": {},
 		"references": [
 			{
@@ -259,15 +246,14 @@
 		"subtotal_id": "e728a119-f907-55ee-a580-bef3c774863f",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYER",
 		"id": "6877f116-c2a2-5a24-8413-c8db80cc79b2",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "NON_ACCUMULATING_INSURANCE: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "TRAINING_SUPPORT",
-		"name": "Training paid for the worker",
 		"lookup": {},
 		"references": [
 			{
@@ -278,15 +264,14 @@
 		"subtotal_id": "e728a119-f907-55ee-a580-bef3c774863f",
 		"eligibility": "// js\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nif (get(range, 'to', null) != null && !(ctx.entry.incurred_on <= range.to)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYER",
 		"id": "493d284f-3534-5b66-ad98-86edad6e30b8",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
+		"description": "TRAINING_SUPPORT: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "STATUTORY_ADJUSTMENT",
-		"name": "Statutory adjustment",
 		"references": [
 			{
 				"title": "Law 41/2024/QH15 (social insurance), the Health Insurance Law, Law 74/2025/QH15 (employment) and Decree 253/2026/NĐ-CP (personal income tax): correction of a prior contribution or withholding remittance."
@@ -300,13 +285,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "5868be0b-8787-5808-96a5-4befef21d826",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "STATUTORY_REFUND",
-		"name": "Statutory refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -320,13 +303,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "1f3c889f-971b-52b3-8098-d1854bd8d1b4",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "SI_REFUND",
-		"name": "Social Insurance (Bảo hiểm xã hội) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -356,13 +337,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "becc075b-84fb-514d-927a-cf2cbcf35bfb",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "SI_ADJUSTMENT",
-		"name": "Social Insurance (Bảo hiểm xã hội) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -392,13 +371,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "22e80656-b91e-5e20-8533-b87d38799ae8",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "HI_REFUND",
-		"name": "Health Insurance (Bảo hiểm y tế) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -428,13 +405,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "a8c7621a-cd96-5a2a-91f2-4d7fdf05db06",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "HI_ADJUSTMENT",
-		"name": "Health Insurance (Bảo hiểm y tế) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -464,13 +439,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "f6f8c6fd-29c4-536f-abaa-4dc6907e07a5",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "UI_REFUND",
-		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -500,13 +473,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "a03430e4-d237-56b5-984d-bd6ee437fd03",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "UI_ADJUSTMENT",
-		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -536,13 +507,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "812b7d6a-e377-515f-aca0-8b4fae335321",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "UNION_DUES_REFUND",
-		"name": "Đoàn phí công đoàn (union membership dues) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -572,13 +541,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "9ca30e2e-b534-5a3a-9ac6-1656fd79727d",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "UNION_DUES_ADJUSTMENT",
-		"name": "Đoàn phí công đoàn (union membership dues) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -608,7 +575,6 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "f32b0c10-5384-5b20-969c-f2d91026793e",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	}

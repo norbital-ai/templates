@@ -8,7 +8,7 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import type { Accounts } from '../src/lib/ledger/core.ts';
-import { ENTITY, accountsIn, pack, sealedAdhoc, sealedLeave, uuid, workspace } from './kit.ts';
+import { ENTITY, accountsIn, pack, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate, reversalSlots } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -77,7 +77,6 @@ const enter = (
 			catalog_id: idOf('adhoc_catalog', String(row.id)),
 			description: 'Correction',
 			quantity,
-			unit: 'MONEY',
 			incurred_on: PlainDate(on),
 			reverses
 		}
@@ -336,18 +335,24 @@ describe('someone on a six-day week', () => {
 		);
 		assert.ok(row !== undefined);
 		const take = (t: Kit, date: string, reverses: Id<'leave_catalog_entry'> | null = null) =>
-			t.as(t.admin).act('leave_catalog_entry.create', [
-				{
-					entity_id: ENTITY,
-					employment_id: CONTRACT,
-					catalog_id: idOf('leave_catalog', String(row.id)),
-					days: [
-						{ date: PlainDate(date), part: 'AM' as const },
-						{ date: PlainDate(date), part: 'PM' as const }
-					],
-					reverses
-				}
-			]);
+			Effect.gen(function* () {
+				const days =
+					reverses == null
+						? [
+								{ date: PlainDate(date), part: 'AM' as const },
+								{ date: PlainDate(date), part: 'PM' as const }
+							]
+						: yield* reversalSlots(t, reverses);
+				yield* t.as(t.admin).act('leave_catalog_entry.create', [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: idOf('leave_catalog', String(row.id)),
+						days,
+						reverses
+					})
+				]);
+			});
 		const line = (slip: PayslipBreakdown | undefined) =>
 			slip?.lines.find((item) => item.code === 'UNPAID_LEAVE');
 		return Effect.gen(function* () {
@@ -398,12 +403,12 @@ describe('sick and hospitalisation leave in Singapore', () => {
 			}));
 		const take = (t: Kit, code: string, first: number, count: number) =>
 			t.as(t.admin).act('leave_catalog_entry.create', [
-				{
+				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
 					catalog_id: rowOf(code),
 					days: span(first, count)
-				}
+				})
 			]);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -581,15 +586,18 @@ describe('no-pay leave in Singapore', () => {
 		date: string,
 		reverses: Id<'leave_catalog_entry'> | null = null
 	) =>
-		t.as(t.admin).act('leave_catalog_entry.create', [
-			{
-				entity_id: ENTITY,
-				employment_id: CONTRACT,
-				catalog_id: noPay(seed),
-				days: whole(date),
-				reverses
-			}
-		]);
+		Effect.gen(function* () {
+			const days = reverses == null ? whole(date) : yield* reversalSlots(t, reverses);
+			yield* t.as(t.admin).act('leave_catalog_entry.create', [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: noPay(seed),
+					days,
+					reverses
+				})
+			]);
+		});
 	const line = (slip: PayslipBreakdown | undefined) =>
 		slip?.lines.find((row) => row.code === 'UNPAID_LEAVE');
 	const seed = seedOf(SINGAPORE, 4400);

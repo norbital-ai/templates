@@ -28,7 +28,11 @@ export default model('statutory_contribution_catalog', {
 			default: {}
 		},
 		code: { kind: 'text' },
-		name: { kind: 'text' },
+		description: {
+			kind: 'text',
+			optional: true,
+			help: 'What this catalog row does: its rule, behaviour and any legal or operational note.'
+		},
 		references: { kind: 'custom', of: 'references', optional: true },
 		kind: { kind: 'enum', values: ['CONTRIBUTION', 'TAX'] },
 		/** The posting window this scheme holds in the ledger. */
@@ -47,7 +51,9 @@ export default model('statutory_contribution_catalog', {
 	unique: [{ fields: ['settings_id', 'code'] }],
 	read: {
 		statutory_contribution_catalog: { fields: 'all' },
-		'statutory_contribution_catalog.settings_id': { fields: 'all' }
+		'statutory_contribution_catalog.settings_id': { fields: 'all' },
+		'statutory_contribution_catalog.subtotal_id': { fields: ['code', 'name'] },
+		'statutory_contribution_catalog.employer_cost_subtotal_id': { fields: ['code', 'name'] },
 	},
 	create: {
 		columns: {
@@ -56,7 +62,7 @@ export default model('statutory_contribution_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
+				'description',
 				'references',
 				'kind',
 				'balance_window',
@@ -84,7 +90,7 @@ export default model('statutory_contribution_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
+				'description',
 				'references',
 				'kind',
 				'balance_window',

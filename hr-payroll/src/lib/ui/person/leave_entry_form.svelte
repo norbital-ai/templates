@@ -2,6 +2,7 @@
 	import { bolt } from '$bolt';
 	import type { Id, Row } from '@norbital-ai/bolt';
 	import { Effect } from 'effect';
+	import { untrack } from 'svelte';
 	import { PlainDate, datePeriod, eachDay, monthOf } from '@norbital-ai/std/date';
 	import { Button, Combobox, notifyOutcome, toast } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
@@ -12,41 +13,108 @@
 	import { idOf } from '../../payroll_engine/reads.js';
 	import ReversalEditor from './reversal_editor.svelte';
 
+	type LeaveSlot = {
+		readonly id: Id<'leave_catalog_entry_day'>;
+		readonly incurred_on: string | PlainDate;
+		readonly part: 'AM' | 'PM';
+		readonly payroll_run_id?: unknown;
+	};
+
 	let {
 		entityId,
 		employmentId: initialEmployment,
 		record = null,
 		allowReversal = false,
+		reverses = null,
+		encashment = false,
+		catalogId = null,
 		onDone
 	}: {
 		entityId: Id<'entity'>;
 		employmentId?: Id<'employee_contract'> | null;
-		record?: Row<'leave_catalog_entry'> | null;
+		/** The sealed entry a new reversal corrects, when the page opens straight into reversal mode. */
+		reverses?: Id<'leave_catalog_entry'> | null;
+		/** The corrected entry was a cash-out: its reversal must carry the flag or it only returns the days. */
+		encashment?: boolean;
+		catalogId?: Id<'leave_catalog'> | null;
+		record?:
+			| (Row<'leave_catalog_entry'> & {
+					readonly leave_catalog_entry_day?: readonly LeaveSlot[];
+			  })
+			| null;
 		/** The HR controller corrects what has been paid with a reversal entry on the same item. */
 		allowReversal?: boolean;
 		onDone: () => void;
 	} = $props();
 
+	const fixedEmployment = initialEmployment != null;
 	const clock = bolt.clock('day');
 	const today = $derived(clock.today || todayKey());
 	const [year, month] = today.split('-').map(Number) as [number, number];
 	let at = $state(new Date(Date.UTC(year, month - 1, 1)));
 	let chosen = $state<Id<'employee_contract'> | null>(initialEmployment ?? null);
 	let catalog = $state<Id<'leave_catalog'> | null>(
-		(record?.catalog_id as Id<'leave_catalog'> | undefined) ?? null
+		(record?.catalog_id as Id<'leave_catalog'> | undefined) ?? catalogId ?? null
 	);
 	let sessions = $state<{ date: string; part: 'AM' | 'PM' }[]>(
 		record === null
 			? []
-			: Array.isArray(record?.days)
-				? record.days.flatMap((day) => {
-						const date = String(Reflect.get(day, 'date') ?? '');
-						const part = String(Reflect.get(day, 'part') ?? '');
-						return date !== '' && (part === 'AM' || part === 'PM') ? [{ date, part }] : [];
-					})
-				: []
+			: (record.leave_catalog_entry_day ?? []).flatMap((child) => {
+					const date = String(child.incurred_on ?? '');
+					const part = String(child.part ?? '');
+					return date !== '' && (part === 'AM' || part === 'PM') ? [{ date, part }] : [];
+				})
 	);
 	let saving = $state(false);
+	// a reversal returns exactly the slots a run captured; opening one preselects them all
+	let originalSlots = $state<ReadonlySet<string>>(new Set());
+	let loadedReversal = $state<string | null>(null);
+	$effect(() => {
+		const id = reversing;
+		if (id === null || record !== null || id === loadedReversal) return;
+		loadedReversal = id;
+		untrack(() => {
+			void (async () => {
+				const key = idOf('leave_catalog_entry', id);
+				const answer = await bolt.query({
+					leave_catalog_entry_day: {
+						where: { leave_entry_id: { eq: key } },
+						fields: ['incurred_on', 'part', 'payroll_run_id'],
+						orderBy: { incurred_on: 'asc' },
+						limit: 10000
+					},
+					leave_catalog_entry: {
+						where: { id: { eq: key } },
+						fields: ['catalog_id'],
+						limit: 1
+					}
+				});
+				const ref = (value: unknown): string => {
+					if (typeof value === 'string') return value;
+					if (value !== null && typeof value === 'object' && 'id' in value)
+						return String((value as { readonly id: unknown }).id);
+					return '';
+				};
+				const original = answer.leave_catalog_entry.rows[0];
+				if (original !== undefined) {
+					const catalogId = ref(original.catalog_id);
+					if (catalogId !== '') catalog = idOf('leave_catalog', catalogId);
+				}
+				const slots = answer.leave_catalog_entry_day.rows
+					.filter((row) => row.payroll_run_id != null)
+					.flatMap((row) => {
+						const date = String(row.incurred_on ?? '');
+						const part = String(row.part ?? '');
+						return date !== '' && (part === 'AM' || part === 'PM')
+							? [{ date, part: part as 'AM' | 'PM' }]
+							: [];
+					});
+				originalSlots = new Set(slots.map((slot) => `${slot.date}:${slot.part}`));
+				sessions = slots;
+				if (slots[0] !== undefined) at = new Date(`${slots[0].date.slice(0, 7)}-01T00:00:00Z`);
+			})();
+		});
+	});
 
 	const contracts = $derived(
 		bolt.query({
@@ -115,7 +183,7 @@
 			: bolt.query({
 					leave_catalog: {
 						where: { settings_id: { eq: inForce.id } },
-						fields: ['code', 'name', 'lookup'],
+						fields: ['code', 'lookup'],
 						orderBy: { code: 'asc' },
 						limit: 10000
 					}
@@ -144,7 +212,7 @@
 					events: eventsOf(jsonObject(contract))
 				}
 	);
-	const recordDays = $derived((record?.days?.length ?? 0) / 2);
+	const recordDays = $derived((record?.leave_catalog_entry_day?.length ?? 0) / 2);
 	const availableFor = (row: {
 		readonly id: string;
 		readonly code: string;
@@ -168,14 +236,14 @@
 		return lookup.no_cap === true || (lookup.grant_days == null && lookup.service_bands == null);
 	};
 	const catalogRows = $derived(catalogs?.current?.leave_catalog.rows ?? []);
-	let reversal = $state(false);
-	let reversing = $state<string | null>(null);
+	let reversal = $state(reverses != null);
+	let reversing = $state<string | null>(reverses ?? null);
 	const catalogOptions = $derived(
 		catalogRows
 			.filter((row) => reversal || availableFor(row) > 0)
 			.map((row) => ({
 				value: row.id,
-				label: `${row.code} · ${row.name}`,
+				label: row.code,
 				suffix: reversal || isNoCap(row) ? '' : `${availableFor(row)} d`
 			}))
 	);
@@ -208,17 +276,23 @@
 						bolt.query({
 							leave_catalog_entry: {
 								where: { employment_id: { eq: chosen } },
-								fields: ['days'],
+								fields: ['id', 'employment_id'],
+								limit: 10000
+							},
+							'leave_catalog_entry.leave_catalog_entry_day': {
+								fields: ['id', 'incurred_on', 'part', 'payroll_run_id'],
 								limit: 10000
 							}
 						}).current?.leave_catalog_entry.rows ?? []
-					).flatMap((row) =>
-						(Array.isArray(row.days) ? row.days : []).flatMap((day) => {
-							const date = String(Reflect.get(day, 'date') ?? '');
-							const part = String(Reflect.get(day, 'part') ?? '');
-							return date !== '' ? [`${date}:${part}`] : [];
-						})
 					)
+						.filter((row) => row.id !== record?.id)
+						.flatMap((row) =>
+							(row.leave_catalog_entry_day ?? []).flatMap((child) => {
+								const date = String(child.incurred_on ?? '');
+								const part = String(child.part ?? '');
+								return date !== '' ? [`${date}:${part}`] : [];
+							})
+						)
 				)
 	);
 	const weekend = (date: string) => [0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay());
@@ -227,6 +301,25 @@
 		holidayByDate.has(date) ||
 		date < String(contract?.effective_range.from ?? '') ||
 		(contract?.effective_range.to != null && date > String(contract.effective_range.to));
+	const captures = $derived(
+		record === null
+			? null
+			: bolt.query({
+					leave_catalog_entry_day: {
+						where: { leave_entry_id: { eq: record.id } },
+						fields: ['id', 'incurred_on', 'part', 'payroll_run_id'],
+						limit: 10000
+					}
+				})
+	);
+	const captured = $derived(
+		new Set(
+			(captures?.current?.leave_catalog_entry_day.rows ?? []).map(
+				(row) => `${String(row.incurred_on)}:${row.part}`
+			)
+		)
+	);
+	const isCaptured = (date: string, part: 'AM' | 'PM') => captured.has(`${date}:${part}`);
 	const selected = (date: string, part: 'AM' | 'PM') =>
 		sessions.some((row) => row.date === date && row.part === part);
 	const chosenCatalog = $derived(catalogRows.find((row) => row.id === catalog) ?? null);
@@ -236,6 +329,7 @@
 	let limitNotice = $state<string | null>(null);
 	const toggle = (date: string, part: 'AM' | 'PM') => {
 		if (catalog === null || blocked(date) || (!reversal && occupied.has(`${date}:${part}`))) return;
+		if (reversal && !selected(date, part) && !originalSlots.has(`${date}:${part}`)) return;
 		if (selected(date, part)) {
 			sessions = sessions.filter((row) => row.date !== date || row.part !== part);
 			limitNotice = null;
@@ -259,26 +353,48 @@
 							entity_id: entityId,
 							employment_id: chosen,
 							catalog_id: catalog,
-							days: sessions.map((session) => ({
-								date: PlainDate(session.date),
+							leave_catalog_entry_day: sessions.map((session) => ({
+								incurred_on: PlainDate(session.date),
 								part: session.part
 							})),
 							...(reversal && reversing !== null
-								? { reverses: idOf('leave_catalog_entry', reversing) }
+								? {
+										reverses: idOf('leave_catalog_entry', reversing),
+										...(encashment ? { encashment: true } : {})
+									}
 								: {})
 						}
 					])
-				: bolt.act('leave_catalog_entry.update', [
-						{
-							target: record.id,
-							set: {
-								days: sessions.map((session) => ({
-									date: PlainDate(session.date),
-									part: session.part
-								}))
+				: (() => {
+						const existing = captures?.current?.leave_catalog_entry_day.rows ?? [];
+						const keep = new Set(sessions.map((session) => `${session.date}:${session.part}`));
+						const remove = existing.filter(
+							(row) =>
+								row.payroll_run_id == null &&
+								!keep.has(`${String(row.incurred_on)}:${row.part}`)
+						);
+						const add = sessions.filter(
+							(session) =>
+								!existing.some(
+									(row) =>
+										String(row.incurred_on) === session.date && row.part === session.part
+								)
+						);
+						return bolt.act('leave_catalog_entry.update', [
+							{
+								target: record.id,
+								set: {
+									leave_catalog_entry_day: {
+										delete: remove.map((row) => row.id),
+										create: add.map((session) => ({
+											incurred_on: PlainDate(session.date),
+											part: session.part
+										}))
+									}
+								}
 							}
-						}
-					]);
+						]);
+					})();
 		fork(
 			effect.pipe(
 				Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
@@ -320,6 +436,8 @@
 				onchange={(event) => {
 					reversal = event.currentTarget.checked;
 					reversing = null;
+					loadedReversal = null;
+					originalSlots = new Set();
 					catalog = null;
 					sessions = [];
 					limitNotice = null;
@@ -335,7 +453,7 @@
 		</label>
 	{/if}
 	<div class="grid gap-3 sm:grid-cols-2">
-		<Stack gap="xs">
+		{#if !fixedEmployment}<Stack gap="xs">
 			<span class="text-xs font-medium text-muted-foreground">Employment</span>
 			<Combobox
 				options={contractOptions}
@@ -349,8 +467,8 @@
 					limitNotice = null;
 				}}
 			/>
-		</Stack>
-		<Stack gap="xs" class="relative">
+		</Stack>{/if}
+		<Stack gap="xs" class={fixedEmployment ? 'relative sm:col-span-2' : 'relative'}>
 			<span class="text-xs font-medium text-muted-foreground">Catalog</span>
 			<Combobox
 				options={catalogOptions}
@@ -380,6 +498,11 @@
 			</Stack>{/if}
 	</div>
 
+	<p class="text-xs text-muted-foreground">
+		{reversal
+			? 'Only the half-days this run paid can be reversed. Filled buttons are selected; dimmed days cannot be chosen.'
+			: 'Tap a half-day to select or deselect it. Filled buttons are selected; dimmed days are unavailable.'}
+	</p>
 	<div class="rounded-xl border">
 		<Cluster justify="between" class="border-b px-3 py-2">
 			<Button variant="ghost" onclick={() => shiftMonth(-1)}>‹</Button>
@@ -411,15 +534,17 @@
 								aria-pressed={selected(date, part)}
 								disabled={catalog === null ||
 									blocked(date) ||
+									(selected(date, part) && isCaptured(date, part)) ||
 									(!reversal &&
 										(occupied.has(`${date}:${part}`) ||
 											(!selected(date, part) && selectedDays >= availableDays)))}
-								class="min-h-8 flex-1 rounded border px-0.5 py-1 text-[10px] transition-colors {selected(
+								class="min-h-10 flex-1 rounded-md border px-0.5 py-1 text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-30 {selected(
 									date,
 									part
 								)
-									? 'border-foreground bg-foreground text-background'
-									: 'border-border text-muted-foreground hover:border-foreground'}"
+									? 'border-foreground bg-foreground font-medium text-background'
+									: 'border-border text-muted-foreground hover:border-foreground hover:bg-muted'}"
+								title={isCaptured(date, part) ? 'Captured by payroll; create a reversal to cancel.' : undefined}
 								onclick={() => toggle(date, part)}
 							>
 								{part}

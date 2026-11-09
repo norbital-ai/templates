@@ -1,7 +1,6 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"name": "Annual leave (特別休假)",
 		"lookup": {
 			"window": "SERVICE_YEAR",
 			"service_bands": [
@@ -101,11 +100,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "83852016-7b64-5083-87c2-23acfc2fc0e4",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "Paid annual leave accrued by service."
 	},
 	{
 		"code": "SICK_LEAVE",
-		"name": "Ordinary injury or sickness leave (普通傷病假)",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"grant_days": 30
@@ -124,11 +123,11 @@
 		"id": "7f58aac7-b05c-56c0-90ec-73de66794d1a",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"direction": "DEDUCT",
-		"conversion": "// 勞工請假規則 §4(3): half wages for an ordinary sick day; the rule SICK_LEAVE_PAY_POOL holds the thirty days.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;"
+		"conversion": "// 勞工請假規則 §4(3): half wages for an ordinary sick day; the rule SICK_LEAVE_PAY_POOL holds the thirty days.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;",
+		"description": "Paid sick leave."
 	},
 	{
 		"code": "PERSONAL_LEAVE",
-		"name": "Personal leave (事假)",
 		"lookup": {
 			"no_cap": true
 		},
@@ -142,11 +141,11 @@
 		"pay_treatment": "UNPAID",
 		"id": "f063ec7b-2191-5793-8cf7-27149ec76e7c",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "PERSONAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
-		"name": "Marriage leave (婚假)",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 8,
@@ -166,11 +165,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "5e77fe6d-772a-5443-83c8-73042d0684cd",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "Marriage leave."
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
-		"name": "Bereavement leave (喪假)",
 		"lookup": {},
 		"references": [
 			{
@@ -180,11 +179,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "12bda2ca-d1eb-5f12-9cfc-0f1a0a8221f3",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "Bereavement leave."
 	},
 	{
 		"code": "OCCUPATIONAL_INJURY_LEAVE",
-		"name": "Occupational injury leave (公傷病假)",
 		"lookup": {},
 		"references": [
 			{
@@ -194,11 +193,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "9931c180-00fb-578f-b5cf-3d83c8f46586",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "OCCUPATIONAL_INJURY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "MATERNITY_LEAVE",
-		"name": "Maternity leave (產假)",
 		"lookup": {
 			"full_pay_service_months": 6
 		},
@@ -212,11 +211,11 @@
 		"id": "e07ff4b4-da75-50db-897d-d06b30ab207c",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"direction": "DEDUCT",
-		"conversion": "// 勞動基準法 §50(2): full wages after six months' service, half before.\nconst earliest = ctx.entry.days.map((slot) => slot.date).toSorted()[0];\nif (calendar_completed_months(ctx.subject.employment.effective_range.from, earliest) >= ctx.lookup.full_pay_service_months) return 0;\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;"
+		"conversion": "// 勞動基準法 §50(2): full wages after six months' service, half before.\nconst earliest = ctx.entry.days.map((slot) => slot.date).toSorted()[0];\nif (calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), earliest) >= ctx.lookup.full_pay_service_months) return 0;\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;",
+		"description": "Maternity leave around childbirth."
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 7,
@@ -236,11 +235,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "d41de3e8-e259-509f-bd0a-9b1aa6d84a9c",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "Paternity leave around childbirth."
 	},
 	{
 		"code": "PRENATAL_CHECKUP_LEAVE",
-		"name": "Prenatal check-up leave (產檢假)",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 7,
@@ -260,11 +259,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "bda57e56-bbdb-5c44-96a0-61c5b59fdec3",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "PRENATAL_CHECKUP_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
-		"name": "Menstrual leave (生理假)",
 		"lookup": {},
 		"references": [
 			{
@@ -277,11 +276,11 @@
 		"id": "2a04fdd3-a88c-5d9c-8c87-6bc9aaadcf1f",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"direction": "DEDUCT",
-		"conversion": "// 性別平等工作法 §14: half wages; the rule SICK_LEAVE_PAY_POOL holds the monthly day, the three free days and the thirty-day pool.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;"
+		"conversion": "// 性別平等工作法 §14: half wages; the rule SICK_LEAVE_PAY_POOL holds the monthly day, the three free days and the thirty-day pool.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;",
+		"description": "Menstrual leave days."
 	},
 	{
 		"code": "MENSTRUAL_LEAVE_UNPAID",
-		"name": "Menstrual leave beyond the sick pool, unpaid (生理假)",
 		"lookup": {
 			"no_cap": true
 		},
@@ -294,11 +293,11 @@
 		"pay_treatment": "UNPAID",
 		"id": "ddc24936-783a-52ae-8a95-3d62005c7164",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "MENSTRUAL_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "FAMILY_CARE_LEAVE",
-		"name": "Family care leave (家庭照顧假)",
 		"lookup": {
 			"no_cap": true
 		},
@@ -311,11 +310,11 @@
 		"pay_treatment": "UNPAID",
 		"id": "3e98382e-ddfc-58c9-b4a9-c4f1c9eb730e",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Leave to care for a family member."
 	},
 	{
 		"code": "PARENTAL_LEAVE",
-		"name": "Parental leave without pay (育嬰留職停薪)",
 		"lookup": {},
 		"references": [
 			{
@@ -327,11 +326,11 @@
 		"id": "47bfbdfb-557d-5b49-a3f1-fc8f4d58e18c",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"direction": "DEDUCT",
-		"conversion": "// 性別平等工作法 §16; 民法 §123(2): no wage for the stretch, on a 30-day month. PAID so this line, not the salary basis, takes the days: BASIC_AFTER_PARENTAL_LEAVE tells the premium rows how many (§16(2): employer share waived, worker's deferred).\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'MONTHLY') return Math.min(ctx.base_pay, ctx.day_rate * ctx.entry.quantity);\nconst dates = ctx.entry.days.map((slot) => slot.date).toSorted();\nconst last = dates.at(-1);\nconst month_days = 30;\nconst first_day = Math.min(month_days, Number(dates[0].substring(8)));\nconst last_day = last === month_end(last) ? month_days : Number(last.substring(8));\nreturn (ctx.month_wage * (last_day - first_day + 1)) / month_days;"
+		"conversion": "// 性別平等工作法 §16; 民法 §123(2): no wage for the stretch, on a 30-day month. PAID so this line, not the salary basis, takes the days: BASIC_AFTER_PARENTAL_LEAVE tells the premium rows how many (§16(2): employer share waived, worker's deferred).\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'MONTHLY') return Math.min(ctx.base_pay, ctx.day_rate * ctx.entry.quantity);\nconst dates = ctx.entry.days.map((slot) => slot.date).toSorted();\nconst last = dates.at(-1);\nconst month_days = 30;\nconst first_day = Math.min(month_days, Number(dates[0].substring(8)));\nconst last_day = last === month_end(last) ? month_days : Number(last.substring(8));\nreturn (ctx.month_wage * (last_day - first_day + 1)) / month_days;",
+		"description": "PARENTAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "BREASTFEEDING_TIME",
-		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
 		"lookup": {},
 		"references": [
 			{
@@ -341,11 +340,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "0cf807f7-786c-542f-8b7c-d300e9e84018",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "BREASTFEEDING_TIME: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"name": "Public holiday in lieu",
 		"lookup": {},
 		"references": [
 			{
@@ -356,11 +355,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "536cecce-a220-5727-9f06-a18956a4d7f1",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "A paid day in lieu of a public holiday worked."
 	},
 	{
 		"code": "HOSPITALISED_SICK_LEAVE",
-		"name": "住院傷病假 (hospitalised sickness leave)",
 		"lookup": {},
 		"references": [
 			{
@@ -372,11 +371,11 @@
 		"id": "11898078-0e27-5c7d-8a6f-2034d466e6d5",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"direction": "DEDUCT",
-		"conversion": "// 勞工請假規則 §4(3): half wages inside the thirty-day pool; the rule SICK_LEAVE_PAY_POOL holds it and the days beyond are SICK_LEAVE_UNPAID.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;"
+		"conversion": "// 勞工請假規則 §4(3): half wages inside the thirty-day pool; the rule SICK_LEAVE_PAY_POOL holds it and the days beyond are SICK_LEAVE_UNPAID.\nreturn ctx.day_rate * ctx.entry.quantity * ctx.lookup.half_pay_share;",
+		"description": "HOSPITALISED_SICK_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "OFFICIAL_LEAVE",
-		"name": "公假 (official leave)",
 		"lookup": {},
 		"references": [
 			{
@@ -386,11 +385,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "9d5d934b-f798-5e75-8857-97aaa39a2caa",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "OFFICIAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "JOB_SEARCH_LEAVE",
-		"name": "謀職假 (job-search leave)",
 		"lookup": {},
 		"references": [
 			{
@@ -401,11 +400,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "6b682002-cddb-5d03-98c4-b08a4efa58d0",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "JOB_SEARCH_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "STATUTORY_REST_IN_LIEU",
-		"name": "例假補假 (statutory rest day in lieu)",
 		"lookup": {},
 		"references": [
 			{
@@ -415,11 +414,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "9abceeb0-cfab-5b49-be35-b066e968206b",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "STATUTORY_REST_IN_LIEU: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "COMPENSATORY_TIME_OFF",
-		"name": "補休 (time off in lieu of overtime pay)",
 		"lookup": {},
 		"references": [
 			{
@@ -429,11 +428,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "95f5765a-564c-5feb-90d1-820f4d7111a0",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "COMPENSATORY_TIME_OFF: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "COMP_TIME_PAYOUT_VALUE",
-		"name": "補休未休工資 (untaken 補休, in straight-time hours)",
 		"lookup": {},
 		"references": [
 			{
@@ -443,11 +442,11 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "bbf01f14-944c-50ef-97a7-118a78693bfb",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "COMP_TIME_PAYOUT_VALUE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "SICK_LEAVE_UNPAID",
-		"name": "普通傷病假（無薪）",
 		"lookup": {
 			"no_cap": true
 		},
@@ -460,11 +459,11 @@
 		"pay_treatment": "UNPAID",
 		"id": "dd52d584-2df6-52d1-b9ea-f40b275725c2",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "SICK_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "SICK_LEAVE_SUSPENSION",
-		"name": "傷病留職停薪",
 		"lookup": {
 			"no_cap": true
 		},
@@ -477,11 +476,11 @@
 		"pay_treatment": "UNPAID",
 		"id": "de65ea2d-687a-55c2-a22c-188a3ec8559a",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "SICK_LEAVE_SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PARENTAL_LEAVE_BY_DAY",
-		"name": "育嬰留職停薪（以日申請）",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 30,
@@ -504,11 +503,11 @@
 		"id": "cc6f21af-6a55-5f2d-ae52-b0f116e2c275",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"direction": "DEDUCT",
-		"conversion": "// 育嬰留職停薪實施辦法 §2, §9: no wage for the days taken; BASIC_AFTER_PARENTAL_LEAVE tells the premium rows how many.\nreturn ctx.day_rate * ctx.entry.quantity;"
+		"conversion": "// 育嬰留職停薪實施辦法 §2, §9: no wage for the days taken; BASIC_AFTER_PARENTAL_LEAVE tells the premium rows how many.\nreturn ctx.day_rate * ctx.entry.quantity;",
+		"description": "PARENTAL_LEAVE_BY_DAY: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "CHILDCARE_REDUCED_HOURS",
-		"name": "育兒減少工時",
 		"lookup": {
 			"no_cap": true
 		},
@@ -521,11 +520,11 @@
 		"pay_treatment": "UNPAID",
 		"id": "e75aa6ba-d517-57a5-9a07-53273115d9ef",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "CHILDCARE_REDUCED_HOURS: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "NATURAL_DISASTER_ABSENCE",
-		"name": "天然災害停止上班",
 		"lookup": {
 			"no_cap": true
 		},
@@ -539,11 +538,11 @@
 		"pay_treatment": "UNPAID",
 		"id": "a225fc2f-723a-5f99-ad2b-820e748c587b",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "NATURAL_DISASTER_ABSENCE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "INDIGENOUS_RITUAL_HOLIDAY",
-		"name": "原住民族歲時祭儀 (indigenous ritual holiday)",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"grant_days": 3
@@ -560,6 +559,7 @@
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "c3cee190-fdc1-5b95-9e14-54c47eb0ca3e",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "INDIGENOUS_RITUAL_HOLIDAY: Leave days granted and drawn under this jurisdiction’s rules."
 	}
 ]

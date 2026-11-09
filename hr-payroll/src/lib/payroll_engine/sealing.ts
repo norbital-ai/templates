@@ -47,7 +47,7 @@ export const sealConfiguration = Effect.fn('payroll.sealConfiguration')(function
 			const program = programOf(model);
 			for (const row of (got[model] ?? []).filter((row) => row.settings_id === settingsId)) {
 				checkParams(model, row);
-				for (const field of ['eligibility', 'conversion', 'incurred_on'] as const) {
+				for (const field of ['eligibility', 'conversion'] as const) {
 					const source = row[field];
 					if (typeof source === 'string' && source.trim() !== '')
 						checkExpression(source, 'CALCULATION', available, program?.roots);

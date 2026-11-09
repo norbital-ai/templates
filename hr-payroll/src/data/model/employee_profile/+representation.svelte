@@ -9,6 +9,7 @@
 		Field,
 		Icon,
 		RecordShell,
+		StructuredData,
 		Table,
 		Tabs,
 		Button,
@@ -21,6 +22,7 @@
 	import { Stack, Cluster } from '@norbital-ai/ui/layout';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
+	import { addDays, PlainDate } from '@norbital-ai/std/date';
 	import { formatTermsDates } from '../../../lib/ui/format/display_formatters.js';
 	import { employeeReference } from '../../../lib/export_format_configuration/export_format.js';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
@@ -28,21 +30,10 @@
 	let { view }: { view: RecordView<'employee_profile'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const t = bolt.t;
+	const JSON_KIND = { kind: 'json' } as const;
 	const caseName = listedKindNames('case_kinds');
 	let enrolling = $state(false),
-		saving = $state(false),
-		computing = $state(false);
-	/** Safe to press at any time: it writes only what differs from what is already applied. */
-	const computeLeave = () => {
-		if (record === null) return;
-		computing = true;
-		fork(
-			bolt.start('ledger', { employees: [record.id] }).pipe(
-				Effect.tap(() => Effect.sync(() => toast.success(t('app.leave.computing')))),
-				Effect.ensuring(Effect.sync(() => (computing = false)))
-			)
-		);
-	};
+		saving = $state(false);
 	function status(value: 'APPROVED' | 'NONE' | 'SUSPENDED') {
 		if (record === null || saving) return;
 		const id = record.id;
@@ -80,6 +71,17 @@
 					'employee_contract.entity_id': { fields: ['name'] }
 				})
 	);
+	const balance = $derived(
+		record == null
+			? null
+			: bolt.query({
+					employee_balance: {
+						where: { employee_id: { eq: record.id } },
+						fields: ['account'],
+						limit: 1
+					}
+				})
+	);
 	const contractIds = $derived(
 		(contracts?.current?.employee_contract.rows ?? []).map((row) => row.id)
 	);
@@ -102,6 +104,8 @@
 						number: row.employee_number,
 						period: formatTermsDates(row, t),
 						from: String(row.effective_range.from),
+						to: row.effective_range.to == null ? null : String(row.effective_range.to),
+						sealed: row.status === 'SEALED',
 						status:
 							row.status === 'VOID'
 								? t('contract.voided')
@@ -113,26 +117,75 @@
 			})
 			.toSorted((left, right) => right.from.localeCompare(left.from))
 	);
+	/** A rehire keeps one profile: the stretch between two sealed contracts shows as a gap in the history. */
+	const timeline = $derived(
+		ordered.flatMap((row, index) => {
+			const item = {
+				id: String(row.id),
+				period: row.period,
+				status: row.status,
+				detail: `${row.entity} · ${employeeReference(row.number, row.entity)}`
+			};
+			const earlier = ordered.slice(index + 1).find((other) => other.sealed);
+			if (!row.sealed || earlier === undefined || earlier.to === null) return [item];
+			const from = addDays(PlainDate(earlier.to), 1);
+			const to = addDays(PlainDate(row.from), -1);
+			if (String(from) > String(to)) return [item];
+			const days = Math.round((Date.parse(String(to)) - Date.parse(String(from))) / 86_400_000) + 1;
+			return [
+				item,
+				{
+					id: `gap:${String(row.id)}`,
+					gap: true,
+					period: formatTermsDates({ effective_range: { from: String(from), to: String(to) } }, t),
+					status: t('contract.gap'),
+					detail: t('contract.gap_detail', { days })
+				}
+			];
+		})
+	);
 </script>
 
-{#snippet general()}<Form
-		of="employee_profile"
-		mode={view.mode === 'create' ? 'create' : 'update'}
-		{...record === null
-			? { values: view.mode === 'create' ? view.values : {} }
-			: { id: record.id, record }}
-		onOutcome={(outcome) => {
-			if (outcome.kind !== 'committed' || record) return;
-			const created = outcome.records.find((row) => row.model === 'employee_profile');
-			if (created) openRecord('employee_profile', created.id);
-		}}
-		>{#snippet children()}<Stack gap="md"
-				>{#each ['name', 'email', 'phone', 'address', 'location', 'documents', 'source_reference'] as name (name)}<Field
-						{name}
-					/>{/each}</Stack
-			>{/snippet}</Form
-	>{/snippet}
-{#snippet contractsTab()}{#if record}<Cluster justify="between" class="mb-4"
+{#snippet general()}<div class="grid max-w-4xl gap-6">
+		<Form
+			of="employee_profile"
+			mode={view.mode === 'create' ? 'create' : 'update'}
+			{...record === null
+				? { values: view.mode === 'create' ? view.values : {} }
+				: { id: record.id, record }}
+			onOutcome={(outcome) => {
+				if (outcome.kind !== 'committed' || record) return;
+				const created = outcome.records.find((row) => row.model === 'employee_profile');
+				if (created) openRecord('employee_profile', created.id);
+			}}
+			>{#snippet children()}
+				<div class="grid gap-6">
+					<section class="grid gap-3">
+						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Identity and contact
+						</h3>
+						<div class="grid gap-x-6 gap-y-4 @md:grid-cols-2">
+							{#each ['name', 'email', 'phone', 'location'] as name (name)}<Field {name} />{/each}
+						</div>
+					</section>
+					<section class="grid gap-3">
+						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Address
+						</h3>
+						<Field name="address" />
+					</section>
+					<section class="grid gap-3">
+						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Documents
+						</h3>
+						<Field name="documents" />
+					</section>
+					{#if record}{@render face()}{/if}
+				</div>
+			{/snippet}</Form
+		>
+	</div>{/snippet}
+{#snippet historyTab()}{#if record}<Cluster justify="between" class="mb-4"
 			><h3 class="text-heading">{t('section.employment_history')}</h3>
 			<Button
 				size="icon"
@@ -148,22 +201,32 @@
 				title={t('section.employment_history')}
 			/>{:else}<VersionTimeline
 				label={t('section.employment_history')}
-				items={ordered.map((row) => ({
-					id: row.id,
-					period: row.period,
-					status: row.status,
-					detail: `${row.entity} · ${employeeReference(row.number, row.entity)}`
-				}))}
+				items={timeline}
 				onOpen={(id) => openRecord('employee_contract', id)}
-			/>{/if}<Stack gap="none" class="mt-4"
-			><Table
-				of="contract_change"
-				key="person-contract-changes"
-				where={{ employee_id: { eq: record.id }, applied_version_id: { isNull: true } }}
-				toolbar={{ new: false, title: bolt.t('section.scheduled_changes') }}
-				columns={['effective_from', 'field_path', 'old_value', 'new_value', 'notes']}
-			/></Stack
-		>{/if}{/snippet}
+			/>{/if}{/if}{/snippet}
+{#snippet changesTab()}{#if record}<Table
+			of="contract_change"
+			key="person-contract-changes"
+			where={{ employee_id: { eq: record.id }, applied_version_id: { isNull: true } }}
+			toolbar={{ new: false, title: bolt.t('section.scheduled_changes') }}
+			columns={['effective_from', 'field_path', 'old_value', 'new_value', 'notes']}
+		/>{/if}{/snippet}
+{#snippet contractsTab()}{#if record}<Tabs
+			tabs={[
+				{
+					name: 'history',
+					title: t('section.employment_history'),
+					icon: 'lucide:history',
+					body: historyTab
+				},
+				{
+					name: 'changes',
+					title: t('section.scheduled_changes'),
+					icon: 'lucide:calendar-clock',
+					body: changesTab
+				}
+			]}
+		/>{/if}{/snippet}
 {#snippet loansTab()}{#if record}{#if contractIds.length === 0}<EmptyState
 				title={t('models.loan_catalog_entry.label')}
 			/>{:else}<Table
@@ -187,89 +250,78 @@
 					columns={[{ field: 'kind', cell: caseCell }, 'entity_id', 'opened_on', 'closed_on']}
 				/></Stack
 			>{/if}{/if}{/snippet}
-{#snippet leavesTab()}{#if record}{#if contractIds.length === 0}<EmptyState
-				title={t('app.leave.title')}
-			/>{:else}<Stack gap="md"
-				><Cluster justify="end"
-					><Button variant="outline" disabled={computing} onclick={computeLeave}
-						>{t('app.leave.compute')}</Button
-					></Cluster
-				><Table
-					of="leave_catalog_entry"
-					key="person-leave"
-					where={{ employment_id: { in: contractIds } }}
-					toolbar={{ new: false, title: t('app.leave.title') }}
-					columns={['catalog_id', 'days', 'payroll_run_id']}
-				/></Stack
-			>{/if}{/if}{/snippet}
 {#snippet finances()}{#if record}<Stack gap="lg"
-			><Table
-				of="employee_balance"
-				key="person-balances"
-				where={{ employee_id: { eq: record.id } }}
-				toolbar={{ new: false, delete: false, title: bolt.t('v2.balances') }}
-				columns={['account']}
-			/>
-		</Stack>{/if}{/snippet}
-{#snippet face()}{#if record}{#if (record.face_enrollment_status ?? 'NONE') === 'NONE'}<Stack
-				gap="sm"
-				align="center"
-				class="rounded-lg border border-dashed px-6 py-12 text-center"
-			>
-				<span class="grid size-16 place-items-center rounded-full bg-muted">
-					<Icon name="lucide:scan-face" class="size-8 text-muted-foreground" />
-				</span>
-				<h3 class="text-sm font-medium">{bolt.t('face.empty_title')}</h3>
-				<p class="max-w-sm text-sm text-muted-foreground">{bolt.t('face.empty_hint')}</p>
-				<Button onclick={() => (enrolling = true)}>{bolt.t('face.enroll')}</Button>
-			</Stack>
-		{:else}<Stack gap="md"
-				><p>{bolt.t('v2.face_status')}: {record.face_enrollment_status}</p>
-				<Cluster gap="sm"
-					><Button
-						disabled={saving ||
-							record.face_enrollment_status === 'PENDING' ||
-							record.face_enrollment_status === 'SUSPENDED'}
-						onclick={() => (enrolling = true)}>{bolt.t('face.enroll')}</Button
-					>{#if record.face_enrollment_status === 'PENDING'}<Button
-							disabled={saving}
-							onclick={() => status('APPROVED')}>{bolt.t('v2.approve_face')}</Button
-						><Button variant="secondary" disabled={saving} onclick={() => status('NONE')}
-							>{bolt.t('v2.reject_face')}</Button
-						>{:else if record.face_enrollment_status === 'APPROVED'}<Button
-							variant="secondary"
-							disabled={saving}
-							onclick={() => status('SUSPENDED')}>{bolt.t('v2.suspend_face')}</Button
-						>{:else if record.face_enrollment_status === 'SUSPENDED'}<Button
-							disabled={saving}
-							onclick={() => status('APPROVED')}>{bolt.t('v2.reinstate_face')}</Button
-						>{/if}</Cluster
-				></Stack
-			>{/if}{/if}{/snippet}
-{#snippet payslips()}{#if record}<Stack gap="lg"
-			><Table
-				of="payslip"
-				key="person-payslips"
-				where={{ employee_id: { eq: record.id } }}
-				toolbar={{ new: false, delete: false, title: bolt.t('v2.payslips') }}
-				columns={['payroll_run_id', 'gross_earnings', 'net_pay']}
-			/>
-		</Stack>{/if}{/snippet}
+			><StructuredData
+				name="employee_balance_account"
+				mode="view"
+				frame={false}
+				kind={JSON_KIND}
+				value={balance?.current?.employee_balance.rows[0]?.account ?? {}}
+			/></Stack
+		>{/if}{/snippet}
+{#snippet face()}{#if record}{@const faceStatus = record.face_enrollment_status ?? 'NONE'}<Cluster
+			gap="sm"
+			align="center"
+			justify="between"
+			class="rounded-lg border px-3 py-2"
+		>
+			<Cluster gap="sm" align="center">
+				<Icon name="lucide:scan-face" class="size-4 text-muted-foreground" />
+				<span class="text-sm"
+					>{faceStatus === 'NONE'
+						? bolt.t('face.empty_title')
+						: `${bolt.t('v2.face_status')}: ${faceStatus}`}</span
+				>
+			</Cluster>
+			<Cluster gap="xs">
+				<Button
+					variant="secondary"
+					disabled={saving || faceStatus === 'PENDING' || faceStatus === 'SUSPENDED'}
+					onclick={() => (enrolling = true)}
+					>{faceStatus === 'NONE' ? bolt.t('face.enroll') : bolt.t('v2.update_face')}</Button
+				>
+				{#if faceStatus === 'PENDING'}<Button disabled={saving} onclick={() => status('APPROVED')}
+						>{bolt.t('v2.approve_face')}</Button
+					><Button variant="secondary" disabled={saving} onclick={() => status('NONE')}
+						>{bolt.t('v2.reject_face')}</Button
+					>{:else if faceStatus === 'APPROVED'}<Button
+						variant="secondary"
+						disabled={saving}
+						onclick={() => status('SUSPENDED')}>{bolt.t('v2.suspend_face')}</Button
+					>{:else if faceStatus === 'SUSPENDED'}<Button
+						disabled={saving}
+						onclick={() => status('APPROVED')}>{bolt.t('v2.reinstate_face')}</Button
+					>{/if}
+			</Cluster>
+		</Cluster>{/if}{/snippet}
 <RecordShell
 	of="employee_profile"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	{#if record === null}{@render general()}{:else}<Tabs
+			value="general"
 			tabs={[
-				{ name: 'general', title: bolt.t('v2.profile'), body: general },
-				{ name: 'contracts', title: bolt.t('section.employment_history'), body: contractsTab },
-				{ name: 'loans', title: bolt.t('models.loan_catalog_entry.label'), body: loansTab },
-				{ name: 'cases', title: bolt.t('app.cases.title'), body: casesTab },
-				{ name: 'leave', title: bolt.t('app.leave.title'), body: leavesTab },
-				{ name: 'finances', title: bolt.t('v2.balances'), body: finances },
-				{ name: 'face', title: bolt.t('v2.face'), body: face },
-				{ name: 'payslips', title: bolt.t('v2.payslips'), body: payslips }
+				{ name: 'general', title: bolt.t('v2.profile'), icon: 'lucide:user-round', body: general },
+				{
+					name: 'contracts',
+					title: bolt.t('section.employment_history'),
+					icon: 'lucide:file-signature',
+					body: contractsTab
+				},
+				{
+					name: 'loans',
+					title: bolt.t('models.loan_catalog_entry.label'),
+					icon: 'lucide:banknote',
+					body: loansTab
+				},
+				{
+					name: 'cases',
+					title: bolt.t('app.cases.title'),
+					icon: 'lucide:briefcase-medical',
+					body: casesTab
+				},
+				{ name: 'finances', title: bolt.t('v2.balances'), icon: 'lucide:scale', body: finances }
 			]}
 		/>{/if}
 </RecordShell>

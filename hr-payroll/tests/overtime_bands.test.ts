@@ -119,10 +119,19 @@ describe('overtime bands', () => {
 						{
 							...entry,
 							id: uuid(200),
-							catalog_id: String(unpaid?.id),
-							days: [...half('2026-01-06'), ...half('2026-02-10'), ...half('2026-03-03')]
+							catalog_id: String(unpaid?.id)
 						}
 					],
+					leave_catalog_entry_day: [
+						...half('2026-01-06'),
+						...half('2026-02-10'),
+						...half('2026-03-03')
+					].map((day, index) => ({
+						id: uuid(210 + index),
+						leave_entry_id: uuid(200),
+						incurred_on: day.date,
+						part: day.part
+					})),
 					claim_catalog_entry: [
 						{
 							...entry,
@@ -216,9 +225,9 @@ describe('overtime bands', () => {
 		return run(
 			{
 				...seed,
-				entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+				entity: (seed.entity ?? []).map((row) => ({
 					...row,
-					pay_cutoff_day: 21
+					payment_schedule: { ...objectValue(row.payment_schedule), pay_cutoff_day: 21 }
 				})),
 				employee_contract: [
 					{ ...first, effective_range: { from: '2025-01-01', to: '2026-01-31' } },
@@ -287,7 +296,7 @@ describe('overtime bands', () => {
 		return run(
 			{
 				...seed,
-				entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+				entity: (seed.entity ?? []).map((row) => ({
 					...row,
 					payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
 				})),
@@ -297,12 +306,12 @@ describe('overtime bands', () => {
 						entity_id: ENTITY,
 						employment_id: uuid(6),
 						catalog_id: later?.id ?? '',
-						payroll_run_id: null,
-						days: [
-							{ date: '2026-02-10', part: 'AM' },
-							{ date: '2026-02-10', part: 'PM' }
-						]
+						payroll_run_id: null
 					}
+				],
+				leave_catalog_entry_day: [
+					{ id: uuid(310), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'AM' },
+					{ id: uuid(311), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'PM' }
 				]
 			},
 			'Asia/Kuala_Lumpur',
@@ -407,7 +416,6 @@ describe('overtime bands', () => {
 					catalog_id: idOf('adhoc_catalog', String(bonus?.id)),
 					description: 'Performance bonus',
 					quantity: 1000,
-					unit: 'MONEY',
 					incurred_on: PlainDate('2026-02-20')
 				}
 			]);
@@ -564,7 +572,7 @@ describe('overtime bands', () => {
 		return run(
 			{
 				...seed,
-				entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+				entity: (seed.entity ?? []).map((row) => ({
 					...row,
 					payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
 				})),
@@ -615,8 +623,13 @@ describe('overtime bands', () => {
 				const t = yield* TestWorkspace;
 				yield* month(t, '01');
 				yield* t.runDue();
-				const sealed = yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } });
-				assert.notEqual(sealed.leave_catalog_entry.rows[0]?.payroll_run_id, null);
+				const sealed = yield* t.storedQuery({
+					leave_catalog_entry_day: {
+						where: { payroll_run_id: { isNull: false } },
+						limit: 1
+					}
+				});
+				assert.ok(sealed.leave_catalog_entry_day.rows.length > 0);
 				yield* month(t, '02');
 				const got = yield* t.storedQuery({ payslip: { limit: 10 } });
 				const lines = got.payslip.rows
@@ -635,13 +648,13 @@ describe('overtime bands', () => {
 									id: entry,
 									entity_id: ENTITY,
 									employment_id: uuid(6),
-									catalog_id: String(unpaid?.id),
-									days: [
-										{ date: '2026-01-06', part: 'AM' },
-										{ date: '2026-01-06', part: 'PM' },
-										{ date: '2026-02-10', part: 'AM' }
-									]
+									catalog_id: String(unpaid?.id)
 								}
+							],
+							leave_catalog_entry_day: [
+								{ id: uuid(650), leave_entry_id: entry, incurred_on: '2026-01-06', part: 'AM' },
+								{ id: uuid(651), leave_entry_id: entry, incurred_on: '2026-01-06', part: 'PM' },
+								{ id: uuid(652), leave_entry_id: entry, incurred_on: '2026-02-10', part: 'AM' }
 							]
 						},
 						now: '2026-02-26T02:00:00.000Z'

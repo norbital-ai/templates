@@ -1,11 +1,12 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"name": "Annual leave",
 		"lookup": {
 			"encash_on_exit": {
 				"allowed": true,
-				"refused_on": ["MISCONDUCT_DISMISSAL"]
+				"refused_on": [
+					"MISCONDUCT_DISMISSAL"
+				]
 			},
 			"window": "SERVICE_YEAR",
 			"service_bands": [
@@ -81,7 +82,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": "576d9a95-0b2e-58eb-8d16-14dcd0cf8835",
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.88A — 7 days rising to 14 with service after 3 months; a leaving year is prorated to completed months",
@@ -116,11 +117,11 @@
 		],
 		"id": "89f1057f-fc57-5e9d-8f01-394d006adc1e",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n"
+		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n",
+		"description": "Paid annual leave accrued by service."
 	},
 	{
 		"code": "SICK_LEAVE",
-		"name": "Outpatient sick leave",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
@@ -145,7 +146,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.89(1)(a),(2) — 5/8/11/14 days outpatient sick leave at 3/4/5/6 completed months",
@@ -161,11 +162,11 @@
 			}
 		],
 		"id": "cea9cfcf-6749-59c8-9458-a8c807c8ef4d",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "Paid sick leave."
 	},
 	{
 		"code": "HOSPITALIZATION_LEAVE",
-		"name": "Hospitalization leave",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
@@ -190,7 +191,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.89(1)(b),(2) — 15/30/45/60 days hospitalisation leave at 3/4/5/6 completed months",
@@ -206,11 +207,11 @@
 			}
 		],
 		"id": "84048f13-a3a1-5497-b516-2e921f471d22",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "Hospitalisation leave."
 	},
 	{
 		"code": "MATERNITY_LEAVE",
-		"name": "Maternity leave",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 112,
@@ -224,7 +225,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 s.9 — 16 weeks government-paid maternity leave for a qualifying citizen child",
@@ -240,11 +241,11 @@
 			}
 		],
 		"id": "c0456398-0e0a-5409-9697-ca9389cfd9dc",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "Maternity leave around childbirth."
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"name": "Paternity leave",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 28,
@@ -258,7 +259,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'MALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'MALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 ss.12H–12J — 4 weeks government-paid paternity leave for births from 1 April 2025 (2 weeks before)",
@@ -274,11 +275,11 @@
 			}
 		],
 		"id": "00333fe5-223d-5109-a752-61d9cf0c86be",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "Paternity leave around childbirth."
 	},
 	{
 		"code": "CHILDCARE_LEAVE",
-		"name": "Childcare leave",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
@@ -321,11 +322,11 @@
 			}
 		],
 		"id": "d41c0ccc-24a2-55e1-a350-b7439ad7f287",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "Childcare leave."
 	},
 	{
 		"code": "UNPAID_INFANT_CARE_LEAVE",
-		"name": "Unpaid infant care leave",
 		"lookup": {
 			"no_cap": true
 		},
@@ -341,11 +342,11 @@
 		],
 		"id": "aa82e1ea-125e-5b5f-90d0-a9cdad26ee6c",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "UNPAID_INFANT_CARE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "ADOPTION_LEAVE",
-		"name": "Adoption leave",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 84,
@@ -359,7 +360,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 s.12AA — 12 weeks government-paid adoption leave for a child under 12 months",
@@ -375,22 +376,23 @@
 			}
 		],
 		"id": "93080c84-0959-53d0-a40e-4c0235005fa9",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "ADOPTION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "SHARED_PARENTAL_LEAVE",
-		"name": "Shared parental leave",
 		"lookup": {
 			"window": "EVENT",
 			"grant_days": 70,
 			"opened_by": {
 				"CHILD_BIRTH": {}
 			},
-			"eligibility_months": 3
+			"eligibility_months": 3,
+			"entitlement": "// js\n// Child leave is a shared pool: 10 weeks from 1 April 2026, 6 weeks before. Each parent defaults to half;\n// an HR-approved transfer is recorded as a manual per-child allocation under the leave catalogue code.\nconst birth = String(get(ctx, 'event.on', ctx.as_of));\nconst allocated = get(ctx.subject.employment, 'child_leave_allocations.SHARED_PARENTAL_LEAVE.' + birth, null);\nif (allocated != null) return Number(allocated);\nreturn (birth >= '2026-04-01' ? 70 : 42) / 2;"
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 ss.12DA–12DD and Second Schedule — 6 weeks from 1 April 2025 and 10 weeks for children born from 1 April 2026",
@@ -406,11 +408,11 @@
 			}
 		],
 		"id": "6de74b81-028f-535a-9909-b8f3faf3a712",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "SHARED_PARENTAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "NS_LEAVE",
-		"name": "National service leave",
 		"lookup": {
 			"no_cap": true
 		},
@@ -426,11 +428,11 @@
 		],
 		"id": "2726f796-585a-5b09-9460-0972bbf48ceb",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "NS_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"name": "Public holiday in lieu",
 		"lookup": {},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
@@ -443,11 +445,11 @@
 			}
 		],
 		"id": "e3600a27-c030-5b17-8a0a-b307be4029d4",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "A paid day in lieu of a public holiday worked."
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"name": "Unpaid leave",
 		"lookup": {
 			"no_cap": true
 		},
@@ -463,11 +465,11 @@
 		],
 		"id": "a5d249ba-c7e2-55bd-ac42-a11406a17e47",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Unpaid absence from work."
 	},
 	{
 		"code": "ANNUAL_LEAVE_PART_TIME",
-		"name": "Annual leave (part-time, hours)",
 		"lookup": {
 			"window": "SERVICE_YEAR",
 			"service_bands": [
@@ -548,7 +550,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment (Part-Time Employees) Regulations regs.2,7 — annual leave in hours based on the comparable full-time schedule",
@@ -558,11 +560,11 @@
 			}
 		],
 		"id": "d1fc70dc-c99b-53a4-bf21-8eaee048e045",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "ANNUAL_LEAVE_PART_TIME: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "SICK_LEAVE_PART_TIME",
-		"name": "Outpatient sick leave (part-time)",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
@@ -592,7 +594,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.89(1)(a),(2); Employment (Part-Time Employees) Regulations reg.7 — part-time sick leave prorated to contracted hours",
@@ -602,11 +604,11 @@
 			}
 		],
 		"id": "b8b3f429-0baa-5cb1-8ed7-12974a6f02b9",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "SICK_LEAVE_PART_TIME: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "HOSPITALIZATION_LEAVE_PART_TIME",
-		"name": "Hospitalization leave (part-time)",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
@@ -636,7 +638,7 @@
 		},
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.89(1)(b),(2); Employment (Part-Time Employees) Regulations reg.7 — part-time hospitalisation leave prorated to contracted hours",
@@ -646,11 +648,11 @@
 			}
 		],
 		"id": "6dc76a08-cb3a-5afd-bee3-248e0238d907",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "HOSPITALIZATION_LEAVE_PART_TIME: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "WORK_INJURY_MEDICAL_LEAVE",
-		"name": "Work injury outpatient medical leave (WICA)",
 		"lookup": {
 			"no_cap": true
 		},
@@ -666,11 +668,11 @@
 		],
 		"id": "08c49675-8ce5-5734-b88f-b1ad8fa05dd9",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "WORK_INJURY_MEDICAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "WORK_INJURY_HOSPITALISATION_LEAVE",
-		"name": "Work injury hospitalisation leave (WICA)",
 		"lookup": {
 			"no_cap": true
 		},
@@ -686,6 +688,7 @@
 		],
 		"id": "f536492c-8919-577b-8ceb-968ff87d0314",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "WORK_INJURY_HOSPITALISATION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	}
 ]

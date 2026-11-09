@@ -48,7 +48,6 @@
 			claim_catalog: owned,
 			adhoc_catalog: owned,
 			loan_catalog: owned,
-			work_interruption_catalog: owned,
 			workplace_case_catalog: owned,
 			registered_rule: owned,
 			registered_effect: owned

@@ -7,6 +7,7 @@
 		Form,
 		openRecord,
 		RecordShell,
+		Sheet,
 		Table,
 		Tabs
 	} from '@norbital-ai/ui';
@@ -18,13 +19,14 @@
 	let { view }: { view: RecordView<'entity'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const t = bolt.t;
+	let scheduling = $state(false);
 	const versions = $derived(
 		record == null
 			? null
 			: bolt.query({
 					entity_profile_version: {
 						where: { entity_id: { eq: record.id } },
-						fields: ['name', 'effective_range', 'status', 'registrations', 'statutory_units'],
+						fields: ['name', 'effective_range', 'status'],
 						limit: 10000
 					}
 				})
@@ -37,35 +39,6 @@
 					? 'contract.voided'
 					: 'contract.sealed'
 		);
-	const registrationsOf = (row: {
-		readonly registrations?:
-			| readonly {
-					readonly scheme_code: string;
-					readonly number: string;
-			  }[]
-			| null;
-		readonly statutory_units?:
-			| readonly {
-					readonly registrations?:
-						| readonly {
-								readonly scheme_code: string;
-								readonly number: string;
-						  }[]
-						| null;
-			  }[]
-			| null;
-	}): string[] => {
-		const units = row.statutory_units ?? [];
-		return [
-			...(row.registrations ?? []),
-			...units.flatMap((unit) => unit.registrations ?? [])
-		].flatMap((registration) => {
-			const number = String(registration.number ?? '').trim();
-			return number === ''
-				? []
-				: [`${String(registration.scheme_code ?? '').trim()} ${number}`.trim()];
-		});
-	};
 	const timeline = $derived(
 		(versions?.current?.entity_profile_version.rows ?? [])
 			.toSorted((left, right) =>
@@ -76,7 +49,7 @@
 				period: formatTermsDates(row, t),
 				status: statusText(row.status),
 				state: row.status,
-				detail: [row.name, ...registrationsOf(row)].filter((part) => part !== '').join(' · ')
+				detail: row.name
 			}))
 	);
 </script>
@@ -95,7 +68,7 @@
 		}}
 	>
 		{#snippet children()}<Stack gap="md"
-				>{#each ['code', 'name', 'settings_code', 'source_reference'] as name (name)}<Field
+								>{#each ['code', 'name', 'settings_code', 'epf_registered_on', 'socso_registered_on'] as name (name)}<Field
 						{name}
 					/>{/each}</Stack
 			>{/snippet}
@@ -105,7 +78,10 @@
 {#snippet versionsTab()}
 	{#if record}
 		<Stack gap="sm">
-			<Cluster justify="end">
+			<Cluster justify="end" gap="sm">
+				<Button variant="outline" onclick={() => (scheduling = true)}
+					>{t('entity.schedule_change')}</Button
+				>
 				<Button variant="outline" onclick={() => openRecord('entity_profile_version', 'new')}
 					>{t('employer_version.new')}</Button
 				>
@@ -121,6 +97,13 @@
 					onOpen={(id) => openRecord('entity_profile_version', id)}
 				/>
 			{/if}
+			<Table
+				of="entity_change"
+				key="entity-scheduled-changes"
+				where={{ entity_id: { eq: record.id }, applied_version_id: { isNull: true } }}
+				toolbar={{ new: false, title: t('section.scheduled_changes') }}
+				columns={['effective_from', 'field_path', 'new_value', 'notes']}
+			/>
 		</Stack>
 	{/if}
 {/snippet}
@@ -155,3 +138,22 @@
 		/>
 	{/if}
 </RecordShell>
+
+{#if record !== null}
+	<Sheet bind:open={scheduling} title={t('entity.schedule_change')}>
+		<Form
+			of="entity_change"
+			mode="create"
+			values={{ entity_id: record.id }}
+			onOutcome={(outcome) => {
+				if (outcome.kind === 'committed') scheduling = false;
+			}}
+		>
+			{#snippet children()}<Stack gap="md"
+					>{#each ['field_path', 'new_value', 'effective_from', 'notes'] as name (name)}<Field
+							{name}
+						/>{/each}</Stack
+				>{/snippet}
+		</Form>
+	</Sheet>
+{/if}

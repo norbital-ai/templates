@@ -151,14 +151,23 @@ describe('data request plan', () => {
 		const version = plan.versions[0]?.row;
 		assert.deepEqual(version?.effective_range, { from: '2026-01-01', to: null });
 		assert.equal(version?.input_schema_version_id, 'settings-old');
-		assert.deepEqual(version?.payment_schedule, {
-			frequency: 'MONTHLY',
-			business_day: 'NONE',
-			non_working_weekdays: [6, 0],
-			short_month: 'LAST_DAY',
-			anchors: [{ cycle_part: 1, day: 25, month_offset: 0 }]
-		});
-		assert.deepEqual(version?.registrations, [{ scheme_code: 'EPF', number: '0012345' }]);
+		assert.deepEqual(plan.entitySchedules, [
+			{
+				name: 'Acme',
+				payment_schedule: {
+					frequency: 'MONTHLY',
+					business_day: 'NONE',
+					non_working_weekdays: [6, 0],
+					short_month: 'LAST_DAY',
+					pay_days: [25]
+				},
+				pay_cutoff_day: 1
+			}
+		]);
+		assert.deepEqual(
+			(version?.entity_extension_data as { registrations?: unknown } | undefined)?.registrations,
+			[{ scheme_code: 'EPF', number: '0012345' }]
+		);
 		assert.deepEqual(plan.profiles, [
 			{ name: 'Aisha', email: 'aisha@example.test', source_reference: 'A1' }
 		]);

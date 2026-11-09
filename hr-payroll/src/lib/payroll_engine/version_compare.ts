@@ -11,7 +11,6 @@ export const COMPARED = [
 	'claim_catalog',
 	'adhoc_catalog',
 	'loan_catalog',
-	'work_interruption_catalog',
 	'workplace_case_catalog',
 	'registered_rule',
 	'registered_effect'

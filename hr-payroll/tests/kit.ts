@@ -8,6 +8,7 @@ import {
 } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PlainDate, addDays, monthOf } from '@norbital-ai/std/date';
+import type { Id } from '@norbital-ai/bolt';
 import { accountsOf, type Accounts } from '../src/lib/ledger/core.ts';
 import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { isJsonObject, jsonObject } from '../src/lib/payroll_engine/foundation.ts';
@@ -105,6 +106,18 @@ export const pack = (
 		normal_days_per_week: 5,
 		...terms
 	};
+	const {
+		events,
+		work_region,
+		children,
+		dependents_count,
+		only_child,
+		nationality,
+		birth_city,
+		passport_number,
+		...statutory
+	} = extension;
+	terms = { ...terms, ...(work_region === undefined ? {} : { work_region }) };
 	const root = join(process.cwd(), 'seed/public/jurisdiction', code);
 	let settings = '';
 	for (const version of readdirSync(root))
@@ -130,7 +143,22 @@ export const pack = (
 	});
 	return {
 		...rows,
-		entity: [{ id: ENTITY, code: 'E1', name: 'Entity', settings_code: code }],
+		entity: [
+			{
+				id: ENTITY,
+				code: 'E1',
+				name: 'Entity',
+				settings_code: code,
+				payment_schedule: {
+					frequency: 'MONTHLY',
+					business_day: 'PREVIOUS',
+					non_working_weekdays: [0, 6],
+					short_month: 'LAST_DAY',
+					pay_cutoff_day: 1,
+					pay_days: [25]
+				}
+			}
+		],
 		entity_profile_version: [
 			{
 				id: uuid(2),
@@ -140,14 +168,6 @@ export const pack = (
 				input_schema_version_id: settings,
 				effective_range: { from: '2025-01-01', to: null },
 				time_zone: zone,
-				pay_cutoff_day: 1,
-				payment_schedule: {
-					frequency: 'MONTHLY',
-					business_day: 'PREVIOUS',
-					non_working_weekdays: [0, 6],
-					short_month: 'LAST_DAY',
-					anchors: [{ cycle_part: 1, day: 25, month_offset: 0 }]
-				},
 				entity_extension_data: {},
 				status: 'SEALED'
 			}
@@ -167,14 +187,25 @@ export const pack = (
 				effective_range: { from: '2025-01-01', to: null },
 				input_schema_version_id: settings,
 				terms,
-				payroll: { date_of_birth: '1990-01-01', gender: 'MALE', marital_status: 'SINGLE' },
+				...(events === undefined ? {} : { events }),
+				...(children === undefined ? {} : { children }),
+				...(dependents_count === undefined ? {} : { dependents_count }),
+				...(only_child === undefined ? {} : { only_child }),
+				payroll: {
+					date_of_birth: '1990-01-01',
+					gender: 'MALE',
+					marital_status: 'SINGLE',
+					...(nationality === undefined ? {} : { nationality }),
+					...(birth_city === undefined ? {} : { birth_city }),
+					...(passport_number === undefined ? {} : { passport_number })
+				},
 				bank: {
 					bank_name: 'Bank',
 					bank_code: '001',
 					bank_account_number: '1',
 					bank_account_name: 'Worker'
 				},
-				employee_extension_data: flattenExtension(extension),
+				employee_extension_data: flattenExtension(statutory),
 				service_started_on: '2025-01-01'
 			}
 		],
@@ -203,11 +234,14 @@ export const pack = (
 			employment_id: uuid(6),
 			work_date: day.date,
 			shift_definition_id: day.shift,
-			actual_worked_intervals: [{ start: instant(day.date, 0), end: instant(day.date, day.hours) }],
+			actual_worked_intervals:
+				day.hours === 0 ? [] : [{ start: instant(day.date, 0), end: instant(day.date, day.hours) }],
 			planned_overtime_intervals:
 				day.shift === WORK && day.overtime === undefined
 					? null
-					: [
+					: day.hours === 0
+						? null
+						: [
 							{
 								start: instant(day.date, day.hours - (day.overtime ?? day.hours)),
 								end: instant(day.date, day.hours)
@@ -217,6 +251,41 @@ export const pack = (
 		}))
 	};
 };
+
+/** A leave request carries `days`; the model stores them as owned child slots. */
+export const leaveCreate = <
+	T extends { readonly days: readonly { readonly date: string; readonly part: 'AM' | 'PM' }[] }
+>(
+	row: T
+) => {
+	const { days, ...rest } = row;
+	return {
+		...rest,
+		leave_catalog_entry_day: days.map((day) => ({
+			incurred_on: PlainDate(String(day.date)),
+			part: day.part
+		}))
+	};
+};
+
+/** The original captured slots of a leave entry: what a reversal must select. */
+export const reversalSlots = (t: Kit, entry: Id<'leave_catalog_entry'>) =>
+	t
+		.storedQuery({
+			leave_catalog_entry_day: {
+				where: { leave_entry_id: { eq: entry } },
+				fields: ['incurred_on', 'part'],
+				limit: 100
+			}
+		})
+		.pipe(
+			Effect.map(({ leave_catalog_entry_day }) =>
+				leave_catalog_entry_day.rows.map((row) => ({
+					date: String(row.incurred_on),
+					part: row.part
+				}))
+			)
+		);
 
 /** A catalog row's id on the version a pack's contract is sealed on. */
 export const catalogRow = (seed: ReturnType<typeof pack>, model: string, code: string): string => {
@@ -297,8 +366,22 @@ export const sealEvents = (t: Kit, on: string, events: readonly JsonObject[], by
 				terms: held.terms,
 				payroll: held.payroll,
 				bank: held.bank,
+				children: held.children,
+				dependents_count: held.dependents_count,
+				only_child: held.only_child,
 				input_schema_version_id: held.input_schema_version_id,
-				employee_extension_data: { ...held.employee_extension_data, events },
+				employee_extension_data: held.employee_extension_data,
+				events: events.map((event) => ({
+					...event,
+					kind: String(event.kind ?? ''),
+					on: PlainDate(String(event.on ?? '')),
+					...(event.opened_on == null
+						? {}
+						: { opened_on: PlainDate(String(event.opened_on)) }),
+					...(event.ended_on == null
+						? {}
+						: { ended_on: PlainDate(String(event.ended_on)) })
+				})),
 				service_started_on: held.service_started_on,
 				effective_range: { from: PlainDate(from), to: null },
 				signed_contract_period: held.signed_contract_period,

@@ -29,6 +29,21 @@ const law = (code: string) => {
 			const list: Row | Row[] = JSON.parse(readFileSync(join(root, version, file), 'utf8'));
 			(rows[model] ??= []).push(...(Array.isArray(list) ? list : [list]));
 		}
+	rows.entity = [
+		{
+			id: ENTITY,
+			name: 'Entity',
+			settings_code: code,
+			payment_schedule: {
+				frequency: 'MONTHLY',
+				business_day: 'PREVIOUS',
+				non_working_weekdays: [0, 6],
+				short_month: 'LAST_DAY',
+					pay_cutoff_day: 1,
+				pay_days: [25]
+			}
+		}
+	];
 	rows.entity_profile_version = [
 		{
 			id: '22222222-2222-4222-8222-222222222222',
@@ -38,14 +53,6 @@ const law = (code: string) => {
 			input_schema_version_id: rows.jurisdiction_settings?.[0]?.id ?? null,
 			effective_range: { from: '2025-01-01', to: null },
 			time_zone: 'Asia/Jakarta',
-			pay_cutoff_day: 1,
-			payment_schedule: {
-				frequency: 'MONTHLY',
-				business_day: 'PREVIOUS',
-				non_working_weekdays: [0, 6],
-				short_month: 'LAST_DAY',
-				anchors: [{ cycle_part: 1, day: 25, month_offset: 0 }]
-			},
 			entity_extension_data: {},
 			status: 'SEALED'
 		}
@@ -205,7 +212,7 @@ describe('statutory research', () => {
 							row_code: 'TAPERUM',
 							field_path: WHOLE_ROW,
 							new_value: {
-								name: 'Tabungan perumahan rakyat',
+								description: 'Tabungan perumahan rakyat',
 								kind: 'CONTRIBUTION',
 								depends_on: [],
 								subtotal_id: 'BASIC',

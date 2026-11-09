@@ -21,11 +21,14 @@ export default model('overtime_catalog', {
 			default: {}
 		},
 		code: { kind: 'text' },
-		name: { kind: 'text' },
+		description: {
+			kind: 'text',
+			optional: true,
+			help: 'What this catalog row does: its rule, behaviour and any legal or operational note.'
+		},
 		references: { kind: 'custom', of: 'references', optional: true },
 		eligibility: { kind: 'text', max: 65536 },
 		conversion: { kind: 'text', max: 65536 },
-		incurred_on: { kind: 'text', max: 65536, optional: true },
 		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'] },
 		settings_id: {
 			kind: 'ref',
@@ -37,7 +40,8 @@ export default model('overtime_catalog', {
 	unique: [{ fields: ['settings_id', 'code'] }],
 	read: {
 		overtime_catalog: { fields: 'all' },
-		'overtime_catalog.settings_id': { fields: 'all' }
+		'overtime_catalog.settings_id': { fields: 'all' },
+		'overtime_catalog.subtotal_id': { fields: ['code', 'name'] },
 	},
 	create: {
 		columns: {
@@ -45,11 +49,10 @@ export default model('overtime_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
+				'description',
 				'references',
 				'eligibility',
 				'conversion',
-				'incurred_on',
 				'direction',
 				'settings_id'
 			]
@@ -70,11 +73,10 @@ export default model('overtime_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
+				'description',
 				'references',
 				'eligibility',
 				'conversion',
-				'incurred_on',
 				'direction'
 			]
 		},

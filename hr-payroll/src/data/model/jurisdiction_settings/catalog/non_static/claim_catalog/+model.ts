@@ -18,11 +18,9 @@ export default model('claim_catalog', {
 		},
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
 		code: { kind: 'text' },
-		name: { kind: 'text' },
 		description: { kind: 'text', optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
 		eligibility: { kind: 'text', max: 65536, optional: true },
-		incurred_on: { kind: 'text', max: 65536, optional: true },
 		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'], default: 'ADD' },
 		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
 		conversion: { kind: 'text', max: 65536, optional: true },
@@ -32,6 +30,7 @@ export default model('claim_catalog', {
 	read: {
 		claim_catalog: { fields: 'all' },
 		'claim_catalog.settings_id': { fields: 'all' },
+		'claim_catalog.subtotal_id': { fields: ['code', 'name'] },
 		'claim_catalog.settings_id.registered_rule': { fields: 'all' }
 	},
 	create: {
@@ -40,11 +39,9 @@ export default model('claim_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
 				'description',
 				'references',
 				'eligibility',
-				'incurred_on',
 				'direction',
 				'party',
 				'conversion',
@@ -67,11 +64,9 @@ export default model('claim_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
 				'description',
 				'references',
 				'eligibility',
-				'incurred_on',
 				'direction',
 				'party',
 				'conversion'

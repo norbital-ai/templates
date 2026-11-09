@@ -1,7 +1,6 @@
 [
 	{
 		"code": "OVERTIME",
-		"name": "Overtime on a normal working day (Làm thêm giờ ngày thường)",
 		"lookup": {
 			"multiplier": 1.5
 		},
@@ -20,11 +19,11 @@
 		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "9e45cb99-e02d-5f7f-8b7b-cc2bf7d0a14b",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
+		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
 	},
 	{
 		"code": "REST_DAY_OVERTIME",
-		"name": "Overtime on a weekly rest day (Làm thêm giờ ngày nghỉ hằng tuần)",
 		"lookup": {
 			"multiplier": 2
 		},
@@ -43,11 +42,11 @@
 		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "9b6fded8-a3a7-5935-88ef-f09222603307",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
+		"description": "Overtime hours worked on a rest day, paid at the rest-day overtime multiplier."
 	},
 	{
 		"code": "HOLIDAY_WORK",
-		"name": "Work on a public holiday or paid day off (Làm việc ngày lễ, ngày nghỉ có lương)",
 		"lookup": {
 			"multiplier": 3
 		},
@@ -66,11 +65,11 @@
 		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "5229bf07-e9e4-5bed-ad08-6aee0b587123",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
+		"description": "Hours worked on a statutory holiday, paid at the statutory holiday multiplier."
 	},
 	{
 		"code": "NIGHT_WORK",
-		"name": "Night-work premium (Phụ cấp làm việc ban đêm)",
 		"lookup": {
 			"multiplier": 0.3
 		},
@@ -92,11 +91,11 @@
 		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier;",
 		"direction": "ADD",
 		"id": "e68b2f0a-2bcc-5b08-a65b-5b1b2029b0c2",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
+		"description": "Night-shift hours, paid the statutory night differential."
 	},
 	{
 		"code": "NIGHT_OVERTIME",
-		"name": "Night-overtime supplement (Phụ cấp làm thêm giờ ban đêm)",
 		"lookup": {
 			"multiplier": 0.2,
 			"overtime_multiples": {
@@ -123,6 +122,7 @@
 		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier *\n\tget(ctx.lookup.overtime_multiples, String(get(entry, 'kind', 'NORMAL_DAY')), 1);",
 		"direction": "ADD",
 		"id": "e91804b4-235f-5b4e-941a-672db92e2cd5",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
+		"description": "Overtime hours worked at night, paid the night-overtime multiplier."
 	}
 ]

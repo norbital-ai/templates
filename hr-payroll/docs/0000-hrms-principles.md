@@ -37,6 +37,12 @@ An item says who it applies to, how much it is worth, where it sits in the calcu
 
 **Why this matters.** When the law changes, or your company's policy does, you change a catalog item. The way the system calculates does not change. A new law becomes a new dated version of the country's settings, and earlier periods stay on the rules that applied at the time.
 
+### Public holidays and days in lieu
+
+A published public holiday applies by its date, whether the employee was due to work that day or was on a weekly rest day. Work on a holiday pays the holiday bands, not the rest-day bands. Not coming to work on a holiday is not an absence by itself; HR marks an absence explicitly.
+
+When a public holiday falls on an employee's weekly rest day, the next working day is a paid holiday in substitution. HR records that day as a **PUBLIC_HOLIDAY_IN_LIEU** leave entry; the system does not grant it automatically. The employee's normal week decides eligibility: a five-day week rests on Saturday and Sunday, a six-day week rests on Sunday, and a seven-day roster has no weekly rest day. A Saturday holiday therefore substitutes for a five-day week but not for a six-day week, which works that Saturday. The entry is refused when its date is not the next working day after a rest-day holiday.
+
 ## 2. Entries record what happened
 
 An entry is one dated event against a catalog item: two days of leave, a bonus, a claim. It records what happened, never how it is priced. Pricing is the catalog's job.

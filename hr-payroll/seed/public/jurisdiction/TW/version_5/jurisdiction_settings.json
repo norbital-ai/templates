@@ -15,39 +15,6 @@
 			"title": "TW employee extension data",
 			"additionalProperties": false,
 			"properties": {
-				"events": {
-					"type": "array",
-					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": ["CHILD_BIRTH", "MARRIAGE", "PREGNANCY"],
-								"title": "What happened"
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date"
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							}
-						}
-					}
-				},
 				"foreign_spouse_of_national": {
 					"type": "boolean",
 					"default": false,

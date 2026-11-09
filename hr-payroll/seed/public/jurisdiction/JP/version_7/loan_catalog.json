@@ -1,23 +1,21 @@
 [
 	{
 		"code": "SALARY_ADVANCE",
-		"name": "給与の前払 (salary advance recovery)",
 		"lookup": {},
 		"references": [
 			{
-				"title": "労働基準法 art.24(1) proviso: a deduction from wages other than taxes and social insurance needs a written agreement with the majority union or representative (賃金控除協定; company.wage_deduction_agreement); art.25: an advance of wages already earned for an emergency must be paid on request."
+				"title": "労働基準法 art.24(1) proviso: a deduction from wages other than taxes and social insurance needs a written agreement with the majority union or representative (賃金控除協定; entity_extension_data.wage_deduction_agreement); art.25: an advance of wages already earned for an emergency must be paid on request."
 			}
 		],
 		"subtotal_id": "13bce6b9-41fd-5386-9c4c-2cd5df7878af",
 		"eligibility": "// js\nreturn get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
 		"conversion": "// js\nreturn ctx.entry.amount;",
-		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
 		"id": "10e2101a-0cb3-5831-b954-a3ece9fa81e9",
-		"settings_id": "3dd93dff-4f4c-5e18-aee0-ffbffa8b09dc"
+		"settings_id": "3dd93dff-4f4c-5e18-aee0-ffbffa8b09dc",
+		"description": "Salary advance recovered from later pay."
 	},
 	{
 		"code": "STAFF_LOAN",
-		"name": "社内貸付金 (staff loan repayment)",
 		"lookup": {},
 		"references": [
 			{
@@ -27,13 +25,12 @@
 		"subtotal_id": "13bce6b9-41fd-5386-9c4c-2cd5df7878af",
 		"eligibility": "// js\nreturn get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
 		"conversion": "// js\nreturn ctx.entry.amount;",
-		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
 		"id": "66df5092-d06a-5f31-b64d-bdd247e1f405",
-		"settings_id": "3dd93dff-4f4c-5e18-aee0-ffbffa8b09dc"
+		"settings_id": "3dd93dff-4f4c-5e18-aee0-ffbffa8b09dc",
+		"description": "Staff loan recovered from pay."
 	},
 	{
 		"code": "EMERGENCY_ADVANCE",
-		"name": "非常時払 (emergency payment of earned wages)",
 		"lookup": {},
 		"references": [
 			{
@@ -43,8 +40,8 @@
 		"subtotal_id": "13bce6b9-41fd-5386-9c4c-2cd5df7878af",
 		"eligibility": "// js\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.amount;",
-		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
 		"id": "6b66bd9b-8d60-52e9-a911-15fa9ced6606",
-		"settings_id": "3dd93dff-4f4c-5e18-aee0-ffbffa8b09dc"
+		"settings_id": "3dd93dff-4f4c-5e18-aee0-ffbffa8b09dc",
+		"description": "Emergency advance recovered from pay."
 	}
 ]

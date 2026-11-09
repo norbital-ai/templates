@@ -122,11 +122,6 @@
 						}
 					}
 				},
-				"work_region": {
-					"type": "string",
-					"title": "Workplace minimum-wage region key",
-					"description": "Customer input. The key of the minimum-wage table for the workplace when it differs from the employer region: a `minimum_wage_by_region` key, or a `minimum_wage_domestic` key for a household employer. Unrecorded, the employer region governs."
-				},
 				"ebet_program": {
 					"type": "string",
 					"enum": ["GENERAL", "APPRENTICESHIP", "UPSKILLING"],
@@ -176,6 +171,12 @@
 					],
 					"description": "Labor Code arts.298–299 and DOLE Handbook 2024 ch.14 §C (customer input): the authorised cause. Labour-saving devices, redundancy and an impossible reinstatement pay a month a year; retrenchment, a closure not due to serious losses, disease, a security guard without assignment for six months (DO 150-16) and a contractor’s worker without assignment for three months (DO 174-17 s.13) half a month a year, at least a month; a closure due to serious losses pays none. A bona fide suspension of operations past six months (art.301; DO 215-20) is retrenchment pay, half a month a year."
 				},
+				"just_cause_dismissal": {
+					"type": "boolean",
+					"default": false,
+					"title": "Dismissed for a just cause",
+					"description": "Labor Code art.297 and DOLE Department Order 147-15 s.5.1: a dismissal for serious misconduct, willful disobedience, gross and habitual neglect, fraud or willful breach of trust, loss of confidence, commission of a crime, or an analogous cause. Raises the twin-notice reminder; it does not by itself prove that due process was observed."
+				},
 				"kasambahay_unjust_dismissal": {
 					"type": "boolean",
 					"description": "RA 10361 s.32: fifteen days’ pay as indemnity."
@@ -183,53 +184,6 @@
 				"kasambahay_unjustified_departure": {
 					"type": "boolean",
 					"description": "RA 10361 s.32: up to fifteen days’ unpaid salary forfeited."
-				},
-				"events": {
-					"type": "array",
-					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": [
-									"BIRTH_EXTENSION",
-									"CHILD_BIRTH",
-									"GYNECOLOGICAL_SURGERY",
-									"MATERNITY_ALLOCATION",
-									"PREGNANCY_TERMINATION",
-									"VAWC"
-								],
-								"title": "What happened"
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date",
-								"description": "The day it happened. Maternity leave that starts before delivery (RA 11210 s.3) is dated from its first day, so those days count in it."
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							},
-							"allocated_days": {
-								"type": "integer",
-								"minimum": 1,
-								"title": "Maternity days allocated",
-								"description": "RA 11210 s.6: on a CHILD_BIRTH, the days the mother allocates; on a MATERNITY_ALLOCATION, the days the father or alternate caregiver receives."
-							}
-						}
-					}
 				}
 			}
 		},
@@ -1048,6 +1002,66 @@
 				"extended_coverage_age_years": 65,
 				"domestic_threshold": 5000
 			}
+		},
+		"work_regions": {
+			"BARMM-CITY-AGRI-RETAIL": "BARMM-CITY-AGRI-RETAIL",
+			"BARMM-CITY-NONAGRI": "BARMM-CITY-NONAGRI",
+			"BARMM-PROV-AGRI": "BARMM-PROV-AGRI",
+			"BARMM-PROV-NONAGRI": "BARMM-PROV-NONAGRI",
+			"CAR": "CAR",
+			"I-LOW": "I-LOW",
+			"I-NONAGRI-10PLUS": "I-NONAGRI-10PLUS",
+			"II": "II",
+			"III-AURORA-AGRI": "III-AURORA-AGRI",
+			"III-AURORA-NONAGRI": "III-AURORA-NONAGRI",
+			"III-AURORA-RETAIL": "III-AURORA-RETAIL",
+			"III-CORE-AGRI": "III-CORE-AGRI",
+			"III-CORE-NONAGRI": "III-CORE-NONAGRI",
+			"III-CORE-RETAIL": "III-CORE-RETAIL",
+			"IV-A": "IV-A",
+			"IV-A-1ST": "IV-A-1ST",
+			"IV-A-2ND-5TH": "IV-A-2ND-5TH",
+			"IV-A-AGRI-2ND-5TH": "IV-A-AGRI-2ND-5TH",
+			"IV-A-AGRI-COMPONENT-1ST": "IV-A-AGRI-COMPONENT-1ST",
+			"IV-A-AGRI-RECLASSIFIED-1ST": "IV-A-AGRI-RECLASSIFIED-1ST",
+			"IV-A-RECLASSIFIED-1ST": "IV-A-RECLASSIFIED-1ST",
+			"IV-A-ROSARIO-CAVITE": "IV-A-ROSARIO-CAVITE",
+			"IV-A-RETAIL-SMALL": "IV-A-RETAIL-SMALL",
+			"IV-B": "IV-B",
+			"IV-B-SMALL": "IV-B-SMALL",
+			"IX-HIGH": "IX-HIGH",
+			"IX-LOW": "IX-LOW",
+			"NCR": "NCR",
+			"NCR-AGRI-SMALL": "NCR-AGRI-SMALL",
+			"V": "V",
+			"VI-AGRI": "VI-AGRI",
+			"VI-NONAGRI-10ORLESS": "VI-NONAGRI-10ORLESS",
+			"VI-NONAGRI-11PLUS": "VI-NONAGRI-11PLUS",
+			"VII-A": "VII-A",
+			"VII-B": "VII-B",
+			"VIII-HIGH": "VIII-HIGH",
+			"VIII-LOW": "VIII-LOW",
+			"X-CAT-I": "X-CAT-I",
+			"X-CAT-II": "X-CAT-II",
+			"XI-AGRI": "XI-AGRI",
+			"XI-NONAGRI": "XI-NONAGRI",
+			"XII-AGRI": "XII-AGRI",
+			"XII-NONAGRI": "XII-NONAGRI",
+			"XIII": "XIII",
+			"BARMM": "BARMM",
+			"I": "I",
+			"III": "III",
+			"IX": "IX",
+			"IX-OTHER": "IX-OTHER",
+			"IX-SULU-1ST": "IX-SULU-1ST",
+			"VI": "VI",
+			"VII": "VII",
+			"VIII": "VIII",
+			"VIII-OTHER": "VIII-OTHER",
+			"X": "X",
+			"XI": "XI",
+			"XI-OTHER": "XI-OTHER",
+			"XII": "XII"
 		},
 		"status": "SEALED",
 		"conversions": {

@@ -17,6 +17,7 @@
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Schema } from 'effect';
 	import { JsonObject } from '../../../lib/payroll_engine/contracts.js';
+	import ReadsView from '../../../lib/ui/settings/reads_view.svelte';
 
 	type Layer = {
 		readonly where?: JsonObject;
@@ -97,16 +98,7 @@
 </script>
 
 {#if view.mode === 'show'}
-	<Stack gap="xs">
-		{#each entries as [model, value] (model)}
-			<span class="text-sm">
-				<strong>{model}</strong>
-				<span class="text-muted-foreground">
-					· {JSON.stringify(value.where ?? {})} · {String(value.limit ?? '')} rows
-				</span>
-			</span>
-		{/each}
-	</Stack>
+	<ReadsView value={view.value} />
 {:else}
 	<Stack gap="sm">
 		{#each entries as [model, value], index (model)}

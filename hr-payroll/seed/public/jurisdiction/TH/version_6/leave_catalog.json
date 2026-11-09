@@ -1,7 +1,6 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "SERVICE_YEAR",
@@ -24,11 +23,11 @@
 		],
 		"subtotal_id": null,
 		"id": "0920d95e-f475-51be-9089-2a67d11e538a",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "Paid annual leave accrued by service."
 	},
 	{
 		"code": "SICK_LEAVE",
-		"name": "Sick leave (ลาป่วย)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
@@ -50,11 +49,11 @@
 		],
 		"subtotal_id": null,
 		"id": "e1794add-094b-53c9-b6e7-4c743ba46b7c",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "Paid sick leave."
 	},
 	{
 		"code": "SICK_LEAVE_UNPAID",
-		"name": "Sick leave beyond 30 paid days",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -70,11 +69,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "4df95322-cef0-5732-ad5d-84c406d62edb",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "SICK_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PERSONAL_BUSINESS_LEAVE",
-		"name": "Personal business leave (ลากิจ)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
@@ -90,11 +89,11 @@
 		],
 		"subtotal_id": null,
 		"id": "03240476-96bd-5e32-8477-0b17619c73d3",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "PERSONAL_BUSINESS_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "STERILISATION_LEAVE",
-		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"references": [
@@ -107,11 +106,11 @@
 		],
 		"subtotal_id": null,
 		"id": "c92da842-cbee-5a5e-a197-8f6df089cbca",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "STERILISATION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "MILITARY_LEAVE",
-		"name": "Military service leave (ลารับราชการทหาร)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
@@ -133,11 +132,11 @@
 		],
 		"subtotal_id": null,
 		"id": "ba841cd4-b46b-5ab8-ad64-7edfae90636c",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "MILITARY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "TRAINING_LEAVE",
-		"name": "Training leave (ลาฝึกอบรม)",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -153,11 +152,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "9289d6dd-7c5e-5139-8ec5-2e0ecf7e3132",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "TRAINING_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "YOUNG_WORKER_TRAINING_LEAVE",
-		"name": "Training or meeting leave for an employee under 18 (ลาของลูกจ้างซึ่งเป็นเด็ก)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
@@ -173,11 +172,11 @@
 		],
 		"subtotal_id": null,
 		"id": "05e42bb5-1015-5772-8ceb-22b0cd189154",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "YOUNG_WORKER_TRAINING_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "MATERNITY_LEAVE",
-		"name": "Maternity leave, employer-paid days (ลาคลอด)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -205,11 +204,11 @@
 		],
 		"subtotal_id": null,
 		"id": "5b3fd995-2cec-59ce-878a-2024ffb36b74",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "Maternity leave around childbirth."
 	},
 	{
 		"code": "MATERNITY_LEAVE_SSO",
-		"name": "Maternity leave, days without employer pay",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -225,11 +224,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "d0aaa68a-1bee-5e45-8379-b921372cfb94",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "MATERNITY_LEAVE_SSO: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY",
-		"name": "Traditional holidays (วันหยุดตามประเพณี)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
@@ -251,11 +250,11 @@
 		],
 		"subtotal_id": null,
 		"id": "35dc2670-5b1e-575b-839c-85337eef3551",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "A public holiday."
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"name": "Unpaid leave by agreement",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -271,11 +270,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "98d36eb4-d002-5f1c-a86d-90b89c664e19",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Unpaid absence from work."
 	},
 	{
 		"code": "CHILD_CARE_LEAVE",
-		"name": "Child-care leave after maternity (ลาเพื่อดูแลบุตร)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -305,11 +304,11 @@
 		"id": "b9102998-7717-5bd1-b0c8-7ca0fbfe9796",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
 		"direction": "DEDUCT",
-		"conversion": "// js\n// LPA s.59/1: half the working-day wage. The salary pays the whole day, so the other half comes off.\nreturn ctx.day_rate * (1 - ctx.lookup.paid_share) * ctx.entry.quantity;"
+		"conversion": "// js\n// LPA s.59/1: half the working-day wage. The salary pays the whole day, so the other half comes off.\nreturn ctx.day_rate * (1 - ctx.lookup.paid_share) * ctx.entry.quantity;",
+		"description": "CHILD_CARE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"name": "Leave to support a spouse at childbirth (ลาไปช่วยเหลือคู่สมรส)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -337,11 +336,11 @@
 		],
 		"subtotal_id": null,
 		"id": "908eb80f-7353-5b5b-8fa3-f6f522e96c9e",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"description": "Paternity leave around childbirth."
 	},
 	{
 		"code": "WORK_INJURY_LEAVE",
-		"name": "Work-injury absence (WCF compensation)",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -357,11 +356,11 @@
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"id": "d8224403-781a-5896-9197-b3d6958db640",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "WORK_INJURY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "SUSPENSION",
-		"name": "Suspension pending investigation (at least 50% pay)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -388,6 +387,7 @@
 		"id": "a93a7cf3-dd9c-5ca8-91a9-93a1b474996d",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
 		"direction": "DEDUCT",
-		"conversion": "// js\n// LPA s.116: at least half the working-day wage. The salary pays the whole day, so the other half comes off.\nreturn ctx.day_rate * (1 - ctx.lookup.paid_share) * ctx.entry.quantity;"
+		"conversion": "// js\n// LPA s.116: at least half the working-day wage. The salary pays the whole day, so the other half comes off.\nreturn ctx.day_rate * (1 - ctx.lookup.paid_share) * ctx.entry.quantity;",
+		"description": "SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules."
 	}
 ]

@@ -1,7 +1,6 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"name": "Annual leave (Nghỉ hằng năm)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
@@ -69,9 +68,12 @@
 					"category": "ESPECIALLY_HEAVY_HAZARDOUS",
 					"days": 4
 				}
-			]
+			],
+			"encash_on_exit": {
+				"allowed": true
+			}
 		},
-		"subtotal_id": null,
+		"subtotal_id": "ef16e5c9-f532-5011-88ac-71c7024e59f2",
 		"references": [
 			{
 				"title": "Decree 145/2020 arts.65-66: exact countable annual-leave service includes protected absences with distinct calendar-month caps. Aggregated attendance cannot reconstruct those caps. A dated annual_leave_service_review supplies countable months; missing/stale review refuses a request and final settlement. No unsupported worked-days approximation remains. The review date must equal the accrual/request date. For a combining agreement, carry_previous_year_days and carry_second_previous_year_days give the reviewed opening balances; the old recursive attendance-based carry approximation is disabled.",
@@ -86,11 +88,12 @@
 			}
 		],
 		"id": "08b07c6c-0749-58e1-8bee-42b53d954680",
-		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
+		"description": "Paid annual leave accrued by service.",
+		"conversion": "// js\n// Labour Code art.113(3); Decree 145/2020 art.67(3): the untaken days are paid at the contractual daily wage\n// of the month before the exit month, recorded on the exit review.\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst review = get(ctx.subject.employment, 'employee_extension_data.encashment_review', {});\nconst daily = Number(get(review, 'daily_wage_vnd', 0));\nreturn daily * Number(get(ctx.entry, 'quantity', 0));"
 	},
 	{
 		"code": "SICK_LEAVE",
-		"name": "Sick leave (Nghỉ ốm đau)",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -103,11 +106,11 @@
 		],
 		"id": "70842487-07ef-5b61-ae56-23aa9d424997",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Paid sick leave."
 	},
 	{
 		"code": "MATERNITY_LEAVE",
-		"name": "Maternity leave (Nghỉ thai sản)",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -121,11 +124,11 @@
 		],
 		"id": "554a290b-916b-54e1-b6fe-53758431caf9",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Maternity leave around childbirth."
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -147,11 +150,11 @@
 		],
 		"id": "6c68ec9b-ee76-5d9b-8d18-6c1092188dfa",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Paternity leave around childbirth."
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
-		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -171,11 +174,11 @@
 			}
 		],
 		"id": "3bf8caab-85f5-5361-8373-da63519ac56a",
-		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
+		"description": "Marriage leave."
 	},
 	{
 		"code": "CHILD_MARRIAGE_LEAVE",
-		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -195,11 +198,11 @@
 			}
 		],
 		"id": "353814b1-d910-5c84-8b2b-6f8d0118fb9c",
-		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
+		"description": "CHILD_MARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
-		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
@@ -219,11 +222,11 @@
 			}
 		],
 		"id": "423fe578-5a59-5826-9968-0e9a63832ea6",
-		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
+		"description": "Bereavement leave."
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE_UNPAID",
-		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -236,11 +239,11 @@
 		],
 		"id": "7c2b9eab-d02f-5d28-9278-d00077115a74",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "BEREAVEMENT_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"name": "Nghỉ không hưởng lương theo thỏa thuận (unpaid leave by agreement)",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -254,11 +257,11 @@
 		],
 		"id": "bb2d95bf-b9b3-58fe-abd6-4330691d3e03",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Unpaid absence from work."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY",
-		"name": "Public holidays (Nghỉ lễ, tết)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
@@ -279,11 +282,11 @@
 			}
 		],
 		"id": "be169a44-696f-5d33-b276-115e18affacd",
-		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
+		"description": "A public holiday."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"name": "Public holiday in lieu",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"subtotal_id": null,
@@ -295,11 +298,11 @@
 				"locator": "art.112(3)",
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
-		]
+		],
+		"description": "A paid day in lieu of a public holiday worked."
 	},
 	{
 		"code": "FOREIGN_NATIONAL_LEAVE",
-		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "CALENDAR_YEAR",
@@ -316,11 +319,11 @@
 			}
 		],
 		"id": "1aaa9397-8b5b-5e85-b131-a0304ce37f5e",
-		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
+		"description": "FOREIGN_NATIONAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "STOPPAGE_WORKER_FAULT",
-		"name": "Work stoppage — the worker’s own fault (Ngừng việc do lỗi của người lao động)",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -333,11 +336,11 @@
 		],
 		"id": "5d62e626-10a8-5bf8-a58e-ae029478c263",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "STOPPAGE_WORKER_FAULT: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "CHILD_SICK_CARE",
-		"name": "Care of a sick child under 7",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -351,11 +354,11 @@
 		],
 		"id": "63d396e6-5a99-5bd4-9e2a-db36597acb39",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "CHILD_SICK_CARE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "PRENATAL_CHECKUP",
-		"name": "Prenatal check-ups",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -370,11 +373,11 @@
 		],
 		"id": "74ecc5b7-54a2-5c5a-bc92-a0b98f5be1cc",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "PRENATAL_CHECKUP: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "MISCARRIAGE_LEAVE",
-		"name": "Miscarriage, abortion or stillbirth",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -396,11 +399,11 @@
 		],
 		"id": "5f72f24e-7e1a-513f-8ed5-71fd9ba47d8f",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "MISCARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "CONTRACEPTION_LEAVE",
-		"name": "Contraception measures",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -414,11 +417,11 @@
 		],
 		"id": "6becd37e-c90d-5760-abbb-b3c13aa761b6",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "CONTRACEPTION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "CONVALESCENCE_LEAVE",
-		"name": "Convalescence after sickness or maternity",
 		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
@@ -432,11 +435,11 @@
 		],
 		"id": "84a27679-1342-5375-ad18-d162cbaf25bd",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "CONVALESCENCE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT_LEAVE",
-		"name": "Treatment of an occupational accident or disease",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"subtotal_id": null,
@@ -446,11 +449,11 @@
 			}
 		],
 		"id": "977b107c-371e-517d-8380-ec90cfce9040",
-		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
+		"description": "OCCUPATIONAL_ACCIDENT_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
 		"code": "SUSPENSION_PENDING_DISCIPLINE",
-		"name": "Suspension pending discipline",
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"subtotal_id": null,
@@ -461,6 +464,7 @@
 			}
 		],
 		"id": "4a84504c-3cb3-584f-99cc-dba708ef52a7",
-		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
+		"description": "SUSPENSION_PENDING_DISCIPLINE: Leave days granted and drawn under this jurisdiction’s rules."
 	}
 ]

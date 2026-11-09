@@ -1,7 +1,6 @@
 [
 	{
 		"code": "bonus",
-		"name": "獎金 (bonus)",
 		"description": "The entry quantity is the bonus paid. Whether it is work remuneration or a nonregular award stays with the payroll source and the income-tax and health-insurance schemes; the payment itself is a gross earning.",
 		"lookup": {},
 		"references": [
@@ -15,19 +14,22 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "41bd071c-0594-5c70-bea2-dbcf9b84aa1c",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "SEVERANCE_PAY",
-		"name": "資遣費 (severance pay)",
 		"description": "The entry quantity is the average monthly wage under LSA §2(4). Old-system service before 1 July 2005 pays one month per year and the remainder under the new system half a month per year, capped at six months; a recorded old-system service figure in the employment's extension data replaces the pre-Act default.",
 		"lookup": {
 			"new_months_per_year": 0.5,
 			"new_cap_months": 6,
 			"old_months_per_year": 1,
-			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
+			"severance_grounds": [
+				"ARTICLE_11",
+				"ARTICLE_13_PROVISO",
+				"ARTICLE_14",
+				"ARTICLE_20"
+			]
 		},
 		"references": [
 			{
@@ -41,14 +43,12 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "const ground = get(\n\tctx.subject.employment,\n\t'employee_extension_data.lsa_termination_ground',\n\tnull\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!ctx.lookup.severance_grounds.includes(ground)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = ctx.entry.incurred_on;\nconst month_days = 30;\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / month_days;\nconst cutoff = ctx.lookup.old_system_cutoff;\nconst cutoffEnd = add_days(cutoff, -1);\nconst oldEnd = end < cutoffEnd ? end : cutoffEnd;\nconst oldMonths = start <= oldEnd\n\t? calendar_completed_months(start, add_days(oldEnd, 1)) +\n\t\tcalendar_distance_days(add_months(start, calendar_completed_months(start, add_days(oldEnd, 1))), add_days(oldEnd, 1)) /\n\t\t\tmonth_days\n\t: 0;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.old_system_service_months', null);\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\n// 勞基法 §17, §55: a worker who kept the LSA pension, or a foreigner outside 勞工退休金條例 §7, is on the Act for the whole service.\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA';\nconst whole = lsa || (residency === 'FOREIGNER' && !spouse && !professional);\nconst served =\n\twhole ? total\n\t: recorded == null ? oldMonths\n\t: recorded;\nconst old = whole || recorded != null || start <= cutoffEnd ? Math.min(total, served) : 0;\nconst fresh = Math.max(0, total - old);\nreturn (\n\tctx.entry.quantity *\n\t((Math.ceil(old) * ctx.lookup.old_months_per_year) / 12 +\n\t\tMath.min(ctx.lookup.new_cap_months, (fresh * ctx.lookup.new_months_per_year) / 12))\n);",
-		"incurred_on": "return ctx.entry.incurred_on;",
+		"conversion": "const start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst end = ctx.entry.incurred_on;\nconst month_days = 30;\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / month_days;\nconst cutoff = ctx.lookup.old_system_cutoff;\nconst cutoffEnd = add_days(cutoff, -1);\nconst oldEnd = end < cutoffEnd ? end : cutoffEnd;\nconst oldMonths = start <= oldEnd\n\t? calendar_completed_months(start, add_days(oldEnd, 1)) +\n\t\tcalendar_distance_days(add_months(start, calendar_completed_months(start, add_days(oldEnd, 1))), add_days(oldEnd, 1)) /\n\t\t\tmonth_days\n\t: 0;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.old_system_service_months', null);\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\n// 勞基法 §17, §55: a worker who kept the LSA pension, or a foreigner outside 勞工退休金條例 §7, is on the Act for the whole service.\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA';\nconst whole = lsa || (residency === 'FOREIGNER' && !spouse && !professional);\nconst served =\n\twhole ? total\n\t: recorded == null ? oldMonths\n\t: recorded;\nconst old = whole || recorded != null || start <= cutoffEnd ? Math.min(total, served) : 0;\nconst fresh = Math.max(0, total - old);\nreturn (\n\tctx.entry.quantity *\n\t((Math.ceil(old) * ctx.lookup.old_months_per_year) / 12 +\n\t\tMath.min(ctx.lookup.new_cap_months, (fresh * ctx.lookup.new_months_per_year) / 12))\n);",
 		"id": "59a1723c-ad63-55d6-a06f-36b89db4a048",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NOTICE_PAY",
-		"name": "預告期間工資 (notice pay)",
 		"description": "The entry quantity is the average daily wage under LSA §2(4). The statutory notice period steps with completed service; the employment model holds no served-notice evidence, so the catalogue pays the statutory period in full and the payroll source records any notice actually given.",
 		"lookup": {
 			"service_bands": [
@@ -65,7 +65,11 @@
 					"days": 30
 				}
 			],
-			"notice_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
+			"notice_grounds": [
+				"ARTICLE_11",
+				"ARTICLE_13_PROVISO",
+				"ARTICLE_20"
+			]
 		},
 		"references": [
 			{
@@ -79,14 +83,12 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "const ground = get(\n\tctx.subject.employment,\n\t'employee_extension_data.lsa_termination_ground',\n\tnull\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!ctx.lookup.notice_grounds.includes(ground)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const months = calendar_completed_months(\n\tctx.subject.employment.effective_range.from,\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nconst band = ctx.lookup.service_bands.filter((row) => months >= row.months).at(-1);\nconst daily = Math.max(ctx.entry.quantity, ctx.day_rate);\nreturn daily * (band == null ? 0 : band.days);",
-		"incurred_on": "return ctx.entry.incurred_on;",
+		"conversion": "const months = calendar_completed_months(\n\tget(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from),\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nconst band = ctx.lookup.service_bands.filter((row) => months >= row.months).at(-1);\nconst daily = Math.max(ctx.entry.quantity, ctx.day_rate);\nreturn daily * (band == null ? 0 : band.days);",
 		"id": "96b0d293-b805-5416-bbd7-b2b2f381e19b",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "RETIREMENT_PAY",
-		"name": "舊制退休金 (old-system retirement pay)",
 		"description": "The entry quantity is the average monthly wage. Old-system service pays two months per year for the first fifteen years and one thereafter, capped at forty-five months; the statutory age and service bands select the entitlement and a duty-caused disability carries the statutory uplift.",
 		"lookup": {
 			"first_years": 15,
@@ -106,15 +108,13 @@
 		"subtotal_id": "d6a4c059-1651-5252-b8cd-d4db5547f9c6",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "const birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nif (birth == null) return false;\nconst age = age_on(birth, ctx.entry.incurred_on);\nconst months = calendar_completed_months(\n\tctx.subject.employment.effective_range.from,\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from)) return false;\nif (get(ctx.subject.employment, 'employee_extension_data.retirement_disability', false) === true) return true;\nreturn ctx.lookup.retirement_eligibility.some((band) => {\n\tif (!(months >= band.months)) return false;\n\treturn band.age == null || age >= band.age;\n});",
-		"conversion": "const facts = get(ctx.subject.employment, 'employee_extension_data', {});\n// 勞基法 §17, §55: a worker who kept the LSA pension, or a foreigner outside 勞工退休金條例 §7, is on the Act for the whole service.\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA';\nconst whole = lsa || (residency === 'FOREIGNER' && !spouse && !professional);\nconst start = ctx.subject.employment.effective_range.from;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.old_system_service_months', null);\nconst end = whole || recorded != null || ctx.entry.incurred_on < ctx.lookup.old_system_cutoff\n\t? ctx.entry.incurred_on\n\t: add_days(ctx.lookup.old_system_cutoff, -1);\nconst month_days = 30;\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / month_days;\nconst served = whole || recorded == null ? total : recorded;\nconst old = whole || recorded != null || start < ctx.lookup.old_system_cutoff ? Math.min(total, served) : 0;\nconst years = Math.floor(old / 12);\nconst remainder = old - years * 12;\nconst tail_years =\n\tremainder === 0 ? 0\n\t: remainder < ctx.lookup.tail_threshold_months ? ctx.lookup.short_tail_years\n\t: ctx.lookup.long_tail_years;\nconst credited = years + tail_years;\nconst units = Math.min(\n\tctx.lookup.cap_months,\n\tMath.min(ctx.lookup.first_years, credited) * ctx.lookup.first_rate +\n\t\tMath.max(0, credited - ctx.lookup.first_years) * ctx.lookup.later_rate\n);\nconst uplift = get(ctx.subject.employment, 'employee_extension_data.retirement_disability_duty_caused', false) === true\n\t? ctx.lookup.duty_disability_uplift\n\t: 1;\nreturn ctx.entry.quantity * units * uplift;",
-		"incurred_on": "return ctx.entry.incurred_on;",
+		"eligibility": "const birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nif (birth == null) return false;\nconst age = age_on(birth, ctx.entry.incurred_on);\nconst months = calendar_completed_months(\n\tget(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from),\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from)) return false;\nif (get(ctx.subject.employment, 'employee_extension_data.retirement_disability', false) === true) return true;\nreturn ctx.lookup.retirement_eligibility.some((band) => {\n\tif (!(months >= band.months)) return false;\n\treturn band.age == null || age >= band.age;\n});",
+		"conversion": "const facts = get(ctx.subject.employment, 'employee_extension_data', {});\n// 勞基法 §17, §55: a worker who kept the LSA pension, or a foreigner outside 勞工退休金條例 §7, is on the Act for the whole service.\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA';\nconst whole = lsa || (residency === 'FOREIGNER' && !spouse && !professional);\nconst start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.old_system_service_months', null);\nconst end = whole || recorded != null || ctx.entry.incurred_on < ctx.lookup.old_system_cutoff\n\t? ctx.entry.incurred_on\n\t: add_days(ctx.lookup.old_system_cutoff, -1);\nconst month_days = 30;\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / month_days;\nconst served = whole || recorded == null ? total : recorded;\nconst old = whole || recorded != null || start < ctx.lookup.old_system_cutoff ? Math.min(total, served) : 0;\nconst years = Math.floor(old / 12);\nconst remainder = old - years * 12;\nconst tail_years =\n\tremainder === 0 ? 0\n\t: remainder < ctx.lookup.tail_threshold_months ? ctx.lookup.short_tail_years\n\t: ctx.lookup.long_tail_years;\nconst credited = years + tail_years;\nconst units = Math.min(\n\tctx.lookup.cap_months,\n\tMath.min(ctx.lookup.first_years, credited) * ctx.lookup.first_rate +\n\t\tMath.max(0, credited - ctx.lookup.first_years) * ctx.lookup.later_rate\n);\nconst uplift = get(ctx.subject.employment, 'employee_extension_data.retirement_disability_duty_caused', false) === true\n\t? ctx.lookup.duty_disability_uplift\n\t: 1;\nreturn ctx.entry.quantity * units * uplift;",
 		"id": "a1aed02a-8cd3-5dff-9c81-9b6630386f44",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_INJURY_OFFSET",
-		"name": "職業災害補償抵充 (§59 insurance offset)",
 		"description": "The entry quantity is the insurer benefit the employer elects to offset against its §59 compensation for the same accident. A net-pay deduction that leaves every wage and insured base untouched.",
 		"lookup": {},
 		"references": [
@@ -130,13 +130,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "312ceb75-c209-5528-9b5d-c5dff71a4f50",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "COURT_GARNISHMENT",
-		"name": "法院扣押薪資 (court wage garnishment)",
 		"description": "The entry quantity is the amount the served attachment order fixes for the period. A net-pay deduction; the order's one-third ceiling and the debtor's reserved living costs bind the court, not this catalogue.",
 		"lookup": {},
 		"references": [
@@ -151,13 +149,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "e5bfb345-d7dd-5356-8ca5-4de671be4614",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_INJURY_MEDICAL",
-		"name": "職業災害醫療費用補償 (§59(1) medical costs)",
 		"description": "The entry quantity is the necessary medical cost incurred and evidenced by its receipt.",
 		"lookup": {},
 		"references": [
@@ -173,13 +169,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "4f9cc1d7-e60a-5df6-88d1-b9dc13c7d973",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_INJURY_LUMP_SUM",
-		"name": "職業災害四十個月平均工資 (§59(2) proviso lump sum)",
 		"description": "The entry quantity is the average monthly wage. §59(2) proviso pays forty months where treatment exceeds two years, original capacity is lost and no disability benefit is due; an insurer benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"months": 40
@@ -197,13 +191,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.months;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "e06f8d18-2c59-5b99-844f-bdfded5e48e8",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G01",
-		"name": "職業災害失能補償 第1等級 (§59(3) disability, grade 1)",
 		"description": "The entry quantity is the average daily wage. Grade 1 disability under §59(3) pays 1800 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 1800
@@ -221,13 +213,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "b5ac9c51-aae9-511a-b212-65ac098d6474",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G02",
-		"name": "職業災害失能補償 第2等級 (§59(3) disability, grade 2)",
 		"description": "The entry quantity is the average daily wage. Grade 2 disability under §59(3) pays 1500 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 1500
@@ -245,13 +235,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "cce85c28-7614-5476-8422-1837212ac8e0",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G03",
-		"name": "職業災害失能補償 第3等級 (§59(3) disability, grade 3)",
 		"description": "The entry quantity is the average daily wage. Grade 3 disability under §59(3) pays 1260 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 1260
@@ -269,13 +257,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "0ef39121-f2fe-5025-b8b5-253ebd267bd8",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G04",
-		"name": "職業災害失能補償 第4等級 (§59(3) disability, grade 4)",
 		"description": "The entry quantity is the average daily wage. Grade 4 disability under §59(3) pays 1110 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 1110
@@ -293,13 +279,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "f9a1f970-a595-58ce-9f57-52eb2770903d",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G05",
-		"name": "職業災害失能補償 第5等級 (§59(3) disability, grade 5)",
 		"description": "The entry quantity is the average daily wage. Grade 5 disability under §59(3) pays 960 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 960
@@ -317,13 +301,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "8cd13e90-cf79-53c0-9425-06926d39cee9",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G06",
-		"name": "職業災害失能補償 第6等級 (§59(3) disability, grade 6)",
 		"description": "The entry quantity is the average daily wage. Grade 6 disability under §59(3) pays 810 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 810
@@ -341,13 +323,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "ec75d242-505a-5238-905a-7d5068227d4c",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G07",
-		"name": "職業災害失能補償 第7等級 (§59(3) disability, grade 7)",
 		"description": "The entry quantity is the average daily wage. Grade 7 disability under §59(3) pays 660 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 660
@@ -365,13 +345,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "0c71a67c-df02-563c-bdee-259accf7fc53",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G08",
-		"name": "職業災害失能補償 第8等級 (§59(3) disability, grade 8)",
 		"description": "The entry quantity is the average daily wage. Grade 8 disability under §59(3) pays 540 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 540
@@ -389,13 +367,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "a5e4c399-6665-5506-a241-1ec41c38b867",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G09",
-		"name": "職業災害失能補償 第9等級 (§59(3) disability, grade 9)",
 		"description": "The entry quantity is the average daily wage. Grade 9 disability under §59(3) pays 420 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 420
@@ -413,13 +389,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "8fe73e4a-b6c3-5d86-929d-8f6a95836282",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G10",
-		"name": "職業災害失能補償 第10等級 (§59(3) disability, grade 10)",
 		"description": "The entry quantity is the average daily wage. Grade 10 disability under §59(3) pays 330 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 330
@@ -437,13 +411,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "6377628a-49d2-53ef-9f67-24e20f7cdbb6",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G11",
-		"name": "職業災害失能補償 第11等級 (§59(3) disability, grade 11)",
 		"description": "The entry quantity is the average daily wage. Grade 11 disability under §59(3) pays 240 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 240
@@ -461,13 +433,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "c826dfd5-c0c8-5a14-9db3-efedec20aad5",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G12",
-		"name": "職業災害失能補償 第12等級 (§59(3) disability, grade 12)",
 		"description": "The entry quantity is the average daily wage. Grade 12 disability under §59(3) pays 150 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 150
@@ -485,13 +455,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "0a188d9e-c0ae-5804-b537-5dbfdbfd9f9e",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G13",
-		"name": "職業災害失能補償 第13等級 (§59(3) disability, grade 13)",
 		"description": "The entry quantity is the average daily wage. Grade 13 disability under §59(3) pays 90 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 90
@@ -509,13 +477,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "a9c0af83-6183-5b7b-b85f-a2fc74eea79a",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G14",
-		"name": "職業災害失能補償 第14等級 (§59(3) disability, grade 14)",
 		"description": "The entry quantity is the average daily wage. Grade 14 disability under §59(3) pays 60 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 60
@@ -533,13 +499,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "d03167f5-0f26-563f-b5f3-926e5a15d3d2",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DISABILITY_G15",
-		"name": "職業災害失能補償 第15等級 (§59(3) disability, grade 15)",
 		"description": "The entry quantity is the average daily wage. Grade 15 disability under §59(3) pays 45 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
 		"lookup": {
 			"days": 45
@@ -557,13 +521,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "f516bda2-9c11-570a-93af-3e718f3657b2",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DEATH_FUNERAL",
-		"name": "職業災害喪葬費 (§59(4) funeral costs)",
 		"description": "The entry quantity is the average monthly wage. §59(4) pays five months for the necessary funeral costs of an occupational death.",
 		"lookup": {
 			"months": 5
@@ -581,13 +543,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "const death = get(\n\tctx.subject.employment,\n\t'employee_extension_data.occupational_death',\n\tfalse\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (death !== true) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.months;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "1a8efdba-c828-54ff-9d0c-ac42f99f3b13",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "OCC_DEATH_COMPENSATION",
-		"name": "職業災害死亡補償 (§59(4) death compensation)",
 		"description": "The entry quantity is the average monthly wage. §59(4) pays forty months as death compensation for an occupational death.",
 		"lookup": {
 			"months": 40
@@ -605,13 +565,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "const death = get(\n\tctx.subject.employment,\n\t'employee_extension_data.occupational_death',\n\tfalse\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (death !== true) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.months;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "59405e45-9052-5b87-a329-42ee15d2ca91",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "FOOD_LODGING",
-		"name": "膳宿費 (migrant worker food and lodging)",
 		"description": "The entry quantity is the monthly food-and-lodging charge. The agreed monthly cap recorded in the employment's extension data limits it.",
 		"lookup": {},
 		"references": [
@@ -625,13 +583,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "const cap = get(ctx.subject.employment, 'employee_extension_data.food_lodging_monthly_cap', null);\nif (cap == null) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.quantity <= cap;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "5d5a8a9a-e76b-50f7-a620-cb5a26026196",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NON_COMPETE_COMPENSATION",
-		"name": "離職後競業禁止補償 (non-compete compensation, monthly after exit)",
 		"description": "The entry quantity is the monthly compensation agreed for the post-exit restriction, payable after the contract ends and within the two-year statutory restriction period.",
 		"lookup": {
 			"restriction_years": 2
@@ -649,13 +605,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end == null) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on > end)) return false;\nreturn ctx.entry.incurred_on <= add_years(end, ctx.lookup.restriction_years);",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "fb420a67-ffa8-53f6-9e4f-2674e11979eb",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NON_COMPETE_LUMP_SUM",
-		"name": "離職後競業禁止補償一次給付 (non-compete compensation, one sum after exit)",
 		"description": "The entry quantity is the one-sum compensation agreed for the post-exit restriction, payable after the contract ends.",
 		"lookup": {},
 		"references": [
@@ -671,13 +625,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end == null) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.incurred_on > end;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "4cf33279-988d-5458-a2a8-43ca1a088ff5",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "INDIGENOUS_RITUAL_DAY_WORK",
-		"name": "原住民族歲時祭儀出勤 (ritual holiday worked)",
 		"lookup": {},
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -693,11 +645,10 @@
 		"off_cycle_eligible": false,
 		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\n// 勞動基準法 §39: one further day's wage for each elected ritual day worked; the entry counts the days.\nreturn ctx.entry.quantity * ctx.day_rate;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;"
+		"description": "INDIGENOUS_RITUAL_DAY_WORK: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "STATUTORY_REFUND",
-		"name": "Statutory refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -711,13 +662,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "eabe3884-8cf0-5308-a415-65868a4e3121",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "LI_REFUND",
-		"name": "Labor Insurance (勞工保險) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -740,13 +689,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "e2d94a2a-d6fc-5a1d-a9c2-5e668361f3cd",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "LI_ADJUSTMENT",
-		"name": "Labor Insurance (勞工保險) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -769,13 +716,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "c23f09ac-589e-54b7-9923-41377c1e9726",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "EI_REFUND",
-		"name": "Employment Insurance (就業保險) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -798,13 +743,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "f92b778d-ed10-503f-8358-20eb9a626fc7",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "EI_ADJUSTMENT",
-		"name": "Employment Insurance (就業保險) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -827,13 +770,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "81cf8d1d-a37c-5334-9346-65030445b5f5",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NHI_REFUND",
-		"name": "National Health Insurance (全民健康保險) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -856,13 +797,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "113e1549-3a79-5aaa-9be4-207adbdbf12e",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NHI_ADJUSTMENT",
-		"name": "National Health Insurance (全民健康保險) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -885,13 +824,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "cdc98f4d-e6e2-5db0-9e1b-c6e79f5f8f5c",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NHI_SUPPLEMENT_REFUND",
-		"name": "健保補充保險費 (NHI supplementary premium) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -914,13 +851,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "ad2db7f5-9782-57b2-9192-6473283c3a09",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NHI_SUPPLEMENT_ADJUSTMENT",
-		"name": "健保補充保險費 (NHI supplementary premium) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -943,13 +878,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "111377d8-bd85-5b2d-b857-80c4583f5dda",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NHI_PART_TIME_REFUND",
-		"name": "健保補充保險費—兼職薪資所得 (NHI supplementary premium on part-time salary) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -972,13 +905,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "9512dc7d-8f50-5599-a4f2-862843e3d619",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "NHI_PART_TIME_ADJUSTMENT",
-		"name": "健保補充保險費—兼職薪資所得 (NHI supplementary premium on part-time salary) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -1001,13 +932,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "aa0bf828-5492-548f-ac21-d69726588f4d",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "LABOR_PENSION_REFUND",
-		"name": "Labor Pension (勞工退休金, new system) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -1037,13 +966,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "f7f5083f-7875-5c87-b4d8-c36e6491fb39",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "LABOR_PENSION_ADJUSTMENT",
-		"name": "Labor Pension (勞工退休金, new system) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -1073,13 +1000,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "0ab22c46-7f94-5f0b-a72a-77f6f9b0f437",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "WELFARE_FUND_REFUND",
-		"name": "職工福利金（薪津扣繳） refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -1102,13 +1027,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "19a218ef-a161-50c7-aaa0-d06e415598a8",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	},
 	{
 		"code": "WELFARE_FUND_ADJUSTMENT",
-		"name": "職工福利金（薪津扣繳） adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -1131,7 +1054,6 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "fc505ab3-6000-5e03-bef6-93005c80e775",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
 	}

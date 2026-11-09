@@ -1,7 +1,6 @@
 [
 	{
 		"code": "ECONOMIC_COMPENSATION",
-		"name": "经济补偿 (economic compensation on termination)",
 		"description": "The entry quantity is the average monthly wage over the 12 months before termination. Service is measured from the contract start through the incurred date: a full year pays one month, six months or more pays one, and any shorter part pays half. A wage above 3× the local monthly average pays at that figure for at most 12 years (劳动合同法 第四十七条); any other wage pays in full for all its years.",
 		"lookup": {},
 		"references": [
@@ -14,14 +13,12 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / 12);\nconst remainder = months % 12;\nconst part =\n\tremainder >= 6 ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nconst count = years + part;\n// 劳动合同法 第四十七条第二款: the 3× wage and the 12-year cap bind only a wage above 3× the local monthly average\nconst wage = Number(ctx.entry.quantity);\nconst code = get(\n\tctx.subject.employer,\n\t'entity_extension_data.region',\n\tget(ctx.subject.employer, 'source_reference', '')\n);\nconst cap = first(ctx.lookup.average_wage_cap.filter((row) => row.code === code));\nif (wage <= cap.monthly) return wage * count;\nreturn cap.monthly * Math.min(12, count);",
-		"incurred_on": "return ctx.entry.incurred_on;",
+		"conversion": "const start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / 12);\nconst remainder = months % 12;\nconst part =\n\tremainder >= 6 ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nconst count = years + part;\n// 劳动合同法 第四十七条第二款: the 3× wage and the 12-year cap bind only a wage above 3× the local monthly average\nconst wage = Number(ctx.entry.quantity);\nconst code = get(\n\tctx.subject.employer,\n\t'entity_extension_data.region',\n\tget(ctx.subject.employer, 'source_reference', '')\n);\nconst cap = first(ctx.lookup.average_wage_cap.filter((row) => row.code === code));\nif (wage <= cap.monthly) return wage * count;\nreturn cap.monthly * Math.min(12, count);",
 		"id": "9988c4d7-6500-5d28-a122-b00bd12a2c8d",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "PAY_IN_LIEU_OF_NOTICE",
-		"name": "代通知金 (one month's wage in lieu of notice)",
 		"description": "The entry quantity is the employee's wage for the previous month, paid instead of 30 days' notice.",
 		"lookup": {},
 		"references": [
@@ -35,13 +32,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "81a760ce-3d8c-56f3-bcdc-0b30470e31bb",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "ANNUAL_BONUS",
-		"name": "全年一次性奖金 (annual one-time bonus)",
 		"description": "The entry quantity is the annual one-time bonus awarded for the year. By default it joins cumulative comprehensive income. With the employee election `annual_bonus_separate` it stays out of that base and IIT_ANNUAL_BONUS taxes it alone. One bonus a year: pay anything else as BONUS.",
 		"lookup": {},
 		"references": [
@@ -58,13 +53,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "676361e0-e911-50f0-be90-22f5c0b0da8b",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "BONUS",
-		"name": "奖金 (other bonus)",
 		"description": "The entry quantity is the bonus paid with the month.",
 		"lookup": {},
 		"references": [
@@ -78,13 +71,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "7d4b673c-af78-5d9d-bd6f-59c0b59646bd",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "DAMAGE_COMPENSATION_DEDUCTION",
-		"name": "赔偿经济损失扣款 (deduction for damage the employee caused)",
 		"description": "The entry quantity is the assessed economic loss. The deduction is capped at 20% of the contract monthly wage and must leave the local minimum wage (工资支付暂行规定 第十六条).",
 		"lookup": {
 			"max_share_of_wage": 0.2
@@ -99,14 +90,12 @@
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
-		"conversion": "const wage = get(ctx.subject.employment, 'terms.rate.amount');\nif (wage == null) return ctx.entry.quantity;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst zone = String(get(ext, 'wage_zone', '1'));\nconst table = (ctx.lookup.minimum_wage_by_zone || []).find((row) => row.region === region && row.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst cap = Math.min(Number(wage) * ctx.lookup.max_share_of_wage, Math.max(0, Number(wage) - floor));\nreturn Math.min(ctx.entry.quantity, cap);",
-		"incurred_on": "return ctx.entry.incurred_on;",
+		"conversion": "const wage = get(ctx.subject.employment, 'terms.rate.amount');\nif (wage == null) return ctx.entry.quantity;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst employerRegion = String(get(ext, 'region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(get((ctx.lookup.minimum_wage_by_zone || []).find((row) => row.region === region), 'default_zone', '1'))\n  : String(get(ext, 'wage_zone', '1'));\nconst table = (ctx.lookup.minimum_wage_by_zone || []).find((row) => row.region === region && row.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst cap = Math.min(Number(wage) * ctx.lookup.max_share_of_wage, Math.max(0, Number(wage) - floor));\nreturn Math.min(ctx.entry.quantity, cap);",
 		"id": "ee41f4f2-ac11-5335-b606-c24b0e29e092",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "UNLAWFUL_TERMINATION_COMPENSATION",
-		"name": "违法解除赔偿金 (2N, unlawful termination)",
 		"description": "The entry quantity is the average monthly wage. Compensation is twice the 经济补偿 count over the whole period of service (劳动合同法 第八十七条), with the 3× wage and 12-year cap of 第四十七条 where the wage is above it.",
 		"lookup": {
 			"multiple": 2
@@ -121,14 +110,12 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / 12);\nconst remainder = months % 12;\nconst part =\n\tremainder >= 6 ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nconst count = years + part;\n// 劳动合同法 第四十七条第二款: the 3× wage and the 12-year cap bind only a wage above 3× the local monthly average\nconst wage = Number(ctx.entry.quantity);\nconst code = get(\n\tctx.subject.employer,\n\t'entity_extension_data.region',\n\tget(ctx.subject.employer, 'source_reference', '')\n);\nconst cap = first(ctx.lookup.average_wage_cap.filter((row) => row.code === code));\nif (wage <= cap.monthly) return wage * count * ctx.lookup.multiple;\nreturn cap.monthly * Math.min(12, count) * ctx.lookup.multiple;",
-		"incurred_on": "return ctx.entry.incurred_on;",
+		"conversion": "const start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / 12);\nconst remainder = months % 12;\nconst part =\n\tremainder >= 6 ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nconst count = years + part;\n// 劳动合同法 第四十七条第二款: the 3× wage and the 12-year cap bind only a wage above 3× the local monthly average\nconst wage = Number(ctx.entry.quantity);\nconst code = get(\n\tctx.subject.employer,\n\t'entity_extension_data.region',\n\tget(ctx.subject.employer, 'source_reference', '')\n);\nconst cap = first(ctx.lookup.average_wage_cap.filter((row) => row.code === code));\nif (wage <= cap.monthly) return wage * count * ctx.lookup.multiple;\nreturn cap.monthly * Math.min(12, count) * ctx.lookup.multiple;",
 		"id": "7c4656ad-67fa-5c33-9cc8-149119e68231",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "MATERNITY_ALLOWANCE_PASSTHROUGH",
-		"name": "生育津贴代发 (fund maternity allowance paid through the employer)",
 		"description": "The entry quantity is the maternity allowance the fund pays through the employer. Female employees only.",
 		"lookup": {},
 		"references": [
@@ -142,13 +129,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subject.employment, 'payroll.gender') === 'FEMALE';",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "e7e87919-3dd0-5fcd-bba4-a8cf62f114c9",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "EQUITY_INCENTIVE",
-		"name": "股权激励所得 (stock options, restricted shares)",
 		"description": "The entry quantity is the value of the equity incentive. It is taxable under the separate equity method, not monthly cumulative withholding, and is not paid in cash; the catalogue therefore records the value with no pay line and no monthly IIT base.",
 		"lookup": {},
 		"references": [
@@ -162,13 +147,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "6005d9df-a8d8-5b71-bdac-252e5730b746",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "EARLY_RETIREMENT_LUMP_SUM",
-		"name": "提前退休一次性补贴 (early-retirement lump sum)",
 		"description": "The entry quantity is the lump sum paid on early retirement.",
 		"lookup": {},
 		"references": [
@@ -182,13 +165,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "c8b63ade-4462-5507-b399-d6e3b965ff25",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "WAGE_ARREARS_PENALTY",
-		"name": "欠薪加付赔偿金 (labour-bureau ordered arrears penalty)",
 		"description": "The entry quantity is the assessed additional compensation the labour bureau ordered: 50% to 100% of the unpaid sum (劳动合同法 第八十五条).",
 		"lookup": {},
 		"references": [
@@ -202,13 +183,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "1485fa70-3223-561e-9adb-2d0ed81a3702",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "WORK_INJURY_DISABILITY_SUBSIDY",
-		"name": "一次性伤残就业补助金 (grades 5–10, months by city)",
 		"description": "The entry quantity is the one-off disability subsidy the authority assesses.",
 		"lookup": {},
 		"references": [
@@ -222,13 +201,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "7d44b147-6dc8-5bde-b91c-9d8db3304d08",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "MATERNITY_TOPUP",
-		"name": "生育津贴差额补足 (maternity top-up)",
 		"description": "The entry quantity is the shortfall between the pre-leave wage and the maternity allowance received. Female employees only.",
 		"lookup": {},
 		"references": [
@@ -242,13 +219,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subject.employment, 'payroll.gender') === 'FEMALE';",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "fdddb95b-4a95-5b93-90c1-c143f267b55b",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "INTERNAL_RETIREMENT_LUMP_SUM",
-		"name": "内部退养一次性补贴 (internal-retirement lump sum)",
 		"description": "The entry quantity is the lump sum paid on internal retirement.",
 		"lookup": {},
 		"references": [
@@ -262,13 +237,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "0583f005-1f3e-5179-9119-cb9c9cb592e3",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "NON_COMPETE_COMPENSATION",
-		"name": "竞业限制经济补偿 (non-compete compensation, monthly after exit)",
 		"description": "The entry quantity is the monthly non-compete compensation. It is payable only after the contract ends and for at most two years.",
 		"lookup": {
 			"max_years": 2
@@ -284,13 +257,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to');\nif (!(ctx.entry.quantity > 0)) return false;\nif (end == null) return false;\nif (!(ctx.entry.incurred_on > end)) return false;\nreturn ctx.entry.incurred_on <= add_years(end, ctx.lookup.max_years);",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "ef8a86d4-01fc-5bd9-8a06-a162920a223a",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "WORK_INJURY_DISABILITY_ALLOWANCE",
-		"name": "伤残津贴 (grade 5–6, employer-paid monthly)",
 		"description": "The entry quantity is the monthly disability allowance the employer assesses.",
 		"lookup": {},
 		"references": [
@@ -304,13 +275,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "4e8eba9f-3ad9-5b69-95c8-15e765b5e6b9",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "STATUTORY_REFUND",
-		"name": "Statutory refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -324,13 +293,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "47e9c8f5-bc1c-5e35-985d-81bafdc7d3b7",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "PENSION_REFUND",
-		"name": "职工基本养老保险 (basic pension insurance) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -353,13 +320,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "c9cb3825-055b-54fa-8487-4f4ef215c8c5",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "PENSION_ADJUSTMENT",
-		"name": "职工基本养老保险 (basic pension insurance) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -382,13 +347,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "7c42f13d-6367-5e9e-ad46-07138d15f51d",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "MEDICAL_REFUND",
-		"name": "职工基本医疗保险 (含生育保险) (medical insurance, maternity merged) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -411,13 +374,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "9654b831-1bd5-530a-b662-4d76719f644f",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "MEDICAL_ADJUSTMENT",
-		"name": "职工基本医疗保险 (含生育保险) (medical insurance, maternity merged) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -440,13 +401,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "02630842-058d-5438-a90a-f692f767a58f",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "MAJOR_MEDICAL_REFUND",
-		"name": "大额医疗费用补助 (per-head supplementary medical charge, where the city levies one) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -469,13 +428,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "e77792be-359b-5db1-be3a-a315cc21aa44",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "MAJOR_MEDICAL_ADJUSTMENT",
-		"name": "大额医疗费用补助 (per-head supplementary medical charge, where the city levies one) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -498,13 +455,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "bf4d07ff-0e42-5aca-969c-484c21a6e9d5",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "UNEMPLOYMENT_REFUND",
-		"name": "失业保险 (unemployment insurance) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -527,13 +482,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "ed1b75de-373c-5981-95a0-d472eb885736",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "UNEMPLOYMENT_ADJUSTMENT",
-		"name": "失业保险 (unemployment insurance) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -556,13 +509,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "8f9a6584-2758-5324-aea7-edcf45c2ec39",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "HPF_REFUND",
-		"name": "住房公积金 (housing provident fund) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -585,13 +536,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "cf22ffee-d163-53d2-b578-3ebc03a0d314",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "HPF_ADJUSTMENT",
-		"name": "住房公积金 (housing provident fund) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -614,13 +563,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "58a9db57-255e-5cb5-8c7c-4157e58ea7c2",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "HPF_SUPPLEMENTARY_REFUND",
-		"name": "补充住房公积金 (Shanghai supplementary housing provident fund) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -643,13 +590,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "7688bcd1-2599-579e-ac1d-901376c7a015",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
 		"code": "HPF_SUPPLEMENTARY_ADJUSTMENT",
-		"name": "补充住房公积金 (Shanghai supplementary housing provident fund) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -672,7 +617,6 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "372e94c0-250a-5ef9-a4f6-d671ae66292c",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	}

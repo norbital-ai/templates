@@ -1,7 +1,6 @@
 [
 	{
 		"code": "OVERTIME",
-		"name": "Overtime",
 		"lookup": {
 			"standard_premium": 1.5,
 			"part_time_premium": 1.0
@@ -14,14 +13,13 @@
 		"subtotal_id": "61e71a84-594c-543f-8ea6-c33b918c46cb",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'overtime_by_contract', false) === true) return true;\n// First Schedule paras 2(4), 2(5): Part XII does not reach vessel crew or a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (['DOMESTIC', 'VESSEL_CREW'].includes(category)) return false;\n// First Schedule para 1A: the monthly-wage threshold is the contract's month, fixed allowances included.\nif (ctx.month_wage <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
 		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * 8\n\t\t\t: 8\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', 8)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpDay = ctx.day_rate;\nconst orpHour = orpDay / normal;\nconst days = get(ctx, 'work.days', []);\n// Every holiday kind except MAKEUP_WORKDAY earns the premium; a makeup workday is a plain working day.\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst ordinary = days\n\t.filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', 'WORK')) && !holiday(day))\n\t.toSorted((a, b) => {\n\t\tconst left = String(get(a, 'date', ''));\n\t\tconst right = String(get(b, 'date', ''));\n\t\tif (left < right) return -1;\n\t\treturn left > right ? 1 : 0;\n\t});\nconst charged = sum(\n\tordinary.map((day) => {\n\t\t// all hours on an off day are overtime at the standard premium; a rest day has its own bands\n\t\tconst hours = Math.max(0, Number(get(day, get(day, 'day_type', 'WORK') === 'OFF' ? 'worked_hours' : 'overtime_hours', 0)));\n\t\treturn partTime\n\t\t\t? Math.min(hours, tier) * ctx.lookup.part_time_premium +\n\t\t\t\t\tMath.max(0, hours - tier) * ctx.lookup.standard_premium\n\t\t\t: hours * ctx.lookup.standard_premium;\n\t})\n);\nreturn charged * orpHour;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "cf7ad7d2-5255-5b66-a934-f6807cd46a06",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
+		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
 	},
 	{
 		"code": "REST_DAY_WORK",
-		"name": "Rest-day work",
 		"lookup": {
 			"monthly_half_day": 0.5,
 			"monthly_full_day": 1,
@@ -38,14 +36,13 @@
 		"subtotal_id": "1c1baa33-a9df-5b72-90df-53a226f6783f",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'overtime_by_contract', false) === true) return true;\n// First Schedule paras 2(4), 2(5): Part XII does not reach vessel crew or a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (['DOMESTIC', 'VESSEL_CREW'].includes(category)) return false;\n// First Schedule para 1A: the monthly-wage threshold is the contract's month, fixed allowances included.\nif (ctx.month_wage <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
 		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * 8\n\t\t\t: 8\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', 8)\n\t\t)\n\t: normal;\nconst orpDay = ctx.day_rate;\nconst days = get(ctx, 'work.days', []);\n// Every holiday kind except MAKEUP_WORKDAY earns the premium; a makeup workday is a plain working day.\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst other = unit === 'DAILY' || unit === 'HOURLY';\nconst charged = sum(\n\tdays\n\t\t.filter((day) => get(day, 'day_type', 'WORK') === 'REST' && !holiday(day))\n\t\t.map((day) => {\n\t\t\tconst worked = Math.min(Number(get(day, 'worked_hours', 0)), normal);\n\t\t\tif (worked <= 0) return 0;\n\t\t\tif (worked <= normal * ctx.lookup.half_day_hours_factor)\n\t\t\t\treturn other ? ctx.lookup.other_half_day : ctx.lookup.monthly_half_day;\n\t\t\treturn other ? ctx.lookup.other_full_day : ctx.lookup.monthly_full_day;\n\t\t})\n);\nreturn charged * orpDay;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "f2d00b11-adb0-596c-9c36-a0df2979322b",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
+		"description": "Hours worked on a rest day, paid at the statutory rest-day multiplier."
 	},
 	{
 		"code": "REST_DAY_OVERTIME",
-		"name": "Rest-day overtime",
 		"lookup": {
 			"rest_day_premium": 2,
 			"part_time_premium": 1.5
@@ -58,14 +55,13 @@
 		"subtotal_id": "61e71a84-594c-543f-8ea6-c33b918c46cb",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'overtime_by_contract', false) === true) return true;\n// First Schedule paras 2(4), 2(5): Part XII does not reach vessel crew or a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (['DOMESTIC', 'VESSEL_CREW'].includes(category)) return false;\n// First Schedule para 1A: the monthly-wage threshold is the contract's month, fixed allowances included.\nif (ctx.month_wage <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
 		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * 8\n\t\t\t: 8\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', 8)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpDay = ctx.day_rate;\nconst orpHour = orpDay / normal;\nconst days = get(ctx, 'work.days', []);\n// Every holiday kind except MAKEUP_WORKDAY earns the premium; a makeup workday is a plain working day.\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst charged = sum(\n\tdays\n\t\t.filter((day) => get(day, 'day_type', 'WORK') === 'REST' && !holiday(day))\n\t\t.map((day) => {\n\t\t\tconst worked = Math.max(0, Number(get(day, 'worked_hours', 0)) - normal);\n\t\t\treturn partTime\n\t\t\t\t? Math.min(worked, tier) * ctx.lookup.part_time_premium +\n\t\t\t\t\t\tMath.max(0, worked - tier) * ctx.lookup.rest_day_premium\n\t\t\t\t: worked * ctx.lookup.rest_day_premium;\n\t\t})\n);\nreturn charged * orpHour;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "17cc0b47-9d2e-5d53-8087-eeed729c0fee",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
+		"description": "Overtime hours worked on a rest day, paid at the rest-day overtime multiplier."
 	},
 	{
 		"code": "HOLIDAY_WORK",
-		"name": "Public-holiday work",
 		"lookup": {
 			"holiday_work_days": 2
 		},
@@ -78,14 +74,13 @@
 		"subtotal_id": "1c1baa33-a9df-5b72-90df-53a226f6783f",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'overtime_by_contract', false) === true) return true;\n// First Schedule paras 2(4), 2(5): Part XII does not reach vessel crew or a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (['DOMESTIC', 'VESSEL_CREW'].includes(category)) return false;\n// First Schedule para 1A: the monthly-wage threshold is the contract's month, fixed allowances included.\nif (ctx.month_wage <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
 		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * 8\n\t\t\t: 8\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', 8)\n\t\t)\n\t: normal;\nconst orpDay = ctx.day_rate;\nconst days = get(ctx, 'work.days', []);\n// Every holiday kind except MAKEUP_WORKDAY earns the premium; a makeup workday is a plain working day.\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst worked = days.filter(\n\t(day) => holiday(day) && Math.min(Number(get(day, 'worked_hours', 0)), normal) > 0\n);\nreturn worked.length * ctx.lookup.holiday_work_days * orpDay;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "f6bb951a-6ab1-5565-9763-62d844b4deba",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
+		"description": "Hours worked on a statutory holiday, paid at the statutory holiday multiplier."
 	},
 	{
 		"code": "HOLIDAY_OVERTIME",
-		"name": "Public-holiday overtime",
 		"lookup": {
 			"holiday_premium": 3,
 			"part_time_premium": 2
@@ -98,9 +93,9 @@
 		"subtotal_id": "61e71a84-594c-543f-8ea6-c33b918c46cb",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'overtime_by_contract', false) === true) return true;\n// First Schedule paras 2(4), 2(5): Part XII does not reach vessel crew or a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (['DOMESTIC', 'VESSEL_CREW'].includes(category)) return false;\n// First Schedule para 1A: the monthly-wage threshold is the contract's month, fixed allowances included.\nif (ctx.month_wage <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
 		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * 8\n\t\t\t: 8\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', 8)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpDay = ctx.day_rate;\nconst orpHour = orpDay / normal;\nconst days = get(ctx, 'work.days', []);\n// Every holiday kind except MAKEUP_WORKDAY earns the premium; a makeup workday is a plain working day.\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst charged = sum(\n\tdays\n\t\t.filter((day) => holiday(day))\n\t\t.map((day) => {\n\t\t\tconst worked = Math.max(0, Number(get(day, 'worked_hours', 0)) - normal);\n\t\t\treturn partTime\n\t\t\t\t? Math.min(worked, tier) * ctx.lookup.part_time_premium +\n\t\t\t\t\t\tMath.max(0, worked - tier) * ctx.lookup.holiday_premium\n\t\t\t\t: worked * ctx.lookup.holiday_premium;\n\t\t})\n);\nreturn charged * orpHour;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"id": "7f95982c-fbd3-5d38-ae77-566fce55b32c",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
+		"description": "Overtime hours worked on a statutory holiday, paid at the holiday-overtime multiplier."
 	}
 ]

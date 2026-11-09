@@ -2,12 +2,15 @@
 	{
 		"code": "retract-exit-effects",
 		"name": "Review the duties of a changed exit",
+		"description": "Raises a review task when a sealed contract's exit date changes and final pay is due.",
 		"lookup": {
 			"title": "Review the duties raised by the changed exit"
 		},
 		"references": [],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -30,12 +33,15 @@
 	{
 		"code": "encash-leave-on-exit",
 		"name": "Pay untaken leave with the final settlement",
+		"description": "Raises a task to pay untaken annual leave with the final settlement.",
 		"lookup": {
 			"title": "Pay the untaken leave with the final settlement"
 		},
 		"references": [],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -58,6 +64,7 @@
 	{
 		"code": "SI_HI_UI_MONTHLY_REMITTANCE",
 		"name": "Remit the employee and employer SI, HI and UI shares",
+		"description": "Raises the monthly task to remit the employee and employer SI, HI and UI shares.",
 		"lookup": {
 			"title": "Remit the SI, HI and UI shares for the contribution month"
 		},
@@ -67,7 +74,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -90,6 +99,7 @@
 	{
 		"code": "PIT_WITHHOLDING_DECLARATION",
 		"name": "Declare and pay the withheld salary PIT",
+		"description": "Raises the task to declare and pay the salary PIT withheld for the filing period.",
 		"lookup": {
 			"title": "Declare and pay the withheld salary PIT",
 			"quarter_months": 3
@@ -100,7 +110,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -123,6 +135,7 @@
 	{
 		"code": "UNION_FEE_REMITTANCE",
 		"name": "Pay the trade union fee",
+		"description": "Raises the task to pay the 2% trade-union fee.",
 		"lookup": {
 			"title": "Pay the trade union fee",
 			"quarter_months": 3
@@ -140,7 +153,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -175,6 +190,7 @@
 	{
 		"code": "UNION_DUES_TRANSFER",
 		"name": "Transfer the deducted union dues",
+		"description": "Raises the task to transfer the union dues deducted from members.",
 		"lookup": {
 			"title": "Transfer the deducted union dues to the grassroots union"
 		},
@@ -190,7 +206,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -211,36 +229,9 @@
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
 	{
-		"code": "encash-leave-at-window-end",
-		"name": "Encash leave lapsing at the carry window",
-		"lookup": {
-			"title": "Encash the leave lapsing at the carry window"
-		},
-		"references": [],
-		"source_collection": "payroll_run",
-		"events": ["create"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "'encash-leave-at-window-end:' + ctx.entry.id"
-						}
-					}
-				},
-				"limit": 1
-			}
-		},
-		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const key = 'encash-leave-at-window-end:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
-		"id": "2a53eb25-2c84-592b-987d-6279e3f10932",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
-	},
-	{
 		"code": "SI_HI_UI_REGISTRATION",
 		"name": "Register the employee for SI, HI and UI",
+		"description": "Raises the task to register a new employee for compulsory SI, HI and UI.",
 		"lookup": {
 			"title": "Register the employee for compulsory SI, HI and UI",
 			"day_offset": 30
@@ -251,7 +242,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -274,6 +268,7 @@
 	{
 		"code": "SI_HI_UI_CHANGE_DECLARATION",
 		"name": "Declare changes to the SI, HI and UI registration",
+		"description": "Raises the task to declare changes to an employee's SI, HI and UI registration.",
 		"lookup": {
 			"title": "Declare the changes to the SI, HI and UI registration"
 		},
@@ -285,7 +280,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -308,6 +305,7 @@
 	{
 		"code": "SI_BENEFIT_CLAIMS",
 		"name": "Submit the SI benefit claim",
+		"description": "Raises the task to submit an SI benefit claim for a qualifying leave entry.",
 		"lookup": {
 			"title": "Submit the SI benefit claim within seven working days of complete-file receipt",
 			"working_days": 7,
@@ -330,7 +328,10 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -359,18 +360,36 @@
 						}
 					}
 				}
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": [
+					"id",
+					"leave_entry_id",
+					"incurred_on",
+					"part",
+					"payroll_run_id"
+				],
+				"limit": 10000
 			}
 		},
 		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nif (catalog == null) return false;\nif (!ctx.lookup.benefit_catalogs.includes(catalog.code)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The entry records no receipt date; the documented leave end bounds the seven-working-day window.\nconst last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_CLAIMS:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(last, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "// The entry records no receipt date; the documented leave end bounds the seven-working-day window.\nconst last = ctx.reads.leave_catalog_entry_day.reduce((day, slot) => (slot.incurred_on > day ? slot.incurred_on : day), '');\nconst key = 'SI_BENEFIT_CLAIMS:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(last, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "eebb5102-3fa5-5482-a61c-be1e6a98b629",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
 	{
 		"code": "INSURANCE_EQUIVALENT_PAYMENT",
 		"name": "Pay the insurance-equivalent amount",
+		"description": "Raises the task to pay the insurance-equivalent amount with the wage.",
 		"lookup": {
 			"title": "Pay the insurance-equivalent amount with the wage"
 		},
@@ -382,7 +401,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -405,6 +426,7 @@
 	{
 		"code": "LABOUR_CONTRACT",
 		"name": "Conclude the written labour contract",
+		"description": "Raises the task to conclude the written labour contract before work starts.",
 		"lookup": {
 			"title": "Conclude the written labour contract before work starts"
 		},
@@ -416,7 +438,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -439,6 +464,7 @@
 	{
 		"code": "LABOUR_MANAGEMENT_BOOK",
 		"name": "Keep the labour management book",
+		"description": "Raises the task to enter a new employee in the labour management book.",
 		"lookup": {
 			"title": "Enter the employee in the labour management book"
 		},
@@ -454,7 +480,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -477,6 +506,7 @@
 	{
 		"code": "LABOUR_USE_REPORT",
 		"name": "Report the use of labour",
+		"description": "Raises the half-yearly task to report the use of labour to the provincial authority.",
 		"lookup": {
 			"title": "Report the use of labour to the provincial labour authority",
 			"day_offset": 4
@@ -494,7 +524,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -517,6 +549,7 @@
 	{
 		"code": "INTERNAL_LABOUR_RULES",
 		"name": "Issue and register the internal labour rules",
+		"description": "Raises the annual task to issue and register the internal labour rules.",
 		"lookup": {
 			"title": "Issue and register the internal labour rules"
 		},
@@ -528,7 +561,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -551,6 +586,7 @@
 	{
 		"code": "WAGE_SCALE_AND_NORMS",
 		"name": "Build and publish the wage scale and labour norms",
+		"description": "Raises the annual task to build, consult on and publish the wage scale and labour norms.",
 		"lookup": {
 			"title": "Build, consult on and publish the wage scale and labour norms"
 		},
@@ -562,7 +598,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -585,6 +623,7 @@
 	{
 		"code": "MINIMUM_WAGE",
 		"name": "Pay at least the regional minimum wage",
+		"description": "Raises the task to confirm that the wage agreement and payment meet the regional minimum wage.",
 		"lookup": {
 			"title": "Confirm the wage agreement and payment meet the regional minimum wage"
 		},
@@ -599,7 +638,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -622,6 +663,7 @@
 	{
 		"code": "WAGE_PAYMENT_TIMING",
 		"name": "Pay wages in full and on time",
+		"description": "Raises the task to pay wages in full on the agreed periodic date.",
 		"lookup": {
 			"title": "Pay the wages in full on the agreed periodic date"
 		},
@@ -633,7 +675,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -656,6 +700,7 @@
 	{
 		"code": "WAGE_STATEMENT",
 		"name": "Give each employee a wage statement",
+		"description": "Raises the task to give each employee a wage statement at payment.",
 		"lookup": {
 			"title": "Give each employee a wage statement at the payment"
 		},
@@ -667,7 +712,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -690,6 +737,7 @@
 	{
 		"code": "WAGE_DEDUCTION_LIMIT",
 		"name": "Keep wage deductions within the statutory limit",
+		"description": "Raises the task to keep a damage-compensation deduction within 30% of the paid wage.",
 		"lookup": {
 			"title": "Keep the damage-compensation deduction within 30% of the paid wage"
 		},
@@ -701,7 +749,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -724,6 +774,7 @@
 	{
 		"code": "OVERTIME_CONSENT_AND_LIMITS",
 		"name": "Keep overtime consented and within its limits",
+		"description": "Raises the task to keep overtime consented and within its daily, monthly and yearly limits.",
 		"lookup": {
 			"title": "Keep overtime consented and within its daily, monthly and yearly limits"
 		},
@@ -740,7 +791,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -763,6 +816,7 @@
 	{
 		"code": "NIGHT_OVERTIME_STATEMENT",
 		"name": "Keep the night and overtime statement",
+		"description": "Raises the task to keep the night and overtime hours and pay with the payroll records.",
 		"lookup": {
 			"title": "Keep the night and overtime hours and their pay with the payroll records"
 		},
@@ -773,7 +827,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -796,6 +852,7 @@
 	{
 		"code": "ANNUAL_LEAVE_SCHEDULE",
 		"name": "Set and notify the annual leave schedule",
+		"description": "Raises the annual task to set and notify the annual leave schedule.",
 		"lookup": {
 			"title": "Set and notify the annual leave schedule"
 		},
@@ -812,7 +869,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -835,6 +894,7 @@
 	{
 		"code": "WORKPLACE_DIALOGUE",
 		"name": "Hold workplace dialogue",
+		"description": "Raises the annual task to hold workplace dialogue.",
 		"lookup": {
 			"title": "Hold the yearly workplace dialogue"
 		},
@@ -846,7 +906,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -869,6 +931,7 @@
 	{
 		"code": "TERMINATION_NOTICE",
 		"name": "Give notice of the contract end",
+		"description": "Raises the task to give written notice of the contract end within the statutory period.",
 		"lookup": {
 			"title": "Give written notice of the end of the labour contract",
 			"indefinite_days": 45,
@@ -882,7 +945,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -914,6 +979,7 @@
 	{
 		"code": "RESTRUCTURING_LABOUR_PLAN",
 		"name": "Confirm the labour-use plan for this departure",
+		"description": "Raises the task to confirm whether a departure needs a labour-use plan.",
 		"lookup": {
 			"title": "Confirm whether this departure needs a labour-use plan",
 			"day_offset": 30
@@ -926,7 +992,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -949,6 +1017,7 @@
 	{
 		"code": "FINAL_SETTLEMENT",
 		"name": "Settle the final amounts due",
+		"description": "Raises the task to settle final wages, untaken leave and allowances within the statutory deadline.",
 		"lookup": {
 			"title": "Settle the final wages, untaken leave and allowances",
 			"working_days": 14,
@@ -967,7 +1036,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -999,6 +1070,7 @@
 	{
 		"code": "SI_CONFIRMATION_ON_TERMINATION",
 		"name": "Confirm the SI periods and return the SI book",
+		"description": "Raises the task to confirm the SI and UI periods and return the SI book on termination.",
 		"lookup": {
 			"title": "Confirm the SI and UI periods and return the SI book",
 			"working_days": 14,
@@ -1017,7 +1089,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1049,6 +1123,7 @@
 	{
 		"code": "PIT_TAX_REGISTRATION",
 		"name": "Register the employee's tax code",
+		"description": "Raises the task to register an employee's tax code with the tax authority.",
 		"lookup": {
 			"title": "Register the employee's tax code",
 			"quarter_months": 3
@@ -1060,7 +1135,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1083,6 +1161,7 @@
 	{
 		"code": "PIT_SHORT_CONTRACT_COMMITMENT",
 		"name": "Keep the short-contract PIT commitment form",
+		"description": "Raises the task to keep the 08/CK-TNCN commitment that suspends 10% withholding.",
 		"lookup": {
 			"title": "Keep the 08/CK-TNCN commitment that suspends the 10% withholding"
 		},
@@ -1094,7 +1173,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1117,6 +1198,7 @@
 	{
 		"code": "PIT_ANNUAL_FINALISATION",
 		"name": "File the annual PIT finalisation",
+		"description": "Raises the annual task to file the PIT finalisation with its schedules.",
 		"lookup": {
 			"title": "File the annual PIT finalisation with its schedules",
 			"month_offset": 3
@@ -1127,7 +1209,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1150,6 +1234,7 @@
 	{
 		"code": "PIT_WITHHOLDING_CERTIFICATE",
 		"name": "Issue the PIT withholding certificate",
+		"description": "Raises the task to issue the PIT withholding certificate for tax withheld.",
 		"lookup": {
 			"title": "Issue the PIT withholding certificate for the tax withheld"
 		},
@@ -1159,7 +1244,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1182,6 +1269,7 @@
 	{
 		"code": "FOREIGN_WORK_PERMIT",
 		"name": "Obtain the work authorisation before work starts",
+		"description": "Raises the task to obtain the work authorisation before a foreign employee starts work.",
 		"lookup": {
 			"title": "Obtain the work authorisation before the foreign employee starts work"
 		},
@@ -1197,7 +1285,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1220,6 +1311,7 @@
 	{
 		"code": "WORK_PERMIT_EXTENSION",
 		"name": "Apply to extend the work authorisation",
+		"description": "Raises the task to apply to extend a work authorisation before it expires under Decree 219/2025.",
 		"lookup": {
 			"title": "Apply to extend the work authorisation",
 			"commencement": "2026-12-05",
@@ -1233,7 +1325,9 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1243,7 +1337,9 @@
 						}
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -1254,7 +1350,9 @@
 						}
 					}
 				},
-				"fields": ["pay_date"],
+				"fields": [
+					"pay_date"
+				],
 				"limit": 1
 			}
 		},
@@ -1268,6 +1366,7 @@
 	{
 		"code": "WORK_PERMIT_RETURN",
 		"name": "Return the work authorisation on termination",
+		"description": "Raises the task to return a work authorisation with its invalidation report on termination.",
 		"lookup": {
 			"title": "Return the work authorisation with its invalidation report",
 			"commencement": "2026-12-05",
@@ -1291,13 +1390,15 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "'WORK_PERMIT_RETURN:' + ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_RETURN:' + ctx.entry.id"
 						}
 					}
 				},
@@ -1313,16 +1414,17 @@
 				}
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.entry.effective_range.to >= ctx.lookup.commencement)) return false;\nif (ctx.entry.final_pay_due_on == null) return false;\nreturn get(ctx.entry.employee_extension_data, 'pass_type', null) != null;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'terms.work_authorisation_category', null) !== 'PERMIT') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.entry.effective_range.to >= ctx.lookup.commencement)) return false;\nif (ctx.entry.final_pay_due_on == null) return false;\nconst invalidatedOn = get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null);\nconst ground = get(ctx.entry.employee_extension_data, 'work_authorisation_invalidation_ground', null);\nreturn invalidatedOn == null || ground == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_PERMIT_RETURN:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.to >= ctx.lookup.commencement\n\t\t\t? add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6])\n\t\t\t: add_days(ctx.entry.effective_range.to, 15),\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "const key = 'WORK_AUTHORISATION_RETURN:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "0dad25e0-8a95-5aec-ba14-cdf6e876e588",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
 	{
 		"code": "OCCUPATIONAL_HEALTH_CHECK",
 		"name": "Arrange the periodic health checks",
+		"description": "Raises the annual or six-monthly task to arrange occupational health checks.",
 		"lookup": {
 			"title": "Arrange the periodic occupational health checks"
 		},
@@ -1332,7 +1434,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1367,6 +1471,7 @@
 	{
 		"code": "OCCUPATIONAL_ACCIDENT_REPORT",
 		"name": "Report occupational accidents",
+		"description": "Raises the half-yearly task to report occupational accidents.",
 		"lookup": {
 			"title": "Report occupational accidents for the half-year",
 			"june_day_offset": 4,
@@ -1383,7 +1488,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1406,6 +1513,7 @@
 	{
 		"code": "OSH_ANNUAL_REPORT",
 		"name": "Report the occupational safety and hygiene work",
+		"description": "Raises the annual task to report the occupational safety and hygiene work.",
 		"lookup": {
 			"title": "Report the annual occupational safety and hygiene work",
 			"day_offset": 9
@@ -1417,7 +1525,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1440,6 +1550,7 @@
 	{
 		"code": "RECORD_RETENTION",
 		"name": "Retain the payroll records",
+		"description": "Raises the annual task to archive payroll records for their retention period.",
 		"lookup": {
 			"title": "Archive the payroll records for their retention period",
 			"retention_months": 12
@@ -1458,7 +1569,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1481,6 +1594,7 @@
 	{
 		"code": "PDPL_CONSENT",
 		"name": "Obtain consent and give the processing notice",
+		"description": "Raises the task to obtain personal-data consent and give the processing notice under the 2025 Personal Data Protection Law.",
 		"lookup": {
 			"title": "Obtain the personal-data consent and give the processing notice"
 		},
@@ -1490,7 +1604,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1513,6 +1630,7 @@
 	{
 		"code": "PDPL_RECRUITMENT_AND_EMPLOYMENT",
 		"name": "Delete the employee data at the end of the employment",
+		"description": "Raises the task to delete an employee's personal data when the employment ends, unless retention is required.",
 		"lookup": {
 			"title": "Delete the employee personal data unless law or agreement requires keeping it"
 		},
@@ -1524,7 +1642,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1547,6 +1667,7 @@
 	{
 		"code": "PDPL_IMPACT_ASSESSMENT",
 		"name": "Review the processing impact dossiers",
+		"description": "Raises the half-yearly task to review the processing and cross-border impact dossiers.",
 		"lookup": {
 			"title": "Review the processing and cross-border impact dossiers"
 		},
@@ -1562,7 +1683,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1597,6 +1720,7 @@
 	{
 		"code": "PDPL_BREACH_NOTIFICATION",
 		"name": "Notify the personal data breach",
+		"description": "Raises the task to notify a personal-data breach to the authority.",
 		"lookup": {
 			"title": "Notify the personal data breach to the authority",
 			"day_offset": 3
@@ -1613,7 +1737,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1636,6 +1762,7 @@
 	{
 		"code": "PDPL_DATA_PROTECTION_PERSONNEL",
 		"name": "Designate the data protection personnel",
+		"description": "Raises the annual task to designate the personnel responsible for personal-data protection.",
 		"lookup": {
 			"title": "Designate the personnel responsible for personal data protection"
 		},
@@ -1647,7 +1774,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1682,6 +1811,7 @@
 	{
 		"code": "DEPENDANT_TAX_REGISTRATION",
 		"name": "Register the declared dependants for PIT",
+		"description": "Raises the annual task to register the dependants declared for the family deduction.",
 		"lookup": {
 			"title": "Register the dependants declared for the family deduction"
 		},
@@ -1692,7 +1822,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1715,6 +1847,7 @@
 	{
 		"code": "LABOUR_USE_DECLARATION",
 		"name": "Declare the start of operations",
+		"description": "Raises the task to declare the use of labour within 30 days of starting operations.",
 		"lookup": {
 			"title": "Declare the use of labour within 30 days of starting operations",
 			"day_offset": 30
@@ -1725,7 +1858,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1741,13 +1876,14 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The employer version carries no operations-start date; its own start bounds the thirty-day filing.\nconst key = 'LABOUR_USE_DECLARATION:' + ctx.entry.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "// The operations-start date is the extension fact; without it the version start bounds the thirty-day filing.\nconst key = 'LABOUR_USE_DECLARATION:' + ctx.entry.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(get(ctx.entry, 'entity_extension_data.operations_started_on', null) ?? ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "e571e158-86dd-538a-ab7a-9707c50266c8",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
 	{
 		"code": "FOREIGN_EXIT_PIT_FINALISATION",
 		"name": "Finalise PIT before the foreign employee leaves",
+		"description": "Raises the task to finalise PIT before a foreign employee leaves Vietnam.",
 		"lookup": {
 			"title": "Finalise PIT before the foreign employee leaves Vietnam"
 		},
@@ -1758,7 +1894,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1781,6 +1919,7 @@
 	{
 		"code": "OSH_INDUCTION_TRAINING",
 		"name": "Train the new worker in occupational safety",
+		"description": "Raises the task to train a new worker in occupational safety and hygiene before work.",
 		"lookup": {
 			"title": "Train the new worker in occupational safety and hygiene before the work"
 		},
@@ -1790,7 +1929,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1813,6 +1955,7 @@
 	{
 		"code": "PERSONAL_DATA_DISPOSAL",
 		"name": "Dispose of the former employee data",
+		"description": "Raises the task to dispose of a former employee's personal data when retention ends.",
 		"lookup": {
 			"title": "Dispose of the former employee data when retention ends",
 			"year_end": "-12-31",
@@ -1830,7 +1973,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1853,6 +1998,7 @@
 	{
 		"code": "SI_BENEFIT_FILE_RECEIPT_REVIEW",
 		"name": "Obtain the SI benefit file and record its receipt",
+		"description": "Raises the task to obtain the SI benefit file and record its complete-file receipt date.",
 		"lookup": {
 			"title": "Obtain the SI benefit file and record the complete-file receipt date",
 			"benefit_catalogs": [
@@ -1874,7 +2020,10 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1894,18 +2043,36 @@
 						}
 					}
 				}
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": [
+					"id",
+					"leave_entry_id",
+					"incurred_on",
+					"part",
+					"payroll_run_id"
+				],
+				"limit": 10000
 			}
 		},
 		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nif (catalog == null) return false;\nif (!ctx.lookup.benefit_catalogs.includes(catalog.code)) return false;\nreturn ctx.entry.evidence_file == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_FILE_RECEIPT_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: last,\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "const last = ctx.reads.leave_catalog_entry_day.reduce((day, slot) => (slot.incurred_on > day ? slot.incurred_on : day), '');\nconst key = 'SI_BENEFIT_FILE_RECEIPT_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: last,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "321986f2-0e41-5d5a-8a40-a90ec02ab886",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
 	{
 		"code": "PDPL_INITIAL_IMPACT_FILING",
 		"name": "File the initial processing impact assessment",
+		"description": "Raises the task to file the initial processing impact assessment.",
 		"lookup": {
 			"title": "File the initial processing impact assessment",
 			"day_offset": 60
@@ -1922,7 +2089,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1945,8 +2114,9 @@
 	{
 		"code": "FOREIGN_WORKER_NEW_DECREE_REVIEW",
 		"name": "Record the work authorisation route",
+		"description": "Raises the onboarding task to record the actual work-authorisation route.",
 		"lookup": {
-			"title": "Record the actual permit or exemption route for this employee",
+			"title": "Record the actual work authorisation route",
 			"commencement": "2026-12-05"
 		},
 		"references": [
@@ -1956,7 +2126,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1969,7 +2142,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry.employee_extension_data, 'pass_type', null) == null) return false;\nreturn ctx.entry.effective_range.from >= ctx.lookup.commencement;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'terms.work_authorisation_category', null) != null) return false;\nif (get(ctx.entry.employee_extension_data, 'pass_type', null) == null) return false;\nreturn ctx.entry.effective_range.from >= ctx.lookup.commencement;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];",
@@ -1979,6 +2152,7 @@
 	{
 		"code": "FOREIGN_WORKER_NEW_DECREE_TRANSITION",
 		"name": "Establish the transitional treatment at 5 December 2026",
+		"description": "Raises the task to establish the work-authorisation transition at 5 December 2026.",
 		"lookup": {
 			"title": "Establish the work-authorisation transition for this employee",
 			"commencement": "2026-12-05"
@@ -1991,7 +2165,9 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2001,7 +2177,9 @@
 						}
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -2012,7 +2190,9 @@
 						}
 					}
 				},
-				"fields": ["pay_date"],
+				"fields": [
+					"pay_date"
+				],
 				"limit": 1
 			}
 		},
@@ -2026,6 +2206,7 @@
 	{
 		"code": "WORK_PERMIT_TRANSITION_REVIEW",
 		"name": "Review the transitional work-authorisation deadline",
+		"description": "Raises the task to review the transitional work-authorisation deadline before 5 December 2026.",
 		"lookup": {
 			"title": "Review the transitional work-authorisation deadline",
 			"commencement": "2026-12-05",
@@ -2038,7 +2219,9 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2048,7 +2231,9 @@
 						}
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -2059,7 +2244,9 @@
 						}
 					}
 				},
-				"fields": ["pay_date"],
+				"fields": [
+					"pay_date"
+				],
 				"limit": 1
 			}
 		},
@@ -2073,6 +2260,7 @@
 	{
 		"code": "WORK_PERMIT_RETURN_TRANSITION_REVIEW",
 		"name": "Review the transitional return deadline",
+		"description": "Raises the task to establish the transitional return deadline for a work authorisation.",
 		"lookup": {
 			"title": "Establish the transitional return deadline for the work authorisation",
 			"commencement": "2026-12-05"
@@ -2090,7 +2278,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2113,6 +2303,7 @@
 	{
 		"code": "PDPL_PROCESSING_START_REVIEW",
 		"name": "Record the actual start of personal-data processing",
+		"description": "Raises the task to record the actual first date of personal-data processing.",
 		"lookup": {
 			"title": "Record the actual first personal-data processing date on the employer"
 		},
@@ -2128,7 +2319,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2151,6 +2345,7 @@
 	{
 		"code": "WORK_AUTHORISATION_APPLICATION_393",
 		"name": "Submit the initial work authorisation application",
+		"description": "Raises the task to submit an initial work-authorisation application before work starts under Decree 393/2026.",
 		"lookup": {
 			"title": "Submit the work authorisation application",
 			"commencement": "2026-12-05",
@@ -2164,7 +2359,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2196,6 +2394,7 @@
 	{
 		"code": "WORK_AUTHORISATION_EXEMPT_NOTICE_393",
 		"name": "Notify the exemption route before work starts",
+		"description": "Raises the task to notify the competent authority of exempt work under Decree 393/2026.",
 		"lookup": {
 			"title": "Notify the competent authority of the exempt work",
 			"commencement": "2026-12-05",
@@ -2209,7 +2408,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2241,6 +2443,7 @@
 	{
 		"code": "WORK_AUTHORISATION_EXTENSION_393",
 		"name": "Submit the work authorisation extension application",
+		"description": "Raises the task to submit a work-authorisation extension application in the 90-day window.",
 		"lookup": {
 			"title": "Submit the work authorisation extension application",
 			"commencement": "2026-12-05",
@@ -2255,7 +2458,9 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2265,7 +2470,9 @@
 						}
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -2276,7 +2483,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"payroll_run": {
@@ -2287,7 +2496,9 @@
 						}
 					}
 				},
-				"fields": ["pay_date"],
+				"fields": [
+					"pay_date"
+				],
 				"limit": 1
 			}
 		},
@@ -2301,6 +2512,7 @@
 	{
 		"code": "WORK_AUTHORISATION_FRESH_ISSUE_393",
 		"name": "Submit the fresh work authorisation application",
+		"description": "Raises the task to submit a fresh work-authorisation application in the 60-day window.",
 		"lookup": {
 			"title": "Submit the fresh work authorisation application",
 			"commencement": "2026-12-05",
@@ -2315,7 +2527,9 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2325,7 +2539,9 @@
 						}
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -2336,7 +2552,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"payroll_run": {
@@ -2347,7 +2565,9 @@
 						}
 					}
 				},
-				"fields": ["pay_date"],
+				"fields": [
+					"pay_date"
+				],
 				"limit": 1
 			}
 		},
@@ -2361,6 +2581,7 @@
 	{
 		"code": "WORK_AUTHORISATION_LOCATION_NOTICE_393",
 		"name": "Notify the change of work location",
+		"description": "Raises the task to notify both authorities of a changed work location.",
 		"lookup": {
 			"title": "Notify both authorities of the new work location",
 			"commencement": "2026-12-05",
@@ -2374,7 +2595,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2406,8 +2629,9 @@
 	{
 		"code": "WORK_AUTHORISATION_INVALIDATION_RETURN_393",
 		"name": "Return the invalidated work authorisation",
+		"description": "Raises the task to return an invalidated work authorisation with its report within 10 working days.",
 		"lookup": {
-			"title": "Return the work authorisation with the invalidation report",
+			"title": "Return the work authorisation with its invalidation report",
 			"commencement": "2026-12-05",
 			"working_days": 10
 		},
@@ -2419,13 +2643,15 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "'WORK_AUTHORISATION_INVALIDATION_RETURN_393:' + ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_RETURN:' + ctx.entry.id"
 						}
 					}
 				},
@@ -2441,20 +2667,24 @@
 				}
 			}
 		},
-		"condition": "const invalidatedOn = get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (invalidatedOn == null) return false;\nif (!(invalidatedOn >= ctx.lookup.commencement)) return false;\nreturn get(ctx.entry.employee_extension_data, 'work_authorisation_invalidation_ground', null) != null;",
+		"condition": "const invalidatedOn = get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null);\nif (ctx.entry.status !== 'SEALED') return false;\nconst category = get(ctx.entry, 'terms.work_authorisation_category', null);\nif (category !== 'PERMIT' && category !== 'EXEMPTION_CERTIFICATE') return false;\nif (invalidatedOn == null) return false;\nif (!(invalidatedOn >= ctx.lookup.commencement)) return false;\nreturn get(ctx.entry.employee_extension_data, 'work_authorisation_invalidation_ground', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_AUTHORISATION_INVALIDATION_RETURN_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null), ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "const key = 'WORK_AUTHORISATION_RETURN:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null), ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "f55b7891-fad2-5751-8621-47196d1dd5e5",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
 	{
 		"code": "FOREIGN_WORKER_REPORT_393",
 		"name": "Report the foreign-worker use",
+		"description": "Raises the half-yearly task to report the foreign-worker use to the provincial labour authority.",
 		"lookup": {
 			"title": "Report the foreign-worker use to the provincial labour authority",
 			"commencement": "2026-12-05",
-			"half_year_due": ["-06-04", "-12-04"]
+			"half_year_due": [
+				"-06-04",
+				"-12-04"
+			]
 		},
 		"references": [
 			{
@@ -2464,7 +2694,9 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2474,7 +2706,9 @@
 						}
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 2
 			},
 			"entity_profile_version": {
@@ -2488,7 +2722,10 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["effective_range", "entity_extension_data"],
+				"fields": [
+					"effective_range",
+					"entity_extension_data"
+				],
 				"limit": 10000
 			},
 			"payroll_run": {
@@ -2499,7 +2736,9 @@
 						}
 					}
 				},
-				"fields": ["pay_date"],
+				"fields": [
+					"pay_date"
+				],
 				"limit": 1
 			},
 			"payslip": {
@@ -2510,7 +2749,9 @@
 						}
 					}
 				},
-				"fields": ["employment_id"],
+				"fields": [
+					"employment_id"
+				],
 				"limit": 10000
 			},
 			"employee_contract": {
@@ -2524,7 +2765,10 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["id", "employee_extension_data"],
+				"fields": [
+					"id",
+					"employee_extension_data"
+				],
 				"limit": 10000
 			}
 		},
@@ -2538,9 +2782,11 @@
 	{
 		"code": "WORK_AUTHORISATION_EXPIRY_INPUTS_393",
 		"name": "Record the work authorisation route and extension count",
+		"description": "Raises the task to record the work-authorisation route and the number of extensions used.",
 		"lookup": {
-			"title": "Record the actual authorisation route and documentary extension count",
-			"commencement": "2026-12-05"
+			"title": "Record the extension count used",
+			"commencement": "2026-12-05",
+			"advance_days": 90
 		},
 		"references": [
 			{
@@ -2550,7 +2796,9 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2560,7 +2808,9 @@
 						}
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -2571,11 +2821,13 @@
 						}
 					}
 				},
-				"fields": ["pay_date"],
+				"fields": [
+					"pay_date"
+				],
 				"limit": 1
 			}
 		},
-		"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nif (!(today >= ctx.lookup.commencement)) return false;\nif (get(ctx.subject.employment, 'terms.work_authorisation_category', null) == null) return false;\nreturn get(ctx.subject.employment.employee_extension_data, 'work_authorisation_extension_count', null) == null;",
+		"condition": "// js\nconst today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst kind = get(ctx.subject.employment, 'terms.work_authorisation_category', null);\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nconst to = ctx.subject.employment.effective_range.to;\nif (to == null) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'work_authorisation_extension_count', null) != null) return false;\nreturn today >= add_days(to, -ctx.lookup.advance_days);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst key = 'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.employment_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: today,\n\t\toccurrence_key: key\n\t}\n];",
@@ -2585,9 +2837,12 @@
 	{
 		"code": "CONTRIBUTION_CORRECTION",
 		"name": "Follow up a contribution corrected for a closed month",
+		"description": "Raises a fund follow-up when a statutory contribution is corrected for a month a paid run has already closed.",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -2597,7 +2852,10 @@
 						}
 					}
 				},
-				"fields": ["code", "name", "lookup"],
+				"fields": [
+					"code",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -2608,14 +2866,35 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"kind": {
+						"eq": "ON_CYCLE"
+					},
+					"state": {
+						"eq": "PAID"
+					}
+				},
+				"fields": [
+					"period"
+				],
+				"limit": 10000
 			}
 		},
-		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
+		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nif (row == null) return false;\nif (get(ctx.entry, 'reverses', null) != null) return false;\nif (!(get(row, 'lookup.accounts', []).length > 0)) return false;\nconst month = String(ctx.entry.incurred_on).slice(0, 7);\nreturn ctx.reads.payroll_run.some((run) => String(run.period).startsWith(month));",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['VN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
+		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['VN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
 		"references": [
 			{
 				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."

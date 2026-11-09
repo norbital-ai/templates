@@ -15,39 +15,6 @@
 			"title": "MY employee extension data",
 			"additionalProperties": false,
 			"properties": {
-				"events": {
-					"type": "array",
-					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event. Each natural child is one CHILD_BIRTH item, earlier children and those born together included; a child who has died also has a CHILD_DEATH item.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": ["CHILD_BIRTH", "CHILD_BIRTH_NO_ALLOWANCE", "CHILD_DEATH"],
-								"title": "What happened"
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date"
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							}
-						}
-					}
-				},
 				"controls_employer": {
 					"type": "boolean",
 					"default": false,
@@ -61,7 +28,11 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": ["event_id", "lifetime_number", "notification_requirement_met"],
+						"required": [
+							"event_id",
+							"lifetime_number",
+							"notification_requirement_met"
+						],
 						"properties": {
 							"event_id": {
 								"type": "string",
@@ -76,11 +47,6 @@
 							}
 						}
 					}
-				},
-				"work_region": {
-					"type": "string",
-					"title": "Worksite state",
-					"description": "The state the employee works in. A Sabah or Sarawak worksite falls under a Labour Ordinance, not the Employment Act 1955."
 				},
 				"overtime_by_contract": {
 					"type": "boolean",
@@ -324,7 +290,10 @@
 								},
 								"tax_residency": {
 									"type": "string",
-									"enum": ["RESIDENT", "NON_RESIDENT"],
+									"enum": [
+										"RESIDENT",
+										"NON_RESIDENT"
+									],
 									"title": "MTD tax residence",
 									"description": "Income Tax Act 1967 s.7: residence for the basis year. Unrecorded, a citizen or permanent resident is charged as resident and a FOREIGNER as non-resident at 30% (s.107(2); MTD Specification 2026 D(a))."
 								},
@@ -423,7 +392,9 @@
 									"description": "SKBBK standing only. PERKESO LINDUNG 24 Jam FAQ Q21: contributions are deducted through one employer only, the one the employee chose; false at every other employer."
 								}
 							},
-							"required": ["kind"]
+							"required": [
+								"kind"
+							]
 						}
 					}
 				},
@@ -432,6 +403,19 @@
 					"minimum": 0,
 					"title": "Comparable full-time hours per day",
 					"description": "The full-time equivalent hours per day for a part-time contract, as agreed."
+				},
+				"exit_ground": {
+					"type": "string",
+					"enum": [
+						"RETRENCHMENT",
+						"RETIREMENT",
+						"RESIGNATION",
+						"DISMISSAL",
+						"MISCONDUCT_DISMISSAL",
+						"CONTRACT_END"
+					],
+					"title": "Exit ground",
+					"description": "The recorded ground for the separation; statutory notices and final-pay exclusions read it."
 				}
 			},
 			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Payroll, agreed-term and departure details are top-level fields; life events stay in events and statutory declarations under statutory. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
@@ -445,13 +429,22 @@
 			"properties": {
 				"hrd_scope": {
 					"type": "string",
-					"enum": ["PART_I", "PART_II_NGO", "OUT_OF_SCOPE"],
+					"enum": [
+						"PART_I",
+						"PART_II_NGO",
+						"OUT_OF_SCOPE"
+					],
 					"title": "HRD employer scope",
 					"description": "Part I industry, listed Part II NGO activity, or excluded employer under the effective First Schedule."
 				},
 				"hrd_registration_class": {
 					"type": "string",
-					"enum": ["COMPULSORY", "OPTIONAL", "NOT_REGISTERED", "DEREGISTERED"],
+					"enum": [
+						"COMPULSORY",
+						"OPTIONAL",
+						"NOT_REGISTERED",
+						"DEREGISTERED"
+					],
 					"title": "HRD employer registration class",
 					"description": "Employer-level HRD Corp standing, retained after a headcount fall until approved deregistration."
 				},
@@ -524,6 +517,24 @@
 				"third_band_days": 20,
 				"year_days": 365
 			}
+		},
+		"work_regions": {
+			"JOHOR": "JOHOR",
+			"KEDAH": "KEDAH",
+			"KELANTAN": "KELANTAN",
+			"MELAKA": "MELAKA",
+			"NEGERI_SEMBILAN": "NEGERI_SEMBILAN",
+			"PAHANG": "PAHANG",
+			"PERAK": "PERAK",
+			"PERLIS": "PERLIS",
+			"PULAU_PINANG": "PULAU_PINANG",
+			"SELANGOR": "SELANGOR",
+			"TERENGGANU": "TERENGGANU",
+			"KUALA_LUMPUR": "KUALA_LUMPUR",
+			"PUTRAJAYA": "PUTRAJAYA",
+			"LABUAN": "LABUAN",
+			"SABAH": "SABAH",
+			"SARAWAK": "SARAWAK"
 		},
 		"status": "SEALED",
 		"id": "6da43390-01db-5055-bf4f-67bc5b63c318",

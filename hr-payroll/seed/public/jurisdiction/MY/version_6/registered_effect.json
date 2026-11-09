@@ -1,9 +1,12 @@
 [
 	{
 		"code": "retract-exit-effects",
+		"description": "Raises a review task when a sealed contract's exit date changes, so obligations already raised for the old exit are checked.",
 		"name": "Retract Exit Effects",
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -25,9 +28,12 @@
 	},
 	{
 		"code": "encash-leave-on-exit",
+		"description": "Raises a task to encash unused leave when a sealed contract ends.",
 		"name": "Encash Leave On Exit",
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -48,31 +54,8 @@
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
-		"code": "raise-exit-pay",
-		"name": "Raise Exit Pay",
-		"source_collection": "employee_contract",
-		"events": ["update"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "'MY:raise-exit-pay:' + ctx.entry.id"
-						}
-					}
-				},
-				"limit": 10
-			}
-		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'effective_range.to', null) == null) return false;\nreturn get(r, 'final_pay_due_on', null) != null;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:raise-exit-pay:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Raise final pay',\n\tdue_on: get(r, 'final_pay_due_on', get(r, 'effective_range.to', r.effective_range.from)),\n\toccurrence_key: key\n}];",
-		"id": "5380f8d4-c1e9-500a-ba6e-5184caacce4f",
-		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
-	},
-	{
 		"code": "EPF_MONTHLY_CONTRIBUTION",
+		"description": "Raises the monthly EPF remittance task after a payroll run, due fifteen days after the salary period.",
 		"name": "EPF_MONTHLY_CONTRIBUTION",
 		"lookup": {
 			"offset_days": 15
@@ -98,7 +81,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -120,6 +105,7 @@
 	},
 	{
 		"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+		"description": "Raises the monthly SOCSO, EIS and SKBBK remittance task after a payroll run, due fifteen days after the salary period.",
 		"name": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
 		"lookup": {
 			"offset_days": 15
@@ -130,7 +116,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -152,6 +140,7 @@
 	},
 	{
 		"code": "HRD_LEVY_MONTHLY",
+		"description": "Raises the monthly HRD levy remittance task after a payroll run, due fifteen days after the salary period.",
 		"name": "HRD_LEVY_MONTHLY",
 		"lookup": {
 			"offset_days": 15
@@ -167,7 +156,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -189,6 +180,7 @@
 	},
 	{
 		"code": "PCB_REMITTANCE",
+		"description": "Raises the monthly PCB withholding remittance task after a payroll run, due fifteen days after the salary period.",
 		"name": "PCB_REMITTANCE",
 		"lookup": {
 			"offset_days": 15
@@ -208,7 +200,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -230,9 +224,13 @@
 	},
 	{
 		"code": "encash-leave-at-window-end",
+		"description": "Raises a task to encash leave at the end of the leave year when a contract is sealed.",
 		"name": "Encash Leave At Window End",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -254,6 +252,7 @@
 	},
 	{
 		"code": "WAGE_PAYMENT_DEADLINE",
+		"description": "Raises a task to pay wages by the statutory deadline, seven days after the salary period.",
 		"name": "WAGE_PAYMENT_DEADLINE",
 		"lookup": {
 			"offset_days": 7
@@ -266,7 +265,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -288,6 +289,7 @@
 	},
 	{
 		"code": "EA_FORM",
+		"description": "Raises the annual Form EA task from the January payroll run, due by the end of the following month.",
 		"name": "EA_FORM",
 		"references": [
 			{
@@ -301,7 +303,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -323,6 +327,7 @@
 	},
 	{
 		"code": "FORM_E_CP8D",
+		"description": "Raises the annual Form E and CP8D filing task from the January payroll run, due two months after the year ends.",
 		"name": "FORM_E_CP8D",
 		"lookup": {
 			"offset_months": 2
@@ -339,7 +344,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -361,6 +368,7 @@
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_NOTICE",
+		"description": "Raises a task in December to publish the next year's public holidays.",
 		"name": "PUBLIC_HOLIDAY_NOTICE",
 		"references": [
 			{
@@ -370,7 +378,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -392,6 +402,7 @@
 	},
 	{
 		"code": "TERMS_PARTICULARS_ISSUE",
+		"description": "Raises a task to issue written particulars when a contract is sealed.",
 		"name": "TERMS_PARTICULARS_ISSUE",
 		"references": [
 			{
@@ -400,7 +411,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -422,6 +436,7 @@
 	},
 	{
 		"code": "EPF_EMPLOYEE_REGISTRATION",
+		"description": "Raises a task to register a sealed contract employee with EPF by the middle of the following month.",
 		"name": "EPF_EMPLOYEE_REGISTRATION",
 		"lookup": {
 			"offset_days": 15
@@ -442,7 +457,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -464,6 +482,7 @@
 	},
 	{
 		"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+		"description": "Raises a task to register a sealed contract employee with SOCSO and EIS within thirty days of the contract start.",
 		"name": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
 		"lookup": {
 			"offset_days": 30
@@ -480,7 +499,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -502,6 +524,7 @@
 	},
 	{
 		"code": "CP22_NEW_EMPLOYEE",
+		"description": "Raises a task to notify LHDN of a new employee (CP22) within thirty days of the contract start.",
 		"name": "CP22_NEW_EMPLOYEE",
 		"lookup": {
 			"offset_days": 30
@@ -518,7 +541,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -540,6 +566,7 @@
 	},
 	{
 		"code": "FOREIGN_EMPLOYEE_PARTICULARS",
+		"description": "Raises a task to report a foreign employee's particulars within fourteen days of the contract start.",
 		"name": "FOREIGN_EMPLOYEE_PARTICULARS",
 		"lookup": {
 			"offset_days": 14
@@ -552,7 +579,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -574,6 +604,7 @@
 	},
 	{
 		"code": "CP22A_CESSATION_AND_WITHHOLDING",
+		"description": "Raises a task to notify LHDN of a cessation and withholding (CP22A) thirty days before a sealed contract ends.",
 		"name": "CP22A_CESSATION_AND_WITHHOLDING",
 		"lookup": {
 			"advance_notice_days": 30
@@ -590,7 +621,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -612,6 +645,7 @@
 	},
 	{
 		"code": "CP21_LEAVING_MALAYSIA",
+		"description": "Raises a CP21 notice task thirty days before an employee's recorded departure from Malaysia.",
 		"name": "CP21_LEAVING_MALAYSIA",
 		"lookup": {
 			"advance_notice_days": 30
@@ -628,7 +662,10 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -650,6 +687,7 @@
 	},
 	{
 		"code": "TERMINATION_BENEFITS_FINAL_WAGES",
+		"description": "Raises a task to pay final wages on termination by the contract's final-pay date or three days after the exit.",
 		"name": "TERMINATION_BENEFITS_FINAL_WAGES",
 		"lookup": {
 			"offset_days": 3
@@ -662,7 +700,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -684,6 +724,7 @@
 	},
 	{
 		"code": "TERMINATION_BENEFIT_PAYMENT",
+		"description": "Raises a task to pay statutory termination benefits for a sealed contract that ended after at least twelve months' service.",
 		"name": "TERMINATION_BENEFIT_PAYMENT",
 		"lookup": {
 			"offset_days": 7,
@@ -695,7 +736,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -717,6 +760,7 @@
 	},
 	{
 		"code": "FOREIGN_EMPLOYEE_TERMINATION_NOTICE",
+		"description": "Raises a task to notify the authorities within thirty days of a foreign employee's termination.",
 		"name": "FOREIGN_EMPLOYEE_TERMINATION_NOTICE",
 		"lookup": {
 			"offset_days": 30
@@ -729,7 +773,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -751,49 +797,63 @@
 	},
 	{
 		"code": "RETRENCHMENT_NOTIFICATION",
+		"description": "Raises the Form PK retrenchment notification and the s.60N foreign-first check for a redundancy exercise, keyed by entity and exit date.",
 		"name": "RETRENCHMENT_NOTIFICATION",
 		"lookup": {
-			"advance_notice_days": 30,
-			"retrenchment_grounds": [
-				"RETRENCHMENT",
-				"RETRENCHMENT_TERM_CONTRACT",
-				"UNILATERAL",
-				"BREACH_BY_EMPLOYER"
-			]
+			"advance_notice_days": 30
 		},
 		"references": [
 			{
-				"title": "Pemberitahuan Pemberhentian Pekerja 2004 (Borang PK) [P.U.(B) 430/2004] under Employment Act 1955",
-				"locator": "s.63"
+				"title": "Employment Act 1955 (Act 265) s.63; Employment (Retrenchment) Notification 2004 [P.U.(B) 430/2004] Form PK",
+				"locator": "s.63; Form PK Parts I-IV, at least thirty days before the action",
+				"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-01/Pemberitahuan-Pemberhentian-Pekerja-20014-Borang-PK.pdf"
 			},
 			{
-				"title": "JTKSM, Employees’ Retrenchment FAQ",
+				"title": "Employment Act 1955 (Act 265) ss.60N-60O",
+				"locator": "no local employee is retrenched before all foreign employees in a similar capacity; a permanent resident is not a foreign employee",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "JTKSM, Employees' Retrenchment FAQ",
 				"url": "https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment"
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "'MY:RETRENCHMENT_NOTIFICATION:' + ctx.entry.id"
+							"var": "'MY:RETRENCHMENT_NOTIFICATION:' + ctx.entry.entity_id + ':' + get(ctx.entry, 'effective_range.to', ctx.entry.effective_range.from)"
+						}
+					}
+				},
+				"limit": 10
+			},
+			"foreign_first": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:RETRENCHMENT_FOREIGN_FIRST:' + ctx.entry.entity_id + ':' + get(ctx.entry, 'effective_range.to', ctx.entry.effective_range.from)"
 						}
 					}
 				},
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'effective_range.to', null) == null) return false;\nreturn ctx.lookup.retrenchment_grounds.includes(get(r.employee_extension_data, 'exit_ground', ''));",
+		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'effective_range.to', null) == null) return false;\nreturn (get(r, 'exit_ground', null) ?? get(r, 'employee_extension_data.exit_ground', '')) === 'RETRENCHMENT';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:RETRENCHMENT_NOTIFICATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Labour Department of retrenchment',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"effects": "// js\nconst r = ctx.entry;\nconst action = get(r, 'effective_range.to', r.effective_range.from);\nconst due = add_days(action, -ctx.lookup.advance_notice_days);\nconst held = get(ctx, 'reads.obligation', []);\nconst foreignHeld = get(ctx, 'reads.foreign_first', []);\nconst pkKey = 'MY:RETRENCHMENT_NOTIFICATION:' + r.entity_id + ':' + action;\nconst foreignKey = 'MY:RETRENCHMENT_FOREIGN_FIRST:' + r.entity_id + ':' + action;\nconst pk = held.some((o) => o.occurrence_key === pkKey)\n\t? []\n\t: [{\n\t\tentity_id: r.entity_id,\n\t\ttitle: 'Notify the Labour Department of retrenchment (Form PK) effective ' + action,\n\t\tdue_on: due,\n\t\toccurrence_key: pkKey\n\t}];\nconst foreign = foreignHeld.some((o) => o.occurrence_key === foreignKey)\n\t? []\n\t: [{\n\t\tentity_id: r.entity_id,\n\t\ttitle: 'Confirm all foreign employees in a similar capacity were terminated before local employees (EA s.60N; s.60O excludes permanent residents)',\n\t\tdue_on: due,\n\t\toccurrence_key: foreignKey\n\t}];\nreturn pk.concat(foreign);",
 		"id": "15be9058-692e-5ff9-87e3-fe92badddc55",
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
 		"code": "FOREIGN_WORKER_LEVY",
+		"description": "Raises a task to pay the foreign worker levy when a foreign employee's contract starts.",
 		"name": "FOREIGN_WORKER_LEVY",
 		"references": [
 			{
@@ -802,7 +862,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -824,18 +887,24 @@
 	},
 	{
 		"code": "EPF_EMPLOYER_REGISTRATION",
+		"description": "Raises a task to confirm the employer's EPF registration when an entity profile is sealed.",
 		"name": "EPF_EMPLOYER_REGISTRATION",
-		"lookup": {
-			"offset_days": 7
-		},
+		"lookup": {},
 		"references": [
 			{
-				"title": "KWSP employer registration: within seven days from hiring the first employee (EPF Act s.41(1)); do not manufacture a first-wage-month date.",
+				"title": "Employees Provident Fund Act 1991 (Act 452) s.41(1)-(2)",
+				"locator": "register before the end of the first week of the first contribution month; contravention is an offence",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf"
+			},
+			{
+				"title": "KWSP, Employer Responsibilities - Registration",
 				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/registration"
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -846,17 +915,28 @@
 					}
 				},
 				"limit": 10
+			},
+			"entity": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 'scheme_code', '') === 'EPF');",
+		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'epf_registered_on', null) == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with EPF',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: \"Confirm the employer's EPF registration\",\n\toccurrence_key: key\n}];",
 		"id": "ecadb34e-2067-5906-a369-10b289bac4f6",
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
 		"code": "HRD_EMPLOYER_REGISTRATION",
+		"description": "Raises a task to register an employer that has declared HRD liability but is not registered, due thirty days after the liability date.",
 		"name": "HRD_EMPLOYER_REGISTRATION",
 		"lookup": {
 			"offset_days": 30
@@ -876,7 +956,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -889,15 +971,16 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 'scheme_code', '') === 'HRDF');",
+		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst facts = get(r, 'entity_extension_data', {});\nif (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return false;\nif (['COMPULSORY', 'OPTIONAL', 'DEREGISTERED'].includes(get(facts, 'hrd_registration_class', ''))) return false;\nconst liabilityOn = get(facts, 'hrd_registration_liability_on', null);\nreturn get(facts, 'hrd_registration_class', '') === 'NOT_REGISTERED' && typeof liabilityOn === 'string' && liabilityOn !== '';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:HRD_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with HRD Corp',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:HRD_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with HRD Corp',\n\tdue_on: add_days(get(r.entity_extension_data, 'hrd_registration_liability_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "60bb1741-542d-5d2e-9818-fee3192632fa",
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
 		"code": "REST_DAY_ROSTER",
+		"description": "Raises a task to publish the rest-day roster for each payroll run.",
 		"name": "REST_DAY_ROSTER",
 		"references": [
 			{
@@ -907,7 +990,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -929,6 +1014,7 @@
 	},
 	{
 		"code": "OVERTIME_REST_HOLIDAY_WAGES_DEADLINE",
+		"description": "Raises a task to pay overtime and rest-day wages by the end of the following month.",
 		"name": "OVERTIME_REST_HOLIDAY_WAGES_DEADLINE",
 		"references": [
 			{
@@ -938,7 +1024,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -960,18 +1048,27 @@
 	},
 	{
 		"code": "SOCSO_ACCIDENT_REPORT",
+		"description": "Raises a task to report a workplace accident to SOCSO within two days of the employer receiving notice.",
 		"name": "SOCSO_ACCIDENT_REPORT",
 		"lookup": {
 			"offset_days": 2
 		},
 		"references": [
 			{
-				"title": "Employees' Social Security Act 1969 ss.94(e), 94A(3); PERKESO, accident reporting within 48 hours of notification.",
+				"title": "Employees' Social Security Act 1969 (Act 4); Employees' Social Security (General) Regulations 1971",
+				"locator": "ss.24, 25, 94(e), 94A(3); regs.68, 71",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf"
+			},
+			{
+				"title": "PERKESO, Social Security Protection (2020)",
+				"locator": "report a work-related accident within 48 hours of notification",
+				"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -984,7 +1081,7 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn get(r.inputs, 'work_injury', false) === true;",
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'WORKPLACE_ACCIDENT';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_ACCIDENT_REPORT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Report a workplace accident to SOCSO',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
@@ -993,18 +1090,29 @@
 	},
 	{
 		"code": "SOCSO_EIS_EMPLOYER_REGISTRATION",
+		"description": "Raises a task to confirm the employer's SOCSO and EIS registration when an entity profile is sealed.",
 		"name": "SOCSO_EIS_EMPLOYER_REGISTRATION",
-		"lookup": {
-			"offset_days": 30
-		},
+		"lookup": {},
 		"references": [
 			{
-				"title": "Employees' Social Security Act 1969 s.4 and Employees' Social Security (General) Regulations 1971; Employment Insurance System Act 2017 s.14(1); PERKESO, Social Security Protection leaflet (2020): \"not later than 30 days on which the Act becomes applicable\".",
-				"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
+				"title": "Employees' Social Security Act 1969 (Act 4) s.4; Employees' Social Security (General) Regulations 1971 reg.3(3)",
+				"locator": "registration within thirty days of the Act becoming applicable to the industry",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf"
+			},
+			{
+				"title": "Employment Insurance System Act 2017 (Act 800) s.14(1), s.15",
+				"locator": "one PERKESO employer registration covers SOCSO and EIS",
+				"url": "https://www.perkeso.gov.my/images/imej/akta_dan_peraturan/EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017_Act%20800.pdf"
+			},
+			{
+				"title": "PERKESO, Employer Registration",
+				"url": "https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1015,17 +1123,28 @@
 					}
 				},
 				"limit": 10
+			},
+			"entity": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && !['SOCSO', 'EIS'].every((code) => get(r, 'registrations', []).some((x) => get(x, 'scheme_code', '') === code));",
+		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'socso_registered_on', null) == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with SOCSO and EIS',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: \"Confirm the employer's SOCSO and EIS registration\",\n\toccurrence_key: key\n}];",
 		"id": "5e8eeef9-e8e6-5fba-b74a-03157f265057",
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
 		"code": "PERKESO_CESSATION_NOTICE",
+		"description": "Raises a task to notify PERKESO within thirty days of the employer's recorded cessation.",
 		"name": "PERKESO_CESSATION_NOTICE",
 		"lookup": {
 			"offset_days": 30
@@ -1037,7 +1156,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1059,6 +1180,7 @@
 	},
 	{
 		"code": "EPF_CESSATION_NOTICE",
+		"description": "Raises a task to notify EPF within thirty days of the employer's recorded cessation.",
 		"name": "EPF_CESSATION_NOTICE",
 		"lookup": {
 			"offset_days": 30
@@ -1069,7 +1191,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1091,6 +1215,7 @@
 	},
 	{
 		"code": "HRD_CESSATION_NOTICE",
+		"description": "Raises a task to notify HRD Corp within thirty days of the employer's recorded cessation.",
 		"name": "HRD_CESSATION_NOTICE",
 		"lookup": {
 			"offset_days": 30
@@ -1102,7 +1227,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1124,6 +1251,7 @@
 	},
 	{
 		"code": "MATERNITY_PROTECTION_REVIEW",
+		"description": "Raises a review of maternity protection when a sealed contract of a pregnant employee ends.",
 		"name": "MATERNITY_PROTECTION_REVIEW",
 		"references": [
 			{
@@ -1133,7 +1261,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1155,19 +1285,22 @@
 	},
 	{
 		"code": "RETIREMENT_AGE_REVIEW",
+		"description": "Raises a review when a sealed contract ends on retirement before the employee reaches sixty.",
 		"name": "RETIREMENT_AGE_REVIEW",
 		"lookup": {
-			"retirement_grounds": ["RETIREMENT", "EMPLOYEE_RETIREMENT"],
 			"retirement_age": 60
 		},
 		"references": [
 			{
-				"title": "Minimum Retirement Age Act 2012 (Act 753)",
-				"locator": "s.4"
+				"title": "Minimum Retirement Age Act 2012 (Act 753) ss.4-6",
+				"locator": "minimum retirement age sixty; optional retirement under the contract; a retirement below sixty is reviewed",
+				"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/6.%20Minimum%20Retirement%20Age%20Act%202012.pdf"
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1180,7 +1313,7 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'effective_range.to', null) == null) return false;\nif (!ctx.lookup.retirement_grounds.includes(get(r.employee_extension_data, 'exit_ground', ''))) return false;\nif (get(r, 'payroll.date_of_birth', null) == null) return false;\nreturn age_on(get(r, 'payroll.date_of_birth', ''), get(r, 'effective_range.to', r.effective_range.from)) < ctx.lookup.retirement_age;",
+		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst exited = get(r, 'effective_range.to', null);\nif (exited == null) return false;\nif ((get(r, 'exit_ground', null) ?? get(r, 'employee_extension_data.exit_ground', '')) !== 'RETIREMENT') return false;\nconst born = get(r, 'payroll.date_of_birth', null);\nif (born == null) return false;\nreturn age_on(born, exited) < ctx.lookup.retirement_age;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:RETIREMENT_AGE_REVIEW:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review retirement age on an exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];",
@@ -1188,47 +1321,8 @@
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
-		"code": "RETRENCHMENT_FOREIGN_FIRST",
-		"name": "RETRENCHMENT_FOREIGN_FIRST",
-		"lookup": {
-			"advance_notice_days": 30,
-			"retrenchment_grounds": [
-				"RETRENCHMENT",
-				"RETRENCHMENT_TERM_CONTRACT",
-				"UNILATERAL",
-				"BREACH_BY_EMPLOYER"
-			]
-		},
-		"references": [
-			{
-				"title": "EA",
-				"locator": "ss.60N–60O",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"source_collection": "employee_contract",
-		"events": ["update"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "'MY:RETRENCHMENT_FOREIGN_FIRST:' + ctx.entry.id"
-						}
-					}
-				},
-				"limit": 10
-			}
-		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'effective_range.to', null) == null) return false;\nif (!ctx.lookup.retrenchment_grounds.includes(get(r.employee_extension_data, 'exit_ground', ''))) return false;\nreturn get(r.terms, 'residency_status', '') === 'FOREIGNER';",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:RETRENCHMENT_FOREIGN_FIRST:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Retrench foreign employees first',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
-		"id": "14593bfc-326f-5b01-8e16-0d4e1ac37db6",
-		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
-	},
-	{
 		"code": "FLEXIBLE_WORKING_REPLY",
+		"description": "Raises a task to give a written decision on a flexible working request within sixty days.",
 		"name": "FLEXIBLE_WORKING_REPLY",
 		"lookup": {
 			"offset_days": 60
@@ -1240,7 +1334,10 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1262,6 +1359,7 @@
 	},
 	{
 		"code": "SEXUAL_HARASSMENT_NOTICE",
+		"description": "Raises a task to publish the sexual harassment notice when an entity profile is sealed.",
 		"name": "SEXUAL_HARASSMENT_NOTICE",
 		"references": [
 			{
@@ -1271,7 +1369,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1293,6 +1393,7 @@
 	},
 	{
 		"code": "EMPLOYEE_REGISTER",
+		"description": "Raises a task to update the employee register for each payroll run.",
 		"name": "EMPLOYEE_REGISTER",
 		"references": [
 			{
@@ -1305,7 +1406,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1327,6 +1430,7 @@
 	},
 	{
 		"code": "PAYSLIP_ISSUE",
+		"description": "Raises a task to issue payslips within seven days after the salary period.",
 		"name": "PAYSLIP_ISSUE",
 		"lookup": {
 			"offset_days": 7
@@ -1337,7 +1441,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1359,6 +1465,7 @@
 	},
 	{
 		"code": "TAX_RECORDS_RETENTION",
+		"description": "Raises an annual task to retain tax records for the January payroll run.",
 		"name": "TAX_RECORDS_RETENTION",
 		"references": [
 			{
@@ -1368,7 +1475,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1390,6 +1499,7 @@
 	},
 	{
 		"code": "WORKERS_ACCOMMODATION_CERTIFICATE",
+		"description": "Raises a task to obtain a workers' accommodation certificate when a sealed contract provides employer housing.",
 		"name": "WORKERS_ACCOMMODATION_CERTIFICATE",
 		"references": [
 			{
@@ -1397,7 +1507,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1419,6 +1532,7 @@
 	},
 	{
 		"code": "WORK_PASS_RENEWAL",
+		"description": "Raises a work-pass renewal task ninety days before a foreign employee's recorded pass expiry.",
 		"name": "WORK_PASS_RENEWAL",
 		"lookup": {
 			"advance_notice_days": 90
@@ -1430,28 +1544,32 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "'MY:WORK_PASS_RENEWAL:' + ctx.entry.id"
+							"var": "'MY:WORK_PASS_RENEWAL:' + ctx.entry.id + ':' + get(ctx.entry, 'work_pass_valid_until', '')"
 						}
 					}
 				},
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.employee_extension_data, 'work_pass_valid_until', null) != null;",
+		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'terms.residency_status', '') !== 'FOREIGNER') return false;\nreturn get(r, 'work_pass_valid_until', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:WORK_PASS_RENEWAL:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Renew a work pass',\n\tdue_on: add_days(get(r.employee_extension_data, 'work_pass_valid_until', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"effects": "// js\nconst r = ctx.entry;\nconst expires = get(r, 'work_pass_valid_until', '');\nconst key = 'MY:WORK_PASS_RENEWAL:' + r.id + ':' + expires;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Start work pass renewal (pass expires ' + expires + ')',\n\tdue_on: add_days(expires, -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
 		"id": "a199f369-0e5c-5cde-a12c-9c875d470152",
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
 		"code": "PERSONAL_DATA_DISPOSAL",
+		"description": "Raises a task to dispose of an ex-employee's personal data seven years after the exit year ends.",
 		"name": "PERSONAL_DATA_DISPOSAL",
 		"lookup": {
 			"annual_due": "-12-31",
@@ -1469,7 +1587,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1491,6 +1611,7 @@
 	},
 	{
 		"code": "CP58_AGENT_STATEMENT",
+		"description": "Raises an annual CP58 statement task for a sealed payee engagement, due the following 31 March.",
 		"name": "CP58_AGENT_STATEMENT",
 		"lookup": {
 			"annual_due": "-03-31"
@@ -1503,7 +1624,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1525,6 +1649,7 @@
 	},
 	{
 		"code": "PDPA_PRIVACY_NOTICE",
+		"description": "Raises a task to give the PDPA privacy notice when a contract is sealed.",
 		"name": "PDPA s.7 privacy notice",
 		"references": [
 			{
@@ -1533,7 +1658,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1555,10 +1683,10 @@
 	},
 	{
 		"code": "PDPA_DPO_APPOINTMENT",
+		"description": "Raises a task to appoint and register a data protection officer when an entity profile requires one.",
 		"name": "Appoint and register a data protection officer",
 		"lookup": {
-			"offset_days": 21,
-			"employee_count_threshold": 10000
+			"offset_days": 21
 		},
 		"references": [
 			{
@@ -1566,7 +1694,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1579,7 +1709,7 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r.entity_extension_data, 'pdpa_dpo_required', false) === true) return true;\nreturn get(r.entity_extension_data, 'employee_count', 0) > ctx.lookup.employee_count_threshold;",
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'pdpa_dpo_required', false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_DPO_APPOINTMENT:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Appoint and register a data protection officer',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
@@ -1587,39 +1717,8 @@
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
-		"code": "PDPA_DPO_APPOINTMENT_UPDATE",
-		"name": "Appoint and register a data protection officer (scope reached)",
-		"lookup": {
-			"offset_days": 21
-		},
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2010 s.12A as inserted by Act A1727 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf); Guideline on the Appointment of Data Protection Officer paras 4.2, 7.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DPO_ENG.pdf, read 2026-10-07)."
-			}
-		],
-		"source_collection": "entity_profile_version",
-		"events": ["update"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "'MY:PDPA_DPO_APPOINTMENT_UPDATE:' + ctx.entry.id"
-						}
-					}
-				},
-				"limit": 10
-			}
-		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'pdpa_dpo_required', false) === true;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_DPO_APPOINTMENT_UPDATE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Review the data protection officer appointment',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
-		"id": "dc1eb114-95e9-5c31-89f6-233b5c417900",
-		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
-	},
-	{
 		"code": "PDPA_BREACH_COMMISSIONER_NOTICE",
+		"description": "Raises a task to notify the Commissioner of a personal data breach within three days.",
 		"name": "Notify the Commissioner of a personal data breach",
 		"lookup": {
 			"offset_days": 3
@@ -1630,7 +1729,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1652,6 +1753,7 @@
 	},
 	{
 		"code": "PDPA_BREACH_DATA_SUBJECT_NOTICE",
+		"description": "Raises a task to notify affected employees of a significant personal data breach within seven days of notifying the Commissioner.",
 		"name": "Notify affected employees of a personal data breach",
 		"lookup": {
 			"offset_days": 7
@@ -1662,7 +1764,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1684,6 +1788,7 @@
 	},
 	{
 		"code": "SEXUAL_HARASSMENT_INQUIRY",
+		"description": "Raises a task to inquire into a sexual harassment complaint within thirty days.",
 		"name": "Inquire into a sexual harassment complaint",
 		"lookup": {
 			"offset_days": 30
@@ -1695,7 +1800,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1717,6 +1824,7 @@
 	},
 	{
 		"code": "SEXUAL_HARASSMENT_DG_INQUIRY_REPORT",
+		"description": "Raises a task to report an inquiry the Director General directed within thirty days.",
 		"name": "Inquire when directed by the Director General and report",
 		"lookup": {
 			"offset_days": 30
@@ -1728,7 +1836,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1750,6 +1860,7 @@
 	},
 	{
 		"code": "SEXUAL_HARASSMENT_FINDING_ACTION",
+		"description": "Raises a task to act on a proven sexual harassment finding by the case's scheduled date.",
 		"name": "Act on a proven sexual harassment finding",
 		"references": [
 			{
@@ -1758,7 +1869,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1780,6 +1893,7 @@
 	},
 	{
 		"code": "FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE",
+		"description": "Raises a task to inform the Director General of a foreign domestic employee within thirty days of the contract start.",
 		"name": "Inform the Director General of a foreign domestic employee",
 		"lookup": {
 			"offset_days": 30
@@ -1791,7 +1905,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1813,6 +1930,7 @@
 	},
 	{
 		"code": "FOREIGN_DOMESTIC_TERMINATION_NOTICE",
+		"description": "Raises a task to inform the Director General within thirty days of a foreign domestic employee's termination.",
 		"name": "Inform the Director General of a foreign domestic employee's termination",
 		"lookup": {
 			"offset_days": 30
@@ -1824,7 +1942,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1846,6 +1966,7 @@
 	},
 	{
 		"code": "CP58_AGENT_STATEMENT_ON_EXIT",
+		"description": "Raises a CP58 statement task for an agent whose engagement ended, due the following 31 March.",
 		"name": "CP58 statement for an agent whose engagement ended",
 		"lookup": {
 			"annual_due": "-03-31"
@@ -1857,7 +1978,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1879,6 +2002,7 @@
 	},
 	{
 		"code": "FOREIGN_WORKER_MEDICAL_EXAMINATION",
+		"description": "Raises a FOMEMA medical examination task for a new foreign worker within thirty days of the contract start.",
 		"name": "FOMEMA medical examination of a new foreign worker",
 		"lookup": {
 			"offset_days": 30
@@ -1890,7 +2014,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1911,41 +2038,14 @@
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
 	{
-		"code": "COMPULSORY_HOLIDAYS_CHECK",
-		"name": "Publish the five compulsory holidays",
-		"references": [
-			{
-				"title": "Employment Act 1955 s.60D(1)(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"source_collection": "payroll_run",
-		"events": ["create"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "'MY:COMPULSORY_HOLIDAYS_CHECK:' + ctx.entry.id"
-						}
-					}
-				},
-				"limit": 10
-			}
-		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '12';",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:COMPULSORY_HOLIDAYS_CHECK:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Confirm the compulsory holidays are published',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
-		"id": "a7855fd8-b534-5445-aee7-9e3f2f50e585",
-		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
-	},
-	{
 		"code": "CONTRIBUTION_CORRECTION",
+		"description": "Raises a task to settle a corrected statutory contribution with the fund when an adhoc correction entry is created.",
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -1955,7 +2055,10 @@
 						}
 					}
 				},
-				"fields": ["code", "name", "lookup"],
+				"fields": [
+					"code",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -1966,14 +2069,16 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
 		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['MY', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
+		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['MY', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
 		"references": [
 			{
 				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."

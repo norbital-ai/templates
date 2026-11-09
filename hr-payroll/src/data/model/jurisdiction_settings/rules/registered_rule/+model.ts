@@ -16,6 +16,7 @@ export default model('registered_rule', {
 			owned: true
 		},
 		code: { kind: 'text' },
+		description: { kind: 'text', optional: true },
 		target_collection: { kind: 'text' },
 		events: {
 			kind: 'enum',
@@ -64,6 +65,7 @@ export default model('registered_rule', {
 			registered_rule: [
 				'settings_id',
 				'code',
+				'description',
 				'target_collection',
 				'events',
 				'reads',
@@ -88,6 +90,7 @@ export default model('registered_rule', {
 		columns: {
 			registered_rule: [
 				'code',
+				'description',
 				'target_collection',
 				'events',
 				'reads',

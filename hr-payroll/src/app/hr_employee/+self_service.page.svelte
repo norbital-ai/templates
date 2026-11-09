@@ -4,10 +4,12 @@
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { AppShell, Bound, Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
 	import {
+		Button,
 		Combobox,
 		DescriptionHint,
 		Field,
 		Form,
+		Icon,
 		Label,
 		Sheet,
 		Table,
@@ -20,6 +22,7 @@
 	import ClaimRequest from '../../lib/ui/person/claim_request.svelte';
 	import LeaveEntryForm from '../../lib/ui/person/leave_entry_form.svelte';
 	import WorkCalendar from '../../lib/ui/person/work_calendar.svelte';
+	import FaceEnrollFlow from '../../lib/ui/person/face_enroll_flow.svelte';
 	const inheritedChrome = uiText();
 	// Keep inherited translations while describing the native virtual-label search in employee terms.
 	setUiText(
@@ -73,6 +76,7 @@
 		active.length === 1 ? active[0] : active.find((row) => row.id === chosen)
 	);
 	let requesting = $state(false);
+	let enrolling = $state(false);
 	let claiming = $state(false);
 	const employmentId = $derived(employment?.id ?? null);
 	const contract = $derived(employment ?? null);
@@ -228,8 +232,7 @@
 			where={mine}
 			orderBy={{ created_at: 'desc' }}
 			columns={[
-				{ field: 'catalog_id', label: bolt.t('component.catalogue_leave') },
-				{ field: 'days', label: bolt.t('component.day') }
+				{ field: 'catalog_id', label: bolt.t('component.catalogue_leave') }
 			]}
 		/>
 	</Cover>
@@ -322,6 +325,16 @@
 							>{contract.employee_number} · {formatTermsDates(contract, bolt.t)}</span
 						>{/if}
 				</Stack>
+				<Button
+					variant="secondary"
+					disabled={(me.face_enrollment_status ?? 'NONE') === 'PENDING'}
+					onclick={() => (enrolling = true)}
+				>
+					<Icon name="lucide:scan-face" class="size-3.5" />
+					{(me.face_enrollment_status ?? 'NONE') === 'NONE'
+						? bolt.t('face.empty_title')
+						: bolt.t('v2.face_status')}
+				</Button>
 			</Cluster>
 		{/if}
 	{/snippet}
@@ -350,4 +363,15 @@
 			}
 		]}
 	/>
+	{#if enrolling && me}<Sheet
+			open
+			onOpenChange={(open) => !open && (enrolling = false)}
+			title={bolt.t('face.enroll')}
+			><FaceEnrollFlow
+				record={me}
+				self
+				onsaved={() => (enrolling = false)}
+				onclose={() => (enrolling = false)}
+			/></Sheet
+		>{/if}
 </AppShell>

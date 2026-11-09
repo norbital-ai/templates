@@ -1,0 +1,52 @@
+[
+	{
+		"code": "TEMPORARY_CESSATION",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.75 para 2",
+				"locator": "s.75 para 2",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "A temporary cessation of all or part of the business for a cause other than force majeure pays at least 75 percent of the working-day wage for the whole period."
+			}
+		],
+		"subtotal_id": null,
+		"events": {
+			"work.treatment": {
+				"scheduled": true,
+				"counts_as_attended": false
+			},
+			"work.payment": {
+				"wage_factor": 0.75
+			}
+		},
+		"id": "7a407163-58ed-54db-b438-4d2acb350c72",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"description": "A temporary cessation of work."
+	},
+	{
+		"code": "FORCE_MAJEURE",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.75 para 1",
+				"locator": "s.75 para 1",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Force majeure suspends the employer's duty to pay wages for a working day not worked."
+			}
+		],
+		"subtotal_id": null,
+		"events": {
+			"work.treatment": {
+				"scheduled": true,
+				"counts_as_attended": false
+			},
+			"work.payment": {
+				"wage_factor": 0
+			}
+		},
+		"id": "687c1054-ede8-532d-b365-1f6ed5d0f6df",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"description": "A force-majeure event that stops work; pay follows the agreed stoppage terms."
+	}
+]

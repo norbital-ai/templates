@@ -1,7 +1,6 @@
 [
 	{
 		"code": "TRAVEL_REIMBURSEMENT",
-		"name": "Travel and transport for work (reimbursed)",
 		"lookup": {},
 		"references": [
 			{
@@ -17,6 +16,7 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "d02dca8d-753d-5965-8181-f1f49326dd09",
-		"settings_id": "84c29e3a-8ac4-5674-b16d-f6ae2f938464"
+		"settings_id": "84c29e3a-8ac4-5674-b16d-f6ae2f938464",
+		"description": "Travel reimbursement."
 	}
 ]

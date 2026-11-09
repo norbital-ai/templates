@@ -18,7 +18,6 @@
 	import { Effect } from 'effect';
 	import { untrack } from 'svelte';
 	import { fork } from '@norbital-ai/ui/effect';
-	import SealedBadge from '../../../../../../../lib/ui/payroll/sealed_badge.svelte';
 	import { numberOf } from '../../../../../../../lib/payroll_engine/foundation.js';
 	import LoanCreateFields from '../../../../../../../lib/ui/payroll/loan_create_fields.svelte';
 	import {
@@ -30,9 +29,8 @@
 
 	let { view }: { view: RecordView<'loan_catalog_entry'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
-	const sealed = $derived(record?.payroll_run_id != null);
 	type Repayment = {
-		readonly id: Id<'loan_repayment_entry'>;
+		readonly id: Id<'loan_catalog_entry_repayment'>;
 		readonly amount: Decimal;
 		readonly paid_on: string | null;
 		readonly payroll_run_id: Id<'payroll_run'> | null;
@@ -70,14 +68,14 @@
 			void (async () => {
 				try {
 					const answer = await bolt.query({
-						loan_repayment_entry: {
+						loan_catalog_entry_repayment: {
 							where: { loan_id: { eq: id } },
 							fields: ['id', 'amount', 'paid_on', 'payroll_run_id'],
 							orderBy: { paid_on: 'asc' },
 							limit: 10000
 						}
 					});
-					rows = answer.loan_repayment_entry.rows.map((row) => ({
+					rows = answer.loan_catalog_entry_repayment.rows.map((row) => ({
 						id: row.id,
 						amount: Decimal.of(row.amount),
 						paid_on: row.paid_on == null ? null : day(row.paid_on),
@@ -107,7 +105,7 @@
 	);
 	const scheduleState = $derived(schedule === null ? 'NO_TERMS' : loanScheduleState(schedule));
 	const problems = $derived(schedule === null ? [] : loanScheduleProblems(schedule));
-	const isLocked = () => record === null || sealed || !loaded;
+	const isLocked = () => record === null || !loaded;
 	const label = (problem: LoanScheduleProblem): string =>
 		bolt.t(
 			problem === 'principal'
@@ -130,7 +128,7 @@
 
 	const edit = (row: Repayment, set: Record<string, unknown>) =>
 		fork(
-			bolt.act('loan_repayment_entry.update', [{ target: row.id, set }]).pipe(
+			bolt.act('loan_catalog_entry_repayment.update', [{ target: row.id, set }]).pipe(
 				Effect.tap(() => Effect.sync(refresh)),
 				Effect.catch((error) =>
 					Effect.sync(() =>
@@ -141,7 +139,7 @@
 		);
 	const remove = (row: Repayment) =>
 		fork(
-			bolt.act('loan_repayment_entry.delete', [{ target: row.id }]).pipe(
+			bolt.act('loan_catalog_entry_repayment.delete', [{ target: row.id }]).pipe(
 				Effect.tap(() => Effect.sync(refresh)),
 				Effect.catch((error) =>
 					Effect.sync(() =>
@@ -155,7 +153,7 @@
 		busy = true;
 		fork(
 			bolt
-				.act('loan_repayment_entry.create', [
+				.act('loan_catalog_entry_repayment.create', [
 					{
 						entity_id: record.entity_id,
 						employment_id: record.employment_id,
@@ -197,12 +195,12 @@
 				}
 				if (plan.remove.length > 0)
 					yield* bolt.act(
-						'loan_repayment_entry.delete',
-						plan.remove.map((target) => ({ target: target as Id<'loan_repayment_entry'> }))
+						'loan_catalog_entry_repayment.delete',
+						plan.remove.map((target) => ({ target: target as Id<'loan_catalog_entry_repayment'> }))
 					);
 				if (plan.create.length > 0)
 					yield* bolt.act(
-						'loan_repayment_entry.create',
+						'loan_catalog_entry_repayment.create',
 						plan.create.map((row) => ({
 							entity_id: record.entity_id,
 							employment_id: record.employment_id,
@@ -250,7 +248,7 @@
 				});
 				if (plan.create.length === 0) return;
 				yield* bolt.act(
-					'loan_repayment_entry.create',
+					'loan_catalog_entry_repayment.create',
 					plan.create.map((row) => ({
 						entity_id: loan.entity_id,
 						employment_id: loan.employment_id,
@@ -348,9 +346,6 @@
 			{#snippet children(form)}<LoanCreateFields {form} />{/snippet}
 		</Form>
 	{:else}
-		<div class="mb-3 flex items-center justify-end">
-			<SealedBadge {sealed} />
-		</div>
 		<Form
 			of="loan_catalog_entry"
 			mode="update"

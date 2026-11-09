@@ -145,7 +145,7 @@
 						fields: ['id', 'quantity'],
 						limit: 10000
 					},
-					loan_repayment_entry: {
+					loan_catalog_entry_repayment: {
 						where: { employment_id: { eq: record.id } },
 						fields: ['loan_id', 'amount', 'reverses', 'payroll_run_id'],
 						limit: 10000
@@ -260,7 +260,7 @@
 	const outstandingLoans = $derived(
 		outstandingOf(
 			loans?.current?.loan_catalog_entry.rows ?? [],
-			loans?.current?.loan_repayment_entry.rows ?? []
+			loans?.current?.loan_catalog_entry_repayment.rows ?? []
 		)
 	);
 	const loanTotal = $derived(outstandingLoans.reduce((sum, item) => sum + item.amount, 0));
@@ -458,7 +458,7 @@
 				fields: ['id', 'catalog_id', 'quantity', 'repayment_period'],
 				limit: 10000
 			},
-			loan_repayment_entry: {
+			loan_catalog_entry_repayment: {
 				where: { employment_id: { eq: current.id } },
 				fields: ['id', 'loan_id', 'amount', 'reverses', 'payroll_run_id'],
 				limit: 10000
@@ -466,16 +466,16 @@
 		});
 		return {
 			held,
-			outstanding: outstandingOf(held.loan_catalog_entry.rows, held.loan_repayment_entry.rows)
+			outstanding: outstandingOf(held.loan_catalog_entry.rows, held.loan_catalog_entry_repayment.rows)
 		};
 	}
 	async function clearOpenSchedule({ held, outstanding }: Awaited<ReturnType<typeof readLoans>>) {
 		const loanIds = new Set(outstanding.map((item) => String(item.row.id)));
-		const open = held.loan_repayment_entry.rows
+		const open = held.loan_catalog_entry_repayment.rows
 			.filter((row) => loanIds.has(String(row.loan_id)) && row.payroll_run_id == null)
 			.map((row) => ({ target: row.id }));
 		if (open.length === 0) return;
-		const cleared = await run(bolt.act('loan_repayment_entry.delete', open));
+		const cleared = await run(bolt.act('loan_catalog_entry_repayment.delete', open));
 		if (cleared.kind !== 'committed')
 			throw new Error('The open loan schedule could not be cleared.');
 	}
@@ -512,7 +512,7 @@
 			if (share === undefined) continue;
 			if (share.final > 0) {
 				const settled = await run(
-					bolt.act('loan_repayment_entry.create', [
+					bolt.act('loan_catalog_entry_repayment.create', [
 						{
 							entity_id: current.entity_id,
 							employment_id: current.id,
@@ -549,7 +549,7 @@
 			}).create;
 			const scheduled = await run(
 				bolt.act(
-					'loan_repayment_entry.create',
+					'loan_catalog_entry_repayment.create',
 					schedule.map((row) => ({
 						entity_id: current.entity_id,
 						employment_id: current.id,
@@ -606,14 +606,14 @@
 			if (moved.kind !== 'committed')
 				throw new Error('The carried loan could not be moved to the replacement contract.');
 			const loanIds = new Set(outstanding.map((item) => String(item.row.id)));
-			const open = held.loan_repayment_entry.rows
+			const open = held.loan_catalog_entry_repayment.rows
 				.filter((row) => loanIds.has(String(row.loan_id)) && row.payroll_run_id == null)
 				.map((row) => ({
 					target: row.id,
 					set: { entity_id: target.entityId, employment_id: target.id }
 				}));
 			if (open.length > 0) {
-				const movedSchedule = await run(bolt.act('loan_repayment_entry.update', open));
+				const movedSchedule = await run(bolt.act('loan_catalog_entry_repayment.update', open));
 				if (movedSchedule.kind !== 'committed')
 					throw new Error(
 						'The carried loan schedule could not be moved to the replacement contract.'
@@ -648,7 +648,7 @@
 			if (disposition === 'CARRY') continue;
 			if (disposition === 'SETTLE') {
 				const settled = await run(
-					bolt.act('loan_repayment_entry.create', [
+					bolt.act('loan_catalog_entry_repayment.create', [
 						{
 							entity_id: current.entity_id,
 							employment_id: current.id,
@@ -707,7 +707,7 @@
 					index === months - 1 ? Math.round((item.amount - base * (months - 1)) * 100) / 100 : base,
 				paid_on: addMonths(start, index)
 			}));
-			const scheduled = await run(bolt.act('loan_repayment_entry.create', schedule));
+			const scheduled = await run(bolt.act('loan_catalog_entry_repayment.create', schedule));
 			if (scheduled.kind !== 'committed')
 				throw new Error('The replacement loan schedule could not be created.');
 		}

@@ -16,6 +16,7 @@ documents describe its contracts and the gates that keep it honest.
 | [0006 — Configuration ownership and smells](0006-configuration-ownership-and-smells.md) | The second-owner smell, ownership ladder and owner rules                           |
 | [Transfer semantics](transfer-semantics.md)                                             | Contract chains, balances, leave/loan settlement and voids                         |
 | [Manual probe matrix](manual-probe-matrix.md)                                           | The live acceptance checklist across nine jurisdictions                            |
+| [Compliance gap research](compliance/)                                                  | Per-jurisdiction legal sources and decisions for the remaining rule/effect gaps    |
 
 The template [`README.md`](../README.md) covers apps, roles, data model, automations, seed and
 checks for operators. The workspace agent's brief is

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { bolt } from '$bolt';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
-	import { Table, EmptyState, Tabs, TimeInput } from '@norbital-ai/ui';
+	import { AppShell } from '@norbital-ai/ui/layout';
+	import { EmptyState, TimeInput } from '@norbital-ai/ui';
 	import { monthOf } from '@norbital-ai/std/date';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
@@ -20,21 +20,6 @@
 			{to}
 			today={String(today)}
 		/>{/if}{/snippet}
-{#snippet shifts()}{#if scope.id !== null}<Stack gap="lg"
-			><Table
-				of="shift_definition"
-				key="shifts"
-				where={{ entity_id: { eq: scope.id } }}
-				toolbar={{ new: true, title: bolt.t('v2.shifts') }}
-				columns={['code', 'variant', 'effective_range']}
-			/><Table
-				of="shift_pattern"
-				key="patterns"
-				where={{ entity_id: { eq: scope.id } }}
-				toolbar={{ new: true, title: bolt.t('v2.patterns') }}
-				columns={['code', 'pattern']}
-			/></Stack
-		>{/if}{/snippet}
 <AppShell
 	title={bolt.t('app.work.title')}
 	description={bolt.t('v2.work_help')}
@@ -51,10 +36,5 @@
 			/>
 		</div>
 		<CompanyScope {scope} />{/snippet}
-	{#if scope.id === null}<EmptyState title={bolt.t('app.events.empty_scope')} />{:else}<Tabs
-			tabs={[
-				{ name: 'board', title: bolt.t('v2.board'), body: board },
-				{ name: 'shifts', title: bolt.t('v2.shifts'), body: shifts }
-			]}
-		/>{/if}
+	{#if scope.id === null}<EmptyState title={bolt.t('app.events.empty_scope')} />{:else}{@render board()}{/if}
 </AppShell>

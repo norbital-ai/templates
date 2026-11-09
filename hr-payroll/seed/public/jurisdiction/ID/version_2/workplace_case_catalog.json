@@ -1,7 +1,6 @@
 [
 	{
 		"code": "PERSONAL_DATA_BREACH",
-		"name": "Personal data protection failure (UU 27/2022 art.46)",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -13,11 +12,11 @@
 			}
 		],
 		"id": "0ed4b90c-6467-5220-831f-8298d81a2078",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"description": "Personal-data breach and its notification workflow."
 	},
 	{
 		"code": "PERSONAL_DATA_ACCESS_REQUEST",
-		"name": "Data subject access request (art.32)",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -29,11 +28,11 @@
 			}
 		],
 		"id": "9682d43c-2225-59aa-97e2-431790945025",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"description": "Request to access personal data."
 	},
 	{
 		"code": "PERSONAL_DATA_CORRECTION_REQUEST",
-		"name": "Data subject correction or update request (art.30)",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -45,11 +44,11 @@
 			}
 		],
 		"id": "aefb61e5-6f51-5caf-ac18-a9b4732e41f3",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"description": "Request to correct personal data."
 	},
 	{
 		"code": "PERSONAL_DATA_CONSENT_WITHDRAWAL",
-		"name": "Withdrawal of consent to processing (art.40)",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -61,11 +60,11 @@
 			}
 		],
 		"id": "df9b0a1c-e801-5ca3-814e-14c7f30b1651",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"description": "PERSONAL_DATA_CONSENT_WITHDRAWAL: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "PERSONAL_DATA_RESTRICTION_REQUEST",
-		"name": "Request to suspend or restrict processing (art.41)",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -77,11 +76,11 @@
 			}
 		],
 		"id": "75f9d525-1661-534b-b572-240c469dca74",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"description": "PERSONAL_DATA_RESTRICTION_REQUEST: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "WORKER_HEALTH_EXAMINATION_COMPLETED",
-		"name": "Worker health examination completed (PER.02/MEN/1980 art.6(2)); opening date is examination date",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -93,11 +92,11 @@
 			}
 		],
 		"id": "9d056dd6-7f54-59bf-9d20-5f75e4cfec0e",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"description": "WORKER_HEALTH_EXAMINATION_COMPLETED: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",
-		"name": "Actual overseas work dates and country",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -126,14 +125,20 @@
 								}
 							},
 							"additionalProperties": false,
-							"required": ["date"]
+							"required": [
+								"date"
+							]
 						},
 						"title": "Actual worked dates",
 						"description": "Only dates actually worked in the stated country. Supply actual hours when the external source records them; absent hours stay unknown and may not become a full day. Do not copy hours already held in native roster records."
 					}
 				},
 				"additionalProperties": false,
-				"required": ["period", "country", "work_days"],
+				"required": [
+					"period",
+					"country",
+					"work_days"
+				],
 				"description": "One continuous actual overseas work record for one employee/country, supported by the original timesheet or equivalent factual record. A planned posting letter alone does not prove actual work or presence. Native roster/source records retain ownership of dates/hours already recorded there.",
 				"$defs": {
 					"country": {
@@ -409,7 +414,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					}
 				}
@@ -427,18 +435,21 @@
 				"quote": "The actual work period and country determine the resident or non-resident treatment and the taxable employment income.",
 				"effective_from": "2024-01-01"
 			}
-		]
+		],
+		"description": "Record of work performed across a border."
 	},
 	{
 		"code": "EXTERNAL_WAGE_RECORD",
-		"name": "Original external wage payment or cost allocation",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
 				"properties": {
 					"record_type": {
 						"type": "string",
-						"enum": ["PAYMENT", "COST_ALLOCATION"],
+						"enum": [
+							"PAYMENT",
+							"COST_ALLOCATION"
+						],
 						"title": "Original record type"
 					},
 					"original_payment_reference": {
@@ -767,7 +778,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -788,7 +802,11 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["registered_name", "country", "registration_reference"],
+						"required": [
+							"registered_name",
+							"country",
+							"registration_reference"
+						],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				},
@@ -800,10 +818,14 @@
 									"const": "COST_ALLOCATION"
 								}
 							},
-							"required": ["record_type"]
+							"required": [
+								"record_type"
+							]
 						},
 						"then": {
-							"required": ["cost_bearer"]
+							"required": [
+								"cost_bearer"
+							]
 						}
 					},
 					{
@@ -813,10 +835,14 @@
 									"exclusiveMaximum": 0
 								}
 							},
-							"required": ["amount"]
+							"required": [
+								"amount"
+							]
 						},
 						"then": {
-							"required": ["reverses_reference"]
+							"required": [
+								"reverses_reference"
+							]
 						}
 					}
 				]
@@ -834,11 +860,11 @@
 				"quote": "The original wage payment and its earned period determine the taxable employment income.",
 				"effective_from": "2024-01-01"
 			}
-		]
+		],
+		"description": "Record of wages paid by another employer."
 	},
 	{
 		"code": "BENEFIT_SERVICE_RECORD",
-		"name": "Actual service attributable to a benefit award",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -859,7 +885,12 @@
 					}
 				},
 				"additionalProperties": false,
-				"required": ["benefit_reference", "service_period", "country", "service_employer"],
+				"required": [
+					"benefit_reference",
+					"service_period",
+					"country",
+					"service_employer"
+				],
 				"description": "One actual continuous service period attributable to the named benefit/retirement award, in its actual service country and legal employer. Record every source-supported period for that award, including external prior service; do not substitute all employment history or a domestic-service percentage. Gaps and missing source periods remain unknown rather than zero. opened_on is the actual statement/certificate issue date.",
 				"$defs": {
 					"country": {
@@ -1135,7 +1166,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -1156,7 +1190,11 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["registered_name", "country", "registration_reference"],
+						"required": [
+							"registered_name",
+							"country",
+							"registration_reference"
+						],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				}
@@ -1174,6 +1212,7 @@
 				"quote": "A benefit paid in connection with the end of service is severance income and carries the final PPh 21 rates.",
 				"effective_from": "2009-11-16"
 			}
-		]
+		],
+		"description": "Record of a benefit or service entitlement."
 	}
 ]

@@ -1,8 +1,12 @@
 [
 	{
 		"code": "PROBATION_PAST_SIX_MONTHS",
+		"description": "Refuses a probationary period longer than six months from its start.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "const terms = get(ctx.entry, 'terms', {});\nreturn get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(terms, 'probation_period', null) !== null;",
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst probation = get(terms, 'probation_period', null);\nconst end = get(probation, 'to', null);\nreturn end !== null && end <= add_months(probation.from, ctx.lookup.maximum_months);",
 		"order": 6,
@@ -19,14 +23,21 @@
 	},
 	{
 		"code": "EBET_PROGRAM_RECORDED",
+		"description": "Requires an intern or apprentice contract to name the registered EBET programme that matches the engagement.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "const role = get(ctx.entry, 'engagement', null);\nreturn get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\t(role === 'INTERN' || role === 'APPRENTICE');",
 		"validate": "const role = get(ctx.entry, 'engagement', null);\nconst program = get(get(ctx.entry, 'employee_extension_data', {}), 'ebet_program', null);\nreturn role === 'APPRENTICE'\n\t? program === ctx.lookup.apprenticeship_program\n\t: ctx.lookup.trainee_programs.includes(program);",
 		"order": 9,
 		"lookup": {
 			"apprenticeship_program": "APPRENTICESHIP",
-			"trainee_programs": ["GENERAL", "UPSKILLING"]
+			"trainee_programs": [
+				"GENERAL",
+				"UPSKILLING"
+			]
 		},
 		"references": [
 			{
@@ -38,8 +49,12 @@
 	},
 	{
 		"code": "WAGE_PAYMENT_PLACE",
+		"description": "Refuses payment in a bar, club or gaming place unless the employee works there.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(get(ctx.entry, 'employee_extension_data', {}), 'wage_payment_place', null) !== null;",
 		"validate": "const extension = get(ctx.entry, 'employee_extension_data', {});\nconst place = get(extension, 'wage_payment_place', null);\nreturn place !== ctx.lookup.prohibited_place ||\n\tget(extension, 'employed_at_payment_place', false) === true;",
 		"order": 12,
@@ -56,8 +71,12 @@
 	},
 	{
 		"code": "CONTRACT_CATEGORIES",
+		"description": "Requires a declared statutory work category and residency status on every sealed contract.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
 		"validate": "const terms = get(ctx.entry, 'terms', null);\nif (terms === null) return false;\nreturn ctx.lookup.statutory_work_categories.includes(get(terms, 'statutory_work_category', null)) &&\n\tctx.lookup.residency_statuses.includes(get(terms, 'residency_status', null));",
 		"order": 23,
@@ -89,28 +108,13 @@
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
 	{
-		"code": "SHARED_CONTRACT_TERMS",
-		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(get(ctx.entry, 'terms', {}), 'normal_hours_per_day', null) !== null;",
-		"validate": "const hours = get(get(ctx.entry, 'terms', {}), 'normal_hours_per_day', null);\nreturn hours >= ctx.lookup.minimum_daily_hours && hours <= ctx.lookup.maximum_daily_hours;",
-		"order": 24,
-		"lookup": {
-			"minimum_daily_hours": 1,
-			"maximum_daily_hours": 12
-		},
-		"references": [
-			{
-				"title": "Labor Code art.83: the normal hours of work shall not exceed eight hours a day; a compressed workweek may lengthen the normal day but not beyond twelve hours (DOLE Department Advisory No. 02-04)."
-			}
-		],
-		"id": "4237235a-b14f-5d9f-b32a-2ab4606fe283",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
-	},
-	{
 		"code": "SHARED_FINAL_PAY_DEADLINE",
+		"description": "Requires final pay on or after the last day and within thirty days of separation.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(ctx.entry, 'final_pay_due_on', null) !== null;",
 		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nif (end === null) return false;\nif (!(due >= end)) return false;\nreturn due <= add_days(end, ctx.lookup.final_pay_maximum_days);",
 		"order": 27,
@@ -127,8 +131,12 @@
 	},
 	{
 		"code": "NPC_REGISTRATION_SCOPE_REVIEW_REQUIRED",
+		"description": "Requires the three NPC registration-scope declarations on every sealed entity version.",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return ctx.entry.status === ctx.lookup.sealed_status;",
 		"validate": "const facts = get(ctx.entry, 'entity_extension_data', {});\nreturn ctx.lookup.required_declarations.every((name) => get(facts, name, null) !== null);",
 		"order": 30,
@@ -151,8 +159,12 @@
 	},
 	{
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
+		"description": "Requires a tax year and a linked final-compensation case when BIR Form 2316 delivery is recorded.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return ctx.entry.kind === ctx.lookup.kind;",
 		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nconst year = get(inputs, 'tax_year', null);\nconst payment = get(inputs, 'compensation_payment_case_id', '');\nif (year === null) return false;\nif (!(year >= ctx.lookup.minimum_year)) return false;\nreturn String(payment).trim() !== '';",
 		"order": 32,
@@ -171,8 +183,12 @@
 	},
 	{
 		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
+		"description": "Requires the furnished BIR Form 2316 as evidence when its delivery is recorded.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return ctx.entry.kind === ctx.lookup.kind;",
 		"validate": "return get(ctx.entry, 'evidence_file', null) !== null;",
 		"order": 33,
@@ -190,8 +206,12 @@
 	},
 	{
 		"code": "ROSTER_WARNINGS",
+		"description": "Carries the daily-hour and rest-day caps the roster check warns against.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return true;",
 		"validate": "return true;",
 		"order": 34,
@@ -212,11 +232,15 @@
 	},
 	{
 		"code": "MINIMUM_WAGE_FLOOR",
+		"description": "Refuses a contract rate below the applicable regional or domestic minimum wage unless the employer is exempt.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 25,
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
-		"validate": "const employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst facts = get(ctx.subject, 'employment.employee_extension_data', {});\nconst domestic = get(terms, 'statutory_work_category', '') === 'DOMESTIC';\nconst region = get(facts, 'work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\nconst start = get(ctx.entry, 'effective_range.from', '9999-12-31');\nconst rates = table.filter((entry) => entry.region === region && entry.from <= start);\nif (rates.length === 0) return false;\nconst floor = Number(rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0].monthly);\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nif (domestic && unit === 'MONTHLY') return amount + 0.005 >= floor;\nconst hours = Number(get(terms, 'normal_hours_per_day', 0));\n// DOLE ch.2: a day is the monthly wage × 12 ÷ the contract week's working days (365 − 52 rest days).\nconst daysPerYear = 365 - 52 * (7 - Number(get(terms, 'normal_days_per_week', 6)));\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: (amount * 12) / daysPerYear;\nreturn daily + 0.005 >= (floor * 12) / daysPerYear;",
+		"validate": "const employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst domestic = get(terms, 'statutory_work_category', '') === 'DOMESTIC';\nconst region = get(ctx.subject, 'employment.terms.work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\nconst start = get(ctx.entry, 'effective_range.from', '9999-12-31');\nconst rates = table.filter((entry) => entry.region === region && entry.from <= start);\nif (rates.length === 0) return false;\nconst floor = Number(rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0].monthly);\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nif (domestic && unit === 'MONTHLY') return amount + 0.005 >= floor;\nconst hours = Number(get(terms, 'normal_hours_per_day', 0));\n// DOLE ch.2: a day is the monthly wage × 12 ÷ the contract week's working days (365 − 52 rest days).\nconst daysPerYear = 365 - 52 * (7 - Number(get(terms, 'normal_days_per_week', 6)));\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: (amount * 12) / daysPerYear;\nreturn daily + 0.005 >= (floor * 12) / daysPerYear;",
 		"lookup": {},
 		"references": [
 			{
@@ -227,84 +251,13 @@
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
 	{
-		"code": "NO_PAY_OPEN_PERIOD",
-		"target_collection": "leave_catalog_entry",
-		"events": ["create"],
-		"lookup": {
-			"no_pay": [
-				"PUBLIC_HOLIDAY_IN_LIEU",
-				"MEDICAL_LEAVE",
-				"EMERGENCY_LEAVE",
-				"COMPASSIONATE_LEAVE",
-				"MATERNITY_LEAVE",
-				"HOSPITALIZATION_LEAVE",
-				"UNPAID_LEAVE",
-				"MATERNITY_LEAVE_EXTENSION"
-			]
-		},
-		"references": [
-			{
-				"title": "A no-pay entry or its reversal is dated in the period that will pay it. A correction to a period already paid is a reversal entry on the same catalog item, dated in the next period to run."
-			}
-		],
-		"reads": {
-			"leave_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code"],
-				"limit": 1
-			},
-			"payroll_run": {
-				"where": {
-					"entity_id": {
-						"eq": {
-							"var": "ctx.entry.entity_id"
-						}
-					},
-					"kind": {
-						"eq": "ON_CYCLE"
-					}
-				},
-				"fields": ["period"],
-				"limit": 10000
-			},
-			"leave_catalog_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.employment_id"
-						}
-					},
-					"catalog_id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					},
-					"payroll_run_id": {
-						"isNull": true
-					},
-					"reverses": {
-						"isNull": true
-					}
-				},
-				"fields": ["days"],
-				"limit": 1000
-			}
-		},
-		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'reverses', null) != null && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
-		"order": 900,
-		"id": "cb5e237f-4491-5f0c-bf93-b24c0706ffda",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
-	},
-	{
 		"code": "CASE_INPUTS_REQUIRED",
+		"description": "Requires every input the workplace case's own form declares.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"workplace_case_catalog": {
 				"where": {
@@ -314,7 +267,9 @@
 						}
 					}
 				},
-				"fields": ["lookup"],
+				"fields": [
+					"lookup"
+				],
 				"limit": 1
 			}
 		},

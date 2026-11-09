@@ -1,7 +1,7 @@
 [
 	{
 		"code": "CHILDCARE_SUBSIDY",
-		"name": "Childcare subsidy (托儿补助费)",
+		"description": "Contractual childcare subsidy paid when the contract sets an amount; exempt from individual income tax.",
 		"lookup": {},
 		"references": [
 			{
@@ -10,7 +10,6 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.CHILDCARE_SUBSIDY.amount', 0);",
-		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "a2743421-73fe-528a-ad6b-2bf58286a008",
 		"id": "b197306b-5be2-5f74-8f0c-9ba615ed3f14",
@@ -19,7 +18,7 @@
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
-		"name": "Fixed allowance (固定津贴补贴)",
+		"description": "Contractual fixed allowance paid for the days covered by basic salary and reduced with unpaid leave; part of the wage total.",
 		"lookup": {},
 		"references": [
 			{
@@ -27,8 +26,7 @@
 			}
 		],
 		"eligibility": "return true;",
-		"conversion": "// js\n// 工资支付暂行规定 第十一条、第十二条: no wage for days not worked. A fixed allowance is paid for the days BASIC pays, so it falls and returns with the no-pay lines there, and BASIC stays the salary alone.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst coverage = ctx.run.salary_coverage;\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nlet working = 0;\nfor (let date = coverage.from; date <= coverage.to; date = add_days(date, 1)) if (!off.includes(weekday(date))) working += 1;\nconst hours = Number(get(terms, 'normal_hours_per_month', working * Number(get(terms, 'normal_hours_per_day', 8))));\nconst salary = unit === 'DAILY' ? rate * working : unit === 'HOURLY' ? rate * hours : rate;\nreturn salary > 0 ? (amount * ctx.subtotals.BASIC) / salary : amount;",
-		"incurred_on": "return ctx.as_of;",
+		"conversion": "// js\n// 工资支付暂行规定 第十一条、第十二条: no wage for days not worked. A fixed allowance is paid for the days BASIC pays, so it falls and returns with the no-pay lines there, and BASIC stays the salary alone.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst coverage = ctx.run.salary_coverage;\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nlet working = 0;\nfor (let date = coverage.from; date <= coverage.to; date = add_days(date, 1)) if (!off.includes(weekday(date))) working += 1;\nconst hours = working * Number(get(terms, 'normal_hours_per_day', 8));\nconst salary = unit === 'DAILY' ? rate * working : unit === 'HOURLY' ? rate * hours : rate;\nreturn salary > 0 ? (amount * ctx.subtotals.BASIC) / salary : amount;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "5431b266-4a96-5e83-9f6d-41c78c237e9b",
 		"id": "6e075a29-68d6-56ef-a7a3-0b9ab7c3a092",
@@ -37,7 +35,7 @@
 	},
 	{
 		"code": "FOREIGN_CHILD_EDUCATION_ALLOWANCE",
-		"name": "Expatriate children-education allowance (外籍个人子女教育费)",
+		"description": "Contractual child-education allowance for a foreign employee, paid when the contract sets an amount; qualifying foreign residents may elect tax exemption until 31 December 2027.",
 		"lookup": {},
 		"references": [
 			{
@@ -46,7 +44,6 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_CHILD_EDUCATION_ALLOWANCE.amount', 0);",
-		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "a03cf8f8-a073-491b-80f9-4123b0db85db",
 		"id": "c68afccd-748a-5da6-ad7c-145c4cb2ccdf",
@@ -55,7 +52,7 @@
 	},
 	{
 		"code": "FOREIGN_HOUSING_ALLOWANCE",
-		"name": "Expatriate housing allowance (外籍个人住房补贴)",
+		"description": "Contractual housing allowance for a foreign employee, paid when the contract sets an amount; qualifying foreign residents may elect tax exemption until 31 December 2027.",
 		"lookup": {},
 		"references": [
 			{
@@ -64,7 +61,6 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_HOUSING_ALLOWANCE.amount', 0);",
-		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "a03cf8f8-a073-491b-80f9-4123b0db85db",
 		"id": "6c4bef19-e23e-5ff4-9c60-a15f7dcfb5d0",
@@ -73,7 +69,7 @@
 	},
 	{
 		"code": "FOREIGN_LANGUAGE_ALLOWANCE",
-		"name": "Expatriate language-training allowance (外籍个人语言训练费)",
+		"description": "Contractual language-training allowance for a foreign employee, paid when the contract sets an amount; qualifying foreign residents may elect tax exemption until 31 December 2027.",
 		"lookup": {},
 		"references": [
 			{
@@ -82,7 +78,6 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_LANGUAGE_ALLOWANCE.amount', 0);",
-		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "a03cf8f8-a073-491b-80f9-4123b0db85db",
 		"id": "c9629cc4-807a-5463-934d-578bc55fdd33",
@@ -91,7 +86,7 @@
 	},
 	{
 		"code": "MEAL_SUBSIDY_OUT",
-		"name": "Missed-meal subsidy (误餐补助)",
+		"description": "Contractual meal subsidy for meals taken away from the workplace, paid when the contract sets an amount; only actual meal-expense reimbursement is tax-exempt, while a fixed payment is wages.",
 		"lookup": {},
 		"references": [
 			{
@@ -100,7 +95,6 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.MEAL_SUBSIDY_OUT.amount', 0);",
-		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "a2743421-73fe-528a-ad6b-2bf58286a008",
 		"id": "f1e71a65-19f3-584d-9735-69e203ca6bb0",
@@ -109,16 +103,15 @@
 	},
 	{
 		"code": "ONLY_CHILD_ALLOWANCE",
-		"name": "Only-child allowance (独生子女补贴)",
+		"description": "Paid to an employee recorded as an only child (独生子女), where the contract terms include the amount.",
 		"lookup": {},
 		"references": [
 			{
 				"title": "国税发〔1994〕89号 第二条: 独生子女补贴不征税; 国家统计局《关于工资总额组成的规定》第十一条."
 			}
 		],
-		"eligibility": "return true;",
+		"eligibility": "return get(ctx.subject.employment, 'only_child', false) === true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.ONLY_CHILD_ALLOWANCE.amount', 0);",
-		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "a2743421-73fe-528a-ad6b-2bf58286a008",
 		"id": "acac0f37-9ce0-5201-8829-7613d70d5235",
@@ -127,7 +120,7 @@
 	},
 	{
 		"code": "TRAVEL_ALLOWANCE",
-		"name": "Business-travel allowance (差旅费津贴)",
+		"description": "Contractual travel allowance paid when the contract sets an amount; only actual travel-expense reimbursement is tax-exempt, while a fixed payment is wages.",
 		"lookup": {},
 		"references": [
 			{
@@ -136,7 +129,6 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.TRAVEL_ALLOWANCE.amount', 0);",
-		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "a2743421-73fe-528a-ad6b-2bf58286a008",
 		"id": "994a8f1a-ca58-5e04-a348-cfc443cbfc14",
@@ -145,7 +137,7 @@
 	},
 	{
 		"code": "HIGH_TEMPERATURE_ALLOWANCE",
-		"name": "High-temperature allowance (高温津贴)",
+		"description": "Shanghai June–September allowance for an employee with a dated high-temperature exposure period.",
 		"lookup": {
 			"region": "SH",
 			"monthly": 300,
@@ -156,9 +148,8 @@
 				"title": "防暑降温措施管理办法 (安监总安健〔2012〕89号) 第十七条: 室外露天作业或工作场所不能降到33℃以下的, 发放高温津贴并纳入工资总额. 上海 300元/月, 6月至9月 (沪人社规〔2019〕19号; 官方通知未读, 2026年媒体转载一致 https://www.thepaper.cn/newsDetail_forward_33263111)."
 			}
 		],
-		"eligibility": "if (get(ctx.subject.employer, 'entity_extension_data.region', '') !== ctx.lookup.region) return false;\nif (get(ctx.subject.employment, 'employee_extension_data.high_temperature_exposed', false) !== true) return false;\nreturn ctx.lookup.months.includes(Number(ctx.as_of.slice(5, 7)));",
+		"eligibility": "if (get(ctx.subject.employer, 'entity_extension_data.region', '') !== ctx.lookup.region) return false;\nif (!ctx.lookup.months.includes(Number(ctx.as_of.slice(5, 7)))) return false;\nreturn (ctx.work_events ?? []).some((event) => {\n  if (get(event, 'code', '') !== 'HIGH_TEMPERATURE') return false;\n  const from = String(get(event, 'from', ''));\n  const to = get(event, 'to', null);\n  return from !== '' && from <= ctx.as_of && ctx.as_of <= String(to ?? from);\n});",
 		"conversion": "return ctx.lookup.monthly;",
-		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "5431b266-4a96-5e83-9f6d-41c78c237e9b",
 		"id": "c31057b3-0f08-4bdd-8255-b2fa2a93974c",

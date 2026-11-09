@@ -183,7 +183,6 @@ describe('deleting a run', () => {
 					catalog_id: idOf('adhoc_catalog', bonus),
 					description: 'Bonus',
 					quantity: 500,
-					unit: 'MONEY',
 					incurred_on: PlainDate(incurred)
 				}
 			]);
@@ -326,7 +325,6 @@ describe('what an off-cycle run may name', () => {
 		catalog_id: idOf('adhoc_catalog', catalog(seed, 'adhoc_catalog', code)),
 		description: code,
 		quantity,
-		unit: 'MONEY' as const,
 		incurred_on: PlainDate('2026-02-10')
 	});
 	const offCycle = (t: Kit, ids: readonly string[]) =>

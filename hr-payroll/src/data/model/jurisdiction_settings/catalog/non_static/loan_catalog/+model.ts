@@ -18,11 +18,9 @@ export default model('loan_catalog', {
 		},
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
 		code: { kind: 'text' },
-		name: { kind: 'text' },
 		description: { kind: 'text', optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
 		eligibility: { kind: 'text', max: 65536, optional: true },
-		incurred_on: { kind: 'text', max: 65536, optional: true },
 		conversion: { kind: 'text', max: 65536, optional: true },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'loan_catalog', owned: true }
 	},
@@ -30,6 +28,7 @@ export default model('loan_catalog', {
 	read: {
 		loan_catalog: { fields: 'all' },
 		'loan_catalog.settings_id': { fields: 'all' },
+		'loan_catalog.subtotal_id': { fields: ['code', 'name'] },
 		'loan_catalog.settings_id.registered_rule': { fields: 'all' }
 	},
 	create: {
@@ -38,11 +37,9 @@ export default model('loan_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
 				'description',
 				'references',
 				'eligibility',
-				'incurred_on',
 				'conversion',
 				'settings_id'
 			]
@@ -63,11 +60,9 @@ export default model('loan_catalog', {
 				'subtotal_id',
 				'lookup',
 				'code',
-				'name',
 				'description',
 				'references',
 				'eligibility',
-				'incurred_on',
 				'conversion'
 			]
 		},

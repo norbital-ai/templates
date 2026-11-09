@@ -1,7 +1,6 @@
 [
 	{
 		"code": "bonus",
-		"name": "Bonus",
 		"lookup": {},
 		"references": [
 			{
@@ -15,15 +14,14 @@
 		"subtotal_id": "576d9a95-0b2e-58eb-8d16-14dcd0cf8835",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "a0a773c6-4307-5775-b310-335d8468bfb3",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "bonus: paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "SALARY_IN_LIEU_OF_NOTICE",
-		"name": "Salary in lieu of notice",
 		"lookup": {},
 		"references": [
 			{
@@ -37,15 +35,14 @@
 		"subtotal_id": "9e5f643a-e386-5ddf-997c-abe871198bb8",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "72cbf2cc-a67e-5a97-8e5e-b00d21105534",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "SALARY_IN_LIEU_OF_NOTICE: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "RETRENCHMENT_BENEFIT",
-		"name": "Retrenchment benefit",
 		"lookup": {},
 		"references": [
 			{
@@ -59,15 +56,14 @@
 		"subtotal_id": "9e5f643a-e386-5ddf-997c-abe871198bb8",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "89ec8fa3-5f91-585b-87b4-12ff803d29fa",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "RETRENCHMENT_BENEFIT: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "DAMAGE_RECOVERY",
-		"name": "Damage or loss recovery",
 		"lookup": {},
 		"references": [
 			{
@@ -81,15 +77,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "626cc8b8-cfc8-5028-8fae-a83a86d1a0b3",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "DAMAGE_RECOVERY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "ACCOMMODATION_RECOVERY",
-		"name": "Accommodation recovery",
 		"lookup": {},
 		"references": [
 			{
@@ -103,15 +98,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "34da5d32-98dd-524f-89c3-2dae9f910210",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "ACCOMMODATION_RECOVERY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "AMENITIES_RECOVERY",
-		"name": "Amenities or services recovery",
 		"lookup": {},
 		"references": [
 			{
@@ -125,15 +119,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "320c8e4e-9c9e-58de-9b47-e10ef68688b3",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "AMENITIES_RECOVERY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "COOPERATIVE_DUES",
-		"name": "Registered co-operative dues",
 		"lookup": {},
 		"references": [
 			{
@@ -147,15 +140,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "f1520e7e-df3f-5969-991f-c2cdf9d14d69",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "COOPERATIVE_DUES: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "APPROVED_DAMAGE_RECOVERY",
-		"name": "Commissioner-approved damage recovery",
 		"lookup": {},
 		"references": [
 			{
@@ -169,15 +161,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "a55913c8-a42d-52bb-95ea-ed481c96a4c7",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "APPROVED_DAMAGE_RECOVERY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "ORDINARY_BACKPAY",
-		"name": "Ordinary wage backpayment",
 		"lookup": {},
 		"references": [
 			{
@@ -191,15 +182,14 @@
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "14134f48-b80e-5768-af96-634f07ae887a",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "ORDINARY_BACKPAY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "ADDITIONAL_BACKPAY",
-		"name": "Additional wage backpayment",
 		"lookup": {},
 		"references": [
 			{
@@ -213,15 +203,14 @@
 		"subtotal_id": "576d9a95-0b2e-58eb-8d16-14dcd0cf8835",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "f0c8d4e6-ea06-52c6-8852-0ee07f02364c",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "ADDITIONAL_BACKPAY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "PRIOR_WAGE_CASH_REPAYMENT",
-		"name": "Prior wage cash repayment",
 		"lookup": {},
 		"references": [
 			{
@@ -235,15 +224,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "5d24d1e1-f2cf-5b52-980b-de169c249f93",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "PRIOR_WAGE_CASH_REPAYMENT: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "EMPLOYMENT_ASSISTANCE_PAYMENT",
-		"name": "Employment Assistance Payment",
 		"lookup": {},
 		"references": [
 			{
@@ -257,15 +245,14 @@
 		"subtotal_id": "9e5f643a-e386-5ddf-997c-abe871198bb8",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "4f4e4e81-4fce-5938-bdb1-cb3000bf9b91",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "EMPLOYMENT_ASSISTANCE_PAYMENT: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "DIRECTOR_GENERAL_MEETING_FEE",
-		"name": "Director fee voted at general meeting",
 		"lookup": {},
 		"references": [
 			{
@@ -279,15 +266,14 @@
 		"subtotal_id": "50c38885-495f-5b18-baec-c430aa9265d1",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "301d67e1-9fad-554a-8bd5-b96519be9f89",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "DIRECTOR_GENERAL_MEETING_FEE: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "CPF_MISSED_SHARE_RECOVERY",
-		"name": "Permitted recovery of missed employee CPF share",
 		"lookup": {},
 		"references": [
 			{
@@ -301,15 +287,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "dd6515bc-d0cb-5a1a-8559-dead0724afc9",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "CPF_MISSED_SHARE_RECOVERY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "NOTICE_BREACH_COMPENSATION_RECOVERY",
-		"name": "Actual notice breach compensation recovery",
 		"lookup": {},
 		"references": [
 			{
@@ -323,15 +308,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "ed6f5a98-349f-5de1-a49d-f23aae4c5f00",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "NOTICE_BREACH_COMPENSATION_RECOVERY: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "FOOD_ABSENCE_COST",
-		"name": "Actual food supplied during unauthorized absence",
 		"lookup": {},
 		"references": [
 			{
@@ -345,15 +329,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "9eed881f-0fff-5776-b676-99c12f8245e8",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "FOOD_ABSENCE_COST: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "CONSENT_EMPLOYEE_BENEFIT",
-		"name": "Actual employee-benefit purchase with withdrawable written consent",
 		"lookup": {},
 		"references": [
 			{
@@ -367,33 +350,14 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "17569fe6-9aca-51e7-96e3-b465e81baa4a",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "NS_MAKEUP_PAY",
-		"name": "NS make-up pay (CPF base only)",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Enlistment Act 1970; CPF Board, NS make-up pay — CPF is payable on make-up pay as if NS had not interrupted work",
-				"locator": "NS make-up pay",
-				"url": "https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-the-national-service-ns-make-up-pay-when-i-am-away-from-work-for-ns-training",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"eligibility": "// js\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(ctx.subject.employment.terms.residency_status);",
-		"id": "ef03309b-c4d5-592b-8029-f2406ad9db93",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "CONSENT_EMPLOYEE_BENEFIT: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "NR_PUBLIC_ENTERTAINER_FEE",
-		"name": "Public entertainer fee (artiste, musician, sportsman)",
 		"lookup": {},
 		"references": [
 			{
@@ -407,135 +371,14 @@
 		"subtotal_id": "eacfeffb-ac59-5c21-8e1c-5f81ca51cd1d",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "e61f6a1f-2154-5a1b-b363-5735928cb2c0",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "BIK_PLACE_OF_RESIDENCE",
-		"name": "Benefit in kind: place of residence (Appendix 8A item 2f)",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — place-of-residence benefit is reportable employment income",
-				"locator": "Appendix 8A item 2f",
-				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"id": "f62896b0-a044-5822-b4b3-a6510e4dbc18",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "BIK_UTILITIES_HOUSEKEEPING",
-		"name": "Benefit in kind: utilities and housekeeping (Appendix 8A item 2j)",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — utilities and housekeeping benefit is reportable employment income",
-				"locator": "Appendix 8A item 2j",
-				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"id": "47d620d5-1253-5354-933d-9d34ada72bf4",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "BIK_HOTEL_ACCOMMODATION",
-		"name": "Benefit in kind: hotel accommodation (Appendix 8A item 3c)",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — hotel accommodation benefit is reportable employment income",
-				"locator": "Appendix 8A item 3c",
-				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"id": "5093700c-c86e-5976-934a-491fa91e2998",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "BIK_CAR",
-		"name": "Benefit in kind: car (Appendix 8A item 4i)",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — car benefit is reportable employment income",
-				"locator": "Appendix 8A item 4i",
-				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"id": "e2de82f2-2ad8-5d7b-9a84-d1ee45134c1d",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "BIK_OTHER",
-		"name": "Benefit in kind: other (Appendix 8A item 4a–4h, 4j)",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — other benefits-in-kind are reportable employment income",
-				"locator": "Appendix 8A item 4",
-				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"id": "e71c8983-d6f5-5a92-af89-bfb5d7683269",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "SHARE_PLAN_GAIN",
-		"name": "ESOP / ESOW gain (Appendix 8B, Form IR8A item d7)",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(1)(b),(6); IRAS, Appendix 8B notes — ESOP/ESOW gain is reportable employment income",
-				"locator": "Appendix 8B",
-				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"off_cycle_eligible": true,
-		"subtotal_id": null,
-		"id": "fbb24c2f-e676-50fa-8af9-57e0f2381cc0",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "SHARE_PLAN_DEEMED_GAIN",
-		"name": "ESOP / ESOW deemed-exercise gain at tax clearance (IR21)",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(7); IRAS, Form IR21 — an unexercised ESOP/ESOW is deemed exercised on tax clearance",
-				"locator": "s.10(7)",
-				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"off_cycle_eligible": true,
-		"subtotal_id": null,
-		"eligibility": "// js\nreturn ctx.subject.employment.terms.residency_status !== 'CITIZEN' && ctx.subject.employment.effective_range.to != null;",
-		"id": "b8cffa66-37df-54cb-a733-5ad381dafee0",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "NR_PUBLIC_ENTERTAINER_FEE: Paid or deducted as an ad-hoc line."
 	},
 	{
 		"code": "STATUTORY_REFUND",
-		"name": "Statutory refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -549,13 +392,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "c96549d5-7a44-5338-adff-727a59ab169e",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "CPF_REFUND",
-		"name": "Central Provident Fund refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -585,13 +426,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "57a4d556-6fe8-5e1c-aa3e-4efceb2fd690",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "CPF_ADJUSTMENT",
-		"name": "Central Provident Fund adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -621,13 +460,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "42421ce5-32ac-5969-bd8d-0d316f7b7d8f",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "CDAC_REFUND",
-		"name": "Chinese Development Assistance Council Fund refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -657,13 +494,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "3a1c1661-92fc-5dae-b420-d95358676565",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "CDAC_ADJUSTMENT",
-		"name": "Chinese Development Assistance Council Fund adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -693,13 +528,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "7389b59d-66bd-5449-b9a3-350fdfb6617a",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "ECF_REFUND",
-		"name": "Eurasian Community Fund refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -729,13 +562,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "3d792c56-0a81-5909-9bf5-e55bdf1ca132",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "ECF_ADJUSTMENT",
-		"name": "Eurasian Community Fund adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -765,13 +596,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "6996976f-f55d-5994-9ee9-59643193307b",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "MBMF_REFUND",
-		"name": "Mosque Building and Mendaki Fund refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -801,13 +630,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "8c16c969-9a6d-5c18-959b-257710f2fbdb",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "MBMF_ADJUSTMENT",
-		"name": "Mosque Building and Mendaki Fund adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -837,13 +664,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "f626885d-688a-5237-b1dc-b35eeeb21451",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "SINDA_REFUND",
-		"name": "Singapore Indian Development Association Fund refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -873,13 +698,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "29188638-6364-541c-9135-7e7dc4b9308b",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
 	{
 		"code": "SINDA_ADJUSTMENT",
-		"name": "Singapore Indian Development Association Fund adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -909,7 +732,6 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "eb1a09a4-fe46-5305-a0dc-0128a069e4ac",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	}

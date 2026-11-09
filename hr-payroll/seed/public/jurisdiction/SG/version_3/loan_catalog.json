@@ -1,7 +1,6 @@
 [
 	{
 		"code": "SALARY_ADVANCE",
-		"name": "Salary advance",
 		"lookup": {},
 		"references": [
 			{
@@ -14,11 +13,11 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "return ctx.entry.repayment_period.to < add_months(month_start(ctx.entry.repayment_period.from), ctx.lookup.max_months);",
 		"id": "1e65eb16-e887-505f-b285-00e0fed088fe",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "Salary advance recovered from later pay."
 	},
 	{
 		"code": "FESTIVE_ADVANCE",
-		"name": "Festive advance",
 		"lookup": {},
 		"references": [
 			{
@@ -31,11 +30,11 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "return ctx.entry.repayment_period.to < add_months(month_start(ctx.entry.repayment_period.from), ctx.lookup.max_months);",
 		"id": "96642d5c-2757-5a7e-abc0-34086226e253",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "Festive advance recovered from pay."
 	},
 	{
 		"code": "SALARY_OVERPAYMENT",
-		"name": "Salary overpayment recovery",
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"id": "b1caf422-d186-5f9d-b710-8b1594890aca",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
@@ -47,11 +46,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"lookup": {}
+		"lookup": {},
+		"description": "Recovery of salary overpaid."
 	},
 	{
 		"code": "UNEARNED_BENEFIT_RECOVERY",
-		"name": "Unearned benefit recovery",
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"id": "f5b8493c-a028-549e-a6f9-5b60ffb6cabc",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
@@ -63,11 +62,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"lookup": {}
+		"lookup": {},
+		"description": "Recovery of an unearned benefit."
 	},
 	{
 		"code": "TRAVEL_ADVANCE",
-		"name": "Travel advance",
 		"lookup": {},
 		"references": [
 			{
@@ -80,6 +79,7 @@
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "return ctx.entry.repayment_period.to < add_months(month_start(ctx.entry.repayment_period.from), ctx.lookup.max_months);",
 		"id": "ab687fa3-f034-53bf-833e-0292468b3430",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
+		"description": "Travel advance recovered from pay."
 	}
 ]

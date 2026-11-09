@@ -117,6 +117,72 @@ These are the owner's words, recorded as rules.
 15. **No delta authoring.** The sealed version remains the whole law. Do not add version deltas.
 16. **No release.** Staging only after all gates are green; production untouched until a proven no-reset path exists.
 
+## 4.1 Owner amendments, 2026-11-08
+
+- A shift pattern is a weekly configuration: `pattern.week_start` plus a weekday map of shift codes. The contract's
+  `effective_range` owns dates; `anchor_date` is removed. The statutory week starts from the pattern.
+- The contract write boundary refuses a shift code whose paid duration exceeds `terms.normal_hours_per_day`. Duration
+  is untimed hours, or start/end minus unpaid breaks; no second duration field.
+- `deemed_daily_hours` is removed. It is not `normal_hours_per_day`; a deemed-hours regime would be a separate typed
+  employee election read under `working_time_regime = DEEMED`.
+- `long_leave_granted` is removed. The leave application/approval is the decision owner; a legal accrual would be a
+  dated entitlement, not a boolean.
+- Workplace cases carry one required `employment_id` and one `entity_id`; one entry per employee. `WORK_ACCIDENT` is a
+  `workplace_case_catalog` row. `severity` is a concrete entry enum (`DEATH`, `PERMANENT_TOTAL_DISABILITY`,
+  `SERIOUS_INJURY`, `MINOR_INJURY`, `NEAR_MISS`, `PROPERTY_DAMAGE`, `N/A`). Non-injury cases use `N/A`. Common fields
+  are `employment_id`, `severity`, optional `occurred_on`, `location`, `reference`, `description`; kind-specific data
+  stays in `inputs`. The accident effect reads `severity`, never `inputs.outcome`.
+- No decorative facts. A value read by two or more rows lives once in `lookup.constants`; a value read by one row
+  lives on that row. Generated registries, not hand-edited parallel JSON.
+
+## 4.2 Catalog and settings surfaces
+
+- A catalog is configuration for an entry. The entry owns its dates, quantity, unit, evidence and party facts.
+  `incurred_on` is therefore removed from the leave, claim, ad-hoc and loan catalogs; their ledger lines use the
+  entry date (and the loan repayment's `paid_on`). Allowance and overtime have no entry, so they keep one explicit
+  “economic date rule”, labelled as a rule and rendered as code.
+- Each catalog family states what it configures, its rules and its behaviour above the table. The row drawer groups
+  Definition, Rule, Posting, Configuration and Settings with icons; every expression field renders in a code block.
+- Settings is a parent group. `Lineage` holds the version tabs, General, Tables, Calculation overview, Catalog,
+  Registered rules, Registered behaviour and Compare; `Change log` is a separate global app and is not scoped to a
+  version. General renders only declared form sections; arbitrary lookup tables live in Tables.
+- Static catalogs declare an optional `description`; the family description is always shown. Seed descriptions are
+  jurisdiction content and follow the one-agent-per-jurisdiction rule.
+- A **work event** is a dated real-life condition independent of one employee: a heat period, hurricane, earthquake,
+  epidemic or suspension. `work_event_catalog` is configuration under Settings → Catalog; its row is the event type
+  itself, referenced directly. There is no category enum and no separate suspension catalog; a suspension is a work
+  event. `work_event` records the period, entity and optional employment. The run and the leave-entitlement sync expose
+  the applicable events as `ctx.work_events`. The event itself pays nothing; an allowance or ad-hoc catalog row reads it
+  and remains the thing that posts.
+- A workplace case remains an employee-specific incident. A work event is the non-person variant; keeping them separate
+  now avoids forcing an employee link onto a period that affects a whole site or region.
+
+## 4.3 Latest owner directives
+
+**Extension ownership (owner directive, 2026-11-08).** The extension is not a sink. Life events, dependents, child
+birth, only-child, nationality, birth city, passport number and worksite region are native `employee_contract` fields.
+The extension keeps jurisdiction-specific statutory declarations and elections only, and never duplicates a contract
+field.
+
+**Catalog identity.** A catalog row is `code`; `name` is deleted from every catalog model and seed row. Tables show
+`code` and `description`, and relations render their target badge.
+
+**Three-layer catalog naming.** `<family>_catalog`, `<family>_catalog_entry`, `<family>_catalog_entry_<part>`.
+`leave_catalog_entry_day` and `loan_catalog_entry_repayment` are the two split children; `payroll_run_id` lives on the
+child, never on the catalog or the entry.
+
+
+- ~~Partially sealed entries.~~ Leave now uses `leave_catalog_entry_day`; a run seals each day, the entry remains editable
+  for uncaptured days, and a reversal names a subset of captured days. Loan repayments keep the whole-child lock and no
+  reversal. The ledger posts the inverse once.
+- ~~Work interruptions merge into work events.~~ Implemented: the separate catalog and entry models, page and engine reads are gone; their catalog rows live in `work_event_catalog` and their periods are `work_event` records.
+- ~~Payment schedule ownership.~~ `payment_schedule` and `pay_cutoff_day` live on `entity`; the legal version no longer
+  duplicates them.
+- ~~Lineage app.~~ Scheduled moved under Change log; Lineage has one page and no root tabs.
+- ~~Reads filter.~~ Root `id` shows as a variable chip; other conditions use `FilterEditor`.
+- ~~Events > Work.~~ Month board is the page content; shift definitions/patterns are no longer edited there.
+- ~~Settings tabs.~~ Tab strip is flush right.
+
 ## 5. Required gates
 
 A change is not complete on `bolt check` alone.

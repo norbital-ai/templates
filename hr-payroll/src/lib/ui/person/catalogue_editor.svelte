@@ -87,7 +87,7 @@
 	value={catalogId}
 	options={choices.map((c) => ({
 		value: c.id,
-		label: `${c.code} · ${c.name}`,
+		label: c.code,
 		description:
 			c.settings_id === null
 				? ''

@@ -9,9 +9,11 @@ src/data/model/
   employee_profile/
     employee_contract/
       contract_change/
+      contract_exit/
     employee_balance/
       ledger_entry/
   entity/
+    entity_change/
     entity_profile_version/
     holiday/
     shift_pattern/
@@ -26,8 +28,7 @@ src/data/model/
         adhoc_catalog/adhoc_catalog_entry/
         claim_catalog/claim_catalog_entry/
         leave_catalog/leave_catalog_entry/
-        loan_catalog/loan_catalog_entry/loan_repayment_entry/
-        work_interruption_catalog/work_interruption_catalog_entry/
+        loan_catalog/loan_catalog_entry/loan_catalog_entry_repayment/
         workplace_case_catalog/workplace_case_catalog_entry/
     rules/
       registered_rule/
@@ -42,7 +43,7 @@ src/data/model/
   statutory_source/
 ```
 
-Thirty-seven models, seven apps, one kiosk and five automations (`ledger`, `contract_materialize`, `statutory_research`, `statutory_materialize`, `invitation_profile`). A retired concept gets no compatibility model, alias or JSON bag.
+Forty models, seven apps, one kiosk and eight automations (`ledger`, `contract_materialize`, `entity_materialize`, `contract_exits`, `encashment`, `statutory_research`, `statutory_materialize`, `invitation_profile`). A retired concept gets no compatibility model, alias or JSON bag.
 
 Custom fields live beside models:
 
@@ -83,13 +84,14 @@ The first row (`previous_id = null`) computes base pay. Later rows accumulate em
 
 | Field                                                      | Applies to                    | Contract                                                                                          |
 | ---------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `code`, `name`                                             | all                           | Unique per `settings_id`; `code` is the accounting code                                           |
+| `code`, `description`                                      | all                           | Unique per `settings_id`; `code` is the accounting code; the description is required              |
 | `settings_id`                                              | all                           | Owned sealed jurisdiction version                                                                 |
 | `lookup`                                                   | all                           | Constants, rates and tables for this definition                                                   |
 | `references`                                               | all                           | Research/legal provenance; never on entries                                                       |
 | `off_cycle_eligible`                                       | adhoc                         | An `OFF_CYCLE` run includes the row only when true; every other family is on-cycle only           |
 | `balance_window`                                           | subtotal, statutory           | `MONTH` posts to the month as well as the year; `YEAR` (default) posts to the year only           |
 | `prorate`                                                  | allowance                     | On: the line takes the share of the period paid. Off: it pays whole                               |
+| allowance amount source                                    | allowance                     | Conversion reads `terms.allowances.<CODE>.amount` → flat agreed amount; otherwise the row computes |
 | `include_in_rate`                                          | allowance                     | On: the amount is part of the wage a day or hour rate divides                                     |
 | `subtotal_id`                                              | pay producers                 | Nullable: null when the definition creates no pay line                                            |
 | `eligibility`, `conversion`, `incurred_on`                 | pay producers                 | JS expressions; `conversion` is a nonnegative monetary magnitude                                  |
@@ -103,7 +105,9 @@ The first row (`previous_id = null`) computes base pay. Later rows accumulate em
 | `kind`, `depends_on`, `employee_amount`, `employer_amount` | statutory                     | `CONTRIBUTION`/`TAX`; scheme codes; JS amounts                                                    |
 | `employer_cost_subtotal_id`                                | statutory                     | Optional: where the employer amount lands                                                         |
 
-`work_interruption_catalog` and `workplace_case_catalog` carry `events` and a nullable `subtotal_id`. The engine prices neither; a run only seals their entries.
+`work_event_catalog` and `workplace_case_catalog` carry `events` and a nullable `subtotal_id`. The engine prices neither; a run only seals their entries.
+
+Every catalog row is identified by `code`; `name` is not a field. A catalog table shows `code` and `description`, and a relation cell (its posting subtotal) renders the target's badge, never a raw id.
 
 ### Families
 
@@ -115,8 +119,8 @@ The first row (`previous_id = null`) computes base pay. Later rows accumulate em
 | leave                  | `non_static/leave_catalog`              | `leave_catalog_entry`                        |
 | claim                  | `non_static/claim_catalog`              | `claim_catalog_entry`                        |
 | adhoc                  | `non_static/adhoc_catalog`              | `adhoc_catalog_entry`                        |
-| loan                   | `non_static/loan_catalog`               | `loan_catalog_entry`, `loan_repayment_entry` |
-| work interruption      | `non_static/work_interruption_catalog`  | `work_interruption_catalog_entry`            |
+| loan                   | `non_static/loan_catalog`               | `loan_catalog_entry`, `loan_catalog_entry_repayment` |
+| work event             | `non_static/work_event_catalog`         | `work_event`                                 |
 | workplace case         | `non_static/workplace_case_catalog`     | `workplace_case_catalog_entry`               |
 
 ### Entries
@@ -124,6 +128,36 @@ The first row (`previous_id = null`) computes base pay. Later rows accumulate em
 Every entry has `entity_id`, `catalog_id`, optional `payroll_run_id` and `evidence_file`, except a loan repayment, which has its loan instead of a catalogue and no evidence. Leave, claim, adhoc, loan and loan repayment entries add `employment_id`. An entry that needs approval is held by its policy's approval flow, not by a status.
 
 `payroll_run_id` is the capture lock: a run that seals the entry sets it, and update and delete refuse while it is set. `roster_entry` has the same lock.
+
+**Three-layer catalog naming (owner directive, 2026-11-08).** A catalog that splits an entry over time has exactly
+three models:
+
+- `<family>_catalog` — configuration (eligibility, conversion, lookup).
+- `<family>_catalog_entry` — who/why/employment/entity and the request's evidence.
+- `<family>_catalog_entry_<part>` — the dated or scheduled child (`leave_catalog_entry_day`,
+  `loan_catalog_entry_repayment`). The payroll run stamps `payroll_run_id` here, never on the catalog or the entry.
+
+**Partial leave cancellation (owner directive, 2026-11-08).** Leave is the one entry family that needs partial
+cancellation; loan repayments do not.
+
+- A leave entry keeps its dated `days` slots. A payroll run creates one `leave_catalog_entry_day` child row per slot it priced:
+  `leave_entry_id`, `payroll_run_id`, `date` and `part`, unique per entry/date/part. Capture is per slot, not per entry.
+  The run's own `payroll_run_id` attachment may remain as the first-capture marker, but the lock is the capture rows.
+- **Uncaptured slot cancelled:** the entry can be edited to remove it. The ledger posts the inverse of that slot only;
+  there is no pay line because no run paid it. This is a cancellation, not a repayment. The write boundary checks the
+  `leave_catalog_entry_day` rows, not the entry's `payroll_run_id`.
+- **Captured slot cancelled:** the entry refuses the edit. HR creates a reversal entry on the same employment and
+  catalog, whose `days` are a subset of the original's `leave_catalog_entry_day` slots. The ledger posts the inverse for those
+  slots; the payroll run prices the reversal and the employee repays only the days already paid.
+- The write boundary requires every reversal day to be a captured day of the original and no more days than the original
+  captures. A reversal is never used for uncaptured days; those are removed from the original entry. A second reversal
+  of the same original is refused by the unique `reverses` constraint.
+- The same rule covers a full cancellation: one reversal containing every captured day. A reversal is never used for
+  uncaptured days; those are removed from the original entry.
+- Tests must prove: unpaid cancellation leaves no ledger residue; partial paid cancellation posts exactly the inverse
+  of the captured subset; a second reversal of the same slot is refused; a reversal beyond the captured set is refused;
+  a run prices the reversal once; and the leave balance returns to the correct figure after each step.
+
 
 | Entry             | Fields beyond the shared set                                                                              |
 | ----------------- | --------------------------------------------------------------------------------------------------------- |
@@ -148,16 +182,18 @@ commit ──► registered_effect (collection, event) ──► target_action w
 
 ## 6. Employer, employee and calendar
 
-- `entity` — `code?`, `name`, `settings_code`, `source_reference?`.
-- `entity_profile_version` — `entity_id`, `name`, `effective_range`, `settings_code`, `input_schema_version_id`, `registrations` (each with its own period), `statutory_units`, `payment_schedule`, `pay_cutoff_day`, `bank` (custom field), `time_zone`, `registered_address`, `final_pay_loan_floor_percent`, `overtime_full_award_percent`, `entity_extension_data`, lifecycle `status`/`reason`.
+- `entity` — stable company identity: `code`, `name`, `settings_code`, `payment_schedule`, `source_reference`, `epf_registered_on`, `socso_registered_on`. The payroll run reads the schedule and cutoff here, not from a legal version.
+- `entity_profile_version` — `entity_id`, `name`, `representative_name`, `effective_range`, `settings_code`, `input_schema_version_id`, `bank` (custom field), `time_zone`, `registered_address`, `final_pay_loan_floor_percent`, `overtime_full_award_percent`, `entity_extension_data`, lifecycle `status`/`reason`.
+- `entity_change` — `entity_id`, `field_path`, `old_value`, `new_value`, `effective_from`, `applied_version_id`, `notes`. One dated change to an employer fact, filed ahead of its day; the `entity_materialize` automation seals it into a new employer version and ends the open version the day before. `old_value` is captured from the open version when filed.
 - `employee_profile` — `name`, contact, `source_reference`, `first_hired_on` company service date, `documents` (uploaded by HR or the employee, no payroll reads them), a unique `user_id` that stays empty until the person accepts an invitation, optional invitation link, face enrolment (`face_embedding`, `face_photo`, `face_enrollment_status`, `face_consent_at`, `face_enrolled_at`, `face_match_count`, `face_last_match_at`).
-- `employee_contract` — `employee_id`, `entity_id`, `employee_number`, `employee_name`, `engagement` (`EMPLOYEE`, `PART_TIME`, `CONTRACTOR`, `INTERN`, `APPRENTICE`, `CONSULTANT`, `PAYEE`), `effective_range`, `service_started_on`, `signed_contract_period`, `terms`, `payroll`, `bank` (custom field), `final_pay_due_on`, `input_schema_version_id`, `employee_extension_data`, lifecycle `status`/`reason`. `terms` carries one agreed `rate { amount, unit }`, normal hours per day, normal hours and days per week and agreed allowances. `employee_extension_data` holds what the jurisdiction's `employee_extension_schema` declares, including `events`, the dated facts: `kind`, `on`, `opened_on`, `ended_on`, `document`.
+- `employee_contract` — `employee_id`, `entity_id`, `employee_number`, `employee_name`, `engagement` (`EMPLOYEE`, `PART_TIME`, `CONTRACTOR`, `INTERN`, `APPRENTICE`, `CONSULTANT`, `PAYEE`), `effective_range`, `service_started_on`, `signed_contract_period`, `terms`, `payroll`, `bank` (custom field), `final_pay_due_on`, `input_schema_version_id`, `employee_extension_data`, lifecycle `status`/`reason`. `terms` carries one agreed `rate { amount, unit }`, normal hours per day, normal hours and days per week, the worksite `work_region` and agreed allowances. The contract itself carries the universal person facts every jurisdiction needs: `events` (the dated facts: `kind`, `on`, `opened_on`, `ended_on`, `allocated_days`), `dependents_count`, `children` (`expected_on`, `born_on`), `only_child`, and `payroll` identity (`date_of_birth`, `gender`, `marital_status`, `nationality`, `birth_city`, `passport_number`). `employee_extension_data` holds only the jurisdiction-specific statutory declarations and elections its `employee_extension_schema` declares; it is never a sink for a universal fact or a duplicate of a contract field. Native dated facts beside the extension are `exit_ground`, `work_pass_valid_until` and `child_leave_allocations` (per leave code, then child birth date); `child_leave_allocations` lets HR record an approved transfer of a shared parental pool without editing the ledger.
 - `contract_change` — `employee_id`, `field_path`, `old_value`, `new_value`, `effective_from`, `applied_version_id`, `notes`. One dated change to a contract term or fact, filed ahead of its day. Payroll and the ledger never read it: on its day the `contract_materialize` automation seals it into a new contract version.
+- `contract_exit` — `employment_id` (unique), `employee_id`, `entity_id`, `settings_id`, `effective_to`, `final_pay_due_on?`. Written once for an ended employment with no same-jurisdiction successor; exit duties read this fact instead of the contract update.
 
 `jurisdiction_settings`, `entity_profile_version` and `employee_contract` share a DRAFT → SEALED → VOID lifecycle. A void requires a reason and is irreversible. A record a payroll run already captured may still be voided; the next run excludes it. No delete verb is exposed on these models. Transfer, settlement, service-continuity and void rules are normative in [transfer-semantics.md](transfer-semantics.md).
 
 - `holiday`, `shift_pattern`, `shift_definition` — calendar and shift sources.
-- `work_interruption_catalog(_entry)`, `workplace_case_catalog(_entry)` — entity-wide dated source data.
+- `work_event_catalog` / `work_event`, `workplace_case_catalog(_entry)` — entity-wide dated source data. Work events absorb former work interruptions.
 
 ## 7. Balances and ledger
 
@@ -200,9 +236,19 @@ A run sets `payroll_run_id` on the entries it captures, and a captured entry ref
 | `ctx.run`           | payroll frame during a run                                            |
 | `ctx.reads`         | declared reads for validation and registered effects                  |
 | `ctx.event`         | the write a rule or effect answers to; the fact an entitlement counts |
+| `ctx.work_events`   | applicable work events: entity-wide plus this employment's            |
 | `ctx.as_of`         | the date the expression is evaluated for                              |
 
 No `ctx.components`, `ctx.rates`, `ctx.basis`, `ctx.assessment`, `ctx.recovery_budget`, `ctx.references` or `ctx.earlier`.
+
+## 10.1 Work events
+
+A `work_event_catalog` row is jurisdiction configuration: its code is the event type, with no category enum and no
+suspension catalog. A `work_event` is the tenant record of a dated real-world condition — heat period, hurricane,
+earthquake, epidemic or suspension — with an entity, optional employment, catalog reference, start, optional end,
+location and evidence. The payroll run and the leave-entitlement sync expose applicable events as `ctx.work_events`.
+The event pays nothing; an allowance, ad-hoc or leave row reads it and remains the thing that posts. Workplace cases
+stay employee-specific incidents; work events are the non-person variant.
 
 ## 11. Schema and seed constraints
 

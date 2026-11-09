@@ -1,7 +1,6 @@
 [
 	{
 		"code": "BONUS",
-		"name": "賞与 (bonus)",
 		"description": "The entry quantity is the bonus paid with the month. A bonus paid three times a year or less is 賞与; a computation period over six months belongs to BONUS_OVER_SIX_MONTHS.",
 		"lookup": {},
 		"references": [
@@ -15,13 +14,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "30a86150-0b05-58d5-8b5e-a05787131f2e",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "BONUS_OVER_SIX_MONTHS",
-		"name": "賞与（計算期間6か月超） (bonus for a period over six months)",
 		"description": "The entry quantity is the bonus paid for a computation period over six months. It is assessed as a bonus; under the monthly-table method the period is divided by twelve rather than six.",
 		"lookup": {},
 		"references": [
@@ -35,13 +32,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "57395633-c9e3-5e8d-aafe-9870ac8ec952",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "SHUTDOWN_ALLOWANCE",
-		"name": "休業手当 (shutdown allowance)",
 		"description": "The entry quantity is the Article 12 average-wage base for the employer-caused idle period (average daily wage multiplied by idle days). The allowance is 60% of that base; wages actually paid for the idle time reduce the base before entry.",
 		"lookup": {
 			"rate": 0.6
@@ -58,13 +53,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nreturn range.to == null || ctx.entry.incurred_on <= range.to;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.rate;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "2eb7d4c8-3e0e-549f-8736-cab85148ee50",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "INJURY_WAITING_COMPENSATION",
-		"name": "休業補償 待期3日間 (injury absence compensation, first 3 days)",
 		"description": "The entry quantity is the Article 12 average-wage base for the occupational-injury waiting days (average daily wage multiplied by waiting days, at most three). The employer pays 60% of that base.",
 		"lookup": {
 			"rate": 0.6
@@ -81,13 +74,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nreturn range.to == null || ctx.entry.incurred_on <= range.to;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.rate;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "1dd51dcd-609a-5628-a8ad-6105ef7503d2",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "DISMISSAL_NOTICE_ALLOWANCE",
-		"name": "解雇予告手当 (pay in lieu of dismissal notice)",
 		"description": "The entry quantity is the Article 12 average-wage base for the notice shortfall (average daily wage multiplied by the days of notice not given, at most thirty).",
 		"lookup": {},
 		"references": [
@@ -102,13 +93,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nreturn range.to == null || ctx.entry.incurred_on <= range.to;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "c8cea572-2757-5162-b08e-70544f3ca789",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "RETIREMENT_ALLOWANCE",
-		"name": "退職手当 (retirement allowance)",
 		"description": "The entry quantity is the retirement allowance the work rules provide. It is paid after exit and taxed as retirement income; it is not remuneration or a labour-insurance wage.",
 		"lookup": {},
 		"references": [
@@ -122,13 +111,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "a151340f-f5bb-5492-abbe-368ae8bc0107",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "RETIREMENT_ALLOWANCE_UNDECLARED",
-		"name": "退職手当 申告書なし (retirement allowance without the declaration)",
 		"description": "The retirement allowance of a leaver who filed no 退職所得の受給に関する申告書: withheld at 20.42% of the payment, with no deduction.",
 		"lookup": {},
 		"references": [
@@ -145,77 +132,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "18e1f681-4cc8-5ee5-8025-c32137649582",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
-		"code": "MEALS_IN_KIND",
-		"name": "食事の現物支給 (meals in kind)",
-		"description": "The entry quantity is the taxable meal benefit: the employer's cost less the employee's payment. Meals in kind are not taxable where the employee pays half or more of their value and the employer's cost is within the monthly limit; otherwise the excess is a taxable benefit. This catalogue records the taxable value and creates no pay line.",
-		"lookup": {},
-		"references": [
-			{
-				"title": "所得税基本通達",
-				"locator": "36-38の2（食事の現物給与）",
-				"quote": "食事の現物給与は、供与する食事の価額から従業員の負担額を控除した額を給与として課税する。"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "return ctx.entry.quantity > 0;",
-		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "42ddf318-a221-53a4-9549-c809fe42d217",
-		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
-	},
-	{
-		"code": "HOUSING_IN_KIND",
-		"name": "社宅の貸与 (company housing)",
-		"description": "The entry quantity is the taxable housing benefit: the ordinary rent less the rent the employee pays. A 使用人 who pays half or more has no taxable benefit; an officer has no half-rent exemption. This catalogue records the taxable value and creates no pay line.",
-		"lookup": {},
-		"references": [
-			{
-				"title": "所得税基本通達",
-				"locator": "36-45、36-47（社宅の貸与）",
-				"quote": "社宅の貸与は、通常の賃貸料の額と従業員の負担額との差額を給与として課税する。"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "return ctx.entry.quantity > 0;",
-		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "5b032886-9ae5-54fb-9cca-2924686f3b4d",
-		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
-	},
-	{
-		"code": "TAXABLE_BENEFIT",
-		"name": "課税される経済的利益 (other taxable benefit)",
-		"description": "The entry quantity is the value of the other taxable benefit in kind. This catalogue records the taxable value and creates no pay line.",
-		"lookup": {},
-		"references": [
-			{
-				"title": "所得税法 art.36(1)–(2) with 所得税基本通達 36-15 ff.: other benefits in kind (goods, services, low-interest loans, awards in money) are salary at their value as the 通達 states; the employer enters the taxable value. Entry: quantity = the taxable value."
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "return ctx.entry.quantity > 0;",
-		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "efc92b62-7588-577e-bf52-baea17bb5eb2",
-		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
-	},
-	{
 		"code": "SPECIAL_ALLOWANCE",
-		"name": "臨時の手当 (other taxable cash allowance)",
 		"description": "The entry quantity is the cash allowance paid with the month, including any excess over the night-duty or night-meal limits. It is salary, social-insurance remuneration and a labour-insurance wage.",
 		"lookup": {},
 		"references": [
@@ -229,13 +150,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "a38eacc7-f4e2-54b7-a935-6b3a1863b339",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "NIGHT_DUTY_ALLOWANCE",
-		"name": "宿日直手当 (night and holiday duty allowance)",
 		"description": "The entry quantity is the number of 宿直・日直 occasions. The catalogue pays the non-taxable limit per occasion; any excess is entered as SPECIAL_ALLOWANCE.",
 		"lookup": {
 			"limit_per_unit": 4000
@@ -251,13 +170,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.lookup.limit_per_unit * ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "70fd84dc-dce9-5bae-928b-faa48d96df73",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "NIGHT_MEAL_CASH",
-		"name": "深夜勤務の夜食代 (night-shift meal money)",
 		"description": "The entry quantity is the number of night-work meal occasions. The catalogue pays the non-taxable limit per occasion; a payment above the limit is wholly taxable and is entered as SPECIAL_ALLOWANCE.",
 		"lookup": {
 			"limit_per_unit": 650
@@ -273,35 +190,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.lookup.limit_per_unit * ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "05679789-a4c9-54ec-9719-3ffae0bc9901",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
-		"code": "LONG_SERVICE_AWARD",
-		"name": "永年勤続表彰（記念品） (long-service award in kind)",
-		"description": "The entry quantity is the value of a long-service award in kind. An award in kind for at least ten years of service, at intervals of at least five years and of reasonable value, is not taxable; this catalogue records the value and creates no pay line.",
-		"lookup": {
-			"minimum_service_years": 10
-		},
-		"references": [
-			{
-				"title": "所得税基本通達 36-21: an award in kind (not cash) for 10 or more years of service, at intervals of 5 years or more and of a reasonable value, is not taxable; a cash award or one outside these conditions is TAXABLE_BENEFIT or BONUS. Entry: quantity = the award value; `lookup` holds the service and interval tests."
-			}
-		],
-		"off_cycle_eligible": true,
-		"subtotal_id": null,
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const months = calendar_completed_months(ctx.subject.employment.effective_range.from, ctx.entry.incurred_on);\nreturn ctx.entry.quantity > 0 && months >= ctx.lookup.minimum_service_years * 12;",
-		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "5e174cf8-80e3-58af-bfc0-8e0c059e4f94",
-		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
-	},
-	{
 		"code": "DISCIPLINARY_DEDUCTION",
-		"name": "減給の制裁 (disciplinary pay reduction)",
 		"description": "The entry quantity is the Article 12 average-wage base for the disciplinary reduction (average daily wage multiplied by the deducted days). Each deduction is limited to half that base and to one tenth of the wages payable for the wage period.",
 		"lookup": {
 			"rate": 0.5,
@@ -319,13 +212,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
 		"conversion": "const cap = get(ctx.subtotals, 'ORDINARY_WAGES', 0) * ctx.lookup.wage_period_share;\nreturn Math.min(ctx.entry.quantity * ctx.lookup.rate, cap);",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "87665216-c0a7-5e88-97d1-d350c5485dc7",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "LATE_WAGE_INTEREST",
-		"name": "退職者の未払賃金の遅延利息 (delay interest on unpaid wages)",
 		"description": "The entry quantity is the unpaid wage left after exit. Interest runs at 14.6% a year from the day after the contractual due date to the payment date. It is not salary income.",
 		"lookup": {
 			"annual_rate": 0.146
@@ -343,13 +234,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst due = ctx.subject.employment.final_pay_due_on;\nif (due == null) return false;\nreturn ctx.entry.incurred_on > due;",
 		"conversion": "const days = calendar_distance_days(ctx.subject.employment.final_pay_due_on, ctx.entry.incurred_on);\nreturn (ctx.entry.quantity * ctx.lookup.annual_rate * days) / 365;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "9c305d5b-e7ec-58f9-9a99-27c9493d3703",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "COMMUTER_PASS",
-		"name": "通勤定期券（複数月分） (commuter pass for several months)",
 		"description": "The entry quantity is the taxable commuter-pass amount after the exemption. A pass for several months is exempt up to the monthly limit multiplied by the months it covers.",
 		"lookup": {},
 		"references": [
@@ -365,57 +254,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "81e8093c-c511-51e0-b539-f6bde38b35a1",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
-		"code": "MEALS_IN_KIND_SOCIAL_INSURANCE",
-		"name": "食事の現物給与 (社会保険の報酬)",
-		"description": "The entry quantity is the 告示 value of the meal benefit after the employee's payment. Meals in kind are remuneration at the prefecture's published price; this catalogue records the value and creates no pay line.",
-		"lookup": {},
-		"references": [
-			{
-				"title": "健康保険法",
-				"locator": "46条、厚生年金保険法25条（現物給与）",
-				"quote": "食事の現物給与は、厚生労働大臣が定める価額により報酬に算入する。"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "return ctx.entry.quantity > 0;",
-		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "abe71422-bee9-5447-9b0d-d5236f40169f",
-		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
-	},
-	{
-		"code": "HOUSING_IN_KIND_SOCIAL_INSURANCE",
-		"name": "住宅の現物給与 (社会保険の報酬)",
-		"description": "The entry quantity is the 告示 value of the company-housing benefit after the rent the employee pays. The value is per 畳 of living rooms to 30 September 2026 and per square metre of the whole floor area from 1 October 2026; this catalogue records the value and creates no pay line.",
-		"lookup": {},
-		"references": [
-			{
-				"title": "健康保険法",
-				"locator": "46条、厚生年金保険法25条（現物給与）",
-				"quote": "住宅の現物給与は、厚生労働大臣が定める価額により報酬に算入する。"
-			}
-		],
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "return ctx.entry.quantity > 0;",
-		"conversion": "return ctx.entry.quantity;",
-		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "b3006993-6283-5296-8c08-85216f5cf553",
-		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
-	},
-	{
 		"code": "STATUTORY_ADJUSTMENT",
-		"name": "Statutory adjustment",
 		"references": [
 			{
 				"title": "健康保険法 art.167, 厚生年金保険法 art.84, 労働保険徴収法 art.32 and 所得税法 art.183: the employer withholds; this corrects a prior premium or withholding."
@@ -429,13 +272,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "a25bdda9-f2b3-5c38-8274-5d463cb9cb7f",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "STATUTORY_REFUND",
-		"name": "Statutory refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -449,13 +290,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "9f1e75ea-9407-56a1-b29c-a17e851c4045",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "HEALTH_REFUND",
-		"name": "健康保険・介護保険 (Kyokai Kenpo health and nursing care insurance) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -485,13 +324,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "d195d9e7-195f-5c8a-92e8-cda6f1a72976",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "HEALTH_ADJUSTMENT",
-		"name": "健康保険・介護保険 (Kyokai Kenpo health and nursing care insurance) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -521,13 +358,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "83c88d01-1096-5f89-a8d2-66a073bbc616",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "HEALTH_BONUS_REFUND",
-		"name": "健康保険・介護保険 標準賞与額 (health insurance on bonuses) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -557,13 +392,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "3151a3f4-a3d1-5f9c-9267-567d5c8a41c4",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "HEALTH_BONUS_ADJUSTMENT",
-		"name": "健康保険・介護保険 標準賞与額 (health insurance on bonuses) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -593,13 +426,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "5b4d9807-f24c-5fea-ad16-4d3de8985ec1",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "CHILD_SUPPORT_REFUND",
-		"name": "子ども・子育て支援金 (child and childrearing support levy) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -629,13 +460,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "f8ec6173-934d-5096-85f3-2aaf7b15a713",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "CHILD_SUPPORT_ADJUSTMENT",
-		"name": "子ども・子育て支援金 (child and childrearing support levy) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -665,13 +494,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "67fd1ee8-d3da-504b-8cea-3cca0c12ffbc",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "CHILD_SUPPORT_BONUS_REFUND",
-		"name": "子ども・子育て支援金 標準賞与額 (support levy on bonuses) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -701,13 +528,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "5ffe0aa6-51c4-5574-96b2-fe8f6224beb8",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "CHILD_SUPPORT_BONUS_ADJUSTMENT",
-		"name": "子ども・子育て支援金 標準賞与額 (support levy on bonuses) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -737,13 +562,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "565c97c7-79a7-55fa-a3b4-35f20750277d",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "PENSION_REFUND",
-		"name": "厚生年金保険 (employees' pension insurance) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -773,13 +596,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "b078ff4c-b28f-53af-9f6a-7d5a391ee5f9",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "PENSION_ADJUSTMENT",
-		"name": "厚生年金保険 (employees' pension insurance) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -809,13 +630,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "ae510721-bd54-5b17-9bf9-b4fa966725ca",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "PENSION_BONUS_REFUND",
-		"name": "厚生年金保険 標準賞与額 (pension on bonuses) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -845,13 +664,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "0672b4d4-c7d5-5f87-bd1c-f8c84185ee13",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "PENSION_BONUS_ADJUSTMENT",
-		"name": "厚生年金保険 標準賞与額 (pension on bonuses) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -881,13 +698,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "a7e85629-7226-5b16-901d-9988ab12f0ea",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "EI_REFUND",
-		"name": "雇用保険 (employment insurance) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -917,13 +732,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "841ec493-e0ad-5416-9595-6dcf02441c81",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "EI_ADJUSTMENT",
-		"name": "雇用保険 (employment insurance) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -953,13 +766,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "40e662cf-64c5-5086-8176-d3ba5339daf4",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "EI_BONUS_REFUND",
-		"name": "雇用保険 賞与 (employment insurance on bonuses) refund",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -989,13 +800,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "0e419179-f8dd-5f03-baae-d0bb29a80bcd",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "EI_BONUS_ADJUSTMENT",
-		"name": "雇用保険 賞与 (employment insurance on bonuses) adjustment",
 		"references": [
 			{
 				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
@@ -1025,13 +834,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "c4d8d76c-5eeb-53bd-a101-8868f5f8cdf4",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "SOCIAL_INSURANCE_REFUND",
-		"name": "Social insurance refund",
 		"references": [
 			{
 				"title": "健康保険法 art.167, 厚生年金保険法 art.84, 労働保険徴収法 art.32: premiums come out of pay. 所得税法 art.74: the deduction is what the employee bore, so a premium paid back on this item leaves the year-end adjustment. Tax goes on Statutory refund."
@@ -1045,13 +852,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "cb7cbfe3-2c64-550b-8281-c64b4fe9a86c",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "SOCIAL_INSURANCE_ADJUSTMENT",
-		"name": "Social insurance collected late",
 		"references": [
 			{
 				"title": "健康保険法 art.167, 厚生年金保険法 art.84, 労働保険徴収法 art.32: premiums come out of pay. 所得税法 art.74: the deduction is what the employee bore, so a premium collected on this item counts at year end. Tax goes on Statutory adjustment."
@@ -1065,13 +870,11 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "cb432610-7860-51d5-9de5-55434a16884c",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
 		"code": "WAGE_ADJUSTMENT",
-		"name": "給与の過不足訂正 (wage adjustment)",
 		"description": "The entry quantity is salary short-paid, or with a reversal entry salary paid too much. It is pay of the month it is paid in, paid with the salary or off-cycle.",
 		"lookup": {},
 		"references": [
@@ -1084,7 +887,6 @@
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"subtotal_id": "c28714f9-4434-5a8d-87af-9e01d2f12515",
 		"id": "1db38a59-f9e0-56b3-9f32-8cd5aeedb50f",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"

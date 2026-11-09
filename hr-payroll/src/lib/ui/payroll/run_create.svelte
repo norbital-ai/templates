@@ -21,9 +21,14 @@
 	const today = String(todayKey());
 	const known = $derived(
 		bolt.query({
+			entity: {
+				where: { id: { eq: companyId } },
+				fields: ['payment_schedule'],
+				limit: 1
+			},
 			entity_profile_version: {
 				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
-				fields: ['payment_schedule', 'effective_range'],
+				fields: ['effective_range'],
 				orderBy: { created_at: 'desc' },
 				limit: 100
 			},
@@ -39,7 +44,9 @@
 			({ effective_range: { from, to } }) => from <= today && (to === null || today <= to)
 		)
 	);
-	const schedule = $derived(jsonObject(version?.payment_schedule ?? {}));
+	const schedule = $derived(
+		jsonObject(known?.current?.entity.rows[0]?.payment_schedule ?? {})
+	);
 	const runs = $derived(known?.current?.payroll_run.rows ?? []);
 	/** An earlier cycle would rewrite the year to date of runs already made. */
 	const latest = $derived(runs.map((run) => run.period).reduce((a, b) => (a > b ? a : b), ''));
@@ -69,7 +76,7 @@
 		open
 			? bolt.query({
 					adhoc_catalog_entry: openEntry,
-					'adhoc_catalog_entry.catalog_id': { fields: ['name', 'off_cycle_eligible'] },
+					'adhoc_catalog_entry.catalog_id': { fields: ['code', 'off_cycle_eligible'] },
 					'adhoc_catalog_entry.employment_id': {
 						fields: ['employee_number', 'employee_name', 'effective_range']
 					}
@@ -96,7 +103,7 @@
 							who: String(row.employment_id.id),
 							employed: row.employment_id.effective_range,
 							person: `${row.employment_id.employee_name} (${row.employment_id.employee_number})`,
-							what: row.catalog_id.name
+							what: row.catalog_id.code
 						}
 					]
 				: [];

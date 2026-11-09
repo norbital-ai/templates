@@ -85,8 +85,7 @@ export default model('payroll_run', {
 		leave: { model: 'leave_catalog_entry', field: 'payroll_run_id' },
 		claim: { model: 'claim_catalog_entry', field: 'payroll_run_id' },
 		adhoc: { model: 'adhoc_catalog_entry', field: 'payroll_run_id' },
-		repayment: { model: 'loan_repayment_entry', field: 'payroll_run_id' },
-		interruption: { model: 'work_interruption_catalog_entry', field: 'payroll_run_id' },
+		repayment: { model: 'loan_catalog_entry_repayment', field: 'payroll_run_id' },
 		case: { model: 'workplace_case_catalog_entry', field: 'payroll_run_id' },
 		roster_entry: { model: 'roster_entry', field: 'payroll_run_id' }
 	},
@@ -129,15 +128,14 @@ export default model('payroll_run', {
 				};
 			const entityIds = [...new Set(input.map((row) => row.entity_id))];
 			const known = yield* ctx.db.query({
+				entity: {
+					where: { id: { in: entityIds } },
+					fields: ['payment_schedule'],
+					limit: 10000
+				},
 				entity_profile_version: {
 					where: { entity_id: { in: entityIds }, status: { eq: 'SEALED' } },
-					fields: [
-						'entity_id',
-						'effective_range',
-						'settings_code',
-						'payment_schedule',
-						'pay_cutoff_day'
-					],
+					fields: ['entity_id', 'effective_range', 'settings_code'],
 					limit: 10000
 				},
 				jurisdiction_settings: {
@@ -161,7 +159,11 @@ export default model('payroll_run', {
 						on(entry.effective_range, `${row.period.slice(0, 7)}-01`)
 				);
 				if (version === undefined) return `No sealed entity version covers ${row.period}.`;
-				const schedule = jsonObject(version.payment_schedule);
+				const employer = known.entity.rows.find(
+					(entry) => String(entry.id) === String(row.entity_id)
+				);
+				if (employer === undefined) return `No entity record covers ${row.period}.`;
+				const schedule = jsonObject(employer.payment_schedule);
 				const cycle = cycleOf(schedule, row.period);
 				if (cycle === undefined) return `${row.period} is not a pay cycle of this entity.`;
 				const offCycle = row.kind === 'OFF_CYCLE';
@@ -203,8 +205,8 @@ export default model('payroll_run', {
 					},
 					code: settings.code,
 					frame: {
-						attendance: offCycle ? cycle : attendanceOf(schedule, version.pay_cutoff_day, cycle),
-						since: attendanceOf(schedule, version.pay_cutoff_day, earliest).from,
+						attendance: offCycle ? cycle : attendanceOf(schedule, cycle),
+						since: attendanceOf(schedule, earliest).from,
 						...(offCycle ? { pays } : {})
 					}
 				};
@@ -319,6 +321,73 @@ export default model('payroll_run', {
 				{ collection: 'payroll_run', ids: rows.map((row) => row.id) },
 				rows.map((after) => ({ after }))
 			);
+			// capture each leave half-day this run priced: the entry may outlive the period, but the paid slot is sealed
+			const entityIds = [...new Set(rows.map((row) => row.entity_id))];
+			if (entityIds.length === 0) return;
+			const entries = yield* ctx.query({
+				leave_catalog_entry: {
+					where: { entity_id: { in: entityIds } },
+					fields: ['id', 'employment_id', 'reverses', 'encashment'],
+					limit: 10000
+				}
+			});
+			if (entries.leave_catalog_entry.rows.length === 0) return;
+			const entryIds = entries.leave_catalog_entry.rows.map((row) => row.id);
+			const reversalIds = new Set(
+				entries.leave_catalog_entry.rows
+					.filter((row) => row.reverses != null)
+					.map((row) => String(row.id))
+			);
+			const cashOutIds = new Set(
+				entries.leave_catalog_entry.rows
+					.filter((row) => row.encashment === true)
+					.map((row) => String(row.id))
+			);
+			const slots = yield* ctx.query({
+				leave_catalog_entry_day: {
+					where: { leave_entry_id: { in: entryIds }, payroll_run_id: { isNull: true } },
+					fields: ['id', 'leave_entry_id', 'incurred_on'],
+					limit: 10000
+				}
+			});
+			const targets = rows.flatMap((run) => {
+				// a stored range excludes its upper bound; the effect's image is that string, not the written object
+				const coverage: unknown = run.salary_coverage;
+				const [from, until, exclusive] =
+					typeof coverage === 'string'
+						? (() => {
+								const [start, end] = coverage.slice(1, -1).split(',');
+								return [start ?? '', end === '' ? null : end ?? null, true] as const;
+							})()
+						: (() => {
+								const range = jsonObject(coverage);
+								return [
+									String(range.from ?? ''),
+									range.to == null ? null : String(range.to),
+									false
+								] as const;
+							})();
+				const inRun = (day: string) =>
+					day >= from && (until == null || (exclusive ? day < until : day <= until));
+				// a cash-out is priced whole, so one slot inside this run seals every slot it paid
+				const cashOut = new Set(
+					slots.leave_catalog_entry_day.rows
+						.filter(
+							(slot) =>
+								cashOutIds.has(String(slot.leave_entry_id)) &&
+								inRun(String(slot.incurred_on))
+						)
+						.map((slot) => String(slot.leave_entry_id))
+				);
+				return slots.leave_catalog_entry_day.rows.flatMap((slot) => {
+					const reversal = reversalIds.has(String(slot.leave_entry_id));
+					const covered = inRun(String(slot.incurred_on));
+					if (!reversal && !covered && !cashOut.has(String(slot.leave_entry_id))) return [];
+					return [{ target: slot.id, set: { payroll_run_id: run.id } }];
+				});
+			});
+			if (targets.length === 0) return;
+			yield* ctx.act.checked([{ callable: 'leave_catalog_entry_day.update', input: targets }]);
 		},
 		updated: function* (changes, ctx) {
 			yield* tap(

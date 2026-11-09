@@ -2,7 +2,16 @@ import { isDynObject, Refusal, stableJson } from './foundation.js';
 import type { DynObject, Json } from './foundation.js';
 
 /** What a dated change may move: a sealed version's terms and facts. An entity move is a transfer, with its loans. */
-const ROOTS = new Set(['engagement', 'terms', 'payroll', 'employee_extension_data']);
+const ROOTS = new Set([
+	'engagement',
+	'terms',
+	'payroll',
+	'events',
+	'dependents_count',
+	'children',
+	'only_child',
+	'employee_extension_data'
+]);
 const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
 
 export type ContractChange = {

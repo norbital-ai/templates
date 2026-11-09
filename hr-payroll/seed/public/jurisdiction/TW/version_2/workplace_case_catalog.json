@@ -1,7 +1,6 @@
 [
 	{
 		"code": "EMERGENCY_OVERTIME",
-		"name": "Emergency extension of working hours (勞動基準法 §32(4))",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -13,15 +12,33 @@
 			}
 		],
 		"id": "4bedcb5a-6fdd-59d3-9f0c-b373780e6ec6",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "EMERGENCY_OVERTIME: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT",
-		"name": "Work accident (職業安全衛生法 §37); facts: deaths, injured, hospitalised",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
 				"properties": {
+					"deaths": {
+						"type": "integer",
+						"minimum": 0,
+						"title": "Workers killed in this accident",
+						"description": "職業安全衛生法 §37(2)(1). Count workers killed in the same accident."
+					},
+					"injured": {
+						"type": "integer",
+						"minimum": 0,
+						"title": "Workers with permanent total, permanent partial or temporary total disability",
+						"description": "職業安全衛生法施行細則 §48: the §37(2)(2) count is the total number of workers in the same accident who suffer 永久全失能、永久部分失能或暫時全失能. Do not include workers who died; use deaths."
+					},
+					"hospitalised": {
+						"type": "integer",
+						"minimum": 0,
+						"title": "Workers requiring hospital treatment",
+						"description": "職業安全衛生法施行細則 §48: a worker injured in the accident and diagnosed by a medical institution as requiring hospital treatment. One is enough under §37(2)(3)."
+					},
 					"accident_on": {
 						"type": "string",
 						"title": "Actual accident or legally recognized occupational-disease event date",
@@ -109,7 +126,10 @@
 							"insurance_law": {
 								"type": "string",
 								"title": "Actual governing insurance law",
-								"enum": ["OCCUPATIONAL_ACCIDENT_INSURANCE", "LABOR_INSURANCE"]
+								"enum": [
+									"OCCUPATIONAL_ACCIDENT_INSURANCE",
+									"LABOR_INSURANCE"
+								]
 							},
 							"insured_from": {
 								"type": "string",
@@ -144,7 +164,12 @@
 										}
 									},
 									"additionalProperties": false,
-									"required": ["month", "amount", "currency", "reference"]
+									"required": [
+										"month",
+										"amount",
+										"currency",
+										"reference"
+									]
 								}
 							}
 						},
@@ -158,7 +183,12 @@
 					}
 				},
 				"additionalProperties": false,
-				"required": ["accident_on"]
+				"required": [
+					"accident_on",
+					"deaths",
+					"injured",
+					"hospitalised"
+				]
 			}
 		},
 		"subtotal_id": null,
@@ -171,11 +201,11 @@
 			}
 		],
 		"id": "3e890a6c-8e2b-5522-848b-9e6782f1bbea",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "OCCUPATIONAL_ACCIDENT: Case with its declared events and workflow inputs."
 	},
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",
-		"name": "Actual overseas work dates and country",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -204,14 +234,20 @@
 								}
 							},
 							"additionalProperties": false,
-							"required": ["date"]
+							"required": [
+								"date"
+							]
 						},
 						"title": "Actual worked dates",
 						"description": "Only dates actually worked in the stated country. Supply actual hours when the external source records them; absent hours stay unknown and may not become a full day. Do not copy hours already held in native roster records."
 					}
 				},
 				"additionalProperties": false,
-				"required": ["period", "country", "work_days"],
+				"required": [
+					"period",
+					"country",
+					"work_days"
+				],
 				"description": "One continuous actual overseas work record for one employee/country, supported by the original timesheet or equivalent factual record. A planned posting letter alone does not prove actual work or presence. Native roster/source records retain ownership of dates/hours already recorded there.",
 				"$defs": {
 					"country": {
@@ -487,7 +523,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					}
 				}
@@ -502,18 +541,21 @@
 				"title": "所得稅法 §2(1), §8: a resident's worldwide income and the source of services rest on the days actually worked in each country.",
 				"url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340003"
 			}
-		]
+		],
+		"description": "Record of work performed across a border."
 	},
 	{
 		"code": "EXTERNAL_WAGE_RECORD",
-		"name": "Original external wage payment or cost allocation",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
 				"properties": {
 					"record_type": {
 						"type": "string",
-						"enum": ["PAYMENT", "COST_ALLOCATION"],
+						"enum": [
+							"PAYMENT",
+							"COST_ALLOCATION"
+						],
 						"title": "Original record type"
 					},
 					"original_payment_reference": {
@@ -842,7 +884,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -863,7 +908,11 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["registered_name", "country", "registration_reference"],
+						"required": [
+							"registered_name",
+							"country",
+							"registration_reference"
+						],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				},
@@ -875,10 +924,14 @@
 									"const": "COST_ALLOCATION"
 								}
 							},
-							"required": ["record_type"]
+							"required": [
+								"record_type"
+							]
 						},
 						"then": {
-							"required": ["cost_bearer"]
+							"required": [
+								"cost_bearer"
+							]
 						}
 					},
 					{
@@ -888,10 +941,14 @@
 									"exclusiveMaximum": 0
 								}
 							},
-							"required": ["amount"]
+							"required": [
+								"amount"
+							]
 						},
 						"then": {
-							"required": ["reverses_reference"]
+							"required": [
+								"reverses_reference"
+							]
 						}
 					}
 				]
@@ -906,11 +963,11 @@
 				"title": "所得稅法 §14 (薪資所得): an outside payer's wage record and cost allocation evidence the taxable salary and the entity's share.",
 				"url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340003"
 			}
-		]
+		],
+		"description": "Record of wages paid by another employer."
 	},
 	{
 		"code": "BENEFIT_SERVICE_RECORD",
-		"name": "Actual service attributable to a benefit award",
 		"lookup": {
 			"input_schema": {
 				"type": "object",
@@ -931,7 +988,12 @@
 					}
 				},
 				"additionalProperties": false,
-				"required": ["benefit_reference", "service_period", "country", "service_employer"],
+				"required": [
+					"benefit_reference",
+					"service_period",
+					"country",
+					"service_employer"
+				],
 				"description": "One actual continuous service period attributable to the named benefit/retirement award, in its actual service country and legal employer. Record every source-supported period for that award, including external prior service; do not substitute all employment history or a domestic-service percentage. Gaps and missing source periods remain unknown rather than zero. opened_on is the actual statement/certificate issue date.",
 				"$defs": {
 					"country": {
@@ -1207,7 +1269,10 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["from", "to"],
+						"required": [
+							"from",
+							"to"
+						],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -1228,7 +1293,11 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": ["registered_name", "country", "registration_reference"],
+						"required": [
+							"registered_name",
+							"country",
+							"registration_reference"
+						],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				}
@@ -1243,11 +1312,11 @@
 				"title": "勞動基準法 §17, §55(1): separate service periods determine severance and old-system retirement pay.",
 				"url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001"
 			}
-		]
+		],
+		"description": "Record of a benefit or service entitlement."
 	},
 	{
 		"code": "FOREIGN_WORKER_ABSENCE",
-		"name": "Foreign worker absent three days (就業服務法 §56)",
 		"lookup": {},
 		"subtotal_id": null,
 		"events": {},
@@ -1259,6 +1328,7 @@
 			}
 		],
 		"id": "cda81d43-3a3d-47d8-90ff-2e66411346bd",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
+		"description": "FOREIGN_WORKER_ABSENCE: Case with its declared events and workflow inputs."
 	}
 ]

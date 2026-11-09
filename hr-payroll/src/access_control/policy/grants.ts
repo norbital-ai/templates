@@ -41,6 +41,8 @@ export const READ_ALL = {
 	employee_profile: { read: true, history: true },
 	employee_contract: { read: true, history: true },
 	contract_change: { read: true },
+	entity_change: { read: true },
+	contract_exit: { read: true },
 	jurisdiction_settings: { read: true, history: true },
 	statutory_change: { read: true, history: true },
 	statutory_finding: { read: true, history: true },
@@ -55,18 +57,19 @@ export const READ_ALL = {
 	registered_rule: { read: true },
 	registered_effect: { read: true },
 	leave_catalog_entry: { read: true, history: true },
+	leave_catalog_entry_day: { read: true, update: true },
 	claim_catalog_entry: { read: true, history: true },
 	adhoc_catalog_entry: { read: true, history: true },
 	loan_catalog_entry: { read: true, history: true },
-	loan_repayment_entry: { read: true, history: true },
+	loan_catalog_entry_repayment: { read: true, history: true },
 	employee_balance: { read: true },
 	ledger_entry: { read: true },
 	holiday: { read: true, history: true },
 	shift_definition: { read: true, history: true },
 	shift_pattern: { read: true, history: true },
 	roster_entry: { read: true, history: true },
-	work_interruption_catalog: { read: true, history: true },
-	work_interruption_catalog_entry: { read: true, history: true },
+	work_event_catalog: { read: true },
+	work_event: { read: true, history: true },
 	workplace_case_catalog: { read: true, history: true },
 	workplace_case_catalog_entry: { read: true, history: true },
 	payroll_run: { read: true, history: true },
@@ -92,12 +95,8 @@ export const CONFIGURATION = {
 	loan_catalog: { read: true, create: true, update: true, delete: true },
 	overtime_catalog: { read: true, create: true, update: true, delete: true },
 	workplace_case_catalog: { read: true, create: true, update: true, delete: true },
-	work_interruption_catalog: {
-		...READ_ALL.work_interruption_catalog,
-		create: true,
-		update: true,
-		delete: true
-	},
+	work_event_catalog: { ...READ_ALL.work_event_catalog, create: true, update: true, delete: true },
+	work_event: { ...READ_ALL.work_event, create: true, update: true, delete: true },
 	subtotal: { read: true, create: true, update: true, delete: true },
 	statutory_contribution_catalog: { read: true, create: true, update: true, delete: true },
 	registered_rule: { read: true, create: true, update: true, delete: true },
@@ -116,6 +115,27 @@ const REVERSAL = {
 			: ctx.allow();
 	}
 };
+/** An exit encashment pays out what the ledger holds: an HR controller approves it, and only then does it post. */
+const encashmentReview = (flow: Flow) =>
+	flow
+		.step('HR review', { teams: ['hr_controller', 'manager_hr_controller'] })
+		.supersededBy(['hr_manager', 'senior_management']);
+const LEAVE_REQUEST = {
+	check: function* (
+		rows: readonly { readonly reverses?: unknown; readonly encashment?: unknown }[],
+		ctx: Pick<Judge, 'allow' | 'deny' | 'approve'> & { readonly policies: readonly string[] }
+	) {
+		if (
+			rows.some((row) => row.reverses != null) &&
+			!ctx.policies.includes('hr_controller') &&
+			!ctx.policies.includes('payroll_execution')
+		)
+			return ctx.deny('Only the HR controller makes a reversal.');
+		return rows.some((row) => row.encashment === true)
+			? ctx.approve(encashmentReview)
+			: ctx.allow();
+	}
+};
 export const HR_OPERATIONS = {
 	entity: { ...READ_ALL.entity, create: true, update: true },
 	entity_profile_version: {
@@ -126,6 +146,8 @@ export const HR_OPERATIONS = {
 	},
 	employee_profile: { ...READ_ALL.employee_profile, create: true, update: true },
 	contract_change: { ...READ_ALL.contract_change, create: true, update: true, delete: true },
+	entity_change: { ...READ_ALL.entity_change, create: true, update: true, delete: true },
+	contract_exit: { ...READ_ALL.contract_exit, create: true },
 	employee_contract: {
 		...READ_ALL.employee_contract,
 		create: true,
@@ -134,10 +156,11 @@ export const HR_OPERATIONS = {
 	},
 	leave_catalog_entry: {
 		...READ_ALL.leave_catalog_entry,
-		create: REVERSAL,
+		create: LEAVE_REQUEST,
 		update: true,
 		delete: true
 	},
+	leave_catalog_entry_day: { read: true, create: true, update: true, delete: true },
 	claim_catalog_entry: {
 		...READ_ALL.claim_catalog_entry,
 		create: REVERSAL,
@@ -156,8 +179,8 @@ export const HR_OPERATIONS = {
 		update: true,
 		delete: true
 	},
-	loan_repayment_entry: {
-		...READ_ALL.loan_repayment_entry,
+	loan_catalog_entry_repayment: {
+		...READ_ALL.loan_catalog_entry_repayment,
 		create: true,
 		update: true,
 		delete: true
@@ -166,17 +189,6 @@ export const HR_OPERATIONS = {
 	shift_definition: { ...READ_ALL.shift_definition, create: true, update: true, delete: true },
 	shift_pattern: { ...READ_ALL.shift_pattern, create: true, update: true, delete: true },
 	roster_entry: { ...READ_ALL.roster_entry, create: true, update: true, delete: true },
-	work_interruption_catalog: {
-		...READ_ALL.work_interruption_catalog,
-		create: true,
-		update: true,
-		delete: true
-	},
-	work_interruption_catalog_entry: {
-		...READ_ALL.work_interruption_catalog_entry,
-		create: true,
-		update: true
-	},
 	workplace_case_catalog_entry: {
 		...READ_ALL.workplace_case_catalog_entry,
 		create: true,

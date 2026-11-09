@@ -1,7 +1,6 @@
 [
 	{
 		"code": "SALARY_ADVANCE",
-		"name": "Salary advance (預借工資)",
 		"lookup": {},
 		"references": [
 			{
@@ -13,6 +12,7 @@
 		],
 		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
 		"id": "0f0d0001-75db-5ca9-a260-a7ba6b90ce97",
-		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
+		"description": "Salary advance recovered from later pay."
 	}
 ]

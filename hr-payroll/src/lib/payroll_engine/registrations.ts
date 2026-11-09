@@ -6,13 +6,12 @@ import { JsonObject, settingsConstants } from './contracts.js';
 import { queryRows, type Reader } from './reads.js';
 import { ReadRequestSchema } from '@norbital-ai/bolt/protocol';
 
-export type Operation = 'create' | 'update' | 'delete';
+export type Operation = 'create' | 'update' | 'delete' | 'seal';
 const CATALOG_OF: Readonly<Record<string, string>> = {
 	leave_catalog_entry: 'leave_catalog',
 	claim_catalog_entry: 'claim_catalog',
 	adhoc_catalog_entry: 'adhoc_catalog',
 	loan_catalog_entry: 'loan_catalog',
-	work_interruption_catalog_entry: 'work_interruption_catalog',
 	workplace_case_catalog_entry: 'workplace_case_catalog'
 };
 
@@ -32,7 +31,11 @@ const rangeObject = (value: unknown): JsonObject | undefined => {
 	if (typeof value !== 'string') return undefined;
 	const match = /^\[([^,]*),([^)]*)\)$/.exec(value);
 	if (match === null) return undefined;
-	return { from: match[1] || null, to: match[2] || null };
+	// a stored daterange is half-open: its exclusive end is the day after the model's inclusive `to`
+	return {
+		from: match[1] || null,
+		to: match[2] ? addDays(match[2], -1) : null
+	};
 };
 
 const refId = (value: unknown): string | undefined =>
@@ -129,18 +132,22 @@ const SUBJECT_CONTRACT = [
 	'terms',
 	'payroll',
 	'engagement',
-	'employee_extension_data'
+	'events',
+	'dependents_count',
+	'children',
+	'only_child',
+	'employee_extension_data',
+	'exit_ground',
+	'child_leave_allocations'
 ] as const;
 const SUBJECT_EMPLOYER = [
 	'id',
 	'entity_id',
 	'effective_range',
 	'time_zone',
-	'payment_schedule',
-	'pay_cutoff_day',
 	'entity_extension_data',
-	'registrations'
 ] as const;
+const SUBJECT_ENTITY = ['id', 'name', 'payment_schedule'] as const;
 const latestVersion = (rows: readonly JsonObject[]): JsonObject | undefined => {
 	const start = (row: JsonObject): string =>
 		isJsonObject(row.effective_range) && typeof row.effective_range.from === 'string'
@@ -195,6 +202,11 @@ const subjectLayers = (rows: readonly JsonObject[], cache: SubjectCache) => {
 						where: { ...employer, status: { eq: 'SEALED' } },
 						fields: [...SUBJECT_EMPLOYER],
 						limit: 10000
+					},
+					entity: {
+						where: { id: { in: [...entities] } },
+						fields: [...SUBJECT_ENTITY],
+						limit: 10000
 					}
 				}),
 		...(employee === undefined
@@ -208,13 +220,23 @@ const subjectLayers = (rows: readonly JsonObject[], cache: SubjectCache) => {
 				})
 	};
 };
+const withEntity = (version: JsonObject, entity: JsonObject | undefined): JsonObject =>
+	entity === undefined
+		? version
+		: {
+				...version,
+				...(entity['payment_schedule'] === undefined
+					? {}
+					: { payment_schedule: entity['payment_schedule'] }),
+			};
 const primeFrom = (found: Record<string, readonly JsonObject[]>, cache: SubjectCache) => {
 	for (const row of found.employee_contract ?? []) cache.contracts.set(String(row.id), row);
+	const entities = new Map((found.entity ?? []).map((row) => [String(row.id), row]));
 	for (const [id, versions] of Map.groupBy(found.entity_profile_version ?? [], (row) =>
 		String(refId(row.entity_id))
 	)) {
 		const version = latestVersion(versions);
-		if (version !== undefined) cache.employers.set(id, version);
+		if (version !== undefined) cache.employers.set(id, withEntity(version, entities.get(id)));
 	}
 	for (const row of found.employee_profile ?? []) cache.employees.set(String(row.id), row);
 };
@@ -248,8 +270,7 @@ const subjectValue = Effect.fnUntraced(function* (
 	}
 	const employerId = refId(employment?.entity_id) ?? refId(row.entity_id);
 	let employer: JsonObject | undefined;
-	if (collection === 'entity_profile_version') employer = row;
-	if (needs.employer && employer === undefined && typeof employerId === 'string') {
+	if (needs.employer && typeof employerId === 'string') {
 		employer = cache.employers.get(employerId);
 		if (employer === undefined) {
 			const found = yield* queryRows(read, {
@@ -257,9 +278,15 @@ const subjectValue = Effect.fnUntraced(function* (
 					where: { entity_id: { eq: employerId }, status: { eq: 'SEALED' } },
 					fields: [...SUBJECT_EMPLOYER],
 					limit: 100
+				},
+				entity: {
+					where: { id: { eq: employerId } },
+					fields: [...SUBJECT_ENTITY],
+					limit: 1
 				}
 			});
-			employer = latestVersion(found.entity_profile_version ?? []);
+			const version = latestVersion(found.entity_profile_version ?? []);
+			employer = version === undefined ? undefined : withEntity(version, found.entity?.[0]);
 			if (employer !== undefined) cache.employers.set(employerId, employer);
 		}
 	}

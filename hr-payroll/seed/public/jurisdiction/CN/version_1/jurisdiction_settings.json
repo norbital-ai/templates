@@ -15,73 +15,6 @@
 			"title": "CN employee inputs",
 			"additionalProperties": false,
 			"properties": {
-				"events": {
-					"type": "array",
-					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": [
-									"ABORTION_13W_PLUS",
-									"ABORTION_UNDER_13W",
-									"ADDITIONAL_BABY",
-									"BEREAVEMENT",
-									"CHILD_BIRTH",
-									"CONFINEMENT",
-									"DIFFICULT_BIRTH",
-									"ILLNESS",
-									"IMPLANT_INSERTION",
-									"IMPLANT_REMOVAL",
-									"IUD_INSERTION",
-									"IUD_REMOVAL",
-									"MARRIAGE",
-									"MISCARRIAGE",
-									"PREGNANCY",
-									"TUBAL_LIGATION",
-									"TUBAL_RECANALIZATION",
-									"VASECTOMY",
-									"VAS_RECANALIZATION",
-									"WORK_INJURY"
-								],
-								"title": "What happened",
-								"description": "CONFINEMENT is the first day off before a birth, at most 15 days ahead. DIFFICULT_BIRTH and ADDITIONAL_BABY, one per baby past the first, carry the birth's date. PREGNANCY is the day the pregnancy began. WORK_INJURY is the day of the accident."
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date"
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							}
-						},
-						"sick_pay_share": {
-							"type": "number",
-							"minimum": 0,
-							"maximum": 1,
-							"title": "Agreed sick pay share of the wage",
-							"description": "劳部发〔1995〕309号 第59条: the law sets only a floor of 80% of the minimum wage. A higher share in the contract, collective contract or handbook binds."
-						},
-						"medical_period_extension": {
-							"type": "string",
-							"title": "Medical-period extension approval",
-							"description": "劳部发〔1995〕236号 第二条: the approval extending the medical period past 24 months for a special illness."
-						}
-					}
-				},
 				"china_workday_share": {
 					"type": "number",
 					"minimum": 0,
@@ -95,12 +28,6 @@
 					"enum": ["FEMALE_50", "FEMALE_55"],
 					"title": "Original statutory retirement age (women)",
 					"description": "全国人民代表大会常务委员会《关于实施渐进式延迟法定退休年龄的决定》(2024年9月13日, 自2025年1月1日) 及《国务院关于渐进式延迟法定退休年龄的办法》第二条: 男职工和原法定退休年龄为五十五周岁的女职工每四个月延迟一个月, 分别逐步延迟至六十三周岁和五十八周岁; 原法定退休年龄为五十周岁的女职工每二个月延迟一个月, 逐步延迟至五十五周岁 https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm. Women record `retirement_category` FEMALE_55 (cadres) or FEMALE_50 (default, workers)."
-				},
-				"only_child": {
-					"type": "boolean",
-					"default": false,
-					"title": "Only child (独生子女)",
-					"description": "上海市老年人权益保障条例 (陪护假 7 days); 云南省老年人权益保障条例 第二十四条 (护理假 20 days)."
 				},
 				"si_exempt_schemes": {
 					"type": "array",
@@ -145,19 +72,13 @@
 					"type": "number",
 					"minimum": 0,
 					"title": "Declared social insurance and HPF contribution base (月缴费基数)",
-					"description": "社会保险法第十二条: reviewed SI wage base. When omitted, payroll uses the actual basic wage (BASIC) paid this month, never the contract monthly rate; city floor/ceiling still apply. HPF uses its separately reviewed base when supplied; first-ever HPF employment starts in the second month."
+					"description": "社会保险法第十二条: reviewed SI wage base. When omitted, payroll uses the actual basic wage (BASIC) paid this month, never the contract monthly rate; city floor/ceiling still apply. HPF uses its separately reviewed base when supplied; first-ever HPF employment starts in the second month. 人社部令第56号: past the statutory retirement date pension, medical and unemployment run only when an agreement signed on or after that date declares this base; list a scheme in si_exempt_schemes to leave it out."
 				},
 				"post_lowest_wage": {
 					"type": "number",
 					"minimum": 0,
 					"title": "Lowest wage of the same post",
 					"description": "劳动合同法 第二十条."
-				},
-				"high_temperature_exposed": {
-					"type": "boolean",
-					"default": false,
-					"title": "Outdoor or uncooled work in summer (Shanghai)",
-					"description": "防暑降温措施管理办法 第十七条; 上海 300 a month, June to September (HIGH_TEMPERATURE_ALLOWANCE)."
 				},
 				"social_insurance_waived": {
 					"type": "boolean",
@@ -532,6 +453,54 @@
 									]
 								}
 							}
+						},
+						"PENSION": {
+							"type": "object",
+							"title": "职工基本养老保险 (basic pension insurance)",
+							"additionalProperties": false,
+							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "PENSION registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								}
+							}
+						},
+						"MEDICAL": {
+							"type": "object",
+							"title": "职工基本医疗保险 (含生育保险) (medical insurance, maternity merged)",
+							"additionalProperties": false,
+							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "MEDICAL registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								}
+							}
+						},
+						"UNEMPLOYMENT": {
+							"type": "object",
+							"title": "失业保险 (unemployment insurance)",
+							"additionalProperties": false,
+							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "UNEMPLOYMENT registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								}
+							}
+						},
+						"HPF": {
+							"type": "object",
+							"title": "住房公积金 (housing provident fund)",
+							"additionalProperties": false,
+							"properties": {
+								"registration_number": {
+									"type": "string",
+									"title": "HPF registration number",
+									"description": "The employee's registration/membership number as issued; keep leading zeros."
+								}
+							}
 						}
 					}
 				}
@@ -598,8 +567,8 @@
 				"wi_voluntary_interns_and_retirees": {
 					"type": "boolean",
 					"default": false,
-					"title": "Shanghai: interns and over-age workers in work-injury insurance",
-					"description": "沪人社规〔2025〕22号 (from 2025-12-01): the employer may insure interns and workers past retirement age for work injury only."
+					"title": "Shanghai: interns in work-injury insurance",
+					"description": "沪人社规〔2025〕22号: the employer may insure interns for work injury only. Since 2026-07-01 over-age workers are insured by law (人社部令第56号 第十五条)."
 				},
 				"employs_migrant_workers": {
 					"type": "boolean",
@@ -797,6 +766,10 @@
 					}
 				]
 			}
+		},
+		"work_regions": {
+			"SH": "SH",
+			"KM": "KM"
 		},
 		"status": "SEALED",
 		"id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c",

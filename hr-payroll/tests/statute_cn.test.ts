@@ -14,18 +14,7 @@ import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { payBasis } from '../src/lib/payroll_engine/engine.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	accountsIn,
-	catalogRow,
-	measureOf,
-	pack,
-	read,
-	syncAll,
-	uuid,
-	wholeDays,
-	workspace
-} from './kit.ts';
+import { ENTITY, accountsIn, catalogRow, measureOf, pack, read, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
 
 const ROOT = 'seed/public/jurisdiction/CN';
 const file = (version: number, name: string) =>
@@ -52,18 +41,34 @@ const personOf = ({
 	facts = {},
 	term_facts = {},
 	started = '2020-01-01'
-}: Person): LeavePerson => ({
-	started,
-	partTime: false,
-	gender,
-	maritalStatus: 'MARRIED',
-	employment: {
-		service_started_on: started,
-		effective_range: { from: started, to: null },
-		employee_extension_data: { events, ...facts, ...term_facts }
-	},
-	employer: { entity_extension_data: { region } }
-});
+}: Person): LeavePerson => {
+	const native = {
+		...(typeof facts.only_child === 'boolean' ? { only_child: facts.only_child } : {}),
+		...(typeof facts.dependents_count === 'number'
+			? { dependents_count: facts.dependents_count }
+			: {}),
+		...(Array.isArray(facts.children) ? { children: facts.children } : {})
+	};
+	const extensionFacts = Object.fromEntries(
+		Object.entries(facts).filter(
+			([key]) => !['only_child', 'dependents_count', 'children'].includes(key)
+		)
+	);
+	return {
+		started,
+		partTime: false,
+		gender,
+		maritalStatus: 'MARRIED',
+		employment: {
+			service_started_on: started,
+			effective_range: { from: started, to: null },
+			events,
+			...native,
+			employee_extension_data: { ...extensionFacts, ...term_facts }
+		},
+		employer: { entity_extension_data: { region } }
+	};
+};
 /** What the events on a contract open of a row, by period. */
 const opened = (code: string, person: Person, law: JsonObject = {}) => {
 	const events = person.events ?? [];
@@ -342,7 +347,8 @@ const lineOf = (
 					employment: {
 						effective_range: { from: started, to },
 						terms: { rate, normal_days_per_week: 5 },
-						employee_extension_data: { events, ...term_facts }
+						events,
+						employee_extension_data: { ...term_facts }
 					},
 					employer: {
 						entity_extension_data: { region, ...(zone === undefined ? {} : { wage_zone: zone }) },
@@ -542,6 +548,103 @@ describe('the day rate', () => {
 	});
 });
 
+describe('the only-child and high-temperature allowances', () => {
+	const allowance = (code: string) => {
+		const row = file(4, 'allowance_catalog').find((item) => item.code === code);
+		assert.ok(row !== undefined, code);
+		return row;
+	};
+	const eligible = (
+		code: string,
+		extension: JsonObject,
+		asOf = '2026-07-15',
+		workEvents: readonly JsonObject[] = []
+	) => {
+		const row = allowance(code);
+		return (
+			evaluate(
+				String(row.eligibility),
+				'CALCULATION',
+				{
+					subject: {
+						employment: {
+								...(typeof extension.only_child === 'boolean'
+									? { only_child: extension.only_child }
+									: {}),
+								employee_extension_data: Object.fromEntries(
+									Object.entries(extension).filter(([key]) => key !== 'only_child')
+								)
+							},
+						employer: { entity_extension_data: { region: 'SH' } }
+					},
+					lookup: objectValue(row.lookup),
+					work_events: workEvents,
+					as_of: asOf
+				},
+				`${code}.eligibility`,
+				['work_events', 'subject', 'lookup', 'as_of']
+			) === true
+		);
+	};
+	it('pays the only-child allowance only when the employee fact is set', () => {
+		assert.equal(eligible('ONLY_CHILD_ALLOWANCE', { only_child: true }), true);
+		assert.equal(eligible('ONLY_CHILD_ALLOWANCE', { only_child: false }), false);
+	});
+	it('pays the high-temperature allowance for a dated work event', () => {
+		const exposure = (from: string, to?: string) => [
+			{ code: 'HIGH_TEMPERATURE', from, to: to ?? null }
+		];
+		assert.equal(
+			eligible(
+				'HIGH_TEMPERATURE_ALLOWANCE',
+				{},
+				'2026-07-15',
+				exposure('2026-06-01', '2026-09-30')
+			),
+			true
+		);
+		assert.equal(
+			eligible(
+				'HIGH_TEMPERATURE_ALLOWANCE',
+				{},
+				'2026-07-15',
+				exposure('2026-06-01', '2026-06-30')
+			),
+			false
+		);
+		assert.equal(
+			eligible('HIGH_TEMPERATURE_ALLOWANCE', {}, '2026-07-15', exposure('2026-07-15')),
+			true
+		);
+		assert.equal(
+			eligible('HIGH_TEMPERATURE_ALLOWANCE', {}, '2026-07-15', exposure('2026-07-14')),
+			false
+		);
+	});
+});
+
+describe('work events in leave entitlement', () => {
+	it('exposes dated work events to the entitlement expression', () => {
+		const lookup = {
+			entitlement:
+				'return (ctx.work_events ?? []).some((event) => event.code === "NATURAL_DISASTER") ? 3 : 0;'
+		};
+		const person = personOf({ facts: {} });
+		assert.equal(entitlementOf(lookup, person, '2026-07-15'), 0);
+		assert.equal(
+			entitlementOf(
+				lookup,
+				{
+					...person,
+					workEvents: [{ code: 'NATURAL_DISASTER', from: '2026-07-01', to: '2026-07-31' }]
+				},
+				'2026-07-15'
+			),
+			3
+		);
+	});
+});
+
 const NOW = '2026-06-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
 const TERMS = {
@@ -555,11 +658,12 @@ const TERMS = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-type Seeded = Person & { readonly account?: JsonObject };
+type Seeded = Person & { readonly children?: readonly JsonObject[]; readonly account?: JsonObject };
 const seedOf = ({
 	region = 'SH',
 	gender = 'FEMALE',
 	events = [],
+	children = [],
 	facts = {},
 	term_facts = {},
 	started = '2015-01-01',
@@ -569,7 +673,7 @@ const seedOf = ({
 		'CN',
 		'Asia/Shanghai',
 		TERMS,
-		{ events, facts, term_facts },
+		{ events, children, facts, term_facts },
 		[],
 		[],
 		'2026-06-15'
@@ -595,12 +699,12 @@ const seedOf = ({
 type Seed = ReturnType<typeof seedOf>;
 const take = (t: Kit, seed: Seed, code: string, ...dates: readonly string[]) =>
 	t.as(t.admin).act('leave_catalog_entry.create', [
-		{
+		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
 			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
 			days: wholeDays(...dates)
-		}
+		})
 	]);
 const refused = (t: Kit, seed: Seed, code: string, ...dates: readonly string[]) =>
 	Effect.flip(take(t, seed, code, ...dates)).pipe(Effect.map(String));
@@ -675,7 +779,7 @@ describe('leave a person cannot take', () => {
 			);
 		}).pipe(Effect.provide(workspace({ seed: menstrual, now: NOW })))
 	);
-	const nursing = seedOf({ events: [{ kind: 'CHILD_BIRTH', on: '2025-06-10' }] });
+	const nursing = seedOf({ children: [{ born_on: '2025-06-10' }] });
 	it.live('a nursing break ends with the child’s first year', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

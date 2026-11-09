@@ -57,7 +57,6 @@ export type SettingsFacts = {
 };
 export type AllowanceFacts = {
 	readonly code: string;
-	readonly name: string;
 	readonly lookup?: unknown;
 	readonly eligibility?: string | null;
 	readonly conversion?: string | null;
@@ -143,7 +142,7 @@ const flatten = (
 		if (!isJsonObject(spec)) continue;
 		const here = [...path, key];
 		const must = required && needed.has(key);
-		const title = clean(spec.title);
+		const title = clean(spec.title).replaceAll('_', ' ');
 		const statutory = here.indexOf('statutory');
 		const scheme = statutory >= 0 ? (here[statutory + 1] ?? null) : null;
 		const owner = path.at(-1) ?? '';
@@ -345,7 +344,7 @@ export const entityColumns = (
 		column('If Month Is Too Short', 'enum', ['$pay', 'short_month'], PAY, {
 			values: ['LAST_DAY', 'REFUSE']
 		}),
-		column('Pay Cut-off Day', 'integer', ['pay_cutoff_day'], PAY, {
+		column('Pay Cut-off Day', 'integer', ['$entity.payment_schedule', 'pay_cutoff_day'], PAY, {
 			required: true,
 			help: "1 attends the calendar month; 2 to 28 attend from the previous month's cut-off."
 		}),
@@ -405,7 +404,7 @@ const allowanceKeys = (rows: readonly AllowanceFacts[]) => {
 						)
 					].flatMap((match) => (match[1] === undefined ? [] : [match[1]]));
 		for (const key of keys)
-			if (!held.has(key)) held.set(key, row.name.split(' (')[0]?.trim() ?? key);
+			if (!held.has(key)) held.set(key, human(row.code));
 	}
 	return held;
 };
@@ -754,6 +753,11 @@ export type DataRequestKnown = {
 export type DataRequestPlan = {
 	readonly settingsCode: string;
 	readonly entities: readonly { readonly name: string; readonly code: string | null }[];
+	readonly entitySchedules: readonly {
+		readonly name: string;
+		readonly payment_schedule: JsonObject;
+		readonly pay_cutoff_day: number;
+	}[];
 	/** Versions to write, each naming its company; `seal` holds drafts an interrupted import left. */
 	readonly versions: readonly { readonly company: string; readonly row: JsonObject }[];
 	readonly profiles: readonly JsonObject[];
@@ -783,7 +787,6 @@ const paySchedule = (
 		return at < 0 ? [] : [at];
 	});
 	const days = arrayOf(pay.days);
-	const offsets = arrayOf(pay.offsets);
 	if (anchored && days.length === 0) problems.push(`${where}: enter Pay Days.`);
 	if (weekly && pay.weekday === undefined) problems.push(`${where}: enter Pay Weekday.`);
 	if ((weekly || frequency === 'INTEGER_MONTHS') && pay.anchor_date === undefined)
@@ -795,15 +798,7 @@ const paySchedule = (
 		business_day: pay.business_day ?? 'NONE',
 		non_working_weekdays: offdays,
 		short_month: pay.short_month ?? 'LAST_DAY',
-		...(anchored
-			? {
-					anchors: days.map((day, index) => ({
-						cycle_part: index + 1,
-						day,
-						month_offset: offsets[index] ?? 0
-					}))
-				}
-			: {}),
+		...(anchored ? { pay_days: days } : {}),
 		...(weekly ? { weekday: WEEKDAYS.indexOf(String(pay.weekday).slice(0, 3).toLowerCase()) } : {}),
 		...(pay.month_interval === undefined ? {} : { month_interval: pay.month_interval }),
 		...(pay.anchor_date === undefined || !(weekly || frequency === 'INTEGER_MONTHS')
@@ -884,6 +879,10 @@ export const planDataRequest = (
 
 	const existingEntity = new Map(known.entities.map((row) => [lower(row.name), row]));
 	const newEntities = new Map<string, { name: string; code: string | null }>();
+	const entitySchedules = new Map<
+		string,
+		{ name: string; payment_schedule: JsonObject; pay_cutoff_day: number }
+	>();
 	const parsedVersions = entityRows.flatMap((row): readonly Dated[] => {
 		const where = `${SHEETS.entity} row ${row.at}`;
 		const { $entity, $pay, $registration, ...model } = modelOf(row, SHEETS.entity, problems);
@@ -898,6 +897,12 @@ export const planDataRequest = (
 				code: typeof entity.code === 'string' ? entity.code : null
 			});
 		const schedule = paySchedule(isJsonObject($pay) ? $pay : {}, where, problems);
+		if (schedule !== null)
+			entitySchedules.set(lower(name), {
+				name,
+				payment_schedule: schedule,
+				pay_cutoff_day: Number((entity.payment_schedule as Record<string, unknown> | undefined)?.pay_cutoff_day ?? 1)
+			});
 		const registrations = registrationsOf(
 			isJsonObject($registration) ? $registration : {},
 			where,
@@ -910,8 +915,10 @@ export const planDataRequest = (
 				at: row.at,
 				model: {
 					...model,
-					payment_schedule: schedule,
-					registrations,
+					entity_extension_data: {
+						...(isJsonObject(model.entity_extension_data) ? model.entity_extension_data : {}),
+						...(registrations.length === 0 ? {} : { registrations })
+					},
 					time_zone: model.time_zone ?? known.settings.timezone
 				}
 			}
@@ -1089,6 +1096,7 @@ export const planDataRequest = (
 	return {
 		settingsCode: known.settings.code,
 		entities: [...newEntities.values()],
+		entitySchedules: [...entitySchedules.values()],
 		versions,
 		profiles,
 		profileUpdates,

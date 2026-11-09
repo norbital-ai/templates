@@ -1,6 +1,5 @@
 /**
- * The catalogue-entry workbooks: leave, claim, ad hoc, loan, loan repayment, work interruption and
- * workplace case. One file per family, one row per entry, judged here before the page's guarded
+ * The catalogue-entry workbooks: leave, claim, ad hoc, loan, loan repayment and workplace case. One file per family, one row per entry, judged here before the page's guarded
  * `*.create` call sees it: employee number and catalogue code, the dates the employment covers, the
  * version in force on the entry's day, duplicates and leave overlaps. Nothing is written from here.
  */
@@ -53,9 +52,8 @@ export type EntryCatalog<C extends string> = {
 	readonly settings_id: Id<'jurisdiction_settings'>;
 };
 /** A catalogue a cell names: by its code or its display name, whatever the case and punctuation. */
-const names = (catalog: { readonly code: string; readonly name?: string | null }, text: string) =>
-	normalToken(catalog.code) === normalToken(text) ||
-	(catalog.name != null && normalToken(catalog.name) === normalToken(text));
+const names = (catalog: { readonly code: string }, text: string) =>
+	normalToken(catalog.code) === normalToken(text);
 
 export type ExistingLeave = {
 	readonly employment_id: Id<'employee_contract'>;
@@ -88,14 +86,9 @@ export type LoanLookup = {
 	readonly employment_id: Id<'employee_contract'>;
 	readonly catalog_id: Id<'loan_catalog'>;
 };
-export type ExistingInterruption = {
-	readonly entity_id: Id<'entity'>;
-	readonly catalog_id: Id<'work_interruption_catalog'>;
-	readonly from: string;
-	readonly to: string | null;
-};
 export type ExistingCase = {
 	readonly entity_id: Id<'entity'>;
+	readonly employment_id: Id<'employee_contract'>;
 	readonly kind: string;
 	readonly opened_on: string;
 };
@@ -129,18 +122,20 @@ export type RepaymentDraft = {
 	readonly amount: number;
 	readonly paid_on: string;
 };
-export type InterruptionDraft = {
-	readonly entity_id: Id<'entity'>;
-	readonly catalog_id: Id<'work_interruption_catalog'>;
-	readonly from: string;
-	readonly to: string;
-	readonly worksite?: string;
-	readonly reason?: string;
-};
+export type CaseSeverity =
+	| 'DEATH'
+	| 'PERMANENT_TOTAL_DISABILITY'
+	| 'SERIOUS_INJURY'
+	| 'MINOR_INJURY'
+	| 'NEAR_MISS'
+	| 'PROPERTY_DAMAGE'
+	| 'N/A';
 export type CaseDraft = {
 	readonly entity_id: Id<'entity'>;
+	readonly employment_id: Id<'employee_contract'>;
 	readonly catalog_id: Id<'workplace_case_catalog'>;
 	readonly kind: string;
+	readonly severity?: CaseSeverity;
 	readonly opened_on: string;
 	readonly scheduled_on?: string;
 	readonly closed_on?: string;
@@ -195,26 +190,17 @@ const REPAYMENT_COLUMNS = {
 } as const;
 const REPAYMENT_OPTIONAL = ['loan_code', 'loan_id'];
 
-const INTERRUPTION_COLUMNS = {
-	entity: ['entity_id', 'entity', 'company', 'company_code'],
-	kind: ['kind', 'type', 'code', 'interruption_type'],
-	from: ['from', 'start', 'date', 'period_from'],
-	to: ['to', 'end', 'period_to'],
-	worksite: ['worksite', 'site', 'location'],
-	reason: ['reason', 'note', 'description'],
-	inputs: ['inputs', 'data', 'details']
-} as const;
-const INTERRUPTION_OPTIONAL = ['entity', 'worksite', 'reason', 'inputs'];
-
 const CASE_COLUMNS = {
 	entity: ['entity_id', 'entity', 'company', 'company_code'],
+	employee_number: EMPLOYEE,
 	kind: ['kind', 'type', 'code', 'case_type'],
+	severity: ['severity', 'classification'],
 	opened_on: ['opened_on', 'opened', 'opened_date', 'date'],
 	scheduled_on: ['scheduled_on', 'scheduled', 'scheduled_date'],
 	closed_on: ['closed_on', 'closed', 'closed_date'],
 	inputs: ['inputs', 'data', 'details']
 } as const;
-const CASE_OPTIONAL = ['entity', 'scheduled_on', 'closed_on', 'inputs'];
+const CASE_OPTIONAL = ['entity', 'severity', 'scheduled_on', 'closed_on', 'inputs'];
 
 const covers = (
 	day: string,
@@ -742,95 +728,6 @@ export function parseRepaymentSheet(
 	return { rows, warnings: [] };
 }
 
-export function parseInterruptionSheet(
-	grids: WorkbookSheetGrids,
-	known: Base & {
-		readonly catalogs: readonly EntryCatalog<'work_interruption_catalog'>[];
-		readonly entities: readonly EntryEntity[];
-		readonly existing: readonly ExistingInterruption[];
-	}
-): SheetResult<InterruptionDraft> {
-	const table = sheetTable(
-		grids,
-		INTERRUPTION_COLUMNS,
-		INTERRUPTION_OPTIONAL,
-		'Work Interruptions'
-	);
-	const problems: string[] = [];
-	const warnings: string[] = [];
-	const seen = new Map<string, number>();
-	const held = new Set(
-		known.existing.map((entry) =>
-			same([String(entry.entity_id), String(entry.catalog_id), entry.from, entry.to ?? ''])
-		)
-	);
-	const rows: InterruptionDraft[] = [];
-	for (const row of table.rows) {
-		const kind = cellText(row.cells.kind);
-		if (kind === '') {
-			problems.push(`Row ${row.at}: enter the interruption kind.`);
-			continue;
-		}
-		const from = cellDay(row.cells.from);
-		const to = cellDay(row.cells.to);
-		if (from == null || to == null) {
-			problems.push(`Row ${row.at}: enter the first and last interruption dates (YYYY-MM-DD).`);
-			continue;
-		}
-		if (to < from) {
-			problems.push(`Row ${row.at}: the last date ${to} is before ${from}.`);
-			continue;
-		}
-		const entityId = entityOf(
-			known.entities,
-			known.entity,
-			cellText(row.cells.entity),
-			row.at,
-			problems
-		);
-		if (entityId == null) continue;
-		const entity = known.entities.find((candidate) => candidate.id === entityId) ?? known.entity;
-		const version = versionOf(known.versions, entity.settings_code, from, row.at, problems);
-		if (version == null) continue;
-		const options = known.catalogs.filter(
-			(catalog) => catalog.settings_id === version.id && names(catalog, kind)
-		);
-		if (options.length !== 1) {
-			problems.push(
-				options.length === 0
-					? `Row ${row.at}: "${kind}" is not a work interruption catalogue of the ${version.code} version in force on ${from}.`
-					: `Row ${row.at}: "${kind}" names more than one work interruption catalogue on ${from}.`
-			);
-			continue;
-		}
-		const catalog = options[0]!;
-		const key = same([String(entityId), String(catalog.id), from, to]);
-		const earlier = seen.get(key);
-		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
-		if (held.has(key))
-			problems.push(`Row ${row.at}: ${kind} ${from} to ${to} is already recorded.`);
-		if (earlier !== undefined || held.has(key)) continue;
-		if (cellText(row.cells.inputs) !== '')
-			warnings.push(
-				`Row ${row.at}: work interruptions have no inputs field; the inputs JSON is ignored.`
-			);
-		seen.set(key, row.at);
-		const worksite = cellText(row.cells.worksite);
-		const reason = cellText(row.cells.reason);
-		rows.push({
-			entity_id: entityId,
-			catalog_id: catalog.id,
-			from,
-			to,
-			...(worksite === '' ? {} : { worksite }),
-			...(reason === '' ? {} : { reason })
-		});
-	}
-	raiseProblems(problems);
-	if (rows.length === 0) throw new WorkbookRowsError('The file has no work interruption rows.');
-	return { rows, warnings };
-}
-
 /** A case's details: a JSON object as written, or plain words kept as `details`. */
 const inputsOf = (text: string, at: number, problems: string[]): JsonObject | null => {
 	if (text === '') return {};
@@ -861,7 +758,12 @@ export function parseCaseSheet(
 	const seen = new Map<string, number>();
 	const held = new Set(
 		known.existing.map((entry) =>
-			same([String(entry.entity_id), entry.kind, String(entry.opened_on).slice(0, 10)])
+			same([
+				String(entry.entity_id),
+				String(entry.employment_id),
+				entry.kind,
+				String(entry.opened_on).slice(0, 10)
+			])
 		)
 	);
 	const rows: CaseDraft[] = [];
@@ -871,11 +773,25 @@ export function parseCaseSheet(
 			problems.push(`Row ${row.at}: enter the case kind.`);
 			continue;
 		}
+		const number = cellText(row.cells.employee_number);
+		if (number === '') {
+			problems.push(`Row ${row.at}: enter the employee number.`);
+			continue;
+		}
 		const opened = cellDay(row.cells.opened_on);
 		if (opened == null) {
 			problems.push(`Row ${row.at}: enter the opened date (YYYY-MM-DD).`);
 			continue;
 		}
+		const employee = employeeOn(
+			known.employees,
+			known.entity.name,
+			number,
+			opened,
+			row.at,
+			problems
+		);
+		if (employee == null) continue;
 		const scheduledText = cellText(row.cells.scheduled_on);
 		const scheduled = scheduledText === '' ? null : cellDay(row.cells.scheduled_on);
 		if (scheduledText !== '' && scheduled == null) {
@@ -917,17 +833,40 @@ export function parseCaseSheet(
 		const inputs = inputsOf(cellText(row.cells.inputs), row.at, problems);
 		if (inputs == null) continue;
 		const code = options[0]!.code;
-		const key = same([String(entityId), code, opened]);
+		const key = same([String(entityId), String(employee.id), code, opened]);
 		const earlier = seen.get(key);
 		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
 		if (held.has(key))
-			problems.push(`Row ${row.at}: ${code} opened on ${opened} is already recorded.`);
+			problems.push(
+				`Row ${row.at}: ${code} opened on ${opened} is already recorded for ${number}.`
+			);
 		if (earlier !== undefined || held.has(key)) continue;
 		seen.set(key, row.at);
+		const severityText = cellText(row.cells.severity);
+		const severity =
+			severityText === ''
+				? undefined
+				: (
+						[
+							'DEATH',
+							'PERMANENT_TOTAL_DISABILITY',
+							'SERIOUS_INJURY',
+							'MINOR_INJURY',
+							'NEAR_MISS',
+							'PROPERTY_DAMAGE',
+							'N/A'
+						] as const
+					).find((value) => value === severityText);
+		if (severityText !== '' && severity === undefined) {
+			problems.push(`Row ${row.at}: "${severityText}" is not a case severity.`);
+			continue;
+		}
 		rows.push({
 			entity_id: entityId,
+			employment_id: employee.id,
 			catalog_id: options[0]!.id,
 			kind: code,
+			...(severity === undefined ? {} : { severity }),
 			opened_on: opened,
 			...(scheduled == null ? {} : { scheduled_on: scheduled }),
 			...(closed == null ? {} : { closed_on: closed }),

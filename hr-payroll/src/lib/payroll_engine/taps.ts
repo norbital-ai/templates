@@ -5,7 +5,7 @@ import { applyRegisteredEffects } from './registrations.js';
 /** Post-commit dispatch: every registered effect for this collection and operation runs here. */
 export const tap = Effect.fnUntraced(function* (
 	ctx: EffectCtx,
-	name: 'create' | 'update' | 'delete',
+	name: 'create' | 'update' | 'delete' | 'seal',
 	event: { readonly collection: string; readonly ids: readonly string[] },
 	changes: readonly { readonly before?: object; readonly after?: object }[]
 ) {

@@ -1600,9 +1600,7 @@ export const ROW_PARAMS = {
 		BUSINESS_TRAVEL: Schema.Struct({}),
 		DENTAL_CLAIM: Schema.Struct({}),
 		EXPENSE_REIMBURSEMENT: Schema.Struct({}),
-		GPCL_REIMBURSEMENT: Schema.Struct({
-			daily_limit: Schema.Number
-		}),
+		GPCL_REIMBURSEMENT: Schema.Struct({}),
 		GPML_REIMBURSEMENT: Schema.Struct({}),
 		GPPL_REIMBURSEMENT: Schema.Struct({}),
 		GPSPL_REIMBURSEMENT: Schema.Struct({}),
@@ -3228,7 +3226,7 @@ export const PARAM_KEYS = {
 		'unit',
 		'window'
 	] as const,
-	claim_catalog: ['annual_limit', 'daily_limit'] as const,
+	claim_catalog: ['annual_limit'] as const,
 	adhoc_catalog: [
 		'accounts',
 		'annual_rate',

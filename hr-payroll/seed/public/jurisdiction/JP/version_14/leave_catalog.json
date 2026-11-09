@@ -1,7 +1,6 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"name": "年次有給休暇 (annual paid leave)",
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"lookup": {
@@ -184,7 +183,7 @@
 			"carry": {
 				"windows": 1
 			},
-			"entitlement": "// js\n// 労働基準法 art.39(1)–(2): a grant day six months after hire and each year after it, the days by length of service.\nconst employment = ctx.subject.employment;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', null));\nconst offset = ctx.lookup.service_offset_months;\nconst months = calendar_completed_months(started, ctx.as_of);\nif (months < offset) return 0;\nconst years = Math.floor((months - offset) / 12);\nconst grant = add_months(started, offset + years * 12);\nconst extension = get(employment, 'employee_extension_data', {});\n// art.39(1)–(2): attendance below the ratio before a grant day leaves that year without a grant; HR records it on the day.\nif (get(extension, 'events', []).some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return 0;\n// art.39(3) with 施行規則 art.24の3: below the weekly hours and days, the table for the days scheduled.\nconst terms = get(employment, 'terms', {});\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst perWeek = Number(get(terms, 'normal_days_per_week', ctx.lookup.full_time_days_per_week));\nconst full = perWeek >= ctx.lookup.full_time_days_per_week;\nif (hours > 0 && hours < ctx.lookup.full_time_weekly_hours && !full) {\n\tconst row = ctx.lookup.grant_days_by_normal_days_per_week.filter((item) => item.normal_days_per_week === perWeek && item.service_year <= years + 1).at(-1);\n\treturn get(row ?? {}, 'days', 0);\n}\nreturn ctx.lookup.service_bands.filter((band) => band.service_months <= months).reduce((days, band) => Math.max(days, band.days), 0);",
+			"entitlement": "// js\n// 労働基準法 art.39(1)–(2): a grant day six months after hire and each year after it, the days by length of service.\nconst employment = ctx.subject.employment;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', null));\nconst offset = ctx.lookup.service_offset_months;\nconst months = calendar_completed_months(started, ctx.as_of);\nif (months < offset) return 0;\nconst years = Math.floor((months - offset) / 12);\nconst grant = add_months(started, offset + years * 12);\nconst extension = get(employment, 'employee_extension_data', {});\n// art.39(1)–(2): attendance below the ratio before a grant day leaves that year without a grant; HR records it on the day.\nif (get(employment, 'events', []).some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return 0;\n// art.39(3) with 施行規則 art.24の3: below the weekly hours and days, the table for the days scheduled.\nconst terms = get(employment, 'terms', {});\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst perWeek = Number(get(terms, 'normal_days_per_week', ctx.lookup.full_time_days_per_week));\nconst full = perWeek >= ctx.lookup.full_time_days_per_week;\nif (hours > 0 && hours < ctx.lookup.full_time_weekly_hours && !full) {\n\tconst row = ctx.lookup.grant_days_by_normal_days_per_week.filter((item) => item.normal_days_per_week === perWeek && item.service_year <= years + 1).at(-1);\n\treturn get(row ?? {}, 'days', 0);\n}\nreturn ctx.lookup.service_bands.filter((band) => band.service_months <= months).reduce((days, band) => Math.max(days, band.days), 0);",
 			"service_offset_months": 6
 		},
 		"references": [
@@ -198,11 +197,11 @@
 			}
 		],
 		"id": "d46b2d08-d887-5c67-83b4-f42929b314b1",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
+		"description": "Paid annual leave accrued by service."
 	},
 	{
 		"code": "PRENATAL_LEAVE",
-		"name": "産前休業 (prenatal leave)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
@@ -218,11 +217,11 @@
 		],
 		"id": "509044c2-2f46-56c6-8076-55581b487e01",
 		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Leave before childbirth."
 	},
 	{
 		"code": "POSTNATAL_LEAVE",
-		"name": "産後休業 (postnatal leave)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
@@ -237,11 +236,11 @@
 		],
 		"id": "eae642d5-5d5c-5b8f-85c3-7c069e385390",
 		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Leave after childbirth."
 	},
 	{
 		"code": "CHILDCARE_LEAVE",
-		"name": "育児休業 (childcare leave)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"references": [
@@ -254,11 +253,11 @@
 		"direction": "DEDUCT",
 		"lookup": {
 			"no_cap": true
-		}
+		},
+		"description": "Childcare leave."
 	},
 	{
 		"code": "POSTNATAL_PATERNITY_LEAVE",
-		"name": "出生時育児休業 (産後パパ育休)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"lookup": {
@@ -272,11 +271,11 @@
 		],
 		"id": "bc6b6783-e585-5842-9fa6-2d27c212f04a",
 		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Paternity leave after childbirth."
 	},
 	{
 		"code": "FAMILY_CARE_LEAVE",
-		"name": "介護休業 (family care leave)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"lookup": {
@@ -290,17 +289,17 @@
 		],
 		"id": "41cb0a7b-c4cd-5a24-a476-bad681ace93e",
 		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Leave to care for a family member."
 	},
 	{
 		"code": "CHILD_NURSING_LEAVE",
-		"name": "子の看護等休暇 (child nursing leave)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"lookup": {
 			"days_one_child": 5,
 			"school_age_limit_years": 9,
-			"entitlement": "// js\n// 育児・介護休業法 art.16の2(1): days a business year by the children in third year of elementary school or below; 学校教育法 art.17(1): that is a child not yet the limiting age on the 1 April the school year opens.\nconst month = Number(ctx.as_of.substring(5, 7));\nconst opens = add_months(month_start(ctx.as_of), -((month + 12 - ctx.lookup.fiscal_year_start_month) % 12));\nconst children = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && get(event, 'ended_on', ctx.as_of) >= ctx.as_of && age_on(event.on, opens) < ctx.lookup.school_age_limit_years);\nreturn children.length === 0 ? 0 : children.length === 1 ? ctx.lookup.days_one_child : ctx.lookup.days_two_or_more;",
+			"entitlement": "// js\n// 育児・介護休業法 art.16の2(1): days a business year by the children in third year of elementary school or below; 学校教育法 art.17(1): that is a child not yet the limiting age on the 1 April the school year opens.\nconst month = Number(ctx.as_of.substring(5, 7));\nconst opens = add_months(month_start(ctx.as_of), -((month + 12 - ctx.lookup.fiscal_year_start_month) % 12));\nconst children = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && get(event, 'ended_on', ctx.as_of) >= ctx.as_of && age_on(event.on, opens) < ctx.lookup.school_age_limit_years);\nreturn children.length === 0 ? 0 : children.length === 1 ? ctx.lookup.days_one_child : ctx.lookup.days_two_or_more;",
 			"fiscal_year_start_month": 4
 		},
 		"references": [
@@ -310,11 +309,11 @@
 		],
 		"id": "a8188a30-f30f-508e-b6b1-4fc0ef187a65",
 		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Nursing breaks or leave for a child."
 	},
 	{
 		"code": "FAMILY_CARE_DAYS",
-		"name": "介護休暇 (family care days)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"lookup": {
@@ -330,11 +329,11 @@
 		],
 		"id": "8bfa280c-614d-59b3-a218-903a99a3f826",
 		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
-		"direction": "DEDUCT"
+		"direction": "DEDUCT",
+		"description": "Days to care for a family member."
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
-		"name": "生理休暇 (menstrual leave)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
@@ -348,11 +347,11 @@
 		"direction": "DEDUCT",
 		"lookup": {
 			"no_cap": true
-		}
+		},
+		"description": "Menstrual leave days."
 	},
 	{
 		"code": "CIVIC_DUTY_LEAVE",
-		"name": "公民権行使の時間 (civic duty time off)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"references": [
@@ -365,11 +364,11 @@
 		"direction": "DEDUCT",
 		"lookup": {
 			"no_cap": true
-		}
+		},
+		"description": "Leave for civic duty."
 	},
 	{
 		"code": "SICKNESS_ABSENCE",
-		"name": "私傷病欠勤 (sickness absence)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"references": [
@@ -382,11 +381,11 @@
 		"direction": "DEDUCT",
 		"lookup": {
 			"no_cap": true
-		}
+		},
+		"description": "Unpaid sickness absence."
 	},
 	{
 		"code": "OCCUPATIONAL_INJURY_ABSENCE",
-		"name": "業務災害による休業 (occupational injury absence)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"references": [
@@ -399,11 +398,11 @@
 		"direction": "DEDUCT",
 		"lookup": {
 			"no_cap": true
-		}
+		},
+		"description": "Absence from an occupational injury."
 	},
 	{
 		"code": "UNPAID_LEAVE",
-		"name": "無給休暇・欠勤 (unpaid leave)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"references": [
@@ -416,11 +415,11 @@
 		"direction": "DEDUCT",
 		"lookup": {
 			"no_cap": true
-		}
+		},
+		"description": "Unpaid absence from work."
 	},
 	{
 		"code": "ANNUAL_LEAVE_HOURS",
-		"name": "時間単位年休 (annual leave in hours)",
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"lookup": {
@@ -440,11 +439,11 @@
 			}
 		],
 		"id": "d5826f81-7f1d-5dc7-8195-7ae6363fe0f1",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
+		"description": "Annual leave taken in hours."
 	},
 	{
 		"code": "NURSING_TIME",
-		"name": "育児時間 (nursing time)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"references": [
@@ -457,11 +456,11 @@
 		"direction": "DEDUCT",
 		"lookup": {
 			"no_cap": true
-		}
+		},
+		"description": "Paid nursing time."
 	},
 	{
 		"code": "MATERNAL_HEALTH_CHECK",
-		"name": "妊産婦の保健指導・健康診査 (prenatal and postnatal health checks)",
 		"pay_treatment": "UNPAID",
 		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
@@ -475,11 +474,11 @@
 		"direction": "DEDUCT",
 		"lookup": {
 			"no_cap": true
-		}
+		},
+		"description": "Maternal health-check leave."
 	},
 	{
 		"code": "SUBSTITUTE_LEAVE_FOR_OVERTIME",
-		"name": "代替休暇 (substitute leave for overtime beyond 60 hours)",
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"references": [
@@ -489,6 +488,7 @@
 		],
 		"id": "1af62915-457d-500c-b4da-6b6cb4436ec2",
 		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3",
-		"lookup": {}
+		"lookup": {},
+		"description": "Time off in lieu of overtime."
 	}
 ]

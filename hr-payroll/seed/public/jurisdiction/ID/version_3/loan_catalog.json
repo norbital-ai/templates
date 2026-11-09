@@ -1,7 +1,6 @@
 [
 	{
 		"code": "STAFF_LOAN",
-		"name": "Staff loan",
 		"lookup": {},
 		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"id": "7a37f23f-2e98-5a92-8d71-5d6cf73f701c",
@@ -14,6 +13,7 @@
 				"quote": "Pemotongan Upah untuk utang atau cicilan utang Pekerja/Buruh dilakukan berdasarkan perjanjian, paling banyak 50% dari setiap pembayaran Upah.",
 				"effective_from": "2021-02-02"
 			}
-		]
+		],
+		"description": "Staff loan recovered from pay."
 	}
 ]

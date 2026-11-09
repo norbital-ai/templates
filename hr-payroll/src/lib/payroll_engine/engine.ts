@@ -60,6 +60,8 @@ export interface PayrollInput {
 	readonly employer: JsonObject;
 	readonly balance: JsonObject;
 	readonly entries: Readonly<Record<string, readonly JsonObject[]>>;
+	/** Dated work events applicable to this employment, entity-wide and employment-specific. */
+	readonly work_events?: readonly JsonObject[];
 	/** The entries a run's reversal entries undo: their own days price the refund, wherever they were taken. */
 	readonly reversals?: readonly JsonObject[];
 	readonly work?: { readonly days: readonly JsonObject[] };
@@ -180,18 +182,6 @@ const eligible = (
 	if (typeof result !== 'boolean')
 		throw new Refusal({ message: `${field}: must return a boolean.` });
 	return result;
-};
-const incurredOn = (
-	source: unknown,
-	context: object,
-	fallback: string,
-	field: string,
-	roots?: readonly string[]
-): string => {
-	if (typeof source !== 'string' || source.trim() === '') return fallback;
-	const value = evaluate(source, 'CALCULATION', context, field, roots);
-	if (!isPlainDate(value)) throw new Refusal({ message: `${field}: must return an ISO date.` });
-	return value;
 };
 const ROUNDING_MODES: readonly Rounding['mode'][] = [
 	'HALF_UP',
@@ -540,6 +530,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		day_rate: basis.day_rate,
 		hour_rate: basis.hour_rate,
 		work: input.work ?? { days: [] },
+		work_events: input.work_events ?? [],
 		run: input.run,
 		as_of: coverage.to
 	});
@@ -643,20 +634,14 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			subtotalLines.push(
 				line({
 					code,
-					label: text(producer, 'name'),
+					label: text(producer, 'code'),
 					subtotal,
 					amount: round(input.settings, value),
 					direction:
 						model === 'overtime_catalog' ? ((producer.direction as Direction) ?? 'ADD') : 'ADD',
 					party:
 						model === 'overtime_catalog' ? 'EMPLOYEE' : ((producer.party as Party) ?? 'EMPLOYEE'),
-					incurred_on: incurredOn(
-						producer.incurred_on,
-						context,
-						coverage.to,
-						`${code}.incurred_on`,
-						roots
-					),
+					incurred_on: coverage.to,
 					coverage,
 					source: producer,
 					model
@@ -712,7 +697,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					subtotalLines.push(
 						line({
 							code,
-							label: text(catalog, 'name'),
+							label: text(catalog, 'code'),
 							subtotal,
 							amount: round(input.settings, refund),
 							direction: 'ADD',
@@ -741,7 +726,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				subtotalLines.push(
 					line({
 						code,
-						label: text(catalog, 'name'),
+						label: text(catalog, 'code'),
 						subtotal,
 						amount: round(input.settings, value),
 						direction:
@@ -754,13 +739,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 							group.model === 'leave_catalog'
 								? 'EMPLOYEE'
 								: ((catalog.party as Party) ?? 'EMPLOYEE'),
-						incurred_on: incurredOn(
-							catalog.incurred_on,
-							context,
-							String(entry.incurred_on ?? coverage.to),
-							`${code}.incurred_on`,
-							roots
-						),
+						incurred_on: String(entry.incurred_on ?? coverage.to),
 						coverage,
 						source: entry,
 						model: group.entryModel,
@@ -773,7 +752,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		}
 
 		const loanCatalog = catalogById(input.loan_catalog);
-		for (const repayment of input.entries.loan_repayment_entry ?? []) {
+		for (const repayment of input.entries.loan_catalog_entry_repayment ?? []) {
 			if (repayment.payroll_run_id != null) continue;
 			// an instalment is due in the run that covers its date; a later month's stays open
 			if (repayment.paid_on != null && String(repayment.paid_on) > coverage.to) continue;
@@ -789,7 +768,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			subtotalLines.push(
 				line({
 					code: text(catalog, 'code'),
-					label: text(catalog, 'name'),
+					label: text(catalog, 'code'),
 					subtotal,
 					amount: round(input.settings, value),
 					direction: repayment.reverses != null ? 'ADD' : 'DEDUCT',
@@ -797,7 +776,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					incurred_on: String(repayment.paid_on ?? coverage.to),
 					coverage,
 					source: repayment,
-					model: 'loan_repayment_entry',
+					model: 'loan_catalog_entry_repayment',
 					reversal: repayment.reverses != null,
 					quantity: value,
 					unit: 'MONEY'
@@ -870,7 +849,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			lines.push(
 				line({
 					code,
-					label: text(scheme, 'name'),
+					label: text(scheme, 'code'),
 					subtotal: target,
 					amount: Math.abs(employee),
 					direction: employee > 0 ? 'DEDUCT' : 'ADD',
@@ -886,7 +865,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			lines.push(
 				line({
 					code: `${code}_EMPLOYER`,
-					label: `${text(scheme, 'name')} (employer)`,
+					label: `${text(scheme, 'code')} (employer)`,
 					subtotal: employerTarget,
 					amount: employer,
 					direction: 'ADD',
@@ -928,7 +907,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	}
 	results.splice(0, results.length, ...finalResults);
 	const net = results.at(-1)?.value ?? 0;
-	if (net < 0 && lines.some((l) => l.source_id?.model === 'loan_repayment_entry' && !l.reversal))
+	if (net < 0 && lines.some((l) => l.source_id?.model === 'loan_catalog_entry_repayment' && !l.reversal))
 		throw new Refusal({
 			message: `${String(input.employee.name ?? id(input.employee))}: loan recovery would leave net pay at ${net}; reduce the final repayment.`
 		});

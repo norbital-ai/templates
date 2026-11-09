@@ -1,15 +1,20 @@
 [
 	{
 		"code": "MINIMUM_WAGE_CONTRACT",
+		"description": "Refuses a contract whose hourly, daily or monthly rate is below the regional minimum wage in force on the contract's first day.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update", "seal"],
+		"events": [
+			"create",
+			"update",
+			"seal"
+		],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
 			}
 		},
 		"condition": "return (get(get(ctx, 'reads', {}), 'entity_profile_version', [])).length > 0;",
-		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst ext = get(ctx.entry, 'employee_extension_data', {});\nif (get(terms, 'work_classification', 'ORDINARY') === 'OFFICER') return true;\nconst rate = get(terms, 'rate', null);\nif (rate == null || rate.amount <= 0) return true;\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== ctx.entry.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.effective_range.from)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.effective_range.from;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst region = get(ext, 'insured_office_region', get(entityExt, 'region', null));\nif (region == null) return false;\nlet band = null;\nfor (const row of ctx.lookup.minimum_wage) if (row.region === region && row.from <= ctx.entry.effective_range.from && (band == null || row.from > band.from)) band = row;\nif (band == null) return false;\nconst hoursPerYear = get(entityExt, 'normal_hours_per_year', null);\nconst monthlyHours = hoursPerYear != null ? Number(hoursPerYear) / 12 : (get(terms, 'normal_hours_per_week', ctx.lookup.standard_weekly_hours) * ctx.lookup.weeks_per_month);\nif (rate.unit === 'PIECE') return true;\nconst floor = band.amount * (1 - get(ext, 'minimum_wage_reduction_rate', 0));\nif (rate.unit === 'HOURLY') return rate.amount >= floor;\nif (rate.unit === 'DAILY') return rate.amount / get(terms, 'normal_hours_per_day', ctx.lookup.standard_daily_hours) >= floor;\nreturn rate.amount / monthlyHours >= floor;",
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst ext = get(ctx.entry, 'employee_extension_data', {});\nif (get(terms, 'work_classification', 'ORDINARY') === 'OFFICER') return true;\nconst rate = get(terms, 'rate', null);\nif (rate == null || rate.amount <= 0) return true;\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== ctx.entry.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.effective_range.from)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.effective_range.from;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst region = get(ext, 'insured_office_region', get(entityExt, 'region', null));\nif (region == null) return false;\nlet band = null;\nfor (const row of ctx.lookup.minimum_wage) if (row.region === region && row.from <= ctx.entry.effective_range.from && (band == null || row.from > band.from)) band = row;\nif (band == null) return false;\nconst hoursPerYear = get(ext, 'normal_hours_per_year', null);\nif (!['HOURLY', 'DAILY'].includes(rate.unit) && ['VARIABLE', 'FLEX', 'DEEMED'].includes(get(entityExt, 'working_time_regime', 'STANDARD')) && hoursPerYear == null) return true;\nconst monthlyHours = hoursPerYear != null ? Number(hoursPerYear) / 12 : (get(terms, 'normal_hours_per_week', ctx.lookup.standard_weekly_hours) * ctx.lookup.weeks_per_month);\nconst floor = band.amount * (1 - get(ext, 'minimum_wage_reduction_rate', 0));\nif (rate.unit === 'HOURLY') return rate.amount >= floor;\nif (rate.unit === 'DAILY') return rate.amount / get(terms, 'normal_hours_per_day', ctx.lookup.standard_daily_hours) >= floor;\nreturn rate.amount / monthlyHours >= floor;",
 		"order": 15,
 		"lookup": {
 			"name": "最低賃金を下回る労働契約 (contract below the minimum wage)",
@@ -535,12 +540,13 @@
 	},
 	{
 		"code": "ROSTER_DAILY_8H",
+		"description": "Refuses a day worked beyond 8 hours while no filed 36 agreement covers the date.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -558,8 +564,8 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (get(entityExt, 'working_time_regime', 'STANDARD') !== 'STANDARD') return true;\nconst agreementFrom = get(entityExt, 'overtime_agreement_from', null);\nconst agreementTo = get(entityExt, 'overtime_agreement_to', null);\nif (agreementTo != null && agreementTo >= ctx.entry.work_date && (agreementFrom == null || agreementFrom <= ctx.entry.work_date)) return true;\nreturn workedHours <= ctx.lookup.standard_daily_hours;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (get(entityExt, 'working_time_regime', 'STANDARD') !== 'STANDARD') return true;\nconst agreementFrom = get(entityExt, 'overtime_agreement_from', null);\nconst agreementTo = get(entityExt, 'overtime_agreement_to', null);\nif (agreementTo != null && agreementTo >= ctx.entry.work_date && (agreementFrom == null || agreementFrom <= ctx.entry.work_date)) return true;\nreturn workedHours <= ctx.lookup.standard_daily_hours;",
 		"order": 16,
 		"lookup": {
 			"name": "Worked beyond 8 hours a day with no 36 agreement in force",
@@ -569,13 +575,11 @@
 				"consecutive_days": 6,
 				"weekly_rest_days": 1
 			},
-			"night_from": "22:00",
-			"night_to": "05:00",
 			"standard_daily_hours": 8
 		},
 		"references": [
 			{
-				"title": "法定労働時間 1日8時間 (労働基準法 art.32(2)); beyond it only under a filed 36 agreement (art.36(1); company.overtime_agreement_from/to) or in an emergency (art.33). Not for managers (art.41(ii)) or a variable, flex or deemed regime (company.working_time_regime). A worked day is a fact to correct, not to refuse: warn."
+				"title": "法定労働時間 1日8時間 (労働基準法 art.32(2)); beyond it only under a filed 36 agreement (art.36(1); entity_extension_data.overtime_agreement_from/to) or in an emergency (art.33). Not for managers (art.41(ii)) or a variable, flex or deemed regime (entity_extension_data.working_time_regime). A worked day is a fact to correct, not to refuse: warn."
 			}
 		],
 		"id": "ed372ffe-95ed-5694-b356-12f75251e847",
@@ -583,12 +587,13 @@
 	},
 	{
 		"code": "ROSTER_WEEKLY_40H",
+		"description": "Refuses a week worked beyond 40 hours (44 for a listed small establishment) while no filed 36 agreement covers the date.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -606,20 +611,18 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (get(entityExt, 'working_time_regime', 'STANDARD') !== 'STANDARD') return true;\nconst agreementFrom = get(entityExt, 'overtime_agreement_from', null);\nconst agreementTo = get(entityExt, 'overtime_agreement_to', null);\nif (agreementTo != null && agreementTo >= ctx.entry.work_date && (agreementFrom == null || agreementFrom <= ctx.entry.work_date)) return true;\nconst limit = get(entityExt, 'weekly_limit_44', false) === true ? ctx.lookup.special_establishment_weekly_hours : ctx.lookup.standard_weekly_hours;\nreturn weekHours <= limit;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (get(entityExt, 'working_time_regime', 'STANDARD') !== 'STANDARD') return true;\nconst agreementFrom = get(entityExt, 'overtime_agreement_from', null);\nconst agreementTo = get(entityExt, 'overtime_agreement_to', null);\nif (agreementTo != null && agreementTo >= ctx.entry.work_date && (agreementFrom == null || agreementFrom <= ctx.entry.work_date)) return true;\nconst limit = get(entityExt, 'weekly_limit_44', false) === true ? ctx.lookup.special_establishment_weekly_hours : ctx.lookup.standard_weekly_hours;\nreturn weekHours <= limit;",
 		"order": 17,
 		"lookup": {
 			"name": "Worked beyond 40 hours in the week with no 36 agreement in force",
 			"message": "Worked beyond 40 hours in the week with no 36 agreement in force (労働基準法 arts.32(1), 36(1)).",
-			"night_from": "22:00",
-			"night_to": "05:00",
 			"standard_weekly_hours": 40,
 			"special_establishment_weekly_hours": 44
 		},
 		"references": [
 			{
-				"title": "法定労働時間 1週40時間 (労働基準法 art.32(1)), 44 hours for a 特例措置対象事業場 (施行規則 art.25の2; company.weekly_limit_44); the week is the calendar week from company.week_start_day (昭和63年1月1日 基発1号), read on its last day."
+				"title": "法定労働時間 1週40時間 (労働基準法 art.32(1)), 44 hours for a 特例措置対象事業場 (施行規則 art.25の2; entity_extension_data.weekly_limit_44); the week is the calendar week from entity_extension_data.week_start (昭和63年1月1日 基発1号), read on its last day."
 			}
 		],
 		"id": "c68a4bea-b630-59b6-9f5f-9d9b7a3d8048",
@@ -627,12 +630,13 @@
 	},
 	{
 		"code": "ROSTER_OVERTIME_UNRECORDED",
+		"description": "Refuses a planned ordinary shift longer than 8 hours because the hours beyond 8 are statutory overtime the planned price does not include.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -650,19 +654,17 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (get(entityExt, 'working_time_regime', 'STANDARD') !== 'STANDARD') return true;\nif (dayType === 'REST' || actual.length === 0) return true;\nreturn plannedHours <= ctx.lookup.standard_daily_hours;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (get(entityExt, 'working_time_regime', 'STANDARD') !== 'STANDARD') return true;\nif (dayType === 'REST' || actual.length === 0) return true;\nreturn plannedHours <= ctx.lookup.standard_daily_hours;",
 		"order": 18,
 		"lookup": {
 			"name": "A shift planned beyond 8 ordinary hours: its hours beyond 8 are statutory overtime the pay does not price",
 			"message": "The planned shift has more than 8 ordinary hours: the hours beyond 8 are statutory overtime the planned day does not price; plan at most 8 ordinary hours and let the rest be overtime (労働基準法 arts.32(2), 37(1)).",
-			"night_from": "22:00",
-			"night_to": "05:00",
 			"standard_daily_hours": 8
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.32(2) (8 hours a day) and art.37(1) (割増賃金 on every hour beyond it) and art.24 (full payment): overtime is every hour past the planned shift’s ordinary hours, so ordinary hours planned beyond 8 a day would carry the statutory premium unpriced. Not for managers (art.41(ii)) or a variable, flex or deemed regime (company.working_time_regime)."
+				"title": "労働基準法 art.32(2) (8 hours a day) and art.37(1) (割増賃金 on every hour beyond it) and art.24 (full payment): overtime is every hour past the planned shift’s ordinary hours, so ordinary hours planned beyond 8 a day would carry the statutory premium unpriced. Not for managers (art.41(ii)) or a variable, flex or deemed regime (entity_extension_data.working_time_regime)."
 			}
 		],
 		"id": "eb6c4eeb-eddc-51e9-bf3e-782ae14f9b5f",
@@ -670,12 +672,13 @@
 	},
 	{
 		"code": "ROSTER_BREAK",
+		"description": "Refuses a shift whose break is under 45 minutes after 6 hours or under one hour after 8 hours.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -693,8 +696,8 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (actual.length === 0) return true;\nif (!actual.every((i) => i.end != null)) return true;\nconst elapsed = elapsed_minutes(actual[0].start, actual[actual.length - 1].end) / 60;\nconst breakHours = elapsed - workedHours;\nif (elapsed > ctx.lookup.elapsed_hours_threshold_8 && breakHours < 1 - ctx.lookup.break_hours_tolerance) return false;\nif (elapsed > ctx.lookup.elapsed_hours_threshold && breakHours < ctx.lookup.minimum_short_shift_break_hours - ctx.lookup.break_hours_tolerance) return false;\nreturn true;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (actual.length === 0) return true;\nif (!actual.every((i) => i.end != null)) return true;\nconst elapsed = elapsed_minutes(actual[0].start, actual[actual.length - 1].end) / 60;\nconst breakHours = elapsed - workedHours;\nif (elapsed > ctx.lookup.elapsed_hours_threshold_8 && breakHours < 1 - ctx.lookup.break_hours_tolerance) return false;\nif (elapsed > ctx.lookup.elapsed_hours_threshold && breakHours < ctx.lookup.minimum_short_shift_break_hours - ctx.lookup.break_hours_tolerance) return false;\nreturn true;",
 		"order": 19,
 		"lookup": {
 			"name": "Too short a break: 45 minutes beyond 6 hours of work, 1 hour beyond 8",
@@ -702,9 +705,7 @@
 			"elapsed_hours_threshold": 6,
 			"elapsed_hours_threshold_8": 8,
 			"minimum_short_shift_break_hours": 0.75,
-			"break_hours_tolerance": 0.001,
-			"night_from": "22:00",
-			"night_to": "05:00"
+			"break_hours_tolerance": 0.001
 		},
 		"references": [
 			{
@@ -716,12 +717,13 @@
 	},
 	{
 		"code": "ROSTER_REST_DAY",
+		"description": "Refuses a week with no rest day.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -739,19 +741,17 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (get(entityExt, 'variable_rest_days', false) === true) return true;\nconst workedDays = weekEntries.filter((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) > 0).length;\nreturn workedDays < ctx.lookup.week_worked_days_threshold;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nif (['MANAGERIAL', 'OFFICER'].includes(classification)) return true;\nif (get(entityExt, 'variable_rest_days', false) === true) return true;\nconst workedDays = weekEntries.filter((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) > 0).length;\nreturn workedDays < ctx.lookup.week_worked_days_threshold;",
 		"order": 20,
 		"lookup": {
 			"name": "No rest day in the week",
 			"message": "No rest day in the week (労働基準法 art.35(1)).",
-			"week_worked_days_threshold": 7,
-			"night_from": "22:00",
-			"night_to": "05:00"
+			"week_worked_days_threshold": 7
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.35(1): at least one rest day each week, unless the work rules use 4 rest days in 4 weeks (art.35(2); company.variable_rest_days). Rest-day work needs a 36 agreement and the 35% premium (arts.36, 37)."
+				"title": "労働基準法 art.35(1): at least one rest day each week, unless the work rules use 4 rest days in 4 weeks (art.35(2); entity_extension_data.variable_rest_days). Rest-day work needs a 36 agreement and the 35% premium (arts.36, 37)."
 			}
 		],
 		"id": "5f24e14a-85b7-5d96-b655-4c00c52e113e",
@@ -759,12 +759,13 @@
 	},
 	{
 		"code": "ROSTER_MINOR_OVERTIME",
+		"description": "Refuses overtime beyond 8 hours or rest-day work recorded for a worker under 18.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -782,15 +783,13 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst dateOfBirth = get(get(contract, 'payroll', {}), 'date_of_birth', null);\nif (dateOfBirth == null || dateOfBirth === '') return true;\nif (age_on(dateOfBirth, ctx.entry.work_date) >= ctx.lookup.employee_age_years_threshold) return true;\nreturn dayType === 'REST' ? workedHours <= 0 : workedHours <= ctx.lookup.young_worker_daily_hours_limit;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst dateOfBirth = get(get(contract, 'payroll', {}), 'date_of_birth', null);\nif (dateOfBirth == null || dateOfBirth === '') return true;\nif (age_on(dateOfBirth, ctx.entry.work_date) >= ctx.lookup.employee_age_years_threshold) return true;\nreturn dayType === 'REST' ? workedHours <= 0 : workedHours <= ctx.lookup.young_worker_daily_hours_limit;",
 		"order": 21,
 		"lookup": {
 			"name": "Overtime beyond 8 hours or rest-day work recorded for a worker under 18, which the law forbids",
 			"message": "Overtime beyond 8 hours a day, or rest-day work, recorded for a worker under 18, which the law forbids (労働基準法 art.60(1)).",
 			"young_worker_daily_hours_limit": 8,
-			"night_from": "22:00",
-			"night_to": "05:00",
 			"employee_age_years_threshold": 18
 		},
 		"references": [
@@ -803,12 +802,13 @@
 	},
 	{
 		"code": "ROSTER_MINOR_HOURS",
+		"description": "Refuses a worker under 18 working beyond 8 hours a day or 40 hours a week.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -826,16 +826,14 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst dateOfBirth = get(get(contract, 'payroll', {}), 'date_of_birth', null);\nif (dateOfBirth == null || dateOfBirth === '') return true;\nif (age_on(dateOfBirth, ctx.entry.work_date) >= ctx.lookup.employee_age_years_threshold) return true;\nreturn workedHours <= ctx.lookup.young_worker_daily_hours_limit && weekHours <= ctx.lookup.young_worker_weekly_hours_limit;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst dateOfBirth = get(get(contract, 'payroll', {}), 'date_of_birth', null);\nif (dateOfBirth == null || dateOfBirth === '') return true;\nif (age_on(dateOfBirth, ctx.entry.work_date) >= ctx.lookup.employee_age_years_threshold) return true;\nreturn workedHours <= ctx.lookup.young_worker_daily_hours_limit && weekHours <= ctx.lookup.young_worker_weekly_hours_limit;",
 		"order": 22,
 		"lookup": {
 			"name": "A worker under 18 worked beyond 8 hours a day or 40 a week",
 			"message": "A worker under 18 worked beyond 8 hours a day or 40 a week (労働基準法 art.60).",
 			"young_worker_weekly_hours_limit": 40,
 			"young_worker_daily_hours_limit": 8,
-			"night_from": "22:00",
-			"night_to": "05:00",
 			"employee_age_years_threshold": 18
 		},
 		"references": [
@@ -848,12 +846,13 @@
 	},
 	{
 		"code": "ROSTER_MINOR_NIGHT",
+		"description": "Refuses night work between 22:00 and 05:00 recorded for a worker under 18.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -871,7 +870,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
 		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst dateOfBirth = get(get(contract, 'payroll', {}), 'date_of_birth', null);\nif (dateOfBirth == null || dateOfBirth === '') return true;\nif (age_on(dateOfBirth, ctx.entry.work_date) >= ctx.lookup.employee_age_years_threshold) return true;\nreturn nightHours <= 0;",
 		"order": 23,
 		"lookup": {
@@ -891,12 +890,13 @@
 	},
 	{
 		"code": "ROSTER_MATERNITY_OVERTIME",
+		"description": "Refuses overtime beyond 8 hours or rest-day work recorded for a pregnant or post-partum worker who asked to be excused.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -917,20 +917,20 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nif (get(reads, 'shift_definition', null) == null) return false;\nreturn get(reads, 'workplace_case_catalog_entry', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst cases = ctx.reads.workplace_case_catalog_entry;\nconst activeCase = (kinds, employment, date) => cases.some((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (get(c.inputs, 'employment_id', null) !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tconst closed = get(c, 'closed_on', null);\n\tif (closed != null && !(closed >= date)) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\tif (!(get(c.inputs, 'effective_to', '9999-12-31') >= date)) return false;\n\treturn get(c.inputs, 'reference', '') !== '';\n});\nif (!activeCase(ctx.lookup.case_kinds, ctx.entry.employment_id, ctx.entry.work_date)) return true;\nreturn dayType === 'REST' ? workedHours <= 0 : workedHours <= ctx.lookup.standard_daily_hours;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nif (get(reads, 'shift_definition', null) == null) return false;\nreturn get(reads, 'workplace_case_catalog_entry', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst cases = ctx.reads.workplace_case_catalog_entry;\nconst activeCase = (kinds, employment, date) => cases.some((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (c.employment_id !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tconst closed = get(c, 'closed_on', null);\n\tif (closed != null && !(closed >= date)) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\tif (!(get(c.inputs, 'effective_to', '9999-12-31') >= date)) return false;\n\treturn get(c, 'reference', '') !== '';\n});\nif (!activeCase(ctx.lookup.case_kinds, ctx.entry.employment_id, ctx.entry.work_date)) return true;\nreturn dayType === 'REST' ? workedHours <= 0 : workedHours <= ctx.lookup.standard_daily_hours;",
 		"order": 24,
 		"lookup": {
 			"name": "Overtime beyond 8 hours or rest-day work recorded for a pregnant or post-partum worker who asked to be excused",
 			"message": "Overtime beyond 8 hours a day, or rest-day work, recorded for a pregnant or post-partum worker who asked to be excused (労働基準法 art.66(2)).",
-			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"],
-			"night_from": "22:00",
-			"night_to": "05:00",
+			"case_kinds": [
+				"PREGNANCY_WORK_LIMIT_REQUEST"
+			],
 			"standard_daily_hours": 8
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.66(2): on the request of an 妊産婦 (terms.pregnancy_work_limits_requested) the employer shall not make her work overtime beyond the statutory hours or on a rest day; every hour past the schedule is approved overtime, so a day beyond 8 hours or rest-day work is refused."
+				"title": "労働基準法 art.66(2): on the request of an 妊産婦 (workplace case PREGNANCY_WORK_LIMIT_REQUEST) the employer shall not make her work overtime beyond the statutory hours or on a rest day; every hour past the schedule is approved overtime, so a day beyond 8 hours or rest-day work is refused."
 			}
 		],
 		"id": "e37b92f5-e606-5495-a94b-77700bfac604",
@@ -938,12 +938,13 @@
 	},
 	{
 		"code": "ROSTER_MATERNITY_NIGHT",
+		"description": "Refuses night work recorded for a pregnant or post-partum worker who asked to be excused.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -964,13 +965,15 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nif (get(reads, 'shift_definition', null) == null) return false;\nreturn get(reads, 'workplace_case_catalog_entry', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst cases = ctx.reads.workplace_case_catalog_entry;\nconst activeCase = (kinds, employment, date) => cases.some((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (get(c.inputs, 'employment_id', null) !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tconst closed = get(c, 'closed_on', null);\n\tif (closed != null && !(closed >= date)) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\tif (!(get(c.inputs, 'effective_to', '9999-12-31') >= date)) return false;\n\treturn get(c.inputs, 'reference', '') !== '';\n});\nif (!activeCase(ctx.lookup.case_kinds, ctx.entry.employment_id, ctx.entry.work_date)) return true;\nreturn nightHours <= 0;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nif (get(reads, 'shift_definition', null) == null) return false;\nreturn get(reads, 'workplace_case_catalog_entry', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst cases = ctx.reads.workplace_case_catalog_entry;\nconst activeCase = (kinds, employment, date) => cases.some((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (c.employment_id !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tconst closed = get(c, 'closed_on', null);\n\tif (closed != null && !(closed >= date)) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\tif (!(get(c.inputs, 'effective_to', '9999-12-31') >= date)) return false;\n\treturn get(c, 'reference', '') !== '';\n});\nif (!activeCase(ctx.lookup.case_kinds, ctx.entry.employment_id, ctx.entry.work_date)) return true;\nreturn nightHours <= 0;",
 		"order": 25,
 		"lookup": {
 			"name": "A pregnant or post-partum worker who asked to be excused worked at night",
 			"message": "A pregnant or post-partum worker who asked to be excused worked at night (労働基準法 art.66(3)).",
-			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"],
+			"case_kinds": [
+				"PREGNANCY_WORK_LIMIT_REQUEST"
+			],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
@@ -984,12 +987,13 @@
 	},
 	{
 		"code": "ROSTER_CHILDCARE_OVERTIME",
+		"description": "Refuses work beyond the scheduled hours recorded for a worker who asked to be excused from overtime for childcare or care.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -1010,19 +1014,19 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nif (get(reads, 'shift_definition', null) == null) return false;\nreturn get(reads, 'workplace_case_catalog_entry', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst cases = ctx.reads.workplace_case_catalog_entry;\nconst activeCase = (kinds, employment, date) => cases.some((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (get(c.inputs, 'employment_id', null) !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tconst closed = get(c, 'closed_on', null);\n\tif (closed != null && !(closed >= date)) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\tif (!(get(c.inputs, 'effective_to', '9999-12-31') >= date)) return false;\n\treturn get(c.inputs, 'reference', '') !== '';\n});\nif (!activeCase(ctx.lookup.case_kinds, ctx.entry.employment_id, ctx.entry.work_date)) return true;\nreturn Math.max(0, workedHours - plannedHours) <= 0;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nif (get(reads, 'shift_definition', null) == null) return false;\nreturn get(reads, 'workplace_case_catalog_entry', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst cases = ctx.reads.workplace_case_catalog_entry;\nconst activeCase = (kinds, employment, date) => cases.some((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (c.employment_id !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tconst closed = get(c, 'closed_on', null);\n\tif (closed != null && !(closed >= date)) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\tif (!(get(c.inputs, 'effective_to', '9999-12-31') >= date)) return false;\n\treturn get(c, 'reference', '') !== '';\n});\nif (!activeCase(ctx.lookup.case_kinds, ctx.entry.employment_id, ctx.entry.work_date)) return true;\nreturn Math.max(0, workedHours - plannedHours) <= 0;",
 		"order": 26,
 		"lookup": {
 			"name": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care",
 			"message": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care (育児・介護休業法 arts.16の8, 16の9).",
-			"case_kinds": ["CHILDCARE_NO_OVERTIME_REQUEST"],
-			"night_from": "22:00",
-			"night_to": "05:00"
+			"case_kinds": [
+				"CHILDCARE_NO_OVERTIME_REQUEST"
+			]
 		},
 		"references": [
 			{
-				"title": "育児・介護休業法 arts.16の8–16の9: a worker caring for a child before school age (from April 2025) or a family member who asks (terms.no_overtime_requested) shall not be made to work beyond the scheduled hours: the approval is refused."
+				"title": "育児・介護休業法 arts.16の8–16の9: a worker caring for a child before school age (from April 2025) or a family member who asks (workplace case CHILDCARE_NO_OVERTIME_REQUEST) shall not be made to work beyond the scheduled hours: the approval is refused."
 			}
 		],
 		"id": "d55beb76-1fa8-54d9-9625-485ce4aa8aa6",
@@ -1030,12 +1034,13 @@
 	},
 	{
 		"code": "ROSTER_CHILDCARE_NIGHT",
+		"description": "Refuses night work recorded for a worker who asked to be excused from night work for childcare or care.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -1056,19 +1061,21 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nif (get(reads, 'shift_definition', null) == null) return false;\nreturn get(reads, 'workplace_case_catalog_entry', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst cases = ctx.reads.workplace_case_catalog_entry;\nconst activeCase = (kinds, employment, date) => cases.some((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (get(c.inputs, 'employment_id', null) !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tconst closed = get(c, 'closed_on', null);\n\tif (closed != null && !(closed >= date)) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\tif (!(get(c.inputs, 'effective_to', '9999-12-31') >= date)) return false;\n\treturn get(c.inputs, 'reference', '') !== '';\n});\nif (!activeCase(ctx.lookup.case_kinds, ctx.entry.employment_id, ctx.entry.work_date)) return true;\nreturn nightHours <= 0;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nif (get(reads, 'shift_definition', null) == null) return false;\nreturn get(reads, 'workplace_case_catalog_entry', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nconst cases = ctx.reads.workplace_case_catalog_entry;\nconst activeCase = (kinds, employment, date) => cases.some((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (c.employment_id !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tconst closed = get(c, 'closed_on', null);\n\tif (closed != null && !(closed >= date)) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\tif (!(get(c.inputs, 'effective_to', '9999-12-31') >= date)) return false;\n\treturn get(c, 'reference', '') !== '';\n});\nif (!activeCase(ctx.lookup.case_kinds, ctx.entry.employment_id, ctx.entry.work_date)) return true;\nreturn nightHours <= 0;",
 		"order": 27,
 		"lookup": {
 			"name": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00",
 			"message": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00 (育児・介護休業法 arts.19, 20).",
-			"case_kinds": ["CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"],
+			"case_kinds": [
+				"CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"
+			],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
 		"references": [
 			{
-				"title": "育児・介護休業法 arts.19–20 (terms.night_work_exemption_requested)"
+				"title": "育児・介護休業法 arts.19–20 (workplace case CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST)"
 			}
 		],
 		"id": "135293dc-c87e-5274-9ff0-a428aeb368f5",
@@ -1076,12 +1083,13 @@
 	},
 	{
 		"code": "ROSTER_HAZARDOUS_OVERTIME",
+		"description": "Refuses more than 2 hours of overtime in a day on work harmful to health.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -1099,19 +1107,17 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nif (get(ext, 'hazardous_work', false) !== true) return true;\nreturn workedHours <= ctx.lookup.daily_hours_threshold;",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nif (get(ext, 'hazardous_work', false) !== true) return true;\nreturn workedHours <= ctx.lookup.daily_hours_threshold;",
 		"order": 28,
 		"lookup": {
 			"name": "More than 2 hours of overtime in a day on work harmful to health",
 			"message": "More than 2 hours of overtime in a day on work harmful to health (労働基準法 art.36(6)(i)).",
-			"daily_hours_threshold": 10,
-			"night_from": "22:00",
-			"night_to": "05:00"
+			"daily_hours_threshold": 10
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.36(6)(i) with 施行規則 art.18: 坑内労働 and the listed harmful work may run at most 2 hours beyond the daily limit, even under a 36 agreement (terms.hazardous_work)."
+				"title": "労働基準法 art.36(6)(i) with 施行規則 art.18: 坑内労働 and the listed harmful work may run at most 2 hours beyond the daily limit, even under a 36 agreement (employee_extension_data.hazardous_work)."
 			}
 		],
 		"id": "069eb5a8-36ac-5d67-bbf5-ce5c05d0a647",
@@ -1119,12 +1125,13 @@
 	},
 	{
 		"code": "ROSTER_REST_INTERVAL",
+		"description": "Refuses less rest between the end of one day's work and the next than the employer's interval or, for drivers, the 9-hour statutory floor.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"employee_contract": {
-				"limit": 10000
-			},
 			"entity_profile_version": {
 				"limit": 10000
 			},
@@ -1142,19 +1149,17 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'employee_contract', []).length > 0)) return false;\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
-		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nconst zone = get(entity ?? {}, 'time_zone', 'Asia/Tokyo');\nconst nightHours = get(ctx.lookup, 'night_from', null) == null ? 0 : clock_window_minutes(actual, zone, ctx.lookup.night_from, ctx.lookup.night_to) / 60;\nif (actual.length === 0) return true;\nconst previous = ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date < ctx.entry.work_date).toSorted((a, b) => a.work_date < b.work_date ? 1 : -1)[0];\nif (previous == null) return true;\nconst previousActual = get(previous, 'actual_worked_intervals', []);\nif (previousActual.length === 0) return true;\nconst previousEnd = previousActual[previousActual.length - 1].end;\nif (previousEnd == null) return true;\nif (actual[0].start <= previousEnd) return false;\nconst rest = elapsed_minutes(previousEnd, actual[0].start) / 60;\nconst minimum = get(entityExt, 'work_interval_hours', get(entityExt, 'overtime_sector', 'GENERAL') === 'DRIVER' ? ctx.lookup.default_minimum_rest_hours : 0);\nreturn rest >= Number(minimum);",
+		"condition": "const reads = get(ctx, 'reads', {});\nif (!(get(reads, 'entity_profile_version', []).length > 0)) return false;\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
+		"validate": "const contract = ctx.subject.employment;\nconst terms = get(contract, 'terms', {});\nconst ext = get(contract, 'employee_extension_data', {});\nconst classification = get(terms, 'work_classification', 'ORDINARY');\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== contract.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.work_date)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.work_date;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst actual = get(ctx.entry, 'actual_worked_intervals', []);\nconst workedHours = interval_minutes(actual) / 60;\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst dayType = shift != null ? shift.variant.day_type : 'WORK';\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst plannedHours = (() => {\n  if (shift == null) return 0;\n  const v = shift.variant;\n  if (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n  if (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n  let total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (v.ends_next_day === true ? 1440 : 0);\n  for (const b of v.breaks ?? []) if (b.paid !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n  return Math.max(0, total / 60);\n})();\nconst entries = [ctx.entry, ...ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date !== ctx.entry.work_date)];\nconst weekStartDay = Number(get(entityExt, 'week_start', 0));\nconst weekStart = add_days(ctx.entry.work_date, 0 - ((weekday(ctx.entry.work_date) - weekStartDay + 7) % 7));\nconst weekEntries = entries.filter((e) => e.work_date >= weekStart && e.work_date <= add_days(weekStart, 6));\nconst weekHours = sum(weekEntries.map((e) => interval_minutes(get(e, 'actual_worked_intervals', [])) / 60));\nif (actual.length === 0) return true;\nconst previous = ctx.reads.roster_entry.filter((e) => e.employment_id === ctx.entry.employment_id && e.work_date < ctx.entry.work_date).toSorted((a, b) => a.work_date < b.work_date ? 1 : -1)[0];\nif (previous == null) return true;\nconst previousActual = get(previous, 'actual_worked_intervals', []);\nif (previousActual.length === 0) return true;\nconst previousEnd = previousActual[previousActual.length - 1].end;\nif (previousEnd == null) return true;\nif (actual[0].start <= previousEnd) return false;\nconst rest = elapsed_minutes(previousEnd, actual[0].start) / 60;\nconst company = Number(get(entityExt, 'work_interval_hours', 0));\nconst driverFloor = get(entityExt, 'overtime_sector', 'GENERAL') === 'DRIVER' ? ctx.lookup.default_minimum_rest_hours : 0;\nconst minimum = Math.max(company, driverFloor);\nreturn rest >= Number(minimum);",
 		"order": 29,
 		"lookup": {
-			"name": "Less rest between the end of one day’s work and the next than the interval the employer applies",
-			"message": "Less rest between the end of one day’s work and the next than the interval the employer applies (勤務間インターバル).",
-			"default_minimum_rest_hours": 9,
-			"night_from": "22:00",
-			"night_to": "05:00"
+			"name": "Less rest between the end of one day’s work and the next than the company interval or the driver floor",
+			"message": "Less rest between the end of one day’s work and the next than the interval the employer applies or, for drivers, the 9-hour statutory floor (勤務間インターバル).",
+			"default_minimum_rest_hours": 9
 		},
 		"references": [
 			{
-				"title": "労働時間等の設定の改善に関する特別措置法 art.2(1) (the employer’s duty to try to secure rest between shifts; company.work_interval_hours, the interval its rules adopt); for drivers the 改善基準告示 (令和4年厚生労働省告示第367号) sets at least 9 hours (company.overtime_sector DRIVER)."
+				"title": "労働時間等の設定の改善に関する特別措置法 art.2(1) (the employer’s duty to try to secure rest between shifts; entity_extension_data.work_interval_hours, the interval its rules adopt); for drivers the 改善基準告示 (令和4年厚生労働省告示第367号) sets at least 9 hours (entity_extension_data.overtime_sector DRIVER)."
 			}
 		],
 		"id": "46696446-1139-5dc6-9874-e6a2b1e246b4",
@@ -1162,15 +1167,38 @@
 	},
 	{
 		"code": "ROSTER_LEAVE_ON_WORKED_DAY",
+		"description": "Refuses leave recorded on a day that also has attendance.",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
-			"leave_catalog_entry": {
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"is": {
+							"employment_id": {
+								"eq": {
+									"var": "ctx.entry.employment_id"
+								}
+							}
+						}
+					},
+					"incurred_on": {
+						"eq": {
+							"var": "ctx.entry.work_date"
+						}
+					}
+				},
+				"fields": [
+					"leave_entry_id",
+					"incurred_on"
+				],
 				"limit": 10000
 			}
 		},
-		"condition": "return get(get(ctx, 'reads', {}), 'leave_catalog_entry', null) != null;",
-		"validate": "const actual = get(ctx.entry, 'actual_worked_intervals', []);\nif (interval_minutes(actual) <= 0) return true;\nreturn !ctx.reads.leave_catalog_entry.some((e) => e.employment_id === ctx.entry.employment_id && (e.days ?? []).some((d) => d.date === ctx.entry.work_date));",
+		"validate": "const actual = get(ctx.entry, 'actual_worked_intervals', []);\nif (interval_minutes(actual) <= 0) return true;\nreturn !ctx.reads.leave_catalog_entry_day.some((day) => day.incurred_on === ctx.entry.work_date);",
 		"order": 30,
 		"lookup": {
 			"name": "Leave recorded on a day with attendance: the leave or the clock times are wrong.",
@@ -1186,9 +1214,14 @@
 	},
 	{
 		"code": "WAGE_PAYMENT_MONTHLY",
+		"description": "Refuses an entity pay frequency other than at least monthly on a fixed day.",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update", "seal"],
-		"validate": "const schedule = get(ctx.entry, 'payment_schedule', {});\nreturn get(schedule, 'frequency', null) !== ctx.lookup.forbidden_frequency;",
+		"events": [
+			"create",
+			"update",
+			"seal"
+		],
+		"validate": "const schedule = get(ctx.subject.employer, 'payment_schedule', {});\nreturn get(schedule, 'frequency', null) !== ctx.lookup.forbidden_frequency;",
 		"order": 31,
 		"lookup": {
 			"name": "毎月1回以上・一定期日払の原則 (wages at least monthly)",
@@ -1205,8 +1238,12 @@
 	},
 	{
 		"code": "JP_SUBSTITUTE_LEAVE_REVIEW",
+		"description": "Refuses to consume a substitute-leave entry until the overtime-month allocation and premium settlement have been reviewed outside the automatic path.",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"leave_catalog": {
 				"limit": 10000
@@ -1231,8 +1268,12 @@
 	},
 	{
 		"code": "JP_PRENATAL_WINDOW",
+		"description": "Refuses prenatal leave days outside the 6-week (14-week multiple pregnancy) window before the expected birth.",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1242,12 +1283,15 @@
 						}
 					}
 				},
-				"fields": ["code", "lookup"],
+				"fields": [
+					"code",
+					"lookup"
+				],
 				"limit": 1
 			}
 		},
 		"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code && get(ctx.entry, 'reverses', null) == null;",
-		"validate": "// js\n// 労働基準法 art.65(1): from 6 weeks before the expected birth, 14 for a multiple pregnancy, to the birth, the expected day counted.\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst births = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'EXPECTED_BIRTH' || event.kind === 'EXPECTED_MULTIPLE_BIRTH');\nconst opens = (event) => add_days(event.on, 1 - (event.kind === 'EXPECTED_MULTIPLE_BIRTH' ? row.multiple_pregnancy_days : row.days));\nreturn ctx.entry.days.every((day) => births.some((event) => opens(event) <= day.date && day.date <= get(event, 'ended_on', day.date)));",
+		"validate": "// js\n// 労働基準法 art.65(1): from 6 weeks before the expected birth, 14 for a multiple pregnancy, to the birth, the expected day counted.\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst births = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'EXPECTED_BIRTH' || event.kind === 'EXPECTED_MULTIPLE_BIRTH');\nconst opens = (event) => add_days(event.on, 1 - (event.kind === 'EXPECTED_MULTIPLE_BIRTH' ? row.multiple_pregnancy_days : row.days));\nreturn ctx.entry.leave_catalog_entry_day.every((day) => births.some((event) => opens(event) <= day.incurred_on && day.incurred_on <= get(event, 'ended_on', day.incurred_on)));",
 		"order": 37,
 		"lookup": {
 			"name": "産前休業の請求期間 (prenatal leave window)",
@@ -1264,8 +1308,12 @@
 	},
 	{
 		"code": "JP_ANNUAL_LEAVE_HOURS_CAP",
+		"description": "Refuses annual leave taken in hours beyond 5 days in the grant year.",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1275,7 +1323,10 @@
 						}
 					}
 				},
-				"fields": ["code", "lookup"],
+				"fields": [
+					"code",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"employee_contract": {
@@ -1286,7 +1337,10 @@
 						}
 					}
 				},
-				"fields": ["service_started_on", "effective_range"],
+				"fields": [
+					"service_started_on",
+					"effective_range"
+				],
 				"limit": 1
 			},
 			"leave_catalog_entry": {
@@ -1308,12 +1362,33 @@
 						}
 					}
 				},
-				"fields": ["days", "reverses", "reverses"],
+				"fields": [
+					"id",
+					"reverses"
+				],
 				"limit": 1000
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"is": {
+							"employment_id": {
+								"eq": {
+									"var": "ctx.entry.employment_id"
+								}
+							}
+						}
+					}
+				},
+				"fields": [
+					"leave_entry_id",
+					"incurred_on"
+				],
+				"limit": 10000
 			}
 		},
 		"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code && get(ctx.entry, 'reverses', null) == null;",
-		"validate": "// js\n// 施行規則 art.24の4: a year's days taken in hours are capped, the year running from the grant day (労働基準法 art.39(4)).\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst yearOf = (date) => Math.floor((calendar_completed_months(started, date) - row.service_offset_months) / 12);\nconst held = ctx.reads.leave_catalog_entry;\nconst reversed = held.map((entry) => get(entry, 'reverses', null));\nconst standing = held.filter((entry) => entry.id !== get(ctx.entry, 'id', null) && get(entry, 'reverses', null) == null && !reversed.includes(entry.id));\nconst days = [...standing.flatMap((entry) => entry.days), ...ctx.entry.days];\nreturn ctx.entry.days.every((day) => days.filter((other) => yearOf(other.date) === yearOf(day.date)).length / 2 <= row.annual_days_cap);",
+		"validate": "// js\n// 施行規則 art.24の4: a year's days taken in hours are capped, the year running from the grant day (労働基準法 art.39(4)).\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst yearOf = (date) => Math.floor((calendar_completed_months(started, date) - row.service_offset_months) / 12);\nconst held = ctx.reads.leave_catalog_entry;\nconst reversed = held.map((entry) => get(entry, 'reverses', null));\nconst standing = held.filter((entry) => entry.id !== get(ctx.entry, 'id', null) && get(entry, 'reverses', null) == null && !reversed.includes(entry.id));\nconst slots = ctx.reads.leave_catalog_entry_day.filter((child) => standing.some((entry) => entry.id === child.leave_entry_id));\nconst days = [...slots.map((child) => child.incurred_on), ...ctx.entry.leave_catalog_entry_day.map((child) => child.incurred_on)];\nreturn ctx.entry.leave_catalog_entry_day.every((day) => days.filter((other) => yearOf(other) === yearOf(day.incurred_on)).length / 2 <= row.annual_days_cap);",
 		"order": 38,
 		"lookup": {
 			"name": "時間単位年休の上限 (annual leave in hours, yearly cap)",
@@ -1330,23 +1405,38 @@
 	},
 	{
 		"code": "CONTRACT_CATEGORIES",
+		"description": "Refuses a contract whose work classification, statutory work category, residency status or wage payment method is not permitted by the version.",
 		"target_collection": "employee_contract",
-		"events": ["create", "update", "seal"],
-		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst ext = get(ctx.entry, 'employee_extension_data', {});\nconst employmentType = get(ext, 'employment_type', null);\nif (employmentType != null && !ctx.lookup.employment_types.includes(employmentType)) return false;\nconst classification = get(ext, 'work_classification', null);\nif (classification != null && !ctx.lookup.work_classifications.includes(classification)) return false;\nconst category = get(terms, 'statutory_work_category', null);\nif (category != null && !ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst residency = get(terms, 'residency_status', null);\nif (residency != null && !ctx.lookup.residency_statuses.includes(residency)) return false;\nconst method = get(terms, 'wage_payment_method', null);\nif (method != null && !ctx.lookup.wage_payment_methods.includes(method)) return false;\nreturn true;",
+		"events": [
+			"create",
+			"update",
+			"seal"
+		],
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst classification = get(terms, 'work_classification', null);\nif (classification != null && !ctx.lookup.work_classifications.includes(classification)) return false;\nconst category = get(terms, 'statutory_work_category', null);\nif (category != null && !ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst residency = get(terms, 'residency_status', null);\nif (residency != null && !ctx.lookup.residency_statuses.includes(residency)) return false;\nconst method = get(terms, 'wage_payment_method', null);\nif (method != null && !ctx.lookup.wage_payment_methods.includes(method)) return false;\nreturn true;",
 		"order": 39,
 		"lookup": {
 			"name": "Use the recorded employment categories",
-			"message": "Select the employment type, work classification, statutory work category and residency status permitted by this jurisdiction version.",
-			"employment_types": ["INDEFINITE", "FIXED_TERM", "PART_TIME"],
-			"work_classifications": ["ORDINARY", "MANAGERIAL", "OFFICER"],
+			"message": "Select the work classification, statutory work category, residency status and wage payment method permitted by this jurisdiction version.",
+			"work_classifications": [
+				"ORDINARY",
+				"MANAGERIAL",
+				"OFFICER"
+			],
 			"statutory_work_categories": [
 				"SOCIAL_AND_EMPLOYMENT",
 				"SOCIAL_ONLY",
 				"EMPLOYMENT_ONLY",
 				"NONE"
 			],
-			"residency_statuses": ["RESIDENT", "NON_RESIDENT"],
-			"wage_payment_methods": ["BANK", "DIGITAL", "CASH"]
+			"residency_statuses": [
+				"RESIDENT",
+				"NON_RESIDENT"
+			],
+			"wage_payment_methods": [
+				"BANK",
+				"DIGITAL",
+				"CASH"
+			]
 		},
 		"references": [
 			{
@@ -1359,186 +1449,14 @@
 		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
 	},
 	{
-		"code": "SHARED_CONTRACT_TERMS",
-		"target_collection": "employee_contract",
-		"events": ["create", "update", "seal"],
-		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst day = get(terms, 'normal_hours_per_day', null);\nif (day != null && (day < ctx.lookup.normal_hours_per_day_min || day > ctx.lookup.normal_hours_per_day_max)) return false;\nconst week = get(terms, 'normal_hours_per_week', null);\nif (week != null && week < ctx.lookup.normal_hours_per_week_min) return false;\nconst days = get(terms, 'normal_days_per_week', null);\nif (days != null && (days < 0 || days > 7 || days !== Math.trunc(days))) return false;\nreturn true;",
-		"order": 40,
-		"lookup": {
-			"name": "Use lawful shared contract terms",
-			"message": "The agreed rate or normal working time does not meet this jurisdiction version’s contract limits.",
-			"normal_hours_per_day_min": 0,
-			"normal_hours_per_day_max": 24,
-			"normal_hours_per_week_min": 0
-		},
-		"references": [
-			{
-				"title": "労働基準法",
-				"locator": "32条（労働時間）",
-				"quote": "労働時間は、休憩時間を除き一週間について四十時間を超えてはならない。"
-			}
-		],
-		"id": "c5b75eb6-9ab2-5796-bd79-a69fafebd791",
-		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
-	},
-	{
-		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
-		"target_collection": "employee_contract",
-		"events": ["create", "update", "seal"],
-		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst ext = get(ctx.entry, 'employee_extension_data', {});\nconst region = get(terms, 'work_region', get(ext, 'work_region', null));\nif (region != null && !ctx.lookup.work_regions.includes(region)) return false;\nreturn true;",
-		"order": 41,
-		"lookup": {
-			"name": "Shared structured employee inputs",
-			"message": "The recorded personal details or agreement terms do not meet this jurisdiction version’s requirements.",
-			"work_regions": [
-				"HOKKAIDO",
-				"AOMORI",
-				"IWATE",
-				"MIYAGI",
-				"AKITA",
-				"YAMAGATA",
-				"FUKUSHIMA",
-				"IBARAKI",
-				"TOCHIGI",
-				"GUNMA",
-				"SAITAMA",
-				"CHIBA",
-				"TOKYO",
-				"KANAGAWA",
-				"NIIGATA",
-				"TOYAMA",
-				"ISHIKAWA",
-				"FUKUI",
-				"YAMANASHI",
-				"NAGANO",
-				"GIFU",
-				"SHIZUOKA",
-				"AICHI",
-				"MIE",
-				"SHIGA",
-				"KYOTO",
-				"OSAKA",
-				"HYOGO",
-				"NARA",
-				"WAKAYAMA",
-				"TOTTORI",
-				"SHIMANE",
-				"OKAYAMA",
-				"HIROSHIMA",
-				"YAMAGUCHI",
-				"TOKUSHIMA",
-				"KAGAWA",
-				"EHIME",
-				"KOCHI",
-				"FUKUOKA",
-				"SAGA",
-				"NAGASAKI",
-				"KUMAMOTO",
-				"OITA",
-				"MIYAZAKI",
-				"KAGOSHIMA",
-				"OKINAWA"
-			]
-		},
-		"references": [
-			{
-				"title": "労働基準法",
-				"locator": "32条、36条（労働時間及び時間外労働）",
-				"quote": "法定労働時間を超える労働は、36協定の届出をした場合に限り許される。"
-			}
-		],
-		"id": "523c73b9-c0ed-5319-a603-16a4705fd847",
-		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
-	},
-	{
-		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
-		"target_collection": "entity_profile_version",
-		"events": ["create", "update", "seal"],
-		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nconst registration = get(ext, 'registration_number', null);\nif (registration != null && String(registration).length !== ctx.lookup.registration_number_length) return false;\nconst month = get(ext, 'financial_year_end_month', null);\nif (month != null && (Number(month) < 1 || Number(month) > 12 || Number(month) !== Math.trunc(Number(month)))) return false;\nconst week = get(ext, 'week_start', null);\nif (week != null && (Number(week) < 0 || Number(week) > 6 || Number(week) !== Math.trunc(Number(week)))) return false;\nconst hours = get(ext, 'normal_hours_per_year', null);\nif (hours != null && (Number(hours) <= 0 || Number(hours) > ctx.lookup.normal_hours_per_year_max)) return false;\nconst rest = get(ext, 'minimum_shift_rest_hours', null);\nif (rest != null && (Number(rest) < 0 || Number(rest) > 24)) return false;\nconst age = get(ext, 'retirement_age_years', null);\nif (age != null && (Number(age) < 0 || Number(age) !== Math.trunc(Number(age)))) return false;\nreturn true;",
-		"order": 42,
-		"lookup": {
-			"name": "Shared structured entity inputs",
-			"message": "The recorded employer details do not meet this jurisdiction version’s requirements.",
-			"registration_number_length": 13,
-			"normal_hours_per_year_max": 8928
-		},
-		"references": [
-			{
-				"title": "労働基準法",
-				"locator": "32条、36条（労働時間及び時間外労働）",
-				"quote": "法定労働時間を超える労働は、36協定の届出をした場合に限り許される。"
-			}
-		],
-		"id": "a27db1a5-4154-5eb7-b1f5-84e67e8cbb52",
-		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
-	},
-	{
-		"code": "SOCIAL_INSURANCE_EVENT_DATE_REQUIRED",
-		"target_collection": "entity_profile_version",
-		"events": ["create", "update", "seal"],
-		"validate": "return get(ctx.entry, 'registrations', []).every((r) => {\n\tif (!ctx.lookup.registration_schemes.includes(r.scheme_code)) return true;\n\tif (r.number == null || r.number === '') return true;\n\treturn get(r, 'period', null) != null && r.period.from != null;\n});",
-		"order": 43,
-		"lookup": {
-			"name": "Record the actual social-insurance applicability date for this registered office.",
-			"message": "Record the actual social-insurance applicability date for this registered office.",
-			"registration_schemes": ["HEALTH_PENSION_OFFICE_SYMBOL", "HEALTH_PENSION_OFFICE_NUMBER"]
-		},
-		"references": [
-			{
-				"title": "健康保険法",
-				"locator": "48条、厚生年金保険法27条（資格取得の届出）",
-				"quote": "資格取得の事実があった日から五日以内に届け出る。"
-			}
-		],
-		"id": "4841bd0a-10dc-596b-b8c4-61b54242c94c",
-		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
-	},
-	{
-		"code": "LABOUR_INSURANCE_EVENT_DATE_REQUIRED",
-		"target_collection": "entity_profile_version",
-		"events": ["create", "update", "seal"],
-		"validate": "return get(ctx.entry, 'registrations', []).every((r) => {\n\tif (!ctx.lookup.registration_schemes.includes(r.scheme_code)) return true;\n\tif (r.number == null || r.number === '') return true;\n\treturn get(r, 'period', null) != null && r.period.from != null;\n});",
-		"order": 44,
-		"lookup": {
-			"name": "Record when the registered Japanese labour-insurance relationship actually arose.",
-			"message": "Record when the registered Japanese labour-insurance relationship actually arose.",
-			"registration_schemes": ["LABOUR_INSURANCE"]
-		},
-		"references": [
-			{
-				"title": "労働保険の保険料の徴収等に関する法律",
-				"locator": "4条の2（保険関係成立の届出）",
-				"quote": "保険関係が成立した日から十日以内に届け出る。"
-			}
-		],
-		"id": "a0f8ba63-78d3-58bd-8cd1-a2b2aeb67b22",
-		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
-	},
-	{
-		"code": "EMPLOYMENT_INSURANCE_EVENT_DATE_REQUIRED",
-		"target_collection": "entity_profile_version",
-		"events": ["create", "update", "seal"],
-		"validate": "return get(ctx.entry, 'registrations', []).every((r) => {\n\tif (!ctx.lookup.registration_schemes.includes(r.scheme_code)) return true;\n\tif (r.number == null || r.number === '') return true;\n\treturn get(r, 'period', null) != null && r.period.from != null;\n});",
-		"order": 45,
-		"lookup": {
-			"name": "Record when this registered employment-insurance office actually became applicable.",
-			"message": "Record when this registered employment-insurance office actually became applicable.",
-			"registration_schemes": ["EI"]
-		},
-		"references": [
-			{
-				"title": "雇用保険法",
-				"locator": "7条（資格取得の届出）",
-				"quote": "被保険者となった日から十日以内に届け出る。"
-			}
-		],
-		"id": "bebe47c2-2f6f-50e3-80de-dab608994fec",
-		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
-	},
-	{
 		"code": "PAYROLL_OFFICE_EVENT_DATE_REQUIRED",
+		"description": "Requires the registered salary-payment office opening date when the entity names a withholding tax office.",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update", "seal"],
+		"events": [
+			"create",
+			"update",
+			"seal"
+		],
 		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nif (get(ext, 'withholding_tax_office', '') === '') return true;\nconst opened = get(ext, 'payroll_office_opened_on', null);\nreturn opened != null && opened !== '';",
 		"order": 46,
 		"lookup": {
@@ -1557,9 +1475,13 @@
 	},
 	{
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
+		"description": "Requires the employee and a source or request reference on the listed employee business cases.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"validate": "if (!ctx.lookup.case_kinds.includes(ctx.entry.kind)) return true;\nreturn get(ctx.entry.inputs, 'employment_id', null) != null && get(ctx.entry.inputs, 'reference', '') !== '';",
+		"events": [
+			"create",
+			"update"
+		],
+		"validate": "if (!ctx.lookup.case_kinds.includes(ctx.entry.kind)) return true;\nreturn ctx.entry.employment_id != null && get(ctx.entry, 'reference', '') !== '';",
 		"order": 47,
 		"lookup": {
 			"name": "This employee business case needs its actual employment and source/request reference.",
@@ -1585,8 +1507,12 @@
 	},
 	{
 		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
+		"description": "Requires an effective interval on the listed business cases, beginning on or after receipt and ending no earlier than it starts.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"validate": "if (!ctx.lookup.case_kinds.includes(ctx.entry.kind)) return true;\nconst from = get(ctx.entry.inputs, 'effective_from', null);\nconst to = get(ctx.entry.inputs, 'effective_to', null);\nif (from == null || to == null) return false;\nreturn from >= ctx.entry.opened_on && to >= from;",
 		"order": 48,
 		"lookup": {
@@ -1611,8 +1537,12 @@
 	},
 	{
 		"code": "BUSINESS_CASE_SIGNED_CONSENT",
+		"description": "Requires a prior signature date and the signed document on a digital wage payment consent.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"validate": "if (ctx.entry.kind !== 'DIGITAL_WAGE_PAYMENT_CONSENT') return true;\nconst signed = get(ctx.entry.inputs, 'signed_on', null);\nif (signed == null) return false;\nif (!(signed <= ctx.entry.opened_on)) return false;\nreturn get(ctx.entry, 'evidence_file', null) != null;",
 		"order": 49,
 		"lookup": {
@@ -1631,8 +1561,12 @@
 	},
 	{
 		"code": "DIGITAL_CONSENT_EFFECTIVE_DATE",
+		"description": "Requires digital wage payment consent to take effect on or after its receipt.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"validate": "if (ctx.entry.kind !== 'DIGITAL_WAGE_PAYMENT_CONSENT') return true;\nconst from = get(ctx.entry.inputs, 'effective_from', null);\nreturn from != null && from >= ctx.entry.opened_on;",
 		"order": 50,
 		"lookup": {
@@ -1650,84 +1584,90 @@
 		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
 	},
 	{
-		"code": "NO_PAY_OPEN_PERIOD",
-		"target_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"code": "ESTABLISHMENT_EVENT_DATES_REQUIRED",
+		"description": "Requires the social, labour and employment insurance establishment dates on the sealed entity version.",
+		"target_collection": "entity_profile_version",
+		"events": [
+			"create",
+			"update",
+			"seal"
+		],
+		"reads": {
+			"entity_profile_version": {
+				"limit": 10000
+			}
+		},
+		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nreturn ['social_insurance_applicable_on','labour_insurance_established_on','employment_insurance_established_on'].every((key) => {\n\tconst value = get(ext, key, '');\n\treturn typeof value === 'string' && value !== '';\n});",
+		"order": 901,
 		"lookup": {
-			"no_pay": [
-				"PRENATAL_LEAVE",
-				"POSTNATAL_LEAVE",
-				"CHILDCARE_LEAVE",
-				"POSTNATAL_PATERNITY_LEAVE",
-				"FAMILY_CARE_LEAVE",
-				"CHILD_NURSING_LEAVE",
-				"FAMILY_CARE_DAYS",
-				"MENSTRUAL_LEAVE",
-				"CIVIC_DUTY_LEAVE",
-				"SICKNESS_ABSENCE",
-				"OCCUPATIONAL_INJURY_ABSENCE",
-				"UNPAID_LEAVE",
-				"NURSING_TIME",
-				"MATERNAL_HEALTH_CHECK"
-			]
+			"name": "Record the social, labour and employment insurance establishment dates.",
+			"message": "Record the social, labour and employment insurance establishment dates."
 		},
 		"references": [
 			{
-				"title": "A no-pay entry or its reversal is dated in the period that will pay it. A correction to a period already paid is a reversal entry on the same catalog item, dated in the next period to run."
+				"title": "健康保険法施行規則 art.19; 厚生年金保険法施行規則 art.13; 労働保険徴収法 art.4の2; 雇用保険法施行規則 art.141: each establishment date is the actual statutory fact, not the incorporation date or the first contract.",
+				"url": "https://www.nenkin.go.jp/service/kounen/tekiyo/jigyosho/20150311.html"
 			}
 		],
+		"id": "54fb44e1-4490-544f-b743-16cc5ba55fbf",
+		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
+	},
+	{
+		"code": "WORK_WEEK_START_REQUIRED",
+		"description": "Requires the weekday the statutory week opens on, from Sunday (0) to Saturday (6), on the sealed entity version.",
+		"target_collection": "entity_profile_version",
+		"events": [
+			"create",
+			"update",
+			"seal"
+		],
 		"reads": {
-			"leave_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code"],
-				"limit": 1
-			},
-			"payroll_run": {
-				"where": {
-					"entity_id": {
-						"eq": {
-							"var": "ctx.entry.entity_id"
-						}
-					},
-					"kind": {
-						"eq": "ON_CYCLE"
-					}
-				},
-				"fields": ["period"],
+			"entity_profile_version": {
 				"limit": 10000
-			},
-			"leave_catalog_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.employment_id"
-						}
-					},
-					"catalog_id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					},
-					"payroll_run_id": {
-						"isNull": true
-					},
-					"reverses": {
-						"isNull": true
-					}
-				},
-				"fields": ["days"],
-				"limit": 1000
 			}
 		},
-		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'reverses', null) != null && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
-		"order": 900,
-		"id": "d4846d1a-87c0-5263-9060-7580641045a1",
+		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nconst start = get(ext, 'week_start', null);\nreturn typeof start === 'number' && start >= 0 && start <= 6;",
+		"order": 902,
+		"lookup": {
+			"name": "Record the weekday the statutory week opens on.",
+			"message": "Record the weekday the statutory week opens on."
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.32: the statutory week is the calendar week from Sunday to Saturday unless the work rules set another start (昭和63年1月1日 基発1号); the same start is used by every 40-hour and overtime computation.",
+				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=00tb1899&dataType=1&pageNo=1"
+			}
+		],
+		"id": "08d93cf7-f814-5e0e-88e7-43d15b851c22",
+		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
+	},
+	{
+		"code": "MINIMUM_WAGE_HOURS_REQUIRED",
+		"description": "Requires the contract's annual prescribed hours when a variable, flex or deemed schedule makes the monthly minimum-wage conversion impossible.",
+		"target_collection": "employee_contract",
+		"events": [
+			"create",
+			"update",
+			"seal"
+		],
+		"reads": {
+			"entity_profile_version": {
+				"limit": 10000
+			}
+		},
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nif (get(terms, 'work_classification', 'ORDINARY') === 'OFFICER') return true;\nconst rate = get(terms, 'rate', null);\nif (rate == null || rate.amount <= 0) return true;\nif (rate.unit === 'HOURLY' || rate.unit === 'DAILY') return true;\nconst entity = ctx.reads.entity_profile_version.find((v) => {\n\tif (v.entity_id !== ctx.entry.entity_id) return false;\n\tif (v.status !== 'SEALED') return false;\n\tif (!(v.effective_range.from <= ctx.entry.effective_range.from)) return false;\n\treturn v.effective_range.to == null || v.effective_range.to >= ctx.entry.effective_range.from;\n});\nconst entityExt = entity != null ? get(entity, 'entity_extension_data', {}) : {};\nconst regime = get(entityExt, 'working_time_regime', 'STANDARD');\nif (!['VARIABLE', 'FLEX', 'DEEMED'].includes(regime)) return true;\nconst annual = get(ctx.entry, 'employee_extension_data.normal_hours_per_year', null);\nreturn annual != null && Number(annual) > 0;",
+		"order": 42,
+		"lookup": {
+			"name": "Annual prescribed hours are required for a varying schedule",
+			"message": "Record the annual prescribed hours: a variable, flex or deemed schedule cannot convert a monthly wage to an hourly rate without them (最低賃金法施行規則 art.2(1)(3))."
+		},
+		"references": [
+			{
+				"title": "最低賃金法施行規則 art.2(1)(3): a monthly wage is converted using the month’s prescribed hours, or the annual average monthly prescribed hours where they vary by month.",
+				"url": "https://laws.e-gov.go.jp/law/334M50002000016"
+			}
+		],
+		"id": "ae321943-a5bb-52b7-b10e-a0c4e598649c",
 		"settings_id": "0a4fe28a-f31d-580a-86a5-c0028b975b30"
 	}
 ]

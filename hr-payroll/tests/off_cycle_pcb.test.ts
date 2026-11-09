@@ -43,7 +43,6 @@ const owed = (t: Kit, seed: Seed, on: string) =>
 			catalog_id: itemId(seed, 'BONUS'),
 			description: 'Bonus',
 			quantity: 20_000,
-			unit: 'MONEY',
 			incurred_on: PlainDate(on)
 		}
 	]);

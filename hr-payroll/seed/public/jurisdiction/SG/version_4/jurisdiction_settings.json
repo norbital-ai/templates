@@ -15,39 +15,6 @@
 			"title": "SG employee inputs",
 			"additionalProperties": false,
 			"properties": {
-				"events": {
-					"type": "array",
-					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event.",
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["kind", "on"],
-						"properties": {
-							"kind": {
-								"type": "string",
-								"enum": ["ADOPTION", "CHILD_BIRTH"],
-								"title": "What happened"
-							},
-							"on": {
-								"type": "string",
-								"format": "date",
-								"title": "Date"
-							},
-							"opened_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Leave from",
-								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
-							},
-							"ended_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Ended on"
-							}
-						}
-					}
-				},
 				"tax_resident": {
 					"type": "boolean",
 					"description": "Income Tax Act 1947 s.2: Singapore tax resident. A non-resident director’s fees are withheld at 24% (WHT_NR_DIRECTOR). Customer input."
@@ -434,6 +401,24 @@
 					"type": "string",
 					"minLength": 1,
 					"description": "Name and contact of the designated data protection officer (PDPA 2012 s.11(3)). Customer input."
+				},
+				"registrations": {
+					"type": "array",
+					"title": "Statutory registrations",
+					"description": "Scheme registration numbers this entity holds, by scheme code.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"scheme_code": {
+								"type": "string"
+							},
+							"number": {
+								"type": "string"
+							}
+						},
+						"required": ["scheme_code", "number"]
+					}
 				}
 			}
 		},
@@ -1412,6 +1397,7 @@
 				"max_months": 12
 			}
 		},
+		"work_regions": {},
 		"status": "SEALED",
 		"id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
 		"conversions": {

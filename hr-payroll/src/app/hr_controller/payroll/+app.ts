@@ -5,7 +5,6 @@ export default app('hr_controller/payroll', {
 	icon: 'lucide:receipt',
 	banner: 'app-media/entities-banner.webp',
 	pages: {
-		payroll: { title: 'app.payroll.runs_title', icon: 'lucide:receipt' },
-		compliance: { title: 'app.compliance.title', icon: 'lucide:clipboard-check' }
+		payroll: { title: 'app.payroll.runs_title', icon: 'lucide:receipt' }
 	}
 });

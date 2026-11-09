@@ -1,7 +1,6 @@
 [
 	{
 		"code": "BUSINESS_EXPENSE_REIMBURSEMENT",
-		"name": "Business expense reimbursement (因公支出)",
 		"lookup": {},
 		"references": [
 			{
@@ -12,10 +11,10 @@
 		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= ctx.run.salary_coverage.from)) return false;\nreturn ctx.entry.incurred_on <= ctx.run.salary_coverage.to;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "99fd20ce-c697-596e-ae6a-65cf14fb6b6a",
-		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
+		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
+		"description": "Business expense reimbursement."
 	}
 ]

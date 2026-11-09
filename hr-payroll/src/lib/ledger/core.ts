@@ -140,10 +140,10 @@ export type Event = {
 	readonly ended_on?: string | undefined;
 };
 const record = (value: unknown): JsonObject => (isJsonObject(value) ? value : {});
-/** The dated facts on a contract. */
+/** The dated facts on a contract: statutory events plus one child-birth event per structured child. */
 export const eventsOf = (contract: JsonObject): readonly Event[] => {
-	const { events } = record(contract.employee_extension_data);
-	return (Array.isArray(events) ? events : []).flatMap((item) =>
+	const events = contract.events;
+	const statutory = (Array.isArray(events) ? events : []).flatMap((item) =>
 		isJsonObject(item) && typeof item.kind === 'string' && typeof item.on === 'string'
 			? [
 					{
@@ -155,6 +155,18 @@ export const eventsOf = (contract: JsonObject): readonly Event[] => {
 				]
 			: []
 	);
+	// A multiple birth is one birth event: SPL and the other birth-opened leaves give the same pool as a single
+	// birth, so two children born on one day must not grant twice.
+	const births = [
+		...new Map(
+			(Array.isArray(contract.children) ? contract.children : []).flatMap((child) =>
+				isJsonObject(child) && typeof child.born_on === 'string'
+					? [[child.born_on, { kind: 'CHILD_BIRTH', on: child.born_on }] as const]
+					: []
+			)
+		).values()
+	];
+	return [...statutory, ...births];
 };
 export const openedBy = (lookup: JsonObject) => record(lookup.opened_by);
 /** The day an event's window opens, and its key: a later contract change can move `on` under it. */
