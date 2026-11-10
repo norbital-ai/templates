@@ -903,6 +903,11 @@
 					{
 						employee_id: current.employee_id,
 						entity_id: targetEntity ?? current.entity_id,
+						// the same company keeps its pay group; another company's is its only one, or HR's choice before sealing
+						...((targetEntity ?? current.entity_id) === current.entity_id &&
+						current.pay_group_id != null
+							? { pay_group_id: current.pay_group_id }
+							: {}),
 						engagement,
 						employee_number: current.employee_number,
 						terms,
@@ -1058,7 +1063,7 @@
 			: { id: record.id, record }}
 	>
 		{#snippet children()}<Columns count={2}
-				>{#each ['entity_id', 'employee_id', 'engagement', 'effective_range', 'terms', 'payroll', 'employee_extension_data', 'events', 'family', 'bank', 'signed_contract_period', 'final_pay_due_on', 'reason'] as name (name)}<Field
+				>{#each ['entity_id', 'pay_group_id', 'employee_id', 'engagement', 'effective_range', 'terms', 'payroll', 'employee_extension_data', 'events', 'family', 'bank', 'signed_contract_period', 'final_pay_due_on', 'reason'] as name (name)}<Field
 						{name}
 						{...name === 'employee_extension_data'
 							? { editor: extension }

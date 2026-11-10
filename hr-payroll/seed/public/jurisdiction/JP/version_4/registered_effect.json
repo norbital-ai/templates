@@ -2658,7 +2658,7 @@
 						"is": {
 							"code": {
 								"in": [
-									"UNPAID_LEAVE",
+									"NPL",
 									"SICKNESS_ABSENCE",
 									"MENSTRUAL_LEAVE",
 									"CIVIC_DUTY_LEAVE",

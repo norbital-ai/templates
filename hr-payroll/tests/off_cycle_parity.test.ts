@@ -150,8 +150,12 @@ const CASES: Readonly<Record<string, Case>> = {
 	}
 };
 
-const seedOf = ({ code, zone, terms, facts = {}, entity = {} }: Case, from: string): Seed => {
-	const seed = pack(code, zone, terms, facts, [], [], '2026-06-15');
+const seedOf = (
+	{ code, zone, terms, facts = {}, entity = {} }: Case,
+	from: string,
+	on = '2026-06-15'
+): Seed => {
+	const seed = pack(code, zone, terms, facts, [], [], on);
 	return {
 		...seed,
 		entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
@@ -234,7 +238,7 @@ const sameMonth = (
 	period: string,
 	now: string
 ) => {
-	const seed = seedOf(one, from);
+	const seed = seedOf(one, from, `${period}-15`);
 	const on = `${period}-10`;
 	const after = (bonus: (t: Kit) => Effect.Effect<unknown, unknown>) =>
 		Effect.gen(function* () {
@@ -266,10 +270,11 @@ describe('a bonus in June', () => {
 });
 
 // December settles the year: a bonus ahead of its salary is withheld and the settlement nets it, and a bonus after it
-// settles the rest. Both people start in October with their year accounted for, so December alone finds nothing overpaid.
+// settles the rest. The December the template's law holds is 2025's, its first month: both people start in it with
+// their year accounted for, so December alone finds nothing overpaid.
 describe('a bonus in December', () => {
-	const months = ['2026-10', '2026-11'];
-	const NOW = '2026-12-20T02:00:00.000Z';
+	const months: readonly string[] = [];
+	const NOW = '2025-12-20T02:00:00.000Z';
 	const { Philippines, Indonesia } = CASES;
 	assert.ok(Philippines !== undefined && Indonesia !== undefined);
 	it.live('Philippines', () =>
@@ -281,18 +286,18 @@ describe('a bonus in December', () => {
 					previous_employer_tax_withheld: 207_000
 				}
 			},
-			'2026-10-01',
+			'2025-12-01',
 			months,
-			'2026-12',
+			'2025-12',
 			NOW
 		)
 	);
 	it.live('Indonesia', () =>
 		sameMonth(
-			{ ...Indonesia, facts: { tax_subject_from: '2026-10-01' } },
-			'2026-10-01',
+			{ ...Indonesia, facts: { tax_subject_from: '2025-12-01' } },
+			'2025-12-01',
 			months,
-			'2026-12',
+			'2025-12',
 			NOW
 		)
 	);
@@ -347,7 +352,7 @@ const charged = (rows: PayslipBreakdown['statutory'], code: string) =>
 describe('a second salary in a pay month', () => {
 	const paidOnTheFirst = (seed: Seed): Seed => ({
 		...seed,
-		entity: (seed.entity ?? []).map((row) => ({
+		pay_group: (seed.pay_group ?? []).map((row) => ({
 			...row,
 			payment_schedule: {
 				frequency: 'MONTHLY',
@@ -394,12 +399,18 @@ describe('a second salary in a pay month', () => {
 				...(seed.entity_profile_version ?? []),
 				{ ...profile, id: uuid(902), entity_id: OTHER, name: 'Sister' }
 			],
+			// the sister company's own payroll, on the same schedule
+			pay_group: [
+				...(seed.pay_group ?? []),
+				...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
+			],
 			employee_contract: [
 				{ ...contract, effective_range: { from: '2026-04-01', to: '2026-06-15' } },
 				{
 					...contract,
 					id: uuid(907),
 					entity_id: OTHER,
+					pay_group_id: uuid(908),
 					effective_range: { from: '2026-06-16', to: null }
 				}
 			]
@@ -432,7 +443,13 @@ describe('a second salary in a pay month', () => {
 			const t = yield* TestWorkspace;
 			yield* transfer(t);
 			const { payslip } = yield* t.storedQuery({ payslip: { limit: 10 } });
-			const [first, second] = payslip.rows.map((row) => row.basic_earnings?.toNumber() ?? 0);
+			// BASIC is each contract's salary; PRORATED is what its days employed leave of it
+			const [first, second] = payslip.rows.map(
+				(row) =>
+					Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).checkpoints.find(
+						(point) => point.code === 'PRORATED'
+					)?.value ?? 0
+			);
 			assert.equal(first, second);
 			assert.equal((first ?? 0) + (second ?? 0), 8000);
 		}).pipe(Effect.provide(workspace({ seed: moved(one), now: NOW_JUNE })));
@@ -457,7 +474,7 @@ describe('a second salary in a pay month', () => {
 		const half = seedOf({ ...one, terms: terms(4000, 'CITIZEN') }, '2026-04-01');
 		const halves: Seed = {
 			...half,
-			entity: (half.entity ?? []).map((row) => ({
+			pay_group: (half.pay_group ?? []).map((row) => ({
 				...row,
 				payment_schedule: {
 					frequency: 'SEMI_MONTHLY',

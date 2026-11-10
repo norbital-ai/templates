@@ -23,6 +23,19 @@ const terms = (amount: number, residency = 'RESIDENT', category = 'NON_MANUAL') 
 	allowances: {}
 });
 type Seed = ReturnType<typeof pack>;
+/** The seeded law stops with November 2026; a year end needs it in force past that, so the last version carries on. */
+const carriedOn = (seed: Seed): Seed => {
+	const from = (row: Seed[string][number]) =>
+		Schema.decodeUnknownSync(Schema.Struct({ from: Schema.String }))(row.effective_range).from;
+	const rows = seed.jurisdiction_settings ?? [];
+	const last = rows.map(from).sort().at(-1);
+	return {
+		...seed,
+		jurisdiction_settings: rows.map((row) =>
+			from(row) === last ? { ...row, effective_range: { from: last, to: null } } : row
+		)
+	};
+};
 
 const itemId = (seed: Seed, family: string, code: string) => {
 	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
@@ -173,7 +186,7 @@ describe('a December refund', () => {
 						january?.breakdown.lines.find((row) => row.code === code)?.direction,
 						'ADD'
 					);
-			}).pipe(Effect.provide(workspace({ seed, now: '2027-02-20T02:00:00.000Z' })))
+			}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-02-20T02:00:00.000Z' })))
 		);
 });
 
@@ -198,7 +211,7 @@ describe('figures a month holds, across runs', () => {
 			assert.ok(Math.abs(of('2026-12') - perYen * 1_730_000) < 2, String(of('2026-12')));
 			assert.equal(of('2027-01'), 0);
 			assert.ok(Math.abs(of('2027-04') - perYen * 1_000_000) < 2, String(of('2027-04')));
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-05-01T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-05-01T02:00:00.000Z' })));
 	});
 
 	it.live('Japan: a second bonus in a month has what is left of the pension ceiling', () => {
@@ -243,7 +256,9 @@ describe('figures a month holds, across runs', () => {
 					paid.find((row) => row.period === '2027-01'),
 					'INCOME_TAX'
 				);
-			}).pipe(Effect.provide(workspace({ seed, now: '2027-02-01T02:00:00.000Z' })));
+			}).pipe(
+				Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-02-01T02:00:00.000Z' }))
+			);
 		return Effect.gen(function* () {
 			const after = yield* bonusTax(['2026-12', '2027-01']);
 			const alone = yield* bonusTax(['2027-01']);
@@ -267,7 +282,7 @@ describe('figures a month holds, across runs', () => {
 			);
 			assert.equal(month['2027-02.BASIC'], 500_000);
 			assert.equal((yield* accountsIn(t)).pay?.['BASIC']?.['JP.M.2026-01-01']?.['total'], 500_000);
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-03-01T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-03-01T02:00:00.000Z' })));
 	});
 
 	it.live('a salary in cents crosses the year end and keeps posting', () => {
@@ -282,7 +297,7 @@ describe('figures a month holds, across runs', () => {
 				Object.keys(month).some((key) => key.startsWith('2026-01.')),
 				false
 			);
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-03-01T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-03-01T02:00:00.000Z' })));
 	});
 
 	// a year of RM8,000 sums to 142.80000000000004 of EIS, past the digits the ledger keeps
@@ -308,7 +323,7 @@ describe('figures a month holds, across runs', () => {
 			assert.equal((yield* basic(t)) ?? 0, 0);
 			yield* run(t, '2027-01');
 			assert.equal(yield* basic(t), 8000);
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-02-01T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-02-01T02:00:00.000Z' })));
 	});
 
 	it.live('Vietnam: a bonus in a second run is taxed as if the month were one run', () => {
@@ -343,7 +358,7 @@ describe('figures a month holds, across runs', () => {
 		const monthly = pack('PH', 'Asia/Manila', terms(30_000), {}, [], [], '2026-06-15');
 		const semi = {
 			...monthly,
-			entity: (monthly.entity ?? []).map((row) => ({
+			pay_group: (monthly.pay_group ?? []).map((row) => ({
 				...row,
 				payment_schedule: {
 					frequency: 'SEMI_MONTHLY',

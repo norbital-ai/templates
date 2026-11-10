@@ -509,8 +509,7 @@
 		"id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"conversions": {
 			"day": {
-				"basis": "FIXED",
-				"days": 26
+				"basis": "YEAR"
 			},
 			"hour": {
 				"basis": "CONTRACT_HOURS"

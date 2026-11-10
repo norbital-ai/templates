@@ -114,6 +114,7 @@
 						where: {
 							entity_id: { eq: companyId },
 							published_at: { isNull: false },
+							employee_id: { isNull: true },
 							date: { gte: PlainDate(from), lte: PlainDate(to) }
 						},
 						fields: ['date', 'name'],

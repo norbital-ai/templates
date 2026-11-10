@@ -57,7 +57,8 @@
 				where: {
 					entity_id: { eq: company.id },
 					date: { gte: from, lte: to },
-					published_at: { isNull: false }
+					published_at: { isNull: false },
+					employee_id: { isNull: true }
 				},
 				fields: ['date', 'name', 'published_at', 'replaces', 'given_to', 'entity_id'],
 				limit: 10000

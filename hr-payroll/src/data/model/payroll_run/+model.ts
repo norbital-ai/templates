@@ -19,6 +19,13 @@ export default model('payroll_run', {
 	fields: {
 		run_number: { kind: 'seq' },
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'payroll_runs' },
+		pay_group_id: {
+			kind: 'ref',
+			to: 'pay_group',
+			inverse: 'payroll_runs',
+			// the one pay group of the company this run pays, on its schedule
+			onDelete: 'restrict'
+		},
 		period: { kind: 'text' },
 		kind: { kind: 'enum', values: ['ON_CYCLE', 'OFF_CYCLE'], default: 'ON_CYCLE' },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', onDelete: 'restrict' },
@@ -71,7 +78,7 @@ export default model('payroll_run', {
 			}
 		}
 	},
-	unique: [{ fields: ['entity_id', 'period'], where: { kind: { eq: 'ON_CYCLE' } } }],
+	unique: [{ fields: ['pay_group_id', 'period'], where: { kind: { eq: 'ON_CYCLE' } } }],
 	attaches: {
 		leave: { model: 'leave_catalog_entry', field: 'payroll_run_id' },
 		leave_day: { model: 'leave_catalog_entry_day', field: 'payroll_run_id' },
@@ -85,6 +92,7 @@ export default model('payroll_run', {
 		payroll_run: { fields: 'all' },
 		'payroll_run.payslips': { fields: 'all' },
 		'payroll_run.entity_id': { fields: 'all' },
+		'payroll_run.pay_group_id': { fields: 'all' },
 		'payroll_run.settings_id': { fields: 'all' }
 	},
 	create: {
@@ -105,9 +113,18 @@ export default model('payroll_run', {
 				'employer_statutory',
 				'tax_withheld'
 			],
-			payroll_run: ['entity_id', 'period', 'kind', 'settings_id', 'salary_coverage', 'pay_date']
+			payroll_run: [
+				'entity_id',
+				'pay_group_id',
+				'period',
+				'kind',
+				'settings_id',
+				'salary_coverage',
+				'pay_date'
+			]
 		},
-		filled: { payroll_run: ['settings_id', 'salary_coverage', 'pay_date'] },
+		// a company with one pay group needs none named
+		filled: { payroll_run: ['pay_group_id', 'settings_id', 'salary_coverage', 'pay_date'] },
 		transform: function* (input, ctx) {
 			// the approving decision asks again only for what the run posts: its payslips stand
 			if (ctx.approving)
@@ -120,9 +137,9 @@ export default model('payroll_run', {
 				};
 			const entityIds = [...new Set(input.map((row) => row.entity_id))];
 			const known = yield* ctx.db.query({
-				entity: {
-					where: { id: { in: entityIds } },
-					fields: ['payment_schedule'],
+				pay_group: {
+					where: { entity_id: { in: entityIds } },
+					fields: ['entity_id', 'name', 'payment_schedule'],
 					limit: 10000
 				},
 				entity_profile_version: {
@@ -138,7 +155,7 @@ export default model('payroll_run', {
 				// year-to-date only moves forward
 				payroll_run: {
 					where: { entity_id: { in: entityIds } },
-					fields: ['entity_id', 'period', 'kind'],
+					fields: ['entity_id', 'pay_group_id', 'period', 'kind'],
 					limit: 10000
 				}
 			});
@@ -151,16 +168,26 @@ export default model('payroll_run', {
 						on(entry.effective_range, `${row.period.slice(0, 7)}-01`)
 				);
 				if (version === undefined) return `No sealed entity version covers ${row.period}.`;
-				const employer = known.entity.rows.find(
-					(entry) => String(entry.id) === String(row.entity_id)
+				// the run's pay group: the one named, else the company's only one
+				const groups = known.pay_group.rows.filter(
+					(entry) => String(entry.entity_id) === String(row.entity_id)
 				);
-				if (employer === undefined) return `No entity record covers ${row.period}.`;
-				const schedule = jsonObject(employer.payment_schedule);
+				const group =
+					row.pay_group_id == null
+						? groups.length === 1
+							? groups[0]
+							: undefined
+						: groups.find((entry) => String(entry.id) === String(row.pay_group_id));
+				if (group === undefined)
+					return row.pay_group_id == null
+						? 'Choose the pay group this run pays.'
+						: 'The pay group belongs to another company.';
+				const schedule = jsonObject(group.payment_schedule);
 				const cycle = cycleOf(schedule, row.period);
-				if (cycle === undefined) return `${row.period} is not a pay cycle of this entity.`;
+				if (cycle === undefined) return `${row.period} is not a pay cycle of ${group.name}.`;
 				const offCycle = row.kind === 'OFF_CYCLE';
 				const prior = known.payroll_run.rows.filter(
-					(entry) => String(entry.entity_id) === String(row.entity_id)
+					(entry) => String(entry.pay_group_id) === String(group.id)
 				);
 				// year-to-date only moves forward: a skipped cycle cannot run behind a later one
 				const later = prior.find((entry) => entry.kind === 'ON_CYCLE' && entry.period > row.period);
@@ -184,6 +211,7 @@ export default model('payroll_run', {
 					id: row.id,
 					row: {
 						entity_id: row.entity_id,
+						pay_group_id: group.id,
 						period: row.period,
 						kind: offCycle ? ('OFF_CYCLE' as const) : ('ON_CYCLE' as const),
 						settings_id: settings.id,

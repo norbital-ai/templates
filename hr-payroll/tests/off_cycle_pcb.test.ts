@@ -20,8 +20,8 @@ const terms = (residency = 'CITIZEN') => ({
 	wage_payment_method: 'BANK',
 	allowances: {}
 });
-const malaysia = (residency?: string) =>
-	pack('MY', 'Asia/Kuala_Lumpur', terms(residency), {}, [], [], '2026-06-15');
+const malaysia = (residency?: string, on = '2026-06-15') =>
+	pack('MY', 'Asia/Kuala_Lumpur', terms(residency), {}, [], [], on);
 type Seed = ReturnType<typeof malaysia>;
 
 const itemId = (seed: Seed, code: string) => {
@@ -35,20 +35,20 @@ const onCycle = (t: Kit, period: string) =>
 		.as(t.admin)
 		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
 		.pipe(Effect.andThen(t.runDue()));
-const owed = (t: Kit, seed: Seed, on: string) =>
+const owed = (t: Kit, seed: Seed, on: string, quantity = 20_000) =>
 	t.as(t.admin).act('adhoc_catalog_entry.create', [
 		{
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
 			catalog_id: itemId(seed, 'BONUS'),
 			description: 'Bonus',
-			quantity: 20_000,
+			quantity,
 			incurred_on: PlainDate(on)
 		}
 	]);
-const offCycle = (t: Kit, seed: Seed, period: string, on: string) =>
+const offCycle = (t: Kit, seed: Seed, period: string, on: string, quantity?: number) =>
 	Effect.gen(function* () {
-		yield* owed(t, seed, on);
+		yield* owed(t, seed, on, quantity);
 		const open = (yield* t.storedQuery({
 			adhoc_catalog_entry: { where: { payroll_run_id: { isNull: true } }, limit: 1 }
 		})).adhoc_catalog_entry.rows[0];
@@ -117,14 +117,17 @@ describe('PCB on a bonus', () => {
 		}).pipe(Effect.provide(JUNE))
 	);
 
-	it.live('after the last on-cycle run of the year there is no month left to spread over', () =>
-		Effect.gen(function* () {
+	// the December the template's law holds is 2025's, the first month it covers: a bonus large enough to be taxed
+	// on that one month's pay
+	it.live('after the last on-cycle run of the year there is no month left to spread over', () => {
+		const seed = malaysia(undefined, '2025-12-15');
+		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			for (const period of months(12)) yield* onCycle(t, period);
-			yield* offCycle(t, malaysia(), '2026-12', '2026-12-28');
+			yield* onCycle(t, '2025-12');
+			yield* offCycle(t, seed, '2025-12', '2025-12-28', 100_000);
 			assert.ok(Number((yield* withheld(t)).off[0]) > 0);
-		}).pipe(Effect.provide(workspace({ seed: malaysia(), now: '2026-12-28T02:00:00.000Z' })))
-	);
+		}).pipe(Effect.provide(workspace({ seed, now: '2025-12-28T02:00:00.000Z' })));
+	});
 
 	it.live('a non-resident pays the flat rate on what this run paid', () =>
 		Effect.gen(function* () {

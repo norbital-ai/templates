@@ -43,37 +43,31 @@ const worked = (date: string) => ({
 
 describe('VN employer version selection', () => {
 	it('minimum wage uses the version in force on the contract start', () => {
-		const v6 = ruleOf(6, 'MINIMUM_WAGE_FLOOR');
-		const v7 = ruleOf(7, 'MINIMUM_WAGE_FLOOR');
+		const rule = ruleOf(5, 'MINIMUM_WAGE_FLOOR');
 		const a = employer('IV', '2026-01-01', '2026-12-31');
 		const b = employer('I', '2027-01-01', null);
-		const context = (
-			rule: typeof v6,
-			from: string,
-			amount: number,
-			versions: readonly object[]
-		) => ({
+		const context = (from: string, amount: number, versions: readonly object[]) => ({
 			lookup: rule.lookup ?? {},
 			entry: { effective_range: { from }, terms: { rate: { amount, unit: 'MONTHLY' } } },
 			reads: { entity_profile_version: versions }
 		});
 		// B is first: reading [0] would take region I's 5,310,000 and fail 4,000,000
 		assert.equal(
-			evaluate(v6.validate!, 'CALCULATION', context(v6, '2026-12-20', 4_000_000, [b, a]), 'x'),
+			evaluate(rule.validate!, 'CALCULATION', context('2026-12-20', 4_000_000, [b, a]), 'x'),
 			true
 		);
 		assert.equal(
-			evaluate(v7.validate!, 'CALCULATION', context(v7, '2027-02-01', 5_000_000, [a, b]), 'x'),
+			evaluate(rule.validate!, 'CALCULATION', context('2027-02-01', 5_000_000, [a, b]), 'x'),
 			false
 		);
 		// no sealed version covers the date: refuse
 		assert.equal(
-			evaluate(v7.validate!, 'CALCULATION', context(v7, '2027-02-01', 5_000_000, [a]), 'x'),
+			evaluate(rule.validate!, 'CALCULATION', context('2027-02-01', 5_000_000, [a]), 'x'),
 			false
 		);
 	});
 	it('weekly rest uses the version in force on the roster day', () => {
-		const rule = ruleOf(7, 'WEEKLY_REST');
+		const rule = ruleOf(5, 'WEEKLY_REST');
 		const a = employer('I', '2026-01-01', '2026-12-31', false);
 		const b = employer('I', '2027-01-01', null, true);
 		const days = Array.from({ length: 27 }, (_, index) => {
@@ -107,7 +101,7 @@ describe('VN employer version selection', () => {
 		);
 	});
 	it('annual overtime uses the version in force on the roster day', () => {
-		const rule = ruleOf(7, 'OVERTIME_ANNUAL_CAP');
+		const rule = ruleOf(5, 'OVERTIME_ANNUAL_CAP');
 		const a = employer('I', '2026-01-01', '2026-12-31', false);
 		const b = employer('I', '2027-01-01', null, true);
 		(a.entity_extension_data as Record<string, unknown>).overtime_300h_sector = false;

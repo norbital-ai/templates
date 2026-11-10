@@ -8,9 +8,24 @@
 		"balance_window": "MONTH"
 	},
 	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "4200bb4b-1bfe-44de-91df-4ad3f9f13317",
+		"previous_id": "0a186425-7d3f-5a3f-8f27-f01adf180580",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "b130dc40-95d0-49f3-91df-df579503961e",
+		"previous_id": "4200bb4b-1bfe-44de-91df-4ad3f9f13317",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages (ค่าจ้าง)",
-		"previous_id": "0a186425-7d3f-5a3f-8f27-f01adf180580",
+		"previous_id": "b130dc40-95d0-49f3-91df-df579503961e",
 		"id": "ff8280f4-0b59-5c0a-8e77-ca50e9faf9e1",
 		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
 		"balance_window": "MONTH"

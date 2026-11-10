@@ -102,7 +102,7 @@ describe('overtime bands', () => {
 			);
 			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 			const unpaid = seed.leave_catalog?.find(
-				(row) => row.code === 'UNPAID_LEAVE' && row.settings_id === version
+				(row) => row.code === 'NPL' && row.settings_id === version
 			);
 			const claim = seed.claim_catalog?.find(
 				(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
@@ -151,8 +151,10 @@ describe('overtime bands', () => {
 				},
 				'Asia/Kuala_Lumpur',
 				(paid) => {
-					// one unpaid day of February's twenty weekdays, not the three on the entry; it is priced in BASIC
-					near(paid, 'BASIC', 3120 - 3120 / 28);
+					// one unpaid day of February's 28, not the three on the entry: BASIC stays the contract salary and the
+					// day posts on the leave row's own line, its rate to the sen
+					near(paid, 'BASIC', 3120);
+					near(paid, 'NPL', 111.43);
 					near(paid, 'MEDICAL_CLAIM', 40);
 				}
 			);
@@ -225,7 +227,7 @@ describe('overtime bands', () => {
 		return run(
 			{
 				...seed,
-				entity: (seed.entity ?? []).map((row) => ({
+				pay_group: (seed.pay_group ?? []).map((row) => ({
 					...row,
 					payment_schedule: { ...objectValue(row.payment_schedule), pay_cutoff_day: 21 }
 				})),
@@ -238,7 +240,8 @@ describe('overtime bands', () => {
 				)
 			},
 			'Asia/Kuala_Lumpur',
-			(paid) => near(paid, 'OVERTIME', (2 + 1) * 1.5 * 16.25)
+			// the premium hour rate goes to the sen before it multiplies the hours: 1.5 × 16.25 = 24.38
+			(paid) => near(paid, 'OVERTIME', (2 + 1) * 24.38)
 		);
 	});
 
@@ -259,7 +262,13 @@ describe('overtime bands', () => {
 					allowances: {}
 				},
 				{},
-				[{ date: '2026-02-03', shift: WORK, hours: 48, overtime: 40 }],
+				// the roster is the cycle's source of truth: every other working day is on it, worked as planned
+				[
+					{ date: '2026-02-03', shift: WORK, hours: 48, overtime: 40 },
+					...Array.from({ length: 28 }, (_, day) => `2026-02-${String(day + 1).padStart(2, '0')}`)
+						.filter((date) => date !== '2026-02-03' && new Date(date).getUTCDay() !== 0)
+						.map((date) => ({ date, shift: WORK, hours: 8 }))
+				],
 				[]
 			),
 			'Asia/Kuala_Lumpur',
@@ -292,11 +301,11 @@ describe('overtime bands', () => {
 		);
 		const later = read(
 			join(process.cwd(), 'seed/public/jurisdiction/MY/version_3/leave_catalog.json')
-		).find((row) => row.code === 'UNPAID_LEAVE');
+		).find((row) => row.code === 'NPL');
 		return run(
 			{
 				...seed,
-				entity: (seed.entity ?? []).map((row) => ({
+				pay_group: (seed.pay_group ?? []).map((row) => ({
 					...row,
 					payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
 				})),
@@ -315,7 +324,11 @@ describe('overtime bands', () => {
 				]
 			},
 			'Asia/Kuala_Lumpur',
-			(paid) => near(paid, 'BASIC', 2800 - 2800 / 28)
+			(paid) => {
+				// BASIC stays the contract salary; the unpaid day is the leave row's line
+				near(paid, 'BASIC', 2800);
+				near(paid, 'NPL', 2800 / 28);
+			}
 		);
 	});
 
@@ -572,7 +585,7 @@ describe('overtime bands', () => {
 		return run(
 			{
 				...seed,
-				entity: (seed.entity ?? []).map((row) => ({
+				pay_group: (seed.pay_group ?? []).map((row) => ({
 					...row,
 					payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
 				})),
@@ -582,7 +595,11 @@ describe('overtime bands', () => {
 				]
 			},
 			'Asia/Kuala_Lumpur',
-			(paid) => near(paid, 'BASIC', (1960 * 10) / 28)
+			(paid) => {
+				// BASIC is the contract salary; PRORATED takes off the 18 of February's 28 days not employed
+				near(paid, 'BASIC', 1960);
+				near(paid, 'PRORATED', (1960 * 18) / 28);
+			}
 		);
 	});
 
@@ -609,7 +626,7 @@ describe('overtime bands', () => {
 			);
 			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 			const unpaid = seed.leave_catalog?.find(
-				(row) => row.code === 'UNPAID_LEAVE' && row.settings_id === version
+				(row) => row.code === 'NPL' && row.settings_id === version
 			);
 			const entry = idOf('leave_catalog_entry', uuid(200));
 			const month = (t: Kit, name: string) => {
@@ -636,8 +653,10 @@ describe('overtime bands', () => {
 					.filter((row) => row.period === '2026-02')
 					.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines);
 				// half of one of February's 28 days (Employment Act s.18A), taken from the entry the January run sealed
-				const basic = lines.find((row) => row.code === 'BASIC');
-				assert.ok(Math.abs((basic?.amount ?? 0) - (3120 - 3120 / 28 / 2)) < 0.01);
+				// it posts on the leave row's own line; BASIC stays the contract salary
+				const unpaidLine = lines.find((row) => row.code === 'NPL');
+				assert.ok(Math.abs((unpaidLine?.amount ?? 0) - 3120 / 28 / 2) < 0.01);
+				assert.equal(lines.find((row) => row.code === 'BASIC')?.amount, 3120);
 			}).pipe(
 				Effect.provide(
 					workspace({
@@ -764,7 +783,8 @@ describe('overtime bands', () => {
 			),
 			'Asia/Jakarta',
 			(paid) => {
-				const hourly = 7400000 / 173;
+				// the hour rate goes to the whole rupiah before it multiplies the hours
+				const hourly = Math.round(7400000 / 173);
 				const workDay = 1 * 1.5 + 1 * 2;
 				const restDay = 8 * 2 + 1 * 3 + 1 * 4;
 				const holiday = 8 * 2;

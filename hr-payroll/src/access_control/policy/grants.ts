@@ -37,6 +37,7 @@ export const requestReview = (flow: Flow) =>
 		.supersededBy(['hr_manager', 'senior_management']);
 export const READ_ALL = {
 	entity: { read: true, history: true, outputs: { self_service: true } },
+	pay_group: { read: true, history: true },
 	entity_profile_version: { read: true, history: true },
 	employee_profile: { read: true, history: true },
 	employee_contract: { read: true, history: true },
@@ -137,6 +138,7 @@ const LEAVE_REQUEST = {
 };
 export const HR_OPERATIONS = {
 	entity: { ...READ_ALL.entity, create: true, update: true },
+	pay_group: { ...READ_ALL.pay_group, create: true, update: true },
 	entity_profile_version: {
 		...READ_ALL.entity_profile_version,
 		create: true,

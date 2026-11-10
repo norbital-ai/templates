@@ -66,6 +66,7 @@ export default automation('contract_materialize', {
 					(yield* draftOf(ctx, {
 						employee_id: open.employee_id ?? null,
 						entity_id: open.entity_id ?? null,
+						pay_group_id: next.pay_group_id ?? open.pay_group_id ?? null,
 						engagement: next.engagement ?? null,
 						employee_number: open.employee_number ?? null,
 						terms: next.terms ?? null,

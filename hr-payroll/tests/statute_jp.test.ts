@@ -28,8 +28,8 @@ import {
 	leaveCreate
 } from './kit.ts';
 
-const LEAVE = read('seed/public/jurisdiction/JP/version_17/leave_catalog.json');
-const OVERTIME = read('seed/public/jurisdiction/JP/version_17/overtime_catalog.json');
+const LEAVE = read('seed/public/jurisdiction/JP/version_6/leave_catalog.json');
+const OVERTIME = read('seed/public/jurisdiction/JP/version_6/overtime_catalog.json');
 const lookupOf = (code: string) => objectValue(LEAVE.find((row) => row.code === code)?.lookup);
 const person = (
 	terms: JsonObject,
@@ -415,7 +415,7 @@ describe('the attendance review on an annual leave grant day', () => {
 		const seed = seedOf([], SHORT_ROSTER, year(0));
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* take(t, seed, 'UNPAID_LEAVE', AWAY);
+			yield* take(t, seed, 'NPL', AWAY);
 			yield* run(t);
 			assert.equal((yield* reviews(t)).length, 1);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));

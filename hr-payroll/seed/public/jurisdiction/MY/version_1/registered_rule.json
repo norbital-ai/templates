@@ -626,7 +626,7 @@
 					"catalog_id": {
 						"is": {
 							"code": {
-								"eq": "UNPAID_LEAVE"
+								"eq": "NPL"
 							}
 						}
 					}
@@ -650,7 +650,7 @@
 							"catalog_id": {
 								"is": {
 									"code": {
-										"eq": "UNPAID_LEAVE"
+										"eq": "NPL"
 									}
 								}
 							}

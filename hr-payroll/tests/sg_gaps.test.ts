@@ -28,7 +28,7 @@ const ruleOf = (version: number, code: string) => {
 	assert.ok(rule?.validate !== undefined);
 	return rule;
 };
-const young = ruleOf(4, 'ROSTER_YOUNG_REST_DAY');
+const young = ruleOf(3, 'ROSTER_YOUNG_REST_DAY');
 const permit = (from: string, to: string | null = null) => ({ opened_on: from, closed_on: to });
 const allowed = (cases: readonly object[], date = '2026-05-10') =>
 	evaluate(
@@ -41,7 +41,7 @@ const allowed = (cases: readonly object[], date = '2026-05-10') =>
 		},
 		young.code
 	);
-const contract = ruleOf(4, 'CONTRACT_CATEGORIES');
+const contract = ruleOf(3, 'CONTRACT_CATEGORIES');
 const category = (value: string | undefined) =>
 	evaluate(
 		contract.validate!,

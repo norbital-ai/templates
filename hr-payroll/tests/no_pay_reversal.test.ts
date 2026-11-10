@@ -30,7 +30,7 @@ const malaysia = (allowances = {}): Seed =>
 const noPay = (seed: Seed) => {
 	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = seed.leave_catalog?.find(
-		(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
+		(item) => item.code === 'NPL' && item.settings_id === version
 	);
 	assert.ok(row !== undefined);
 	return idOf('leave_catalog', String(row.id));
@@ -70,7 +70,7 @@ const paid = (t: Kit, period: string) =>
 				.flatMap((slip) => Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown).lines);
 			return Object.fromEntries(
 				lines
-					.filter((line) => ['BASIC', 'SUA', 'UNPAID_LEAVE'].includes(line.code))
+					.filter((line) => ['BASIC', 'SUA', 'NPL'].includes(line.code))
 					.map((line) => [
 						line.code,
 						Number(line.amount.toFixed(2)) * (line.direction === 'DEDUCT' ? -1 : 1)
@@ -88,8 +88,8 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, whole('2026-06-10'));
 			yield* run(t, '2026-06');
-			// the absence is in BASIC and the prorated allowance, not a deduction line
-			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3016, SUA: 290 });
+			// BASIC stays the contract salary: the day is the NPL line, and the allowance loses its own share
+			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120, NPL: -104, SUA: 290 });
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
@@ -126,17 +126,17 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 			yield* run(t, '2026-06');
-			assert.equal((yield* paid(t, '2026-06'))['BASIC'], 3068);
+			assert.equal((yield* paid(t, '2026-06'))['NPL'], -52);
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
-	it.live('a weekend between two missed days goes with them', () => {
+	it.live('a weekend between two missed days stays paid', () => {
 		const seed = malaysia();
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, [...whole('2026-06-12'), ...whole('2026-06-15')]);
 			yield* run(t, '2026-06');
-			assert.equal((yield* paid(t, '2026-06'))['BASIC'], 2704);
+			assert.equal((yield* paid(t, '2026-06'))['NPL'], -208);
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
@@ -165,9 +165,9 @@ describe('a no-pay day', () => {
 			yield* entry(t, seed, whole('2026-07-06'), yield* sealedLeave(t));
 			yield* run(t, '2026-07');
 			// June took a thirtieth; July gives back the same, though it has 31 days
-			assert.equal((yield* paid(t, '2026-07'))['UNPAID_LEAVE'], 104);
+			assert.equal((yield* paid(t, '2026-07'))['NPL'], 104);
 			yield* run(t, '2026-08');
-			assert.equal((yield* paid(t, '2026-08'))['UNPAID_LEAVE'], undefined);
+			assert.equal((yield* paid(t, '2026-08'))['NPL'], undefined);
 		}).pipe(Effect.provide(inMonth(seed, '2026-07-20T02:00:00.000Z')));
 	});
 
@@ -188,7 +188,7 @@ describe('a no-pay day', () => {
 		const base = malaysia();
 		const seed: Seed = {
 			...base,
-			entity: (base.entity ?? []).map((row) => ({
+			pay_group: (base.pay_group ?? []).map((row) => ({
 				...row,
 				payment_schedule: { ...objectValue(row.payment_schedule), pay_cutoff_day: 25 }
 			}))
@@ -198,9 +198,57 @@ describe('a no-pay day', () => {
 			yield* run(t, '2026-06');
 			yield* entry(t, seed, whole('2026-06-29'));
 			yield* run(t, '2026-07');
-			assert.ok(((yield* paid(t, '2026-07'))['BASIC'] ?? 0) < 3120);
+			assert.ok(((yield* paid(t, '2026-07'))['NPL'] ?? 0) < 0);
 		}).pipe(Effect.provide(inMonth(seed, '2026-07-20T02:00:00.000Z')));
 	});
+});
+
+// The listing's manual no-pay lines post at REGULAR_PAY, so they move basic-level pay and the EPF wage with it.
+describe('no-pay leave settled by hand', () => {
+	const seed = malaysia();
+	const settled = (code: string, quantity: number) =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
+			const row = seed.adhoc_catalog?.find(
+				(item) => item.code === code && item.settings_id === version
+			);
+			assert.ok(row !== undefined);
+			yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
+				{
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: idOf('adhoc_catalog', String(row.id)),
+					description: 'No-pay leave settled by hand',
+					quantity,
+					incurred_on: PlainDate('2026-06-10')
+				}
+			]);
+			yield* run(t, '2026-06');
+			const [slip] = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows;
+			const { checkpoints, lines, statutory } = Schema.decodeUnknownSync(PayslipBreakdown)(
+				slip?.breakdown
+			);
+			const line = lines.find((item) => item.code === code);
+			return {
+				line: [line?.amount, line?.direction],
+				regular: checkpoints.find((point) => point.code === 'REGULAR_PAY')?.value,
+				epf: statutory.find((item) => item.code === 'EPF')?.employee
+			};
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+	// EPF Third Schedule Part A, 11% of the band's top rounded up to the ringgit: 3,000 → 330; 3,240 → 357
+	it.live('an adjustment takes from basic-level pay, and the EPF wage falls with it', () =>
+		settled('NO_PAY_ADJUSTMENT', 120).pipe(
+			Effect.map((paid) =>
+				assert.deepEqual(paid, { line: [120, 'DEDUCT'], regular: 3000, epf: 330 })
+			)
+		)
+	);
+	it.live('a refund gives it back, and the EPF wage rises with it', () =>
+		settled('NO_PAY_REFUND', 120).pipe(
+			Effect.map((paid) => assert.deepEqual(paid, { line: [120, 'ADD'], regular: 3240, epf: 357 }))
+		)
+	);
 });
 
 describe('an allowance and the share of the period paid', () => {
@@ -243,8 +291,8 @@ describe('an allowance and the share of the period paid', () => {
 			yield* entry(t, seed, whole('2026-06-10'));
 			yield* run(t, '2026-06');
 			// (3,120 + 300) ÷ 30 days
-			// the absence is in BASIC and the prorated allowance, not a deduction line
-			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3016, SUA: 290 });
+			// BASIC stays the contract salary: the day is the NPL line, and the allowance loses its own share
+			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120, NPL: -104, SUA: 290 });
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -316,12 +364,18 @@ describe('an allowance across a month of contracts', () => {
 				...(seed.entity_profile_version ?? []),
 				{ ...profile, id: uuid(902), entity_id: OTHER, name: 'Sister' }
 			],
+			// the sister company's own payroll, on the same schedule
+			pay_group: [
+				...(seed.pay_group ?? []),
+				...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
+			],
 			employee_contract: [
 				{ ...contract, effective_range: { from: '2025-01-01', to: '2026-06-15' } },
 				{
 					...contract,
 					id: uuid(907),
 					entity_id: OTHER,
+					pay_group_id: uuid(908),
 					effective_range: { from: '2026-06-16', to: null }
 				}
 			]

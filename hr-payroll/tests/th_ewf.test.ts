@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { ENTITY, pack, workspace } from './kit.ts';
 
 const terms = {
@@ -16,9 +16,16 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const base = pack('TH', 'Asia/Bangkok', terms, {}, [], [], '2026-12-15');
+const base = pack('TH', 'Asia/Bangkok', terms, {}, [], [], '2026-11-15');
+const from = (row: (typeof base)[string][number]) =>
+	Schema.decodeUnknownSync(Schema.Struct({ from: Schema.String }))(row.effective_range).from;
+const last = (base.jurisdiction_settings ?? []).map(from).sort().at(-1);
 const withStanding = (kind: 'MEMBER' | 'NONE' | 'VOLUNTARY', exempt = false) => ({
 	...base,
+	// the seeded law stops with November 2026; the version that names the collection date carries on past it
+	jurisdiction_settings: (base.jurisdiction_settings ?? []).map((row) =>
+		from(row) === last ? { ...row, effective_range: { from: last, to: null } } : row
+	),
 	entity_profile_version: (base.entity_profile_version ?? []).map((row) => ({
 		...row,
 		entity_extension_data: { ewf_exempt: exempt, wcf_rate_percent: 0.2 }

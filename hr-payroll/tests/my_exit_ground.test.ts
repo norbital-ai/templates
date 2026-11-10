@@ -68,14 +68,14 @@ const setGround = (t: Kit, ground: ExitGround) =>
 
 const settings = JSON.parse(
 	readFileSync(
-		new URL('../seed/public/jurisdiction/MY/version_8/jurisdiction_settings.json', import.meta.url),
+		new URL('../seed/public/jurisdiction/MY/version_5/jurisdiction_settings.json', import.meta.url),
 		'utf8'
 	)
 ) as readonly import('../src/lib/payroll_engine/contracts.ts').JsonObject[];
 const benefit = (
 	JSON.parse(
 		readFileSync(
-			new URL('../seed/public/jurisdiction/MY/version_8/adhoc_catalog.json', import.meta.url),
+			new URL('../seed/public/jurisdiction/MY/version_5/adhoc_catalog.json', import.meta.url),
 			'utf8'
 		)
 	) as readonly {

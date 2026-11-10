@@ -6,7 +6,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import type { Accounts } from '../src/lib/ledger/core.ts';
 import {
 	ENTITY,
@@ -356,7 +356,7 @@ describe('someone on a six-day week', () => {
 		};
 		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const row = seed.leave_catalog?.find(
-			(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
+			(item) => item.code === 'NPL' && item.settings_id === version
 		);
 		assert.ok(row !== undefined);
 		const take = (t: Kit, date: string, reverses: Id<'leave_catalog_entry'> | null = null) =>
@@ -379,7 +379,7 @@ describe('someone on a six-day week', () => {
 				]);
 			});
 		const line = (slip: PayslipBreakdown | undefined) =>
-			slip?.lines.find((item) => item.code === 'UNPAID_LEAVE');
+			slip?.lines.find((item) => item.code === 'NPL');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, '2026-06-10');
@@ -388,9 +388,10 @@ describe('someone on a six-day week', () => {
 			yield* onCycle(t, '2026-07');
 			const [june] = yield* runs(t, '2026-06');
 			const [july] = yield* runs(t, '2026-07');
-			// June has 26 days to work on a six-day week; the absence is in BASIC, July refunds the original month
-			assert.equal(line(june), undefined);
-			assert.equal(june?.checkpoints.find((point) => point.code === 'BASIC')?.value, 5000);
+			// June has 26 days to work on a six-day week; the day is a line off PAID_BASIC, July refunds the original month
+			assert.equal(line(june)?.amount, 200);
+			assert.equal(line(june)?.direction, 'DEDUCT');
+			assert.equal(june?.checkpoints.find((point) => point.code === 'PAID_BASIC')?.value, 5000);
 			assert.equal(line(july)?.amount, 200);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-07-20T02:00:00.000Z' })));
 	});
@@ -477,6 +478,7 @@ describe('corrected in the next month', () => {
 });
 
 /** Eleven months already paid: what each month's run left in the balance. */
+const lawTo = seedOf;
 const months = (
 	ordinary: readonly number[],
 	additional: Readonly<Record<number, { readonly paid: number; readonly attracted: number }>> = {}
@@ -539,6 +541,19 @@ describe('a leaver with no further on-cycle run', () => {
 });
 
 describe('a raise past the CPF ceiling', () => {
+	// the seeded law ends with November 2026: December's run stands on the last version, kept open
+	const seedOf = (...of: Parameters<typeof lawTo>): Seed => {
+		const seed = lawTo(...of);
+		return {
+			...seed,
+			jurisdiction_settings: (seed.jurisdiction_settings ?? []).map((row) => {
+				const range = objectValue(row.effective_range);
+				return range.to === '2026-11-30'
+					? { ...row, effective_range: { ...range, to: null } }
+					: row;
+			})
+		};
+	};
 	const seven = [7000, 7000, 7000, 7000, 7000, 7000];
 	const ten = [10_000, 10_000, 10_000, 10_000, 10_000];
 
@@ -596,7 +611,7 @@ describe('no-pay leave in Singapore', () => {
 	const noPay = (seed: Seed) => {
 		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const row = seed.leave_catalog?.find(
-			(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
+			(item) => item.code === 'NPL' && item.settings_id === version
 		);
 		assert.ok(row !== undefined);
 		return idOf('leave_catalog', String(row.id));
@@ -624,7 +639,7 @@ describe('no-pay leave in Singapore', () => {
 			]);
 		});
 	const line = (slip: PayslipBreakdown | undefined) =>
-		slip?.lines.find((row) => row.code === 'UNPAID_LEAVE');
+		slip?.lines.find((row) => row.code === 'NPL');
 	const seed = seedOf(SINGAPORE, 4400);
 
 	it.live('a day comes off at monthly gross ÷ the month’s working days', () =>
@@ -633,8 +648,10 @@ describe('no-pay leave in Singapore', () => {
 			yield* take(t, seed, '2026-06-10');
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june), undefined);
-			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 4200);
+			// 4,400 ÷ June's 22 working days, a line off PAID_BASIC
+			assert.equal(line(june)?.amount, 200);
+			assert.equal(line(june)?.direction, 'DEDUCT');
+			assert.equal(june?.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value, 4200);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 	);
 

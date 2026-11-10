@@ -47,7 +47,7 @@
 		"payout": "// js\n// UU 13/2003 art.156(4)(a) as amended by UU 6/2023, PP 35/2021 art.40(4)(a): unused annual leave that has not lapsed is compensated on termination.\nreturn ctx.day_rate * ctx.entry.quantity;"
 	},
 	{
-		"code": "UNPAID_LEAVE",
+		"code": "NPL",
 		"lookup": {},
 		"references": [
 			{
@@ -55,7 +55,7 @@
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
-		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
+		"subtotal_id": "e9129460-657a-4a15-9c06-d5eb8ebf1585",
 		"id": "7ab8ee9d-bdb0-51a9-86de-f6a79c76aed2",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
 		"description": "Unpaid absence from work.",

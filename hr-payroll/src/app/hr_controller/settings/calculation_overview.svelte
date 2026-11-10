@@ -81,7 +81,7 @@
 		switch (code) {
 			case 'BASIC':
 				return {
-					how: 'Contract salary (monthly, daily or hourly), prorated by paid ordinary time. Off-cycle runs start at 0.',
+					how: 'Contract salary (monthly, daily or hourly), prorated by paid ordinary time. Allowances are separate lines; NPL and absence reduce this paid share before net. Off-cycle runs start at 0.',
 					access: 'ctx.subject.employment.terms, ctx.run, ctx.lookup, ctx.as_of'
 				};
 			case 'ORDINARY_WAGES':
@@ -122,7 +122,7 @@
 				};
 			case 'NET':
 				return {
-					how: 'Running net after employee contributions and tax. The ledger writes NET_PAY from this value.',
+					how: 'Running net after employee contributions and tax. NPL is not a net deduction: it reduces the BASIC paid share. A leave row appears here only when it pays a cash-out or a reversal.',
 					access: 'ctx.subtotals, ctx.statutory, ctx.lookup, ctx.history'
 				};
 			default:

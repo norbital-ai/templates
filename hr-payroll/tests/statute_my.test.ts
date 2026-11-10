@@ -4,10 +4,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Instant, PlainDate, addDays } from '@norbital-ai/std/date';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { payBasis } from '../src/lib/payroll_engine/engine.ts';
+import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
@@ -356,7 +357,7 @@ describe('unpaid leave', () => {
 	const seed = seedOf({ started: '2024-11-01' });
 	const nine = dates('2026-11-23', 9);
 	const layer = workspace({ seed, now: NOW });
-	const unpaid = (t: Kit, days: readonly string[]) => take(t, seed, 'UNPAID_LEAVE', days);
+	const unpaid = (t: Kit, days: readonly string[]) => take(t, seed, 'NPL', days);
 	it.live('of thirty days leaves service as it stands', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -390,7 +391,7 @@ describe('unpaid leave', () => {
 			yield* syncAll(t);
 			yield* unpaid(t, dates('2026-03-01', 31));
 			yield* run(t, '2026-03');
-			yield* take(t, seed, 'UNPAID_LEAVE', ['2026-11-02'], { reverses: yield* sealedLeave(t) });
+			yield* take(t, seed, 'NPL', ['2026-11-02'], { reverses: yield* sealedLeave(t) });
 			yield* take(t, seed, 'ANNUAL_LEAVE', nine);
 		}).pipe(Effect.provide(layer))
 	);
@@ -398,7 +399,7 @@ describe('unpaid leave', () => {
 
 describe('the day rate', () => {
 	it('carries fixed allowances, and no variable one', () => {
-		const [settings] = read('seed/public/jurisdiction/MY/version_8/jurisdiction_settings.json');
+		const [settings] = read('seed/public/jurisdiction/MY/version_5/jurisdiction_settings.json');
 		assert.ok(settings !== undefined);
 		const terms = {
 			rate: { amount: 2600, unit: 'MONTHLY' },
@@ -431,7 +432,8 @@ describe('the day rate', () => {
 				},
 				{ from: '2026-06-01', to: '2026-06-30' }
 			).day_rate,
-			110
+			// the fixed allowance is in the wage: (2,600 + 260) × 12 ÷ (52 × 5 days a week)
+			132
 		);
 	});
 });
@@ -504,5 +506,107 @@ describe('a roster day', () => {
 		writes(day(REST, span('08:00', '16:00'))).pipe(
 			Effect.map((got) => assert.equal(got, 'written'))
 		)
+	);
+});
+
+describe('the provident fund', () => {
+	/** Each period's pay lines and what its statutory rows took from the employee. */
+	const slips = (t: Kit) =>
+		t.storedQuery({ payslip: { limit: 10 } }).pipe(
+			Effect.map(({ payslip }) =>
+				Object.fromEntries(
+					payslip.rows.map((slip) => {
+						const { lines, statutory } = Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown);
+						return [
+							slip.period,
+							{
+								lines: Object.fromEntries(lines.map((line) => [line.code, line.amount])),
+								employee: Object.fromEntries(statutory.map((row) => [row.code, row.employee])),
+								employer: Object.fromEntries(statutory.map((row) => [row.code, row.employer]))
+							}
+						];
+					})
+				)
+			)
+		);
+	// EPF Act 1991 Third Schedule Part F: 2% each side of RM3,000; the pass ends 15 May, so its last two months open
+	// on 15 March: February's wages carry the contribution, March's touch those months and carry none
+	it.live(
+		'of a non-citizen stops in a wage month touching the last two months of the work pass',
+		() => {
+			const seed = pack(
+				'MY',
+				'Asia/Kuala_Lumpur',
+				{
+					...TERMS,
+					rate: { amount: 3000, unit: 'MONTHLY' },
+					residency_status: 'FOREIGNER',
+					work_authorisation_expires_on: '2026-05-15'
+				},
+				{},
+				[],
+				[],
+				'2026-02-15'
+			);
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* run(t, '2026-02');
+				yield* run(t, '2026-03');
+				const paid = yield* slips(t);
+				assert.equal(paid['2026-02']?.employee.EPF_NON_CITIZEN, 60);
+				assert.equal(paid['2026-02']?.employer.EPF_NON_CITIZEN, 60);
+				assert.equal(paid['2026-03']?.employee.EPF_NON_CITIZEN ?? 0, 0);
+				assert.equal(paid['2026-03']?.employer.EPF_NON_CITIZEN ?? 0, 0);
+			}).pipe(Effect.provide(workspace({ seed, now: '2026-03-20T02:00:00.000Z' })));
+		}
+	);
+	// EPF Act 1991 s.2: overtime payments are not wages, and pay for work on a rest day or a public holiday is one;
+	// the incentive (OT) is. RM3,120 on a five-day week is 144 a day: a rest day worked pays one day, a holiday two.
+	it.live(
+		'counts the incentive (OT), and no pay for work on a rest day or a public holiday',
+		() => {
+			const HOLIDAY = '2026-02-11';
+			const seed = pack(
+				'MY',
+				'Asia/Kuala_Lumpur',
+				{
+					...TERMS,
+					rate: { amount: 3120, unit: 'MONTHLY' },
+					statutory_work_category: 'MANUAL_LABOUR'
+				},
+				{},
+				// the roster is the cycle's source of truth: every weekday worked as planned, and the first Sunday too
+				[
+					{ date: '2026-02-01', shift: REST, hours: 8 },
+					...dates('2026-02-01', 28)
+						.filter((date) => ![0, 6].includes(new Date(date).getUTCDay()))
+						.map((date) => ({ date, shift: WORK, hours: 8 }))
+				],
+				[{ date: HOLIDAY, kind: 'PUBLIC_HOLIDAY' }],
+				'2026-02-15'
+			);
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
+					{
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', 'INCENTIVE_OT')),
+						description: 'Incentive (OT)',
+						quantity: 200,
+						incurred_on: PlainDate('2026-02-10')
+					}
+				]);
+				yield* run(t, '2026-02');
+				const paid = (yield* slips(t))['2026-02'];
+				assert.deepEqual(
+					[paid?.lines.REST_DAY_WORK, paid?.lines.HOLIDAY_WORK, paid?.lines.INCENTIVE_OT],
+					[144, 288, 200]
+				);
+				// Third Schedule Part A: wages of 3,120 + 200 fall in the band to 3,320, 11% of it rounded up to the ringgit;
+				// with the 432 of rest-day and holiday pay it would be the band to 3,760 and 414
+				assert.equal(paid?.employee.EPF, 366);
+			}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })));
+		}
 	);
 });

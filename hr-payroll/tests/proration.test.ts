@@ -247,12 +247,12 @@ describe('proration basis', () => {
 		assert.equal(result.statutory[0]?.employee, 1);
 	});
 
-	it('counts the weekend inside a stretch of missed days', () => {
-		assert.equal(salary(calendar, ['2026-03-06', '2026-03-09']), 2700);
+	it('deducts only the days absent, not the weekend between them', () => {
+		assert.equal(salary(calendar, ['2026-03-06', '2026-03-09']), 2900);
 	});
 
-	it('pays nothing for a month with no paid work day', () => {
-		assert.equal(salary(calendar, workDays), 0);
+	it('pays the rest days when every work day is missed', () => {
+		assert.equal(salary(calendar, workDays), 900);
 		assert.equal(salary(working, workDays), 0);
 	});
 });

@@ -237,7 +237,8 @@
 				where: {
 					entity_id: { eq: entityId },
 					date: { gte: PlainDate(`${monthKey}-01`), lte: PlainDate(monthEnd) },
-					published_at: { isNull: false }
+					published_at: { isNull: false },
+					employee_id: { isNull: true }
 				},
 				fields: ['date', 'name'],
 				limit: 10000

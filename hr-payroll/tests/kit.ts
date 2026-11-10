@@ -24,6 +24,7 @@ export const workspace = <P extends TestPorts = never>(
 
 export const uuid = (n: number) => `11111111-1111-4111-8111-${String(n).padStart(12, '0')}`;
 export const ENTITY = idOf('entity', uuid(1));
+export const PAY_GROUP = uuid(8);
 export const WORK = uuid(11),
 	REST = uuid(12),
 	OFF = uuid(13);
@@ -139,7 +140,15 @@ export const pack = (
 				id: ENTITY,
 				code: 'E1',
 				name: 'Entity',
-				settings_code: code,
+				settings_code: code
+			}
+		],
+		// the company's one payroll: its schedule lives on the pay group
+		pay_group: [
+			{
+				id: PAY_GROUP,
+				entity_id: ENTITY,
+				name: 'Monthly',
 				payment_schedule: {
 					frequency: 'MONTHLY',
 					business_day: 'PREVIOUS',
@@ -171,6 +180,7 @@ export const pack = (
 				id: uuid(6),
 				employee_id: uuid(4),
 				entity_id: ENTITY,
+				pay_group_id: PAY_GROUP,
 				employee_number: 'W1',
 				engagement: 'EMPLOYEE',
 				status: 'SEALED',

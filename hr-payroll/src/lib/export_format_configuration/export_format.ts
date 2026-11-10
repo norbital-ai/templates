@@ -12,6 +12,9 @@ export interface PayrollExportRow {
 	readonly bank_account_name: string;
 	readonly currency: string;
 	readonly basic_earnings: number;
+	readonly allowances: number;
+	readonly npl: number;
+	readonly proration: number;
 	readonly gross_earnings: number;
 	readonly net_pay: number;
 	readonly total_deductions: number;

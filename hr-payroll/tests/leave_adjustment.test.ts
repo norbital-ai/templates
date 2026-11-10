@@ -25,22 +25,15 @@ const NOW = '2026-11-06T02:00:00.000Z';
 const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
 const YEAR = 'MY.Y.2026-01-01';
 const BALANCE = idOf('employee_balance', uuid(5));
-const seed = pack(
-	'MY',
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 3120, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[],
-	'2026-11-06'
-);
+const TERMS = {
+	rate: { amount: 3120, unit: 'MONTHLY' },
+	statutory_work_category: 'MANUAL_LABOUR',
+	work_classification: 'EA_COVERED',
+	residency_status: 'CITIZEN',
+	wage_payment_method: 'BANK',
+	allowances: {}
+};
+const seed = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], [], '2026-11-06');
 type Member = ReturnType<Kit['member']>;
 const hrOf = (t: Kit) => t.member(['hr_controller']);
 /** A manual adjustment as the profile sends it: signed days, so a negative one takes away. */
@@ -139,29 +132,40 @@ describe('a manual balance adjustment', () => {
 
 	it.live(
 		'lands in the window holding its date, and the closing settlement and carry keep it',
-		() =>
-			Effect.gen(function* () {
+		() => {
+			// a service year that closes inside the law the template holds: the second runs to 31 May 2026
+			const base = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], [], '2026-05-06');
+			const closing = {
+				...base,
+				employee_contract: (base.employee_contract ?? []).map((row) => ({
+					...row,
+					service_started_on: '2024-06-01',
+					effective_range: { from: '2024-06-01', to: null }
+				}))
+			};
+			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
-				const window = 'MY.S.2026-01-01';
+				const window = 'MY.S.2025-06-01';
 				const held = (yield* accountsIn(t)).leave?.['ANNUAL_LEAVE']?.[window]?.entitled ?? 0;
 				assert.equal(held, 8);
-				yield* adjust(t, hrOf(t), 'ANNUAL_LEAVE', 2, 'company long-service award');
+				yield* adjust(t, hrOf(t), 'ANNUAL_LEAVE', 2, 'company long-service award', '2026-05-04');
 				const [row] = yield* manualRows(t);
 				assert.equal(row?.period, window);
 				assert.equal((yield* accountsIn(t)).leave?.['ANNUAL_LEAVE']?.[window]?.entitled, 10);
 				// the service year closes: the settlement posts its own figure and leaves the manual days standing
-				t.clock.set('2027-01-01T02:00:00.000Z');
+				t.clock.set('2026-06-01T02:00:00.000Z');
 				yield* syncAll(t);
 				const leave = (yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'];
 				assert.equal(leave?.[window]?.entitled, 10);
 				// the statutory grant and the company's days above it carry, the latter up to its cap of 5
-				assert.deepEqual(leave?.['MY.S.2027-01-01'], { entitled: 12, carried: 10 });
+				assert.deepEqual(leave?.['MY.S.2026-06-01'], { entitled: 12, carried: 10 });
 				assert.deepEqual(
 					(yield* manualRows(t)).map((item) => [item.operation, item.amount?.toNumber()]),
 					[['ADD', 2]]
 				);
-			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+			}).pipe(Effect.provide(workspace({ seed: closing, now: '2026-05-06T02:00:00.000Z' })));
+		}
 	);
 
 	it.live('moves a claim row’s limit', () =>

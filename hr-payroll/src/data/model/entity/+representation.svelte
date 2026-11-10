@@ -149,7 +149,25 @@
 			where={{ entity_id: { eq: record.id } }}
 			orderBy={{ date: 'asc' }}
 			toolbar={{ title: t('app.settings.holidays'), new: true }}
-			columns={['date', 'name', { field: 'published_at', label: t('calendar.published') }]}
+			columns={[
+				'date',
+				'name',
+				'employee_id',
+				{ field: 'published_at', label: t('calendar.published') }
+			]}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet payGroupsTab()}
+	{#if record}
+		<Table
+			of="pay_group"
+			key="entity-pay-groups"
+			where={{ entity_id: { eq: record.id } }}
+			orderBy={{ name: 'asc' }}
+			toolbar={{ title: t('entity.tab_pay_groups'), new: true }}
+			columns={['name', 'payment_schedule']}
 		/>
 	{/if}
 {/snippet}
@@ -166,6 +184,7 @@
 			tabs={[
 				{ name: 'general', title: t('person.tab_general'), body: general },
 				{ name: 'versions', title: t('employer_version.plural'), body: versionsTab },
+				{ name: 'pay_groups', title: t('entity.tab_pay_groups'), body: payGroupsTab },
 				{ name: 'holidays', title: t('entity.tab_holidays'), body: holidaysTab }
 			]}
 		/>

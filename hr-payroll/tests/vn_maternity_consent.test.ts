@@ -29,25 +29,25 @@ const seedOf = (children: readonly ChildFact[]) => {
 		{ family: children.map((child) => ({ relation: 'CHILD', ...child })) },
 		[],
 		[],
-		'2027-05-15'
+		'2026-09-15'
 	);
 	return {
 		...base,
 		employee_contract: (base.employee_contract ?? []).map((row) => ({
 			...row,
-			effective_range: { from: '2027-01-01', to: null }
+			effective_range: { from: '2026-01-01', to: null }
 		}))
 	};
 };
 const NIGHT = [
-	{ start: Instant('2027-05-04T15:00:00.000Z'), end: Instant('2027-05-04T17:00:00.000Z') }
+	{ start: Instant('2026-09-01T15:00:00.000Z'), end: Instant('2026-09-01T17:00:00.000Z') }
 ];
 type Consent = {
 	readonly night_work: boolean;
 	readonly overtime: boolean;
 	readonly reference: string;
 };
-const CONSENT: Consent = { night_work: true, overtime: true, reference: 'signed form 4/5' };
+const CONSENT: Consent = { night_work: true, overtime: true, reference: 'signed form 1/9' };
 const create = (date: string, overtime = false, actual = false, consent?: Consent) => ({
 	employment_id: CONTRACT,
 	work_date: PlainDate(date),
@@ -55,10 +55,10 @@ const create = (date: string, overtime = false, actual = false, consent?: Consen
 	actual_worked_intervals: actual ? NIGHT : null,
 	...(consent === undefined ? {} : { consent })
 });
-const seedInfant = seedOf([{ born_on: '2026-12-01' }]);
-const seedPregnant = seedOf([{ expected_on: '2027-07-15' }]);
+const seedInfant = seedOf([{ born_on: '2026-04-01' }]);
+const seedPregnant = seedOf([{ expected_on: '2026-11-15' }]);
 const live = (seed: ReturnType<typeof seedOf>) =>
-	workspace({ seed, now: '2027-05-20T02:00:00.000Z' });
+	workspace({ seed, now: '2026-09-20T02:00:00.000Z' });
 
 describe('VN night work and overtime while pregnant or raising an infant', () => {
 	it.live(
@@ -68,10 +68,10 @@ describe('VN night work and overtime while pregnant or raising an infant', () =>
 				const t = yield* TestWorkspace;
 				const hr = t.as(t.admin);
 				const refused = yield* Effect.flip(
-					hr.act('roster_entry.create', [create('2027-05-04', true)])
+					hr.act('roster_entry.create', [create('2026-09-01', true)])
 				);
 				assert.match(String(refused), /ROSTER_MATERNITY_NIGHT_OVERTIME/);
-				yield* hr.act('roster_entry.create', [create('2027-05-04', true, false, CONSENT)]);
+				yield* hr.act('roster_entry.create', [create('2026-09-01', true, false, CONSENT)]);
 			}).pipe(Effect.provide(live(seedInfant)))
 	);
 	it.live(
@@ -80,7 +80,7 @@ describe('VN night work and overtime while pregnant or raising an infant', () =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const hr = t.as(t.admin);
-				const created = yield* hr.act('roster_entry.create', [create('2027-05-05')]);
+				const created = yield* hr.act('roster_entry.create', [create('2026-09-02')]);
 				const id = created.records.find((row) => row.model === 'roster_entry')?.id;
 				assert.ok(id !== undefined);
 				const refused = yield* Effect.flip(
@@ -96,7 +96,7 @@ describe('VN night work and overtime while pregnant or raising an infant', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(
-				t.as(t.admin).act('roster_entry.create', [create('2027-05-04', true, false, CONSENT)])
+				t.as(t.admin).act('roster_entry.create', [create('2026-09-01', true, false, CONSENT)])
 			);
 			assert.match(String(refused), /ROSTER_MATERNITY_NIGHT_OVERTIME/);
 		}).pipe(Effect.provide(live(seedPregnant)))
@@ -105,7 +105,7 @@ describe('VN night work and overtime while pregnant or raising an infant', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const hr = t.as(t.admin);
-			const created = yield* hr.act('roster_entry.create', [create('2027-05-06')]);
+			const created = yield* hr.act('roster_entry.create', [create('2026-09-03')]);
 			const id = created.records.find((row) => row.model === 'roster_entry')?.id;
 			assert.ok(id !== undefined);
 			const refused = yield* Effect.flip(
@@ -121,7 +121,7 @@ describe('VN night work and overtime while pregnant or raising an infant', () =>
 			const t = yield* TestWorkspace;
 			yield* t
 				.as(t.admin)
-				.act('roster_entry.create', [create('2027-05-04', true, true, undefined)]);
+				.act('roster_entry.create', [create('2026-09-01', true, true, undefined)]);
 		}).pipe(Effect.provide(live(seedOf([{ born_on: '2025-01-01' }]))))
 	);
 });

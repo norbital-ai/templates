@@ -6,6 +6,9 @@ import type { PayrollExportRow } from './export_format.js';
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 const amount = (value: unknown): number =>
 	typeof value === 'number' && Number.isFinite(value) ? value : 0;
+const day = (value: unknown): number => Date.parse(`${String(value)}T00:00:00Z`);
+const days = (from: string, to: string) =>
+	Math.max(0, Math.round((day(to) - day(from)) / 86_400_000) + 1);
 
 /** Resolve one run's payments for a file export: payslips, contracts and the run's currency. */
 export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reader, runId: string) {
@@ -35,6 +38,32 @@ export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reade
 		const person =
 			contract !== undefined && isJsonObject(contract.employee_id) ? contract.employee_id : {};
 		const bankAccountName = text(bank.bank_account_name) || text(person.name);
+		const terms = contract !== undefined && isJsonObject(contract.terms) ? contract.terms : {};
+		const rate = isJsonObject(terms.rate) ? terms.rate : {};
+		const unit = text(rate.unit) || 'MONTHLY';
+		const paidBasicField = amount(slip.basic_earnings);
+		const basic = unit === 'MONTHLY' ? amount(rate.amount) : paidBasicField;
+		const breakdown = isJsonObject(slip.breakdown) ? slip.breakdown : {};
+		const lines = Array.isArray(breakdown.lines) ? breakdown.lines.filter(isJsonObject) : [];
+		const checkpoints = Array.isArray(breakdown.checkpoints)
+			? breakdown.checkpoints.filter(isJsonObject)
+			: [];
+		const checkpoint = (code: string) =>
+			amount(checkpoints.find((row) => text(row.code) === code)?.value);
+		const allowances = lines
+			.filter((line) => {
+				const source = line.source;
+				return isJsonObject(source) && text(source.model) === 'allowance_catalog';
+			})
+			.reduce((total, line) => total + amount(line.amount), 0);
+		const nplLine = lines
+			.filter((line) => text(line.code) === 'NPL')
+			.reduce((total, line) => total + amount(line.amount), 0);
+		const paidBasic = checkpoints.some((row) => text(row.code) === 'PAID_BASIC')
+			? checkpoint('PAID_BASIC')
+			: paidBasicField;
+		const npl = nplLine > 0 ? nplLine : Math.max(0, basic - paidBasic);
+		const proration = Math.max(0, basic - paidBasic - npl);
 		return {
 			payroll_run_id: runId,
 			employee_number: text(contract?.employee_number),
@@ -45,7 +74,10 @@ export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reade
 			bank_account_number: text(bank.bank_account_number),
 			bank_account_name: bankAccountName,
 			currency,
-			basic_earnings: amount(slip.basic_earnings),
+			basic_earnings: basic,
+			allowances,
+			npl,
+			proration,
 			gross_earnings: amount(slip.gross_earnings),
 			net_pay: amount(slip.net_pay),
 			total_deductions: amount(slip.total_deductions),

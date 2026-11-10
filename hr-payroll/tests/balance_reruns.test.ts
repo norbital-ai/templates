@@ -21,7 +21,8 @@ import {
 	leaveCreate
 } from './kit.ts';
 
-const NOW = '2026-12-20T02:00:00.000Z';
+// inside the law the template holds, which runs to 30 November 2026
+const NOW = '2026-11-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
 const terms = {
 	rate: { amount: 11_000_000, unit: 'MONTHLY' },

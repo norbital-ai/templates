@@ -85,7 +85,7 @@ describe('month balance', () => {
 
 describe('figures a month holds', () => {
 	it('Japan caps pension on every bonus paid in the month together', () => {
-		const { source, lookup } = rowOf('JP', 17, 'PENSION_BONUS');
+		const { source, lookup } = rowOf('JP', 4, 'PENSION_BONUS');
 		const amount = (paid: number) =>
 			evaluate(
 				source,

@@ -226,7 +226,7 @@ export default model('jurisdiction_settings', {
 			// the catalog changed: now if the version is in force, else on the day it starts
 			for (const { before, after } of changes)
 				if (before.status !== 'SEALED' && after.status === 'SEALED') {
-					const from = String(after.effective_range.from);
+					const from = String((after.effective_range ?? before.effective_range).from);
 					yield* ctx.schedule(
 						'ledger',
 						{},

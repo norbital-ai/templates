@@ -189,7 +189,7 @@ describe('an exit', () => {
 });
 
 // Vietnam's exit duties listen to the same event, with no final pay date recorded.
-const VN_NOW = '2027-04-20T02:00:00.000Z';
+const VN_NOW = '2026-11-20T02:00:00.000Z';
 const VN_DUTIES = [
 	'encash-leave-on-exit',
 	'TERMINATION_NOTICE',
@@ -214,7 +214,7 @@ const vnBase = pack(
 	{},
 	[],
 	[],
-	'2027-01-15'
+	'2026-11-15'
 );
 const vnSeed = {
 	...vnBase,
@@ -242,7 +242,7 @@ describe('a VN exit', () => {
 	it.live('an amendment that a successor follows raises no exit duty, final pay date or not', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* sealEvents(t, '2027-02-02', []);
+			yield* sealEvents(t, '2026-11-02', []);
 			yield* t.runDue();
 			assert.deepEqual(yield* vnDuties(t), []);
 		}).pipe(
@@ -252,9 +252,9 @@ describe('a VN exit', () => {
 						...vnSeed,
 						employee_contract: (vnSeed.employee_contract ?? []).map((row) => ({
 							...row,
-							final_pay_due_on: '2027-02-15',
+							final_pay_due_on: '2026-11-15',
 							employee_extension_data: {
-								annual_leave_service_review: { year: '2027', as_of: '2027-01-31' }
+								annual_leave_service_review: { year: '2026', as_of: '2026-10-31' }
 							}
 						}))
 					},
@@ -267,29 +267,29 @@ describe('a VN exit', () => {
 	it.live('raises once, follows a moved date and closes when cancelled', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* end(t, '2027-03-31');
+			yield* end(t, '2026-10-31');
 			yield* t.runDue();
 			assert.deepEqual(
 				(yield* vnDuties(t)).map((row) => row.occurrence_key).sort(),
-				VN_DUTIES.map((code) => `${code}:${CONTRACT}:exit:2027-03-31`).sort()
+				VN_DUTIES.map((code) => `${code}:${CONTRACT}:exit:2026-10-31`).sort()
 			);
-			yield* end(t, '2027-03-31');
+			yield* end(t, '2026-10-31');
 			yield* t.runDue();
 			assert.equal((yield* vnDuties(t)).length, VN_DUTIES.length);
 
-			yield* end(t, '2027-02-28');
+			yield* end(t, '2026-09-30');
 			yield* t.runDue();
 			const moved = yield* vnDuties(t);
 			const open = moved.filter((row) => row.state === 'OPEN');
 			assert.deepEqual(
 				open.map((row) => row.occurrence_key).sort(),
-				VN_DUTIES.map((code) => `${code}:${CONTRACT}:exit:2027-02-28`).sort()
+				VN_DUTIES.map((code) => `${code}:${CONTRACT}:exit:2026-09-30`).sort()
 			);
 			assert.equal(
 				String(
 					open.find((row) => row.occurrence_key.startsWith('PIT_WITHHOLDING_CERTIFICATE:'))?.due_on
 				),
-				'2027-02-28'
+				'2026-09-30'
 			);
 			assert.equal(moved.filter((row) => row.state === 'WAIVED').length, VN_DUTIES.length);
 
@@ -308,7 +308,7 @@ describe('a VN exit', () => {
 					employee_extension_data: ended.employee_extension_data,
 					service_started_on: ended.service_started_on,
 					signed_contract_period: ended.signed_contract_period,
-					effective_range: { from: PlainDate('2027-03-01'), to: null },
+					effective_range: { from: PlainDate('2026-10-01'), to: null },
 					status: 'DRAFT',
 					reason: 'Rehired'
 				}

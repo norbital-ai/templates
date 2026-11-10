@@ -64,7 +64,7 @@ const law = (code: string, folder: string, settings: JsonObject): string => {
 describe('jurisdiction lineage', () => {
 	for (const code of readdirSync(ROOT)) {
 		const versions = versionsOf(code);
-		it(`${code}: numbered in date order, sealed, unbroken and open at the end`, () => {
+		it(`${code}: numbered in date order, sealed, unbroken and closed at the live window’s end`, () => {
 			assert.deepEqual(
 				versions.map((version) => version.number),
 				versions.map((_, index) => index + 1)
@@ -73,7 +73,7 @@ describe('jurisdiction lineage', () => {
 			for (const [index, version] of versions.entries()) {
 				const next = versions[index + 1];
 				const { to } = range(version.settings);
-				if (next === undefined) assert.equal(to, null);
+				if (next === undefined) assert.equal(to, '2026-11-30');
 				else assert.equal(addDays(PlainDate(String(to)), 1), range(next.settings).from);
 			}
 		});

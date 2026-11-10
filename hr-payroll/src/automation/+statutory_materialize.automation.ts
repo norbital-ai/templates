@@ -96,7 +96,12 @@ export default automation('statutory_materialize', {
 		const changes = (got.statutory_change ?? []).map(changeOf);
 		const sealed = versions.filter((row) => row.status === 'SEALED');
 		const baselineOn = (date: string): JsonObject => {
-			const baseline = sealed.find((row) => covers(row, date));
+			// the seed holds law only to the live window's end: past it the last sealed version still stands until a
+			// change is materialized, so it is the baseline of the next one
+			const last = sealed.toSorted((left, right) => fromOf(right).localeCompare(fromOf(left)))[0];
+			const baseline =
+				sealed.find((row) => covers(row, date)) ??
+				(last !== undefined && date > fromOf(last) ? last : undefined);
 			if (baseline === undefined)
 				throw new Refusal({
 					message: `no_baseline: ${input.code} has no sealed version in force on ${date}.`
@@ -137,16 +142,24 @@ export default automation('statutory_materialize', {
 				return yield* Effect.fail(
 					new Refusal({ message: `stale: the draft does not carry ${missing.id}.` })
 				);
+			// a predecessor still in force on the day ends the day before; one that already ended (the seeded window's
+			// last version) keeps its end: a sealed version only ever shortens
+			const end = objectValue(predecessor.effective_range).to;
+			const ended = typeof end === 'string' ? end : '';
 			const answer = yield* ctx.act.checked([
-				{
-					callable: 'jurisdiction_settings.update',
-					input: [
-						{
-							target: valueText(predecessor, 'id'),
-							set: { effective_range: { from: fromOf(predecessor), to: addDays(day, -1) } }
-						}
-					]
-				},
+				...(ended !== '' && ended < day
+					? []
+					: [
+							{
+								callable: 'jurisdiction_settings.update' as const,
+								input: [
+									{
+										target: valueText(predecessor, 'id'),
+										set: { effective_range: { from: fromOf(predecessor), to: addDays(day, -1) } }
+									}
+								]
+							}
+						]),
 				{
 					callable: 'jurisdiction_settings.update',
 					input: [{ target: valueText(draft, 'id'), set: { status: 'SEALED' } }]
@@ -316,21 +329,28 @@ export default automation('statutory_materialize', {
 							(change) => change.finding_id === id && change.effective_from !== plan.effective_from
 						)
 				);
+				// as on a seal: a baseline that already ended keeps its end
+				const end = objectValue(baselineRow.effective_range).to;
+				const ended = typeof end === 'string' ? end : '';
 				const answer = yield* ctx.act.checked([
-					{
-						callable: 'jurisdiction_settings.update',
-						input: [
-							{
-								target: valueText(baselineRow, 'id'),
-								set: {
-									effective_range: {
-										from: fromOf(baselineRow),
-										to: addDays(plan.effective_from, -1)
-									}
+					...(ended !== '' && ended < plan.effective_from
+						? []
+						: [
+								{
+									callable: 'jurisdiction_settings.update' as const,
+									input: [
+										{
+											target: valueText(baselineRow, 'id'),
+											set: {
+												effective_range: {
+													from: fromOf(baselineRow),
+													to: addDays(plan.effective_from, -1)
+												}
+											}
+										}
+									]
 								}
-							}
-						]
-					},
+							]),
 					{
 						callable: 'jurisdiction_settings.update',
 						input: [{ target: String(draftId), set: { status: 'SEALED' } }]

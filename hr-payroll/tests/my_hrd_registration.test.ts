@@ -55,7 +55,7 @@ const touch = (t: Kit) =>
 const rule = (
 	JSON.parse(
 		readFileSync(
-			new URL('../seed/public/jurisdiction/MY/version_8/registered_rule.json', import.meta.url),
+			new URL('../seed/public/jurisdiction/MY/version_5/registered_rule.json', import.meta.url),
 			'utf8'
 		)
 	) as readonly { code: string; validate?: string; lookup?: Record<string, unknown> }[]

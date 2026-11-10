@@ -209,14 +209,14 @@
 		"description": "SOLO_PARENT_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
 	},
 	{
-		"code": "UNPAID_LEAVE",
+		"code": "NPL",
 		"references": [
 			{
 				"title": "DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.2; Omnibus Rules Book III Rule IV s.2: no work, no pay."
 			}
 		],
 		"lookup": {},
-		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
+		"subtotal_id": "c35324ba-94af-41da-932e-e0f80a496920",
 		"id": "54adaf9b-f0eb-5bf4-bdc6-86dc29280081",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"description": "Unpaid absence from work.",

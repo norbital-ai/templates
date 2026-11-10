@@ -37,6 +37,8 @@ const CALCULATION_ROOTS = [
 	'day_rate',
 	'hour_rate',
 	'paid_share',
+	'proration_amount',
+	'abs_amount',
 	'used',
 	'subtotals',
 	'overtime',

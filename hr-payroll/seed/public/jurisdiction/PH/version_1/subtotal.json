@@ -9,9 +9,24 @@
 		"balance_window": "MONTH"
 	},
 	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "ff89bb47-2a5d-4594-b61d-bb9c24cfd574",
+		"previous_id": "e4659642-6dbe-5369-b1a3-c3648d0ddbb0",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "c35324ba-94af-41da-932e-e0f80a496920",
+		"previous_id": "ff89bb47-2a5d-4594-b61d-bb9c24cfd574",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
 		"code": "BASIC_AFTER_UNPAID_LEAVE",
 		"name": "Basic pay after unpaid leave",
-		"previous_id": "e4659642-6dbe-5369-b1a3-c3648d0ddbb0",
+		"previous_id": "c35324ba-94af-41da-932e-e0f80a496920",
 		"id": "6404fd6e-1a63-5a5f-a1f1-2f7934a149cb",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"balance_window": "YEAR"

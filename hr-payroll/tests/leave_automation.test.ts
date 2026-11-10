@@ -308,26 +308,27 @@ describe('the events that call it', () => {
 	});
 
 	it.live('1 January opens a new key, and the old window stays', () => {
-		const seed = seedOf('2023-01-01', {}, '2027-01-01');
+		// the one 1 January inside the law the template holds is 2026's
+		const seed = seedOf('2023-01-01', {}, '2025-12-06');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
-			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03');
+			yield* take(t, seed, 'MEDICAL_LEAVE', '2025-12-03');
 			yield* t.runDue();
-			t.clock.set('2027-01-01T02:00:00.000Z');
+			t.clock.set('2026-01-01T02:00:00.000Z');
 			yield* compute(t);
 			const held = (yield* accountsIn(t)).leave?.['MEDICAL_LEAVE'];
 			assert.deepEqual(held, {
-				'MY.Y.2026-01-01': { entitled: 18, used: 1 },
-				'MY.Y.2027-01-01': { entitled: 18 }
+				'MY.Y.2025-01-01': { entitled: 18, used: 1 },
+				'MY.Y.2026-01-01': { entitled: 18 }
 			});
 			const movement = (yield* ledgerRows(t)).find(
-				(row) => row.code === 'MEDICAL_LEAVE' && row.period === 'MY.Y.2027-01-01'
+				(row) => row.code === 'MEDICAL_LEAVE' && row.period === 'MY.Y.2026-01-01'
 			);
 			assert.equal(movement?.operation, 'ADD');
 			assert.equal(movement?.measure, 'entitled');
 			assert.equal(movement?.amount?.toNumber(), 18);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+		}).pipe(Effect.provide(workspace({ seed, now: '2025-12-06T02:00:00.000Z' })));
 	});
 });
 

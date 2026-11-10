@@ -25,7 +25,9 @@ const latest = (code: string): string => {
 const load = <T>(path: string): T => JSON.parse(readFileSync(new URL(path), 'utf8')) as T;
 const withGlobals = (code: string, rule: Rule): Rule => {
 	const [settings] = load<readonly Rule[]>(`${latest(code)}/jurisdiction_settings.json`);
-	return { ...rule, lookup: { ...settings?.lookup, ...rule.lookup } };
+	// a rule reads the jurisdiction's shared constants under `ctx.lookup`, beside its own
+	const constants = settings?.lookup?.['constants'] as Record<string, unknown> | undefined;
+	return { ...rule, lookup: { ...settings?.lookup, ...constants, ...rule.lookup } };
 };
 const ruleOf = (code: string, ruleCode: string): Rule => {
 	const rule = load<readonly Rule[]>(`${latest(code)}/registered_rule.json`).find(

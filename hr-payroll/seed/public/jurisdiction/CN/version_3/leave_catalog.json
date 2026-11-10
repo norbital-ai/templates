@@ -345,7 +345,7 @@
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
 	{
-		"code": "UNPAID_LEAVE",
+		"code": "NPL",
 		"description": "Unpaid.",
 		"paid_share": "0",
 		"lookup": {},
@@ -354,7 +354,7 @@
 				"title": "工资支付暂行规定 第十一条、第十二条: 仅法定休假和假期支付工资; 事假由双方约定, 无薪."
 			}
 		],
-		"subtotal_id": "c3890fcd-4799-5bbf-94de-776d861ade65",
+		"subtotal_id": "b735f39e-52da-4406-896b-571f1f7ad541",
 		"id": "28777b23-9697-559b-8c61-40a3da0c4000",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},

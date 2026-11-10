@@ -848,5 +848,41 @@
 		"id": "cbe74dd3-b341-5a4d-8a58-9e48f0f00268",
 		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
 		"description": "Overtime the attendance missed, paid in a later run."
+	},
+	{
+		"code": "NO_PAY_ADJUSTMENT",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "50720ac7-cbf0-55c2-8c90-8c5c527f9ea7",
+		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Encoded 2026-11-11: the manual no-pay leave adjustment of a payroll listing. It moves basic pay, so it counts wherever basic pay counts."
+			}
+		],
+		"id": "4bbb1039-93f4-534c-82cd-c56d170c1fb2",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
+		"description": "No-pay leave settled by hand: what HR takes beyond the unpaid days the cycle holds (a calendar month with no paid day pays nothing)."
+	},
+	{
+		"code": "NO_PAY_REFUND",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "50720ac7-cbf0-55c2-8c90-8c5c527f9ea7",
+		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Encoded 2026-11-11: the manual no-pay leave adjustment of a payroll listing. It moves basic pay, so it counts wherever basic pay counts."
+			}
+		],
+		"id": "a8e5e866-3d6a-5e96-8449-17b4054603bc",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
+		"description": "No-pay leave settled by hand: gives back unpaid days an earlier payslip already took, so no day is deducted twice."
 	}
 ]

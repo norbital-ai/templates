@@ -8,9 +8,25 @@
 		"balance_window": "MONTH"
 	},
 	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "4870cdce-685f-4f45-bc2a-365d3486352f",
+		"previous_id": "9859e92a-53aa-55fb-99c2-0eb772ac1078",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "acf77a02-e888-4401-a3c1-0d016ce8f74a",
+		"previous_id": "4870cdce-685f-4f45-bc2a-365d3486352f",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"balance_window": "MONTH"
+	},
+	{
 		"code": "NON_TAXABLE_PAY",
 		"name": "非課税の通勤手当・宿日直手当 (non-taxable commuting and duty pay)",
-		"previous_id": "9859e92a-53aa-55fb-99c2-0eb772ac1078",
+		"previous_id": "acf77a02-e888-4401-a3c1-0d016ce8f74a",
 		"id": "af0d351c-429e-5541-90ab-614399cbb25c",
 		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
 		"balance_window": "MONTH"

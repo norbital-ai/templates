@@ -60,9 +60,15 @@ export default model('entity_profile_version', {
 				},
 				night_differential_basis: {
 					kind: 'enum',
-					values: ['WORKED', 'CLOCK_SPAN'],
+					values: ['WORKED', 'CLOCK_SPAN', 'WHOLE_NIGHT'],
 					default: 'WORKED',
-					help: 'CLOCK_SPAN pays the night premium on every clocked hour in the night window, unpaid breaks and overtime included, at the ordinary hour rate; a shift where the law pays more keeps the law.'
+					help: 'CLOCK_SPAN pays the night premium on every clocked hour in the night window, unpaid breaks and overtime included, at the ordinary hour rate; WHOLE_NIGHT pays a worked night shift a full eight hours of the premium at the day’s rate. A shift where the law pays more keeps the law.'
+				},
+				contribution_split: {
+					kind: 'enum',
+					values: ['EVEN', 'FIRST_RUN'],
+					default: 'EVEN',
+					help: 'How a month’s contributions fall on two runs a month. EVEN charges half on each; FIRST_RUN charges the whole month on the first run, on an estimate, and the second run settles the month’s actual wages.'
 				}
 			}
 		},

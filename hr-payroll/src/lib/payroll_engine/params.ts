@@ -1322,6 +1322,9 @@ export const ROW_PARAMS = {
 			unit: Schema.String
 		}),
 		NATURAL_DISASTER_ABSENCE: Schema.Struct({}),
+		NPL: Schema.Struct({
+			unit: Schema.optional(Schema.String)
+		}),
 		NS_LEAVE: Schema.Struct({}),
 		NURSING_BREAK: Schema.Struct({
 			child_age_limit_years: Schema.Number,
@@ -1508,9 +1511,6 @@ export const ROW_PARAMS = {
 		TRAINING_LEAVE: Schema.Struct({}),
 		UNION_DUTY_LEAVE: Schema.Struct({}),
 		UNPAID_INFANT_CARE_LEAVE: Schema.Struct({}),
-		UNPAID_LEAVE: Schema.Struct({
-			unit: Schema.optional(Schema.String)
-		}),
 		VAWC_LEAVE: Schema.Struct({
 			grant_days: Schema.Number,
 			opened_by: Schema.Struct({ VAWC: Schema.Struct({}) }),
@@ -1982,8 +1982,6 @@ export const ROW_PARAMS = {
 			)
 		}),
 		HOLIDAY_NOT_GRANTED: Schema.Struct({}),
-		HOUSING_IN_KIND: Schema.Struct({}),
-		HOUSING_IN_KIND_SOCIAL_INSURANCE: Schema.Struct({}),
 		HPF_ADJUSTMENT: Schema.Struct({
 			accounts: Schema.Array(
 				Schema.Struct({
@@ -2024,6 +2022,7 @@ export const ROW_PARAMS = {
 				})
 			)
 		}),
+		INCENTIVE_OT: Schema.Struct({}),
 		INDIGENOUS_RITUAL_DAY_WORK: Schema.Struct({}),
 		INJURY_WAITING_COMPENSATION: Schema.Struct({
 			rate: Schema.Number
@@ -2213,8 +2212,6 @@ export const ROW_PARAMS = {
 				})
 			)
 		}),
-		MEALS_IN_KIND: Schema.Struct({}),
-		MEALS_IN_KIND_SOCIAL_INSURANCE: Schema.Struct({}),
 		MEDICAL_ADJUSTMENT: Schema.Struct({
 			accounts: Schema.Array(
 				Schema.Struct({
@@ -2307,6 +2304,8 @@ export const ROW_PARAMS = {
 		NIGHT_MEAL_CASH: Schema.Struct({
 			limit_per_unit: Schema.Number
 		}),
+		NO_PAY_ADJUSTMENT: Schema.Struct({}),
+		NO_PAY_REFUND: Schema.Struct({}),
 		NON_ACCUMULATING_INSURANCE: Schema.Struct({}),
 		NON_COMPETE_COMPENSATION: Schema.Struct({
 			max_years: Schema.optional(Schema.Number),

@@ -61,7 +61,7 @@ return r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 
 	});
 	it('excludes a Singapore foreigner from CPF and includes citizens and PRs', () => {
 		const cpf = catalog(
-			'../seed/public/jurisdiction/SG/version_4/statutory_contribution_catalog.json'
+			'../seed/public/jurisdiction/SG/version_3/statutory_contribution_catalog.json'
 		).find((row) => row.code === 'CPF');
 		const context = (residency_status: string) => ({
 			subject: { employment: { terms: { residency_status }, employee_extension_data: {} } },
@@ -94,7 +94,7 @@ return r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 
 	});
 	it('grants SINDA to an Employment Pass holder, not S Pass or Work Permit', () => {
 		const sinda = catalog(
-			'../seed/public/jurisdiction/SG/version_4/statutory_contribution_catalog.json'
+			'../seed/public/jurisdiction/SG/version_3/statutory_contribution_catalog.json'
 		).find((row) => row.code === 'SINDA');
 		assert.ok(sinda !== undefined);
 		const lookup = (sinda as Row & { lookup: object }).lookup;
@@ -115,7 +115,7 @@ return r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 
 		assert.equal(eligible(sinda, context('', 'CITIZEN')), true);
 	});
 	it('accepts only declared Singapore pass categories on a contract', () => {
-		for (const version of ['version_3', 'version_4']) {
+		for (const version of ['version_2', 'version_3']) {
 			const categories = rule(
 				`../seed/public/jurisdiction/SG/${version}/registered_rule.json`,
 				'CONTRACT_CATEGORIES'

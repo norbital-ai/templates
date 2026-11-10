@@ -40,17 +40,38 @@ export default model('holiday', {
 			values: ['EVERYONE', 'ONLY_IF_OFF_ON_REPLACED_DATE'],
 			default: 'EVERYONE'
 		},
-		entity_id: { kind: 'ref', to: 'entity', inverse: 'holiday' }
+		entity_id: { kind: 'ref', to: 'entity', inverse: 'holiday' },
+		// a holiday is the company's day; with a person named it is that person's alone: the day they keep the holiday
+		// when their shift put it on another date (a night guard whose holiday shift starts as the holiday ends)
+		employee_id: { kind: 'ref', to: 'employee_profile', inverse: 'holiday', optional: true }
 	},
 	read: 'all',
 	create: {
 		columns: {
-			holiday: ['date', 'name', 'kind', 'published_at', 'replaces', 'given_to', 'entity_id']
+			holiday: [
+				'date',
+				'name',
+				'kind',
+				'published_at',
+				'replaces',
+				'given_to',
+				'entity_id',
+				'employee_id'
+			]
 		}
 	},
 	update: {
 		columns: {
-			holiday: ['date', 'name', 'kind', 'published_at', 'replaces', 'given_to', 'entity_id']
+			holiday: [
+				'date',
+				'name',
+				'kind',
+				'published_at',
+				'replaces',
+				'given_to',
+				'entity_id',
+				'employee_id'
+			]
 		}
 	},
 	effect: {

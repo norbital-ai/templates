@@ -171,7 +171,7 @@ const SUBJECT_EMPLOYER = [
 	'time_zone',
 	'entity_extension_data'
 ] as const;
-const SUBJECT_ENTITY = ['id', 'name', 'payment_schedule'] as const;
+const SUBJECT_PAY_GROUP = ['entity_id', 'name', 'payment_schedule'] as const;
 const latestVersion = (rows: readonly JsonObject[]): JsonObject | undefined => {
 	const start = (row: JsonObject): string =>
 		isJsonObject(row.effective_range) && typeof row.effective_range.from === 'string'
@@ -227,9 +227,9 @@ const subjectLayers = (rows: readonly JsonObject[], cache: SubjectCache) => {
 						fields: [...SUBJECT_EMPLOYER],
 						limit: 10000
 					},
-					entity: {
-						where: { id: { in: [...entities] } },
-						fields: [...SUBJECT_ENTITY],
+					pay_group: {
+						where: { entity_id: { in: [...entities] } },
+						fields: [...SUBJECT_PAY_GROUP],
 						limit: 10000
 					}
 				}),
@@ -244,23 +244,21 @@ const subjectLayers = (rows: readonly JsonObject[], cache: SubjectCache) => {
 				})
 	};
 };
-const withEntity = (version: JsonObject, entity: JsonObject | undefined): JsonObject =>
-	entity === undefined
-		? version
-		: {
-				...version,
-				...(entity['payment_schedule'] === undefined
-					? {}
-					: { payment_schedule: entity['payment_schedule'] })
-			};
+// ponytail: a rule reads one schedule for the employer, its first pay group by name. A company with several groups
+// needs the subject's own group here if a rule ever depends on which.
+const withEntity = (version: JsonObject, groups: readonly JsonObject[]): JsonObject => {
+	const [first] = groups.toSorted((a, b) => String(a['name']).localeCompare(String(b['name'])));
+	const schedule = first?.['payment_schedule'];
+	return schedule === undefined ? version : { ...version, payment_schedule: schedule };
+};
 const primeFrom = (found: Record<string, readonly JsonObject[]>, cache: SubjectCache) => {
 	for (const row of found.employee_contract ?? []) cache.contracts.set(String(row.id), row);
-	const entities = new Map((found.entity ?? []).map((row) => [String(row.id), row]));
+	const groups = Map.groupBy(found.pay_group ?? [], (row) => String(refId(row.entity_id)));
 	for (const [id, versions] of Map.groupBy(found.entity_profile_version ?? [], (row) =>
 		String(refId(row.entity_id))
 	)) {
 		const version = latestVersion(versions);
-		if (version !== undefined) cache.employers.set(id, withEntity(version, entities.get(id)));
+		if (version !== undefined) cache.employers.set(id, withEntity(version, groups.get(id) ?? []));
 	}
 	for (const row of found.employee_profile ?? []) cache.employees.set(String(row.id), row);
 };
@@ -303,14 +301,14 @@ const subjectValue = Effect.fnUntraced(function* (
 					fields: [...SUBJECT_EMPLOYER],
 					limit: 100
 				},
-				entity: {
-					where: { id: { eq: employerId } },
-					fields: [...SUBJECT_ENTITY],
-					limit: 1
+				pay_group: {
+					where: { entity_id: { eq: employerId } },
+					fields: [...SUBJECT_PAY_GROUP],
+					limit: 100
 				}
 			});
 			const version = latestVersion(found.entity_profile_version ?? []);
-			employer = version === undefined ? undefined : withEntity(version, found.entity?.[0]);
+			employer = version === undefined ? undefined : withEntity(version, found.pay_group ?? []);
 			if (employer !== undefined) cache.employers.set(employerId, employer);
 		}
 	}

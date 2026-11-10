@@ -745,7 +745,9 @@ export type Known = {
 	readonly runs: readonly JsonObject[];
 	readonly captures: ReadonlyMap<string, readonly JsonObject[]>;
 	/** Entity payment schedules, for the closed-period check. */
+	/** Each pay group's schedule, and each contract's pay group. */
 	readonly schedule: ReadonlyMap<string, JsonObject>;
+	readonly payGroup: ReadonlyMap<string, string>;
 };
 const known = Effect.fn('ledger.known')(function* (
 	read: Reader,
@@ -761,6 +763,7 @@ const known = Effect.fn('ledger.known')(function* (
 			fields: [
 				'employee_id',
 				'entity_id',
+				'pay_group_id',
 				'status',
 				'effective_range',
 				'service_started_on',
@@ -804,15 +807,15 @@ const known = Effect.fn('ledger.known')(function* (
 			? {
 					payroll_run: {
 						where: { entity_id: { in: uniqueIds(entries, 'entity_id') } },
-						fields: ['entity_id', 'period', 'salary_coverage', 'kind'],
+						fields: ['entity_id', 'pay_group_id', 'period', 'salary_coverage', 'kind'],
 						limit: 10000
 					}
 				}
 			: {}),
 		...(model === LEAVE
 			? {
-					entity: {
-						where: { id: { in: uniqueIds(entries, 'entity_id') } },
+					pay_group: {
+						where: { entity_id: { in: uniqueIds(entries, 'entity_id') } },
 						fields: ['payment_schedule'],
 						limit: 1000
 					}
@@ -852,7 +855,10 @@ const known = Effect.fn('ledger.known')(function* (
 		posted: found.ledger_entry ?? [],
 		runs: found.payroll_run ?? [],
 		schedule: new Map(
-			(found.entity ?? []).map((row) => [String(row.id), objectValue(row.payment_schedule)])
+			(found.pay_group ?? []).map((row) => [String(row.id), objectValue(row.payment_schedule)])
+		),
+		payGroup: new Map(
+			(found.employee_contract ?? []).map((row) => [String(row.id), String(row.pay_group_id)])
 		),
 		captures: Map.groupBy(captures, (row) => String(row.leave_entry_id))
 	} satisfies Known;
@@ -1257,14 +1263,15 @@ export const assertOpenPeriod = Effect.fn('ledger.assertOpenPeriod')(function* (
 		if (entry.reverses != null) continue;
 		const catalog = known.catalog.get(String(entry.catalog_id));
 		if (catalog === undefined || !sharesPay(catalog)) continue;
-		const entity = String(entry.entity_id);
+		// the person's own pay group: its runs close its periods, on its schedule
+		const group = known.payGroup.get(String(entry.employment_id)) ?? '';
 		const ran = new Set(
 			known.runs
-				.filter((run) => String(run.entity_id) === entity && run.kind !== 'OFF_CYCLE')
+				.filter((run) => String(run.pay_group_id) === group && run.kind !== 'OFF_CYCLE')
 				.map((run) => String(run.period))
 		);
 		if (ran.size === 0) continue;
-		const schedule = known.schedule.get(entity) ?? {};
+		const schedule = known.schedule.get(group) ?? {};
 		const days = (Array.isArray(entry.days) ? entry.days : [])
 			.filter(isJsonObject)
 			.filter((day) => day.payroll_run_id == null);

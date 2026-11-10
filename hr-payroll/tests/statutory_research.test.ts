@@ -33,7 +33,14 @@ const law = (code: string) => {
 		{
 			id: ENTITY,
 			name: 'Entity',
-			settings_code: code,
+			settings_code: code
+		}
+	];
+	rows.pay_group = [
+		{
+			id: '11111111-1111-4111-8111-000000000008',
+			entity_id: ENTITY,
+			name: 'Monthly',
 			payment_schedule: {
 				frequency: 'MONTHLY',
 				business_day: 'PREVIOUS',
@@ -444,14 +451,15 @@ describe('statutory research', () => {
 
 	it.live('payroll refuses law confirmed but not merged', () =>
 		scenario(
-			[found(finding()), answer({ changes: [rate({ effective_from: '2026-12-01' })] })],
+			// inside the sealed window: past it the run is refused for having no law at all
+			[found(finding()), answer({ changes: [rate({ effective_from: '2026-11-01' })] })],
 			(t) =>
 				Effect.gen(function* () {
 					const run = () =>
 						t
 							.as(t.admin)
 							.act('payroll_run.create', [
-								{ entity_id: ENTITY, period: '2026-12', kind: 'ON_CYCLE' }
+								{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }
 							]);
 					yield* research(t);
 					const { findings } = yield* ledger(t);

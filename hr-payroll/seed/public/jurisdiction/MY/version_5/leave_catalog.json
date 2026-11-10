@@ -1,7 +1,7 @@
 [
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"subtotal_id": "0883bc38-8951-55ea-a7ad-6a99077a3b84",
+		"subtotal_id": "405c1428-61cb-57a6-bcd7-44587d031a7e",
 		"lookup": {
 			"unit": "DAY",
 			"grant_days": 0
@@ -16,7 +16,8 @@
 				"quote": "the employer shall grant another day as a paid holiday in substitution for such public holiday"
 			}
 		],
-		"description": "A paid holiday owed in substitution for a public holiday that fell during sick leave, annual leave or temporary disablement, or agreed or granted in place of one; HR grants each day through a leave adjustment. A public holiday on a rest day moves to the next working day on the holiday calendar."
+		"description": "A paid holiday owed in substitution for a public holiday that fell during sick leave, annual leave or temporary disablement, or agreed or granted in place of one; HR grants each day through a leave adjustment. A public holiday on a rest day moves to the next working day on the holiday calendar.",
+		"payout": "// An encashed in-lieu day pays one day at the ordinary rate of pay: the month's wages / 26 (EA 1955 s.60I(1)), to sen.\nconst day = round(ctx.month_wage / 26, ctx.lookup.minor_unit, 'HALF_UP');\nreturn day * Number(get(ctx.entry, 'quantity', 0));"
 	},
 	{
 		"code": "COMPASSIONATE_LEAVE",
@@ -171,7 +172,7 @@
 	},
 	{
 		"code": "ANNUAL_LEAVE",
-		"subtotal_id": "0883bc38-8951-55ea-a7ad-6a99077a3b84",
+		"subtotal_id": "405c1428-61cb-57a6-bcd7-44587d031a7e",
 		"lookup": {
 			"unit": "DAY",
 			"window": "SERVICE_YEAR",
@@ -229,7 +230,7 @@
 		"id": "b91eb424-764e-59b7-a6e3-0c66ab245f62",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"description": "Paid annual leave accrued by service.",
-		"payout": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst days = Number(get(ctx.entry, 'quantity', 0));\nconst daily = ctx.day_rate;\nreturn daily * days;"
+		"payout": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst days = Number(get(ctx.entry, 'quantity', 0));\n// a day at the ordinary rate of pay: the month's wages / 26 (EA 1955 s.60I(1))\nconst daily = round(ctx.month_wage / 26, ctx.lookup.minor_unit, 'HALF_UP');\nreturn daily * days;"
 	},
 	{
 		"code": "EMERGENCY_LEAVE",
@@ -279,8 +280,8 @@
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
 	},
 	{
-		"code": "UNPAID_LEAVE",
-		"subtotal_id": "580cbea9-acd6-5d9a-af56-f47b294bc967",
+		"code": "NPL",
+		"subtotal_id": "cddc3b62-7040-4fe6-b2f9-2aa8c112351a",
 		"lookup": {
 			"unit": "DAY"
 		},

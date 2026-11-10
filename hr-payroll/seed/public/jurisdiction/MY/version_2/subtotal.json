@@ -8,11 +8,26 @@
 		"balance_window": "MONTH"
 	},
 	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "09afa209-03ba-4e77-979d-c6fa6073c6f7",
+		"previous_id": "2dbfff0b-9e57-5f82-b2a2-faf17113268e",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "ae738bf6-36d2-4d17-938a-c67ee5698973",
+		"previous_id": "09afa209-03ba-4e77-979d-c6fa6073c6f7",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
 		"code": "REGULAR_PAY",
 		"name": "Regular pay",
 		"id": "c45cb561-0d0a-57cb-802e-81231e894115",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
-		"previous_id": "2dbfff0b-9e57-5f82-b2a2-faf17113268e",
+		"previous_id": "ae738bf6-36d2-4d17-938a-c67ee5698973",
 		"balance_window": "YEAR"
 	},
 	{
@@ -72,9 +87,16 @@
 		"balance_window": "YEAR"
 	},
 	{
+		"code": "INCENTIVE_OT",
+		"name": "Incentive (OT)",
+		"id": "1d652784-3ccc-44c2-8d4c-eda451a36797",
+		"previous_id": "cdf47c7d-ee86-55f9-ace3-56ff86d01eae",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages",
-		"previous_id": "cdf47c7d-ee86-55f9-ace3-56ff86d01eae",
+		"previous_id": "1d652784-3ccc-44c2-8d4c-eda451a36797",
 		"id": "32bf749c-bb7a-59de-8cd0-a153299e1124",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
 		"balance_window": "MONTH"

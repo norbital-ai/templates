@@ -891,13 +891,15 @@ describe('on the ledger and the payslip', () => {
 				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]);
 			const { payslip } = yield* t.storedQuery({ payslip: { limit: 1 } });
 			const lines = Schema.decodeUnknownSync(PayslipBreakdown)(payslip.rows[0]?.breakdown).lines;
-			assert.equal(
-				lines.find((row) => row.code === 'SICK_LEAVE'),
-				undefined
-			);
 			const [step] = (lookupOf('SICK_LEAVE').shanghai_scale_first ?? []) as readonly JsonObject[];
-			const expected = 22_000 - (1 - Number(step?.share)) * (22_000 / 21.75);
-			assert.equal(lines.find((row) => row.code === 'BASIC')?.amount, expected);
+			// the day's unpaid share at the day rate to the fen: 22,000 ÷ 21.75 = 1,011.49
+			const sick = lines.find((row) => row.code === 'SICK_LEAVE');
+			assert.equal(sick?.direction, 'DEDUCT');
+			assert.equal(
+				sick?.amount,
+				Math.round((1 - Number(step?.share)) * Math.round((22_000 / 21.75) * 100)) / 100
+			);
+			assert.equal(lines.find((row) => row.code === 'BASIC')?.amount, 22_000);
 		}).pipe(Effect.provide(workspace({ seed: fresh, now: NOW })))
 	);
 });

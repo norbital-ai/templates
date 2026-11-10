@@ -172,20 +172,19 @@ const submit = Effect.fnUntraced(function* (plan: DataRequestPlan) {
 		);
 	const { entity } = yield* bolt.query({ entity: { fields: ['name'], limit: 10000 } });
 	const entityIds = new Map(entity.rows.map((row) => [row.name.trim().toLowerCase(), row.id]));
+	// the sheet states one pay schedule a company: its only pay group, made here when it has none. A company with
+	// several groups keeps them; HR edits those in the app
+	const { pay_group } = yield* bolt.query({ pay_group: { fields: ['entity_id'], limit: 10000 } });
 	for (const row of plan.entitySchedules) {
 		const target = entityIds.get(row.name.trim().toLowerCase());
 		if (target === undefined) continue;
-		yield* write('entity.update', [
-			{
-				target,
-				set: {
-					payment_schedule: {
-						...row.payment_schedule,
-						pay_cutoff_day: row.pay_cutoff_day
-					}
-				}
-			}
-		]);
+		const payment_schedule = { ...row.payment_schedule, pay_cutoff_day: row.pay_cutoff_day };
+		const groups = pay_group.rows.filter((group) => group.entity_id === target);
+		const [only] = groups;
+		if (only === undefined)
+			yield* write('pay_group.create', [{ name: 'Payroll', payment_schedule, entity_id: target }]);
+		else if (groups.length === 1)
+			yield* write('pay_group.update', [{ target: only.id, set: { payment_schedule } }]);
 	}
 	const sealVersions = [...plan.sealVersions];
 	for (const group of batches(plan.versions)) {

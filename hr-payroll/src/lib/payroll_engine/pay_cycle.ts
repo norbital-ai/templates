@@ -113,32 +113,33 @@ export const assertUnpriced = Effect.fn('payroll.assertUnpriced')(function* (
 	const known = yield* queryRows(read, {
 		employee_contract: {
 			where: { id: { in: [...new Set(days.map(({ employment }) => employment))] } },
-			fields: ['entity_id'],
+			fields: ['pay_group_id'],
 			limit: 10000
 		},
-		entity: { fields: ['payment_schedule'], limit: 10000 },
+		pay_group: { fields: ['payment_schedule'], limit: 10000 },
 		// a day is attended by its own month's cycle or the next one's
 		payroll_run: {
 			where: { kind: { eq: 'ON_CYCLE' }, period: { gte: first.slice(0, 7) } },
-			fields: ['entity_id', 'period'],
+			fields: ['pay_group_id', 'period'],
 			limit: 10000
 		}
 	});
-	const entityOf = new Map(
-		(known.employee_contract ?? []).map((row) => [String(row.id), String(row.entity_id)])
+	// each person's days are priced by the runs of their own pay group, on its schedule
+	const groupOf = new Map(
+		(known.employee_contract ?? []).map((row) => [String(row.id), String(row.pay_group_id)])
 	);
 	const schedule = new Map(
-		(known.entity ?? []).map((row) => [
+		(known.pay_group ?? []).map((row) => [
 			String(row.id),
 			isJsonObject(row.payment_schedule) ? row.payment_schedule : {}
 		])
 	);
 	const ran = new Set(
-		(known.payroll_run ?? []).map((row) => `${String(row.entity_id)}/${String(row.period)}`)
+		(known.payroll_run ?? []).map((row) => `${String(row.pay_group_id)}/${String(row.period)}`)
 	);
 	const priced = days.find(({ employment, date }) => {
-		const entity = entityOf.get(employment) ?? '';
-		return ran.has(`${entity}/${payPeriodOf(date, schedule.get(entity) ?? {})}`);
+		const group = groupOf.get(employment) ?? '';
+		return ran.has(`${group}/${payPeriodOf(date, schedule.get(group) ?? {})}`);
 	});
 	if (priced !== undefined)
 		return yield* Effect.fail(

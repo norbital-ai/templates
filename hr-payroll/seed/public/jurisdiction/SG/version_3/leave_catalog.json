@@ -403,9 +403,9 @@
 		"description": "A paid day off in substitution for a public holiday worked or falling on a non-working day; HR grants each through a leave adjustment."
 	},
 	{
-		"code": "UNPAID_LEAVE",
+		"code": "NPL",
 		"lookup": {},
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
+		"subtotal_id": "137a512b-ce94-493b-a79b-1bb686f2eb0b",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.20A(1)(c) — a day of no-pay leave is a day off the month’s working days",

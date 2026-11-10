@@ -14,7 +14,7 @@ type Rule = {
 const load = <T>(file: string): T =>
 	JSON.parse(
 		readFileSync(
-			new URL(`../seed/public/jurisdiction/TW/version_5/${file}`, import.meta.url),
+			new URL(`../seed/public/jurisdiction/TW/version_4/${file}`, import.meta.url),
 			'utf8'
 		)
 	) as T;

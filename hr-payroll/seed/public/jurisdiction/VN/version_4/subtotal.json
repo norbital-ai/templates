@@ -8,9 +8,25 @@
 		"balance_window": "MONTH"
 	},
 	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "4475c720-6216-4292-9b56-b48ca08d00da",
+		"previous_id": "6551221c-17b5-51d8-8392-678affa5a17d",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "9ef34f0a-189d-4a38-ac5a-21bc479ecb9d",
+		"previous_id": "4475c720-6216-4292-9b56-b48ca08d00da",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
+		"balance_window": "MONTH"
+	},
+	{
 		"code": "MEAL_PAY",
 		"name": "Meal allowance (Tiền ăn giữa ca)",
-		"previous_id": "6551221c-17b5-51d8-8392-678affa5a17d",
+		"previous_id": "9ef34f0a-189d-4a38-ac5a-21bc479ecb9d",
 		"id": "bffd38c2-973b-5cdc-afc1-bf92a0a36c95",
 		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
 		"balance_window": "MONTH"

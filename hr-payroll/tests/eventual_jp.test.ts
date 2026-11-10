@@ -7,7 +7,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	pack,
@@ -33,7 +33,7 @@ const NO_PAY = [
 	'CIVIC_DUTY_LEAVE',
 	'SICKNESS_ABSENCE',
 	'OCCUPATIONAL_INJURY_ABSENCE',
-	'UNPAID_LEAVE',
+	'NPL',
 	'NURSING_TIME',
 	'MATERNAL_HEALTH_CHECK'
 ];
@@ -290,6 +290,13 @@ describe('corrected in the next on-cycle run', () => {
 		const seed = seedOf(SALARY);
 		const late: Seed = {
 			...seed,
+			// the seeded law ends with November 2026: the year's last pay stands on the last version, kept open
+			jurisdiction_settings: (seed.jurisdiction_settings ?? []).map((row) => {
+				const range = objectValue(row.effective_range);
+				return range.to === '2026-11-30'
+					? { ...row, effective_range: { ...range, to: null } }
+					: row;
+			}),
 			employee_contract: (seed.employee_contract ?? []).map((row) => ({
 				...row,
 				effective_range: { from: '2026-11-01', to: null }
@@ -381,7 +388,7 @@ describe('a second salary in a pay month', () => {
 		const base = seedOf(500_000);
 		const seed: Seed = {
 			...base,
-			entity: (base.entity ?? []).map((row) => ({
+			pay_group: (base.pay_group ?? []).map((row) => ({
 				...row,
 				payment_schedule: {
 					frequency: 'MONTHLY',
@@ -408,7 +415,7 @@ describe('a no-pay day', () => {
 	const noPay = (seed: Seed) => {
 		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const row = seed.leave_catalog?.find(
-			(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
+			(item) => item.code === 'NPL' && item.settings_id === version
 		);
 		assert.ok(row !== undefined);
 		return idOf('leave_catalog', String(row.id));
@@ -436,7 +443,7 @@ describe('a no-pay day', () => {
 			]);
 		});
 	const line = (slip: PayslipBreakdown | undefined) =>
-		slip?.lines.find((row) => row.code === 'UNPAID_LEAVE');
+		slip?.lines.find((row) => row.code === 'NPL');
 	// 22 working days in June, 23 in July
 	const FIXED = { FIXED_ALLOWANCE: { amount: 22_000 } };
 	const NOW = '2026-07-20T02:00:00.000Z';
@@ -448,8 +455,11 @@ describe('a no-pay day', () => {
 			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june), undefined);
-			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 420_000);
+			// 440,000 ÷ 22 working days, off PAID_BASIC; the allowance loses its own 1/22 on its line
+			assert.equal(line(june)?.amount, 20_000);
+			assert.equal(line(june)?.direction, 'DEDUCT');
+			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 440_000);
+			assert.equal(june?.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value, 420_000);
 			assert.equal(june?.lines.find((row) => row.code === 'FIXED_ALLOWANCE')?.amount, 21_000);
 			assert.equal(june?.checkpoints.find((row) => row.code === 'ORDINARY_WAGES')?.value, 441_000);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
@@ -462,22 +472,33 @@ describe('a no-pay day', () => {
 			yield* take(t, seed, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june), undefined);
-			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 430_000);
+			assert.equal(line(june)?.amount, 10_000);
+			assert.equal(june?.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value, 430_000);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 	});
 
 	it.live('the roster’s days are the month’s working days', () => {
-		const rest = (date: string) => ({ date, shift: uuid(12), hours: 1 });
-		const seed = seedOf(440_000, {}, [rest('2026-06-11'), rest('2026-06-12')]);
+		// a roster is the cycle's plan: every weekday worked and clocked, bar two it turns into rest days
+		const rested = ['2026-06-11', '2026-06-12'];
+		const seed = seedOf(
+			440_000,
+			{},
+			Array.from({ length: 30 }, (_, index) => `2026-06-${String(index + 1).padStart(2, '0')}`)
+				.filter((date) => ![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay()))
+				.map((date) =>
+					rested.includes(date)
+						? { date, shift: uuid(12), hours: 1 }
+						: { date, shift: uuid(11), hours: 8 }
+				)
+		);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june), undefined);
+			assert.equal(line(june)?.amount, 440_000 / 20);
 			assert.equal(
-				june?.checkpoints.find((row) => row.code === 'BASIC')?.value,
+				june?.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value,
 				440_000 - 440_000 / 20
 			);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
@@ -532,7 +553,9 @@ describe('a no-pay day', () => {
 			yield* onCycle(t, '2026-07');
 			const [june] = yield* runs(t, '2026-06');
 			const [july] = yield* runs(t, '2026-07');
-			assert.equal(line(june), undefined);
+			assert.equal(line(june)?.amount, 20_000);
+			assert.equal(line(june)?.direction, 'DEDUCT');
+			// the day's 20,000 and the allowance's 1,000 it also cut
 			assert.equal(line(july)?.amount, 21_000);
 			assert.equal(line(july)?.direction, 'ADD');
 			yield* onCycle(t, '2026-08');

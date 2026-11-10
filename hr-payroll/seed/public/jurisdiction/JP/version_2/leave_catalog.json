@@ -376,8 +376,8 @@
 		"paid_share": "0"
 	},
 	{
-		"code": "UNPAID_LEAVE",
-		"subtotal_id": "2cae333a-89b2-5ff2-b0bf-c38ff0944f08",
+		"code": "NPL",
+		"subtotal_id": "b1735ad8-a20c-4205-88cd-578459844710",
 		"references": [
 			{
 				"title": "Leave or absence the work rules leave unpaid (労働基準法 art.89(i) and the no-work-no-pay principle, 民法 art.624(1)); deducted by NO_PAY_LEAVE."

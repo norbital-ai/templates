@@ -4,7 +4,7 @@ Status: normative seed contract. [The model contract](0002-model-specification.m
 
 ## 1. Sources and scope
 
-The public seed is `seed/public/jurisdiction/<CODE>/version_<v>/`: nine jurisdictions (CN, ID, JP, MY, PH, SG, TH, TW, VN) and 57 sealed versions. `bolt build` writes it as the release's `base` pack.
+The public seed is `seed/public/jurisdiction/<CODE>/version_<v>/`: nine jurisdictions (CN, ID, JP, MY, PH, SG, TH, TW, VN) and 36 sealed versions. `bolt build` writes it as the release's `base` pack.
 
 Public law belongs there. The private bank supplies tenant-specific people, teams and entity rows, through `seed/+seeder.ts` and `bolt seed`; they never enter a release. Personal records are never copied into the public seed.
 
@@ -33,7 +33,7 @@ One folder per version, one JSON file per model type: the file name is the model
 
 ## 3. Versions
 
-A change of law is a new version, never an edit to a sealed one. A lineage is numbered in date order, sealed, unbroken and open at the end, and a version exists only because something changed on its date. The folder number is a rolling sequence, never a legal effective date: the date is the version's `effective_range`.
+A change of law is a new version, never an edit to a sealed one. A lineage is numbered in date order, sealed and unbroken, and a version exists only because something changed on its date. Seed only the live window **December 2025 – November 2026**. Later changes are seeded as `statutory_finding`/`statutory_change` rows and materialized into the next version when effective; never a pre-seeded snapshot folder. The folder number is a rolling sequence, never a legal effective date: the date is the version's `effective_range`.
 
 ## 4. Authoring rules
 

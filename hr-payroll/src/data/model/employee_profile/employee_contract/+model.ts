@@ -23,6 +23,7 @@ import { tap } from '../../../../lib/payroll_engine/taps.js';
 const columns = [
 	'employee_id',
 	'entity_id',
+	'pay_group_id',
 	'engagement',
 	'employee_number',
 	'effective_range',
@@ -46,6 +47,7 @@ const capturedRun = Effect.fnUntraced(function* (
 	read: Reader,
 	rows: readonly {
 		readonly entity_id: string;
+		readonly pay_group_id?: string | null | undefined;
 		readonly effective_range: { readonly from: string; readonly to: string | null };
 	}[]
 ) {
@@ -54,7 +56,7 @@ const capturedRun = Effect.fnUntraced(function* (
 	const runs = yield* queryRows(read, {
 		payroll_run: {
 			where: { entity_id: { in: entityIds } },
-			fields: ['id', 'entity_id', 'salary_coverage', 'run_number'],
+			fields: ['id', 'entity_id', 'pay_group_id', 'salary_coverage', 'run_number'],
 			limit: 10000
 		}
 	});
@@ -62,6 +64,8 @@ const capturedRun = Effect.fnUntraced(function* (
 		const captured = runs.payroll_run?.find((run) => {
 			const coverage = run.salary_coverage as { from?: string; to?: string | null } | null;
 			if (coverage?.from == null || run.entity_id !== row.entity_id) return false;
+			// a run pays one pay group: another group's run captured nothing of this contract
+			if (row.pay_group_id != null && run.pay_group_id !== row.pay_group_id) return false;
 			const to = coverage.to ?? null;
 			return (
 				row.effective_range.from <= (to ?? '9999-12-31') &&
@@ -242,6 +246,43 @@ const assertTerms = (
 	}
 	return null;
 };
+const NO_PAY_GROUP = 'Choose the pay group this person is paid in.';
+const OTHER_PAY_GROUP = 'The pay group belongs to another company.';
+/**
+ * Each row's pay group: the one named, else the company's only one. A string is a refusal: a group of another company,
+ * or a sealed contract in a company with several groups and none named.
+ */
+const payGroupsOf = Effect.fnUntraced(function* (
+	read: Reader,
+	rows: readonly {
+		readonly entity_id: unknown;
+		readonly pay_group_id?: unknown;
+		readonly status?: unknown;
+	}[]
+) {
+	const { pay_group: groups = [] } = yield* queryRows(read, {
+		pay_group: {
+			where: { entity_id: { in: [...new Set(rows.map((row) => String(row.entity_id)))] } },
+			fields: ['id', 'entity_id'],
+			limit: 10000
+		}
+	});
+	const answer: (string | null)[] = [];
+	for (const row of rows) {
+		const own = groups.filter((group) => String(group.entity_id) === String(row.entity_id));
+		if (row.pay_group_id != null) {
+			if (!own.some((group) => String(group.id) === String(row.pay_group_id)))
+				return OTHER_PAY_GROUP;
+			answer.push(String(row.pay_group_id));
+			continue;
+		}
+		const [only] = own;
+		if (own.length === 1 && only !== undefined) answer.push(String(only.id));
+		else if (row.status === 'SEALED') return NO_PAY_GROUP;
+		else answer.push(null);
+	}
+	return answer;
+});
 /** A shift code a contract schedules may not run longer than the contract's normal day. */
 const overlongShift = Effect.fnUntraced(function* (
 	read: Reader,
@@ -480,6 +521,14 @@ export default model('employee_contract', {
 			inverse: 'employee_contract'
 		},
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'employee_contract' },
+		pay_group_id: {
+			kind: 'ref',
+			to: 'pay_group',
+			inverse: 'employee_contract',
+			optional: true,
+			// the payroll this person is paid in; a company with one group fills it in, and a sealed contract always has one
+			onDelete: 'restrict'
+		},
 		employee_number: { kind: 'text' },
 
 		engagement: {
@@ -588,6 +637,11 @@ export default model('employee_contract', {
 				work_classification: { kind: 'text', optional: true },
 				residency_status: { kind: 'text', optional: true },
 				work_authorisation_category: { kind: 'text', optional: true },
+				work_authorisation_expires_on: {
+					kind: 'date',
+					optional: true,
+					help: 'The day the work pass or permit ends, an extension included. Where the law ties a contribution to the pass (Malaysia: provident fund stops in its last two months), the rule reads this day.'
+				},
 				work_region: {
 					kind: 'text',
 					optional: true,
@@ -749,7 +803,13 @@ export default model('employee_contract', {
 	create: {
 		columns: { employee_contract: columns },
 		filled: { employee_contract: ['employee_number'] },
-		transform: function* (rows, ctx) {
+		transform: function* (input, ctx) {
+			const groups = yield* payGroupsOf(ctx.db.query, input);
+			if (typeof groups === 'string') return yield* ctx.refuse(groups, { field: 'pay_group_id' });
+			const rows = input.map((row, index) => {
+				const group = groups[index];
+				return group == null ? row : { ...row, pay_group_id: idOf('pay_group', group) };
+			});
 			const captured = yield* capturedRun(ctx.db.query, rows);
 			if (captured !== null) return yield* ctx.refuse(captured, { field: 'effective_range' });
 			if (yield* startsMidMonth(ctx.db.query, rows))
@@ -834,7 +894,17 @@ export default model('employee_contract', {
 				if (set.status === 'VOID' && !set.reason?.trim())
 					return yield* ctx.refuse('Record why this contract is void.');
 			}
-			return changes.map(({ set }) => set);
+			const groups = yield* payGroupsOf(
+				ctx.db.query,
+				changes.map(({ before, set }) => ({ ...before, ...set }))
+			);
+			if (typeof groups === 'string') return yield* ctx.refuse(groups, { field: 'pay_group_id' });
+			return changes.map(({ before, set }, index) => {
+				const group = groups[index];
+				return group == null || { ...before, ...set }.pay_group_id != null
+					? set
+					: { ...set, pay_group_id: idOf('pay_group', group) };
+			});
 		}
 	},
 	effect: {

@@ -16,93 +16,6 @@ export default model('entity', {
 		},
 		name: { kind: 'text' },
 		settings_code: { kind: 'text' },
-		payment_schedule: {
-			kind: 'json',
-			optional: true,
-			default: {
-				frequency: 'MONTHLY',
-				business_day: 'PREVIOUS',
-				non_working_weekdays: [0, 6],
-				short_month: 'LAST_DAY',
-				pay_days: [25],
-				pay_cutoff_day: 1
-			},
-			shape: {
-				kind: 'union',
-				by: 'frequency',
-				arms: {
-					MONTHLY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						pay_days: {
-							kind: 'list',
-							min: 1,
-							of: { kind: 'int', min: 1, max: 31 },
-							help: 'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.'
-						},
-						pay_cutoff_day: { kind: 'int', min: 1, max: 28, default: 1 }
-					},
-					SEMI_MONTHLY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						pay_days: {
-							kind: 'list',
-							min: 1,
-							of: { kind: 'int', min: 1, max: 31 },
-							help: 'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.'
-						},
-						pay_cutoff_day: { kind: 'int', min: 1, max: 28, default: 1 }
-					},
-					TEN_DAY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						pay_days: {
-							kind: 'list',
-							min: 1,
-							of: { kind: 'int', min: 1, max: 31 },
-							help: 'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.'
-						},
-						pay_cutoff_day: { kind: 'int', min: 1, max: 28, default: 1 }
-					},
-					INTEGER_MONTHS: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						pay_days: {
-							kind: 'list',
-							min: 1,
-							of: { kind: 'int', min: 1, max: 31 },
-							help: 'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.'
-						},
-						pay_cutoff_day: { kind: 'int', min: 1, max: 28, default: 1 },
-						month_interval: { kind: 'int', min: 1, max: 12 },
-						anchor_date: { kind: 'date' }
-					},
-					WEEKLY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						weekday: { kind: 'int', min: 0, max: 6 },
-						anchor_date: { kind: 'date' }
-					},
-					BIWEEKLY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						weekday: { kind: 'int', min: 0, max: 6 },
-						anchor_date: { kind: 'date' }
-					},
-					DAILY: {
-						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
-						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] }
-					}
-				}
-			}
-		},
 		source_reference: { kind: 'text', optional: true, label: 'Source reference' },
 		epf_registered_on: {
 			kind: 'date',
@@ -118,6 +31,7 @@ export default model('entity', {
 	read: {
 		entity: { fields: 'all' },
 		'entity.payroll_versions': { fields: 'all' },
+		'entity.pay_groups': { fields: 'all' },
 		'entity.shift_definition': { fields: 'all' },
 		'entity.employee_contract': { fields: 'all' },
 		'entity.employee_contract.employee_id': { fields: 'all' },
@@ -156,7 +70,6 @@ export default model('entity', {
 				'code',
 				'name',
 				'settings_code',
-				'payment_schedule',
 				'source_reference',
 				'epf_registered_on',
 				'socso_registered_on'
@@ -177,7 +90,6 @@ export default model('entity', {
 				'code',
 				'name',
 				'settings_code',
-				'payment_schedule',
 				'source_reference',
 				'epf_registered_on',
 				'socso_registered_on'

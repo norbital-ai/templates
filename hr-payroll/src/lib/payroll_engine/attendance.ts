@@ -117,12 +117,15 @@ export function holidaysForDay(
 		readonly holidays: readonly JsonObject[];
 		readonly roster_day_types?: Readonly<Record<string, string>>;
 		readonly roster_days: readonly JsonObject[];
+		/** Whose day it is: a holiday naming a person is theirs alone. */
+		readonly employee?: string | undefined;
 	}
 ): readonly JsonObject[] {
 	return data.holidays.filter(
 		(holiday) =>
 			holiday.date === day &&
 			holiday.published_at != null &&
+			(holiday.employee_id == null || String(holiday.employee_id) === data.employee) &&
 			(holiday.given_to !== 'ONLY_IF_OFF_ON_REPLACED_DATE' ||
 				data.roster_day_types?.[String(holiday.replaces)] !== 'WORK')
 	);

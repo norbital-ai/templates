@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * A new payroll run for the entity in scope. An on-cycle run names its cycle. An off-cycle run
-	 * names who and what for: it pays the open ad hoc and claim entries those pick out, and no salary.
+	 * A new payroll run for one pay group of the entity in scope. An on-cycle run names its group and cycle. An
+	 * off-cycle run names who and what for: it pays the open ad hoc and claim entries those pick out, and no salary.
 	 */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
@@ -21,10 +21,11 @@
 	const today = String(todayKey());
 	const known = $derived(
 		bolt.query({
-			entity: {
-				where: { id: { eq: companyId } },
-				fields: ['payment_schedule'],
-				limit: 1
+			pay_group: {
+				where: { entity_id: { eq: companyId } },
+				fields: ['name', 'payment_schedule'],
+				orderBy: { name: 'asc' },
+				limit: 100
 			},
 			entity_profile_version: {
 				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
@@ -34,7 +35,7 @@
 			},
 			payroll_run: {
 				where: { entity_id: { eq: companyId }, kind: { eq: 'ON_CYCLE' } },
-				fields: ['period'],
+				fields: ['period', 'pay_group_id'],
 				limit: 10000
 			}
 		})
@@ -44,8 +45,17 @@
 			({ effective_range: { from, to } }) => from <= today && (to === null || today <= to)
 		)
 	);
-	const schedule = $derived(jsonObject(known?.current?.entity.rows[0]?.payment_schedule ?? {}));
-	const runs = $derived(known?.current?.payroll_run.rows ?? []);
+	// the run is for one pay group: the company's only one is chosen for HR, several are a choice
+	const groups = $derived(known?.current?.pay_group.rows ?? []);
+	let chosen = $state<Id<'pay_group'> | null>(null);
+	const group = $derived(
+		groups.find((row) => row.id === chosen) ?? (groups.length === 1 ? groups[0] : undefined)
+	);
+	const groupOptions = $derived(groups.map((row) => ({ value: row.id, label: row.name })));
+	const schedule = $derived(jsonObject(group?.payment_schedule ?? {}));
+	const runs = $derived(
+		(known?.current?.payroll_run.rows ?? []).filter((run) => run.pay_group_id === group?.id)
+	);
 	/** An earlier cycle would rewrite the year to date of runs already made. */
 	const latest = $derived(runs.map((run) => run.period).reduce((a, b) => (a > b ? a : b), ''));
 	const cycles = $derived(
@@ -146,7 +156,8 @@
 		);
 	};
 	const runOnCycle = () => {
-		if (cycle !== null) create({ entity_id: companyId, period: cycle, kind: 'ON_CYCLE' });
+		if (cycle !== null && group !== undefined)
+			create({ entity_id: companyId, pay_group_id: group.id, period: cycle, kind: 'ON_CYCLE' });
 	};
 	const runOffCycle = () => {
 		// a run pays the contracts in its period: a leaver is paid on the period of their last day
@@ -159,9 +170,10 @@
 			return;
 		}
 		const period = cycleOn(schedule, day)?.key;
-		if (period === undefined) return;
+		if (period === undefined || group === undefined) return;
 		create({
 			entity_id: companyId,
+			pay_group_id: group.id,
 			period,
 			kind: 'OFF_CYCLE',
 			attaches: {
@@ -172,8 +184,23 @@
 	};
 </script>
 
+{#snippet groupPicker()}
+	{#if groups.length !== 1}
+		<Combobox
+			class="w-full"
+			options={groupOptions}
+			value={group?.id ?? null}
+			placeholder={bolt.t('app.payroll.pay_group')}
+			onChange={(next) => {
+				chosen = next;
+				cycle = null;
+			}}
+		/>
+	{/if}
+{/snippet}
 {#snippet onCycle()}
 	<Stack gap="sm">
+		{@render groupPicker()}
 		<Combobox
 			class="w-full"
 			options={cycles}
@@ -181,13 +208,14 @@
 			placeholder={bolt.t('app.payroll.period')}
 			onChange={(next) => (cycle = next)}
 		/>
-		<Button disabled={saving || cycle === null} onclick={runOnCycle}>
+		<Button disabled={saving || cycle === null || group === undefined} onclick={runOnCycle}>
 			{bolt.t('app.payroll.create_run')}
 		</Button>
 	</Stack>
 {/snippet}
 {#snippet offCycleForm()}
 	<Stack gap="sm">
+		{@render groupPicker()}
 		{#if entries.length === 0}
 			<p class="text-meta">{bolt.t('app.payroll.no_adhoc_items')}</p>
 		{:else}
@@ -207,7 +235,7 @@
 				placeholder={bolt.t('app.payroll.adhoc_items')}
 				onChange={(next) => (what = [...next])}
 			/>
-			<Button disabled={saving || paying.length === 0} onclick={runOffCycle}>
+			<Button disabled={saving || paying.length === 0 || group === undefined} onclick={runOffCycle}>
 				{bolt.t('app.payroll.create_run')}
 			</Button>
 		{/if}

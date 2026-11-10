@@ -9,7 +9,8 @@ import { queryRows } from '../lib/payroll_engine/reads.js';
 
 /**
  * Exit encashment: when a sealed contract ends with no same-jurisdiction successor, every leave row with a `payout`
- * gets one encashment request for the days the person has left. It runs under
+ * gets one encashment request for the days the person has left; where they took more than the last day leaves earned,
+ * a reversal of those days on the same row, which the run takes back at the same payout. It runs under
  * `payroll_execution`, whose leave grant holds an encashment for HR controller approval, so nothing posts to the ledger
  * until it is approved; whoever ended the contract, an administrator included. Running it again raises nothing twice.
  */
@@ -29,6 +30,7 @@ export default automation('encashment', {
 						'effective_range',
 						'employee_id',
 						'entity_id',
+						'pay_group_id',
 						'employee_extension_data',
 						'terms'
 					] as const,
@@ -45,7 +47,7 @@ export default automation('encashment', {
 		} = yield* queryRows(ctx.query, {
 			employee_contract: {
 				where: { employee_id: { in: [...new Set(rows.map((row) => String(row.employee_id)))] } },
-				fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
+				fields: ['id', 'employee_id', 'status', 'effective_range', 'entity_id'],
 				limit: 10000
 			},
 			entity: { fields: ['id', 'settings_code'], limit: 10000 },
@@ -129,8 +131,8 @@ export default automation('encashment', {
 			const accounts = accountsOf(balances.employee_balance?.rows?.[0]?.account);
 			const employer = yield* ctx.query(
 				dynamicRead({
-					entity: {
-						where: { id: { eq: String(row.entity_id) } },
+					pay_group: {
+						where: { id: { eq: refId(row.pay_group_id) } },
 						fields: ['payment_schedule'] as const,
 						limit: 1
 					}
@@ -145,7 +147,7 @@ export default automation('encashment', {
 			// inside that window, or the run captures slots it cannot price.
 			const month = effectiveTo.slice(0, 7);
 			const cutoff = Number(
-				jsonObject(employer.entity?.rows?.[0]?.payment_schedule).pay_cutoff_day ?? 1
+				jsonObject(employer.pay_group?.rows?.[0]?.payment_schedule).pay_cutoff_day ?? 1
 			);
 			const windowFrom =
 				cutoff <= 1
@@ -157,6 +159,7 @@ export default automation('encashment', {
 					holiday: {
 						where: {
 							entity_id: { eq: String(row.entity_id) },
+							employee_id: { isNull: true },
 							date: { gte: windowFrom, lte: windowTo }
 						},
 						fields: ['date'] as const,
@@ -172,11 +175,93 @@ export default automation('encashment', {
 				if (nonWorking.has(weekday) || closed.has(date)) continue;
 				working.push(date);
 			}
+			// Leave taken beyond what the last day leaves earned is taken back the same way, reversed: a reversal of the
+			// latest days a run has paid, settled in cash by the row's payout, so its line deducts. Only then is the
+			// person's taken leave read.
+			const overdrawn = encashed.some((catalog) => {
+				const left = latestLeft(accounts, 'leave', String(catalog.code));
+				return !done.has(String(catalog.code)) && Number.isFinite(left) && left < 0;
+			});
+			const own = chain
+				.filter((contract) => String(contract.employee_id) === employeeId)
+				.map((contract) => String(contract.id));
+			const taken = overdrawn
+				? ((yield* ctx.query(
+						dynamicRead({
+							leave_catalog_entry: {
+								where: {
+									employment_id: { in: own },
+									encashment: { eq: false },
+									reverses: { isNull: true }
+								},
+								fields: ['id', 'catalog_id'] as const,
+								limit: 1000
+							},
+							'leave_catalog_entry.catalog_id': { fields: ['code'] as const },
+							'leave_catalog_entry.leave_catalog_entry_day': {
+								fields: ['incurred_on', 'part', 'payroll_run_id'] as const,
+								limit: 10000
+							}
+						})
+					)).leave_catalog_entry?.rows ?? [])
+				: [];
+			const undone = overdrawn
+				? new Set(
+						(
+							(yield* ctx.query(
+								dynamicRead({
+									leave_catalog_entry: {
+										where: { reverses: { in: taken.map((entry) => String(entry.id)) } },
+										fields: ['reverses'] as const,
+										limit: 1000
+									}
+								})
+							)).leave_catalog_entry?.rows ?? []
+						).map((entry) => refId(entry.reverses))
+					)
+				: new Set<string>();
+			/** The paid half days of one leave row, latest first, each with the entry that holds it. */
+			const paidSlots = (code: string) =>
+				taken
+					.filter(
+						(entry) =>
+							!undone.has(String(entry.id)) &&
+							isJsonObject(entry.catalog_id) &&
+							entry.catalog_id.code === code
+					)
+					.flatMap((entry) =>
+						(Array.isArray(entry.leave_catalog_entry_day) ? entry.leave_catalog_entry_day : [])
+							.filter(isJsonObject)
+							.filter((slot) => slot.payroll_run_id != null)
+							.map((slot) => ({
+								entry: String(entry.id),
+								incurred_on: String(slot.incurred_on),
+								part: slot.part === 'PM' ? ('PM' as const) : ('AM' as const)
+							}))
+					)
+					.toSorted((left, right) =>
+						`${right.incurred_on}${right.part}`.localeCompare(`${left.incurred_on}${left.part}`)
+					);
 			const input = encashed.flatMap((catalog) => {
 				const code = String(catalog.code);
 				if (done.has(code)) return [];
 				const left = latestLeft(accounts, 'leave', code);
-				if (!Number.isFinite(left) || left <= 0) return [];
+				if (!Number.isFinite(left) || left === 0) return [];
+				if (left < 0) {
+					const hours = Number(jsonObject(row.terms).normal_hours_per_day ?? 0);
+					const owed =
+						jsonObject(catalog.lookup).unit === 'HOUR' && hours > 0 ? -left / hours : -left;
+					// one reversal an entry (a reversal names one original): the latest paid half days first
+					const slots = paidSlots(code).slice(0, Math.max(1, Math.round(owed * 2)));
+					return [...Map.groupBy(slots, (slot) => slot.entry)].map(([entry, days]) => ({
+						entity_id: String(row.entity_id),
+						employment_id: String(row.id),
+						catalog_id: String(catalog.id),
+						encashment: true,
+						reverses: entry,
+						leave_catalog_entry_day: days.map(({ incurred_on, part }) => ({ incurred_on, part }))
+					}));
+				}
 				// a row that counts in hours cashes them out as half days of the contract's normal day
 				const dayHours = Number(jsonObject(row.terms).normal_hours_per_day ?? 0);
 				const days =

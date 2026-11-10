@@ -231,7 +231,7 @@
 		"description": "A paid day off agreed in substitution for a traditional holiday worked (s.29 para 4); HR grants each through a manual adjustment. The announced holidays (s.29: at least 13 a year) and their next-working-day substitutes are the entity calendar."
 	},
 	{
-		"code": "UNPAID_LEAVE",
+		"code": "NPL",
 		"lookup": {},
 		"references": [
 			{
@@ -241,7 +241,7 @@
 				"quote": "Wages are owed for work and the paid leave the Act lists; other leave agreed with the employer is unpaid."
 			}
 		],
-		"subtotal_id": "d286b773-69a3-5ca2-9fe5-e6d4ee89bdec",
+		"subtotal_id": "9fcf8779-cb8b-4254-910a-a831b8dc071b",
 		"id": "370e8f25-28fd-5634-b3e9-b47a67970f60",
 		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
 		"description": "Unpaid absence from work.",

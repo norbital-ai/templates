@@ -12,6 +12,7 @@ import { loadRun } from '../src/lib/payroll_engine/run_calculation.ts';
 import {
 	ENTITY,
 	OFF,
+	PAY_GROUP,
 	WORK,
 	catalogRow,
 	leaveCreate,
@@ -50,7 +51,7 @@ const seedOf = (
 	assert.ok(contract !== undefined);
 	return {
 		...seed,
-		entity: (seed.entity ?? []).map((row) => ({ ...row, payment_schedule: ARREARS })),
+		pay_group: (seed.pay_group ?? []).map((row) => ({ ...row, payment_schedule: ARREARS })),
 		employee_contract: ranges.map((effective_range, index) => ({
 			...contract,
 			id: uuid(6 + index),
@@ -91,7 +92,7 @@ const unpaidLeave = (t: Kit, seed: Seed, ...dates: readonly string[]) =>
 		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'UNPAID_LEAVE')),
+			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
 			days: wholeDays(...dates)
 		})
 	]);
@@ -123,7 +124,7 @@ describe('leave in an arrears window', () => {
 			yield* run(t, '2026-01-2');
 			const ids = yield* runIds(t);
 			assert.deepEqual((yield* sealedBy(t)).slots, [ids.get('2026-01-2'), ids.get('2026-01-2')]);
-			assert.ok(lineOf(yield* slipOf(t, '2026-01-2'), 'BASIC') < 15_000);
+			assert.ok(lineOf(yield* slipOf(t, '2026-01-2'), 'NPL') > 0);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })));
 	});
 });
@@ -214,6 +215,7 @@ describe('a run after thirteen months of history', () => {
 					id: uuid(600 + index),
 					run_number: index + 1,
 					entity_id: ENTITY,
+					pay_group_id: PAY_GROUP,
 					period: key,
 					kind: 'ON_CYCLE',
 					settings_id: settings,
@@ -237,7 +239,7 @@ describe('a run after thirteen months of history', () => {
 					id: uuid(900),
 					entity_id: ENTITY,
 					employment_id: uuid(6),
-					catalog_id: catalogRow(seed, 'leave_catalog', 'UNPAID_LEAVE'),
+					catalog_id: catalogRow(seed, 'leave_catalog', 'NPL'),
 					payroll_run_id: sealer('2025-06-10')
 				}
 			],
@@ -292,6 +294,7 @@ describe('a run after thirteen months of history', () => {
 					t.storedQuery,
 					{
 						entity_id: ENTITY,
+						pay_group_id: PAY_GROUP,
 						settings_id: String(seed.entity_profile_version?.[0]?.input_schema_version_id),
 						salary_coverage: { from: salary.from, to: salary.to }
 					},

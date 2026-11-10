@@ -944,173 +944,97 @@ export const TABLES = {
 		ADMIN_ASSISTANT: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		ADMIN_EXECUTIVE: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		ADMIN_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_CONSERVANCY_GENERAL: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_CONSERVANCY_MULTI_SKILLED: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_CONSERVANCY_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_CONSERVANCY_TRUCK_DRIVER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_FNB_DISHWASHER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_FNB_GENERAL: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_FNB_MULTI_SKILLED: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_FNB_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_FNB_TABLE_TOP: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_OFFICE_GENERAL: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_OFFICE_MULTI_SKILLED: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_OFFICE_OUTDOOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		CLEAN_OFFICE_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		DRIVER_GENERAL: Schema.optional(
 			Schema.Struct({ base: Schema.String, monthly_floor: Schema.Number, sector: Schema.String })
 		),
 		DRIVER_GROUP_A_LEVEL_1: Schema.optional(
-			Schema.Struct({
-				base: Schema.String,
-				monthly_floor: Schema.Number,
-				sector: Schema.String,
-				steps: Schema.optional(
-					Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-				)
-			})
+			Schema.Struct({ base: Schema.String, monthly_floor: Schema.Number, sector: Schema.String })
 		),
 		DRIVER_GROUP_A_LEVEL_2: Schema.optional(
-			Schema.Struct({
-				base: Schema.String,
-				monthly_floor: Schema.Number,
-				sector: Schema.String,
-				steps: Schema.optional(
-					Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-				)
-			})
+			Schema.Struct({ base: Schema.String, monthly_floor: Schema.Number, sector: Schema.String })
 		),
 		DRIVER_GROUP_B_LEVEL_1: Schema.optional(
-			Schema.Struct({
-				base: Schema.String,
-				monthly_floor: Schema.Number,
-				sector: Schema.String,
-				steps: Schema.optional(
-					Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-				)
-			})
+			Schema.Struct({ base: Schema.String, monthly_floor: Schema.Number, sector: Schema.String })
 		),
 		DRIVER_GROUP_B_LEVEL_2: Schema.optional(
-			Schema.Struct({
-				base: Schema.String,
-				monthly_floor: Schema.Number,
-				sector: Schema.String,
-				steps: Schema.optional(
-					Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-				)
-			})
+			Schema.Struct({ base: Schema.String, monthly_floor: Schema.Number, sector: Schema.String })
 		),
 		DRIVER_SPECIALISED: Schema.optional(
 			Schema.Struct({ base: Schema.String, monthly_floor: Schema.Number, sector: Schema.String })
@@ -1118,130 +1042,82 @@ export const TABLES = {
 		FOOD_FS_COOK: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		FOOD_FS_KITCHEN_ASSISTANT: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		FOOD_FS_WAITER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		FOOD_FS_WAITER_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		FOOD_QS_COOK: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		FOOD_QS_KITCHEN_ASSISTANT: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		FOOD_QS_STALL_ASSISTANT: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LANDSCAPE_ASSISTANT_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LANDSCAPE_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LANDSCAPE_TECHNICIAN: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LANDSCAPE_WORKER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LIFT_ASSISTANT_SPECIALIST: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LIFT_PRINCIPAL_SPECIALIST: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LIFT_SENIOR_SPECIALIST: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LIFT_SPECIALIST: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		LIFT_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		RETAIL_ASSISTANT: Schema.Struct({
 			base: Schema.String,
@@ -1270,146 +1146,92 @@ export const TABLES = {
 		SECURITY_INHOUSE_OFFICER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		SECURITY_INHOUSE_SENIOR_OFFICER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		SECURITY_INHOUSE_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		SECURITY_OUTSOURCED_OFFICER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		SECURITY_OUTSOURCED_SENIOR_OFFICER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		SECURITY_OUTSOURCED_SENIOR_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		SECURITY_OUTSOURCED_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_COLLECTION_CREW: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_COLLECTION_DRIVER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_COLLECTION_HOOKLIFT_DRIVER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_COLLECTION_SENIOR_CREW: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_COLLECTION_SENIOR_DRIVER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_COLLECTION_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_COLLECTION_TEAM_LEAD: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_MRF_PLANT_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_MRF_SENIOR_SORTER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_MRF_SORTER: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		WASTE_MRF_TEAM_LEAD: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		})
 	}),
 	remuneration_grades: Schema.Array(

@@ -1,11 +1,12 @@
 // A wrong payment is corrected by later cycles: each statutory row charges what the month's total owes less what the
-// month already charged. A no-pay day is a catalog line, so a reversal after payment pays it back.
+// month already charged. A no-pay day is a catalog line at PAID_BASIC, so a reversal after payment pays it back.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
+import { jsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import {
@@ -45,7 +46,7 @@ const COUNTRIES: Readonly<Record<string, Country>> = {
 		extra: 300_000,
 		tax: 'WTAX',
 		allowances: { transport: { amount: 2200 }, meal: { amount: 2000 } },
-		noPayLines: ['UNPAID_LEAVE', 'transport', 'meal'],
+		noPayLines: ['NPL', 'transport', 'meal'],
 		wages: 'ORDINARY_WAGES'
 	},
 	Vietnam: {
@@ -56,7 +57,7 @@ const COUNTRIES: Readonly<Record<string, Country>> = {
 		extra: 90_000_000,
 		tax: 'PIT',
 		allowances: { FIXED_ALLOWANCE: { amount: 2_200_000 } },
-		noPayLines: ['UNPAID_LEAVE', 'FIXED_ALLOWANCE'],
+		noPayLines: ['NPL', 'FIXED_ALLOWANCE'],
 		wages: 'ORDINARY_WAGES'
 	}
 };
@@ -89,9 +90,21 @@ const seedOf = (
 		}))
 	};
 };
+// The seeded law ends 2026-11-30: here the last sealed version stays in force, so a year can close and Decree 393 commence.
+const lasting = (seed: Seed): Seed => {
+	const law = seed.entity_profile_version?.[0]?.input_schema_version_id;
+	return {
+		...seed,
+		jurisdiction_settings: (seed.jurisdiction_settings ?? []).map((row) =>
+			row.id === law
+				? { ...row, effective_range: { ...jsonObject(row.effective_range), to: null } }
+				: row
+		)
+	};
+};
 const reschedule = (seed: Seed, payment_schedule: Row[string]): Seed => ({
 	...seed,
-	entity: (seed.entity ?? []).map((row) => ({
+	pay_group: (seed.pay_group ?? []).map((row) => ({
 		...row,
 		payment_schedule
 	}))
@@ -245,7 +258,10 @@ describe('short, then topped up in the same month', () => {
 						Effect.andThen(charged(t, '2026-06'))
 					)
 				);
-				assert.deepEqual(topped, whole);
+				// WTAX_TAXABLE_PAY is the memo an on-cycle run keeps of its own taxable pay, not a charge: an off-cycle run writes none
+				const owed = (rows: Readonly<Record<string, number>>) =>
+					Object.entries(rows).filter(([key]) => !key.startsWith('WTAX_TAXABLE_PAY'));
+				assert.deepEqual(owed(topped), owed(whole));
 				assert.ok(Number(whole[`${one.tax}.employee`]) > 0);
 			});
 		});
@@ -355,7 +371,7 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 		);
 	});
 	it.live('Philippines: December’s annualisation nets the two months', () => {
-		const seed = seedOf(one, terms(one.salary), '2026-11-01', {}, '2026-11-15');
+		const seed = lasting(seedOf(one, terms(one.salary), '2026-11-01', {}, '2026-11-15'));
 		const DECEMBER = '2026-12-20T02:00:00.000Z';
 		const withheld = (t: Kit) =>
 			Effect.all([charged(t, '2026-11'), charged(t, '2026-12')]).pipe(
@@ -433,14 +449,16 @@ describe('Vietnam: paid too much, reversed in the next on-cycle run', () => {
 
 describe('corrected in the next month', () => {
 	const contract = (one: Country) =>
-		seedOf(
-			one,
-			terms(one.salary),
-			'2026-11-01',
-			one.code === 'VN'
-				? { facts: { statutory: { PIT: { elections: { finalisation_authorised: true } } } } }
-				: {},
-			'2026-11-15'
+		lasting(
+			seedOf(
+				one,
+				terms(one.salary),
+				'2026-11-01',
+				one.code === 'VN'
+					? { facts: { statutory: { PIT: { elections: { finalisation_authorised: true } } } } }
+					: {},
+				'2026-11-15'
+			)
 		);
 	const tax = (t: Kit, one: Country) =>
 		Effect.gen(function* () {
@@ -532,7 +550,7 @@ describe('twice a month', () => {
 
 	it.live('Philippines: a second half with no pay still settles the month', () => {
 		const seed = reschedule(seedOf(one, terms(120_000)), TWICE);
-		const noPay = catalogId(seed, 'leave_catalog', 'UNPAID_LEAVE');
+		const noPay = catalogId(seed, 'leave_catalog', 'NPL');
 		const days = ['16', '17', '18', '19', '22', '23', '24', '25', '26', '29', '30'].flatMap(
 			(day) => [
 				{ date: PlainDate(`2026-06-${day}`), part: 'AM' as const },
@@ -614,7 +632,7 @@ const leave = (
 	seed: Seed,
 	days: ReturnType<typeof whole>,
 	reverses: Id<'leave_catalog_entry'> | null = null,
-	code = 'UNPAID_LEAVE'
+	code = 'NPL'
 ) =>
 	Effect.gen(function* () {
 		const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
@@ -628,13 +646,6 @@ const leave = (
 			})
 		]);
 	});
-/** The row as it was before the line: converting at 0, so the salary basis takes the days. */
-const onBasis = (seed: Seed): Seed => ({
-	...seed,
-	leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-		row.code === 'UNPAID_LEAVE' ? { ...row, subtotal_id: null, paid_share: '0' } : row
-	)
-});
 const lineOf = (lines: PayslipBreakdown['lines'], code: string) =>
 	lines
 		.filter((line) => line.code === code)
@@ -644,33 +655,28 @@ describe('a no-pay day', () => {
 	for (const [name, one] of countries) {
 		const salary = one.code === 'PH' ? 44_000 : 22_000_000;
 		const monthly = seedOf(one, terms(salary, one.allowances));
-		const dated = (seed: Seed) =>
-			inWorkspace(seed, NOW, (t) =>
+		// the day rate to the minor unit: ₱44,000 × 12 ÷ 261, or ₫22,000,000 ÷ June's 22 working days
+		const day = one.code === 'PH' ? 2022.99 : 1_000_000;
+		const dated = (days: ReturnType<typeof whole>) =>
+			inWorkspace(monthly, NOW, (t) =>
 				Effect.gen(function* () {
-					yield* leave(t, seed, [...whole('2026-06-10'), ...whole('2026-06-11')]);
+					if (days.length > 0) yield* leave(t, monthly, days);
 					yield* onCycle(t, '2026-06');
 					const [slip] = yield* slips(t, '2026-06');
 					assert.ok(slip !== undefined);
-					return {
-						net: slip.net,
-						statutory: yield* charged(t, '2026-06'),
-						ordinary: checkpoint(slip.checkpoints, one.wages),
-						lines: slip.lines
-					};
+					return { slip, tax: Number((yield* charged(t, '2026-06'))[`${one.tax}.employee`]) };
 				})
 			);
 
-		it.live(`${name}: the line equals what the salary basis took, net pay and statutory`, () =>
+		it.live(`${name}: the line takes the days at the day rate, and the tax follows`, () =>
 			Effect.gen(function* () {
-				const line = yield* dated(monthly);
-				const basis = yield* dated(onBasis(monthly));
-				within(line.net, basis.net);
-				within(line.ordinary, basis.ordinary);
-				assert.deepEqual(Object.keys(line.statutory), Object.keys(basis.statutory));
-				for (const [key, value] of Object.entries(basis.statutory))
-					within(Number(line.statutory[key]), value);
-				// the absence is in the salary basis; no deduction line remains
-				assert.equal(lineOf(line.lines, 'UNPAID_LEAVE'), 0);
+				const line = yield* dated([...whole('2026-06-10'), ...whole('2026-06-11')]);
+				const worked = yield* dated([]);
+				// the salary stays the contract's; the no-pay days are a line at the checkpoint after it
+				within(lineOf(line.slip.lines, 'NPL'), -2 * day);
+				within(checkpoint(line.slip.checkpoints, 'BASIC'), salary);
+				within(checkpoint(line.slip.checkpoints, 'PAID_BASIC'), salary - 2 * day);
+				assert.ok(line.tax < worked.tax, `${line.tax} is not below ${worked.tax}`);
 			})
 		);
 
@@ -681,16 +687,16 @@ describe('a no-pay day', () => {
 					yield* onCycle(t, '2026-06');
 					const [slip] = yield* slips(t, '2026-06');
 					assert.ok(slip !== undefined);
-					assert.equal(lineOf(slip.lines, 'UNPAID_LEAVE'), 0);
+					within(lineOf(slip.lines, 'NPL'), -day / 2);
 					within(
-						checkpoint(slip.checkpoints, 'BASIC'),
+						checkpoint(slip.checkpoints, 'PAID_BASIC'),
 						one.code === 'PH' ? salary - (salary * 12) / 261 / 2 : salary - salary / 44
 					);
 				})
 			)
 		);
 
-		it.live(`${name}: a daily rate pays its day back at the rate`, () => {
+		it.live(`${name}: a daily rate takes its day at the rate`, () => {
 			const rate = one.code === 'PH' ? 2000 : 1_000_000;
 			const seed = seedOf(one, terms(rate, {}, 'DAILY'));
 			return inWorkspace(seed, NOW, (t) =>
@@ -699,8 +705,10 @@ describe('a no-pay day', () => {
 					yield* onCycle(t, '2026-06');
 					const [slip] = yield* slips(t, '2026-06');
 					assert.ok(slip !== undefined);
-					assert.equal(lineOf(slip.lines, 'UNPAID_LEAVE'), 0);
-					within(checkpoint(slip.checkpoints, 'BASIC'), rate * 21);
+					// June's 22 working days at the rate, less the day's line
+					within(lineOf(slip.lines, 'NPL'), -rate);
+					within(checkpoint(slip.checkpoints, 'BASIC'), rate * 22);
+					within(checkpoint(slip.checkpoints, 'PAID_BASIC'), rate * 21);
 				})
 			);
 		});
@@ -723,12 +731,15 @@ describe('a no-pay day', () => {
 						const taken =
 							checkpoint(august.checkpoints, one.wages) - checkpoint(june.checkpoints, one.wages);
 						assert.ok(taken > 0);
-						// a reversal is one refund line on NET; the current month's allowance lines stay whole
-						for (const code of one.noPayLines.filter((line) => line !== 'UNPAID_LEAVE'))
-							within(lineOf(july.lines, code), lineOf(august.lines, code));
-						within(checkpoint(july.checkpoints, one.wages), full);
-						within(lineOf(july.lines, 'UNPAID_LEAVE'), taken);
-						assert.equal(lineOf(august.lines, 'UNPAID_LEAVE'), 0);
+						// a reversal is priced like the line it undoes; an allowance that fell with the day gives it back on its own line
+						within(lineOf(july.lines, 'NPL'), -lineOf(june.lines, 'NPL'));
+						for (const code of one.noPayLines.filter((line) => line !== 'NPL'))
+							within(
+								lineOf(july.lines, code) - lineOf(august.lines, code),
+								lineOf(august.lines, code) - lineOf(june.lines, code)
+							);
+						within(checkpoint(july.checkpoints, one.wages), full + taken);
+						assert.equal(lineOf(august.lines, 'NPL'), 0);
 					})
 				)
 		);
@@ -756,8 +767,8 @@ describe('a no-pay day', () => {
 					yield* onCycle(t, '2026-06-2');
 					const [first, second] = yield* slips(t, '2026-06');
 					assert.ok(first !== undefined && second !== undefined);
-					assert.equal(lineOf(first.lines, 'UNPAID_LEAVE'), 0);
-					assert.ok(lineOf(second.lines, 'UNPAID_LEAVE') > 0);
+					within(lineOf(first.lines, 'NPL'), -day);
+					within(lineOf(second.lines, 'NPL'), day);
 				})
 			);
 		});
@@ -786,7 +797,7 @@ describe('a work-authorisation check runs at every payslip', () => {
 	const KEY = `WORK_AUTHORISATION_EXTENSION_393:${uuid(6)}`;
 	const FIRST = '2026-12-20T02:00:00.000Z';
 	const bounded = (seed: Seed, to: string): Seed => ({
-		...seed,
+		...lasting(seed),
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
 			effective_range: { from: '2025-01-01', to }
@@ -804,7 +815,7 @@ describe('a work-authorisation check runs at every payslip', () => {
 
 	it.live('raises the extension inside its window, once', () => {
 		const seed = bounded(
-			seedOf(vietnam, permit, '2025-01-01', extension, '2026-12-15'),
+			seedOf(vietnam, permit, '2025-01-01', extension, '2026-11-15'),
 			'2027-02-20'
 		);
 		return inWorkspace(seed, FIRST, (t) =>
@@ -823,7 +834,7 @@ describe('a work-authorisation check runs at every payslip', () => {
 
 	it.live('stays quiet before the window', () => {
 		const seed = bounded(
-			seedOf(vietnam, permit, '2025-01-01', extension, '2026-12-15'),
+			seedOf(vietnam, permit, '2025-01-01', extension, '2026-11-15'),
 			'2028-02-20'
 		);
 		return inWorkspace(seed, FIRST, (t) =>
@@ -835,7 +846,7 @@ describe('a work-authorisation check runs at every payslip', () => {
 	});
 
 	it.live('two foreign workers on one run raise one employer report', () => {
-		const base = seedOf(vietnam, permit, '2025-01-01', extension, '2026-12-15');
+		const base = lasting(seedOf(vietnam, permit, '2025-01-01', extension, '2026-11-15'));
 		const [contract] = base.employee_contract ?? [];
 		assert.ok(contract !== undefined);
 		const seed: Seed = {

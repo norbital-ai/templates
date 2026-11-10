@@ -75,10 +75,10 @@ describe('a weekday in lieu of a Saturday holiday', () => {
 		)
 	);
 
-	// RM 3,120 a month: 120 a day (÷ 26); a holiday worked pays two days' wages, Employment Act 1955 s.60D(3)
+	// RM 3,120 a month on a five-day week: 144 a day (× 12 ÷ (52 × 5)); a holiday worked pays two days' wages, Employment Act 1955 s.60D(3)
 	it.live('is the holiday of a five-day week, which is off that Saturday', () =>
 		paid(5).pipe(
-			Effect.map((lines) => assert.equal(lines.HOLIDAY_WORK, 240, JSON.stringify(lines)))
+			Effect.map((lines) => assert.equal(lines.HOLIDAY_WORK, 288, JSON.stringify(lines)))
 		)
 	);
 });

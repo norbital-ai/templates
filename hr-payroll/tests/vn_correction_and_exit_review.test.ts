@@ -19,7 +19,7 @@ type Row = {
 const load = <T>(file: string): T =>
 	JSON.parse(
 		readFileSync(
-			new URL(`../seed/public/jurisdiction/VN/version_7/${file}`, import.meta.url),
+			new URL(`../seed/public/jurisdiction/VN/version_5/${file}`, import.meta.url),
 			'utf8'
 		)
 	) as T;

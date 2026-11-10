@@ -51,7 +51,7 @@ const CHINA: Place = {
 	zone: 'Asia/Shanghai',
 	residency: 'CITIZEN',
 	item: 'BONUS',
-	noPay: 'UNPAID_LEAVE',
+	noPay: 'NPL',
 	entity: {
 		region: 'SH',
 		hpf_rate_percent: 7,
@@ -441,7 +441,7 @@ describe('corrected in the next month', () => {
 describe('Taiwan’s month of salary', () => {
 	const schedule = (seed: Seed, payment_schedule: Facts): Seed => ({
 		...seed,
-		entity: (seed.entity ?? []).map((row) => ({
+		pay_group: (seed.pay_group ?? []).map((row) => ({
 			...row,
 			payment_schedule
 		}))
@@ -622,7 +622,7 @@ describe('a no-pay day', () => {
 		};
 		const undeclared: Place = { ...CHINA, allowances: { FIXED_ALLOWANCE: { amount: 11_000 } } };
 		const seed = seedOf(declared, 33_000);
-		const code = 'UNPAID_LEAVE';
+		const code = 'NPL';
 
 		it.live('net pay and every statutory figure are what the salary basis gave', () =>
 			Effect.gen(function* () {
@@ -631,27 +631,34 @@ describe('a no-pay day', () => {
 				yield* same(undeclared, 33_000, code, whole('2026-06-10'));
 			})
 		);
-		it.live('with no declared base, BASIC is what the salary basis left', () =>
+		it.live('with no declared base, PAID_BASIC is what the no-pay line left', () =>
 			Effect.gen(function* () {
 				const plain = seedOf(undeclared, 33_000);
-				const onLine = yield* figureOn(plain, code, whole('2026-06-10'), 'BASIC');
+				const onLine = yield* figureOn(plain, code, whole('2026-06-10'), 'PAID_BASIC');
+				// 33,000 less the salary's share of the day rate: (33,000 + 11,000) ÷ 21.75 × 33,000 ÷ 44,000 = 1,517.24
 				assert.equal(onLine, 31_482.76);
 				assert.equal(
 					onLine,
-					yield* figureOn(asBasis(plain, code), code, whole('2026-06-10'), 'BASIC')
+					yield* figureOn(asBasis(plain, code), code, whole('2026-06-10'), 'PAID_BASIC')
 				);
 			})
 		);
-		it.live('a day is the month’s salary, and the fixed allowance falls on its own line', () =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* take(t, seed, code, whole('2026-06-10'));
-				yield* onCycle(t, '2026-06');
-				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code), undefined);
-				assert.equal(line(june, 'BASIC')?.amount, 31_482.758620689656);
-				assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_494.25);
-			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
+		it.live(
+			'a day comes off at the wage’s day rate: the salary’s share as a line, the fixed allowance’s on its own',
+			() =>
+				Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					yield* take(t, seed, code, whole('2026-06-10'));
+					yield* onCycle(t, '2026-06');
+					const [june] = yield* runs(t, '2026-06');
+					// DAY_RATE: the salary's share of (33,000 + the rated 11,000) ÷ 21.75 = 2,022.99, to the fen
+					assert.equal(line(june, code)?.amount, 1517.24);
+					assert.equal(line(june, code)?.direction, 'DEDUCT');
+					assert.equal(line(june, 'BASIC')?.amount, 33_000);
+					assert.equal(checkpoint(june, 'PAID_BASIC'), 31_482.76);
+					// the allowance's share of the day falls on its own line: 11,000 × (1 − 2,022.99 ÷ 44,000)
+					assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_494.25);
+				}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
 		it.live('a half day is half', () =>
 			Effect.gen(function* () {
@@ -659,8 +666,10 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code), undefined);
-				assert.equal(line(june, 'BASIC')?.amount, 32_241.37931034483);
+				// half the salary's rounded day rate: 1,517.24 ÷ 2
+				assert.equal(line(june, code)?.amount, 758.62);
+				assert.equal(checkpoint(june, 'PAID_BASIC'), 32_241.38);
+				// 11,000 × (1 − 1,011.49 ÷ 44,000)
 				assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_747.13);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -672,7 +681,7 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, whole('2026-06-10'), yield* sealedLeave(t));
 				yield* onCycle(t, '2026-07');
 				const [july] = yield* runs(t, '2026-07');
-				// the whole month wage share: BASIC 1,500 plus the fixed allowance's 500
+				// the whole day: the salary's 1,517.24 plus the fixed allowance's 505.75
 				assert.equal(line(july, code)?.amount, 2022.99);
 				assert.equal(line(july, code)?.direction, 'ADD');
 				assert.equal(line(july, 'FIXED_ALLOWANCE')?.amount, 11_000);
@@ -727,8 +736,10 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code), undefined);
-				assert.equal(line(june, 'BASIC')?.amount, 29_000);
+				assert.equal(line(june, code)?.amount, 1000);
+				assert.equal(line(june, code)?.direction, 'DEDUCT');
+				assert.equal(line(june, 'BASIC')?.amount, 30_000);
+				assert.equal(checkpoint(june, 'PAID_BASIC'), 29_000);
 				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2900);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -738,8 +749,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code), undefined);
-				assert.equal(line(june, 'BASIC')?.amount, 29_500);
+				assert.equal(line(june, code)?.amount, 500);
+				assert.equal(checkpoint(june, 'PAID_BASIC'), 29_500);
 				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2950);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -749,8 +760,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, [...whole('2026-06-12'), ...whole('2026-06-15')]);
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code), undefined);
-				assert.equal(line(june, 'BASIC')?.amount, 28_000);
+				assert.equal(line(june, code)?.amount, 2000);
+				assert.equal(checkpoint(june, 'PAID_BASIC'), 28_000);
 				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2800);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -764,8 +775,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, weekdays.flatMap(whole));
 				yield* onCycle(t, '2026-08');
 				const [august] = yield* runs(t, '2026-08');
-				assert.equal(line(august, code), undefined);
-				assert.equal(Math.round(Number(line(august, 'BASIC')?.amount) * 100) / 100, 9_000);
+				assert.equal(line(august, code)?.amount, 21_000);
+				assert.equal(checkpoint(august, 'PAID_BASIC'), 9_000);
 				assert.equal(Math.round(Number(line(august, 'MEAL_ALLOWANCE')?.amount) * 100) / 100, 900);
 			}).pipe(Effect.provide(workspace({ seed, now: AUGUST })))
 		);

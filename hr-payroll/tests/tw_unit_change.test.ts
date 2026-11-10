@@ -12,7 +12,7 @@ type Rule = {
 };
 const rules = JSON.parse(
 	readFileSync(
-		new URL('../seed/public/jurisdiction/TW/version_5/registered_effect.json', import.meta.url),
+		new URL('../seed/public/jurisdiction/TW/version_4/registered_effect.json', import.meta.url),
 		'utf8'
 	)
 ) as readonly Rule[];

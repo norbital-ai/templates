@@ -11,7 +11,7 @@ import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
 const catalog = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
 	JSON.parse(
 		readFileSync(
-			'seed/public/jurisdiction/MY/version_8/statutory_contribution_catalog.json',
+			'seed/public/jurisdiction/MY/version_5/statutory_contribution_catalog.json',
 			'utf8'
 		)
 	)
@@ -20,7 +20,7 @@ const pcb = catalog.find((row) => row.code === 'PCB');
 assert.ok(pcb !== undefined);
 const [settings] = Schema.decodeUnknownSync(Schema.Array(Schema.Struct({ lookup: JsonObject })))(
 	JSON.parse(
-		readFileSync('seed/public/jurisdiction/MY/version_8/jurisdiction_settings.json', 'utf8')
+		readFileSync('seed/public/jurisdiction/MY/version_5/jurisdiction_settings.json', 'utf8')
 	)
 );
 

@@ -23,7 +23,8 @@ import {
 	leaveCreate
 } from './kit.ts';
 
-const NOW = '2026-12-20T02:00:00.000Z';
+// inside the law the template holds, which runs to 30 November 2026
+const NOW = '2026-11-20T02:00:00.000Z';
 const near = (actual: number, expected: number) =>
 	assert.ok(Math.abs(actual - expected) < 0.01, `${actual} is not ${expected}`);
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -294,13 +295,15 @@ describe('pay that steps down, on one row', () => {
 					payslip.rows.map((slip) => Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown))
 				)
 			);
-	/** What the unpaid part of the days took off the salary: no line, BASIC falls by the share of the period paid. */
+	/** What the unpaid part of the days took off the salary: the leave row's own line, which PAID_BASIC falls by. */
 	const taken = (t: Kit) =>
 		breakdowns(t).pipe(
 			Effect.map((slips) =>
 				slips.reduce(
 					(sum, slip) =>
-						sum + 11_000_000 - (slip.checkpoints.find((row) => row.code === 'BASIC')?.value ?? 0),
+						sum +
+						11_000_000 -
+						(slip.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value ?? 0),
 					0
 				)
 			)
@@ -311,13 +314,13 @@ describe('pay that steps down, on one row', () => {
 			Effect.map((slips) =>
 				slips
 					.flatMap((slip) => slip.lines)
-					.filter((line) => line.code === code)
+					.filter((line) => line.code === code && line.direction === 'ADD')
 					.reduce((sum, line) => sum + line.amount, 0)
 			)
 		);
 	const JUNE = ['2026-06-09', '2026-06-10'];
-	// Indonesia prices a missed day at monthly wage ÷ 173 × 8 hours
-	const DAY = (11_000_000 * 8) / 173;
+	// Indonesia prices a missed day at monthly wage ÷ 173 × 8 hours, to the whole rupiah before it multiplies the days
+	const DAY = Math.round((11_000_000 * 8) / 173);
 
 	it.live('a sick day with no fact is at full pay', () =>
 		Effect.gen(function* () {

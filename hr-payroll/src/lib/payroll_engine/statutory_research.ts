@@ -196,8 +196,11 @@ export const planChanges = ({
 	readonly reported: readonly ReportedChange[];
 	readonly today: string;
 }) => {
+	// past the seeded window's end the last version still stands until a change is materialized
+	const last = versions.toSorted((left, right) => right.from.localeCompare(left.from))[0];
 	const versionOn = (date: string) =>
-		versions.find((row) => row.from <= date && (row.to === null || date <= row.to));
+		versions.find((row) => row.from <= date && (row.to === null || date <= row.to)) ??
+		(last !== undefined && date > last.from ? last : undefined);
 	const snapshotOf = (version: ResearchVersion) => ({
 		settings: version.settings,
 		rows: { [family]: version.rows }

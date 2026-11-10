@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
+import { jsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import { ENTITY, pack, uuid, workspace } from './kit.ts';
 
@@ -25,18 +26,32 @@ const terms = (category: string | null) => ({
 	...(category === null ? {} : { work_authorisation_category: category }),
 	allowances: {}
 });
+// Decree 393 commences 2026-12-05, past the seeded law (to 2026-11-30): here the last sealed version stays in force.
+const lasting = (seed: ReturnType<typeof pack>): ReturnType<typeof pack> => {
+	const law = seed.entity_profile_version?.[0]?.input_schema_version_id;
+	return {
+		...seed,
+		jurisdiction_settings: (seed.jurisdiction_settings ?? []).map((row) =>
+			row.id === law
+				? { ...row, effective_range: { ...jsonObject(row.effective_range), to: null } }
+				: row
+		)
+	};
+};
 const seedOf = ({ category = null, count = null, status = 'SEALED' }: SeedOptions = {}) => {
-	const base = pack(
-		'VN',
-		'Asia/Ho_Chi_Minh',
-		terms(category),
-		{
-			pass_type: 'WORK_PERMIT',
-			...(count === null ? {} : { work_authorisation_extension_count: count })
-		},
-		[],
-		[],
-		'2027-01-15'
+	const base = lasting(
+		pack(
+			'VN',
+			'Asia/Ho_Chi_Minh',
+			terms(category),
+			{
+				pass_type: 'WORK_PERMIT',
+				...(count === null ? {} : { work_authorisation_extension_count: count })
+			},
+			[],
+			[],
+			'2026-11-15'
+		)
 	);
 	return {
 		...base,

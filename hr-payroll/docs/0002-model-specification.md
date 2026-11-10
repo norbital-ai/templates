@@ -179,7 +179,8 @@ commit ──► registered_effect (collection, event) ──► target_action w
 
 ## 6. Employer, employee and calendar
 
-- `entity` — stable identity: `code`, `name`, `settings_code`, `payment_schedule`, `source_reference`, `epf_registered_on`, `socso_registered_on`. The run reads the schedule and cutoff here, not from a legal version.
+- `entity` — stable identity: `code`, `name`, `settings_code`, `source_reference`, `epf_registered_on`, `socso_registered_on`.
+- `pay_group` — one payroll of a company: `entity_id`, `name`, `payment_schedule` (frequency, pay days, cutoff). `employee_contract.pay_group_id` names a person's group and `payroll_run.pay_group_id` the group a run pays; the run reads the schedule and cutoff here, not from the company or a legal version.
 - `entity_profile_version` — `entity_id`, `name`, `representative_name`, `effective_range`, `settings_code`, `input_schema_version_id`, `bank` (custom field), `time_zone`, `registered_address`, `final_pay_loan_floor_percent`, `overtime_full_award_percent`, `pay_methods` (the better-than-law methods, each floored at the statute: `overtime_hour_basis` `STATUTORY`/`CONTRACT_WEEKLY`, `rest_day_hourly_multiplier`, `night_differential_basis` `WORKED`/`CLOCK_SPAN`), `entity_extension_data`, lifecycle `status`/`reason`.
 - `entity_change` — `entity_id`, `field_path`, `old_value`, `new_value`, `effective_from`, `applied_version_id`, `notes`. One employer fact filed ahead of its day: `entity_materialize` seals it into a new version and ends the open one the day before. `old_value` is captured when filed.
 - `employee_profile` — `name`, contact, `cumulative_service` (default false: count every stint, rehires included), `source_reference`, `documents` (no payroll reads them), a unique `user_id` (empty until the person accepts an invitation), optional invitation link, face enrolment (`face_embedding`, `face_photo`, `face_enrollment_status`, `face_consent_at`, `face_enrolled_at`, `face_match_count`, `face_last_match_at`).
@@ -189,7 +190,7 @@ commit ──► registered_effect (collection, event) ──► target_action w
 
 `jurisdiction_settings`, `entity_profile_version` and `employee_contract` share a DRAFT → SEALED → VOID lifecycle. A void requires a reason and is irreversible. A record a payroll run already captured may still be voided; the next run excludes it. No delete verb is exposed on these models. Transfer, settlement, service-continuity and void rules are normative in [transfer-semantics.md](transfer-semantics.md).
 
-- `holiday`, `shift_pattern`, `shift_definition` — calendar and shift sources.
+- `holiday`, `shift_pattern`, `shift_definition` — calendar and shift sources. A `holiday` with `employee_id` is one person's holiday; without it, the company's.
 - `work_event_catalog` / `work_event`, `workplace_case_catalog(_entry)` — entity-wide dated source data.
 
 ## 7. Balances and ledger
@@ -212,7 +213,7 @@ adjustments are hours, and a half day taken on it uses half the contract's `norm
 
 ## 9. Roster
 
-`roster_entry` — `employment_id`, optional `payroll_run_id`, `work_date`, optional `shift_definition_id`, `planned_overtime_intervals`, `overtime_as_time_off` (the worker takes the day's planned overtime as time off: the run prices none of it, and the payslip posts its hours to the version's one leave row whose lookup says `overtime_as_time_off: true`, an hour-unit row, `unit: 'HOUR'`), `actual_worked_intervals`, `findings` (the roster warnings stored on the day; a law's `roster_warnings.monthly_overtime_hours` is hours counted on every day, or `{ hours, day_types }` counted on the day types it names). One entry per employment and date. The contract's `terms.shift_pattern_id` is the default; an entry exists only for a day that differs or has clock evidence.
+`roster_entry` — `employment_id`, optional `payroll_run_id`, `work_date`, optional `shift_definition_id`, `planned_overtime_intervals`, `overtime_as_time_off` (the worker takes the day's planned overtime as time off: the run prices none of it, and the payslip posts its hours to the version's one leave row whose lookup says `overtime_as_time_off: true`, an hour-unit row, `unit: 'HOUR'`), `actual_worked_intervals`, `findings` (the roster warnings stored on the day; a law's `roster_warnings.monthly_overtime_hours` is hours counted on every day, or `{ hours, day_types }` counted on the day types it names). One entry per employment and date. The contract's `terms.shift_pattern_id` supplies the plan; every employee with attendance gets a roster, office staff included, and a paid work day without a clock gets one. The roster is the cycle's source of truth: the planned days and the clock evidence. `ABS` is not a shift code or a roster row: the engine reads a planned work day the roster leaves out (no leave, no published holiday), or a planned `WORK` day with no clock, as an absence. Leave and PH are not absences, and the engine does not infer the worker class.
 
 A run sets `payroll_run_id` on the entries it captures, and a captured entry refuses create, update and delete.
 

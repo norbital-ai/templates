@@ -8,11 +8,26 @@
 		"balance_window": "MONTH"
 	},
 	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "5dc96999-1d1c-4f4d-a220-23b1f5ebbfb1",
+		"previous_id": "6bcccede-5847-53ec-ac6e-86347e6a8bf4",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "cddc3b62-7040-4fe6-b2f9-2aa8c112351a",
+		"previous_id": "5dc96999-1d1c-4f4d-a220-23b1f5ebbfb1",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
 		"code": "REGULAR_PAY",
 		"name": "Regular pay",
 		"id": "1c1baa33-a9df-5b72-90df-53a226f6783f",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"previous_id": "6bcccede-5847-53ec-ac6e-86347e6a8bf4",
+		"previous_id": "cddc3b62-7040-4fe6-b2f9-2aa8c112351a",
 		"balance_window": "YEAR"
 	},
 	{

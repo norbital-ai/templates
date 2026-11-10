@@ -48,9 +48,24 @@
 		"balance_window": "YEAR"
 	},
 	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "96601212-ac3c-4353-ab63-1f7c05413751",
+		"previous_id": "2f5b39b2-9232-5bc2-a2ac-18a9bec8733c",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "bdb071c2-c2eb-44ac-820f-89b2a7d93ce6",
+		"previous_id": "96601212-ac3c-4353-ab63-1f7c05413751",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
 		"code": "BASIC_AFTER_PARENTAL_LEAVE",
 		"name": "Basic salary after parental leave (育嬰留職停薪後)",
-		"previous_id": "2f5b39b2-9232-5bc2-a2ac-18a9bec8733c",
+		"previous_id": "bdb071c2-c2eb-44ac-820f-89b2a7d93ce6",
 		"id": "4c9178af-f00f-4e41-9b54-fdf123407a38",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"balance_window": "YEAR"

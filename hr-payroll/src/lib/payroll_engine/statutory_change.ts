@@ -286,7 +286,11 @@ export const materialize = ({
 		return {
 			effective_from: date,
 			change_ids: due.filter((change) => change.effective_from === date).map((change) => change.id),
-			snapshot: frozen(working, { from: date, to: range.to ?? null })
+			// a baseline that ended before this date (the seeded window's last version) hands on no end
+			snapshot: frozen(working, {
+				from: date,
+				to: typeof range.to === 'string' && range.to >= date ? range.to : null
+			})
 		};
 	});
 };

@@ -23,7 +23,7 @@ const seedOf = (cutoff: number) => {
 	const base = pack('ID', 'Asia/Jakarta', terms, {}, [], [], '2026-02-15');
 	return {
 		...base,
-		entity: (base.entity ?? []).map((row) => ({
+		pay_group: (base.pay_group ?? []).map((row) => ({
 			...row,
 			payment_schedule: {
 				frequency: 'TEN_DAY',

@@ -8,9 +8,24 @@
 		"balance_window": "MONTH"
 	},
 	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "ddfed1bd-4cc3-493e-a6f9-8296ed2eb560",
+		"previous_id": "8fff9288-4187-5ee2-b66e-a3d01a44891a",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "b735f39e-52da-4406-896b-571f1f7ad541",
+		"previous_id": "ddfed1bd-4cc3-493e-a6f9-8296ed2eb560",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages (正常工资)",
-		"previous_id": "8fff9288-4187-5ee2-b66e-a3d01a44891a",
+		"previous_id": "b735f39e-52da-4406-896b-571f1f7ad541",
 		"id": "5431b266-4a96-5e83-9f6d-41c78c237e9b",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
 		"balance_window": "YEAR"

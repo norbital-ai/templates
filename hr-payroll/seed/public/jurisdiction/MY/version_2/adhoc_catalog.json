@@ -780,5 +780,59 @@
 		"id": "196731c0-8293-57c5-a8fc-81ae2e699a60",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
 		"description": "Overtime the attendance missed, paid in a later run."
+	},
+	{
+		"code": "INCENTIVE_OT",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "1d652784-3ccc-44c2-8d4c-eda451a36797",
+		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Owner directive 2026-11-10: salary-listing INCENTIVE (OT) is an adhoc payment, SOCSO/EIS wages only."
+			}
+		],
+		"id": "7d92eb08-d589-4f3a-b612-c05eb5b1715e",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
+		"description": "Incentive (OT) from the salary listing; SOCSO and EIS wages only."
+	},
+	{
+		"code": "NO_PAY_ADJUSTMENT",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c45cb561-0d0a-57cb-802e-81231e894115",
+		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Encoded 2026-11-11: the manual no-pay leave adjustment of a payroll listing. It moves basic pay, so it counts wherever basic pay counts."
+			}
+		],
+		"id": "fb800bd4-a281-5809-b91f-215fd82fce28",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
+		"description": "No-pay leave settled by hand: what HR takes beyond the unpaid days the cycle holds (a calendar month with no paid day pays nothing)."
+	},
+	{
+		"code": "NO_PAY_REFUND",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c45cb561-0d0a-57cb-802e-81231e894115",
+		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Encoded 2026-11-11: the manual no-pay leave adjustment of a payroll listing. It moves basic pay, so it counts wherever basic pay counts."
+			}
+		],
+		"id": "0b511783-9e3d-541b-a946-54f72ffdd1a4",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
+		"description": "No-pay leave settled by hand: gives back unpaid days an earlier payslip already took, so no day is deducted twice."
 	}
 ]

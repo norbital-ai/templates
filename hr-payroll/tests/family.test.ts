@@ -13,7 +13,7 @@ import { accountsIn, measureOf, pack, syncAll, workspace } from './kit.ts';
 
 const rows = (file: string) =>
 	Schema.decodeUnknownSync(Schema.Array(JsonObject))(
-		JSON.parse(readFileSync(`seed/public/jurisdiction/MY/version_8/${file}`, 'utf8'))
+		JSON.parse(readFileSync(`seed/public/jurisdiction/MY/version_5/${file}`, 'utf8'))
 	);
 const pcb = rows('statutory_contribution_catalog.json').find((row) => row.code === 'PCB');
 assert.ok(pcb !== undefined);

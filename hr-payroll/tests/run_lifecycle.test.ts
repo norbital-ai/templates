@@ -71,12 +71,18 @@ const moved = (): Seed => {
 			...(seed.entity_profile_version ?? []),
 			{ ...profileOf(seed), id: uuid(902), entity_id: OTHER, name: 'Sister' }
 		],
+		// the sister company's own payroll, on the same schedule
+		pay_group: [
+			...(seed.pay_group ?? []),
+			...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
+		],
 		employee_contract: [
 			{ ...contractOf(seed), effective_range: { from: '2025-01-01', to: '2026-02-28' } },
 			{
 				...contractOf(seed),
 				id: MOVED,
 				entity_id: OTHER,
+				pay_group_id: uuid(908),
 				effective_range: { from: '2026-03-01', to: null }
 			}
 		]

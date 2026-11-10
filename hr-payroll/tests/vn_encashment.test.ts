@@ -35,31 +35,31 @@ const seedWith = (review: Review): ReturnType<typeof pack> => {
 		{ encashment_review: review },
 		[],
 		[],
-		'2027-01-15'
+		'2026-01-15'
 	);
 	return {
 		...base,
 		employee_contract: (base.employee_contract ?? []).map((row) => ({
 			...row,
-			effective_range: { from: '2025-01-01', to: '2027-01-31' },
-			final_pay_due_on: '2027-02-15'
+			effective_range: { from: '2025-01-01', to: '2026-01-31' },
+			final_pay_due_on: '2026-02-15'
 		})),
 		employee_balance: (base.employee_balance ?? []).map((row) => ({
 			...row,
-			account: { leave: { ANNUAL_LEAVE: { 'VN.Y.2027-01-01': { entitled: 12 } } } }
+			account: { leave: { ANNUAL_LEAVE: { 'VN.Y.2026-01-01': { entitled: 12 } } } }
 		}))
 	};
 };
-const REVIEW = { month: '2026-12', reference: 'December payslip', daily_wage_vnd: 500_000 };
-// a mid-month cutoff puts the last attendance day before the month end, so some cash-out slots fall outside it
+const REVIEW = { month: '2025-12', reference: 'December payslip', daily_wage_vnd: 500_000 };
+// a mid-month cutoff puts the last attendance day before the exit, so some cash-out slots fall after it
 const midMonthCutoff = (seed: ReturnType<typeof seedWith>): ReturnType<typeof seedWith> => ({
 	...seed,
 	employee_contract: (seed.employee_contract ?? []).map((row) => ({
 		...row,
-		effective_range: { from: '2025-01-01', to: '2027-02-15' },
-		final_pay_due_on: '2027-03-15'
+		effective_range: { from: '2025-01-01', to: '2026-02-15' },
+		final_pay_due_on: '2026-03-15'
 	})),
-	entity: (seed.entity ?? []).map((row) => ({
+	pay_group: (seed.pay_group ?? []).map((row) => ({
 		...row,
 		payment_schedule: { ...jsonObject(row.payment_schedule), pay_cutoff_day: 10 }
 	}))
@@ -70,7 +70,7 @@ const entry = (seed: ReturnType<typeof seedWith>, extra: object = {}) =>
 		employment_id: CONTRACT,
 		catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'ANNUAL_LEAVE')),
 		encashment: true,
-		days: wholeDays('2027-01-04', '2027-01-05'),
+		days: wholeDays('2026-01-05', '2026-01-06'),
 		...extra
 	});
 const approved = (t: Kit) =>
@@ -98,14 +98,14 @@ const line = (t: Kit) =>
 
 describe('a VN exit cash-out', () => {
 	it.live('is refused when the review is not the month before the exit', () => {
-		const seed = seedWith({ ...REVIEW, month: '2027-01' });
+		const seed = seedWith({ ...REVIEW, month: '2026-01' });
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(
 				t.as(t.admin).act('leave_catalog_entry.create', [entry(seed)])
 			);
 			assert.match(String(refused), /ENCASHMENT_PRIOR_WAGE_REVIEW/);
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-01-20T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-20T02:00:00.000Z' })));
 	});
 	it.live('is refused when the prior-month daily wage is zero', () => {
 		const seed = seedWith({ ...REVIEW, daily_wage_vnd: 0 });
@@ -115,61 +115,64 @@ describe('a VN exit cash-out', () => {
 				t.as(t.admin).act('leave_catalog_entry.create', [entry(seed)])
 			);
 			assert.match(String(refused), /ENCASHMENT_PRIOR_WAGE_REVIEW/);
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-01-20T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-20T02:00:00.000Z' })));
 	});
-	it.live('prices every slot of the cash-out, including those past the run window', () => {
-		const seed = midMonthCutoff(seedWith({ ...REVIEW, month: '2027-01' }));
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.act('leave_catalog_entry.create', [
-					entry(seed, { days: wholeDays('2027-01-29', '2027-02-23') })
-				]);
-			yield* approved(t);
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2027-02', kind: 'ON_CYCLE' }]);
-			// model effects run after the write: capture is due work
-			yield* t.runDue();
-			const lines = yield* line(t);
-			const paid = lines.find((row) => row.direction === 'ADD');
-			assert.ok(paid !== undefined);
-			assert.equal(Number(paid.quantity), 2);
-			assert.equal(Number(paid.amount), 1_000_000);
-			const { leave_catalog_entry } = yield* t.storedQuery({
-				leave_catalog_entry: { where: { encashment: { eq: true } }, fields: ['id'], limit: 10 }
-			});
-			const source = `leave_catalog_entry:${String(leave_catalog_entry.rows[0]?.id)}`;
-			const { ledger_entry } = yield* t.storedQuery({
-				ledger_entry: {
-					where: { source: { eq: source } },
-					fields: ['operation', 'amount', 'measure'],
-					limit: 100
-				}
-			});
-			const used = ledger_entry.rows
-				.filter((row) => row.measure === 'used')
-				.reduce(
-					(total, row) =>
-						total + (row.operation === 'DEDUCT' ? -1 : 1) * (row.amount?.toNumber() ?? 0),
-					0
+	it.live(
+		'prices every slot of the cash-out up to the last day, including those past the run window',
+		() => {
+			const seed = midMonthCutoff(seedWith({ ...REVIEW, month: '2026-01' }));
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* t
+					.as(t.admin)
+					.act('leave_catalog_entry.create', [
+						entry(seed, { days: wholeDays('2026-01-29', '2026-02-12') })
+					]);
+				yield* approved(t);
+				yield* t
+					.as(t.admin)
+					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
+				// model effects run after the write: capture is due work
+				yield* t.runDue();
+				const lines = yield* line(t);
+				const paid = lines.find((row) => row.direction === 'ADD');
+				assert.ok(paid !== undefined);
+				assert.equal(Number(paid.quantity), 2);
+				assert.equal(Number(paid.amount), 1_000_000);
+				const { leave_catalog_entry } = yield* t.storedQuery({
+					leave_catalog_entry: { where: { encashment: { eq: true } }, fields: ['id'], limit: 10 }
+				});
+				const source = `leave_catalog_entry:${String(leave_catalog_entry.rows[0]?.id)}`;
+				const { ledger_entry } = yield* t.storedQuery({
+					ledger_entry: {
+						where: { source: { eq: source } },
+						fields: ['operation', 'amount', 'measure'],
+						limit: 100
+					}
+				});
+				const used = ledger_entry.rows
+					.filter((row) => row.measure === 'used')
+					.reduce(
+						(total, row) =>
+							total + (row.operation === 'DEDUCT' ? -1 : 1) * (row.amount?.toNumber() ?? 0),
+						0
+					);
+				assert.equal(used, Number(paid.quantity));
+				// the run priced all four slots, so all four carry its stamp: two fall after its attendance, which ends on 9 February
+				const { leave_catalog_entry_day } = yield* t.storedQuery({
+					leave_catalog_entry_day: {
+						where: { leave_entry_id: { eq: leave_catalog_entry.rows[0]?.id } },
+						fields: ['payroll_run_id'],
+						limit: 100
+					}
+				});
+				assert.equal(
+					leave_catalog_entry_day.rows.filter((row) => row.payroll_run_id != null).length,
+					leave_catalog_entry_day.rows.length
 				);
-			assert.equal(used, Number(paid.quantity));
-			// the run priced all four slots, so all four carry its stamp: two are outside the salary coverage
-			const { leave_catalog_entry_day } = yield* t.storedQuery({
-				leave_catalog_entry_day: {
-					where: { leave_entry_id: { eq: leave_catalog_entry.rows[0]?.id } },
-					fields: ['payroll_run_id'],
-					limit: 100
-				}
-			});
-			assert.equal(
-				leave_catalog_entry_day.rows.filter((row) => row.payroll_run_id != null).length,
-				leave_catalog_entry_day.rows.length
-			);
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-02-24T02:00:00.000Z' })));
-	});
+			}).pipe(Effect.provide(workspace({ seed, now: '2026-02-24T02:00:00.000Z' })));
+		}
+	);
 	it.live('pays the days at the recorded daily wage in final pay', () => {
 		const seed = seedWith(REVIEW);
 		const finalPay = idOf<'subtotal'>(
@@ -188,13 +191,13 @@ describe('a VN exit cash-out', () => {
 			yield* approved(t);
 			yield* t
 				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2027-01', kind: 'ON_CYCLE' }]);
+				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-01', kind: 'ON_CYCLE' }]);
 			const lines = yield* line(t);
 			const paid = lines.find((row) => row.direction === 'ADD');
 			assert.ok(paid !== undefined);
 			assert.equal(Number(paid.amount), 1_000_000);
 			assert.equal(Number(paid.quantity), 2);
 			assert.equal(String(paid.subtotal_id), String(finalPay));
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-01-20T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-20T02:00:00.000Z' })));
 	});
 });

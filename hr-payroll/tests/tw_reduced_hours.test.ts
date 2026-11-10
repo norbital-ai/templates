@@ -19,12 +19,12 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const seed = pack('TW', 'Asia/Taipei', terms, {}, [], [], '2027-01-15');
+const seed = pack('TW', 'Asia/Taipei', terms, {}, [], [], '2026-10-15');
 const CATALOG = idOf(
 	'work_event_catalog',
 	catalogRow(seed, 'work_event_catalog', 'REDUCED_WORK_AGREEMENT')
 );
-const live = workspace({ seed, now: '2027-01-20T02:00:00.000Z' });
+const live = workspace({ seed, now: '2026-10-20T02:00:00.000Z' });
 const notices = (t: Kit) =>
 	t
 		.storedQuery({ obligation: { limit: 100 } })
@@ -35,12 +35,12 @@ const notices = (t: Kit) =>
 				)
 			)
 		);
-const create = (t: Kit, to = '2027-01-31') =>
+const create = (t: Kit, to = '2026-10-31') =>
 	t.as(t.admin).act('work_event.create', [
 		{
 			entity_id: ENTITY,
 			catalog_id: CATALOG,
-			from: PlainDate('2027-01-04'),
+			from: PlainDate('2026-10-05'),
 			to: PlainDate(to),
 			description: 'Reduced hours agreement'
 		}
@@ -56,17 +56,17 @@ describe('TW reduced-hours notice', () => {
 			yield* t.runDue();
 			const first = yield* notices(t);
 			assert.equal(first.length, 1);
-			assert.equal(String(first[0]?.due_on), '2027-01-04');
+			assert.equal(String(first[0]?.due_on), '2026-10-05');
 			assert.equal(String(first[0]?.title), 'Reduced-hours agreement notified');
 			yield* t
 				.as(t.admin)
-				.act('work_event.update', [{ target: id, set: { to: PlainDate('2027-02-28') } }]);
+				.act('work_event.update', [{ target: id, set: { to: PlainDate('2026-11-30') } }]);
 			yield* t.runDue();
 			const extended = yield* notices(t);
 			assert.equal(extended.length, 2);
-			const second = extended.find((row) => String(row.occurrence_key).endsWith(':2027-02-28'));
+			const second = extended.find((row) => String(row.occurrence_key).endsWith(':2026-11-30'));
 			assert.ok(second !== undefined);
-			assert.equal(String(second.due_on), '2027-02-01');
+			assert.equal(String(second.due_on), '2026-11-01');
 			assert.equal(String(second.title), 'Reduced-hours agreement extension notified');
 			yield* t
 				.as(t.admin)
@@ -75,7 +75,7 @@ describe('TW reduced-hours notice', () => {
 			assert.equal((yield* notices(t)).length, 2);
 			yield* t
 				.as(t.admin)
-				.act('work_event.update', [{ target: id, set: { to: PlainDate('2027-02-15') } }]);
+				.act('work_event.update', [{ target: id, set: { to: PlainDate('2026-11-15') } }]);
 			yield* t.runDue();
 			assert.equal((yield* notices(t)).length, 2);
 		}).pipe(Effect.provide(live)));

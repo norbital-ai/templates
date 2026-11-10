@@ -68,6 +68,7 @@
 			}}
 			columns={[
 				{ field: 'period', label: bolt.t('app.payroll.period'), cell: periodCell },
+				{ field: 'pay_group_id', label: bolt.t('app.payroll.pay_group') },
 				'kind',
 				{
 					field: 'updated_at',

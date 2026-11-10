@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
+import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { ENTITY, OFF, REST, WORK, pack, uuid, workspace } from './kit.ts';
 
 const PATTERN = uuid(950);
@@ -65,8 +66,11 @@ describe('a leaver on a shift pattern', () => {
 				.as(t.admin)
 				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]);
 			const [slip] = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows;
+			// BASIC is the contract salary; PRORATED is what the days employed leave of it
+			assert.equal(slip?.basic_earnings?.toNumber(), 6600);
+			const { checkpoints } = Schema.decodeUnknownSync(PayslipBreakdown)(slip?.breakdown);
 			// June 2026 has 22 weekdays; the 1st to the 15th hold 11 of them
-			assert.equal(slip?.basic_earnings?.toNumber(), 3300);
+			assert.equal(checkpoints.find((point) => point.code === 'PRORATED')?.value, 3300);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-06-20T02:00:00.000Z' })))
 	);
 });
