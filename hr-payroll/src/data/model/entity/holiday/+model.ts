@@ -45,7 +45,11 @@ export default model('holiday', {
 		// when their shift put it on another date (a night guard whose holiday shift starts as the holiday ends)
 		employee_id: { kind: 'ref', to: 'employee_profile', inverse: 'holiday', optional: true }
 	},
-	read: 'all',
+	read: {
+		holiday: { fields: 'all' },
+		// the person a holiday is for alone shows by name
+		'holiday.employee_id': { fields: ['name'] }
+	},
 	create: {
 		columns: {
 			holiday: [
