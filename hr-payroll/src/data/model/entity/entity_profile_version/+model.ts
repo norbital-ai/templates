@@ -72,9 +72,9 @@ export default model('entity_profile_version', {
 				},
 				benefit_exclusion: {
 					kind: 'enum',
-					values: ['AS_PAID', 'PROJECTED'],
-					default: 'AS_PAID',
-					help: 'How the yearly tax exclusion for bonuses and other benefits is used. AS_PAID fills it in the order paid; PROJECTED keeps room for the thirteenth month still to come, so other benefits past what is left are taxed when paid.'
+					values: ['POOLED', 'EXCESS_TAXED'],
+					default: 'POOLED',
+					help: 'How a benefit paid past its own tax-free limit is taxed. POOLED puts the excess in the yearly exclusion for bonuses and benefits; EXCESS_TAXED taxes it in the month it is paid and leaves the exclusion to the thirteenth month and bonuses. The year’s last pay settles either way.'
 				}
 			}
 		},

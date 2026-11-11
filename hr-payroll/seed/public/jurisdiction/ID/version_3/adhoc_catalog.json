@@ -886,6 +886,33 @@
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
 	},
 	{
+		"code": "EMPLOYER_PAID_BENEFIT",
+		"references": [
+			{
+				"title": "PMK 66/2023; UU 7/2021 (HPP) art.4(1)(a): a benefit in kind or enjoyment the employer provides is income of the employee and enters the PPh 21 base."
+			}
+		],
+		"description": "A benefit the employer pays for the employee, such as an insurance premium (PMK 66/2023): taxable income of the month it is dated in, with no cash to the employee. The entry quantity is its value.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "BENEFIT.employer",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"direction": "ADD",
+		"party": "EMPLOYER",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"id": "bd327e9e-9f9f-548d-8c15-a16073da6dec",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
 		"code": "KESEHATAN_ADJUSTMENT",
 		"references": [
 			{

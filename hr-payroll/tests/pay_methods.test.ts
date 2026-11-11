@@ -335,10 +335,10 @@ describe('contribution split', () => {
 });
 
 describe('benefit exclusion', () => {
-	// ₱130,000 a month with a ₱4,500 rice subsidy: ₱2,000 a month is past the ₱2,500 de minimis ceiling and counts
-	// against the ₱90,000 exclusion. As paid, February's ₱2,000 fits. Projected, the ₱130,000 thirteenth month still to
-	// come already takes the whole exclusion, so the ₱2,000 is taxed now, at the 25% the month's pay sits on.
-	it.live('PROJECTED taxes a benefit the thirteenth month will push past the exclusion', () =>
+	// ₱130,000 a month with a ₱4,500 rice subsidy: ₱2,000 a month is past the ₱2,500 de minimis ceiling. Pooled, it sits
+	// in the ₱90,000 yearly exclusion and February withholds nothing on it. Taxed as paid, it is taxed in February at
+	// the 25% the month's pay sits on.
+	it.live('EXCESS_TAXED taxes a benefit past its own limit in the month it is paid', () =>
 		Effect.gen(function* () {
 			const seed = (employer: JsonObject): Seed =>
 				withEmployer(
@@ -366,7 +366,7 @@ describe('benefit exclusion', () => {
 				breakdown.statutory.find((row) => row.code === 'WTAX')?.employee ?? 0;
 			const paid = yield* slip(seed({}), '2026-02', FEBRUARY);
 			const projected = yield* slip(
-				seed({ pay_methods: { benefit_exclusion: 'PROJECTED' } }),
+				seed({ pay_methods: { benefit_exclusion: 'EXCESS_TAXED' } }),
 				'2026-02',
 				FEBRUARY
 			);

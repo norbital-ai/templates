@@ -1797,6 +1797,16 @@ export const ROW_PARAMS = {
 			)
 		}),
 		EMPLOYEE_UNLAWFUL_TERMINATION: Schema.Struct({}),
+		EMPLOYER_PAID_BENEFIT: Schema.Struct({
+			accounts: Schema.Array(
+				Schema.Struct({
+					account: Schema.String,
+					code: Schema.String,
+					measure: Schema.String,
+					operation: Schema.String
+				})
+			)
+		}),
 		EMPLOYER_PENSION_CONTRIBUTION: Schema.Struct({}),
 		EMPLOYMENT_ASSISTANCE_PAYMENT: Schema.Struct({}),
 		EPF_ADJUSTMENT: Schema.Struct({

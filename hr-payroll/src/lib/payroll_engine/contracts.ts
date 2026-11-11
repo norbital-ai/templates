@@ -44,6 +44,7 @@ const CALCULATION_ROOTS = [
 	'overtime',
 	'statutory',
 	'corrections',
+	'encashment',
 	'allowance',
 	'run',
 	'references',

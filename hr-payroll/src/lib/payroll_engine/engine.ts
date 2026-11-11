@@ -827,6 +827,8 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	const lines: PayLine[] = [];
 	// what this run's correction entries add to or take from a scheme's share (`CODE.employee`, `CODE.employer`)
 	const corrections: Record<string, Record<string, number>> = {};
+	// leave paid out in money by this run (a cash-out at exit or on request): a levy that stops at wages reads it
+	let encashment = 0;
 	const values = new Map<string, number>();
 	const results: SubtotalResult[] = [];
 	const computedBy = new Map<string, number>();
@@ -1081,6 +1083,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					(entry.reverses == null ? 1 : -1);
 				const paid = round(input.settings, Math.abs(net));
 				if (paid === 0) continue;
+				if (leave && entry.encashment === true) encashment += net;
 				if (group.model === 'adhoc_catalog' && Array.isArray(lookup.accounts))
 					for (const account of lookup.accounts)
 						if (
@@ -1189,6 +1192,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			subtotals: Object.fromEntries(results.map((r) => [r.code, r.value])),
 			statutory: statutoryValues,
 			corrections,
+			encashment,
 			overtime: lines
 				.filter((row) => row.source_id.model === 'overtime_catalog')
 				.reduce((total, row) => total + row.amount, 0)
