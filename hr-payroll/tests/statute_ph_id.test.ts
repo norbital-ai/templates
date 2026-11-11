@@ -466,6 +466,7 @@ describe('Indonesian TER', () => {
 			as_of: '2026-06-30',
 			subtotals: { ADDITIONAL_WAGES: 100_000 },
 			statutory: {},
+			corrections: {},
 			balances: { month: {} }
 		});
 	it('takes the table of the PTKP category', () => {

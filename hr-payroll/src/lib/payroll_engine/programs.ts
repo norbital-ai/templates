@@ -63,6 +63,7 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'hour_rate',
 			'balances',
 			'statutory',
+			'corrections',
 			'allowance',
 			'overtime',
 			'work',

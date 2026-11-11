@@ -821,6 +821,8 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				? salary.amount
 				: salary.amount * paidShare(input, coverage, salary.basis, unpaid);
 	const lines: PayLine[] = [];
+	// what this run's correction entries add to or take from a scheme's share (`CODE.employee`, `CODE.employer`)
+	const corrections: Record<string, Record<string, number>> = {};
 	const values = new Map<string, number>();
 	const results: SubtotalResult[] = [];
 	const computedBy = new Map<string, number>();
@@ -1075,6 +1077,20 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					(entry.reverses == null ? 1 : -1);
 				const paid = round(input.settings, Math.abs(net));
 				if (paid === 0) continue;
+				if (group.model === 'adhoc_catalog' && Array.isArray(lookup.accounts))
+					for (const account of lookup.accounts)
+						if (
+							isJsonObject(account) &&
+							account.account === 'statutory' &&
+							account.measure === 'paid' &&
+							account.period === undefined
+						) {
+							const [scheme = '', side = ''] = String(account.code).split('.');
+							const sign =
+								(account.operation === 'DEDUCT' ? -1 : 1) * (entry.reverses == null ? 1 : -1);
+							const held = (corrections[scheme] ??= {});
+							held[side] = (held[side] ?? 0) + sign * paid;
+						}
 				subtotalLines.push(
 					line({
 						code,
@@ -1168,6 +1184,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			...base(values.get(id(subtotal)) ?? 0, lookup),
 			subtotals: Object.fromEntries(results.map((r) => [r.code, r.value])),
 			statutory: statutoryValues,
+			corrections,
 			overtime: lines
 				.filter((row) => row.source_id.model === 'overtime_catalog')
 				.reduce((total, row) => total + row.amount, 0)

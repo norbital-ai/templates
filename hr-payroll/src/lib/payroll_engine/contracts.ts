@@ -43,6 +43,7 @@ const CALCULATION_ROOTS = [
 	'subtotals',
 	'overtime',
 	'statutory',
+	'corrections',
 	'allowance',
 	'run',
 	'references',

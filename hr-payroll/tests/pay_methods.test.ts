@@ -430,6 +430,71 @@ describe('employer-share correction', () => {
 	);
 });
 
+describe('contribution correction and tax', () => {
+	// ₱130,000 a month sits on the 25% column. A ₱100 PhilHealth correction deducted in February is a contribution
+	// deducted, so February's withholding is ₱25 lower.
+	it.live('a correction entry of the run lowers the taxable pay it is deducted from', () =>
+		Effect.gen(function* () {
+			const seed = pack(
+				'PH',
+				'Asia/Manila',
+				{
+					rate: { amount: 130_000, unit: 'MONTHLY' },
+					normal_hours_per_day: 8,
+					normal_hours_per_week: 48,
+					normal_days_per_week: 6,
+					statutory_work_category: 'NON_FIELD',
+					work_classification: 'RANK_AND_FILE',
+					residency_status: 'CITIZEN',
+					wage_payment_method: 'BANK',
+					allowances: {}
+				},
+				{ days_per_year: 313, nationality: 'PH' },
+				[],
+				[]
+			);
+			const february = (correct: boolean) =>
+				Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					const run = (period: string) =>
+						t
+							.as(t.admin)
+							.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
+					yield* run('2026-01');
+					yield* t.runDue();
+					if (correct)
+						yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
+							{
+								entity_id: ENTITY,
+								employment_id: idOf('employee_contract', uuid(6)),
+								catalog_id: idOf(
+									'adhoc_catalog',
+									catalogRow(seed, 'adhoc_catalog', 'PHIC_ADJUSTMENT')
+								),
+								description: 'Correction',
+								quantity: 100,
+								incurred_on: PlainDate('2026-01-15'),
+								reverses: null
+							}
+						]);
+					yield* run('2026-02');
+					yield* t.runDue();
+					const { payslip, payroll_run } = yield* t.storedQuery({
+						payslip: { limit: 2 },
+						payroll_run: { limit: 2 }
+					});
+					const row = payslip.rows.find(
+						(slip) =>
+							slip.payroll_run_id === payroll_run.rows.find((r) => r.period === '2026-02')?.id
+					);
+					assert.ok(row !== undefined, 'the February run wrote a payslip');
+					return row.tax_withheld.toNumber();
+				}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })));
+			near((yield* february(false)) - (yield* february(true)), 25, 'tax on the correction');
+		})
+	);
+});
+
 describe('overtime hour', () => {
 	// Rp5,000,000 a month: the hour is ÷ 173, Rp28,901.73. Two hours past an 8 h day pay 1.5 + 2 = 3.5 hours,
 	// Rp101,156; the hour rounded to the rupiah first would pay Rp101,157.

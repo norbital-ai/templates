@@ -48,6 +48,7 @@ describe('PPh 21 in December', () => {
 				run: { salary_coverage: { from: '2026-12-01', to: '2026-12-31' } },
 				as_of: '2026-12-31',
 				subtotals: { ADDITIONAL_WAGES: 10_000_000 },
+				corrections: {},
 				statutory: {
 					JHT: { employee: 200_000, employer: 370_000 },
 					JP: { employee: 100_000, employer: 200_000 },
