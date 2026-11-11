@@ -729,7 +729,11 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		salary === undefined
 			? 0
 			: salary.amount / (frequency === 'SEMI_MONTHLY' ? 2 : frequency === 'TEN_DAY' ? 3 : 1);
-	const proration_amount = Math.min(periodBasic, prorationDays * unit);
+	// a day not employed at the statute's day rate is priced as a no-pay day is: the rate to the minor unit, times the days
+	const proration_amount = Math.min(
+		periodBasic,
+		prorationDays * (salary?.basis === 'DAY_RATE' ? round(input.settings, unit) : unit)
+	);
 	// an absent day is a day of its own month, its rate to the minor unit like a no-pay day's
 	const absent = (input.work?.days ?? [])
 		.filter((day) => day.day_type === 'ABS')
