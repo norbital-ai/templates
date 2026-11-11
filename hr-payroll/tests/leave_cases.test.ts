@@ -344,7 +344,8 @@ describe('pay that steps down, on one row', () => {
 				yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
 				yield* t.runDue();
 				yield* run(t, '2026-06');
-				near(yield* taken(t), Math.round(2 * DAY * share));
+				// each date's share of the rounded day rate, itself to the whole rupiah, then the two dates
+				near(yield* taken(t), 2 * Math.round(DAY * share));
 			}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 		});
 	it.live('days taken in an illness do not stop the next version, which keeps it', () => {

@@ -960,18 +960,28 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				// a no-pay leave posts its unpaid amount as the catalog line; reversal keeps the refund path below
 				if (leave && entry.encashment !== true && entry.reverses == null && hasPaidBasic) {
 					const slots = slotsOf(entry);
-					const unpaidAmount = slots.reduce(
-						(total, slot) =>
+					// the day's rate to the currency's minor unit, then each date's own share of it, rounded: as a payroll
+					// clerk prices it (a half day is half the rounded rate, to the minor unit)
+					const unpaidOn = new Map<string, number>();
+					for (const slot of slots)
+						unpaidOn.set(
+							slot.date,
+							(unpaidOn.get(slot.date) ?? 0) + (1 - shareOf(catalog, entry, slot)) / 2
+						);
+					const unpaidAmount = [...unpaidOn].reduce(
+						(total, [date, share]) =>
 							total +
-							// the day's rate to the currency's minor unit, then the days: as a payroll clerk prices it
-							((1 - shareOf(catalog, entry, slot)) / 2) *
-								round(
-									input.settings,
-									nplUnit *
-										(settingsView.proration_basis === 'CALENDAR_DAYS'
-											? ownMonthWeight(input, coverage, 'CALENDAR_DAYS', slot.date)
-											: 1)
-								),
+							round(
+								input.settings,
+								share *
+									round(
+										input.settings,
+										nplUnit *
+											(settingsView.proration_basis === 'CALENDAR_DAYS'
+												? ownMonthWeight(input, coverage, 'CALENDAR_DAYS', date)
+												: 1)
+									)
+							),
 						0
 					);
 					// no-pay days take what the basic still holds, never more
