@@ -838,8 +838,8 @@ describe('a no-pay day in Indonesia', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, code, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 			yield* onCycle(t, '2026-06');
-			// the day rate to the rupiah, then the half
-			const half = Math.round(Math.round((11_000_000 * 8) / 173) / 2);
+			// half of the day rate, then to the rupiah
+			const half = Math.round((11_000_000 * 8) / 173 / 2);
 			assert.equal(yield* takenIn(t, '2026-06', code), -half);
 			near(yield* paidBasicIn(t, '2026-06'), 11_000_000 - half);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));

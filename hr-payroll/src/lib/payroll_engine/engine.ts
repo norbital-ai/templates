@@ -979,16 +979,20 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					const unpaidAmount = [...unpaidOn].reduce(
 						(total, [date, share]) =>
 							total +
+							// the statute's own day rate is shared out before it is rounded (half a day is half the rate); a
+							// month's day count gives a rate that is rounded first, then shared
 							round(
 								input.settings,
-								share *
-									round(
-										input.settings,
-										nplUnit *
-											(settingsView.proration_basis === 'CALENDAR_DAYS'
-												? ownMonthWeight(input, coverage, 'CALENDAR_DAYS', date)
-												: 1)
-									)
+								settingsView.proration_basis === 'DAY_RATE'
+									? share * nplUnit
+									: share *
+											round(
+												input.settings,
+												nplUnit *
+													(settingsView.proration_basis === 'CALENDAR_DAYS'
+														? ownMonthWeight(input, coverage, 'CALENDAR_DAYS', date)
+														: 1)
+											)
 							),
 						0
 					);

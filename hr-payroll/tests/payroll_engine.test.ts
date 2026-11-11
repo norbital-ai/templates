@@ -306,6 +306,24 @@ describe('linear payroll engine', () => {
 			assert.deepEqual(leaveLines(result), [['ADD', 200]]);
 			assert.equal(base(result), 5200);
 		});
+		it('a scheme can read the leave paid out in money and leave it out of its base', () => {
+			const result = priced(
+				{ paid_share: '0', payout: 'return ctx.entry.quantity * 100;' },
+				{ encashment: true },
+				{
+					statutory: [
+						catalog('levy', 'LEVY', {
+							subtotal_id: 'cpf',
+							employer_cost_subtotal_id: 'cpf',
+							eligibility: 'return true;',
+							employee_amount: 'return 0;',
+							employer_amount: 'return (ctx.subtotals.BASE - ctx.encashment) * 0.01;'
+						})
+					]
+				}
+			);
+			assert.equal(result.statutory.find((row) => row.code === 'LEVY')?.employer, 50);
+		});
 		it('steps down inside one entry where the illness passes its fourth month (Indonesia)', () => {
 			const medical = read('seed/public/jurisdiction/ID/version_3/leave_catalog.json').find(
 				(row) => row.code === 'MEDICAL_LEAVE'
@@ -375,6 +393,43 @@ describe('linear payroll engine', () => {
 		// 12 of March's 22 working days, as the salary: 300 × 12 ÷ 22
 		assert.equal(result.lines.find((row) => row.code === 'FIXED_ALLOWANCE')?.amount, 163.64);
 		assert.equal(result.subtotals.find((row) => row.code === 'BASE')?.value, 2727.27);
+	});
+
+	it('a correction entry reaches the run’s schemes by the account it corrects, and its reversal flips it', () => {
+		const corrected = (reverses: string | null) =>
+			calculatePayroll({
+				...input(),
+				statutory: [
+					catalog('tax', 'TAX', {
+						subtotal_id: 'cpf',
+						employer_cost_subtotal_id: 'cpf',
+						eligibility: 'return true;',
+						employee_amount: "return 1000 - get(ctx.corrections, 'FUND.employee', 0);",
+						employer_amount: 'return 0;'
+					})
+				],
+				adhoc_catalog: [
+					catalog('fund-adjustment', 'FUND_ADJUSTMENT', {
+						subtotal_id: 'net',
+						direction: 'DEDUCT',
+						party: 'EMPLOYEE',
+						eligibility: 'return true;',
+						conversion: 'return ctx.entry.quantity;',
+						lookup: {
+							accounts: [
+								{ account: 'statutory', code: 'FUND.employee', measure: 'paid', operation: 'ADD' }
+							]
+						}
+					})
+				],
+				entries: {
+					adhoc_catalog_entry: [
+						{ id: 'entry', catalog_id: 'fund-adjustment', quantity: 100, unit: 'MONEY', reverses }
+					]
+				}
+			}).statutory.find((row) => row.code === 'TAX')?.employee;
+		assert.equal(corrected(null), 900);
+		assert.equal(corrected('earlier'), 1100);
 	});
 
 	it('pays a claim to the employee, and its reversal flips the line', () => {
