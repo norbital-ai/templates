@@ -14,7 +14,6 @@ import {
 	entryRead
 } from '../../../../../../../lib/ledger/service.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
-import { exitsOf, stands } from '../../../../../../../lib/dependants.js';
 
 const slots = (days: unknown): Set<string> =>
 	new Set(
@@ -88,15 +87,6 @@ export default model('leave_catalog_entry', {
 			// A leave entry is its slots: an entry with none has no day to draw, price or reverse.
 			if (entries.some((row) => !Array.isArray(row.days) || row.days.length === 0))
 				return yield* ctx.refuse('A leave entry needs at least one day.');
-			// a derived entry posts only while its fact stands, in the approving decision too
-			const facts = rows.flatMap((row) => (row.occurrence_key == null ? [] : [row.occurrence_key]));
-			if (facts.length > 0) {
-				const exits = yield* exitsOf(ctx.db.query, facts);
-				if (facts.some((key) => !stands(key, exits)))
-					return yield* ctx.refuse(
-						'The exit this was raised for was cancelled, so it cannot be approved. Reject the request.'
-					);
-			}
 			// the approving decision asks again only for what the entry posts: what it checked stands
 			const known = yield* entryRead(
 				ctx.db.query,
@@ -244,20 +234,19 @@ export default model('leave_catalog_entry', {
 				yield* ctx.schedule('encashment', {
 					employments: [...new Set(reversed.map((row) => row.employment_id))]
 				});
-			yield* tap(
-				ctx,
-				'create',
-				{ collection: 'leave_catalog_entry', ids: rows.map((row) => row.id) },
-				rows.map((after) => ({ after }))
-			);
+			// under the system identity: the writer may be an employee, who cannot read the law
+			yield* ctx.schedule('registered_effects', {
+				collection: 'leave_catalog_entry',
+				operation: 'create',
+				ids: rows.map((row) => String(row.id))
+			});
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'leave_catalog_entry', ids: changes.map((change) => change.after.id) },
-				changes
-			);
+			yield* ctx.schedule('registered_effects', {
+				collection: 'leave_catalog_entry',
+				operation: 'update',
+				ids: changes.map((change) => String(change.after.id))
+			});
 		}
 	}
 });

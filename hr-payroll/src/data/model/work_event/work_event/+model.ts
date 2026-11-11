@@ -59,23 +59,18 @@ export default model('work_event', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'work_event', ids: rows.map((row) => row.id) },
+				'work_event',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'work_event', ids: changes.map((change) => change.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'work_event', changes);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
-				{ collection: 'work_event', ids: rows.map((row) => row.id) },
+				'work_event',
 				rows.map((before) => ({ before }))
 			);
 		}

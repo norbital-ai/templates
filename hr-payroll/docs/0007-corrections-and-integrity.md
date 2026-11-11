@@ -1,158 +1,139 @@
-# 0007 — Corrections and integrity
+# Reversals and corrections
 
-How a mistake is undone, what must always be true of the ledger, and how the workspace proves it. Nothing here
-changes the calculation engine. Section 0 of [0001](0001-hrms-calculation-architecture.md) still governs.
+How a mistake is undone, what must always be true of the ledger, and how the workspace checks it. Structure is in [the architecture](0001-hrms-calculation-architecture.md); the ordinary flow is in [the mechanisms, run through](0008-mechanisms-walkthrough.md).
 
 ## 1. The ledger moves only with its record
 
-Owner, 2026-11-11: every ledger entry happens on approval only, in the approval's own changeset; if the ledger cannot
-move, the approval does not pass. Nothing locks the database.
+Every ledger row is written with the record that caused it, and only once that record stands. If the ledger cannot move, the write does not pass.
 
-- **One writer.** Only `src/lib/ledger/service.ts` writes `ledger_entry` and `employee_balance.account`.
-- **A record carries its postings.** A leave, claim or ad hoc entry, a payroll run and HR's manual adjustment each
-  return their ledger rows from their own write as `onApproved`. The rows commit in the same statement as the record.
-- **Held for approval, nothing posts.** While a request is pending the engine drops what the write carries. On the
-  final approving decision it asks the model again and commits the request's state change and the postings as one
-  statement. A refusal, a conflict or a database failure leaves the request pending and the ledger untouched.
-- **No balance row, no entry.** An entry or a payslip for a person whose balance row is not open is refused, in the
-  approving decision too. It is never saved with nothing on the ledger.
-- **A run is not a decision.** A run refuses when an entry it would pay still waits for its decision, whoever runs it,
-  including the reviewer whose step it is.
-- **Sync.** Entitlements owed by rule are settled by the `ledger` automation: one read, then one act per 50 balances.
-  It writes the difference between what is owed and what is posted, so a retry or a second run writes nothing twice.
-- **No locks.** The template uses no `ctx.transaction`, no interactive session and no lock held across statements.
-  Every write above is one short statement. The engine locks the tables a commit writes for that one statement only,
-  bounded by a 5-second lock wait and a 15-second statement limit: writers queue briefly, readers never wait.
+- **One writer.** Only `src/lib/ledger/service.ts` writes `ledger_entry` and `employee_balance`. An administrator's direct write is refused too.
+- **A record carries its postings.** A leave, claim or ad hoc entry, a payroll run and HR's manual adjustment each carry their ledger rows in their own write. The rows commit in the same statement as the record.
+- **Held for approval, nothing posts.** While a request waits, nothing is on the ledger. On the final approving decision the request's state change and the postings commit as one statement. A refusal, a conflict or a failure leaves the request waiting and the ledger untouched.
+- **A waiting request still holds its days.** The balance does not show it, but the check before a second leave entry counts it, so the same days cannot be asked for twice.
+- **No balance row, no entry.** An entry or a payslip for a person whose balance row is not open is refused, in the approving decision too.
+- **A run is not a decision.** A run refuses when an entry it would pay still waits for its decision, whoever runs it, including the reviewer whose step it is.
+- **Sync.** Entitlements owed by rule are settled by the `ledger` automation: one read, then one write per 50 balances. It writes the difference between what is owed and what is posted, so a retry writes nothing twice.
+- **The law's effects on an entry** run under the system identity, whoever keyed the entry, and only once it stands. A request still waiting raises nothing; its posting on approval raises them.
+- **No locks.** No write holds a lock across statements, and nothing here uses a transaction that spans statements. Every write above is one short statement.
 
-## 2. Two zones
+## 2. Two zones and a boundary
 
-| Zone        | Meaning                                        | How it is corrected                                                                 |
-| ----------- | ---------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Open**    | No run has paid it.                            | Edit or delete it. The delete carries the inverse postings in the same statement.   |
-| **Settled** | A run has priced it; the run may also be paid. | Never edited. A reversal entry on the same catalogue item undoes it, going forward. |
+| Zone        | Meaning                   | How it is corrected                                                                 |
+| ----------- | ------------------------- | ----------------------------------------------------------------------------------- |
+| **Open**    | No run has paid it.       | Edit or delete it. The delete carries the inverse postings in the same statement.   |
+| **Settled** | A paid run has priced it. | Never edited. A reversal entry on the same catalogue item undoes it, going forward. |
 
-Between them: an entry sealed by an **unpaid** run is locked, and deleting that run reopens it. Nothing moves under an
-unpaid run, by hand or by the system.
+The boundary between them is the **unpaid run**. An entry sealed by an unpaid run is locked, and deleting that run reopens it. Nothing moves under an unpaid run, by hand or by the system. Once the run is paid, what it sealed is settled.
 
-## 3. Invariants
+A reversal entry:
 
-Hard invariants must always hold. A watch can be reached by legitimate acts and is only reported.
+- is made by the HR controller only, from Events, on the same person and catalogue item as the entry it reverses;
+- reverses one entry a run has sealed, once, for no more than that entry held;
+- is never itself reversed;
+- gives the balance back at once, and the money in the next run, priced on the original month;
+- can be deleted until a run pays it; after that it stands.
 
-| #   | Invariant                                                                                    | Enforced by                                                                                    |
-| --- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| H1  | A balance figure equals the signed sum of its ledger rows per account, code, period, measure | Construction (the one writer); checked by `integrity`                                          |
-| H2  | Every ledger row names its source, period, measure and amount                                | Database check `names_its_movement` on `ledger_entry`                                          |
-| H3  | A ledger source that still holds something exists                                            | Deletes carry inverse postings; checked by `integrity`                                         |
-| H4  | Only posting, sync and HR's manual row write the ledger and the balance                      | The model transforms and the one writer                                                        |
-| H5  | An entry is reversed at most once, only for what a run priced, a cash-out only as a cash-out | Database uniqueness on `reverses`; `assertReversals`                                           |
-| H6  | An entry sealed by a run has that run's payslip for its person                               | The run's own write; checked by `integrity` for unpaid runs and runs paid in the last 2 months |
-| H7  | Sealed contracts never overlap; states move one way; one on-cycle run per group and period   | Database constraints and state triggers; the run's coverage check                              |
-| H9  | No open exit task on a contract that is not an exit, or for a last day that moved            | The dependants routine (section 8); checked by `integrity`                                     |
-| H10 | No approved derived entry outside a run whose fact no longer stands                          | The dependants routine (section 8); checked by `integrity`                                     |
-| W1  | An entitlement, or what is left of it, below zero                                            | Reported by `integrity`                                                                        |
-| W2  | A pending derived request whose fact no longer stands                                        | It cannot be approved; `integrity` raises the task that tells HR to reject it                  |
+An entry no run has sealed is not reversed. It is deleted.
+
+## 3. Forward and backward
+
+Every act that moves the ledger or raises a dependant, and the way back from each zone. "None" means there is no way back; the way forward is in the same cell or the next row.
+
+| Forward act                               | What it moves                                                                         | Backward while open                                                                                                                                                       | Backward once a paid run holds it                                                                                                                        | Who                             |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| Entry keyed (leave, claim, ad hoc)        | The balance, in the entry's own write                                                 | Edit a wrong amount; delete a wrong date or person and key it again. The delete carries the inverse postings                                                              | A reversal entry on the same item; the next run flips the line                                                                                           | HR; HR controller for reversals |
+| Request held for approval                 | Nothing until the approving decision                                                  | The requester withdraws it, or an approver rejects it. The record goes back to what it was and the days can be asked again                                                | Approved, it is the entry: see the first row                                                                                                             | Requester or approver           |
+| Request withdrawn by its requester        | The request ends; nothing was posted                                                  | None needed: the person asks afresh                                                                                                                                       | Does not apply                                                                                                                                           | Requester                       |
+| Leave cash-out keyed by HR                | The days, drawn on approval; the payout in the next run                               | Delete it; the days come back                                                                                                                                             | A reversal that is itself a cash-out: the next run takes the payout back and the days return, once                                                       | HR; HR controller approves      |
+| Reversal entry keyed                      | The inverse of what it reverses, at once; the money in the next run                   | Delete it. Refused if a half day it freed has been booked again                                                                                                           | None: a reversal is not reversed. Key the entry again                                                                                                    | HR controller                   |
+| Manual balance row                        | `entitled` of one leave window, or a claim `limit`                                    | A second manual row the other way. No row is ever changed                                                                                                                 | The same                                                                                                                                                 | HR controller                   |
+| Statutory adjustment entry (ad hoc)       | The scheme's balance for the closed month it corrects; the money in the next run      | Delete it                                                                                                                                                                 | A reversal entry; it counts in the year of what it reverses                                                                                              | HR; HR controller for reversals |
+| Run created                               | Payslips, the seals on what it paid, the payslip postings                             | Delete the run, newest first. The seals and postings come off and the period can run again at the same figures                                                            | None: a paid run is locked whole. A reversal or the right entry goes in the next run; what cannot wait goes in an off-cycle run                          | HR                              |
+| Run marked paid                           | The run's state                                                                       | None                                                                                                                                                                      | None                                                                                                                                                     | HR                              |
+| Contract ended (an exit)                  | Exit tasks, the leave proration, a held cash-out request, the loan's final settlement | Take the last day off, or seal a successor. The routine in section 4 withdraws what the exit raised. Under an unpaid run the last day cannot change: delete the run first | The paid month stands. Seal a new contract from the next month; one task asks HR to reverse the cash-out; pay cut off goes in as an arrears ad hoc entry | HR ends it; the system follows  |
+| Contract version sealed with a wrong term | Entitlements, by sync                                                                 | Draft the replacement first, then void the wrong version, so the chain never reads as an exit                                                                             | The version stands. The right term starts the next month; the difference is an arrears or recovery ad hoc entry, paid once                               | HR                              |
+| Contract change filed ahead               | Nothing until its day                                                                 | Edit or cancel it before its day. On its day it seals. If an unpaid run covers the day it stays filed and raises a task: delete the run and make the version              | A paid run covers the day: the change moves to the next month and seals there                                                                            | HR                              |
+| Family fact or event sealed               | The leave it opens, by sync                                                           | Seal a correcting version without it; sync takes back the leave it opened. Refused while leave taken stands on the fact: delete that leave first                          | The same, after a reversal gives back the leave a run paid. Tax a run withheld under the fact stands                                                     | HR                              |
+| Loan created and scheduled                | Nothing on the ledger; open instalments                                               | Delete the open instalments, then the loan. An open instalment can be edited                                                                                              | A reversal of the instalment a run took; the next run refunds it, once. A loan with a paid instalment cannot be deleted                                  | HR                              |
+| Roster day keyed                          | Nothing on the ledger; the run prices it                                              | Change the day on its own row                                                                                                                                             | Locked. Attendance a run priced takes no new day: what it missed is paid by an arrears ad hoc entry in the next run                                      | HR, the kiosk                   |
+| Pay group schedule changed                | Later cycles' coverage, cutoff and pay date                                           | Change it back                                                                                                                                                            | A paid run keeps its pay date and coverage; the next cycle follows the corrected schedule. No day of salary is paid by two cycles                        | HR                              |
+| Employer version sealed                   | Entitlements, by sync; what later runs read                                           | Void it with a reason and seal a replacement for its dates                                                                                                                | The payslip stands. No later run uses a void version; a replacement does                                                                                 | HR                              |
+| Law version sealed (a change merged)      | Entitlements, by sync; what later runs read                                           | Merge a corrective version from the next day, then delete the unpaid run made under the wrong one and run it again. Or void it and merge the release again                | A paid run stands. Later runs need a sealed version covering their pay date: merge the corrective version                                                | HR                              |
+| Law version voided                        | No run can be made for the pay dates it covered                                       | None: a void is final. Merge the release again as it should have been, from the version that stood before                                                                 | The same; runs already paid stand                                                                                                                        | HR                              |
+| Task fulfilled                            | The task's state                                                                      | None: a fulfilled task keeps its record                                                                                                                                   | Does not apply                                                                                                                                           | HR                              |
+| Task waived                               | The task's state                                                                      | Reopen it. The routine reopens only what it waived itself; a task HR waived for its own reason stays waived until HR reopens it                                           | Does not apply                                                                                                                                           | HR, or the system               |
+
+## 4. When an exit is cancelled or its date moves
+
+Every record the system derives names the fact that caused it in `occurrence_key`. The one such fact is an exit: `exit:<contract id>:<last day>`. A moved last day is another fact, so its key changes.
+
+The chain is always the same. The contract's write schedules `ledger` for the people whose exit was raised, moved or cancelled. `ledger` syncs, then starts `encashment`, so a cash-out is sized after the exit's leave proration. `encashment` runs the routine in `src/lib/dependants.ts`, one step per run, each step safe to repeat, until nothing is left. Its last failure raises a task.
+
+What the routine does to each dependant of an exit that no longer stands, or whose last day moved:
+
+| Dependant                                    | Still waiting for approval | Approved, in no run                                | Under an unpaid run                           | In a paid run                                          |
+| -------------------------------------------- | -------------------------- | -------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| Leave cash-out request                       | Withdrawn by the system    | Deleted; its days return                           | Untouched. Delete the run and it is withdrawn | One task asks HR to reverse it                         |
+| Take-back of leave overdrawn at the last day | Withdrawn by the system    | Deleted                                            | Untouched                                     | Stands. HR keys the leave again                        |
+| Exit tasks (the law's duties, the loan task) | —                          | Open ones are waived                               | Open ones are waived                          | Open ones are waived; a fulfilled one keeps its record |
+| Loan final settlement                        | —                          | Back to monthly instalments over the loan's period | Untouched                                     | Stands                                                 |
+
+Then, for an exit that stands (the new last day of a moved exit, or an exit raised again):
+
+- One cash-out request is raised per leave row with a `payout`, for the days left, held for HR approval. It is sized under any ordinary leave of that row still waiting for its decision. A row that already has a cash-out a run holds, or one HR keyed, gets no second one.
+- A dismissal for misconduct (`exit_ground` `MISCONDUCT_DISMISSAL`) raises none.
+- Leave taken beyond what the last day leaves earned is taken back the same way: a reversal of the latest paid half days.
+- The tasks the routine waived are opened again. None is raised twice.
+
+The task that asks HR to reverse a paid cash-out is keyed `reverse:<leave entry id>`. HR keys the reversal as a cash-out: the days return at once and the next run takes the money back once. The task is waived when the reversal exists or the exit stands again, and opened again if the exit is cancelled again.
+
+No law version carries a waiving effect. Exit tasks are waived by this routine, the same way for every jurisdiction.
+
+## 5. Invariants
+
+A hard invariant must always hold. A watch can be reached by a legitimate act and is only reported.
+
+| #   | Invariant                                                                                    | Enforced by                                                                     |
+| --- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| H1  | A balance figure equals the signed sum of its ledger rows per account, code, period, measure | The one writer; checked by the integrity check                                  |
+| H2  | Every ledger row names its source, period, measure and amount                                | A database check on `ledger_entry`                                              |
+| H3  | A ledger source that still holds something exists                                            | Deletes carry inverse postings; checked by the integrity check                  |
+| H4  | Only posting, sync and HR's manual row write the ledger and the balance                      | The model write rules and the one writer                                        |
+| H5  | An entry is reversed at most once, only for what a run priced, a cash-out only as a cash-out | Database uniqueness on `reverses`; the reversal check                           |
+| H6  | An entry sealed by a run has that run's payslip for its person                               | The run's own write; checked for unpaid runs and runs paid in the last 2 months |
+| H7  | Sealed contracts never overlap; states move one way; one on-cycle run per group and period   | Database constraints and state rules; the run's coverage check                  |
+| H9  | No open exit task on a contract that is not an exit, or for a last day that moved            | The routine in section 4; checked by the integrity check                        |
+| H10 | No approved derived entry outside a run whose fact no longer stands                          | The routine in section 4; checked by the integrity check                        |
+| W1  | An entitlement, or what is left of it, below zero                                            | Reported by the integrity check                                                 |
 
 A manual deduction may take a window below zero: days taken stay taken, and HR's row is HR's decision. W1 reports it.
 
-## 4. The `integrity` automation
+## 6. The integrity check
 
-`src/lib/integrity.ts` `verify` reads the workspace in one request (ten roots, paged) and returns findings for H1, H3,
-H6, H9, H10, W1 and W2. `src/automation/+integrity.automation.ts` raises one task per finding, keyed
-`integrity:<invariant>:<subject>`.
+`src/lib/integrity.ts` reads the workspace in one request and returns findings for H1, H3, H6, H9, H10 and W1. It raises one task per finding, keyed `integrity:<invariant>:<subject>`.
 
 - It only raises tasks. It repairs nothing and writes nothing else.
 - A finding with an open task raises nothing more. One that returns after its task was closed raises a dated task.
-- It runs at the end of the `ledger` automation's whole-workspace pass, so it adds no wake-up. HR can start it by hand.
+- It is the last step of the `ledger` automation's whole-workspace pass, not an automation of its own. It adds no wake-up and nothing to start.
 
-## 5. Proof by tests
+The tests that prove this:
 
-- `tests/integrity.test.ts`: a clean workspace has no findings; each invariant, broken on purpose, yields exactly its
-  finding; the automation raises once.
-- `tests/integrity_random.test.ts`: seeded random sequences of real acts (leave, claims, ad hoc entries, manual rows,
-  runs, deletes, payments, approvals, clock moves, an exit raised, moved and cancelled) with the acts that try to
-  break it: the same act twice, entries on a void contract, a run made and deleted, direct writes to the ledger, the
-  balance and a payslip by HR, the employee and an administrator. After every step: no failed automation, a refused
-  act changed nothing, no hard finding, an independent sum of the ledger equals the balance, a paid payslip is
-  unchanged, every payslip and seal names a run, and what sealed entries pay is on payslips once. `HR_SEED` and
-  `HR_STEPS` replay or lengthen a sequence.
-- `tests/corrections.test.ts`, `tests/cash_out.test.ts`, `tests/contract_lifecycle.test.ts`,
-  `tests/loan_lifecycle.test.ts`, `tests/approval_flow.test.ts`: each mistake below and its way out.
+- `tests/integrity.test.ts`: a workspace worked through its real acts has no finding; each invariant, broken on purpose, yields exactly its finding; the check raises each finding once.
+- `tests/integrity_random.test.ts`: seeded random sequences of real acts, with the acts that try to break the ledger. `HR_SEED` replays one sequence and `HR_STEPS` lengthens it.
+- `tests/corrections.test.ts`, `tests/cash_out.test.ts`, `tests/contract_lifecycle.test.ts`, `tests/loan_lifecycle.test.ts`, `tests/approval_flow.test.ts`, `tests/ledger_limits.test.ts`: each mistake above and its way out.
 
-## 6. Forward and backward
+## 7. States with no automatic way back
 
-Every act that moves the ledger or raises a dependant, and the way back from each zone. Each cell is one act (one
-statement) unless it says otherwise. "none" means there is no way back: the way forward is in the next column or row.
+Each has its manual way out.
 
-| Forward act                           | What it moves                                                                                        | Backward while open                                                                                                                                        | Backward once paid                                                                                                                                                   | Who                            |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Entry created (leave, claim, ad hoc)  | The balance, in the entry's own write                                                                | Edit or delete it; the delete carries the inverse postings                                                                                                 | A reversal entry on the same catalogue item, once, for no more than it held; the next run flips the line                                                             | HR                             |
-| Reversal entry created                | The inverse of what it reverses, at once; the money in the next run                                  | Delete it                                                                                                                                                  | none: a reversal is not reversed. Key the entry again                                                                                                                | HR controller                  |
-| Manual balance row                    | `entitled` (or a claim `limit`) of one window                                                        | A second manual row the other way                                                                                                                          | The same                                                                                                                                                             | HR controller                  |
-| Run created                           | Payslips, the seals on what it paid, payslip postings                                                | Delete the run, newest first: the seals and postings come off                                                                                              | none: a paid run is locked. A reversal or an adjustment entry goes in the next run or an off-cycle run                                                               | HR                             |
-| Run paid                              | The run's state                                                                                      | none                                                                                                                                                       | none                                                                                                                                                                 | HR                             |
-| Contract ended (an exit)              | Exit tasks, leave proration, a held cash-out request, the loan settlement keyed on the contract page | Take the last day off, or draft a successor: the routine in section 8 withdraws them. Under an unpaid run the last day cannot change: delete the run first | The paid month stands. Seal a successor from the next month; the routine raises one task and HR keys the cash-out's reversal; pay cut off goes in as an ad hoc entry | HR ends it; the system follows |
-| Contract version sealed with a change | Entitlements, by sync                                                                                | Void the version (draft its replacement first), or seal a correcting version from the same date                                                            | Seal a correcting version from the next month; arrears or recovery go in as ad hoc entries                                                                           | HR                             |
-| Family fact sealed                    | The leave it opens, by sync                                                                          | Seal a correcting version. Refused while leave taken stands on the dropped fact: delete or reverse that leave first                                        | The same, with a reversal for leave a run paid                                                                                                                       | HR                             |
-| Loan created and scheduled (two acts) | Nothing on the ledger; open instalments                                                              | Delete the open instalments, then the loan                                                                                                                 | A reversal of the instalment a run took, refunded by the next run                                                                                                    | HR                             |
-| Request held for approval             | Nothing until the approving decision                                                                 | An approver rejects it: the record goes back to what it was. The requester cannot withdraw it                                                              | Approved, it is the entry: see the first row                                                                                                                         | Approver                       |
-
-## 7. Known residue
-
-States with no automatic way back. Each has the manual way out named.
-
-- **Pending request of a cancelled exit.** Only an approver changes a held record. Approving it is refused; HR rejects it
-  (W2 raises the task). The same holds when the exit date moved after the request was raised: the request keeps its
-  first size, and HR rejects it and the routine raises it again on its next pass.
-- **A paid cash-out of a cancelled exit.** The system does not reverse it. One task asks HR to key the reversal.
-- **A reverse task is raised once for an entry.** Waived because the exit stood again, it is not raised a second time if
-  that exit is cancelled again. HR keys the reversal without a task.
-- **A reverse task stays open after HR keys the reversal** until the routine next looks at that contract. HR may close
-  it by hand.
-- **Take-back of overdrawn leave, paid, then the exit cancelled.** It is a reversal, and a reversal is not reversed. HR
-  keys the leave again.
-- **A paid cash-out reversed, then the exit raised again.** No second cash-out is raised for that leave row. HR keys it.
-- **A fulfilled exit task** keeps its record.
-- **A paid loan final settlement stands** (owner). The loan's repayment period stays as the settlement moved it.
-- **The contract page settles a leaver's loan in several acts**, not one. Stopped half way, HR regenerates the schedule
-  from the loan form.
-- **Latest contract version voided before a replacement is drafted.** It reads as an exit. Draft the replacement first.
-- **An employee's own request and the law's registered effects.** A leave or claim entry's effect runs as its writer.
-  An employee cannot read `registered_effect`, so the effect fails when they ask, and a duty the law registers on that
-  leave is not raised. HR-keyed entries are unaffected.
-- **A law version voided when the law never changed.** The research automation finds no standing version. File the
-  finding by hand.
-
-## 8. Dependants of a fact
-
-Owner, 2026-11-11: every derived record names the fact that caused it. When the fact is cancelled, one routine handles
-each dependant: withdrawn while nothing has paid it, a task asking HR to reverse it once a run has; nothing under an
-unpaid run moves.
-
-- **The key.** `occurrence_key` is `<fact>:<record id>`. `obligation` has it; `leave_catalog_entry` has it hidden, set
-  only by the system. The one fact today is an exit: `exit:<contract id>` on a cash-out, and an exit task's key carries
-  `:exit:<last day>` (the loan task too: `LOAN_RECOVERY:<contract>:exit:<last day>`; the older key without `:exit:` is
-  still read). The task asking for a reversal is `reverse:<leave entry id>`. The database allows one live keyed entry a
-  fact and catalogue row.
-- **A derived entry posts only while its fact stands.** The leave entry's write refuses otherwise, in the approving
-  decision too, and says to reject the request.
-- **The chain.** The contract's write schedules `ledger` for the people and contracts whose exit was raised, moved or
-  cancelled. `ledger` syncs, then starts `encashment` for those contracts, so a cash-out is sized after the exit's
-  proration and the two never write at once. A run that sealed a keyed entry, deleted or paid, starts `encashment`
-  directly. It retries; its last failure raises a task.
-- **The routine.** `src/lib/dependants.ts` `reconcile`: up to three passes in one run. Each pass reads afresh and takes
-  the first step that has work, one act, safe to repeat:
-  1. **Withdraw.** Approved keyed entries in no run, of a cancelled exit or of a last day that moved, are deleted, their
-     postings inverted in the same statement; a loan still holding an unpaid final settlement goes back to monthly
-     instalments over its period.
-  2. **Raise.** A contract at a time, one held request: the cash-out of an exit that stands, sized under any ordinary
-     leave of that row still waiting for its decision. A row that already has one is left alone.
-  3. **Tasks.** Open exit tasks of a cancelled exit, or of an earlier last day, are waived. A keyed cash-out a paid run
-     took, whose exit was cancelled, gets one task asking HR to reverse it; the task is waived once the reversal exists
-     or the exit stands again.
-- **Three zones.** Open: withdrawn. Under an unpaid run: untouched and no task; the run deleted, it is open again and
-  withdrawn; the run paid, it is settled. Paid: one task; HR keys the reversal as a cash-out, the days return at once and
-  the next run takes the money back once.
-- **A moved exit.** A cash-out approved and in no run, with half a day or more left or overdrawn after the new
-  proration, is withdrawn and raised again. Nothing else is resized.
-- **Exit tasks are waived by this routine**, the same way for every jurisdiction. No law seed carries a waiving effect.
-  A workspace whose sealed law still has the old one is unaffected: both waive only open tasks.
+| State                                                                        | Manual way out                                                                                |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| A cash-out a paid run took, and the exit was cancelled                       | One task asks HR to key the reversal. The system does not reverse it                          |
+| A take-back of overdrawn leave a paid run took, and the exit was cancelled   | It is a reversal, and a reversal is not reversed. HR keys the leave again. No task is raised  |
+| A paid cash-out reversed, then the exit raised again                         | No second cash-out is raised for that leave row. HR keys it                                   |
+| A paid loan final settlement, and the exit was cancelled                     | It stands. The open schedule is untouched and the loan task is waived                         |
+| A fulfilled task whose cause was cancelled                                   | It keeps its record                                                                           |
+| The contract page settles a leaver's loan in several acts and stops half way | HR regenerates the schedule from the loan form                                                |
+| The latest contract version voided before a replacement is drafted           | It reads as an exit until the replacement is drafted. Draft the replacement first             |
+| A law version voided                                                         | No run can be made for its pay dates until the release is merged again                        |
+| A paid run with a wrong figure                                               | The run is locked. A reversal or an adjustment entry goes in the next run or an off-cycle run |

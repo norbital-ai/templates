@@ -14,15 +14,6 @@
 				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf"
 			}
 		],
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": true
-			},
-			"work.payment": {
-				"wage_factor": 1
-			}
-		},
 		"id": "dba26a11-2639-540f-825e-8277786264db",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
 		"description": "An employer-caused event that changes work or pay."
@@ -43,15 +34,6 @@
 				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf"
 			}
 		],
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": false
-			},
-			"work.payment": {
-				"wage_factor": 0
-			}
-		},
 		"id": "1a18bdf8-c9ab-566b-8604-34445408f27c",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
 		"description": "A force-majeure event that stops work; pay follows the agreed stoppage terms."
@@ -71,15 +53,6 @@
 				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf"
 			}
 		],
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": false
-			},
-			"work.payment": {
-				"wage_factor": 1
-			}
-		},
 		"id": "940497f3-46e8-5739-8e81-0389f119e498",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
 		"description": "A strike under the applicable rules."
@@ -99,15 +72,6 @@
 				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf"
 			}
 		],
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": false
-			},
-			"work.payment": {
-				"wage_factor": 0
-			}
-		},
 		"id": "7737697c-a625-555a-8b87-81b4143f97ff",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
 		"description": "A strike outside the normative rules."

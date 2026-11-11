@@ -44,37 +44,42 @@ export default model('entity_profile_version', {
 		pay_methods: {
 			kind: 'object',
 			optional: true,
-			help: "The employer's own pay methods. Each pays only where it pays more than the law; otherwise the law stands.",
+			help: "The employer's own pay methods. Each applies only where it pays at least the law; otherwise the law stands.",
 			fields: {
 				overtime_hour_basis: {
 					kind: 'enum',
 					values: ['STATUTORY', 'CONTRACT_WEEKLY'],
 					default: 'STATUTORY',
-					help: "CONTRACT_WEEKLY prices an overtime hour at the monthly wage × 12 ÷ (52 × the contract's weekly hours)."
+					label: 'Overtime hour rate',
+					help: "What one overtime hour is priced on. Statutory: the hour rate the law works out. Contract weekly: the monthly wage × 12 ÷ (52 × the contract's weekly hours). It changes the overtime lines of a payslip."
 				},
 				rest_day_hourly_multiplier: {
 					kind: 'number',
 					min: 1,
 					optional: true,
-					help: 'Every rest-day hour pays this multiple of the hour rate.'
+					label: 'Rest-day hour multiple',
+					help: 'Every hour worked on a rest day pays this multiple of the hour rate. Leave empty to pay what the law pays. It changes the rest-day work lines of a payslip.'
 				},
 				night_differential_basis: {
 					kind: 'enum',
 					values: ['WORKED', 'CLOCK_SPAN', 'WHOLE_NIGHT'],
 					default: 'WORKED',
-					help: 'CLOCK_SPAN pays the night premium on every clocked hour in the night window, unpaid breaks and overtime included, at the ordinary hour rate; WHOLE_NIGHT pays a worked night shift a full eight hours of the premium at the day’s rate. A shift where the law pays more keeps the law.'
+					label: 'Night premium hours',
+					help: 'Which hours earn the night premium. Worked: the hours worked inside the night window. Clock span: every clocked hour in the window, unpaid breaks and overtime included, at the ordinary hour rate. Whole night: a worked night shift earns eight full hours of premium at the day’s rate. It changes the night premium line of a payslip. Only the Philippines’ rows read it; it changes nothing in other countries.'
 				},
 				contribution_split: {
 					kind: 'enum',
 					values: ['EVEN', 'FIRST_RUN'],
 					default: 'EVEN',
-					help: 'How a month’s contributions fall on two runs a month. EVEN charges half on each; FIRST_RUN charges the whole month on the first run, on an estimate, and the second run settles the month’s actual wages.'
+					label: 'Contributions over two runs a month',
+					help: 'How a month’s contributions fall on the two payslips of a twice-monthly group. Even: half on each. First run: the whole month on the first payslip, on an estimate, and the second settles the month’s actual wages. Only the Philippines’ rows read it; it changes nothing in other countries.'
 				},
 				benefit_exclusion: {
 					kind: 'enum',
 					values: ['POOLED', 'EXCESS_TAXED'],
 					default: 'POOLED',
-					help: 'How a benefit paid past its own tax-free limit is taxed. POOLED puts the excess in the yearly exclusion for bonuses and benefits; EXCESS_TAXED taxes it in the month it is paid and leaves the exclusion to the thirteenth month and bonuses. The year’s last pay settles either way.'
+					label: 'Benefits over their tax-free limit',
+					help: 'How a benefit paid past its own tax-free limit is taxed. Pooled: the excess joins the yearly exclusion for bonuses and benefits. Excess taxed: it is taxed on the payslip of the month it is paid. The year’s last payslip settles either way, so only the month the tax is withheld changes. Only the Philippines’ rows read it; it changes nothing in other countries.'
 				}
 			}
 		},
@@ -194,7 +199,7 @@ export default model('entity_profile_version', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'entity_profile_version', ids: rows.map((r) => r.id) },
+				'entity_profile_version',
 				rows.map((after) => ({ after }))
 			);
 		},
@@ -206,16 +211,11 @@ export default model('entity_profile_version', {
 				yield* tap(
 					ctx,
 					'seal',
-					{ collection: 'entity_profile_version', ids: sealed.map(({ after }) => after.id) },
+					'entity_profile_version',
 					sealed.map(({ after }) => ({ after }))
 				);
 			if (sealed.length > 0) yield* ctx.schedule('ledger', {}, { key: 'ledger' });
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'entity_profile_version', ids: changes.map((c) => c.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'entity_profile_version', changes);
 		}
 	}
 });

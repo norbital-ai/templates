@@ -1,24 +1,23 @@
 # Manual probe matrix
 
-Status: normative manual verification checklist. [The model contract](0002-model-specification.md) defines the models; this document defines the probes an operator runs against a live environment and the evidence each leaves.
+Reference: the probes an operator runs against a running workspace, and the evidence each leaves. They complement the mechanism tests; [the mechanisms, run through](0008-mechanisms-walkthrough.md) describes what each probe should see.
 
 ## 1. Environment
 
-- Local Colony only, reset from the public seed plus the private demo bank.
-- One demo entity per jurisdiction: CN, ID, JP, MY, PH, SG, TH, TW, VN.
-- At least 30 employees per entity, each with a sealed contract, bank account and opening balance.
-- Payroll months run sequentially inside each entity; never skip a month or reuse a later period.
+- A local workspace only, reset from the public seed plus private demo data.
+- The demo data has people in MY, ID and PH. A probe for another jurisdiction needs a test entity made for it.
+- Payroll months run sequentially inside each pay group; never skip a month or reuse a later period.
 - All monetary comparisons use the seeded currency and the settings rounding rule.
 
 ## 2. Baseline payroll
 
-| Probe                                                   | Expected                                                                                          | Evidence                               |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| 12 consecutive cycles × 9 jurisdictions × ≥30 employees | Every cycle creates one run and one payslip per active employee, and its own write posts its rows | Run ids, payslip ids, per-cycle totals |
-| Employee totals                                         | Basic, gross, net, deductions, employer cost reconcile to the subtotal chain and catalogue lines  | Per-employee expected/actual           |
-| Statutory                                               | Employee and employer amounts match the jurisdiction table for that period and wage band          | Scheme-level expected/actual           |
-| YTD                                                     | Sum of period statutory ledger rows; no duplicate YTD row                                         | Ledger extract                         |
-| Idempotency                                             | A second on-cycle run for the period is refused; a repeated posting adds no ledger rows           | Second-run diff                        |
+| Probe                                               | Expected                                                                                          | Evidence                               |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Consecutive cycles, each demo company and pay group | Every cycle creates one run and one payslip per active employee, and its own write posts its rows | Run ids, payslip ids, per-cycle totals |
+| Employee totals                                     | Basic, gross, net, deductions, employer cost reconcile to the subtotal chain and catalogue lines  | Per-employee expected/actual           |
+| Statutory                                           | Employee and employer amounts match the jurisdiction table for that period and wage band          | Scheme-level expected/actual           |
+| YTD                                                 | Sum of period statutory ledger rows; no duplicate YTD row                                         | Ledger extract                         |
+| Idempotency                                         | A second on-cycle run for the period is refused; a repeated posting adds no ledger rows           | Second-run diff                        |
 
 ## 3. Lifecycle probes
 
@@ -114,23 +113,6 @@ Each probe records:
 
 A green automated suite is not acceptance evidence. A red probe is always a defect. Do not fix a probe by widening a timeout, editing expected values to match output, or seeding a result the engine should calculate.
 
-### Listing reconciliation, 2026-11-11
-
-Demo companies against their salary listings, January–June 2026: 30 on-cycle runs across four pay groups and one
-off-cycle run, 742 payslips.
-
-| Probe                                                                                                                                                                                           | Result                                                                                                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MY company (monthly, cut-off 21): every pay line, EPF, EIS                                                                                                                                      | PASS: 405 of 412 payslips equal the listing on every line; the other 7 are listing errors (same unpaid days deducted twice, overtime cancelled by an adjustment, a holiday paid below s.60D(3)) |
-| ID company (monthly, cut-off 16): basic, no-pay, allowances, claims, THR, compensation, office overtime                                                                                         | PASS                                                                                                                                                                                            |
-| ID guards' overtime                                                                                                                                                                             | PASS in 12 of 25 guard-months; the rest differ by the statute (holiday shift not claimed; cover shift at a flat 1.5)                                                                            |
-| PH company (twice monthly and monthly groups): basic, no-pay, allowances, claims, loans by run                                                                                                  | PASS                                                                                                                                                                                            |
-| PH holidays worked                                                                                                                                                                              | differs by the statute: the listing pays an ordinary day                                                                                                                                        |
-| Per-person holiday, pass expiry, pay-method opt-ins (`WHOLE_NIGHT`, `FIRST_RUN`), employer refund, off-cycle refund for a 2025 leaver                                                           | PASS in the runs above                                                                                                                                                                          |
-| Run 45 after two independent audits: holiday worked on the sheet's hours with the Act floor, unrounded overtime hour (ID, PH), `EXCESS_TAXED` benefit exclusion, employer-share correction rows | PASS: no difference left that is ours beyond the entries the findings disclose                                                                                                                  | realm `.agent/TEST_MATRIX.md`, N2 run 45 |
-
-The operator's evidence, run scripts and the findings for the companies are held outside this repository.
-
 ## 6. Further probes
 
 ### Payroll
@@ -143,7 +125,7 @@ The operator's evidence, run scripts and the findings for the companies are held
 | SG CPF annual ceiling               | Additional wages attract CPF only up to what the annual ceiling leaves                                                                 |
 | Second salary in a pay month        | A rolled pay date or a mid-month transfer charges each wage month or employer on its own; half-month cycles still combine              |
 | Allowance in a transfer month       | Each company pays its days; a new contract in the same company pays the month once                                                     |
-| Duplicate on-cycle run              | The second run for the entity and period is refused                                                                                    |
+| Duplicate on-cycle run              | The second run for the pay group and period is refused                                                                                 |
 | Skipped cycle                       | A period behind a later on-cycle run is refused                                                                                        |
 | Marking a run paid                  | The pay date shows only then, keyed in as that day, and is never typed                                                                 |
 | Run paid at once, a full entity     | Every effect finishes, no conflict                                                                                                     |
@@ -170,7 +152,6 @@ The operator's evidence, run scripts and the findings for the companies are held
 | Leave entry deleted            | What it posted is inverted, once                                                        |
 | New no-pay entry               | Accepted, no grant needed, no day count shown                                           |
 | Contract change                | That person recomputed, nothing repeated; days taken stay taken                         |
-| Compute leave on the profile   | Runs for that person; a repeat writes nothing                                           |
 | Birth on a contract            | Sealing opens the days once, on the ledger too; the rows of the other parent stay empty |
 | Birth filed ahead of its day   | Nothing moves until the day; then one sealed version, and the days open once            |
 | Fact removed by a new version  | Takes back what it gave, once; refused while days taken stand on it                     |
@@ -186,7 +167,7 @@ The operator's evidence, run scripts and the findings for the companies are held
 | Transfer, cross-jurisdiction | Old leave settles where the row allows; target-driven categories, an old value cleared; the target's fields stored            |
 | Sealed overlap               | A draft overlapping an open sealed contract is refused until the predecessor ends                                             |
 | Termination                  | A last day and a reason; jurisdiction-specific exit facts stay in `employee_extension_data`                                   |
-| Exit encashment              | The days post as used and pay in `FINAL_PAY`                                                                                  |
+| Exit encashment              | A request held for the HR controller; approved, the days post as used and pay in `FINAL_PAY`                                  |
 | No double payment            | A second run for the period repays no sealed entry                                                                            |
 | Balance across a move        | One `employee_balance` row per employee; a term change leaves the row in place                                                |
 | Void contract                | Moves to `VOID` with a reason after it was paid; the next run excludes it                                                     |
@@ -224,7 +205,7 @@ The operator's evidence, run scripts and the findings for the companies are held
 | Partially paid leave    | A reversal names the original entry and only the captured subset. The ledger posts the inverse once; the next run repays only those days. |
 | No double reversal      | A second reversal of the same slot is refused. A reversal outside the captured set is refused.                                            |
 | Full leave cancellation | A reversal containing every captured slot returns the leave balance and pay to zero, once.                                                |
-| Sealed loan repayment   | A repayment captured by a run cannot be edited; corrections use the loan schedule's own route.                                            |
+| Sealed loan repayment   | A repayment captured by a run cannot be edited; HR corrects it with a reversal, refunded by the next run.                                 |
 | Ledger conservation     | Every posting has one inverse; no negative amount, no duplicate source, and the balance returns exactly after a full cancellation.        |
 | Work event              | An event never posts by itself; only the allowance/ad-hoc/leave row it qualifies posts.                                                   |
 
@@ -255,7 +236,7 @@ The operator's evidence, run scripts and the findings for the companies are held
 | Stale change            | Refused by name                                                                                                                   |
 | Employment import       | One company, its people and contracts; a second upload adds nothing; a duplicated row closes the older contract before its change |
 
-## 7. Owner calibration probes (2026-11-09)
+## 7. Calibration probes
 
 Run against the local demo after `env status` says READY and the demo digest matches the current build.
 
@@ -263,7 +244,7 @@ Run against the local demo after `env status` says READY and the demo digest mat
 
 1. Pick a current employee with a positive annual-leave balance on a row with a `payout`.
 2. End the contract (effective range `to`, `final_pay_due_on`) through the UI.
-3. Expect an encashment leave entry immediately, before any run; quantity equals the remaining balance; the next final run posts it into FINAL_PAY; no later cycle creates a payslip for the person.
+3. Expect one cash-out request per row with a `payout`, held for the HR controller, before any run; quantity equals what is left after the exit's proration. Approve it: the days post as used and the final run pays it into FINAL_PAY; no later cycle creates a payslip for the person. A run made while the request still waits is refused.
 4. Record balance before, entry id, quantity, ledger movement, final net.
 
 ### 7.2 Ledger: reversal, deletion, addition
@@ -336,16 +317,16 @@ A holiday the six-day staff keep on the Saturday after, and the five-day staff t
 
 ### 7.11 Employer pay methods
 
-1. Set `pay_methods.overtime_hour_basis` = `CONTRACT_WEEKLY` on a Malaysian employer: a 9 h × 5 worker's OT hour is monthly × 12 ÷ (52 × 45) (RM9.88 on RM1,927), not ÷ 26 ÷ 9 (RM8.24).
+1. Set `pay_methods.overtime_hour_basis` = `CONTRACT_WEEKLY` on a Malaysian employer: a 9 h × 5 worker's OT hour is monthly × 12 ÷ (52 × 45) (for example RM10.00 on a wage of RM1,950), not ÷ 26 ÷ 9 (RM8.33).
 2. With a 7.5 h × 6 contract both bases give the same rate; no basis ever pays below the statutory rate.
 3. Set `rest_day_hourly_multiplier` = 2: an 11 h rest-day shift pays 11 × 2 × the hour rate; a 1 h shift still pays the statutory half day.
-[amount]. Set `night_differential_basis` = `CLOCK_SPAN`: a [amount]:[amount]–[amount]:[amount] shift with an unpaid [amount]:[amount]–[amount]:[amount] break pays [amount]% of the ordinary hour on all [amount] clocked hours (₱[amount] a shift on the Company C rate), against ₱[amount] by statute; a shift where the statute pays more pays the statute.
+4. Set `night_differential_basis` = `CLOCK_SPAN`: a 22:00–06:00 shift with an unpaid 00:30–01:30 break pays 10% of the ordinary hour on all 8 clocked hours, more than the statute's worked hours; a shift where the statute pays more pays the statute. `WHOLE_NIGHT`: a worked night shift earns eight full hours of premium. `contribution_split` = `FIRST_RUN` on a twice-monthly group: the first payslip carries the whole month's contributions and the second settles. `benefit_exclusion` = `EXCESS_TAXED`: a benefit past its own tax-free limit is taxed on the payslip of its month.
 5. Taiwan §32-1: mark a workday's 2 h planned overtime "as time off" (roster day or the Plan sheet's `OT as time off` column). The run pays no overtime for it and `COMPENSATORY_TIME_OFF` gains 2 hours; a half day off takes 4 hours (8 h day) and is refused until HR adds 2 hours by hand. Malaysia: 100 h of workday overtime plus 10 h on a rest day raise no monthly-cap warning (EA s.60A(4)(a)).
 
 ### 7.12 Exit and rehire
 
-1. End a sealed contract with a reason and no successor: `exit` raises once; encashment requests and exit duties appear once. Save it again: nothing new.
-2. Move the end date: duties follow the new date. Cancel the exit (a successor version): the open duties close. The held encashment request of a moved or cancelled exit stays open until HR rejects it by hand (owner).
+1. End a sealed contract with a reason and no successor: `exit` raises once; one held cash-out request and the exit duties appear once. Save it again: nothing new.
+2. Move the end date: the duties of the earlier date are waived and raised for the new one; the pending request is withdrawn by the system and raised again for the new day. Cancel the exit (a successor version): the open duties are waived and the pending request is withdrawn by the system. A cash-out a paid run took raises one task, `reverse:<entry id>`, and HR keys the reversal.
 3. End a contract and seal a successor the next day: no `exit`.
 4. Rehire after a 4-day gap with `cumulative_service` on: leave bands count both stints (2017 + 2025). Turn it off: only the rehire counts, and the next sync posts the difference.
 5. Indonesia: end a sealed contract from the termination sheet with a `termination_cause` (efficiency, actual loss): the exit duties (termination report, BPA1, BPJS exit) raise once. Saving a cause without ending the contract, or changing a fact the version already holds, is refused.
@@ -359,100 +340,3 @@ A holiday the six-day staff keep on the Saturday after, and the five-day staff t
 5. Profile and entity drawers: top-level tabs use the default segmented variant, not chips; nested tabs step down to underline and then chips. Face stays inside Profile; no seal badge on the leave/loan entry itself.
 6. Employer payroll versions: Schedule change opens the form, and filed changes appear under Scheduled changes until their day seals them into a new version.
 7. Calculation overview: each catalogue row wraps its description below the code; the info icon opens Eligibility and Payroll amount as labelled code blocks, never one clipped line.
-
-## 8. Salary listing reconciliation (norbital_hr demo)
-
-Every payslip of the demo's January–June runs against the customer's salary listing, line by line. The rule the seed follows: **a company method that pays at least what the law requires is followed; one that pays less, or withholds wrongly, is replaced by the law.** A one-off (a single month that departs from the company's own method) is not a method: the attendance stands and the line is a recorded difference.
-
-Listings: `the private seed`. Run each entity from January, importing each month's roster workbook first (`the private seed`). Company A has no June listing; Company C pays two halves a month (MID MONTH, END MONTH).
-
-**Method (owner, 2026-11-10): exact tally, month by month.** Go entity by entity, one month at a time, in order. For each month, compare every payslip line with the listing's column for that person, to the cent. There is no tolerance: a cent apart is a mismatch until its cause is named.
-
-Report each month as one table: person, line, run value, listing value, difference, and verdict:
-
-- **Match:** equal to the cent.
-- **Explained:** different, with its cause named in §8.1a–8.4 (the law applies, a recorded one-off, a seed correction).
-- **Unexplained:** anything else. It is a bug in source or seed, or a question for the customer, until proved otherwise.
-
-A month passes when every line is Match or Explained. Record each month as its own row in `.agent/TEST_MATRIX.md`, N2–N7 (January to June): run id, payslip count, the three counts, and every Explained and Unexplained line with its cause.
-
-### 8.1 Every entity
-
-| Check                   | Expect                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------- |
-| Headcount               | one payslip per person employed in the period, the same people as the listing         |
-| Basic                   | match, joiners and leavers prorated by the settings' basis                            |
-| Allowances              | match (flat agreed amounts; prorated only where the row says)                         |
-| Statutory contributions | match, given the same wages; a difference only follows a wage difference listed below |
-| Net                     | gross − deductions; differs only by the differences below                             |
-
-### 8.1a How each listing rounds (proved from the files, `.tmp/hr-rounding/`)
-
-A company rounding that never pays the employee less than the statute is followed; one that sometimes pays less is replaced by the law, and the cents it moves are recorded differences, explained to the sen.
-
-| Entity | Line                          | Listing's rule (match)                                                                                                                                              | Applies                                                                                          |
-| ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Company A  | OVER-TIME                     | hour = round2(basic × [amount] ÷ hours a year); band rate = round2(hour × [amount]/[amount]/[amount]); round2(rate × hours) per calendar month in the 21st–20th window, summed ([amount]/[amount]) | law: pays [amount]–[amount] less than EA s.60I in [amount] person-months                                     |
-| Company A  | INCENTIVE (OT)                | the listing column is an adhoc `INCENTIVE_OT` amount, not attendance OT                                                                                             | seed adhoc entry; EPF, SOCSO and EIS wages, PCB as additional pay; attendance OT is separate     |
-| Company A  | NPL                           | day = round2(basic × [amount] ÷ ([amount] × contract days/week)), half = round2(day ÷ [amount])                                                                                        | `YEAR` day basis (owner, 2026-11-10); the listing's calendar-day figure is its own approximation |
-| Company A  | EPF                           | Third Schedule 20-ringgit bands, each share rounded up ([amount]/[amount]); foreign [amount]% each share rounded up ([amount]/[amount])                                                        | law: the Act rounds the total; foreign staff and EMP-REDACTED pay more                              |
-| Company A  | SOCSO, EIS                    | the statutory tables ([amount]/[amount], [amount]/[amount])                                                                                                                             | statute                                                                                          |
-| Company A  | HRDF                          | [amount]% half-up on basic only ([amount]/[amount])                                                                                                                                  | law: the levy is on wages, not basic only                                                        |
-| Company A  | PCB                           | the MTD specification                                                                                                                                               | statute                                                                                          |
-| Company B   | BPJS, PPh [amount]                  | each share half-up to the rupiah; Kesehatan employer = round([amount]%) − employee share ([amount]/[amount]; PPh [amount] [amount]/[amount])                                                           | company (pays no less): whole rupiah; the run must not keep cents                                |
-| Company B   | BPJS-TK base                  | basic only                                                                                                                                                          | law: the base includes fixed allowances                                                          |
-| Company C  | OT, night, rest day, absences | exact hour (monthly × [amount] ÷ [amount]/[amount] ÷ [amount]) × premium × hours, rounded once ([amount]/[amount]; absences [amount]/[amount])                                                                   | statute (DOLE factors)                                                                           |
-| Company C  | PhilHealth                    | the odd centavo to the employer                                                                                                                                     | company                                                                                          |
-
-Also explained to the unit: EMP-REDACTED and EMP-REDACTED OT paid a month late as April back pay (one-off); foreign EPF stopping in leavers' final months, EMP-REDACTED's employee SOCSO after [amount] HRDF on basic only and Company B's BPJS-TK base all contribute below the law (law applies). Unexplained so far: EMP-REDACTED January OT (+[amount] h), EMP-REDACTED January OT (−[amount] h), EMP-REDACTED's February SOCSO base.
-
-### 8.1b Owner directives, 2026-11-10
-
-- **Attendance mapping.** Every employee with attendance gets a roster; the shift pattern supplies the plan and a paid work day without a clock-in/out gets one. Office staff are not exempt. `ABS` is not a shift code or a roster row; a planned work day the roster leaves out (no leave, no published holiday) or a planned `WORK` day with no clock is the absence. Leave and PH are not absences. The seed declares the roster; the engine does not infer the worker class.
-- **Basic checkpoints.** `BASIC` = contract salary; `PRORATED` = BASIC − joiner/leaver proration − ABS; `PAID_BASIC` = PRORATED − NPL catalog lines. Everything else points after PAID_BASIC; statutory bases read the reduced wage.
-- **NPL.** One `NPL` leave catalog across jurisdictions; its unpaid amount is a catalog line at PAID_BASIC, not a NET deduction.
-- **Day rate.** MY uses `YEAR` (monthly × 12 ÷ (52 × contract days/week)); contract hours/days come from the employee data file.
-- **Incentive (OT).** Every listing `INCENTIVE (OT)` is an adhoc `INCENTIVE_OT` entry; SOCSO/EIS only. Attendance OT excludes incentive hours.
-- **Export.** Salary listing: contract basic, paid basic, proration, ABS, NPL, allowances, gross, statutory, net.
-
-**Rerun 2026-11-10.** [amount] on-cycle runs and [amount] payslips; Company A Jan–Jun [amount] / [amount] lines match to the cent, net **+[amount][amount]**. The remaining NPL gap is full-month absence: the listing deducts calendar days including rest days, the run deducts only working-day leave slots (owner rule), so the run pays more. All runs commit, including Company C `2026-06-2`.
-
-### [amount] Company A (MY)
-
-| Line (listing column) | Expect                | Why                                                                                                                                                                                                                                                                           |
-| --------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OVER-TIME             | match                 | company rate basic × [amount] ÷ hours a year, never below EA s.60I (employer setting); [amount] of [amount] lines differ in hours; EMP-REDACTED ([amount] h) and EMP-REDACTED ([amount] h) March OT the clock machine missed is paid in April by HR's `OVERTIME_ARREARS` adhoc entry, as the listing's BACK PAY OT |
-| INCENTIVE (OT)        | match                 | the listing column is an adhoc `INCENTIVE_OT` entry; attendance rest-day OT is separate                                                                                                                                                                                       |
-| NO PAY LEAVE          | match on working days | full-month absences differ: the listing deducts calendar days including rest days; the run deducts only leave slots on working days (owner rule), so the run pays more. EMP-REDACTED February is the one-off the listing paid in full                                            |
-| TAX (PCB)             | match                 | except EMP-REDACTED: no spouse relief (her spouse works here); the run withholds [amount]–[amount] more a month                                                                                                                                                                            |
-| MEDICAL CLAIM         | match                 | except EMP-REDACTED's [amount] dated [amount] Mar: paid in March, the listing paid it in May                                                                                                                                                                                               |
-| LOAN RETURN           | match                 | EMP-REDACTED: March refunded in April as a reversal                                                                                                                                                                                                                              |
-| Exit encashment       | match                 | EMP-REDACTED, [amount], [amount]: the days the listing paid, dated as the automation dates them                                                                                                                                                                                          |
-
-### [amount] Company B (ID)
-
-| Line                                | Expect                                | Why                                                                                                                                                                                                                                                             |
-| ----------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Overtime, timed claim forms         | match                                 | —                                                                                                                                                                                                                                                               |
-| Ganti jaga                          | run higher                            | company pays 10.5 weighted hours; Kepmenakertrans 102/2004 gives 16–17                                                                                                                                                                                          |
-| Holiday nights                      | differs on 13 slots                   | the law prices the hours on the holiday's calendar day; the company priced the night by the evening it starts                                                                                                                                                   |
-| PPh 21                              | run lower by 0.5–1.5% of the TER base | the company adds employer JHT to the base, which PMK 168/2023 excludes                                                                                                                                                                                          |
-| EMP-REDACTED PPh [amount]                     | total differs                         | the law's total on her pay; she bears the tax on her house allowance (`employee_borne_tax_items`), the employer the rest; the listing's further [amount] names no allowance                                                                                      |
-| BPJS                                | match                                 | —                                                                                                                                                                                                                                                               |
-| EMP-REDACTED leave encashment (January) | match                                 | [amount] days                                                                                                                                                                                                                                                        |
-| EMP-REDACTED claim [amount]               | paid in January                       | dated by its receipt ([amount] Dec [amount]); the listing paid it in March                                                                                                                                                                                                |
-| PKWT compensation                   | paid in January, run lower            | the end-of-term compensation of EMP-REDACTED and the renewed guards (EMP-REDACTED, [amount], [amount], [amount]) pays in the run covering the term's end as final severance, [amount]% up to [amount] (PP [amount]/[amount] art.5); the listing paid it in February and withheld [amount]–[amount] |
-
-### [amount] Company C (PH)
-
-| Line                      | Expect                        | Why                                                                                                                                                                                                |
-| ------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ABSENT / UNPAID           | match                         | no-pay leave has `paid_share` 0; a PH day is monthly × 12 ÷ 313 (6-day) or ÷ 261 (5-day), the DOLE daily rate                                                                                      |
-| MC and EL                 | match (paid)                  | company policy: the workspace's PH `MEDICAL_LEAVE` and `EMERGENCY_LEAVE` have `paid_share` 1 (empty), set by HR in Settings                                                                        |
-| Annual leave above 5 days | match (paid)                  | HR's manual adjustments on `ANNUAL_LEAVE` per person: the company gives more than the law's 5 days                                                                                                 |
-| ORDINARY PAY (OT)         | match                         | except EMP-REDACTED [amount] Feb (−₱[amount], the repeated night) and a few April hours with no clock                                                                                                          |
-| NIGHT SHIFT               | match                         | company method `night_differential_basis: CLOCK_SPAN`: 10% of the ordinary hour on every clocked hour 22:00–06:00, the unpaid break and OT hours included; per shift never below Labor Code art.86 |
-| REGULAR / SPECIAL HOLIDAY | run higher                    | production worked 20 Mar, 9 Apr, 27 May, 12 Jun (200%) and 17 Feb (130%); the company kept the holiday on the next Saturday instead and paid no premium. The Saturday stays a paid company day off |
-| EMP-REDACTED                  | differs in February and March | she ends [amount] Feb (the listing's last day); unpaid leave [amount]–[amount] Feb; her 13th month dated on her last day                                                                                              |
-| SSS, PhilHealth, Pag-IBIG | match                         | the listing's ₱0.01 PhilHealth residue is not seeded                                                                                                                                               |
-| Withholding tax           | match                         | differs only where the holiday premium raises taxable pay                                                                                                                                          |

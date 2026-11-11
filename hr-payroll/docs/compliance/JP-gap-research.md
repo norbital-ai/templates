@@ -1,8 +1,7 @@
 # JP compliance gap research
 
-Status: research memo, no source, seed, test or other documentation change.
-Date: 2026-11-09.
-Scope: the five JP gaps found in the HR/Bolt seed audit. Paths use `JP/version_17` (current head); the same gaps exist in the versions inspected (`version_10` and `version_17`). Apply changes to the JP version being authored, never by rewriting a sealed historical version.
+Status: research and decision record, 9–10 November 2026. The seed and the models are what is in force; where this record differs, they stand. Seed folders are written `version_<v>`: the lineage has been renumbered since.
+Scope: the five JP gaps found in the HR/Bolt seed audit. Apply changes to the JP version being authored, never by rewriting a sealed historical version.
 
 Constraint: every recommendation uses existing HRMS mechanisms — model fields, extension-schema declarations, registered rules/effects, catalog lookups/conversions, reads and obligations. No engine semantics, no new native model field, no helper framework.
 
@@ -73,12 +72,12 @@ The occurrence key of each effect includes the date, so a replacement entity ver
 
 ### Fields and paths
 
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/jurisdiction_settings.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/jurisdiction_settings.json`
   - `entity_extension_schema.required` currently contains only `workers_accident_rate_per_mille`; add the three date names.
   - The three `properties` already exist with the correct descriptions; no new property is needed.
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/registered_rule.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/registered_rule.json`
   - Add `ESTABLISHMENT_EVENT_DATES_REQUIRED` after `PAYROLL_OFFICE_EVENT_DATE_REQUIRED`.
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/registered_effect.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/registered_effect.json`
   - No change for the normal path. The citation URL on the three establishment effects currently points to the Administrative Organs Holiday Act used for the deadline extension; add the substantive law URL (or split the reference) so a reader can reach the filing rule.
 
 ### Verification
@@ -125,7 +124,7 @@ Align `INDEFINITE_CONVERSION_NOTICE` to the same `to != null` fixed-term test. I
 ### Fields and paths
 
 - Native fields: `employee_contract.engagement`, `employee_contract.signed_contract_period`, `employee_contract.terms.normal_hours_per_week` (`templates/hr-payroll/src/data/model/employee_profile/employee_contract/+model.ts`).
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/registered_effect.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/registered_effect.json`
   - `PART_TIME_TERMS_NOTICE.condition` — replace the current `engagement === 'PART_TIME' || signed_contract_period != null` with the two-boolean derivation.
   - `INDEFINITE_CONVERSION_NOTICE.condition` — add the `signed_contract_period.to != null` test.
 - No extension field and no lookup.
@@ -177,9 +176,9 @@ The company may raise the interval; it may never lower the driver floor.
 
 ### Fields and paths
 
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/jurisdiction_settings.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/jurisdiction_settings.json`
   - Add `entity_extension_schema.properties.work_interval_hours`: number, minimum `0`, maximum `24`, title `勤務間インターバル`, description citing 労働時間等設定改善法 art.2(1) and the driver 9-hour floor. Leave it optional; absence means no company interval.
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/registered_rule.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/registered_rule.json`
   - `ROSTER_REST_INTERVAL.validate` — replace the override with `Math.max(company, driverFloor)`.
   - Keep `lookup.default_minimum_rest_hours: 9`.
 
@@ -213,9 +212,9 @@ Because the seal action is a direct update, add a registered rule `WORK_WEEK_STA
 
 ### Fields and paths
 
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/jurisdiction_settings.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/jurisdiction_settings.json`
   - Add `entity_extension_schema.properties.week_start`: integer, `0..6`, title `週の起算日`, description citing 労働基準法 art.32 and 昭和63年1月1日基発1号. Add `week_start` to `required`.
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/registered_rule.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/registered_rule.json`
   - Add `WORK_WEEK_START_REQUIRED` for `entity_profile_version`, events `['create', 'update', 'seal']`.
 - `templates/hr-payroll/src/data/model/entity/shift_pattern/+model.ts`
   - Update the `week_start` help text so it is not the statutory owner; no behavior change.
@@ -278,9 +277,9 @@ The daily branch follows the ordinance for a fixed daily schedule; a varying-day
 
 ### Fields and paths
 
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/jurisdiction_settings.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/jurisdiction_settings.json`
   - Add `employee_extension_schema.properties.normal_hours_per_year`: number, minimum `0`, title `年間所定労働時間`, description citing 最低賃金法施行規則 art.2(1)(3).
-- `templates/hr-payroll/seed/public/jurisdiction/JP/version_17/registered_rule.json`
+- `templates/hr-payroll/seed/public/jurisdiction/JP/version_<v>/registered_rule.json`
   - `MINIMUM_WAGE_CONTRACT.validate` — read `ext.normal_hours_per_year`, not `entityExt.normal_hours_per_year`; use `annual / 12` when present; restrict the fallback to a uniform standard schedule.
   - Add `MINIMUM_WAGE_HOURS_REQUIRED` (target `employee_contract`) if the owner wants the clear separate refusal.
   - Adjust the rule's lookup `message` if the annual hours are missing, so it does not claim a below-minimum wage for a missing input.
@@ -305,7 +304,7 @@ This is the test that proves the fallback is not a lawful substitute for the ann
 
 **Reversal / encashment.** Not applicable: this is a contract-seal rate check, not a payment. A reversal entry does not change the contract rate, and leave encashment is a payment, not a rate.
 
-Test path: `templates/hr-payroll/tests/minimum_wage.test.ts` (the JP case already evaluates the rule with a synthetic context; extend it with the monthly/annual-hours cases).
+Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ---
 
@@ -313,7 +312,7 @@ Test path: `templates/hr-payroll/tests/minimum_wage.test.ts` (the JP case alread
 
 1. **Schema declarations** in the JP version under authoring: add the three establishment dates to `required`; declare `week_start`, `work_interval_hours` and `normal_hours_per_year` (employee). These are extension-schema declarations, not native model fields.
 2. **Registered rules/effects**: add `ESTABLISHMENT_EVENT_DATES_REQUIRED`, `WORK_WEEK_START_REQUIRED` and (optionally) `MINIMUM_WAGE_HOURS_REQUIRED`; change `ROSTER_REST_INTERVAL`, `MINIMUM_WAGE_CONTRACT`, `PART_TIME_TERMS_NOTICE` and `INDEFINITE_CONVERSION_NOTICE` expressions.
-3. **Seed/tests last**: update the JP rule tests and add the amount scenarios in `overtime_bands.test.ts` and `minimum_wage.test.ts`. The private seed bank has no JP entity or contract row today; a future JP demo seed must carry the three dates, `week_start`, and (where the schedule varies) `normal_hours_per_year`, or the seal rules will refuse it.
+3. **Seed/tests last**: the rows are seed data and are not tested per country. An entity or contract must carry the three dates, `week_start`, and (where the schedule varies) `normal_hours_per_year`, or the seal rules will refuse it.
 4. **No engine, native model or helper changes.** All five fixes use the existing extension-schema, registered-rule/effect, lookup/read and obligation mechanisms.
 5. **Do not rewrite sealed historical versions.** Apply to the next authored JP version; forward-port only if the release policy explicitly allows it.
 
@@ -355,7 +354,7 @@ Test path: `templates/hr-payroll/tests/minimum_wage.test.ts` (the JP case alread
 
 ## 2026-11-10 — seed round 3
 
-Scope: `seed/public/jurisdiction/JP/**` only, applied as a correction to every JP version (`version_1`–`version_17`); the expressions and references being corrected are identical in every version. No source, schema, test or migration change. Gate: `node_modules/.bin/bolt check .` → ok (discover → bundle → evaluate → manifest → names → seed → schema → rules → types).
+Scope: `seed/public/jurisdiction/JP/**` only, applied as a correction to every JP version; the expressions and references being corrected are identical in every version. No source, schema, test or migration change. Gate: `node_modules/.bin/bolt check .` → ok (discover → bundle → evaluate → manifest → names → seed → schema → rules → types).
 
 ### 1. Annual leave: five-day designation and register from the service start
 

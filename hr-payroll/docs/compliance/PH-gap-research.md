@@ -1,6 +1,6 @@
 # PH compliance gaps — research and decisions
 
-Status: research note, 9 November 2026. This file is the only change. No source, seed, test or other document is edited.
+Status: research and decision record, 9–10 November 2026. The seed and the models are what is in force; where this record differs, they stand. Seed folders are written `version_<v>`: the lineage has been renumbered since.
 
 Scope: the eight PH findings from the HR/Bolt seed audit. Each section gives the legal position with an official source, the engineering decision, the field or configuration to declare, and a test scenario where the gap can change an amount or a statutory date.
 
@@ -47,7 +47,7 @@ A `DRAFT` contract is not an employment fact. The duty begins when the record is
 
 ### Decision
 
-No engine change. Apply the MY/SG data pattern to the 27 PH rows in `seed/public/jurisdiction/PH/version_2/registered_effect.json`:
+No engine change. Apply the MY/SG data pattern to the 27 PH rows in `seed/public/jurisdiction/PH/version_<v>/registered_effect.json`:
 
 1. Set `events: ["create", "update"]` on every one of the 27.
 2. Keep the `ctx.entry.status === 'SEALED'` condition and the effect-specific condition. Exit effects add `get(ctx.entry, 'effective_range.to', null) !== null`; if the contract was sealed open-ended, the update that records the last day then fires them.
@@ -268,7 +268,7 @@ The seed's reference cites "Labor Code art.292(b)", which is not the twin-notice
 
 Add one jurisdiction fact and gate the effect on it.
 
-**Field:** `employee_extension_data.just_cause_dismissal`, boolean, default `false`, in the PH `employee_extension_schema` (`seed/public/jurisdiction/PH/version_2/jurisdiction_settings.json`).
+**Field:** `employee_extension_data.just_cause_dismissal`, boolean, default `false`, in the PH `employee_extension_schema` (`seed/public/jurisdiction/PH/version_<v>/jurisdiction_settings.json`).
 
 ```json
 "just_cause_dismissal": {
@@ -501,7 +501,7 @@ None; `occurred_on` and `opened_on` with the help text above.
 
 ## Implementation notes
 
-- Apply the data changes to `seed/public/jurisdiction/PH/version_2/` — the current sealed PH seed. Do not rewrite `version_1` (the 2025-12-01..2026-01-05 historical version). A live tenant that already holds version_2 sealed rows keeps them; a source seed edit reaches new tenants and resets. To reach a live tenant without a reset, publish a new jurisdiction version (version_3) through the normal statutory-materialization path.
+- Apply the data changes to `seed/public/jurisdiction/PH/version_<v>/` — the current sealed PH seed. Do not rewrite `version_1` (the 2025-12-01..2026-01-05 historical version). A live tenant that already holds version_2 sealed rows keeps them; a source seed edit reaches new tenants and resets. To reach a live tenant without a reset, publish a new jurisdiction version through the normal statutory-materialization path.
 - The 27-effect fix is mechanical but must be applied to every one of the 27, including the eight `entity_profile_version` effects. A partial fix leaves some registration or exit duties dead.
 - Keep the `PH:` prefix out unless the owner wants to match MY/SG style. The existing PH keys have no prefix; `CODE:<subject_id>[:period]` is already globally unique. Adding `PH:` is cosmetic and not required.
 - The unique `occurrence_key` is global. Every period key must include `entity_id`; every person key must include `employee_id`. A key that omits both will collide across entities or people.
@@ -539,7 +539,7 @@ None; `occurred_on` and `opened_on` with the help text above.
 
 ## Implementation status (2026-11-09)
 
-- Applied in `seed/public/jurisdiction/PH/version_2/registered_effect.json`:
+- Applied in `seed/public/jurisdiction/PH/version_<v>/registered_effect.json`:
   - employee registrations keyed by `employee_id`, employer registrations by `entity_id`, contract duties by contract id, each with an `obligation` reads guard;
   - exit effects listen to `create,update` and are keyed by contract;
   - remittance effects read the run's payslips and gate on scheme/loan/FBT presence, never amount;
@@ -559,6 +559,7 @@ None; `occurred_on` and `opened_on` with the help text above.
   paid by the SSS benefit and salary differential adhoc rows (RA 11210 s.5), its extension is unpaid (s.3).
 - `NIGHT_SHIFT_DIFFERENTIAL` (versions 1 and 2) reads `pay_methods.night_differential_basis`: `CLOCK_SPAN` pays 10% of the
   ordinary hour on the whole clocked night span, never below art.86 per shift.
-- Open: the absence deduction. The DOLE daily rate (monthly × 12 ÷ 313/261, `ctx.day_rate`) is the day an absence
-  takes; `conversions.proration` offers only `CALENDAR_DAYS` and `WORKING_DAYS`, so the run deducts the half's
-  working-days share (₱601.92 against ₱600 on a 13-day half at ₱15,650). Waiting on the owner.
+
+## Not enforced
+
+What the seed does not enforce is listed in [statutory coverage](../0009-statutory-coverage.md#not-enforced-by-the-seed).

@@ -8,8 +8,8 @@
 			}
 		],
 		"subtotal_id": "c2cb6747-eec8-519a-9cd7-3b8191ce1124",
-		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
-		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
+		"eligibility": "const ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
+		"conversion": "return ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
 		"id": "8b395f60-5bc0-501d-8633-c1c159c0c92b",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"description": "Business expense reimbursement."
@@ -23,8 +23,8 @@
 			}
 		],
 		"subtotal_id": "c2cb6747-eec8-519a-9cd7-3b8191ce1124",
-		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
-		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
+		"eligibility": "const ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
+		"conversion": "return ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
 		"id": "549f14bf-8d6b-54f9-ab91-99a6656399cf",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"description": "Business travel reimbursement."

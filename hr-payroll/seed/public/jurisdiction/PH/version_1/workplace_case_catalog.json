@@ -11,7 +11,7 @@
 		"events": {},
 		"id": "adcc8e10-f938-5d4d-aa5c-b0d2e1cfd609",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "WORK_ACCIDENT: Case with its declared events and workflow inputs."
+		"description": "A work accident or occupational illness, which the employer reports (PD 626; DOLE OSH Standards)."
 	},
 	{
 		"code": "DANGEROUS_OCCURRENCE",
@@ -25,7 +25,7 @@
 		"events": {},
 		"id": "1b4468a8-b506-5515-aa79-75b9618ae810",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "DANGEROUS_OCCURRENCE: Case with its declared events and workflow inputs."
+		"description": "A dangerous occurrence at the workplace, which the employer reports to the DOLE regional office (OSH Standards Rule 1053.02)."
 	},
 	{
 		"code": "FLEXIBLE_WORK_ARRANGEMENT",
@@ -39,7 +39,7 @@
 		"events": {},
 		"id": "091f7f0a-6a64-53ee-a72d-41a6de6b6ff2",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "FLEXIBLE_WORK_ARRANGEMENT: Case with its declared events and workflow inputs."
+		"description": "A flexible work arrangement adopted by agreement with the employees, which the employer notifies to DOLE (DOLE Department Advisory 02-09)."
 	},
 	{
 		"code": "TELECOMMUTING_PROGRAM",
@@ -53,7 +53,7 @@
 		"events": {},
 		"id": "d81837aa-76f9-5d09-944b-2c1721461ee9",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "TELECOMMUTING_PROGRAM: Case with its declared events and workflow inputs."
+		"description": "A voluntary telecommuting programme with written terms, which the employer notifies to DOLE (RA 11165)."
 	},
 	{
 		"code": "SUSPENSION_EXTENSION",
@@ -67,7 +67,7 @@
 		"events": {},
 		"id": "652e9461-b027-575c-8359-a1f98d20755b",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "SUSPENSION_EXTENSION: Case with its declared events and workflow inputs."
+		"description": "An extension of a suspension of operations beyond six months, which needs notice to DOLE (Labor Code art.301; DO 215-20)."
 	},
 	{
 		"code": "SOLO_PARENT_FLEXIBLE_SCHEDULE",
@@ -81,7 +81,7 @@
 		"events": {},
 		"id": "0094a7a4-d690-526a-b718-0d8b70cb8beb",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "SOLO_PARENT_FLEXIBLE_SCHEDULE: Case with its declared events and workflow inputs."
+		"description": "A solo parent's request for a flexible work schedule (RA 8972 s.6 as amended by RA 11861)."
 	},
 	{
 		"code": "PERSONAL_DATA_BREACH",
@@ -123,7 +123,7 @@
 		"events": {},
 		"id": "2b550f4b-7f63-5ba9-ab5a-03238350a018",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "FINAL_COMPENSATION_PAYMENT: Case with its declared events and workflow inputs."
+		"description": "Records the date of a leaver's final pay, due within 30 days of separation (DOLE Labor Advisory 06-20)."
 	},
 	{
 		"code": "BIR_2316_DELIVERED",
@@ -154,7 +154,7 @@
 		"events": {},
 		"id": "9e53518e-b3f6-5e46-ad57-48b4211ebcb6",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "BIR_2316_DELIVERED: Case with its declared events and workflow inputs."
+		"description": "Records that BIR Form 2316 was given to the employee: by 31 January of the following year, or on the day of the last pay when employment ends earlier (RR 2-98 s.2.83.1)."
 	},
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",

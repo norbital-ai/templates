@@ -48,7 +48,6 @@
 		const families = [
 			['allowance_catalog', data.current?.allowance_catalog.rows ?? []],
 			['overtime_catalog', data.current?.overtime_catalog.rows ?? []],
-			['statutory_contribution_catalog', data.current?.statutory_contribution_catalog.rows ?? []],
 			['leave_catalog', data.current?.leave_catalog.rows ?? []],
 			['claim_catalog', data.current?.claim_catalog.rows ?? []],
 			['adhoc_catalog', data.current?.adhoc_catalog.rows ?? []],
@@ -77,59 +76,29 @@
 			)
 	);
 
-	const guide = (code: string): { how: string; access: string } => {
+	/** What a checkpoint holds, for the codes every chain shares; any other is its name. */
+	const guide = (code: string): string => {
 		switch (code) {
 			case 'BASIC':
-				return {
-					how: 'Contract salary (monthly, daily or hourly), prorated by paid ordinary time. Allowances are separate lines; NPL and absence reduce this paid share before net. Off-cycle runs start at 0.',
-					access: 'ctx.subject.employment.terms, ctx.run, ctx.lookup, ctx.as_of'
-				};
+				return 'The contract salary for the period. An off-cycle run starts at 0.';
+			case 'PRORATED':
+				return 'Basic less the days before a joiner started or after a leaver left, and less absences.';
+			case 'PAID_BASIC':
+				return 'Prorated basic less unpaid leave. Allowances, overtime, claims, one-off items and loans post after this.';
 			case 'ORDINARY_WAGES':
-				return {
-					how: 'Basic plus ordinary pay lines: fixed and recurring allowances, ordinary overtime, paid leave, ordinary ad-hoc. Schemes that read ordinary wages stop here.',
-					access:
-						'ctx.subtotals, ctx.subject, ctx.lookup, ctx.run; producers also read ctx.entry and ctx.base_pay'
-				};
+				return 'Paid basic plus ordinary pay lines: fixed and recurring allowances, ordinary overtime and ordinary one-off items. Schemes that count ordinary wages read this value.';
 			case 'ADDITIONAL_WAGES':
-				return {
-					how: 'Ordinary wages plus bonus, backpay and additional-wage lines. Cumulative tax schemes read this running total.',
-					access: 'ctx.subtotals, ctx.subject, ctx.lookup, ctx.run, ctx.history'
-				};
+				return 'Ordinary wages plus bonus, backpay and other additional-wage lines. Tax schemes that work on the year so far read this running total.';
 			case 'GROSS':
-				return {
-					how: 'Additional wages plus gross wage adjustments. Tax schemes that read gross use this value before final settlements.',
-					access: 'ctx.subtotals, ctx.subject, ctx.lookup, ctx.run, ctx.history'
-				};
+				return 'Additional wages plus gross wage adjustments. Tax schemes that read gross use this value before final settlements.';
 			case 'FINAL_PAY':
-				return {
-					how: 'Terminal and non-wage settlements: severance, notice, retirement lump sums, injury compensation, maternity pass-through, non-compete. Excluded from ordinary and additional wages; tax still reaches it through net.',
-					access: 'ctx.subtotals, ctx.entry, ctx.subject, ctx.lookup, ctx.as_of'
-				};
+				return 'Final and non-wage settlements: severance, notice, retirement lump sums, injury compensation. Not part of ordinary or additional wages.';
 			case 'RETIREMENT':
-				return {
-					how: 'Retirement allowances, kept outside gross wages. Separate retirement tax schemes read this checkpoint.',
-					access: 'ctx.subtotals, ctx.entry, ctx.subject, ctx.lookup, ctx.as_of'
-				};
-			case 'CONTRIBUTIONS':
-				return {
-					how: 'Employee statutory contributions and tax. Each scheme posts its employee amount here or at net; the running value falls by each deduction.',
-					access: 'ctx.subtotals, ctx.statutory, ctx.lookup, ctx.subject, ctx.history'
-				};
-			case 'EMPLOYER_COST':
-				return {
-					how: 'Employer-side contributions only. This checkpoint is excluded from employee net and reported as employer cost.',
-					access: 'ctx.subtotals, ctx.statutory, ctx.lookup, ctx.subject'
-				};
+				return 'Retirement allowances, kept outside gross wages. Separate retirement tax schemes read this checkpoint.';
 			case 'NET':
-				return {
-					how: 'Running net after employee contributions and tax. NPL is not a net deduction: it reduces the BASIC paid share. A leave row appears here only when it pays a cash-out or a reversal.',
-					access: 'ctx.subtotals, ctx.statutory, ctx.lookup, ctx.history'
-				};
+				return 'What the employee is paid: everything above less employee contributions, tax, deductions and loan repayments.';
 			default:
-				return {
-					how: 'Running value: the previous checkpoint plus every line posted here.',
-					access: 'ctx.subtotals, ctx.subject, ctx.lookup, ctx.run'
-				};
+				return 'The previous checkpoint plus every line posted here.';
 		}
 	};
 	const textOf = (value: unknown): string => (typeof value === 'string' ? value : '');
@@ -166,15 +135,7 @@
 		return codeOf(row.conversion) || codeOf(row.amount) || 'return 0;';
 	};
 	const nodeDirection = (code: string): string =>
-		code === 'CONTRIBUTIONS'
-			? '− deductions'
-			: code === 'NET'
-				? 'net'
-				: code === 'EMPLOYER_COST'
-					? 'employer cost'
-					: code === 'BASIC'
-						? 'base'
-						: '+ additions';
+		code === 'NET' ? 'net' : code === 'BASIC' ? 'base' : '+ additions';
 </script>
 
 {#if data.loading}
@@ -212,11 +173,7 @@
 								<p>
 									<span class="font-medium">Code.</span> <span class="font-mono">{node.code}</span>
 								</p>
-								<p><span class="font-medium">Calculation.</span> {guide(node.code).how}</p>
-								<p>
-									<span class="font-medium">Can access.</span>
-									<span class="font-mono">{guide(node.code).access}</span>
-								</p>
+								<p>{guide(node.code)}</p>
 							</Popover.Content>
 						</Popover.Root>
 						<span class="shrink-0 text-[10px] text-muted-foreground"
@@ -241,7 +198,9 @@
 									>
 									<div class="min-w-0 flex-1">
 										<div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-											<span class="font-mono text-xs">{producer.row.code}</span>
+											<span class="min-w-0 text-xs"
+												>{textOf(producer.row.description) || producer.row.code}</span
+											>
 											<Popover.Root>
 												<Popover.Trigger
 													class="shrink-0 text-muted-foreground hover:text-foreground"
@@ -280,8 +239,8 @@
 											</span>
 										</div>
 										{#if textOf(producer.row.description) !== ''}
-											<p class="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-												{textOf(producer.row.description)}
+											<p class="mt-0.5 font-mono text-[11px] leading-snug text-muted-foreground">
+												{producer.row.code}
 											</p>
 										{/if}
 									</div>
@@ -297,7 +256,9 @@
 											>
 											<div class="min-w-0 flex-1">
 												<div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-													<span class="font-mono text-xs">{scheme.code}</span>
+													<span class="min-w-0 text-xs"
+														>{textOf(scheme.description) || scheme.code}</span
+													>
 													<Popover.Root>
 														<Popover.Trigger
 															class="shrink-0 text-muted-foreground hover:text-foreground"
@@ -336,8 +297,10 @@
 													>
 												</div>
 												{#if textOf(scheme.description) !== ''}
-													<p class="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-														{textOf(scheme.description)}
+													<p
+														class="mt-0.5 font-mono text-[11px] leading-snug text-muted-foreground"
+													>
+														{scheme.code}
 													</p>
 												{/if}
 											</div>

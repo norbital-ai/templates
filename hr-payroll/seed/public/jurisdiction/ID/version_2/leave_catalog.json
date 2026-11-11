@@ -18,7 +18,7 @@
 		"subtotal_id": null,
 		"id": "5766d44e-d380-5733-b789-153a5c8d355c",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "JOINT_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "A collective leave day (cuti bersama) the employer applies. It is paid, and each day taken comes off the annual leave balance."
 	},
 	{
 		"code": "ANNUAL_LEAVE",
@@ -44,7 +44,7 @@
 		"id": "c4d386e4-b735-5c7b-a7b7-50d095738db0",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"description": "Paid annual leave accrued by service.",
-		"payout": "// js\n// UU 13/2003 art.156(4)(a) as amended by UU 6/2023, PP 35/2021 art.40(4)(a): unused annual leave that has not lapsed is compensated on termination.\nreturn ctx.day_rate * ctx.entry.quantity;"
+		"payout": "// UU 13/2003 art.156(4)(a) as amended by UU 6/2023, PP 35/2021 art.40(4)(a): unused annual leave that has not lapsed is compensated on termination.\nreturn ctx.day_rate * ctx.entry.quantity;"
 	},
 	{
 		"code": "NPL",
@@ -58,7 +58,7 @@
 		"subtotal_id": "603737a5-8cfa-4000-b529-b371f8ab654b",
 		"id": "47fd8146-bb17-5ab2-beb9-a0f25a153b24",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Unpaid absence from work.",
+		"description": "Unpaid absence: no wage for a day not worked, other than the absences the law pays. Each day taken reduces the month's basic pay by one day's pay (PP 36/2021 art.40(1)).",
 		"paid_share": "0"
 	},
 	{
@@ -97,8 +97,8 @@
 		"subtotal_id": "334b119b-0dac-5a5b-9f3a-3671936014cc",
 		"id": "9ccb94df-3f09-5253-a0b2-616700dda029",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "MEDICAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
-		"paid_share": "// js\n// PP 36/2021 art.41(1): 100% of the wage for the first four months of an illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal.\nif (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;"
+		"description": "Sick leave. A sick day is paid in full; in a long illness the wage is 100% for the first four months, 75% for the next four, 50% for the next four and 25% after that (PP 36/2021 art.41(1)).",
+		"paid_share": "// PP 36/2021 art.41(1): 100% of the wage for the first four months of an illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal.\nif (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;"
 	},
 	{
 		"code": "MATERNITY_LEAVE",
@@ -133,8 +133,8 @@
 		"subtotal_id": "334b119b-0dac-5a5b-9f3a-3671936014cc",
 		"id": "57cfdaba-d40b-5397-907a-910fca5ffd93",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Maternity leave around childbirth.",
-		"paid_share": "// js\n// UU 4/2024 art.5(2): paid in full for the first four months and 75% for the fifth and sixth; the months past the third need a doctor’s certificate of a special condition of mother or child.\nif (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;"
+		"description": "Maternity leave of three months, and up to three more where a doctor certifies a special condition of mother or child. It is paid in full for the first four months and at 75% for the fifth and sixth (UU 13/2003 art.82(1); UU 4/2024 arts.4–5).",
+		"paid_share": "// UU 4/2024 art.5(2): paid in full for the first four months and 75% for the fifth and sixth; the months past the third need a doctor’s certificate of a special condition of mother or child.\nif (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -162,7 +162,7 @@
 		"subtotal_id": null,
 		"id": "808c9755-d69d-502d-87fa-8548b15a978b",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Paternity leave around childbirth."
+		"description": "Two paid days for a married male worker when his wife gives birth or miscarries (PP 36/2021 art.41(3)(e); UU 4/2024 art.6(1))."
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
@@ -186,7 +186,7 @@
 		"subtotal_id": null,
 		"id": "6833fc1d-c2a4-57db-90de-3b538ca92a00",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Marriage leave."
+		"description": "Paid leave of 3 days for the worker's own marriage (PP 36/2021 art.41(3)(a))."
 	},
 	{
 		"code": "CHILD_MARRIAGE_LEAVE",
@@ -210,7 +210,7 @@
 		"subtotal_id": null,
 		"id": "4ec7067b-f711-5452-98b5-4fe54100d797",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "CHILD_MARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Paid leave of 2 days for the marriage of the worker's child (PP 36/2021 art.41(3)(b))."
 	},
 	{
 		"code": "CHILD_CIRCUMCISION_LEAVE",
@@ -234,7 +234,7 @@
 		"subtotal_id": null,
 		"id": "24653b0e-1f5a-5566-8f3e-f0f6b5ca2c8c",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "CHILD_CIRCUMCISION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Paid leave of 2 days for the circumcision of the worker's child (PP 36/2021 art.41(3)(c))."
 	},
 	{
 		"code": "CHILD_BAPTISM_LEAVE",
@@ -258,7 +258,7 @@
 		"subtotal_id": null,
 		"id": "ddd19e0b-563e-5b88-b9c7-74c6566a5886",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "CHILD_BAPTISM_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Paid leave of 2 days for the baptism of the worker's child (PP 36/2021 art.41(3)(d))."
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
@@ -282,7 +282,7 @@
 		"subtotal_id": null,
 		"id": "8b067b4e-b776-5317-a855-b7d90a509a0c",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Bereavement leave."
+		"description": "Paid leave of 2 days on the death of a spouse, parent, parent-in-law, child or child-in-law (PP 36/2021 art.41(3)(f))."
 	},
 	{
 		"code": "BEREAVEMENT_HOUSEHOLD_LEAVE",
@@ -306,7 +306,7 @@
 		"subtotal_id": null,
 		"id": "771cc688-fd66-5996-a1d4-e519faad4d47",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "BEREAVEMENT_HOUSEHOLD_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Paid leave of 1 day on the death of a member of the worker's household (PP 36/2021 art.41(3)(g))."
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
@@ -320,7 +320,7 @@
 		"subtotal_id": null,
 		"id": "af65b5d6-561f-5e1e-bef0-09144e5dfbe6",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Menstrual leave days."
+		"description": "Paid leave for a female worker who is unwell on the first and second days of menstruation, at most two days (UU 13/2003 art.81(1); PP 36/2021 art.41(2))."
 	},
 	{
 		"code": "MISCARRIAGE_LEAVE",
@@ -334,7 +334,7 @@
 		"subtotal_id": null,
 		"id": "366aae68-2262-5994-96cc-7645f211b277",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "MISCARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Rest of one and a half months after a miscarriage, or as the doctor or midwife certifies, paid in full (UU 13/2003 art.82(2))."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -373,7 +373,7 @@
 		"subtotal_id": null,
 		"id": "f60fc943-d78f-57ba-8adc-85ca148e8154",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "RELIGIOUS_DUTY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Paid leave to perform a duty the worker's religion commands, such as the pilgrimage, once during the employment with the company (PP 36/2021 art.43)."
 	},
 	{
 		"code": "WORK_ACCIDENT_LEAVE",
@@ -400,7 +400,7 @@
 		"subtotal_id": null,
 		"id": "ddf650ac-7970-5345-be74-34cb20121625",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "STATE_DUTY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Leave to perform a duty to the state, for at most one year. The employer pays the shortfall between what the state pays and the usual wage (PP 36/2021 art.42)."
 	},
 	{
 		"code": "UNION_DUTY_LEAVE",
@@ -414,7 +414,7 @@
 		"subtotal_id": null,
 		"id": "1cb71776-03f1-5b5f-84e7-1cbfc24e67dd",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "UNION_DUTY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Time away on trade union duties with the employer's written consent, paid at the usual wage (PP 36/2021 art.44)."
 	},
 	{
 		"code": "COMPANY_TRAINING_LEAVE",
@@ -428,7 +428,7 @@
 		"subtotal_id": null,
 		"id": "1ab54aea-7ab4-584c-a583-0ad15066da70",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "COMPANY_TRAINING_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Time away on training the company sends the worker to, paid at the usual wage (PP 36/2021 arts.40(4)(d) and 45)."
 	},
 	{
 		"code": "EMPLOYER_IDLE",
@@ -442,7 +442,7 @@
 		"subtotal_id": null,
 		"id": "9f1b0550-14d3-50a0-a247-c598c88ec073",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "EMPLOYER_IDLE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Days on which the worker was ready to work but the employer gave no work, through its own fault or an obstacle it could have avoided. The wage is paid (PP 36/2021 art.40(2)(d))."
 	},
 	{
 		"code": "SUSPENSION",
@@ -455,7 +455,7 @@
 		"subtotal_id": null,
 		"id": "c79c1ba8-fbd1-5df8-a8fa-1f3438ba4740",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Suspension while a dismissal is being settled. The worker keeps the wage and other rights (UU 13/2003 art.157A)."
 	},
 	{
 		"code": "PATERNITY_EXTENSION_LEAVE",
@@ -482,7 +482,7 @@
 		"subtotal_id": null,
 		"id": "20da979e-7475-5ad9-8a20-54a314e1311e",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "PATERNITY_EXTENSION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Up to three more paid days for a married male worker after the two days for his wife giving birth, or as agreed with the employer (UU 4/2024 art.6(1)(a))."
 	},
 	{
 		"code": "LONG_LEAVE",
@@ -496,6 +496,6 @@
 		"subtotal_id": null,
 		"id": "fbece36b-d802-556b-91f4-4389cfb7d37d",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "LONG_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Long leave as the employment agreement, company regulation or collective agreement grants it, paid at the usual wage (UU 13/2003 art.79(5); PP 36/2021 art.46)."
 	}
 ]

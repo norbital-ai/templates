@@ -348,33 +348,9 @@
 				"limit": 10000
 			}
 		},
-		"validate": "// js\n// Employment Act s.89(1): the 60 days of hospitalisation leave include the 14 days of outpatient sick leave.\nconst shared = ctx.reads.leave_catalog;\nconst item = shared.find((row) => row.id === ctx.entry.catalog_id);\nif (item == null) return true;\nconst slots = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst year = String(slots[0].incurred_on).slice(0, 4);\nconst ids = shared.map((row) => row.id);\nconst within = (held) => held.filter((slot) => String(slot.incurred_on).slice(0, 4) === year).length / 2;\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst taken = ctx.reads.leave_catalog_entry\n\t.filter((row) => ids.includes(row.catalog_id))\n\t.reduce((total, row) => total + (get(row, 'reverses', null) != null ? -1 : 1) * within(get(grouped, row.id, [])), 0);\nconst wanted = get(ctx.entry, 'reverses', null) != null ? 0 : within(slots);\nconst hospital = shared.find((row) => row.code === ctx.lookup.hospitalisation);\nconst months = calendar_completed_months(String(ctx.subject.employment.effective_range.from), String(slots[0].incurred_on));\nconst cap = get(hospital.lookup, 'service_bands', []).filter((band) => band.service_months <= months).reduce((best, band) => Math.max(best, band.days), 0);\nif (taken + wanted > cap) throw 'Sick and hospitalisation leave together would pass the ' + cap + ' days the year allows.';\nreturn true;\n",
+		"validate": "// Employment Act s.89(1): the 60 days of hospitalisation leave include the 14 days of outpatient sick leave.\nconst shared = ctx.reads.leave_catalog;\nconst item = shared.find((row) => row.id === ctx.entry.catalog_id);\nif (item == null) return true;\nconst slots = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst year = String(slots[0].incurred_on).slice(0, 4);\nconst ids = shared.map((row) => row.id);\nconst within = (held) => held.filter((slot) => String(slot.incurred_on).slice(0, 4) === year).length / 2;\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst taken = ctx.reads.leave_catalog_entry\n\t.filter((row) => ids.includes(row.catalog_id))\n\t.reduce((total, row) => total + (get(row, 'reverses', null) != null ? -1 : 1) * within(get(grouped, row.id, [])), 0);\nconst wanted = get(ctx.entry, 'reverses', null) != null ? 0 : within(slots);\nconst hospital = shared.find((row) => row.code === ctx.lookup.hospitalisation);\nconst months = calendar_completed_months(String(ctx.subject.employment.effective_range.from), String(slots[0].incurred_on));\nconst cap = get(hospital.lookup, 'service_bands', []).filter((band) => band.service_months <= months).reduce((best, band) => Math.max(best, band.days), 0);\nif (taken + wanted > cap) throw 'Sick and hospitalisation leave together would pass the ' + cap + ' days the year allows.';\nreturn true;\n",
 		"order": 901,
 		"id": "dd35be5e-23d6-5136-9a6b-f98d9b63a4d4",
-		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
-	},
-	{
-		"code": "CASE_INPUTS_REQUIRED",
-		"description": "Refuse a workplace case missing an input its catalog form declares required.",
-		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			}
-		},
-		"validate": "// js\nconst form = first(ctx.reads.workplace_case_catalog);\nconst inputs = get(ctx.entry, 'inputs', {});\nconst missing = get(form, 'lookup.input_schema.required', []).filter((key) => get(inputs, key, '') === '');\nif (missing.length > 0) throw 'This case needs ' + missing.join(', ') + '.';\nreturn true;",
-		"order": 30,
-		"lookup": {},
-		"id": "d949fc2a-93d4-5033-be57-a23160e15ee1",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	}
 ]

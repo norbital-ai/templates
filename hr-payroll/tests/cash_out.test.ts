@@ -388,7 +388,7 @@ describe('a day in lieu held both ways for one person and date', () => {
 
 // An exit raises one cash-out request a cashable row, held for an HR controller, and the request names its exit
 // (`occurrence_key`). When the exit is cancelled or moved, one routine settles what it left by where the cash-out
-// stands: a pending request cannot be approved and HR rejects it; approved and in no run, it is withdrawn; under an
+// stands: a pending request is withdrawn by the system; approved and in no run, it is withdrawn; under an
 // unpaid run nothing moves until the run is deleted or paid; once a paid run took it, one task asks HR to reverse it.
 describe('an exit’s cash-out', () => {
 	const OCTOBER = '2026-10-20T02:00:00.000Z';
@@ -467,28 +467,31 @@ describe('an exit’s cash-out', () => {
 				)
 			};
 		});
-	/** The one waiting request, approved or rejected by the HR controller. */
-	const decide = (t: Kit, decision: 'approve' | 'reject') =>
-		Effect.gen(function* () {
-			const { hr, ids } = yield* waiting(t);
-			const [requestId, ...more] = ids;
-			assert.ok(requestId !== undefined);
-			assert.equal(more.length, 0);
-			yield* hr.approvals.decide(
-				requestId,
-				decision === 'approve' ? { decision } : { decision, reason: 'The exit was cancelled' }
-			);
-			yield* t.runDue();
-		});
-	/** The exit's request approved: the one cash-out, now posted. */
+	/** The exit's one waiting request approved by the HR controller: the one cash-out, now posted. */
 	const approve = (t: Kit) =>
 		Effect.gen(function* () {
-			yield* decide(t, 'approve');
+			const { hr, ids } = yield* waiting(t);
+			const [requestId, ...waits] = ids;
+			assert.ok(requestId !== undefined);
+			assert.equal(waits.length, 0);
+			yield* hr.approvals.decide(requestId, { decision: 'approve' });
+			yield* t.runDue();
 			const [request, ...more] = yield* requests(t);
 			assert.ok(request !== undefined);
 			assert.equal(more.length, 0);
 			return request;
 		});
+	/** How every approval request stands, in order. */
+	const statuses = (t: Kit) =>
+		t
+			.storedQuery({ approval_request: { limit: 100 } })
+			.pipe(
+				Effect.map(({ approval_request }) =>
+					approval_request.rows.map((row) => row.status).toSorted()
+				)
+			);
+	const sizeOf = (t: Kit, entry: Id<'leave_catalog_entry'>) =>
+		reversalSlots(t, entry).pipe(Effect.map((slots) => slots.length));
 	/** The routine again, as any of its triggers would start it. */
 	const again = (t: Kit) =>
 		t
@@ -540,55 +543,156 @@ describe('an exit’s cash-out', () => {
 		lines.filter(([, direction]) => direction === 'ADD');
 
 	it.live(
-		'still pending when the exit is cancelled: it names its exit, cannot be approved, and HR’s reject ends it with nothing posted',
+		'still pending when the exit moves or is cancelled: the system withdraws it; moved, one request of the new size waits; cancelled, nothing waits and nothing posted',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
 				const before = (yield* held(t, 'ANNUAL_LEAVE')).used;
-				yield* end(t, '2026-10-16');
+				yield* end(t, '2026-11-30');
 				const [request, ...more] = yield* requests(t);
 				assert.ok(request !== undefined);
 				assert.equal(more.length, 0);
-				assert.equal(request.occurrence_key, `exit:${CONTRACT}`);
+				assert.equal(request.occurrence_key, `exit:${CONTRACT}:2026-11-30`);
 				const first = yield* waiting(t);
 				assert.equal(first.ids.length, 1);
-				// the exit moves: the same one request, still waiting, and nothing raised beside it
-				yield* end(t, '2026-09-30');
-				assert.deepEqual(
-					(yield* requests(t)).map((row) => row.id),
-					[request.id]
-				);
+				const whole = yield* sizeOf(t, request.id);
+				// the routine again while nothing changed: the same request
+				yield* again(t);
 				assert.deepEqual((yield* waiting(t)).ids, first.ids);
+				// the last day moves earlier: the old request is withdrawn and one for the new day waits
+				yield* end(t, '2026-10-16');
+				const [moved, ...beside] = yield* requests(t);
+				assert.ok(moved !== undefined && moved.id !== request.id);
+				assert.equal(beside.length, 0);
+				// a moved last day is another fact: the new request names it, and is sized for it
+				assert.equal(moved.occurrence_key, `exit:${CONTRACT}:2026-10-16`);
+				assert.ok((yield* sizeOf(t, moved.id)) <= whole);
+				const second = yield* waiting(t);
+				assert.equal(second.ids.length, 1);
+				assert.notDeepEqual(second.ids, first.ids);
+				assert.deepEqual(yield* statuses(t), ['ONGOING', 'WITHDRAWN']);
 				assert.deepEqual(yield* findings(t), []);
-				// the exit is cancelled by a successor: the routine cannot touch a held request, so it is reported
-				yield* succeed(t, '2026-10-01');
-				const { hr, ids } = yield* waiting(t);
-				assert.deepEqual(ids, first.ids);
-				assert.deepEqual(yield* findings(t), ['W2']);
-				const [requestId] = ids;
-				assert.ok(requestId !== undefined);
-				// approving it is refused, and the refusal says what to do instead
-				assert.match(
-					yield* refused(hr.approvals.decide(requestId, { decision: 'approve' })),
-					/exit this was raised for was cancelled.*Reject the request/
-				);
-				yield* t.runDue();
-				assert.equal(yield* drawnBy(t, request.id), 0);
-				assert.deepEqual((yield* waiting(t)).ids, first.ids);
-				yield* hr.approvals.decide(requestId, {
-					decision: 'reject',
-					reason: 'The exit was cancelled'
-				});
-				yield* t.runDue();
+				yield* again(t);
+				assert.deepEqual((yield* waiting(t)).ids, second.ids);
+				assert.deepEqual(yield* statuses(t), ['ONGOING', 'WITHDRAWN']);
+				// the exit is cancelled by a successor: the request is withdrawn, its record gone, and nothing waits for HR
+				yield* succeed(t, '2026-11-01');
 				assert.deepEqual(yield* requests(t), []);
+				assert.deepEqual((yield* waiting(t)).ids, []);
+				assert.deepEqual(yield* statuses(t), ['WITHDRAWN', 'WITHDRAWN']);
 				assert.deepEqual(yield* findings(t), []);
+				assert.equal(yield* drawnBy(t, moved.id), 0);
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, before);
+				yield* again(t);
+				assert.deepEqual(yield* requests(t), []);
+				assert.deepEqual(yield* statuses(t), ['WITHDRAWN', 'WITHDRAWN']);
 				// the month the first contract ended in runs without a cash-out line
-				yield* run(t, '2026-09');
+				yield* run(t, '2026-10');
 				assert.equal((yield* slipsOf(t)).length, 1);
 				assert.deepEqual(yield* paid(t, 'ANNUAL_LEAVE'), []);
-				assert.equal(yield* drawnBy(t, request.id), 0);
+			}).pipe(Effect.provide(workspace({ seed: exitSeed, now: OCTOBER })))
+	);
+
+	/** The exit's tasks as `[id, state]`, in id order; `day` narrows them to one last day's. */
+	const tasksOf = (t: Kit, day?: string) =>
+		duties(t).pipe(
+			Effect.map((rows) =>
+				rows
+					.filter((row) => day === undefined || row.occurrence_key.endsWith(`:${day}`))
+					.map((row) => [row.id, row.state] as const)
+					.toSorted(([left], [right]) => left.localeCompare(right))
+			)
+		);
+	/** The last day set or taken off, with no run of it left failed. */
+	const ends = (t: Kit, to: string | null) =>
+		t
+			.as(t.admin)
+			.act('employee_contract.update', [
+				{
+					target: CONTRACT,
+					set: {
+						effective_range: {
+							from: PlainDate('2025-01-01'),
+							to: to === null ? null : PlainDate(to)
+						},
+						reason: to === null ? 'Ended in error' : 'Resignation'
+					}
+				}
+			])
+			.pipe(
+				Effect.andThen(t.runDue()),
+				Effect.map((due) => assert.deepEqual(due.failed, []))
+			);
+	const stateOf = (rows: readonly (readonly [string, string])[], state: string) =>
+		rows.map(([id]) => [id, state]);
+
+	it.live(
+		'ended, cancelled and ended again on the same day: the same tasks are open again, none twice; ended on another day instead, the first day’s stay waived and the new day’s are open',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				yield* ends(t, '2026-10-16');
+				const raised = yield* tasksOf(t);
+				assert.ok(raised.length > 0);
+				assert.deepEqual(raised, stateOf(raised, 'OPEN'));
+				yield* ends(t, null);
+				assert.deepEqual(yield* tasksOf(t), stateOf(raised, 'WAIVED'));
+				// the fact stands again: what the routine waived, it reopens
+				yield* ends(t, '2026-10-16');
+				assert.deepEqual(yield* tasksOf(t), raised);
+				yield* again(t);
+				assert.deepEqual(yield* tasksOf(t), raised);
+				yield* ends(t, null);
+				yield* ends(t, '2026-10-30');
+				assert.deepEqual(yield* tasksOf(t, '2026-10-16'), stateOf(raised, 'WAIVED'));
+				const later = yield* tasksOf(t, '2026-10-30');
+				assert.equal(later.length, raised.length);
+				assert.deepEqual(later, stateOf(later, 'OPEN'));
+				assert.equal((yield* tasksOf(t)).length, raised.length * 2);
+			}).pipe(Effect.provide(workspace({ seed: exitSeed, now: OCTOBER })))
+	);
+
+	it.live(
+		'raised again reopens only what the routine waived: a task HR waived for its own reason stays waived until HR reopens it, and a fulfilled one never reopens',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const admin = t.as(t.admin);
+				yield* syncAll(t);
+				yield* ends(t, '2026-10-16');
+				const [byHand, done, ...rest] = yield* tasksOf(t);
+				assert.ok(byHand !== undefined && done !== undefined);
+				const move = (id: string, set: { state: 'OPEN' | 'WAIVED' | 'FULFILLED' }) =>
+					admin.act('obligation.update', [{ target: idOf('obligation', id), set }]);
+				yield* admin.act('obligation.update', [
+					{
+						target: idOf('obligation', byHand[0]),
+						set: { state: 'WAIVED', waiver_reason: 'Not owed at this company' }
+					}
+				]);
+				yield* move(done[0], { state: 'FULFILLED' });
+				yield* t.runDue();
+				yield* ends(t, null);
+				yield* ends(t, '2026-10-16');
+				const standing = [
+					[byHand[0], 'WAIVED'],
+					[done[0], 'FULFILLED'],
+					...stateOf(rest, 'OPEN')
+				].toSorted(([left = ''], [right = '']) => left.localeCompare(right));
+				assert.deepEqual(yield* tasksOf(t), standing);
+				// HR's own waiver is HR's to take back; a completed task keeps its state
+				yield* move(byHand[0], { state: 'OPEN' });
+				assert.match(
+					yield* refused(move(done[0], { state: 'OPEN' })),
+					/'FULFILLED' cannot move to 'OPEN'/
+				);
+				yield* t.runDue();
+				assert.deepEqual(
+					yield* tasksOf(t),
+					standing.map(([id, state]) => [id, id === byHand[0] ? 'OPEN' : state])
+				);
 			}).pipe(Effect.provide(workspace({ seed: exitSeed, now: OCTOBER })))
 	);
 
@@ -608,7 +712,7 @@ describe('an exit’s cash-out', () => {
 								encashment: true,
 								days: wholeDays('2026-10-05')
 							}),
-							occurrence_key: `exit:${CONTRACT}`
+							occurrence_key: `exit:${CONTRACT}:2026-10-16`
 						}
 					])
 				),
@@ -660,10 +764,10 @@ describe('an exit’s cash-out', () => {
 				assert.ok(second !== undefined && second.id !== request.id);
 				assert.equal(more.length, 0);
 				assert.equal((yield* waiting(t)).ids.length, 1);
-				// and cancelled while it waits, then rejected, it leaves an ordinary month and the days to take
+				// and cancelled while it waits, it is withdrawn: an ordinary month, and the days to take
 				yield* end(t, null, 'Termination withdrawn');
-				yield* decide(t, 'reject');
 				assert.deepEqual(yield* requests(t), []);
+				assert.deepEqual((yield* waiting(t)).ids, []);
 				yield* run(t, '2026-10');
 				assert.equal((yield* slipsOf(t)).length, 1);
 				assert.deepEqual(yield* paid(t, 'ANNUAL_LEAVE'), []);
@@ -704,7 +808,7 @@ describe('an exit’s cash-out', () => {
 				const [current, ...more] = yield* requests(t);
 				assert.ok(current !== undefined);
 				assert.equal(more.length, 0);
-				assert.equal(current.occurrence_key, `exit:${CONTRACT}`);
+				assert.equal(current.occurrence_key, `exit:${CONTRACT}:2026-11-13`);
 				const drawn = yield* drawnBy(t, current.id);
 				assert.ok(drawn > 0);
 				yield* run(t, '2026-10');
@@ -770,7 +874,7 @@ describe('an exit’s cash-out', () => {
 	);
 
 	it.live(
-		'in an unpaid final run that is then paid: only then is HR asked to reverse it, once; the exit standing again waives the task, and it is not raised a second time',
+		'in an unpaid final run that is then paid: only then is HR asked to reverse it, once; the exit standing again waives the task, and cancelled a second time the same task is open again',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -808,10 +912,10 @@ describe('an exit’s cash-out', () => {
 					(yield* requests(t)).map((row) => row.id),
 					[request.id]
 				);
-				// cancelled once more, the same entry is not asked about a second time
+				// cancelled once more, the reversal is due again: the same task reopens, and no second one is raised
 				const later = yield* succeed(t, '2026-11-01');
 				yield* again(t);
-				assert.deepEqual(yield* reverseTasks(t), waived);
+				assert.deepEqual(yield* reverseTasks(t), asked);
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, before.used + drawn);
 				yield* admin.act('employee_contract.update', [
 					{ target: later, set: { status: 'SEALED' } }
@@ -921,16 +1025,13 @@ describe('an exit’s cash-out', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
-				const size = (entry: Id<'leave_catalog_entry'>) =>
-					reversalSlots(t, entry).pipe(Effect.map((slots) => slots.length));
 				// the exit alone: what the last day leaves, cashed out whole
 				yield* end(t, '2026-10-30');
 				const [alone, ...more] = yield* requests(t);
 				assert.ok(alone !== undefined);
 				assert.equal(more.length, 0);
-				const whole = yield* size(alone.id);
+				const whole = yield* sizeOf(t, alone.id);
 				yield* end(t, null, 'Termination withdrawn');
-				yield* decide(t, 'reject');
 				assert.deepEqual(yield* requests(t), []);
 				// the employee asks for a day, which waits for its reviewers; then the same exit
 				const asked = yield* t
@@ -950,7 +1051,7 @@ describe('an exit’s cash-out', () => {
 				assert.ok(under !== undefined);
 				assert.equal(rest.length, 0);
 				// the request is raised, not refused for want of balance, and leaves the waiting day alone
-				assert.equal(yield* size(under.id), whole - 2);
+				assert.equal(yield* sizeOf(t, under.id), whole - 2);
 				assert.equal((yield* waiting(t)).ids.length, 1);
 			}).pipe(Effect.provide(workspace({ seed: exitSeed, now: OCTOBER })))
 	);

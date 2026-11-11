@@ -6,9 +6,8 @@ import { applyRegisteredEffects } from './registrations.js';
 export const tap = Effect.fnUntraced(function* (
 	ctx: EffectCtx,
 	name: 'create' | 'update' | 'delete' | 'seal' | 'exit',
-	event: { readonly collection: string; readonly ids: readonly string[] },
+	collection: string,
 	changes: readonly { readonly before?: object; readonly after?: object }[]
 ) {
-	void event;
-	yield* applyRegisteredEffects(ctx, name, event.collection, changes);
+	yield* applyRegisteredEffects(ctx, name, collection, changes);
 });

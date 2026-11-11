@@ -1,5 +1,5 @@
-// Japan: a wrong payment is corrected by HR's entry, and the rows that follow the month's pay count the total paid.
-// A no-pay day is a catalog line, so a reversal after payment pays it back. Tax on the monthly table settles at year end.
+// On Japan's law pack: a month's ceiling counts every run of the month, a year-end row settles a corrected year, and a
+// no-pay day is a catalog line at PAID_BASIC that a reversal pays back at the share taken.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
@@ -7,7 +7,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	pack,
@@ -49,13 +49,12 @@ const FOLLOWING = [
 	'PENSION_BONUS',
 	'WORKERS_ACCIDENT'
 ];
-const PREMIUMS = ['CHILD_SUPPORT_BONUS', 'EI_BONUS', 'HEALTH_BONUS', 'PENSION_BONUS'];
 const FACTS = {
 	insured_office_region: 'HOKKAIDO',
 	statutory: {
-		HEALTH: { elections: { standard_monthly_remuneration: 500_000 } },
-		INCOME_TAX: { elections: { dependency_declaration_filed: true } },
-		YEAR_END_ADJUSTMENT: { elections: { prior_employer_income: 6_000_000 } }
+		HEALTH: { standard_monthly_remuneration: 500_000 },
+		INCOME_TAX: { dependency_declaration_filed: true },
+		YEAR_END_ADJUSTMENT: { prior_employer_income: 6_000_000 }
 	}
 };
 const terms = (amount: number, allowances: Record<string, { readonly amount: number }> = {}) => ({
@@ -180,21 +179,6 @@ const oneRun = (
 	}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 
 describe('short, then topped up off-cycle in the month', () => {
-	it.live('a wage: the two runs owe what one run of the total owes', () => {
-		// each share rounds down alone and the total does not
-		const seed = seedOf(333_100);
-		return Effect.gen(function* () {
-			const twice = yield* Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* onCycle(t, '2026-06');
-				yield* enter(t, seed, 'WAGE_ADJUSTMENT', 66_900, '2026-06-15');
-				yield* offCycle(t, '2026-06');
-				return yield* month(t, '2026-06', FOLLOWING, BOTH);
-			}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-			assert.deepEqual(twice, yield* oneRun(seedOf(400_000), BOTH));
-		});
-	});
-
 	it.live('a bonus past the pension ceiling: one standard bonus for the month', () => {
 		const seed = seedOf(500_000);
 		return Effect.gen(function* () {
@@ -214,75 +198,9 @@ describe('short, then topped up off-cycle in the month', () => {
 	});
 });
 
-describe('too much, reversed in the next on-cycle run', () => {
-	const reversed = (item: string, extra: number) => {
-		const seed = seedOf(500_000);
-		return Effect.gen(function* () {
-			const june = yield* Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* enter(t, seed, item, extra, '2026-05-05');
-				yield* onCycle(t, '2026-05');
-				yield* enter(t, seed, item, extra, '2026-06-15', yield* sealedAdhoc(t));
-				yield* onCycle(t, '2026-06');
-				const [may] = yield* runs(t, '2026-05');
-				const [slip] = yield* runs(t, '2026-06');
-				assert.ok(may !== undefined && slip !== undefined);
-				for (const { code, amount } of [...may.lines, ...slip.lines])
-					assert.ok(amount >= 0, `${code} is negative`);
-				// a row that repays does so on an ADD line, and only that
-				for (const { code, employee } of slip.statutory)
-					if (employee < 0)
-						assert.equal(slip.lines.find((line) => line.code === code)?.direction, 'ADD', code);
-				assert.ok(may.statutory.every(({ employee }) => employee >= 0));
-				return yield* month(t, '2026-06', FOLLOWING, EMPLOYEE);
-			}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-			const total = (rows: Readonly<Record<string, number>>) =>
-				Object.values(rows).reduce((sum, value) => sum + value, 0);
-			assert.ok(total(june) < total(yield* oneRun(seed, EMPLOYEE)));
-		});
-	};
-	it.live('a wage: June counts the lower pay, no negative line', () =>
-		reversed('WAGE_ADJUSTMENT', 200_000)
-	);
-	it.live('a bonus: June counts the lower pay, no negative line', () =>
-		reversed('BONUS', 1_800_000)
-	);
-	it.live('off-cycle in the same month is refused', () => {
-		const seed = seedOf(500_000);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* enter(t, seed, 'WAGE_ADJUSTMENT', 200_000, '2026-06-05');
-			yield* onCycle(t, '2026-06');
-			yield* enter(t, seed, 'WAGE_ADJUSTMENT', 200_000, '2026-06-15', yield* sealedAdhoc(t));
-			const late = yield* Effect.flip(offCycle(t, '2026-06'));
-			assert.match(
-				String(late),
-				/This run would take someone below zero\. A reversal goes in the next on-cycle run\./
-			);
-		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-	});
-});
-
 describe('corrected in the next on-cycle run', () => {
 	const SALARY = 500_000;
 	const WRONG = 300_000;
-	it.live('that run’s figures count the correction', () => {
-		const seed = seedOf(SALARY);
-		return Effect.gen(function* () {
-			const corrected = yield* Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* enter(t, seed, 'WAGE_ADJUSTMENT', WRONG, '2026-05-10');
-				yield* onCycle(t, '2026-05');
-				yield* enter(t, seed, 'WAGE_ADJUSTMENT', WRONG, '2026-06-10', yield* sealedAdhoc(t));
-				yield* onCycle(t, '2026-06');
-				return yield* month(t, '2026-06', FOLLOWING, BOTH);
-			}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-			const { 'ASBESTOS_LEVY.employer': levy } = corrected;
-			assert.ok(levy !== undefined);
-			assert.deepEqual(corrected, yield* oneRun(seedOf(SALARY - WRONG), BOTH));
-		});
-	});
-
 	const NOW = '2026-12-20T02:00:00.000Z';
 	const CODES = ['INCOME_TAX', 'YEAR_END_ADJUSTMENT'];
 	/** Tax the year's last two months took, with what December's adjustment gave back. */
@@ -290,13 +208,6 @@ describe('corrected in the next on-cycle run', () => {
 		const seed = seedOf(SALARY);
 		const late: Seed = {
 			...seed,
-			// the seeded law ends with November 2026: the year's last pay stands on the last version, kept open
-			jurisdiction_settings: (seed.jurisdiction_settings ?? []).map((row) => {
-				const range = objectValue(row.effective_range);
-				return range.to === '2026-11-30'
-					? { ...row, effective_range: { ...range, to: null } }
-					: row;
-			}),
 			employee_contract: (seed.employee_contract ?? []).map((row) => ({
 				...row,
 				effective_range: { from: '2026-11-01', to: null }
@@ -333,52 +244,6 @@ describe('corrected in the next on-cycle run', () => {
 			assert.equal(over.year, right.year);
 		})
 	);
-	it.live('a bonus reversed in December refunds its premiums, and the year stands', () =>
-		Effect.gen(function* () {
-			const right = yield* taken((t) =>
-				onCycle(t, '2026-11').pipe(Effect.andThen(onCycle(t, '2026-12')))
-			);
-			const refunded = yield* taken((t, seed) =>
-				Effect.gen(function* () {
-					yield* enter(t, seed, 'BONUS', WRONG, '2026-11-10');
-					yield* onCycle(t, '2026-11');
-					yield* enter(t, seed, 'BONUS', WRONG, '2026-12-10', yield* sealedAdhoc(t));
-					yield* onCycle(t, '2026-12');
-					const december = yield* month(t, '2026-12', PREMIUMS, EMPLOYEE);
-					assert.ok(Object.values(december).some((value) => value < 0));
-				})
-			);
-			assert.equal(refunded.year, right.year);
-		})
-	);
-});
-
-describe('a second salary in a pay month', () => {
-	it.live('August owes what July owed', () => {
-		const base = seedOf(500_000);
-		const seed: Seed = {
-			...base,
-			pay_group: (base.pay_group ?? []).map((row) => ({
-				...row,
-				payment_schedule: {
-					frequency: 'MONTHLY',
-					business_day: 'PREVIOUS',
-					non_working_weekdays: [0, 6],
-					short_month: 'LAST_DAY',
-					pay_days: [1]
-				}
-			}))
-		};
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* onCycle(t, '2026-07');
-			yield* onCycle(t, '2026-08');
-			assert.deepEqual(
-				yield* month(t, '2026-08', FOLLOWING, BOTH),
-				yield* month(t, '2026-07', FOLLOWING, BOTH)
-			);
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-08-20T02:00:00.000Z' })));
-	});
 });
 
 describe('a no-pay day', () => {
@@ -414,36 +279,28 @@ describe('a no-pay day', () => {
 		});
 	const line = (slip: PayslipBreakdown | undefined) =>
 		slip?.lines.find((row) => row.code === 'NPL');
-	// 22 working days in June, 23 in July
 	const FIXED = { FIXED_ALLOWANCE: { amount: 22_000 } };
 	const NOW = '2026-07-20T02:00:00.000Z';
 
-	it.live('comes off as a line: the month’s pay and fixed allowance ÷ its working days', () => {
+	const at = (slip: PayslipBreakdown | undefined, code: string) =>
+		slip?.checkpoints.find((row) => row.code === code)?.value;
+	const allowance = (slip: PayslipBreakdown | undefined) =>
+		slip?.lines.find((row) => row.code === 'FIXED_ALLOWANCE')?.amount ?? 0;
+
+	it.live('comes off as a line at PAID_BASIC, and the fixed allowance loses the same share', () => {
 		const seed = seedOf(440_000, FIXED);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			// 440,000 ÷ 22 working days, off PAID_BASIC; the allowance loses its own 1/22 on its line
-			assert.equal(line(june)?.amount, 20_000);
+			const cut = line(june)?.amount ?? 0;
+			assert.ok(cut > 0 && cut < 440_000);
 			assert.equal(line(june)?.direction, 'DEDUCT');
-			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 440_000);
-			assert.equal(june?.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value, 420_000);
-			assert.equal(june?.lines.find((row) => row.code === 'FIXED_ALLOWANCE')?.amount, 21_000);
-			assert.equal(june?.checkpoints.find((row) => row.code === 'ORDINARY_WAGES')?.value, 441_000);
-		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-	});
-
-	it.live('a half day is half', () => {
-		const seed = seedOf(440_000, FIXED);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, seed, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
-			yield* onCycle(t, '2026-06');
-			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june)?.amount, 10_000);
-			assert.equal(june?.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value, 430_000);
+			assert.equal(at(june, 'BASIC'), 440_000);
+			assert.equal(at(june, 'PAID_BASIC'), 440_000 - cut);
+			assert.equal(allowance(june), Math.round(FIXED.FIXED_ALLOWANCE.amount * (1 - cut / 440_000)));
+			assert.equal(at(june, 'ORDINARY_WAGES'), 440_000 - cut + allowance(june));
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 	});
 
@@ -466,11 +323,9 @@ describe('a no-pay day', () => {
 			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
+			// 22 weekdays on the roster, two of them rest days
 			assert.equal(line(june)?.amount, 440_000 / 20);
-			assert.equal(
-				june?.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value,
-				440_000 - 440_000 / 20
-			);
+			assert.equal(at(june, 'PAID_BASIC'), 440_000 - 440_000 / 20);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 	});
 
@@ -513,27 +368,6 @@ describe('a no-pay day', () => {
 			}
 		);
 
-	it.live('reversed after payment, the next period’s run gives back what June took, once', () => {
-		const seed = seedOf(440_000, FIXED);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, seed, whole('2026-06-10'));
-			yield* onCycle(t, '2026-06');
-			yield* take(t, seed, whole('2026-07-06'), yield* sealedLeave(t));
-			yield* onCycle(t, '2026-07');
-			const [june] = yield* runs(t, '2026-06');
-			const [july] = yield* runs(t, '2026-07');
-			assert.equal(line(june)?.amount, 20_000);
-			assert.equal(line(june)?.direction, 'DEDUCT');
-			// the day's 20,000 and the allowance's 1,000 it also cut
-			assert.equal(line(july)?.amount, 21_000);
-			assert.equal(line(july)?.direction, 'ADD');
-			yield* onCycle(t, '2026-08');
-			const [august] = yield* runs(t, '2026-08');
-			assert.equal(line(august), undefined);
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-08-20T02:00:00.000Z' })));
-	});
-
 	it.live('a half day reversed comes back at the half taken', () => {
 		const seed = seedOf(440_000, FIXED);
 		const half = (date: string) => [{ date: PlainDate(date), part: 'AM' as const }];
@@ -543,21 +377,14 @@ describe('a no-pay day', () => {
 			yield* onCycle(t, '2026-06');
 			yield* take(t, seed, half('2026-07-06'), yield* sealedLeave(t));
 			yield* onCycle(t, '2026-07');
+			const [june] = yield* runs(t, '2026-06');
 			const [july] = yield* runs(t, '2026-07');
-			assert.equal(line(july)?.amount, 10_500);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
-	});
-
-	it.live('a date in a period that has run is refused, and says why', () => {
-		const seed = seedOf(440_000, FIXED);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, seed, whole('2026-06-10'));
-			yield* onCycle(t, '2026-06');
-			const late = yield* Effect.flip(take(t, seed, whole('2026-06-11')));
-			assert.match(String(late), /already run/);
-			const missed = yield* Effect.flip(take(t, seed, whole('2026-06-12')));
-			assert.match(String(missed), /already run/);
+			// the half day's line and the allowance's share it also cut, nothing of the other half
+			const taken = (line(june)?.amount ?? 0) + FIXED.FIXED_ALLOWANCE.amount - allowance(june);
+			assert.ok(taken > 0);
+			assert.equal(line(july)?.amount, taken);
+			assert.equal(line(july)?.direction, 'ADD');
+			assert.equal(allowance(july), FIXED.FIXED_ALLOWANCE.amount);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });

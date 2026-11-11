@@ -1,8 +1,8 @@
 # TH compliance gap research
 
-Status: decision record. This file is the only change. No source, seed, test or other document was edited.
+Status: research and decision record, 9–10 November 2026. The seed and the models are what is in force; where this record differs, they stand. Seed folders are written `version_<v>`: the lineage has been renumbered since.
 
-Scope: Thailand seed versions under `templates/hr-payroll/seed/public/jurisdiction/TH/`. The defects exist in every TH version that carries the row; `version_7` is the current example. A released jurisdiction version is immutable, so the same correction belongs in the next version if the old one has already shipped.
+Scope: Thailand seed versions under `templates/hr-payroll/seed/public/jurisdiction/TH/`. The defects exist in every TH version that carries the row. A released jurisdiction version is immutable, so the same correction belongs in the next version if the old one has already shipped.
 
 Mechanism rule for every decision below: use existing model fields, registered rules/effects, catalog lookup/conversion, `reads`, and `obligation`. No new engine concept, no helper framework, no new model field. "In force" means a `SEALED` `employee_contract` whose `effective_range` covers the date; `PAYEE` remains excluded, as today.
 
@@ -398,14 +398,13 @@ Ordinary employee with 8 hours of actual work a day (with the recorded rest brea
 
 - Gap 5 (`EMPLOYEE_REGISTER_UPDATE`) implemented at the model boundary: `employee_profile.updated` taps only changes to `name` or `address`; email, phone, `user_id`, face, documents and location no longer raise the duty. The effect keeps its entity/employee/due-date key and deduped headcount. Regression: `tests/employee_register_change.test.ts`.
 - Gap 1 (`NO_PAY_OPEN_PERIOD`) is the template invariant `assertOpenPeriod`; it runs on create and update, checks only slots without a `payroll_run_id`, and the ledger slot set is deduped so an existing paid slot is not counted as newly added. Regression: `tests/no_pay_reversal.test.ts` adds a day to a priced entry (refused) and edits evidence (allowed).
-- Gap 2 (deduped headcount) is already present in every TH version's headcount conditions: distinct `employee_id` in force at the effect date, `headcount >= threshold`, no `employee_count_threshold_11` gate. Regression: `tests/th_headcount.test.ts` nine distinct + renewal (no work rules) and ten distinct + renewal (one work rules).
-- Gap 3 (person/employer keys) is already present: person duties key `CODE:<entity>:<employee>` with employee/employment refs; employer duties key `CODE:<entity>` with null employee/employment refs and `employee_id isNull: true` reads. Regression: `tests/th_headcount.test.ts` checks one person duty on a renewal and one employer duty at ten.
-- Gap 4 (EWF remittance) is already present: the effect reads the EWF catalogue's `lookup.collection_from` and the run's payslips, and raises only for a positive EWF line. Regression: `tests/th_ewf.test.ts` December 2026 none, January 2027 one due 2027-02-15, exempt/non-member none.
+- Gap 2 (deduped headcount) is already present in every TH version's headcount conditions: distinct `employee_id` in force at the effect date, `headcount >= threshold`, no `employee_count_threshold_11` gate. Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
+- Gap 3 (person/employer keys) is already present: person duties key `CODE:<entity>:<employee>` with employee/employment refs; employer duties key `CODE:<entity>` with null employee/employment refs and `employee_id isNull: true` reads. Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
+- Gap 4 (EWF remittance) is already present: the effect reads the EWF catalogue's `lookup.collection_from` and the run's payslips, and raises only for a positive EWF line. Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 - Gap 6 (work-injury day) is already present: `WORK_INJURY_DAY_REQUIRED` in every TH version refuses a slotless `WORK_INJURY_LEAVE`; the notification effect returns [] when no slot exists. Regression: `tests/th_work_injury.test.ts` slotless create refused, first-day notification due 2026-03-16, deleting the only day refused.
-- Gap 7 (worksite-first minimum wage) is already present in `MINIMUM_WAGE_FLOOR` and `MINIMUM_WAGE_ARREARS`: `terms.work_region` first, employer `region` fallback. Regression: `tests/minimum_wage.test.ts` Bangkok worksite over a Chiang Rai employer refuses 11,000/month, accepts 12,000/month, and pays 2 days of 350/day arrears at 100 (Bangkok 400), not Chiang Rai's 4.\n- Gap 8 (weekly 48/42-hour roster check) was present in every TH version but ineffective: the rule summed hours
+- Gap 7 (worksite-first minimum wage) is already present in `MINIMUM_WAGE_FLOOR` and `MINIMUM_WAGE_ARREARS`: `terms.work_region` first, employer `region` fallback. Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.\n- Gap 8 (weekly 48/42-hour roster check) was present in every TH version but ineffective: the rule summed hours
   (`/ 60`) and compared them to `weekly_minutes` (2880/2520), so a seven-day week always passed. The sum now stays in
-  minutes in all seven versions. Regression: `tests/th_normal_hours.test.ts` six ordinary days pass, the seventh is
-  refused; six hazardous seven-hour days pass, the seventh is refused; planned overtime is excluded from normal time.
+  minutes in every version. Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 - The hazardous daily seven-hour check is still the separate finding below; this change only makes the weekly cap
   effective for both categories.
 

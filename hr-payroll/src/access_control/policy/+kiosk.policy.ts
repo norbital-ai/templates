@@ -22,9 +22,7 @@ export default policy({
 						'face_photo',
 						'face_enrollment_status',
 						'face_consent_at',
-						'face_enrolled_at',
-						'face_last_match_at',
-						'face_match_count'
+						'face_enrolled_at'
 					]
 				},
 				check: function* (changes, ctx) {

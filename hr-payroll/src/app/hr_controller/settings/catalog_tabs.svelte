@@ -37,17 +37,17 @@
 		allowance_catalog:
 			'Recurring contractual additions. Each row states who is eligible, how the amount is calculated (a prorated amount reads the share of the period paid) and whether it counts toward the ordinary rate.',
 		overtime_catalog:
-			'Work-pattern pricing. Each row states eligibility, the paid multiplier or amount, the economic date rule and whether the line adds or deducts.',
+			'Work-pattern pricing. Each row states eligibility, the paid multiplier or amount and whether the line adds or deducts.',
 		statutory_contribution_catalog:
 			'Statutory schemes and their employee and employer amounts, dependencies and balance windows. The engine posts each scheme once per period.',
 		leave_catalog:
 			'Leave and absence rules. Each row states eligibility, what the leave is worth (empty: a normal paid day; 0: no pay) and the subtotal that receives the difference.',
 		claim_catalog:
-			'Employee claims and reimbursements. Each row states eligibility, what the claim reimburses and the economic date taken from the entry.',
+			'Employee claims and reimbursements. Each row states eligibility and what the claim reimburses.',
 		adhoc_catalog:
-			'One-off payments and deductions. Each row states eligibility, conversion, off-cycle eligibility, economic date and posting direction.',
+			'One-off payments and deductions. Each row states eligibility, the amount, whether an off-cycle run may pay it and whether the line adds or deducts.',
 		loan_catalog:
-			'Loan and salary-advance rules. Each row states eligibility, conversion and the subtotal that receives advances and repayments.',
+			'Loan and salary-advance types. Each row states who may be given the loan (checked when the loan is recorded) and the subtotal its repayments are deducted at.',
 		workplace_case_catalog:
 			'Workplace cases such as accidents, harassment or data breaches. Each row declares the events and the lookup that drives the case workflow.',
 		work_event_catalog:
@@ -170,13 +170,7 @@
 				key="loan_catalog"
 				where={{ settings_id: { eq: versionId } }}
 				toolbar={{ new: draft, title: labels.loan_catalog }}
-				columns={[
-					'code',
-					'description',
-					{ field: 'eligibility', cell: codeCell },
-					{ field: 'conversion', cell: codeCell },
-					'subtotal_id'
-				]}
+				columns={['code', 'description', { field: 'eligibility', cell: codeCell }, 'subtotal_id']}
 			/>
 		{:else if selected === 'workplace_case_catalog'}<Table
 				of="workplace_case_catalog"

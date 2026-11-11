@@ -377,8 +377,8 @@ const leave = (
 	});
 
 // 1. transfer-semantics.md §3.4: an exit is read from the chain, so undoing one is a write to the chain. One routine
-// then settles what the exit left (docs/0007 §8): its tasks are waived, the loan task with them, and a cash-out request
-// still waiting can no longer be approved; rejecting it is the one act left to HR. A cash-out a paid run took is
+// then settles what the exit left (docs/0007 §4): its tasks are waived, the loan task with them, and a cash-out request
+// still waiting is withdrawn. A cash-out a paid run took is
 // reversed by HR, who is asked by one task.
 describe('a contract ended by mistake', () => {
 	const LAST = '2026-09-15';
@@ -398,7 +398,7 @@ describe('a contract ended by mistake', () => {
 			.pipe(Effect.andThen(t.runDue()));
 
 	it.live(
-		'before any run: reopened, its duties and the loan task are waived, the leave returns, the waiting cash-out request can only be rejected, and the month pays whole',
+		'before any run: reopened, its duties and the loan task are waived, the leave returns, the waiting cash-out request is withdrawn, and the month pays whole',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -423,21 +423,17 @@ describe('a contract ended by mistake', () => {
 				assert.deepEqual(more, []);
 				const asked = yield* waiting(t);
 				assert.equal(asked.ids.length, 1);
-				// the loan task the contract page raises beside a leaver's recovery (see loan_lifecycle.test.ts), under the
-				// key it writes now and the one it wrote before
-				yield* t.as(t.admin).act(
-					'obligation.create',
-					[`LOAN_RECOVERY:${FIRST}:exit:${LAST}`, `LOAN_RECOVERY:${FIRST}:${LAST}`].map(
-						(occurrence_key) => ({
-							entity_id: ENTITY,
-							employee_id: idOf('employee_profile', PERSON),
-							employment_id: FIRST,
-							title: 'Recover 500 from W1',
-							due_on: PlainDate('2026-10-01'),
-							occurrence_key
-						})
-					)
-				);
+				// the loan task the contract page raises beside a leaver's recovery (see loan_lifecycle.test.ts)
+				yield* t.as(t.admin).act('obligation.create', [
+					{
+						entity_id: ENTITY,
+						employee_id: idOf('employee_profile', PERSON),
+						employment_id: FIRST,
+						title: 'Recover 500 from W1',
+						due_on: PlainDate('2026-10-01'),
+						occurrence_key: `LOAN_RECOVERY:${FIRST}:exit:${LAST}`
+					}
+				]);
 
 				// the correction: the last day and the final pay date come off the version
 				yield* t.as(t.admin).act('employee_contract.update', [
@@ -468,25 +464,13 @@ describe('a contract ended by mistake', () => {
 					obligation.rows
 						.filter((row) => row.occurrence_key.startsWith('LOAN_RECOVERY:'))
 						.map((row) => row.state),
-					['WAIVED', 'WAIVED']
+					['WAIVED']
 				);
 				// sync gives back what the exit's proration took
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).entitled, before.entitled);
 
-				// the one manual act: the request still waits, approving it is refused with what to do, and HR rejects it
-				const still = yield* waiting(t);
-				assert.deepEqual(still.ids, asked.ids);
-				const [requestId] = still.ids;
-				assert.ok(requestId !== undefined);
-				assert.match(
-					yield* refused(still.hr.approvals.decide(requestId, { decision: 'approve' })),
-					/cannot be approved\. Reject the request/
-				);
-				yield* still.hr.approvals.decide(requestId, {
-					decision: 'reject',
-					reason: 'The exit was a mistake'
-				});
-				yield* t.runDue();
+				// the request that still waited is withdrawn by the system: nothing is left for HR to decide
+				assert.deepEqual((yield* waiting(t)).ids, []);
 				assert.deepEqual(yield* cashOuts(t), []);
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, before.used);
 
@@ -707,7 +691,7 @@ describe('a contract version sealed with a wrong term', () => {
 	// Break-it: the same correction in the other order. With the wrong version void and nothing after it, the version
 	// before it ends with no successor, which is what an exit is.
 	it.live(
-		'voided before its replacement exists: the version before it reads as an exit until the replacement is drafted, and the cash-out request it raised can only be rejected',
+		'voided before its replacement exists: the version before it reads as an exit until the replacement is drafted, and the cash-out request it raised is withdrawn with it',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -729,20 +713,9 @@ describe('a contract version sealed with a wrong term', () => {
 				);
 				yield* seal(t, right);
 				yield* t.runDue();
-				// manual: the request outlives the exit that raised it, and can no longer be approved
-				const { hr, ids } = yield* waiting(t);
-				const [requestId, ...more] = ids;
-				assert.ok(requestId !== undefined);
-				assert.deepEqual(more, []);
-				assert.match(
-					yield* refused(hr.approvals.decide(requestId, { decision: 'approve' })),
-					/Reject the request/
-				);
-				yield* hr.approvals.decide(requestId, {
-					decision: 'reject',
-					reason: 'No exit: a version was replaced'
-				});
-				yield* t.runDue();
+				// the request the mistaken exit raised is withdrawn with it
+				assert.deepEqual((yield* waiting(t)).ids, []);
+				assert.deepEqual(yield* cashOuts(t), []);
 				const after = yield* held(t, 'ANNUAL_LEAVE');
 				assert.deepEqual(after, before);
 				yield* run(t, '2026-09');

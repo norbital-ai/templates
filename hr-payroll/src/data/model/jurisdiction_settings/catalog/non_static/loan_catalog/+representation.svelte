@@ -28,22 +28,16 @@
 					hint="The loan or salary-advance type and its identity."
 					first
 				>
-					<Columns count={2} gap="md">
-						<Field name="code" />
-						<Field name="name" />
-					</Columns>
+					<Field name="code" />
 					<Field name="description" />
 				</Section>
 				<Section
 					name="rule"
 					title="Rule"
 					icon="lucide:code"
-					hint="Eligibility and the conversion; the repayment entry owns its paid date."
+					hint="Who may be given this loan. Checked when a loan is recorded; a loan it refuses is not saved."
 				>
-					<Columns count={2} gap="md">
-						<CodeField name="eligibility" />
-						<CodeField name="conversion" />
-					</Columns>
+					<CodeField name="eligibility" />
 				</Section>
 				<Section
 					name="posting"

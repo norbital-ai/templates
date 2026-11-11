@@ -1,6 +1,7 @@
 import { automation } from '@norbital-ai/bolt';
 import { Instant } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
+import { raiseFindings } from '../lib/integrity.js';
 import { getErrorMessage } from '../lib/payroll_engine/foundation.js';
 import { raiseFailure, retire, syncEntitlements } from '../lib/ledger/service.js';
 
@@ -37,7 +38,7 @@ export default automation('ledger', {
 					{ at: Instant(`${boundary}T00:00:00Z`), key: `ledger:${boundary}` }
 				);
 			// the whole pass ends by checking the ledger against what it stands for
-			yield* ctx.schedule('integrity', {}, { key: 'integrity' });
+			yield* raiseFindings(ctx);
 		});
 		yield* work.pipe(
 			// what can pass waits out its retries, which outlast an outage; a refusal will not change

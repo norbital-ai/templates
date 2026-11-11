@@ -199,21 +199,11 @@ const anyone = (w: World) => {
 	);
 };
 const failures = (w: World) =>
-	// two failures are not this suite's: research needs a host tool the kit lacks, and an employee's
-	// own request cannot read the law's registered effects (docs/0007 section 7)
+	// research needs a host tool the kit lacks; nothing else may fail
 	w.t
 		.runDue()
 		.pipe(
-			Effect.map(({ failed }) =>
-				failed.filter(
-					(run) =>
-						run.automation !== 'statutory_research' &&
-						!(
-							/^(leave|claim)_catalog_entry\.effect\./.test(run.automation) &&
-							run.error?.includes("reading 'registered_effect'") === true
-						)
-				)
-			)
+			Effect.map(({ failed }) => failed.filter((run) => run.automation !== 'statutory_research'))
 		);
 /** What every key of the ledger holds and what every entry is sealed by: what a deleted run must give back exactly. */
 const standing = (w: World) =>
@@ -422,6 +412,13 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 					approve ? { decision: 'approve' } : { decision: 'reject', reason: 'Not agreed' }
 				);
 		}),
+	// a request taken back: by the employee who asked, or refused for one that is not theirs
+	(w) =>
+		Effect.gen(function* () {
+			const request = pick(w, w.requests);
+			yield* note(w, `withdraw ${request}`);
+			if (request !== undefined) yield* w.me.approvals.decide(request, { decision: 'withdraw' });
+		}),
 	(w) =>
 		Effect.gen(function* () {
 			const next = `${String(addMonths(today(w), 1))}${START.slice(10)}`;
@@ -586,8 +583,7 @@ describe('random sequences of real acts keep the ledger whole', () => {
 						}
 						assert.deepEqual(yield* failures(w), []);
 						const hard = (yield* verify(t.storedQuery, today(w))).filter(
-							// the watches: a window below zero, and a held request whose exit was cancelled (HR rejects it)
-							(finding) => finding.invariant !== 'W1' && finding.invariant !== 'W2'
+							(finding) => finding.invariant !== 'W1'
 						);
 						assert.deepEqual(hard, []);
 						assert.deepEqual(flat(yield* accountsIn(t)), yield* projection(t));

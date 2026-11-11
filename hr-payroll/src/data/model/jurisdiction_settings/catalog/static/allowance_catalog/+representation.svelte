@@ -28,10 +28,7 @@
 					hint="The catalog row: its identity and the agreement it prices."
 					first
 				>
-					<Columns count={2} gap="md">
-						<Field name="code" />
-						<Field name="name" />
-					</Columns>
+					<Field name="code" />
 					<Field name="description" />
 				</Section>
 				<Section

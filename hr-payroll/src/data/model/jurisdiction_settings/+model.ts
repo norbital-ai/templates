@@ -2,6 +2,7 @@ import { tap } from '../../../lib/payroll_engine/taps.js';
 import { model } from '@norbital-ai/bolt';
 import { Instant } from '@norbital-ai/std/date';
 import { sealConfiguration } from '../../../lib/payroll_engine/sealing.js';
+import { rangeObject } from '../../../lib/payroll_engine/registrations.js';
 
 /** A conversion arm is a union in use: only FIXED owns its divisor; no other arm may carry it. */
 const conversionArmError = (row: {
@@ -218,7 +219,7 @@ export default model('jurisdiction_settings', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'jurisdiction_settings', ids: rows.map((r) => r.id) },
+				'jurisdiction_settings',
 				rows.map((after) => ({ after }))
 			);
 		},
@@ -226,7 +227,8 @@ export default model('jurisdiction_settings', {
 			// the catalog changed: now if the version is in force, else on the day it starts
 			for (const { before, after } of changes)
 				if (before.status !== 'SEALED' && after.status === 'SEALED') {
-					const from = String((after.effective_range ?? before.effective_range).from);
+					// an effect reads the stored range
+					const from = String(rangeObject(after.effective_range ?? before.effective_range)?.from);
 					yield* ctx.schedule(
 						'ledger',
 						{},
@@ -235,12 +237,7 @@ export default model('jurisdiction_settings', {
 							: { key: 'ledger' }
 					);
 				}
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'jurisdiction_settings', ids: changes.map((c) => c.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'jurisdiction_settings', changes);
 		}
 	}
 });

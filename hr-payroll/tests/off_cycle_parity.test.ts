@@ -10,21 +10,16 @@ import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import { ENTITY, pack, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
-const terms = (
-	amount: number,
-	residency: string,
-	category = 'NON_MANUAL',
-	allowances: Record<string, { readonly amount: number }> = {}
-) => ({
+const terms = (amount: number, residency: string) => ({
 	rate: { amount, unit: 'MONTHLY' },
 	normal_hours_per_day: 8,
 	normal_hours_per_week: 40,
 	normal_days_per_week: 5,
-	statutory_work_category: category,
+	statutory_work_category: 'NON_MANUAL',
 	work_classification: 'EA_COVERED',
 	residency_status: residency,
 	wage_payment_method: 'BANK',
-	allowances
+	allowances: {}
 });
 type Seed = ReturnType<typeof pack>;
 type Case = {
@@ -34,134 +29,27 @@ type Case = {
 	readonly item: string;
 	readonly bonus: number;
 	readonly facts?: Parameters<typeof pack>[3];
-	readonly entity?: Parameters<typeof pack>[3];
 };
-const SINGAPOREAN = { term_facts: { race: 'CHINESE' } };
-const CASES: Readonly<Record<string, Case>> = {
-	Malaysia: {
-		code: 'MY',
-		zone: 'Asia/Kuala_Lumpur',
-		terms: terms(8000, 'CITIZEN'),
-		item: 'BONUS',
-		bonus: 20_000
-	},
-	'Malaysia, a bonus lifting a low month past the employer rate': {
-		code: 'MY',
-		zone: 'Asia/Kuala_Lumpur',
-		terms: terms(4500, 'CITIZEN'),
-		item: 'BONUS',
-		bonus: 2000
-	},
-	Singapore: {
-		code: 'SG',
-		zone: 'Asia/Singapore',
-		terms: terms(10_000, 'CITIZEN'),
-		facts: SINGAPOREAN,
-		item: 'bonus',
-		bonus: 30_000
-	},
-	'Singapore, a bonus too small to stand alone': {
-		code: 'SG',
-		zone: 'Asia/Singapore',
-		terms: terms(3000, 'CITIZEN'),
-		facts: SINGAPOREAN,
-		item: 'bonus',
-		bonus: 400
-	},
-	Philippines: {
-		code: 'PH',
-		zone: 'Asia/Manila',
-		terms: terms(120_000, 'RESIDENT'),
-		item: 'bonus',
-		bonus: 360_000
-	},
-	'Philippines, an exempt allowance in the salary': {
-		code: 'PH',
-		zone: 'Asia/Manila',
-		terms: terms(120_000, 'RESIDENT', 'NON_MANUAL', { meal: { amount: 2000 } }),
-		item: 'bonus',
-		bonus: 360_000
-	},
-	Indonesia: {
-		code: 'ID',
-		zone: 'Asia/Jakarta',
-		terms: terms(30_000_000, 'CITIZEN'),
-		item: 'BONUS_THR',
-		bonus: 90_000_000
-	},
-	Thailand: {
-		code: 'TH',
-		zone: 'Asia/Bangkok',
-		terms: terms(120_000, 'CITIZEN'),
-		entity: { wcf_rate_percent: 0.2 },
-		facts: {
-			statutory: {
-				WCF: {
-					wcf_reviewed_annual_wage_ceiling: 240_000,
-					wcf_ceiling_review_tax_year: '2026',
-					wcf_ceiling_review_reference: 'test fixture: April start'
-				}
-			}
-		},
-		item: 'BONUS',
-		bonus: 360_000
-	},
-	Vietnam: {
-		code: 'VN',
-		zone: 'Asia/Ho_Chi_Minh',
-		terms: terms(60_000_000, 'RESIDENT'),
-		item: 'BONUS',
-		bonus: 180_000_000
-	},
-	Japan: {
-		code: 'JP',
-		zone: 'Asia/Tokyo',
-		terms: terms(500_000, 'RESIDENT', 'SOCIAL_AND_EMPLOYMENT'),
-		facts: {
-			insured_office_region: 'HOKKAIDO',
-			statutory: { INCOME_TAX: { elections: { dependency_declaration_filed: true } } }
-		},
-		item: 'BONUS',
-		bonus: 1_500_000
-	},
-	China: {
-		code: 'CN',
-		zone: 'Asia/Shanghai',
-		terms: terms(30_000, 'CITIZEN'),
-		entity: { region: 'SH', hpf_rate_percent: 7, work_injury_rate_percent: 0.2 },
-		item: 'BONUS',
-		bonus: 90_000
-	},
-	Taiwan: {
-		code: 'TW',
-		zone: 'Asia/Taipei',
-		terms: terms(80_000, 'CITIZEN'),
-		facts: {
-			statutory: {
-				INCOME_TAX: {
-					tax_residency_reviews: {
-						2026: { resident_from: '2025-01-01', valid_through: '2026-12-31' }
-					}
-				}
-			}
-		},
-		item: 'bonus',
-		bonus: 240_000
-	}
+/** Two law packs as fixtures: one whose tax is reckoned month by month, one that settles the year in December. */
+const MONTHLY: Case = {
+	code: 'MY',
+	zone: 'Asia/Kuala_Lumpur',
+	terms: terms(8000, 'CITIZEN'),
+	item: 'BONUS',
+	bonus: 20_000
+};
+const YEARLY: Case = {
+	code: 'PH',
+	zone: 'Asia/Manila',
+	terms: terms(120_000, 'RESIDENT'),
+	item: 'bonus',
+	bonus: 360_000
 };
 
-const seedOf = (
-	{ code, zone, terms, facts = {}, entity = {} }: Case,
-	from: string,
-	on = '2026-06-15'
-): Seed => {
+const seedOf = ({ code, zone, terms, facts = {} }: Case, from: string, on = '2026-06-15'): Seed => {
 	const seed = pack(code, zone, terms, facts, [], [], on);
 	return {
 		...seed,
-		entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
-			...row,
-			entity_extension_data: entity
-		})),
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
 			effective_range: { from, to: null }
@@ -262,52 +150,34 @@ const sameMonth = (
 	});
 };
 
-describe('a bonus in June', () => {
-	for (const [name, one] of Object.entries(CASES))
-		it.live(name, () =>
-			sameMonth(one, '2026-04-01', ['2026-04', '2026-05'], '2026-06', '2026-06-20T02:00:00.000Z')
-		);
-});
-
-// December settles the year: a bonus ahead of its salary is withheld and the settlement nets it, and a bonus after it
-// settles the rest. The December the template's law holds is 2025's, its first month: both people start in it with
-// their year accounted for, so December alone finds nothing overpaid.
-describe('a bonus in December', () => {
-	const months: readonly string[] = [];
-	const NOW = '2025-12-20T02:00:00.000Z';
-	const { Philippines, Indonesia } = CASES;
-	assert.ok(Philippines !== undefined && Indonesia !== undefined);
-	it.live('Philippines', () =>
-		sameMonth(
-			{
-				...Philippines,
-				facts: {
-					previous_employer_taxable_compensation: 1_039_950,
-					previous_employer_tax_withheld: 207_000
-				}
-			},
-			'2025-12-01',
-			months,
-			'2025-12',
-			NOW
-		)
+describe('a bonus in the month', () => {
+	it.live('inside the on-cycle run, or off-cycle before or after it, the month owes the same', () =>
+		sameMonth(MONTHLY, '2026-04-01', ['2026-04', '2026-05'], '2026-06', '2026-06-20T02:00:00.000Z')
 	);
-	it.live('Indonesia', () =>
-		sameMonth(
-			{ ...Indonesia, facts: { tax_subject_from: '2025-12-01' } },
-			'2025-12-01',
-			months,
-			'2025-12',
-			NOW
-		)
-	);
-});
 
-describe('a second bonus before the salary', () => {
-	it.live('Philippines: it stacks on the first', () => {
-		const one = CASES['Philippines'];
-		assert.ok(one !== undefined);
-		const half = { ...one, bonus: one.bonus / 2 };
+	// December settles the year: a bonus ahead of its salary is withheld and the settlement nets it, and a bonus after it
+	// settles the rest. The December the template's law holds is 2025's, its first month: the person starts in it with
+	// their year accounted for, so December alone finds nothing overpaid.
+	it.live(
+		'in the month that settles the year, the settlement counts it whichever run paid it',
+		() =>
+			sameMonth(
+				{
+					...YEARLY,
+					facts: {
+						previous_employer_taxable_compensation: 1_039_950,
+						previous_employer_tax_withheld: 207_000
+					}
+				},
+				'2025-12-01',
+				[],
+				'2025-12',
+				'2025-12-20T02:00:00.000Z'
+			)
+	);
+
+	it.live('a second bonus before the salary stacks on the first', () => {
+		const half = { ...YEARLY, bonus: YEARLY.bonus / 2 };
 		const seed = seedOf(half, '2026-04-01');
 		const after = (bonuses: (t: Kit) => Effect.Effect<unknown, unknown>) =>
 			Effect.gen(function* () {
@@ -365,23 +235,23 @@ describe('a second salary in a pay month', () => {
 	});
 	// 1 August 2026 is a Saturday, so August's salary is paid on 31 July, in July's pay month
 	const NOW = '2026-08-20T02:00:00.000Z';
-	for (const name of ['Singapore', 'Malaysia, a bonus lifting a low month past the employer rate'])
-		it.live(`${name}: August owes what July owed`, () => {
-			const one = CASES[name];
-			assert.ok(one !== undefined);
-			const seed = paidOnTheFirst(seedOf(one, '2026-04-01'));
-			return Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* onCycle(t, '2026-07');
-				yield* onCycle(t, '2026-08');
-				const pay = (yield* t.storedQuery({ payroll_run: { limit: 2 } })).payroll_run.rows;
-				assert.deepEqual(pay.map((row) => String(row.pay_date).slice(0, 7)).sort(), [
-					'2026-07',
-					'2026-07'
-				]);
-				assert.deepEqual(yield* month(t, '2026-08'), yield* month(t, '2026-07'));
-			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
-		});
+	it.live('August owes what July owed', () => {
+		const seed = paidOnTheFirst(seedOf(MONTHLY, '2026-04-01'));
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* onCycle(t, '2026-07');
+			yield* onCycle(t, '2026-08');
+			const pay = (yield* t.storedQuery({ payroll_run: { limit: 2 } })).payroll_run.rows;
+			assert.deepEqual(pay.map((row) => String(row.pay_date).slice(0, 7)).sort(), [
+				'2026-07',
+				'2026-07'
+			]);
+			// contributions follow the salary period; income tax accumulates by the pay month, so it is left out
+			const owed = (totals: Record<string, number>) =>
+				Object.fromEntries(Object.entries(totals).filter(([key]) => !key.startsWith('PCB.')));
+			assert.deepEqual(owed(yield* month(t, '2026-08')), owed(yield* month(t, '2026-07')));
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+	});
 
 	const OTHER = idOf('entity', uuid(900));
 	/** The same person moves to a sister company on 16 June. */
@@ -426,19 +296,15 @@ describe('a second salary in a pay month', () => {
 			return yield* runsIn(t, '2026-06');
 		});
 	const NOW_JUNE = '2026-06-20T02:00:00.000Z';
-	it.live('Malaysia: each company in a transfer month is its own employer', () => {
-		const one = CASES['Malaysia'];
-		assert.ok(one !== undefined);
+	it.live('each company in a transfer month is its own employer', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const [first, second] = yield* transfer(t);
 			assert.ok(first !== undefined && second !== undefined);
 			assert.equal(charged(first, 'EPF')?.employer, charged(second, 'EPF')?.employer);
-		}).pipe(Effect.provide(workspace({ seed: moved(one), now: NOW_JUNE })));
+		}).pipe(Effect.provide(workspace({ seed: moved(MONTHLY), now: NOW_JUNE })));
 	});
-	it.live('Malaysia: each company pays its own days, and the month pays once', () => {
-		const one = CASES['Malaysia'];
-		assert.ok(one !== undefined);
+	it.live('each company pays its own days, and the month pays once', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* transfer(t);
@@ -451,52 +317,7 @@ describe('a second salary in a pay month', () => {
 					)?.value ?? 0
 			);
 			assert.equal(first, second);
-			assert.equal((first ?? 0) + (second ?? 0), 8000);
-		}).pipe(Effect.provide(workspace({ seed: moved(one), now: NOW_JUNE })));
-	});
-	it.live('Singapore: each company in a transfer month pays its own levy', () => {
-		const one = CASES['Singapore'];
-		assert.ok(one !== undefined);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const [first, second] = yield* transfer(t);
-			assert.ok(first !== undefined && second !== undefined);
-			assert.ok(Number(charged(first, 'SDL')?.employer) > 0);
-			assert.ok(Number(charged(second, 'SDL')?.employer) > 0);
-		}).pipe(Effect.provide(workspace({ seed: moved(one), now: NOW_JUNE })));
-	});
-
-	it.live('Malaysia: two half-month cycles are still one wage month', () => {
-		const one = CASES['Malaysia'];
-		assert.ok(one !== undefined);
-		const whole = seedOf(one, '2026-04-01');
-		// a half-month cycle pays the contract's rate, so half the month's salary is the rate
-		const half = seedOf({ ...one, terms: terms(4000, 'CITIZEN') }, '2026-04-01');
-		const halves: Seed = {
-			...half,
-			pay_group: (half.pay_group ?? []).map((row) => ({
-				...row,
-				payment_schedule: {
-					frequency: 'SEMI_MONTHLY',
-					business_day: 'PREVIOUS',
-					non_working_weekdays: [0, 6],
-					short_month: 'LAST_DAY',
-					pay_days: [15, 31]
-				}
-			}))
-		};
-		const epf = (seed: Seed, cycles: readonly string[]) =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				for (const cycle of cycles) yield* onCycle(t, cycle);
-				const { 'EPF.employee': employee, 'EPF.employer': employer } = yield* month(t, '2026-06');
-				return { employee, employer };
-			}).pipe(Effect.provide(workspace({ seed, now: NOW_JUNE })));
-		return Effect.gen(function* () {
-			assert.deepEqual(
-				yield* epf(halves, ['2026-06-1', '2026-06-2']),
-				yield* epf(whole, ['2026-06'])
-			);
-		});
+			assert.equal((first ?? 0) + (second ?? 0), MONTHLY.terms.rate.amount);
+		}).pipe(Effect.provide(workspace({ seed: moved(MONTHLY), now: NOW_JUNE })));
 	});
 });

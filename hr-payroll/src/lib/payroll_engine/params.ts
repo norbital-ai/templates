@@ -1534,28 +1534,22 @@ export const ROW_PARAMS = {
 		})
 	},
 	claim_catalog: {
-		ADOPTION_REIMBURSEMENT: Schema.Struct({}),
 		BUSINESS_EXPENSE_REIMBURSEMENT: Schema.Struct({}),
 		BUSINESS_TRAVEL: Schema.Struct({}),
 		DENTAL_CLAIM: Schema.Struct({}),
 		EXPENSE_REIMBURSEMENT: Schema.Struct({}),
-		GPCL_REIMBURSEMENT: Schema.Struct({}),
-		GPML_REIMBURSEMENT: Schema.Struct({}),
-		GPPL_REIMBURSEMENT: Schema.Struct({}),
-		GPSPL_REIMBURSEMENT: Schema.Struct({}),
 		HOME_LEAVE_TRAVEL: Schema.Struct({}),
 		MEDICAL_CLAIM: Schema.Struct({
 			annual_limit: Schema.optional(Schema.Number)
 		}),
 		MEDICAL_CLAIM_DIRECT: Schema.Struct({
-			annual_limit: Schema.optional(Schema.Number)
+			annual_limit: Schema.Number
 		}),
 		MEDICAL_CONSULTATION_FEE: Schema.Struct({}),
 		MEDICAL_TREATMENT_REIMBURSEMENT: Schema.Struct({}),
 		PER_DIEM_OFFICIAL_REIMBURSEMENT: Schema.Struct({}),
 		SWAB_TEST_REIMBURSEMENT: Schema.Struct({}),
-		TRAVEL_REIMBURSEMENT: Schema.Struct({}),
-		WICA_MEDICAL: Schema.Struct({})
+		TRAVEL_REIMBURSEMENT: Schema.Struct({})
 	},
 	adhoc_catalog: {
 		ACCOMMODATION_RECOVERY: Schema.Struct({}),
@@ -1575,7 +1569,6 @@ export const ROW_PARAMS = {
 		BANKRUPTCY_ESTATE: Schema.Struct({
 			ceiling: Schema.Number
 		}),
-		BIK_VOLA: Schema.Struct({}),
 		bonus: Schema.Struct({}),
 		BONUS: Schema.Struct({}),
 		BONUS_OVER_SIX_MONTHS: Schema.Struct({}),
@@ -1875,7 +1868,6 @@ export const ROW_PARAMS = {
 				})
 			)
 		}),
-		EQUITY_INCENTIVE: Schema.Struct({}),
 		EWF_ADJUSTMENT: Schema.Struct({
 			accounts: Schema.Array(
 				Schema.Struct({
@@ -2546,7 +2538,6 @@ export const ROW_PARAMS = {
 		RELOCATION_NOTICE_IN_LIEU: Schema.Struct({
 			notice_days: Schema.Number
 		}),
-		RESULTS_ZERO_MONTH: Schema.Struct({}),
 		RETIREMENT_ALLOWANCE: Schema.Struct({}),
 		RETIREMENT_ALLOWANCE_UNDECLARED: Schema.Struct({}),
 		RETIREMENT_PAY: Schema.Struct({

@@ -26,12 +26,6 @@ export function rounded(value: number | string | Decimal, rule: Rounding): numbe
 	} as const;
 	return decimal(value).round(rule.scale, modes[rule.mode]).toNumber();
 }
-export function roundStep(value: number, step = 1, mode: Rounding['mode'] = 'HALF_UP'): number {
-	if (!Number.isFinite(step) || step <= 0) throw new Error('Rounding step must be positive.');
-	return decimal(rounded(decimal(value).div(decimal(step), 24).toString(), { scale: 0, mode }))
-		.times(decimal(step))
-		.toNumber();
-}
 export const signed = (value: {
 	readonly amount: number;
 	readonly direction: 'ADD' | 'DEDUCT';

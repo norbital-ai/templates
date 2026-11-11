@@ -26,7 +26,7 @@
 		"id": "6d4f5129-8993-502a-b7fe-f7951c7c9344",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "LI: Employee and employer contribution for the pay period."
+		"description": "Labour insurance premium: 11.5% of the insured salary grade for the days covered in the month, shared 20% by the worker, 70% by the employer and 10% by the government (勞工保險條例 §13–15)."
 	},
 	{
 		"code": "WAGE_ARREARS_FUND",
@@ -49,7 +49,7 @@
 		"id": "2f3aef2b-4df0-5cb8-a762-f983624cdef5",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "WAGE_ARREARS_FUND: Employee and employer contribution for the pay period."
+		"description": "Wage arrears payment fund, paid by the employer only: 0.025% of the worker's insured salary for the days covered in the month (勞動基準法 §28)."
 	},
 	{
 		"code": "EI",
@@ -72,7 +72,7 @@
 		"id": "95fbac66-abe2-5e50-8305-ef77c27f24a1",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "Employment insurance contribution."
+		"description": "Employment insurance premium: 1% of the insured salary for the days covered in the month, shared 20% by the worker, 70% by the employer and 10% by the government; for covered workers under 65 (就業保險法 §5, §40)."
 	},
 	{
 		"code": "NHI",
@@ -105,7 +105,7 @@
 		"id": "57ef42ae-6612-553e-850d-da3a4547b4fd",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "NHI: Employee and employer contribution for the pay period."
+		"description": "National health insurance premium: 5.17% of the insured amount, 30% from the worker (with up to three dependants) and 60% from the employer, charged for the whole month by the unit insuring the worker on its last day (全民健康保險法)."
 	},
 	{
 		"code": "NHI_SUPPLEMENT",
@@ -128,7 +128,7 @@
 		"id": "f5623576-f3c5-53ea-947a-45a51572dba7",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "NHI_SUPPLEMENT: Employee and employer contribution for the pay period."
+		"description": "Supplementary health insurance premium of 2.11% on the part of the year's bonuses above four times the worker's insured amount, withheld from the bonus (全民健康保險法 §31)."
 	},
 	{
 		"code": "NHI_PART_TIME",
@@ -155,7 +155,7 @@
 		"id": "4a795519-749b-51db-bfe5-06e504c41156",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "NHI_PART_TIME: Employee and employer contribution for the pay period."
+		"description": "Supplementary health insurance premium of 2.11% on salary paid to a person who is not insured through this employer, withheld from each payment at or above the minimum wage (全民健康保險法 §31)."
 	},
 	{
 		"code": "LABOR_PENSION",
@@ -191,7 +191,7 @@
 		"id": "90345f1b-a325-5fa2-b00e-062b895d5d8a",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "MONTH",
-		"description": "LABOR_PENSION: Employee and employer contribution for the pay period."
+		"description": "Labour pension (new system): the employer contributes at least 6% of the worker's monthly contribution wage grade, for the days covered; a worker may add a voluntary contribution of up to 6% (勞工退休金條例 §14)."
 	},
 	{
 		"code": "OCC_INJURY",
@@ -283,7 +283,7 @@
 		"id": "13da4422-3e3e-57eb-acfd-ba3da8bb0406",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "OCC_INJURY: Employee and employer contribution for the pay period."
+		"description": "Occupational accident insurance premium, paid by the employer only: the insured salary grade × the rate for the industry plus the commuting rate, for the days covered in the month (勞工職業災害保險及保護法)."
 	},
 	{
 		"code": "INCOME_TAX",
@@ -366,7 +366,7 @@
 		"id": "09869c2b-dcad-503c-aac3-72efed08f14f",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "MONTH",
-		"description": "INCOME_TAX_NON_RESIDENT: Employee and employer contribution for the pay period."
+		"description": "Income tax withheld on a non-resident's salary: 6% where the month's whole salary is not more than 1.5 times the minimum wage, otherwise the non-resident rate (各類所得扣繳率標準 §3)."
 	},
 	{
 		"code": "LABOR_PENSION_RESERVE",
@@ -387,7 +387,7 @@
 		"id": "4988b433-6161-5677-aa71-29a4210ff3e1",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "LABOR_PENSION_RESERVE: Employee and employer contribution for the pay period."
+		"description": "Labour pension reserve (old system), paid by the employer only: the company's declared rate, 2% to 15%, of the monthly wages of workers still on the old pension system (勞動基準法 §56)."
 	},
 	{
 		"code": "INCOME_TAX_BONUS",
@@ -408,7 +408,7 @@
 		"id": "a5e9b277-1cd6-5a46-af85-f6835a5922a5",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "INCOME_TAX_BONUS: Employee and employer contribution for the pay period."
+		"description": "Income tax withheld on a resident's bonus or other non-monthly pay: 5% of the payment once it reaches the withholding threshold; smaller payments are not withheld (薪資所得扣繳辦法 §6–7)."
 	},
 	{
 		"code": "SEVERANCE_TAX",
@@ -431,7 +431,7 @@
 		"id": "4e4ba682-ee96-54f9-9296-2c926de99fad",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "SEVERANCE_TAX: Employee and employer contribution for the pay period."
+		"description": "Income tax withheld on a resident's severance or retirement payment: 6% of the part above the fixed exemption (所得稅法 §14, §88)."
 	},
 	{
 		"code": "WELFARE_FUND",
@@ -455,7 +455,7 @@
 		"id": "71fe4554-3570-5d55-a3cd-0b43278be4a7",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "WELFARE_FUND: Employee and employer contribution for the pay period."
+		"description": "Employees' welfare fund: 0.5% of the worker's monthly salary, deducted only where the company has set up a welfare committee (職工福利金條例 §2)."
 	},
 	{
 		"code": "SEVERANCE_TAX_NON_RESIDENT",
@@ -476,6 +476,6 @@
 		"id": "a2a24040-e3f8-5db5-8b60-4f982b6abb02",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
 		"balance_window": "YEAR",
-		"description": "SEVERANCE_TAX_NON_RESIDENT: Employee and employer contribution for the pay period."
+		"description": "Income tax withheld on a non-resident's severance or retirement payment: 18% of the part above the fixed exemption (所得稅法 §14, §88)."
 	}
 ]

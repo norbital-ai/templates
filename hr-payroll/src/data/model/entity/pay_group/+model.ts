@@ -110,17 +110,12 @@ export default model('pay_group', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'pay_group', ids: rows.map((row) => row.id) },
+				'pay_group',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'pay_group', ids: changes.map(({ after }) => after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'pay_group', changes);
 		}
 	}
 });

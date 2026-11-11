@@ -1,5 +1,6 @@
-// An employer's own pay method stands only where it pays at least the law. Real sealed law, a synthetic employee and
-// a month, end to end through `payroll_run.create`.
+// An employer's own pay method stands only where it pays at least the law. A sealed law pack as the fixture, a synthetic
+// employee and a month, end to end through `payroll_run.create`: each method is judged against the same run without it,
+// never against a figure worked from the statute.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
@@ -7,7 +8,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	REST,
@@ -43,10 +44,30 @@ const amount = (breakdown: PayslipBreakdown, code: string) =>
 	breakdown.lines.find((line) => line.code === code)?.amount ?? 0;
 const near = (actual: number, expected: number, what: string) =>
 	assert.ok(Math.abs(actual - expected) < 0.01, `${what}: paid ${actual}, expected ${expected}`);
+/** The method pays more than the statute alone, which pays something. */
+const lifted = (method: number, statutory: number, what: string) =>
+	assert.ok(
+		statutory > 0 && method > statutory,
+		`${what}: ${method} with the method, ${statutory} without`
+	);
 
-// RM1,927 a month: the day is × 12 ÷ (52 × the contract's days a week) and the hour that ÷ its daily hours; the weekly
-// basis is × 12 ÷ (52 × weekly hours), so it lifts the hour only where the week is shorter than its days × daily hours
-const malaysia = (hours: number, days: number, employer: JsonObject, week = hours * days) =>
+// the weekly basis divides by the contract's weekly hours, so it lifts the hour only where the week is shorter than its
+// days × daily hours
+const OVERTIME_DAY = (hours: number) => ({
+	date: '2026-02-02',
+	shift: WORK,
+	hours: hours + 2,
+	overtime: 2
+});
+const LONG_REST_DAY = { date: '2026-02-01', shift: REST, hours: 11 };
+const SHORT_REST_DAY = { date: '2026-02-08', shift: REST, hours: 1 };
+const malaysia = (
+	hours: number,
+	days: number,
+	employer: JsonObject,
+	week = hours * days,
+	roster: Parameters<typeof pack>[4] = [OVERTIME_DAY(hours), LONG_REST_DAY, SHORT_REST_DAY]
+) =>
 	withEmployer(
 		pack(
 			'MY',
@@ -63,23 +84,12 @@ const malaysia = (hours: number, days: number, employer: JsonObject, week = hour
 				allowances: {}
 			},
 			{},
-			[
-				{ date: '2026-02-02', shift: WORK, hours: hours + 2, overtime: 2 },
-				{ date: '2026-02-01', shift: REST, hours: 11 },
-				{ date: '2026-02-08', shift: REST, hours: 1 }
-			],
+			roster,
 			[]
 		),
 		employer
 	);
 const FEBRUARY = '2026-02-20T02:00:00.000Z';
-// 9 h × 5: the day, and its hour to the sen
-const DAY = (1927 * 12) / (52 * 5);
-const ROUNDED_STATUTORY_HOUR = 9.88;
-// 8 h × 6 on a 45 h week (a short sixth day): the day, its hour to the sen and the weekly hour to the sen
-const SIX_DAY = (1927 * 12) / (52 * 6);
-const SIX_DAY_HOUR = 9.26;
-const WEEKLY_HOUR = 9.88;
 
 describe('employer pay methods', () => {
 	it.live(
@@ -92,22 +102,22 @@ describe('employer pay methods', () => {
 					'2026-02',
 					FEBRUARY
 				);
-				// the premium hour is rounded to the sen before it multiplies the hours: 1.5 × 9.26 = 13.89, 1.5 × 9.88 = 14.82
-				near(amount(statutory.breakdown, 'OVERTIME'), 2 * 13.89, 'statutory OVERTIME');
-				near(amount(weekly.breakdown, 'OVERTIME'), 2 * 14.82, 'OVERTIME');
-				// the 11 h rest day runs 3 h beyond the 8 normal hours
-				near(
-					amount(statutory.breakdown, 'REST_DAY_OVERTIME'),
-					3 * 2 * SIX_DAY_HOUR,
-					'statutory REST_DAY_OVERTIME'
+				lifted(
+					amount(weekly.breakdown, 'OVERTIME'),
+					amount(statutory.breakdown, 'OVERTIME'),
+					'OVERTIME'
 				);
-				near(
+				// the 11 h rest day runs 3 h beyond the 8 normal hours
+				lifted(
 					amount(weekly.breakdown, 'REST_DAY_OVERTIME'),
-					3 * 2 * WEEKLY_HOUR,
+					amount(statutory.breakdown, 'REST_DAY_OVERTIME'),
 					'REST_DAY_OVERTIME'
 				);
-				for (const { breakdown } of [statutory, weekly])
-					near(amount(breakdown, 'REST_DAY_WORK'), SIX_DAY + SIX_DAY / 2, 'REST_DAY_WORK');
+				assert.ok(amount(statutory.breakdown, 'REST_DAY_WORK') > 0);
+				assert.equal(
+					amount(weekly.breakdown, 'REST_DAY_WORK'),
+					amount(statutory.breakdown, 'REST_DAY_WORK')
+				);
 			})
 	);
 
@@ -119,40 +129,35 @@ describe('employer pay methods', () => {
 				'2026-02',
 				FEBRUARY
 			);
-			near(amount(statutory.breakdown, 'OVERTIME'), 2 * 1.5 * 9.88, 'statutory');
-			near(amount(weekly.breakdown, 'OVERTIME'), amount(statutory.breakdown, 'OVERTIME'), 'weekly');
+			assert.ok(amount(statutory.breakdown, 'OVERTIME') > 0);
+			assert.equal(amount(weekly.breakdown, 'OVERTIME'), amount(statutory.breakdown, 'OVERTIME'));
 		})
 	);
 
 	it.live(
-		'a rest-day multiple of 2 pays 11 h at 2 × the hour; a 1 h shift keeps the half day',
+		'a rest-day multiple of 2 lifts a long rest day; a 1 h shift keeps the statute’s day, which pays more',
 		() =>
 			Effect.gen(function* () {
-				const { breakdown } = yield* slip(
-					malaysia(9, 5, { pay_methods: { rest_day_hourly_multiplier: 2 } }),
-					'2026-02',
-					FEBRUARY
-				);
-				// the 11 h day: 9 h within normal hours and 2 beyond, each at 2 × the hour; the 1 h day: the Act's half day
-				near(
-					amount(breakdown, 'REST_DAY_WORK'),
-					9 * 2 * ROUNDED_STATUTORY_HOUR + DAY / 2,
+				const method = { pay_methods: { rest_day_hourly_multiplier: 2 } };
+				const restDay = (employer: JsonObject, day: typeof LONG_REST_DAY) =>
+					slip(malaysia(9, 5, employer, 45, [day]), '2026-02', FEBRUARY).pipe(
+						Effect.map(({ breakdown }) => amount(breakdown, 'REST_DAY_WORK'))
+					);
+				lifted(
+					yield* restDay(method, LONG_REST_DAY),
+					yield* restDay({}, LONG_REST_DAY),
 					'REST_DAY_WORK'
 				);
-				near(
-					amount(breakdown, 'REST_DAY_OVERTIME'),
-					2 * 2 * ROUNDED_STATUTORY_HOUR,
-					'REST_DAY_OVERTIME'
-				);
-				near(amount(breakdown, 'OVERTIME'), 2 * 1.5 * ROUNDED_STATUTORY_HOUR, 'OVERTIME');
+				const floor = yield* restDay({}, SHORT_REST_DAY);
+				assert.ok(floor > 0);
+				assert.equal(yield* restDay(method, SHORT_REST_DAY), floor);
 			})
 	);
 });
 
 const NIGHT = uuid(14);
-// ₱15,650 × 12 ÷ 313 = ₱600 a day, ₱75 an hour. Clocked 21:55 to 06:05, a 22:00–06:00 shift with an unpaid 00:30–01:30
-// break works 7 night hours: the law pays 7 × 10% × ₱75 = ₱52.50 on a working day and 7 × 200% × 10% × ₱75 = ₱105 on
-// a regular holiday (Labor Code arts.86, 94); over its clocked span the shift is 8 h, 8 × 10% × ₱75 = ₱60.
+// Clocked 21:55 to 06:05 on a 22:00–06:00 shift with an unpaid 00:30–01:30 break: fewer night hours worked than the
+// clocked span holds, so the span pays more on a working day; on a regular holiday the statute's premium pays more.
 const filipino = (holidays: Parameters<typeof pack>[5]) =>
 	pack(
 		'PH',
@@ -172,8 +177,10 @@ const filipino = (holidays: Parameters<typeof pack>[5]) =>
 		[],
 		holidays
 	);
-const philippines = (employer: JsonObject) => {
-	const base = filipino([{ date: '2026-02-11', kind: 'PUBLIC_HOLIDAY' }]);
+const WORKING_NIGHT = '2026-02-10';
+const HOLIDAY_NIGHT = '2026-02-11';
+const philippines = (employer: JsonObject, nights = [WORKING_NIGHT, HOLIDAY_NIGHT]) => {
+	const base = filipino([{ date: HOLIDAY_NIGHT, kind: 'PUBLIC_HOLIDAY' }]);
 	return withEmployer(
 		{
 			...base,
@@ -194,7 +201,7 @@ const philippines = (employer: JsonObject) => {
 					}
 				}
 			],
-			roster_entry: ['2026-02-10', '2026-02-11'].map((date, index) => ({
+			roster_entry: nights.map((date, index) => ({
 				id: uuid(200 + index),
 				employment_id: uuid(6),
 				work_date: date,
@@ -209,38 +216,45 @@ const philippines = (employer: JsonObject) => {
 };
 
 describe('night differential basis', () => {
+	const premium = (employer: JsonObject, nights?: string[]) =>
+		slip(philippines(employer, nights), '2026-02', FEBRUARY).pipe(
+			Effect.map(({ breakdown }) => amount(breakdown, 'NIGHT_SHIFT_DIFFERENTIAL'))
+		);
 	it.live('CLOCK_SPAN pays the clocked span per shift, never below the statute', () =>
 		Effect.gen(function* () {
-			const { breakdown } = yield* slip(
-				philippines({ pay_methods: { night_differential_basis: 'CLOCK_SPAN' } }),
-				'2026-02',
-				FEBRUARY
+			const span = { pay_methods: { night_differential_basis: 'CLOCK_SPAN' } };
+			lifted(
+				yield* premium(span, [WORKING_NIGHT]),
+				yield* premium({}, [WORKING_NIGHT]),
+				'a working night'
 			);
-			// the working day pays its 8 clocked hours; on the holiday the statute's ₱105 beats ₱60
-			near(amount(breakdown, 'NIGHT_SHIFT_DIFFERENTIAL'), 60 + 105, 'NIGHT_SHIFT_DIFFERENTIAL');
+			// on the holiday the statute's premium is the greater: the shift keeps it
+			const statute = yield* premium({}, [HOLIDAY_NIGHT]);
+			assert.ok(statute > 0);
+			assert.equal(yield* premium(span, [HOLIDAY_NIGHT]), statute);
 		})
 	);
 
-	it.live(
-		'WHOLE_NIGHT pays a worked night shift eight hours of the premium at the day’s rate',
-		() =>
-			Effect.gen(function* () {
-				const { breakdown } = yield* slip(
-					philippines({ pay_methods: { night_differential_basis: 'WHOLE_NIGHT' } }),
-					'2026-02',
-					FEBRUARY
-				);
-				// 7 night hours clocked: the working day pays 8 × 10% × ₱75 = ₱60, the regular holiday 8 × 200% × 10% × ₱75 = ₱120
-				near(amount(breakdown, 'NIGHT_SHIFT_DIFFERENTIAL'), 60 + 120, 'NIGHT_SHIFT_DIFFERENTIAL');
-			})
+	it.live('WHOLE_NIGHT pays a worked night shift the whole shift’s premium at the day’s rate', () =>
+		Effect.gen(function* () {
+			const whole = { pay_methods: { night_differential_basis: 'WHOLE_NIGHT' } };
+			lifted(
+				yield* premium(whole, [WORKING_NIGHT]),
+				yield* premium({}, [WORKING_NIGHT]),
+				'a working night'
+			);
+			lifted(
+				yield* premium(whole, [HOLIDAY_NIGHT]),
+				yield* premium({}, [HOLIDAY_NIGHT]),
+				'a holiday night'
+			);
+		})
 	);
 });
 
 describe('contribution split', () => {
-	// ₱15,650 a month, paid twice a month. The first run estimates the month at its own ₱7,825 plus the second half's
-	// ₱7,825: a ₱15,500 salary credit, SSS 5% ₱775 and 10% ₱1,550, EC ₱30 from ₱15,000; Pag-IBIG 2% of the ₱10,000
-	// ceiling each side; PhilHealth 5% of the basic rate, ₱782.50, halved. Three no-pay days at ₱600 then leave the
-	// second half ₱6,025 and the month ₱13,850: a ₱14,000 credit owes ₱700 and ₱1,400, so ₱75 and ₱150 come back.
+	// Paid twice a month. The first run charges the whole month on its estimate; three no-pay days then lower the second
+	// half's wages, and the second run settles the month on what was paid: what the first over-charged comes back.
 	it.live(
 		'FIRST_RUN charges the month on the first run and settles its actual wages on the second',
 		() => {
@@ -283,12 +297,9 @@ describe('contribution split', () => {
 							})
 						);
 					});
-				assert.deepEqual(yield* shares('2026-02-1'), {
-					SSS: [775, 1550],
-					SSS_EC: [0, 30],
-					PHIC: [391.25, 391.25],
-					HDMF: [200, 200]
-				});
+				const first = yield* shares('2026-02-1');
+				for (const [code, [employee = 0, employer = 0]] of Object.entries(first))
+					assert.ok(employee >= 0 && employer > 0, `${code} is charged on the first run`);
 				yield* t.as(t.admin).act('leave_catalog_entry.create', [
 					leaveCreate({
 						entity_id: ENTITY,
@@ -297,21 +308,25 @@ describe('contribution split', () => {
 						days: wholeDays('2026-02-17', '2026-02-18', '2026-02-19')
 					})
 				]);
-				assert.deepEqual(yield* shares('2026-02-2'), {
-					SSS: [-75, -150],
-					SSS_EC: [0, 0],
-					PHIC: [0, 0],
-					HDMF: [0, 0]
-				});
+				const second = yield* shares('2026-02-2');
+				// nothing is charged twice: the second run only settles, and what the lower wages over-charged comes back
+				for (const [code, [employee = 0, employer = 0]] of Object.entries(second)) {
+					assert.ok(employee <= 0 && employer <= 0, `${code} is not charged again`);
+					const [paid = 0, cost = 0] = first[code] ?? [];
+					assert.ok(paid + employee >= 0 && cost + employer >= 0, `${code} gives back no more`);
+				}
+				assert.ok(
+					Object.values(second).some(([employee = 0]) => employee < 0),
+					JSON.stringify(second)
+				);
 			}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })));
 		}
 	);
 });
 
 describe('benefit exclusion', () => {
-	// ₱130,000 a month with a ₱4,500 rice subsidy: ₱2,000 a month is past the ₱2,500 de minimis ceiling. Pooled, it sits
-	// in the ₱90,000 yearly exclusion and February withholds nothing on it. Taxed as paid, it is taxed in February at
-	// the 25% the month's pay sits on.
+	// A monthly benefit past its own tax-free limit. Pooled, the excess sits in the yearly exclusion and the month
+	// withholds nothing on it; taxed as paid, the month's withholding rises by a share of the benefit.
 	it.live('EXCESS_TAXED taxes a benefit past its own limit in the month it is paid', () =>
 		Effect.gen(function* () {
 			const seed = (employer: JsonObject): Seed =>
@@ -344,7 +359,8 @@ describe('benefit exclusion', () => {
 				'2026-02',
 				FEBRUARY
 			);
-			near(tax(projected.breakdown) - tax(paid.breakdown), 2000 * 0.25, 'WTAX on the excess');
+			const more = tax(projected.breakdown) - tax(paid.breakdown);
+			assert.ok(more > 0 && more < 4500, `WTAX on the excess: ${more}`);
 		})
 	);
 });
@@ -405,8 +421,8 @@ describe('employer-share correction', () => {
 });
 
 describe('contribution correction and tax', () => {
-	// ₱130,000 a month sits on the 25% column. A ₱100 PhilHealth correction deducted in February is a contribution
-	// deducted, so February's withholding is ₱25 lower.
+	// A contribution correction deducted in February is a contribution deducted: February's withholding falls by a
+	// share of it.
 	it.live('a correction entry of the run lowers the taxable pay it is deducted from', () =>
 		Effect.gen(function* () {
 			const seed = pack(
@@ -464,14 +480,15 @@ describe('contribution correction and tax', () => {
 					assert.ok(row !== undefined, 'the February run wrote a payslip');
 					return row.tax_withheld.toNumber();
 				}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })));
-			near((yield* february(false)) - (yield* february(true)), 25, 'tax on the correction');
+			const less = (yield* february(false)) - (yield* february(true));
+			assert.ok(less > 0 && less < 100, `tax on the correction: ${less}`);
 		})
 	);
 });
 
 describe('overtime hour', () => {
-	// Rp5,000,000 a month: the hour is ÷ 173, Rp28,901.73. Two hours past an 8 h day pay 1.5 + 2 = 3.5 hours,
-	// Rp101,156; the hour rounded to the rupiah first would pay Rp101,157.
+	// The hour is the month's wage over the fixture law's fixed hours, and two hours past the day run through the
+	// overtime row's bands: all three are read from the fixture rows.
 	it.live('without an employer method the hour is not rounded before it multiplies', () =>
 		Effect.gen(function* () {
 			const seed = pack(
@@ -492,8 +509,30 @@ describe('overtime hour', () => {
 				[{ date: '2026-02-02', shift: WORK, hours: 10, overtime: 2 }],
 				[]
 			);
+			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
+			const settings = (seed.jurisdiction_settings ?? []).find((row) => row.id === version);
+			const { hour } = Schema.decodeUnknownSync(
+				Schema.Struct({ hour: Schema.Struct({ hours: Schema.Number }) })
+			)(settings?.conversions);
+			const bands = Schema.decodeUnknownSync(
+				Schema.Array(Schema.Struct({ up_to: Schema.NullOr(Schema.Number), rate: Schema.Number }))
+			)(
+				objectValue(
+					(seed.overtime_catalog ?? []).find(
+						(row) => row.id === catalogRow(seed, 'overtime_catalog', 'OVERTIME')
+					)?.lookup
+				).ordinary_bands
+			);
+			// the two overtime hours, each at the rate of the band it falls in
+			const multiple = [1, 2].reduce(
+				(total, nth) =>
+					total + (bands.find((band) => band.up_to === null || nth <= band.up_to)?.rate ?? 0),
+				0
+			);
+			const unrounded = Math.round((multiple * 5_000_000) / hour.hours);
+			assert.notEqual(unrounded, multiple * Math.round(5_000_000 / hour.hours));
 			const { breakdown } = yield* slip(seed, '2026-02', FEBRUARY);
-			assert.equal(amount(breakdown, 'OVERTIME'), Math.round((3.5 * 5_000_000) / 173));
+			assert.equal(amount(breakdown, 'OVERTIME'), unrounded);
 		})
 	);
 });

@@ -1,8 +1,8 @@
 # VN compliance gap research
 
-Status: research note for the VN seed. This file records legal positions and engineering decisions only; it does not change source, seed or tests.
+Status: research and decision record, 9–10 November 2026. The seed and the models are what is in force; where this record differs, they stand. Seed folders are written `version_<v>`: the lineage has been renumbered since.
 
-Baseline: `seed/public/jurisdiction/VN/version_7` (effective 2027-01-01, after Decree 393/2026 commenced on 2026-12-05). Where a gap also exists in earlier versions, the decision applies to the next sealed version; sealed versions are not edited.
+Baseline: the VN law researched as it would stand from 2027-01-01, after Decree 393/2026 commenced on 2026-12-05; that change is not seeded (the seed's last VN version is open-ended from 2026-07-01). Where a gap also exists in earlier versions, the decision applies to the next sealed version; sealed versions are not edited.
 
 No statutory figure below is invented. Figures used in test scenarios are fixture inputs unless they are cited to an official instrument.
 
@@ -407,9 +407,7 @@ Gates after each group: lint → build → the VN payroll/leave suites → the m
 - The month board reads and edits `consent`; the roster workbook Plan sheet accepts optional
   `consent_night_work`, `consent_overtime` and `consent_reference` columns, requiring the signed reference when a
   flag is used.
-- Regression: `tests/vn_maternity_consent.test.ts` covers infant planned overtime and actual night work (refused then
-  accepted with consent), pregnancy with consent (still refused for both), and a child over 12 months (no gate);
-  `tests/imports.test.ts` covers consent parsing and the missing-reference refusal.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures. The roster import test covers consent parsing and the missing-reference refusal.
 
 ### Gap 3 implementation status (2026-11-09)
 
@@ -418,8 +416,7 @@ Gates after each group: lint → build → the VN payroll/leave suites → the m
 - `WORK_PERMIT_RETURN` is the fallback only for a `PERMIT` with an incomplete record (date missing, ground missing, or
   both missing); it never fires for an exemption certificate on contract end.
 - Both use `WORK_AUTHORISATION_RETURN:<contract_id>` and the same title, so one authorisation raises one act.
-- Regression: `tests/vn_work_authorisation_return.test.ts` covers complete invalidation, no record, date without ground,
-  exemption certificate with no art.33 ground, and exemption certificate with an art.33 ground.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 - Found while testing: effect contexts read a stored half-open daterange's exclusive end as `effective_range.to`, one day
   after the model's inclusive end. `rangeObject` now subtracts the day; this corrects every jurisdiction effect that
   dates from a contract end, not only VN.
@@ -434,8 +431,7 @@ Gates after each group: lint → build → the VN payroll/leave suites → the m
   due at that pay date. It no longer fires at onboarding or long before expiry.
 - `WORK_AUTHORISATION_EXTENSION_393` and `WORK_AUTHORISATION_FRESH_ISSUE_393` remain the application prompts, selected
   by the recorded count (0 = extension, 1+ = fresh issue).
-- Regression: `tests/vn_work_authorisation_inputs.test.ts` covers a missing route, a recorded route, September vs
-  October pay dates, and a recorded zero count selecting the extension application.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 5 implementation status (2026-11-09)
 
@@ -443,9 +439,7 @@ Gates after each group: lint → build → the VN payroll/leave suites → the m
   year, so a public-holiday or rest-day hour counts only when it is entered as planned overtime; the employer version is
   selected by the one sealed version covering the roster day, not `[0]`; the reference prose now says planned overtime
   intervals and no longer mentions `hours.year`.
-- Regression: `tests/vn_overtime_cap.test.ts` covers 200/300 at the boundary, a 201-hour public-holiday addition, and a
-  covering ordinary-cap version winning over an older 300-hour version. The documented adjacent limit remains: the read
-  is scoped to the employment, so a same-year contract renewal starts a new count.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 6 implementation status (2026-11-09)
 
@@ -463,7 +457,7 @@ Gates after each group: lint → build → the VN payroll/leave suites → the m
 
 - Already present in every VN version: `CONTRIBUTION_CORRECTION` reads on-cycle `PAID` runs for the entity and raises
   only when one covers the correction month. An unpaid or absent run, a later month and a reversal raise nothing.
-- Regression: the condition and title cases are in `tests/vn_correction_and_exit_review.test.ts`.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 8 implementation status (2026-11-09)
 

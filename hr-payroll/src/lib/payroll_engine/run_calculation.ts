@@ -41,9 +41,7 @@ export interface CalculatedPayslip {
 	readonly employer_cost: number;
 	readonly period: string;
 	readonly ordinary_wages: number;
-	readonly additional_wages: number;
 	readonly employee_statutory: number;
-	readonly employer_statutory: number;
 	readonly tax_withheld: number;
 	readonly breakdown: PayslipBreakdown;
 }
@@ -882,11 +880,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			return result.subtotals.find((row) => row.code === code)?.value ?? 0;
 		};
 		const ordinary = subtotalValue('ORDINARY_WAGES');
-		const additionalTotal = subtotalValue('ADDITIONAL_WAGES');
-		const additional = Math.max(0, additionalTotal - ordinary);
 		const contributions = result.statutory.filter((row) => row.kind === 'CONTRIBUTION');
 		const employeeStatutory = contributions.reduce((total, row) => total + row.employee, 0);
-		const employerStatutory = contributions.reduce((total, row) => total + row.employer, 0);
 		const taxWithheld = result.statutory
 			.filter((row) => row.kind === 'TAX')
 			.reduce((total, row) => total + row.employee, 0);
@@ -903,12 +898,37 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			period: String(run.period ?? coverage.from.slice(0, 7)),
 			// a deduction entry can exceed the period's pay; reported wages stop at zero
 			ordinary_wages: money(Math.max(0, ordinary)),
-			additional_wages: money(additional),
 			employee_statutory: money(Math.max(0, employeeStatutory)),
-			employer_statutory: money(Math.max(0, employerStatutory)),
 			tax_withheld: money(Math.max(0, taxWithheld)),
 			breakdown: breakdownOf(result)
 		});
+		// an off-cycle run prices only ad hoc entries on rows marked for it: anything else it named would be sealed
+		// and never paid
+		if (pays !== undefined) {
+			const marked = new Set(
+				(data.adhoc_catalog ?? [])
+					.filter((row) => row.off_cycle_eligible === true)
+					.map((row) => String(row.id))
+			);
+			const stray = [
+				...claims,
+				...adhoc.filter(
+					(row) =>
+						!marked.has(
+							typeof row.catalog_id === 'string'
+								? row.catalog_id
+								: String(objectValue(row.catalog_id).id)
+						)
+				)
+			];
+			if (stray.length > 0)
+				return yield* Effect.fail(
+					new Refusal({
+						message:
+							'An off-cycle run pays only ad hoc entries on rows marked for off-cycle. Leave the others for the on-cycle run.'
+					})
+				);
+		}
 		// a run is not a decision: what waits for approval is not paid, whoever runs it
 		if (
 			[...leave.filter((row) => slotsDue(row).length > 0), ...claims, ...adhoc].some(

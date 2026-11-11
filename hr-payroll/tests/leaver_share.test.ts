@@ -20,15 +20,7 @@ const terms = {
 	allowances: {},
 	shift_pattern_id: PATTERN
 };
-const base = pack(
-	'SG',
-	'Asia/Singapore',
-	terms,
-	{ term_facts: { race: 'CHINESE' } },
-	[],
-	[],
-	'2026-06-15'
-);
+const base = pack('SG', 'Asia/Singapore', terms, { race: 'CHINESE' }, [], [], '2026-06-15');
 const seed = {
 	...base,
 	shift_pattern: [
@@ -67,10 +59,13 @@ describe('a leaver on a shift pattern', () => {
 				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]);
 			const [slip] = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows;
 			// BASIC is the contract salary; PRORATED is what the days employed leave of it
-			assert.equal(slip?.basic_earnings?.toNumber(), 6600);
+			assert.equal(slip?.basic_earnings?.toNumber(), terms.rate.amount);
 			const { checkpoints } = Schema.decodeUnknownSync(PayslipBreakdown)(slip?.breakdown);
 			// June 2026 has 22 weekdays; the 1st to the 15th hold 11 of them
-			assert.equal(checkpoints.find((point) => point.code === 'PRORATED')?.value, 3300);
+			assert.equal(
+				checkpoints.find((point) => point.code === 'PRORATED')?.value,
+				(terms.rate.amount * 11) / 22
+			);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-06-20T02:00:00.000Z' })))
 	);
 });

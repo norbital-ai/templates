@@ -12,8 +12,8 @@
 		"subtotal_id": "86f31485-ff37-54bc-bfbc-130becca8477",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "02ba501b-3402-5414-9a2b-8b1ad11e5832",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -30,8 +30,8 @@
 		"subtotal_id": "86f31485-ff37-54bc-bfbc-130becca8477",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "cf5de670-54e0-58c2-9583-d4160101f37e",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -48,11 +48,11 @@
 		"subtotal_id": "d5a5f8d9-01ee-4d0e-8273-6a28d63957e2",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "8d80b211-9c2d-5ce3-9a7c-f178250cfc12",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "BACKPAY_BASIC: Paid or deducted as an ad-hoc line."
+		"description": "Basic salary owed for past periods and paid now, at the amount entered. It is taxable pay of the month it is paid and counts toward 13th-month pay for the year it was earned."
 	},
 	{
 		"code": "BACKPAY_DUTY_ALLOWANCE",
@@ -66,11 +66,11 @@
 		"subtotal_id": "d5a5f8d9-01ee-4d0e-8273-6a28d63957e2",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "f9aee355-1dce-5c05-ab25-11a043d19cd7",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "BACKPAY_DUTY_ALLOWANCE: Paid or deducted as an ad-hoc line."
+		"description": "A contract allowance owed for past periods and paid now, at the amount entered. It is taxable pay of the month it is paid."
 	},
 	{
 		"code": "BACKPAY_ADD_WAGES",
@@ -84,11 +84,11 @@
 		"subtotal_id": "d5a5f8d9-01ee-4d0e-8273-6a28d63957e2",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "7ae6164f-4f9d-5f34-82be-bda61d18362e",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "BACKPAY_ADD_WAGES: Paid or deducted as an ad-hoc line."
+		"description": "A wage adjustment owed for past periods and paid now, at the amount entered. It is taxable pay of the month it is paid."
 	},
 	{
 		"code": "COMMISSION",
@@ -103,11 +103,11 @@
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "ed255e3f-058d-5ee4-8876-6e1ece8fcb83",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "COMMISSION: Paid or deducted as an ad-hoc line."
+		"description": "A commission, at the amount entered. It is wages for SSS and Pag-IBIG and is taxed with the month's pay; a sales commission that forms part of salary also counts toward 13th-month pay."
 	},
 	{
 		"code": "THIRTEENTH_MONTH_PAY",
@@ -123,8 +123,8 @@
 		"subtotal_id": "86f31485-ff37-54bc-bfbc-130becca8477",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') === 'TASK_BASIS') return false;\nconst from = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on));\nreturn calendar_completed_months(from, ctx.entry.incurred_on) >= 1;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') === 'TASK_BASIS') return false;\nconst from = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on));\nreturn calendar_completed_months(from, ctx.entry.incurred_on) >= 1;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "b2c70055-ffbc-5f76-8b12-79f8abf5f2e4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -142,8 +142,8 @@
 		"subtotal_id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nconst cause = get(ctx.subject.employment, 'employee_extension_data.termination_cause', null);\nreturn ['LABOR_SAVING_DEVICES', 'REDUNDANCY', 'RETRENCHMENT', 'CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES', 'DISEASE', 'SECURITY_GUARD_NO_ASSIGNMENT', 'CONTRACTOR_NO_ASSIGNMENT', 'IMPOSSIBLE_REINSTATEMENT', 'SUSPENSION_OVER_SIX_MONTHS'].includes(cause);",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nconst cause = get(ctx.subject.employment, 'employee_extension_data.termination_cause', null);\nreturn ['LABOR_SAVING_DEVICES', 'REDUNDANCY', 'RETRENCHMENT', 'CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES', 'DISEASE', 'SECURITY_GUARD_NO_ASSIGNMENT', 'CONTRACTOR_NO_ASSIGNMENT', 'IMPOSSIBLE_REINSTATEMENT', 'SUSPENSION_OVER_SIX_MONTHS'].includes(cause);",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "0f63f31e-9928-55e9-92e7-d3758415a072",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -160,11 +160,11 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "f57235e8-828c-5be6-8c3a-f72f70964d04",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "PROTECTION_ORDER_SUPPORT: Paid or deducted as an ad-hoc line."
+		"description": "Support a protection order directs the employer to withhold from the employee's pay and remit to the woman it protects, deducted from net pay at the amount the order fixes (RA 9262 s.8(g))."
 	},
 	{
 		"code": "RETIREMENT_PAY",
@@ -180,8 +180,8 @@
 		"subtotal_id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = birth === null ? 0 : age_on(birth, ctx.entry.incurred_on);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nconst threshold = get(ctx.subject.employment, 'employee_extension_data.mine_worker', null) === null ? 60 : 50;\nif (age < threshold) return false;\nconst from = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on));\nif (calendar_completed_months(from, ctx.entry.incurred_on) < 60) return false;\nreturn get(ctx.subject.employer, 'entity_extension_data.retirement_exempt_establishment', false) !== true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nconst birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = birth === null ? 0 : age_on(birth, ctx.entry.incurred_on);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nconst threshold = get(ctx.subject.employment, 'employee_extension_data.mine_worker', null) === null ? 60 : 50;\nif (age < threshold) return false;\nconst from = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on));\nif (calendar_completed_months(from, ctx.entry.incurred_on) < 60) return false;\nreturn get(ctx.subject.employer, 'entity_extension_data.retirement_exempt_establishment', false) !== true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "ef016d17-7b53-5841-82fb-efb6c8326b3d",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -197,11 +197,11 @@
 		"subtotal_id": "a1571da2-f79d-46dd-aafb-456db4fa3336",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "89850f0f-c71b-55da-836b-55f2019ca55d",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "UNIFORM_ALLOWANCE: Paid or deducted as an ad-hoc line."
+		"description": "A uniform and clothing allowance, at the amount entered. It is tax-free up to ₱7,000 a year; anything above counts toward the ₱90,000 yearly limit on other benefits (RR 2-98 s.2.78.1(A)(3)(e))."
 	},
 	{
 		"code": "MEDICAL_ASSISTANCE",
@@ -215,11 +215,11 @@
 		"subtotal_id": "8b9271c4-a68d-4819-be66-66da99017e17",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "85a06167-9a64-5060-bbd9-cd128d6faf18",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "MEDICAL_ASSISTANCE: Paid or deducted as an ad-hoc line."
+		"description": "Medical assistance to the employee, such as a medical allowance, yearly check-up or maternity assistance, at the amount entered. It is tax-free up to ₱10,000 a year; anything above counts toward the ₱90,000 yearly limit on other benefits (RR 2-98 s.2.78.1(A)(3)(f))."
 	},
 	{
 		"code": "ACHIEVEMENT_AWARD",
@@ -233,11 +233,11 @@
 		"subtotal_id": "bc8c961c-264a-492c-a124-d550120255cc",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "a69376d6-362a-5736-b4f9-b04cb50006f2",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "ACHIEVEMENT_AWARD: Paid or deducted as an ad-hoc line."
+		"description": "An award for length of service or safety under a written plan, at the amount entered. It is tax-free up to ₱10,000 a year; anything above counts toward the ₱90,000 yearly limit on other benefits (RR 2-98 s.2.78.1(A)(3)(h))."
 	},
 	{
 		"code": "CHRISTMAS_GIFT",
@@ -251,11 +251,11 @@
 		"subtotal_id": "528d43e9-93b5-4d30-850b-2563baf55341",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "ecd9ffd4-6cee-5901-864a-618cb715af20",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "CHRISTMAS_GIFT: Paid or deducted as an ad-hoc line."
+		"description": "A Christmas or major anniversary gift, at the amount entered. It is tax-free up to ₱5,000 a year; anything above counts toward the ₱90,000 yearly limit on other benefits (RR 2-98 s.2.78.1(A)(3)(i))."
 	},
 	{
 		"code": "CBA_PRODUCTIVITY",
@@ -269,11 +269,11 @@
 		"subtotal_id": "2429262c-0603-4e16-9bfc-aace4e1fbbad",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "a3f046e6-985a-55b0-a0f1-61400c315df9",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "CBA_PRODUCTIVITY: Paid or deducted as an ad-hoc line."
+		"description": "A benefit under a collective bargaining agreement or a productivity incentive scheme, at the amount entered. It is tax-free up to ₱10,000 a year for the two together; anything above counts toward the ₱90,000 yearly limit on other benefits (RR 2-98 s.2.78.1(A)(3)(k))."
 	},
 	{
 		"code": "OT_MEAL_ALLOWANCE",
@@ -287,11 +287,11 @@
 		"subtotal_id": "27022453-2358-4dd3-8438-d9f5a3e96c70",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "e4978f40-e1e0-5f3e-8508-8aff32f5fb15",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "OT_MEAL_ALLOWANCE: Paid or deducted as an ad-hoc line."
+		"description": "A meal allowance for a day of overtime or night-shift work, at the amount entered. It is tax-free up to 25% of the region's daily minimum wage for each such day; anything above counts toward the ₱90,000 yearly limit on other benefits (RR 2-98 s.2.78.1(A)(3)(j))."
 	},
 	{
 		"code": "KASAMBAHAY_FORFEITURE",
@@ -309,8 +309,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC') return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.kasambahay_unjustified_departure', false) === true;",
-		"conversion": "// js\nconst daily = ctx.day_rate;\nreturn Math.min(ctx.entry.quantity, ctx.lookup.forfeiture_days * daily);",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC') return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.kasambahay_unjustified_departure', false) === true;",
+		"conversion": "const daily = ctx.day_rate;\nreturn Math.min(ctx.entry.quantity, ctx.lookup.forfeiture_days * daily);",
 		"id": "239155d9-8c89-5585-a397-29d9b8eb2ff4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -330,8 +330,8 @@
 		"subtotal_id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC') return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.kasambahay_unjust_dismissal', false) === true;",
-		"conversion": "// js\nconst daily = ctx.day_rate;\nreturn ctx.lookup.indemnity_days * daily;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC') return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.kasambahay_unjust_dismissal', false) === true;",
+		"conversion": "const daily = ctx.day_rate;\nreturn ctx.lookup.indemnity_days * daily;",
 		"id": "c21a9090-92f5-5ba4-a99c-20c845715b84",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -348,8 +348,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "16864460-23d9-5396-8e22-52c945a22b67",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -366,8 +366,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "060c2544-8a62-545c-9eb5-349d38f98ef6",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -400,8 +400,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "3e96ac7e-33c6-556c-9769-00b691d08bb8",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -427,8 +427,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYER",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "4a69cc78-c982-5c35-a8fc-f9a56e97001c",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -461,8 +461,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "ba926e62-519b-5ba6-8322-a940f87d2adb",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -488,8 +488,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "ADD",
 		"party": "EMPLOYER",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "96dc3317-fdc3-5cca-98bc-49a4ac207053",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -522,8 +522,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "9fce2c39-5c1c-55d3-b267-8fd69faf8d17",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -556,8 +556,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "1687509c-d983-5859-a38e-e5c3be097801",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -583,8 +583,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "05ea05ee-7608-55aa-be05-ad73c88f28e4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -610,8 +610,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYER",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "da01d78f-ff34-5ce0-b708-b8be26e9b63f",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -637,8 +637,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "a00a0a82-3f48-5139-9e90-bc6ed9674bcd",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -664,8 +664,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "ADD",
 		"party": "EMPLOYER",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "d37ab7e9-f863-5dd6-a270-6f394de95dda",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -698,8 +698,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "88d4c527-4023-5a8d-8321-0ad2acc61814",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -732,8 +732,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "4e6ca4f4-6e1d-5c3b-84ca-679dbfc96d70",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -755,8 +755,8 @@
 		"subtotal_id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'payroll.gender', null) !== 'FEMALE') return false;\nreturn get(ctx.subject.employer, 'entity_extension_data.maternity_differential_exempt', false) !== true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'payroll.gender', null) !== 'FEMALE') return false;\nreturn get(ctx.subject.employer, 'entity_extension_data.maternity_differential_exempt', false) !== true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "e3db32b7-74e8-5a50-be8e-68a8d790fc2b",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -773,11 +773,11 @@
 		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "78a49b00-741e-596b-adb8-b8d4b2e08418",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "HAZARD_PAY: Paid or deducted as an ad-hoc line."
+		"description": "Hazard pay under the employer's plan, at the amount entered. It is wages for SSS and Pag-IBIG, and a minimum wage earner receives it tax-free (RR 11-2018 s.2.78.1(B)(13))."
 	},
 	{
 		"code": "PREMIUM_PAY",
@@ -791,8 +791,8 @@
 		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "718f9b85-e827-5df1-8b43-208cc6c66ad5",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"description": "Premium pay for a day worked that the employer pays above what the day's own row computes (a higher rate for one holiday or rest day). It is wages of the period, like the premium it tops up."
@@ -810,11 +810,11 @@
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'MANAGERIAL';",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'MANAGERIAL';",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "06bb0d4e-c187-542d-803c-7b27dd94b5c3",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "SERVICE_CHARGE_SHARE: Paid or deducted as an ad-hoc line."
+		"description": "The employee's equal share of the service charges a hotel, restaurant or similar establishment collects, at the amount entered. It does not count toward the minimum wage (Labor Code art.96)."
 	},
 	{
 		"code": "UNION_DUES",
@@ -829,11 +829,11 @@
 		"subtotal_id": "e8e75df3-c71e-4c6c-bf29-cb7bc89332e4",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "ee9ed6e3-32eb-550f-aae5-da51030e0284",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "UNION_DUES: Paid or deducted as an ad-hoc line."
+		"description": "Union dues deducted from pay with the employee's written authorisation, at the amount entered. They are taken off taxable pay (Labor Code art.113(b); NIRC s.32(B)(7)(f))."
 	},
 	{
 		"code": "HDMF_VOLUNTARY",
@@ -848,11 +848,11 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "43aa3ac6-6861-53e2-a29b-fb1880c52371",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "HDMF_VOLUNTARY: Paid or deducted as an ad-hoc line."
+		"description": "A Pag-IBIG contribution the employee elects to pay above the mandatory share, deducted from net pay after tax at the amount elected (RA 9679 s.7)."
 	},
 	{
 		"code": "HDMF_MP2",
@@ -866,11 +866,11 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "8f64eb88-4ea1-586d-b653-fd7dccf01222",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "HDMF_MP2: Paid or deducted as an ad-hoc line."
+		"description": "The employee's voluntary Pag-IBIG MP2 savings, deducted from net pay at the amount the employee elected (RA 9679 s.7)."
 	},
 	{
 		"code": "LOSS_DAMAGE_DEDUCTION",
@@ -888,8 +888,8 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC';",
-		"conversion": "// js\nreturn Math.min(ctx.entry.quantity, ctx.lookup.max_share_of_basic * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE);",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC';",
+		"conversion": "return Math.min(ctx.entry.quantity, ctx.lookup.max_share_of_basic * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE);",
 		"id": "722f641b-8e0a-525f-abac-783aba5b6fc4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -907,8 +907,8 @@
 		"subtotal_id": "46f8059b-8ac8-447d-ae76-189b7f05765a",
 		"direction": "ADD",
 		"party": "EMPLOYER",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "1d4a9051-f2cb-5b11-9dcd-86834f624bb0",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -924,11 +924,11 @@
 		"subtotal_id": "d5a5f8d9-01ee-4d0e-8273-6a28d63957e2",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "1ab5fe29-1dce-5e5a-bdb0-cb6ff85be9d9",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "SEPARATION_PAY_TAXABLE: Paid or deducted as an ad-hoc line."
+		"description": "Separation pay for a cause within the employee's control, such as resignation, at the amount entered. It is taxable pay (NIRC s.32(B)(6)(b))."
 	},
 	{
 		"code": "RETIREMENT_PAY_TAXABLE",
@@ -942,11 +942,11 @@
 		"subtotal_id": "d5a5f8d9-01ee-4d0e-8273-6a28d63957e2",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "b273231a-9bb6-5861-bb25-d708419cf248",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "RETIREMENT_PAY_TAXABLE: Paid or deducted as an ad-hoc line."
+		"description": "A retirement payment that does not meet the conditions for exemption, at the amount entered. It is taxable pay (NIRC s.32(B)(6)(a))."
 	},
 	{
 		"code": "SSS_SICKNESS_BENEFIT",
@@ -962,8 +962,8 @@
 		"subtotal_id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "0b13ef7e-1215-577a-ba5d-a590595dcfc5",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -980,8 +980,8 @@
 		"subtotal_id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "443a9f0d-335c-5287-bd97-621032d13cf3",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -999,8 +999,8 @@
 		"subtotal_id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = birth === null ? 0 : age_on(birth, ctx.entry.incurred_on);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (age < 50) return false;\nconst from = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on));\nif (calendar_completed_months(from, ctx.entry.incurred_on) < 120) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.bir_qualified_retirement_plan', false) !== true) return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.retirement_plan_exemption_availed', false) !== true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nconst birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = birth === null ? 0 : age_on(birth, ctx.entry.incurred_on);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (age < 50) return false;\nconst from = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on));\nif (calendar_completed_months(from, ctx.entry.incurred_on) < 120) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.bir_qualified_retirement_plan', false) !== true) return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.retirement_plan_exemption_availed', false) !== true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "800083f6-84c2-5fe1-8033-2a85d362e5a8",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	}

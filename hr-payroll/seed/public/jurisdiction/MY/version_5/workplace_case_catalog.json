@@ -31,7 +31,7 @@
 		],
 		"id": "5a2754d5-1464-50f0-bee8-1bc5bc4b0aa8",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"description": "Sexual-harassment complaint."
+		"description": "A complaint of sexual harassment at work, which the employer must inquire into and decide (Employment Act 1955 Part XVA, ss.81A–81G)."
 	},
 	{
 		"code": "FLEXIBLE_WORKING_REQUEST",
@@ -48,7 +48,7 @@
 		],
 		"id": "bdb454e4-492b-5564-9299-7cf401e22057",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"description": "Request for flexible working."
+		"description": "An employee's written request to change the hours, days or place of work, which the employer must answer in writing (Employment Act 1955 ss.60P–60Q)."
 	},
 	{
 		"code": "EMPLOYEE_DEATH_NOTICE",
@@ -80,7 +80,7 @@
 		],
 		"id": "7bd22049-b6a4-5a00-9c1e-960d2f6fe0cf",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"description": "Notice of overseas departure."
+		"description": "Records that an employee is about to leave Malaysia, so that the employer notifies LHDN and holds money owed to the employee until tax clearance (Income Tax Act 1967 s.83(4)–(5))."
 	},
 	{
 		"code": "NON_BANK_WAGE_PAYMENT_REQUEST",

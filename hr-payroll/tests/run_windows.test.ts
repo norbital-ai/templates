@@ -32,7 +32,7 @@ const terms = (amount: number) => ({
 	wage_payment_method: 'BANK',
 	allowances: {}
 });
-// Company C's schedule: two halves a month, each attending the half before it
+// A twice-monthly schedule: two halves a month, each attending the half before it
 const ARREARS = {
 	frequency: 'SEMI_MONTHLY',
 	business_day: 'PREVIOUS',

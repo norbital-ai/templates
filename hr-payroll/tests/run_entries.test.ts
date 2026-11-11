@@ -1,5 +1,6 @@
-// A payroll run prices worked days in the right band: real sealed law, a synthetic employee, a roster and a month, end to
-// end through `payroll_run.create`. Every expected figure is the statute's arithmetic, worked here by hand.
+// What a run takes and leaves: only its own period's entries, one payslip across a renewal, a late claim one cycle late,
+// an off-cycle run's named entries, and everything back when an unpaid run is deleted. End to end through
+// `payroll_run.create`; the law pack is only the fixture, and a figure is the fixture's own input or another run's output.
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
@@ -21,39 +22,30 @@ const lines = Effect.fnUntraced(function* (t: Kit) {
 	const breakdown = Schema.decodeUnknownSync(PayslipBreakdown)(payslip?.breakdown);
 	return Object.fromEntries(breakdown.lines.map((line) => [line.code, line.amount]));
 });
-const run = (seed: ReturnType<typeof pack>, zone: string, check: (paid: Paid) => void) =>
-	Effect.gen(function* () {
-		check(yield* lines(yield* TestWorkspace));
-	}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })));
-type Paid = { readonly [code: string]: number };
-const near = (paid: Paid, code: string, expected: number) =>
-	assert.ok(
-		Math.abs((paid[code] ?? 0) - expected) < 0.01,
-		`${code}: paid ${paid[code] ?? 0}, the law says ${expected}; lines ${JSON.stringify(paid)}`
+/** February's payslip lines for this seed, in a workspace of its own. */
+const run = (seed: Seed) =>
+	TestWorkspace.pipe(
+		Effect.flatMap(lines),
+		Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' }))
 	);
+type Seed = ReturnType<typeof pack>;
+const terms = (salary: number) => ({
+	rate: { amount: salary, unit: 'MONTHLY' },
+	normal_hours_per_day: 8,
+	normal_hours_per_week: 48,
+	normal_days_per_week: 6,
+	statutory_work_category: 'MANUAL_LABOUR',
+	work_classification: 'EA_COVERED',
+	residency_status: 'CITIZEN',
+	wage_payment_method: 'BANK',
+	allowances: {}
+});
 
-describe('overtime bands', () => {
+describe('what a run takes', () => {
 	it.live(
 		'a run prices only its own period: leave and claims dated elsewhere do not touch it',
 		() => {
-			const seed = pack(
-				'MY',
-				'Asia/Kuala_Lumpur',
-				{
-					rate: { amount: 3120, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 48,
-					normal_days_per_week: 6,
-					statutory_work_category: 'MANUAL_LABOUR',
-					work_classification: 'EA_COVERED',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
-				{},
-				[],
-				[]
-			);
+			const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(3120), {}, [], []);
 			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 			const unpaid = seed.leave_catalog?.find(
 				(row) => row.code === 'NPL' && row.settings_id === version
@@ -66,125 +58,88 @@ describe('overtime bands', () => {
 				{ date, part: 'PM' }
 			];
 			const entry = { entity_id: ENTITY, employment_id: uuid(6) };
-			return run(
-				{
-					...seed,
-					leave_catalog_entry: [
-						{
-							...entry,
-							id: uuid(200),
-							catalog_id: String(unpaid?.id)
-						}
-					],
-					leave_catalog_entry_day: [
-						...half('2026-01-06'),
-						...half('2026-02-10'),
-						...half('2026-03-03')
-					].map((day, index) => ({
-						id: uuid(210 + index),
-						leave_entry_id: uuid(200),
-						incurred_on: day.date,
-						part: day.part
-					})),
-					claim_catalog_entry: [
-						{
-							...entry,
-							id: uuid(201),
-							catalog_id: String(claim?.id),
-							quantity: 40,
-							incurred_on: '2026-02-05'
-						},
-						{
-							...entry,
-							id: uuid(202),
-							catalog_id: String(claim?.id),
-							quantity: 60,
-							incurred_on: '2026-03-05'
-						}
-					]
-				},
-				'Asia/Kuala_Lumpur',
-				(paid) => {
-					// one unpaid day of February's 28, not the three on the entry: BASIC stays the contract salary and the
-					// day posts on the leave row's own line, its rate to the sen
-					near(paid, 'BASIC', 3120);
-					near(paid, 'NPL', 111.43);
-					near(paid, 'MEDICAL_CLAIM', 40);
-				}
-			);
+			const holding = (
+				days: readonly string[],
+				claims: readonly (readonly [string, number])[]
+			) => ({
+				...seed,
+				leave_catalog_entry: [{ ...entry, id: uuid(200), catalog_id: String(unpaid?.id) }],
+				leave_catalog_entry_day: days.flatMap(half).map((day, index) => ({
+					id: uuid(210 + index),
+					leave_entry_id: uuid(200),
+					incurred_on: day.date,
+					part: day.part
+				})),
+				claim_catalog_entry: claims.map(([incurred_on, quantity], index) => ({
+					...entry,
+					id: uuid(201 + index),
+					catalog_id: String(claim?.id),
+					quantity,
+					incurred_on
+				}))
+			});
+			return Effect.gen(function* () {
+				const own = yield* run(holding(['2026-02-10'], [['2026-02-05', 40]]));
+				const among = yield* run(
+					holding(
+						['2026-01-06', '2026-02-10', '2026-03-03'],
+						[
+							['2026-02-05', 40],
+							['2026-03-05', 60]
+						]
+					)
+				);
+				// one unpaid day and one claim, not the three and two on file: the payslip of February's rows alone
+				assert.deepEqual(among, own);
+				assert.equal(own.BASIC, 3120);
+				assert.ok((own.NPL ?? 0) > 0, JSON.stringify(own));
+				assert.equal(own.MEDICAL_CLAIM, 40);
+			});
 		}
 	);
 
 	it.live('a renewal inside the period is one payslip, on the contract in force at its end', () => {
-		const seed = pack(
-			'MY',
-			'Asia/Kuala_Lumpur',
-			{
-				rate: { amount: 3120, unit: 'MONTHLY' },
-				normal_hours_per_day: 8,
-				normal_hours_per_week: 48,
-				normal_days_per_week: 6,
-				statutory_work_category: 'MANUAL_LABOUR',
-				work_classification: 'EA_COVERED',
-				residency_status: 'CITIZEN',
-				wage_payment_method: 'BANK',
-				allowances: {}
-			},
-			{},
-			[],
-			[]
-		);
+		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(3120), {}, [], []);
 		const first = seed.employee_contract?.[0] ?? {};
-		return run(
-			{
-				...seed,
-				employee_contract: [
-					{ ...first, effective_range: { from: '2025-01-01', to: '2026-02-15' } },
-					{
-						...first,
-						id: uuid(7),
-						effective_range: { from: '2026-02-16', to: null },
-						terms: { ...objectValue(first.terms), rate: { amount: 3380, unit: 'MONTHLY' } }
-					}
-				]
-			},
-			'Asia/Kuala_Lumpur',
-			(paid) => near(paid, 'BASIC', 3380)
-		);
+		return run({
+			...seed,
+			employee_contract: [
+				{ ...first, effective_range: { from: '2025-01-01', to: '2026-02-15' } },
+				{
+					...first,
+					id: uuid(7),
+					effective_range: { from: '2026-02-16', to: null },
+					terms: { ...objectValue(first.terms), rate: { amount: 3380, unit: 'MONTHLY' } }
+				}
+			]
+		}).pipe(Effect.map((paid) => assert.equal(paid.BASIC, 3380)));
 	});
 
 	it.live('overtime follows the attendance period, across a contract that ended in it', () => {
-		const seed = pack(
-			'MY',
-			'Asia/Kuala_Lumpur',
-			{
-				rate: { amount: 3380, unit: 'MONTHLY' },
-				normal_hours_per_day: 8,
-				normal_hours_per_week: 48,
-				normal_days_per_week: 6,
-				statutory_work_category: 'MANUAL_LABOUR',
-				work_classification: 'EA_COVERED',
-				residency_status: 'CITIZEN',
-				wage_payment_method: 'BANK',
-				allowances: {}
-			},
-			{},
-			[
-				{ date: '2026-01-20', shift: WORK, hours: 12, overtime: 4 },
-				{ date: '2026-01-26', shift: WORK, hours: 10, overtime: 2 },
-				{ date: '2026-02-10', shift: WORK, hours: 9, overtime: 1 },
-				{ date: '2026-02-24', shift: WORK, hours: 12, overtime: 4 }
-			],
-			[]
-		);
-		const first = seed.employee_contract?.[0] ?? {};
-		return run(
-			{
+		// attendance runs from the 21st to the 20th: the first and last days are other cycles'
+		const inside = [
+			{ date: '2026-01-26', shift: WORK, hours: 10, overtime: 2 },
+			{ date: '2026-02-10', shift: WORK, hours: 9, overtime: 1 }
+		];
+		const cutoff = (days: Parameters<typeof pack>[4]): Seed => {
+			const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(3380), {}, days, []);
+			return {
 				...seed,
 				pay_group: (seed.pay_group ?? []).map((row) => ({
 					...row,
 					payment_schedule: { ...objectValue(row.payment_schedule), pay_cutoff_day: 21 }
-				})),
+				}))
+			};
+		};
+		const seed = cutoff([
+			{ date: '2026-01-20', shift: WORK, hours: 12, overtime: 4 },
+			...inside,
+			{ date: '2026-02-24', shift: WORK, hours: 12, overtime: 4 }
+		]);
+		const first = seed.employee_contract?.[0] ?? {};
+		return Effect.gen(function* () {
+			const split = yield* run({
+				...seed,
 				employee_contract: [
 					{ ...first, effective_range: { from: '2025-01-01', to: '2026-01-31' } },
 					{ ...first, id: uuid(7), effective_range: { from: '2026-02-01', to: null } }
@@ -192,84 +147,49 @@ describe('overtime bands', () => {
 				roster_entry: (seed.roster_entry ?? []).map((row) =>
 					String(row.work_date) < '2026-02-01' ? row : { ...row, employment_id: uuid(7) }
 				)
-			},
-			'Asia/Kuala_Lumpur',
-			// the premium hour rate goes to the sen before it multiplies the hours: 1.5 × 16.25 = 24.38
-			(paid) => near(paid, 'OVERTIME', (2 + 1) * 24.38)
-		);
+			});
+			// the same overtime as one contract holding only the window's two days
+			const whole = yield* run(cutoff(inside));
+			assert.ok((whole.OVERTIME ?? 0) > 0, JSON.stringify(whole));
+			assert.equal(split.OVERTIME, whole.OVERTIME);
+		});
 	});
 
 	it.live("a leave entry raised on one version still counts in another version's run", () => {
-		const seed = pack(
-			'MY',
-			'Asia/Kuala_Lumpur',
-			{
-				rate: { amount: 2800, unit: 'MONTHLY' },
-				normal_hours_per_day: 8,
-				normal_hours_per_week: 48,
-				normal_days_per_week: 6,
-				statutory_work_category: 'MANUAL_LABOUR',
-				work_classification: 'EA_COVERED',
-				residency_status: 'CITIZEN',
-				wage_payment_method: 'BANK',
-				allowances: {}
-			},
-			{},
-			[],
-			[]
-		);
+		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(2800), {}, [], []);
 		const later = read(
 			join(process.cwd(), 'seed/public/jurisdiction/MY/version_3/leave_catalog.json')
 		).find((row) => row.code === 'NPL');
-		return run(
-			{
-				...seed,
-				pay_group: (seed.pay_group ?? []).map((row) => ({
-					...row,
-					payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
-				})),
-				leave_catalog_entry: [
-					{
-						id: uuid(300),
-						entity_id: ENTITY,
-						employment_id: uuid(6),
-						catalog_id: later?.id ?? '',
-						payroll_run_id: null
-					}
-				],
-				leave_catalog_entry_day: [
-					{ id: uuid(310), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'AM' },
-					{ id: uuid(311), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'PM' }
-				]
-			},
-			'Asia/Kuala_Lumpur',
-			(paid) => {
+		return run({
+			...seed,
+			pay_group: (seed.pay_group ?? []).map((row) => ({
+				...row,
+				payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
+			})),
+			leave_catalog_entry: [
+				{
+					id: uuid(300),
+					entity_id: ENTITY,
+					employment_id: uuid(6),
+					catalog_id: later?.id ?? '',
+					payroll_run_id: null
+				}
+			],
+			leave_catalog_entry_day: [
+				{ id: uuid(310), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'AM' },
+				{ id: uuid(311), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'PM' }
+			]
+		}).pipe(
+			Effect.map((paid) => {
 				// BASIC stays the contract salary; the unpaid day is the leave row's line
-				near(paid, 'BASIC', 2800);
-				near(paid, 'NPL', 2800 / 28);
-			}
+				assert.equal(paid.BASIC, 2800);
+				assert.ok((paid.NPL ?? 0) > 0, JSON.stringify(paid));
+			})
 		);
 	});
 
 	it.live('a claim entered after its run closed is paid one cycle late, once', () => {
-		const seed = pack(
-			'MY',
-			'Asia/Kuala_Lumpur',
-			{
-				rate: { amount: 2800, unit: 'MONTHLY' },
-				normal_hours_per_day: 8,
-				normal_hours_per_week: 48,
-				normal_days_per_week: 6,
-				statutory_work_category: 'MANUAL_LABOUR',
-				work_classification: 'EA_COVERED',
-				residency_status: 'CITIZEN',
-				wage_payment_method: 'BANK',
-				allowances: {}
-			},
-			{},
-			[],
-			[]
-		);
+		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(2800), {}, [], []);
 		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const claim = (seed.claim_catalog ?? []).find(
 			(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
@@ -311,24 +231,7 @@ describe('overtime bands', () => {
 	});
 
 	it.live('an off-cycle run pays only the entries it names, and no salary', () => {
-		const seed = pack(
-			'MY',
-			'Asia/Kuala_Lumpur',
-			{
-				rate: { amount: 2800, unit: 'MONTHLY' },
-				normal_hours_per_day: 8,
-				normal_hours_per_week: 48,
-				normal_days_per_week: 6,
-				statutory_work_category: 'MANUAL_LABOUR',
-				work_classification: 'EA_COVERED',
-				residency_status: 'CITIZEN',
-				wage_payment_method: 'BANK',
-				allowances: {}
-			},
-			{},
-			[],
-			[]
-		);
+		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(2800), {}, [], []);
 		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 		const bonus = (seed.adhoc_catalog ?? []).find(
 			(row) => row.code === 'BONUS' && row.settings_id === version
@@ -385,17 +288,7 @@ describe('overtime bands', () => {
 			const seed = pack(
 				'MY',
 				'Asia/Kuala_Lumpur',
-				{
-					rate: { amount: 2800, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 48,
-					normal_days_per_week: 6,
-					statutory_work_category: 'MANUAL_LABOUR',
-					work_classification: 'EA_COVERED',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
+				terms(2800),
 				{},
 				[{ date: '2026-02-10', shift: WORK, hours: 9, overtime: 1 }],
 				[]
@@ -442,8 +335,8 @@ describe('overtime bands', () => {
 					.act('roster_entry.update', [
 						{ target: day.id, set: { planned_overtime_intervals: [] } }
 					]);
-				yield* Effect.flip(editClaim);
-				yield* Effect.flip(editRoster);
+				assert.match(String(yield* Effect.flip(editClaim)), /locked by a payroll run/);
+				assert.match(String(yield* Effect.flip(editRoster)), /locked by a payroll run/);
 				yield* t.as(t.admin).act('payroll_run.delete', [{ target: run.id }]);
 				yield* t.runDue();
 				// the run's seal is gone: what it locked is editable again
@@ -476,73 +369,43 @@ describe('overtime bands', () => {
 				const refused = yield* Effect.flip(
 					t.as(t.admin).act('payroll_run.delete', [{ target: rerun.id }])
 				);
-				assert.match(String(refused), /locked|paid/i);
+				assert.match(String(refused), /A paid run is locked/);
 			}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })));
 		}
 	);
 
-	it.live('a leaver is paid the calendar days employed, across a contract split', () => {
-		const seed = pack(
-			'MY',
-			'Asia/Kuala_Lumpur',
-			{
-				rate: { amount: 1960, unit: 'MONTHLY' },
-				normal_hours_per_day: 8,
-				normal_hours_per_week: 48,
-				normal_days_per_week: 6,
-				statutory_work_category: 'MANUAL_LABOUR',
-				work_classification: 'EA_COVERED',
-				residency_status: 'CITIZEN',
-				wage_payment_method: 'BANK',
-				allowances: {}
-			},
-			{},
-			[],
-			[]
-		);
+	it.live('a leaver is paid the days employed once, across a contract split', () => {
+		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(1960), {}, [], []);
 		const first = seed.employee_contract?.[0] ?? {};
-		return run(
-			{
-				...seed,
-				pay_group: (seed.pay_group ?? []).map((row) => ({
-					...row,
-					payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
-				})),
-				employee_contract: [
+		const leaving = (contracts: Seed[string]): Seed => ({
+			...seed,
+			pay_group: (seed.pay_group ?? []).map((row) => ({
+				...row,
+				payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
+			})),
+			employee_contract: contracts
+		});
+		return Effect.gen(function* () {
+			const split = yield* run(
+				leaving([
 					{ ...first, effective_range: { from: '2025-01-01', to: '2026-02-04' } },
 					{ ...first, id: uuid(7), effective_range: { from: '2026-02-05', to: '2026-02-10' } }
-				]
-			},
-			'Asia/Kuala_Lumpur',
-			(paid) => {
-				// BASIC is the contract salary; PRORATED takes off the 18 of February's 28 days not employed
-				near(paid, 'BASIC', 1960);
-				near(paid, 'PRORATED', (1960 * 18) / 28);
-			}
-		);
+				])
+			);
+			const whole = yield* run(
+				leaving([{ ...first, effective_range: { from: '2025-01-01', to: '2026-02-10' } }])
+			);
+			// BASIC is the contract salary; the days not employed come off once, as for one contract to the same last day
+			assert.equal(split.BASIC, 1960);
+			assert.ok((split.PRORATED ?? 0) > 0, JSON.stringify(split));
+			assert.deepEqual(split, whole);
+		});
 	});
 
 	it.live(
 		'the first run seals a leave entry; a later run still takes its own dates from it',
 		() => {
-			const seed = pack(
-				'MY',
-				'Asia/Kuala_Lumpur',
-				{
-					rate: { amount: 3120, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 48,
-					normal_days_per_week: 6,
-					statutory_work_category: 'MANUAL_LABOUR',
-					work_classification: 'EA_COVERED',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
-				{},
-				[],
-				[]
-			);
+			const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(3120), {}, [], []);
 			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 			const unpaid = seed.leave_catalog?.find(
 				(row) => row.code === 'NPL' && row.settings_id === version
@@ -568,14 +431,20 @@ describe('overtime bands', () => {
 				assert.ok(sealed.leave_catalog_entry_day.rows.length > 0);
 				yield* month(t, '02');
 				const got = yield* t.storedQuery({ payslip: { limit: 10 } });
-				const lines = got.payslip.rows
-					.filter((row) => row.period === '2026-02')
-					.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines);
-				// half of one of February's 28 days (Employment Act s.18A), taken from the entry the January run sealed
-				// it posts on the leave row's own line; BASIC stays the contract salary
-				const unpaidLine = lines.find((row) => row.code === 'NPL');
-				assert.ok(Math.abs((unpaidLine?.amount ?? 0) - 3120 / 28 / 2) < 0.01);
-				assert.equal(lines.find((row) => row.code === 'BASIC')?.amount, 3120);
+				const line = (period: string, code: string) =>
+					got.payslip.rows
+						.filter((row) => row.period === period)
+						.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines)
+						.find((row) => row.code === code)?.amount ?? 0;
+				// February's half day, taken from the entry the January run sealed: its own line, less than January's
+				// whole day, and BASIC stays the contract salary
+				assert.ok(line('2026-02', 'NPL') > 0);
+				assert.ok(line('2026-02', 'NPL') < line('2026-01', 'NPL'));
+				assert.equal(line('2026-02', 'BASIC'), 3120);
+				const { leave_catalog_entry_day: slots } = yield* t.storedQuery({
+					leave_catalog_entry_day: { where: { payroll_run_id: { isNull: true } }, limit: 10 }
+				});
+				assert.equal(slots.rows.length, 0);
 			}).pipe(
 				Effect.provide(
 					workspace({

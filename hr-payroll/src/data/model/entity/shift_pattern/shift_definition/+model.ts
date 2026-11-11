@@ -45,23 +45,18 @@ export default model('shift_definition', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'shift_definition', ids: rows.map((r) => r.id) },
+				'shift_definition',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'shift_definition', ids: changes.map((c) => c.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'shift_definition', changes);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
-				{ collection: 'shift_definition', ids: rows.map((r) => r.id) },
+				'shift_definition',
 				rows.map((before) => ({ before }))
 			);
 		}

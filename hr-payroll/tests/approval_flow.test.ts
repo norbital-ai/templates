@@ -147,6 +147,34 @@ describe('who may decide a request', () => {
 		}).pipe(Effect.provide(live()))
 	);
 
+	// a supervisor's team holds two policies with the same limits: their own request is one act like anyone's, and a
+	// reviewer who is the requester still cannot decide it
+	it.live('a supervisor asks for their own leave, and another supervisor decides it', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const me = t.as(yield* t.signIn('worker@example.test'));
+			const deputy = t.as(yield* t.signIn('deputy@example.test'));
+			const asked = yield* leave(me, DAY);
+			assert.match(yield* refusal(approve(me, asked.requestId)), /Only the approver may approve/);
+			yield* approve(deputy, asked.requestId);
+			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
+		}).pipe(
+			Effect.provide(
+				live({
+					...base,
+					sys_user: [
+						...(base.sys_user ?? []).map((row) =>
+							row.id === uuid(3) ? { ...row, team: 'supervisor' } : row
+						),
+						...reviewers,
+						staff(43, 'Deputy', 'supervisor')
+					]
+				})
+			)
+		)
+	);
+
 	it.live('each step is decided once: a second approval moves and posts nothing more', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -263,6 +291,69 @@ describe('a rejection', () => {
 	);
 });
 
+describe('a withdrawal', () => {
+	it.live(
+		'by the person who asked takes the record back with nothing posted, and the day can be asked again',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				const { me, lead } = yield* people(t);
+				const asked = yield* leave(me, DAY);
+				yield* me.approvals.decide(asked.requestId, { decision: 'withdraw' });
+				yield* t.runDue();
+				const held = yield* t.storedQuery({
+					leave_catalog_entry: { limit: 10 },
+					leave_catalog_entry_day: { limit: 10 },
+					approval_request: { limit: 10 }
+				});
+				assert.equal(held.leave_catalog_entry.rows.length, 0);
+				assert.equal(held.leave_catalog_entry_day.rows.length, 0);
+				assert.deepEqual(
+					held.approval_request.rows.map((row) => row.status),
+					['WITHDRAWN']
+				);
+				assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
+				// withdrawn, it takes no decision, and nothing of it stands in the way of the same day
+				assert.match(
+					yield* refusal(approve(lead, asked.requestId)),
+					/This request is Withdrawn; it no longer changes/
+				);
+				const again = yield* leave(me, DAY);
+				assert.notEqual(again.requestId, asked.requestId);
+			}).pipe(Effect.provide(live()))
+	);
+
+	it.live('is the requester’s alone: a reviewer rejects instead, and the request still waits', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const { me, lead, chief } = yield* people(t);
+			const asked = yield* leave(me, DAY);
+			for (const other of [lead, chief])
+				assert.match(
+					yield* refusal(other.approvals.decide(asked.requestId, { decision: 'withdraw' })),
+					/Only the requester may withdraw/
+				);
+			const { leave_catalog_entry, approval_request } = yield* t.storedQuery({
+				leave_catalog_entry: { limit: 10 },
+				approval_request: { limit: 10 }
+			});
+			assert.equal(leave_catalog_entry.rows.length, 1);
+			assert.deepEqual(
+				approval_request.rows.map((row) => row.status),
+				['ONGOING']
+			);
+			// the way out the refusal leaves a reviewer: reject it, with a reason
+			yield* lead.approvals.decide(asked.requestId, {
+				decision: 'reject',
+				reason: 'Asked in error'
+			});
+			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
+		}).pipe(Effect.provide(live()))
+	);
+});
+
 describe('requested changes', () => {
 	it.live(
 		'hold the claim under review; the reviewer rejects, the person claims afresh, and that amount is paid',
@@ -305,6 +396,31 @@ describe('requested changes', () => {
 			}).pipe(Effect.provide(live()))
 	);
 
+	it.live(
+		'on a claim: the requester’s Save resubmits the same request, and the saved amount is paid',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const { me, lead, payroll } = yield* people(t);
+				yield* syncAll(t);
+				const asked = yield* claim(me, 80);
+				yield* lead.approvals.decide(asked.requestId, {
+					decision: 'requestChanges',
+					reason: 'The receipt shows 60'
+				});
+				const saved = yield* me.act('claim_catalog_entry.update', [
+					{ target: asked.id, set: { quantity: 60 } }
+				]);
+				assert.ok(saved.kind === 'pendingApproval');
+				assert.equal(saved.requestId, asked.requestId);
+				assert.equal((yield* claims(t)).length, 1);
+				yield* approve(lead, asked.requestId);
+				yield* approve(payroll, asked.requestId);
+				yield* run(t, '2026-02');
+				assert.equal(yield* paidOn(t, '2026-02', 'MEDICAL_CLAIM'), 60);
+			}).pipe(Effect.provide(live()))
+	);
+
 	it.live('on leave are no dead end: the reviewer rejects, and the person asks afresh', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -334,6 +450,66 @@ describe('requested changes', () => {
 				[again.id]
 			);
 		}).pipe(Effect.provide(live()))
+	);
+});
+
+describe('a request and the balance', () => {
+	// an approval posts in its own decision and checks nothing again, so what it will draw is held from the moment it
+	// is asked: a second request cannot ask for the same day of balance, and no approval is left unable to post
+	const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
+	const inLieu = (by: Caller, date: string) =>
+		by.act('leave_catalog_entry.create', [
+			leaveCreate({
+				entity_id: ENTITY,
+				employment_id: CONTRACT,
+				catalog_id: idOf('leave_catalog', catalogRow(base, 'leave_catalog', IN_LIEU)),
+				days: wholeDays(date)
+			})
+		]);
+	it.live(
+		'still waiting, holds its days: a second request for the last day is refused with the reason; the first rejected, it is taken and approved, and posts once',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				const { me, lead, payroll } = yield* people(t);
+				// HR grants the one day there is
+				yield* t.as(t.member(['hr_controller'])).act('ledger_entry.create', [
+					{
+						balance_id: idOf('employee_balance', uuid(5)),
+						operation: 'ADD',
+						account: 'leave',
+						code: IN_LIEU,
+						measure: 'entitled',
+						amount: 1,
+						unit: 'DAY',
+						effective_on: PlainDate('2026-02-02'),
+						note: 'worked the holiday'
+					}
+				]);
+				const first = yield* inLieu(me, DAY);
+				assert.ok(first.kind === 'pendingApproval');
+				assert.match(
+					yield* refusal(inLieu(me, '2026-02-11')),
+					new RegExp(`${IN_LIEU}: insufficient balance`)
+				);
+				// the way out: the waiting request is decided, and the day is free again
+				yield* lead.approvals.decide(first.requestId, {
+					decision: 'reject',
+					reason: 'Not that day'
+				});
+				const second = yield* inLieu(me, '2026-02-11');
+				assert.ok(second.kind === 'pendingApproval');
+				const [record] = second.records;
+				assert.ok(record !== undefined);
+				yield* approve(lead, second.requestId);
+				yield* approve(payroll, second.requestId);
+				assert.ok((yield* posted(t, 'leave_catalog_entry', record.id)) > 0);
+				assert.match(
+					yield* refusal(inLieu(me, '2026-02-12')),
+					new RegExp(`${IN_LIEU}: insufficient balance`)
+				);
+			}).pipe(Effect.provide(live()))
 	);
 });
 
@@ -382,6 +558,32 @@ describe('a request and the payroll run', () => {
 			);
 			assert.equal(yield* posted(t, 'claim_catalog_entry', asked.id), 0);
 		}).pipe(Effect.provide(live(seed, '2026-03-28T02:00:00.000Z')))
+	);
+
+	it.live(
+		'saved again without a change while it waits, posts nothing; rejected, it leaves nothing behind',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const { me, lead } = yield* people(t);
+				yield* syncAll(t);
+				const asked = yield* claim(me, 80);
+				// a save that changes nothing is no write, yet the entry's body still answers with its postings
+				yield* Effect.exit(
+					t
+						.as(t.admin)
+						.act('claim_catalog_entry.update', [{ target: asked.id, set: { quantity: 80 } }])
+				);
+				yield* t.runDue();
+				assert.equal(yield* posted(t, 'claim_catalog_entry', asked.id), 0);
+				yield* lead.approvals.decide(asked.requestId, {
+					decision: 'reject',
+					reason: 'Not covered'
+				});
+				yield* t.runDue();
+				assert.equal(yield* posted(t, 'claim_catalog_entry', asked.id), 0);
+				assert.equal((yield* claims(t)).length, 0);
+			}).pipe(Effect.provide(live(seed, '2026-03-28T02:00:00.000Z')))
 	);
 
 	it.live('rejected while the run waited, is never paid', () =>

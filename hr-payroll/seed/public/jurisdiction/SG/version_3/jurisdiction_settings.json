@@ -4,7 +4,7 @@
 		"name": "Singapore — 1 July 2026",
 		"effective_range": {
 			"from": "2026-07-01",
-			"to": "2026-11-30"
+			"to": null
 		},
 		"currency": "SGD",
 		"timezone": "Asia/Singapore",
@@ -908,7 +908,6 @@
 			"constants": {
 				"ordinary_ceiling": 8000,
 				"annual_ceiling": 102000,
-				"weekly_limit": 2500,
 				"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
 				"max_months": 12
 			}

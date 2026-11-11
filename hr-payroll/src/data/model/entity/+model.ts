@@ -57,9 +57,7 @@ export default model('entity', {
 					'face_embedding',
 					'face_photo',
 					'face_enrollment_status',
-					'face_enrolled_at',
-					'face_match_count',
-					'face_last_match_at'
+					'face_enrolled_at'
 				]
 			}
 		}
@@ -79,7 +77,7 @@ export default model('entity', {
 			for (const row of rows)
 				if (row.code != null && row.code.trim() === '')
 					return yield* ctx.refuse(
-						'An entered company code must contain a nonblank business identifier.'
+						'An entered company code must contain a nonblank business identifier. Enter the code, or leave the field empty.'
 					);
 			return rows.map((row) => (row.code == null ? row : { ...row, code: row.code.trim() }));
 		}
@@ -99,7 +97,7 @@ export default model('entity', {
 			for (const { before, set } of changes) {
 				if (set.code != null && set.code.trim() === '')
 					return yield* ctx.refuse(
-						'An entered company code must contain a nonblank business identifier.'
+						'An entered company code must contain a nonblank business identifier. Enter the code, or leave the field empty.'
 					);
 				if (set.settings_code === undefined || set.settings_code === before.settings_code) continue;
 				const used = yield* ctx.db.query({
@@ -127,23 +125,18 @@ export default model('entity', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'entity', ids: rows.map((row) => row.id) },
+				'entity',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'entity', ids: changes.map(({ after }) => after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'entity', changes);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
-				{ collection: 'entity', ids: rows.map((row) => row.id) },
+				'entity',
 				rows.map((before) => ({ before }))
 			);
 		}

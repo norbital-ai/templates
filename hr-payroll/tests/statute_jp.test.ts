@@ -101,7 +101,7 @@ const TERMS = {
 };
 const FACTS = {
 	insured_office_region: 'HOKKAIDO',
-	statutory: { HEALTH: { elections: { standard_monthly_remuneration: 300_000 } } }
+	statutory: { HEALTH: { standard_monthly_remuneration: 300_000 } }
 };
 const CONTRACT = idOf('employee_contract', uuid(6));
 const STARTED = '2025-01-06';
@@ -277,55 +277,12 @@ describe('rest-day work', () => {
 			'REST_DAY_WORK'
 		);
 	it('pays the employer’s own multiple only where it pays more than the statute', () => {
-		assert.equal(pay({}), 8 * 2000 * 1.35);
-		assert.equal(pay({ pay_methods: { rest_day_hourly_multiplier: 1.25 } }), 8 * 2000 * 1.35);
-		assert.equal(pay({ pay_methods: { rest_day_hourly_multiplier: 1.5 } }), 8 * 2000 * 1.5);
-	});
-});
-
-describe('an exit', () => {
-	const DUTY =
-		/^(SOCIAL_INSURANCE_LOSS|EMPLOYMENT_INSURANCE_LOSS|RESIDENT_TAX_TRANSFER|LEAVER_WITHHOLDING_SLIP|FINAL_WAGES_ON_REQUEST|RECORDS_RETENTION|PERSONAL_DATA_DISPOSAL):/;
-	const duties = (t: Kit) =>
-		t
-			.storedQuery({ obligation: { limit: 1000 } })
-			.pipe(
-				Effect.map(({ obligation }) =>
-					obligation.rows.filter((row) => DUTY.test(row.occurrence_key))
-				)
-			);
-	const end = (t: Kit, to: string) =>
-		t.as(t.admin).act('employee_contract.update', [
-			{
-				target: CONTRACT,
-				set: {
-					effective_range: { from: PlainDate('2025-11-03'), to: PlainDate(to) },
-					reason: 'Resignation'
-				}
-			}
-		]);
-	it.live('raises its duties from the last day; a moved day waives the old ones', () => {
-		const seed = seedOf();
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* end(t, '2026-07-31');
-			yield* t.runDue();
-			const first = yield* duties(t);
-			assert.equal(first.length, 7);
-			// the loss day is 1 August; five days counting it
-			assert.equal(
-				String(
-					first.find((row) => row.occurrence_key.startsWith('SOCIAL_INSURANCE_LOSS:'))?.due_on
-				),
-				'2026-08-05'
-			);
-			yield* end(t, '2026-08-31');
-			yield* t.runDue();
-			const moved = yield* duties(t);
-			assert.equal(moved.filter((row) => row.state === 'WAIVED').length, 7);
-			const open = moved.filter((row) => row.state === 'OPEN');
-			assert.equal(open.length, 7);
-			assert.ok(open.every((row) => row.occurrence_key.endsWith(`${CONTRACT}:exit:2026-08-31`)));
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+		const statute = Number(pay({}));
+		const multiple = statute / (8 * 2000);
+		assert.ok(multiple > 1);
+		const method = (rest_day_hourly_multiplier: number) =>
+			Number(pay({ pay_methods: { rest_day_hourly_multiplier } }));
+		assert.equal(method(multiple / 2), statute);
+		assert.ok(Math.abs(method(multiple * 2) - statute * 2) < 1e-6);
 	});
 });

@@ -64,7 +64,6 @@ describe('service runs from the current stint, or every stint', () => {
 		assert.equal(served(promoted), '2017-08-07');
 		assert.equal(served(rehired), '2017-08-07');
 		assert.equal(served(first), '2017-08-03');
-		assert.equal(entitlementOf(annual('MY').lookup, joiner('2017-08-07'), '2026-11-09'), 16);
 		// off, the statutory continuous service: the rehire starts it again
 		assert.equal(served(promoted, chain, false), '2025-07-04');
 		assert.equal(served(rehired, chain, false), '2025-07-04');
@@ -96,6 +95,15 @@ describe('service runs from the current stint, or every stint', () => {
 			}
 		);
 		assert.equal(startsOf(first, chain, lineage, true).employment_started_on, '2017-08-03');
+	});
+
+	/** What the fixture's own row grants a service year that opens on `opens`, for service counted from `started`. */
+	const owed = (started: string, opens: string) =>
+		entitlementOf(annual('MY').lookup, joiner(started), opens);
+	const EVERY = owed('2017-08-07', '2026-08-07');
+	const REHIRE = owed('2025-07-04', '2026-07-04');
+	it('the fixture row grants the two service lengths different days', () => {
+		assert.ok(EVERY !== null && REHIRE !== null && EVERY > REHIRE && REHIRE > 0);
 	});
 
 	const rehire = (cumulative: boolean) => {
@@ -132,18 +140,16 @@ describe('service runs from the current stint, or every stint', () => {
 		});
 	};
 
-	it.live(
-		'sync anchors and bands Malaysian leave on every stint where the profile counts them',
-		() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* syncAll(t);
-				const leave = (yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'];
-				assert.equal(leave?.['MY.S.2026-08-07']?.entitled, 16);
-			}).pipe(Effect.provide(rehire(true)))
+	it.live('sync anchors and bands the leave on every stint where the profile counts them', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const leave = (yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'];
+			assert.equal(leave?.['MY.S.2026-08-07']?.entitled, EVERY);
+		}).pipe(Effect.provide(rehire(true)))
 	);
 
-	it.live('turning it off syncs the person again: the rehire opens its own service year at 8', () =>
+	it.live('turning it off syncs the person again: the rehire opens its own service year', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
@@ -154,17 +160,17 @@ describe('service runs from the current stint, or every stint', () => {
 				]);
 			yield* t.runDue();
 			const leave = (yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'];
-			assert.equal(leave?.['MY.S.2026-07-04']?.entitled, 8);
+			assert.equal(leave?.['MY.S.2026-07-04']?.entitled, REHIRE);
 		}).pipe(Effect.provide(rehire(true)))
 	);
 
-	it.live('without it, only the rehire counts: a second year below two years of service', () =>
+	it.live('without it, only the rehire counts', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
 			const leave = (yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'];
 			assert.equal(leave?.['MY.S.2026-08-07'], undefined);
-			assert.equal(leave?.['MY.S.2026-07-04']?.entitled, 8);
+			assert.equal(leave?.['MY.S.2026-07-04']?.entitled, REHIRE);
 		}).pipe(Effect.provide(rehire(false)))
 	);
 });

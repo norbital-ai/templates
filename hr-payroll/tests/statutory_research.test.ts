@@ -11,7 +11,7 @@ import { Effect } from 'effect';
 import { WHOLE_ROW } from '../src/lib/payroll_engine/statutory_change.ts';
 import { FAMILIES } from '../src/lib/payroll_engine/statutory_research.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import { workspace } from './kit.ts';
 
 const NOW = '2026-11-05T02:00:00.000Z';
@@ -74,6 +74,10 @@ const answer = (value: unknown) => ({
 });
 const found = (...findings: readonly object[]) => answer({ findings, new_sources: [] });
 const quiet = found();
+/** The rate the fixture's law holds today: research reports it as the old value, whatever it is. */
+const HELD = objectValue(
+	law('ID').statutory_contribution_catalog?.findLast((row) => row.code === 'JHT')?.lookup
+).employee_rate;
 const CITATION = 'Permenaker 9/2027';
 const OFFICIAL = 'https://jdih.kemnaker.go.id/permenaker-9-2027.pdf';
 const finding = (over: object = {}) => ({
@@ -163,7 +167,8 @@ describe('statutory research', () => {
 				assert.equal(findings[0]?.status, 'PROPOSED');
 				assert.equal(findings[0]?.instrument_key, 'permenaker-9-2027');
 				assert.equal(changes.length, 1);
-				assert.equal(changes[0]?.old_value, 0.02);
+				assert.equal(typeof HELD, 'number');
+				assert.equal(changes[0]?.old_value, HELD);
 				assert.equal(changes[0]?.new_value, 0.025);
 				assert.equal(changes[0]?.effective_from, '2027-01-01');
 				assert.equal(changes[0]?.family, 'statutory_contribution_catalog');
@@ -194,7 +199,7 @@ describe('statutory research', () => {
 	);
 
 	it.live('never adds a value already in the version it lands on', () =>
-		scenario([found(finding()), answer({ changes: [rate({ new_value: 0.02 })] })], (t) =>
+		scenario([found(finding()), answer({ changes: [rate({ new_value: HELD })] })], (t) =>
 			Effect.gen(function* () {
 				yield* research(t);
 				assert.equal((yield* ledger(t)).changes.length, 0);
@@ -284,7 +289,7 @@ describe('statutory research', () => {
 					assert.ok(findings.every((row) => row.fit === 'STRUCTURAL'));
 					assert.equal(changes.length, 0);
 					const refused = yield* Effect.flip(confirm(t, first(findings).id));
-					assert.match(String(refused), /structural/i);
+					assert.match(String(refused), /A structural finding needs the template extended/);
 				})
 		)
 	);
@@ -364,17 +369,25 @@ describe('statutory research', () => {
 					const later = changes.find((row) => row.effective_from === '2027-07-01');
 					assert.equal(later?.old_value, 0.025);
 					yield* confirm(t, first(findings).id);
-					const early = yield* Effect.flip(
-						Effect.andThen(
-							t.as(t.admin).start('statutory_materialize', {
-								code: 'ID',
-								target: PlainDate('2027-07-01'),
-								merge: true
-							}),
-							t.runDue()
-						).pipe(Effect.andThen(Effect.fail('ran')))
+					// the later release first: refused by its reason, whether the start or its run answers it
+					const early = yield* Effect.andThen(
+						t.as(t.admin).start('statutory_materialize', {
+							code: 'ID',
+							target: PlainDate('2027-07-01'),
+							merge: true
+						}),
+						t.runDue()
+					).pipe(
+						Effect.match({
+							onFailure: String,
+							onSuccess: ({ failed }) => failed.map((run) => String(run.error)).join('\n')
+						})
 					);
-					assert.notEqual(early, undefined);
+					assert.match(early, /out_of_order: merge the 2027-01-01 release before 2027-07-01/);
+					assert.equal(
+						(yield* ledger(t)).versions.filter((row) => row.effective_range.from >= '2027').length,
+						0
+					);
 					yield* merge(t, '2027-01-01');
 					assert.equal((yield* ledger(t)).findings[0]?.status, 'CONFIRMED');
 					yield* merge(t, '2027-07-01');
@@ -401,14 +414,14 @@ describe('statutory research', () => {
 					yield* research(t);
 					const { findings } = yield* ledger(t);
 					const unofficial = yield* Effect.flip(confirm(t, first(findings).id));
-					assert.match(String(unofficial), /official/);
+					assert.match(String(unofficial), /needs an official https source/);
 					yield* t
 						.as(t.admin)
 						.act('statutory_finding.update', [
 							{ target: first(findings).id, set: { source_urls: [OFFICIAL] } }
 						]);
 					const undated = yield* Effect.flip(confirm(t, first(findings).id));
-					assert.match(String(undated), /dated/);
+					assert.match(String(undated), /needs every change dated/);
 				})
 		)
 	);
@@ -480,7 +493,10 @@ describe('statutory research', () => {
 					const asked = (t.fakes.ai?.requests ?? []).map((request) => JSON.stringify(request));
 					assert.equal(asked.length, FAMILIES.length + 1);
 					assert.ok(asked.every((prompt) => prompt.includes('# ID')));
-					assert.equal(asked.filter((prompt) => prompt.includes('Audit these rows')).length, 9);
+					assert.equal(
+						asked.filter((prompt) => prompt.includes('Audit these rows')).length,
+						FAMILIES.length
+					);
 				})
 		)
 	);

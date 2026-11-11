@@ -1,7 +1,8 @@
 # Transfer semantics
 
-Status: normative rules for employment changes. The source tree is the final authority; this
-document states the rules the data and payroll satisfy.
+Reference: the rules for contract chains, transfers, voids and exits. The source tree is the final authority.
+[The architecture](0001-hrms-calculation-architecture.md) holds the structure and
+[reversals and corrections](0007-corrections-and-integrity.md) what follows a cancelled or moved exit.
 
 ## 1. Terms
 
@@ -69,13 +70,13 @@ Leave is jurisdiction law, not a portable company currency. Periods are keyed by
 the new law's keys start empty and sync opens them from the new contract.
 
 Where the old jurisdiction's `ANNUAL_LEAVE` row has a `payout`, ending the contract
-with no same-jurisdiction successor creates a normal `leave_catalog_entry` with `encashment: true`,
-for the days left. Its own write posts them as used, and the old jurisdiction's final run
-pays its payout in `FINAL_PAY`. A misconduct dismissal recorded in `employee_extension_data.misconduct_dismissal` encashes
-nothing. The entry names its exit (`occurrence_key` `exit:<contract id>`) and waits for the HR controller. If the exit
-is cancelled it is withdrawn while no run has paid it, cannot be approved while it still waits (HR rejects it), and
+with no same-jurisdiction successor raises a normal `leave_catalog_entry` with `encashment: true`,
+for the days left. Approved, it posts them as used, and the old jurisdiction's final run
+pays its payout. A misconduct dismissal (`exit_ground` `MISCONDUCT_DISMISSAL`) encashes
+nothing. The entry names its exit (`occurrence_key` `exit:<contract id>:<last day>`) and waits for the HR controller. If the exit
+is cancelled it is withdrawn while no run has paid it, waiting or approved, and
 once a paid run took it HR is asked by one task to reverse it
-([0007](0007-corrections-and-integrity.md) §8).
+([reversals and corrections](0007-corrections-and-integrity.md), section 4).
 
 ### 3.2 Loans
 
@@ -116,10 +117,10 @@ current unbroken stint's start as `employment_started_on`, for statutes that cou
 
 An exit is read from the chain: a sealed version that ends with no successor of the same jurisdiction lineage. No
 separate record holds it. The contract's write raises the `exit` event when a save makes it true (or moves or cancels
-it); encashment and exit duties listen to that event and key their work by the employment, so a repeat is a no-op.
+it); the law's exit duties are effects on that event, and the write schedules `ledger`, which starts `encashment`. Each keys its work by the exit (`exit:<contract id>:<last day>`), so a repeat is a no-op.
 A moved or cancelled exit is followed by one routine for every jurisdiction (`src/lib/dependants.ts`): it waives the
 open tasks of the exit that no longer stands and settles its cash-out and loan
-([0007](0007-corrections-and-integrity.md) §8).
+([reversals and corrections](0007-corrections-and-integrity.md), section 4).
 The save that ends the version, or moves its end, states its exit answers with it: `exit_ground`, and the exit keys of
 `employee_extension_data` the version did not hold (Indonesia's `termination_cause`).
 

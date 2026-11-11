@@ -11,8 +11,7 @@
 			}
 		],
 		"subtotal_id": "04159d7b-522f-5878-9520-c890443d8cdc",
-		"eligibility": "// js\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.amount;",
+		"eligibility": "return true;",
 		"id": "29d504c4-7c98-5778-acbc-7c519365d85d",
 		"settings_id": "84c29e3a-8ac4-5674-b16d-f6ae2f938464",
 		"description": "Welfare loan recovered from pay."

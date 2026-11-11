@@ -880,7 +880,6 @@
 			"constants": {
 				"ordinary_ceiling": 7400,
 				"annual_ceiling": 102000,
-				"weekly_limit": 2500,
 				"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
 				"max_months": 12
 			}

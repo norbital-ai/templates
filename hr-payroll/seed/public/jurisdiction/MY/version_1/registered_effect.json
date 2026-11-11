@@ -17,10 +17,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nreturn ctx.after != null;",
+		"condition": "return ctx.after != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:encash-leave-on-exit:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Encash unused leave on exit',\n\tdue_on: get(r, 'final_pay_due_on', get(r, 'effective_range.to', r.effective_range.from)),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:encash-leave-on-exit:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Encash unused leave on exit',\n\tdue_on: get(r, 'final_pay_due_on', get(r, 'effective_range.to', r.effective_range.from)),\n\toccurrence_key: key\n}];",
 		"id": "ca762b56-ea69-5308-9a5d-010670550069",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -65,10 +65,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_MONTHLY_CONTRIBUTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit EPF contributions',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:EPF_MONTHLY_CONTRIBUTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit EPF contributions',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "02a6d300-f24f-5147-ae62-9bd3e3699c71",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -98,10 +98,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_MONTHLY_CONTRIBUTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit SOCSO and EIS contributions',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_MONTHLY_CONTRIBUTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit SOCSO and EIS contributions',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "00d39826-3b0b-5c96-a463-be8ded38c81b",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -136,10 +136,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:HRD_LEVY_MONTHLY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit the HRD levy',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:HRD_LEVY_MONTHLY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit the HRD levy',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "2dca4744-6b55-5068-b0ec-e000b9de7f2b",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -178,10 +178,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PCB_REMITTANCE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit PCB withholding',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PCB_REMITTANCE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit PCB withholding',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "441acc64-a7d8-5bc5-8ac8-08d270a24a22",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -203,10 +203,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:encash-leave-at-window-end:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Encash leave at the leave-year end',\n\tdue_on: add_years(r.effective_range.from, 1),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:encash-leave-at-window-end:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Encash leave at the leave-year end',\n\tdue_on: add_years(r.effective_range.from, 1),\n\toccurrence_key: key\n}];",
 		"id": "4506b719-47ef-58c2-bf74-af7d75a1a22f",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -238,10 +238,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:WAGE_PAYMENT_DEADLINE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Pay wages by the statutory deadline',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:WAGE_PAYMENT_DEADLINE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Pay wages by the statutory deadline',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "faaa0905-e701-555e-8d66-83be9313233a",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -274,10 +274,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
+		"condition": "const r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EA_FORM:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Issue Form EA',\n\tdue_on: month_end(add_months(r.salary_coverage.from, 1)),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:EA_FORM:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Issue Form EA',\n\tdue_on: month_end(add_months(r.salary_coverage.from, 1)),\n\toccurrence_key: key\n}];",
 		"id": "605bcc19-f428-58b6-afd9-0c8f5bdc83b2",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -313,10 +313,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
+		"condition": "const r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FORM_E_CP8D:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'File Form E and CP8D',\n\tdue_on: month_end(add_months(r.salary_coverage.from, ctx.lookup.offset_months)),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:FORM_E_CP8D:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'File Form E and CP8D',\n\tdue_on: month_end(add_months(r.salary_coverage.from, ctx.lookup.offset_months)),\n\toccurrence_key: key\n}];",
 		"id": "eec33cbc-85ea-51f7-bd9d-8f8218ae9239",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -345,10 +345,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '12';",
+		"condition": "const r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PUBLIC_HOLIDAY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish next year\\'s public holidays',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PUBLIC_HOLIDAY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish next year\\'s public holidays',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
 		"id": "e3e3ae7a-5bda-5ee0-92a0-c9981bb723c2",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -376,10 +376,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:TERMS_PARTICULARS_ISSUE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue written particulars of employment',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:TERMS_PARTICULARS_ISSUE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue written particulars of employment',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
 		"id": "2024b8c4-c9bc-579e-b28c-096d7f580299",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -419,10 +419,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYEE_REGISTRATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Register the employee with EPF',\n\tdue_on: add_days(month_end(r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYEE_REGISTRATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Register the employee with EPF',\n\tdue_on: add_days(month_end(r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "200014b7-9ca2-528e-99da-0bc12a6bfafd",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -458,10 +458,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYEE_REGISTRATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Register the employee with SOCSO and EIS',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYEE_REGISTRATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Register the employee with SOCSO and EIS',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "dae40bde-b883-5f36-9ff7-298406db187b",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -497,10 +497,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP22_NEW_EMPLOYEE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify LHDN of a new employee (CP22)',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:CP22_NEW_EMPLOYEE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify LHDN of a new employee (CP22)',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "5fb7303e-624d-58ab-904b-a1da1856a9fd",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -532,10 +532,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_EMPLOYEE_PARTICULARS:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Report foreign employee particulars',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_EMPLOYEE_PARTICULARS:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Report foreign employee particulars',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "ddbd7a5d-2582-5e6a-84c6-465f9e6b1eb5",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -571,10 +571,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nreturn ctx.after != null;",
+		"condition": "return ctx.after != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP22A_CESSATION_AND_WITHHOLDING:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify LHDN of a cessation and withholding (CP22A)',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:CP22A_CESSATION_AND_WITHHOLDING:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify LHDN of a cessation and withholding (CP22A)',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
 		"id": "58bcd6a9-e8a0-584b-b572-770f2f4b25ce",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -610,10 +610,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.kind !== 'OVERSEAS_DEPARTURE_NOTICE') return false;\nif (get(r, 'closed_on', null) != null) return false;\nreturn get(r, 'scheduled_on', null) != null;",
+		"condition": "const r = ctx.entry;\nif (r.kind !== 'OVERSEAS_DEPARTURE_NOTICE') return false;\nif (get(r, 'closed_on', null) != null) return false;\nreturn get(r, 'scheduled_on', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP21_LEAVING_MALAYSIA:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify LHDN before an employee leaves Malaysia (CP21)',\n\tdue_on: add_days(get(r, 'scheduled_on', r.opened_on), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:CP21_LEAVING_MALAYSIA:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify LHDN before an employee leaves Malaysia (CP21)',\n\tdue_on: add_days(get(r, 'scheduled_on', r.opened_on), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
 		"id": "a989bfd6-b0e2-5fd4-86e8-d17bf4764dc9",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -645,10 +645,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nreturn ctx.after != null;",
+		"condition": "return ctx.after != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:TERMINATION_BENEFITS_FINAL_WAGES:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay final wages on termination',\n\tdue_on: get(r, 'final_pay_due_on', add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days)),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:TERMINATION_BENEFITS_FINAL_WAGES:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay final wages on termination',\n\tdue_on: get(r, 'final_pay_due_on', add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days)),\n\toccurrence_key: key\n}];",
 		"id": "c6b364d9-276a-5aec-bdc3-edaf62a7b8bb",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -690,10 +690,10 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (ctx.after == null) return false;\nconst held = first(get(ctx, 'reads.employee_contract', [])) ?? r;\nconst ground = get(held, 'exit_ground', get(held, 'employee_extension_data.exit_ground', ''));\nif (['RESIGNATION', 'RETIREMENT', 'EMPLOYEE_RETIREMENT', 'MISCONDUCT_DISMISSAL', 'TRANSFER', 'TRANSFER_TO_SUBSIDIARY'].includes(ground)) return false;\nif (get(held, 'employee_extension_data.misconduct_dismissal', false) === true) return false;\nconst started = get(held, 'service_started_on', r.effective_range.from);\nreturn calendar_completed_months(started, add_days(r.effective_range.to, 1)) >= ctx.lookup.service_months;",
+		"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nconst held = first(get(ctx, 'reads.employee_contract', [])) ?? r;\nconst ground = get(held, 'exit_ground', get(held, 'employee_extension_data.exit_ground', ''));\nif (['RESIGNATION', 'RETIREMENT', 'EMPLOYEE_RETIREMENT', 'MISCONDUCT_DISMISSAL', 'TRANSFER', 'TRANSFER_TO_SUBSIDIARY'].includes(ground)) return false;\nif (get(held, 'employee_extension_data.misconduct_dismissal', false) === true) return false;\nconst started = get(held, 'service_started_on', r.effective_range.from);\nreturn calendar_completed_months(started, add_days(r.effective_range.to, 1)) >= ctx.lookup.service_months;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:TERMINATION_BENEFIT_PAYMENT:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay statutory termination benefits',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:TERMINATION_BENEFIT_PAYMENT:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay statutory termination benefits',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "f0f65106-3e89-5059-b59c-66a2ef974c46",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -725,10 +725,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (ctx.after == null) return false;\nreturn get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nreturn get(r.terms, 'residency_status', '') === 'FOREIGNER';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_EMPLOYEE_TERMINATION_NOTICE:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the authorities of a foreign employee\\'s termination',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_EMPLOYEE_TERMINATION_NOTICE:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the authorities of a foreign employee\\'s termination',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "f601260d-d4ae-5558-a6d7-059ad591dbac",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -769,10 +769,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (ctx.after == null) return false;\nreturn (get(r, 'exit_ground', null) ?? get(r, 'employee_extension_data.exit_ground', '')) === 'RETRENCHMENT';",
+		"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nreturn (get(r, 'exit_ground', null) ?? get(r, 'employee_extension_data.exit_ground', '')) === 'RETRENCHMENT';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst action = get(r, 'effective_range.to', r.effective_range.from);\nconst due = add_days(action, -ctx.lookup.advance_notice_days);\nconst held = get(ctx, 'reads.obligation', []);\nconst pkKey = 'MY:RETRENCHMENT_NOTIFICATION:' + r.entity_id + ':' + action;\nconst foreignKey = 'MY:RETRENCHMENT_FOREIGN_FIRST:' + r.entity_id + ':' + action;\nconst pk = held.some((o) => o.occurrence_key === pkKey)\n\t? []\n\t: [{\n\t\tentity_id: r.entity_id,\n\t\ttitle: 'Notify the Labour Department of retrenchment (Form PK) effective ' + action,\n\t\tdue_on: due,\n\t\toccurrence_key: pkKey\n\t}];\nconst foreign = held.some((o) => o.occurrence_key === foreignKey)\n\t? []\n\t: [{\n\t\tentity_id: r.entity_id,\n\t\ttitle: 'Confirm all foreign employees in a similar capacity were terminated before local employees (EA s.60N; s.60O excludes permanent residents)',\n\t\tdue_on: due,\n\t\toccurrence_key: foreignKey\n\t}];\nreturn pk.concat(foreign);",
+		"effects": "const r = ctx.entry;\nconst action = get(r, 'effective_range.to', r.effective_range.from);\nconst due = add_days(action, -ctx.lookup.advance_notice_days);\nconst held = get(ctx, 'reads.obligation', []);\nconst pkKey = 'MY:RETRENCHMENT_NOTIFICATION:' + r.entity_id + ':' + action;\nconst foreignKey = 'MY:RETRENCHMENT_FOREIGN_FIRST:' + r.entity_id + ':' + action;\nconst pk = held.some((o) => o.occurrence_key === pkKey)\n\t? []\n\t: [{\n\t\tentity_id: r.entity_id,\n\t\ttitle: 'Notify the Labour Department of retrenchment (Form PK) effective ' + action,\n\t\tdue_on: due,\n\t\toccurrence_key: pkKey\n\t}];\nconst foreign = held.some((o) => o.occurrence_key === foreignKey)\n\t? []\n\t: [{\n\t\tentity_id: r.entity_id,\n\t\ttitle: 'Confirm all foreign employees in a similar capacity were terminated before local employees (EA s.60N; s.60O excludes permanent residents)',\n\t\tdue_on: due,\n\t\toccurrence_key: foreignKey\n\t}];\nreturn pk.concat(foreign);",
 		"id": "801c2709-5054-57b2-9068-bd2513b399eb",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -800,10 +800,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_LEVY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay the foreign worker levy',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_LEVY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay the foreign worker levy',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
 		"id": "43a4cb25-db56-5281-9543-10d1770724ab",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -847,10 +847,10 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'epf_registered_on', null) == null;",
+		"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'epf_registered_on', null) == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: \"Confirm the employer's EPF registration\",\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: \"Confirm the employer's EPF registration\",\n\toccurrence_key: key\n}];",
 		"id": "79a8d6f9-1dd7-5a13-bbae-cc31cb341ccd",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -889,10 +889,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst facts = get(r, 'entity_extension_data', {});\nif (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return false;\nif (['COMPULSORY', 'OPTIONAL', 'DEREGISTERED'].includes(get(facts, 'hrd_registration_class', ''))) return false;\nconst liabilityOn = get(facts, 'hrd_registration_liability_on', null);\nreturn get(facts, 'hrd_registration_class', '') === 'NOT_REGISTERED' && typeof liabilityOn === 'string' && liabilityOn !== '';",
+		"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst facts = get(r, 'entity_extension_data', {});\nif (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return false;\nif (['COMPULSORY', 'OPTIONAL', 'DEREGISTERED'].includes(get(facts, 'hrd_registration_class', ''))) return false;\nconst liabilityOn = get(facts, 'hrd_registration_liability_on', null);\nreturn get(facts, 'hrd_registration_class', '') === 'NOT_REGISTERED' && typeof liabilityOn === 'string' && liabilityOn !== '';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:HRD_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with HRD Corp',\n\tdue_on: add_days(get(r.entity_extension_data, 'hrd_registration_liability_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:HRD_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with HRD Corp',\n\tdue_on: add_days(get(r.entity_extension_data, 'hrd_registration_liability_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "014ecc4d-f061-52c9-93ae-de6845aec6b2",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -921,10 +921,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:REST_DAY_ROSTER:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish the rest-day roster',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:REST_DAY_ROSTER:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish the rest-day roster',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
 		"id": "0faba507-8b50-5290-89ab-e976f0d8bd18",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -953,10 +953,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:OVERTIME_REST_HOLIDAY_WAGES_DEADLINE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Pay overtime and rest-day wages',\n\tdue_on: month_end(add_months(r.salary_coverage.from, 1)),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:OVERTIME_REST_HOLIDAY_WAGES_DEADLINE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Pay overtime and rest-day wages',\n\tdue_on: month_end(add_months(r.salary_coverage.from, 1)),\n\toccurrence_key: key\n}];",
 		"id": "0c92e802-e770-5916-a950-47be10e7eb32",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -993,10 +993,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'WORKPLACE_ACCIDENT';",
+		"condition": "const r = ctx.entry;\nreturn r.kind === 'WORKPLACE_ACCIDENT';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_ACCIDENT_REPORT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Report a workplace accident to SOCSO',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:SOCSO_ACCIDENT_REPORT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Report a workplace accident to SOCSO',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "7c8d474b-18d7-5438-b658-b05c086630d8",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1045,10 +1045,10 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'socso_registered_on', null) == null;",
+		"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'socso_registered_on', null) == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: \"Confirm the employer's SOCSO and EIS registration\",\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: \"Confirm the employer's SOCSO and EIS registration\",\n\toccurrence_key: key\n}];",
 		"id": "f38a159a-1646-5d65-a684-83f10390a833",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1079,10 +1079,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PERKESO_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify PERKESO of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PERKESO_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify PERKESO of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "41b31574-8ea7-5b22-bd81-42b5fbc93e1c",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1112,10 +1112,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify EPF of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:EPF_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify EPF of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "379c9c99-debf-5c5f-a359-dd464f7df72c",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1146,10 +1146,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:HRD_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify HRD Corp of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:HRD_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify HRD Corp of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "a4c2918a-bca5-5d95-8575-90d916970e48",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1178,10 +1178,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (ctx.after == null) return false;\nreturn get(r.employee_extension_data, 'pregnant_or_pregnancy_illness', false) === true;",
+		"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nreturn get(r.employee_extension_data, 'pregnant_or_pregnancy_illness', false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:MATERNITY_PROTECTION_REVIEW:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review maternity protection on an exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:MATERNITY_PROTECTION_REVIEW:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review maternity protection on an exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];",
 		"id": "17ebf429-29d8-597c-8fcc-c2f412807e7c",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1213,10 +1213,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (ctx.after == null) return false;\nconst exited = r.effective_range.to;\nif ((get(r, 'exit_ground', null) ?? get(r, 'employee_extension_data.exit_ground', '')) !== 'RETIREMENT') return false;\nconst born = get(r, 'payroll.date_of_birth', null);\nif (born == null) return false;\nreturn age_on(born, exited) < ctx.lookup.retirement_age;",
+		"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nconst exited = r.effective_range.to;\nif ((get(r, 'exit_ground', null) ?? get(r, 'employee_extension_data.exit_ground', '')) !== 'RETIREMENT') return false;\nconst born = get(r, 'payroll.date_of_birth', null);\nif (born == null) return false;\nreturn age_on(born, exited) < ctx.lookup.retirement_age;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:RETIREMENT_AGE_REVIEW:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review retirement age on an exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:RETIREMENT_AGE_REVIEW:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review retirement age on an exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];",
 		"id": "a4fd7721-9986-5560-8a86-1f80074ccd4a",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1247,10 +1247,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'FLEXIBLE_WORKING_REQUEST' && get(r, 'closed_on', null) == null;",
+		"condition": "const r = ctx.entry;\nreturn r.kind === 'FLEXIBLE_WORKING_REQUEST' && get(r, 'closed_on', null) == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FLEXIBLE_WORKING_REPLY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Reply to a flexible working request',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:FLEXIBLE_WORKING_REPLY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Reply to a flexible working request',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "45337d7f-2880-5992-bf43-29fc6dfc6296",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1279,10 +1279,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_NOTICE:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish the sexual harassment notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_NOTICE:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish the sexual harassment notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
 		"id": "3da4f5f3-9107-5fbb-84ac-a60250634802",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1314,10 +1314,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EMPLOYEE_REGISTER:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Update the employee register',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:EMPLOYEE_REGISTER:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Update the employee register',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
 		"id": "d689c56e-de43-556d-be5f-88dfa4f132a2",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1347,10 +1347,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PAYSLIP_ISSUE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Issue payslips',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PAYSLIP_ISSUE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Issue payslips',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "34a640a0-1c1b-5dc4-8372-577b5e145c8f",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1379,10 +1379,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
+		"condition": "const r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:TAX_RECORDS_RETENTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Retain tax records',\n\tdue_on: month_end(r.salary_coverage.from),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:TAX_RECORDS_RETENTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Retain tax records',\n\tdue_on: month_end(r.salary_coverage.from),\n\toccurrence_key: key\n}];",
 		"id": "bad3a7c8-9df3-5882-a7ea-01b6af19121b",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1409,10 +1409,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.employee_extension_data, 'employer_provided_accommodation', false) === true;",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.employee_extension_data, 'employer_provided_accommodation', false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:WORKERS_ACCOMMODATION_CERTIFICATE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Obtain a workers\\' accommodation certificate',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:WORKERS_ACCOMMODATION_CERTIFICATE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Obtain a workers\\' accommodation certificate',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
 		"id": "4b69e724-2532-579a-afcc-c604b45b925e",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1436,17 +1436,17 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "'MY:WORK_PASS_RENEWAL:' + ctx.entry.id + ':' + get(ctx.entry, 'work_pass_valid_until', '')"
+							"var": "'MY:WORK_PASS_RENEWAL:' + ctx.entry.id + ':' + get(ctx.entry, 'terms.work_authorisation_expires_on', '')"
 						}
 					}
 				},
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'terms.residency_status', '') !== 'FOREIGNER') return false;\nreturn get(r, 'work_pass_valid_until', null) != null;",
+		"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'terms.residency_status', '') !== 'FOREIGNER') return false;\nreturn get(r, 'terms.work_authorisation_expires_on', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst expires = get(r, 'work_pass_valid_until', '');\nconst key = 'MY:WORK_PASS_RENEWAL:' + r.id + ':' + expires;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Start work pass renewal (pass expires ' + expires + ')',\n\tdue_on: add_days(expires, -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst expires = get(r, 'terms.work_authorisation_expires_on', '');\nconst key = 'MY:WORK_PASS_RENEWAL:' + r.id + ':' + expires;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Start work pass renewal (pass expires ' + expires + ')',\n\tdue_on: add_days(expires, -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
 		"id": "d5dd2b07-48c5-5d5e-ad35-c92c7564c503",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1483,10 +1483,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nreturn ctx.after != null;",
+		"condition": "return ctx.after != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PERSONAL_DATA_DISPOSAL:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Dispose of personal data',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, ctx.lookup.retention_years),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PERSONAL_DATA_DISPOSAL:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Dispose of personal data',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, ctx.lookup.retention_years),\n\toccurrence_key: key\n}];",
 		"id": "865f497a-dca6-5ae0-87b1-966496a34841",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1518,10 +1518,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && r.engagement === 'PAYEE';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && r.engagement === 'PAYEE';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP58_AGENT_STATEMENT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue a CP58 statement to an agent',\n\tdue_on: add_years(r.effective_range.from.substring(0, 4) + ctx.lookup.annual_due, 1),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:CP58_AGENT_STATEMENT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue a CP58 statement to an agent',\n\tdue_on: add_years(r.effective_range.from.substring(0, 4) + ctx.lookup.annual_due, 1),\n\toccurrence_key: key\n}];",
 		"id": "46a2659d-e125-5b7e-bd78-8570874fb8ed",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1549,10 +1549,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_PRIVACY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Give the PDPA privacy notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PDPA_PRIVACY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Give the PDPA privacy notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
 		"id": "d94d0997-ac76-54c1-95c7-5757ff319fd3",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1582,10 +1582,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'pdpa_dpo_required', false) === true;",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'pdpa_dpo_required', false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_DPO_APPOINTMENT:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Appoint and register a data protection officer',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PDPA_DPO_APPOINTMENT:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Appoint and register a data protection officer',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "b7ba2ded-ca9a-5444-a6a1-f0bfa5e93538",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1615,10 +1615,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'PERSONAL_DATA_BREACH';",
+		"condition": "const r = ctx.entry;\nreturn r.kind === 'PERSONAL_DATA_BREACH';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_BREACH_COMMISSIONER_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify the Commissioner of a personal data breach',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PDPA_BREACH_COMMISSIONER_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify the Commissioner of a personal data breach',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "ca1db5c6-5b28-52c5-91ae-28d332e37745",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1648,10 +1648,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.kind !== 'PERSONAL_DATA_BREACH') return false;\nif (get(r.inputs, 'significant_harm', false) !== true) return false;\nreturn get(r.inputs, 'commissioner_notified_on', null) != null;",
+		"condition": "const r = ctx.entry;\nif (r.kind !== 'PERSONAL_DATA_BREACH') return false;\nif (get(r.inputs, 'significant_harm', false) !== true) return false;\nreturn get(r.inputs, 'commissioner_notified_on', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_BREACH_DATA_SUBJECT_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify employees of a personal data breach',\n\tdue_on: add_days(get(r.inputs, 'commissioner_notified_on', r.opened_on), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:PDPA_BREACH_DATA_SUBJECT_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify employees of a personal data breach',\n\tdue_on: add_days(get(r.inputs, 'commissioner_notified_on', r.opened_on), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "d60b3f4d-4a6f-5f83-be60-5bb07ebb5947",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1682,10 +1682,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT';",
+		"condition": "const r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_INQUIRY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Inquire into a sexual harassment complaint',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_INQUIRY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Inquire into a sexual harassment complaint',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "fc7578bd-444e-5430-a448-780f08a78442",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1716,10 +1716,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT' && get(r.inputs, 'dg_directed_on', null) != null;",
+		"condition": "const r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT' && get(r.inputs, 'dg_directed_on', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_DG_INQUIRY_REPORT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Report a Director General-directed inquiry',\n\tdue_on: add_days(get(r.inputs, 'dg_directed_on', r.opened_on), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_DG_INQUIRY_REPORT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Report a Director General-directed inquiry',\n\tdue_on: add_days(get(r.inputs, 'dg_directed_on', r.opened_on), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "ead88766-f8a0-5548-ba82-f779d582a63f",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1747,10 +1747,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT' && get(r.inputs, 'inquiry_outcome', '') === 'PROVEN';",
+		"condition": "const r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT' && get(r.inputs, 'inquiry_outcome', '') === 'PROVEN';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_FINDING_ACTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Act on a proven sexual harassment finding',\n\tdue_on: get(r, 'scheduled_on', r.opened_on),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_FINDING_ACTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Act on a proven sexual harassment finding',\n\tdue_on: get(r, 'scheduled_on', r.opened_on),\n\toccurrence_key: key\n}];",
 		"id": "1c3cd6e4-7deb-59dc-af80-bd16699244e6",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1781,10 +1781,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.terms, 'statutory_work_category', '') === 'DOMESTIC';",
+		"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.terms, 'statutory_work_category', '') === 'DOMESTIC';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a foreign domestic employee',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a foreign domestic employee',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "04d88825-d7ce-55bb-93b8-bec02a320dff",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1815,10 +1815,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (ctx.after == null) return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.terms, 'statutory_work_category', '') === 'DOMESTIC';",
+		"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.terms, 'statutory_work_category', '') === 'DOMESTIC';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_TERMINATION_NOTICE:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a domestic employee\\'s termination',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_TERMINATION_NOTICE:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a domestic employee\\'s termination',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "404e223c-8253-5ac6-9a7b-c4a8e2916626",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1849,10 +1849,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (ctx.after == null) return false;\nreturn r.engagement === 'PAYEE';",
+		"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nreturn r.engagement === 'PAYEE';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP58_AGENT_STATEMENT_ON_EXIT:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue a CP58 statement on an agent\\'s exit',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, 1),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:CP58_AGENT_STATEMENT_ON_EXIT:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue a CP58 statement on an agent\\'s exit',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, 1),\n\toccurrence_key: key\n}];",
 		"id": "303625da-1c8d-53f1-8aa5-2bf72f43c9e8",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1883,10 +1883,10 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_MEDICAL_EXAMINATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Send a new foreign worker for a FOMEMA examination',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_MEDICAL_EXAMINATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Send a new foreign worker for a FOMEMA examination',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "1d5ca85b-1db2-503a-9d62-c807fb4e278f",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
@@ -1921,10 +1921,10 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
+		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['MY', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
+		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['MY', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
 		"references": [
 			{
 				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."

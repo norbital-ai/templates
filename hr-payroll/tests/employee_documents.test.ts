@@ -1,8 +1,10 @@
 // A person's documents sit on their profile, not on the sealed contract: HR or the person uploads them, the kiosk never
-// sees them, and no one else may touch them.
+// sees them, and no one else may touch them. An employee reaches their own records only: a colleague's are not theirs
+// to read, so a write that names one is refused before any policy check runs.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
+import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import {
@@ -49,40 +51,108 @@ describe("a profile's documents", () => {
 			const [stored] = (yield* t.storedQuery({ employee_profile: { limit: 1 } })).employee_profile
 				.rows;
 			assert.equal(stored?.documents?.length, 1);
-			yield* Effect.flip(
-				t
-					.as(t.member(['employee']))
-					.act('employee_profile.update', [{ target: PROFILE, set: { documents: [] } }])
+			assert.match(
+				String(
+					yield* Effect.flip(
+						t
+							.as(t.member(['employee']))
+							.act('employee_profile.update', [{ target: PROFILE, set: { documents: [] } }])
+					)
+				),
+				/The record does not exist/
 			);
-			const kiosk = yield* t
-				.as(t.member(['kiosk']))
-				.query({ employee_profile: { output: 'kiosk', limit: 1 } });
+			const device = t.as(t.member(['kiosk']));
+			const kiosk = yield* device.query({ employee_profile: { output: 'kiosk', limit: 1 } });
 			assert.equal(kiosk.employee_profile.rows[0]?.name, 'Worker');
 			assert.ok(!('documents' in (kiosk.employee_profile.rows[0] ?? {})));
+			// the kiosk enrols a face and nothing else: it cannot suspend one, and the enrolment itself passes
+			const enrol = (face_enrollment_status: 'APPROVED' | 'SUSPENDED') =>
+				device.act('employee_profile.update', [
+					{ target: PROFILE, set: { face_enrollment_status } }
+				]);
+			assert.match(
+				String(yield* Effect.flip(enrol('SUSPENDED'))),
+				/A kiosk enrols or refreshes a face; it never undoes an approval/
+			);
+			assert.equal((yield* enrol('APPROVED')).kind, 'committed');
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
 
 describe('a person asking for leave', () => {
-	it.live('files a request for review, and reaches no other employment', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* syncAll(t);
-			const request = {
-				entity_id: ENTITY,
-				employment_id: idOf('employee_contract', uuid(6)),
-				catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
-				days: wholeDays('2026-11-03')
-			};
-			const held = yield* t
-				.as(t.member(['employee'], { id: uuid(3) }))
-				.act('leave_catalog_entry.create', [leaveCreate(request)]);
-			assert.equal(held.kind, 'pendingApproval');
-			const refused = yield* Effect.flip(
-				t.as(t.member(['employee'])).act('leave_catalog_entry.create', [leaveCreate(request)])
-			);
-			assert.match(String(refused), /No readable entity/);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	// a colleague of the same company, with a login, a profile and an employment of their own
+	const colleagues = {
+		...seed,
+		sys_user: [
+			...(seed.sys_user ?? []),
+			{ id: uuid(50), name: 'Colleague', email: 'colleague@example.test', kind: 'staff' }
+		],
+		employee_profile: [
+			...(seed.employee_profile ?? []),
+			{ id: uuid(51), user_id: uuid(50), name: 'Colleague' }
+		],
+		employee_contract: [
+			...(seed.employee_contract ?? []),
+			...(seed.employee_contract ?? []).map((row) => ({
+				...row,
+				id: uuid(52),
+				employee_id: uuid(51),
+				employee_number: 'W2'
+			}))
+		]
+	};
+	it.live(
+		'files a leave request and a claim for review on their own employment; a colleague can file neither, nor edit the claim',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				const mine = { entity_id: ENTITY, employment_id: idOf('employee_contract', uuid(6)) };
+				const leave = leaveCreate({
+					...mine,
+					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
+					days: wholeDays('2026-11-03')
+				});
+				const claim = {
+					...mine,
+					catalog_id: idOf('claim_catalog', catalogRow(seed, 'claim_catalog', 'MEDICAL_CLAIM')),
+					quantity: 80,
+					incurred_on: PlainDate('2026-11-03')
+				};
+				const me = t.as(t.member(['employee'], { id: uuid(3) }));
+				const other = t.as(t.member(['employee'], { id: uuid(50) }));
+				const refusal = <A, E>(effect: Effect.Effect<A, E>) =>
+					Effect.flip(effect).pipe(Effect.map(String));
+				// the colleague reads the company, never my employment: the link itself is refused
+				const UNREADABLE = /No readable employee_contract has this id/;
+				assert.match(yield* refusal(other.act('leave_catalog_entry.create', [leave])), UNREADABLE);
+				assert.match(yield* refusal(other.act('claim_catalog_entry.create', [claim])), UNREADABLE);
+				assert.equal(
+					(yield* me.act('leave_catalog_entry.create', [leave])).kind,
+					'pendingApproval'
+				);
+				const asked = yield* me.act('claim_catalog_entry.create', [claim]);
+				assert.ok(asked.kind === 'pendingApproval');
+				const [mineClaim] = asked.records;
+				assert.ok(mineClaim !== undefined);
+				assert.match(
+					yield* refusal(
+						other.act('claim_catalog_entry.update', [
+							{ target: idOf('claim_catalog_entry', mineClaim.id), set: { quantity: 800 } }
+						])
+					),
+					/The record does not exist/
+				);
+				const stored = yield* t.storedQuery({
+					leave_catalog_entry: { limit: 10 },
+					claim_catalog_entry: { limit: 10 }
+				});
+				assert.equal(stored.leave_catalog_entry.rows.length, 1);
+				assert.deepEqual(
+					stored.claim_catalog_entry.rows.map((row) => row.quantity?.toNumber()),
+					[80]
+				);
+			}).pipe(Effect.provide(workspace({ seed: colleagues, now: NOW })))
 	);
 	const reviewed = {
 		...seed,

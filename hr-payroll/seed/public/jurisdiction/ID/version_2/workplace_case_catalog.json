@@ -61,7 +61,7 @@
 		],
 		"id": "df9b0a1c-e801-5ca3-814e-14c7f30b1651",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "PERSONAL_DATA_CONSENT_WITHDRAWAL: Case with its declared events and workflow inputs."
+		"description": "An employee withdraws consent to the processing of personal data; the employer must stop the processing (UU 27/2022 art.40)."
 	},
 	{
 		"code": "PERSONAL_DATA_RESTRICTION_REQUEST",
@@ -77,7 +77,7 @@
 		],
 		"id": "75f9d525-1661-534b-b572-240c469dca74",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "PERSONAL_DATA_RESTRICTION_REQUEST: Case with its declared events and workflow inputs."
+		"description": "An employee asks for the processing of personal data to be delayed or restricted (UU 27/2022 art.41)."
 	},
 	{
 		"code": "WORKER_HEALTH_EXAMINATION_COMPLETED",
@@ -93,7 +93,7 @@
 		],
 		"id": "9d056dd6-7f54-59bf-9d20-5f75e4cfec0e",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "WORKER_HEALTH_EXAMINATION_COMPLETED: Case with its declared events and workflow inputs."
+		"description": "Records that a worker's periodic health examination was carried out (Permenakertrans PER.02/MEN/1980)."
 	},
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",

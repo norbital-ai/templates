@@ -83,23 +83,18 @@ export default model('holiday', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'holiday', ids: rows.map((row) => row.id) },
+				'holiday',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'holiday', ids: changes.map(({ after }) => after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'holiday', changes);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
-				{ collection: 'holiday', ids: rows.map((row) => row.id) },
+				'holiday',
 				rows.map((before) => ({ before }))
 			);
 		}

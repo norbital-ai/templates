@@ -1,4 +1,5 @@
 import { addMonths } from '@norbital-ai/std/date';
+import type { EffectCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import type { JsonObject } from './payroll_engine/foundation.js';
 import { queryAllRows, type Reader } from './payroll_engine/reads.js';
@@ -17,12 +18,12 @@ import {
  * What the ledger must always be, checked from outside its service. Hard findings: a balance figure that is not the sum
  * of its ledger rows (`H1`), a ledger source that still holds something and no longer exists (`H3`), an entry sealed
  * by a run that has no payslip for its person (`H6`), an open exit task on a contract that is no exit or whose last day
- * moved (`H9`), an approved derived entry no run has taken whose fact no longer stands (`H10`). Watches: an entitlement
- * or what is left of it below zero (`W1`), a pending derived request whose fact no longer stands (`W2`: HR rejects it).
+ * moved (`H9`), an approved derived entry no run has taken whose fact no longer stands (`H10`). A watch: an entitlement
+ * or what is left of it below zero (`W1`).
  * It reads and reports; it repairs nothing.
  */
 export type Finding = {
-	readonly invariant: 'H1' | 'H3' | 'H6' | 'H9' | 'H10' | 'W1' | 'W2';
+	readonly invariant: 'H1' | 'H3' | 'H6' | 'H9' | 'H10' | 'W1';
 	readonly subject: string;
 	readonly message: string;
 	readonly employee_id?: string;
@@ -182,15 +183,8 @@ export const findings = (rows: Workspace, today: string): readonly Finding[] => 
 		if (stands(entry.occurrence_key, exits)) continue;
 		const employee_id = person.get(String(entry.employment_id));
 		const subject = `leave_catalog_entry:${String(entry.id)}`;
-		if (entry.$approval != null)
-			found.push({
-				invariant: 'W2',
-				subject,
-				...(employee_id === undefined ? {} : { employee_id }),
-				message:
-					'A cash-out request waits for approval and its exit was cancelled. Reject the request.'
-			});
-		else if (entry.payroll_run_id == null)
+		// one still waiting is the routine's to withdraw on its pass
+		if (entry.$approval == null && entry.payroll_run_id == null)
 			found.push({
 				invariant: 'H10',
 				subject,
@@ -256,4 +250,48 @@ export const verify = Effect.fn('integrity.verify')(function* (read: Reader, tod
 		1_000_000
 	);
 	return findings(rows, today);
+});
+
+/**
+ * The check, run at the end of the ledger's whole pass: one task per finding, keyed `integrity:<invariant>:<subject>`.
+ * A finding with an open task raises nothing; one that comes back after its task was closed raises a dated one. It
+ * writes nothing else and repairs nothing.
+ */
+export const raiseFindings = Effect.fn('integrity.raiseFindings')(function* (
+	ctx: Pick<EffectCtx, 'act' | 'query' | 'today'>
+) {
+	const today = String(ctx.today);
+	const found = yield* verify(ctx.query, today);
+	if (found.length === 0) return;
+	const { entity: entities = [], obligation: raised = [] } = yield* queryAllRows(ctx.query, {
+		entity: { fields: ['id'], limit: 1 },
+		obligation: {
+			where: { occurrence_key: { like: 'integrity:%' } },
+			fields: ['occurrence_key', 'state'],
+			limit: 10000
+		}
+	});
+	const [entity] = entities;
+	if (entity === undefined) return;
+	const taken = new Set(raised.map((row) => String(row.occurrence_key)));
+	const open = new Set(
+		raised
+			.filter((row) => row.state === 'OPEN')
+			.map((row) => String(row.occurrence_key).split('@')[0])
+	);
+	const due = found.flatMap((finding) => {
+		const base = `integrity:${finding.invariant}:${finding.subject}`;
+		const occurrence_key = taken.has(base) ? `${base}@${today}` : base;
+		return open.has(base) || taken.has(occurrence_key)
+			? []
+			: [
+					{
+						entity_id: String(entity.id),
+						...(finding.employee_id === undefined ? {} : { employee_id: finding.employee_id }),
+						title: `Ledger check: ${finding.message}`,
+						occurrence_key
+					}
+				];
+	});
+	if (due.length > 0) yield* ctx.act.checked([{ callable: 'obligation.create', input: due }]);
 });

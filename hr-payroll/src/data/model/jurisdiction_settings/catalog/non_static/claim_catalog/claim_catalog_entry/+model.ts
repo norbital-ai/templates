@@ -116,20 +116,19 @@ export default model('claim_catalog_entry', {
 
 	effect: {
 		created: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				{ collection: 'claim_catalog_entry', ids: rows.map((row) => row.id) },
-				rows.map((after) => ({ after }))
-			);
+			// under the system identity: the writer may be an employee, who cannot read the law
+			yield* ctx.schedule('registered_effects', {
+				collection: 'claim_catalog_entry',
+				operation: 'create',
+				ids: rows.map((row) => String(row.id))
+			});
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'claim_catalog_entry', ids: changes.map((change) => change.after.id) },
-				changes
-			);
+			yield* ctx.schedule('registered_effects', {
+				collection: 'claim_catalog_entry',
+				operation: 'update',
+				ids: changes.map((change) => String(change.after.id))
+			});
 		}
 	}
 });

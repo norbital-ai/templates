@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { leftOn, type Accounts } from '../src/lib/ledger/core.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { decimal } from '../src/lib/payroll_engine/money.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
@@ -48,6 +49,21 @@ const seedOf = (from: string, account: Accounts = {}, on = '2026-11-06'): Seed =
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account }))
 	};
 };
+/** The fixture row's own lookup: what the law in force grants is read from it, never typed here. */
+const lookupOf = (seed: Seed, code: string) => {
+	const id = catalogRow(seed, 'leave_catalog', code);
+	return objectValue((seed.leave_catalog ?? []).find((row) => row.id === id)?.lookup);
+};
+/** The days the row's service bands give someone with this many completed months. */
+const band = (seed: Seed, code: string, months: number) => {
+	const days = Schema.decodeUnknownSync(
+		Schema.Array(Schema.Struct({ service_months: Schema.Number, days: Schema.Number }))
+	)(lookupOf(seed, code).service_bands).findLast((item) => item.service_months <= months)?.days;
+	assert.ok(days !== undefined);
+	return days;
+};
+/** Completed months of the fixture's service on 1 January 2026, the day its windows opened: joined 2023-01-01. */
+const SERVED = 36;
 const entitled = (t: Kit, code: string, employee?: string) =>
 	accountsIn(t, employee).pipe(
 		Effect.map((accounts) => measureOf(accounts, 'leave', code, 'entitled'))
@@ -72,9 +88,12 @@ describe('run by hand', () => {
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* compute(t);
-				assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 18);
-				assert.equal(yield* entitled(t, 'HOSPITALIZATION_LEAVE'), 60);
-				assert.equal(yield* entitled(t, 'ANNUAL_LEAVE'), 12);
+				assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band(seed, 'MEDICAL_LEAVE', SERVED));
+				assert.equal(
+					yield* entitled(t, 'HOSPITALIZATION_LEAVE'),
+					lookupOf(seed, 'HOSPITALIZATION_LEAVE').grant_days
+				);
+				assert.equal(yield* entitled(t, 'ANNUAL_LEAVE'), band(seed, 'ANNUAL_LEAVE', SERVED));
 				const { leave = {} } = yield* accountsIn(t);
 				assert.equal(leave['UNPAID_LEAVE'], undefined);
 				assert.equal(leave['MATERNITY_LEAVE'], undefined);
@@ -110,7 +129,8 @@ describe('run by hand', () => {
 			yield* t.runDue();
 			yield* compute(t);
 			const accounts = yield* accountsIn(t);
-			assert.equal(measureOf(accounts, 'leave', 'MEDICAL_LEAVE', 'entitled'), 18);
+			const owed = band(seed, 'MEDICAL_LEAVE', SERVED);
+			assert.equal(measureOf(accounts, 'leave', 'MEDICAL_LEAVE', 'entitled'), owed);
 			assert.equal(measureOf(accounts, 'leave', 'MEDICAL_LEAVE', 'used'), 1);
 			assert.equal(
 				leftOn(
@@ -121,7 +141,7 @@ describe('run by hand', () => {
 					{ scope: 'MY', started: '2023-01-01', events: [] },
 					'2026-11-06'
 				),
-				17
+				owed - 1
 			);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
@@ -143,6 +163,7 @@ describe('run by hand', () => {
 	});
 
 	it.live('a window held from before stands, and carries what it left', () => {
+		// the fixture's own closed window: 12 granted, 5 taken
 		const held = seedOf('2023-01-01', {
 			leave: { ANNUAL_LEAVE: { 'MY.S.2025-01-01': { entitled: 12, used: 5 } } }
 		});
@@ -170,9 +191,10 @@ describe('run by hand', () => {
 			yield* compute(t);
 			assert.deepEqual((yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'], {
 				'MY.S.2025-01-01': { entitled: 12, used: 5 },
-				'MY.S.2026-01-01': { entitled: 12, carried: 7 }
+				// what the window left, 12 − 5, carries: the fixture row carries its grant in full
+				'MY.S.2026-01-01': { entitled: band(seed, 'ANNUAL_LEAVE', SERVED), carried: 12 - 5 }
 			});
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 18);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band(seed, 'MEDICAL_LEAVE', SERVED));
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -210,13 +232,14 @@ describe('run for one person', () => {
 				.start('ledger', { employees: [person] })
 				.pipe(Effect.andThen(t.runDue()));
 			yield* start;
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', uuid(4)), 18);
+			const owed = band(seed, 'MEDICAL_LEAVE', SERVED);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', uuid(4)), owed);
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', OTHER), 0);
 			const once = (yield* ledgerRows(t)).length;
 			yield* start;
 			assert.equal((yield* ledgerRows(t)).length, once);
 			yield* compute(t);
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', OTHER), 18);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', OTHER), owed);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -238,7 +261,7 @@ describe('a contract change', () => {
 				.as(t.admin)
 				.act('employee_contract.update', [{ target: CONTRACT, set: { reason: 'Terms reviewed' } }]);
 			yield* t.runDue();
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 18);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band(seed, 'MEDICAL_LEAVE', SERVED));
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -281,19 +304,23 @@ describe('the events that call it', () => {
 				{ target: contract.id, set: { status: 'SEALED' } }
 			]);
 			yield* t.runDue();
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', person.id), 14);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', person.id), band(seed, 'MEDICAL_LEAVE', 0));
 			assert.equal(yield* entitled(t, 'UNPAID_LEAVE', person.id), 0);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 
 	it.live('a paid run picks up a band reached since', () => {
 		const seed = seedOf('2024-10-15');
+		// 23 completed months on 1 October, 24 once the run for October is paid: the fixture row's next band
+		const before = band(seed, 'MEDICAL_LEAVE', 23);
+		const after = band(seed, 'MEDICAL_LEAVE', 24);
+		assert.notEqual(before, after);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.admin);
 			t.clock.set('2026-10-01T02:00:00.000Z');
 			yield* compute(t);
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 14);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), before);
 			t.clock.set(NOW);
 			yield* admin.act('payroll_run.create', [
 				{ entity_id: ENTITY, period: '2026-10', kind: 'ON_CYCLE' }
@@ -303,13 +330,15 @@ describe('the events that call it', () => {
 			assert.ok(run !== undefined);
 			yield* admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
 			yield* t.runDue();
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 18);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), after);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-10-01T02:00:00.000Z' })));
 	});
 
 	it.live('1 January opens a new key, and the old window stays', () => {
 		// the one 1 January inside the law the template holds is 2026's
 		const seed = seedOf('2023-01-01', {}, '2025-12-06');
+		// two completed years on 1 January 2025, three on the next
+		const [last, next] = [band(seed, 'MEDICAL_LEAVE', 24), band(seed, 'MEDICAL_LEAVE', 36)];
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
@@ -319,15 +348,15 @@ describe('the events that call it', () => {
 			yield* compute(t);
 			const held = (yield* accountsIn(t)).leave?.['MEDICAL_LEAVE'];
 			assert.deepEqual(held, {
-				'MY.Y.2025-01-01': { entitled: 18, used: 1 },
-				'MY.Y.2026-01-01': { entitled: 18 }
+				'MY.Y.2025-01-01': { entitled: last, used: 1 },
+				'MY.Y.2026-01-01': { entitled: next }
 			});
 			const movement = (yield* ledgerRows(t)).find(
 				(row) => row.code === 'MEDICAL_LEAVE' && row.period === 'MY.Y.2026-01-01'
 			);
 			assert.equal(movement?.operation, 'ADD');
 			assert.equal(movement?.measure, 'entitled');
-			assert.equal(movement?.amount?.toNumber(), 18);
+			assert.equal(movement?.amount?.toNumber(), next);
 		}).pipe(Effect.provide(workspace({ seed, now: '2025-12-06T02:00:00.000Z' })));
 	});
 });
@@ -393,25 +422,35 @@ describe('posting', () => {
 				assert.equal(entry.created_by, member.id);
 				assert.equal(posted.created_by, member.id);
 				assert.equal(balance.updated_by, member.id);
-				assert.equal(
-					yield* Effect.isFailure(
-						hr.act('employee_balance.update', [{ target: balance.id, set: { account: {} } }])
+				// no grant on the balance; and the ledger takes from HR only a manual adjustment's own shape
+				assert.match(
+					String(
+						yield* Effect.flip(
+							hr.act('employee_balance.update', [{ target: balance.id, set: { account: {} } }])
+						)
 					),
-					true
+					/You may not update/
 				);
-				assert.equal(
-					yield* Effect.isFailure(
-						hr.act('ledger_entry.create', [
-							{
-								balance_id: balance.id,
-								operation: 'ADD',
-								account: 'leave',
-								code: 'MEDICAL_LEAVE',
-								effective_on: PlainDate('2026-11-03')
-							}
-						])
+				assert.match(
+					String(
+						yield* Effect.flip(
+							hr.act('ledger_entry.create', [
+								{
+									balance_id: balance.id,
+									operation: 'ADD',
+									account: 'leave',
+									code: 'MEDICAL_LEAVE',
+									period: posted.period,
+									measure: 'used',
+									amount: decimal(1),
+									unit: 'DAY',
+									effective_on: PlainDate('2026-11-03'),
+									source: 'by hand'
+								}
+							])
+						)
 					),
-					true
+					/Its period and source are worked out, never typed/
 				);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);

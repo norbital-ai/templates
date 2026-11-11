@@ -45,6 +45,53 @@
 		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'DEDUCT')
 	);
 	const employer = $derived(breakdown.lines.filter((line) => line.party === 'EMPLOYER'));
+
+	// What each line is, in the words of the catalogue row that posted it under the payslip's own law version. An
+	// employee reads five of the seven families; a family the reader cannot see leaves its lines by code.
+	const inLaw = $derived(
+		record === null
+			? null
+			: ({
+					where: { settings_id: { eq: record.settings_id } },
+					fields: ['code', 'description'],
+					limit: 10000
+				} as const)
+	);
+	const entryFamilies = $derived(
+		inLaw === null
+			? null
+			: bolt.query({
+					allowance_catalog: inLaw,
+					leave_catalog: inLaw,
+					claim_catalog: inLaw,
+					adhoc_catalog: inLaw,
+					loan_catalog: inLaw
+				})
+	);
+	const lawFamilies = $derived(
+		inLaw === null
+			? null
+			: bolt.query({ overtime_catalog: inLaw, statutory_contribution_catalog: inLaw })
+	);
+	const descriptions = $derived(
+		new Map(
+			Object.entries({ ...entryFamilies?.current, ...lawFamilies?.current }).flatMap(
+				([family, page]) =>
+					page.rows.flatMap((row) =>
+						typeof row.description === 'string' && row.description.trim() !== ''
+							? [[`${family}:${row.code}`, row.description] as const]
+							: []
+					)
+			)
+		)
+	);
+	/** A line's catalogue family: an entry (or a loan repayment) belongs to the catalogue it was raised on. */
+	const describe = (line: (typeof breakdown.lines)[number]) =>
+		descriptions.get(`${line.source.replace(/_entry(_repayment)?$/, '')}:${line.code}`);
+	const measure = (line: (typeof breakdown.lines)[number]) =>
+		line.quantity === undefined || line.unit === undefined || line.unit === 'MONEY'
+			? ''
+			: `${new Intl.NumberFormat(bolt.locale, { maximumFractionDigits: 4 }).format(line.quantity)} ${line.unit.toLowerCase()}`;
 </script>
 
 {#snippet list(title: string, lines: typeof breakdown.lines)}
@@ -52,8 +99,19 @@
 			<h3 class="text-xs font-medium text-muted-foreground">{title}</h3>
 			<ul class="mt-1 divide-y">
 				{#each lines as line (line.code + line.subtotal_id + line.amount)}
-					<li class="flex items-center justify-between gap-3 py-1.5 text-sm">
-						<span class="truncate">{line.label}</span>
+					{@const description = describe(line)}
+					<li class="flex items-start justify-between gap-3 py-1.5 text-sm">
+						<span class="min-w-0">
+							<span class="block">{description ?? line.label}</span>
+							{#if description !== undefined || measure(line) !== ''}
+								<span class="block text-xs text-muted-foreground">
+									{#if description !== undefined}<span class="font-mono">{line.label}</span
+										>{/if}{#if description !== undefined && measure(line) !== ''}
+										·
+									{/if}{measure(line)}
+								</span>
+							{/if}
+						</span>
 						<span class="shrink-0 tabular-nums">{money(line.amount)}</span>
 					</li>
 				{/each}

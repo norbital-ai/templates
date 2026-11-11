@@ -646,19 +646,35 @@ describe('linear payroll engine', () => {
 			statutoryOrder([a, b]).map((row) => row.code),
 			['B', 'A']
 		);
-		assert.throws(() =>
-			statutoryOrder([
-				catalog('a', 'A', { depends_on: ['B'] }),
-				catalog('b', 'B', { depends_on: ['A'] })
-			])
+		assert.throws(
+			() =>
+				statutoryOrder([
+					catalog('a', 'A', { depends_on: ['B'] }),
+					catalog('b', 'B', { depends_on: ['A'] })
+				]),
+			/statutory dependency cycle/
 		);
-		assert.throws(() => statutoryOrder([catalog('a', 'A', { depends_on: ['MISSING'] })]));
+		assert.throws(
+			() => statutoryOrder([catalog('a', 'A', { depends_on: ['MISSING'] })]),
+			/MISSING: unknown statutory dependency/
+		);
 	});
 
 	it('rejects branched or cyclic subtotal chains', () => {
-		assert.throws(() =>
-			subtotalChain([subtotal('a', 'A', null), subtotal('b', 'B', 'a'), subtotal('c', 'C', 'a')])
+		assert.throws(
+			() =>
+				subtotalChain([subtotal('a', 'A', null), subtotal('b', 'B', 'a'), subtotal('c', 'C', 'a')]),
+			/one linear chain, not a branch/
 		);
-		assert.throws(() => subtotalChain([subtotal('a', 'A', 'b'), subtotal('b', 'B', 'a')]));
+		assert.throws(
+			() => subtotalChain([subtotal('a', 'A', 'b'), subtotal('b', 'B', 'a')]),
+			/exactly one first checkpoint/
+		);
+		// a first checkpoint beside a closed loop: the walk from it never reaches the loop
+		assert.throws(
+			() =>
+				subtotalChain([subtotal('a', 'A', null), subtotal('b', 'B', 'c'), subtotal('c', 'C', 'b')]),
+			/Subtotal chain is disconnected/
+		);
 	});
 });

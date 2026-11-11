@@ -9,7 +9,6 @@
 		Field,
 		Icon,
 		RecordShell,
-		StructuredData,
 		Table,
 		Tabs,
 		Button,
@@ -21,6 +20,7 @@
 	} from '@norbital-ai/ui';
 	import { Stack, Cluster } from '@norbital-ai/ui/layout';
 	import BalanceAdjustment from '../../../lib/ui/person/balance_adjustment.svelte';
+	import BalanceLedger from '../../../lib/ui/person/balance_ledger.svelte';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
 	import { addDays, PlainDate } from '@norbital-ai/std/date';
@@ -31,7 +31,6 @@
 	let { view }: { view: RecordView<'employee_profile'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const t = bolt.t;
-	const JSON_KIND = { kind: 'json' } as const;
 	const caseName = listedKindNames('case_kinds');
 	let enrolling = $state(false),
 		adjusting = $state(false),
@@ -263,19 +262,9 @@
 				><Button variant="outline" disabled={held === undefined} onclick={() => (adjusting = true)}
 					><Icon name="lucide:pencil" class="size-4" />{t('balance.adjust')}</Button
 				></Cluster
-			><StructuredData
-				name="employee_balance_account"
-				mode="view"
-				frame={false}
-				kind={JSON_KIND}
-				value={held?.account ?? {}}
-			/>{#if held !== undefined}<Table
-					of="ledger_entry"
-					key="person-balance-adjustments"
-					where={{ balance_id: { eq: held.id }, source: { like: 'manual:%' } }}
-					orderBy={{ effective_on: 'desc' }}
-					toolbar={{ new: false, title: t('balance.adjustments') }}
-					columns={['effective_on', 'account', 'code', 'operation', 'amount', 'note', 'created_by']}
+			>{#if held !== undefined}<BalanceLedger
+					balanceId={held.id}
+					account={held.account}
 				/>{/if}</Stack
 		>{/if}{/snippet}
 {#snippet face()}{#if record}{@const faceStatus = record.face_enrollment_status ?? 'NONE'}<Cluster

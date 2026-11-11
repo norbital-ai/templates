@@ -12,7 +12,7 @@
 			}
 		],
 		"lookup": {},
-		"description": "Dental claim."
+		"description": "Reimburses a dental treatment bill to the employee with net pay, at the amount entered. An employer benefit; no statute requires it."
 	},
 	{
 		"code": "MEDICAL_CLAIM_DIRECT",

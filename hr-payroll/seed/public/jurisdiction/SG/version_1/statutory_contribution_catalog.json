@@ -6,8 +6,8 @@
 		"subtotal_id": "27355b74-3c91-5803-8906-2ac9922c7275",
 		"lookup": {},
 		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\tget(ctx.subject.employment.terms, 'residency_status', '')\n);",
-		"employee_amount": "// js\nreturn 0;",
-		"employer_amount": "// js\n// CPF Act First Schedule: additional wages attract CPF up to the AW ceiling, the annual limit less the year's OW that attracted CPF, each month's OW at its own ceiling.\n// CPF Board: at each AW payment estimate the year's OW from this month's; in the last month of the year or of the employment settle on the actual OW.\nconst terms = ctx.subject.employment.terms;\nconst from = ctx.run.salary_coverage.from;\nconst year = String(from).slice(0, 4);\nconst held = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', from)).slice(0, 7);\nconst heldIn = (paid, code) => (Object.hasOwn(held, paid + '.' + code) ? Number(held[paid + '.' + code]) : 0);\nconst wholeMonth =\n\tString(from) === String(month_start(from)) && String(ctx.run.salary_coverage.to) === String(month_end(from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn(paidMonth, 'BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(paidMonth, code));\nconst earlierOrdinary = before('ORDINARY_WAGES');\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)) + earlierOrdinary,\n\tctx.lookup.ordinary_ceiling\n);\n// Ahead of the month's salary an off-cycle run sits on last month's OW, or the contract's before any is paid.\nconst lastOrdinary = heldIn(String(add_months(paidMonth + '-01', -1)).slice(0, 7), 'ORDINARY_WAGES');\nconst under =\n\tget(ctx.run, 'kind', '') === 'OFF_CYCLE' && ordinary === 0\n\t\t? Math.min(lastOrdinary > 0 ? lastOrdinary : ctx.month_wage, ctx.lookup.ordinary_ceiling)\n\t\t: 0;\nconst monthAdditional =\n\tMath.max(0, before('ADDITIONAL_WAGES') - earlierOrdinary) +\n\tMath.max(\n\t\t0,\n\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) -\n\t\t\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0))\n\t);\nconst leaving = String(get(ctx.subject.employment, 'effective_range.to', ''));\nconst last = leaving.slice(0, 4) === year ? Number(leaving.slice(5, 7)) : 12;\nconst month = Number(String(from).slice(5, 7));\nconst earlier = (suffix) =>\n\tObject.keys(held).filter(\n\t\t(code) => code.startsWith(year + '-') && code.endsWith(suffix) && !code.startsWith(paidMonth + '.')\n\t);\nconst ordinaryBefore = earlier('.ORDINARY_WAGES').reduce(\n\t(total, code) => total + Math.min(Number(held[code]), ctx.lookup.ordinary_ceiling),\n\t0\n);\nconst attracted = earlier('.CPF_AW.employer').reduce((total, code) => total + Number(held[code]), 0);\nconst paidEarlier = earlier('.ADDITIONAL_WAGES').reduce(\n\t(total, code) => total + Math.max(0, Number(held[code]) - heldIn(code.slice(0, 7), 'ORDINARY_WAGES')),\n\t0\n);\nconst room = Math.max(\n\t0,\n\tctx.lookup.annual_ceiling - ordinaryBefore - (ordinary + under) * Math.max(1, last - month + 1) - attracted\n);\nconst pending = month === last ? paidEarlier - attracted + monthAdditional : monthAdditional;\nreturn Math.max(0, Math.min(pending, room) - before('CPF_AW.employer'));",
+		"employee_amount": "return 0;",
+		"employer_amount": "// CPF Act First Schedule: additional wages attract CPF up to the AW ceiling, the annual limit less the year's OW that attracted CPF, each month's OW at its own ceiling.\n// CPF Board: at each AW payment estimate the year's OW from this month's; in the last month of the year or of the employment settle on the actual OW.\nconst terms = ctx.subject.employment.terms;\nconst from = ctx.run.salary_coverage.from;\nconst year = String(from).slice(0, 4);\nconst held = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', from)).slice(0, 7);\nconst heldIn = (paid, code) => (Object.hasOwn(held, paid + '.' + code) ? Number(held[paid + '.' + code]) : 0);\nconst wholeMonth =\n\tString(from) === String(month_start(from)) && String(ctx.run.salary_coverage.to) === String(month_end(from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn(paidMonth, 'BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(paidMonth, code));\nconst earlierOrdinary = before('ORDINARY_WAGES');\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)) + earlierOrdinary,\n\tctx.lookup.ordinary_ceiling\n);\n// Ahead of the month's salary an off-cycle run sits on last month's OW, or the contract's before any is paid.\nconst lastOrdinary = heldIn(String(add_months(paidMonth + '-01', -1)).slice(0, 7), 'ORDINARY_WAGES');\nconst under =\n\tget(ctx.run, 'kind', '') === 'OFF_CYCLE' && ordinary === 0\n\t\t? Math.min(lastOrdinary > 0 ? lastOrdinary : ctx.month_wage, ctx.lookup.ordinary_ceiling)\n\t\t: 0;\nconst monthAdditional =\n\tMath.max(0, before('ADDITIONAL_WAGES') - earlierOrdinary) +\n\tMath.max(\n\t\t0,\n\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) -\n\t\t\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0))\n\t);\nconst leaving = String(get(ctx.subject.employment, 'effective_range.to', ''));\nconst last = leaving.slice(0, 4) === year ? Number(leaving.slice(5, 7)) : 12;\nconst month = Number(String(from).slice(5, 7));\nconst earlier = (suffix) =>\n\tObject.keys(held).filter(\n\t\t(code) => code.startsWith(year + '-') && code.endsWith(suffix) && !code.startsWith(paidMonth + '.')\n\t);\nconst ordinaryBefore = earlier('.ORDINARY_WAGES').reduce(\n\t(total, code) => total + Math.min(Number(held[code]), ctx.lookup.ordinary_ceiling),\n\t0\n);\nconst attracted = earlier('.CPF_AW.employer').reduce((total, code) => total + Number(held[code]), 0);\nconst paidEarlier = earlier('.ADDITIONAL_WAGES').reduce(\n\t(total, code) => total + Math.max(0, Number(held[code]) - heldIn(code.slice(0, 7), 'ORDINARY_WAGES')),\n\t0\n);\nconst room = Math.max(\n\t0,\n\tctx.lookup.annual_ceiling - ordinaryBefore - (ordinary + under) * Math.max(1, last - month + 1) - attracted\n);\nconst pending = month === last ? paidEarlier - attracted + monthAdditional : monthAdditional;\nreturn Math.max(0, Math.min(pending, room) - before('CPF_AW.employer'));",
 		"references": [
 			{
 				"title": "CPF Board: Additional Wage ceiling; estimate the year's Ordinary Wages at each AW payment and revise on the actual Ordinary Wages at the year end or when the employee leaves."
@@ -17,7 +17,7 @@
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "MONTH",
-		"description": "CPF_AW: Employee and employer contribution for the pay period."
+		"description": "A record of the additional wages (bonuses and other irregular pay) that attracted CPF, kept for the yearly Additional Wage ceiling. It deducts nothing and pays nothing."
 	},
 	{
 		"code": "CPF",
@@ -60,7 +60,7 @@
 		"id": "09054023-0e26-5b3a-8bb5-89f5c30eeaa5",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"balance_window": "MONTH",
-		"description": "CPF: Employee and employer contribution for the pay period."
+		"description": "Central Provident Fund contribution for citizens and permanent residents, by age band and years of permanent residence: on ordinary wages up to $7,400 a month and on additional wages up to the yearly ceiling (CPF Act 1953 s.7 and First Schedule)."
 	},
 	{
 		"code": "CDAC",
@@ -114,7 +114,7 @@
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "MONTH",
-		"description": "CDAC: Employee and employer contribution for the pay period."
+		"description": "Monthly contribution to the Chinese Development Assistance Council fund, deducted from the employee by the band of the month's total wages. The employer pays nothing."
 	},
 	{
 		"code": "ECF",
@@ -184,7 +184,7 @@
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "MONTH",
-		"description": "ECF: Employee and employer contribution for the pay period."
+		"description": "Monthly contribution to the Eurasian Community Fund, deducted from the employee by the band of the month's total wages. The employer pays nothing."
 	},
 	{
 		"code": "MBMF",
@@ -243,7 +243,7 @@
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "MONTH",
-		"description": "MBMF: Employee and employer contribution for the pay period."
+		"description": "Monthly contribution to the Mosque Building and Mendaki Fund, deducted from the employee by the band of the month's total wages. The employer pays nothing."
 	},
 	{
 		"code": "SINDA",
@@ -340,7 +340,7 @@
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "MONTH",
-		"description": "SINDA: Employee and employer contribution for the pay period."
+		"description": "Monthly contribution to the Singapore Indian Development Association fund, deducted from the employee by the band of the month's total wages. The employer pays nothing."
 	},
 	{
 		"code": "SDL",
@@ -382,7 +382,7 @@
 		"id": "32a71a87-f529-59c0-b35c-27dab48a2394",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"balance_window": "MONTH",
-		"description": "SDL: Employee and employer contribution for the pay period."
+		"description": "Skills Development Levy, paid by the employer only: 0.25% of the month's total wages, at least $2 and at most $11.25 for each employee (Skills Development Levy Act 1979)."
 	},
 	{
 		"code": "WHT_NR_DIRECTOR",
@@ -407,7 +407,7 @@
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "YEAR",
-		"description": "WHT_NR_DIRECTOR: Employee and employer contribution for the pay period."
+		"description": "Withholding tax of 24% on director's fees paid to a non-resident director (Income Tax Act 1947 s.45)."
 	},
 	{
 		"code": "WHT_NR_ENTERTAINER",
@@ -432,6 +432,6 @@
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "YEAR",
-		"description": "WHT_NR_ENTERTAINER: Employee and employer contribution for the pay period."
+		"description": "Withholding tax of 15% on the gross income of a non-resident public entertainer (Income Tax Act 1947 s.45)."
 	}
 ]

@@ -83,6 +83,20 @@ export default model('ledger_entry', {
 	effect: {
 		created: function* (rows, ctx) {
 			yield* syncLate(ctx, rows.map(jsonObject));
+			// an entry that waited for approval has now posted: the law's effects on it are due
+			for (const collection of ['leave_catalog_entry', 'claim_catalog_entry']) {
+				const ids = [
+					...new Set(
+						rows.flatMap((row) =>
+							row.source?.startsWith(`${collection}:`)
+								? [row.source.slice(collection.length + 1)]
+								: []
+						)
+					)
+				];
+				if (ids.length > 0)
+					yield* ctx.schedule('registered_effects', { collection, operation: 'create', ids });
+			}
 		}
 	}
 });

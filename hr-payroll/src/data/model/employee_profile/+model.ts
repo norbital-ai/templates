@@ -81,8 +81,6 @@ export default model('employee_profile', {
 			kind: 'instant',
 			optional: true
 		},
-		face_match_count: { kind: 'int', min: 0, default: 0 },
-		face_last_match_at: { kind: 'instant', optional: true },
 		invitation_id: {
 			kind: 'ref',
 			to: 'sys_invitation',
@@ -112,9 +110,7 @@ export default model('employee_profile', {
 					'face_embedding',
 					'face_photo',
 					'face_enrollment_status',
-					'face_enrolled_at',
-					'face_match_count',
-					'face_last_match_at'
+					'face_enrolled_at'
 				]
 			}
 		}
@@ -135,8 +131,6 @@ export default model('employee_profile', {
 				'face_enrollment_status',
 				'face_consent_at',
 				'face_enrolled_at',
-				'face_match_count',
-				'face_last_match_at',
 				'invitation_id',
 				'user_id'
 			]
@@ -147,7 +141,9 @@ export default model('employee_profile', {
 				!ctx.policies.includes('invitation_profile_automation') &&
 				rows.some((row) => row.user_id != null || row.invitation_id != null)
 			)
-				return yield* ctx.refuse('Only an accepted invitation links a profile to a login.');
+				return yield* ctx.refuse(
+					'Only an accepted invitation links a profile to a login. Create the profile without a login; it is linked when the person accepts their invitation.'
+				);
 			return rows;
 		}
 	},
@@ -167,22 +163,20 @@ export default model('employee_profile', {
 				'face_enrollment_status',
 				'face_consent_at',
 				'face_enrolled_at',
-				'face_match_count',
-				'face_last_match_at',
 				'invitation_id',
 				'user_id'
 			]
 		}
 	},
-	// The jurisdiction's registered effects for this model's writes, started as the writer.
+	// The jurisdiction's registered effects for this model's writes.
 	effect: {
 		created: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				{ collection: 'employee_profile', ids: rows.map((row) => row.id) },
-				rows.map((after) => ({ after }))
-			);
+			// under the system identity: the invitation automation makes profiles and cannot read the law
+			yield* ctx.schedule('registered_effects', {
+				collection: 'employee_profile',
+				operation: 'create',
+				ids: rows.map((row) => String(row.id))
+			});
 		},
 		updated: function* (changes, ctx) {
 			// how service counts moves every service window and band: the person's entitlements sync again
@@ -194,19 +188,13 @@ export default model('employee_profile', {
 			// s.113 register particulars only: email, phone, user_id, face, documents and location are not
 			// register changes, so they do not raise EMPLOYEE_REGISTER_UPDATE.
 			const register = registerChanged(changes);
-			if (register.length > 0)
-				yield* tap(
-					ctx,
-					'update',
-					{ collection: 'employee_profile', ids: register.map(({ after }) => after.id) },
-					register
-				);
+			if (register.length > 0) yield* tap(ctx, 'update', 'employee_profile', register);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
-				{ collection: 'employee_profile', ids: rows.map((row) => row.id) },
+				'employee_profile',
 				rows.map((before) => ({ before }))
 			);
 		}

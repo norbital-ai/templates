@@ -51,7 +51,7 @@
 		"id": "fb7b18cf-0654-57d2-b95f-dc2c859af0d4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"balance_window": "MONTH",
-		"description": "SSS: Employee and employer contribution for the pay period."
+		"description": "Social Security System contribution on the monthly salary credit (the month's pay rounded to the nearest ₱500, from ₱5,000 to ₱35,000): employee 5% and employer 10% on the first ₱20,000 of the credit (RA 11199)."
 	},
 	{
 		"code": "SSS_MPF",
@@ -106,7 +106,7 @@
 		"id": "77b9e570-8245-503d-b0b5-242a235a95a2",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"balance_window": "MONTH",
-		"description": "SSS_MPF: Employee and employer contribution for the pay period."
+		"description": "SSS Mandatory Provident Fund: the SSS rates, employee 5% and employer 10%, on the part of the monthly salary credit above ₱20,000 (RA 11199 s.4(a)(2))."
 	},
 	{
 		"code": "SSS_EC",
@@ -166,7 +166,7 @@
 		"id": "082a25d9-b437-5b97-8b86-a5c6b72dbe2a",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"balance_window": "MONTH",
-		"description": "SSS_EC: Employee and employer contribution for the pay period."
+		"description": "Employees' Compensation contribution, paid by the employer only: ₱10 a month where the salary credit is below ₱15,000 and ₱30 otherwise (PD 626)."
 	},
 	{
 		"code": "PHIC",
@@ -220,7 +220,7 @@
 		"id": "af49b039-44b1-5211-aee7-1cc305f5cad2",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"balance_window": "YEAR",
-		"description": "PHIC: Employee and employer contribution for the pay period."
+		"description": "PhilHealth premium: 5% of the monthly basic salary, between ₱10,000 and ₱100,000, shared equally by the employee and the employer (RA 11223 s.10)."
 	},
 	{
 		"code": "HDMF",
@@ -280,7 +280,7 @@
 		"id": "d1c67697-4373-5d49-8cce-d8b5bed12602",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"balance_window": "MONTH",
-		"description": "HDMF: Employee and employer contribution for the pay period."
+		"description": "Pag-IBIG Fund contribution on the month's pay up to ₱10,000: the employee pays 2% (1% on pay of ₱1,500 or less) and the employer 2% (RA 9679 ss.6–7)."
 	},
 	{
 		"code": "WTAX_TAXABLE_PAY",
@@ -293,14 +293,14 @@
 		"kind": "TAX",
 		"depends_on": ["SSS", "SSS_MPF", "PHIC", "HDMF"],
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
-		"eligibility": "// js\nreturn get(ctx.run, 'kind', '') !== 'OFF_CYCLE';",
-		"employee_amount": "// js\nreturn 0;",
-		"employer_amount": "// js\nconst now = (code) => Number(get(ctx.subtotals, code, 0));\n// A correction entry that deducts a contribution counts with the run's own, as the tax row counts it.\nconst contributions = sum(['SSS', 'SSS_MPF', 'PHIC', 'HDMF'].map((code) => Number(get(ctx.statutory, code + '.employee', 0)) + Math.max(0, Number(get(ctx.corrections, code + '.employee', 0)))));\nreturn Math.max(\n\t0,\n\tnow('ORDINARY_WAGES') - now('DE_MINIMIS_DEPENDANT_MEDICAL') + now('TAXABLE_TERMINATION') - now('DE_MINIMIS_OT_MEAL') +\n\t\tnow('STATUTORY_WAGES') - contributions - now('FRINGE_BENEFIT') + now('UNION_DUES')\n);",
+		"eligibility": "return get(ctx.run, 'kind', '') !== 'OFF_CYCLE';",
+		"employee_amount": "return 0;",
+		"employer_amount": "const now = (code) => Number(get(ctx.subtotals, code, 0));\n// A correction entry that deducts a contribution counts with the run's own, as the tax row counts it.\nconst contributions = sum(['SSS', 'SSS_MPF', 'PHIC', 'HDMF'].map((code) => Number(get(ctx.statutory, code + '.employee', 0)) + Math.max(0, Number(get(ctx.corrections, code + '.employee', 0)))));\nreturn Math.max(\n\t0,\n\tnow('ORDINARY_WAGES') - now('DE_MINIMIS_DEPENDANT_MEDICAL') + now('TAXABLE_TERMINATION') - now('DE_MINIMIS_OT_MEAL') +\n\t\tnow('STATUTORY_WAGES') - contributions - now('FRINGE_BENEFIT') + now('UNION_DUES')\n);",
 		"id": "8d696f03-80fb-5668-b12c-37b25927f009",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "MONTH",
-		"description": "WTAX_TAXABLE_PAY: Employee and employer contribution for the pay period."
+		"description": "A record of the run's taxable regular pay, kept so that a later run in the same month taxes its pay on the right line of the withholding table. It deducts nothing and pays nothing (RR 11-2018 s.2.79(B)(3))."
 	},
 	{
 		"code": "WTAX",
@@ -547,7 +547,7 @@
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "MONTH",
-		"description": "WTAX: Employee and employer contribution for the pay period."
+		"description": "Income tax withheld on compensation: the withholding table for the pay period applied to taxable pay after the employee's SSS, PhilHealth and Pag-IBIG contributions, the tax-free small benefits and the ₱90,000 yearly limit on bonuses and other benefits; the year's tax is squared up at year end or on leaving (NIRC s.79; RR 11-2018)."
 	},
 	{
 		"code": "FBT",
@@ -580,6 +580,6 @@
 		"id": "ad706649-1da9-553f-b18b-c0797fc598ba",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"balance_window": "YEAR",
-		"description": "FBT: Employee and employer contribution for the pay period."
+		"description": "Fringe benefit tax on benefits given to managerial and supervisory employees, paid by the employer: 35% of the benefit's grossed-up value (the value ÷ 65%), or 25% for a special non-resident (NIRC s.33)."
 	}
 ]

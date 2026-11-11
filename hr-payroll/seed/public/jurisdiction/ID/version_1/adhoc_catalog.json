@@ -19,7 +19,7 @@
 				"effective_from": "2016-03-08"
 			}
 		],
-		"description": "BONUS_THR: Paid or deducted as an ad-hoc line."
+		"description": "A bonus paid with or on top of the religious holiday allowance, at the amount entered. It is irregular income for PPh 21 and is not part of the BPJS wage."
 	},
 	{
 		"code": "MEDICAL_ALLOWANCE",
@@ -41,7 +41,7 @@
 		"party": "EMPLOYEE",
 		"id": "b5930c10-c60a-5295-8618-c0e302cae12a",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "MEDICAL_ALLOWANCE: Paid or deducted as an ad-hoc line."
+		"description": "A medical allowance paid in money, at the amount entered. It is part of the month's wages (PP 36/2021 art.7)."
 	},
 	{
 		"code": "CLAWBACK_OVERTIME",
@@ -63,7 +63,7 @@
 				"effective_from": "2021-02-02"
 			}
 		],
-		"description": "CLAWBACK_OVERTIME: Paid or deducted as an ad-hoc line."
+		"description": "Recovers overtime pay that was overpaid, deducting the amount entered from net pay (PP 36/2021 arts.63 and 65)."
 	},
 	{
 		"code": "BACK_PAY_SALARY",
@@ -85,7 +85,7 @@
 				"effective_from": "2021-02-02"
 			}
 		],
-		"description": "BACK_PAY_SALARY: Paid or deducted as an ad-hoc line."
+		"description": "Salary owed for an earlier period and paid now, at the amount entered. It is taxed as income of the month it is paid."
 	},
 	{
 		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
@@ -107,7 +107,7 @@
 				"effective_from": "2018-09-18"
 			}
 		],
-		"description": "KESEHATAN_TERMINATION_MONTH_EMPLOYER: Paid or deducted as an ad-hoc line."
+		"description": "The employer's share of the BPJS Kesehatan contribution for a month still owed after the employment ends, at the amount entered. An employer cost; nothing is paid to the employee (Perpres 82/2018 art.30)."
 	},
 	{
 		"code": "DEDUCTION",
@@ -128,7 +128,7 @@
 		"party": "EMPLOYEE",
 		"id": "e7d51bcd-8ccd-563e-9cb9-d8c6de813710",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "DEDUCTION: Paid or deducted as an ad-hoc line."
+		"description": "A wage deduction such as a fine, damages, a wage advance, rent or a debt, as the employment agreement, company regulation or the worker's written consent allows: the amount entered, and no more than 50% of the wage (PP 36/2021 arts.63–65)."
 	},
 	{
 		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
@@ -150,7 +150,7 @@
 				"effective_from": "2018-09-18"
 			}
 		],
-		"description": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE: Paid or deducted as an ad-hoc line."
+		"description": "The employee's share of the BPJS Kesehatan contribution for a month still owed after the employment ends, deducted at the amount entered (Perpres 82/2018 art.30)."
 	},
 	{
 		"code": "RETROACTIVE_PAY",
@@ -172,7 +172,7 @@
 				"effective_from": "2021-02-02"
 			}
 		],
-		"description": "RETROACTIVE_PAY: Paid or deducted as an ad-hoc line."
+		"description": "A pay rise applied to earlier months and paid now, at the amount entered. It is taxed as income of the month it is paid."
 	},
 	{
 		"code": "COMPENSATION",
@@ -190,7 +190,7 @@
 		"party": "EMPLOYEE",
 		"id": "47378913-0c7c-5be1-aa97-472cd6ba8851",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "COMPENSATION: Paid or deducted as an ad-hoc line."
+		"description": "A cash compensation paid in connection with the employment, at the amount entered. It is taxed as irregular income for PPh 21 and is not part of the BPJS wage."
 	},
 	{
 		"code": "THR",
@@ -209,7 +209,7 @@
 		"party": "EMPLOYEE",
 		"id": "9c089997-de9f-55c2-9340-a7bae86cb7b3",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "THR: Paid or deducted as an ad-hoc line."
+		"description": "Religious holiday allowance (THR): one month's wage (basic plus fixed allowances) after 12 months' service, or service ÷ 12 of it below that, for a worker with at least one month's service (Permenaker 6/2016 arts.2–3)."
 	},
 	{
 		"code": "THR_HOLIDAY",
@@ -227,7 +227,7 @@
 		"party": "EMPLOYEE",
 		"id": "6568ca31-1f58-5080-9fb9-19f8d66ec35a",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "THR_HOLIDAY: Paid or deducted as an ad-hoc line."
+		"description": "Religious holiday allowance (THR) for the worker's own religious holiday, once a year: one month's wage after 12 months' service, pro rata below it, paid at the latest seven days before the holiday (Permenaker 6/2016 arts.2–5)."
 	},
 	{
 		"code": "PESANGON",
@@ -319,7 +319,7 @@
 		"party": "EMPLOYEE",
 		"id": "30216006-8472-5d3a-aed0-638fb7885317",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "PESANGON: Paid or deducted as an ad-hoc line."
+		"description": "Severance pay on termination: one month's wage (basic plus fixed allowances) for each year of service, up to nine, times the factor for the cause of termination (PP 35/2021 arts.40–57). A micro or small enterprise pays the agreed amount."
 	},
 	{
 		"code": "UPMK",
@@ -400,7 +400,7 @@
 		"party": "EMPLOYEE",
 		"id": "2eb00f09-ce5e-5fc1-8a19-4fec8dd9d568",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "UPMK: Paid or deducted as an ad-hoc line."
+		"description": "Long-service pay on termination: from two months' wage after three years of service up to ten months' after 24 years, for the causes that carry it (PP 35/2021 art.40(3)). A micro or small enterprise pays the agreed amount."
 	},
 	{
 		"code": "PKWT_COMPENSATION",
@@ -418,7 +418,7 @@
 		"party": "EMPLOYEE",
 		"id": "3f4a4c9f-353a-56f5-9e41-af8735bc970f",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "PKWT_COMPENSATION: Paid or deducted as an ad-hoc line."
+		"description": "Compensation when a fixed-term contract ends: one month's wage (basic plus fixed allowances) for every 12 months served, pro rata. Not for a foreign worker (PP 35/2021 arts.15–17)."
 	},
 	{
 		"code": "UANG_PISAH",
@@ -444,7 +444,7 @@
 		"party": "EMPLOYEE",
 		"id": "3afda09d-6028-57cb-a9e7-eeae3d879f9f",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "UANG_PISAH: Paid or deducted as an ad-hoc line."
+		"description": "Separation pay on the last day of employment, at the amount the employment agreement, company regulation or collective agreement states, for a resignation and the other causes that carry it (PP 35/2021 arts.49–52)."
 	},
 	{
 		"code": "PENSION_OFFSET",
@@ -462,7 +462,7 @@
 		"party": "EMPLOYEE",
 		"id": "2da53e24-ac37-50fe-a1ed-9e5545ee4502",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "PENSION_OFFSET: Paid or deducted as an ad-hoc line."
+		"description": "On the last day of employment, sets the employer-funded part of a pension benefit against severance and service pay, deducting the amount entered. Only where the employment agreement, company regulation or collective agreement provides it (PP 35/2021 art.58)."
 	},
 	{
 		"code": "UPH_TRAVEL_HOME",
@@ -480,7 +480,7 @@
 		"party": "EMPLOYEE",
 		"id": "bd2dcf04-71b7-5a9a-a4c7-c1c18b394a59",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "UPH_TRAVEL_HOME: Paid or deducted as an ad-hoc line."
+		"description": "On termination, the fare home for the worker and family to the place where the worker was taken on, at the cost entered (PP 35/2021 art.40(4)(b))."
 	},
 	{
 		"code": "LATE_WAGE_FINE",
@@ -505,7 +505,7 @@
 		"party": "EMPLOYEE",
 		"id": "4de3eb89-8d1a-5601-b3e7-8b37a6bbe964",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "LATE_WAGE_FINE: Paid or deducted as an ad-hoc line."
+		"description": "The fine owed to a worker for a late wage: from the 4th to the 8th day 5% of the wage due for each day, then 1% for each further day, at most 50% in the month (PP 36/2021 art.61)."
 	},
 	{
 		"code": "LATE_THR_FINE",
@@ -525,7 +525,7 @@
 		"party": "EMPLOYER",
 		"id": "512fb0eb-77f6-5ec8-ba49-f36adbb932f9",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "LATE_THR_FINE: Paid or deducted as an ad-hoc line."
+		"description": "The fine for paying the religious holiday allowance late: 5% of the allowance due, which is the amount entered. An employer cost used for the workers' welfare; the allowance itself stays due (PP 36/2021 art.62)."
 	},
 	{
 		"code": "DETENTION_FAMILY_AID",
@@ -551,7 +551,7 @@
 		"party": "EMPLOYEE",
 		"id": "a3f74361-ea5b-5845-bc95-a586be8b81fa",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "DETENTION_FAMILY_AID: Paid or deducted as an ad-hoc line."
+		"description": "Aid to the family of a worker detained by the authorities, who is not paid the wage: 25% of the monthly wage for one dependant, 35% for two, 45% for three and 50% for four or more (PP 35/2021 art.53)."
 	},
 	{
 		"code": "PENSION_LUMPSUM",
@@ -569,7 +569,7 @@
 		"party": "EMPLOYEE",
 		"id": "b651f00e-469a-5ff8-aa8a-c71f6fe1ad39",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "PENSION_LUMPSUM: Paid or deducted as an ad-hoc line."
+		"description": "A pension benefit, old-age savings or JHT paid at once, at the amount entered. It carries its own final PPh 21 and stays out of the monthly tax (PP 68/2009 art.5)."
 	},
 	{
 		"code": "NATURA",
@@ -587,7 +587,7 @@
 		"party": "EMPLOYEE",
 		"id": "f27ce0fc-65aa-5bbc-ac5b-34db25ecc970",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "NATURA: Paid or deducted as an ad-hoc line."
+		"description": "A benefit in kind given to the employee, entered at its value. It is taxable income of the month and no cash is paid, apart from the exempt kinds such as meals at the workplace and safety equipment (PMK 66/2023)."
 	},
 	{
 		"code": "COURT_GARNISHMENT",
@@ -608,7 +608,7 @@
 		"party": "EMPLOYEE",
 		"id": "6748079b-69da-50af-add8-a7264e5f09fa",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "COURT_GARNISHMENT: Paid or deducted as an ad-hoc line."
+		"description": "Deducts from net pay a seizure of wages under a court order: the amount entered, and no more than 20% of the wage (PP 36/2021 art.51)."
 	},
 	{
 		"code": "BANKRUPTCY_ESTATE",
@@ -629,7 +629,7 @@
 		"party": "EMPLOYEE",
 		"id": "ae715d92-a18d-5bd2-835d-96bfc75835a8",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "BANKRUPTCY_ESTATE: Paid or deducted as an ad-hoc line."
+		"description": "Deducts from net pay the part of a bankrupt worker's wage the judge assigns to the estate: the amount entered, and no more than 25% of the wage (PP 36/2021 art.50)."
 	},
 	{
 		"code": "NON_EMPLOYEE_FEE",
@@ -647,7 +647,7 @@
 		"party": "EMPLOYEE",
 		"id": "d44c20ee-b2c8-5403-b9b7-3b19a1da9077",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "NON_EMPLOYEE_FEE: Paid or deducted as an ad-hoc line."
+		"description": "A fee for services paid to an individual who is not an employee, at the amount entered, one entry for each payment. PPh 21 is charged on 50% of each payment (PMK 168/2023 art.12)."
 	},
 	{
 		"code": "PKWT_EARLY_TERMINATION",
@@ -666,7 +666,7 @@
 		"party": "EMPLOYEE",
 		"id": "5480b3a2-fe5d-546c-9ba6-5306cc36e8e5",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "PKWT_EARLY_TERMINATION: Paid or deducted as an ad-hoc line."
+		"description": "Damages the employer pays for ending a fixed-term contract before its term: the monthly wage for the time left to the end of the term (UU 13/2003 art.62)."
 	},
 	{
 		"code": "PKWT_EARLY_TERMINATION_BY_WORKER",
@@ -685,7 +685,7 @@
 		"party": "EMPLOYEE",
 		"id": "af6d1c0b-2776-5176-86d6-48c6b826d7e1",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "PKWT_EARLY_TERMINATION_BY_WORKER: Paid or deducted as an ad-hoc line."
+		"description": "Damages the worker owes for ending a fixed-term contract before its term: the monthly wage for the time left to the end of the term, deducted from the final pay (UU 13/2003 art.62)."
 	},
 	{
 		"code": "STATUTORY_ADJUSTMENT",
@@ -700,8 +700,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "fba4f59b-ce26-5487-b38c-8edb06e0eea4",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -718,8 +718,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "ad8321de-3fc6-5744-ac02-8ec28c3c6406",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -745,8 +745,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "4f46021a-928c-56b8-9d0d-5bb0fcc1edfe",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -772,8 +772,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "97ec1e3f-94e9-5008-a265-bc591ee4ed88",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -799,8 +799,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "04eb63e0-f396-5bef-ab3c-1a5cfc8a6031",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -826,8 +826,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "126824b9-50a9-5978-8db3-b5f80eda2d4d",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -853,8 +853,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "c40b0aea-31f9-56e5-9c67-49ef285a4d70",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -880,8 +880,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "DEDUCT",
 		"party": "EMPLOYER",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "d6464048-d464-5a7e-ae5e-41c5bf98c2c0",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -907,8 +907,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "ADD",
 		"party": "EMPLOYER",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "70afc344-f5e9-5a67-b61b-a1a7e2a6fa31",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -934,8 +934,8 @@
 		"subtotal_id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "184a7cdb-3f4f-50c9-8047-989b3c8ac8e9",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	}

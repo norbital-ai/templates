@@ -35,7 +35,7 @@
 				"quote": "The Act prescribes annual, sick, hospitalisation, maternity and paternity leave only; compassionate leave is a contractual grant, so its days and pay treatment follow the employer's terms."
 			}
 		],
-		"description": "COMPASSIONATE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Compassionate leave the employer grants, for example on a death in the family; a day taken is paid as a normal day. The Employment Act 1955 grants no compassionate leave, so the days are the employer's own."
 	},
 	{
 		"code": "MATERNITY_LEAVE",
@@ -55,7 +55,7 @@
 			"opened_by": {
 				"CHILD_BIRTH": {}
 			},
-			"entitlement": "// js\n// EA First Schedule para 2(5): Part IX does not apply to a domestic employee.\n// EA s.37(1)(a)(i): leave for each confinement, and a confinement before this employment is no leave from this employer.\nconst employment = ctx.subject.employment;\nconst rule = ctx.lookup.eligibility;\nconst on = ctx.event.on;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nif (on < started) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst events = get(employment, 'events', []).concat(get(employment, 'family', []).filter((child) => child.relation === 'CHILD' && get(child, 'born_on', null) != null).map((child) => ({ kind: 'CHILD_BIRTH', on: child.born_on })));\nconst births = events.filter((event) => event.kind.startsWith('CHILD_BIRTH'));\n// EA s.37(1)(c), (1)(d)(i): no allowance with five or more surviving natural children at the confinement, whatever their age.\nconst surviving = births.filter((event) => event.on < on).length - events.filter((event) => event.kind === 'CHILD_DEATH' && event.on < on).length;\n// EA s.37(2)(a)(i): ninety days employed in the nine months immediately before the confinement.\nconst window = add_months(on, -rule.qualifying_window_months);\nconst served = calendar_distance_days(started > window ? started : window, on);\nconst allowance = ctx.event.kind === 'CHILD_BIRTH' && surviving <= rule.max_surviving_natural_children && served >= rule.qualifying_service_days;\nif (allowance !== ctx.lookup.maternity_allowance) return 0;\n// EA s.37(1)(a)(i): one confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
+			"entitlement": "// EA First Schedule para 2(5): Part IX does not apply to a domestic employee.\n// EA s.37(1)(a)(i): leave for each confinement, and a confinement before this employment is no leave from this employer.\nconst employment = ctx.subject.employment;\nconst rule = ctx.lookup.eligibility;\nconst on = ctx.event.on;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nif (on < started) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst events = get(employment, 'events', []).concat(get(employment, 'family', []).filter((child) => child.relation === 'CHILD' && get(child, 'born_on', null) != null).map((child) => ({ kind: 'CHILD_BIRTH', on: child.born_on })));\nconst births = events.filter((event) => event.kind.startsWith('CHILD_BIRTH'));\n// EA s.37(1)(c), (1)(d)(i): no allowance with five or more surviving natural children at the confinement, whatever their age.\nconst surviving = births.filter((event) => event.on < on).length - events.filter((event) => event.kind === 'CHILD_DEATH' && event.on < on).length;\n// EA s.37(2)(a)(i): ninety days employed in the nine months immediately before the confinement.\nconst window = add_months(on, -rule.qualifying_window_months);\nconst served = calendar_distance_days(started > window ? started : window, on);\nconst allowance = ctx.event.kind === 'CHILD_BIRTH' && surviving <= rule.max_surviving_natural_children && served >= rule.qualifying_service_days;\nif (allowance !== ctx.lookup.maternity_allowance) return 0;\n// EA s.37(1)(a)(i): one confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
 		},
 		"references": [
 			{
@@ -65,7 +65,7 @@
 		],
 		"id": "e74857fb-be0d-507d-b422-6cbd4bda9cbc",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
-		"description": "Maternity leave around childbirth."
+		"description": "Paid maternity leave of 98 consecutive days for each confinement (Employment Act 1955 s.37). The maternity allowance needs at least 90 days' employment in the nine months before confinement and fewer than five surviving children."
 	},
 	{
 		"code": "MATERNITY_LEAVE_NO_ALLOWANCE",
@@ -86,7 +86,7 @@
 				"qualifying_service_days": 90,
 				"qualifying_window_months": 9
 			},
-			"entitlement": "// js\n// EA First Schedule para 2(5): Part IX does not apply to a domestic employee.\n// EA s.37(1)(a)(i): leave for each confinement, and a confinement before this employment is no leave from this employer.\nconst employment = ctx.subject.employment;\nconst rule = ctx.lookup.eligibility;\nconst on = ctx.event.on;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nif (on < started) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst events = get(employment, 'events', []).concat(get(employment, 'family', []).filter((child) => child.relation === 'CHILD' && get(child, 'born_on', null) != null).map((child) => ({ kind: 'CHILD_BIRTH', on: child.born_on })));\nconst births = events.filter((event) => event.kind.startsWith('CHILD_BIRTH'));\n// EA s.37(1)(c), (1)(d)(i): no allowance with five or more surviving natural children at the confinement, whatever their age.\nconst surviving = births.filter((event) => event.on < on).length - events.filter((event) => event.kind === 'CHILD_DEATH' && event.on < on).length;\n// EA s.37(2)(a)(i): ninety days employed in the nine months immediately before the confinement.\nconst window = add_months(on, -rule.qualifying_window_months);\nconst served = calendar_distance_days(started > window ? started : window, on);\nconst allowance = ctx.event.kind === 'CHILD_BIRTH' && surviving <= rule.max_surviving_natural_children && served >= rule.qualifying_service_days;\nif (allowance !== ctx.lookup.maternity_allowance) return 0;\n// EA s.37(1)(a)(i): one confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
+			"entitlement": "// EA First Schedule para 2(5): Part IX does not apply to a domestic employee.\n// EA s.37(1)(a)(i): leave for each confinement, and a confinement before this employment is no leave from this employer.\nconst employment = ctx.subject.employment;\nconst rule = ctx.lookup.eligibility;\nconst on = ctx.event.on;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nif (on < started) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst events = get(employment, 'events', []).concat(get(employment, 'family', []).filter((child) => child.relation === 'CHILD' && get(child, 'born_on', null) != null).map((child) => ({ kind: 'CHILD_BIRTH', on: child.born_on })));\nconst births = events.filter((event) => event.kind.startsWith('CHILD_BIRTH'));\n// EA s.37(1)(c), (1)(d)(i): no allowance with five or more surviving natural children at the confinement, whatever their age.\nconst surviving = births.filter((event) => event.on < on).length - events.filter((event) => event.kind === 'CHILD_DEATH' && event.on < on).length;\n// EA s.37(2)(a)(i): ninety days employed in the nine months immediately before the confinement.\nconst window = add_months(on, -rule.qualifying_window_months);\nconst served = calendar_distance_days(started > window ? started : window, on);\nconst allowance = ctx.event.kind === 'CHILD_BIRTH' && surviving <= rule.max_surviving_natural_children && served >= rule.qualifying_service_days;\nif (allowance !== ctx.lookup.maternity_allowance) return 0;\n// EA s.37(1)(a)(i): one confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
 		},
 		"references": [
 			{
@@ -96,7 +96,7 @@
 		],
 		"id": "6a4dcef5-26ca-539a-a481-86aab32508f3",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
-		"description": "MATERNITY_LEAVE_NO_ALLOWANCE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Maternity leave of 98 consecutive days without the maternity allowance: for a mother with five or more surviving children, or employed for less than 90 days in the nine months before confinement (Employment Act 1955 s.37). The days are unpaid.",
 		"paid_share": "0"
 	},
 	{
@@ -109,7 +109,7 @@
 			"eligibility": {
 				"excluded_employment_types": ["DOMESTIC"]
 			},
-			"entitlement": "// js\n// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(bb): sixty days in the aggregate in each calendar year.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nreturn ctx.lookup.grant_days;"
+			"entitlement": "// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(bb): sixty days in the aggregate in each calendar year.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nreturn ctx.lookup.grant_days;"
 		},
 		"references": [
 			{
@@ -119,7 +119,7 @@
 		],
 		"id": "1a1b536a-be60-5b3e-8562-041cb5d85539",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
-		"description": "Hospitalisation leave."
+		"description": "Paid sick leave where hospitalisation is necessary: 60 days in each calendar year, on top of ordinary sick leave (Employment Act 1955 s.60F(1)(bb)). Not for domestic employees."
 	},
 	{
 		"code": "MEDICAL_LEAVE",
@@ -158,7 +158,7 @@
 			"eligibility": {
 				"excluded_employment_types": ["DOMESTIC"]
 			},
-			"entitlement": "// js\n// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(aa); Employment (Part-Time Employees) Regulations 2010 reg.8(1): the days for the length of service.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nreturn get(bands.filter((band) => band.service_months <= months).at(-1), 'days', 0);"
+			"entitlement": "// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(aa); Employment (Part-Time Employees) Regulations 2010 reg.8(1): the days for the length of service.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nreturn get(bands.filter((band) => band.service_months <= months).at(-1), 'days', 0);"
 		},
 		"references": [
 			{
@@ -168,7 +168,7 @@
 		],
 		"id": "af96b144-99db-5215-98bf-e2245bec3dd4",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
-		"description": "MEDICAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Paid sick leave where no hospitalisation is needed: 14, 18 or 22 days in each calendar year by length of service (under two years, two to under five, five or more); a part-time employee has 10, 13 or 15 (Employment Act 1955 s.60F(1)(aa)). Not for domestic employees."
 	},
 	{
 		"code": "ANNUAL_LEAVE",
@@ -219,7 +219,7 @@
 			"eligibility": {
 				"excluded_employment_types": ["DOMESTIC"]
 			},
-			"entitlement": "// js\n// EA First Schedule para 2(5): s.60E does not apply to a domestic employee.\n// EA s.60E(1); Employment (Part-Time Employees) Regulations 2010 reg.7(1): the days for the length of service, a share by completed months before the first band.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nconst months = calendar_completed_months(started, ctx.as_of);\nconst [opening] = bands;\nconst exit = get(employment, 'effective_range.to', null);\nconst exitMonths = exit === null ? null : calendar_completed_months(started, exit);\n// EA s.60E(1): completed months, the day itself served; a first-year leaver earns to the exit.\nconst accruedTo = exit !== null && exitMonths < opening.service_months ? exit : ctx.as_of;\nif (months < opening.service_months) return Math.round((opening.days * calendar_completed_months(started, add_days(accruedTo, 1))) / opening.service_months);\nconst band = bands.filter((b) => b.service_months <= months).at(-1);\n// EA s.60E(1) closing words and s.60E(2A): the service year the contract ends in earns in proportion to its completed months; a half day or more is a day.\nif (exit === null) return band.days;\nconst years = Math.floor(months / 12);\nif (exitMonths < years * 12 || exitMonths >= (years + 1) * 12) return band.days;\nconst served = calendar_completed_months(add_months(started, years * 12), add_days(exit, 1));\nreturn Math.round((band.days * served) / 12);"
+			"entitlement": "// EA First Schedule para 2(5): s.60E does not apply to a domestic employee.\n// EA s.60E(1); Employment (Part-Time Employees) Regulations 2010 reg.7(1): the days for the length of service, a share by completed months before the first band.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nconst months = calendar_completed_months(started, ctx.as_of);\nconst [opening] = bands;\nconst exit = get(employment, 'effective_range.to', null);\nconst exitMonths = exit === null ? null : calendar_completed_months(started, exit);\n// EA s.60E(1): completed months, the day itself served; a first-year leaver earns to the exit.\nconst accruedTo = exit !== null && exitMonths < opening.service_months ? exit : ctx.as_of;\nif (months < opening.service_months) return Math.round((opening.days * calendar_completed_months(started, add_days(accruedTo, 1))) / opening.service_months);\nconst band = bands.filter((b) => b.service_months <= months).at(-1);\n// EA s.60E(1) closing words and s.60E(2A): the service year the contract ends in earns in proportion to its completed months; a half day or more is a day.\nif (exit === null) return band.days;\nconst years = Math.floor(months / 12);\nif (exitMonths < years * 12 || exitMonths >= (years + 1) * 12) return band.days;\nconst served = calendar_completed_months(add_months(started, years * 12), add_days(exit, 1));\nreturn Math.round((band.days * served) / 12);"
 		},
 		"references": [
 			{
@@ -230,7 +230,7 @@
 		"id": "6d0bb2bb-ee39-5f38-a29a-ccf21e953b6f",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
 		"description": "Paid annual leave accrued by service.",
-		"payout": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst days = Number(get(ctx.entry, 'quantity', 0));\n// a day at the ordinary rate of pay: the month's wages / 26 (EA 1955 s.60I(1))\nconst daily = round(ctx.month_wage / 26, ctx.lookup.minor_unit, 'HALF_UP');\nreturn daily * days;"
+		"payout": "const days = Number(get(ctx.entry, 'quantity', 0));\n// a day at the ordinary rate of pay: the month's wages / 26 (EA 1955 s.60I(1))\nconst daily = round(ctx.month_wage / 26, ctx.lookup.minor_unit, 'HALF_UP');\nreturn daily * days;"
 	},
 	{
 		"code": "EMERGENCY_LEAVE",
@@ -248,7 +248,7 @@
 				"quote": "The Act grants no emergency leave; it is a contractual grant, so its days and pay treatment follow the employer's terms."
 			}
 		],
-		"description": "EMERGENCY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Emergency leave the employer grants; a day taken is paid as a normal day. The Employment Act 1955 grants no emergency leave, so the days are the employer's own."
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -268,7 +268,7 @@
 			"opened_by": {
 				"CHILD_BIRTH": {}
 			},
-			"entitlement": "// js\n// EA First Schedule para 2(5): s.60FA does not apply to a domestic employee.\nconst employment = ctx.subject.employment;\nconst on = ctx.event.on;\nif (on < get(employment, 'service_started_on', get(employment, 'effective_range.from'))) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst births = get(employment, 'events', []).concat(get(employment, 'family', []).filter((child) => child.relation === 'CHILD' && get(child, 'born_on', null) != null).map((child) => ({ kind: 'CHILD_BIRTH', on: child.born_on }))).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= on);\nconst confinements = births.map((event) => event.on).filter((date, index, all) => all.indexOf(date) === index);\nconst record = get(employment, 'employee_extension_data.paternity_confinements', []).find((item) => item.event_id === on);\n// EA s.60FA(2): five confinements, irrespective of the number of spouses; a verified record counts those of earlier employers.\nif (get(record, 'lifetime_number', confinements.length) > ctx.lookup.eligibility.max_lifetime_confinements) return 0;\n// EA s.60FA(3)(b): he has notified the employer of the pregnancy; HR records the finding on the record.\nif (get(record, 'notification_requirement_met', true) === false) return 0;\n// EA s.60FA(1): seven consecutive days for each confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
+			"entitlement": "// EA First Schedule para 2(5): s.60FA does not apply to a domestic employee.\nconst employment = ctx.subject.employment;\nconst on = ctx.event.on;\nif (on < get(employment, 'service_started_on', get(employment, 'effective_range.from'))) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst births = get(employment, 'events', []).concat(get(employment, 'family', []).filter((child) => child.relation === 'CHILD' && get(child, 'born_on', null) != null).map((child) => ({ kind: 'CHILD_BIRTH', on: child.born_on }))).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= on);\nconst confinements = births.map((event) => event.on).filter((date, index, all) => all.indexOf(date) === index);\nconst record = get(employment, 'employee_extension_data.paternity_confinements', []).find((item) => item.event_id === on);\n// EA s.60FA(2): five confinements, irrespective of the number of spouses; a verified record counts those of earlier employers.\nif (get(record, 'lifetime_number', confinements.length) > ctx.lookup.eligibility.max_lifetime_confinements) return 0;\n// EA s.60FA(3)(b): he has notified the employer of the pregnancy; HR records the finding on the record.\nif (get(record, 'notification_requirement_met', true) === false) return 0;\n// EA s.60FA(1): seven consecutive days for each confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
 		},
 		"references": [
 			{
@@ -295,7 +295,7 @@
 				"quote": "An employee on a monthly rate who takes unpaid leave is paid the monthly wages divided by the days of the wage period for the days eligible."
 			}
 		],
-		"description": "Unpaid absence from work.",
+		"description": "No-pay leave: an approved absence without pay. Each day taken reduces the month's basic pay by one day's pay (Employment Act 1955 s.18A).",
 		"paid_share": "0"
 	},
 	{
@@ -312,7 +312,7 @@
 		],
 		"id": "fe556fb6-6ab6-5eaf-985f-d4110d6c7ad0",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
-		"description": "NATIONAL_SERVICE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Absence for national service or national service training. The days are unpaid: the month's wages are reduced by the days away (Employment Act 1955 s.18A).",
 		"paid_share": "0"
 	},
 	{
@@ -329,7 +329,7 @@
 		],
 		"id": "e01d2deb-a336-5e33-80af-a1c1cf53e59f",
 		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19",
-		"description": "COURT_CUSTODY_ABSENCE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Absence while in prison or custody, or attending court other than as the employer's witness. The days are unpaid (Employment Act 1955 s.23).",
 		"paid_share": "0"
 	}
 ]

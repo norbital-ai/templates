@@ -3,15 +3,6 @@
 		"code": "EMPLOYER_SHUTDOWN",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": true
-			},
-			"work.payment": {
-				"wage": "PAID"
-			}
-		},
 		"references": [
 			{
 				"title": "民法 §487: the employer’s delay in accepting the work leaves the wage owed; the day is not an absence.",
@@ -26,15 +17,6 @@
 		"code": "GOVERNMENT_STOP_WORK",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": true
-			},
-			"work.payment": {
-				"wage": "PAID"
-			}
-		},
 		"references": [
 			{
 				"title": "職業安全衛生法 §36(2): 勞工於停工期間應由雇主照給工資.",
@@ -49,15 +31,6 @@
 		"code": "NATURAL_DISASTER",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": true
-			},
-			"work.payment": {
-				"wage": "MAY_BE_WITHHELD"
-			}
-		},
 		"references": [
 			{
 				"title": "天然災害發生事業單位勞工出勤管理及工資給付要點: not an absence and the attendance bonus untouched; the day’s wage may be withheld.",
@@ -72,15 +45,6 @@
 		"code": "STRIKE",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": false
-			},
-			"work.payment": {
-				"wage": "NOT_PAID"
-			}
-		},
 		"references": [
 			{
 				"title": "勞資爭議處理法 §54; 民法 §482: no work, no wage for the strike days; not attended.",
@@ -95,17 +59,6 @@
 		"code": "REDUCED_WORK_AGREEMENT",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"work.treatment": {
-				"scheduled": false,
-				"counts_as_attended": false
-			},
-			"work.payment": {
-				"wage": "NOT_PAID",
-				"monthly_minimum_wage_floor": true,
-				"insurance_and_pension_retained": true
-			}
-		},
 		"references": [
 			{
 				"title": "因應景氣影響勞雇雙方協商減少工時應行注意事項: days off unpaid, a monthly-paid full-time worker’s month never below the minimum wage; insurance and pension kept.",

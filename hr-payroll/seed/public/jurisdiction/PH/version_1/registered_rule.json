@@ -216,29 +216,5 @@
 		],
 		"id": "c00fc599-7e8c-4028-a312-483eecb60824",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
-	},
-	{
-		"code": "CASE_INPUTS_REQUIRED",
-		"description": "Requires every input the workplace case's own form declares.",
-		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			}
-		},
-		"validate": "// js\nconst form = first(ctx.reads.workplace_case_catalog);\nconst inputs = get(ctx.entry, 'inputs', {});\nconst missing = get(form, 'lookup.input_schema.required', []).filter((key) => get(inputs, key, '') === '');\nif (missing.length > 0) throw 'This case needs ' + missing.join(', ') + '.';\nreturn true;",
-		"order": 30,
-		"lookup": {},
-		"id": "ace321e7-f4d7-50d2-b77e-2a8112100bc9",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	}
 ]

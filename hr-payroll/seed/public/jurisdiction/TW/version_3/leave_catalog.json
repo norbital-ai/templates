@@ -1,7 +1,7 @@
 [
 	{
 		"code": "ANNUAL_LEAVE",
-		"payout": "// js\n// 勞動基準法 §38(4); 施行細則 §24-1(2)(1): each unused day is paid at one day's wage. For a monthly wage, that day is\n// the last month's normal working-time wage ÷ 30; ctx.day_rate is that statutory day (TW day = FIXED 30), and it\n// includes the fixed allowances the contract counts in the rate.\nreturn ctx.day_rate * ctx.entry.quantity;",
+		"payout": "// 勞動基準法 §38(4); 施行細則 §24-1(2)(1): each unused day is paid at one day's wage. For a monthly wage, that day is\n// the last month's normal working-time wage ÷ 30; ctx.day_rate is that statutory day (TW day = FIXED 30), and it\n// includes the fixed allowances the contract counts in the rate.\nreturn ctx.day_rate * ctx.entry.quantity;",
 		"lookup": {
 			"window": "SERVICE_YEAR",
 			"service_bands": [
@@ -122,7 +122,7 @@
 		"id": "954212c5-c94f-5c16-80ce-6ff3be0f1c3f",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
 		"description": "Paid sick leave.",
-		"paid_share": "// js\n// 勞工請假規則 §4(3): half wages for an ordinary sick day; the rule SICK_LEAVE_PAY_POOL holds the thirty days.\nreturn ctx.lookup.half_pay_share;"
+		"paid_share": "// 勞工請假規則 §4(3): half wages for an ordinary sick day; the rule SICK_LEAVE_PAY_POOL holds the thirty days.\nreturn ctx.lookup.half_pay_share;"
 	},
 	{
 		"code": "PERSONAL_LEAVE",
@@ -202,7 +202,7 @@
 		"id": "6d489265-7bf4-5961-8de6-b1741b99184a",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
 		"description": "Maternity leave around childbirth.",
-		"paid_share": "// js\n// 勞動基準法 §50(2): full wages after six months' service, half before.\nconst earliest = ctx.entry.days.map((slot) => slot.date).toSorted()[0];\nreturn calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), earliest) >= ctx.lookup.full_pay_service_months ? 1 : ctx.lookup.half_pay_share;"
+		"paid_share": "// 勞動基準法 §50(2): full wages after six months' service, half before.\nconst earliest = ctx.entry.days.map((slot) => slot.date).toSorted()[0];\nreturn calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), earliest) >= ctx.lookup.full_pay_service_months ? 1 : ctx.lookup.half_pay_share;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -263,7 +263,7 @@
 		"id": "8c513d3c-dd33-5e8b-8cae-8f6dd2845347",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
 		"description": "Menstrual leave days.",
-		"paid_share": "// js\n// 性別平等工作法 §14: half wages; the rule SICK_LEAVE_PAY_POOL holds the monthly day, the three free days and the thirty-day pool.\nreturn ctx.lookup.half_pay_share;"
+		"paid_share": "// 性別平等工作法 §14: half wages; the rule SICK_LEAVE_PAY_POOL holds the monthly day, the three free days and the thirty-day pool.\nreturn ctx.lookup.half_pay_share;"
 	},
 	{
 		"code": "MENSTRUAL_LEAVE_UNPAID",
@@ -352,7 +352,7 @@
 		"id": "f3a5ec1e-6301-5f3c-81f9-60f9852923ce",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
 		"description": "HOSPITALISED_SICK_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
-		"paid_share": "// js\n// 勞工請假規則 §4(3): half wages inside the thirty-day pool; the rule SICK_LEAVE_PAY_POOL holds it and the days beyond are SICK_LEAVE_UNPAID.\nreturn ctx.lookup.half_pay_share;"
+		"paid_share": "// 勞工請假規則 §4(3): half wages inside the thirty-day pool; the rule SICK_LEAVE_PAY_POOL holds it and the days beyond are SICK_LEAVE_UNPAID.\nreturn ctx.lookup.half_pay_share;"
 	},
 	{
 		"code": "OFFICIAL_LEAVE",

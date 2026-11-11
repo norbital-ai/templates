@@ -19,6 +19,8 @@ import {
 	uuid,
 	wholeDays,
 	workspace,
+	accountsIn,
+	measureOf,
 	leaveCreate,
 	reversalSlots
 } from './kit.ts';
@@ -43,7 +45,6 @@ type Person = {
 	readonly engagement?: string;
 	readonly terms?: JsonObject;
 	readonly events?: readonly JsonObject[];
-	readonly facts?: JsonObject;
 	readonly absent?: readonly string[];
 };
 const seedOf = ({
@@ -52,14 +53,13 @@ const seedOf = ({
 	engagement = 'EMPLOYEE',
 	terms = TERMS,
 	events = [],
-	facts = {},
 	absent = []
 }: Person) => {
 	const seed = pack(
 		'MY',
 		'Asia/Kuala_Lumpur',
 		terms,
-		{ events, facts },
+		{ events },
 		absent.map((date) => ({ date, shift: ABS, hours: 0 })),
 		[],
 		'2026-11-15'
@@ -119,6 +119,11 @@ const run = (t: Kit, period: string) =>
 		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
 		.pipe(Effect.andThen(t.runDue()));
 const ANNUAL_DAY = ['2026-11-23'];
+/** How many leave entries the workspace holds. */
+const entries = (t: Kit) =>
+	t
+		.storedQuery({ leave_catalog_entry: { fields: ['id'], limit: 10 } })
+		.pipe(Effect.map(({ leave_catalog_entry }) => leave_catalog_entry.rows.length));
 
 describe('a father', () => {
 	it.live(
@@ -143,7 +148,10 @@ describe('a father', () => {
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
+				// the current stint alone is short of the row's qualifying months
+				assert.ok(measureOf(yield* accountsIn(t), 'leave', 'PATERNITY_LEAVE', 'entitled') > 0);
 				yield* take(t, base, 'PATERNITY_LEAVE', ['2026-11-03']);
+				assert.equal(yield* entries(t), 1);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 		}
 	);
@@ -166,6 +174,7 @@ describe('absence without leave', () => {
 				reverses: yield* sealedLeave(t),
 				encashment: true
 			});
+			assert.equal(yield* entries(t), 2);
 		}).pipe(Effect.provide(layer));
 	});
 });
@@ -184,22 +193,16 @@ describe('unpaid leave', () => {
 			yield* run(t, '2026-03');
 			yield* take(t, seed, 'NPL', ['2026-11-02'], { reverses: yield* sealedLeave(t) });
 			yield* take(t, seed, 'ANNUAL_LEAVE', nine);
+			assert.equal(yield* entries(t), 3);
 		}).pipe(Effect.provide(layer))
 	);
 });
 
 describe('the day rate', () => {
-	it('carries fixed allowances, and no variable one', () => {
+	it('carries an allowance in the rate, and none outside it', () => {
 		const [settings] = read('seed/public/jurisdiction/MY/version_5/jurisdiction_settings.json');
 		assert.ok(settings !== undefined);
-		const terms = {
-			rate: { amount: 2600, unit: 'MONTHLY' },
-			normal_hours_per_day: 8,
-			normal_hours_per_week: 40,
-			normal_days_per_week: 5,
-			allowances: { FIXED: { amount: 260 }, TIPS: { amount: 100 } }
-		};
-		assert.equal(
+		const rate = (amount: number, allowances: JsonObject) =>
 			payBasis(
 				{
 					run: {},
@@ -216,15 +219,25 @@ describe('the day rate', () => {
 					adhoc_catalog: [],
 					loan_catalog: [],
 					employee: {},
-					employment: { terms },
+					employment: {
+						terms: {
+							rate: { amount, unit: 'MONTHLY' },
+							normal_hours_per_day: 8,
+							normal_hours_per_week: 40,
+							normal_days_per_week: 5,
+							allowances
+						}
+					},
 					employer: { payment_schedule: { non_working_weekdays: [0, 6] } },
 					balance: {},
 					entries: {}
 				},
 				{ from: '2026-06-01', to: '2026-06-30' }
-			).day_rate,
-			// the fixed allowance is in the wage: (2,600 + 260) × 12 ÷ (52 × 5 days a week)
-			132
-		);
+			).day_rate;
+		const both = rate(2600, { FIXED: { amount: 260 }, TIPS: { amount: 100 } });
+		// the one in the rate is wage like the salary; the one outside changes nothing
+		assert.equal(both, rate(2860, {}));
+		assert.ok(both > rate(2600, { TIPS: { amount: 100 } }));
+		assert.equal(rate(2600, { TIPS: { amount: 100 } }), rate(2600, {}));
 	});
 });

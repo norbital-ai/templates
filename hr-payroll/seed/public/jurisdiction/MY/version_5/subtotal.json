@@ -87,9 +87,16 @@
 		"balance_window": "YEAR"
 	},
 	{
+		"code": "INCENTIVE_OT",
+		"name": "Incentive (OT)",
+		"id": "2dee1e67-704a-5a2e-95ad-8ddf56601549",
+		"previous_id": "3ecf0c5b-5398-53e7-8e40-52ffb419e538",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages",
-		"previous_id": "3ecf0c5b-5398-53e7-8e40-52ffb419e538",
+		"previous_id": "2dee1e67-704a-5a2e-95ad-8ddf56601549",
 		"id": "61e71a84-594c-543f-8ea6-c33b918c46cb",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"balance_window": "MONTH"

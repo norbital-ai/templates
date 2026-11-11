@@ -79,23 +79,18 @@ export default model('shift_pattern', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'shift_pattern', ids: rows.map((r) => r.id) },
+				'shift_pattern',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'shift_pattern', ids: changes.map((c) => c.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'shift_pattern', changes);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
-				{ collection: 'shift_pattern', ids: rows.map((r) => r.id) },
+				'shift_pattern',
 				rows.map((before) => ({ before }))
 			);
 		}

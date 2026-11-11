@@ -1,8 +1,6 @@
 # SG compliance gap research
 
-Status: decision record for seed round 3 (2026-11-10). Scope: `seed/public/jurisdiction/SG/version_1`–`version_4`,
-`leave_catalog.json` only; every correction is an edit in place across all four versions. No source, schema or test
-changed. Sources: MOM pages read 2026-11-10 (SSO answers 403 to automated reads).
+Status: research and decision record, 9–10 November 2026. The seed and the models are what is in force; where this record differs, they stand. Seed folders are written `version_<v>`: the lineage has been renumbered since. Scope: `leave_catalog.json` of every SG version. Sources: MOM pages read 2026-11-10 (SSO answers 403 to automated reads).
 
 ## Changes
 
@@ -17,11 +15,12 @@ calendar year and apply no one-year stop.
 
 ## Confirmed without change
 
-- **GP\*_REIMBURSEMENT, ADOPTION_REIMBURSEMENT** (`subtotal_id` null): the Government reimburses the employer for leave
-  the employer has already paid in full (CDCSA s.9, ss.12AA, 12B, 12DA–12DD, 12H–12J). The employee's pay comes from the
-  leave row (`paid_share` empty); the claim records the employer's receivable and prints no payslip line. Correct.
-- **WICA_MEDICAL** (`subtotal_id` null): the employer's recovery from its insurer (WICA ss.7–12, First Schedule). No
-  employee line. An employee who paid a medical bill is reimbursed through `MEDICAL_TREATMENT_REIMBURSEMENT` (NET).
+- **Government-paid leave reimbursement** (`GPML`, `GPPL`, `GPCL`, `GPSPL`, adoption): the Government reimburses the
+  employer for leave the employer has already paid in full (CDCSA s.9, ss.12AA, 12B, 12DA–12DD, 12H–12J). The
+  employee's pay comes from the leave row (`paid_share` empty). No row computes the employer's receivable; the
+  `GOVERNMENT_PAID_LEAVE_CLAIM` effect raises the task to claim it.
+- **WICA medical recovery**: the employer's recovery from its insurer (WICA ss.7–12, First Schedule). Not enforced: no
+  row. An employee who paid a medical bill is reimbursed through `MEDICAL_TREATMENT_REIMBURSEMENT` (NET).
 - **Shares**: annual, sick, hospitalisation, maternity, paternity, childcare, adoption and shared parental leave pay a
   normal day (employer pays; GP schemes reimburse). `UNPAID_INFANT_CARE_LEAVE` 0 (CDCSA s.12D), `UNPAID_LEAVE` 0
   (EA s.20A(1)(c)), `NS_LEAVE` 0 (no statutory pay; an employer paying under MINDEF's scheme sets 1 in Settings).
@@ -51,7 +50,7 @@ calendar year and apply no one-year stop.
 
 ## Follow-up, 2026-11-10
 
-Seed round 3 follow-up. Edits are in place in `version_1`–`version_4`; items 1 and 2 above are closed, item 3 remains.
+Seed round 3 follow-up. Edits are in place in every version; items 1 and 2 above are closed, item 3 remains.
 
 | Row                                                       | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Statute                                                                                        |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -86,7 +85,7 @@ row to work around it.
 
 - **WICA.** `WORK_INJURY_MEDICAL_LEAVE` and `WORK_INJURY_HOSPITALISATION_LEAVE` still pay full for the first 14 outpatient
   / 60 hospitalisation days, two-thirds after, nothing from 12 completed months; `WORK_ACCIDENT` opens each accident and
-  `ctx.used` counts its days. `WICA_MEDICAL` still has no payslip line. WICA 2019 First Schedule para.4(1) and MOM's
+  `ctx.used` counts its days. WICA 2019 First Schedule para.4(1) and MOM's
   10 outpatient + 71 hospitalisation example (60 full, 11 at two-thirds) match the separate counters.
 - **In-lieu.** `PUBLIC_HOLIDAY_IN_LIEU` remains `window: LIFETIME`, grant 0, no payout: HR's manual days stand until taken.
   EA s.88 and MOM's public-holidays page set no deadline.

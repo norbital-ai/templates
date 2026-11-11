@@ -7,8 +7,6 @@ const text = (value: unknown): string => (typeof value === 'string' ? value : ''
 const amount = (value: unknown): number =>
 	typeof value === 'number' && Number.isFinite(value) ? value : 0;
 const day = (value: unknown): number => Date.parse(`${String(value)}T00:00:00Z`);
-const days = (from: string, to: string) =>
-	Math.max(0, Math.round((day(to) - day(from)) / 86_400_000) + 1);
 
 /** Resolve one run's payments for a file export: payslips, contracts and the run's currency. */
 export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reader, runId: string) {
@@ -51,10 +49,7 @@ export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reade
 		const checkpoint = (code: string) =>
 			amount(checkpoints.find((row) => text(row.code) === code)?.value);
 		const allowances = lines
-			.filter((line) => {
-				const source = line.source;
-				return isJsonObject(source) && text(source.model) === 'allowance_catalog';
-			})
+			.filter((line) => text(line.source) === 'allowance_catalog')
 			.reduce((total, line) => total + amount(line.amount), 0);
 		const nplLine = lines
 			.filter((line) => text(line.code) === 'NPL')

@@ -600,7 +600,7 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (ctx.after == null) return false;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = get(ctx.lookup.working_days, region, 0);\nconst key = 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (ctx.after == null) return false;\nconst key = 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = get(ctx.lookup.working_days, region, 0);\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: working > 0\n  ? add_working_days(row.effective_range.to, working, ctx.reads.holiday ?? [], [0, 6])\n  : row.effective_range.to,\n  occurrence_key: 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -2119,10 +2119,10 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
+		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['CN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
+		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['CN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
 		"references": [
 			{
 				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."

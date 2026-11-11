@@ -11,7 +11,7 @@ import { adhocWanted, entitlementPlans } from '../src/lib/ledger/service.ts';
 import { jsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { decimal } from '../src/lib/payroll_engine/money.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
@@ -41,7 +41,17 @@ const terms = (amount = 8000) => ({
 	wage_payment_method: 'BANK',
 	allowances: {}
 });
-const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(), {}, [], [], '2026-11-15');
+const law = pack('MY', 'Asia/Kuala_Lumpur', terms(), {}, [], [], '2026-11-15');
+/** The claim row's yearly limit is the fixture's own, whatever the law pack holds. */
+const LIMIT = 1000;
+const seed: typeof law = {
+	...law,
+	claim_catalog: (law.claim_catalog ?? []).map((row) =>
+		row.code === 'MEDICAL_CLAIM'
+			? { ...row, lookup: { ...objectValue(row.lookup), annual_limit: LIMIT } }
+			: row
+	)
+};
 const CLAIM = idOf('claim_catalog', catalogRow(seed, 'claim_catalog', 'MEDICAL_CLAIM'));
 const entry = (quantity: number) => ({
 	entity_id: ENTITY,
@@ -85,12 +95,12 @@ describe('a claim on a limited row', () => {
 	it.live('pays nothing once the limit is gone', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* claim(t, 1000);
+			yield* claim(t, LIMIT);
 			yield* t.runDue();
 			yield* claim(t, 50);
 			yield* t.runDue();
 			yield* run(t);
-			assert.equal(yield* paid(t), 1000);
+			assert.equal(yield* paid(t), LIMIT);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('shares the limit with a claim made in the same write', () =>
@@ -500,7 +510,7 @@ describe('what cannot be done to the ledger, an admin included', () => {
 			});
 			assert.ok(leave_catalog_entry_day.rows[0]?.payroll_run_id != null);
 			const again = yield* Effect.flip(reverse(t, reversal.id));
-			assert.match(String(again), /same person/);
+			assert.match(String(again), /same person and catalog item/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('reverses no more than the entry held', () =>
@@ -536,7 +546,7 @@ describe('what cannot be done to the ledger, an admin included', () => {
 			const refused = yield* Effect.flip(
 				reverse(t, yield* taken(t), { employment_id: idOf('employee_contract', uuid(801)) })
 			);
-			assert.match(String(refused), /same person/);
+			assert.match(String(refused), /same person and catalog item/);
 		}).pipe(Effect.provide(workspace({ seed: two, now: NOW })));
 	});
 	it.live('reverses on the entry’s own catalog item', () =>
@@ -643,7 +653,7 @@ describe('a claim reversal', () => {
 			yield* hr(t).act('claim_catalog_entry.create', back);
 			yield* run(t);
 			yield* t.runDue();
-			assert.match(String(yield* Effect.flip(cancel(t, first.id))), /locked/);
+			assert.match(String(yield* Effect.flip(cancel(t, first.id))), /This record is locked/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
@@ -657,6 +667,34 @@ describe('the ledger automation', () => {
 			const { employee_balance } = yield* t.storedQuery({ employee_balance: { limit: 2 } });
 			assert.equal(employee_balance.rows.length, 1);
 		}).pipe(Effect.provide(workspace({ seed: { ...seed, employee_balance: [] }, now: NOW })))
+	);
+
+	it.live(
+		'has not opened someone’s balance yet: their entry and their run are refused and told to try again; after the sync both pass',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const UNOPENED = /balance is not open yet. It opens when the ledger sync/;
+				const refused = (effect: Effect.Effect<unknown, unknown>) =>
+					Effect.flip(effect).pipe(Effect.map(String));
+				assert.match(yield* refused(claim(t, 80)), UNOPENED);
+				assert.match(yield* refused(run(t)), UNOPENED);
+				const nothing = yield* t.storedQuery({
+					claim_catalog_entry: { limit: 1 },
+					payroll_run: { limit: 1 },
+					ledger_entry: { limit: 1 }
+				});
+				assert.deepEqual(
+					[nothing.claim_catalog_entry.rows, nothing.payroll_run.rows, nothing.ledger_entry.rows],
+					[[], [], []]
+				);
+				// the way out the refusal names
+				yield* syncAll(t);
+				yield* claim(t, 80);
+				assert.equal(yield* used(t), 80);
+				yield* run(t);
+				assert.deepEqual((yield* t.runDue()).failed, []);
+			}).pipe(Effect.provide(workspace({ seed: { ...seed, employee_balance: [] }, now: NOW })))
 	);
 });
 

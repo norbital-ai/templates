@@ -28,7 +28,8 @@ export default model('obligation', {
 					edit: ['title', 'due_on', 'fulfilled_on', 'evidence', 'waiver_reason', 'state']
 				},
 				FULFILLED: { to: [], edit: 'none' },
-				WAIVED: { to: [], edit: 'none' }
+				// a waiver is taken back by reopening: the fact it answered stands again, or it was waived by mistake
+				WAIVED: { to: ['OPEN'], edit: ['waiver_reason', 'state'] }
 			}
 		}
 	},
@@ -62,12 +63,7 @@ export default model('obligation', {
 					before.state !== after.state || before.fulfilled_on !== after.fulfilled_on
 			);
 			if (edited.length === 0) return;
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'obligation', ids: edited.map((change) => change.after.id) },
-				edited
-			);
+			yield* tap(ctx, 'update', 'obligation', edited);
 		}
 	},
 	notify: function* (event) {

@@ -14,7 +14,7 @@
 				"quote": "A work-related medical test is reimbursed at its evidenced cost; it is not wages."
 			}
 		],
-		"description": "Swab-test reimbursement."
+		"description": "Reimburses the cost of a swab test to the employee with net pay, at the amount entered. An employer benefit under the employment agreement or company regulation."
 	},
 	{
 		"code": "MEDICAL_CLAIM",

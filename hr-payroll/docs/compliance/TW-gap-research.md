@@ -1,8 +1,7 @@
 # TW compliance gap research
 
-Status: decision record for the five TW gaps in the 2026-11-09 HR/Bolt seed audit. This file is the
-only change; no source, seed, test or other document is edited.
-Scope: current TW `version_5` seed and the effects/rules named below. Sources read 2026-11-09.
+Status: research and decision record, 9–10 November 2026. The seed and the models are what is in force; where this record differs, they stand. Seed folders are written `version_<v>`: the lineage has been renumbered since.
+Scope: the five TW gaps in the 2026-11-09 HR/Bolt seed audit and the effects/rules named below. Sources read 2026-11-09.
 Constraint: every recommendation uses an existing mechanism — model field, `registered_rule`,
 `registered_effect`, catalog `lookup`/`input_schema`, declared read, or `obligation`. No engine
 semantics change, no new helper or framework. Section 0 of the calculation architecture is the
@@ -47,10 +46,10 @@ eight-hour timestamp belongs in the evidence/fulfilment record, not in a new fie
 ### Current defect
 
 `WORK_ACCIDENT_REPORT` and `WORK_ACCIDENT_REPORT_UPDATED` in
-`seed/public/jurisdiction/TW/version_5/registered_effect.json` read
+`seed/public/jurisdiction/TW/version_<v>/registered_effect.json` read
 `inputs.deaths`, `inputs.hospitalised` and `inputs.injured`, and use
 `ctx.lookup.injured_threshold` = 3. The TW `OCCUPATIONAL_ACCIDENT` row in
-`seed/public/jurisdiction/TW/version_5/workplace_case_catalog.json` declares none of these, so the
+`seed/public/jurisdiction/TW/version_<v>/workplace_case_catalog.json` declares none of these, so the
 condition sees missing values as `0`, so a normal entry never fires; it can only fire if someone
 types an undeclared count into the free-form `inputs` record. The “3+ injured” branch is not
 representable at all. The effect also gates on the free-text `kind` field, not the catalog code.
@@ -317,7 +316,7 @@ refuse a grandfathered pre-2022 contract.
 
 ### Test scenario (pay amounts included)
 
-Using the sealed TW `version_5` lookup values (general monthly 30,900, hourly 205; these are the
+Using the sealed TW lookup values of that day (general monthly 30,900, hourly 205; these are the
 seed’s figures, not a new statutory claim):
 
 | Case                                                                   | Expected                                                    |
@@ -467,7 +466,7 @@ help text on `work_event` saying an extension must be a new event after renewed 
 | Extension month February                                | payslip gross 30,900                                                   |
 | Part-time/hourly worker                                 | no monthly floor asserted; the reduced-hours catalog does not add one  |
 
-The 30,900 is the sealed `version_5` monthly lookup, not a new statutory figure. The pay assertions
+The 30,900 is the sealed monthly lookup of that day, not a new statutory figure. The pay assertions
 prove the notice gap does not disturb the existing `monthly_minimum_wage_floor` behavior in
 `work_event_catalog`.
 
@@ -475,7 +474,7 @@ prove the notice gap does not disturb the existing `monthly_minimum_wage_floor` 
 
 1. Source models: `terms.worksite` on `employee_contract`; `representative_name` on
    `entity_profile_version`; create/update columns and representations.
-2. Seed: new TW settings version (never edit sealed `version_5`) with the `OCCUPATIONAL_ACCIDENT`
+2. Seed: new TW settings version (never edit a sealed one) with the `OCCUPATIONAL_ACCIDENT`
    input fields, the `worksite` rule, the domestic-floor exclusions and date gate, and the two
    unit-change comparisons; update the effects’ reads/keys as above.
 3. Tests: one focused TW suite covering the tables above; keep the existing TW suite green.
@@ -508,9 +507,7 @@ prove the notice gap does not disturb the existing `monthly_minimum_wage_floor` 
 - Found while testing: `ctx.before` and `ctx.after` were in the effect dispatch context but not in the expression root
   allow-list, so every transition-only effect silently threw and raised nothing. They are now calculation roots; this
   also repairs TW `REDUCED_HOURS_NOTICE` extensions that compare the previous period.
-- Regression: `tests/tw_accident_report.test.ts` covers death, 3+ injured, hospitalisation, non-reportable 2 injured,
-  near miss, and a later hospitalisation producing one branch-keyed supplemental report with a description-only edit
-  adding none.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 2 implementation status (2026-11-09)
 
@@ -523,36 +520,31 @@ prove the notice gap does not disturb the existing `monthly_minimum_wage_floor` 
   entity-wide threshold with an entity-only key and title, so both can fire together.
 - Split because one expression over 500 staff + 201 leavers exceeded the expression engine’s 50,000-operation limit.
   The optimized bodies precompute the window start and employment list and keep the entity pass separate.
-- Regression: `tests/tw_mass_layoff.test.ts` covers 11/10 at two sites, 10/10, 11/11 distinct sites, local fixed-term,
-  §46 exclusion, the entity-only plan, and the worksite rule.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 3 implementation status (2026-11-09)
 
 - Already present in every TW version: `MINIMUM_WAGE_FLOOR` and `MINIMUM_WAGE_HOURLY` return true for
   `DOMESTIC_CAREGIVER`/`DOMESTIC_HELPER`; `DOMESTIC_MIGRANT_WAGE` is the only domestic floor, with `regime_from`
   2022-08-10, the full-time `EMPLOYEE` gate, the `MONTHLY` gate and the grandfathered pre-regime pass.
-- Regression: `tests/tw_domestic_wage.test.ts` covers the two general floors skipping domestic work, 20,000 passing
-  and 19,999 failing the domestic floor, and the part-time/non-monthly/pre-2022/non-domestic passes.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 4 implementation status (2026-11-09)
 
 - `representative_name` was already native on `entity_profile_version`. Added the missing comparison to both
   `LI_UNIT_CHANGE` and `NHI_UNIT_CHANGE` in every TW version, between the registered-name and address comparisons.
-- Regression: `tests/tw_unit_change.test.ts` raises both reports for a representative-only change, keeps name/address
-  changes, ignores unrelated edits and no earlier version, and compares only the immediately preceding version.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 5 implementation status (2026-11-09)
 
 - The effect already listened to `create` and `update`, used the shared `REDUCED_HOURS_NOTICE:<id>:<to|from>` key and
   titled an extension. It only became effective after `ctx.before`/`ctx.after` were made readable in effect expressions:
   previously every update branch silently threw.
-- Regression: `tests/tw_reduced_hours.test.ts` covers the first notice (due 2027-01-04), an extension to 2027-02-28
-  (due 2027-02-01, distinct key), a description-only edit (none) and a shortening (none). The reduced-hours catalog still
-  declares the full-time monthly minimum floor and insurance/pension retention; the payslip itself is not re-run here.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ## Seed round 3 (2026-11-10)
 
-Scope: seed changes in `seed/public/jurisdiction/TW/version_1`–`version_5/leave_catalog.json`; the only other change
+Scope: seed changes in `leave_catalog.json` of every TW version; the only other change
 is this note. No source, schema, test, migration or generated-registry change; no `bolt build`, test, reset, publish or
 deploy. Gate: `node_modules/.bin/bolt check .` passed (`.tmp/hr-seed3/TW/check.log`).
 

@@ -19,10 +19,7 @@
 				"direction": {
 					"default": "ADD",
 					"kind": "enum",
-					"values": [
-						"ADD",
-						"DEDUCT"
-					]
+					"values": ["ADD", "DEDUCT"]
 				},
 				"eligibility": {
 					"kind": "text",
@@ -45,10 +42,7 @@
 				"party": {
 					"default": "EMPLOYEE",
 					"kind": "enum",
-					"values": [
-						"EMPLOYEE",
-						"EMPLOYER"
-					]
+					"values": ["EMPLOYEE", "EMPLOYER"]
 				},
 				"references": {
 					"kind": "custom",
@@ -73,10 +67,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -101,10 +92,7 @@
 					"to": "entity"
 				},
 				"evidence_file": {
-					"accept": [
-						"application/pdf",
-						"image/*"
-					],
+					"accept": ["application/pdf", "image/*"],
 					"kind": "file",
 					"max": "20MiB",
 					"optional": true
@@ -132,22 +120,14 @@
 				"unit": {
 					"default": "MONEY",
 					"kind": "enum",
-					"values": [
-						"DAY",
-						"CALENDAR_DAY",
-						"HOUR",
-						"MONEY",
-						"COUNT"
-					]
+					"values": ["DAY", "CALENDAR_DAY", "HOUR", "MONEY", "COUNT"]
 				}
 			},
 			"nativeRules": 2,
 			"recordLabel": "record.employment_id.employee_number + ' · ' + string(record.quantity)",
 			"unique": [
 				{
-					"fields": [
-						"reverses"
-					]
+					"fields": ["reverses"]
 				}
 			]
 		},
@@ -207,10 +187,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -218,11 +195,7 @@
 			"fields": {
 				"action": {
 					"kind": "enum",
-					"values": [
-						"create",
-						"update",
-						"delete"
-					]
+					"values": ["create", "update", "delete"]
 				},
 				"approver_teams": {
 					"kind": "json",
@@ -272,7 +245,8 @@
 						"CHANGES_REQUESTED",
 						"APPROVED",
 						"REJECTED",
-						"SUPERSEDED"
+						"SUPERSEDED",
+						"WITHDRAWN"
 					]
 				},
 				"step": {
@@ -303,16 +277,11 @@
 			"key": "uuid",
 			"nativeRules": 2,
 			"search": {
-				"text": [
-					"collection_name"
-				]
+				"text": ["collection_name"]
 			},
 			"unique": [
 				{
-					"fields": [
-						"collection_name",
-						"record_id"
-					],
+					"fields": ["collection_name", "record_id"],
 					"where": {
 						"status": {
 							"eq": "ONGOING"
@@ -374,10 +343,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -399,10 +365,7 @@
 					"to": "entity"
 				},
 				"evidence_file": {
-					"accept": [
-						"application/pdf",
-						"image/*"
-					],
+					"accept": ["application/pdf", "image/*"],
 					"kind": "file",
 					"max": "20MiB",
 					"optional": true
@@ -431,22 +394,14 @@
 				"unit": {
 					"default": "MONEY",
 					"kind": "enum",
-					"values": [
-						"DAY",
-						"CALENDAR_DAY",
-						"HOUR",
-						"MONEY",
-						"COUNT"
-					]
+					"values": ["DAY", "CALENDAR_DAY", "HOUR", "MONEY", "COUNT"]
 				}
 			},
 			"nativeRules": 2,
 			"recordLabel": "record.employment_id.employee_number + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)",
 			"unique": [
 				{
-					"fields": [
-						"reverses"
-					]
+					"fields": ["reverses"]
 				}
 			]
 		},
@@ -512,9 +467,7 @@
 			"recordLabel": "'Balance'",
 			"unique": [
 				{
-					"fields": [
-						"employee_id"
-					]
+					"fields": ["employee_id"]
 				}
 			]
 		},
@@ -645,11 +598,7 @@
 							},
 							"relation": {
 								"kind": "enum",
-								"values": [
-									"CHILD",
-									"SPOUSE",
-									"PARENT"
-								]
+								"values": ["CHILD", "SPOUSE", "PARENT"]
 							},
 							"studying": {
 								"kind": "bool",
@@ -685,10 +634,7 @@
 						"gender": {
 							"kind": "enum",
 							"optional": true,
-							"values": [
-								"MALE",
-								"FEMALE"
-							]
+							"values": ["MALE", "FEMALE"]
 						},
 						"identity_number": {
 							"kind": "text",
@@ -697,13 +643,7 @@
 						"marital_status": {
 							"kind": "enum",
 							"optional": true,
-							"values": [
-								"SINGLE",
-								"MARRIED",
-								"SEPARATED",
-								"DIVORCED",
-								"WIDOWED"
-							]
+							"values": ["SINGLE", "MARRIED", "SEPARATED", "DIVORCED", "WIDOWED"]
 						},
 						"nationality": {
 							"help": "ISO 3166-1 alpha-2 country code.",
@@ -740,9 +680,7 @@
 					"states": {
 						"DRAFT": {
 							"edit": "all",
-							"to": [
-								"SEALED"
-							]
+							"to": ["SEALED"]
 						},
 						"SEALED": {
 							"edit": [
@@ -750,12 +688,9 @@
 								"final_pay_due_on",
 								"reason",
 								"exit_ground",
-								"employee_extension_data",
-								"work_pass_valid_until"
+								"employee_extension_data"
 							],
-							"to": [
-								"VOID"
-							]
+							"to": ["VOID"]
 						},
 						"VOID": {
 							"edit": "none",
@@ -826,11 +761,7 @@
 							"fields": {
 								"unit": {
 									"kind": "enum",
-									"values": [
-										"DAYS",
-										"WEEKS",
-										"MONTHS"
-									]
+									"values": ["DAYS", "WEEKS", "MONTHS"]
 								},
 								"value": {
 									"kind": "number",
@@ -895,12 +826,7 @@
 						"wage_payment_method": {
 							"kind": "enum",
 							"optional": true,
-							"values": [
-								"BANK",
-								"CASH",
-								"CHEQUE",
-								"DIGITAL"
-							]
+							"values": ["BANK", "CASH", "CHEQUE", "DIGITAL"]
 						},
 						"work_authorisation_category": {
 							"kind": "text",
@@ -927,19 +853,12 @@
 						}
 					},
 					"kind": "object"
-				},
-				"work_pass_valid_until": {
-					"help": "The actual expiry date of the current work pass. Renewal changes it while the contract is sealed; the reminder key follows the date.",
-					"kind": "date",
-					"optional": true
 				}
 			},
 			"nativeRules": 2,
 			"noOverlap": [
 				{
-					"key": [
-						"employee_id"
-					],
+					"key": ["employee_id"],
 					"period": "effective_range",
 					"where": {
 						"status": {
@@ -950,10 +869,7 @@
 			],
 			"recordLabel": "has(record.employee_id.name) ? record.employee_id.name + ' · ' + record.employee_number : record.employee_number",
 			"search": {
-				"text": [
-					"employee_number",
-					"employee_id"
-				]
+				"text": ["employee_number", "employee_id"]
 			}
 		},
 		"employee_profile": {
@@ -969,10 +885,7 @@
 					"kind": "bool"
 				},
 				"documents": {
-					"accept": [
-						"application/pdf",
-						"image/*"
-					],
+					"accept": ["application/pdf", "image/*"],
 					"kind": "file",
 					"max": "20MiB",
 					"multiple": true,
@@ -1000,27 +913,10 @@
 				"face_enrollment_status": {
 					"default": "NONE",
 					"kind": "enum",
-					"values": [
-						"NONE",
-						"PENDING",
-						"APPROVED",
-						"SUSPENDED"
-					]
-				},
-				"face_last_match_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"face_match_count": {
-					"default": 0,
-					"kind": "int",
-					"min": 0
+					"values": ["NONE", "PENDING", "APPROVED", "SUSPENDED"]
 				},
 				"face_photo": {
-					"accept": [
-						"image/jpeg",
-						"image/png"
-					],
+					"accept": ["image/jpeg", "image/png"],
 					"kind": "file",
 					"max": "5MiB",
 					"optional": true
@@ -1060,27 +956,17 @@
 			"search": {
 				"semantic": {
 					"dim": 1536,
-					"fields": [
-						"address"
-					],
+					"fields": ["address"],
 					"model": "default"
 				},
-				"text": [
-					"name",
-					"email",
-					"phone"
-				]
+				"text": ["name", "email", "phone"]
 			},
 			"unique": [
 				{
-					"fields": [
-						"invitation_id"
-					]
+					"fields": ["invitation_id"]
 				},
 				{
-					"fields": [
-						"user_id"
-					]
+					"fields": ["user_id"]
 				}
 			]
 		},
@@ -1118,10 +1004,7 @@
 			"nativeRules": 2,
 			"recordLabel": "record.name",
 			"search": {
-				"text": [
-					"code",
-					"name"
-				]
+				"text": ["code", "name"]
 			}
 		},
 		"entity_change": {
@@ -1166,11 +1049,7 @@
 			"recordLabel": "record.field_path",
 			"unique": [
 				{
-					"fields": [
-						"entity_id",
-						"field_path",
-						"effective_from"
-					]
+					"fields": ["entity_id", "field_path", "effective_from"]
 				}
 			]
 		},
@@ -1235,49 +1114,41 @@
 					"fields": {
 						"benefit_exclusion": {
 							"default": "POOLED",
-							"help": "How a benefit paid past its own tax-free limit is taxed. POOLED puts the excess in the yearly exclusion for bonuses and benefits; EXCESS_TAXED taxes it in the month it is paid and leaves the exclusion to the thirteenth month and bonuses. The year’s last pay settles either way.",
+							"help": "How a benefit paid past its own tax-free limit is taxed. Pooled: the excess joins the yearly exclusion for bonuses and benefits. Excess taxed: it is taxed on the payslip of the month it is paid. The year’s last payslip settles either way, so only the month the tax is withheld changes. Only the Philippines’ rows read it; it changes nothing in other countries.",
 							"kind": "enum",
-							"values": [
-								"POOLED",
-								"EXCESS_TAXED"
-							]
+							"label": "Benefits over their tax-free limit",
+							"values": ["POOLED", "EXCESS_TAXED"]
 						},
 						"contribution_split": {
 							"default": "EVEN",
-							"help": "How a month’s contributions fall on two runs a month. EVEN charges half on each; FIRST_RUN charges the whole month on the first run, on an estimate, and the second run settles the month’s actual wages.",
+							"help": "How a month’s contributions fall on the two payslips of a twice-monthly group. Even: half on each. First run: the whole month on the first payslip, on an estimate, and the second settles the month’s actual wages. Only the Philippines’ rows read it; it changes nothing in other countries.",
 							"kind": "enum",
-							"values": [
-								"EVEN",
-								"FIRST_RUN"
-							]
+							"label": "Contributions over two runs a month",
+							"values": ["EVEN", "FIRST_RUN"]
 						},
 						"night_differential_basis": {
 							"default": "WORKED",
-							"help": "CLOCK_SPAN pays the night premium on every clocked hour in the night window, unpaid breaks and overtime included, at the ordinary hour rate; WHOLE_NIGHT pays a worked night shift a full eight hours of the premium at the day’s rate. A shift where the law pays more keeps the law.",
+							"help": "Which hours earn the night premium. Worked: the hours worked inside the night window. Clock span: every clocked hour in the window, unpaid breaks and overtime included, at the ordinary hour rate. Whole night: a worked night shift earns eight full hours of premium at the day’s rate. It changes the night premium line of a payslip. Only the Philippines’ rows read it; it changes nothing in other countries.",
 							"kind": "enum",
-							"values": [
-								"WORKED",
-								"CLOCK_SPAN",
-								"WHOLE_NIGHT"
-							]
+							"label": "Night premium hours",
+							"values": ["WORKED", "CLOCK_SPAN", "WHOLE_NIGHT"]
 						},
 						"overtime_hour_basis": {
 							"default": "STATUTORY",
-							"help": "CONTRACT_WEEKLY prices an overtime hour at the monthly wage × 12 ÷ (52 × the contract's weekly hours).",
+							"help": "What one overtime hour is priced on. Statutory: the hour rate the law works out. Contract weekly: the monthly wage × 12 ÷ (52 × the contract's weekly hours). It changes the overtime lines of a payslip.",
 							"kind": "enum",
-							"values": [
-								"STATUTORY",
-								"CONTRACT_WEEKLY"
-							]
+							"label": "Overtime hour rate",
+							"values": ["STATUTORY", "CONTRACT_WEEKLY"]
 						},
 						"rest_day_hourly_multiplier": {
-							"help": "Every rest-day hour pays this multiple of the hour rate.",
+							"help": "Every hour worked on a rest day pays this multiple of the hour rate. Leave empty to pay what the law pays. It changes the rest-day work lines of a payslip.",
 							"kind": "number",
+							"label": "Rest-day hour multiple",
 							"min": 1,
 							"optional": true
 						}
 					},
-					"help": "The employer's own pay methods. Each pays only where it pays more than the law; otherwise the law stands.",
+					"help": "The employer's own pay methods. Each applies only where it pays at least the law; otherwise the law stands.",
 					"kind": "object",
 					"optional": true
 				},
@@ -1303,18 +1174,11 @@
 					"states": {
 						"DRAFT": {
 							"edit": "all",
-							"to": [
-								"SEALED"
-							]
+							"to": ["SEALED"]
 						},
 						"SEALED": {
-							"edit": [
-								"effective_range",
-								"reason"
-							],
-							"to": [
-								"VOID"
-							]
+							"edit": ["effective_range", "reason"],
+							"to": ["VOID"]
 						},
 						"VOID": {
 							"edit": "none",
@@ -1331,9 +1195,7 @@
 			"nativeRules": 2,
 			"noOverlap": [
 				{
-					"key": [
-						"entity_id"
-					],
+					"key": ["entity_id"],
 					"period": "effective_range",
 					"where": {
 						"status": {
@@ -1364,10 +1226,7 @@
 				"given_to": {
 					"default": "EVERYONE",
 					"kind": "enum",
-					"values": [
-						"EVERYONE",
-						"ONLY_IF_OFF_ON_REPLACED_DATE"
-					]
+					"values": ["EVERYONE", "ONLY_IF_OFF_ON_REPLACED_DATE"]
 				},
 				"kind": {
 					"default": "PUBLIC_HOLIDAY",
@@ -1431,11 +1290,7 @@
 							"fields": {
 								"basis": {
 									"kind": "enum",
-									"values": [
-										"CONTRACT_HOURS",
-										"CONTRACT_WEEKLY",
-										"FIXED"
-									]
+									"values": ["CONTRACT_HOURS", "CONTRACT_WEEKLY", "FIXED"]
 								},
 								"hours": {
 									"help": "The divisor when the basis is FIXED (Indonesia 173, China 174).",
@@ -1448,24 +1303,14 @@
 						},
 						"proration": {
 							"kind": "enum",
-							"values": [
-								"CALENDAR_DAYS",
-								"WORKING_DAYS",
-								"DAY_RATE"
-							]
+							"values": ["CALENDAR_DAYS", "WORKING_DAYS", "DAY_RATE"]
 						},
 						"rounding": {
 							"fields": {
 								"mode": {
 									"default": "HALF_UP",
 									"kind": "enum",
-									"values": [
-										"HALF_UP",
-										"HALF_EVEN",
-										"UP",
-										"DOWN",
-										"TRUNCATE"
-									]
+									"values": ["HALF_UP", "HALF_EVEN", "UP", "DOWN", "TRUNCATE"]
 								},
 								"scale": {
 									"default": 2,
@@ -1499,10 +1344,7 @@
 						"ytd_scope": {
 							"default": "JURISDICTION",
 							"kind": "enum",
-							"values": [
-								"JURISDICTION",
-								"EMPLOYER"
-							]
+							"values": ["JURISDICTION", "EMPLOYER"]
 						}
 					},
 					"kind": "object"
@@ -1530,19 +1372,11 @@
 					"states": {
 						"DRAFT": {
 							"edit": "all",
-							"to": [
-								"SEALED",
-								"VOID"
-							]
+							"to": ["SEALED", "VOID"]
 						},
 						"SEALED": {
-							"edit": [
-								"effective_range",
-								"reason"
-							],
-							"to": [
-								"VOID"
-							]
+							"edit": ["effective_range", "reason"],
+							"to": ["VOID"]
 						},
 						"VOID": {
 							"edit": "none",
@@ -1574,9 +1408,7 @@
 			"nativeRules": 2,
 			"noOverlap": [
 				{
-					"key": [
-						"code"
-					],
+					"key": ["code"],
 					"period": "effective_range",
 					"where": {
 						"status": {
@@ -1645,10 +1477,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -1675,10 +1504,7 @@
 					"to": "entity"
 				},
 				"evidence_file": {
-					"accept": [
-						"application/pdf",
-						"image/*"
-					],
+					"accept": ["application/pdf", "image/*"],
 					"kind": "file",
 					"max": "20MiB",
 					"optional": true
@@ -1705,15 +1531,10 @@
 			"recordLabel": "record.employment_id.employee_number + ' · ' + record.catalog_id.code",
 			"unique": [
 				{
-					"fields": [
-						"reverses"
-					]
+					"fields": ["reverses"]
 				},
 				{
-					"fields": [
-						"occurrence_key",
-						"catalog_id"
-					],
+					"fields": ["occurrence_key", "catalog_id"],
 					"where": {
 						"occurrence_key": {
 							"isNull": false
@@ -1740,10 +1561,7 @@
 				},
 				"part": {
 					"kind": "enum",
-					"values": [
-						"AM",
-						"PM"
-					]
+					"values": ["AM", "PM"]
 				},
 				"payroll_run_id": {
 					"kind": "ref",
@@ -1756,11 +1574,7 @@
 			"recordLabel": "record.incurred_on",
 			"unique": [
 				{
-					"fields": [
-						"leave_entry_id",
-						"incurred_on",
-						"part"
-					]
+					"fields": ["leave_entry_id", "incurred_on", "part"]
 				}
 			]
 		},
@@ -1812,14 +1626,7 @@
 					"help": "What is held in that window.",
 					"kind": "enum",
 					"optional": true,
-					"values": [
-						"total",
-						"used",
-						"entitled",
-						"carried",
-						"limit",
-						"paid"
-					]
+					"values": ["total", "used", "entitled", "carried", "limit", "paid"]
 				},
 				"note": {
 					"help": "The cause of HR's manual adjustment.",
@@ -1828,10 +1635,7 @@
 				},
 				"operation": {
 					"kind": "enum",
-					"values": [
-						"ADD",
-						"DEDUCT"
-					]
+					"values": ["ADD", "DEDUCT"]
 				},
 				"period": {
 					"help": "The window the value belongs to, for example MY.S.2026-03-05.",
@@ -1846,13 +1650,7 @@
 				"unit": {
 					"kind": "enum",
 					"optional": true,
-					"values": [
-						"DAY",
-						"CALENDAR_DAY",
-						"HOUR",
-						"MONEY",
-						"COUNT"
-					]
+					"values": ["DAY", "CALENDAR_DAY", "HOUR", "MONEY", "COUNT"]
 				}
 			},
 			"nativeRules": 2,
@@ -1863,11 +1661,6 @@
 			"fields": {
 				"code": {
 					"kind": "text"
-				},
-				"conversion": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
 				},
 				"description": {
 					"kind": "text",
@@ -1911,10 +1704,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -1936,10 +1726,7 @@
 					"to": "entity"
 				},
 				"evidence_file": {
-					"accept": [
-						"application/pdf",
-						"image/*"
-					],
+					"accept": ["application/pdf", "image/*"],
 					"kind": "file",
 					"max": "20MiB",
 					"optional": true
@@ -2021,9 +1808,7 @@
 			"recordLabel": "record.payment_reference",
 			"unique": [
 				{
-					"fields": [
-						"reverses"
-					]
+					"fields": ["reverses"]
 				}
 			]
 		},
@@ -2050,10 +1835,7 @@
 					"to": "entity"
 				},
 				"evidence": {
-					"accept": [
-						"application/pdf",
-						"image/*"
-					],
+					"accept": ["application/pdf", "image/*"],
 					"kind": "file",
 					"max": "20MiB",
 					"optional": true
@@ -2074,22 +1856,12 @@
 							"to": []
 						},
 						"OPEN": {
-							"edit": [
-								"title",
-								"due_on",
-								"fulfilled_on",
-								"evidence",
-								"waiver_reason",
-								"state"
-							],
-							"to": [
-								"FULFILLED",
-								"WAIVED"
-							]
+							"edit": ["title", "due_on", "fulfilled_on", "evidence", "waiver_reason", "state"],
+							"to": ["FULFILLED", "WAIVED"]
 						},
 						"WAIVED": {
-							"edit": "none",
-							"to": []
+							"edit": ["waiver_reason", "state"],
+							"to": ["OPEN"]
 						}
 					}
 				},
@@ -2105,9 +1877,7 @@
 			"recordLabel": "record.title",
 			"unique": [
 				{
-					"fields": [
-						"occurrence_key"
-					]
+					"fields": ["occurrence_key"]
 				}
 			]
 		},
@@ -2128,10 +1898,7 @@
 				},
 				"direction": {
 					"kind": "enum",
-					"values": [
-						"ADD",
-						"DEDUCT"
-					]
+					"values": ["ADD", "DEDUCT"]
 				},
 				"eligibility": {
 					"kind": "text",
@@ -2169,10 +1936,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -2192,14 +1956,9 @@
 					"default": {
 						"business_day": "PREVIOUS",
 						"frequency": "MONTHLY",
-						"non_working_weekdays": [
-							0,
-							6
-						],
+						"non_working_weekdays": [0, 6],
 						"pay_cutoff_day": 1,
-						"pay_days": [
-							25
-						],
+						"pay_days": [25],
 						"short_month": "LAST_DAY"
 					},
 					"kind": "json",
@@ -2211,11 +1970,7 @@
 								},
 								"business_day": {
 									"kind": "enum",
-									"values": [
-										"NONE",
-										"PREVIOUS",
-										"NEXT"
-									]
+									"values": ["NONE", "PREVIOUS", "NEXT"]
 								},
 								"non_working_weekdays": {
 									"kind": "list",
@@ -2227,10 +1982,7 @@
 								},
 								"short_month": {
 									"kind": "enum",
-									"values": [
-										"LAST_DAY",
-										"REFUSE"
-									]
+									"values": ["LAST_DAY", "REFUSE"]
 								},
 								"weekday": {
 									"kind": "int",
@@ -2241,11 +1993,7 @@
 							"DAILY": {
 								"business_day": {
 									"kind": "enum",
-									"values": [
-										"NONE",
-										"PREVIOUS",
-										"NEXT"
-									]
+									"values": ["NONE", "PREVIOUS", "NEXT"]
 								},
 								"non_working_weekdays": {
 									"kind": "list",
@@ -2257,10 +2005,7 @@
 								},
 								"short_month": {
 									"kind": "enum",
-									"values": [
-										"LAST_DAY",
-										"REFUSE"
-									]
+									"values": ["LAST_DAY", "REFUSE"]
 								}
 							},
 							"INTEGER_MONTHS": {
@@ -2269,11 +2014,7 @@
 								},
 								"business_day": {
 									"kind": "enum",
-									"values": [
-										"NONE",
-										"PREVIOUS",
-										"NEXT"
-									]
+									"values": ["NONE", "PREVIOUS", "NEXT"]
 								},
 								"month_interval": {
 									"kind": "int",
@@ -2306,20 +2047,13 @@
 								},
 								"short_month": {
 									"kind": "enum",
-									"values": [
-										"LAST_DAY",
-										"REFUSE"
-									]
+									"values": ["LAST_DAY", "REFUSE"]
 								}
 							},
 							"MONTHLY": {
 								"business_day": {
 									"kind": "enum",
-									"values": [
-										"NONE",
-										"PREVIOUS",
-										"NEXT"
-									]
+									"values": ["NONE", "PREVIOUS", "NEXT"]
 								},
 								"non_working_weekdays": {
 									"kind": "list",
@@ -2347,20 +2081,13 @@
 								},
 								"short_month": {
 									"kind": "enum",
-									"values": [
-										"LAST_DAY",
-										"REFUSE"
-									]
+									"values": ["LAST_DAY", "REFUSE"]
 								}
 							},
 							"SEMI_MONTHLY": {
 								"business_day": {
 									"kind": "enum",
-									"values": [
-										"NONE",
-										"PREVIOUS",
-										"NEXT"
-									]
+									"values": ["NONE", "PREVIOUS", "NEXT"]
 								},
 								"non_working_weekdays": {
 									"kind": "list",
@@ -2388,20 +2115,13 @@
 								},
 								"short_month": {
 									"kind": "enum",
-									"values": [
-										"LAST_DAY",
-										"REFUSE"
-									]
+									"values": ["LAST_DAY", "REFUSE"]
 								}
 							},
 							"TEN_DAY": {
 								"business_day": {
 									"kind": "enum",
-									"values": [
-										"NONE",
-										"PREVIOUS",
-										"NEXT"
-									]
+									"values": ["NONE", "PREVIOUS", "NEXT"]
 								},
 								"non_working_weekdays": {
 									"kind": "list",
@@ -2429,10 +2149,7 @@
 								},
 								"short_month": {
 									"kind": "enum",
-									"values": [
-										"LAST_DAY",
-										"REFUSE"
-									]
+									"values": ["LAST_DAY", "REFUSE"]
 								}
 							},
 							"WEEKLY": {
@@ -2441,11 +2158,7 @@
 								},
 								"business_day": {
 									"kind": "enum",
-									"values": [
-										"NONE",
-										"PREVIOUS",
-										"NEXT"
-									]
+									"values": ["NONE", "PREVIOUS", "NEXT"]
 								},
 								"non_working_weekdays": {
 									"kind": "list",
@@ -2457,10 +2170,7 @@
 								},
 								"short_month": {
 									"kind": "enum",
-									"values": [
-										"LAST_DAY",
-										"REFUSE"
-									]
+									"values": ["LAST_DAY", "REFUSE"]
 								},
 								"weekday": {
 									"kind": "int",
@@ -2477,16 +2187,11 @@
 			"nativeRules": 2,
 			"recordLabel": "record.name",
 			"search": {
-				"text": [
-					"name"
-				]
+				"text": ["name"]
 			},
 			"unique": [
 				{
-					"fields": [
-						"entity_id",
-						"name"
-					]
+					"fields": ["entity_id", "name"]
 				}
 			]
 		},
@@ -2501,10 +2206,7 @@
 				"kind": {
 					"default": "ON_CYCLE",
 					"kind": "enum",
-					"values": [
-						"ON_CYCLE",
-						"OFF_CYCLE"
-					]
+					"values": ["ON_CYCLE", "OFF_CYCLE"]
 				},
 				"pay_date": {
 					"kind": "date"
@@ -2539,12 +2241,8 @@
 							"to": []
 						},
 						"UNPAID": {
-							"edit": [
-								"state"
-							],
-							"to": [
-								"PAID"
-							]
+							"edit": ["state"],
+							"to": ["PAID"]
 						}
 					}
 				}
@@ -2553,10 +2251,7 @@
 			"recordLabel": "record.run_number",
 			"unique": [
 				{
-					"fields": [
-						"pay_group_id",
-						"period"
-					],
+					"fields": ["pay_group_id", "period"],
 					"where": {
 						"kind": {
 							"eq": "ON_CYCLE"
@@ -2568,12 +2263,6 @@
 		"payslip": {
 			"audit": true,
 			"fields": {
-				"additional_wages": {
-					"default": 0,
-					"kind": "decimal",
-					"min": 0,
-					"scale": 12
-				},
 				"basic_earnings": {
 					"kind": "decimal",
 					"optional": true,
@@ -2601,12 +2290,6 @@
 					"scale": 12
 				},
 				"employer_cost": {
-					"default": 0,
-					"kind": "decimal",
-					"min": 0,
-					"scale": 12
-				},
-				"employer_statutory": {
 					"default": 0,
 					"kind": "decimal",
 					"min": 0,
@@ -2667,11 +2350,7 @@
 			"recordLabel": "string(record.net_pay)",
 			"unique": [
 				{
-					"fields": [
-						"payroll_run_id",
-						"employee_id",
-						"entity_id"
-					]
+					"fields": ["payroll_run_id", "employee_id", "entity_id"]
 				}
 			]
 		},
@@ -2696,27 +2375,7 @@
 				"events": {
 					"kind": "enum",
 					"many": true,
-					"values": [
-						"create",
-						"update",
-						"delete",
-						"prepare_request",
-						"seal",
-						"void",
-						"approve",
-						"entries_changed",
-						"prepare_payroll",
-						"after_basic",
-						"after_gross",
-						"after_contributions",
-						"after_tax",
-						"after_net",
-						"finalise",
-						"mark_paid",
-						"daily",
-						"calendar",
-						"exit"
-					]
+					"values": ["create", "update", "delete", "seal", "exit"]
 				},
 				"lookup": {
 					"default": {},
@@ -2752,11 +2411,7 @@
 				},
 				"target_action": {
 					"kind": "enum",
-					"values": [
-						"create",
-						"update",
-						"delete"
-					]
+					"values": ["create", "update", "delete"]
 				},
 				"target_collection": {
 					"kind": "text"
@@ -2766,10 +2421,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -2791,27 +2443,7 @@
 				"events": {
 					"kind": "enum",
 					"many": true,
-					"values": [
-						"create",
-						"update",
-						"delete",
-						"prepare_request",
-						"seal",
-						"void",
-						"approve",
-						"entries_changed",
-						"prepare_payroll",
-						"after_basic",
-						"after_gross",
-						"after_contributions",
-						"after_tax",
-						"after_net",
-						"finalise",
-						"mark_paid",
-						"daily",
-						"calendar",
-						"after_exit"
-					]
+					"values": ["create", "update", "delete"]
 				},
 				"lookup": {
 					"default": {},
@@ -2855,10 +2487,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -3003,10 +2632,7 @@
 			"recordLabel": "record.work_date",
 			"unique": [
 				{
-					"fields": [
-						"employment_id",
-						"work_date"
-					]
+					"fields": ["employment_id", "work_date"]
 				}
 			]
 		},
@@ -3051,12 +2677,7 @@
 						},
 						"day_type": {
 							"kind": "enum",
-							"values": [
-								"WORK",
-								"REST",
-								"OFF",
-								"ABS"
-							]
+							"values": ["WORK", "REST", "OFF", "ABS"]
 						},
 						"end_time": {
 							"kind": "time",
@@ -3082,10 +2703,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"entity_id",
-						"code"
-					]
+					"fields": ["entity_id", "code"]
 				}
 			]
 		},
@@ -3181,10 +2799,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"entity_id",
-						"code"
-					]
+					"fields": ["entity_id", "code"]
 				}
 			]
 		},
@@ -3243,13 +2858,7 @@
 			"recordLabel": "record.field_path",
 			"unique": [
 				{
-					"fields": [
-						"finding_id",
-						"family",
-						"row_code",
-						"field_path",
-						"effective_from"
-					]
+					"fields": ["finding_id", "family", "row_code", "field_path", "effective_from"]
 				}
 			]
 		},
@@ -3259,10 +2868,7 @@
 				"balance_window": {
 					"default": "YEAR",
 					"kind": "enum",
-					"values": [
-						"MONTH",
-						"YEAR"
-					]
+					"values": ["MONTH", "YEAR"]
 				},
 				"code": {
 					"kind": "text"
@@ -3301,10 +2907,7 @@
 				},
 				"kind": {
 					"kind": "enum",
-					"values": [
-						"CONTRIBUTION",
-						"TAX"
-					]
+					"values": ["CONTRIBUTION", "TAX"]
 				},
 				"lookup": {
 					"default": {},
@@ -3338,10 +2941,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -3360,11 +2960,7 @@
 				},
 				"fit": {
 					"kind": "enum",
-					"values": [
-						"VALUE",
-						"ROW",
-						"STRUCTURAL"
-					]
+					"values": ["VALUE", "ROW", "STRUCTURAL"]
 				},
 				"instrument_key": {
 					"kind": "text"
@@ -3399,14 +2995,8 @@
 							"to": []
 						},
 						"CONFIRMED": {
-							"edit": [
-								"status",
-								"notes"
-							],
-							"to": [
-								"APPLIED",
-								"REJECTED"
-							]
+							"edit": ["status", "notes"],
+							"to": ["APPLIED", "REJECTED"]
 						},
 						"PROPOSED": {
 							"edit": [
@@ -3422,10 +3012,7 @@
 								"verified_by",
 								"status"
 							],
-							"to": [
-								"CONFIRMED",
-								"REJECTED"
-							]
+							"to": ["CONFIRMED", "REJECTED"]
 						},
 						"REJECTED": {
 							"edit": "none",
@@ -3455,10 +3042,7 @@
 			"recordLabel": "record.title",
 			"unique": [
 				{
-					"fields": [
-						"jurisdiction_code",
-						"instrument_key"
-					]
+					"fields": ["jurisdiction_code", "instrument_key"]
 				}
 			]
 		},
@@ -3483,11 +3067,7 @@
 				"origin": {
 					"default": "PERSON",
 					"kind": "enum",
-					"values": [
-						"REFERENCE",
-						"AGENT",
-						"PERSON"
-					]
+					"values": ["REFERENCE", "AGENT", "PERSON"]
 				},
 				"replaces_url": {
 					"format": "url",
@@ -3504,25 +3084,15 @@
 					"states": {
 						"ACTIVE": {
 							"edit": "all",
-							"to": [
-								"RETIRED"
-							]
+							"to": ["RETIRED"]
 						},
 						"PROPOSED": {
 							"edit": "all",
-							"to": [
-								"ACTIVE",
-								"RETIRED"
-							]
+							"to": ["ACTIVE", "RETIRED"]
 						},
 						"RETIRED": {
-							"edit": [
-								"status",
-								"notes"
-							],
-							"to": [
-								"ACTIVE"
-							]
+							"edit": ["status", "notes"],
+							"to": ["ACTIVE"]
 						}
 					}
 				},
@@ -3538,10 +3108,7 @@
 			"recordLabel": "record.title",
 			"unique": [
 				{
-					"fields": [
-						"jurisdiction_code",
-						"url"
-					]
+					"fields": ["jurisdiction_code", "url"]
 				}
 			]
 		},
@@ -3551,10 +3118,7 @@
 				"balance_window": {
 					"default": "YEAR",
 					"kind": "enum",
-					"values": [
-						"MONTH",
-						"YEAR"
-					]
+					"values": ["MONTH", "YEAR"]
 				},
 				"calculation": {
 					"kind": "text",
@@ -3584,10 +3148,7 @@
 			"recordLabel": "record.name",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -3651,9 +3212,7 @@
 					"kind": "instant"
 				}
 			},
-			"key": [
-				"address_mac"
-			],
+			"key": ["address_mac"],
 			"nativeRules": 2
 		},
 		"sys_config": {
@@ -3665,9 +3224,7 @@
 					"kind": "text"
 				}
 			},
-			"key": [
-				"key"
-			],
+			"key": ["key"],
 			"nativeRules": 2
 		},
 		"sys_conversation": {
@@ -3771,10 +3328,7 @@
 				"audience": {
 					"default": "private",
 					"kind": "enum",
-					"values": [
-						"private",
-						"public"
-					]
+					"values": ["private", "public"]
 				},
 				"created_at": {
 					"default": {
@@ -3785,27 +3339,17 @@
 				"delegation": {
 					"default": "disabled",
 					"kind": "enum",
-					"values": [
-						"enabled",
-						"disabled"
-					]
+					"values": ["enabled", "disabled"]
 				},
 				"dm": {
 					"default": "union",
 					"kind": "enum",
-					"values": [
-						"union",
-						"envoy"
-					]
+					"values": ["union", "envoy"]
 				},
 				"group_messages": {
 					"default": "mention_or_reply",
 					"kind": "enum",
-					"values": [
-						"disabled",
-						"mention_or_reply",
-						"all"
-					]
+					"values": ["disabled", "mention_or_reply", "all"]
 				},
 				"name": {
 					"kind": "text"
@@ -3906,11 +3450,7 @@
 			},
 			"indexes": [
 				{
-					"on": [
-						"sync",
-						"instance",
-						"received_at"
-					],
+					"on": ["sync", "instance", "received_at"],
 					"where": {
 						"consumed_at": {
 							"isNull": true
@@ -3922,11 +3462,7 @@
 			"nativeRules": 2,
 			"unique": [
 				{
-					"fields": [
-						"sync",
-						"instance",
-						"delivery"
-					]
+					"fields": ["sync", "instance", "delivery"]
 				}
 			]
 		},
@@ -3980,10 +3516,7 @@
 			"nativeRules": 2,
 			"unique": [
 				{
-					"fields": [
-						"owner",
-						"integration"
-					],
+					"fields": ["owner", "integration"],
 					"name": "one_per_member",
 					"where": {
 						"owner": {
@@ -4062,9 +3595,7 @@
 					]
 				},
 				{
-					"on": [
-						"phone"
-					]
+					"on": ["phone"]
 				}
 			],
 			"key": "text",
@@ -4250,20 +3781,12 @@
 			},
 			"identity": "seq",
 			"index": [
-				[
-					"conversation",
-					"seq"
-				],
-				[
-					"integration",
-					"provider_id"
-				]
+				["conversation", "seq"],
+				["integration", "provider_id"]
 			],
 			"indexes": [
 				{
-					"on": [
-						"conversation"
-					],
+					"on": ["conversation"],
 					"where": {
 						"state": {
 							"eq": "queued"
@@ -4271,9 +3794,7 @@
 					}
 				},
 				{
-					"on": [
-						"conversation"
-					],
+					"on": ["conversation"],
 					"where": {
 						"state": {
 							"eq": "pending"
@@ -4281,15 +3802,10 @@
 					}
 				},
 				{
-					"on": [
-						"seq"
-					],
+					"on": ["seq"],
 					"where": {
 						"status": {
-							"in": [
-								"queued",
-								"sending"
-							]
+							"in": ["queued", "sending"]
 						}
 					}
 				}
@@ -4336,10 +3852,7 @@
 			},
 			"indexes": [
 				{
-					"on": [
-						"member",
-						"at"
-					],
+					"on": ["member", "at"],
 					"where": {
 						"member": {
 							"isNull": false
@@ -4406,11 +3919,7 @@
 				},
 				"op": {
 					"kind": "enum",
-					"values": [
-						"create",
-						"update",
-						"delete"
-					]
+					"values": ["create", "update", "delete"]
 				},
 				"record": {
 					"kind": "text"
@@ -4428,14 +3937,7 @@
 				"status": {
 					"default": "queued",
 					"kind": "enum",
-					"values": [
-						"queued",
-						"sending",
-						"acked",
-						"failed",
-						"dead",
-						"skipped"
-					]
+					"values": ["queued", "sending", "acked", "failed", "dead", "skipped"]
 				},
 				"sync": {
 					"kind": "text"
@@ -4450,9 +3952,7 @@
 			"identity": "seq",
 			"indexes": [
 				{
-					"on": [
-						"next_attempt_at"
-					],
+					"on": ["next_attempt_at"],
 					"where": {
 						"status": {
 							"eq": "queued"
@@ -4460,24 +3960,15 @@
 					}
 				},
 				{
-					"on": [
-						"sync",
-						"record",
-						"seq"
-					],
+					"on": ["sync", "record", "seq"],
 					"where": {
 						"status": {
-							"in": [
-								"queued",
-								"sending"
-							]
+							"in": ["queued", "sending"]
 						}
 					}
 				},
 				{
-					"on": [
-						"sync"
-					],
+					"on": ["sync"],
 					"where": {
 						"status": {
 							"eq": "dead"
@@ -4489,11 +3980,7 @@
 			"nativeRules": 2,
 			"unique": [
 				{
-					"fields": [
-						"sync",
-						"instance",
-						"record"
-					],
+					"fields": ["sync", "instance", "record"],
 					"name": "coalesce",
 					"where": {
 						"attempts": {
@@ -4583,9 +4070,7 @@
 			},
 			"indexes": [
 				{
-					"on": [
-						"due_at"
-					],
+					"on": ["due_at"],
 					"where": {
 						"state": {
 							"eq": "queued"
@@ -4627,13 +4112,7 @@
 				},
 				"via": {
 					"kind": "enum",
-					"values": [
-						"code",
-						"invitation",
-						"signup",
-						"host",
-						"anonymous"
-					]
+					"values": ["code", "invitation", "signup", "host", "anonymous"]
 				}
 			},
 			"key": "text",
@@ -4680,10 +4159,7 @@
 				"phase": {
 					"default": "read",
 					"kind": "enum",
-					"values": [
-						"read",
-						"reconcile"
-					]
+					"values": ["read", "reconcile"]
 				},
 				"started_at": {
 					"default": {
@@ -4703,11 +4179,7 @@
 			"nativeRules": 2,
 			"unique": [
 				{
-					"fields": [
-						"sync",
-						"instance",
-						"partition"
-					]
+					"fields": ["sync", "instance", "partition"]
 				}
 			]
 		},
@@ -4743,30 +4215,15 @@
 					"kind": "text"
 				}
 			},
-			"index": [
-				[
-					"sync",
-					"instance",
-					"partition",
-					"cycle"
-				]
-			],
+			"index": [["sync", "instance", "partition", "cycle"]],
 			"key": "uuid",
 			"nativeRules": 2,
 			"unique": [
 				{
-					"fields": [
-						"sync",
-						"instance",
-						"remote_id"
-					]
+					"fields": ["sync", "instance", "remote_id"]
 				},
 				{
-					"fields": [
-						"sync",
-						"instance",
-						"record"
-					]
+					"fields": ["sync", "instance", "record"]
 				}
 			]
 		},
@@ -4835,11 +4292,7 @@
 				"kind": {
 					"default": "staff",
 					"kind": "enum",
-					"values": [
-						"staff",
-						"external",
-						"anonymous"
-					]
+					"values": ["staff", "external", "anonymous"]
 				},
 				"last_seen": {
 					"kind": "instant",
@@ -4884,9 +4337,7 @@
 					"unique": true
 				},
 				{
-					"on": [
-						"phone_key"
-					],
+					"on": ["phone_key"],
 					"unique": true
 				}
 			],
@@ -4894,10 +4345,7 @@
 			"nativeRules": 2,
 			"recordLabel": "record.name",
 			"search": {
-				"text": [
-					"name",
-					"email"
-				]
+				"text": ["name", "email"]
 			}
 		},
 		"work_event": {
@@ -4922,10 +4370,7 @@
 					"to": "entity"
 				},
 				"evidence_file": {
-					"accept": [
-						"application/pdf",
-						"image/*"
-					],
+					"accept": ["application/pdf", "image/*"],
 					"kind": "file",
 					"max": "20MiB",
 					"optional": true
@@ -4954,16 +4399,6 @@
 				"description": {
 					"kind": "text",
 					"optional": true
-				},
-				"events": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
 				},
 				"lookup": {
 					"default": {},
@@ -4997,10 +4432,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -5056,10 +4488,7 @@
 			"recordLabel": "record.code",
 			"unique": [
 				{
-					"fields": [
-						"settings_id",
-						"code"
-					]
+					"fields": ["settings_id", "code"]
 				}
 			]
 		},
@@ -5092,9 +4521,7 @@
 					"to": "entity"
 				},
 				"evidence_file": {
-					"accept": [
-						"*/*"
-					],
+					"accept": ["*/*"],
 					"kind": "file",
 					"label": "Document",
 					"max": "20MiB",

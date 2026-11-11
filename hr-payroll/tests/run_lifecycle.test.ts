@@ -137,7 +137,10 @@ describe('deleting a run', () => {
 			const [january, february] = yield* runs(t);
 			assert.ok(january !== undefined && february !== undefined);
 			const held = yield* ytdNet(t);
-			assert.match(String(yield* Effect.flip(drop(t, january.id))), /later run/);
+			assert.match(
+				String(yield* Effect.flip(drop(t, january.id))),
+				/A later run has already counted this one/
+			);
 			assert.deepEqual(yield* ytdNet(t), held);
 			yield* drop(t, february.id);
 			yield* t.runDue();
@@ -172,8 +175,11 @@ describe('deleting a run', () => {
 			yield* t
 				.as(t.admin)
 				.act('payroll_run.update', [{ target: february.id, set: { state: 'PAID' } }]);
-			assert.match(String(yield* Effect.flip(drop(t, february.id))), /locked/);
-			assert.match(String(yield* Effect.flip(drop(t, january.id))), /later run/);
+			assert.match(String(yield* Effect.flip(drop(t, february.id))), /A paid run is locked/);
+			assert.match(
+				String(yield* Effect.flip(drop(t, january.id))),
+				/A later run has already counted this one/
+			);
 		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
 	);
 
@@ -227,7 +233,10 @@ describe('deleting a run', () => {
 			yield* run(t, OTHER, '2026-03');
 			const [first, second] = yield* runs(t);
 			assert.ok(first !== undefined && second !== undefined);
-			assert.match(String(yield* Effect.flip(drop(t, first.id))), /later run/);
+			assert.match(
+				String(yield* Effect.flip(drop(t, first.id))),
+				/A later run has already counted this one/
+			);
 			yield* drop(t, second.id);
 			yield* t.runDue();
 			yield* drop(t, first.id);
@@ -301,7 +310,10 @@ describe('order of cycles', () => {
 				String(yield* Effect.flip(run(t, ENTITY, '2026-01'))),
 				/2026-02 has already run/
 			);
-			assert.match(String(yield* Effect.flip(run(t, ENTITY, '2026-02'))), /./);
+			assert.match(
+				String(yield* Effect.flip(run(t, ENTITY, '2026-02'))),
+				/already has this payroll_run/
+			);
 			assert.equal((yield* runs(t)).length, 1);
 		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
 	);
@@ -355,10 +367,10 @@ describe('what an off-cycle run may name', () => {
 				.adhoc_catalog_entry.rows[0];
 			assert.ok(entry !== undefined);
 			yield* offCycle(t, [entry.id]);
-			const again = yield* Effect.result(offCycle(t, [entry.id]));
+			assert.match(String(yield* Effect.flip(offCycle(t, [entry.id]))), /already attached/);
 			const slips = yield* paidOn(t);
 			const paid = slips.flatMap((slip) => lines(slip).filter((line) => line.code === 'BONUS'));
-			assert.equal(paid.length, 1, String(again));
+			assert.equal(paid.length, 1);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })))
 	);
 
@@ -374,21 +386,20 @@ describe('what an off-cycle run may name', () => {
 			const entry = (yield* t.storedQuery({ adhoc_catalog_entry: { limit: 1 } }))
 				.adhoc_catalog_entry.rows[0];
 			assert.ok(entry !== undefined);
-			const outcome = yield* Effect.result(offCycle(t, [entry.id]));
-			const slips = yield* paidOn(t);
-			assert.equal(
-				slips.flatMap((slip) => lines(slip).filter((line) => line.code === recurring.code)).length,
-				0,
-				String(outcome)
-			);
+			// refused whole: a run that sealed the entry without paying it would keep it from the on-cycle run for good
+			assert.match(String(yield* Effect.flip(offCycle(t, [entry.id]))), /on-cycle/i);
+			assert.equal((yield* paidOn(t)).length, 0);
+			const [held] = (yield* t.storedQuery({ adhoc_catalog_entry: { limit: 1 } }))
+				.adhoc_catalog_entry.rows;
+			assert.equal(held?.payroll_run_id ?? null, null);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })))
 	);
 
 	it.live('an unknown entry is refused, not an empty run', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const outcome = yield* Effect.result(offCycle(t, [uuid(999)]));
-			assert.equal(outcome._tag, 'Failure', 'an empty run was created');
+			assert.match(String(yield* Effect.flip(offCycle(t, [uuid(999)]))), /does not exist/);
+			assert.equal((yield* runs(t)).length, 0);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })))
 	);
 });

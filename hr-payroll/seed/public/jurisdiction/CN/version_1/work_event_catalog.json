@@ -5,24 +5,12 @@
 		"lookup": {},
 		"subtotal_id": null,
 		"id": "24fc8323-3d23-5dc4-82b0-834bbd984b08",
-		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c",
-		"events": {}
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	},
 	{
 		"code": "STOPPAGE_EMPLOYER",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"attendance": {
-				"counts_as_attended": true,
-				"scheduled": true
-			},
-			"payment": {
-				"first_pay_cycle": "CONTRACT_STANDARD",
-				"after_first_cycle_worked": "NOT_BELOW_LOCAL_MINIMUM_WAGE",
-				"after_first_cycle_not_worked": "LIVING_ALLOWANCE"
-			}
-		},
 		"references": [
 			{
 				"title": "工资支付暂行规定 第十二条: 一个工资支付周期内按合同标准支付; 超过后提供正常劳动的不低于当地最低工资, 未提供劳动的按国家有关规定 (生活费)."
@@ -36,17 +24,6 @@
 		"code": "FORCE_MAJEURE",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"attendance": {
-				"counts_as_attended": true,
-				"scheduled": true
-			},
-			"payment": {
-				"first_pay_cycle": "CONTRACT_STANDARD",
-				"after_first_cycle_worked": "NOT_BELOW_LOCAL_MINIMUM_WAGE",
-				"after_first_cycle_not_worked": "LIVING_ALLOWANCE"
-			}
-		},
 		"references": [
 			{
 				"title": "工资支付暂行规定 第十二条: 非因劳动者原因停工, 一个工资支付周期内按合同标准支付; 超过后按提供劳动与否分别适用最低工资或生活费."
@@ -60,17 +37,6 @@
 		"code": "GOVERNMENT_ORDER",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"attendance": {
-				"counts_as_attended": true,
-				"scheduled": true
-			},
-			"payment": {
-				"first_pay_cycle": "CONTRACT_STANDARD",
-				"after_first_cycle_worked": "NOT_BELOW_LOCAL_MINIMUM_WAGE",
-				"after_first_cycle_not_worked": "LIVING_ALLOWANCE"
-			}
-		},
 		"references": [
 			{
 				"title": "工资支付暂行规定 第十二条: 政府措施导致停工, 一个工资支付周期内按合同标准支付; 超过后按提供劳动与否分别适用最低工资或生活费."
@@ -84,17 +50,6 @@
 		"code": "EMPLOYEE_CAUSED",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {
-			"attendance": {
-				"counts_as_attended": false,
-				"scheduled": true
-			},
-			"payment": {
-				"first_pay_cycle": "NONE",
-				"after_first_cycle_worked": "NONE",
-				"after_first_cycle_not_worked": "NONE"
-			}
-		},
 		"references": [
 			{
 				"title": "劳动法 第五十条; 工资支付暂行规定 第十二条 a contrario: 劳动者原因造成的停工不属于该条, 不支付工资."

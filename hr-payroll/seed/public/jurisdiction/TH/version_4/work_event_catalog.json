@@ -11,15 +11,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": false
-			},
-			"work.payment": {
-				"wage_factor": 0.75
-			}
-		},
 		"id": "ad5d4dbc-2568-5fa7-af4d-9f630c475552",
 		"settings_id": "84c29e3a-8ac4-5674-b16d-f6ae2f938464",
 		"description": "A temporary cessation of work."
@@ -36,15 +27,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"events": {
-			"work.treatment": {
-				"scheduled": true,
-				"counts_as_attended": false
-			},
-			"work.payment": {
-				"wage_factor": 0
-			}
-		},
 		"id": "76d07f23-a35d-5f5e-b4cd-1850fd6ac952",
 		"settings_id": "84c29e3a-8ac4-5674-b16d-f6ae2f938464",
 		"description": "A force-majeure event that stops work; pay follows the agreed stoppage terms."

@@ -133,24 +133,6 @@
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
 	{
-		"code": "EQUITY_INCENTIVE",
-		"description": "The entry quantity is the value of the equity incentive. It is taxable under the separate equity method, not monthly cumulative withholding, and is not paid in cash; the catalogue therefore records the value with no pay line and no monthly IIT base.",
-		"lookup": {},
-		"references": [
-			{
-				"title": "财税〔2018〕164号 二(一); 财政部 税务总局公告2023年第25号: 股权激励单独适用综合所得税率表, 至2027-12-31."
-			}
-		],
-		"off_cycle_eligible": true,
-		"subtotal_id": null,
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "return ctx.entry.quantity > 0;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "6005d9df-a8d8-5b71-bdac-252e5730b746",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
 		"code": "EARLY_RETIREMENT_LUMP_SUM",
 		"description": "The entry quantity is the lump sum paid on early retirement.",
 		"lookup": {},
@@ -291,8 +273,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "47e9c8f5-bc1c-5e35-985d-81bafdc7d3b7",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -318,8 +300,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "c9cb3825-055b-54fa-8487-4f4ef215c8c5",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -345,8 +327,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "7c42f13d-6367-5e9e-ad46-07138d15f51d",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -372,8 +354,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "9654b831-1bd5-530a-b662-4d76719f644f",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -399,8 +381,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "02630842-058d-5438-a90a-f692f767a58f",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -426,8 +408,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "e77792be-359b-5db1-be3a-a315cc21aa44",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -453,8 +435,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "bf4d07ff-0e42-5aca-969c-484c21a6e9d5",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -480,8 +462,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "ed1b75de-373c-5981-95a0-d472eb885736",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -507,8 +489,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "8f9a6584-2758-5324-aea7-edcf45c2ec39",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -534,8 +516,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "cf22ffee-d163-53d2-b578-3ebc03a0d314",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -561,8 +543,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "58a9db57-255e-5cb5-8c7c-4157e58ea7c2",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -588,8 +570,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "7688bcd1-2599-579e-ac1d-901376c7a015",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -615,8 +597,8 @@
 		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
 		"id": "372e94c0-250a-5ef9-a4f6-d671ae66292c",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	}

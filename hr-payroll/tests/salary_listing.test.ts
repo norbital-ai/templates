@@ -4,11 +4,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
+import { metroBank, ocbcFast } from '../src/lib/export_format_configuration/bank_files.ts';
+import { exportRows } from '../src/lib/export_format_configuration/export_rows.ts';
 import {
 	sheetsOf,
 	workbookOf
 } from '../src/lib/export_format_configuration/salary_listing_export.ts';
+import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { ENTITY, pack, workspace } from './kit.ts';
 
 const terms = {
@@ -130,5 +133,70 @@ describe('the salary listing', () => {
 				result: slip.net_pay?.toNumber()
 			});
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-05T02:00:00.000Z' })))
+	);
+});
+
+describe('a run’s payments, as the bank files and the listing rows read them', () => {
+	// the fixture's own agreed allowance, so the run pays one allowance line
+	const paid = pack(
+		'MY',
+		'Asia/Kuala_Lumpur',
+		{ ...terms, allowances: { MEAL_ALLOWANCE: { amount: 150 } } },
+		{},
+		[],
+		[],
+		'2026-10-15'
+	);
+	it.live(
+		'one row a payslip, its net, its allowances and the contract’s bank as stored; each bank file lays it out once',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* t
+					.as(t.admin)
+					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-10', kind: 'ON_CYCLE' }]);
+				const { payroll_run, payslip } = yield* t.storedQuery({
+					payroll_run: { limit: 10 },
+					payslip: { limit: 10 }
+				});
+				const [run] = payroll_run.rows;
+				const [slip, ...more] = payslip.rows;
+				assert.ok(run !== undefined && slip !== undefined);
+				assert.deepEqual(more, []);
+				const net = Number(slip.net_pay?.toNumber());
+				const allowances = Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown)
+					.lines.filter((line) => line.source === 'allowance_catalog')
+					.reduce((total, line) => total + line.amount, 0);
+				assert.ok(net > 0 && allowances > 0);
+				const rows = yield* exportRows(t.storedQuery, run.id);
+				assert.equal(rows.length, 1);
+				const [row] = rows;
+				assert.ok(row !== undefined);
+				assert.deepEqual(
+					[row.employee_number, row.bank_code, row.bank_account_number, row.bank_account_name],
+					['W1', '001', '1', 'Worker']
+				);
+				assert.equal(row.net_pay, net);
+				assert.equal(row.gross_earnings, slip.gross_earnings?.toNumber());
+				assert.equal(row.allowances, allowances);
+				// the amount is whole cents, zero-filled, once in each file's one line
+				const cents = String(Math.round(net * 100));
+				for (const [format, width, amount] of [
+					[ocbcFast, 107, 15],
+					[metroBank, 79, 12]
+				] as const) {
+					const [record, ...others] = format.records(rows);
+					assert.deepEqual(others, []);
+					const line = String(record?.line);
+					assert.equal(line.length, width);
+					assert.equal(line.split(cents.padStart(amount, '0')).length, 2);
+					assert.ok(line.includes('W1'));
+				}
+				// a value longer than its field is refused, never cut
+				assert.throws(
+					() => metroBank.records([{ ...row, bank_code: '12345' }]),
+					/Export value '12345' exceeds its 4-character field/
+				);
+			}).pipe(Effect.provide(workspace({ seed: paid, now: '2026-11-05T02:00:00.000Z' })))
 	);
 });

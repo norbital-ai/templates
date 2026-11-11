@@ -679,7 +679,6 @@ export const entitlementPlans = (
 	});
 
 type Family = 'leave' | 'claim';
-const CATALOG = { leave: 'leave_catalog', claim: 'claim_catalog' } as const;
 const rowOfCatalog = (row: JsonObject): LeaveRow => ({
 	code: String(row.code),
 	lookup: objectValue(row.lookup)
@@ -1523,24 +1522,38 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 	ctx: Ctx,
 	employees?: readonly string[]
 ) {
-	if (employees !== undefined) {
-		const { employee_balance: held = [] } = yield* queryAllRows(ctx.query, {
+	// a balance row opens with the person's first sealed contract; the whole pass opens any that is still missing, so
+	// nobody is left where every entry is refused for want of one
+	const { employee_balance: held = [], employee_contract: sealed = [] } = yield* queryAllRows(
+		ctx.query,
+		{
 			employee_balance: {
-				where: { employee_id: { in: [...employees] } },
+				...(employees === undefined ? {} : { where: { employee_id: { in: [...employees] } } }),
 				fields: ['employee_id'],
-				limit: 1000
+				limit: 10000
+			},
+			...(employees === undefined
+				? {
+						employee_contract: {
+							where: { status: { eq: 'SEALED' } },
+							fields: ['employee_id'],
+							limit: 10000
+						}
+					}
+				: {})
+		}
+	);
+	const has = new Set(held.map((row) => String(row.employee_id)));
+	const missing = [...new Set(employees ?? sealed.map((row) => String(row.employee_id)))].filter(
+		(id) => !has.has(id)
+	);
+	if (missing.length > 0)
+		yield* ctx.act.checked([
+			{
+				callable: 'employee_balance.create',
+				input: missing.map((employee_id) => ({ employee_id, account: {} }))
 			}
-		});
-		const has = new Set(held.map((row) => String(row.employee_id)));
-		const missing = [...new Set(employees)].filter((id) => !has.has(id));
-		if (missing.length > 0)
-			yield* ctx.act.checked([
-				{
-					callable: 'employee_balance.create',
-					input: missing.map((employee_id) => ({ employee_id, account: {} }))
-				}
-			]);
-	}
+		]);
 	const day = String(ctx.today);
 	const read = yield* queryAllRows(ctx.query, {
 		employee_contract: {

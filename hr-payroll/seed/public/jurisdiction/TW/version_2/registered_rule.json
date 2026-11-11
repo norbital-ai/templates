@@ -227,30 +227,6 @@
 		"description": "Refuses planned overtime on a day without a minute-level actual attendance record."
 	},
 	{
-		"code": "CASE_INPUTS_REQUIRED",
-		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			}
-		},
-		"validate": "// js\nconst form = first(ctx.reads.workplace_case_catalog);\nconst inputs = get(ctx.entry, 'inputs', {});\nconst missing = get(form, 'lookup.input_schema.required', []).filter((key) => {\n\tconst value = get(inputs, key, null);\n\treturn value == null || value === '';\n});\nif (missing.length > 0) throw 'This case needs ' + missing.join(', ') + '.';\nreturn true;",
-		"order": 30,
-		"lookup": {},
-		"id": "e2cdc4d1-3b14-5b52-822d-d798374364fb",
-		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"description": "Refuses a workplace case missing an input its catalog schema declares required."
-	},
-	{
 		"code": "SHELTERED_EMPLOYMENT_EVIDENCE",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
@@ -350,7 +326,7 @@
 			"hospital_codes": ["HOSPITALISED_SICK_LEAVE", "SICK_LEAVE_UNPAID"],
 			"hospital_pool_days": 365
 		},
-		"condition": "// js\nif (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
+		"condition": "if (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
 		"validate": "// 勞工請假規則 §4(1), (3): half wages for thirty sick days a calendar year, hospitalised days and menstrual days past three included.\n// 性別平等工作法 §14: one menstrual day a calendar month. The days beyond are SICK_LEAVE_UNPAID and MENSTRUAL_LEAVE_UNPAID.\nconst codes = Object.fromEntries(ctx.reads.leave_catalog.map((row) => [row.id, row.code]));\nconst self = get(ctx.entry, 'id', null);\nconst written = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst own = (Array.isArray(written) ? written : []).map((slot) => ({ incurred_on: String(slot.incurred_on), part: slot.part }));\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst slotsOf = (row) => row === ctx.entry && own.length > 0 ? own : (get(grouped, String(row.id), []) ?? []);\nconst rows = ctx.reads.leave_catalog_entry\n  .filter((row) => row.id !== self)\n  .concat([ctx.entry]);\nconst taken = (names, prefix) => sum(\n  rows\n    .filter((row) => names.includes(get(codes, row.catalog_id, '')))\n    .map((row) => {\n      const held = slotsOf(row).filter((slot) => String(slot.incurred_on).startsWith(prefix)).length / 2;\n      return get(row, 'reverses', null) != null ? -held : held;\n    })\n);\n// 勞工請假規則 §4(2): hospitalised sick leave totals at most one year within any two years, its unpaid days included.\nif (own.length > 0 && ctx.lookup.hospital_codes.includes(get(codes, ctx.entry.catalog_id, ''))) {\n  const last = own.map((slot) => String(slot.incurred_on)).toSorted().at(-1);\n  const since = String(add_months(last, -24));\n  const spell = sum(\n    rows\n      .filter((row) => ctx.lookup.hospital_codes.includes(get(codes, row.catalog_id, '')))\n      .map((row) => {\n        const held = slotsOf(row).filter((slot) => String(slot.incurred_on) > since && String(slot.incurred_on) <= last).length / 2;\n        return get(row, 'reverses', null) != null ? -held : held;\n      })\n  );\n  if (spell > ctx.lookup.hospital_pool_days)\n    throw 'Hospitalised sick leave would pass the ' + ctx.lookup.hospital_pool_days + ' days allowed within two years.';\n}\nconst months = own\n  .map((slot) => String(slot.incurred_on).substring(0, 7))\n  .filter((month, index, all) => all.indexOf(month) === index);\nreturn months.every((month) => {\n  if (taken(['MENSTRUAL_LEAVE', 'MENSTRUAL_LEAVE_UNPAID'], month) > ctx.lookup.menstrual_days_per_month) return false;\n  const year = month.substring(0, 4);\n  const menstrual = Math.max(0, taken(['MENSTRUAL_LEAVE'], year) - ctx.lookup.menstrual_free_days);\n  return taken(['SICK_LEAVE', 'HOSPITALISED_SICK_LEAVE'], year) + menstrual <= ctx.lookup.sick_pool_days;\n});",
 		"references": [
 			{
@@ -381,7 +357,7 @@
 		"lookup": {
 			"days": 8
 		},
-		"condition": "// js\nif (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
+		"condition": "if (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
 		"validate": "// 勞工請假規則 §2: 結婚者給予婚假; the days of the version the leave falls in.\nconst slots = get(ctx.entry, 'leave_catalog_entry_day', []);\nreturn (Array.isArray(slots) ? slots.length : 0) / 2 <= ctx.lookup.days;",
 		"references": [
 			{

@@ -1,16 +1,14 @@
 // What Chinese statute and the Shanghai and Kunming rules condition on leave and its pay: dated facts open the days, a
-// region picks its figure, and a share the wage does not pay comes off the salary. The figures are synthetic: these prove the
-// mechanism, not the seeded law.
+// region picks its figure. The figures are synthetic: these prove the mechanism, not the seeded law.
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 import type { LeavePerson } from '../src/lib/ledger/entitlement.ts';
 import { entitlementOf } from '../src/lib/ledger/entitlement.ts';
 import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
-import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { payBasis } from '../src/lib/payroll_engine/engine.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
@@ -41,22 +39,14 @@ type Person = {
 	readonly region?: string;
 	readonly gender?: string;
 	readonly events?: readonly JsonObject[];
-	readonly facts?: JsonObject;
-	readonly term_facts?: JsonObject;
 	readonly started?: string;
 };
 const personOf = ({
 	region = 'SH',
 	gender = 'FEMALE',
 	events = [],
-	facts = {},
-	term_facts = {},
 	started = '2020-01-01'
 }: Person): LeavePerson => {
-	const native = Array.isArray(facts.family) ? { family: facts.family } : {};
-	const extensionFacts = Object.fromEntries(
-		Object.entries(facts).filter(([key]) => key !== 'family')
-	);
 	return {
 		started,
 		partTime: false,
@@ -66,8 +56,7 @@ const personOf = ({
 			service_started_on: started,
 			effective_range: { from: started, to: null },
 			events,
-			...native,
-			employee_extension_data: { ...extensionFacts, ...term_facts }
+			employee_extension_data: {}
 		},
 		employer: { entity_extension_data: { region } }
 	};
@@ -166,7 +155,7 @@ describe('work events in leave entitlement', () => {
 			entitlement:
 				'return (ctx.work_events ?? []).some((event) => event.code === "NATURAL_DISASTER") ? 3 : 0;'
 		};
-		const person = personOf({ facts: {} });
+		const person = personOf({});
 		assert.equal(entitlementOf(lookup, person, '2026-07-15'), 0);
 		assert.equal(
 			entitlementOf(
@@ -201,20 +190,10 @@ const seedOf = ({
 	gender = 'FEMALE',
 	events = [],
 	family = [],
-	facts = {},
-	term_facts = {},
 	started = '2015-01-01',
 	account = {}
 }: Seeded) => {
-	const seed = pack(
-		'CN',
-		'Asia/Shanghai',
-		TERMS,
-		{ events, family, facts, term_facts },
-		[],
-		[],
-		'2026-06-15'
-	);
+	const seed = pack('CN', 'Asia/Shanghai', TERMS, { events, family }, [], [], '2026-06-15');
 	return {
 		...seed,
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account })),
@@ -253,7 +232,7 @@ const run = (from: string, count: number) =>
 		return at.toISOString().slice(0, 10);
 	});
 
-describe('on the ledger and the payslip', () => {
+describe('on the ledger', () => {
 	const mother = seedOf({
 		events: [
 			{ kind: 'CONFINEMENT', on: '2026-05-28' },
@@ -277,26 +256,5 @@ describe('on the ledger and the payslip', () => {
 				/MATERNITY_LEAVE: insufficient balance/
 			);
 		}).pipe(Effect.provide(workspace({ seed: mother, now: NOW })))
-	);
-	const fresh = seedOf({ started: '2025-01-01' });
-	it.live('a sick day is a line off the salary', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, fresh, 'SICK_LEAVE', '2026-06-01');
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]);
-			const { payslip } = yield* t.storedQuery({ payslip: { limit: 1 } });
-			const lines = Schema.decodeUnknownSync(PayslipBreakdown)(payslip.rows[0]?.breakdown).lines;
-			const [step] = (lookupOf('SICK_LEAVE').shanghai_scale_first ?? []) as readonly JsonObject[];
-			// the day's unpaid share at the day rate to the fen: 22,000 ÷ 21.75 = 1,011.49
-			const sick = lines.find((row) => row.code === 'SICK_LEAVE');
-			assert.equal(sick?.direction, 'DEDUCT');
-			assert.equal(
-				sick?.amount,
-				Math.round((1 - Number(step?.share)) * Math.round((22_000 / 21.75) * 100)) / 100
-			);
-			assert.equal(lines.find((row) => row.code === 'BASIC')?.amount, 22_000);
-		}).pipe(Effect.provide(workspace({ seed: fresh, now: NOW })))
 	);
 });

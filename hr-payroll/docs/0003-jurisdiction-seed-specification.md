@@ -1,12 +1,12 @@
 # Jurisdiction seed specification
 
-Status: normative seed contract. [The model contract](0002-model-specification.md) defines the models, [the calculation architecture](0001-hrms-calculation-architecture.md) the engine and [verification](0004-verification-gates.md) the gates.
+Reference: how a jurisdiction's law version is authored in the public seed. [The model specification](0002-model-specification.md) defines the models and [the architecture](0001-hrms-calculation-architecture.md) the engine. What the seed holds today is in [statutory coverage](0009-statutory-coverage.md).
 
 ## 1. Sources and scope
 
-The public seed is `seed/public/jurisdiction/<CODE>/version_<v>/`: nine jurisdictions (CN, ID, JP, MY, PH, SG, TH, TW, VN) and 36 sealed versions. `bolt build` writes it as the release's `base` pack.
+The public seed is `seed/public/jurisdiction/<CODE>/version_<v>/`: the sealed versions of nine jurisdictions (CN, ID, JP, MY, PH, SG, TH, TW, VN). `bolt build` writes it as the release's `base` pack.
 
-Public law belongs there. The private bank supplies tenant-specific people, teams and entity rows, through `seed/+seeder.ts` and `bolt seed`; they never enter a release. Personal records are never copied into the public seed.
+Public law belongs there. People, teams and entity rows are private data, loaded through `seed/+seeder.ts` and `bolt seed`; they never enter a release. Personal records are never copied into the public seed.
 
 ## 2. Layout
 
@@ -33,7 +33,7 @@ One folder per version, one JSON file per model type: the file name is the model
 
 ## 3. Versions
 
-A change of law is a new version, never an edit to a sealed one. A lineage is numbered in date order, sealed and unbroken, and a version exists only because something changed on its date. Seed only the live window **December 2025 – November 2026**. Later changes are seeded as `statutory_finding`/`statutory_change` rows and materialized into the next version when effective; never a pre-seeded snapshot folder. The folder number is a rolling sequence, never a legal effective date: the date is the version's `effective_range`.
+A change of law is a new version, never an edit to a sealed one. A lineage is numbered in date order, sealed and unbroken, and a version exists only because something changed on its date. Seed only the live window **December 2025 – November 2026**; every lineage's last version is open-ended. A later change is not seeded: research files it as a `statutory_finding` with its `statutory_change` rows, and `statutory_materialize` makes the next version when it takes effect; never a pre-seeded snapshot folder. The folder number is a rolling sequence, never a legal effective date: the date is the version's `effective_range`.
 
 ## 4. Authoring rules
 
@@ -58,7 +58,8 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 
 - Seed balances as ledger movements, never as direct projection writes.
 - Seed no payroll runs, payslips, YTD or per-run statutory results.
-- Suspensions and work stoppages are interruption data.
+- Suspensions and work stoppages are work events.
+- The public seed names no customer.
 - Register work limits against roster creation and change; planned-work refusal is distinct from recording an actual violation.
 - Amounts in expected results are independently calculated, never copied from the formulas.
 
@@ -66,6 +67,6 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 
 A jurisdiction is accepted when its boundary scenarios pass: overtime inclusion, allowances, balance limits, ledger reversal and retry, run locks, dependent contributions, exits and carry-forward, where applicable.
 
-Every jurisdiction also passes the [manual probe matrix](manual-probe-matrix.md): twelve consecutive months, independently verified amounts and retained evidence. Singapore additionally covers shortfall and excess/refund flows.
+Tests prove those mechanisms with synthetic inputs; they do not certify a seeded legal value. How legal values are verified is in [statutory coverage](0009-statutory-coverage.md#how-it-is-verified).
 
-Private and synthetic fixtures carry actual employment dates, zero payroll YTD, source-linked leave and claim movements, and independently reconciled balance controls.
+Fixtures carry actual employment dates, zero payroll YTD, source-linked leave and claim movements, and independently reconciled balance controls.

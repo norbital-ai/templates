@@ -19,7 +19,6 @@ export default model('work_event_catalog', {
 		description: { kind: 'text', optional: true },
 		subtotal_id: { kind: 'ref', to: 'subtotal', optional: true, onDelete: 'restrict' },
 		references: { kind: 'custom', of: 'references', optional: true },
-		events: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
@@ -36,7 +35,6 @@ export default model('work_event_catalog', {
 				'description',
 				'subtotal_id',
 				'references',
-				'events',
 				'lookup'
 			]
 		},
@@ -52,7 +50,7 @@ export default model('work_event_catalog', {
 	},
 	update: {
 		columns: {
-			work_event_catalog: ['code', 'description', 'subtotal_id', 'references', 'events', 'lookup']
+			work_event_catalog: ['code', 'description', 'subtotal_id', 'references', 'lookup']
 		},
 		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(

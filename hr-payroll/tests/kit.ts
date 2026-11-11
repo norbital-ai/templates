@@ -11,7 +11,7 @@ import { PlainDate, addDays, monthOf } from '@norbital-ai/std/date';
 import type { Id } from '@norbital-ai/bolt';
 import { accountsOf, type Accounts } from '../src/lib/ledger/core.ts';
 import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
-import { isJsonObject, jsonObject } from '../src/lib/payroll_engine/foundation.ts';
+import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 
 /** One scoped real workspace over this template's source, seeded by the rows a test writes. */
@@ -63,24 +63,6 @@ export const read = (path: string): readonly JsonObject[] => {
 		if (held === undefined || !isJsonObject(row.lookup)) return row;
 		return { ...row, lookup: { ...held, ...row.lookup } };
 	});
-};
-/** Fixtures may still write the old buckets; the contract stores the flat facts the schema now declares. */
-const flattenExtension = (value: JsonObject): JsonObject => {
-	const { facts, term_facts, exit_facts, ...rest } = value;
-	const merged: Record<string, unknown> = {
-		...(isJsonObject(facts) ? facts : {}),
-		...(isJsonObject(term_facts) ? term_facts : {}),
-		...(isJsonObject(exit_facts) ? exit_facts : {}),
-		...rest
-	};
-	if (isJsonObject(merged.statutory))
-		merged.statutory = Object.fromEntries(
-			Object.entries(merged.statutory).map(([scheme, body]) => [
-				scheme,
-				isJsonObject(body) && isJsonObject(body.elections) ? { ...body, ...body.elections } : body
-			])
-		);
-	return jsonObject(merged);
 };
 type Day = {
 	readonly date: string;
@@ -202,7 +184,7 @@ export const pack = (
 					bank_account_number: '1',
 					bank_account_name: 'Worker'
 				},
-				employee_extension_data: flattenExtension(statutory),
+				employee_extension_data: statutory,
 				service_started_on: '2025-01-01'
 			}
 		],

@@ -1,7 +1,41 @@
 import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
-import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
+import {
+	isJsonObject,
+	jsonObject,
+	type JsonObject
+} from '../../../../../../../lib/payroll_engine/foundation.js';
+import { queryRows, type Reader } from '../../../../../../../lib/payroll_engine/reads.js';
+import { Effect } from 'effect';
 import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
+
+/** A case carries the inputs its catalogue row marks as required: one rule for every jurisdiction. */
+const missingInputs = Effect.fnUntraced(function* (read: Reader, entries: readonly JsonObject[]) {
+	const { workplace_case_catalog: rows = [] } = yield* queryRows(read, {
+		workplace_case_catalog: {
+			where: { id: { in: [...new Set(entries.map((entry) => String(entry.catalog_id)))] } },
+			fields: ['id', 'lookup'],
+			limit: 10000
+		}
+	});
+	const required = new Map(
+		rows.map((row) => {
+			const schema = jsonObject(jsonObject(row.lookup ?? {}).input_schema ?? {});
+			return [
+				String(row.id),
+				Array.isArray(schema.required) ? schema.required.map(String) : []
+			] as const;
+		})
+	);
+	for (const entry of entries) {
+		const inputs = isJsonObject(entry.inputs) ? entry.inputs : {};
+		const missing = (required.get(String(entry.catalog_id)) ?? []).filter(
+			(key) => inputs[key] == null || inputs[key] === ''
+		);
+		if (missing.length > 0) return `This case needs ${missing.join(', ')}.`;
+	}
+	return undefined;
+});
 
 export default model('workplace_case_catalog_entry', {
 	description:
@@ -79,6 +113,11 @@ export default model('workplace_case_catalog_entry', {
 			]
 		},
 		transform: function* (rows, ctx) {
+			const missing = yield* missingInputs(
+				ctx.db.query,
+				rows.map((row) => jsonObject(row))
+			);
+			if (missing !== undefined) return yield* ctx.refuse(missing);
 			yield* validateRegistered(
 				ctx.db.query,
 				'workplace_case_catalog_entry',
@@ -97,6 +136,11 @@ export default model('workplace_case_catalog_entry', {
 				)
 			)
 				return changes.map((change) => change.set);
+			const missing = yield* missingInputs(
+				ctx.db.query,
+				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
+			);
+			if (missing !== undefined) return yield* ctx.refuse(missing);
 			yield* validateRegistered(
 				ctx.db.query,
 				'workplace_case_catalog_entry',
@@ -130,7 +174,7 @@ export default model('workplace_case_catalog_entry', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'workplace_case_catalog_entry', ids: rows.map((r) => r.id) },
+				'workplace_case_catalog_entry',
 				rows.map((after) => ({ after }))
 			);
 		},
@@ -140,18 +184,13 @@ export default model('workplace_case_catalog_entry', {
 				({ before, after }) => before.payroll_run_id === after.payroll_run_id
 			);
 			if (edited.length === 0) return;
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'workplace_case_catalog_entry', ids: edited.map((c) => c.after.id) },
-				edited
-			);
+			yield* tap(ctx, 'update', 'workplace_case_catalog_entry', edited);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
-				{ collection: 'workplace_case_catalog_entry', ids: rows.map((r) => r.id) },
+				'workplace_case_catalog_entry',
 				rows.map((before) => ({ before }))
 			);
 		}

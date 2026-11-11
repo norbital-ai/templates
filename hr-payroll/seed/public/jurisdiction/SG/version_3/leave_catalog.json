@@ -41,7 +41,7 @@
 			}
 		},
 		"subtotal_id": "576d9a95-0b2e-58eb-8d16-14dcd0cf8835",
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.88A — 7 days rising to 14 with service after 3 months; a leaving year is prorated to completed months",
@@ -77,7 +77,7 @@
 		"id": "89f1057f-fc57-5e9d-8f01-394d006adc1e",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
 		"description": "Paid annual leave accrued by service.",
-		"payout": "// js\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n"
+		"payout": "const terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n"
 	},
 	{
 		"code": "SICK_LEAVE",
@@ -104,7 +104,7 @@
 			"eligibility_months": 3
 		},
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.89(1)(a),(2) — 5/8/11/14 days outpatient sick leave at 3/4/5/6 completed months",
@@ -148,7 +148,7 @@
 			"eligibility_months": 3
 		},
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.89(1)(b),(2) — 15/30/45/60 days hospitalisation leave at 3/4/5/6 completed months",
@@ -181,7 +181,7 @@
 			"eligibility_months": 3
 		},
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 s.9 — 16 weeks government-paid maternity leave for a qualifying citizen child",
@@ -214,7 +214,7 @@
 			"eligibility_months": 3
 		},
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'MALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'MALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 ss.12H–12J — 4 weeks government-paid paternity leave for births from 1 April 2025 (2 weeks before)",
@@ -310,7 +310,7 @@
 			"eligibility_months": 3
 		},
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 s.12AA — 12 weeks government-paid adoption leave for a child under 12 months",
@@ -338,10 +338,10 @@
 				"CHILD_BIRTH": {}
 			},
 			"eligibility_months": 3,
-			"entitlement": "// js\n// Child leave is a shared pool: 10 weeks from 1 April 2026, 6 weeks before. Each parent defaults to half;\n// an HR-approved transfer is the child's own allocation under the leave catalogue code.\nconst birth = String(get(ctx, 'event.on', ctx.as_of));\nconst allocated = get(get(ctx.subject.employment, 'family', []).find((member) => member.relation === 'CHILD' && get(member, 'born_on', null) === birth), 'allocations.SHARED_PARENTAL_LEAVE', null);\nif (allocated != null) return Number(allocated);\nreturn (birth >= '2026-04-01' ? 70 : 42) / 2;"
+			"entitlement": "// Child leave is a shared pool: 10 weeks from 1 April 2026, 6 weeks before. Each parent defaults to half;\n// an HR-approved transfer is the child's own allocation under the leave catalogue code.\nconst birth = String(get(ctx, 'event.on', ctx.as_of));\nconst allocated = get(get(ctx.subject.employment, 'family', []).find((member) => member.relation === 'CHILD' && get(member, 'born_on', null) === birth), 'allocations.SHARED_PARENTAL_LEAVE', null);\nif (allocated != null) return Number(allocated);\nreturn (birth >= '2026-04-01' ? 70 : 42) / 2;"
 		},
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 ss.12DA–12DD and Second Schedule — 6 weeks from 1 April 2025 and 10 weeks for children born from 1 April 2026",
@@ -465,10 +465,10 @@
 			"part_time_pro_rata": true,
 			"full_time_weekly_hours": 44,
 			"full_time_days_per_week": 5.5,
-			"entitlement": "// js\n// Employment (Part-Time Employees) Regulations reg.7(1): the similar full-time annual leave under EA s.88A in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst bands = ctx.lookup.service_bands;\nconst firstBand = bands[0];\nconst at = bands.filter((band) => band.service_months <= months);\nlet full = 0;\nif (months < firstBand.service_months) full = (ctx.lookup.first_year_days * calendar_completed_months(start, add_days(ctx.as_of, 1))) / firstBand.service_months;\nelse if (at.length > 0) full = at[at.length - 1].days;\nif (!(full > 0)) return 0;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
+			"entitlement": "// Employment (Part-Time Employees) Regulations reg.7(1): the similar full-time annual leave under EA s.88A in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst bands = ctx.lookup.service_bands;\nconst firstBand = bands[0];\nconst at = bands.filter((band) => band.service_months <= months);\nlet full = 0;\nif (months < firstBand.service_months) full = (ctx.lookup.first_year_days * calendar_completed_months(start, add_days(ctx.as_of, 1))) / firstBand.service_months;\nelse if (at.length > 0) full = at[at.length - 1].days;\nif (!(full > 0)) return 0;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
 		},
 		"subtotal_id": "576d9a95-0b2e-58eb-8d16-14dcd0cf8835",
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment (Part-Time Employees) Regulations regs.2,7 — annual leave in hours based on the comparable full-time schedule",
@@ -504,7 +504,7 @@
 		"id": "d1fc70dc-c99b-53a4-bf21-8eaee048e045",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
 		"description": "ANNUAL_LEAVE_PART_TIME: Leave days granted and drawn under this jurisdiction’s rules.",
-		"payout": "// js\n// Employment (Part-Time Employees) Regulations reg.7(2): EA s.88A(8) pays annual leave not taken on dismissal otherwise than for misconduct at the part-timer's hourly gross rate; a day is the part-timer's own normal hours.\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n"
+		"payout": "// Employment (Part-Time Employees) Regulations reg.7(2): EA s.88A(8) pays annual leave not taken on dismissal otherwise than for misconduct at the part-timer's hourly gross rate; a day is the part-timer's own normal hours.\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n"
 	},
 	{
 		"code": "SICK_LEAVE_PART_TIME",
@@ -535,10 +535,10 @@
 			"part_time_pro_rata": true,
 			"full_time_weekly_hours": 44,
 			"full_time_days_per_week": 5.5,
-			"entitlement": "// js\n// Employment (Part-Time Employees) Regulations reg.8(1): the similar full-time sick leave under EA s.89(1)(a),(2) in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst at = ctx.lookup.service_bands.filter((band) => band.service_months <= months);\nif (at.length === 0) return 0;\nconst full = at[at.length - 1].days;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
+			"entitlement": "// Employment (Part-Time Employees) Regulations reg.8(1): the similar full-time sick leave under EA s.89(1)(a),(2) in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst at = ctx.lookup.service_bands.filter((band) => band.service_months <= months);\nif (at.length === 0) return 0;\nconst full = at[at.length - 1].days;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
 		},
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.89(1)(a),(2); Employment (Part-Time Employees) Regulations reg.8 — part-time sick leave prorated to contracted hours",
@@ -586,10 +586,10 @@
 			"part_time_pro_rata": true,
 			"full_time_weekly_hours": 44,
 			"full_time_days_per_week": 5.5,
-			"entitlement": "// js\n// Employment (Part-Time Employees) Regulations reg.8(1): the similar full-time hospitalisation leave under EA s.89(1)(b),(2) in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst at = ctx.lookup.service_bands.filter((band) => band.service_months <= months);\nif (at.length === 0) return 0;\nconst full = at[at.length - 1].days;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
+			"entitlement": "// Employment (Part-Time Employees) Regulations reg.8(1): the similar full-time hospitalisation leave under EA s.89(1)(b),(2) in proportion to the part-timer's weekly hours; reg.2(2) deems that employee to work 8 hours a day and 44 hours a week.\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0));\nconst stated = Number(get(terms, 'normal_hours_per_day', 0));\nconst daysPerWeek = Number(get(terms, 'normal_days_per_week', 0));\nconst day = stated > 0 ? stated : daysPerWeek > 0 ? weekly / daysPerWeek : 0;\nif (!(weekly > 0) || !(day > 0)) return 0;\nconst start = get(employment, 'service_started_on', get(employment, 'effective_range.from', ctx.as_of));\nconst months = calendar_completed_months(start, ctx.as_of);\nif (months < ctx.lookup.eligibility_months) return 0;\nconst at = ctx.lookup.service_bands.filter((band) => band.service_months <= months);\nif (at.length === 0) return 0;\nconst full = at[at.length - 1].days;\nconst fullDay = ctx.lookup.full_time_weekly_hours / ctx.lookup.full_time_days_per_week;\nreturn Math.ceil(full * (weekly / ctx.lookup.full_time_weekly_hours) * (fullDay / day) * 2) / 2;\n"
 		},
 		"subtotal_id": null,
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"eligibility": "return (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.89(1)(b),(2); Employment (Part-Time Employees) Regulations reg.8 — part-time hospitalisation leave prorated to contracted hours",
@@ -637,7 +637,7 @@
 		"id": "08c49675-8ce5-5734-b88f-b1ad8fa05dd9",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
 		"description": "Outpatient medical leave for a work injury, paid as WICA medical leave wages.",
-		"paid_share": "// js\n// WICA 2019 First Schedule para.4(1): full average monthly earnings for up to 14 days of outpatient medical leave, two-thirds from day 15, to one year from the accident.\nif (ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.max_months) return 0;\nreturn ctx.used < ctx.lookup.days ? 1 : 2 / 3;"
+		"paid_share": "// WICA 2019 First Schedule para.4(1): full average monthly earnings for up to 14 days of outpatient medical leave, two-thirds from day 15, to one year from the accident.\nif (ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.max_months) return 0;\nreturn ctx.used < ctx.lookup.days ? 1 : 2 / 3;"
 	},
 	{
 		"code": "WORK_INJURY_HOSPITALISATION_LEAVE",
@@ -668,6 +668,6 @@
 		"id": "f536492c-8919-577b-8ceb-968ff87d0314",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
 		"description": "Hospitalisation leave for a work injury, paid as WICA medical leave wages.",
-		"paid_share": "// js\n// WICA 2019 First Schedule para.4(1): full average monthly earnings for up to 60 days of hospitalisation leave, two-thirds from day 61, to one year from the accident.\nif (ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.max_months) return 0;\nreturn ctx.used < ctx.lookup.days ? 1 : 2 / 3;"
+		"paid_share": "// WICA 2019 First Schedule para.4(1): full average monthly earnings for up to 60 days of hospitalisation leave, two-thirds from day 61, to one year from the accident.\nif (ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.max_months) return 0;\nreturn ctx.used < ctx.lookup.days ? 1 : 2 / 3;"
 	}
 ]

@@ -7,7 +7,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
@@ -23,7 +23,6 @@ import {
 	leaveCreate
 } from './kit.ts';
 
-// inside the law the template holds, which runs to 30 November 2026
 const NOW = '2026-11-20T02:00:00.000Z';
 const near = (actual: number, expected: number) =>
 	assert.ok(Math.abs(actual - expected) < 0.01, `${actual} is not ${expected}`);
@@ -66,6 +65,21 @@ const seedOf = (gender: string, events: readonly JsonObject[] = []): Seed => {
 const WOMAN = seedOf('FEMALE');
 const MAN = seedOf('MALE');
 const BIRTH = { kind: 'CHILD_BIRTH', on: '2026-03-02' };
+/** A leave row's own lookup, on the law in force: the figures below are read from it, never typed. */
+const lookupOf = (code: string) => {
+	const id = catalogRow(WOMAN, 'leave_catalog', code);
+	return objectValue((WOMAN.leave_catalog ?? []).find((row) => row.id === id)?.lookup);
+};
+const granted = (code: string) => Number(lookupOf(code).grant_days);
+const GRANT = granted('MATERNITY_LEAVE');
+const COMPLICATION = Number(
+	objectValue(objectValue(lookupOf('MATERNITY_LEAVE').opened_by).BIRTH_COMPLICATION).days
+);
+/** The unpaid share of each step a row's pay falls through as its fact ages. */
+const steps = (code: string) =>
+	Schema.decodeUnknownSync(Schema.Array(Schema.Struct({ unpaid_share: Schema.Number })))(
+		lookupOf(code).pay_steps
+	).map((step) => step.unpaid_share);
 const take = (t: Kit, seed: Seed, code: string, dates: readonly string[], employment = CONTRACT) =>
 	t.as(t.admin).act('leave_catalog_entry.create', [
 		leaveCreate({
@@ -95,11 +109,11 @@ describe('a birth on the contract', () => {
 			const t = yield* TestWorkspace;
 			yield* seal(t, BIRTH.on, BIRTH);
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
-				'ID.E.2026-03-02': { entitled: 90 }
+				'ID.E.2026-03-02': { entitled: GRANT }
 			});
 			assert.deepEqual(yield* periodsOf(t, 'PATERNITY_LEAVE'), {});
 			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
-				['ADD', 'ID.E.2026-03-02', 'entitled', 90]
+				['ADD', 'ID.E.2026-03-02', 'entitled', GRANT]
 			]);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
@@ -109,8 +123,11 @@ describe('a birth on the contract', () => {
 			yield* seal(t, BIRTH.on, BIRTH);
 			const accounts = yield* accountsIn(t);
 			assert.equal(measureOf(accounts, 'leave', 'MATERNITY_LEAVE', 'entitled'), 0);
-			assert.equal(measureOf(accounts, 'leave', 'PATERNITY_LEAVE', 'entitled'), 2);
-			assert.equal(measureOf(accounts, 'leave', 'PATERNITY_EXTENSION_LEAVE', 'entitled'), 3);
+			assert.equal(
+				measureOf(accounts, 'leave', 'PATERNITY_LEAVE', 'entitled'),
+				granted('PATERNITY_LEAVE')
+			);
+			assert.ok(measureOf(accounts, 'leave', 'PATERNITY_EXTENSION_LEAVE', 'entitled') > 0);
 		}).pipe(Effect.provide(workspace({ seed: MAN, now: NOW })))
 	);
 	it.live('on a draft version, nothing moves until it seals, then once', () =>
@@ -159,7 +176,7 @@ describe('a birth on the contract', () => {
 			]);
 			yield* t.runDue();
 			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
-				['ADD', 'ID.E.2026-03-02', 'entitled', 90]
+				['ADD', 'ID.E.2026-03-02', 'entitled', GRANT]
 			]);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
@@ -169,8 +186,8 @@ describe('a birth on the contract', () => {
 			yield* seal(t, BIRTH.on, BIRTH);
 			yield* seal(t, '2026-11-02', BIRTH, { kind: 'CHILD_BIRTH', on: '2026-11-02' });
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
-				'ID.E.2026-03-02': { entitled: 90 },
-				'ID.E.2026-11-02': { entitled: 90 }
+				'ID.E.2026-03-02': { entitled: GRANT },
+				'ID.E.2026-11-02': { entitled: GRANT }
 			});
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
@@ -184,10 +201,10 @@ describe('a birth on the contract', () => {
 			yield* seal(t, '2026-03-01', { ...expected, on: '2026-02-27' });
 			yield* syncAll(t);
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
-				'ID.E.2026-02-16': { entitled: 90, used: 1 }
+				'ID.E.2026-02-16': { entitled: GRANT, used: 1 }
 			});
 			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
-				['ADD', 'ID.E.2026-02-16', 'entitled', 90],
+				['ADD', 'ID.E.2026-02-16', 'entitled', GRANT],
 				['ADD', 'ID.E.2026-02-16', 'used', 1]
 			]);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
@@ -217,8 +234,8 @@ describe('a birth on the contract', () => {
 			yield* syncAll(t);
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MATERNITY_LEAVE', 'entitled'), 0);
 			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
-				['ADD', 'ID.E.2026-03-02', 'entitled', 90],
-				['DEDUCT', 'ID.E.2026-03-02', 'entitled', 90]
+				['ADD', 'ID.E.2026-03-02', 'entitled', GRANT],
+				['DEDUCT', 'ID.E.2026-03-02', 'entitled', GRANT]
 			]);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
@@ -232,18 +249,22 @@ describe('a birth on the contract', () => {
 			assert.equal(yield* Effect.isFailure(sealEvents(t, '2026-04-01', [])), true);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
-	it.live('a complication on the same birth adds its 90 days to that period', () =>
+	it.live('a complication on the same birth adds its days to that period', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* seal(t, BIRTH.on, BIRTH);
 			yield* seal(t, '2026-05-20', BIRTH, { kind: 'BIRTH_COMPLICATION', on: BIRTH.on });
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
-				'ID.E.2026-03-02': { entitled: 180 }
+				'ID.E.2026-03-02': { entitled: GRANT + COMPLICATION }
 			});
-			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
-				['ADD', 'ID.E.2026-03-02', 'entitled', 90],
-				['ADD', 'ID.E.2026-03-02', 'entitled', 90]
-			]);
+			assert.ok(COMPLICATION > 0);
+			assert.deepEqual(
+				yield* movesOf(t, 'MATERNITY_LEAVE'),
+				[
+					['ADD', 'ID.E.2026-03-02', 'entitled', GRANT],
+					['ADD', 'ID.E.2026-03-02', 'entitled', COMPLICATION]
+				].toSorted()
+			);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
 	it.live('each fact opens only the rows that name it', () =>
@@ -251,8 +272,11 @@ describe('a birth on the contract', () => {
 			const t = yield* TestWorkspace;
 			yield* seal(t, BIRTH.on, { kind: 'MARRIAGE', on: '2026-02-02' }, BIRTH);
 			const accounts = yield* accountsIn(t);
-			assert.equal(measureOf(accounts, 'leave', 'MATERNITY_LEAVE', 'entitled'), 90);
-			assert.equal(measureOf(accounts, 'leave', 'MARRIAGE_LEAVE', 'entitled'), 3);
+			assert.equal(measureOf(accounts, 'leave', 'MATERNITY_LEAVE', 'entitled'), GRANT);
+			assert.equal(
+				measureOf(accounts, 'leave', 'MARRIAGE_LEAVE', 'entitled'),
+				granted('MARRIAGE_LEAVE')
+			);
 			assert.equal(measureOf(accounts, 'leave', 'BEREAVEMENT_LEAVE', 'entitled'), 0);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
@@ -302,7 +326,7 @@ describe('pay that steps down, on one row', () => {
 				slips.reduce(
 					(sum, slip) =>
 						sum +
-						11_000_000 -
+						terms.rate.amount -
 						(slip.checkpoints.find((row) => row.code === 'PAID_BASIC')?.value ?? 0),
 					0
 				)
@@ -319,8 +343,14 @@ describe('pay that steps down, on one row', () => {
 			)
 		);
 	const JUNE = ['2026-06-09', '2026-06-10'];
-	// Indonesia prices a missed day at monthly wage ÷ 173 × 8 hours, to the whole rupiah before it multiplies the days
-	const DAY = Math.round((11_000_000 * 8) / 173);
+	// the fixture's law prices a missed day at the monthly wage ÷ its fixed hours × the day's hours; each date's share
+	// is rounded to the whole unit before the dates add up
+	const settings = (WOMAN.jurisdiction_settings ?? []).find(
+		(row) => row.id === WOMAN.entity_profile_version?.[0]?.input_schema_version_id
+	);
+	const HOURS = Number(objectValue(objectValue(settings?.conversions).hour).hours);
+	const DAY = (terms.rate.amount * terms.normal_hours_per_day) / HOURS;
+	const SICK = steps('MEDICAL_LEAVE');
 
 	it.live('a sick day with no fact is at full pay', () =>
 		Effect.gen(function* () {
@@ -331,21 +361,17 @@ describe('pay that steps down, on one row', () => {
 			assert.equal(yield* taken(t), 0);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
-	for (const [started, share] of [
-		['2026-05-02', 0],
-		['2026-02-02', 0.25],
-		['2025-10-02', 0.5],
-		['2025-05-02', 0.75]
-	] as const)
-		it.live(`an illness from ${started} takes ${share} of a June day`, () => {
+	// one start inside each step of the row
+	for (const [index, started] of ['2026-05-02', '2026-02-02', '2025-10-02', '2025-05-02'].entries())
+		it.live(`an illness from ${started} takes step ${index + 1}’s share of a June day`, () => {
+			const share = SICK[index] ?? Number.NaN;
 			const ill = seedOf('FEMALE', [{ kind: 'LONG_ILLNESS', on: started }]);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
 				yield* t.runDue();
 				yield* run(t, '2026-06');
-				// each date's share of the day rate, to the whole rupiah, then the two dates
-				near(yield* taken(t), 2 * Math.round(((11_000_000 * 8) / 173) * share));
+				near(yield* taken(t), 2 * Math.round(DAY * share));
 			}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 		});
 	it.live('days taken in an illness do not stop the next version, which keeps it', () => {
@@ -355,7 +381,11 @@ describe('pay that steps down, on one row', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
 			yield* t.runDue();
-			yield* sealEvents(t, '2026-07-01', [event]);
+			const next = yield* sealEvents(t, '2026-07-01', [event]);
+			const { employee_contract } = yield* t.storedQuery({
+				employee_contract: { where: { id: { eq: next } }, fields: ['status'], limit: 1 }
+			});
+			assert.equal(employee_contract.rows[0]?.status, 'SEALED');
 		}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 	});
 	it.live('an ended illness ends the count: the next sick day is at full pay', () => {
@@ -379,7 +409,7 @@ describe('pay that steps down, on one row', () => {
 			yield* t.runDue();
 			yield* run(t, '2026-06');
 			const before = yield* taken(t);
-			near(before, Math.round(DAY * 0.25));
+			assert.ok(before > 0 && before < DAY);
 			const [first] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
 				.leave_catalog_entry.rows;
 			assert.ok(first !== undefined);

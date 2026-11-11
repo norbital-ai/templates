@@ -40,10 +40,11 @@ const file = (t: Kit, catalog_id: typeof ACCIDENT, kind: string, inputs: JsonObj
 	]);
 
 describe('MY SOCSO accident report', () => {
-	it('an accident without its type is refused', () =>
+	it.live('an accident without its type is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(file(t, ACCIDENT, 'WORKPLACE_ACCIDENT', {}));
 			assert.match(String(refused), /CASE_INPUTS_REQUIRED|accident_type/);
-		}).pipe(Effect.provide(live)));
+		}).pipe(Effect.provide(live))
+	);
 });

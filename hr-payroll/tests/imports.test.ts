@@ -9,7 +9,18 @@ import {
 	rosterSheets,
 	type RosterKnown
 } from '../src/lib/payroll_engine/roster_workbook.ts';
-import { parseAdhocSheet, parseLeaveSheet } from '../src/lib/payroll_engine/entry_workbook.ts';
+import {
+	parseAdhocSheet,
+	parseCaseSheet,
+	parseClaimSheet,
+	parseLeaveSheet,
+	parseLoanSheet,
+	parseRepaymentSheet
+} from '../src/lib/payroll_engine/entry_workbook.ts';
+import {
+	parseEntityHolidaySheets,
+	skipHeldHolidays
+} from '../src/lib/ui/workbook/holiday_workbook.ts';
 
 const entity = idOf('entity', '11111111-1111-4111-8111-111111111111');
 const employee = idOf('employee_contract', '22222222-2222-4222-8222-222222222222');
@@ -514,6 +525,184 @@ describe('the one-workbook data request', () => {
 		assert.deepEqual(
 			adhoc.rows.map((row) => [row.catalog_id, row.quantity, row.description]),
 			[[adhocCatalog, 75, 'March']]
+		);
+	});
+});
+
+describe('the claim, loan, repayment and case sheets', () => {
+	const claimCatalog = idOf('claim_catalog', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+	const loanCatalog = idOf('loan_catalog', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+	const caseCatalog = idOf('workplace_case_catalog', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+	const loan = idOf('loan_catalog_entry', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+	const entityRow = { id: entity, name: 'Acme', code: 'ACME', settings_code: 'MY' };
+	const known = {
+		entity: entityRow,
+		employees: [{ id: employee, number: '1001', entity_id: entity, from: '2026-01-01', to: null }],
+		versions: [{ id: settings, code: 'MY', from: '2026-01-01', to: null }]
+	};
+	const claims = {
+		...known,
+		catalogs: [{ id: claimCatalog, code: 'MEDICAL', settings_id: settings }]
+	};
+	const loans = {
+		...known,
+		catalogs: [{ id: loanCatalog, code: 'STAFF_LOAN', settings_id: settings }]
+	};
+	const lent = {
+		...loans,
+		loans: [{ id: loan, employment_id: employee, catalog_id: loanCatalog }]
+	};
+	const cases = {
+		...known,
+		entities: [entityRow],
+		catalogs: [{ id: caseCatalog, code: 'ACCIDENT', settings_id: settings }]
+	};
+	const CLAIM = ['employee_number', 'code', 'incurred_on', 'amount'];
+	const LOAN = ['employee_number', 'code', 'principal', 'repayment_from', 'repayment_to'];
+	const REPAYMENT = ['employee_number', 'loan_code', 'amount', 'paid_on'];
+	const CASE = ['employee_number', 'kind', 'opened_on', 'severity', 'inputs'];
+	const sheet = (name: string, ...rows: readonly (readonly Cell[])[]) => new Map([[name, rows]]);
+
+	it('read each family from its own sheet into its model’s rows', () => {
+		const workbook = new Map<string, readonly (readonly Cell[])[]>([
+			['Claims', [CLAIM, ['1001', 'MEDICAL', '2026-03-02', 80]]],
+			['Loans', [LOAN, ['1001', 'STAFF_LOAN', 1200, '2026-03-01', '2026-08-31']]],
+			['Loan Repayments', [REPAYMENT, ['1001', 'staff loan', 200, '2026-03-25']]],
+			['Workplace Cases', [CASE, ['1001', 'ACCIDENT', '2026-03-03', 'MINOR_INJURY', 'slipped']]]
+		]);
+		const own = { entity_id: entity, employment_id: employee };
+		assert.deepEqual(parseClaimSheet(workbook, { ...claims, existing: [] }).rows, [
+			{ ...own, catalog_id: claimCatalog, quantity: 80, incurred_on: '2026-03-02' }
+		]);
+		assert.deepEqual(parseLoanSheet(workbook, { ...loans, existing: [] }).rows, [
+			{
+				...own,
+				catalog_id: loanCatalog,
+				quantity: 1200,
+				repayment_from: '2026-03-01',
+				repayment_to: '2026-08-31'
+			}
+		]);
+		// a repayment finds the person's one loan of that catalogue, however the code is typed
+		assert.deepEqual(parseRepaymentSheet(workbook, { ...lent, existing: [] }).rows, [
+			{ ...own, loan_id: loan, amount: 200, paid_on: '2026-03-25' }
+		]);
+		assert.deepEqual(parseCaseSheet(workbook, { ...cases, existing: [] }).rows, [
+			{
+				...own,
+				catalog_id: caseCatalog,
+				kind: 'ACCIDENT',
+				severity: 'MINOR_INJURY',
+				opened_on: '2026-03-03',
+				inputs: { details: 'slipped' }
+			}
+		]);
+	});
+
+	it('refuse the whole sheet for one bad row, naming the row and the reason', () => {
+		const good = ['1001', 'MEDICAL', '2026-03-02', 80];
+		throwsRows(
+			() =>
+				parseClaimSheet(sheet('Claims', CLAIM, good, ['1001', 'MEDICAL', '2026-03-03', 0]), {
+					...claims,
+					existing: []
+				}),
+			/Row 3: enter a claim amount above zero/
+		);
+		// what is already recorded is not planned twice
+		throwsRows(
+			() =>
+				parseClaimSheet(sheet('Claims', CLAIM, good), {
+					...claims,
+					existing: [
+						{
+							employment_id: employee,
+							catalog_id: claimCatalog,
+							quantity: 80,
+							incurred_on: '2026-03-02',
+							description: null
+						}
+					]
+				}),
+			/Row 2: 1001 already has this claim on 2026-03-02/
+		);
+		throwsRows(
+			() =>
+				parseLoanSheet(
+					sheet('Loans', LOAN, ['1001', 'STAFF_LOAN', 1200, '2026-03-01', '2026-02-01']),
+					{ ...loans, existing: [] }
+				),
+			/Row 2: the last repayment date 2026-02-01 is before 2026-03-01/
+		);
+		throwsRows(
+			() =>
+				parseRepaymentSheet(
+					sheet('Loan Repayments', REPAYMENT, ['1001', 'STAFF_LOAN', 200, '2026-03-25']),
+					{ ...loans, loans: [], existing: [] }
+				),
+			/Row 2: 1001 has no STAFF_LOAN loan/
+		);
+		throwsRows(
+			() =>
+				parseCaseSheet(sheet('Workplace Cases', CASE, ['1001', 'FLOOD', '2026-03-03', '', '']), {
+					...cases,
+					existing: []
+				}),
+			/Row 2: "FLOOD" is not a workplace case catalogue of the MY version in force on 2026-03-03/
+		);
+	});
+});
+
+describe('the holiday workbook', () => {
+	const entities = [{ id: entity, name: 'Acme' }];
+	const HEADER = ['Date', 'Name', 'Kind', 'Replaces'];
+	it('reads a sheet per company into its days, and skips a day the company already holds or the file repeats', () => {
+		const parsed = parseEntityHolidaySheets(
+			[
+				['Read me first', [['How to fill this in']]],
+				[
+					'acme',
+					[
+						HEADER,
+						['2026-05-01', 'Labour Day', 'PUBLIC_HOLIDAY', ''],
+						['2026-05-04', 'In lieu', 'SUBSTITUTE', '2026-05-02'],
+						['2026-05-04', 'In lieu again', 'SUBSTITUTE', '2026-05-02'],
+						['', '', '', '']
+					]
+				]
+			],
+			entities
+		);
+		assert.ok('rows' in parsed);
+		assert.equal(parsed.rows.length, 3);
+		const { insert, skipped } = skipHeldHolidays(parsed.rows, [
+			{ entity_id: entity, date: '2026-05-01' }
+		]);
+		assert.equal(skipped, 2);
+		assert.deepEqual(insert, [
+			{
+				entity_id: entity,
+				date: '2026-05-04',
+				name: 'In lieu',
+				kind: 'SUBSTITUTE',
+				replaces: '2026-05-02'
+			}
+		]);
+	});
+	it('refuses the file for a sheet that names no company, or a day of no known kind', () => {
+		const refusal = (name: string, row: readonly string[]) => {
+			const parsed = parseEntityHolidaySheets([[name, [HEADER, row]]], entities);
+			return 'error' in parsed ? parsed.error : '';
+		};
+		const day = ['2026-05-01', 'Labour Day', 'PUBLIC_HOLIDAY', ''];
+		assert.match(refusal('Other Co', day), /Sheet "Other Co" names no entity of this workspace/);
+		assert.match(
+			refusal('Acme', ['2026-05-01', 'Labour Day', 'BANK_HOLIDAY', '']),
+			/Sheet "Acme" has an unknown holiday kind "BANK_HOLIDAY" \(2026-05-01\)/
+		);
+		assert.match(
+			refusal('Acme', ['1 May', 'Labour Day', 'PUBLIC_HOLIDAY', '']),
+			/not YYYY-MM-DD \(1 May\)/
 		);
 	});
 });

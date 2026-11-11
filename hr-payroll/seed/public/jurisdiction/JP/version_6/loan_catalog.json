@@ -8,8 +8,7 @@
 			}
 		],
 		"subtotal_id": "c2cb6747-eec8-519a-9cd7-3b8191ce1124",
-		"eligibility": "// js\nreturn get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
-		"conversion": "// js\nreturn ctx.entry.amount;",
+		"eligibility": "return get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
 		"id": "6cdc2945-1dc5-577f-8249-79685aea0bb0",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"description": "Salary advance recovered from later pay."
@@ -23,8 +22,7 @@
 			}
 		],
 		"subtotal_id": "c2cb6747-eec8-519a-9cd7-3b8191ce1124",
-		"eligibility": "// js\nreturn get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
-		"conversion": "// js\nreturn ctx.entry.amount;",
+		"eligibility": "return get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
 		"id": "c9433f93-b20a-57c6-bf30-443d1aa34079",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"description": "Staff loan recovered from pay."
@@ -38,8 +36,7 @@
 			}
 		],
 		"subtotal_id": "c2cb6747-eec8-519a-9cd7-3b8191ce1124",
-		"eligibility": "// js\nreturn true;",
-		"conversion": "// js\nreturn ctx.entry.amount;",
+		"eligibility": "return true;",
 		"id": "0ffba07a-6126-5198-a3c9-8a8c3d1fd0a1",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"description": "Emergency advance recovered from pay."

@@ -28,10 +28,7 @@
 					hint="The claim type, its identity and the entry it prices."
 					first
 				>
-					<Columns count={2} gap="md">
-						<Field name="code" />
-						<Field name="name" />
-					</Columns>
+					<Field name="code" />
 					<Field name="description" />
 				</Section>
 				<Section

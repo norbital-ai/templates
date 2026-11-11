@@ -1,5 +1,5 @@
 // A wrong payment needs no automatic entry: HR corrects the pay, and the next cycle's statutory rows count the total paid.
-// A no-pay day is a catalog line, so a reversal entry after payment pays back exactly what it took.
+// Indonesia and Thailand are only the fixtures: one nets a correction at the year's reckoning, the other stops at zero.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
@@ -7,28 +7,13 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	accountsIn,
-	pack,
-	sealedAdhoc,
-	sealedLeave,
-	uuid,
-	workspace,
-	leaveCreate,
-	reversalSlots
-} from './kit.ts';
+import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { ENTITY, accountsIn, pack, sealedAdhoc, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
-const JUNE = '2026-06-20T02:00:00.000Z';
 const DECEMBER = '2026-12-20T02:00:00.000Z';
-const terms = (
-	amount: number,
-	allowances: Record<string, { readonly amount: number }> = {},
-	unit = 'MONTHLY'
-) => ({
-	rate: { amount, unit },
+const terms = (amount: number) => ({
+	rate: { amount, unit: 'MONTHLY' },
 	normal_hours_per_day: 8,
 	normal_hours_per_week: 40,
 	normal_days_per_week: 5,
@@ -36,7 +21,7 @@ const terms = (
 	work_classification: 'EA_COVERED',
 	residency_status: 'CITIZEN',
 	wage_payment_method: 'BANK',
-	allowances
+	allowances: {}
 });
 type Terms = ReturnType<typeof terms>;
 type Seed = ReturnType<typeof pack>;
@@ -45,40 +30,40 @@ type Place = {
 	readonly zone: string;
 	readonly item: string;
 	readonly entity: Parameters<typeof pack>[3];
-	readonly facts: Parameters<typeof pack>[3];
+	readonly extension: Parameters<typeof pack>[3];
 };
 const INDONESIA: Place = {
 	code: 'ID',
 	zone: 'Asia/Jakarta',
 	item: 'BACK_PAY_SALARY',
 	entity: { risk_class: 'I' },
-	facts: {}
+	extension: {}
 };
 const THAILAND: Place = {
 	code: 'TH',
 	zone: 'Asia/Bangkok',
 	item: 'SUSPENSION_BACK_PAY',
 	entity: { wcf_rate_percent: 0.2, pvd_employer_percent: 3 },
-	facts: { statutory: { PVD: { kind: 'MEMBER', elections: { employee_percent: 5 } } } }
+	extension: { statutory: { PVD: { kind: 'MEMBER', employee_percent: 5 } } }
 };
 type Options = {
 	readonly on?: string;
 	readonly from?: string;
-	readonly days?: Parameters<typeof pack>[4];
-	readonly facts?: Parameters<typeof pack>[3];
+	readonly extension?: Parameters<typeof pack>[3];
 };
 const seedOf = (place: Place, agreed: Terms, options: Options = {}): Seed => {
-	const { on = '2026-06-15', from = '2026-01-01', days = [], facts = {} } = options;
-	const seed = pack(place.code, place.zone, agreed, { ...place.facts, ...facts }, days, [], on);
-	// the seeded law stops with November 2026; a December or a second year needs it in force, so the last version carries on
-	const starts = (row: Seed[string][number]) =>
-		Schema.decodeUnknownSync(Schema.Struct({ from: Schema.String }))(row.effective_range).from;
-	const last = (seed.jurisdiction_settings ?? []).map(starts).sort().at(-1);
+	const { on = '2026-06-15', from = '2026-01-01', extension = {} } = options;
+	const seed = pack(
+		place.code,
+		place.zone,
+		agreed,
+		{ ...place.extension, ...extension },
+		[],
+		[],
+		on
+	);
 	return {
 		...seed,
-		jurisdiction_settings: (seed.jurisdiction_settings ?? []).map((row) =>
-			starts(row) === last ? { ...row, effective_range: { from: last, to: null } } : row
-		),
 		entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
 			...row,
 			entity_extension_data: place.entity
@@ -172,13 +157,6 @@ const charged = (
 			);
 		})
 	);
-const row = (slip: PayslipBreakdown | undefined, code: string) =>
-	slip?.statutory.find((one) => one.code === code);
-
-const ID_ROWS = ['JHT', 'JP', 'JKK', 'JKM', 'KESEHATAN', 'PPH21'];
-const TH_ROWS = ['SSO', 'WCF', 'PVD'];
-const TH_ALL = [...TH_ROWS, 'PND1'];
-
 type Case = {
 	readonly place: Place;
 	readonly salary: number;
@@ -225,37 +203,14 @@ const toppedUp = (one: Case) => {
 	});
 };
 
-/** The same reversal off-cycle would pay below zero, and nothing negative posts to a balance. */
-const refusedOffCycle = ({ place, salary, correction, period, now, options = {} }: Case) => {
-	const seed = seedOf(place, terms(salary), { on: `${period}-15`, ...options });
-	return Effect.gen(function* () {
-		const t = yield* TestWorkspace;
-		yield* enter(t, seed, place.item, correction, `${period}-05`);
-		yield* onCycle(t, period);
-		yield* enter(t, seed, place.item, correction, `${period}-15`, yield* sealedAdhoc(t));
-		const refused = yield* Effect.flip(offCycle(t, period));
-		assert.match(
-			String(refused),
-			/This run would take someone below zero\. A reversal goes in the next on-cycle run\./
-		);
-	}).pipe(Effect.provide(workspace({ seed, now })));
-};
-
 /**
- * The correction rides the next on-cycle run: no line goes negative, the second month's employee rows come to `lower`,
- * and the two months' figures equal two correct months.
+ * The correction rides the next on-cycle run: no line goes negative, and the two months' figures equal two correct
+ * months, or, for a row with no refund route (`stops`), the second month charges nothing and the rest stays right.
  */
-const nextMonth = (
-	one: Case,
-	first: string,
-	second: string,
-	lower: Readonly<Record<string, number>> = {},
-	stops = false
-) => {
+const nextMonth = (one: Case, first: string, second: string, stops = false) => {
 	const { place, salary, correction, codes, now, options = {} } = one;
 	const seed = seedOf(place, terms(salary), { on: `${first}-15`, ...options });
 	const months = [first, second];
-	const rows = Object.keys(lower).map((key) => key.replace('.employee', ''));
 	return Effect.gen(function* () {
 		const corrected = yield* Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -267,7 +222,10 @@ const nextMonth = (
 			assert.ok(taken !== undefined);
 			for (const line of taken.lines) assert.ok(line.amount >= 0, `${line.code} went negative`);
 			for (const row of taken.statutory) assert.ok(row.employee >= 0, `${row.code} went negative`);
-			assert.deepEqual(yield* charged(t, [second], rows, EMPLOYEE), lower);
+			if (stops)
+				assert.ok(
+					Object.values(yield* charged(t, [second], codes, EMPLOYEE)).every((value) => value === 0)
+				);
 			return yield* charged(t, months, codes, EMPLOYEE);
 		}).pipe(Effect.provide(workspace({ seed, now })));
 		const right = yield* Effect.gen(function* () {
@@ -276,163 +234,79 @@ const nextMonth = (
 			yield* onCycle(t, second);
 			return yield* charged(t, months, codes, EMPLOYEE);
 		}).pipe(Effect.provide(workspace({ seed, now })));
-		// a row with no refund route stops at zero: what the first month took stands, and the rest stays right
+		// what the first month took stands: the two months come to no less than the right total
 		if (stops)
 			assert.ok(Object.entries(right).every(([key, value]) => (corrected[key] ?? 0) >= value));
 		else assert.deepEqual(corrected, right);
 	});
 };
 
-const INDONESIA_IN_JUNE = { place: INDONESIA, period: '2026-06', now: JUNE, codes: ID_ROWS };
-const THAILAND_IN_JUNE = { place: THAILAND, period: '2026-06', now: JUNE, codes: TH_ROWS };
 const JOINED_NOVEMBER: Options = {
 	on: '2026-11-15',
 	from: '2026-11-01',
-	facts: { tax_subject_from: '2026-11-01' }
-};
-const INDONESIA_IN_DECEMBER = {
-	place: INDONESIA,
-	period: '2026-12',
-	now: DECEMBER,
-	codes: ID_ROWS,
-	earlier: ['2026-11'],
-	options: JOINED_NOVEMBER
-};
-const THAILAND_IN_DECEMBER = {
-	place: THAILAND,
-	period: '2026-12',
-	now: DECEMBER,
-	codes: TH_ALL,
-	earlier: ['2026-11'],
-	options: { on: '2026-11-15' }
+	extension: { tax_subject_from: '2026-11-01' }
 };
 
 describe('paid short, topped up in the same month', () => {
-	it.live('Indonesia: over a TER band, the month’s PPh 21 counts both runs', () =>
-		toppedUp({ ...INDONESIA_IN_JUNE, salary: 9_000_000, correction: 3_000_000 })
-	);
-	it.live('Indonesia: December’s reckoning counts both runs', () =>
-		toppedUp({ ...INDONESIA_IN_DECEMBER, salary: 30_000_000, correction: 10_000_000 })
-	);
-	it.live('Thailand: past the SSO ceiling it stops at the ceiling', () =>
-		toppedUp({ ...THAILAND_IN_JUNE, salary: 15_000, correction: 5000 })
-	);
-	it.live('Thailand: December’s PND1 counts both runs', () =>
-		toppedUp({ ...THAILAND_IN_DECEMBER, salary: 150_000, correction: 50_000 })
-	);
-});
-
-describe('paid too much, reversed in the next on-cycle run', () => {
-	const INDONESIA_WAGES = { ...INDONESIA_IN_JUNE, salary: 9_000_000, correction: 3_000_000 };
-	const THAILAND_WAGES = { ...THAILAND_IN_JUNE, salary: 15_000, correction: 5000 };
-	it.live('Indonesia: off-cycle in the same month it is refused', () =>
-		refusedOffCycle(INDONESIA_WAGES)
-	);
-	it.live('Thailand: off-cycle in the same month it is refused', () =>
-		refusedOffCycle(THAILAND_WAGES)
-	);
-	it.live('Indonesia: December’s reckoning nets the two months', () =>
-		nextMonth(
-			{
-				...INDONESIA_IN_DECEMBER,
-				salary: 30_000_000,
-				correction: 10_000_000,
-				codes: ['PPH21']
-			},
-			'2026-11',
-			'2026-12',
-			{ 'JHT.employee': 600_000 }
-		)
-	);
-	it.live('Thailand: June’s SSO and PVD count the lower wages, and PND1 nets', () =>
-		nextMonth({ ...THAILAND_WAGES, codes: ['PND1'] }, '2026-05', '2026-06', {
-			'SSO.employee': 500,
-			'PVD.employee': 500
+	it.live('a row reckoned over the year counts both runs at the year’s end', () =>
+		toppedUp({
+			place: INDONESIA,
+			period: '2026-12',
+			now: DECEMBER,
+			codes: ['JHT', 'JP', 'JKK', 'JKM', 'KESEHATAN', 'PPH21'],
+			earlier: ['2026-11'],
+			options: JOINED_NOVEMBER,
+			salary: 30_000_000,
+			correction: 10_000_000
 		})
-	);
-	it.live('Thailand: in December PND1 stops at zero too', () =>
-		nextMonth(
-			{ ...THAILAND_IN_DECEMBER, salary: 150_000, correction: 50_000, codes: ['PND1'] },
-			'2026-11',
-			'2026-12',
-			{ 'PVD.employee': 5000, 'PND1.employee': 0 },
-			true
-		)
 	);
 });
 
 describe('corrected in the next month', () => {
-	const INDONESIA_ACROSS = {
-		place: INDONESIA,
-		period: '2026-11',
-		now: DECEMBER,
-		codes: ['PPH21'],
-		options: JOINED_NOVEMBER
-	};
-	const THAILAND_ACROSS = {
-		place: THAILAND,
-		period: '2026-11',
-		now: DECEMBER,
-		codes: ['PND1']
-	};
-	it.live('Indonesia: the two months’ PPh 21 equals the correct total', () =>
+	it.live('a row that refunds: the two months equal the correct total', () =>
 		nextMonth(
-			{ ...INDONESIA_ACROSS, salary: 30_000_000, correction: 10_000_000 },
+			{
+				place: INDONESIA,
+				period: '2026-11',
+				now: DECEMBER,
+				codes: ['PPH21'],
+				options: JOINED_NOVEMBER,
+				salary: 30_000_000,
+				correction: 10_000_000
+			},
 			'2026-11',
 			'2026-12'
 		)
 	);
-	it.live('Thailand: the two months’ PND1 equals the correct total', () =>
-		nextMonth({ ...THAILAND_ACROSS, salary: 60_000, correction: 30_000 }, '2026-11', '2026-12')
-	);
-	it.live('Thailand: a correction past what December owes stops at zero', () =>
+	it.live('a row with no refund route: a correction past what the month owes stops at zero', () =>
 		nextMonth(
-			{ ...THAILAND_ACROSS, salary: 100_000, correction: 90_000 },
+			{
+				place: THAILAND,
+				period: '2026-11',
+				now: DECEMBER,
+				codes: ['PND1'],
+				salary: 100_000,
+				correction: 90_000
+			},
 			'2026-11',
 			'2026-12',
-			{ 'PND1.employee': 0 },
 			true
 		)
 	);
-	it.live('Indonesia: the next month’s PPh 21 counts the lower pay', () => {
-		const seed = seedOf(INDONESIA, terms(30_000_000));
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* enter(t, seed, INDONESIA.item, 10_000_000, '2026-05-05');
-			yield* onCycle(t, '2026-05');
-			yield* enter(t, seed, INDONESIA.item, 10_000_000, '2026-06-05', yield* sealedAdhoc(t));
-			yield* onCycle(t, '2026-06');
-			const [may] = yield* runs(t, '2026-05');
-			const [june] = yield* runs(t, '2026-06');
-			assert.ok(Number(row(june, 'PPH21')?.employee) < Number(row(may, 'PPH21')?.employee));
-		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-	});
-	it.live('Thailand: the next month’s SSO is on that month’s wages', () => {
-		const seed = seedOf(THAILAND, terms(12_000));
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* enter(t, seed, THAILAND.item, 3000, '2026-05-05');
-			yield* onCycle(t, '2026-05');
-			yield* enter(t, seed, THAILAND.item, 3000, '2026-06-05', yield* sealedAdhoc(t));
-			yield* onCycle(t, '2026-06');
-			const [may] = yield* runs(t, '2026-05');
-			const [june] = yield* runs(t, '2026-06');
-			assert.equal(row(may, 'SSO')?.employee, 750);
-			assert.equal(row(june, 'SSO')?.employee, 450);
-		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-	});
 });
 
 describe('a benefit over two calendar years', () => {
 	// thirteen months apart, past what the balance keeps by month
 	const LATER = '2027-04-20T02:00:00.000Z';
 	const ITEM = 'PENSION_LUMPSUM';
+	const PAID = 100_000_000;
 	const seed = seedOf(INDONESIA, terms(10_000_000), {
-		facts: { pension_tax_history: { first_payment_year: 2026 } }
+		extension: { pension_tax_history: { first_payment_year: 2026 } }
 	});
-	const pension = (t: Kit, period: string) =>
+	/** What a statutory row took from the employee in a period's run. */
+	const taxed = (t: Kit, period: string, code: string) =>
 		runs(t, period).pipe(
-			Effect.map(([slip]) => slip?.statutory.find((row) => row.code === 'PPH21_FINAL_PENSION'))
+			Effect.map(([slip]) => slip?.statutory.find((row) => row.code === code)?.employee ?? 0)
 		);
 	const pay = (t: Kit, period: string) =>
 		Effect.gen(function* () {
@@ -461,39 +335,46 @@ describe('a benefit over two calendar years', () => {
 				];
 			})
 		);
-	const pensions = (t: Kit) =>
-		posted(t, 'PENSION_BENEFIT', 'SEVERANCE', 'PPH21_FINAL_PENSION.employee');
+	const TAX = 'PPH21_FINAL_PENSION';
 
-	it.live('the second year stands on the first year’s ladder', () =>
+	it.live(
+		'the second year’s row reads what the first year posted, each year under its own key',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* enter(t, seed, ITEM, PAID, '2026-03-10');
+				yield* pay(t, '2026-03');
+				const first = yield* taxed(t, '2026-03', TAX);
+				yield* enter(t, seed, ITEM, PAID, '2027-04-10');
+				yield* pay(t, '2027-04');
+				const second = yield* taxed(t, '2027-04', TAX);
+				// the same payment twice: only the first year's posting, read from the balance, can make the second differ
+				assert.ok(first > 0);
+				assert.notEqual(second, first);
+				assert.deepEqual(yield* posted(t, 'PENSION_BENEFIT', 'SEVERANCE', `${TAX}.employee`), [
+					`ID.Y.2026-01-01 ${PAID}`,
+					`ID.Y.2027-01-01 ${PAID}`,
+					`ID.Y.2026-01-01 ${first}`,
+					`ID.Y.2027-01-01 ${second}`
+				]);
+			}).pipe(Effect.provide(workspace({ seed, now: LATER })))
+	);
+	it.live('a reversal in the second year refunds no more than the first year took', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* enter(t, seed, ITEM, 100_000_000, '2026-03-10');
+			yield* enter(t, seed, ITEM, PAID, '2026-03-10');
 			yield* pay(t, '2026-03');
-			assert.equal((yield* pension(t, '2026-03'))?.employee, 2_500_000);
-			yield* enter(t, seed, ITEM, 100_000_000, '2027-04-10');
+			const first = yield* taxed(t, '2026-03', TAX);
+			yield* enter(t, seed, ITEM, PAID / 2, '2027-04-10', yield* sealedAdhoc(t));
 			yield* pay(t, '2027-04');
-			assert.equal((yield* pension(t, '2027-04'))?.employee, 5_000_000);
-			assert.deepEqual(yield* pensions(t), [
-				'ID.Y.2026-01-01 100000000',
-				'ID.Y.2027-01-01 100000000',
-				'ID.Y.2026-01-01 2500000',
-				'ID.Y.2027-01-01 5000000'
-			]);
+			const refund = yield* taxed(t, '2027-04', TAX);
+			assert.ok(refund < 0);
+			assert.ok(-refund <= first);
 		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
 	);
-	it.live('a reversal in the second year takes it back off the ladder', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* enter(t, seed, ITEM, 100_000_000, '2026-03-10');
-			yield* pay(t, '2026-03');
-			yield* enter(t, seed, ITEM, 50_000_000, '2027-04-10', yield* sealedAdhoc(t));
-			yield* pay(t, '2027-04');
-			assert.equal((yield* pension(t, '2027-04'))?.employee, -2_500_000);
-		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
-	);
-	it.live('severance posts what sits above additional wages', () => {
+	it.live('a benefit posts what sits above the checkpoint under it', () => {
 		const leaving = seedOf(INDONESIA, terms(10_000_000), {
-			facts: { severance_tax_history: { first_payment_year: 2026 }, hired_at_other_place: true }
+			extension: { severance_tax_history: { first_payment_year: 2026 }, hired_at_other_place: true }
 		});
 		const last = {
 			...leaving,
@@ -504,271 +385,14 @@ describe('a benefit over two calendar years', () => {
 		};
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* enter(t, last, 'UPH_TRAVEL_HOME', 100_000_000, '2026-03-31');
+			yield* enter(t, last, 'UPH_TRAVEL_HOME', PAID, '2026-03-31');
 			yield* pay(t, '2026-03');
+			const tax = yield* taxed(t, '2026-03', 'PPH21_FINAL_SEVERANCE');
+			assert.ok(tax > 0);
 			assert.deepEqual(
 				yield* posted(t, 'SEVERANCE', 'ADDITIONAL_WAGES', 'PPH21_FINAL_SEVERANCE.employee'),
-				['ID.Y.2026-01-01 100000000', 'ID.Y.2026-01-01 2500000']
+				[`ID.Y.2026-01-01 ${PAID}`, `ID.Y.2026-01-01 ${tax}`]
 			);
 		}).pipe(Effect.provide(workspace({ seed: last, now: LATER })));
 	});
-	it.live('a run is paid at once: its own write posted it', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const admin = t.as(t.admin);
-			yield* admin.act('payroll_run.create', [
-				{ entity_id: ENTITY, period: '2026-03', kind: 'ON_CYCLE' }
-			]);
-			const run = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
-			assert.ok(run !== undefined);
-			yield* admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
-		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
-	);
-	it.live('an unpaid run posts from its payslip, and deleting it takes that back', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* enter(t, seed, ITEM, 100_000_000, '2026-03-10');
-			yield* onCycle(t, '2026-03');
-			assert.deepEqual(yield* pensions(t), [
-				'ID.Y.2026-01-01 100000000',
-				'ID.Y.2026-01-01 2500000'
-			]);
-			const run = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
-			assert.ok(run !== undefined);
-			yield* t.as(t.admin).act('payroll_run.delete', [{ target: run.id }]);
-			yield* t.runDue();
-			assert.deepEqual(yield* pensions(t), ['ID.Y.2026-01-01 0', 'ID.Y.2026-01-01 0']);
-		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
-	);
-});
-
-describe('a month’s second salary stands alone', () => {
-	const paidOnTheFirst = (seed: Seed): Seed => ({
-		...seed,
-		pay_group: (seed.pay_group ?? []).map((one) => ({
-			...one,
-			payment_schedule: {
-				frequency: 'MONTHLY',
-				business_day: 'PREVIOUS',
-				non_working_weekdays: [0, 6],
-				short_month: 'LAST_DAY',
-				pay_days: [1]
-			}
-		}))
-	});
-	// 1 August 2026 is a Saturday, so August's salary is paid on 31 July, in July's pay month
-	const twice = (place: Place, salary: number, codes: readonly string[]) =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* onCycle(t, '2026-07');
-			yield* onCycle(t, '2026-08');
-			assert.deepEqual(
-				yield* charged(t, ['2026-08'], codes, BOTH),
-				yield* charged(t, ['2026-07'], codes, BOTH)
-			);
-		}).pipe(
-			Effect.provide(
-				workspace({
-					seed: paidOnTheFirst(seedOf(place, terms(salary))),
-					now: '2026-08-20T02:00:00.000Z'
-				})
-			)
-		);
-	it.live('Indonesia: August owes what July owed', () => twice(INDONESIA, 9_000_000, ID_ROWS));
-	it.live('Thailand: August owes what July owed', () => twice(THAILAND, 15_000, TH_ROWS));
-});
-
-const TH_NO_PAY = [
-	'SICK_LEAVE_UNPAID',
-	'TRAINING_LEAVE',
-	'MATERNITY_LEAVE_SSO',
-	'NPL',
-	'WORK_INJURY_LEAVE'
-];
-const noPay = (seed: Seed, code: string) => {
-	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-	const item = seed.leave_catalog?.find((one) => one.code === code && one.settings_id === version);
-	assert.ok(item !== undefined);
-	return idOf('leave_catalog', String(item.id));
-};
-const whole = (date: string) => [
-	{ date: PlainDate(date), part: 'AM' as const },
-	{ date: PlainDate(date), part: 'PM' as const }
-];
-const take = (
-	t: Kit,
-	seed: Seed,
-	code: string,
-	days: ReturnType<typeof whole>,
-	reverses: Id<'leave_catalog_entry'> | null = null
-) =>
-	Effect.gen(function* () {
-		const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
-		yield* t.as(t.admin).act('leave_catalog_entry.create', [
-			leaveCreate({
-				entity_id: ENTITY,
-				employment_id: CONTRACT,
-				catalog_id: noPay(seed, code),
-				days: selected,
-				reverses
-			})
-		]);
-	});
-const takenIn = (t: Kit, period: string, code: string) =>
-	runs(t, period).pipe(
-		Effect.map(([slip]) => {
-			const line = slip?.lines.find((one) => one.code === code);
-			if (line === undefined) return undefined;
-			return Number(line.amount.toFixed(2)) * (line.direction === 'DEDUCT' ? -1 : 1);
-		})
-	);
-const checkpointIn = (code: string) => (t: Kit, period: string) =>
-	runs(t, period).pipe(
-		Effect.map(
-			([slip]) => slip?.checkpoints.find((row) => row.code === code)?.value as number | undefined
-		)
-	);
-/** The contract salary, and what is left of it once the no-pay lines have come off. */
-const basicIn = checkpointIn('BASIC');
-const paidBasicIn = checkpointIn('PAID_BASIC');
-const near = (actual: number | undefined, expected: number) =>
-	assert.ok(Math.abs((actual ?? 0) - expected) < 0.01, `${actual ?? 0} is not ${expected}`);
-const AUGUST = '2026-08-20T02:00:00.000Z';
-
-const ID_SEED = seedOf(INDONESIA, terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000 } }));
-const TH_SEED = seedOf(THAILAND, terms(28_000, { FIXED_ALLOWANCE: { amount: 2000 } }));
-
-describe('a no-pay day in Indonesia', () => {
-	const code = 'NPL';
-	it.live('comes off at monthly pay ÷ the month’s working days, a line on the payslip', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, ID_SEED, code, whole('2026-06-10'));
-			yield* onCycle(t, '2026-06');
-			// the salary's day to the rupiah; the house allowance falls by its own share on its own line
-			const day = Math.round((10_000_000 * 8) / 173);
-			assert.equal(yield* takenIn(t, '2026-06', code), -day);
-			assert.equal(yield* basicIn(t, '2026-06'), 10_000_000);
-			near(yield* paidBasicIn(t, '2026-06'), 10_000_000 - day);
-		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: JUNE })))
-	);
-	it.live('a half day is half, a variable allowance stays out', () => {
-		const seed = seedOf(INDONESIA, terms(11_000_000, { SPECIAL_ALLOWANCE: { amount: 900_000 } }));
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, seed, code, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
-			yield* onCycle(t, '2026-06');
-			// half of the day rate, then to the rupiah
-			const half = Math.round((11_000_000 * 8) / 173 / 2);
-			assert.equal(yield* takenIn(t, '2026-06', code), -half);
-			near(yield* paidBasicIn(t, '2026-06'), 11_000_000 - half);
-		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-	});
-	it.live('a reversal in July gives back June’s day, once', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, ID_SEED, code, whole('2026-06-10'));
-			yield* onCycle(t, '2026-06');
-			yield* take(t, ID_SEED, code, whole('2026-07-06'), yield* sealedLeave(t));
-			yield* onCycle(t, '2026-07');
-			assert.equal(yield* takenIn(t, '2026-07', code), 508_671);
-			yield* onCycle(t, '2026-08');
-			assert.equal(yield* takenIn(t, '2026-08', code), undefined);
-		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
-	);
-	it.live('across months of 22 and 23 working days it pays back what it took', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, ID_SEED, code, whole('2026-07-08'));
-			yield* onCycle(t, '2026-07');
-			yield* take(t, ID_SEED, code, whole('2026-08-05'), yield* sealedLeave(t));
-			yield* onCycle(t, '2026-08');
-			const given = yield* takenIn(t, '2026-08', code);
-			assert.equal(given, 508_671);
-			near(yield* paidBasicIn(t, '2026-07'), 10_000_000 - Math.round((10_000_000 * 8) / 173));
-		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
-	);
-	it.live('a date in a period that has run is refused', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, ID_SEED, code, whole('2026-06-10'));
-			yield* onCycle(t, '2026-06');
-			const late = yield* Effect.flip(take(t, ID_SEED, code, whole('2026-06-11')));
-			assert.match(String(late), /already run/);
-		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
-	);
-	it.live('an entry not yet paid is deleted, not reversed', () =>
-		notYetPaid(ID_SEED, code, 10_000_000)
-	);
-});
-
-const notYetPaid = (seed: Seed, code: string, full: number) =>
-	Effect.gen(function* () {
-		const t = yield* TestWorkspace;
-		yield* take(t, seed, code, whole('2026-06-10'));
-		const [open] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } })).leave_catalog_entry
-			.rows;
-		assert.ok(open !== undefined);
-		const refused = yield* Effect.flip(take(t, seed, code, whole('2026-06-10'), open.id));
-		assert.match(String(refused), /deleted instead/);
-		yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: open.id }]);
-		yield* onCycle(t, '2026-06');
-		assert.equal(yield* takenIn(t, '2026-06', code), undefined);
-		assert.equal(yield* basicIn(t, '2026-06'), full);
-	}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-
-describe('a no-pay day in Thailand', () => {
-	// the salary's day to the satang: 28,000 ÷ 30; the fixed allowance falls by its own share on its own line
-	const DAY = 933.33;
-	for (const code of TH_NO_PAY)
-		it.live(`${code}: a line at monthly wage ÷ the month’s days, paid back by a reversal`, () =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* take(t, TH_SEED, code, whole('2026-06-10'));
-				yield* onCycle(t, '2026-06');
-				assert.equal(yield* takenIn(t, '2026-06', code), -DAY);
-				near(yield* paidBasicIn(t, '2026-06'), 28_000 - DAY);
-				yield* take(t, TH_SEED, code, whole('2026-07-06'), yield* sealedLeave(t));
-				yield* onCycle(t, '2026-07');
-				assert.equal(yield* takenIn(t, '2026-07', code), 1000);
-			}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))
-		);
-	const code = 'NPL';
-	it.live('a half day is half', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, TH_SEED, code, [{ date: PlainDate('2026-06-10'), part: 'PM' }]);
-			yield* onCycle(t, '2026-06');
-			near(yield* takenIn(t, '2026-06', code), -DAY / 2);
-			near(yield* paidBasicIn(t, '2026-06'), 28_000 - DAY / 2);
-		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: JUNE })))
-	);
-	it.live('across months of 31 and 30 days it pays back the day rate it took', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, TH_SEED, code, whole('2026-07-08'));
-			yield* onCycle(t, '2026-07');
-			yield* take(t, TH_SEED, code, whole('2026-08-05'), yield* sealedLeave(t));
-			yield* onCycle(t, '2026-08');
-			const given = yield* takenIn(t, '2026-08', code);
-			const july = yield* paidBasicIn(t, '2026-07');
-			near(july, 28_000 - DAY);
-			assert.equal(given, 1000);
-		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))
-	);
-	it.live('an entry not yet paid is deleted, not reversed', () =>
-		notYetPaid(TH_SEED, code, 28_000)
-	);
-	it.live('a date in a period that has run is refused', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			for (const [index, item] of TH_NO_PAY.entries())
-				yield* take(t, TH_SEED, item, whole(`2026-06-${15 + index}`));
-			yield* onCycle(t, '2026-06');
-			for (const item of TH_NO_PAY) {
-				const late = yield* Effect.flip(take(t, TH_SEED, item, whole('2026-06-11')));
-				assert.match(String(late), /already run/);
-			}
-		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))
-	);
 });

@@ -109,9 +109,7 @@ export default model('payroll_run', {
 				'employer_cost',
 				'period',
 				'ordinary_wages',
-				'additional_wages',
 				'employee_statutory',
-				'employer_statutory',
 				'tax_withheld'
 			],
 			payroll_run: [
@@ -314,9 +312,7 @@ export default model('payroll_run', {
 					employer_cost: slip.employer_cost,
 					period: slip.period,
 					ordinary_wages: slip.ordinary_wages,
-					additional_wages: slip.additional_wages,
 					employee_statutory: slip.employee_statutory,
-					employer_statutory: slip.employer_statutory,
 					tax_withheld: slip.tax_withheld,
 					breakdown: slip.breakdown
 				}));
@@ -343,24 +339,19 @@ export default model('payroll_run', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'payroll_run', ids: rows.map((row) => row.id) },
+				'payroll_run',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'payroll_run', ids: changes.map(({ after }) => after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'payroll_run', changes);
 			// service bands and anniversaries move on no event of their own: every paid run looks
 			const paid = changes.filter(
 				({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'
 			);
 			if (paid.length === 0) return;
 			yield* ctx.schedule('ledger', {}, { key: 'ledger' });
-			// a derived entry this run paid whose fact was cancelled meanwhile is now settled: its reversal is proposed
+			// a derived entry this run paid whose fact was cancelled meanwhile is now settled: it raises a task asking HR to reverse it
 			yield* follow(ctx, { payroll_run_id: { in: paid.map(({ after }) => after.id) } });
 		},
 		deleted: function* (rows, ctx) {

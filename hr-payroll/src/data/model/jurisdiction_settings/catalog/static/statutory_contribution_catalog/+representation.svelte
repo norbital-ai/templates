@@ -28,10 +28,7 @@
 					hint="The scheme and the version that owns it."
 					first
 				>
-					<Columns count={2} gap="md">
-						<Field name="code" />
-						<Field name="name" />
-					</Columns>
+					<Field name="code" />
 					<Field name="description" />
 				</Section>
 				<Section

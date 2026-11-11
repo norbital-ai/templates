@@ -4,8 +4,8 @@
 		"description": "Contractual car allowance paid when the employment agreement sets an amount; part of wages.",
 		"lookup": {},
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
-		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE', null);\nreturn agreed != null;",
-		"conversion": "// js\nreturn get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE.amount', 0) * ctx.paid_share;",
+		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE', null);\nreturn agreed != null;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE.amount', 0) * ctx.paid_share;",
 		"id": "bded3c1a-dbc8-5d5b-8b27-0d044978dbec",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"references": [
@@ -24,8 +24,8 @@
 		"description": "Contractual housing allowance paid when the employment agreement sets an amount; part of wages.",
 		"lookup": {},
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
-		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE', null);\nreturn agreed != null;",
-		"conversion": "// js\nreturn get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE.amount', 0) * ctx.paid_share;",
+		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE', null);\nreturn agreed != null;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE.amount', 0) * ctx.paid_share;",
 		"id": "487d6ed0-870e-5f51-bee1-eae0ddeea562",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"references": [
@@ -44,8 +44,8 @@
 		"description": "Contractual special allowance paid when the employment agreement sets an amount; part of wages.",
 		"lookup": {},
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
-		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE', null);\nreturn agreed != null;",
-		"conversion": "// js\nreturn get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE.amount', 0) * ctx.paid_share;",
+		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE', null);\nreturn agreed != null;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE.amount', 0) * ctx.paid_share;",
 		"id": "cabbcf23-dffa-5379-9ef8-7aa1a832a78b",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"references": [

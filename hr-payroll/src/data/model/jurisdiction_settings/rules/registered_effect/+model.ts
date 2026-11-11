@@ -21,27 +21,7 @@ export default model('registered_effect', {
 		source_collection: { kind: 'text' },
 		events: {
 			kind: 'enum',
-			values: [
-				'create',
-				'update',
-				'delete',
-				'prepare_request',
-				'seal',
-				'void',
-				'approve',
-				'entries_changed',
-				'prepare_payroll',
-				'after_basic',
-				'after_gross',
-				'after_contributions',
-				'after_tax',
-				'after_net',
-				'finalise',
-				'mark_paid',
-				'daily',
-				'calendar',
-				'exit'
-			],
+			values: ['create', 'update', 'delete', 'seal', 'exit'],
 			many: true
 		},
 		reads: { kind: 'custom', of: 'reads', optional: true },

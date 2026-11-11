@@ -298,11 +298,6 @@
 							"title": "个人所得税 (individual income tax, wages and salaries)",
 							"additionalProperties": false,
 							"properties": {
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
-								},
 								"annual_bonus_separate": {
 									"type": "boolean",
 									"default": false,

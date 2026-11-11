@@ -124,20 +124,12 @@ export default model('loan_catalog_entry_repayment', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'loan_catalog_entry_repayment', ids: rows.map((row) => row.id) },
+				'loan_catalog_entry_repayment',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{
-					collection: 'loan_catalog_entry_repayment',
-					ids: changes.map((change) => change.after.id)
-				},
-				changes
-			);
+			yield* tap(ctx, 'update', 'loan_catalog_entry_repayment', changes);
 		}
 	}
 });

@@ -289,11 +289,6 @@
 							"title": "个人所得税 (individual income tax, wages and salaries)",
 							"additionalProperties": false,
 							"properties": {
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
-								},
 								"annual_bonus_separate": {
 									"type": "boolean",
 									"default": false,
@@ -1105,11 +1100,6 @@
 									"type": "string",
 									"title": "HEALTH registration number",
 									"description": "The employee's registration/membership number as issued; keep leading zeros."
-								},
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
 								},
 								"apportionment_ratio": {
 									"type": "number",
@@ -3879,11 +3869,6 @@
 									"title": "Registration or exemption status",
 									"pattern": "\\S"
 								},
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
-								},
 								"registration_number": {
 									"type": "string",
 									"title": "SI registration number",
@@ -3908,11 +3893,6 @@
 									"title": "Registration or exemption status",
 									"pattern": "\\S"
 								},
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
-								},
 								"registration_number": {
 									"type": "string",
 									"title": "HI registration number",
@@ -3934,11 +3914,6 @@
 									"type": "string",
 									"title": "Registration or exemption status",
 									"pattern": "\\S"
-								},
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
 								},
 								"registration_number": {
 									"type": "string",
@@ -3969,11 +3944,6 @@
 									"type": "string",
 									"title": "Registration or exemption status",
 									"pattern": "\\S"
-								},
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
 								}
 							},
 							"required": ["kind"]
@@ -3987,11 +3957,6 @@
 									"type": "string",
 									"title": "Registration or exemption status",
 									"pattern": "\\S"
-								},
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
 								},
 								"registration_number": {
 									"type": "string",
@@ -4045,11 +4010,6 @@
 									"type": "string",
 									"title": "Registration or exemption status",
 									"pattern": "\\S"
-								},
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
 								},
 								"union_member": {
 									"type": "boolean",

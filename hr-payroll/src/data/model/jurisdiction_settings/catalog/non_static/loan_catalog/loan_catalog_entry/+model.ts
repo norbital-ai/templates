@@ -1,5 +1,8 @@
 import { model } from '@norbital-ai/bolt';
-import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
+import {
+	refuseIneligible,
+	validateRegistered
+} from '../../../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject, numberOf } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
@@ -51,6 +54,11 @@ export default model('loan_catalog_entry', {
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
+			yield* refuseIneligible(
+				ctx.db.query,
+				'loan_catalog_entry',
+				rows.map((row) => jsonObject(row))
+			);
 			return rows;
 		}
 	},
@@ -75,6 +83,7 @@ export default model('loan_catalog_entry', {
 				return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
 			yield* validateRegistered(ctx.db.query, 'loan_catalog_entry', 'update', proposed);
+			yield* refuseIneligible(ctx.db.query, 'loan_catalog_entry', proposed);
 			const sealed = yield* ctx.db.query({
 				loan_catalog_entry_repayment: {
 					where: { loan_id: { in: changes.map((c) => c.before.id) } },
@@ -89,7 +98,7 @@ export default model('loan_catalog_entry', {
 				const principal = numberOf(change.set.quantity ?? change.before.quantity) ?? 0;
 				if (principal < paid)
 					return yield* ctx.refuse(
-						'The principal cannot be less than repayments already included in payroll.'
+						'The principal cannot be less than repayments already included in payroll. Enter a principal at or above that total.'
 					);
 			}
 			return changes.map((c) => c.set);
@@ -104,7 +113,9 @@ export default model('loan_catalog_entry', {
 				rows.map((row) => jsonObject(row))
 			);
 			if (rows.some((r) => r.payroll_run_id != null))
-				return yield* ctx.refuse('This record is locked by a payroll run.');
+				return yield* ctx.refuse(
+					'A payroll run has paid this loan, so it cannot be deleted. Record a reversing repayment instead.'
+				);
 		}
 	},
 
@@ -113,17 +124,12 @@ export default model('loan_catalog_entry', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'loan_catalog_entry', ids: rows.map((row) => row.id) },
+				'loan_catalog_entry',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'loan_catalog_entry', ids: changes.map((change) => change.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'loan_catalog_entry', changes);
 		}
 	}
 });

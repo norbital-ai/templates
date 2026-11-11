@@ -751,7 +751,6 @@ export const TABLES = {
 		ui_employer_rate: Schema.optional(Schema.Number),
 		unpaid_multiple: Schema.optional(Schema.Number),
 		vietnamese_nationality: Schema.optional(Schema.Array(Schema.String)),
-		weekly_limit: Schema.optional(Schema.Number),
 		whole_unit: Schema.optional(Schema.Number),
 		withholding_rate: Schema.optional(Schema.Number),
 		year_days: Schema.optional(Schema.Number)

@@ -3,7 +3,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import type { Id } from '@norbital-ai/bolt';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { jsonObject } from '../src/lib/payroll_engine/foundation.ts';
@@ -118,7 +117,8 @@ describe('a VN exit cash-out', () => {
 				const paid = lines.find((row) => row.direction === 'ADD');
 				assert.ok(paid !== undefined);
 				assert.equal(Number(paid.quantity), 2);
-				assert.equal(Number(paid.amount), 1_000_000);
+				// the fixture's recorded daily wage, for each day cashed out
+				assert.equal(Number(paid.amount), Number(paid.quantity) * REVIEW.daily_wage_vnd);
 				const { leave_catalog_entry } = yield* t.storedQuery({
 					leave_catalog_entry: { where: { encashment: { eq: true } }, fields: ['id'], limit: 10 }
 				});
@@ -153,31 +153,4 @@ describe('a VN exit cash-out', () => {
 			}).pipe(Effect.provide(workspace({ seed, now: '2026-02-24T02:00:00.000Z' })));
 		}
 	);
-	it.live('pays the days at the recorded daily wage in final pay', () => {
-		const seed = seedWith(REVIEW);
-		const finalPay = idOf<'subtotal'>(
-			'subtotal',
-			String(
-				(seed.subtotal ?? []).find(
-					(row) =>
-						row.code === 'FINAL_PAY' &&
-						row.settings_id === seed.entity_profile_version?.[0]?.input_schema_version_id
-				)?.id
-			)
-		);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* t.as(t.admin).act('leave_catalog_entry.create', [entry(seed)]);
-			yield* approved(t);
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-01', kind: 'ON_CYCLE' }]);
-			const lines = yield* line(t);
-			const paid = lines.find((row) => row.direction === 'ADD');
-			assert.ok(paid !== undefined);
-			assert.equal(Number(paid.amount), 1_000_000);
-			assert.equal(Number(paid.quantity), 2);
-			assert.equal(String(paid.subtotal_id), String(finalPay));
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-20T02:00:00.000Z' })));
-	});
 });

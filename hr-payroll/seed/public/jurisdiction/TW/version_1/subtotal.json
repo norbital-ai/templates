@@ -71,17 +71,9 @@
 		"balance_window": "YEAR"
 	},
 	{
-		"code": "BASIC_AFTER_UNPAID_LEAVE",
-		"name": "Basic salary after no-pay days (無薪假後)",
-		"previous_id": "0f186443-cc93-4c5e-a44a-a7f66bd2797a",
-		"id": "db85be52-7b70-455e-8d70-46af1f5131de",
-		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"balance_window": "YEAR"
-	},
-	{
 		"code": "SALARY_INCOME",
 		"name": "Salary income (薪資所得)",
-		"previous_id": "db85be52-7b70-455e-8d70-46af1f5131de",
+		"previous_id": "0f186443-cc93-4c5e-a44a-a7f66bd2797a",
 		"id": "1fcfaf05-b5ec-4b3e-b631-f21514b18497",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
 		"balance_window": "MONTH"

@@ -113,18 +113,19 @@ describe('roster workbook import', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const plan = workbook();
-			assert.equal(plan.rows.length, 26);
+			const all = known.employees.length * DAYS.length;
+			assert.equal(plan.rows.length, all);
 			const preview = yield* importing(t, plan, true);
 			assert.equal(preview.kind, 'committed');
 			assert.equal(yield* stored(t), 0);
 			const written = yield* importing(t, plan, false);
 			assert.ok(written.kind === 'committed');
 			assert.ok(written.output.rows.every((row) => row.action === 'created'));
-			assert.equal(yield* stored(t), 26);
+			assert.equal(yield* stored(t), all);
 			const again = yield* importing(t, plan, false);
 			assert.ok(again.kind === 'committed');
 			assert.ok(again.output.rows.every((row) => row.action === 'updated'));
-			assert.equal(yield* stored(t), 26);
+			assert.equal(yield* stored(t), all);
 		}).pipe(Effect.provide(workspace({ seed: seeded, now: '2026-02-20T02:00:00.000Z' })))
 	);
 
@@ -149,8 +150,8 @@ describe('roster workbook import', () => {
 			const written = (yield* t.storedQuery({
 				roster_entry: { limit: 100 }
 			})).roster_entry.rows.filter((row) => days.includes(String(row.work_date)));
-			assert.equal(written.length, 3);
-			// five stored days and three new ones are eight in a row, over Malaysia's six
+			assert.equal(written.length, days.length);
+			// the stored days and the new ones are one streak, longer than the fixture's rule allows
 			for (const row of written)
 				assert.ok(
 					JSON.stringify(row.findings).includes('roster.consecutive_days'),

@@ -27,9 +27,7 @@ export default model('payslip', {
 		employer_cost: { kind: 'decimal', scale: 12, min: 0, default: 0 },
 		period: { kind: 'text', optional: true },
 		ordinary_wages: { kind: 'decimal', scale: 12, min: 0, default: 0 },
-		additional_wages: { kind: 'decimal', scale: 12, min: 0, default: 0 },
 		employee_statutory: { kind: 'decimal', scale: 12, min: 0, default: 0 },
-		employer_statutory: { kind: 'decimal', scale: 12, min: 0, default: 0 },
 		tax_withheld: { kind: 'decimal', scale: 12, min: 0, default: 0 },
 		breakdown: {
 			kind: 'json',
@@ -61,9 +59,7 @@ export default model('payslip', {
 				'employer_cost',
 				'period',
 				'ordinary_wages',
-				'additional_wages',
 				'employee_statutory',
-				'employer_statutory',
 				'tax_withheld',
 				'breakdown'
 			]
@@ -74,7 +70,7 @@ export default model('payslip', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'payslip', ids: rows.map((row) => row.id) },
+				'payslip',
 				rows.map((after) => ({ after }))
 			);
 		}

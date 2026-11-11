@@ -12,20 +12,21 @@ import {
 	type JsonObject
 } from './payroll_engine/foundation.js';
 import { buildLoanSchedule, FINAL_SETTLEMENT } from './payroll_engine/loan_schedule.js';
-import { idOf, objectValue, queryAllRows, queryRows, type Reader } from './payroll_engine/reads.js';
+import { idOf, objectValue, queryAllRows, queryRows } from './payroll_engine/reads.js';
 import { weeklyRestDays } from './payroll_engine/rest_days.js';
 
 /**
  * Dependants of a fact. A record the system derives from a fact names it in `occurrence_key`, `<fact>:<record id>`; the
- * one fact today is an exit, `exit:<contract id>`. `reconcile` compares what each fact wants with what is held, the way
+ * one fact today is an exit, `exit:<contract id>:<last day>`. `reconcile` compares what each fact wants with what is held, the way
  * sync does for the ledger, so running it again changes nothing.
  */
 const EXIT = 'exit:';
-export const exitKey = (contract: string) => `${EXIT}${contract}`;
+/** The key of what an exit raised: `exit:<contract>:<last day>`. A moved last day is another fact. */
+export const exitKey = (contract: string, to?: string) =>
+	`${EXIT}${contract}${to === undefined ? '' : `:${to}`}`;
 
-/** A task an exit raised: a law's duty (`…:<contract>:exit:<last day>` or `exit:<contract>:…:<last day>`) or the loan task. */
-export const isExitDuty = (key: string) =>
-	key.includes(':exit:') || key.startsWith(EXIT) || key.startsWith('LOAN_RECOVERY:');
+/** A task an exit raised: a law's duty or the loan task (`…:<contract>:exit:<last day>` or `exit:<contract>:…:<last day>`). */
+export const isExitDuty = (key: string) => key.includes(':exit:') || key.startsWith(EXIT);
 
 /** The task that asks HR to reverse a cash-out a paid run took: `reverse:<leave entry id>`. */
 const REVERSE = 'reverse:';
@@ -49,26 +50,11 @@ export const exitsIn = (
 };
 
 /** Whether the fact a key names still stands. A record with no key, or a fact not known here, stands. */
-export const stands = (key: unknown, exits: ReadonlyMap<string, string>) =>
-	typeof key !== 'string' || !key.startsWith(EXIT) || exits.has(key.slice(EXIT.length));
-
-/** The exits these keys name that stand, read in one request. */
-export const exitsOf = Effect.fn('dependants.exitsOf')(function* (
-	read: Reader,
-	keys: readonly string[]
-) {
-	const { employee_contract: chain = [], entity: entities = [] } = yield* queryRows(read, {
-		employee_contract: {
-			where: chainsOf(
-				keys.filter((key) => key.startsWith(EXIT)).map((key) => key.slice(EXIT.length))
-			),
-			fields: CHAIN,
-			limit: 10000
-		},
-		entity: { fields: ['id', 'settings_code'], limit: 10000 }
-	});
-	return exitsIn(chain, entities);
-});
+export const stands = (key: unknown, exits: ReadonlyMap<string, string>) => {
+	if (typeof key !== 'string' || !key.startsWith(EXIT)) return true;
+	const [contract = '', to] = key.slice(EXIT.length).split(':');
+	return exits.has(contract) && (to === undefined || exits.get(contract) === to);
+};
 
 /** A run that sealed derived entries was deleted or paid: the routine looks at their contracts again. */
 export const follow = Effect.fnUntraced(function* (
@@ -102,6 +88,8 @@ type Entry = {
 	readonly reverses: string | null;
 	readonly key: string | null;
 	readonly zone: 'PENDING' | 'OPEN' | 'UNPAID' | 'PAID';
+	/** The open request that holds it, while it is `PENDING`. */
+	readonly requestId: string | null;
 	readonly slots: readonly Slot[];
 };
 const entryOf = (row: JsonObject, unpaid: ReadonlySet<string>): Entry => {
@@ -129,6 +117,7 @@ const entryOf = (row: JsonObject, unpaid: ReadonlySet<string>): Entry => {
 					: runs.some((run) => unpaid.has(run))
 						? 'UNPAID'
 						: 'PAID',
+		requestId: isJsonObject(row.$approval) ? String(row.$approval.requestId) : null,
 		slots: days.map((day) => ({
 			incurred_on: String(day.incurred_on),
 			part: day.part === 'PM' ? 'PM' : 'AM',
@@ -140,16 +129,20 @@ const daysOf = (slots: readonly Slot[]) =>
 	slots.map(({ incurred_on, part }) => ({ incurred_on, part }));
 
 /**
+ * One step of the routine: withdraw, then raise, then the tasks. A run takes one step, because a run reads once and a
+ * write changes what it read; it answers whether another step is due, and the automation starts the next run.
+ *
  * One pass over the contracts whose exit was raised, moved or cancelled: it reads afresh and takes the first step that
- * has work, each safe to repeat. Withdraw: an exit that no longer stands (or whose day moved) has its approved cash-outs
- * no run has taken deleted, and a loan schedule still holding an unpaid final settlement rebuilt. Raise: the cash-out
+ * has work, each safe to repeat. Withdraw: a request still waiting, of an exit that no longer stands or sized for an
+ * earlier last day, is withdrawn, one a pass; then an exit that no longer stands (or whose day moved) has its approved
+ * cash-outs no run has taken deleted, and a loan schedule still holding an unpaid final settlement rebuilt. Raise: the cash-out
  * request of an exit that stands, sized after the sync that ran before it and under leave still waiting for its
  * decision. Tasks: open exit tasks that no longer stand are waived, and a cash-out a paid run took gets one task asking
- * HR to reverse it. Nothing under an unpaid run moves; a pending request is HR's to reject. It answers whether it wrote
- * and another pass should read again.
+ * HR to reverse it. Nothing under an unpaid run moves. It answers `false` when nothing is left to do, else the passes
+ * its write adds to the run's bound: one for a withdrawn request, none for any other step.
  */
-const pass = Effect.fn('dependants.pass')(function* (
-	ctx: Pick<EffectCtx, 'act' | 'query' | 'today'>,
+export const reconcile = Effect.fn('dependants.reconcile')(function* (
+	ctx: Pick<EffectCtx, 'act' | 'approvals' | 'query' | 'today'>,
 	employments: readonly Id<'employee_contract'>[]
 ) {
 	const {
@@ -160,7 +153,7 @@ const pass = Effect.fn('dependants.pass')(function* (
 	} = yield* queryRows(ctx.query, {
 		employee_contract: {
 			where: chainsOf(employments),
-			fields: [...CHAIN, 'pay_group_id', 'employee_extension_data', 'terms'],
+			fields: [...CHAIN, 'pay_group_id', 'exit_ground', 'terms'],
 			limit: 10000
 		},
 		entity: { fields: ['id', 'settings_code'], limit: 10000 },
@@ -173,7 +166,7 @@ const pass = Effect.fn('dependants.pass')(function* (
 	});
 	const asked = new Set<string>(employments);
 	const contracts = chain.filter((row) => asked.has(String(row.id)));
-	if (contracts.length === 0) return false;
+	if (contracts.length === 0) return false as const;
 
 	const exits = exitsIn(chain, entities);
 	const lineage = new Map(entities.map((row) => [String(row.id), String(row.settings_code)]));
@@ -182,17 +175,10 @@ const pass = Effect.fn('dependants.pass')(function* (
 	const paying = new Map(
 		contracts.flatMap((row) => {
 			const to = exits.get(String(row.id));
-			const extension = isJsonObject(row.employee_extension_data)
-				? row.employee_extension_data
-				: {};
 			const law =
 				to === undefined ? undefined : versionOn(versions, lineage.get(String(row.entity_id)), to);
-			if (
-				to === undefined ||
-				law === undefined ||
-				extension.misconduct_dismissal === true ||
-				extension.dismissed_for_misconduct === true
-			)
+			// a dismissal for misconduct pays no untaken leave
+			if (to === undefined || law === undefined || row.exit_ground === 'MISCONDUCT_DISMISSAL')
 				return [];
 			const cutoff = Number(
 				jsonObject(schedule.get(String(row.pay_group_id)) ?? {}).pay_cutoff_day ?? 1
@@ -272,15 +258,19 @@ const pass = Effect.fn('dependants.pass')(function* (
 	);
 
 	const withdraw: string[] = [];
+	/** Requests still waiting that no longer answer their exit: the request, and why it is taken back. */
+	const waiting = new Map<string, string>();
 	const raise: JsonObject[][] = [];
 	const reverse = new Map<string, JsonObject>();
 	for (const row of contracts) {
 		const id = String(row.id);
-		const key = exitKey(id);
+		const key = exitKey(id, exits.get(id));
 		const pays = paying.get(id);
+		const keyed = held.filter((entry) => entry.key?.startsWith(exitKey(id)) === true);
 		if (!exits.has(id)) {
-			const keyed = held.filter((entry) => entry.key === key);
 			withdraw.push(...keyed.filter((entry) => entry.zone === 'OPEN').map((entry) => entry.id));
+			for (const entry of keyed)
+				if (entry.requestId !== null) waiting.set(entry.requestId, 'The exit was cancelled.');
 			// a paid run took it: the days and the money come back only through a reversal, which HR keys, once
 			for (const entry of keyed)
 				if (
@@ -348,13 +338,17 @@ const pass = Effect.fn('dependants.pass')(function* (
 			const all = held.filter(
 				(entry) => entry.employment === id && entry.cashOut && entry.code === code
 			);
-			// approved and in no run, yet half a day or more is still left or overdrawn: the exit moved under it, so
-			// it is withdrawn and raised again for the new last day
-			const stale =
-				Math.abs(left) >= 0.5
-					? all.filter((entry) => entry.key === key && entry.zone === 'OPEN')
-					: [];
+			// raised for an earlier last day: one in no run is withdrawn and raised again for the new day, and a request
+			// still waiting is withdrawn first
+			const moved = keyed.filter((entry) => entry.code === code && entry.key !== key);
+			const stale = moved.filter((entry) => entry.zone === 'OPEN');
 			withdraw.push(...stale.map((entry) => entry.id));
+			for (const entry of moved)
+				if (entry.requestId !== null)
+					waiting.set(
+						entry.requestId,
+						`The exit date moved to ${String(exits.get(id))}; the cash-out is raised again for that day.`
+					);
 			// one a row: a request still waiting, one a run holds, or one HR keyed stands in its place
 			if (all.length > stale.length) continue;
 			left += stale.reduce(
@@ -451,6 +445,12 @@ const pass = Effect.fn('dependants.pass')(function* (
 		);
 	}
 
+	// one step a pass: a write changes what the pass read, so the next step reads again
+	const [request] = waiting;
+	if (request !== undefined) {
+		yield* ctx.approvals.withdraw(...request);
+		return 1;
+	}
 	const back = [
 		{ callable: 'leave_catalog_entry.delete', input: withdraw.map((target) => ({ target })) },
 		{
@@ -459,16 +459,15 @@ const pass = Effect.fn('dependants.pass')(function* (
 		},
 		{ callable: 'loan_catalog_entry_repayment.create', input: instalments }
 	].filter((act) => act.input.length > 0);
-	// one step a pass: a write changes what the pass read, so the next step reads again
 	if (back.length > 0) {
 		yield* ctx.act.checked(back);
-		return true;
+		return 0;
 	}
 	// one request a person, held for the HR controller
 	const asking = raise.find((input) => input.length > 0);
 	if (asking !== undefined) {
 		yield* ctx.act.checked([{ callable: 'leave_catalog_entry.create', input: asking }]);
-		return true;
+		return 0;
 	}
 	// last, the tasks: read here, so nothing above waits on them. Those of an exit that no longer stands, or of an
 	// earlier last day, are waived; a paid cash-out of a cancelled exit gets one task asking HR for its reversal,
@@ -476,43 +475,45 @@ const pass = Effect.fn('dependants.pass')(function* (
 	const { obligation: tasks = [] } = yield* queryRows(ctx.query, {
 		obligation: {
 			where: { employment_id: { in: ids } },
-			fields: ['id', 'employment_id', 'occurrence_key', 'state'],
+			fields: ['id', 'employment_id', 'occurrence_key', 'state', 'waiver_reason'],
 			limit: 10000
 		}
 	});
 	const raised = new Set(tasks.map((task) => String(task.occurrence_key)));
-	const waive = tasks.flatMap((task) => {
-		if (task.state !== 'OPEN') return [];
+	// what this routine waived, it reopens when the fact stands again; a task HR waived for its own reason stays
+	const CANCELLED = 'The exit was cancelled.';
+	const MOVED = 'The exit date moved; this task answered the earlier date.';
+	const SETTLED = 'The cash-out was reversed, or its exit stands again.';
+	const moves = tasks.flatMap((task): JsonObject[] => {
 		const key = String(task.occurrence_key);
 		const to = exits.get(String(task.employment_id));
-		const waiver_reason = key.startsWith(REVERSE)
+		const due = key.startsWith(REVERSE)
 			? reverse.has(key)
-				? undefined
-				: 'The cash-out was reversed, or its exit stands again.'
-			: !isExitDuty(key) || (to !== undefined && key.endsWith(`:${to}`))
-				? undefined
-				: to === undefined
-					? 'The exit was cancelled.'
-					: 'The exit date moved; this task answered the earlier date.';
-		return waiver_reason === undefined
-			? []
-			: [{ target: String(task.id), set: { state: 'WAIVED', waiver_reason } }];
+			: isExitDuty(key) && to !== undefined && key.endsWith(`:${to}`);
+		const stale = key.startsWith(REVERSE) || isExitDuty(key) ? !due : false;
+		if (task.state === 'OPEN' && stale)
+			return [
+				{
+					target: String(task.id),
+					set: {
+						state: 'WAIVED',
+						waiver_reason: key.startsWith(REVERSE) ? SETTLED : to === undefined ? CANCELLED : MOVED
+					}
+				}
+			];
+		if (
+			task.state === 'WAIVED' &&
+			due &&
+			[CANCELLED, MOVED, SETTLED].includes(String(task.waiver_reason))
+		)
+			return [{ target: String(task.id), set: { state: 'OPEN', waiver_reason: null } }];
+		return [];
 	});
 	const ask = [...reverse].flatMap(([key, task]) => (raised.has(key) ? [] : [task]));
 	const last = [
-		{ callable: 'obligation.update', input: waive },
+		{ callable: 'obligation.update', input: moves },
 		{ callable: 'obligation.create', input: ask }
 	].filter((act) => act.input.length > 0);
 	if (last.length > 0) yield* ctx.act.checked(last);
-	return false;
-});
-
-/** The passes of one run: withdraw, then raise, then waive. Each reads afresh, so no write meets a stale read. */
-export const reconcile = Effect.fn('dependants.reconcile')(function* (
-	ctx: Pick<EffectCtx, 'act' | 'query' | 'today'>,
-	employments: readonly Id<'employee_contract'>[]
-) {
-	// a withdrawal, a request a contract, then the tasks: the bound only stops a pass that would never settle
-	for (let step = 0; step < employments.length + 3; step += 1)
-		if (!(yield* pass(ctx, employments))) return;
+	return false as const;
 });

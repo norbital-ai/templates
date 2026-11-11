@@ -4,6 +4,7 @@ import { evaluate } from './expressions.js';
 import { Refusal, isJsonObject, jsonObject, type Json } from './foundation.js';
 import { JsonObject, settingsConstants } from './contracts.js';
 import { queryRows, type Reader } from './reads.js';
+import { programOf } from './programs.js';
 import { chainOf, startsOf, versionOn } from './contract_change.js';
 import { ReadRequestSchema } from '@norbital-ai/bolt/protocol';
 
@@ -681,6 +682,79 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 				})
 				.join('\n')
 		});
+});
+
+/**
+ * A catalogue row's own `eligibility` decides whether an entry may be raised on it. It reads what a rule reads: the
+ * entry, its subject and the row's lookup over its law's constants, within the family's declared roots.
+ */
+export const refuseIneligible = Effect.fn('payroll.refuseIneligible')(function* (
+	read: Reader,
+	collection: string,
+	rows: readonly JsonObject[]
+) {
+	const catalog = CATALOG_OF[collection];
+	const ids = idsIn(rows.map((row) => refId(row.catalog_id)));
+	if (catalog === undefined || ids.length === 0) return;
+	const found = yield* queryRows(read, {
+		[catalog]: {
+			where: { id: { in: [...ids] } },
+			fields: ['id', 'code', 'description', 'lookup', 'eligibility', 'settings_id'],
+			limit: 10000
+		}
+	});
+	const gated = new Map(
+		(found[catalog] ?? [])
+			.filter((row) => typeof row.eligibility === 'string' && row.eligibility.trim() !== '')
+			.map((row) => [String(row.id), row])
+	);
+	if (gated.size === 0) return;
+	const cache: SubjectCache = { contracts: new Map(), employers: new Map(), employees: new Map() };
+	const second = yield* queryRows(read, {
+		jurisdiction_settings: {
+			where: { id: { in: [...idsIn([...gated.values()].map((row) => refId(row.settings_id)))] } },
+			fields: ['id', 'lookup', 'conversions', 'ledger'],
+			limit: 10000
+		},
+		...subjectLayers(rows, cache)
+	});
+	primeFrom(second, cache);
+	const globals = new Map(
+		(second.jurisdiction_settings ?? []).map((row) => [String(row.id), settingsConstants(row)])
+	);
+	const roots = programOf(catalog)?.roots;
+	const refused: string[] = [];
+	for (const row of rows) {
+		const item = gated.get(String(refId(row.catalog_id)));
+		if (item === undefined) continue;
+		const code = String(item.code ?? '');
+		const subject = yield* subjectValue(read, collection, row, cache);
+		const answer = evaluate(
+			String(item.eligibility),
+			'CALCULATION',
+			{
+				entry: row,
+				subject,
+				lookup: {
+					...globals.get(String(refId(item.settings_id))),
+					...(isJsonObject(item.lookup) ? item.lookup : {})
+				}
+			},
+			`${code}.eligibility`,
+			roots
+		);
+		if (typeof answer !== 'boolean')
+			throw new Refusal({ message: `${code}.eligibility: must return a boolean.` });
+		if (!answer) {
+			const who = pathValue(subject, 'employment.employee_number');
+			const why = typeof item.description === 'string' ? ` (${item.description})` : '';
+			refused.push(
+				`${typeof who === 'string' ? `${who}: ` : ''}${code}${why} is not allowed here: its eligibility rule says no. ` +
+					'Open the row under Settings → Catalog to see what it needs, correct the entry or the company and employee facts it reads, then save again.'
+			);
+		}
+	}
+	if (refused.length > 0) throw new Refusal({ message: refused.join('\n') });
 });
 
 const CATALOG_ENTRY = /^(.*_catalog)_entry$/;

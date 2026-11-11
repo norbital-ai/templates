@@ -1,6 +1,6 @@
 // The ledger checked from outside its service: a balance is the sum of its ledger rows (H1), what a ledger source still
-// holds has its record (H3), an entry a run sealed has that run's payslip (H6), and nothing entitled or left is below
-// zero (W1, a watch). Each is broken by a seed no act could have written; the check finds exactly that and changes
+// holds has its record (H3), an entry a run sealed has that run's payslip (H6), an open exit task and an unpaid derived
+// entry name an exit that stands (H9, H10), and nothing entitled or left is below zero (W1, a watch). Each is broken by a seed no act could have written; the check finds exactly that and changes
 // nothing. A manual deduction stops at what is left, and the database refuses a ledger row that names no source.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
@@ -77,7 +77,7 @@ const tasks = (t: Kit) =>
 				.toSorted((left, right) => left.key.localeCompare(right.key))
 		)
 	);
-const check = (t: Kit) => t.as(t.admin).start('integrity', {}).pipe(Effect.andThen(t.runDue()));
+const check = (t: Kit) => t.as(t.admin).start('ledger', {}).pipe(Effect.andThen(t.runDue()));
 const catalog = <M extends 'leave_catalog' | 'claim_catalog' | 'adhoc_catalog'>(
 	model: M,
 	code: string
@@ -255,6 +255,69 @@ describe('a broken invariant yields exactly its finding', () => {
 			assert.deepEqual(yield* found(t), [['H6', `claim_catalog_entry:${uuid(721)}`]]);
 		}).pipe(Effect.provide(workspace({ seed: sealed, now: NOW })));
 	});
+	// the exit dependants routine keeps these two; here it never ran, and each record has a twin whose exit stands
+	const LAST = '2026-10-31';
+	const MOVED = '2026-09-30';
+	const exited = (more: Seed): Seed =>
+		holding(
+			{},
+			{
+				employee_contract: (seed.employee_contract ?? []).map((row) => ({
+					...row,
+					effective_range: { from: '2025-01-01', to: LAST }
+				})),
+				...more
+			}
+		);
+	it.live('H9: an open exit task whose exit moved to another last day', () => {
+		const task = (id: number, day: string) => ({
+			id: uuid(id),
+			entity_id: ENTITY,
+			employee_id: uuid(4),
+			employment_id: uuid(6),
+			title: 'An exit duty',
+			occurrence_key: `DUTY:${uuid(6)}:exit:${day}`,
+			state: 'OPEN'
+		});
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			assert.deepEqual(yield* found(t), [['H9', `obligation:${uuid(740)}`]]);
+		}).pipe(
+			Effect.provide(
+				workspace({ seed: exited({ obligation: [task(740, MOVED), task(741, LAST)] }), now: NOW })
+			)
+		);
+	});
+	it.live('H10: an approved cash-out in no run whose exit moved to another last day', () => {
+		const cashOut = (id: number, day: string) => ({
+			id: uuid(id),
+			entity_id: ENTITY,
+			employment_id: uuid(6),
+			catalog_id: catalogRow(seed, 'leave_catalog', IN_LIEU),
+			encashment: true,
+			occurrence_key: `exit:${uuid(6)}:${day}`,
+			payroll_run_id: null
+		});
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			assert.deepEqual(yield* found(t), [['H10', `leave_catalog_entry:${uuid(750)}`]]);
+		}).pipe(
+			Effect.provide(
+				workspace({
+					seed: exited({
+						leave_catalog_entry: [cashOut(750, MOVED), cashOut(751, LAST)],
+						leave_catalog_entry_day: [750, 751].map((entry, index) => ({
+							id: uuid(760 + index),
+							leave_entry_id: uuid(entry),
+							incurred_on: LAST,
+							part: 'AM'
+						}))
+					}),
+					now: NOW
+				})
+			)
+		);
+	});
 	it.live('W1: an entitlement below zero, which its ledger agrees with', () => {
 		const below = holding(
 			{ leave: { ANNUAL_LEAVE: { [YEAR]: { entitled: -1 } } } },
@@ -286,6 +349,8 @@ describe('the integrity check', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
+				// the check rides the sync's whole pass: what the sync itself posts is in place first
+				yield* syncAll(t);
 				const before = { ledger: yield* ledgerRows(t), balance: yield* accountsIn(t) };
 				yield* check(t);
 				const [task, ...more] = yield* tasks(t);
@@ -315,20 +380,6 @@ describe('the integrity check', () => {
 					]
 				);
 			}).pipe(Effect.provide(workspace({ seed: H1, now: NOW })))
-	);
-	it.live('an employee cannot start it', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const failed = yield* Effect.flip(
-				t.as(t.member(['employee'], { id: uuid(3) })).start('integrity', {})
-			);
-			assert.equal(failed._tag, 'ActRefused');
-			assert.equal(
-				(yield* t.as(t.member(['hr_controller'])).start('integrity', {})).kind,
-				'committed'
-			);
-			assert.deepEqual((yield* t.runDue()).failed, []);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
 

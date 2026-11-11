@@ -1,6 +1,8 @@
 # ID compliance gap research
 
-Research date: 2026-11-09. Scope: the ID jurisdiction seed in `seed/public/jurisdiction/ID/version_3/` and the HRMS mechanisms named in the brief (`payroll_run`, `obligation`, registered rules/effects, catalog lookup/conversion, reads). This document proposes no engine change. Where a gap is really an engine defect, it is called out and left outside the rule fix.
+Status: research and decision record, 9–10 November 2026. The seed and the models are what is in force; where this record differs, they stand. Seed folders are written `version_<v>`: the lineage has been renumbered since.
+
+Research date: 2026-11-09. Scope: the ID jurisdiction seed in `seed/public/jurisdiction/ID/version_<v>/` and the HRMS mechanisms named in the brief (`payroll_run`, `obligation`, registered rules/effects, catalog lookup/conversion, reads). This document proposes no engine change. Where a gap is really an engine defect, it is called out and left outside the rule fix.
 
 ## 0. Period model: `period` is not the legal period
 
@@ -92,7 +94,7 @@ Obligation-level, no payroll amount. Fixtures meet the K3/disability thresholds 
 - `K3_SMK3_P2K3` and `WAGE_STRUCTURE_SCALE`: exactly one entity obligation across all parts and years; no second obligation on a later run.
 - `TAX_RECORDS_RETENTION`: no obligation is created.
 
-No payroll-amount test is needed here: these effects create reminders. The substantive floor/tax calculations are separate and already covered by `tests/minimum_wage.test.ts` and `tests/pph21_year_end.test.ts`. A pay-bump scenario belongs to `MINIMUM_WAGE_FLOOR` (a contract update at/under the new floor), not to this reminder.
+No payroll-amount test is needed here: these effects create reminders. The substantive floor and tax calculations are separate rows; they are seed data and not tested per country. A pay-bump scenario belongs to `MINIMUM_WAGE_FLOOR` (a contract update at/under the new floor), not to this reminder.
 
 ---
 
@@ -121,7 +123,7 @@ Existing `employee_extension_data.termination_cause` and `effective_range.to` ar
 
 ### Test
 
-Reuse `tests/pph21_year_end.test.ts`.
+Not tested for this jurisdiction; the year-end settlement mechanism is tested on an agnostic fixture.
 
 - Input: the existing `pph21_year_end` fixture (the 12-month Rp10,000,000 + JHT/JP/JKK/JKM/Kesehatan case) with an exit on 2026-12-31.
 - Expected: December PPh 21 settlement is unchanged at **501,475** (the existing test's figure); exactly one employee-scoped `PPH21_BPA1_EXIT` for the person; exactly one entity-scoped `PPH21_BPA1_YEAR_END`; no second employee-scoped BPA1.
@@ -428,7 +430,7 @@ Existing `payment_schedule.frequency` and `payment_schedule.pay_cutoff_day` on `
 
 Only existing mechanisms are used.
 
-1. `seed/public/jurisdiction/ID/version_3/registered_effect.json`
+1. `seed/public/jurisdiction/ID/version_<v>/registered_effect.json`
    - `PPH21_BPA1_YEAR_END`: coverage-month December; year key; due 31 January next year; batch title.
    - `PTKP_STATUS_ANNUAL`, `MINIMUM_WAGE_COMPLIANCE`, `DISABILITY_QUOTA_REVIEW`, `WORKER_HEALTH_EXAMINATION`: coverage-month January; year key; fixed due dates.
    - `K3_SMK3_P2K3`: one-time entity key; update reference to Permenaker 13/2025 art.3(2); do not present it as an annual return.
@@ -438,7 +440,7 @@ Only existing mechanisms are used.
    - `WLKP_ESTABLISHMENT_REPORT`: citation to art.6.
    - `WORK_ACCIDENT_REPORT`: no null due date; skip if no slots.
    - `PPH21_BPA1_EXIT` and the other employee-duty effects listed in section 3: add the `PAYEE` guard.
-2. `seed/public/jurisdiction/ID/version_3/registered_rule.json`
+2. `seed/public/jurisdiction/ID/version_<v>/registered_rule.json`
    - `PKWT_WRITTEN_INDONESIAN`: validate `=== true`; no field-presence condition.
    - `NO_PAY_OPEN_PERIOD`: ten-day cutoff branch.
 3. `src/data/model/jurisdiction_settings/catalog/non_static/leave_catalog/leave_catalog_entry/+model.ts`
@@ -499,8 +501,7 @@ Only existing mechanisms are used.
 
 - `conversions.rounding` is `HALF_UP` at scale 0 in versions 1–3 (was 2): every line and checkpoint is in whole rupiah.
   The BPJS and PPh 21 rows already rounded each share half-up to the rupiah (`whole_unit`); JKK, the other lines and
-  the checkpoints kept sen. The statutes fix no sen rounding; whole rupiah half-up is the Company B listing's method
-  (`manual-probe-matrix.md` §8.1a), which the owner adopted.
+  the checkpoints kept sen. The statutes fix no sen rounding; whole rupiah half-up is the method the owner adopted.
 - Kesehatan employer share = round(base × (4% + 1% × (1 + further members))) − the worker's rounded share, never less
   than round(base × 4%). The employer remits the whole contribution and deducts the worker's share (UU 24/2011
   art.19(1)–(2)); the split is 4% / 1% (Perpres 82/2018 art.30 as amended by Perpres 64/2020). Without the floor, the
@@ -528,6 +529,5 @@ Open for the owner:
 - `PATERNITY_EXTENSION_LEAVE` pays in full; UU 4/2024 art.6(2)(a) grants the 3 further days but states no pay
   (PP 36/2021 art.41(3)(e) pays the first 2).
 - The annual-leave payout day: no statute fixes it. The row pays `day_rate` (8/173 of the month on 8 h × 5, 7/173 on
-  [amount] h × [amount]). Company B pays ÷ [amount] (the bank's dropped `leave_cash_out_day_divisor: [amount]`): EMP-REDACTED's [amount] days are [amount] in
-  the listing and [amount] in the run. §[amount]'s match needs Company B's workspace payout `ctx.month_wage / [amount] * ctx.entry.quantity`
-  (company method, pays more), set in Settings.
+  7 h × 6). An employer that pays a larger day (for example the month ÷ 20) sets that payout on its own workspace row
+  (company method, pays more).

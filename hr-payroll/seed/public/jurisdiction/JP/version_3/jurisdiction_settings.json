@@ -44,11 +44,6 @@
 									"title": "HEALTH registration number",
 									"description": "The employee's registration/membership number as issued; keep leading zeros."
 								},
-								"since": {
-									"type": "string",
-									"format": "date",
-									"title": "Effective from"
-								},
 								"apportionment_ratio": {
 									"type": "number",
 									"title": "二以上事業所勤務の按分割合",

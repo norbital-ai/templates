@@ -182,7 +182,7 @@
 			"carry": {
 				"windows": 1
 			},
-			"entitlement": "// js\n// 労働基準法 art.39(1)–(2): a grant day six months after hire and each year after it, the days by length of service.\nconst employment = ctx.subject.employment;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', null));\nconst offset = ctx.lookup.service_offset_months;\nconst months = calendar_completed_months(started, ctx.as_of);\nif (months < offset) return 0;\nconst years = Math.floor((months - offset) / 12);\nconst grant = add_months(started, offset + years * 12);\nconst extension = get(employment, 'employee_extension_data', {});\n// art.39(1)–(2): attendance below the ratio before a grant day leaves that year without a grant; HR records it on the day.\nif (get(employment, 'events', []).some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return 0;\n// art.39(3) with 施行規則 art.24の3: below the weekly hours and days, the table for the days scheduled.\nconst terms = get(employment, 'terms', {});\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst perWeek = Number(get(terms, 'normal_days_per_week', ctx.lookup.full_time_days_per_week));\nconst full = perWeek >= ctx.lookup.full_time_days_per_week;\nif (hours > 0 && hours < ctx.lookup.full_time_weekly_hours && !full) {\n\tconst row = ctx.lookup.grant_days_by_normal_days_per_week.filter((item) => item.normal_days_per_week === perWeek && item.service_year <= years + 1).at(-1);\n\treturn get(row ?? {}, 'days', 0);\n}\nreturn ctx.lookup.service_bands.filter((band) => band.service_months <= months).reduce((days, band) => Math.max(days, band.days), 0);",
+			"entitlement": "// 労働基準法 art.39(1)–(2): a grant day six months after hire and each year after it, the days by length of service.\nconst employment = ctx.subject.employment;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', null));\nconst offset = ctx.lookup.service_offset_months;\nconst months = calendar_completed_months(started, ctx.as_of);\nif (months < offset) return 0;\nconst years = Math.floor((months - offset) / 12);\nconst grant = add_months(started, offset + years * 12);\n// art.39(1)–(2): attendance below the ratio before a grant day leaves that year without a grant; HR records it on the day.\nif (get(employment, 'events', []).some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return 0;\n// art.39(3) with 施行規則 art.24の3: below the weekly hours and days, the table for the days scheduled.\nconst terms = get(employment, 'terms', {});\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst perWeek = Number(get(terms, 'normal_days_per_week', ctx.lookup.full_time_days_per_week));\nconst full = perWeek >= ctx.lookup.full_time_days_per_week;\nif (hours > 0 && hours < ctx.lookup.full_time_weekly_hours && !full) {\n\tconst row = ctx.lookup.grant_days_by_normal_days_per_week.filter((item) => item.normal_days_per_week === perWeek && item.service_year <= years + 1).at(-1);\n\treturn get(row ?? {}, 'days', 0);\n}\nreturn ctx.lookup.service_bands.filter((band) => band.service_months <= months).reduce((days, band) => Math.max(days, band.days), 0);",
 			"service_offset_months": 6
 		},
 		"references": [
@@ -202,7 +202,7 @@
 	{
 		"code": "PRENATAL_LEAVE",
 		"subtotal_id": "9a9b279d-f9f4-5374-ab58-4f4c32560a1f",
-		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
+		"eligibility": "return get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"lookup": {
 			"days": 42,
 			"multiple_pregnancy_days": 98
@@ -220,7 +220,7 @@
 	{
 		"code": "POSTNATAL_LEAVE",
 		"subtotal_id": "9a9b279d-f9f4-5374-ab58-4f4c32560a1f",
-		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
+		"eligibility": "return get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"lookup": {
 			"days": 56
 		},
@@ -286,7 +286,7 @@
 		"lookup": {
 			"days_one_child": 5,
 			"school_age_limit_years": 9,
-			"entitlement": "// js\n// 育児・介護休業法 art.16の2(1): days a business year by the children in third year of elementary school or below; 学校教育法 art.17(1): that is a child not yet the limiting age on the 1 April the school year opens.\nconst month = Number(ctx.as_of.substring(5, 7));\nconst opens = add_months(month_start(ctx.as_of), -((month + 12 - ctx.lookup.fiscal_year_start_month) % 12));\nconst children = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && get(event, 'ended_on', ctx.as_of) >= ctx.as_of && age_on(event.on, opens) < ctx.lookup.school_age_limit_years);\nreturn children.length === 0 ? 0 : children.length === 1 ? ctx.lookup.days_one_child : ctx.lookup.days_two_or_more;",
+			"entitlement": "// 育児・介護休業法 art.16の2(1): days a business year by the children in third year of elementary school or below; 学校教育法 art.17(1): that is a child not yet the limiting age on the 1 April the school year opens.\nconst month = Number(ctx.as_of.substring(5, 7));\nconst opens = add_months(month_start(ctx.as_of), -((month + 12 - ctx.lookup.fiscal_year_start_month) % 12));\nconst children = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && get(event, 'ended_on', ctx.as_of) >= ctx.as_of && age_on(event.on, opens) < ctx.lookup.school_age_limit_years);\nreturn children.length === 0 ? 0 : children.length === 1 ? ctx.lookup.days_one_child : ctx.lookup.days_two_or_more;",
 			"fiscal_year_start_month": 4
 		},
 		"references": [
@@ -305,7 +305,7 @@
 		"lookup": {
 			"days_one_recipient": 5,
 			"recipient_threshold": 2,
-			"entitlement": "// js\n// 育児・介護休業法 art.16の5(1): days a business year by the family members in need of care the worker looks after.\nconst recipients = Number(get(ctx.subject.employment, 'employee_extension_data.family_care_recipients', 0));\nreturn recipients === 0 ? 0 : recipients >= ctx.lookup.recipient_threshold ? ctx.lookup.days_two_or_more : ctx.lookup.days_one_recipient;",
+			"entitlement": "// 育児・介護休業法 art.16の5(1): days a business year by the family members in need of care the worker looks after.\nconst recipients = Number(get(ctx.subject.employment, 'employee_extension_data.family_care_recipients', 0));\nreturn recipients === 0 ? 0 : recipients >= ctx.lookup.recipient_threshold ? ctx.lookup.days_two_or_more : ctx.lookup.days_one_recipient;",
 			"fiscal_year_start_month": 4
 		},
 		"references": [
@@ -321,7 +321,7 @@
 	{
 		"code": "MENSTRUAL_LEAVE",
 		"subtotal_id": "9a9b279d-f9f4-5374-ab58-4f4c32560a1f",
-		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
+		"eligibility": "return get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"references": [
 			{
 				"title": "労働基準法 art.68: a woman for whom work on menstruation days is very difficult may not be made to work on request; the law does not require pay."
@@ -429,7 +429,7 @@
 	{
 		"code": "MATERNAL_HEALTH_CHECK",
 		"subtotal_id": "9a9b279d-f9f4-5374-ab58-4f4c32560a1f",
-		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
+		"eligibility": "return get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"references": [
 			{
 				"title": "男女雇用機会均等法 arts.12–13 with 施行規則 art.2の4: the employer must allow the time a pregnant or post-partum worker needs for health guidance and checks (every 4 weeks to week 23, 2 weeks to 35, then weekly) and act on the doctor's instructions; the law does not require pay."

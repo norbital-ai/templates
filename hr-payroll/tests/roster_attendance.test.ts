@@ -276,7 +276,7 @@ describe('an absence, read from the roster by a real run', () => {
 						.act('roster_entry.update', [
 							{ target: sealed.id, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
 						]);
-				assert.match(String(yield* Effect.flip(late())), /locked/i);
+				assert.match(String(yield* Effect.flip(late())), /locked by a payroll run/);
 				// the way out while the run is unpaid: delete it, which frees the days it sealed
 				const [first] = yield* runsHeld(t);
 				assert.ok(first !== undefined);
@@ -313,7 +313,7 @@ describe('an absence, read from the roster by a real run', () => {
 						.act('roster_entry.update', [
 							{ target: sealed.id, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
 						]);
-				assert.match(String(yield* Effect.flip(late())), /locked/i);
+				assert.match(String(yield* Effect.flip(late())), /locked by a payroll run/);
 				const dropped = t.as(t.admin).act('payroll_run.delete', [{ target: first.id }]);
 				assert.match(String(yield* Effect.flip(dropped)), /A paid run is locked/);
 				// what the day missed is an arrears adhoc entry: the amount is HR's, the mechanism pays it once
@@ -424,7 +424,7 @@ describe('one roster day a person', () => {
 					}
 				])
 			);
-			assert.match(String(again), /already (exists|has)/);
+			assert.match(String(again), /another record already has this/);
 			const held = yield* rosterOn(t, DAY);
 			yield* t.as(t.admin).act('roster_entry.update', [
 				{
@@ -484,7 +484,7 @@ describe('a kiosk punch', () => {
 						.act('roster_entry.update', [
 							{ target: open.id, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
 						]);
-				assert.match(String(yield* Effect.flip(close())), /locked/i);
+				assert.match(String(yield* Effect.flip(close())), /locked by a payroll run/);
 				const [first] = yield* runsHeld(t);
 				assert.ok(first !== undefined);
 				yield* t.as(t.admin).act('payroll_run.delete', [{ target: first.id }]);

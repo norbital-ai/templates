@@ -114,9 +114,9 @@
 		"code": "MEDICAL_PERIOD_EXHAUSTED",
 		"description": "Stops sick leave once an illness has run its 24-month medical period unless an approved extension is recorded, and asks for a review after 65 days.",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create", "update", "approve"],
+		"events": ["create", "update"],
 		"order": 11,
-		"validate": "// js\n// 劳部发〔1994〕479号 第三条: 医疗期至多24个月; 劳部发〔1995〕236号 第二条: 特殊疾病24个月内不能痊愈的, 经批准可以适当延长.\nconst catalog = ctx.reads.leave_catalog.find((row) => row.id === ctx.entry.catalog_id);\nif (catalog == null || catalog.code !== 'SICK_LEAVE') return true;\nconst illnesses = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'ILLNESS');\nconst own = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst expired = own.some((child) => illnesses.some((event) => event.on <= String(child.incurred_on) && (get(event, 'ended_on', null) == null || String(child.incurred_on) <= event.ended_on) && calendar_completed_months(event.on, String(child.incurred_on)) >= catalog.lookup.medical_period_max_months));\nif (expired && get(ctx.subject.employment, 'employee_extension_data.medical_period_extension', null) == null)\n  throw 'This illness has run the 24-month medical period. Record the approved extension on the contract first.';\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== get(ctx.entry, 'id', '') &&\n          get(e, 'reverses', null) == null &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map(\n        (e) =>\n          (ctx.reads.leave_catalog_entry_day ?? []).filter((child) => child.leave_entry_id === e.id).length / 2,\n      ),\n  ) +\n  own.length / 2;\nif (used <= ctx.lookup.review_after_days) return true;\nreturn get(ctx.subject.employment, 'employee_extension_data.medical_period_review', null) != null;",
+		"validate": "// 劳部发〔1994〕479号 第三条: 医疗期至多24个月; 劳部发〔1995〕236号 第二条: 特殊疾病24个月内不能痊愈的, 经批准可以适当延长.\nconst catalog = ctx.reads.leave_catalog.find((row) => row.id === ctx.entry.catalog_id);\nif (catalog == null || catalog.code !== 'SICK_LEAVE') return true;\nconst illnesses = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'ILLNESS');\nconst own = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst expired = own.some((child) => illnesses.some((event) => event.on <= String(child.incurred_on) && (get(event, 'ended_on', null) == null || String(child.incurred_on) <= event.ended_on) && calendar_completed_months(event.on, String(child.incurred_on)) >= catalog.lookup.medical_period_max_months));\nif (expired && get(ctx.subject.employment, 'employee_extension_data.medical_period_extension', null) == null)\n  throw 'This illness has run the 24-month medical period. Record the approved extension on the contract first.';\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== get(ctx.entry, 'id', '') &&\n          get(e, 'reverses', null) == null &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map(\n        (e) =>\n          (ctx.reads.leave_catalog_entry_day ?? []).filter((child) => child.leave_entry_id === e.id).length / 2,\n      ),\n  ) +\n  own.length / 2;\nif (used <= ctx.lookup.review_after_days) return true;\nreturn get(ctx.subject.employment, 'employee_extension_data.medical_period_review', null) != null;",
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -174,7 +174,7 @@
 		"code": "WORK_INJURY_LEAVE_12_MONTHS",
 		"description": "Caps work-injury leave at 365 days unless an approved extension is recorded on the contract.",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create", "update", "approve"],
+		"events": ["create", "update"],
 		"order": 12,
 		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'WORK_INJURY_LEAVE') return true;\nconst own = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== get(ctx.entry, 'id', '') &&\n          get(e, 'reverses', null) == null &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map(\n        (e) =>\n          (ctx.reads.leave_catalog_entry_day ?? []).filter((child) => child.leave_entry_id === e.id).length / 2,\n      ),\n  ) +\n  own.length / 2;\nif (used <= ctx.lookup.maximum_days) return true;\nconst contract = ctx.subject.employment;\nreturn get(contract, 'employee_extension_data.work_injury_leave_extension', null) != null;",
 		"reads": {
@@ -459,18 +459,6 @@
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
-		"code": "CN_STANDARD_SHIFT_LIMIT",
-		"description": "Caps a work-shift template's ordinary hours at eight a day, after unpaid breaks.",
-		"target_collection": "shift_definition",
-		"events": ["create", "update"],
-		"order": 30,
-		"condition": "return get(ctx.entry.variant, 'day_type', 'WORK') === 'WORK';",
-		"validate": "const v = get(ctx.entry, 'variant', {});\nconst clock = (a, b, next) => {\n  const [ah, am] = String(a).split(':').map(Number);\n  const [bh, bm] = String(b).split(':').map(Number);\n  return bh * 60 + bm - (ah * 60 + am) + (next ? 1440 : 0);\n};\nconst span =\n  v.start_time != null && v.end_time != null\n    ? clock(v.start_time, v.end_time, v.ends_next_day === true)\n    : Number(v.untimed_hours ?? 0) * 60;\nconst unpaid = sum(\n  (v.breaks ?? []).filter((b) => b.paid !== true).map((b) => clock(b.start_time, b.end_time, false)),\n);\nconst ordinary = (span - unpaid) / 60;\nreturn ordinary <= 8;",
-		"lookup": {},
-		"id": "bca9acb6-ea0d-5a6b-8085-2c469629287f",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
-	},
-	{
 		"code": "CONTRACT_CATEGORIES",
 		"description": "Requires the contract's statutory work category and residency status to use the declared codes.",
 		"target_collection": "employee_contract",
@@ -688,7 +676,7 @@
 		},
 		"lookup": {},
 		"condition": "if (get(ctx.entry, 'encashment', false) === true) return false;\nif (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id && row.code === 'ANNUAL_LEAVE');",
-		"validate": "// js\n// 职工带薪年休假条例 第四条第(二)至(五)项: 事假累计20天以上且不扣工资, 或病假累计满2、3、4个月的, 不享受当年年休假.\n// 企业职工带薪年休假实施办法 第八条: 已休年休假后年度内才出现上述情形的, 不享受下一年度的年休假.\nconst own = ctx.reads.leave_catalog.find((row) => row.id === ctx.entry.catalog_id);\nconst codes = Object.fromEntries(ctx.reads.leave_catalog.map((row) => [row.id, row.code]));\nconst started = get(first(ctx.reads.employee_contract), 'service_started_on', ctx.subject.employment.effective_range.from);\nconst taken = (code, year) => sum(\n  ctx.reads.leave_catalog_entry\n    .filter((row) => get(codes, row.catalog_id, '') === code)\n    .map((row) => {\n      const dayCount = (ctx.reads.leave_catalog_entry_day ?? []).filter(\n        (child) => child.leave_entry_id === row.id && String(child.incurred_on).startsWith(year),\n      ).length / 2;\n      return get(row, 'reverses', null) != null ? -dayCount : dayCount;\n    })\n);\nconst barred = (year) => {\n  const months = calendar_completed_months(started, year + '-12-31');\n  const band = own.lookup.sick_leave_disqualification_days.filter((row) => row.service_months <= months).at(-1);\n  return taken('PERSONAL_LEAVE_PAID', year) >= own.lookup.paid_personal_leave_disqualification_days || (band != null && taken('SICK_LEAVE', year) >= band.days);\n};\nconst refused = get(ctx.entry, 'leave_catalog_entry_day', []).some((child) => {\n  const year = String(child.incurred_on).slice(0, 4);\n  const last = String(Number(year) - 1);\n  return barred(year) || (barred(last) && taken('ANNUAL_LEAVE', last) > 0);\n});\nif (refused) throw 'Personal or sick leave this year, or last year after annual leave was taken, forfeits annual leave.';\nreturn true;",
+		"validate": "// 职工带薪年休假条例 第四条第(二)至(五)项: 事假累计20天以上且不扣工资, 或病假累计满2、3、4个月的, 不享受当年年休假.\n// 企业职工带薪年休假实施办法 第八条: 已休年休假后年度内才出现上述情形的, 不享受下一年度的年休假.\nconst own = ctx.reads.leave_catalog.find((row) => row.id === ctx.entry.catalog_id);\nconst codes = Object.fromEntries(ctx.reads.leave_catalog.map((row) => [row.id, row.code]));\nconst started = get(first(ctx.reads.employee_contract), 'service_started_on', ctx.subject.employment.effective_range.from);\nconst taken = (code, year) => sum(\n  ctx.reads.leave_catalog_entry\n    .filter((row) => get(codes, row.catalog_id, '') === code)\n    .map((row) => {\n      const dayCount = (ctx.reads.leave_catalog_entry_day ?? []).filter(\n        (child) => child.leave_entry_id === row.id && String(child.incurred_on).startsWith(year),\n      ).length / 2;\n      return get(row, 'reverses', null) != null ? -dayCount : dayCount;\n    })\n);\nconst barred = (year) => {\n  const months = calendar_completed_months(started, year + '-12-31');\n  const band = own.lookup.sick_leave_disqualification_days.filter((row) => row.service_months <= months).at(-1);\n  return taken('PERSONAL_LEAVE_PAID', year) >= own.lookup.paid_personal_leave_disqualification_days || (band != null && taken('SICK_LEAVE', year) >= band.days);\n};\nconst refused = get(ctx.entry, 'leave_catalog_entry_day', []).some((child) => {\n  const year = String(child.incurred_on).slice(0, 4);\n  const last = String(Number(year) - 1);\n  return barred(year) || (barred(last) && taken('ANNUAL_LEAVE', last) > 0);\n});\nif (refused) throw 'Personal or sick leave this year, or last year after annual leave was taken, forfeits annual leave.';\nreturn true;",
 		"references": [
 			{
 				"title": "职工带薪年休假条例 第四条; 企业职工带薪年休假实施办法 第八条."
@@ -752,7 +740,7 @@
 		},
 		"lookup": {},
 		"condition": "if (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id && row.code === 'MENSTRUAL_LEAVE');",
-		"validate": "// js\n// 上海市女职工劳动保护办法 第八条: 保护作业女职工经期1天公假; 云南省女职工劳动保护特别规定 第九条第三项: 重度痛经确诊后1至2天. One period falls in a calendar month.\nconst own = ctx.reads.leave_catalog.find((row) => row.id === ctx.entry.catalog_id);\nconst region = get(ctx.subject.employer, 'entity_extension_data.region', '');\nconst needs = first(own.lookup.requires_by_region.filter((row) => row.region === region));\nconst grant = first(own.lookup.days_by_region.filter((row) => row.region === region));\nif (needs == null || grant == null || get(ctx.subject.employment, 'employee_extension_data.' + needs.requires, false) !== true)\n  throw 'This contract does not hold the fact the local rule requires for menstrual leave.';\nconst slots = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst ids = ctx.reads.leave_catalog.filter((row) => row.code === own.code).map((row) => row.id);\nconst rows = ctx.reads.leave_catalog_entry\n  .filter((row) => row.id !== get(ctx.entry, 'id', '') && ids.includes(row.catalog_id))\n  .concat([ctx.entry]);\nconst within = slots.every((child) => {\n  const month = String(child.incurred_on).slice(0, 7);\n  const taken = sum(rows.map((row) => {\n    const held = row.id === ctx.entry.id\n      ? slots\n      : (ctx.reads.leave_catalog_entry_day ?? []).filter((slot) => slot.leave_entry_id === row.id);\n    const dayCount = held.filter((slot) => String(slot.incurred_on).startsWith(month)).length / 2;\n    return get(row, 'reverses', null) != null ? -dayCount : dayCount;\n  }));\n  return taken <= grant.days;\n});\nif (!within) throw 'Menstrual leave is past the days of this calendar month.';\nreturn true;",
+		"validate": "// 上海市女职工劳动保护办法 第八条: 保护作业女职工经期1天公假; 云南省女职工劳动保护特别规定 第九条第三项: 重度痛经确诊后1至2天. One period falls in a calendar month.\nconst own = ctx.reads.leave_catalog.find((row) => row.id === ctx.entry.catalog_id);\nconst region = get(ctx.subject.employer, 'entity_extension_data.region', '');\nconst needs = first(own.lookup.requires_by_region.filter((row) => row.region === region));\nconst grant = first(own.lookup.days_by_region.filter((row) => row.region === region));\nif (needs == null || grant == null || get(ctx.subject.employment, 'employee_extension_data.' + needs.requires, false) !== true)\n  throw 'This contract does not hold the fact the local rule requires for menstrual leave.';\nconst slots = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst ids = ctx.reads.leave_catalog.filter((row) => row.code === own.code).map((row) => row.id);\nconst rows = ctx.reads.leave_catalog_entry\n  .filter((row) => row.id !== get(ctx.entry, 'id', '') && ids.includes(row.catalog_id))\n  .concat([ctx.entry]);\nconst within = slots.every((child) => {\n  const month = String(child.incurred_on).slice(0, 7);\n  const taken = sum(rows.map((row) => {\n    const held = row.id === ctx.entry.id\n      ? slots\n      : (ctx.reads.leave_catalog_entry_day ?? []).filter((slot) => slot.leave_entry_id === row.id);\n    const dayCount = held.filter((slot) => String(slot.incurred_on).startsWith(month)).length / 2;\n    return get(row, 'reverses', null) != null ? -dayCount : dayCount;\n  }));\n  return taken <= grant.days;\n});\nif (!within) throw 'Menstrual leave is past the days of this calendar month.';\nreturn true;",
 		"references": [
 			{
 				"title": "上海市女职工劳动保护办法 第八条; 云南省女职工劳动保护特别规定 第九条第三项."
@@ -786,37 +774,13 @@
 		},
 		"lookup": {},
 		"condition": "if (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id && row.code === 'NURSING_BREAK');",
-		"validate": "// js\n// 女职工劳动保护特别规定 第九条第二款: 哺乳未满1周岁婴儿的女职工.\nconst own = ctx.reads.leave_catalog.find((row) => row.id === ctx.entry.catalog_id);\nconst births = get(ctx.subject.employment, 'family', []).filter((member) => member.relation === 'CHILD').map((child) => get(child, 'born_on', null)).filter((born) => born != null && born !== '');\nconst nursing = get(ctx.entry, 'leave_catalog_entry_day', []).every((slot) => births.some((born) => String(born) <= String(slot.incurred_on) && age_on(String(born), String(slot.incurred_on)) < own.lookup.child_age_limit_years));\nif (!nursing) throw 'A nursing break needs a child under one on the contract.';\nreturn true;",
+		"validate": "// 女职工劳动保护特别规定 第九条第二款: 哺乳未满1周岁婴儿的女职工.\nconst own = ctx.reads.leave_catalog.find((row) => row.id === ctx.entry.catalog_id);\nconst births = get(ctx.subject.employment, 'family', []).filter((member) => member.relation === 'CHILD').map((child) => get(child, 'born_on', null)).filter((born) => born != null && born !== '');\nconst nursing = get(ctx.entry, 'leave_catalog_entry_day', []).every((slot) => births.some((born) => String(born) <= String(slot.incurred_on) && age_on(String(born), String(slot.incurred_on)) < own.lookup.child_age_limit_years));\nif (!nursing) throw 'A nursing break needs a child under one on the contract.';\nreturn true;",
 		"references": [
 			{
 				"title": "女职工劳动保护特别规定 第九条第二款."
 			}
 		],
 		"id": "7a46253e-bc56-5f9d-a5e9-12248e852f97",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
-	},
-	{
-		"code": "CASE_INPUTS_REQUIRED",
-		"description": "Requires every input the workplace-case catalog marks as required.",
-		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			}
-		},
-		"validate": "// js\nconst form = first(ctx.reads.workplace_case_catalog);\nconst inputs = get(ctx.entry, 'inputs', {});\nconst missing = get(form, 'lookup.input_schema.required', []).filter((key) => get(inputs, key, '') === '');\nif (missing.length > 0) throw 'This case needs ' + missing.join(', ') + '.';\nreturn true;",
-		"order": 30,
-		"lookup": {},
-		"id": "b9ee98a7-e0d5-55fa-bba8-3c411c1da5e9",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
@@ -838,7 +802,7 @@
 		},
 		"lookup": {},
 		"condition": "if (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
-		"validate": "// js\n// 上海市老年人权益保障条例 第二十四条; 云南省老年人权益保障条例 第二十四条: 老年人患病住院治疗期间.\nconst stays = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'PARENT_HOSPITALISATION');\nconst inside = get(ctx.entry, 'leave_catalog_entry_day', []).every((slot) => stays.some((event) => event.on <= String(slot.incurred_on) && (get(event, 'ended_on', null) == null || String(slot.incurred_on) <= event.ended_on)));\nif (!inside) throw 'Elder-care leave falls only while a parent is in hospital. Record the stay as a PARENT_HOSPITALISATION event on the contract first.';\nreturn true;",
+		"validate": "// 上海市老年人权益保障条例 第二十四条; 云南省老年人权益保障条例 第二十四条: 老年人患病住院治疗期间.\nconst stays = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'PARENT_HOSPITALISATION');\nconst inside = get(ctx.entry, 'leave_catalog_entry_day', []).every((slot) => stays.some((event) => event.on <= String(slot.incurred_on) && (get(event, 'ended_on', null) == null || String(slot.incurred_on) <= event.ended_on)));\nif (!inside) throw 'Elder-care leave falls only while a parent is in hospital. Record the stay as a PARENT_HOSPITALISATION event on the contract first.';\nreturn true;",
 		"references": [
 			{
 				"title": "上海市老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 赡养人享受陪护假. 云南省老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 子女享受护理时间."

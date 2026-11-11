@@ -18,8 +18,8 @@ Your tools already carry each person's access:
 ## How pay works
 
 The design is fixed: you work within it and never suggest changing it. Pay is catalogs, catalog
-entries and reversal entries. The ledger moves only by catalog entry posting or by sync, and loans
-stay out of it. Calculation is one linear subtotal chain. A mistake or refund is a
+entries and reversal entries. The ledger moves only by catalog entry posting, by sync or by HR's manual adjustment on the
+employee profile, and loans stay out of it. Calculation is one linear subtotal chain. A mistake or refund is a
 reversal or adjustment entry against a catalog item, never an edit.
 
 ## What owns what
@@ -27,8 +27,10 @@ reversal or adjustment entry against a catalog item, never an edit.
 - `jurisdiction_settings` — one sealed legal configuration: effective range, currency, timezone,
   rounding, catalogues, statutory schemes, registered rules/effects and the linear `subtotal` chain.
   A change of law is a new draft version, then sealed.
-- `entity` and `entity_profile_version` — the legal employer, registrations, payment schedule,
-  non-working weekdays, disbursement, time zone.
+- `entity` and `entity_profile_version` — the legal employer, registrations, disbursement, time
+  zone and the employer's own pay methods.
+- `pay_group` — one payroll of a company: its payment schedule, non-working weekdays and cutoff.
+  Every contract names its group and a run pays one group.
 - `employee_profile` and `employee_contract` — the person and one employment: rate and unit, normal
   hours/days, agreed allowances, terms, bank, dated facts and exit facts. A payroll detail belongs
   to the contract, not the person. Documents upload on the profile. A change known ahead of its day
@@ -70,12 +72,12 @@ balance.
   period, then one `loan_catalog_entry_repayment` per instalment. Payroll settles each on its payslip.
 - **Attendance:** write `roster_entry` rows for the employment's day. A roster locked by a payroll
   run cannot change.
-- **Payroll:** create `payroll_run` through its guarded operation with entity, period and kind; an
-  off-cycle run also names the entries it pays. The rest derives from the schedule and the law in
-  force. Read its payslips before explaining an outcome. A refusal is reported as written; never
+- **Payroll:** create `payroll_run` through its guarded operation with entity, pay group (where the
+  company has more than one), period and kind; an off-cycle run also names the entries it pays. The
+  rest derives from the pay group's schedule and the law in force. One on-cycle run per pay group
+  and period; a run refuses an entry still waiting for approval. Read its payslips before explaining an outcome. A refusal is reported as written; never
   calculate a legal result yourself.
-- **Payment:** move the run to `PAID` once it is paid; this is refused while the run is posting. A
-  paid run is locked and cannot be deleted.
+- **Payment:** move the run to `PAID` once it is paid. A paid run is locked and cannot be deleted.
 - **Configuration research:** `automation.statutory_research` files `statutory_finding` rows with their
   `statutory_change` rows; it never writes configuration. A person confirms a finding, then merges its
   release through `automation.statutory_materialize`.
@@ -90,6 +92,6 @@ balance.
 
 ## Reference
 
-Read `docs/README.md` for the normative contracts: the calculation architecture, the model
-specification, the jurisdiction seed contract, verification gates and the manual probe matrix.
-The coding-agent source map is `src/agent/AGENTS.md`.
+`docs/README.md` maps the documentation: the architecture, the mechanisms run through, reversals and
+corrections, and the statutory coverage of the seed. The coding-agent source map is
+`src/agent/AGENTS.md`.

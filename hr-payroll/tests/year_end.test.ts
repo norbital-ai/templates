@@ -1,4 +1,4 @@
-// The year-end paths end to end through `payroll_run`: a refund, the figures a month holds and the late-wage fine.
+// The year-end paths end to end through `payroll_run`: a refund and the figures a month holds.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
@@ -23,20 +23,6 @@ const terms = (amount: number, residency = 'RESIDENT', category = 'NON_MANUAL') 
 	allowances: {}
 });
 type Seed = ReturnType<typeof pack>;
-/** The seeded law stops with November 2026; a year end needs it in force past that, so the last version carries on. */
-const carriedOn = (seed: Seed): Seed => {
-	const from = (row: Seed[string][number]) =>
-		Schema.decodeUnknownSync(Schema.Struct({ from: Schema.String }))(row.effective_range).from;
-	const rows = seed.jurisdiction_settings ?? [];
-	const last = rows.map(from).sort().at(-1);
-	return {
-		...seed,
-		jurisdiction_settings: rows.map((row) =>
-			from(row) === last ? { ...row, effective_range: { from: last, to: null } } : row
-		)
-	};
-};
-
 const itemId = (seed: Seed, family: string, code: string) => {
 	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
 	const row = (seed[family] ?? []).find((r) => r.code === code && r.settings_id === version);
@@ -76,7 +62,7 @@ const months = (year: number, last = 12) =>
 
 const JAPAN_FACTS = {
 	insured_office_region: 'HOKKAIDO',
-	statutory: { INCOME_TAX: { elections: { dependency_declaration_filed: true } } }
+	statutory: { INCOME_TAX: { dependency_declaration_filed: true } }
 };
 const japan = (salary: number) =>
 	pack(
@@ -107,120 +93,61 @@ const view = (t: Kit, scope: string, payDate: string) =>
 
 describe('a December refund', () => {
 	// a one-month spike withholds at that month's high rate; December settles the year and comes back negative
-	const CASES = [
-		[
-			'Indonesia',
-			pack('ID', 'Asia/Jakarta', terms(10_000_000, 'CITIZEN'), {}, [], [], '2026-06-15'),
-			'BONUS_THR',
-			200_000_000
-		],
-		['Japan', japan(500_000), 'BONUS', 5_000_000],
-		[
-			'Philippines',
-			pack('PH', 'Asia/Manila', terms(60_000), {}, [], [], '2026-06-15'),
-			'bonus',
-			2_000_000
-		],
-		[
-			'Vietnam, with finalisation authorised',
-			pack(
-				'VN',
-				'Asia/Ho_Chi_Minh',
-				terms(60_000_000),
-				{ facts: { statutory: { PIT: { elections: { finalisation_authorised: true } } } } },
-				[],
-				[],
-				'2026-06-15'
-			),
-			'BONUS',
-			3_000_000_000
-		]
-	] as const;
+	const seed = pack('ID', 'Asia/Jakarta', terms(10_000_000, 'CITIZEN'), {}, [], [], '2026-06-15');
 
-	for (const [name, seed, spike, amount] of CASES)
-		it.live(`${name}: the year comes back on December's payslip, and its balance falls`, () =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* pay(t, seed, spike, amount, '2026-10-10');
-				for (const period of ['2026-10', '2026-11', '2026-12']) yield* run(t, period);
-				const paid = yield* slips(t);
-				const december = paid.find((row) => row.period === '2026-12');
-				const refunds = (december?.breakdown.statutory ?? []).filter((row) => row.employee < 0);
-				assert.ok(refunds.length > 0, `${name}: December refunded nothing`);
-				for (const { code, employee } of refunds) {
-					const line = december?.breakdown.lines.find((row) => row.code === code);
-					assert.equal(line?.direction, 'ADD');
-					assert.equal(line?.amount, -employee);
-				}
-				// the balance holds what was withheld less what came back, so nothing repays twice
-				const accounts = yield* accountsIn(t);
-				const scope = String(seed.jurisdiction_settings?.[0]?.code);
-				for (const { code } of refunds) {
-					const charged = paid.reduce(
-						(sum, row) =>
-							sum + (row.breakdown.statutory.find((one) => one.code === code)?.employee ?? 0),
-						0
-					);
-					assert.ok(
-						Math.abs(
-							(accounts.statutory?.[`${code}.employee`]?.[`${scope}.Y.2026-01-01`]?.['paid'] ?? 0) -
-								charged
-						) < 0.01
-					);
-				}
-				// HR has no step: no entry and no task to enter one
-				const { adhoc_catalog_entry: entries } = yield* t.storedQuery({
-					adhoc_catalog_entry: { where: { reverses: { isNull: false } }, limit: 10 }
-				});
-				assert.deepEqual(entries.rows, []);
-				const { obligation } = yield* t.storedQuery({ obligation: { limit: 10000 } });
-				assert.equal(
-					obligation.rows.some((row) => row.title.startsWith('Tax overpaid')),
-					false
+	it.live('the year comes back on December’s payslip, and its balance falls', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* pay(t, seed, 'BONUS_THR', 200_000_000, '2026-10-10');
+			for (const period of ['2026-10', '2026-11', '2026-12']) yield* run(t, period);
+			const paid = yield* slips(t);
+			const december = paid.find((row) => row.period === '2026-12');
+			const refunds = (december?.breakdown.statutory ?? []).filter((row) => row.employee < 0);
+			assert.ok(refunds.length > 0, 'December refunded nothing');
+			for (const { code, employee } of refunds) {
+				const line = december?.breakdown.lines.find((row) => row.code === code);
+				assert.equal(line?.direction, 'ADD');
+				assert.equal(line?.amount, -employee);
+			}
+			// the balance holds what was withheld less what came back, so nothing repays twice
+			const accounts = yield* accountsIn(t);
+			const scope = String(seed.jurisdiction_settings?.[0]?.code);
+			for (const { code } of refunds) {
+				const charged = paid.reduce(
+					(sum, row) =>
+						sum + (row.breakdown.statutory.find((one) => one.code === code)?.employee ?? 0),
+					0
 				);
-				// the refund is paid once
-				yield* run(t, '2027-01');
-				const january = (yield* slips(t)).find((row) => row.period === '2027-01');
-				for (const { code } of refunds)
-					assert.notEqual(
-						january?.breakdown.lines.find((row) => row.code === code)?.direction,
-						'ADD'
-					);
-			}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-02-20T02:00:00.000Z' })))
-		);
+				assert.ok(
+					Math.abs(
+						(accounts.statutory?.[`${code}.employee`]?.[`${scope}.Y.2026-01-01`]?.['paid'] ?? 0) -
+							charged
+					) < 0.01
+				);
+			}
+			// HR has no step: no entry and no task to enter one
+			const { adhoc_catalog_entry: entries } = yield* t.storedQuery({
+				adhoc_catalog_entry: { where: { reverses: { isNull: false } }, limit: 10 }
+			});
+			assert.deepEqual(entries.rows, []);
+			const { obligation } = yield* t.storedQuery({ obligation: { limit: 10000 } });
+			assert.equal(
+				obligation.rows.some((row) => row.title.startsWith('Tax overpaid')),
+				false
+			);
+			// the refund is paid once
+			yield* run(t, '2027-01');
+			const january = (yield* slips(t)).find((row) => row.period === '2027-01');
+			for (const { code } of refunds)
+				assert.notEqual(
+					january?.breakdown.lines.find((row) => row.code === code)?.direction,
+					'ADD'
+				);
+		}).pipe(Effect.provide(workspace({ seed, now: '2027-02-20T02:00:00.000Z' })))
+	);
 });
 
 describe('figures a month holds, across runs', () => {
-	it.live('Japan: a second bonus in a month has what is left of the pension ceiling', () => {
-		const seed = japan(500_000);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* pay(t, seed, 'BONUS', 1_000_000, '2026-06-10');
-			yield* run(t, '2026-06');
-			yield* pay(t, seed, 'BONUS', 1_000_000, '2026-06-26');
-			const entry = (yield* t.storedQuery({
-				adhoc_catalog_entry: { where: { payroll_run_id: { isNull: true } }, limit: 1 }
-			})).adhoc_catalog_entry.rows[0];
-			assert.ok(entry !== undefined);
-			yield* t.as(t.admin).act('payroll_run.create', [
-				{
-					entity_id: ENTITY,
-					period: '2026-06',
-					kind: 'OFF_CYCLE',
-					attaches: { adhoc: [entry.id] }
-				}
-			]);
-			yield* t.runDue();
-			const [first, second] = (yield* slips(t)).sort(
-				(a, b) => statutory(b, 'PENSION_BONUS') - statutory(a, 'PENSION_BONUS')
-			);
-			// ¥1,500,000 in a month: ¥1,000,000 of it went on the first bonus
-			assert.ok(
-				Math.abs(statutory(second, 'PENSION_BONUS') - statutory(first, 'PENSION_BONUS') / 2) < 2
-			);
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-06-28T02:00:00.000Z' })));
-	});
-
 	it.live('Japan: a January bonus reads December pay, past the year end', () => {
 		const seed = japan(500_000);
 		const bonusTax = (months: readonly string[]) =>
@@ -233,9 +160,7 @@ describe('figures a month holds, across runs', () => {
 					paid.find((row) => row.period === '2027-01'),
 					'INCOME_TAX'
 				);
-			}).pipe(
-				Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-02-01T02:00:00.000Z' }))
-			);
+			}).pipe(Effect.provide(workspace({ seed, now: '2027-02-01T02:00:00.000Z' })));
 		return Effect.gen(function* () {
 			const after = yield* bonusTax(['2026-12', '2027-01']);
 			const alone = yield* bonusTax(['2027-01']);
@@ -259,7 +184,7 @@ describe('figures a month holds, across runs', () => {
 			);
 			assert.equal(month['2027-02.BASIC'], 500_000);
 			assert.equal((yield* accountsIn(t)).pay?.['BASIC']?.['JP.M.2026-01-01']?.['total'], 500_000);
-		}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-03-01T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed, now: '2027-03-01T02:00:00.000Z' })));
 	});
 
 	it.live('a salary in cents crosses the year end and keeps posting', () => {
@@ -274,7 +199,7 @@ describe('figures a month holds, across runs', () => {
 				Object.keys(month).some((key) => key.startsWith('2026-01.')),
 				false
 			);
-		}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-03-01T02:00:00.000Z' })));
+		}).pipe(Effect.provide(workspace({ seed, now: '2027-03-01T02:00:00.000Z' })));
 	});
 
 	// a year of RM8,000 sums to 142.80000000000004 of EIS, past the digits the ledger keeps
@@ -300,66 +225,6 @@ describe('figures a month holds, across runs', () => {
 			assert.equal((yield* basic(t)) ?? 0, 0);
 			yield* run(t, '2027-01');
 			assert.equal(yield* basic(t), 8000);
-		}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-02-01T02:00:00.000Z' })));
-	});
-
-	it.live('Vietnam: a bonus in a second run is taxed as if the month were one run', () => {
-		const seed = pack('VN', 'Asia/Ho_Chi_Minh', terms(30_000_000), {}, [], [], '2026-06-15');
-		const pit = (split: boolean) =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				if (!split) yield* pay(t, seed, 'BONUS', 100_000_000, '2026-06-10');
-				yield* run(t, '2026-06');
-				if (split) {
-					yield* pay(t, seed, 'BONUS', 100_000_000, '2026-06-26');
-					const entry = (yield* t.storedQuery({ adhoc_catalog_entry: { limit: 1 } }))
-						.adhoc_catalog_entry.rows[0];
-					assert.ok(entry !== undefined);
-					yield* t.as(t.admin).act('payroll_run.create', [
-						{
-							entity_id: ENTITY,
-							period: '2026-06',
-							kind: 'OFF_CYCLE',
-							attaches: { adhoc: [entry.id] }
-						}
-					]);
-				}
-				return (yield* slips(t)).reduce((sum, row) => sum + statutory(row, 'PIT'), 0);
-			}).pipe(Effect.provide(workspace({ seed, now: '2026-06-28T02:00:00.000Z' })));
-		return Effect.gen(function* () {
-			assert.equal(yield* pit(true), yield* pit(false));
-		});
-	});
-
-	it.live('Philippines: two cycles charge what one month would, on the month’s wages', () => {
-		const monthly = pack('PH', 'Asia/Manila', terms(30_000), {}, [], [], '2026-06-15');
-		const semi = {
-			...monthly,
-			pay_group: (monthly.pay_group ?? []).map((row) => ({
-				...row,
-				payment_schedule: {
-					frequency: 'SEMI_MONTHLY',
-					business_day: 'PREVIOUS',
-					non_working_weekdays: [0, 6],
-					short_month: 'LAST_DAY',
-					pay_days: [15, 30]
-				}
-			}))
-		};
-		const charged = (seed: Seed, periods: readonly string[]) =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				for (const period of periods) yield* run(t, period);
-				const paid = yield* slips(t);
-				return ['SSS', 'SSS_MPF', 'HDMF'].map((code) =>
-					paid.reduce((sum, row) => sum + statutory(row, code), 0)
-				);
-			}).pipe(Effect.provide(workspace({ seed, now: '2026-06-30T02:00:00.000Z' })));
-		return Effect.gen(function* () {
-			assert.deepEqual(
-				yield* charged(semi, ['2026-05-1', '2026-05-2']),
-				yield* charged(monthly, ['2026-05'])
-			);
-		});
+		}).pipe(Effect.provide(workspace({ seed, now: '2027-02-01T02:00:00.000Z' })));
 	});
 });

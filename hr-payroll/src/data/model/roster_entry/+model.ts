@@ -182,23 +182,18 @@ export default model('roster_entry', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'roster_entry', ids: rows.map((r) => r.id) },
+				'roster_entry',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'roster_entry', ids: changes.map((c) => c.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'roster_entry', changes);
 		},
 		deleted: function* (rows, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
-				{ collection: 'roster_entry', ids: rows.map((r) => r.id) },
+				'roster_entry',
 				rows.map((before) => ({ before }))
 			);
 		}

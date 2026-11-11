@@ -11,8 +11,8 @@
 			}
 		],
 		"subtotal_id": "b8b56286-1ac1-59e4-a6e0-492607ab62fe",
-		"eligibility": "// js\n\tconst ended = get(ctx.subject.employment.effective_range, 'to', null);\n\treturn ended == null || ctx.entry.incurred_on <= ended;",
-		"conversion": "// js\n\treturn ctx.entry.quantity;",
+		"eligibility": "\tconst ended = get(ctx.subject.employment.effective_range, 'to', null);\n\treturn ended == null || ctx.entry.incurred_on <= ended;",
+		"conversion": "\treturn ctx.entry.quantity;",
 		"id": "d7807e59-41eb-58c0-9cb5-54d2947039bc",
 		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
 		"description": "Travel reimbursement."

@@ -318,7 +318,7 @@ describe('a loan', () => {
 // The contract page settles a leaver's loans (`recoverLoans`, employee_contract/+representation.svelte): final pay
 // repays what `loanRecovery` allows under the entity's floor, the rest goes on a new schedule after the last day, and
 // HR gets one task. The page is not reachable from here, so the test sends the same acts in the same order. The exit
-// cancelled, the routine that follows it (docs/0007 §8) waives the task and puts an unpaid final settlement back on
+// cancelled, the routine that follows it (docs/0007 §4) waives the task and puts an unpaid final settlement back on
 // monthly instalments; one a paid run took stands.
 describe('a leaver’s loan', () => {
 	const LAST = '2026-09-30';
@@ -513,5 +513,67 @@ describe('a leaver’s loan', () => {
 				assert.equal(cents(yield* open(t)), Math.round(plan.remaining * 100));
 				assert.deepEqual(yield* tasks(t), [['WAIVED', '2026-10-01']]);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+});
+
+describe('a loan row with an eligibility rule', () => {
+	// synthetic: the row of the law in force is given a rule of this test's own, that a loan is repaid within 2026
+	const FESTIVE = catalogRow(base, 'loan_catalog', 'LOAN_RECOVERY_FESTIVE_ADVANCE');
+	const gated: ReturnType<typeof pack> = {
+		...seed,
+		loan_catalog: (seed.loan_catalog ?? []).map((row) =>
+			row.id === FESTIVE
+				? { ...row, eligibility: "return ctx.entry.repayment_period.to <= '2026-12-31';" }
+				: row
+		)
+	};
+	const lend = (t: Kit, to: string) =>
+		t.as(t.admin).act('loan_catalog_entry.create', [
+			{
+				entity_id: ENTITY,
+				employment_id: CONTRACT,
+				catalog_id: idOf('loan_catalog', FESTIVE),
+				quantity: 1000,
+				repayment_period: { from: PlainDate('2026-09-01'), to: PlainDate(to) }
+			}
+		]);
+	const loans = (t: Kit) =>
+		t
+			.storedQuery({ loan_catalog_entry: { limit: 10 } })
+			.pipe(
+				Effect.map(({ loan_catalog_entry }) =>
+					loan_catalog_entry.rows.map((row) => [row.id, String(row.repayment_period.to)])
+				)
+			);
+	const NO =
+		/W1: LOAN_RECOVERY_FESTIVE_ADVANCE.* is not allowed here: its eligibility rule says no/;
+
+	it.live(
+		'is refused where the rule says no, naming the person and the row; corrected as the refusal says, it saves, and an edit cannot break the rule either',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const before = yield* loans(t);
+				assert.match(yield* refused(lend(t, '2027-03-31')), NO);
+				assert.deepEqual(yield* loans(t), before);
+				// the way out the refusal names: correct the entry, then save again
+				yield* lend(t, '2026-12-31');
+				const after = yield* loans(t);
+				assert.equal(after.length, before.length + 1);
+				assert.match(
+					yield* refused(
+						t.as(t.admin).act('loan_catalog_entry.update', [
+							{
+								target: LOAN,
+								set: {
+									repayment_period: { from: PlainDate('2026-08-01'), to: PlainDate('2027-01-31') }
+								}
+							}
+						])
+					),
+					NO
+				);
+				assert.deepEqual(yield* loans(t), after);
+			}).pipe(Effect.provide(workspace({ seed: gated, now: NOW })))
 	);
 });

@@ -11,8 +11,8 @@
 			}
 		],
 		"subtotal_id": "ebcd5c62-e906-5a6d-bfc5-c4bd313677c3",
-		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
+		"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * ctx.calendar_days) / month_days) * ctx.paid_share;",
 		"id": "4a2a9152-1e5f-5090-beea-8f8ea8972753",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"include_in_rate": true
@@ -29,8 +29,8 @@
 			}
 		],
 		"subtotal_id": "d613af19-ba4d-57be-86ca-cdd30fd751cb",
-		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
+		"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * ctx.calendar_days) / month_days) * ctx.paid_share;",
 		"id": "227a692c-0795-58cb-a11a-d220d7154285",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"include_in_rate": true
@@ -48,8 +48,8 @@
 			}
 		],
 		"subtotal_id": "3d060c7e-bd89-50ed-ad92-448afc9d764e",
-		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
+		"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * ctx.calendar_days) / month_days) * ctx.paid_share;",
 		"id": "0b440e46-d55c-552c-96ad-7ad79643ebda",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"include_in_rate": true
@@ -66,8 +66,8 @@
 			}
 		],
 		"subtotal_id": "d613af19-ba4d-57be-86ca-cdd30fd751cb",
-		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
+		"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * ctx.calendar_days) / month_days) * ctx.paid_share;",
 		"id": "42c9a6c1-6efd-521a-a828-6e3d5c4298a4",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"include_in_rate": true
@@ -84,8 +84,8 @@
 			}
 		],
 		"subtotal_id": "3d060c7e-bd89-50ed-ad92-448afc9d764e",
-		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * days) / month_days) * ctx.paid_share;",
+		"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * ctx.calendar_days) / month_days) * ctx.paid_share;",
 		"id": "449db537-324d-567d-9641-31d54f91ed9e",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"include_in_rate": true

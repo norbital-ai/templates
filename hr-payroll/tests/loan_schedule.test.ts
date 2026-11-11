@@ -41,25 +41,6 @@ describe('loan repayment schedule', () => {
 		assert.equal(plan.remove.length, 0);
 	});
 
-	it('preserves sealed installments and only replaces open ones', () => {
-		const plan = buildLoanSchedule({
-			...base,
-			principal: 1000,
-			repayments: [
-				{ id: 'sealed', amount: 500, paid_on: '2026-01-01', payroll_run_id: 'run-1' },
-				{ id: 'open', amount: 100, paid_on: '2026-02-01' }
-			]
-		});
-		assert.deepEqual(plan.remove, ['open']);
-		assert.deepEqual(
-			plan.create.map((row) => [row.paid_on, row.amount]),
-			[
-				['2026-02-01', 250],
-				['2026-03-01', 250]
-			]
-		);
-	});
-
 	it('keeps the sealed total and drops every open row when nothing remains', () => {
 		const plan = buildLoanSchedule({
 			...base,

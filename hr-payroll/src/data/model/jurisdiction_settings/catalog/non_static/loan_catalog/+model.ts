@@ -21,7 +21,6 @@ export default model('loan_catalog', {
 		description: { kind: 'text', optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
 		eligibility: { kind: 'text', max: 65536, optional: true },
-		conversion: { kind: 'text', max: 65536, optional: true },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'loan_catalog', owned: true }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
@@ -40,7 +39,6 @@ export default model('loan_catalog', {
 				'description',
 				'references',
 				'eligibility',
-				'conversion',
 				'settings_id'
 			]
 		},
@@ -56,15 +54,7 @@ export default model('loan_catalog', {
 	},
 	update: {
 		columns: {
-			loan_catalog: [
-				'subtotal_id',
-				'lookup',
-				'code',
-				'description',
-				'references',
-				'eligibility',
-				'conversion'
-			]
+			loan_catalog: ['subtotal_id', 'lookup', 'code', 'description', 'references', 'eligibility']
 		},
 		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(

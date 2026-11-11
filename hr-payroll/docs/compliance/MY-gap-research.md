@@ -1,6 +1,6 @@
 # MY compliance gaps — legal and engineering decisions
 
-Status: research and implementation record, 9 November 2026. The source changes and tests for the gaps below are recorded in their implementation-status sections.
+Status: research and decision record, 9–10 November 2026. The seed and the models are what is in force; where this record differs, they stand. Seed folders are written `version_<v>`: the lineage has been renumbered since.
 
 Scope: the five MY gaps in the HR/Bolt seed audit, plus the public-holiday-in-lieu behaviour found during the manual payroll probe:
 
@@ -11,7 +11,7 @@ Scope: the five MY gaps in the HR/Bolt seed audit, plus the public-holiday-in-li
 5. HRD registration raises for `NOT_REGISTERED`, `DEREGISTERED` and missing.
 6. A public holiday on a weekly rest day has no in-lieu day; `PUBLIC_HOLIDAY_IN_LIEU` is a manual entry with no eligibility rule.
 
-Paths name `version_8` for orientation. `version_8` is sealed (effective 2031-06-01); a seed fix lands in the next MY version, or in `version_8` only if the owner reopens it before release. Recommendations use existing mechanisms only: model fields, registered rules/effects, catalog `lookup`/`input_schema`, declared `reads`, and `obligation`. No engine, run or ledger semantics change.
+Recommendations use existing mechanisms only: model fields, registered rules/effects, catalog `lookup`/`input_schema`, declared `reads`, and `obligation`. No engine, run or ledger semantics change.
 
 ## Summary
 
@@ -71,7 +71,7 @@ The duty is on the **selection of local employees in a redundancy exercise**. It
 
 - It decides statutory money in MY (termination benefit), TH (severance tax/eligibility) and ID (severance), and obligations in MY.
 - ID and TH already duplicate it in `employee_extension_data`; MY is the third reader of the same fact.
-- The architecture already says the facts that decide severance, “such as `exit_ground` and `termination_cause`, are on the contract” (`docs/0005-target-architecture.md`).
+- The architecture already says the facts that decide severance, “such as `exit_ground` and `termination_cause`, are on the contract” (`docs/0001-hrms-calculation-architecture.md`).
 - The extension schema cannot carry a live exit fact: `employee_extension_data` is **not editable when the contract is SEALED**. The SEALED edit list is only `effective_range`, `final_pay_due_on`, `reason`, `exit_ground`, `work_pass_valid_until`. A live exit is recorded after sealing, so an extension field would be frozen.
 
 Minimal field path:
@@ -123,7 +123,7 @@ if (get(employment, 'employee_extension_data.misconduct_dismissal', false) === t
 
 Keep `UNILATERAL` and `BREACH_BY_EMPLOYER` eligible: the Regulations exclude resignation, retirement and misconduct after due inquiry, not every employer termination. A retirement below 60 needs the `RETIREMENT_AGE_REVIEW` before final pay; if the review finds it was not a genuine retirement, correct the ground before the run.
 
-Path: `seed/public/jurisdiction/MY/version_8/adhoc_catalog.json`, row `TERMINATION_BENEFIT`, `eligibility`.
+Path: `seed/public/jurisdiction/MY/version_<v>/adhoc_catalog.json`, row `TERMINATION_BENEFIT`, `eligibility`.
 
 ### 1.5 Test scenario — leaver
 
@@ -316,7 +316,7 @@ Employees’ Social Security Act 1969 (Act 4):
 
 **Add one catalog kind `WORKPLACE_ACCIDENT` and key the effect on the entry’s `kind`, not on an undeclared `inputs.work_injury` boolean.**
 
-Path: `seed/public/jurisdiction/MY/version_8/workplace_case_catalog.json`, new row:
+Path: `seed/public/jurisdiction/MY/version_<v>/workplace_case_catalog.json`, new row:
 
 ```json
 {
@@ -416,7 +416,7 @@ return (
 
 Due date: use `hrd_registration_liability_on + 30`. The rule below requires the date for `COMPULSORY` and `NOT_REGISTERED`, so no fallback is needed. Keep the existing `offset_days: 30`; it is the prescribed registration period already encoded in the seed. The liability date is the correct anchor; the entity version date is not.
 
-Path: `seed/public/jurisdiction/MY/version_8/registered_effect.json`, `HRD_EMPLOYER_REGISTRATION` condition and effects. Extend `HRD_LIABILITY_EVENT_DATE_REQUIRED` in `registered_rule.json` to require the date when the class is `COMPULSORY` **or** `NOT_REGISTERED`; otherwise a `NOT_REGISTERED` row with no date silently suppresses the reminder.
+Path: `seed/public/jurisdiction/MY/version_<v>/registered_effect.json`, `HRD_EMPLOYER_REGISTRATION` condition and effects. Extend `HRD_LIABILITY_EVENT_DATE_REQUIRED` in `registered_rule.json` to require the date when the class is `COMPULSORY` **or** `NOT_REGISTERED`; otherwise a `NOT_REGISTERED` row with no date silently suppresses the reminder.
 
 Transition note for `DEREGISTERED`: update the field description in `entity_extension_schema` to say “approved deregistration under PSMB Act s.16(2); set `NOT_REGISTERED` and the new liability date if the employer again meets the compulsory threshold.” No new enum value is needed. Because the class and liability date live on the dated entity version, record the change in a new entity profile version; the sealed one is frozen.
 
@@ -502,20 +502,18 @@ A normal holiday applies by date even on a rest day; the shift-pattern gate is t
 - `TERMINATION_BENEFIT` now refuses `RESIGNATION`, `RETIREMENT`, legacy `EMPLOYEE_RETIREMENT` and
   `MISCONDUCT_DISMISSAL`; `UNILATERAL` and `BREACH_BY_EMPLOYER` stay eligible. The legacy misconduct boolean remains a
   fallback.
-- Regression: `tests/my_exit_ground.test.ts` covers eligibility and the 4,438.36 amount, native retrenchment raising
-  both duties once, resignation raising none, and retirement below/at 60.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 - Fixture note: the research scenario’s 2023-07-01 → 2026-06-30 is 35 completed months, not 36. The test starts
   2023-06-30 so the intended 36-month band and 4,438.36 figure hold.
 
 ### Gap 2 implementation status (2026-11-09)
 
-- Added native `employee_contract.work_pass_valid_until`, editable while sealed (field, columns, `SEALED` edit list).
-  `WORK_PASS_RENEWAL` reads only the native date; the undeclared legacy extension path is no longer referenced.
+- The pass's last day is `terms.work_authorisation_expires_on` on the contract; there is no `work_pass_valid_until`
+  field. `WORK_PASS_RENEWAL` reads only that date; the undeclared legacy extension path is no longer referenced.
 - The reminder key now includes the expiry: `MY:WORK_PASS_RENEWAL:<contract>:<expiry>`, so a renewal raises a new
   reminder and a corrected date does not dedupe against the old one. Title names the expiry; due is the expiry minus 90
   days, documented as the Immigration Department's three-month renewal window, not a statutory notice period.
-- Regression: `tests/my_work_pass.test.ts` covers the native expiry, a renewed date raising a second reminder, and the
-  citizen and missing-expiry passes.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 3 implementation status (2026-11-09)
 
@@ -523,8 +521,7 @@ A normal holiday applies by date even on a rest day; the shift-pattern gate is t
   representation). The PERKESO date covers SOCSO and EIS.
 - `EPF_EMPLOYER_REGISTRATION` and `SOCSO_EIS_EMPLOYER_REGISTRATION` now read the mutable entity and raise only while the
   matching date is missing. No `due_on` is set; titles say “Confirm”, not breach. The unused offset lookup was removed.
-- Regression: `tests/my_employer_registration.test.ts` covers both missing dates, both recorded dates, and recording the
-  dates on the mutable entity.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Gap 4 implementation status (2026-11-09)
 
@@ -541,8 +538,7 @@ A normal holiday applies by date even on a rest day; the shift-pattern gate is t
   classes raise none.
 - `HRD_LIABILITY_EVENT_DATE_REQUIRED` already requires the date for sealed `COMPULSORY` and `NOT_REGISTERED` classes, so
   an undated sealed `NOT_REGISTERED` version is refused rather than silently suppressing the reminder.
-- Regression: `tests/my_hrd_registration.test.ts` covers the dated reminder, the five non-triggering classes, the rule
-  refusals, and the rule passing a DRAFT/out-of-scope/optional version.
+- Not tested for this jurisdiction: the row is seed data, and tests prove the rule and effect mechanism on agnostic fixtures.
 
 ### Seed round 3 implementation status (2026-11-10)
 
@@ -560,7 +556,7 @@ A normal holiday applies by date even on a rest day; the shift-pattern gate is t
   day the sync ran, and a half day or more rounds up.
 - `PUBLIC_HOLIDAY_IN_LIEU` has no `payout`: s.60D(1A)–(1B) grants another day as a paid holiday in substitution, not a
   cash payment for an unused day. A workspace that pays an unused in-lieu day at exit sets that `payout` in its own
-  settings, as the Company A demo does.
+  settings.
 - New adhoc `OVERTIME_ARREARS`: overtime the attendance did not record, paid in a later run. It posts to the
   `ORDINARY_WAGES` checkpoint, the same one as `OVERTIME`, so EPF excludes it as overtime, SOCSO/EIS count it in wages,
   and the monthly tax treats it as ordinary pay. EA s.19(2) allows overtime to be paid by the last day of the next wage
@@ -569,3 +565,7 @@ A normal holiday applies by date even on a rest day; the shift-pattern gate is t
   s.2(24)) and EIS (Act 800 s.2) include overtime and commission and exclude the annual bonus; HRDF (Act 612 s.2) is
   charged on the `WAGE_ARREARS` checkpoint plus the `FINAL_PAY` step after `OFFICIAL_TRAVEL`, so leave encashment and
   notice pay are levied as cash emoluments of the employment.
+
+## Not enforced
+
+What the seed does not enforce is listed in [statutory coverage](../0009-statutory-coverage.md#not-enforced-by-the-seed).

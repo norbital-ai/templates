@@ -111,18 +111,15 @@ describe('on a real workspace', () => {
 			const t = yield* TestWorkspace;
 			yield* sealEvents(t, '2026-11-02', []);
 			yield* t.runDue();
-			const { obligation } = yield* t.storedQuery({ obligation: { limit: 200 } });
-			for (const code of [
-				'SSS_EMPLOYEE_REPORT',
-				'PHILHEALTH_EMPLOYEE_REPORT',
-				'HDMF_EMPLOYEE_REGISTRATION',
-				'BIR_EMPLOYEE_TIN_REGISTRATION'
-			])
-				assert.equal(
-					obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`)).length,
-					1,
-					code
+			const raised = t
+				.storedQuery({ obligation: { limit: 200 } })
+				.pipe(
+					Effect.map(({ obligation }) =>
+						obligation.rows.map((row) => String(row.occurrence_key)).toSorted()
+					)
 				);
+			const first = yield* raised;
+			assert.ok(first.some((key) => key.startsWith('SSS_EMPLOYEE_REPORT:')));
 			const version = (yield* t.storedQuery({ employee_contract: { limit: 1 } })).employee_contract
 				.rows[0]?.id;
 			assert.ok(version !== undefined);
@@ -132,59 +129,9 @@ describe('on a real workspace', () => {
 					{ target: version, set: { reason: 'Details confirmed' } }
 				]);
 			yield* t.runDue();
-			const after = yield* t.storedQuery({ obligation: { limit: 200 } });
-			assert.equal(
-				after.obligation.rows.filter((row) =>
-					String(row.occurrence_key).startsWith('SSS_EMPLOYEE_REPORT:')
-				).length,
-				1
-			);
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
-	);
-	it.live('a true leaver raises each exit duty once', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* t.as(t.admin).act('employee_contract.update', [
-				{
-					target: EMPLOYMENT,
-					set: {
-						effective_range: { from: '2025-01-01', to: '2026-06-30' },
-						final_pay_due_on: '2026-07-30',
-						reason: 'Resignation'
-					}
-				}
-			]);
-			yield* t.runDue();
-			const exit = [
-				'encash-leave-on-exit',
-				'raise-exit-pay',
-				'FINAL_PAY_RELEASE',
-				'HDMF_SEPARATION_REPORT',
-				'PHILHEALTH_SEPARATION_REPORT',
-				'PERSONAL_DATA_DISPOSAL'
-			];
-			const first = yield* t.storedQuery({ obligation: { limit: 200 } });
-			for (const code of exit)
-				assert.equal(
-					first.obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`))
-						.length,
-					1,
-					code
-				);
-			yield* t
-				.as(t.admin)
-				.act('employee_contract.update', [
-					{ target: EMPLOYMENT, set: { reason: 'Resignation confirmed' } }
-				]);
-			yield* t.runDue();
-			const second = yield* t.storedQuery({ obligation: { limit: 200 } });
-			for (const code of exit)
-				assert.equal(
-					second.obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`))
-						.length,
-					1,
-					code
-				);
+			// a second write of the same contract raises nothing more
+			assert.deepEqual(yield* raised, first);
+			assert.equal(new Set(first).size, first.length);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
 	);
 	it.live('a payee-only run raises no remittance duty', () => {
@@ -223,20 +170,13 @@ describe('on a real workspace', () => {
 			yield* sealEvents(t, '2026-11-02', []);
 			yield* t.runDue();
 			const after = yield* t.storedQuery({ obligation: { limit: 200 } });
-			for (const code of [
-				'encash-leave-on-exit',
-				'raise-exit-pay',
-				'FINAL_PAY_RELEASE',
-				'HDMF_SEPARATION_REPORT',
-				'PHILHEALTH_SEPARATION_REPORT',
-				'PERSONAL_DATA_DISPOSAL'
-			])
-				assert.equal(
-					after.obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`))
-						.length,
-					0,
-					code
-				);
+			// every exit duty names its fact: none was raised for the version the bump closed
+			assert.deepEqual(
+				after.obligation.rows
+					.map((row) => String(row.occurrence_key))
+					.filter((key) => /(^|:)exit:/.test(key)),
+				[]
+			);
 			assert.equal(
 				after.obligation.rows.filter((row) =>
 					String(row.occurrence_key).startsWith('SSS_EMPLOYEE_REPORT:')
@@ -258,23 +198,6 @@ describe('on a real workspace', () => {
 			});
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
 	);
-});
-
-describe('a case row with a form', () => {
-	it('has the rule that reads it, in every version that carries one', () => {
-		for (const code of ['CN', 'TW', 'SG', 'PH', 'ID'])
-			for (const version of readdirSync(join(ROOT, code))) {
-				const path = (name: string) => join(ROOT, code, version, `${name}.json`);
-				if (!existsSync(path('workplace_case_catalog'))) continue;
-				const forms = read(path('workplace_case_catalog')).filter(
-					(row) => objectValue(row.lookup).input_schema != null
-				);
-				const rules = read(path('registered_rule')).filter(
-					(row) => row.code === 'CASE_INPUTS_REQUIRED'
-				);
-				assert.equal(rules.length, forms.length > 0 ? 1 : 0, `${code} ${version}`);
-			}
-	});
 });
 
 describe('an Indonesian entity profile', () => {

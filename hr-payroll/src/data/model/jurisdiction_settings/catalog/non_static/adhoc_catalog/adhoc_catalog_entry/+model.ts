@@ -132,17 +132,12 @@ export default model('adhoc_catalog_entry', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'adhoc_catalog_entry', ids: rows.map((row) => row.id) },
+				'adhoc_catalog_entry',
 				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'adhoc_catalog_entry', ids: changes.map((change) => change.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'adhoc_catalog_entry', changes);
 		}
 	}
 });

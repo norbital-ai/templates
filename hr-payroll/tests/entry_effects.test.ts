@@ -44,15 +44,11 @@ const EMPLOYER: Record<string, Parameters<typeof pack>[3]> = {
 };
 const EMPLOYEE: Record<string, Parameters<typeof pack>[3]> = {
 	TW: {
-		facts: {
-			statutory: {
-				NHI: { elections: { insured_amount: 20_000 } },
-				INCOME_TAX: {
-					elections: {
-						tax_residency_reviews: {
-							2026: { resident_from: '2025-01-01', valid_through: '2026-12-31' }
-						}
-					}
+		statutory: {
+			NHI: { insured_amount: 20_000 },
+			INCOME_TAX: {
+				tax_residency_reviews: {
+					2026: { resident_from: '2025-01-01', valid_through: '2026-12-31' }
 				}
 			}
 		}

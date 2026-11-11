@@ -37,7 +37,6 @@ const columns = [
 	'bank',
 	'employee_extension_data',
 	'exit_ground',
-	'work_pass_valid_until',
 	'reason',
 	'status'
 ] as const;
@@ -463,15 +462,7 @@ const raiseExits = Effect.fnUntraced(function* (
 	if (changes.length === 0) return;
 	const exits = yield* exitsMoved(ctx.query, changes);
 	if (exits.length === 0) return;
-	yield* tap(
-		ctx,
-		'exit',
-		{
-			collection: 'employee_contract',
-			ids: exits.map((exit) => String((exit.after ?? exit.before)?.id))
-		},
-		exits
-	);
+	yield* tap(ctx, 'exit', 'employee_contract', exits);
 	// the sync runs first and hands on: a cash-out is sized after the exit's proration, and the two never race
 	yield* ctx.schedule('ledger', {
 		employees: [
@@ -563,8 +554,7 @@ export default model('employee_contract', {
 						'reason',
 						'exit_ground',
 						// only the exit answers it states in the save that ends it: `statesExitAnswers`
-						'employee_extension_data',
-						'work_pass_valid_until'
+						'employee_extension_data'
 					]
 				},
 				VOID: { to: [], edit: 'none' }
@@ -747,11 +737,6 @@ export default model('employee_contract', {
 			optional: true,
 			help: 'Why this record was voided or the employment ended.'
 		},
-		work_pass_valid_until: {
-			kind: 'date',
-			optional: true,
-			help: 'The actual expiry date of the current work pass. Renewal changes it while the contract is sealed; the reminder key follows the date.'
-		},
 		exit_ground: {
 			kind: 'enum',
 			optional: true,
@@ -920,7 +905,7 @@ export default model('employee_contract', {
 			yield* tap(
 				ctx,
 				'create',
-				{ collection: 'employee_contract', ids: rows.map((r) => r.id) },
+				'employee_contract',
 				rows.map((after) => ({ after }))
 			);
 			// a new version can cancel its predecessor's exit
@@ -938,7 +923,7 @@ export default model('employee_contract', {
 				yield* tap(
 					ctx,
 					'seal',
-					{ collection: 'employee_contract', ids: newlySealed.map(({ after }) => after.id) },
+					'employee_contract',
 					newlySealed.map(({ after }) => ({ after }))
 				);
 			// only a write that moves the chain can make, move or cancel an exit
@@ -956,12 +941,7 @@ export default model('employee_contract', {
 				yield* ctx.schedule('ledger', {
 					employees: [...new Set(sealed.map(({ after }) => after.employee_id))]
 				});
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'employee_contract', ids: changes.map((c) => c.after.id) },
-				changes
-			);
+			yield* tap(ctx, 'update', 'employee_contract', changes);
 		}
 	}
 });

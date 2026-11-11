@@ -53,7 +53,7 @@
 		"id": "2f7bbf53-fabb-55bf-8855-53c7b05e5e63",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "YEAR",
-		"description": "JHT: Employee and employer contribution for the pay period."
+		"description": "BPJS old-age savings (JHT): 2% from the employee and 3.7% from the employer on the monthly wage, which is basic pay plus fixed allowances; a daily wage counts as 25 days (PP 46/2015 art.16)."
 	},
 	{
 		"code": "JP",
@@ -108,7 +108,7 @@
 		"id": "b582e5f4-cbfd-5832-80a9-d47155813e54",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "YEAR",
-		"description": "JP: Employee and employer contribution for the pay period."
+		"description": "BPJS pension (JP): 1% from the employee and 2% from the employer on the monthly wage (basic pay plus fixed allowances) up to the yearly ceiling (PP 45/2015 arts.28–29)."
 	},
 	{
 		"code": "JKK",
@@ -180,7 +180,7 @@
 		"id": "a702fb2c-a78a-5670-8422-7b1c271f0cb9",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "MONTH",
-		"description": "JKK: Employee and employer contribution for the pay period."
+		"description": "BPJS work accident insurance (JKK), paid by the employer only: 0.24% to 1.74% of the monthly wage by the company's work-risk group (PP 44/2015 art.16)."
 	},
 	{
 		"code": "JKM",
@@ -241,7 +241,7 @@
 		"id": "9032eae7-5e42-5f6d-b2d5-b99a58dc6006",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "MONTH",
-		"description": "JKM: Employee and employer contribution for the pay period."
+		"description": "BPJS death insurance (JKM), paid by the employer only: 0.30% of the monthly wage (PP 44/2015 art.18)."
 	},
 	{
 		"code": "KESEHATAN",
@@ -297,7 +297,7 @@
 		"id": "1cdac873-6dda-5493-b397-c88ffcc811ae",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "MONTH",
-		"description": "KESEHATAN: Employee and employer contribution for the pay period."
+		"description": "BPJS health insurance: 1% from the employee and 4% from the employer on the monthly wage, between the regional minimum wage and the Rp12,000,000 ceiling; the employee pays 1% more for each extra family member (Perpres 82/2018 art.30)."
 	},
 	{
 		"code": "JKP",
@@ -345,7 +345,7 @@
 		"id": "8d28d4aa-f03c-532f-ad6c-9dd3a54c0be9",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "YEAR",
-		"description": "JKP: Employee and employer contribution for the pay period."
+		"description": "BPJS job loss insurance (JKP). It is funded by the government and by part of the JKK contribution the employer already pays, so nothing is charged on the payslip (PP 37/2021 art.11)."
 	},
 	{
 		"code": "PPH21",
@@ -899,7 +899,7 @@
 			"below_zero": "REFUND"
 		},
 		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nif (employment.engagement === 'PAYEE') return false;\nif (!['CITIZEN', 'RESIDENT_FOREIGNER'].includes(get(terms, 'residency_status', ''))) return false;\nreturn ctx.subtotals.ADDITIONAL_WAGES !== 0;",
-		"employee_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\n// PMK 168/2023 art.1(11): paid only for the days, units or tasks worked.\nconst casual = ['DAILY', 'HOURLY'].includes(unit) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst wages = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0));\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'BENEFIT.employer', 0));\n// art.5(3)(d)–(e) puts employer premiums in a permanent employee's income only.\nconst current = casual ? wages : wages + premiums;\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? ctx.lookup.missing_tax_id_multiplier : 1;\nconst periodEnd = String(get(get(ctx.run, 'salary_coverage', {}), 'to', ctx.as_of));\n// balances close by pay date, so the tax year and its last period do too\nconst payDate = String(get(ctx.run, 'pay_date', ctx.as_of));\nconst taxYear = payDate.slice(0, 4);\nconst yearStart = taxYear + '-01-01';\nconst subjectFrom = String(get(facts, 'tax_subject_from', ''));\nconst subjectUntil = String(get(facts, 'tax_subject_until', ''));\nconst arrived = subjectFrom.slice(0, 4) === taxYear && subjectFrom.slice(5, 7) > '01';\nconst leaving = subjectUntil.slice(0, 4) === taxYear && subjectUntil.slice(5, 7) < '12';\n// art.9(4)–(5): PTKP stands as at 1 January, or the first of a new resident's arrival month.\nconst standingDate = arrived ? month_start(subjectFrom) : yearStart;\nconst standings = get(facts, 'ptkp_standings', []).filter((row) => get(row, 'as_of', '') === standingDate);\nif (standings.length > 1) throw 'Two PTKP standings on ' + standingDate + '.';\nconst standing = first(standings);\nconst marital = get(employment, 'payroll.marital_status', 'SINGLE');\nconst gender = get(employment, 'payroll.gender', '');\nconst husband = get(standing, 'husband_no_income_certified', get(employment, 'family', []).some((member) => member.relation === 'SPOUSE' && get(member, 'has_income', null) === false)) === true;\nconst marriedFemale = marital === 'MARRIED' && gender === 'FEMALE' && !husband;\nconst dependents = Math.min(\n\tMath.max(0, Math.trunc(Number(get(standing, 'ptkp_dependents_count', get(employment, 'family', []).filter((member) => member.relation !== 'SPOUSE' && get(member, 'has_income', null) !== true).length)))),\n\tctx.lookup.maximum_dependants\n);\nconst status = marriedFemale ? 'TK/0' : (marital === 'MARRIED' ? 'K/' : 'TK/') + String(dependents);\nconst category = get(ctx.lookup.ptkp_ter_table, status, '1');\nconst table = category === '1' ? ctx.lookup.ter_1 : category === '2' ? ctx.lookup.ter_2 : ctx.lookup.ter_3;\n// PMK 168/2023 art.5(1): the month's gross is all its regular and irregular pay, so a month's runs are one month of income.\nconst heldMonth = get(ctx, 'balances.month', {});\nconst heldIn = (code) => {\n\tconst key = payDate.slice(0, 7) + '.' + code;\n\treturn Object.hasOwn(heldMonth, key) ? Number(heldMonth[key]) : 0;\n};\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst monthGross =\n\tcurrent +\n\tbefore('ADDITIONAL_WAGES') +\n\t(casual ? 0 : before('JKK.employer') + before('JKM.employer') + before('KESEHATAN.employer'));\nconst monthly =\n\tround(bracket(monthGross, table) * monthGross * surcharge, ctx.lookup.whole_unit, 'HALF_UP') - before('PPH21.employee');\nconst cadence = get(facts, 'pph21_payment_cadence', 'MONTHLY');\n// arts.12(2), 16(2): no non-permanent worker has a year-end reckoning.\nif (casual && cadence === 'MONTHLY') return monthly;\nif (casual) {\n\tconst worked = get(ctx, 'work.days', []).filter((day) => get(day, 'worked', false) === true).length;\n\tconst rate = Number(get(terms, 'rate.amount', 0));\n\tconst paidDays = unit === 'DAILY' && rate > 0 ? Number(get(ctx.subtotals, 'BASIC', 0)) / rate : 1;\n\tconst days = worked > 0 ? worked : Math.max(1, paidDays);\n\tconst perDay = current / days;\n\tif (perDay <= ctx.lookup.daily_ter_ceiling)\n\t\treturn round(bracket(perDay, ctx.lookup.ter_daily) * current * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\n\treturn round(ladder(perDay * ctx.lookup.daily_taxable_share, ctx.lookup.annual_ladder) * days * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\n}\nconst exit = get(employment, 'effective_range.to', null);\n// December reckons the year on its salary: an off-cycle run ahead of that salary is not the last period.\nconst december = payDate.slice(5, 7) === '12' && (get(ctx.run, 'kind', '') !== 'OFF_CYCLE' || before('ORDINARY_WAGES') > 0);\nconst last = december || (exit != null && exit <= periodEnd) || (leaving && subjectUntil <= periodEnd);\nif (!last) return monthly;\nconst ptkp = ctx.lookup.ptkp_amount[status];\nconst employedFrom = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst joined = employedFrom > yearStart ? employedFrom : yearStart;\nconst opening = arrived && subjectFrom > joined ? subjectFrom : joined;\nconst closing = [exit, leaving ? subjectUntil : null].reduce(\n\t(end, date) => (date != null && date < end ? date : end),\n\tpayDate\n);\nconst months = Math.min(\n\t12,\n\tMath.max(\n\t\t1,\n\t\t(Number(closing.slice(0, 4)) - Number(opening.slice(0, 4))) * 12 +\n\t\t\tNumber(closing.slice(5, 7)) -\n\t\t\tNumber(opening.slice(5, 7)) +\n\t\t\t1\n\t)\n);\nconst paid = (code) => {\n\tconst held = get(ctx.balances, 'statutory_contribution', {});\n\treturn Object.hasOwn(held, code) ? held[code] : 0;\n};\nconst annualGross =\n\tNumber(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)) +\n\tpaid('JKK.employer') +\n\tpaid('JKM.employer') +\n\tpaid('KESEHATAN.employer') +\n\tcurrent;\nconst expense = Math.min(\n\tannualGross * ctx.lookup.employment_expense_share,\n\tctx.lookup.monthly_employment_expense_limit * months\n);\nconst contributions =\n\tpaid('JHT.employee') +\n\tpaid('JP.employee') +\n\tNumber(get(ctx.statutory, 'JHT.employee', 0)) +\n\tNumber(get(ctx.statutory, 'JP.employee', 0));\nconst ownDeductions = (Number(get(facts, 'dplk_employee_monthly', 0)) + Number(get(facts, 'zakat_monthly', 0))) * months;\nconst net = annualGross - expense - contributions - ownDeductions;\n// art.15(3): a part-year resident's net income is annualised and the tax taken back to the months.\nconst partYear = arrived || leaving;\nconst partMonths = (leaving ? Number(subjectUntil.slice(5, 7)) : 12) - (arrived ? Number(subjectFrom.slice(5, 7)) : 1) + 1;\nconst taxable = Math.max(0, (partYear ? (net * 12) / partMonths : net) - ptkp);\nconst yearTax = ladder(round(taxable, ctx.lookup.thousand_units, 'DOWN'), ctx.lookup.annual_ladder);\nconst due = round((partYear ? (yearTax * partMonths) / 12 : yearTax) * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\nconst withheld = paid('PPH21.employee');\n// art.21(1)–(2): the excess goes back, never the part the government bore.\nif (due >= withheld) return due - withheld;\nreturn -Math.min(withheld - due, withheld - paid('PPH21_DTP.employer'));\n",
+		"employee_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\n// PMK 168/2023 art.1(11): paid only for the days, units or tasks worked.\nconst casual = ['DAILY', 'HOURLY'].includes(unit) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst wages = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0));\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'BENEFIT.employer', 0));\n// art.5(3)(d)–(e) puts employer premiums in a permanent employee's income only.\nconst current = casual ? wages : wages + premiums;\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? ctx.lookup.missing_tax_id_multiplier : 1;\nconst periodEnd = String(get(get(ctx.run, 'salary_coverage', {}), 'to', ctx.as_of));\n// balances close by pay date, so the tax year and its last period do too\nconst payDate = String(get(ctx.run, 'pay_date', ctx.as_of));\nconst taxYear = payDate.slice(0, 4);\nconst yearStart = taxYear + '-01-01';\nconst subjectFrom = String(get(facts, 'tax_subject_from', ''));\nconst subjectUntil = String(get(facts, 'tax_subject_until', ''));\nconst arrived = subjectFrom.slice(0, 4) === taxYear && subjectFrom.slice(5, 7) > '01';\nconst leaving = subjectUntil.slice(0, 4) === taxYear && subjectUntil.slice(5, 7) < '12';\n// art.9(4)–(5): PTKP stands as at 1 January, or the first of a new resident's arrival month.\nconst standingDate = arrived ? month_start(subjectFrom) : yearStart;\nconst standings = get(facts, 'ptkp_standings', []).filter((row) => get(row, 'as_of', '') === standingDate);\nif (standings.length > 1) throw 'Two PTKP standings on ' + standingDate + '.';\nconst standing = first(standings);\nconst marital = get(employment, 'payroll.marital_status', 'SINGLE');\nconst gender = get(employment, 'payroll.gender', '');\nconst husband = get(standing, 'husband_no_income_certified', get(employment, 'family', []).some((member) => member.relation === 'SPOUSE' && get(member, 'has_income', null) === false)) === true;\nconst marriedFemale = marital === 'MARRIED' && gender === 'FEMALE' && !husband;\nconst dependents = Math.min(\n\tMath.max(0, Math.trunc(Number(get(standing, 'ptkp_dependents_count', get(employment, 'family', []).filter((member) => member.relation !== 'SPOUSE' && get(member, 'has_income', null) !== true).length)))),\n\tctx.lookup.maximum_dependants\n);\nconst status = marriedFemale ? 'TK/0' : (marital === 'MARRIED' ? 'K/' : 'TK/') + String(dependents);\nconst category = get(ctx.lookup.ptkp_ter_table, status, '1');\nconst table = category === '1' ? ctx.lookup.ter_1 : category === '2' ? ctx.lookup.ter_2 : ctx.lookup.ter_3;\n// PMK 168/2023 art.5(1): the month's gross is all its regular and irregular pay, so a month's runs are one month of income.\nconst heldMonth = get(ctx, 'balances.month', {});\nconst heldIn = (code) => {\n\tconst key = payDate.slice(0, 7) + '.' + code;\n\treturn Object.hasOwn(heldMonth, key) ? Number(heldMonth[key]) : 0;\n};\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst monthGross =\n\tcurrent +\n\tbefore('ADDITIONAL_WAGES') +\n\t(casual ? 0 : before('JKK.employer') + before('JKM.employer') + before('KESEHATAN.employer'));\nconst monthly =\n\tround(bracket(monthGross, table) * monthGross * surcharge, ctx.lookup.whole_unit, 'HALF_UP') - before('PPH21.employee');\nconst cadence = get(facts, 'pph21_payment_cadence', 'MONTHLY');\n// arts.12(2), 16(2): no non-permanent worker has a year-end reckoning.\nif (casual && cadence === 'MONTHLY') return monthly;\nif (casual) {\n\tconst worked = get(ctx, 'work.days', []).filter((day) => get(day, 'worked', false) === true).length;\n\tconst rate = Number(get(terms, 'rate.amount', 0));\n\tconst paidDays = unit === 'DAILY' && rate > 0 ? Number(get(ctx.subtotals, 'BASIC', 0)) / rate : 1;\n\tconst days = worked > 0 ? worked : Math.max(1, paidDays);\n\tconst perDay = current / days;\n\tif (perDay <= ctx.lookup.daily_ter_ceiling)\n\t\treturn round(bracket(perDay, ctx.lookup.ter_daily) * current * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\n\treturn round(ladder(perDay * ctx.lookup.daily_taxable_share, ctx.lookup.annual_ladder) * days * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\n}\nconst exit = get(employment, 'effective_range.to', null);\n// December reckons the year on its salary: an off-cycle run ahead of that salary is not the last period.\nconst december = payDate.slice(5, 7) === '12' && (get(ctx.run, 'kind', '') !== 'OFF_CYCLE' || before('ORDINARY_WAGES') > 0);\nconst last = december || (exit != null && exit <= periodEnd) || (leaving && subjectUntil <= periodEnd);\nif (!last) return monthly;\nconst ptkp = ctx.lookup.ptkp_amount[status];\nconst employedFrom = get(employment, 'service_started_on', get(employment, 'effective_range.from', yearStart));\nconst joined = employedFrom > yearStart ? employedFrom : yearStart;\nconst opening = arrived && subjectFrom > joined ? subjectFrom : joined;\nconst closing = [exit, leaving ? subjectUntil : null].reduce(\n\t(end, date) => (date != null && date < end ? date : end),\n\tpayDate\n);\nconst months = Math.min(\n\t12,\n\tMath.max(\n\t\t1,\n\t\t(Number(closing.slice(0, 4)) - Number(opening.slice(0, 4))) * 12 +\n\t\t\tNumber(closing.slice(5, 7)) -\n\t\t\tNumber(opening.slice(5, 7)) +\n\t\t\t1\n\t)\n);\nconst paid = (code) => {\n\tconst held = get(ctx.balances, 'statutory_contribution', {});\n\treturn Object.hasOwn(held, code) ? held[code] : 0;\n};\nconst annualGross =\n\tNumber(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)) +\n\tpaid('JKK.employer') +\n\tpaid('JKM.employer') +\n\tpaid('KESEHATAN.employer') +\n\t// the year's benefits in kind, as each month taxed them; this run's entry is already in `current`\n\tpaid('BENEFIT.employer') -\n\tNumber(get(ctx.corrections, 'BENEFIT.employer', 0)) +\n\tcurrent;\nconst expense = Math.min(\n\tannualGross * ctx.lookup.employment_expense_share,\n\tctx.lookup.monthly_employment_expense_limit * months\n);\nconst contributions =\n\tpaid('JHT.employee') +\n\tpaid('JP.employee') +\n\tNumber(get(ctx.statutory, 'JHT.employee', 0)) +\n\tNumber(get(ctx.statutory, 'JP.employee', 0));\nconst ownDeductions = (Number(get(facts, 'dplk_employee_monthly', 0)) + Number(get(facts, 'zakat_monthly', 0))) * months;\nconst net = annualGross - expense - contributions - ownDeductions;\n// art.15(3): a part-year resident's net income is annualised and the tax taken back to the months.\nconst partYear = arrived || leaving;\nconst partMonths = (leaving ? Number(subjectUntil.slice(5, 7)) : 12) - (arrived ? Number(subjectFrom.slice(5, 7)) : 1) + 1;\nconst taxable = Math.max(0, (partYear ? (net * 12) / partMonths : net) - ptkp);\nconst yearTax = ladder(round(taxable, ctx.lookup.thousand_units, 'DOWN'), ctx.lookup.annual_ladder);\nconst due = round((partYear ? (yearTax * partMonths) / 12 : yearTax) * surcharge, ctx.lookup.whole_unit, 'HALF_UP');\nconst withheld = paid('PPH21.employee');\n// art.21(1)–(2): the excess goes back, never the part the government bore.\nif (due >= withheld) return due - withheld;\nreturn -Math.min(withheld - due, withheld - paid('PPH21_DTP.employer'));\n",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -962,7 +962,7 @@
 		"id": "d465482b-92bb-56a4-a910-8b0783a9d5db",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "MONTH",
-		"description": "PPH21: Employee and employer contribution for the pay period."
+		"description": "Income tax withheld from the employee (PPh 21). Each month the monthly rate table for the employee's family status is applied to the month's gross pay; in December, or the last month of employment, the year's tax is worked out on the year's income and what was already withheld is taken off (PMK 168/2023)."
 	},
 	{
 		"code": "PPH21_DTP",
@@ -1124,7 +1124,7 @@
 		"id": "ae1356f5-baab-5ae6-81fc-cd31cc78350c",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "YEAR",
-		"description": "PPH21_DTP: Employee and employer contribution for the pay period."
+		"description": "PPh 21 borne by the government in 2026 for employees of the labour-intensive industries listed, on regular monthly income up to Rp10,000,000: the tax is paid back to the employee with the pay (PMK 105/2025)."
 	},
 	{
 		"code": "PPH21_FINAL_SEVERANCE",
@@ -1170,7 +1170,7 @@
 		"id": "c4adf60f-8a44-5024-85be-a5b73dab021c",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "MONTH",
-		"description": "PPH21_FINAL_SEVERANCE: Employee and employer contribution for the pay period."
+		"description": "Final income tax on severance pay paid at once or within two calendar years, by its own rate ladder and apart from the monthly tax (PP 68/2009)."
 	},
 	{
 		"code": "PPH21_FINAL_PENSION",
@@ -1208,7 +1208,7 @@
 		"id": "db7e6080-50f3-595d-96da-8ae3205504b5",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "MONTH",
-		"description": "PPH21_FINAL_PENSION: Employee and employer contribution for the pay period."
+		"description": "Final income tax on a pension benefit, old-age savings or JHT paid at once or within two calendar years, by its own rate ladder and apart from the monthly tax (PP 68/2009 art.5)."
 	},
 	{
 		"code": "PPH21_BUKAN_PEGAWAI",
@@ -1243,7 +1243,7 @@
 		"id": "37b953e7-94ee-5098-ad07-4ad2a64577a4",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "MONTH",
-		"description": "PPH21_BUKAN_PEGAWAI: Employee and employer contribution for the pay period."
+		"description": "Income tax on fees paid to an individual who is not an employee: the yearly rates on 50% of each payment, and 20% more without a valid tax number (PMK 168/2023 art.12)."
 	},
 	{
 		"code": "PPH26",
@@ -1276,7 +1276,7 @@
 		"id": "f55ed026-5a05-5995-8903-b67a8ff3625e",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "YEAR",
-		"description": "PPH26: Employee and employer contribution for the pay period."
+		"description": "Income tax on pay to a non-resident: 20% of the gross amount, final, or the tax treaty rate where a certificate of domicile is held (UU 36/2008 art.26; PMK 168/2023 art.14)."
 	},
 	{
 		"code": "DKPTKA",
@@ -1301,7 +1301,7 @@
 		"id": "e2cca72f-7553-5e2a-af42-aa7955b47be8",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "YEAR",
-		"description": "DKPTKA: Employee and employer contribution for the pay period."
+		"description": "The monthly compensation an employer pays for employing a foreign worker: USD 100 for each position, converted at the company's recorded exchange rate. Paid by the employer only (PP 34/2021)."
 	},
 	{
 		"code": "PPH21_BENEFIT_NONFINAL",
@@ -1330,7 +1330,7 @@
 		"id": "a53240b5-9f2c-51a1-b4d7-051551b58fbf",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "MONTH",
-		"description": "PPH21_BENEFIT_NONFINAL: Employee and employer contribution for the pay period."
+		"description": "Income tax on severance or pension instalments paid from the third year after the first payment: the yearly rates on the gross amount, with no personal allowance, and 20% more without a valid tax number (PP 68/2009 art.6)."
 	},
 	{
 		"code": "PPH21_EMPLOYER_BORNE",
@@ -1341,9 +1341,9 @@
 		"lookup": {
 			"below_zero": "REFUND"
 		},
-		"eligibility": "// js\nif (get(ctx.subject.employment, 'terms.employer_bears_income_tax', false) !== true) return false;\nreturn Number(get(ctx.statutory, 'PPH21.employee', 0)) + Number(get(ctx.statutory, 'PPH21_DTP.employee', 0)) !== 0;",
-		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst tax = Number(get(ctx.statutory, 'PPH21.employee', 0)) + Number(get(ctx.statutory, 'PPH21_DTP.employee', 0));\nconst casual = ['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY')) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'BENEFIT.employer', 0));\n// PMK 168/2023 art.5(3)(d)–(e): a permanent employee's income carries the employer premiums.\nconst income = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) + (casual ? 0 : premiums);\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE'\n\t? 0\n\t: sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = income > 0 ? round((tax * Math.min(items, income)) / income, ctx.lookup.whole_unit, 'HALF_UP') : 0;\nreturn own - tax;",
-		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst tax = Number(get(ctx.statutory, 'PPH21.employee', 0)) + Number(get(ctx.statutory, 'PPH21_DTP.employee', 0));\nconst casual = ['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY')) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'BENEFIT.employer', 0));\n// PMK 168/2023 art.5(3)(d)–(e): a permanent employee's income carries the employer premiums.\nconst income = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) + (casual ? 0 : premiums);\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE'\n\t? 0\n\t: sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = income > 0 ? round((tax * Math.min(items, income)) / income, ctx.lookup.whole_unit, 'HALF_UP') : 0;\nreturn Math.max(0, tax - own);",
+		"eligibility": "if (get(ctx.subject.employment, 'terms.employer_bears_income_tax', false) !== true) return false;\nreturn Number(get(ctx.statutory, 'PPH21.employee', 0)) + Number(get(ctx.statutory, 'PPH21_DTP.employee', 0)) !== 0;",
+		"employee_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst tax = Number(get(ctx.statutory, 'PPH21.employee', 0)) + Number(get(ctx.statutory, 'PPH21_DTP.employee', 0));\nconst casual = ['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY')) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'BENEFIT.employer', 0));\n// PMK 168/2023 art.5(3)(d)–(e): a permanent employee's income carries the employer premiums.\nconst income = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) + (casual ? 0 : premiums);\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE'\n\t? 0\n\t: sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = income > 0 ? round((tax * Math.min(items, income)) / income, ctx.lookup.whole_unit, 'HALF_UP') : 0;\nreturn own - tax;",
+		"employer_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst tax = Number(get(ctx.statutory, 'PPH21.employee', 0)) + Number(get(ctx.statutory, 'PPH21_DTP.employee', 0));\nconst casual = ['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY')) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.corrections, 'BENEFIT.employer', 0));\n// PMK 168/2023 art.5(3)(d)–(e): a permanent employee's income carries the employer premiums.\nconst income = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) + (casual ? 0 : premiums);\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE'\n\t? 0\n\t: sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = income > 0 ? round((tax * Math.min(items, income)) / income, ctx.lookup.whole_unit, 'HALF_UP') : 0;\nreturn Math.max(0, tax - own);",
 		"references": [
 			{
 				"title": "UU 7/1983 on Income Tax as amended by UU 7/2021 (HPP), art.21(1)(a); PMK 168/2023 art.5",
@@ -1353,6 +1353,6 @@
 		"id": "625c67da-3642-57af-99d8-d9a89d5276ad",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"balance_window": "YEAR",
-		"description": "PPH21_EMPLOYER_BORNE: where the contract has the employer bear income tax, it refunds the month's PPh 21 to the employee and charges it to the employer, except the tax at the month's own rate on the allowances the contract leaves to the employee."
+		"description": "Where the contract says the employer bears the income tax, moves the month's PPh 21 from the employee to the employer, except the share that falls on the pay items the contract leaves with the employee."
 	}
 ]

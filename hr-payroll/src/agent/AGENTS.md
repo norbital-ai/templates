@@ -1,93 +1,31 @@
 # HR & Payroll source
 
-Norbius reads [`+agent.md`](./+agent.md). This file maps the source and the refactor rules for coding agents.
+Norbius reads [`+agent.md`](./+agent.md). This file points coding agents at the source and its documents.
 
 ## The design is fixed
 
-Read [section 0 of the calculation architecture](../../docs/0001-hrms-calculation-architecture.md#0-the-design-is-fixed) before you touch anything here. It is the owner's design, and you wire around it. In short:
+Read [section 0 of the architecture](../../docs/0001-hrms-calculation-architecture.md#0-the-design-is-fixed) before you touch anything here. It is the owner's design, and you wire around it.
 
-1. Catalogs, catalog entries and reversal entries. A refund or correction is a reversal or adjustment entry against a catalog item.
-2. `ledger_entry` moves only by posting, in the write of the entry or run that posts, by sync, through the `ledger` automation, or by HR's manual adjustment on the employee profile (`manual:<id>`, with its `note`). Loans stay out. The balance is its projection and replaces payroll history.
-3. Linear computation: one subtotal chain, then statutory schemes in dependency order.
-4. Jurisdiction settings hold only shared rate tables, each with a declared shape; a value read by one row lives on that row. Registered rules validate; registered effects are side effects; reads happen once, up front.
-5. Simplicity: thin models, a thin payroll run, and no field or engine concept the owner did not ask for.
+"It doesn't fit" is not a finding. Express the requirement with the parts section 0 names. If it still has no home, ask the owner; do not change the design, add to it or ship an approximation. Brief every subagent with section 0.
 
-"It doesn't fit" is not a finding. Express the requirement with these parts. If it still has no home, ask the owner; do not change the design, add to it or ship an approximation. Brief every subagent with this section.
+## Documents
 
-## Model ownership
-
-`src/data/model/` mirrors ownership. A child model sits inside its owner's folder; only the leaf folder names the model.
-
-```text
-employee_profile/
-  employee_balance/
-    ledger_entry/
-  employee_contract/
-    contract_change/
-entity/
-  entity_profile_version/
-  holiday/
-  shift_pattern/
-    shift_definition/
-jurisdiction_settings/
-  catalog/
-    non_static/
-      adhoc_catalog/
-        adhoc_catalog_entry/
-      claim_catalog/
-        claim_catalog_entry/
-      leave_catalog/
-        leave_catalog_entry/
-          leave_catalog_entry_day/
-      loan_catalog/
-        loan_catalog_entry/
-          loan_catalog_entry_repayment/
-      work_event_catalog/
-      workplace_case_catalog/
-        workplace_case_catalog_entry/
-    static/
-      allowance_catalog/
-      overtime_catalog/
-      statutory_contribution_catalog/
-  rules/
-    registered_effect/
-    registered_rule/
-  subtotal/
-obligation/
-statutory_finding/
-  statutory_change/
-statutory_source/
-payroll_run/
-  payslip/
-roster_entry/
-```
+- [Architecture](../../docs/0001-hrms-calculation-architecture.md): owners, the data model, law versions, catalogues, the engine, the ledger, automations, roles.
+- [Core mechanisms, run through](../../docs/0008-mechanisms-walkthrough.md): one example from company setup to an exit.
+- [Reversals and corrections](../../docs/0007-corrections-and-integrity.md): how each act is undone, the invariants, the integrity check.
+- [Statutory coverage in the seed](../../docs/0009-statutory-coverage.md): what each jurisdiction carries and how it is verified.
+- Reference: [model specification](../../docs/0002-model-specification.md) (the model tree and fields), [seed specification](../../docs/0003-jurisdiction-seed-specification.md), [transfer semantics](../../docs/transfer-semantics.md), [manual probe matrix](../../docs/manual-probe-matrix.md), [docs index](../../docs/README.md).
+- [self_service_design.md](./self_service_design.md): the employee self-service interface design.
 
 ## Surfaces
 
-- Apps: `hr_controller/{entities,events,formats,payroll,people,settings}`, `hr_employee`
+- Models: `src/data/model/` mirrors ownership. A child model sits inside its owner's folder; only the leaf folder names the model.
+- Apps: `hr_controller/{entities,events,formats,obligations,payroll,people,settings/{change_log,lineage}}`, `hr_employee`
 - Kiosk: `attendance`
-- Automations: `contract_materialize`, `encashment`, `entity_materialize`, `integrity`, `invitation_profile`, `ledger`, `statutory_research`, `statutory_materialize`
+- Automations: `contract_materialize`, `encashment`, `entity_materialize`, `invitation_profile`, `ledger`, `registered_effects`, `statutory_research`, `statutory_materialize`
 - Policies: `configuration_execution`, `employee`, `hr_controller`, `hr_manager`, `invitation_profile_automation`, `kiosk`, `manager`, `payroll_execution`, `senior_management`, `supervisor`
-- Shared code: `src/lib/dependants.ts` (what a raised, moved or cancelled exit leaves behind, run by `encashment`; a derived record names its fact in `occurrence_key`), `src/lib/integrity.ts` (the invariants), `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
+- Shared code: `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/dependants.ts` (what a raised, moved or cancelled exit leaves behind), `src/lib/integrity.ts` (the ledger check), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
 
 ## Gates
 
 `bolt check` proves discovery, schema history, rules and types. `bolt test` runs the workspace tests. `bolt build` writes `.norbital/` and the release artifact. Migrations under `migrations/` are generated: commit SQL, `snapshot.json`, `migrations.lock.json` and `physical.json` together.
-
-## Source truth
-
-- [The calculation architecture](../../docs/0001-hrms-calculation-architecture.md) — calculation order, ledger, statutory chain.
-- [The model contract](../../docs/0002-model-specification.md) — model fields, ownership and the final tree.
-- [The seed contract](../../docs/0003-jurisdiction-seed-specification.md) — the jurisdiction seed.
-- [Verification and gates](../../docs/0004-verification-gates.md) — what counts as verified and the open gates.
-- [Manual probe matrix](../../docs/manual-probe-matrix.md) — the live acceptance checklist.
-- [Docs index](../../docs/README.md) — every maintained document in this template.
-- [self_service_design.md](./self_service_design.md) — the employee self-service interface design.
-
-## Invariants
-
-- Every fact has one owner; a value is read from its owner, never copied into a second model or JSON bag.
-- The first subtotal opens with base pay; later subtotals accumulate employee lines; statutory schemes evaluate in dependency order.
-- `payroll_run.create` calculates and writes payslips and what they post as one payload; there is no separate finalise step.
-- Ledger rows are immutable and the balance is a rebuildable projection.
-- A change of law is a new sealed jurisdiction version, never an edit to a sealed one.

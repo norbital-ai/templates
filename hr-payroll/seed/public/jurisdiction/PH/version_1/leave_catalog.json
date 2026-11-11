@@ -31,7 +31,7 @@
 		],
 		"id": "b810065d-b3b4-5377-a7a2-a719b311ead3",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "VAWC_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Up to ten paid days for a woman employee who is a victim of violence against women and their children. Not paid out in cash (RA 9262 s.43)."
 	},
 	{
 		"code": "MEDICAL_LEAVE",
@@ -44,7 +44,7 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "00e407f4-f5fa-5e25-b533-8898d09b1980",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "MEDICAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Sick leave an employer may grant. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
 		"paid_share": "0"
 	},
 	{
@@ -61,7 +61,7 @@
 				"CHILD_BIRTH": {},
 				"PREGNANCY_TERMINATION": {}
 			},
-			"entitlement": "// js\n// RA 8187 s.2: seven days with full pay for the first four deliveries of the spouse; delivery includes childbirth or any miscarriage.\nconst deliveries = get(ctx.subject.employment, 'events', []).filter(\n\t(event) => Object.hasOwn(ctx.lookup.opened_by, event.kind) && event.on <= ctx.event.on\n);\nreturn deliveries.length <= ctx.lookup.max_events ? ctx.lookup.grant_days : 0;"
+			"entitlement": "// RA 8187 s.2: seven days with full pay for the first four deliveries of the spouse; delivery includes childbirth or any miscarriage.\nconst deliveries = get(ctx.subject.employment, 'events', []).filter(\n\t(event) => Object.hasOwn(ctx.lookup.opened_by, event.kind) && event.on <= ctx.event.on\n);\nreturn deliveries.length <= ctx.lookup.max_events ? ctx.lookup.grant_days : 0;"
 		},
 		"subtotal_id": null,
 		"references": [
@@ -72,7 +72,7 @@
 		],
 		"id": "d26a4619-2c4a-5003-b289-12e306c0a4e6",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Paternity leave around childbirth."
+		"description": "Seven paid days for a married male employee for each of the first four deliveries or miscarriages of his lawful wife. Not paid out in cash (RA 8187 ss.2–3)."
 	},
 	{
 		"code": "SPECIAL_LEAVE_FOR_WOMEN",
@@ -95,7 +95,7 @@
 		],
 		"id": "c2ac405a-0006-5174-ba4f-7236fe819fc3",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "SPECIAL_LEAVE_FOR_WOMEN: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Up to two months (60 days) of paid leave after gynaecological surgery, for a woman with at least six months of service in the last twelve. Not paid out in cash (RA 9710 s.18)."
 	},
 	{
 		"code": "EMERGENCY_LEAVE",
@@ -108,7 +108,7 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "b3316903-9093-50df-a8a4-90c47962a24a",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "EMERGENCY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Emergency leave an employer may grant. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
 		"paid_share": "0"
 	},
 	{
@@ -129,7 +129,7 @@
 		"id": "fb1202b4-41e7-5418-8926-49a1b3a2ebd5",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
 		"description": "Paid annual leave accrued by service.",
-		"payout": "// js\n// Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commuted to its money equivalent at the daily rate.\nreturn ctx.day_rate * ctx.entry.quantity;"
+		"payout": "// Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commuted to its money equivalent at the daily rate.\nreturn ctx.day_rate * ctx.entry.quantity;"
 	},
 	{
 		"code": "COMPASSIONATE_LEAVE",
@@ -142,7 +142,7 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "9e5550a1-008a-507d-bceb-682d68b8a01a",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "COMPASSIONATE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Compassionate leave an employer may grant, for example on a death in the family. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
 		"paid_share": "0"
 	},
 	{
@@ -157,7 +157,7 @@
 				"CHILD_BIRTH": {},
 				"PREGNANCY_TERMINATION": {}
 			},
-			"entitlement": "// js\n// RA 11210 s.3: 105 days on a live birth, 15 more for a qualified solo parent, 60 on a miscarriage or emergency termination, at every instance.\n// s.6 and IRR Rule VIII: of a live birth's leave she may allocate up to seven days, and keeps the rest.\nif (ctx.event.kind === 'PREGNANCY_TERMINATION') return ctx.lookup.termination_days;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst full = get(facts, 'solo_parent', false) === true ? ctx.lookup.solo_parent_days : ctx.lookup.grant_days;\nconst birth = get(ctx.subject.employment, 'events', []).find((event) => event.kind === ctx.event.kind && event.on === ctx.event.on);\nreturn full - Math.min(Number(get(birth, 'allocated_days', 0)), ctx.lookup.allocation_days);"
+			"entitlement": "// RA 11210 s.3: 105 days on a live birth, 15 more for a qualified solo parent, 60 on a miscarriage or emergency termination, at every instance.\n// s.6 and IRR Rule VIII: of a live birth's leave she may allocate up to seven days, and keeps the rest.\nif (ctx.event.kind === 'PREGNANCY_TERMINATION') return ctx.lookup.termination_days;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst full = get(facts, 'solo_parent', false) === true ? ctx.lookup.solo_parent_days : ctx.lookup.grant_days;\nconst birth = get(ctx.subject.employment, 'events', []).find((event) => event.kind === ctx.event.kind && event.on === ctx.event.on);\nreturn full - Math.min(Number(get(birth, 'allocated_days', 0)), ctx.lookup.allocation_days);"
 		},
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"references": [
@@ -172,7 +172,7 @@
 		],
 		"id": "c9f726f2-df47-528e-ac65-9ad398c3a826",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Maternity leave around childbirth.",
+		"description": "Maternity leave: 105 days for a live birth, 120 for a solo parent and 60 for a miscarriage or emergency termination (RA 11210 s.3). Salary is not paid for the days; the SSS maternity benefit and any salary differential are entered separately.",
 		"paid_share": "0"
 	},
 	{
@@ -186,7 +186,7 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "c6c1f065-a394-5121-8516-da3f56a8bb0f",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Hospitalisation leave.",
+		"description": "Leave for a stay in hospital that an employer may grant. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
 		"paid_share": "0"
 	},
 	{
@@ -195,7 +195,7 @@
 			"grant_days": 7,
 			"service_months": 6,
 			"window": "CALENDAR_YEAR",
-			"entitlement": "// js\n// RA 8972 s.8 as amended by RA 11861: seven paid days a year after six months of service, for a solo parent holding a valid ID.\nconst contract = ctx.subject.employment;\nif (get(contract, 'employee_extension_data.solo_parent', false) !== true) return 0;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from', ctx.as_of));\nreturn calendar_completed_months(started, ctx.as_of) >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;"
+			"entitlement": "// RA 8972 s.8 as amended by RA 11861: seven paid days a year after six months of service, for a solo parent holding a valid ID.\nconst contract = ctx.subject.employment;\nif (get(contract, 'employee_extension_data.solo_parent', false) !== true) return 0;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from', ctx.as_of));\nreturn calendar_completed_months(started, ctx.as_of) >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;"
 		},
 		"subtotal_id": null,
 		"references": [
@@ -206,7 +206,7 @@
 		],
 		"id": "920bda5e-70aa-5cb0-bda4-40334b64c3c0",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "SOLO_PARENT_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Seven paid days in each calendar year for a solo parent with at least six months of service. Unused days do not carry over and are not paid out (RA 8972 s.8 as amended by RA 11861)."
 	},
 	{
 		"code": "NPL",
@@ -219,7 +219,7 @@
 		"subtotal_id": "c35324ba-94af-41da-932e-e0f80a496920",
 		"id": "54adaf9b-f0eb-5bf4-bdc6-86dc29280081",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Unpaid absence from work.",
+		"description": "Leave without pay: no work, no pay. Each day taken reduces the period's basic pay by one day's pay.",
 		"paid_share": "0"
 	},
 	{
@@ -237,7 +237,7 @@
 		],
 		"id": "35241d78-df1d-5c76-9298-f474a316f704",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "ANNUAL_LEAVE_DOMESTIC: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Service incentive leave for a domestic worker: five paid days a year after one year of service. Unused days do not carry over and are not paid out (RA 10361 s.29)."
 	},
 	{
 		"code": "MATERNITY_LEAVE_EXTENSION",
@@ -257,7 +257,7 @@
 		],
 		"id": "d159b66d-cea1-50fc-9002-2d52f477ca28",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "MATERNITY_LEAVE_EXTENSION: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Up to 30 more days of maternity leave without pay after the 105 days, on notice given at least 45 days before the leave ends (RA 11210 s.3).",
 		"paid_share": "0"
 	},
 	{
@@ -268,7 +268,7 @@
 			"opened_by": {
 				"MATERNITY_ALLOCATION": {}
 			},
-			"entitlement": "// js\n// RA 11210 s.6 and IRR Rule VIII s.1: the days the mother allocates, up to seven, over and above paternity leave under RA 8187.\nconst allocation = get(ctx.subject.employment, 'events', []).find(\n\t(event) => event.kind === ctx.event.kind && event.on === ctx.event.on\n);\nreturn Math.min(Number(get(allocation, 'allocated_days', ctx.lookup.grant_days)), ctx.lookup.grant_days);"
+			"entitlement": "// RA 11210 s.6 and IRR Rule VIII s.1: the days the mother allocates, up to seven, over and above paternity leave under RA 8187.\nconst allocation = get(ctx.subject.employment, 'events', []).find(\n\t(event) => event.kind === ctx.event.kind && event.on === ctx.event.on\n);\nreturn Math.min(Number(get(allocation, 'allocated_days', ctx.lookup.grant_days)), ctx.lookup.grant_days);"
 		},
 		"subtotal_id": null,
 		"references": [
@@ -279,6 +279,6 @@
 		],
 		"id": "20854a2f-1e17-5aff-8fbe-ac6bf303d9fb",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "MATERNITY_ALLOCATION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Up to seven days of the mother's maternity leave that she allocates to the child's father or another caregiver, on top of paternity leave (RA 11210 s.6)."
 	}
 ]

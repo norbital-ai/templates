@@ -7,8 +7,11 @@ import {
 	apply,
 	diff,
 	eventsOf,
+	expired,
 	leftIn,
+	measureOf,
 	periodKey,
+	periodOf,
 	windowOf,
 	windowStart,
 	type Wanted
@@ -192,6 +195,26 @@ describe('eventsOf', () => {
 				{ kind: 'CHILD_BIRTH', on: '2026-04-01' },
 				{ kind: 'CHILD_BIRTH', on: '2026-08-01' }
 			]
+		);
+	});
+});
+
+describe('the write boundary', () => {
+	it('takes a declared measure and a period of the typed template, and refuses any other, naming it', () => {
+		assert.equal(measureOf('used'), 'used');
+		assert.equal(periodOf(USED.period), USED.period);
+		assert.throws(() => measureOf('usedd'), /usedd: unknown balance measure/);
+		assert.throws(() => periodOf('2026'), /2026: malformed balance period/);
+		assert.throws(() => periodOf('MY.Q.2026-01-01'), /malformed balance period/);
+	});
+	it('holds for a figure already on a balance: a key no writer could have made moves nothing', () => {
+		const old = 'MY.Y.2001-01-01';
+		assert.throws(
+			() => expired({ leave: { ANNUAL_LEAVE: { [old]: { taken: 1 } } } }, '2026-11-11', 7),
+			/taken: unknown balance measure/
+		);
+		assert.ok(
+			expired({ leave: { ANNUAL_LEAVE: { [old]: { used: 1 } } } }, '2026-11-11', 7).length > 0
 		);
 	});
 });
