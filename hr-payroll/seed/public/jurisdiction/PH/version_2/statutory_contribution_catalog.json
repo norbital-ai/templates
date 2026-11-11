@@ -295,7 +295,7 @@
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"eligibility": "// js\nreturn get(ctx.run, 'kind', '') !== 'OFF_CYCLE';",
 		"employee_amount": "// js\nreturn 0;",
-		"employer_amount": "// js\nconst now = (code) => Number(get(ctx.subtotals, code, 0));\nconst contributions = sum(['SSS', 'SSS_MPF', 'PHIC', 'HDMF'].map((code) => Number(get(ctx.statutory, code + '.employee', 0))));\nreturn Math.max(\n\t0,\n\tnow('ORDINARY_WAGES') - now('DE_MINIMIS_DEPENDANT_MEDICAL') + now('TAXABLE_TERMINATION') - now('DE_MINIMIS_OT_MEAL') +\n\t\tnow('STATUTORY_WAGES') - contributions - now('FRINGE_BENEFIT') + now('UNION_DUES')\n);",
+		"employer_amount": "// js\nconst now = (code) => Number(get(ctx.subtotals, code, 0));\n// A correction entry that deducts a contribution counts with the run's own, as the tax row counts it.\nconst contributions = sum(['SSS', 'SSS_MPF', 'PHIC', 'HDMF'].map((code) => Number(get(ctx.statutory, code + '.employee', 0)) + Math.max(0, Number(get(ctx.corrections, code + '.employee', 0)))));\nreturn Math.max(\n\t0,\n\tnow('ORDINARY_WAGES') - now('DE_MINIMIS_DEPENDANT_MEDICAL') + now('TAXABLE_TERMINATION') - now('DE_MINIMIS_OT_MEAL') +\n\t\tnow('STATUTORY_WAGES') - contributions - now('FRINGE_BENEFIT') + now('UNION_DUES')\n);",
 		"id": "219f67c6-caa9-501a-ae6a-69af9375a7a4",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
 		"employer_cost_subtotal_id": null,

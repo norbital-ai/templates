@@ -2517,6 +2517,7 @@ export const ROW_PARAMS = {
 		PKWT_COMPENSATION: Schema.Struct({}),
 		PKWT_EARLY_TERMINATION: Schema.Struct({}),
 		PKWT_EARLY_TERMINATION_BY_WORKER: Schema.Struct({}),
+		PREMIUM_PAY: Schema.Struct({}),
 		PRIOR_WAGE_CASH_REPAYMENT: Schema.Struct({}),
 		PROPERTY_DAMAGE_COMPENSATION: Schema.Struct({
 			deduction_share: Schema.Number

@@ -780,6 +780,24 @@
 		"description": "HAZARD_PAY: Paid or deducted as an ad-hoc line."
 	},
 	{
+		"code": "PREMIUM_PAY",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labor Code arts.93-94: the statutory premium is a floor; an employer may pay more, and what it pays for work is wages."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "ae519ec2-f1dc-4a09-b4fc-7b1038ad8709",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"id": "5ec961bf-f704-5d97-a66e-37d02af8d07c",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Premium pay for a day worked that the employer pays above what the day's own row computes (a higher rate for one holiday or rest day). It is wages of the period, like the premium it tops up."
+	},
+	{
 		"code": "SERVICE_CHARGE_SHARE",
 		"lookup": {},
 		"references": [
