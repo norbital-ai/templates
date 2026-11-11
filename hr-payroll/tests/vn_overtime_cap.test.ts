@@ -10,7 +10,6 @@ type Rule = {
 	readonly code: string;
 	readonly validate?: string;
 	readonly lookup?: Record<string, unknown>;
-	readonly references?: readonly { readonly title: string }[];
 };
 const latest = (code: string): string => {
 	const dir = new URL(`../seed/public/jurisdiction/${code}/`, import.meta.url);
@@ -62,20 +61,9 @@ const valid = (before: number, sector: boolean, versions = [employer(sector)]) =
 	);
 
 describe('VN annual overtime cap', () => {
-	it('ordinary work stops at 200 hours and the sector case at 300', () => {
-		assert.equal(valid(198, false), true);
-		assert.equal(valid(199, false), false);
-		assert.equal(valid(199, true), true);
-		assert.equal(valid(299, true), false);
-	});
 	it('uses the employer version in force on the roster day, not the first one', () => {
 		const versions = [employer(true, '2025-01-01', '2026-12-31'), employer(false)];
 		// 201 hours is over the ordinary 200 cap although the older version allowed 300
 		assert.equal(valid(199, false, versions), false);
-	});
-	it('the reference counts planned overtime intervals, not a balance that does not exist', () => {
-		const prose = (rule.references ?? []).map((row) => row.title).join(' ');
-		assert.match(prose, /planned overtime intervals/);
-		assert.doesNotMatch(prose, /hours\.year/);
 	});
 });

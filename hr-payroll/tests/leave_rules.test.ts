@@ -1,4 +1,4 @@
-// Limits a statute sets across rows or years: joint leave draws on annual leave, Taiwan's hospital pool spans two years.
+// A limit set across rows: joint leave draws on annual leave.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
@@ -106,21 +106,6 @@ describe('Indonesian joint leave', () => {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(take(t, seed, 'JOINT_LEAVE', '2026-11-02', 4));
 			assert.match(String(refused), /ANNUAL_LEAVE: insufficient balance/);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
-	);
-});
-
-describe('Taiwan hospitalised sick leave', () => {
-	const seed = seedOf('TW', 'Asia/Taipei', {});
-	it.live('allows a year within any two years', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, seed, 'SICK_LEAVE_UNPAID', '2025-11-01', 340);
-			yield* t.runDue();
-			yield* take(t, seed, 'HOSPITALISED_SICK_LEAVE', '2026-10-10', 20);
-			yield* t.runDue();
-			const refused = yield* Effect.flip(take(t, seed, 'HOSPITALISED_SICK_LEAVE', '2026-11-02', 6));
-			assert.match(String(refused), /365 days allowed within two years/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });

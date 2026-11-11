@@ -7,12 +7,14 @@ import {
 import {
 	assertLeft,
 	assertOpenPeriod,
+	assertCashable,
 	assertReversals,
 	entriesUndone,
 	entryPostings,
 	entryRead
 } from '../../../../../../../lib/ledger/service.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
+import { exitsOf, stands } from '../../../../../../../lib/dependants.js';
 
 const slots = (days: unknown): Set<string> =>
 	new Set(
@@ -35,9 +37,18 @@ export default model('leave_catalog_entry', {
 			optional: true
 		},
 		reverses: { kind: 'ref', to: 'leave_catalog_entry', optional: true, onDelete: 'restrict' },
-		encashment: { kind: 'bool', default: false, hidden: true }
+		encashment: { kind: 'bool', default: false, hidden: true },
+		// the fact that caused a derived entry, `<fact>:<record id>`; only the system names it
+		occurrence_key: { kind: 'text', optional: true, hidden: true }
 	},
-	unique: [{ fields: ['reverses'] }],
+	unique: [
+		{ fields: ['reverses'] },
+		// one live entry a fact and catalogue row
+		{
+			fields: ['occurrence_key', 'catalog_id'],
+			where: { reverses: { isNull: true }, occurrence_key: { isNull: false } }
+		}
+	],
 	read: {
 		leave_catalog_entry: { fields: 'all' },
 		'leave_catalog_entry.employment_id': { fields: 'all' },
@@ -53,7 +64,8 @@ export default model('leave_catalog_entry', {
 				'catalog_id',
 				'evidence_file',
 				'reverses',
-				'encashment'
+				'encashment',
+				'occurrence_key'
 			],
 			'leave_catalog_entry.leave_catalog_entry_day': ['incurred_on', 'part']
 		},
@@ -76,6 +88,15 @@ export default model('leave_catalog_entry', {
 			// A leave entry is its slots: an entry with none has no day to draw, price or reverse.
 			if (entries.some((row) => !Array.isArray(row.days) || row.days.length === 0))
 				return yield* ctx.refuse('A leave entry needs at least one day.');
+			// a derived entry posts only while its fact stands, in the approving decision too
+			const facts = rows.flatMap((row) => (row.occurrence_key == null ? [] : [row.occurrence_key]));
+			if (facts.length > 0) {
+				const exits = yield* exitsOf(ctx.db.query, facts);
+				if (facts.some((key) => !stands(key, exits)))
+					return yield* ctx.refuse(
+						'The exit this was raised for was cancelled, so it cannot be approved. Reject the request.'
+					);
+			}
 			// the approving decision asks again only for what the entry posts: what it checked stands
 			const known = yield* entryRead(
 				ctx.db.query,
@@ -84,11 +105,12 @@ export default model('leave_catalog_entry', {
 				ctx.approving ? undefined : 'create'
 			);
 			if (!ctx.approving) {
+				yield* assertCashable(known, entries);
 				yield* assertReversals(known, 'leave_catalog_entry', entries);
 				yield* assertLeft(known, entries, String(ctx.today));
 				yield* assertOpenPeriod(known, entries);
 			}
-			return { rows, onApproved: entryPostings(known, 'leave_catalog_entry', entries) };
+			return { rows, onApproved: yield* entryPostings(known, 'leave_catalog_entry', entries) };
 		}
 	},
 	update: {
@@ -170,7 +192,7 @@ export default model('leave_catalog_entry', {
 			}
 			return {
 				rows: changes.map((c) => c.set),
-				onApproved: entryPostings(known, 'leave_catalog_entry', proposed)
+				onApproved: yield* entryPostings(known, 'leave_catalog_entry', proposed)
 			};
 		}
 	},
@@ -216,6 +238,12 @@ export default model('leave_catalog_entry', {
 
 	effect: {
 		created: function* (rows, ctx) {
+			// a cash-out reversed: the task that asked for it closes
+			const reversed = rows.filter((row) => row.encashment && row.reverses != null);
+			if (reversed.length > 0)
+				yield* ctx.schedule('encashment', {
+					employments: [...new Set(reversed.map((row) => row.employment_id))]
+				});
 			yield* tap(
 				ctx,
 				'create',

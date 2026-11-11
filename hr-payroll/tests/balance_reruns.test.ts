@@ -18,7 +18,9 @@ import {
 	uuid,
 	wholeDays,
 	workspace,
-	leaveCreate
+	leaveCreate,
+	flat,
+	projection
 } from './kit.ts';
 
 // inside the law the template holds, which runs to 30 November 2026
@@ -114,34 +116,6 @@ const crashEach = (t: Kit) =>
 		assert.ok(killed.size > 0, 'nothing queued');
 		yield* t.runDue();
 	});
-const line = (key: string, value: number) =>
-	Math.abs(value) < 1e-6 ? [] : [`${key} ${value.toFixed(6)}`];
-/** What the ledger says every key holds, summed by hand. */
-const projection = (t: Kit) =>
-	ledgerRows(t).pipe(
-		Effect.map((rows) => {
-			const sums = new Map<string, number>();
-			for (const row of rows) {
-				const key = [row.account, row.code, row.period, row.measure].join('/');
-				const amount = row.amount?.toNumber() ?? 0;
-				sums.set(key, (sums.get(key) ?? 0) + (row.operation === 'DEDUCT' ? -amount : amount));
-			}
-			return [...sums].flatMap(([key, value]) => line(key, value)).toSorted();
-		})
-	);
-const flat = (accounts: Accounts) =>
-	Object.entries(accounts)
-		.flatMap(([family, codes]) =>
-			Object.entries(codes).flatMap(([code, periods]) =>
-				Object.entries(periods).flatMap(([period, measures]) =>
-					Object.entries(measures).flatMap(([measure, value]) =>
-						line([family, code, period, measure].join('/'), value)
-					)
-				)
-			)
-		)
-		.toSorted();
-
 describe('a posting that runs again', () => {
 	it.live('a leave entry is posted once', () =>
 		Effect.gen(function* () {

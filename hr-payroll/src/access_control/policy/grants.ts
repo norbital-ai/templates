@@ -122,9 +122,18 @@ const encashmentReview = (flow: Flow) =>
 		.supersededBy(['hr_manager', 'senior_management']);
 const LEAVE_REQUEST = {
 	check: function* (
-		rows: readonly { readonly reverses?: unknown; readonly encashment?: unknown }[],
+		rows: readonly {
+			readonly reverses?: unknown;
+			readonly encashment?: unknown;
+			readonly occurrence_key?: unknown;
+		}[],
 		ctx: Pick<Judge, 'allow' | 'deny' | 'approve'> & { readonly policies: readonly string[] }
 	) {
+		if (
+			rows.some((row) => row.occurrence_key != null) &&
+			!ctx.policies.includes('payroll_execution')
+		)
+			return ctx.deny('Only the system names the event an entry was raised for. Leave it empty.');
 		if (
 			rows.some((row) => row.reverses != null) &&
 			!ctx.policies.includes('hr_controller') &&
@@ -210,4 +219,9 @@ export const HR_OPERATIONS = {
 	},
 	obligation: { ...READ_ALL.obligation, create: true, update: true, delete: true, moves: 'all' }
 } as const;
-export const PAYROLL_STARTS = ['statutory_research', 'statutory_materialize', 'ledger'] as const;
+export const PAYROLL_STARTS = [
+	'statutory_research',
+	'statutory_materialize',
+	'ledger',
+	'integrity'
+] as const;

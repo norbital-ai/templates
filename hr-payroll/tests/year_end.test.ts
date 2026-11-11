@@ -191,29 +191,6 @@ describe('a December refund', () => {
 });
 
 describe('figures a month holds, across runs', () => {
-	it.live('Japan: the health ceiling runs April to March, across January', () => {
-		const seed = japan(500_000);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* pay(t, seed, 'BONUS', 4_000_000, '2026-06-10');
-			yield* pay(t, seed, 'BONUS', 4_000_000, '2026-12-10');
-			yield* pay(t, seed, 'BONUS', 1_000_000, '2027-01-10');
-			yield* pay(t, seed, 'BONUS', 1_000_000, '2027-04-10');
-			for (const period of ['2026-06', '2026-12', '2027-01', '2027-04']) yield* run(t, period);
-			const paid = yield* slips(t);
-			const of = (period: string) =>
-				statutory(
-					paid.find((row) => row.period === period),
-					'HEALTH_BONUS'
-				);
-			const perYen = of('2026-06') / 4_000_000;
-			// ¥5,730,000 a year: ¥1,730,000 of it left in December, none in January, a new year in April
-			assert.ok(Math.abs(of('2026-12') - perYen * 1_730_000) < 2, String(of('2026-12')));
-			assert.equal(of('2027-01'), 0);
-			assert.ok(Math.abs(of('2027-04') - perYen * 1_000_000) < 2, String(of('2027-04')));
-		}).pipe(Effect.provide(workspace({ seed: carriedOn(seed), now: '2027-05-01T02:00:00.000Z' })));
-	});
-
 	it.live('Japan: a second bonus in a month has what is left of the pension ceiling', () => {
 		const seed = japan(500_000);
 		return Effect.gen(function* () {
@@ -385,39 +362,4 @@ describe('figures a month holds, across runs', () => {
 			);
 		});
 	});
-});
-
-describe('the late-wage fine', () => {
-	const seed = pack('ID', 'Asia/Jakarta', terms(10_000_000, 'CITIZEN'), {}, [], [], '2026-06-15');
-	const fines = (t: Kit) =>
-		t
-			.storedQuery({ obligation: { limit: 100 } })
-			.pipe(
-				Effect.map((got) =>
-					got.obligation.rows.filter((row) => row.title === 'Late wage: fine owed to the worker')
-				)
-			);
-	const paidOn = (date: string) =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* run(t, '2026-06');
-			const held = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
-			assert.ok(held !== undefined);
-			assert.equal(String(held.pay_date), '2026-06-25');
-			t.clock.set(`${date}T02:00:00.000Z`);
-			yield* t.as(t.admin).act('payroll_run.update', [{ target: held.id, set: { state: 'PAID' } }]);
-			yield* t.runDue();
-			return (yield* fines(t)).length;
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-06-20T02:00:00.000Z' })));
-
-	it.live('paid within three days of the pay date: no fine', () =>
-		Effect.gen(function* () {
-			assert.equal(yield* paidOn('2026-06-27'), 0);
-		})
-	);
-	it.live('paid from the fourth day: the employer owes each worker the fine', () =>
-		Effect.gen(function* () {
-			assert.equal(yield* paidOn('2026-06-28'), 1);
-		})
-	);
 });

@@ -5109,37 +5109,5 @@
 		],
 		"id": "4757da61-b562-5a03-a764-fbf2df8000ed",
 		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
-	},
-	{
-		"code": "retract-exit-effects",
-		"name": "Retract Exit Effects",
-		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					}
-				},
-				"fields": ["id", "occurrence_key", "state"],
-				"limit": 100
-			}
-		},
-		"condition": "const stale = (task) => String(task.occurrence_key).includes(':exit:') && (ctx.after == null || !String(task.occurrence_key).endsWith(':exit:' + ctx.entry.effective_range.to));\nreturn get(ctx, 'reads.obligation', []).some((task) => task.state === 'OPEN' && stale(task));",
-		"target_collection": "obligation",
-		"target_action": "update",
-		"effects": "const stale = (task) => String(task.occurrence_key).includes(':exit:') && (ctx.after == null || !String(task.occurrence_key).endsWith(':exit:' + ctx.entry.effective_range.to));\nconst reason = ctx.after == null ? 'A later version continues the employment; the exit was cancelled.' : 'The exit date moved; this task answered the earlier date.';\nreturn get(ctx, 'reads.obligation', []).filter((task) => task.state === 'OPEN' && stale(task)).map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
-		"lookup": {},
-		"references": [
-			{
-				"title": "健康保険法施行規則 art.29, 厚生年金保険法施行規則 art.22, 雇用保険法施行規則 art.7, 所得税法 art.226(1), 地方税法 art.321の7(1), 労働基準法 arts.23 and 109, 雇止め基準 (平成15年厚生労働省告示357号) art.1: each exit duty runs from the actual last day of employment, so a duty raised for a replaced or cancelled last day no longer stands."
-			}
-		],
-		"id": "2e3de578-0147-53b5-865e-976bb6be54b7",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
 	}
 ]

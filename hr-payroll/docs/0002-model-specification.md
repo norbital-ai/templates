@@ -142,6 +142,10 @@ three models:
 **Partial leave cancellation (owner directive, 2026-11-08).** Leave is the one entry family that needs partial
 cancellation; loan repayments do not.
 
+- A leave entry the system derives from a fact names it in `occurrence_key` (`<fact>:<record id>`, optional, hidden,
+  set only under `payroll_execution`): an exit's cash-out carries `exit:<contract id>`. One live keyed entry a fact and
+  catalogue row is a database constraint, and the write refuses a keyed entry whose fact no longer stands
+  ([0007](0007-corrections-and-integrity.md) §8).
 - A leave entry keeps its dated `days` slots. A run creates one `leave_catalog_entry_day` row per slot it priced
   (`leave_entry_id`, `payroll_run_id`, `date`, `part`, unique per entry/date/part). Capture is per slot; the entry's own
   `payroll_run_id` may remain as the first-capture marker, but the lock is the capture rows.

@@ -50,6 +50,19 @@ The owner's design. Every agent reads it first and wires around it; only the own
 - `employee_balance` is one row per person, the ledger's projection keyed by family, code, period and measure: accumulated values and entitlements only — no notes, flags, dates or guards.
 - Earlier runs come from the balance; there is no payroll history read (`ctx.history`, statutory history, payslips). The period is in the key: a new year is a new key, nothing closes, and old periods leave through dated entries.
 
+### Owner directives, 2026-11-11 — ledger on approval, integrity
+
+- A ledger row is written only with its record, and for a record held for approval only in the approving decision's own
+  statement. If the ledger cannot move, the approval does not pass.
+- No write holds a lock across statements; no interactive transaction.
+- Tests prove mechanisms with agnostic fixtures; they do not certify a country's figures.
+- Every derived record names the fact that caused it (`occurrence_key`). When a fact is cancelled, one routine handles
+  each dependant: withdrawn while nothing has paid it, a task asking HR to reverse it once a run has; nothing under an
+  unpaid run moves.
+- A cancelled exit's pending cash-out cannot be approved; HR rejects it.
+- The invariants, the `integrity` check and the way forward and back for each act are in
+  [0007](0007-corrections-and-integrity.md).
+
 ### Linear computation and subtotals
 
 - One chain per settings version: no stages, phases or branches. The first subtotal opens with base pay; each later one is the previous plus its lines; statutory schemes run in `depends_on` order; checkpoints rebuild with the statutory lines and the last is net pay.
@@ -224,8 +237,9 @@ Each later subtotal's value is the previous subtotal plus every employee line wh
 
 Exit encashment: when a sealed contract ends with no same-jurisdiction successor, the `encashment` automation raises one
 encashment request for every leave row with a `payout`, for the days the person has
-left. The HR grant holds every encashment request for HR controller approval, whoever ended the contract, so its days
-post to the ledger only when approved.
+left after the exit's proration. The request names its exit (`occurrence_key` `exit:<contract id>`). The HR grant holds
+every encashment request for HR controller approval, whoever ended the contract, so its days post to the ledger only
+when approved. The same automation follows a moved or cancelled exit ([0007](0007-corrections-and-integrity.md) §8).
 
 An adhoc row's `party EMPLOYEE` enters the running subtotal and net; `party EMPLOYER` is employer cost and never enters net. Every other producer pays the employee.
 

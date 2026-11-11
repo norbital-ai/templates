@@ -1,33 +1,5 @@
 [
 	{
-		"code": "retract-exit-effects",
-		"name": "Retract Exit Effects",
-		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
-		"lookup": {},
-		"references": [],
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					}
-				},
-				"fields": ["id", "occurrence_key", "state"],
-				"limit": 100
-			}
-		},
-		"condition": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nreturn get(ctx, \"reads.obligation\", []).some((task) => task.state === \"OPEN\" && stale(task));",
-		"target_collection": "obligation",
-		"target_action": "update",
-		"effects": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nconst reason =\n\tctx.after == null\n\t\t? \"A later version continues the employment; the exit was cancelled.\"\n\t\t: \"The exit date moved; this task answered the earlier date.\";\nreturn get(ctx, \"reads.obligation\", [])\n\t.filter((task) => task.state === \"OPEN\" && stale(task))\n\t.map((task) => ({ target: task.id, set: { state: \"WAIVED\", waiver_reason: reason } }));",
-		"id": "b5db4264-8e50-583c-b1b7-67caaaaf912b",
-		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
-	},
-	{
 		"code": "encash-leave-on-exit",
 		"name": "Pay untaken leave with the final settlement",
 		"description": "Raises a task to pay untaken annual leave with the final settlement.",

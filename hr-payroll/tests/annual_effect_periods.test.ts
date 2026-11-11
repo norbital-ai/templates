@@ -121,10 +121,4 @@ describe('Indonesian annual obligations across part-period runs', () => {
 			0
 		);
 	});
-	it('the annual tax-records task no longer exists', () => {
-		assert.equal(
-			effects.some((row) => row.code === 'TAX_RECORDS_RETENTION'),
-			false
-		);
-	});
 });

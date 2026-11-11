@@ -1,34 +1,5 @@
 [
 	{
-		"code": "retract-exit-effects",
-		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
-		"name": "Retract Exit Effects",
-		"lookup": {},
-		"references": [],
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					},
-					"employee_id": {
-						"isNull": false
-					}
-				}
-			}
-		},
-		"condition": "// js\nconst row = ctx.entry;\nconst suffix = ':exit:' + row.effective_range.to;\nreturn get(ctx, 'reads.obligation', []).some((task) => {\n\tif (task.state !== 'OPEN') return false;\n\tif (task.employment_id !== row.id) return false;\n\tconst key = String(task.occurrence_key);\n\treturn key.includes(':exit:') && (ctx.after == null || !key.endsWith(suffix));\n});",
-		"target_collection": "obligation",
-		"target_action": "update",
-		"effects": "// js\nconst row = ctx.entry;\nconst suffix = ':exit:' + row.effective_range.to;\nconst reason =\n\tctx.after == null\n\t\t? 'A later version continues the employment; the exit was cancelled.'\n\t\t: 'The exit date moved; this task answered the earlier date.';\nreturn get(ctx, 'reads.obligation', [])\n\t.filter((task) => {\n\t\tif (task.state !== 'OPEN') return false;\n\t\tif (task.employment_id !== row.id) return false;\n\t\tconst key = String(task.occurrence_key);\n\t\treturn key.includes(':exit:') && (ctx.after == null || !key.endsWith(suffix));\n\t})\n\t.map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
-		"id": "10e76279-e821-54ca-91f5-f44d94a5ae1e",
-		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
-	},
-	{
 		"code": "encash-leave-on-exit",
 		"description": "Raise the untaken annual leave encashment task on exit, except for a misconduct dismissal.",
 		"name": "Encash Leave On Exit",

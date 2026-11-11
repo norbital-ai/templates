@@ -66,9 +66,9 @@ roster_entry/
 
 - Apps: `hr_controller/{entities,events,formats,payroll,people,settings}`, `hr_employee`
 - Kiosk: `attendance`
-- Automations: `contract_materialize`, `encashment`, `entity_materialize`, `invitation_profile`, `ledger`, `statutory_research`, `statutory_materialize`
+- Automations: `contract_materialize`, `encashment`, `entity_materialize`, `integrity`, `invitation_profile`, `ledger`, `statutory_research`, `statutory_materialize`
 - Policies: `configuration_execution`, `employee`, `hr_controller`, `hr_manager`, `invitation_profile_automation`, `kiosk`, `manager`, `payroll_execution`, `senior_management`, `supervisor`
-- Shared code: `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
+- Shared code: `src/lib/dependants.ts` (what a raised, moved or cancelled exit leaves behind, run by `encashment`; a derived record names its fact in `occurrence_key`), `src/lib/integrity.ts` (the invariants), `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
 
 ## Gates
 

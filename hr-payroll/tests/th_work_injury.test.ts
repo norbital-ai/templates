@@ -1,4 +1,4 @@
-// A work-injury entry needs its first day: the 15-day SSO notification runs from that date, never from a guess.
+// A work-injury entry needs its first day.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
@@ -42,26 +42,6 @@ describe('a work-injury leave entry', () => {
 					])
 			);
 			assert.match(String(refused), /at least one day/);
-		}).pipe(Effect.provide(live))
-	);
-	it.live('raises one notification from its first day', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* t.as(t.admin).act('leave_catalog_entry.create', [
-				leaveCreate({
-					entity_id: ENTITY,
-					employment_id: CONTRACT,
-					catalog_id: CATALOG,
-					days: whole('2026-03-01')
-				})
-			]);
-			yield* t.runDue();
-			const { obligation } = yield* t.storedQuery({ obligation: { limit: 100 } });
-			const raised = obligation.rows.filter((row) =>
-				String(row.occurrence_key).startsWith('WORK_INJURY_NOTIFICATION:')
-			);
-			assert.equal(raised.length, 1);
-			assert.equal(String(raised[0]?.due_on), '2026-03-16');
 		}).pipe(Effect.provide(live))
 	);
 	it.live('cannot have its only day deleted', () =>

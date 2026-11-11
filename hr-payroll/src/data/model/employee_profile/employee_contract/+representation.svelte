@@ -26,6 +26,7 @@
 	import { addDays, addMonths, monthOf, PlainDate } from '@norbital-ai/std/date';
 	import {
 		buildLoanSchedule,
+		FINAL_SETTLEMENT,
 		loanDisposition,
 		loanRecovery,
 		monthlyEquivalent
@@ -604,7 +605,7 @@
 							amount: share.final,
 							paid_on: day,
 							payment_reference:
-								share.remaining > 0 ? 'Final settlement (partial)' : 'Final settlement'
+								share.remaining > 0 ? `${FINAL_SETTLEMENT} (partial)` : FINAL_SETTLEMENT
 						}
 					])
 				);
@@ -658,7 +659,7 @@
 						amount: plan.remaining
 					}),
 					due_on: nextMonth,
-					occurrence_key: `LOAN_RECOVERY:${current.id}:${day}`
+					occurrence_key: `LOAN_RECOVERY:${current.id}:exit:${day}`
 				}
 			])
 		);

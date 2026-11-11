@@ -321,6 +321,34 @@ export const ledgerRows = (t: Kit) =>
 	t
 		.storedQuery({ ledger_entry: { limit: 10000 } })
 		.pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows));
+const line = (key: string, value: number) =>
+	Math.abs(value) < 1e-6 ? [] : [`${key} ${value.toFixed(6)}`];
+/** What the ledger says every key holds, summed by hand. */
+export const projection = (t: Kit) =>
+	ledgerRows(t).pipe(
+		Effect.map((rows) => {
+			const sums = new Map<string, number>();
+			for (const row of rows) {
+				const key = [row.account, row.code, row.period, row.measure].join('/');
+				const amount = row.amount?.toNumber() ?? 0;
+				sums.set(key, (sums.get(key) ?? 0) + (row.operation === 'DEDUCT' ? -amount : amount));
+			}
+			return [...sums].flatMap(([key, value]) => line(key, value)).toSorted();
+		})
+	);
+/** A balance's figures, in the lines `projection` answers. */
+export const flat = (accounts: Accounts) =>
+	Object.entries(accounts)
+		.flatMap(([family, codes]) =>
+			Object.entries(codes).flatMap(([code, periods]) =>
+				Object.entries(periods).flatMap(([period, measures]) =>
+					Object.entries(measures).flatMap(([measure, value]) =>
+						line([family, code, period, measure].join('/'), value)
+					)
+				)
+			)
+		)
+		.toSorted();
 const held = <Row>(rows: readonly Row[]) => {
 	const [row] = rows;
 	if (row === undefined) throw new Error('No sealed entry');

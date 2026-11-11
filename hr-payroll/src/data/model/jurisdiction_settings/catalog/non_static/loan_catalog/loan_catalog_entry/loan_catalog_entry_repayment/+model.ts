@@ -93,7 +93,9 @@ export default model('loan_catalog_entry_repayment', {
 			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
 			yield* validateRegistered(ctx.db.query, 'loan_catalog_entry_repayment', 'update', proposed);
 			if (changes.some((c) => c.before.payroll_run_id != null))
-				return yield* ctx.refuse('This record is locked by a payroll run.');
+				return yield* ctx.refuse(
+					'This record is locked by a payroll run. Create a reversal entry for it instead.'
+				);
 			yield* assertUnpriced(
 				ctx.db.query,
 				instalments(changes.map(({ before, set }) => ({ ...before, ...set }))),
@@ -111,7 +113,9 @@ export default model('loan_catalog_entry_repayment', {
 				rows.map((row) => jsonObject(row))
 			);
 			if (rows.some((r) => r.payroll_run_id != null))
-				return yield* ctx.refuse('This record is locked by a payroll run.');
+				return yield* ctx.refuse(
+					'This record is locked by a payroll run. Create a reversal entry for it instead.'
+				);
 		}
 	},
 

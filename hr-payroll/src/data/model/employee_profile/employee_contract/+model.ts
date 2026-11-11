@@ -73,7 +73,7 @@ const capturedRun = Effect.fnUntraced(function* (
 			);
 		});
 		if (captured !== undefined)
-			return `Payroll run ${String(captured.run_number)} already captured this period; the contract cannot change under it.`;
+			return `Payroll run ${String(captured.run_number)} already captured this period; the contract cannot change under it. Delete that run while it is unpaid, or seal a new version from the next month.`;
 	}
 	return null;
 });
@@ -455,7 +455,7 @@ const exitsMoved = Effect.fnUntraced(function* (
 	});
 });
 
-/** Raise `exit` for what a write did to the chain; encashment follows every exit that stands. */
+/** Raise `exit` for what a write did to the chain; its dependants follow every exit raised, moved or cancelled. */
 const raiseExits = Effect.fnUntraced(function* (
 	ctx: EffectCtx,
 	changes: Parameters<typeof exitsMoved>[1]
@@ -472,10 +472,15 @@ const raiseExits = Effect.fnUntraced(function* (
 		},
 		exits
 	);
-	const standing = exits.flatMap(({ after }) =>
-		after === undefined ? [] : [idOf('employee_contract', after.id)]
-	);
-	if (standing.length > 0) yield* ctx.schedule('encashment', { employments: standing });
+	// the sync runs first and hands on: a cash-out is sized after the exit's proration, and the two never race
+	yield* ctx.schedule('ledger', {
+		employees: [
+			...new Set(
+				exits.map((exit) => idOf('employee_profile', (exit.after ?? exit.before)?.employee_id))
+			)
+		],
+		employments: exits.map((exit) => idOf('employee_contract', (exit.after ?? exit.before)?.id))
+	});
 });
 
 type Reach = {

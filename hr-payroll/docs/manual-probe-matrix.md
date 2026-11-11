@@ -135,22 +135,21 @@ The operator's evidence, run scripts and the findings for the companies are held
 
 ### Payroll
 
-| Probe                                  | Expected                                                                                                                               |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Off-cycle bonus, no base salary        | Base 0; a scheme charged on salary alone charges nothing; tax on the bonus once; net positive                                          |
-| Off-cycle bonus, every jurisdiction    | Each statutory row owes what the same bonus owes inside the on-cycle run, both sides, in either order                                  |
-| MY PCB on an off-cycle bonus           | The bonus withholds its additional MTD only; off-cycle plus on-cycle equals one on-cycle bonus, in either order; the month counts once |
-| SG CPF annual ceiling                  | Additional wages attract CPF only up to what the annual ceiling leaves                                                                 |
-| Second salary in a pay month           | A rolled pay date or a mid-month transfer charges each wage month or employer on its own; half-month cycles still combine              |
-| Allowance in a transfer month          | Each company pays its days; a new contract in the same company pays the month once                                                     |
-| Duplicate on-cycle run                 | The second run for the entity and period is refused                                                                                    |
-| Skipped cycle                          | A period behind a later on-cycle run is refused                                                                                        |
-| Marking a run paid                     | The pay date shows only then, keyed in as that day, and is never typed                                                                 |
-| Run paid straight after it was created | Refused until posted; no effect fails                                                                                                  |
-| Run paid at once, a full entity        | Every effect finishes, no conflict                                                                                                     |
-| First run deleted and run again        | The rerun posts and can be paid                                                                                                        |
-| Run a later run counted                | Deletion refused; runs come off newest first                                                                                           |
-| A run of about 80 people               | Stays under 2 s of CPU                                                                                                                 |
+| Probe                               | Expected                                                                                                                               |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Off-cycle bonus, no base salary     | Base 0; a scheme charged on salary alone charges nothing; tax on the bonus once; net positive                                          |
+| Off-cycle bonus, every jurisdiction | Each statutory row owes what the same bonus owes inside the on-cycle run, both sides, in either order                                  |
+| MY PCB on an off-cycle bonus        | The bonus withholds its additional MTD only; off-cycle plus on-cycle equals one on-cycle bonus, in either order; the month counts once |
+| SG CPF annual ceiling               | Additional wages attract CPF only up to what the annual ceiling leaves                                                                 |
+| Second salary in a pay month        | A rolled pay date or a mid-month transfer charges each wage month or employer on its own; half-month cycles still combine              |
+| Allowance in a transfer month       | Each company pays its days; a new contract in the same company pays the month once                                                     |
+| Duplicate on-cycle run              | The second run for the entity and period is refused                                                                                    |
+| Skipped cycle                       | A period behind a later on-cycle run is refused                                                                                        |
+| Marking a run paid                  | The pay date shows only then, keyed in as that day, and is never typed                                                                 |
+| Run paid at once, a full entity     | Every effect finishes, no conflict                                                                                                     |
+| First run deleted and run again     | The rerun posts and can be paid                                                                                                        |
+| Run a later run counted             | Deletion refused; runs come off newest first                                                                                           |
+| A run of about 80 people            | Stays under 2 s of CPU                                                                                                                 |
 
 ### Corrections
 
@@ -213,7 +212,6 @@ The operator's evidence, run scripts and the findings for the companies are held
 | Probe                      | Expected                                                                                                                          |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Employee profile tabs      | Only Profile, Employment contract, Loans, Workplace cases and Entitlement and balances. No Leave, Payslips or Face enrolment tab. |
-| Entitlement and balances   | The employee balance `account` is displayed raw, not wrapped in a table or a synthetic record representation.                     |
 | Face enrolment             | Available from Profile, not a separate tab.                                                                                       |
 | Self-service leave request | The employment selector is hidden when the page already knows the employment; the catalog and calendar remain.                    |
 
@@ -272,7 +270,7 @@ Run against the local demo after `env status` says READY and the demo digest mat
 
 1. Create a leave entry, run payroll, reverse one captured half-day.
 2. Expect exactly one inverse ledger row (same account/code/period, opposite operation), original row untouched, original slot still `payroll_run_id`.
-3. Reverse the same original again: refused (one reversal per original).
+3. Reverse the same slots again: refused (a slot is reversed once; a partial reversal leaves the rest reversible).
 4. Delete a captured slot: refused with "Create a reversal"; delete an unpriced slot: accepted and ledger inverted once.
 5. Add a new entry after reversal: allowed, posts once, balance returns to the expected figure.
 
@@ -395,7 +393,7 @@ A company rounding that never pays the employee less than the statute is followe
 | Entity | Line                          | Listing's rule (match)                                                                                                                                              | Applies                                                                                          |
 | ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | Company A  | OVER-TIME                     | hour = round2(basic × [amount] ÷ hours a year); band rate = round2(hour × [amount]/[amount]/[amount]); round2(rate × hours) per calendar month in the 21st–20th window, summed ([amount]/[amount]) | law: pays [amount]–[amount] less than EA s.60I in [amount] person-months                                     |
-| Company A  | INCENTIVE (OT)                | the listing column is an adhoc `INCENTIVE_OT` amount, not attendance OT                                                                                             | seed adhoc entry; SOCSO/EIS wages only, never EPF/PCB; attendance OT is separate                 |
+| Company A  | INCENTIVE (OT)                | the listing column is an adhoc `INCENTIVE_OT` amount, not attendance OT                                                                                             | seed adhoc entry; EPF, SOCSO and EIS wages, PCB as additional pay; attendance OT is separate     |
 | Company A  | NPL                           | day = round2(basic × [amount] ÷ ([amount] × contract days/week)), half = round2(day ÷ [amount])                                                                                        | `YEAR` day basis (owner, 2026-11-10); the listing's calendar-day figure is its own approximation |
 | Company A  | EPF                           | Third Schedule 20-ringgit bands, each share rounded up ([amount]/[amount]); foreign [amount]% each share rounded up ([amount]/[amount])                                                        | law: the Act rounds the total; foreign staff and EMP-REDACTED pay more                              |
 | Company A  | SOCSO, EIS                    | the statutory tables ([amount]/[amount], [amount]/[amount])                                                                                                                             | statute                                                                                          |

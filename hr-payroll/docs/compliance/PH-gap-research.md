@@ -545,7 +545,7 @@ None; `occurred_on` and `opened_on` with the help text above.
   - remittance effects read the run's payslips and gate on scheme/loan/FBT presence, never amount;
   - `PAYEE` is excluded from the PH SSS/SSS_MPF/SSS_EC/PHIC/HDMF contribution rows.
 - `just_cause_dismissal`, NPC 5 days, `scheduled_on` planned duties, WAIR `occurred_on ?? opened_on`, and annual duty keys were already present in version_2; source inspection only.
-- **Implemented:** an exit is read from the contract chain: the contract's write raises `exit` when an ended version has no same-jurisdiction successor, or when its date moves or a successor cancels it. The six exit effects run on `employee_contract` `exit`, keyed by the employment and exit date; `retract-exit-effects` waives the open ones of a moved or cancelled exit. A pay-bump pair raises no exit duty. The pay-bump pair regression test is in `tests/statute_ph_id.test.ts`.
+- **Implemented:** an exit is read from the contract chain: the contract's write raises `exit` when an ended version has no same-jurisdiction successor, or when its date moves or a successor cancels it. The six exit effects run on `employee_contract` `exit`, keyed by the employment and exit date; the dependants routine (`src/lib/dependants.ts`) waives the open ones of a moved or cancelled exit. A pay-bump pair raises no exit duty. The pay-bump pair regression test is in `tests/statute_ph_id.test.ts`.
 
 ## Seed round 3 (2026-11-10)
 

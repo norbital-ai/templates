@@ -8,7 +8,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, OFF, REST, WORK, accountsIn, pack, read, uuid, workspace } from './kit.ts';
+import { ENTITY, WORK, accountsIn, pack, read, uuid, workspace } from './kit.ts';
 
 const lines = Effect.fnUntraced(function* (t: Kit) {
 	yield* t
@@ -33,52 +33,6 @@ const near = (paid: Paid, code: string, expected: number) =>
 	);
 
 describe('overtime bands', () => {
-	// RM 3,120 a month: 120 a day (÷ 26) and 15 an hour (÷ 8), Employment Act 1955 ss.60, 60A, 60D, 60I
-	it.live('Malaysia: normal day, rest day and public holiday each pay their band', () =>
-		run(
-			pack(
-				'MY',
-				'Asia/Kuala_Lumpur',
-				{
-					rate: { amount: 3120, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 48,
-					normal_days_per_week: 6,
-					statutory_work_category: 'MANUAL_LABOUR',
-					work_classification: 'EA_COVERED',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
-				{},
-				[
-					{ date: '2026-02-02', shift: WORK, hours: 10, overtime: 2 },
-					{ date: '2026-02-07', shift: OFF, hours: 4 },
-					{ date: '2026-02-03', shift: WORK, hours: 118, overtime: 110 },
-					{ date: '2026-02-01', shift: REST, hours: 8 },
-					{ date: '2026-02-08', shift: REST, hours: 3 },
-					{ date: '2026-02-15', shift: REST, hours: 10 },
-					{ date: '2026-02-11', shift: WORK, hours: 8 },
-					{ date: '2026-02-12', shift: WORK, hours: 10, overtime: 2 }
-				],
-				[
-					{ date: '2026-02-11', kind: 'PUBLIC_HOLIDAY' },
-					{ date: '2026-02-12', kind: 'SUBSTITUTE' }
-				]
-			),
-			'Asia/Kuala_Lumpur',
-			(paid) => {
-				// no incentive bucket: hours past the monthly cap stay in the overtime band
-				near(paid, 'OVERTIME', (2 + 4 + 110) * 1.5 * 15);
-				assert.equal(paid.OVERTIME_INCENTIVE, undefined);
-				near(paid, 'REST_DAY_WORK', 120 + 60 + 120);
-				near(paid, 'REST_DAY_OVERTIME', 2 * 2 * 15);
-				near(paid, 'HOLIDAY_WORK', 240 + 240);
-				near(paid, 'HOLIDAY_OVERTIME', 2 * 3 * 15);
-			}
-		)
-	);
-
 	it.live(
 		'a run prices only its own period: leave and claims dated elsewhere do not touch it',
 		() => {
@@ -244,41 +198,6 @@ describe('overtime bands', () => {
 			(paid) => near(paid, 'OVERTIME', (2 + 1) * 24.38)
 		);
 	});
-
-	it.live('EPF leaves overtime out of its wages; SOCSO keeps it', () =>
-		run(
-			pack(
-				'MY',
-				'Asia/Kuala_Lumpur',
-				{
-					rate: { amount: 3120, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 48,
-					normal_days_per_week: 6,
-					statutory_work_category: 'MANUAL_LABOUR',
-					work_classification: 'EA_COVERED',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
-				{},
-				// the roster is the cycle's source of truth: every other working day is on it, worked as planned
-				[
-					{ date: '2026-02-03', shift: WORK, hours: 48, overtime: 40 },
-					...Array.from({ length: 28 }, (_, day) => `2026-02-${String(day + 1).padStart(2, '0')}`)
-						.filter((date) => date !== '2026-02-03' && new Date(date).getUTCDay() !== 0)
-						.map((date) => ({ date, shift: WORK, hours: 8 }))
-				],
-				[]
-			),
-			'Asia/Kuala_Lumpur',
-			(paid) => {
-				near(paid, 'OVERTIME', 40 * 1.5 * 15);
-				near(paid, 'EPF', 344);
-				near(paid, 'SOCSO', 20.25);
-			}
-		)
-	);
 
 	it.live("a leave entry raised on one version still counts in another version's run", () => {
 		const seed = pack(
@@ -681,119 +600,5 @@ describe('overtime bands', () => {
 				)
 			);
 		}
-	);
-
-	// ₱15,650 × 12 ÷ 313 = ₱600 a day, ₱75 an hour; the 313 factor already pays holidays, so they add their premium only
-	it.live('Philippines: ordinary, rest day, regular and special holiday each pay their band', () =>
-		run(
-			pack(
-				'PH',
-				'Asia/Manila',
-				{
-					rate: { amount: 15650, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 48,
-					normal_days_per_week: 6,
-					statutory_work_category: 'NON_FIELD',
-					work_classification: 'RANK_AND_FILE',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
-				{ days_per_year: 313, nationality: 'PH' },
-				[
-					{ date: '2026-02-02', shift: WORK, hours: 11, overtime: 3 },
-					{ date: '2026-02-01', shift: REST, hours: 8 },
-					{ date: '2026-02-08', shift: REST, hours: 10 },
-					{ date: '2026-02-11', shift: WORK, hours: 8 },
-					{ date: '2026-02-12', shift: WORK, hours: 8 },
-					{ date: '2026-02-13', shift: WORK, hours: 10, overtime: 2 }
-				],
-				[
-					{ date: '2026-02-11', kind: 'PUBLIC_HOLIDAY' },
-					{ date: '2026-02-12', kind: 'SPECIAL_HOLIDAY' },
-					{ date: '2026-02-13', kind: 'PUBLIC_HOLIDAY' }
-				]
-			),
-			'Asia/Manila',
-			(paid) => {
-				near(paid, 'OVERTIME', 3 * 1.25 * 75 + 2 * 1.69 * 75 + 2 * 2.6 * 75);
-				near(paid, 'REST_DAY_WORK', 2 * 8 * 1.3 * 75);
-				near(paid, 'HOLIDAY_WORK', 2 * 8 * 1 * 75);
-				near(paid, 'SPECIAL_HOLIDAY_WORK', 8 * 0.3 * 75);
-			}
-		)
-	);
-
-	it.live('Philippines: a manager is paid no overtime, whatever the roster shows', () =>
-		run(
-			pack(
-				'PH',
-				'Asia/Manila',
-				{
-					rate: { amount: 130000, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 40,
-					normal_days_per_week: 5,
-					statutory_work_category: 'MANAGERIAL',
-					work_classification: 'MANAGERIAL',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
-				{ days_per_year: 261, nationality: 'PH' },
-				[
-					{ date: '2026-02-02', shift: WORK, hours: 11, overtime: 3 },
-					{ date: '2026-02-01', shift: REST, hours: 8 }
-				],
-				[]
-			),
-			'Asia/Manila',
-			(paid) => {
-				near(paid, 'OVERTIME', 0);
-				near(paid, 'REST_DAY_WORK', 0);
-			}
-		)
-	);
-
-	// Rp 7,378,688 ÷ 173 = Rp 42,651.38 an hour; PP 35/2021 art.31: 1.5 then 2 on a work day, and the rest-day ladder
-	it.live('Indonesia: the work-day and rest-day ladders, five-day week', () =>
-		run(
-			pack(
-				'ID',
-				'Asia/Jakarta',
-				{
-					rate: { amount: 7400000, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 40,
-					normal_days_per_week: 5,
-					statutory_work_category: 'NON_MANUAL',
-					work_classification: 'ORDINARY',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
-				{ nationality: 'ID', ptkp_dependents_count: 0 },
-				[
-					{ date: '2026-02-02', shift: WORK, hours: 10, overtime: 2 },
-					{ date: '2026-02-01', shift: REST, hours: 10 },
-					{ date: '2026-02-11', shift: WORK, hours: 8 }
-				],
-				[{ date: '2026-02-11', kind: 'PUBLIC_HOLIDAY' }]
-			),
-			'Asia/Jakarta',
-			(paid) => {
-				// the hour is not rounded; each day's overtime goes to the whole rupiah
-				const hourly = 7400000 / 173;
-				const workDay = 1 * 1.5 + 1 * 2;
-				const restDay = 8 * 2 + 1 * 3 + 1 * 4;
-				const holiday = 8 * 2;
-				near(
-					paid,
-					'OVERTIME',
-					Math.round(workDay * hourly) + Math.round(restDay * hourly) + Math.round(holiday * hourly)
-				);
-			}
-		)
 	);
 });

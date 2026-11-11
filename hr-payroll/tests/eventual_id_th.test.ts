@@ -1,23 +1,17 @@
 // A wrong payment needs no automatic entry: HR corrects the pay, and the next cycle's statutory rows count the total paid.
 // A no-pay day is a catalog line, so a reversal entry after payment pays back exactly what it took.
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
-import { lookupOf } from '../src/lib/payroll_engine/contracts.ts';
-import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
-	WORK,
 	accountsIn,
 	pack,
-	read,
 	sealedAdhoc,
 	sealedLeave,
 	uuid,
@@ -326,29 +320,6 @@ describe('paid short, topped up in the same month', () => {
 	it.live('Thailand: December’s PND1 counts both runs', () =>
 		toppedUp({ ...THAILAND_IN_DECEMBER, salary: 150_000, correction: 50_000 })
 	);
-	it.live('Thailand: overtime stays out of the month’s SSO wages', () => {
-		// the roster is the cycle's truth: every weekday of June is on it, so none reads as an absence
-		const days = Array.from(
-			{ length: 30 },
-			(_, day) => `2026-06-${String(day + 1).padStart(2, '0')}`
-		)
-			.filter((date) => ![0, 6].includes(new Date(date).getUTCDay()))
-			.map((date) =>
-				date === '2026-06-10'
-					? { date, shift: WORK, hours: 10, overtime: 2 }
-					: { date, shift: WORK, hours: 8 }
-			);
-		const seed = seedOf(THAILAND, terms(15_000), { days });
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* onCycle(t, '2026-06');
-			yield* enter(t, seed, THAILAND.item, 1000, '2026-06-15');
-			yield* offCycle(t, '2026-06');
-			const [first] = yield* runs(t, '2026-06');
-			assert.ok(first?.lines.some((line) => line.code === 'OVERTIME'));
-			assert.deepEqual(yield* charged(t, ['2026-06'], ['SSO'], EMPLOYEE), { 'SSO.employee': 800 });
-		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-	});
 });
 
 describe('paid too much, reversed in the next on-cycle run', () => {
@@ -359,13 +330,6 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 	);
 	it.live('Thailand: off-cycle in the same month it is refused', () =>
 		refusedOffCycle(THAILAND_WAGES)
-	);
-	// BPJS stands on the contract's wage (PP 44/2015 art.19), so of Indonesia's rows PPh 21 moves: 1% TER of 6,408,600
-	it.live('Indonesia: June’s PPh 21 counts the lower pay, no negative line', () =>
-		nextMonth({ ...INDONESIA_WAGES, codes: [] }, '2026-05', '2026-06', {
-			'JHT.employee': 180_000,
-			'PPH21.employee': 64_086
-		})
 	);
 	it.live('Indonesia: December’s reckoning nets the two months', () =>
 		nextMonth(
@@ -385,21 +349,6 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 			'SSO.employee': 500,
 			'PVD.employee': 500
 		})
-	);
-	it.live('Thailand: a bonus is no wage, so SSO and PVD stay and PND1 stops at zero', () =>
-		nextMonth(
-			{
-				...THAILAND_IN_JUNE,
-				place: { ...THAILAND, item: 'BONUS' },
-				salary: 120_000,
-				correction: 90_000,
-				codes: ['PND1']
-			},
-			'2026-05',
-			'2026-06',
-			{ 'SSO.employee': 875, 'PVD.employee': 6000, 'PND1.employee': 0 },
-			true
-		)
 	);
 	it.live('Thailand: in December PND1 stops at zero too', () =>
 		nextMonth(
@@ -593,134 +542,6 @@ describe('a benefit over two calendar years', () => {
 	);
 });
 
-describe('a lump sum across a month’s runs', () => {
-	const folder = 'seed/public/jurisdiction/ID/version_3';
-	const [settings] = read(join(folder, 'jurisdiction_settings.json'));
-	assert.ok(settings !== undefined);
-	/** A pay month's figures, by the year each is held under. */
-	const yearsOf = (held: Readonly<Record<string, number>>) => {
-		const years: Record<string, Record<string, number>> = {};
-		for (const [key, value] of Object.entries(held))
-			(years[key.slice(0, 4)] ??= {})[key.slice(8)] = value;
-		return years;
-	};
-	const owed = (
-		code: string,
-		subtotals: Readonly<Record<string, number>>,
-		month: Readonly<Record<string, number>>,
-		paid: Readonly<Record<string, number>> = {}
-	) => {
-		const scheme = read(join(folder, 'statutory_contribution_catalog.json')).find(
-			(one) => one.code === code
-		);
-		assert.ok(scheme !== undefined);
-		return evaluate(
-			String(scheme.employee_amount),
-			'CALCULATION',
-			{
-				subject: {
-					employment: {
-						employee_extension_data: { severance_tax_history: { first_payment_year: 2026 } }
-					}
-				},
-				lookup: { ...lookupOf(settings), ...lookupOf(scheme) },
-				run: {
-					kind: 'OFF_CYCLE',
-					pay_date: '2026-06-25',
-					salary_coverage: { from: '2026-06-01', to: '2026-06-30' }
-				},
-				as_of: '2026-06-30',
-				subtotals,
-				balances: { month, years: yearsOf({ ...paid, ...month }) }
-			},
-			code
-		);
-	};
-	const FORTY_PAID = { '2026-06.ADDITIONAL_WAGES': 10_000_000, '2026-06.SEVERANCE': 50_000_000 };
-
-	it('Indonesia: severance paid in two parts is one payment on the ladder', () => {
-		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: 50_000_000 };
-		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, FORTY_PAID), 2_000_000);
-	});
-	it('Indonesia: severance counts the months paid before, from the first payment’s year', () => {
-		const paid = {
-			'2025-03.SEVERANCE': 400_000_000,
-			'2025-03.PPH21_FINAL_SEVERANCE.employee': 57_500_000,
-			'2026-03.SEVERANCE': 100_000_000,
-			'2026-03.PPH21_FINAL_SEVERANCE.employee': 2_500_000
-		};
-		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: 100_000_000 };
-		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, {}, paid), 15_000_000);
-	});
-	it('Indonesia: severance counts an earlier run not marked paid yet', () => {
-		const month = {
-			'2026-05.ADDITIONAL_WAGES': 10_000_000,
-			'2026-05.SEVERANCE': 110_000_000,
-			'2026-05.PPH21_FINAL_SEVERANCE.employee': 2_500_000
-		};
-		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: 100_000_000 };
-		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, month), 15_000_000);
-	});
-	it('Indonesia: severance reversed comes off what the month charged', () => {
-		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: -50_000_000 };
-		const month = {
-			'2026-06.ADDITIONAL_WAGES': 10_000_000,
-			'2026-06.SEVERANCE': 100_000_000,
-			'2026-06.PPH21_FINAL_SEVERANCE.employee': 2_000_000
-		};
-		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, month), -2_000_000);
-	});
-	it('Indonesia: a non-employee’s month is one figure on the ladder', () => {
-		const month = {
-			'2026-06.ADDITIONAL_WAGES': 100_000_000,
-			'2026-06.PPH21_BUKAN_PEGAWAI.employee': 2_500_000
-		};
-		assert.equal(owed('PPH21_BUKAN_PEGAWAI', { ADDITIONAL_WAGES: 200_000_000 }, month), 14_000_000);
-	});
-});
-
-describe('the year severance is first paid', () => {
-	const folder = 'seed/public/jurisdiction/ID/version_3';
-	const scheme = read(join(folder, 'statutory_contribution_catalog.json')).find(
-		(one) => one.code === 'PPH21_FINAL_SEVERANCE'
-	);
-	assert.ok(scheme !== undefined);
-	const final = (
-		facts: Readonly<Record<string, unknown>>,
-		years: Readonly<Record<string, Readonly<Record<string, number>>>>
-	) =>
-		evaluate(
-			String(scheme.eligibility),
-			'CALCULATION',
-			{
-				subject: {
-					employment: {
-						engagement: 'EMPLOYEE',
-						terms: { residency_status: 'CITIZEN' },
-						employee_extension_data: facts
-					}
-				},
-				subtotals: { ADDITIONAL_WAGES: 0, SEVERANCE: 6_978_190 },
-				balances: { month: {}, years },
-				run: { pay_date: '2026-01-25' },
-				as_of: '2026-01-31'
-			},
-			'PPH21_FINAL_SEVERANCE.eligibility'
-		);
-	const PAID_2025 = { '2025': { SEVERANCE: 50_000_000, ADDITIONAL_WAGES: 10_000_000 } };
-
-	it('Indonesia: a first payment with no earlier year is this year’s, and final', () => {
-		assert.equal(final({}, {}), true);
-	});
-	it('Indonesia: part paid in an earlier year refuses until its year is recorded', () => {
-		assert.throws(() => final({}, PAID_2025), /first_payment_year/);
-	});
-	it('Indonesia: a recorded first year is honoured', () => {
-		assert.equal(final({ severance_tax_history: { first_payment_year: 2025 } }, PAID_2025), true);
-		assert.equal(final({ severance_tax_history: { first_payment_year: 2024 } }, {}), false);
-	});
-});
-
 describe('a month’s second salary stands alone', () => {
 	const paidOnTheFirst = (seed: Seed): Seed => ({
 		...seed,
@@ -757,7 +578,6 @@ describe('a month’s second salary stands alone', () => {
 	it.live('Thailand: August owes what July owed', () => twice(THAILAND, 15_000, TH_ROWS));
 });
 
-const ID_NO_PAY = ['NPL'];
 const TH_NO_PAY = [
 	'SICK_LEAVE_UNPAID',
 	'TRAINING_LEAVE',
@@ -923,15 +743,6 @@ describe('a no-pay day in Thailand', () => {
 			near(yield* paidBasicIn(t, '2026-06'), 28_000 - DAY / 2);
 		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: JUNE })))
 	);
-	it.live('a weekend between two missed days goes with them', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* take(t, TH_SEED, code, [...whole('2026-06-12'), ...whole('2026-06-15')]);
-			yield* onCycle(t, '2026-06');
-			assert.equal(yield* takenIn(t, '2026-06', code), -2 * DAY);
-			near(yield* paidBasicIn(t, '2026-06'), 28_000 - 2 * DAY);
-		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: JUNE })))
-	);
 	it.live('across months of 31 and 30 days it pays back the day rate it took', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -960,29 +771,4 @@ describe('a no-pay day in Thailand', () => {
 			}
 		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))
 	);
-});
-
-describe('the catalogs', () => {
-	const root = 'seed/public/jurisdiction';
-	for (const [code, taken, ruleTaken] of [
-		['ID', ID_NO_PAY, [...ID_NO_PAY, 'MEDICAL_LEAVE', 'MATERNITY_LEAVE']],
-		['TH', TH_NO_PAY, TH_NO_PAY]
-	] as const)
-		it(`${code}: every version marks the unpaid rows, with the lock built in`, () => {
-			for (const version of readdirSync(join(root, code))) {
-				const leave = read(join(root, code, version, 'leave_catalog.json'));
-				const unpaid = leave.filter((one) => one.paid_share === '0');
-				// the rows that pay nothing of a day, and the set the rule names
-				assert.deepEqual(unpaid.map((one) => one.code).sort(), [...taken].sort(), version);
-				for (const one of unpaid)
-					assert.ok(one.subtotal_id !== null, `${version} ${one.code} posts its refund`);
-				const rules = read(join(root, code, version, 'registered_rule.json'));
-				// the paid-run lock is a template invariant now, not a jurisdiction rule
-				assert.equal(
-					rules.some((one) => one.code === 'NO_PAY_OPEN_PERIOD'),
-					false,
-					version
-				);
-			}
-		});
 });

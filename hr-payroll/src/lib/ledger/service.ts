@@ -782,7 +782,7 @@ const known = Effect.fn('ledger.known')(function* (
 				'code',
 				'lookup',
 				'settings_id',
-				...(model === LEAVE ? (['paid_share'] as const) : [])
+				...(model === LEAVE ? (['paid_share', 'payout'] as const) : [])
 			],
 			limit: 10000
 		},
@@ -985,6 +985,9 @@ const entryPlans = (
 	});
 };
 
+const UNOPENED =
+	"This person's balance is not open yet. It opens when the ledger sync after their contract finishes; try again then.";
+
 const FAMILY = {
 	leave_catalog_entry: 'leave',
 	claim_catalog_entry: 'claim',
@@ -992,10 +995,21 @@ const FAMILY = {
 } as const;
 
 /** What these entries post, as their own write carries it, from what their batch read. */
-export const entryPostings = (known: Known, model: Entries, entries: readonly JsonObject[]) =>
-	carry(entryPlans(known, FAMILY[model], model, entries), known.posted, [
+export const entryPostings = Effect.fn('ledger.entryPostings')(function* (
+	known: Known,
+	model: Entries,
+	entries: readonly JsonObject[]
+) {
+	// no balance row, no posting: the entry would stand, or be approved, with nothing on the ledger
+	const closed = entries.find((entry) => {
+		const contract = known.contract.get(String(entry.employment_id));
+		return contract !== undefined && !known.balance.has(String(contract.employee_id));
+	});
+	if (closed !== undefined) return yield* Effect.fail(new Refusal({ message: UNOPENED }));
+	return carry(entryPlans(known, FAMILY[model], model, entries), known.posted, [
 		...known.balance.values()
 	]);
+});
 /** What these entries, deleted, posted: inverted, as their delete carries it. */
 export const entriesUndone = (known: Known, model: Entries, entries: readonly JsonObject[]) => {
 	const sources = new Set(entries.map((entry) => `${model}:${String(entry.id)}`));
@@ -1126,12 +1140,15 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 					);
 		}
 	}
+	// a payslip with no balance row would be paid with nothing on the ledger
+	if (slips.some((slip) => !balance.has(String(slip.employee_id))))
+		return yield* Effect.fail(new Refusal({ message: UNOPENED }));
 	const plans = slips.flatMap((slip) => {
-		const balance_id = balance.get(String(slip.employee_id));
+		const balance_id = String(balance.get(String(slip.employee_id)));
 		const run = String(slip.payroll_run_id);
 		const own = setting.get(String(slip.settings_id));
 		const employment = contract.get(String(slip.employment_id));
-		if (balance_id === undefined || own === undefined || employment === undefined) return [];
+		if (own === undefined || employment === undefined) return [];
 		const byMonth = monthly.get(String(slip.settings_id)) ?? [];
 		return [
 			{
@@ -1290,6 +1307,23 @@ const sizeOf = (model: Entries, entry: JsonObject) =>
 		? (Array.isArray(entry.days) ? entry.days : []).length
 		: Math.abs(Number(entry.quantity ?? 0));
 
+/** A cash-out pays its row's `payout`: a row that declares none has nothing a run could pay for the days drawn. */
+export const assertCashable = Effect.fn('ledger.assertCashable')(function* (
+	known: Known,
+	entries: readonly JsonObject[]
+) {
+	const bare = entries.find((entry) => {
+		const payout = known.catalog.get(String(entry.catalog_id))?.payout;
+		return entry.encashment === true && (typeof payout !== 'string' || payout.trim() === '');
+	});
+	if (bare !== undefined)
+		return yield* Effect.fail(
+			new Refusal({
+				message: `${String(known.catalog.get(String(bare.catalog_id))?.code ?? 'This leave')} has no payout, so its days cannot be cashed out. Take them as leave, or give the row a payout.`
+			})
+		);
+});
+
 /** A reversal undoes one sealed entry of the same person and catalog item, once, for no more than it held. */
 export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
 	known: Known,
@@ -1316,6 +1350,9 @@ export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
 			return false;
 		if (model !== LEAVE)
 			return first.payroll_run_id != null && sizeOf(model, entry) <= sizeOf(model, first);
+		// a cash-out is undone as a cash-out: days that came back without their money would be paid twice. (The other
+		// way round is the take-back of leave taken past what was earned: a cash-out that reverses ordinary leave.)
+		if (first.encashment === true && entry.encashment !== true) return false;
 		// only a slot a run has priced is reversible; an unpriced one is corrected by deletion
 		const original = new Set(
 			(known.captures.get(String(first.id)) ?? [])
@@ -1332,7 +1369,7 @@ export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
 		return yield* Effect.fail(
 			new Refusal({
 				message:
-					'A reversal undoes a sealed entry of the same person and catalog item, for no more than it held. An entry no run has sealed is deleted instead.'
+					'A reversal undoes a sealed entry of the same person and catalog item, for no more than it held, and a cash-out is reversed as a cash-out. An entry no run has sealed is deleted instead.'
 			})
 		);
 });
@@ -1699,7 +1736,10 @@ export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
 			{
 				callable: 'ledger_entry.create',
 				input: batch.flatMap(({ balance, movements }) =>
-					movements.map((row) => jsonObject({ ...row, balance_id: String(balance.id) }))
+					// `REMOVE` only drops the emptied key from the balance: the ledger keeps the movement that emptied it
+					movements
+						.filter((row) => row.operation !== 'REMOVE')
+						.map((row) => jsonObject({ ...row, balance_id: String(balance.id) }))
 				)
 			},
 			{

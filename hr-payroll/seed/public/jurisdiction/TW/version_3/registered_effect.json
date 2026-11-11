@@ -1,38 +1,5 @@
 [
 	{
-		"code": "retract-exit-effects",
-		"name": "Retract Exit Effects",
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					},
-					"employee_id": {
-						"isNull": true
-					}
-				}
-			}
-		},
-		"condition": "// js\nreturn true;",
-		"target_collection": "obligation",
-		"target_action": "update",
-		"effects": "// js\nconst prefix = 'exit:' + ctx.entry.id + ':';\nconst current = ':' + ctx.entry.effective_range.to;\nreturn ctx.reads.obligation\n\t.filter((task) => {\n\t\tif (task.state !== 'OPEN') return false;\n\t\tif (!task.occurrence_key.startsWith(prefix)) return false;\n\t\treturn ctx.after == null || !task.occurrence_key.endsWith(current);\n\t})\n\t.map((task) => ({\n\t\ttarget: [task.id],\n\t\tset: {\n\t\t\tstate: 'WAIVED',\n\t\t\twaiver_reason: ctx.after == null ? 'A later version continues the employment; the exit was cancelled.' : 'The exit it answered was replaced.'\n\t\t}\n\t}));",
-		"id": "463e8952-57c5-5115-9f9d-40c1f7cb0828",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"references": [
-			{
-				"title": "勞動基準法 §16–§17: notice and severance follow the contract version that governs the exit; a replaced exit date retires the reminder raised for the old one.",
-				"url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001"
-			}
-		],
-		"description": "When a sealed exit date changes or a later version cancels the exit, waives the open exit reminders raised for the old date so no stale filing survives."
-	},
-	{
 		"code": "INSURANCE_PREMIUM_REMITTANCE",
 		"name": "Labour, employment and occupational accident insurance premiums and the wage arrears levy",
 		"references": [

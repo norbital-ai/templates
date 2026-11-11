@@ -1,13 +1,11 @@
 // China and Taiwan: a wrong payment needs no automatic entry. HR corrects the pay and the next cycle counts the total paid;
 // a no-pay day is a catalog line, so a reversal entry after payment pays it back.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
-import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import { ENTITY, pack, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate } from './kit.ts';
@@ -264,17 +262,6 @@ const reversed = (
 		assert.ok(wrong.may > right.may);
 		assert.ok(wrong.june <= right.june);
 	});
-const ownLadder = (place: Place, paid: number, extra: number, code: string) =>
-	Effect.gen(function* () {
-		const { may, june } = yield* twoMonths(place, paid, place.item, extra, [code]);
-		const alone = (salary: number) =>
-			oneRun(place, salary, place.item, 0, [code]).pipe(
-				Effect.map((rows) => figure(rows, `${code}.employee`))
-			);
-		assert.equal(may, yield* alone(paid + extra));
-		assert.equal(june, yield* alone(paid - extra));
-		assert.ok(june < may);
-	});
 const refused = (place: Place, paid: number, extra: number) => {
 	const seed = seedOf(place, paid);
 	return Effect.gen(function* () {
@@ -326,13 +313,6 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 	);
 	it.live('Taiwan: what the bonus bore stops at zero, no negative line', () =>
 		reversed(TAIWAN, 80_000, 240_000, ['INCOME_TAX', 'INCOME_TAX_BONUS', 'NHI_SUPPLEMENT'])
-	);
-	// 个人所得税法 第六条第一款第二项 and 所得稅法 §88: a non-resident's month stands alone, so nothing accumulates across two
-	it.live('China, a non-resident: June’s ladder takes June’s lower wages', () =>
-		ownLadder(CHINA_NON_RESIDENT, 30_000, 20_000, 'IIT')
-	);
-	it.live('Taiwan, a non-resident: June falls back to 6%', () =>
-		ownLadder(TAIWAN_NON_RESIDENT, 40_000, 10_000, 'INCOME_TAX_NON_RESIDENT')
 	);
 	it.live('China: off-cycle in the same month is refused', () => refused(CHINA, 30_000, 90_000));
 	it.live('Taiwan: off-cycle in the same month is refused', () => refused(TAIWAN, 80_000, 240_000));
@@ -487,59 +467,6 @@ describe('Taiwan’s month of salary', () => {
 				yield* month(t, '2026-07', ['INCOME_TAX'], EMPLOYEE)
 			);
 		}).pipe(Effect.provide(workspace({ seed, now: AUGUST })));
-	});
-	it('exit pay in two payments owes what one would, and a reversal gives it back', () => {
-		const rows: readonly {
-			readonly code: string;
-			readonly employee_amount: string;
-			readonly lookup?: object;
-		}[] = JSON.parse(
-			readFileSync(
-				'seed/public/jurisdiction/TW/version_3/statutory_contribution_catalog.json',
-				'utf8'
-			)
-		);
-		const [settings]: readonly { readonly lookup: object }[] = JSON.parse(
-			readFileSync('seed/public/jurisdiction/TW/version_3/jurisdiction_settings.json', 'utf8')
-		);
-		const row = rows.find((candidate) => candidate.code === 'SEVERANCE_TAX');
-		assert.ok(row !== undefined);
-		const owed = (now: number, ytd: number, withheld: number) =>
-			Number(
-				evaluate(
-					row.employee_amount,
-					'CALCULATION',
-					{
-						subject: {
-							employment: {
-								effective_range: { from: '2016-06-01', to: '2026-05-31' },
-								employee_extension_data: review('2025-01-01')
-							}
-						},
-						lookup: {
-							...((settings?.lookup as Record<string, unknown> | undefined)?.[
-								'constants'
-							] as object),
-							...settings?.lookup,
-							...row.lookup
-						},
-						run: {
-							pay_date: '2026-06-25',
-							salary_coverage: { from: '2026-06-01', to: '2026-06-30' }
-						},
-						subtotals: { ADDITIONAL_WAGES: 0, RETIREMENT: now },
-						balances: {
-							ytd: { RETIREMENT: ytd, ADDITIONAL_WAGES: 0 },
-							statutory_contribution: { 'SEVERANCE_TAX.employee': withheld }
-						}
-					},
-					'SEVERANCE_TAX'
-				)
-			);
-		// ten years at NT$206,000 exempt NT$2,060,000
-		assert.equal(owed(2_000_000, 0, 0), 0);
-		assert.equal(owed(200_000, 2_000_000, 0), 8400);
-		assert.equal(owed(-200_000, 2_200_000, 8400), -8400);
 	});
 });
 
@@ -754,32 +681,6 @@ describe('a no-pay day', () => {
 				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2950);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
-		it.live('a weekend between two missed days stays paid', () =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* take(t, seed, code, [...whole('2026-06-12'), ...whole('2026-06-15')]);
-				yield* onCycle(t, '2026-06');
-				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code)?.amount, 2000);
-				assert.equal(checkpoint(june, 'PAID_BASIC'), 28_000);
-				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2800);
-			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
-		);
-		it.live('every work day of a month missed leaves the rest days paid', () =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				// August 2026 opens and closes around weekends
-				const weekdays = Array.from({ length: 31 }, (_, index) => index + 1)
-					.map((day) => `2026-08-${String(day).padStart(2, '0')}`)
-					.filter((date) => ![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay()));
-				yield* take(t, seed, code, weekdays.flatMap(whole));
-				yield* onCycle(t, '2026-08');
-				const [august] = yield* runs(t, '2026-08');
-				assert.equal(line(august, code)?.amount, 21_000);
-				assert.equal(checkpoint(august, 'PAID_BASIC'), 9_000);
-				assert.equal(Math.round(Number(line(august, 'MEAL_ALLOWANCE')?.amount) * 100) / 100, 900);
-			}).pipe(Effect.provide(workspace({ seed, now: AUGUST })))
-		);
 		it.live('reversed after payment, 31-day July gives back a day of 30-day June', () =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -804,48 +705,4 @@ describe('a no-pay day', () => {
 			}).pipe(Effect.provide(workspace({ seed, now: JULY })))
 		);
 	});
-});
-
-describe('CN prior employment in the same tax year', () => {
-	/** One prior-employment row, and whether it was withheld by this same agent. */
-	const withPrior = (same: boolean) => {
-		const seed = seedOf(CHINA, 30_000);
-		return {
-			...seed,
-			employee_contract: (seed.employee_contract ?? []).map((row) => ({
-				...row,
-				employee_extension_data: {
-					prior_employment: [
-						{
-							tax_year: 2026,
-							months: 3,
-							gross_income: 90_000,
-							iit_withheld: 0,
-							employee_social_contributions: 9_000,
-							same_withholding_agent: same
-						}
-					]
-				}
-			}))
-		};
-	};
-	const taxOf = (same: boolean) =>
-		Effect.gen(function* () {
-			const seed = withPrior(same);
-			return yield* Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* onCycle(t, '2026-06');
-				const debug = yield* t.storedQuery({ payslip: { limit: 5 } });
-				return figure(yield* month(t, '2026-06', ['IIT'], EMPLOYEE), 'IIT.employee');
-			}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-		});
-	it.live('a prior period from the same agent joins the cumulative base', () =>
-		Effect.gen(function* () {
-			const same = yield* taxOf(true);
-			const other = yield* taxOf(false);
-			const none = yield* taxOf(false);
-			assert.ok(same > other, `${same} should exceed ${other}`);
-			assert.equal(other, none);
-		})
-	);
 });

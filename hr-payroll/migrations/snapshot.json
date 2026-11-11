@@ -1683,6 +1683,11 @@
 					"max": "20MiB",
 					"optional": true
 				},
+				"occurrence_key": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
 				"payroll_run_id": {
 					"kind": "ref",
 					"onDelete": "setNull",
@@ -1703,6 +1708,20 @@
 					"fields": [
 						"reverses"
 					]
+				},
+				{
+					"fields": [
+						"occurrence_key",
+						"catalog_id"
+					],
+					"where": {
+						"occurrence_key": {
+							"isNull": false
+						},
+						"reverses": {
+							"isNull": true
+						}
+					}
 				}
 			]
 		},
@@ -1747,6 +1766,25 @@
 		},
 		"ledger_entry": {
 			"audit": true,
+			"check": {
+				"names_its_movement": {
+					"message": "A ledger row names its source, period, measure and amount.",
+					"where": {
+						"amount": {
+							"isNull": false
+						},
+						"measure": {
+							"isNull": false
+						},
+						"period": {
+							"isNull": false
+						},
+						"source": {
+							"isNull": false
+						}
+					}
+				}
+			},
 			"fields": {
 				"account": {
 					"help": "Catalogue family key, for example leave or claim.",

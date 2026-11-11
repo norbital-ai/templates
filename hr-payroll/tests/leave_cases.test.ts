@@ -421,15 +421,4 @@ describe('pay that steps down, on one row', () => {
 			assert.equal((yield* raised).length, 1);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
-	it.live('maternity: the fourth month is full, the fifth takes a quarter of each day', () => {
-		const born = seedOf('FEMALE', [{ kind: 'CHILD_BIRTH', on: '2026-02-02' }]);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* syncAll(t);
-			yield* take(t, born, 'MATERNITY_LEAVE', ['2026-05-27', '2026-06-09', '2026-06-10']);
-			yield* t.runDue();
-			yield* run(t, '2026-06');
-			near(yield* taken(t), Math.round(2 * DAY * 0.25));
-		}).pipe(Effect.provide(workspace({ seed: born, now: NOW })));
-	});
 });

@@ -65,7 +65,7 @@ export default model('claim_catalog_entry', {
 			if (!ctx.approving) {
 				yield* assertReversals(known, 'claim_catalog_entry', entries);
 			}
-			return { rows, onApproved: entryPostings(known, 'claim_catalog_entry', entries) };
+			return { rows, onApproved: yield* entryPostings(known, 'claim_catalog_entry', entries) };
 		}
 	},
 	update: {
@@ -88,10 +88,12 @@ export default model('claim_catalog_entry', {
 				ctx.approving ? undefined : 'update'
 			);
 			if (!ctx.approving && changes.some((c) => c.before.payroll_run_id != null))
-				return yield* ctx.refuse('This record is locked by a payroll run.');
+				return yield* ctx.refuse(
+					'This record is locked by a payroll run. Create a reversal entry for it instead.'
+				);
 			return {
 				rows: changes.map((c) => c.set),
-				onApproved: entryPostings(known, 'claim_catalog_entry', proposed)
+				onApproved: yield* entryPostings(known, 'claim_catalog_entry', proposed)
 			};
 		}
 	},
@@ -105,7 +107,9 @@ export default model('claim_catalog_entry', {
 				ctx.approving ? undefined : 'delete'
 			);
 			if (!ctx.approving && rows.some((r) => r.payroll_run_id != null))
-				return yield* ctx.refuse('This record is locked by a payroll run.');
+				return yield* ctx.refuse(
+					'This record is locked by a payroll run. Create a reversal entry for it instead.'
+				);
 			return { onApproved: entriesUndone(known, 'claim_catalog_entry', entries) };
 		}
 	},

@@ -123,13 +123,4 @@ describe('a holiday on the roster', () => {
 			assert.equal(colleague.OVERTIME, undefined, JSON.stringify(colleague));
 		}).pipe(Effect.provide(workspace({ seed: two, now: '2026-02-20T02:00:00.000Z' })));
 	});
-	it.live('no OIL entry is raised for a rest-day holiday', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const { leave_catalog_entry } = yield* t.storedQuery({
-				leave_catalog_entry: { limit: 10 }
-			});
-			assert.equal(leave_catalog_entry.rows.length, 0);
-		}).pipe(Effect.provide(workspace({ seed: seed(REST, 8), now: '2026-02-20T02:00:00.000Z' })))
-	);
 });

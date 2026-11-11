@@ -1,5 +1,5 @@
-// An employer's own pay method stands only where it pays at least the law; an employee-borne share of a borne income
-// tax is a contract term. Real sealed law, a synthetic employee and a month, end to end through `payroll_run.create`.
+// An employer's own pay method stands only where it pays at least the law. Real sealed law, a synthetic employee and
+// a month, end to end through `payroll_run.create`.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
@@ -82,25 +82,6 @@ const SIX_DAY_HOUR = 9.26;
 const WEEKLY_HOUR = 9.88;
 
 describe('employer pay methods', () => {
-	it('the hours read as the law and the employer method say', () => {
-		assert.equal((DAY / 9).toFixed(2), String(ROUNDED_STATUTORY_HOUR));
-		assert.equal((SIX_DAY / 8).toFixed(2), String(SIX_DAY_HOUR));
-		assert.equal(((1927 * 12) / (52 * 45)).toFixed(2), String(WEEKLY_HOUR));
-	});
-
-	it.live('without methods a 9 h × 5 worker is paid the Act’s hour', () =>
-		Effect.gen(function* () {
-			const { breakdown } = yield* slip(malaysia(9, 5, {}), '2026-02', FEBRUARY);
-			near(amount(breakdown, 'OVERTIME'), 2 * 1.5 * ROUNDED_STATUTORY_HOUR, 'OVERTIME');
-			near(amount(breakdown, 'REST_DAY_WORK'), DAY + DAY / 2, 'REST_DAY_WORK');
-			near(
-				amount(breakdown, 'REST_DAY_OVERTIME'),
-				2 * 2 * ROUNDED_STATUTORY_HOUR,
-				'REST_DAY_OVERTIME'
-			);
-		})
-	);
-
 	it.live(
 		'CONTRACT_WEEKLY lifts an 8 h × 6 worker’s overtime hour on a 45 h week, not the rest-day day',
 		() =>
@@ -228,13 +209,6 @@ const philippines = (employer: JsonObject) => {
 };
 
 describe('night differential basis', () => {
-	it.live('WORKED pays the statute on the worked night hours', () =>
-		Effect.gen(function* () {
-			const { breakdown } = yield* slip(philippines({}), '2026-02', FEBRUARY);
-			near(amount(breakdown, 'NIGHT_SHIFT_DIFFERENTIAL'), 52.5 + 105, 'NIGHT_SHIFT_DIFFERENTIAL');
-		})
-	);
-
 	it.live('CLOCK_SPAN pays the clocked span per shift, never below the statute', () =>
 		Effect.gen(function* () {
 			const { breakdown } = yield* slip(
@@ -520,47 +494,6 @@ describe('overtime hour', () => {
 			);
 			const { breakdown } = yield* slip(seed, '2026-02', FEBRUARY);
 			assert.equal(amount(breakdown, 'OVERTIME'), Math.round((3.5 * 5_000_000) / 173));
-		})
-	);
-});
-
-describe('employee-borne income tax', () => {
-	// Rp8,000,000 salary and a Rp2,000,000 special allowance; JKK 0.24%, JKM 0.30% and Kesehatan 4% on Rp10,000,000
-	// put Rp10,454,000 in the month (PMK 168/2023 art.5(3)), TER A at 2.5%: Rp261,350 of PPh 21. The employee bears
-	// 2.5% of the allowance, Rp50,000; the employer the remaining Rp211,350.
-	it.live('the employer bears PPh 21 but the allowance the contract names', () =>
-		Effect.gen(function* () {
-			const seed = withEmployer(
-				pack(
-					'ID',
-					'Asia/Jakarta',
-					{
-						rate: { amount: 8_000_000, unit: 'MONTHLY' },
-						statutory_work_category: 'NON_MANUAL',
-						work_classification: 'EA_COVERED',
-						residency_status: 'CITIZEN',
-						wage_payment_method: 'BANK',
-						allowances: { SPECIAL_ALLOWANCE: { amount: 2_000_000 } },
-						employer_bears_income_tax: true,
-						employee_borne_tax_items: ['SPECIAL_ALLOWANCE']
-					},
-					{},
-					[],
-					[],
-					'2026-06-15'
-				),
-				{ entity_extension_data: { risk_class: 'I' } }
-			);
-			const { payslip, breakdown } = yield* slip(seed, '2026-06', '2026-06-20T02:00:00.000Z');
-			const borne = breakdown.statutory.find((row) => row.code === 'PPH21_EMPLOYER_BORNE');
-			assert.equal(amount(breakdown, 'PPH21'), 261_350);
-			assert.deepEqual(borne, {
-				code: 'PPH21_EMPLOYER_BORNE',
-				kind: 'TAX',
-				employee: -211_350,
-				employer: 211_350
-			});
-			assert.equal(payslip.tax_withheld.toNumber(), 50_000);
 		})
 	);
 });

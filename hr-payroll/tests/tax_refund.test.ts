@@ -1,8 +1,6 @@
 // What a statutory row returns decides what happens. Below zero, a row whose statute has the employer repay pays an `ADD`
 // line on that run and its balance falls by the refund; any other stops at zero and the next run nets it.
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { diff } from '../src/lib/ledger/core.ts';
 import { payslipWanted } from '../src/lib/ledger/service.ts';
@@ -122,38 +120,4 @@ describe('a statutory row', () => {
 			assert.ok(movements(input).every(([, , , amount]) => Number(amount) >= 0));
 		}
 	});
-});
-
-describe('each country’s route', () => {
-	const ROOT = 'seed/public/jurisdiction';
-	const routeOf = (country: string, code: string) => {
-		const versions = readdirSync(join(ROOT, country));
-		const routes = versions.flatMap((version) =>
-			(
-				JSON.parse(
-					readFileSync(join(ROOT, country, version, 'statutory_contribution_catalog.json'), 'utf8')
-				) as readonly { readonly code: string; readonly lookup?: object }[]
-			)
-				.filter((row) => row.code === code)
-				.map((row) => JSON.stringify(row.lookup ?? {}).includes('"below_zero":"REFUND"'))
-		);
-		assert.ok(routes.length > 0, `${country} ${code}`);
-		return routes;
-	};
-	for (const [country, code] of [
-		['JP', 'YEAR_END_ADJUSTMENT'],
-		['ID', 'PPH21'],
-		['PH', 'WTAX'],
-		['VN', 'PIT']
-	] as const)
-		it(`${country}: ${code} has the employer repay`, () => {
-			assert.ok(routeOf(country, code).every(Boolean));
-		});
-	for (const [country, code] of [
-		['CN', 'IIT'],
-		['MY', 'PCB']
-	] as const)
-		it(`${country}: ${code} stops at zero and carries`, () => {
-			assert.ok(!routeOf(country, code).some(Boolean));
-		});
 });

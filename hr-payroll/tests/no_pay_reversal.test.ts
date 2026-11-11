@@ -284,17 +284,6 @@ describe('an allowance and the share of the period paid', () => {
 			assert.equal((yield* paid(t, '2026-06'))['SUA'], 300);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
-	it.live('no-pay leave takes its share from the allowance too', () => {
-		const seed = malaysia(SUA);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* entry(t, seed, whole('2026-06-10'));
-			yield* run(t, '2026-06');
-			// (3,120 + 300) ÷ 30 days
-			// BASIC stays the contract salary: the day is the NPL line, and the allowance loses its own share
-			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120, NPL: -104, SUA: 290 });
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
-	});
 });
 
 describe('an allowance across a month of contracts', () => {

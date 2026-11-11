@@ -5,6 +5,7 @@ import { attendanceOf, cycleOf, payDateOf } from '../../../lib/payroll_engine/pa
 import { idOf } from '../../../lib/payroll_engine/reads.js';
 
 import type { FileSyncCtx } from '@norbital-ai/bolt';
+import { follow } from '../../../lib/dependants.js';
 import { runPostings, undone } from '../../../lib/ledger/service.js';
 import { calculateRun, loadRun } from '../../../lib/payroll_engine/run_calculation.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
@@ -155,7 +156,7 @@ export default model('payroll_run', {
 				// year-to-date only moves forward
 				payroll_run: {
 					where: { entity_id: { in: entityIds } },
-					fields: ['entity_id', 'pay_group_id', 'period', 'kind'],
+					fields: ['entity_id', 'pay_group_id', 'period', 'kind', 'salary_coverage'],
 					limit: 10000
 				}
 			});
@@ -193,6 +194,16 @@ export default model('payroll_run', {
 				const later = prior.find((entry) => entry.kind === 'ON_CYCLE' && entry.period > row.period);
 				if (!offCycle && later !== undefined)
 					return `${later.period} has already run, so ${row.period} cannot run after it.`;
+				// a group's schedule may change after it ran: no day of salary is paid by two of its cycles
+				const paid = prior.find(
+					(entry) =>
+						entry.kind === 'ON_CYCLE' &&
+						entry.period !== row.period &&
+						String(entry.salary_coverage.from) <= cycle.to &&
+						cycle.from <= String(entry.salary_coverage.to)
+				);
+				if (!offCycle && paid !== undefined)
+					return `${paid.period} already paid ${String(paid.salary_coverage.from)} to ${String(paid.salary_coverage.to)} for ${group.name}. Run the first cycle after it.`;
 				const pay_date = PlainDate(offCycle ? ctx.today : payDateOf(schedule, row.period));
 				const settings = known.jurisdiction_settings.rows.find(
 					(entry) => entry.code === version.settings_code && on(entry.effective_range, pay_date)
@@ -259,7 +270,7 @@ export default model('payroll_run', {
 					)
 				)
 					return yield* ctx.refuse(
-						'Someone in this run was not employed in its period. Run it on the period of their last day.'
+						'Someone in this run is not paid by this pay group in its period: they are in another group, or were not employed. Run it for their own pay group, on the period of their last day.'
 					);
 				if (frame.pays !== undefined) {
 					// nothing negative posts to a balance, so a reversal that outruns the run waits for the next on-cycle run
@@ -344,8 +355,20 @@ export default model('payroll_run', {
 				changes
 			);
 			// service bands and anniversaries move on no event of their own: every paid run looks
-			if (changes.some(({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'))
-				yield* ctx.schedule('ledger', {}, { key: 'ledger' });
+			const paid = changes.filter(
+				({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'
+			);
+			if (paid.length === 0) return;
+			yield* ctx.schedule('ledger', {}, { key: 'ledger' });
+			// a derived entry this run paid whose fact was cancelled meanwhile is now settled: its reversal is proposed
+			yield* follow(ctx, { payroll_run_id: { in: paid.map(({ after }) => after.id) } });
+		},
+		deleted: function* (rows, ctx) {
+			// the derived entries it had sealed are open again
+			yield* follow(ctx, {
+				entity_id: { in: rows.map((row) => row.entity_id) },
+				payroll_run_id: { isNull: true }
+			});
 		}
 	},
 	delete: {
@@ -358,7 +381,9 @@ export default model('payroll_run', {
 			);
 			if (ctx.approving) return { onApproved: yield* back };
 			if (rows.some((row) => row.state === 'PAID'))
-				return yield* ctx.refuse('A paid run is locked.');
+				return yield* ctx.refuse(
+					'A paid run is locked. Correct it with a reversal or an adjustment entry, which the next run pays.'
+				);
 			// a later run's year-to-date already counts this one, for anyone paid in both
 			const { payslip: own, payroll_run: runs } = yield* ctx.db.query({
 				payslip: { where: { payroll_run_id: { in: ids } }, fields: ['employee_id'], limit: 10000 },

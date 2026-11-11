@@ -526,34 +526,6 @@
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
 	{
-		"code": "retract-exit-effects",
-		"name": "Retract Exit Effects",
-		"description": "Waive an exit's open duties when its date moves or a later version cancels it.",
-		"lookup": {},
-		"references": [],
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					}
-				},
-				"fields": ["id", "occurrence_key", "state"],
-				"limit": 100
-			}
-		},
-		"condition": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nreturn get(ctx, \"reads.obligation\", []).some((task) => task.state === \"OPEN\" && stale(task));",
-		"target_collection": "obligation",
-		"target_action": "update",
-		"effects": "const stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn (\n\t\tkey.includes(\":exit:\") &&\n\t\t(ctx.after == null || !key.endsWith(\":exit:\" + ctx.entry.effective_range.to))\n\t);\n};\nconst reason =\n\tctx.after == null\n\t\t? \"A later version continues the employment; the exit was cancelled.\"\n\t\t: \"The exit date moved; this task answered the earlier date.\";\nreturn get(ctx, \"reads.obligation\", [])\n\t.filter((task) => task.state === \"OPEN\" && stale(task))\n\t.map((task) => ({ target: task.id, set: { state: \"WAIVED\", waiver_reason: reason } }));",
-		"id": "707ec2ed-3be8-5503-854f-822120beba4b",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
-	},
-	{
 		"code": "HDMF_EMPLOYER_REGISTRATION",
 		"name": "Register the employer with the Pag-IBIG Fund",
 		"description": "Raises the Pag-IBIG employer registration task within thirty days of starting operations.",

@@ -1,7 +1,8 @@
 import { model } from '@norbital-ai/bolt';
 import { writesLedger } from '../../../../lib/ledger/service.js';
 
-const SYSTEM_ONLY = 'Only the ledger moves a balance, an admin included.';
+const SYSTEM_ONLY =
+	'Only the ledger moves a balance, an admin included. Key an entry, or a manual adjustment on the employee profile.';
 
 export default model('employee_balance', {
 	description:

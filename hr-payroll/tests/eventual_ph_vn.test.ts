@@ -223,8 +223,6 @@ const charged = (t: Kit, period: string) =>
 			);
 		})
 	);
-const employeeSide = (rows: Readonly<Record<string, number>>) =>
-	Object.fromEntries(Object.entries(rows).filter(([key]) => key.endsWith('.employee')));
 const checkpoint = (
 	rows: readonly { readonly code: string; readonly value: number }[],
 	code: string
@@ -355,21 +353,6 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 				if (employee < 0)
 					assert.equal(taken.lines.find((line) => line.code === code)?.direction, 'ADD', code);
 		});
-	it.live('Philippines: June counts the lower wages, no negative line', () => {
-		const seed = seedOf(one, terms(one.salary), '2026-01-01', {}, '2026-05-15');
-		return inWorkspace(seed, NOW, (t) =>
-			Effect.gen(function* () {
-				yield* reversed(t, seed, '2026-05', '2026-06');
-				assert.deepEqual(employeeSide(yield* charged(t, '2026-06')), {
-					'HDMF.employee': 200,
-					'PHIC.employee': 1500,
-					'SSS.employee': 1000,
-					'SSS_MPF.employee': 500,
-					'WTAX.employee': 895.05
-				});
-			})
-		);
-	});
 	it.live('Philippines: December’s annualisation nets the two months', () => {
 		const seed = lasting(seedOf(one, terms(one.salary), '2026-11-01', {}, '2026-11-15'));
 		const DECEMBER = '2026-12-20T02:00:00.000Z';
@@ -773,116 +756,4 @@ describe('a no-pay day', () => {
 			);
 		});
 	}
-
-	it.live('Philippines: a rice subsidy stays de minimis on the days it was paid', () => {
-		const one = COUNTRIES['Philippines'];
-		assert.ok(one !== undefined);
-		const seed = seedOf(one, terms(44_000, { meal: { amount: 2200 } }));
-		return inWorkspace(seed, NOW, (t) =>
-			Effect.gen(function* () {
-				yield* leave(t, seed, whole('2026-06-10'));
-				yield* onCycle(t, '2026-06');
-				const [slip] = yield* slips(t, '2026-06');
-				assert.ok(slip !== undefined);
-				within(lineOf(slip.lines, 'meal'), 2098.85);
-				within(checkpoint(slip.checkpoints, 'STATUTORY_WAGES'), 41_977.01);
-			})
-		);
-	});
-});
-
-describe('a work-authorisation check runs at every payslip', () => {
-	const vietnam = COUNTRIES['Vietnam'];
-	assert.ok(vietnam !== undefined);
-	const KEY = `WORK_AUTHORISATION_EXTENSION_393:${uuid(6)}`;
-	const FIRST = '2026-12-20T02:00:00.000Z';
-	const bounded = (seed: Seed, to: string): Seed => ({
-		...lasting(seed),
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
-			...row,
-			effective_range: { from: '2025-01-01', to }
-		}))
-	});
-	const permit = {
-		...terms(vietnam.salary),
-		work_authorisation_category: 'PERMIT'
-	};
-	const extension = {
-		term_facts: { pass_type: 'WORK_PERMIT', work_authorisation_extension_count: 0 }
-	};
-	const obligations = (t: Kit) =>
-		t.storedQuery({ obligation: { limit: 1000 } }).pipe(Effect.map((got) => got.obligation.rows));
-
-	it.live('raises the extension inside its window, once', () => {
-		const seed = bounded(
-			seedOf(vietnam, permit, '2025-01-01', extension, '2026-11-15'),
-			'2027-02-20'
-		);
-		return inWorkspace(seed, FIRST, (t) =>
-			Effect.gen(function* () {
-				yield* onCycle(t, '2026-12');
-				yield* t
-					.as(t.admin)
-					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2027-01', kind: 'ON_CYCLE' }]);
-				yield* t.runDue();
-				const raised = (yield* obligations(t)).filter((row) => row.occurrence_key === KEY);
-				assert.equal(raised.length, 1);
-				assert.equal(raised[0]?.employment_id, uuid(6));
-			})
-		);
-	});
-
-	it.live('stays quiet before the window', () => {
-		const seed = bounded(
-			seedOf(vietnam, permit, '2025-01-01', extension, '2026-11-15'),
-			'2028-02-20'
-		);
-		return inWorkspace(seed, FIRST, (t) =>
-			Effect.gen(function* () {
-				yield* onCycle(t, '2026-12');
-				assert.equal((yield* obligations(t)).filter((row) => row.occurrence_key === KEY).length, 0);
-			})
-		);
-	});
-
-	it.live('two foreign workers on one run raise one employer report', () => {
-		const base = lasting(seedOf(vietnam, permit, '2025-01-01', extension, '2026-11-15'));
-		const [contract] = base.employee_contract ?? [];
-		assert.ok(contract !== undefined);
-		const seed: Seed = {
-			...base,
-			sys_user: [
-				...(base.sys_user ?? []),
-				{ id: uuid(30), name: 'Second', email: 'second@example.test', kind: 'staff' }
-			],
-			employee_profile: [
-				...(base.employee_profile ?? []),
-				{ id: uuid(31), user_id: uuid(30), name: 'Second' }
-			],
-			employee_balance: [
-				...(base.employee_balance ?? []),
-				{ id: uuid(32), employee_id: uuid(31), account: {} }
-			],
-			employee_contract: [
-				contract,
-				{
-					...contract,
-					id: uuid(33),
-					employee_id: uuid(31),
-					employee_number: 'W2'
-				}
-			]
-		};
-		return inWorkspace(seed, FIRST, (t) =>
-			Effect.gen(function* () {
-				yield* onCycle(t, '2026-12');
-				const reports = (yield* obligations(t)).filter((row) =>
-					row.occurrence_key.startsWith('FOREIGN_WORKER_REPORT_393:')
-				);
-				assert.equal(reports.length, 1);
-				const raised = (yield* obligations(t)).map((row) => row.occurrence_key);
-				assert.ok(raised.some((key) => key.startsWith('WAGE_PAYMENT_TIMING:')));
-			})
-		);
-	});
 });

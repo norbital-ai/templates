@@ -53,6 +53,9 @@ export const monthlyEquivalent = (terms: {
 				: null;
 };
 
+/** The reference of the repayment a leaver's final pay makes; a partial one adds ` (partial)`. */
+export const FINAL_SETTLEMENT = 'Final settlement';
+
 export type LoanRecovery = {
 	/** The most final pay may repay: expected pay less the entity's floor share, in money. */
 	readonly maximum: number;

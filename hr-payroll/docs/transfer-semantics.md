@@ -72,7 +72,10 @@ Where the old jurisdiction's `ANNUAL_LEAVE` row has a `payout`, ending the contr
 with no same-jurisdiction successor creates a normal `leave_catalog_entry` with `encashment: true`,
 for the days left. Its own write posts them as used, and the old jurisdiction's final run
 pays its payout in `FINAL_PAY`. A misconduct dismissal recorded in `employee_extension_data.misconduct_dismissal` encashes
-nothing.
+nothing. The entry names its exit (`occurrence_key` `exit:<contract id>`) and waits for the HR controller. If the exit
+is cancelled it is withdrawn while no run has paid it, cannot be approved while it still waits (HR rejects it), and
+once a paid run took it HR is asked by one task to reverse it
+([0007](0007-corrections-and-integrity.md) §8).
 
 ### 3.2 Loans
 
@@ -89,7 +92,9 @@ jurisdiction, and it never touches the ledger.
   - **SETTLE**: otherwise, or when the user checks **Settle from final pay instead of transferring**,
     create the settlement repayment.
 - **Termination** — final pay repays what `final_pay_loan_floor_percent` allows. The rest stays open
-  on a recalibrated schedule, and HR gets a task to chase it.
+  on a recalibrated schedule, and HR gets a task to chase it (`LOAN_RECOVERY:<contract>:exit:<last day>`). If the
+  exit is cancelled the task is waived and a final settlement no run took goes back to monthly instalments over the
+  loan's period; one a paid run took stands.
 
 Silent carry is unsafe across jurisdictions: the new jurisdiction's payroll reads its own loan
 catalogue, so the old loan's `catalog_id` may not exist and the deduction silently stops.
@@ -112,6 +117,9 @@ current unbroken stint's start as `employment_started_on`, for statutes that cou
 An exit is read from the chain: a sealed version that ends with no successor of the same jurisdiction lineage. No
 separate record holds it. The contract's write raises the `exit` event when a save makes it true (or moves or cancels
 it); encashment and exit duties listen to that event and key their work by the employment, so a repeat is a no-op.
+A moved or cancelled exit is followed by one routine for every jurisdiction (`src/lib/dependants.ts`): it waives the
+open tasks of the exit that no longer stands and settles its cash-out and loan
+([0007](0007-corrections-and-integrity.md) §8).
 The save that ends the version, or moves its end, states its exit answers with it: `exit_ground`, and the exit keys of
 `employee_extension_data` the version did not hold (Indonesia's `termination_cause`).
 

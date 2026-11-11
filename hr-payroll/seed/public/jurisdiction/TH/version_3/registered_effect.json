@@ -1,47 +1,5 @@
 [
 	{
-		"code": "retract-exit-effects",
-		"name": "Retract Exit Effects",
-		"lookup": {
-			"exit_codes": [
-				"SSO_EXIT_NOTIFICATION",
-				"FINAL_PAY",
-				"WITHHOLDING_CERTIFICATE_ON_EXIT",
-				"FOREIGN_WORKER_EXIT_NOTIFICATION",
-				"YOUNG_WORKER_EXIT_NOTICE",
-				"TECHNOLOGY_REDUNDANCY_NOTICE",
-				"RETIREMENT_SEVERANCE",
-				"SECURITY_DEPOSIT_RETURN",
-				"RECORDS_RETENTION",
-				"PERSONAL_DATA_DISPOSAL"
-			]
-		},
-		"references": [],
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"entity_id": {
-						"eq": {
-							"var": "ctx.entry.entity_id"
-						}
-					},
-					"employee_id": {
-						"isNull": false
-					}
-				}
-			}
-		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nreturn exited;",
-		"target_collection": "obligation",
-		"target_action": "update",
-		"effects": "const entry = ctx.entry;\n// a later version that continues the employment cancels the exit: every open duty it raised goes\nconst current = ctx.after == null ? null : entry.effective_range.to;\nconst stale = get(ctx, \"reads.obligation\", []).filter((o) => o.state === \"OPEN\" && ctx.lookup.exit_codes.some((c) => o.occurrence_key.startsWith(c + \":\" + entry.id + \":\")) && (current === null || !o.occurrence_key.endsWith(\":\" + current)));\nconst reason = current === null ? \"A later version continues the employment; the exit was cancelled.\" : \"The exit it answered changed to \" + current + \".\";\nreturn stale.map((o) => ({ target: o.id, set: { state: \"WAIVED\", waiver_reason: reason } }));",
-		"id": "e1eddb3f-aa54-5a06-8b21-17517016b899",
-		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "Waives exit tasks whose exit date moved or a later version cancelled, so only the standing exit keeps its deadlines."
-	},
-	{
 		"code": "SSO_CONTRIBUTION_REMITTANCE",
 		"name": "Social Security contribution return and payment (Sor Por Sor 1-10)",
 		"lookup": {
@@ -618,7 +576,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nreturn exited;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"SSO_EXIT_NOTIFICATION\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Social Security exit notification\",\n  due_on: add_days(month_end(entry.effective_range.to), ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"SSO_EXIT_NOTIFICATION\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Social Security exit notification\",\n  due_on: add_days(month_end(entry.effective_range.to), ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
 		"id": "40d0204a-3008-590d-9435-b57c105a4692",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises the SSO exit notification by the 15th of the month after the employee leaves (SSA s.44)."
@@ -661,7 +619,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nconst exitGround = get(exitFacts, \"exit_ground\", \"\");\nreturn exited && ctx.lookup.exit_grounds.includes(exitGround);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"FINAL_PAY\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Final pay on termination\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"FINAL_PAY\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Final pay on termination\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
 		"id": "2d11d730-b5f4-557d-8ad3-7fc4719c6fe0",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises final wages and termination pay within three days of a dismissal, redundancy, retirement or contract end (LPA s.70)."
@@ -697,7 +655,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nreturn exited;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"WITHHOLDING_CERTIFICATE_ON_EXIT\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Withholding certificate on exit\",\n  due_on: add_months(entry.effective_range.to, ctx.lookup.month_offset),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"WITHHOLDING_CERTIFICATE_ON_EXIT\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Withholding certificate on exit\",\n  due_on: add_months(entry.effective_range.to, ctx.lookup.month_offset),\n  occurrence_key: key\n}];",
 		"id": "d136c52a-bf5d-54cf-8cf9-6f078ce0cf9e",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises the leaving employee's withholding certificate within one month of exit (Revenue Code s.50 bis)."
@@ -769,7 +727,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(entry, 'payroll.nationality', \"\");\nconst permitBasis = get(employeeFacts, \"work_permit_basis\", \"\");\nif (!exited) return false;\nif (nationality === \"\") return false;\nif (nationality === \"TH\") return false;\nreturn permitBasis !== \"SECTION_62\";",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"FOREIGN_WORKER_EXIT_NOTIFICATION\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Foreign worker exit notification\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"FOREIGN_WORKER_EXIT_NOTIFICATION\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Foreign worker exit notification\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
 		"id": "ad438635-3f2e-5473-9ef9-4d4e9db4192e",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises the registrar notification when a foreign worker leaves within 15 days (Foreign Workers Royal Ordinance s.13)."
@@ -1072,7 +1030,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(entry, 'payroll.nationality', \"\");\nconst permitBasis = get(employeeFacts, \"work_permit_basis\", \"\");\nif (!exited) return false;\nif (dateOfBirth === \"\") return false;\nreturn age_on(dateOfBirth, entry.effective_range.to) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"YOUNG_WORKER_EXIT_NOTICE\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Young worker exit notice\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"YOUNG_WORKER_EXIT_NOTICE\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Young worker exit notice\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
 		"id": "eb35bddc-f246-5d8c-9a39-d1d3150880f9",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises the labour-inspector notice when a child employee leaves within seven days (LPA s.45)."
@@ -1156,7 +1114,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nreturn exited && get(exitFacts, \"special_severance_ground\", \"\") === \"TECHNOLOGY\";",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"TECHNOLOGY_REDUNDANCY_NOTICE\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Advance notice of technology redundancy\",\n  due_on: add_days(entry.effective_range.to, -ctx.lookup.advance_notice_days),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"TECHNOLOGY_REDUNDANCY_NOTICE\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Advance notice of technology redundancy\",\n  due_on: add_days(entry.effective_range.to, -ctx.lookup.advance_notice_days),\n  occurrence_key: key\n}];",
 		"id": "14799c6e-bae4-5e64-b138-a62369913848",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises the 60-day technology-redundancy notice to employees and the labour inspector (LPA s.121)."
@@ -1190,7 +1148,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nconst exitGround = get(exitFacts, \"exit_ground\", \"\");\nreturn exited && exitGround === \"RETIREMENT\";",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"RETIREMENT_SEVERANCE\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Retirement severance\",\n  due_on: entry.effective_range.to,\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"RETIREMENT_SEVERANCE\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Retirement severance\",\n  due_on: entry.effective_range.to,\n  occurrence_key: key\n}];",
 		"id": "bc8ddb50-ebb4-5c52-b60c-4c28186daa35",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises severance on retirement (LPA s.118/1)."
@@ -1236,7 +1194,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitOn = entry.effective_range.to;\nconst held = (c) => {\n  if (c.kind !== \"SECURITY_DEPOSIT_RECEIVED\") return false;\n  if (c.employment_id !== entry.id) return false;\n  if (c.closed_on !== null) return false;\n  if (get(c, \"evidence_file\", null) === null) return false;\n  if (c.opened_on > exitOn) return false;\n  if (!(Number(get(c, \"inputs.amount\", 0)) > 0)) return false;\n  if (get(c, \"inputs.currency\", \"\") !== ctx.lookup.currency) return false;\n  return get(c, \"inputs.receipt_reference\", \"\") !== \"\";\n};\nconst deposits = get(ctx, \"reads.workplace_case_catalog_entry\", []).filter(held);\nreturn exited && deposits.length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"SECURITY_DEPOSIT_RETURN\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Return a security deposit on exit\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"SECURITY_DEPOSIT_RETURN\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Return a security deposit on exit\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
 		"id": "068adf6e-cd61-52d4-bfd5-c0606cf43f54",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises return of a held security deposit and its interest within seven days of exit (LPA s.10)."
@@ -1311,7 +1269,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nreturn exited;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"RECORDS_RETENTION\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Retain the employment records for two years\",\n  due_on: add_years(entry.effective_range.to, ctx.lookup.retention_years),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"RECORDS_RETENTION\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Retain the employment records for two years\",\n  due_on: add_years(entry.effective_range.to, ctx.lookup.retention_years),\n  occurrence_key: key\n}];",
 		"id": "680a7e85-71ab-5fb3-96db-208c7f279326",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises the two-year retention point for the employee register and wage records after exit (LPA ss.114-115)."
@@ -1781,7 +1739,7 @@
 		"condition": "if (ctx.after == null) return false;\nconst entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nreturn exited;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst key = \"PERSONAL_DATA_DISPOSAL\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Dispose of personal data after the retention period\",\n  due_on: add_years(entry.effective_range.to.substring(0, 4) + ctx.lookup.annual_due, ctx.lookup.retention_years),\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst key = \"PERSONAL_DATA_DISPOSAL\" + \":\" + entry.id + \":exit:\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Dispose of personal data after the retention period\",\n  due_on: add_years(entry.effective_range.to.substring(0, 4) + ctx.lookup.annual_due, ctx.lookup.retention_years),\n  occurrence_key: key\n}];",
 		"id": "780ca31a-dcac-51e8-9f0b-310d6948f0d2",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
 		"description": "Raises disposal of personal data after the retention period (PDPA s.37(3); Accounting Act s.14)."

@@ -40,6 +40,18 @@ export default model('ledger_entry', {
 			help: "The cause of HR's manual adjustment."
 		}
 	},
+	// optional on the way in, because a manual adjustment's period and source are worked out in its write
+	check: {
+		names_its_movement: {
+			where: {
+				source: { isNull: false },
+				period: { isNull: false },
+				measure: { isNull: false },
+				amount: { isNull: false }
+			},
+			message: 'A ledger row names its source, period, measure and amount.'
+		}
+	},
 	read: 'all',
 	create: {
 		columns: {

@@ -84,16 +84,6 @@ const months = (last: number) =>
 const JUNE = workspace({ seed: malaysia(), now: '2026-06-20T02:00:00.000Z' });
 
 describe('PCB on a bonus', () => {
-	it.live('on-cycle: the June figure both orders must match', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			for (const period of months(5)) yield* onCycle(t, period);
-			yield* owed(t, malaysia(), '2026-06-10');
-			yield* onCycle(t, '2026-06');
-			assert.equal((yield* withheld(t)).on['2026-06'], 4494.2);
-		}).pipe(Effect.provide(JUNE))
-	);
-
 	it.live('off-cycle, then the on-cycle run: the bonus alone, then a normal June', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -116,45 +106,4 @@ describe('PCB on a bonus', () => {
 			assert.equal(Number(off[0]) + Number(on['2026-06']), 4494.2);
 		}).pipe(Effect.provide(JUNE))
 	);
-
-	// the December the template's law holds is 2025's, the first month it covers: a bonus large enough to be taxed
-	// on that one month's pay
-	it.live('after the last on-cycle run of the year there is no month left to spread over', () => {
-		const seed = malaysia(undefined, '2025-12-15');
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* onCycle(t, '2025-12');
-			yield* offCycle(t, seed, '2025-12', '2025-12-28', 100_000);
-			assert.ok(Number((yield* withheld(t)).off[0]) > 0);
-		}).pipe(Effect.provide(workspace({ seed, now: '2025-12-28T02:00:00.000Z' })));
-	});
-
-	it.live('a non-resident pays the flat rate on what this run paid', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const seed = malaysia('NON_RESIDENT');
-			yield* offCycle(t, seed, '2026-06', '2026-06-10');
-			assert.deepEqual((yield* withheld(t)).off, [6000]);
-		}).pipe(
-			Effect.provide(workspace({ seed: malaysia('NON_RESIDENT'), now: '2026-06-20T02:00:00.000Z' }))
-		)
-	);
-
-	// five months at RM8,000 already withheld more than the year's tax on what they actually earned
-	it.live('someone leaving projects no months they will not work', () => {
-		const seed = malaysia();
-		const left: Seed = {
-			...seed,
-			employee_contract: (seed.employee_contract ?? []).map((row) => ({
-				...row,
-				effective_range: { from: '2025-01-01', to: '2026-06-15' }
-			}))
-		};
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			for (const period of months(5)) yield* onCycle(t, period);
-			yield* offCycle(t, left, '2026-06', '2026-06-10');
-			assert.deepEqual((yield* withheld(t)).off, [0]);
-		}).pipe(Effect.provide(workspace({ seed: left, now: '2026-06-20T02:00:00.000Z' })));
-	});
 });

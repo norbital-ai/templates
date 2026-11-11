@@ -453,7 +453,23 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		(data.employee_balance ?? []).map((row) => [String(row.employee_id), row])
 	);
 
-	const workRows = (data.roster_entry ?? []).filter((row) => due(row, row.work_date));
+	// a day rostered outside the person's employment (planned before an exit was known) is no absence and no pay
+	const employed = (row: JsonObject): boolean => {
+		const person = employeeOf.get(String(row.employment_id));
+		const date = String(row.work_date);
+		return answering.some((contract) => {
+			const range = objectValue(contract.effective_range);
+			return (
+				String(contract.employee_id) === person &&
+				contract.status !== 'VOID' &&
+				String(range.from) <= date &&
+				(range.to == null || date <= String(range.to))
+			);
+		});
+	};
+	const workRows = (data.roster_entry ?? []).filter(
+		(row) => due(row, row.work_date) && employed(row)
+	);
 	const closedSpans = (value: unknown) =>
 		intervalSpans(
 			Array.isArray(value) ? value.filter((row) => isJsonObject(row) && row.end != null) : []
@@ -793,10 +809,12 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 						}));
 		const claims = entries(data.claim_catalog_entry).filter((row) => due(row, row.incurred_on));
 		const adhoc = entries(data.adhoc_catalog_entry).filter((row) => due(row, row.incurred_on));
-		// an instalment is priced by the run whose attendance holds its date, like every other entry
+		// an instalment is priced by the run whose attendance holds its date, like every other entry; a reversal not yet
+		// paid is the next run's whatever its date, or one dated in a period that has run would never be refunded
 		const repayments = entries(data.loan_catalog_entry_repayment).filter(
 			(row) =>
-				typeof row.paid_on === 'string' && row.paid_on >= start && row.paid_on <= lastAttended
+				row.reverses != null ||
+				(typeof row.paid_on === 'string' && row.paid_on >= start && row.paid_on <= lastAttended)
 		);
 		// expressions read the employment, not the version: it ends with this version only at an exit
 		const { exit, ...version } = contract;
@@ -891,6 +909,18 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			tax_withheld: money(Math.max(0, taxWithheld)),
 			breakdown: breakdownOf(result)
 		});
+		// a run is not a decision: what waits for approval is not paid, whoever runs it
+		if (
+			[...leave.filter((row) => slotsDue(row).length > 0), ...claims, ...adhoc].some(
+				(row) => row.$approval != null
+			)
+		)
+			return yield* Effect.fail(
+				new Refusal({
+					message:
+						'Under approval: an entry this run would pay still waits for its decision. Decide it, then run.'
+				})
+			);
 		// what this payslip priced is sealed by its run, and nothing else
 		for (const row of leave) {
 			const slots = slotsDue(row);

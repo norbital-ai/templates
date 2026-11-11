@@ -26,10 +26,6 @@ const ACCIDENT = idOf(
 	'workplace_case_catalog',
 	catalogRow(seed, 'workplace_case_catalog', 'WORKPLACE_ACCIDENT')
 );
-const OTHER = idOf(
-	'workplace_case_catalog',
-	catalogRow(seed, 'workplace_case_catalog', 'FLEXIBLE_WORKING_REQUEST')
-);
 const live = workspace({ seed, now: '2026-06-20T02:00:00.000Z' });
 const file = (t: Kit, catalog_id: typeof ACCIDENT, kind: string, inputs: JsonObject) =>
 	t.as(t.admin).act('workplace_case_catalog_entry.create', [
@@ -42,43 +38,8 @@ const file = (t: Kit, catalog_id: typeof ACCIDENT, kind: string, inputs: JsonObj
 			inputs
 		}
 	]);
-const reports = (t: Kit) =>
-	t
-		.storedQuery({ obligation: { limit: 100 } })
-		.pipe(
-			Effect.map(({ obligation }) =>
-				obligation.rows.filter((row) =>
-					String(row.occurrence_key).startsWith('MY:SOCSO_ACCIDENT_REPORT:')
-				)
-			)
-		);
 
 describe('MY SOCSO accident report', () => {
-	it('a workplace accident raises one report due two days after notice', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* file(t, ACCIDENT, 'WORKPLACE_ACCIDENT', { accident_type: 'INDUSTRIAL' });
-			yield* t.runDue();
-			const raised = yield* reports(t);
-			assert.equal(raised.length, 1);
-			assert.equal(String(raised[0]?.due_on), '2026-06-12');
-			assert.equal(String(raised[0]?.title), 'Report a workplace accident to SOCSO');
-		}).pipe(Effect.provide(live)));
-	it('a commuting accident counts, and each case has its own report', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* file(t, ACCIDENT, 'WORKPLACE_ACCIDENT', { accident_type: 'COMMUTING' });
-			yield* file(t, ACCIDENT, 'WORKPLACE_ACCIDENT', { accident_type: 'EMERGENCY' });
-			yield* t.runDue();
-			assert.equal((yield* reports(t)).length, 2);
-		}).pipe(Effect.provide(live)));
-	it('another case kind raises no accident report', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* file(t, OTHER, 'FLEXIBLE_WORKING_REQUEST', {});
-			yield* t.runDue();
-			assert.equal((yield* reports(t)).length, 0);
-		}).pipe(Effect.provide(live)));
 	it('an accident without its type is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

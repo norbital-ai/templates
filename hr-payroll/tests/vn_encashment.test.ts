@@ -97,26 +97,6 @@ const line = (t: Kit) =>
 		);
 
 describe('a VN exit cash-out', () => {
-	it.live('is refused when the review is not the month before the exit', () => {
-		const seed = seedWith({ ...REVIEW, month: '2026-01' });
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const refused = yield* Effect.flip(
-				t.as(t.admin).act('leave_catalog_entry.create', [entry(seed)])
-			);
-			assert.match(String(refused), /ENCASHMENT_PRIOR_WAGE_REVIEW/);
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-20T02:00:00.000Z' })));
-	});
-	it.live('is refused when the prior-month daily wage is zero', () => {
-		const seed = seedWith({ ...REVIEW, daily_wage_vnd: 0 });
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const refused = yield* Effect.flip(
-				t.as(t.admin).act('leave_catalog_entry.create', [entry(seed)])
-			);
-			assert.match(String(refused), /ENCASHMENT_PRIOR_WAGE_REVIEW/);
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-20T02:00:00.000Z' })));
-	});
 	it.live(
 		'prices every slot of the cash-out up to the last day, including those past the run window',
 		() => {

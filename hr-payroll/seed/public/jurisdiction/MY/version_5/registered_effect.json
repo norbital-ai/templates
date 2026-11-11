@@ -1,31 +1,5 @@
 [
 	{
-		"code": "retract-exit-effects",
-		"description": "Waives an exit's open duties when its date moves or a later version cancels it.",
-		"name": "Retract Exit Effects",
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					}
-				},
-				"fields": ["id", "occurrence_key", "state"],
-				"limit": 100
-			}
-		},
-		"condition": "// js\nconst stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn key.includes(':exit:') && (ctx.after == null || !key.endsWith(':exit:' + ctx.entry.effective_range.to));\n};\nreturn get(ctx, 'reads.obligation', []).some((task) => task.state === 'OPEN' && stale(task));",
-		"target_collection": "obligation",
-		"target_action": "update",
-		"effects": "// js\nconst stale = (task) => {\n\tconst key = String(task.occurrence_key);\n\treturn key.includes(':exit:') && (ctx.after == null || !key.endsWith(':exit:' + ctx.entry.effective_range.to));\n};\nconst reason =\n\tctx.after == null\n\t\t? 'A later version continues the employment; the exit was cancelled.'\n\t\t: 'The exit date moved; this task answered the earlier date.';\nreturn get(ctx, 'reads.obligation', [])\n\t.filter((task) => task.state === 'OPEN' && stale(task))\n\t.map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
-		"id": "240441f3-28b9-5c25-8485-ad3cbbb556e1",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
-	},
-	{
 		"code": "encash-leave-on-exit",
 		"description": "Raises a task to encash unused leave when a sealed contract ends.",
 		"name": "Encash Leave On Exit",

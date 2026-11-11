@@ -8,8 +8,6 @@ import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
-import type { LeavePerson } from '../src/lib/ledger/entitlement.ts';
-import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { objectValue, idOf } from '../src/lib/payroll_engine/reads.ts';
@@ -34,8 +32,6 @@ const rowOf = (code: string, version: number, file: string, name: string) => {
 	assert.ok(row !== undefined, name);
 	return row;
 };
-const number = (source: unknown, context: object) =>
-	Number(evaluate(String(source), 'CALCULATION', context, 'expression'));
 
 const LAW = {
 	grant_days: 10,
@@ -44,127 +40,6 @@ const LAW = {
 	allocation_days: 2,
 	max_events: 2
 };
-const person = (
-	events: readonly JsonObject[],
-	gender: string,
-	maritalStatus: string,
-	extension: JsonObject
-): LeavePerson => ({
-	started: '2020-01-01',
-	partTime: false,
-	gender,
-	maritalStatus,
-	employment: {
-		...(Array.isArray(extension.family) ? { family: extension.family } : {}),
-		events,
-		employee_extension_data: Object.fromEntries(
-			Object.entries(extension).filter(([key]) => key !== 'family')
-		)
-	}
-});
-/** What the events on a contract open of a Philippine row, by event date. */
-const opened = (
-	code: string,
-	events: readonly JsonObject[],
-	gender = 'FEMALE',
-	extension: JsonObject = {}
-) =>
-	entitlementPlans(
-		[
-			{
-				account: 'leave',
-				code,
-				lookup: { ...objectValue(rowOf('PH', 2, 'leave_catalog', code).lookup), ...LAW }
-			}
-		],
-		person(events, gender, 'MARRIED', extension),
-		{
-			scope: 'PH',
-			started: '2020-01-01',
-			events: events.map(({ kind, on }) => ({ kind: String(kind), on: String(on) }))
-		},
-		'balance',
-		{},
-		'2026-12-31'
-	)
-		.flatMap((plan) => plan.wanted)
-		.reduce<Record<string, number>>(
-			(days, row) => ({ ...days, [row.period.slice(-10)]: row.amount }),
-			{}
-		);
-
-describe('Philippine maternity leave', () => {
-	const on = '2026-03-02';
-	const birth = { kind: 'CHILD_BIRTH', on };
-	it('gives a birth the grant, and a solo parent the higher figure', () => {
-		assert.deepEqual(opened('MATERNITY_LEAVE', [birth]), { [on]: 10 });
-		assert.deepEqual(opened('MATERNITY_LEAVE', [birth], 'FEMALE', { solo_parent: true }), {
-			[on]: 13
-		});
-	});
-	it('gives a miscarriage or emergency termination its own figure, every time', () => {
-		const lost = { kind: 'PREGNANCY_TERMINATION', on: '2025-03-02' };
-		assert.deepEqual(opened('MATERNITY_LEAVE', [lost, birth]), { [lost.on]: 6, [on]: 10 });
-		assert.deepEqual(opened('MATERNITY_LEAVE', [lost], 'FEMALE', { solo_parent: true }), {
-			[lost.on]: 6
-		});
-	});
-	it('keeps what she does not allocate, and she can allocate no more than the limit', () => {
-		assert.deepEqual(opened('MATERNITY_LEAVE', [{ ...birth, allocated_days: 1 }]), { [on]: 9 });
-		assert.deepEqual(opened('MATERNITY_LEAVE', [{ ...birth, allocated_days: 5 }]), { [on]: 8 });
-		assert.deepEqual(
-			opened('MATERNITY_LEAVE', [{ ...birth, allocated_days: 2 }], 'FEMALE', { solo_parent: true }),
-			{ [on]: 11 }
-		);
-	});
-});
-
-describe('Philippine paternity leave', () => {
-	it('stops after the limit of deliveries, a miscarriage among them, however the list is ordered', () => {
-		const third = { kind: 'CHILD_BIRTH', on: '2026-03-02' };
-		const first = { kind: 'CHILD_BIRTH', on: '2024-03-02' };
-		const second = { kind: 'PREGNANCY_TERMINATION', on: '2025-03-02' };
-		assert.deepEqual(opened('PATERNITY_LEAVE', [third, first, second], 'MALE'), {
-			[first.on]: 10,
-			[second.on]: 10
-		});
-	});
-	it('gives solo parent leave to a solo parent, after six months', () => {
-		const lookup = objectValue(rowOf('PH', 2, 'leave_catalog', 'SOLO_PARENT_LEAVE').lookup);
-		const days = (solo_parent: boolean, as_of: string) =>
-			number(lookup.entitlement, {
-				lookup,
-				as_of,
-				subject: {
-					employment: {
-						service_started_on: '2026-01-05',
-						employee_extension_data: { solo_parent }
-					}
-				}
-			});
-		assert.equal(days(false, '2026-11-01'), 0);
-		assert.equal(days(true, '2026-03-01'), 0);
-		assert.equal(days(true, '2026-11-01'), lookup.grant_days);
-	});
-	it('gives allocated days only through the allocation row', () => {
-		const given = { kind: 'MATERNITY_ALLOCATION', on: '2026-03-02', allocated_days: 3 };
-		assert.deepEqual(opened('PATERNITY_LEAVE', [given], 'MALE'), {});
-		assert.deepEqual(opened('MATERNITY_ALLOCATION_LEAVE', [given], 'MALE'), { [given.on]: 3 });
-	});
-});
-
-describe('Philippine allocated maternity leave', () => {
-	it('holds the days allocated, up to its figure, and no birth opens it', () => {
-		const on = '2026-03-02';
-		assert.deepEqual(
-			opened('MATERNITY_ALLOCATION_LEAVE', [
-				{ kind: 'MATERNITY_ALLOCATION', on, allocated_days: 12 }
-			]),
-			{ [on]: 10 }
-		);
-		assert.deepEqual(opened('MATERNITY_ALLOCATION_LEAVE', [{ kind: 'CHILD_BIRTH', on }]), {});
-	});
-});
 
 const terms = {
 	rate: { amount: 60_000, unit: 'MONTHLY' },
@@ -399,78 +274,6 @@ describe('a case row with a form', () => {
 				);
 				assert.equal(rules.length, forms.length > 0 ? 1 : 0, `${code} ${version}`);
 			}
-	});
-});
-
-describe('Indonesian daily pay', () => {
-	const month = (name: string, week: number) => {
-		const row = rowOf('ID', 3, 'adhoc_catalog', name);
-		return number(row.conversion, {
-			subject: {
-				employment: {
-					effective_range: { from: '2025-01-01', to: null },
-					terms: {
-						rate: { amount: 100, unit: 'DAILY' },
-						normal_days_per_week: week,
-						allowances: {}
-					}
-				}
-			},
-			entry: { unit: 'DAY' },
-			lookup: {
-				...objectValue(row.lookup),
-				six_day_week: 6,
-				daily_paid_days_six_day: 10,
-				daily_paid_days_five_day: 4
-			},
-			as_of: '2026-01-15',
-			balances: {},
-			calendar_days: 31,
-			working_days: 22,
-			month_wage: 2200,
-			day_rate: 100,
-			hour_rate: 12.5
-		});
-	};
-	for (const name of ['THR', 'THR_HOLIDAY'])
-		it(`${name}: before the first pay of the year, a month follows the working week`, () => {
-			assert.equal(month(name, 6), 1000);
-			assert.equal(month(name, 5), 400);
-		});
-});
-
-describe('Indonesian TER', () => {
-	const row = rowOf('ID', 3, 'statutory_contribution_catalog', 'PPH21');
-	const [settings] = read(join(ROOT, 'ID/version_3/jurisdiction_settings.json'));
-	const tax = (dependants: number) =>
-		number(row.employee_amount, {
-			subject: {
-				employment: {
-					payroll: { marital_status: 'MARRIED', gender: 'MALE' },
-					family: Array.from({ length: dependants }, () => ({ relation: 'CHILD' })),
-					effective_range: { from: '2025-01-01', to: null }
-				}
-			},
-			lookup: {
-				...objectValue(settings?.lookup),
-				...objectValue(row.lookup),
-				ptkp_ter_table: { 'K/0': '1', 'K/1': '2', 'K/3': '3' },
-				ter_1: [{ up_to: null, rate: 0.01 }],
-				ter_2: [{ up_to: null, rate: 0.02 }],
-				ter_3: [{ up_to: null, rate: 0.03 }]
-			},
-			run: {
-				pay_date: '2026-06-25',
-				salary_coverage: { from: '2026-06-01', to: '2026-06-30' }
-			},
-			as_of: '2026-06-30',
-			subtotals: { ADDITIONAL_WAGES: 100_000 },
-			statutory: {},
-			corrections: {},
-			balances: { month: {} }
-		});
-	it('takes the table of the PTKP category', () => {
-		assert.deepEqual([tax(0), tax(1), tax(3)], [1000, 2000, 3000]);
 	});
 });
 

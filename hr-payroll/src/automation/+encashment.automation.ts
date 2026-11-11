@@ -1,290 +1,33 @@
 import { automation } from '@norbital-ai/bolt';
-import { dynamicRead } from '@norbital-ai/bolt/protocol';
-import { addDays, addMonths, PlainDate } from '@norbital-ai/std/date';
-import { weeklyRestDays } from '../lib/payroll_engine/rest_days.js';
-import { accountsOf, latestLeft } from '../lib/ledger/core.js';
-import { isExit, versionOn } from '../lib/payroll_engine/contract_change.js';
-import { isJsonObject, jsonObject } from '../lib/payroll_engine/foundation.js';
-import { queryRows } from '../lib/payroll_engine/reads.js';
+import { Effect } from 'effect';
+import { reconcile } from '../lib/dependants.js';
+import { raiseFailure } from '../lib/ledger/service.js';
+import { getErrorMessage } from '../lib/payroll_engine/foundation.js';
+
+const ATTEMPTS = 8;
 
 /**
- * Exit encashment: when a sealed contract ends with no same-jurisdiction successor, every leave row with a `payout`
- * gets one encashment request for the days the person has left; where they took more than the last day leaves earned,
- * a reversal of those days on the same row, which the run takes back at the same payout. It runs under
- * `payroll_execution`, whose leave grant holds an encashment for HR controller approval, so nothing posts to the ledger
- * until it is approved; whoever ended the contract, an administrator included. Running it again raises nothing twice.
+ * What an exit leaves behind, for the contracts whose exit was raised, moved or cancelled (`src/lib/dependants.ts`). An
+ * exit that stands gets one cash-out request a leave row with a `payout`, held for the HR controller; one that no longer
+ * stands has its open tasks waived, its unpaid cash-outs withdrawn and, for one a paid run took, a task asking HR to
+ * reverse it. The `ledger` automation starts it once the exit's sync has settled, so a cash-out is sized after the
+ * proration. It runs under `payroll_execution`, whoever ended the contract. Running it again changes nothing.
  */
 export default automation('encashment', {
-	description: 'Raise exit leave encashments for HR approval; safe to run at any time.',
+	description:
+		'Settle what an exit raised, moved or cancelled leaves behind; safe to run at any time.',
 	input: { employments: { kind: 'list', of: { kind: 'id', of: 'employee_contract' } } },
 	policies: ['payroll_execution'],
 	concurrency: { max: 1 },
+	retry: { attempts: ATTEMPTS, backoff: '10s' },
 	run: function* ({ employments }, ctx) {
-		const ended = yield* ctx.query(
-			dynamicRead({
-				employee_contract: {
-					where: { id: { in: [...employments] } },
-					fields: [
-						'id',
-						'status',
-						'effective_range',
-						'employee_id',
-						'entity_id',
-						'pay_group_id',
-						'employee_extension_data',
-						'terms'
-					] as const,
-					limit: 1000
-				}
-			})
+		yield* reconcile(ctx, employments).pipe(
+			// a write that lost a race passes on the next attempt; the last failure raises a task
+			Effect.tapError((error) =>
+				ctx.attempt < ATTEMPTS
+					? Effect.void
+					: raiseFailure(ctx, 'exit follow-up', getErrorMessage(error), 'Exit follow-up failed')
+			)
 		);
-		const rows = ended.employee_contract?.rows ?? [];
-		// the people's whole chains, every entity's lineage code and the sealed law, in one read
-		const {
-			employee_contract: chain = [],
-			entity: entities = [],
-			jurisdiction_settings: versions = []
-		} = yield* queryRows(ctx.query, {
-			employee_contract: {
-				where: { employee_id: { in: [...new Set(rows.map((row) => String(row.employee_id)))] } },
-				fields: ['id', 'employee_id', 'status', 'effective_range', 'entity_id'],
-				limit: 10000
-			},
-			entity: { fields: ['id', 'settings_code'], limit: 10000 },
-			jurisdiction_settings: {
-				where: { status: { eq: 'SEALED' } },
-				fields: ['id', 'code', 'effective_range'],
-				limit: 10000
-			}
-		});
-		const lineage = new Map(entities.map((row) => [String(row.id), String(row.settings_code)]));
-		for (const stored of rows) {
-			const row = stored as Record<string, unknown>;
-			const range: unknown = row.effective_range;
-			const effectiveTo =
-				typeof range === 'string'
-					? (() => {
-							// a stored range excludes its upper bound: the last day is the one before
-							const end = range.slice(range.indexOf(',') + 1, -1);
-							return end === '' ? null : String(addDays(PlainDate(end), -1));
-						})()
-					: isJsonObject(range) && typeof range.to === 'string'
-						? range.to
-						: null;
-			if (row.status !== 'SEALED' || effectiveTo == null) continue;
-			const extension = isJsonObject(row.employee_extension_data)
-				? row.employee_extension_data
-				: {};
-			if (extension.misconduct_dismissal === true || extension.dismissed_for_misconduct === true)
-				continue;
-			const refId = (value: unknown): string => {
-				if (typeof value === 'string') return value;
-				if (isJsonObject(value) && typeof value.id === 'string') return value.id;
-				return '';
-			};
-			const employeeId = refId(row.employee_id);
-			if (employeeId === '') continue;
-			// a same-jurisdiction replacement continues employment; a cross-jurisdiction transfer settles leave first
-			if (!isExit(row, chain, lineage)) continue;
-			// the law in force on the last day
-			const current = versionOn(versions, lineage.get(refId(row.entity_id)), effectiveTo);
-			if (current === undefined) continue;
-			const catalogSettingsId = String(current.id);
-			// every leave row with a payout can be cashed out; HR approves each before it posts
-			const catalogs = yield* ctx.query(
-				dynamicRead({
-					leave_catalog: {
-						where: { settings_id: { eq: catalogSettingsId } },
-						fields: ['id', 'code', 'payout', 'lookup'] as const,
-						limit: 1000
-					}
-				})
-			);
-			const encashed = (catalogs.leave_catalog?.rows ?? []).filter(
-				(catalog) => typeof catalog.payout === 'string' && catalog.payout.trim() !== ''
-			);
-			if (encashed.length === 0) continue;
-			const held = yield* ctx.query(
-				dynamicRead({
-					leave_catalog_entry: {
-						where: { employment_id: { eq: String(row.id) }, encashment: { eq: true } },
-						fields: ['id', 'catalog_id'] as const,
-						limit: 1000
-					},
-					'leave_catalog_entry.catalog_id': { fields: ['code'] as const }
-				})
-			);
-			const done = new Set(
-				(held.leave_catalog_entry?.rows ?? []).map((entry) =>
-					isJsonObject(entry.catalog_id) ? String(entry.catalog_id.code) : ''
-				)
-			);
-			const balances = yield* ctx.query(
-				dynamicRead({
-					employee_balance: {
-						where: { employee_id: { eq: employeeId } },
-						fields: ['account'] as const,
-						limit: 1
-					}
-				})
-			);
-			const accounts = accountsOf(balances.employee_balance?.rows?.[0]?.account);
-			const employer = yield* ctx.query(
-				dynamicRead({
-					pay_group: {
-						where: { id: { eq: refId(row.pay_group_id) } },
-						fields: ['payment_schedule'] as const,
-						limit: 1
-					}
-				})
-			);
-			// A leave balance is in working days. A cash-out carries the same days as slot pairs on working
-			// days of the final settlement month: calendar days would pay fewer days than the balance takes.
-			// The contract's normal week decides the weekly rest days; the pay schedule's business-day list is not it.
-			const daysPerWeek = Number(jsonObject(row.terms).normal_days_per_week ?? 5);
-			const nonWorking = weeklyRestDays(daysPerWeek);
-			// The final run attends from the previous cutoff to the day before this one: date the cash-out
-			// inside that window, or the run captures slots it cannot price.
-			const month = effectiveTo.slice(0, 7);
-			const cutoff = Number(
-				jsonObject(employer.pay_group?.rows?.[0]?.payment_schedule).pay_cutoff_day ?? 1
-			);
-			const windowFrom =
-				cutoff <= 1
-					? `${month}-01`
-					: `${String(addMonths(`${month}-01`, -1)).slice(0, 7)}-${String(cutoff).padStart(2, '0')}`;
-			const windowTo = String(addDays(PlainDate(windowFrom), 62));
-			const holidays = yield* ctx.query(
-				dynamicRead({
-					holiday: {
-						where: {
-							entity_id: { eq: String(row.entity_id) },
-							employee_id: { isNull: true },
-							date: { gte: windowFrom, lte: windowTo }
-						},
-						fields: ['date'] as const,
-						limit: 1000
-					}
-				})
-			);
-			const closed = new Set((holidays.holiday?.rows ?? []).map((holiday) => String(holiday.date)));
-			const working: string[] = [];
-			for (let index = 0; working.length < 62 && index < 366; index += 1) {
-				const date = String(addDays(PlainDate(windowFrom), index));
-				const weekday = new Date(`${date}T00:00:00.000Z`).getUTCDay();
-				if (nonWorking.has(weekday) || closed.has(date)) continue;
-				working.push(date);
-			}
-			// Leave taken beyond what the last day leaves earned is taken back the same way, reversed: a reversal of the
-			// latest days a run has paid, settled in cash by the row's payout, so its line deducts. Only then is the
-			// person's taken leave read.
-			const overdrawn = encashed.some((catalog) => {
-				const left = latestLeft(accounts, 'leave', String(catalog.code));
-				return !done.has(String(catalog.code)) && Number.isFinite(left) && left < 0;
-			});
-			const own = chain
-				.filter((contract) => String(contract.employee_id) === employeeId)
-				.map((contract) => String(contract.id));
-			const taken = overdrawn
-				? ((yield* ctx.query(
-						dynamicRead({
-							leave_catalog_entry: {
-								where: {
-									employment_id: { in: own },
-									encashment: { eq: false },
-									reverses: { isNull: true }
-								},
-								fields: ['id', 'catalog_id'] as const,
-								limit: 1000
-							},
-							'leave_catalog_entry.catalog_id': { fields: ['code'] as const },
-							'leave_catalog_entry.leave_catalog_entry_day': {
-								fields: ['incurred_on', 'part', 'payroll_run_id'] as const,
-								limit: 10000
-							}
-						})
-					)).leave_catalog_entry?.rows ?? [])
-				: [];
-			const undone = overdrawn
-				? new Set(
-						(
-							(yield* ctx.query(
-								dynamicRead({
-									leave_catalog_entry: {
-										where: { reverses: { in: taken.map((entry) => String(entry.id)) } },
-										fields: ['reverses'] as const,
-										limit: 1000
-									}
-								})
-							)).leave_catalog_entry?.rows ?? []
-						).map((entry) => refId(entry.reverses))
-					)
-				: new Set<string>();
-			/** The paid half days of one leave row, latest first, each with the entry that holds it. */
-			const paidSlots = (code: string) =>
-				taken
-					.filter(
-						(entry) =>
-							!undone.has(String(entry.id)) &&
-							isJsonObject(entry.catalog_id) &&
-							entry.catalog_id.code === code
-					)
-					.flatMap((entry) =>
-						(Array.isArray(entry.leave_catalog_entry_day) ? entry.leave_catalog_entry_day : [])
-							.filter(isJsonObject)
-							.filter((slot) => slot.payroll_run_id != null)
-							.map((slot) => ({
-								entry: String(entry.id),
-								incurred_on: String(slot.incurred_on),
-								part: slot.part === 'PM' ? ('PM' as const) : ('AM' as const)
-							}))
-					)
-					.toSorted((left, right) =>
-						`${right.incurred_on}${right.part}`.localeCompare(`${left.incurred_on}${left.part}`)
-					);
-			const input = encashed.flatMap((catalog) => {
-				const code = String(catalog.code);
-				if (done.has(code)) return [];
-				const left = latestLeft(accounts, 'leave', code);
-				if (!Number.isFinite(left) || left === 0) return [];
-				if (left < 0) {
-					const hours = Number(jsonObject(row.terms).normal_hours_per_day ?? 0);
-					const owed =
-						jsonObject(catalog.lookup).unit === 'HOUR' && hours > 0 ? -left / hours : -left;
-					// one reversal an entry (a reversal names one original): the latest paid half days first
-					const slots = paidSlots(code).slice(0, Math.max(1, Math.round(owed * 2)));
-					return [...Map.groupBy(slots, (slot) => slot.entry)].map(([entry, days]) => ({
-						entity_id: String(row.entity_id),
-						employment_id: String(row.id),
-						catalog_id: String(catalog.id),
-						encashment: true,
-						reverses: entry,
-						leave_catalog_entry_day: days.map(({ incurred_on, part }) => ({ incurred_on, part }))
-					}));
-				}
-				// a row that counts in hours cashes them out as half days of the contract's normal day
-				const dayHours = Number(jsonObject(row.terms).normal_hours_per_day ?? 0);
-				const days =
-					jsonObject(catalog.lookup).unit === 'HOUR' && dayHours > 0 ? left / dayHours : left;
-				const halfDays = Math.max(1, Math.round(days * 2));
-				return [
-					{
-						entity_id: String(row.entity_id),
-						employment_id: String(row.id),
-						catalog_id: String(catalog.id),
-						encashment: true,
-						// one slot pair a working day: a single date cannot hold more than its AM and PM
-						leave_catalog_entry_day: working
-							.flatMap((date) => [
-								{ incurred_on: date, part: 'AM' as const },
-								{ incurred_on: date, part: 'PM' as const }
-							])
-							.slice(0, halfDays)
-					}
-				];
-			});
-			if (input.length > 0)
-				yield* ctx.act.checked([{ callable: 'leave_catalog_entry.create', input }]);
-		}
 	}
 });

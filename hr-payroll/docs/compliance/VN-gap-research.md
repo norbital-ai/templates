@@ -511,7 +511,7 @@ The predecessor seed used `lookup.proration = COMPLETED_MONTHS`. The generic `en
 - `ANNUAL_LEAVE_COMBINING_MAXIMUM`: Labour Code art.113(4).
 - `ANNUAL_SERVICE_EXIT_REVIEW`: Decree 145 arts.65–66 and Labour Code art.113(3)–(4).
 
-`retract-exit-effects` still carries no reference: it implements the owner's 2026-11-09 decision that a moved or cancelled exit waives its open duties, which is not a statute.
+`retract-exit-effects` is no longer in the seed (the dependants routine waives exit tasks for every jurisdiction): it implemented the owner's 2026-11-09 decision that a moved or cancelled exit waives its open duties, which is not a statute.
 
 ### Open owner questions
 
