@@ -91,7 +91,7 @@ export const overlapSpans = (a: readonly Span[], b: readonly Span[]): readonly S
 		})
 	);
 
-const spanMinutes = (spans: readonly Span[]): number =>
+export const spanMinutes = (spans: readonly Span[]): number =>
 	spans.reduce((total, span) => total + (span.end - span.start) / 60_000, 0);
 
 /**

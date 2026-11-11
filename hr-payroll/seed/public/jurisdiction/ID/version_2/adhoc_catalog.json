@@ -859,6 +859,33 @@
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
 	{
+		"code": "KESEHATAN_EMPLOYER_REFUND",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects the employer's share of KESEHATAN for a closed month. Dated in the month it corrects; it changes employer cost only.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "KESEHATAN.employer",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"direction": "DEDUCT",
+		"party": "EMPLOYER",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"id": "7739ad15-cee0-5e25-a829-a6066573dc99",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
 		"code": "KESEHATAN_ADJUSTMENT",
 		"references": [
 			{

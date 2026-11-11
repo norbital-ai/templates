@@ -127,6 +127,7 @@ off-cycle run, 742 payslips.
 | PH company (twice monthly and monthly groups): basic, no-pay, allowances, claims, loans by run                                        | PASS                                                                                                                                                                                            |
 | PH holidays worked                                                                                                                    | differs by the statute: the listing pays an ordinary day                                                                                                                                        |
 | Per-person holiday, pass expiry, pay-method opt-ins (`WHOLE_NIGHT`, `FIRST_RUN`), employer refund, off-cycle refund for a 2025 leaver | PASS in the runs above                                                                                                                                                                          |
+| Run 45 after two independent audits: holiday worked on the sheet's hours with the Act floor, unrounded overtime hour (ID, PH), `PROJECTED` benefit exclusion, employer-share correction rows | PASS: no difference left that is ours beyond the entries the findings disclose | realm `.agent/TEST_MATRIX.md`, N2 run 45 |
 
 The operator's evidence, run scripts and the findings for the companies are held outside this repository.
 

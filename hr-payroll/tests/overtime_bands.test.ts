@@ -783,13 +783,16 @@ describe('overtime bands', () => {
 			),
 			'Asia/Jakarta',
 			(paid) => {
-				// the hour rate goes to the whole rupiah before it multiplies the hours
-				const hourly = Math.round(7400000 / 173);
+				// the hour is not rounded; each day's overtime goes to the whole rupiah
+				const hourly = 7400000 / 173;
 				const workDay = 1 * 1.5 + 1 * 2;
 				const restDay = 8 * 2 + 1 * 3 + 1 * 4;
 				const holiday = 8 * 2;
-				// ID rounds money to whole rupiah
-				near(paid, 'OVERTIME', Math.round((workDay + restDay + holiday) * hourly));
+				near(
+					paid,
+					'OVERTIME',
+					Math.round(workDay * hourly) + Math.round(restDay * hourly) + Math.round(holiday * hourly)
+				);
 			}
 		)
 	);

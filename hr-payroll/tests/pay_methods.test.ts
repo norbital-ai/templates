@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
+import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
@@ -330,6 +331,131 @@ describe('contribution split', () => {
 				});
 			}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })));
 		}
+	);
+});
+
+describe('benefit exclusion', () => {
+	// ₱130,000 a month with a ₱4,500 rice subsidy: ₱2,000 a month is past the ₱2,500 de minimis ceiling and counts
+	// against the ₱90,000 exclusion. As paid, February's ₱2,000 fits. Projected, the ₱130,000 thirteenth month still to
+	// come already takes the whole exclusion, so the ₱2,000 is taxed now, at the 25% the month's pay sits on.
+	it.live('PROJECTED taxes a benefit the thirteenth month will push past the exclusion', () =>
+		Effect.gen(function* () {
+			const seed = (employer: JsonObject): Seed =>
+				withEmployer(
+					pack(
+						'PH',
+						'Asia/Manila',
+						{
+							rate: { amount: 130_000, unit: 'MONTHLY' },
+							normal_hours_per_day: 8,
+							normal_hours_per_week: 48,
+							normal_days_per_week: 6,
+							statutory_work_category: 'NON_FIELD',
+							work_classification: 'RANK_AND_FILE',
+							residency_status: 'CITIZEN',
+							wage_payment_method: 'BANK',
+							allowances: { meal: { amount: 4500 } }
+						},
+						{ days_per_year: 313, nationality: 'PH' },
+						[],
+						[]
+					),
+					employer
+				);
+			const tax = (breakdown: PayslipBreakdown) =>
+				breakdown.statutory.find((row) => row.code === 'WTAX')?.employee ?? 0;
+			const paid = yield* slip(seed({}), '2026-02', FEBRUARY);
+			const projected = yield* slip(
+				seed({ pay_methods: { benefit_exclusion: 'PROJECTED' } }),
+				'2026-02',
+				FEBRUARY
+			);
+			near(tax(projected.breakdown) - tax(paid.breakdown), 2000 * 0.25, 'WTAX on the excess');
+		})
+	);
+});
+
+describe('employer-share correction', () => {
+	// The employer's side of a closed month's SSS correction: employer cost only, the payslip's net is untouched.
+	it.live('an employer-share adjustment adds to employer cost and leaves net pay alone', () =>
+		Effect.gen(function* () {
+			const seed = filipino([]);
+			// a correction is dated in a month a run has closed: January runs first, February carries the entry
+			const february = (correct: boolean) =>
+				Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					const run = (period: string) =>
+						t
+							.as(t.admin)
+							.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
+					yield* run('2026-01');
+					yield* t.runDue();
+					if (correct)
+						yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
+							{
+								entity_id: ENTITY,
+								employment_id: idOf('employee_contract', uuid(6)),
+								catalog_id: idOf(
+									'adhoc_catalog',
+									catalogRow(seed, 'adhoc_catalog', 'SSS_EMPLOYER_ADJUSTMENT')
+								),
+								description: 'Correction',
+								quantity: 450,
+								incurred_on: PlainDate('2026-01-15'),
+								reverses: null
+							}
+						]);
+					yield* run('2026-02');
+					yield* t.runDue();
+					const { payslip, payroll_run } = yield* t.storedQuery({
+						payslip: { limit: 2 },
+						payroll_run: { limit: 2 }
+					});
+					const row = payslip.rows.find(
+						(slip) =>
+							slip.payroll_run_id === payroll_run.rows.find((r) => r.period === '2026-02')?.id
+					);
+					assert.ok(row !== undefined, 'the February run wrote a payslip');
+					return row;
+				}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })));
+			const plain = { payslip: yield* february(false) };
+			const corrected = yield* february(true);
+			near(corrected.net_pay.toNumber(), plain.payslip.net_pay.toNumber(), 'net pay');
+			near(
+				corrected.employer_cost.toNumber() - plain.payslip.employer_cost.toNumber(),
+				450,
+				'employer cost'
+			);
+		})
+	);
+});
+
+describe('overtime hour', () => {
+	// Rp5,000,000 a month: the hour is ÷ 173, Rp28,901.73. Two hours past an 8 h day pay 1.5 + 2 = 3.5 hours,
+	// Rp101,156; the hour rounded to the rupiah first would pay Rp101,157.
+	it.live('without an employer method the hour is not rounded before it multiplies', () =>
+		Effect.gen(function* () {
+			const seed = pack(
+				'ID',
+				'Asia/Jakarta',
+				{
+					rate: { amount: 5_000_000, unit: 'MONTHLY' },
+					normal_hours_per_day: 8,
+					normal_hours_per_week: 40,
+					normal_days_per_week: 5,
+					statutory_work_category: 'NON_MANUAL',
+					work_classification: 'EA_COVERED',
+					residency_status: 'CITIZEN',
+					wage_payment_method: 'BANK',
+					allowances: {}
+				},
+				{},
+				[{ date: '2026-02-02', shift: WORK, hours: 10, overtime: 2 }],
+				[]
+			);
+			const { breakdown } = yield* slip(seed, '2026-02', FEBRUARY);
+			assert.equal(amount(breakdown, 'OVERTIME'), Math.round((3.5 * 5_000_000) / 173));
+		})
 	);
 });
 

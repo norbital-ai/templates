@@ -2088,6 +2088,16 @@ export const ROW_PARAMS = {
 				})
 			)
 		}),
+		KESEHATAN_EMPLOYER_REFUND: Schema.Struct({
+			accounts: Schema.Array(
+				Schema.Struct({
+					account: Schema.String,
+					code: Schema.String,
+					measure: Schema.String,
+					operation: Schema.String
+				})
+			)
+		}),
 		KESEHATAN_REFUND: Schema.Struct({
 			accounts: Schema.Array(
 				Schema.Struct({
@@ -2458,6 +2468,26 @@ export const ROW_PARAMS = {
 				})
 			)
 		}),
+		PHIC_EMPLOYER_ADJUSTMENT: Schema.Struct({
+			accounts: Schema.Array(
+				Schema.Struct({
+					account: Schema.String,
+					code: Schema.String,
+					measure: Schema.String,
+					operation: Schema.String
+				})
+			)
+		}),
+		PHIC_EMPLOYER_REFUND: Schema.Struct({
+			accounts: Schema.Array(
+				Schema.Struct({
+					account: Schema.String,
+					code: Schema.String,
+					measure: Schema.String,
+					operation: Schema.String
+				})
+			)
+		}),
 		PHIC_REFUND: Schema.Struct({
 			accounts: Schema.Array(
 				Schema.Struct({
@@ -2664,6 +2694,26 @@ export const ROW_PARAMS = {
 					measure: Schema.String,
 					operation: Schema.String,
 					period: Schema.optional(Schema.String)
+				})
+			)
+		}),
+		SSS_EMPLOYER_ADJUSTMENT: Schema.Struct({
+			accounts: Schema.Array(
+				Schema.Struct({
+					account: Schema.String,
+					code: Schema.String,
+					measure: Schema.String,
+					operation: Schema.String
+				})
+			)
+		}),
+		SSS_EMPLOYER_REFUND: Schema.Struct({
+			accounts: Schema.Array(
+				Schema.Struct({
+					account: Schema.String,
+					code: Schema.String,
+					measure: Schema.String,
+					operation: Schema.String
 				})
 			)
 		}),

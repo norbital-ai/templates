@@ -1,6 +1,12 @@
 import { datePeriod, eachDay } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
-import { awardedMinutes, holidaysForDay, overlapSpans, scheduled } from './attendance.js';
+import {
+	awardedMinutes,
+	holidaysForDay,
+	overlapSpans,
+	scheduled,
+	spanMinutes
+} from './attendance.js';
 import { dateWeekday, intervalSpans } from './time_evidence.js';
 
 const WEEKDAYS = [
@@ -578,6 +584,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			worked: worked + timeOff > 0,
 			worked_hours: worked,
 			overtime_hours: overtime,
+			// the clock inside the day's own shift, in completed half hours: what an attendance system records
+			clocked_shift_hours: Math.floor(spanMinutes(overlapSpans(clock, plan.spans)) / 30) / 2,
 			time_off_hours: timeOff,
 			intervals: stamped(overlapSpans(clock, [...plan.spans, ...paidSpans])),
 			overtime_intervals: stamped(overlapSpans(paidSpans, clock))

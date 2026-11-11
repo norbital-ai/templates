@@ -69,6 +69,12 @@ export default model('entity_profile_version', {
 					values: ['EVEN', 'FIRST_RUN'],
 					default: 'EVEN',
 					help: 'How a month’s contributions fall on two runs a month. EVEN charges half on each; FIRST_RUN charges the whole month on the first run, on an estimate, and the second run settles the month’s actual wages.'
+				},
+				benefit_exclusion: {
+					kind: 'enum',
+					values: ['AS_PAID', 'PROJECTED'],
+					default: 'AS_PAID',
+					help: 'How the yearly tax exclusion for bonuses and other benefits is used. AS_PAID fills it in the order paid; PROJECTED keeps room for the thirteenth month still to come, so other benefits past what is left are taxed when paid.'
 				}
 			}
 		},
