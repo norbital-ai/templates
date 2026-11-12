@@ -1,11 +1,11 @@
 /**
  * What used to be the `open_slots`, `rebooking_slots` and `candidates` reads: pure functions over a pool (`dispatch.ts`
- * `poolRequest` + `driveRequest`, read by the page with `bolt.query` or by server code with `loadPool`). The writes
+ * `poolRequest` + `driveRequest`, read by the page with its `ctx.query` or by server code with `loadPool`). The writes
  * that act on a pick (`bookings_book`, `visits_rebook`, `visits_reassign`) recheck everything, so a preview is safe.
  */
 import type { Id } from '@norbital-ai/bolt';
-import { addDays, Instant, type PlainDate } from '@norbital-ai/std/date';
-import { utcOf } from '@norbital-ai/std/zone';
+import { add_days, Instant, type PlainDate } from '@norbital-ai/std/date';
+import { utc_of } from '@norbital-ai/std/zone';
 import {
 	availableSlots,
 	BOOKING_AHEAD,
@@ -18,9 +18,9 @@ import {
 } from './matching.js';
 /** `days` local days from `from`. */
 export const dayList = (from: PlainDate, days: number): PlainDate[] =>
-	Array.from({ length: days }, (_, i) => addDays(from, i));
+	Array.from({ length: days }, (_, i) => add_days(from, i));
 const midnight = (day: PlainDate, zone: string) =>
-	Instant(new Date(utcOf(day, 0, zone)).toISOString());
+	Instant(new Date(utc_of(day, 0, zone)).toISOString());
 /** The days a booking picker lists and the full recurring horizon its pool must cover. */
 export function bookingWindow(
 	input: {

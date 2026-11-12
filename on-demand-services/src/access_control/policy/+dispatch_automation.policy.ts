@@ -8,25 +8,27 @@ export default policy({
 	description:
 		'The dispatch runs: re-dispatch visits, file warnings and their letters, notify customers, and book portal requests.',
 	grants: {
-		dispatch_settings: { read: true },
-		services: { read: true },
-		openings: { read: true, create: true, update: true, delete: true },
-		drive_times: { read: true, create: true },
-		helpers: { read: true },
-		helper_time_off: { read: true, create: true },
-		customers: { read: true, create: true },
-		availability_requests: { read: true, update: true, moves: 'all' },
+		dispatch_settings: { outputs: { default: true } },
+		services: { outputs: { default: true } },
+		openings: { outputs: { default: true }, create: true, update: true, delete: true },
+		drive_times: { outputs: { default: true }, create: true },
+		helpers: { outputs: { default: true } },
+		helper_time_off: { outputs: { default: true }, create: true },
+		customers: { outputs: { default: true }, create: true },
+		availability_requests: { outputs: { default: true }, update: { moves: 'all' } },
 		booking_requests: {
-			read: true,
-			update: { columns: { booking_requests: ['status', 'booking', 'outcome'] } },
-			moves: { status: ['received->booked', 'received->follow_up'] }
+			outputs: { default: true },
+			update: {
+				columns: { fields: ['status', 'booking', 'outcome'] },
+				moves: { status: ['received->booked', 'received->follow_up'] }
+			}
 		},
-		bookings: { read: true, create: true },
+		bookings: { outputs: { default: true }, create: true },
 		visits: {
-			read: true,
+			outputs: { default: true },
 			update: {
 				columns: {
-					visits: [
+					fields: [
 						'helper',
 						'shift_check',
 						'shift_asked_at',
@@ -41,15 +43,17 @@ export default policy({
 			}
 		},
 		helper_warnings: {
-			read: true,
+			outputs: { default: true },
 			create: true,
-			update: { columns: { helper_warnings: ['letter'] } }
+			update: { columns: { fields: ['letter'] } }
 		},
 		customer_notices: {
-			read: true,
+			outputs: { default: true },
 			create: true,
-			update: { columns: { customer_notices: ['whatsapp'] } }
-		}
+			update: { columns: { fields: ['whatsapp'] } }
+		},
+		// the shared WhatsApp and Google Routes accounts the runs send and time drives through
+		sys_integration: { outputs: { default: true } }
 	},
 	limits: { act: '600/min', read: '600/min' }
 });

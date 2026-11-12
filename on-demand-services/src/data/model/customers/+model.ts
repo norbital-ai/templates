@@ -1,14 +1,14 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/customers.ts';
 import { AREAS } from '../../../lib/matching.js';
 const columns = ['name', 'phone', 'email', 'address', 'location', 'area', 'notes'] as const;
 /**
  * A customer, known by their mobile number: it is unique, it is how a portal request finds them, and it is where their
  * notices go (WhatsApp; email as well when they gave one).
  */
-export default model('customers', {
+export default model({
 	description: 'A customer: contact details and the default service address.',
 	icon: 'lucide:house',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		name: { kind: 'text' },
 		phone: { kind: 'text', format: 'phone', unique: true },
@@ -18,13 +18,13 @@ export default model('customers', {
 		area: { kind: 'enum', values: AREAS, optional: true },
 		notes: { kind: 'text', optional: true }
 	},
-	search: { text: ['name', 'phone', 'email', 'address'] },
-	read: 'all',
+	indexes: { find: { text: ['name', 'phone', 'email', 'address'] } },
 	outputs: {
-		customer: { customers: { fields: ['name', 'phone', 'email', 'address', 'location', 'area'] } },
-		helper: { customers: { fields: ['name', 'email', 'phone', 'address'] } }
+		default: { fields: 'all' },
+		customer: { fields: ['name', 'phone', 'email', 'address', 'location', 'area'] },
+		helper: { fields: ['name', 'email', 'phone', 'address'] }
 	},
-	create: { columns: { customers: columns } },
-	update: { columns: { customers: columns } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } },
 	delete: {}
 });

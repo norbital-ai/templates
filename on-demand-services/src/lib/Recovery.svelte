@@ -1,18 +1,17 @@
 <script lang="ts">
-	import { fork, bolt } from '$bolt';
+	import { fork } from '@norbital-ai/ui/effect';
 	import {
-		useKinds,
 		Button,
 		Combobox,
 		EmptyState,
 		TimeInput,
 		Label,
 		RunStatus,
-		notifyOutcome
+		notify_outcome
 	} from '@norbital-ai/ui';
 	import { Effect } from 'effect';
 	import type { Id, Outcome } from '@norbital-ai/bolt';
-	import type { ActFailure } from '@norbital-ai/bolt/errors';
+	import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from './SlotPicker.svelte';
@@ -25,16 +24,19 @@
 		rebookingWindow,
 		type Rematch
 	} from './slots.js';
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	let {
+		ctx,
 		visit
 	}: {
+		ctx: PageContext;
 		visit: Id<'visits'>;
 	} = $props();
-	const t = bolt.t;
+	const zone = ctx.tz;
+	const t = ctx.t;
 	const getErrorMessage = (e: unknown) => String(e instanceof Error ? e.message : e);
 	const stored = $derived(
-		bolt.query({
+		ctx.query({
 			visits: {
 				where: { id: { eq: visit } },
 				fields: [
@@ -51,12 +53,14 @@
 					'unavailable_helper',
 					'booking'
 				],
-				limit: 1
-			},
-			'visits.unavailable_helper': { fields: ['name'] },
-			'visits.booking': { fields: ['customer', 'service'] },
-			'visits.booking.customer': { fields: ['name'] },
-			'visits.booking.service': { fields: ['name'] }
+				limit: 1,
+				unavailable_helper: { fields: ['name'] },
+				booking: {
+					fields: ['customer', 'service'],
+					customer: { fields: ['name'] },
+					service: { fields: ['name'] }
+				}
+			}
 		})
 	);
 	const v = $derived(stored.current?.visits.rows[0]);
@@ -67,10 +71,11 @@
 	let newTime = $state(false);
 	let picked = $state<string | null>(null);
 	let chosen = $state<Id<'helpers'> | null>(null);
-	let from = $state<string>(bolt.clock('day').today);
+	let from = $state<string>(ctx.clock('day').today);
 	const start = $derived(newTime ? picked : (v?.slot.start ?? null));
 	// who could take it at `start`: the pool around that moment, ranked as `visits_rebook` ranks it
 	const around = livePool(
+		ctx,
 		() =>
 			rematch === undefined || start === null
 				? null
@@ -87,10 +92,11 @@
 			(!newTime ? candidates?.find((c) => c.helper === v?.proposed_helper) : undefined) ??
 			candidates?.[0]
 	);
-	const clock = bolt.clock('minute');
+	const clock = ctx.clock('minute');
 	// another time: the next fortnight's feasible starts, adjacent travel included
 	const fortnight = $derived(dayList(PlainDate(from), 14));
 	const ahead = livePool(
+		ctx,
 		() =>
 			!newTime || rematch === undefined
 				? null
@@ -108,9 +114,9 @@
 	let message = $state<string | null>(null);
 	function feedback(outcome: Outcome<unknown>) {
 		message = outcome.kind === 'refused' ? outcome.message : null;
-		if (outcome.kind !== 'committed' && outcome.kind !== 'refused') notifyOutcome(bolt, outcome);
+		if (outcome.kind !== 'committed' && outcome.kind !== 'refused') notify_outcome(ctx, outcome);
 	}
-	function perform(work: Effect.Effect<void, ActFailure>): void {
+	function perform(work: Effect.Effect<void, ActFailure | ProtocolFailed>): void {
 		busy = true;
 		message = null;
 		fork(
@@ -123,9 +129,9 @@
 			),
 			(failure) => {
 				if (failure._tag === 'ActConflict')
-					notifyOutcome(bolt, { kind: 'conflict', records: failure.records });
+					notify_outcome(ctx, { kind: 'conflict', records: failure.records });
 				else if (failure._tag === 'ActUnknown')
-					notifyOutcome(bolt, { kind: 'unknown', invocation: failure.invocation });
+					notify_outcome(ctx, { kind: 'unknown', invocation: failure.invocation });
 				else message = getErrorMessage(failure);
 			}
 		);
@@ -136,7 +142,7 @@
 		if (at === null || replacement === undefined) return;
 		perform(
 			Effect.gen(function* () {
-				const call = bolt.start('visits_rebook', {
+				const call = ctx.run('visits_rebook', {
 					targets: [visit],
 					start: Instant(at),
 					helper: replacement.helper
@@ -150,7 +156,7 @@
 	function refresh() {
 		perform(
 			Effect.gen(function* () {
-				const call = bolt.start('visits_recommend', { targets: [visit] });
+				const call = ctx.run('visits_recommend', { targets: [visit] });
 				const outcome = yield* call;
 				feedback(outcome);
 				if (outcome.kind === 'committed') {
@@ -163,7 +169,7 @@
 	function report() {
 		perform(
 			Effect.gen(function* () {
-				const call = bolt.start('visits_report_unavailable', {
+				const call = ctx.run('visits_report_unavailable', {
 					targets: [visit],
 					mc: medical === 'yes'
 				});
@@ -175,7 +181,7 @@
 	}
 
 	const when = (at: string) =>
-		new Intl.DateTimeFormat(bolt.locale, {
+		new Intl.DateTimeFormat(ctx.locale, {
 			timeZone: zone,
 			weekday: 'short',
 			day: 'numeric',
@@ -194,7 +200,7 @@
 				{v.booking?.customer?.name ?? ''} · {v.booking?.service?.name ?? ''}
 			</p>
 			<p class="text-sm">{when(v.slot.start)} · {v.address}</p>
-			<Countdown start={v.slot.start} />
+			<Countdown {ctx} start={v.slot.start} />
 			{#if v.unavailable_helper}<p class="text-sm text-muted-foreground">
 					{t('app.recovery.absent', { name: v.unavailable_helper.name })}
 				</p>{/if}
@@ -206,7 +212,7 @@
 					<TimeInput
 						id="rebook-from"
 						value={from}
-						onChange={(d: string | null) => {
+						on_change={(d: string | null) => {
 							from = d ?? from;
 							picked = null;
 							chosen = null;
@@ -218,7 +224,8 @@
 							{days}
 							minutes={(Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60_000}
 							value={picked}
-							locale={bolt.locale}
+							locale={ctx.locale}
+							{zone}
 							onPick={(s) => {
 								picked = s;
 								chosen = null;
@@ -240,7 +247,7 @@
 							value: c.helper,
 							label: c.name
 						}))}
-						onChange={(id) => {
+						on_change={(id) => {
 							if (id !== null) chosen = id;
 						}}
 					/>
@@ -284,7 +291,7 @@
 								{ value: 'no', label: t('app.recovery.no_medical') },
 								{ value: 'yes', label: t('app.recovery.medical') }
 							]}
-							onChange={(m) => {
+							on_change={(m) => {
 								if (m !== null) medical = m;
 							}}
 						/>

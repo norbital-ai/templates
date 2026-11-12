@@ -1,23 +1,24 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
 	/**
 	 * Every booking, taken with the toolbar's New (the booking's own form). Requests from the public portal that could
 	 * not be booked on their own wait in Portal requests.
 	 */
-	import { bolt } from '$bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, Tabs } from '@norbital-ai/ui';
-	const t = bolt.t;
+	const t = ctx.t;
 </script>
 
 {#snippet list()}
 	<Table
 		of="bookings"
-		orderBy={{ number: 'desc' }}
+		order_by={{ number: 'desc' }}
 		toolbar={{ title: t('app.schedule.all_bookings') }}
 		columns={['number', 'customer', 'service', 'preference', 'repeat', 'status', 'visit_count']}
 		actions={[
 			{
-				run: (row) => bolt.start('bookings_cancel', { targets: [row.id] }),
+				run: (row) => ctx.run('bookings_cancel', { targets: [row.id] }),
 				label: t('app.schedule.cancel_booking'),
 				confirm: t('app.schedule.cancel_booking_confirm')
 			}
@@ -28,8 +29,8 @@
 {#snippet requests()}
 	<Table
 		of="booking_requests"
-		orderBy={{ number: 'desc' }}
-		initialFilter={{ status: { eq: 'follow_up' } }}
+		order_by={{ number: 'desc' }}
+		initial_filter={{ status: { eq: 'follow_up' } }}
 		toolbar={{ title: t('app.schedule.portal_requests'), new: false }}
 		columns={['number', 'name', 'email', 'service', 'start', 'status', 'outcome', 'booking']}
 	/>

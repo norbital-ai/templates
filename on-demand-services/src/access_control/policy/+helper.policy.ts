@@ -9,39 +9,44 @@ const memberOf = (actor: Actor) => (actor.kind === 'member' ? actor.id : null);
  */
 export default policy({
 	description: 'A helper’s own visits, shift check answers, completion and reported position.',
-	capabilities: { apps: ['helper'] },
-	automations: ['visits_confirm_shift', 'visits_decline_shift'],
+	capabilities: {
+		apps: ['helper'],
+		automations: ['visits_confirm_shift', 'visits_decline_shift']
+	},
 	grants: {
 		helpers: {
-			outputs: { helper: { helpers: { where: SELF } } },
+			outputs: { helper: { where: SELF } },
 			update: {
-				columns: { helpers: ['last_location'] },
-				check: function* (changes, ctx) {
+				columns: { fields: ['last_location'] },
+				verdict: function* (changes, ctx) {
 					const me = memberOf(ctx.actor);
 					const row = changes.findIndex((c) => me === null || c.before.user !== me);
-					return row < 0 ? ctx.allow() : ctx.deny('Report your own position only.', { row });
+					return row < 0
+						? ctx.allow()
+						: yield* ctx.refuse('Report your own position only.', { row });
 				}
 			}
 		},
-		helper_time_off: { read: { helper_time_off: { where: OWN } } },
+		helper_time_off: { outputs: { default: { where: OWN } } },
 		services: {
 			outputs: { helper: true }
 		},
 		visits: {
 			outputs: {
 				helper: {
-					visits: { where: OWN },
+					where: OWN,
 					// only themselves: another helper's absence is the desk's
-					'visits.unavailable_helper': { where: SELF }
+					unavailable_helper: { where: SELF }
 				}
 			},
 			update: {
-				columns: { visits: ['status', 'shift_check', 'mc', 'completion_notes'] },
+				columns: { fields: ['status', 'shift_check', 'mc', 'completion_notes'] },
+				moves: { status: ['scheduled->in_progress', 'in_progress->done'] },
 				// their own visits: the visit's helper is the member (the helper column is not theirs to write)
-				check: function* (changes, ctx) {
+				verdict: function* (changes, ctx) {
 					const me = memberOf(ctx.actor);
 					const ids = changes.flatMap((c) => (c.before.helper === null ? [] : [c.before.helper]));
-					const { helpers } = yield* ctx.db.query({
+					const { helpers } = yield* ctx.query({
 						helpers: { where: { id: { in: ids } }, fields: ['user'] }
 					});
 					const mine = new Set(
@@ -50,17 +55,16 @@ export default policy({
 					const row = changes.findIndex(
 						(c) => c.before.helper === null || !mine.has(c.before.helper)
 					);
-					return row < 0 ? ctx.allow() : ctx.deny('Only your own visits.', { row });
+					return row < 0 ? ctx.allow() : yield* ctx.refuse('Only your own visits.', { row });
 				}
-			},
-			moves: { status: ['scheduled->in_progress', 'in_progress->done'] }
+			}
 		},
 		bookings: {
-			outputs: { helper: { bookings: { where: { visits: { some: OWN } } } } }
+			outputs: { helper: { where: { visits: { some: OWN } } } }
 		},
 		customers: {
 			outputs: {
-				helper: { customers: { where: { bookings: { some: { visits: { some: OWN } } } } } }
+				helper: { where: { bookings: { some: { visits: { some: OWN } } } } }
 			}
 		}
 	},

@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('scheduler/configurations', {
+export default app({
 	title: 'app.configurations.title',
 	description: 'app.configurations.description',
 	icon: 'lucide:settings',

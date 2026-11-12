@@ -1,5 +1,5 @@
 import type { Id } from '@norbital-ai/bolt';
-import { inputSchema } from '@norbital-ai/std/kind';
+import { input_schema } from '@norbital-ai/std/kind';
 import { Schema } from 'effect';
 /** A fixture must actually contain the row or selected value its assertion uses. */
 export const present = <A>(value: A | null | undefined): A => {
@@ -8,7 +8,7 @@ export const present = <A>(value: A | null | undefined): A => {
 };
 /** A declared fixture ID passes the same UUID boundary as a host record reference. */
 export const fixtureId = <C extends string>(model: C, value: unknown) => {
-	const schema = inputSchema({ kind: 'id', of: model });
+	const schema = input_schema({ kind: 'ref', to: model });
 	const decoded = Schema.decodeUnknownSync(schema)(value);
 	return Schema.decodeUnknownSync(
 		Schema.declare<Id<C>>((input): input is Id<C> => Schema.is(Schema.toType(schema))(input))

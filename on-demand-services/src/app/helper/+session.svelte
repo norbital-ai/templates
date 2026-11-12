@@ -1,26 +1,29 @@
 <script lang="ts">
 	import { Effect, Clock, Queue, Schedule } from 'effect';
-	import { bolt, attach } from '$bolt';
+	import { attach } from '@norbital-ai/ui/effect';
 	import type { Id } from '@norbital-ai/bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
+	let { ctx }: { ctx: PageContext } = $props();
 	const EVERY_MS = 120000;
-	const actor = bolt.actor;
+	const actor = ctx.actor;
 	const me = $derived(
 		actor?.kind === 'member'
-			? bolt.query({
+			? ctx.query({
 					helpers: {
 						output: 'helper',
 						where: { user: { eq: actor.id } },
-						fields: ['name'],
+						fields: ['revision', 'name'],
 						limit: 1
 					}
 				})
 			: null
 	);
 	// keyed by the id: the helper's own row changes with every position it reports
-	const helperId = $derived(me?.current?.helpers.rows[0]?.id);
+	const helper = $derived(me?.current?.helpers.rows[0]);
+	const helperId = $derived(helper?.id);
 	// The host may supply native GPS (background delivery); the same page keeps working in a browser.
-	const geo = bolt.device?.geolocation?.api ?? navigator.geolocation;
+	const geo = ctx.device?.geolocation?.api ?? navigator.geolocation;
 	function tracking(id: Id<'helpers'>) {
 		return attach(() =>
 			Effect.gen(function* () {
@@ -68,8 +71,15 @@
 					const now = yield* Clock.currentTimeMillis;
 					if (now - sent < EVERY_MS) continue;
 					sent = now;
-					yield* bolt
-						.act('helpers.update', [{ target: id, set: { last_location: employeeLocation.here } }])
+					// the row as last read: its revision guards the write
+					const revision = helper?.id === id ? helper.revision : undefined;
+					if (revision === undefined) continue;
+					yield* ctx
+						.act({
+							'helpers.update': [
+								{ target: { id, revision }, set: { last_location: employeeLocation.here } }
+							]
+						})
 						.pipe(Effect.tapError(Effect.logWarning), Effect.ignore);
 				}
 			})

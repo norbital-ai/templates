@@ -1,34 +1,38 @@
 <script lang="ts">
-	import {
-		useKinds,
-		Badge,
-		EmptyState,
-		enumText,
-		Icon,
-		Label,
-		PhoneVerify,
-		useBolt
-	} from '@norbital-ai/ui';
+	import { Badge, EmptyState, Icon, Label, PhoneVerify } from '@norbital-ai/ui';
 	/**
 	 * A customer's bookings (the policy scopes every read to their own record): the next visits with who is coming and how
 	 * far away they are, then what is done, then the messages sent about them. Unverified, the number is verified here.
 	 */
-	import { bolt } from '$bolt';
 	import { Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import type Data from './visits.page.data.js';
-	import { visitsReads } from './visits.page.data.js';
-	let { data }: { data: typeof Data.Type } = $props();
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-	const t = bolt.t;
-	const ui = useBolt();
+	import type { PublicPageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PublicPageContext } = $props();
+	const zone = ctx.tz;
+	const t = ctx.t;
 	const statusWord = (value: 'in_progress' | 'done') =>
-		enumText(value, { t: (key) => ui.t(key), model: 'visits', field: 'status' });
-	const me = bolt.actor?.kind === 'member';
-	const reads = me ? bolt.query(visitsReads) : null;
-	// the server's answer until the live one arrives
-	const answer = $derived(reads?.current ?? data);
+		ctx.t(`models.visits.fields.status.${value}`);
+	const me = ctx.actor?.kind === 'member';
+	const reads = me
+		? ctx.query({
+				visits: {
+					output: 'customer',
+					where: { status: { in: ['scheduled', 'in_progress', 'done'] } },
+					fields: ['number', 'slot', 'address', 'status', 'eta_minutes', 'helper', 'booking'],
+					limit: 100,
+					helper: { fields: ['name'] },
+					booking: { service: { fields: ['name'] } }
+				},
+				customer_notices: {
+					output: 'customer',
+					fields: ['subject', 'body'],
+					order_by: { created_at: 'desc' },
+					limit: 10
+				}
+			})
+		: null;
+	const answer = $derived(reads?.current);
 	const sorted = $derived(
-		[...(answer.visits?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
+		[...(answer?.visits?.rows ?? [])].sort((a, b) => a.slot.start.localeCompare(b.slot.start))
 	);
 	const upcoming = $derived(sorted.filter((v) => v.status !== 'done'));
 	const done = $derived(
@@ -38,7 +42,7 @@
 			.slice(0, 10)
 	);
 	const when = (i: string) =>
-		new Intl.DateTimeFormat(bolt.locale, {
+		new Intl.DateTimeFormat(ctx.locale, {
 			timeZone: zone,
 			weekday: 'short',
 			day: 'numeric',
@@ -52,7 +56,7 @@
 	<Center measure="reading">
 		<Stack gap="lg" class="py-6">
 			<Stack gap="xs">
-				<p class="text-caption" data-portal-org>{bolt.org.name}</p>
+				<p class="text-caption" data-portal-org>{ctx.org.name}</p>
 				<Inline gap="sm" align="center">
 					<Icon name="lucide:calendar-heart" class="size-6 text-brand" />
 					<h1 class="text-title">{t('app.portal.my_bookings')}</h1>
@@ -60,11 +64,11 @@
 			</Stack>
 			{#if !me}
 				<p class="text-sm text-muted-foreground">{t('app.portal.verify_to_see')}</p>
-				<PhoneVerify session={bolt.session} />
+				<PhoneVerify session={ctx.session} />
 			{:else}
 				<Stack gap="sm">
 					<Label>{t('app.portal.visits_upcoming')}</Label>
-					{#if answer.visits == null}
+					{#if answer?.visits == null}
 						<p class="text-caption">{t('component.loading')}</p>
 					{:else if upcoming.length === 0}
 						<EmptyState variant="card" title={t('app.portal.visits_nothing_upcoming')} />
@@ -105,10 +109,10 @@
 						{/each}
 					</Stack>
 				{/if}
-				{#if (answer.customer_notices?.rows.length ?? 0) > 0}
+				{#if (answer?.customer_notices?.rows.length ?? 0) > 0}
 					<Stack gap="sm">
 						<Label>{t('app.portal.visits_messages')}</Label>
-						{#each answer.customer_notices?.rows ?? [] as n (n.id)}
+						{#each answer?.customer_notices?.rows ?? [] as n (n.id)}
 							<Stack gap="xs">
 								<p class="text-sm font-medium">{n.subject}</p>
 								<p class="text-sm text-muted-foreground">{n.body}</p>

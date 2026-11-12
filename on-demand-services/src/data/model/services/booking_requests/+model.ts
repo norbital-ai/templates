@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/booking_requests.ts';
 import { AREAS, REPEATS } from '../../../../lib/matching.js';
 /** How long a customer's checked times hold before booking must check them again. */
 const QUOTE_FRESH_MS = 15 * 60000;
@@ -7,10 +7,10 @@ const QUOTE_FRESH_MS = 15 * 60000;
  * and otherwise leaves it for the desk to follow up. A request names the times its customer was shown: it is refused
  * when they no longer hold.
  */
-export default model('booking_requests', {
+export default model({
 	description: 'A booking request from the public portal, and what became of it.',
 	icon: 'lucide:inbox',
-	label: 'number',
+	record_label: 'record.number',
 	fields: {
 		number: { kind: 'seq', pattern: 'RQ-{yyyy}-{0000}' },
 		name: { kind: 'text', max: 200 },
@@ -23,33 +23,34 @@ export default model('booking_requests', {
 		repeat: { kind: 'enum', values: REPEATS, default: 'once' },
 		notes: { kind: 'text', max: 2000, optional: true },
 		availability: { kind: 'ref', to: 'availability_requests', optional: true },
-		booking: { kind: 'ref', to: 'bookings', optional: true, onDelete: 'setNull' },
+		booking: { kind: 'ref', to: 'bookings', optional: true, on_delete: 'set_null' },
 		status: {
 			kind: 'state',
 			initial: 'received',
 			states: {
 				received: { to: ['booked', 'follow_up'] },
 				follow_up: { to: ['booked', 'closed'] },
-				booked: { edit: 'none' },
-				closed: { edit: 'none' }
+				booked: {},
+				closed: {}
 			}
 		},
 		/** Why it was not booked on its own. */
 		outcome: { kind: 'text', optional: true }
 	},
-	index: ['status'],
-	search: { text: ['phone', 'address'] },
-	read: { booking_requests: { fields: 'all' }, 'booking_requests.service': { fields: ['name'] } },
+	constraints: { settled: { locked: { status: { in: ['booked', 'closed'] } } } },
+	indexes: {
+		status: { on: ['status'] },
+		find: { text: ['phone', 'address'] }
+	},
 	outputs: {
+		default: { fields: 'all', service: { fields: ['name'] } },
 		customer: {
-			booking_requests: {
-				fields: ['number', 'phone', 'service', 'start', 'repeat', 'address', 'status', 'booking']
-			}
+			fields: ['number', 'phone', 'service', 'start', 'repeat', 'address', 'status', 'booking']
 		}
 	},
 	create: {
 		columns: {
-			booking_requests: [
+			fields: [
 				'name',
 				'email',
 				'phone',
@@ -62,12 +63,13 @@ export default model('booking_requests', {
 				'availability'
 			]
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map((c) => c.set);
 			const ids = rows.flatMap((r) => r.availability ?? []);
 			const quotes =
 				ids.length === 0
 					? []
-					: (yield* ctx.db.query({ availability_requests: { where: { id: { in: ids } } } }))
+					: (yield* ctx.query({ availability_requests: { where: { id: { in: ids } } } }))
 							.availability_requests.rows;
 			for (const [row, r] of rows.entries()) {
 				if (Date.parse(r.start) <= Date.parse(ctx.now))
@@ -92,13 +94,11 @@ export default model('booking_requests', {
 					});
 			}
 			return rows;
+		},
+		// the writer (a customer) cannot book: `portal_intake` books as dispatch
+		effect: function* (changes, ctx) {
+			yield* ctx.schedule('portal_intake', { ids: changes.map((c) => c.after.id) });
 		}
 	},
-	update: { columns: { booking_requests: ['status', 'booking', 'outcome'] } },
-	// the writer (a customer) cannot book: `portal_intake` books as dispatch
-	effect: {
-		created: function* (rows, ctx) {
-			yield* ctx.schedule('portal_intake', { ids: rows.map((r) => r.id) });
-		}
-	}
+	update: { columns: { fields: ['status', 'booking', 'outcome'] } }
 });

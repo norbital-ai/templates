@@ -1,12 +1,10 @@
 <script lang="ts">
-	import { useKinds } from '@norbital-ai/ui';
 	/**
 	 * Picking a visit's start: the available days as a swipeable strip (each with how many starts it has; a day
 	 * nobody can take is greyed), then the chosen day's starts by part of the day, each with when the visit would end.
 	 */
-	import { localOf } from '@norbital-ai/std/zone';
+	import { local_of } from '@norbital-ai/std/zone';
 	import { Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	type Day = {
 		readonly day: string;
 		readonly starts: readonly string[];
@@ -22,6 +20,7 @@
 		minutes,
 		value,
 		locale,
+		zone,
 		onPick,
 		t
 	}: {
@@ -30,6 +29,8 @@
 		minutes: number;
 		value: string | null;
 		locale: string;
+		/** The workspace zone the days and starts are shown in. */
+		zone: string;
 		onPick: (start: string | null) => void;
 		t: (key: SlotCopy) => string;
 	} = $props();
@@ -66,7 +67,7 @@
 		PARTS.map((p, i) => ({
 			key: p.key,
 			starts: (starts.get(day) ?? []).filter((s) => {
-				const h = localOf(Date.parse(s), zone).msOfDay / 3600000;
+				const h = local_of(Date.parse(s), zone).ms_of_day / 3600000;
 				return h >= p.from && h < (PARTS[i + 1]?.from ?? 24);
 			})
 		})).filter((p) => p.starts.length > 0)

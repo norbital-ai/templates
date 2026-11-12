@@ -1,4 +1,5 @@
-import { model, type Instant, type Row, type StoredRow } from '@norbital-ai/bolt';
+import type { Instant, StoredRow } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/helpers.ts';
 import { AREAS, DAYS, SKILLS, type Point } from '../../../lib/matching.js';
 const columns = [
 	'name',
@@ -31,15 +32,15 @@ const located = <S extends { readonly last_location?: Point | null }>(
  * A helper's app reports their position into `last_location`, stamped with when. `src/lib/slots.ts` lays out when each of a
  * customer's preferred helpers could come; `helpers_offboard` records a helper leaving. A helper signs in as the member `user` names.
  */
-export default model('helpers', {
+export default model({
 	description:
 		'A helper: skills, working days and hours, home area, and the last GPS position their app reported.',
 	icon: 'lucide:user-round-check',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		name: { kind: 'text' },
 		phone: { kind: 'text', format: 'phone' },
-		user: { kind: 'ref', to: 'sys_user', optional: true, onDelete: 'setNull' },
+		user: { kind: 'ref', to: 'sys_user', optional: true, on_delete: 'set_null' },
 		skills: { kind: 'enum', values: SKILLS, many: true },
 		home_area: { kind: 'enum', values: AREAS, optional: true },
 		home_location: { kind: 'point', optional: true },
@@ -57,50 +58,44 @@ export default model('helpers', {
 		last_location_at: { kind: 'instant', optional: true },
 		warning_count: { kind: 'count', of: 'warnings' }
 	},
-	unique: [{ fields: ['user'] }],
-	check: { hours: { day_end: { gt: { field: 'day_start' } } } },
-	search: { text: ['name'] },
-	read: 'all',
+	constraints: {
+		one_user: { unique: ['user'] },
+		hours: { check: { day_end: { gt: { field: 'day_start' } } } }
+	},
+	indexes: { find: { text: ['name'] } },
 	outputs: {
-		customer: { helpers: { fields: ['name', 'skills'] } },
+		default: { fields: 'all' },
+		customer: { fields: ['name', 'skills'] },
 		helper: {
-			helpers: {
-				fields: [
-					'user',
-					'name',
-					'phone',
-					'skills',
-					'work_days',
-					'day_start',
-					'day_end',
-					'status',
-					'last_location',
-					'last_location_at'
-				]
-			}
+			fields: [
+				'user',
+				'name',
+				'phone',
+				'skills',
+				'work_days',
+				'day_start',
+				'day_end',
+				'status',
+				'last_location',
+				'last_location_at'
+			]
 		}
 	},
 	create: {
-		columns: { helpers: columns },
-		transform: function* (rows, ctx) {
-			return rows.map((r) => located(r, null, ctx.now));
+		columns: { fields: columns },
+		transform: function* (changes, ctx) {
+			return changes.map(({ set }) => located(set, null, ctx.now));
 		}
 	},
 	update: {
-		columns: { helpers: columns },
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			return changes.map(({ before, set }) => located(set, before, ctx.now));
-		}
-	},
-	effect: {
-		updated: function* (changes, ctx) {
-			const moved = (fields: readonly (keyof Row<'helpers'>)[]) =>
-				changes.some(({ before, after }) =>
-					fields.some((f) => JSON.stringify(before[f]) !== JSON.stringify(after[f]))
-				);
-			if (moved(['status', 'skills', 'work_days', 'day_start', 'day_end']))
+		},
+		effect: function* (changes, ctx) {
+			if (changes.some((c) => c.changed('status', 'skills', 'work_days', 'day_start', 'day_end')))
 				yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
-			if (moved(['home_location']))
+			if (changes.some((c) => c.changed('home_location')))
 				yield* ctx.schedule('check_drives', {}, { key: 'check_drives' });
 		}
 	}

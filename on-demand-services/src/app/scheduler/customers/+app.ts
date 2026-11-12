@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('scheduler/customers', {
+export default app({
 	title: 'app.customers.title',
 	description: 'app.customers.description',
 	icon: 'lucide:house',

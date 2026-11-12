@@ -1,38 +1,37 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
 	import {
-		useKinds,
 		Badge,
 		Button,
 		TimeInput,
 		EmptyState,
-		enumText,
 		Label,
 		Sheet,
 		Textarea,
 		RunStatus,
-		notifyOutcome,
-		useBolt
+		notify_outcome
 	} from '@norbital-ai/ui';
 	/**
 	 * A helper's day on their phone: the visit under way, the ones still to come with the drive to each from where the
 	 * phone is now, the shift check to answer, and one tap to start and to finish. The native phone continues sharing while backgrounded; browser sharing requires the page. Its
 	 * position is shared with the scheduler (at most every two minutes).
 	 */
-	import { bolt, fork } from '$bolt';
+	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { Id, Outcome } from '@norbital-ai/bolt';
-	import type { ActFailure } from '@norbital-ai/bolt/errors';
-	import { addDays, Instant, PlainDate } from '@norbital-ai/std/date';
-	import { utcOf } from '@norbital-ai/std/zone';
+	import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
+	import { add_days, Instant, PlainDate } from '@norbital-ai/std/date';
+	import { utc_of } from '@norbital-ai/std/zone';
 	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
 	import { driveMinutes, type Point } from '../../lib/matching.js';
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-	const t = bolt.t;
-	const actor = bolt.actor;
+	const zone = ctx.tz;
+	const t = ctx.t;
+	const actor = ctx.actor;
 	const me = $derived(
 		actor?.kind === 'member'
-			? bolt.query({
+			? ctx.query({
 					helpers: {
 						output: 'helper',
 						where: { user: { eq: actor.id } },
@@ -43,26 +42,26 @@
 			: null
 	);
 	const helper = $derived(me?.current?.helpers.rows[0]);
-	const ui = useBolt();
 	const statusWord = (value: 'in_progress' | 'done') =>
-		enumText(value, { t: (key) => ui.t(key), model: 'visits', field: 'status' });
-	const clock = bolt.clock('day');
+		ctx.t(`models.visits.fields.status.${value}`);
+	const clock = ctx.clock('day');
 	const today = $derived(clock.today);
 	let selectedDay = $state<string>(clock.today);
 	const span = $derived({
-		start: Instant(new Date(utcOf(selectedDay, 0, zone)).toISOString()),
-		end: Instant(new Date(utcOf(addDays(selectedDay, 1), 0, zone)).toISOString())
+		start: Instant(new Date(utc_of(selectedDay, 0, zone)).toISOString()),
+		end: Instant(new Date(utc_of(add_days(selectedDay, 1), 0, zone)).toISOString())
 	});
 	/** A day's visits of this helper in `status`, with whom and what for. */
 	const dayRead = (
 		helperId: Id<'helpers'>,
 		status: readonly ('scheduled' | 'in_progress' | 'done')[]
 	) =>
-		bolt.query({
+		ctx.query({
 			visits: {
 				output: 'helper',
 				where: { helper: { eq: helperId }, status: { in: status }, slot: { overlaps: span } },
 				fields: [
+					'revision',
 					'number',
 					'slot',
 					'address',
@@ -71,11 +70,13 @@
 					'shift_check',
 					'completed_at',
 					'booking'
-				]
-			},
-			'visits.booking': { fields: ['notes', 'service', 'customer'] },
-			'visits.booking.service': { fields: ['name'] },
-			'visits.booking.customer': { fields: ['name', 'phone'] }
+				],
+				booking: {
+					fields: ['notes', 'service', 'customer'],
+					service: { fields: ['name'] },
+					customer: { fields: ['name', 'phone'] }
+				}
+			}
 		});
 	const open = $derived(
 		helper === undefined ? null : dayRead(helper.id, ['scheduled', 'in_progress'])
@@ -85,7 +86,7 @@
 	const off = $derived(
 		helper === undefined
 			? null
-			: bolt.query({
+			: ctx.query({
 					helper_time_off: {
 						where: {
 							helper: { eq: helper.id },
@@ -131,8 +132,8 @@
 	function answerShift(id: Id<'visits'>, mc?: boolean) {
 		const call =
 			mc === undefined
-				? bolt.start('visits_confirm_shift', { targets: [id] })
-				: bolt.start('visits_decline_shift', { targets: [id], mc });
+				? ctx.run('visits_confirm_shift', { targets: [id] })
+				: ctx.run('visits_decline_shift', { targets: [id], mc });
 		return perform(() => call).pipe(
 			Effect.tap((queued) =>
 				Effect.sync(() => {
@@ -142,7 +143,7 @@
 		);
 	}
 
-	function perform(outcome: () => Effect.Effect<Outcome<unknown>, ActFailure>) {
+	function perform(outcome: () => Effect.Effect<Outcome<unknown>, ActFailure | ProtocolFailed>) {
 		return Effect.gen(function* () {
 			const ready = yield* Effect.sync(() => {
 				if (!locationReady || busy) return false;
@@ -155,16 +156,16 @@
 				Effect.flatMap((result) =>
 					Effect.sync(() => {
 						const committed = result.kind === 'committed';
-						if (!committed) notifyOutcome(bolt, result);
+						if (!committed) notify_outcome(ctx, result);
 						return committed;
 					})
 				),
 				Effect.catch((failure) =>
 					Effect.sync(() => {
 						if (failure._tag === 'ActConflict')
-							notifyOutcome(bolt, { kind: 'conflict', records: failure.records });
+							notify_outcome(ctx, { kind: 'conflict', records: failure.records });
 						else if (failure._tag === 'ActUnknown')
-							notifyOutcome(bolt, { kind: 'unknown', invocation: failure.invocation });
+							notify_outcome(ctx, { kind: 'unknown', invocation: failure.invocation });
 						else problem = failure.message;
 						return false;
 					})
@@ -177,25 +178,34 @@
 			);
 		});
 	}
-	const start = (id: Id<'visits'>) =>
+	const start = (v: { readonly id: Id<'visits'>; readonly revision: number }) =>
 		fork(
-			perform(() => bolt.act('visits.update', [{ target: id, set: { status: 'in_progress' } }]))
+			perform(() =>
+				ctx.act({
+					'visits.update': [
+						{ target: { id: v.id, revision: v.revision }, set: { status: 'in_progress' } }
+					]
+				})
+			)
 		);
 	function complete() {
 		if (completing === null) return;
-		const visit = completing;
+		// the row as last read: its revision guards the write
+		const visit = visits.find((v) => v.id === completing?.id) ?? completing;
 		const completionNotes = notes.trim();
 		fork(
 			perform(() =>
-				bolt.act('visits.update', [
-					{
-						target: visit.id,
-						set: {
-							status: 'done',
-							...(completionNotes === '' ? {} : { completion_notes: completionNotes })
+				ctx.act({
+					'visits.update': [
+						{
+							target: { id: visit.id, revision: visit.revision },
+							set: {
+								status: 'done',
+								...(completionNotes === '' ? {} : { completion_notes: completionNotes })
+							}
 						}
-					}
-				])
+					]
+				})
 			).pipe(
 				Effect.tap((committed) =>
 					Effect.sync(() => {
@@ -212,13 +222,13 @@
 	const time = (i: string | null) =>
 		i === null
 			? '—'
-			: new Intl.DateTimeFormat(bolt.locale, {
+			: new Intl.DateTimeFormat(ctx.locale, {
 					timeZone: zone,
 					hour: 'numeric',
 					minute: '2-digit'
 				}).format(new Date(i));
 	const dayOf = (i: string) =>
-		new Intl.DateTimeFormat(bolt.locale, {
+		new Intl.DateTimeFormat(ctx.locale, {
 			timeZone: zone,
 			weekday: 'long',
 			day: 'numeric',
@@ -281,7 +291,7 @@
 					>{t('app.helper.complete')}</Button
 				>
 			{:else if next && current === undefined && isToday(v.slot.start)}
-				<Button size="lg" disabled={busy || here === null} onclick={() => start(v.id)}
+				<Button size="lg" disabled={busy || here === null} onclick={() => start(v)}
 					>{t('app.helper.start')}</Button
 				>
 			{/if}
@@ -300,7 +310,7 @@
 			<TimeInput
 				id="route-date"
 				value={selectedDay}
-				onChange={(day: string | null) => (selectedDay = day ?? today)}
+				on_change={(day: string | null) => (selectedDay = day ?? today)}
 			/>
 		</div>
 	{/snippet}
@@ -426,7 +436,7 @@
 
 <Sheet
 	open={completing !== null}
-	onOpenChange={(o) => {
+	on_open_change={(o) => {
 		if (!o) completing = null;
 	}}
 	title={t('app.helper.complete_title')}

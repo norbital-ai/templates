@@ -1,16 +1,16 @@
 import { automation } from '@norbital-ai/bolt';
-import { type ActInput, type CreateRow } from '@norbital-ai/bolt';
+import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
 import { Refusal } from '@norbital-ai/bolt/errors';
-import { addDays, Instant as instant } from '@norbital-ai/std/date';
-import { utcOf } from '@norbital-ai/std/zone';
-import { loadPool, when, observedOf } from '../lib/dispatch.js';
+import { add_days, Instant as instant } from '@norbital-ai/std/date';
+import { utc_of } from '@norbital-ai/std/zone';
+import { loadPool, when, targetOf } from '../lib/dispatch.js';
 import { proposal } from '../lib/matching.js';
 
-export default automation('helpers_offboard', {
+export default automation({
 	description:
 		'Marks the helper as left after their last day and proposes, for each of their later visits, the helper with the closest skills at the same time or the nearest time anyone is free.',
 	input: {
-		targets: { kind: 'list', of: { kind: 'id', of: 'helpers' }, min: 1 },
+		targets: { kind: 'ref', to: 'helpers', many: true, min_items: 1 },
 		last_day: { kind: 'date' }
 	},
 	output: { kind: 'object', fields: { proposed: { kind: 'int' }, open: { kind: 'int' } } },
@@ -24,15 +24,14 @@ export default automation('helpers_offboard', {
 				field: 'targets'
 			});
 		const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
-		const notices: CreateRow<'customer_notices'>[] = [];
+		const notices: CreateInput<'customer_notices'>[] = [];
 		const helperUpdates: Extract<ActInput<'helpers.update'>, readonly unknown[]>[number][] = [];
-		const visitRevisions = new Map<string, number>();
 		let proposed = 0,
 			openCount = 0;
 		for (const helper of targetsOf) {
 			if (helper.status !== 'active')
 				return yield* new Refusal({ message: `${helper.name} has already left.` });
-			const after = instant(new Date(utcOf(addDays(last_day, 1), 0, ctx.tz)).toISOString());
+			const after = instant(new Date(utc_of(add_days(last_day, 1), 0, ctx.tz)).toISOString());
 			const { rows: later } = (yield* ctx.query({
 				visits: {
 					where: {
@@ -40,11 +39,10 @@ export default automation('helpers_offboard', {
 						status: { eq: 'scheduled' },
 						slot: { overlaps: { start: after, end: null } }
 					},
-					fields: ['revision', 'number', 'slot', 'location', 'area', 'skill', 'booking']
-				},
-				'visits.booking': { fields: ['customer'] }
+					fields: ['revision', 'number', 'slot', 'location', 'area', 'skill', 'booking'],
+					booking: { fields: ['customer'] }
+				}
 			})).visits;
-			for (const row of later) visitRevisions.set(row.id, row.revision);
 			const starts = later.map((v) => v.slot.start).sort();
 			const pool =
 				later.length === 0
@@ -74,7 +72,7 @@ export default automation('helpers_offboard', {
 				if (found === null) open += 1;
 				else busy.push({ id: v.id, helper: found.helper, slot: found.slot, location: v.location });
 				updates.push({
-					target: v.id,
+					target: targetOf(v),
 					set: {
 						helper: null,
 						proposed_helper: found?.helper ?? null,
@@ -92,27 +90,17 @@ export default automation('helpers_offboard', {
 					});
 			}
 			helperUpdates.push({
-				target: helper.id,
+				target: targetOf(helper),
 				set: { status: 'left', left_on: last_day }
 			});
 			proposed += later.length - open;
 			openCount += open;
 		}
-		yield* ctx.act.many([
-			{ callable: 'helpers.update', input: helperUpdates, observed: observedOf(targetsOf) },
-			...(updates.length > 0
-				? [
-						{
-							callable: 'visits.update' as const,
-							input: updates,
-							observed: Object.fromEntries(visitRevisions)
-						}
-					]
-				: []),
-			...(notices.length > 0
-				? [{ callable: 'customer_notices.create' as const, input: notices }]
-				: [])
-		]);
+		yield* ctx.act({
+			'helpers.update': helperUpdates,
+			...(updates.length > 0 ? { 'visits.update': updates } : {}),
+			...(notices.length > 0 ? { 'customer_notices.create': notices } : {})
+		});
 		return { proposed, open: openCount };
 	}
 });

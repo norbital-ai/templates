@@ -1,11 +1,11 @@
 import { automation } from '@norbital-ai/bolt';
 import { declineShift } from '../lib/visit-recovery.js';
 
-export default automation('visits_report_unavailable', {
+export default automation({
 	description:
 		'The controller records that the assigned cleaner cannot work this day and requests recommendations.',
 	input: {
-		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 },
+		targets: { kind: 'ref', to: 'visits', many: true, min_items: 1 },
 		mc: { kind: 'bool' }
 	},
 	policies: ['operations'],

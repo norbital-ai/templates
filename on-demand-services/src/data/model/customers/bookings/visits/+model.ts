@@ -1,4 +1,5 @@
-import { model, type Instant, type Row, type UpdateSet } from '@norbital-ai/bolt';
+import type { Instant } from '@norbital-ai/bolt';
+import { model } from '../../../../../../.norbital/models/visits.ts';
 import { alertHelpers } from '../../../../../lib/dispatch.js';
 import { Instant as instant } from '@norbital-ai/std/date';
 import { AREAS, lookups, refusal, SKILLS, type Refusal } from '../../../../../lib/matching.js';
@@ -34,18 +35,24 @@ const stamped = <
  * Visits are created with their booking. Every write that names a helper or moves a visit is held to the hard
  * requirements here, whoever makes it; a change of helper starts that helper's shift check afresh.
  */
-export default model('visits', {
+export default model({
 	description:
 		'A visit: when, where, which helper, and where its shift confirmation and ETA check stand.',
 	icon: 'lucide:calendar-clock',
-	label: 'number',
+	record_label: 'record.number',
 	fields: {
 		number: { kind: 'seq', pattern: 'V-{yyyy}-{00000}' },
 		booking: { kind: 'ref', to: 'bookings', inverse: 'visits', owned: true },
 		/** Optional: a visit nobody can take waits unassigned for dispatch. */
-		helper: { kind: 'ref', to: 'helpers', inverse: 'visits', optional: true, onDelete: 'setNull' },
-		unavailable_helper: { kind: 'ref', to: 'helpers', optional: true, onDelete: 'setNull' },
-		proposed_helper: { kind: 'ref', to: 'helpers', optional: true, onDelete: 'setNull' },
+		helper: {
+			kind: 'ref',
+			to: 'helpers',
+			inverse: 'visits',
+			optional: true,
+			on_delete: 'set_null'
+		},
+		unavailable_helper: { kind: 'ref', to: 'helpers', optional: true, on_delete: 'set_null' },
+		proposed_helper: { kind: 'ref', to: 'helpers', optional: true, on_delete: 'set_null' },
 		slot: { kind: 'period', of: 'instant' },
 		address: { kind: 'text' },
 		location: { kind: 'point', optional: true },
@@ -56,12 +63,9 @@ export default model('visits', {
 			initial: 'scheduled',
 			states: {
 				scheduled: { to: ['in_progress', 'cancelled'] },
-				in_progress: {
-					to: ['done'],
-					edit: ['status', 'completion_notes', 'completed_at', 'attention']
-				},
-				done: { edit: 'none' },
-				cancelled: { edit: 'none' }
+				in_progress: { to: ['done'] },
+				done: {},
+				cancelled: {}
 			}
 		},
 		shift_check: {
@@ -87,76 +91,89 @@ export default model('visits', {
 		/** Cancelled less than a day before the start: chargeable. */
 		late_cancellation: { kind: 'bool', default: false }
 	},
-	index: ['attention', 'shift_check'],
-	noOverlap: [
-		{
-			key: ['helper'],
-			period: 'slot',
+	constraints: {
+		under_way: {
+			locked: { status: { eq: 'in_progress' } },
+			except: ['status', 'completion_notes', 'completed_at', 'attention']
+		},
+		finished: { locked: { status: { in: ['done', 'cancelled'] } } },
+		one_visit_at_a_time: {
+			no_overlap: 'slot',
+			per: ['helper'],
 			// unassigned visits (helper null) may overlap: Bolt counts null as a key value
-			where: { status: { ne: 'cancelled' }, helper: { isNull: false } }
+			where: { status: { ne: 'cancelled' }, helper: { is_null: false } }
 		}
-	],
-	// the layers the desk shows beside a visit; the helper's day and the portal read their own outputs
-	search: { text: ['number', 'address', 'helper', 'booking'] },
-	read: {
-		visits: { fields: 'all' },
-		'visits.helper': { fields: 'all' },
-		'visits.unavailable_helper': { fields: 'all' },
-		'visits.booking': { fields: 'all' },
-		'visits.booking.customer': { fields: 'all' },
-		'visits.booking.service': { fields: 'all' },
-		'visits.proposed_helper': { fields: ['name'] }
+	},
+	indexes: {
+		attention: { on: ['attention', 'shift_check'] },
+		find: { text: ['number', 'address', 'helper', 'booking'] }
 	},
 	outputs: {
+		// the layers the desk shows beside a visit; the helper's day and the portal read their own outputs
+		default: {
+			fields: 'all',
+			helper: { fields: 'all' },
+			unavailable_helper: { fields: 'all' },
+			booking: { fields: 'all', customer: { fields: 'all' }, service: { fields: 'all' } },
+			proposed_helper: { fields: ['name'] }
+		},
 		// when, where, who comes (by name) and how far away; who could not come is the desk's
 		customer: {
-			visits: {
-				fields: [
-					'number',
-					'booking',
-					'helper',
-					'slot',
-					'address',
-					'status',
-					'eta_minutes',
-					'completed_at'
-				]
-			},
-			'visits.helper': { fields: ['name'] },
-			'visits.booking': {
-				fields: ['number', 'customer', 'service', 'repeat', 'status', 'visit_count']
-			},
-			'visits.booking.customer': { fields: ['name'] },
-			'visits.booking.service': { fields: ['name', 'duration_minutes', 'description'] }
+			fields: [
+				'number',
+				'booking',
+				'helper',
+				'slot',
+				'address',
+				'status',
+				'eta_minutes',
+				'completed_at'
+			],
+			helper: { fields: ['name'] },
+			booking: {
+				fields: ['number', 'customer', 'service', 'repeat', 'status', 'visit_count'],
+				customer: { fields: ['name'] },
+				service: { fields: ['name', 'duration_minutes', 'description'] }
+			}
 		},
 		helper: {
-			visits: {
-				fields: [
-					'number',
-					'booking',
-					'helper',
-					'slot',
-					'address',
-					'location',
-					'skill',
-					'status',
-					'shift_check',
-					'mc',
-					'started_at',
-					'completed_at',
-					'completion_notes'
-				]
-			},
-			'visits.helper': { fields: ['name', 'phone'] },
-			'visits.unavailable_helper': { fields: ['name'] },
-			'visits.booking': { fields: ['number', 'service', 'customer', 'notes'] },
-			'visits.booking.customer': { fields: ['name', 'email', 'phone', 'address'] },
-			'visits.booking.service': { fields: ['name', 'duration_minutes', 'description'] }
+			fields: [
+				'number',
+				'booking',
+				'helper',
+				'slot',
+				'address',
+				'location',
+				'skill',
+				'status',
+				'shift_check',
+				'mc',
+				'started_at',
+				'completed_at',
+				'completion_notes'
+			],
+			helper: { fields: ['name', 'phone'] },
+			unavailable_helper: { fields: ['name'] },
+			booking: {
+				fields: ['number', 'service', 'customer', 'notes'],
+				customer: { fields: ['name', 'email', 'phone', 'address'] },
+				service: { fields: ['name', 'duration_minutes', 'description'] }
+			}
+		}
+	},
+	// visits are created with their booking (its `visits` layer); the effect tells each helper of their new visits
+	create: {
+		columns: { fields: ['slot', 'address', 'location', 'area', 'skill', 'helper', 'attention'] },
+		effect: function* (changes, ctx) {
+			yield* alertHelpers(
+				changes.flatMap(({ after }) => (after.helper === null ? [] : [after.id])),
+				ctx
+			);
 		}
 	},
 	update: {
 		columns: {
-			visits: [
+			fields: [
 				'helper',
 				'slot',
 				'status',
@@ -189,7 +206,7 @@ export default model('visits', {
 				helpers,
 				visits: stored,
 				helper_time_off: off
-			} = yield* ctx.db.query({
+			} = yield* ctx.query({
 				helpers: { where: { id: { in: ids } } },
 				visits: {
 					where: {
@@ -238,11 +255,11 @@ export default model('visits', {
 			const drive =
 				legs.length === 0
 					? []
-					: (yield* ctx.db.query({
+					: (yield* ctx.query({
 							drive_times: { where: { leg: { in: legs } }, fields: ['leg', 'minutes'] }
 						})).drive_times.rows;
 			const pool = { ...holds, drive: new Map(drive.map((d) => [d.leg, d.minutes])) };
-			const out: UpdateSet<'visits'>[] = [];
+			const out: (typeof changes)[number]['set'][] = [];
 			for (const [row, { before, set }] of changes.entries()) {
 				const helper = set.helper === undefined ? before.helper : set.helper;
 				const changed = set.helper !== undefined && set.helper !== before.helper;
@@ -284,26 +301,16 @@ export default model('visits', {
 				);
 			}
 			return out;
-		}
-	},
-	// runs as the writer: the desk or a dispatch run assigns and moves visits, a helper only answers and works them
-	effect: {
-		created: function* (rows, ctx) {
-			yield* alertHelpers(
-				rows.flatMap((v) => (v.helper === null ? [] : [v.id])),
-				ctx
-			);
 		},
-		updated: function* (changes, ctx) {
-			const moved = (fields: readonly (keyof Row<'visits'>)[]) =>
-				changes.filter(({ before, after }) =>
-					fields.some((f) => JSON.stringify(before[f]) !== JSON.stringify(after[f]))
-				);
+		// runs as the writer: the desk or a dispatch run assigns and moves visits, a helper only answers and works them
+		effect: function* (changes, ctx) {
 			yield* alertHelpers(
-				moved(['helper', 'slot']).flatMap(({ after }) => (after.helper === null ? [] : [after.id])),
+				changes.flatMap((c) =>
+					c.changed('helper', 'slot') && c.after.helper !== null ? [c.after.id] : []
+				),
 				ctx
 			);
-			if (moved(['helper', 'slot', 'status']).length > 0) {
+			if (changes.some((c) => c.changed('helper', 'slot', 'status'))) {
 				yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
 				yield* ctx.schedule('check_drives', {}, { key: 'check_drives' });
 			}

@@ -1,9 +1,10 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
 	/** What can be booked: the skill each service needs, how long it takes, its price. */
-	import { bolt } from '$bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
-	const t = bolt.t;
+	const t = ctx.t;
 </script>
 
 <AppShell
@@ -13,7 +14,7 @@
 >
 	<Table
 		of="services"
-		orderBy={{ name: 'asc' }}
+		order_by={{ name: 'asc' }}
 		toolbar={{ title: t('app.configurations.tab_services') }}
 		columns={['name', 'skill', 'duration_minutes', 'price', 'active']}
 	/>

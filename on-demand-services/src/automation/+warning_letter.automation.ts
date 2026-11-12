@@ -1,33 +1,35 @@
 import { Effect } from 'effect';
 import { automation, type ActInput } from '@norbital-ai/bolt';
-import { when, whatsapp } from '../lib/dispatch.js';
+import { whatsappAccount, targetOf, when, whatsapp } from '../lib/dispatch.js';
 const REASON = {
 	no_response: 'did not answer the shift check before your visit',
 	declined_without_mc: 'withdrew from your shift without a medical certificate'
 } as const;
 /** Tells the helper of each warning filed on WhatsApp, and writes and attaches the letter where the host renders PDFs. */
-export default automation('warning_letter', {
+export default automation({
 	description:
 		'Renders a PDF warning letter for each warning filed and attaches it to the warning.',
-	input: { ids: { kind: 'list', of: { kind: 'id', of: 'helper_warnings' }, min: 1 } },
+	input: { ids: { kind: 'ref', to: 'helper_warnings', many: true, min_items: 1 } },
 	policies: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
 		const { rows } = (yield* ctx.query({
 			helper_warnings: {
-				where: { id: { in: ids }, letter: { isNull: true } },
-				fields: ['reason', 'issued_at', 'helper', 'visit']
-			},
-			'helper_warnings.helper': { fields: ['name', 'phone', 'warning_count'] },
-			'helper_warnings.visit': { fields: ['number', 'slot', 'address'] }
+				where: { id: { in: ids }, letter: { is_null: true } },
+				fields: ['revision', 'reason', 'issued_at', 'helper', 'visit'],
+				helper: { fields: ['name', 'phone', 'warning_count'] },
+				visit: { fields: ['number', 'slot', 'address'] }
+			}
 		})).helper_warnings;
 		const set: Extract<ActInput<'helper_warnings.update'>, readonly unknown[]>[number][] = [];
+		const account = rows.length === 0 ? null : yield* whatsappAccount(ctx);
 		for (const w of rows) {
 			const helper = w.helper;
 			if (helper === null) continue;
-			yield* ctx.send('whatsapp', {
-				to: whatsapp(helper.phone),
-				text: `A warning has been filed on your record: you ${REASON[w.reason]}. Please answer every shift check, and send a medical certificate whenever you cannot work for medical reasons.`
-			});
+			if (account !== null)
+				yield* ctx.send(account, {
+					to: whatsapp(helper.phone),
+					text: `A warning has been filed on your record: you ${REASON[w.reason]}. Please answer every shift check, and send a medical certificate whenever you cannot work for medical reasons.`
+				});
 			const at =
 				w.visit === null
 					? 'your shift'
@@ -53,8 +55,8 @@ export default automation('warning_letter', {
 				.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as(null))));
 			// a host with no document converter: the warning stands without its letter
 			if (letter === null) continue;
-			set.push({ target: w.id, set: { letter } });
+			set.push({ target: targetOf(w), set: { letter } });
 		}
-		if (set.length > 0) yield* ctx.act('helper_warnings.update', set);
+		if (set.length > 0) yield* ctx.act({ 'helper_warnings.update': set });
 	}
 });

@@ -4,7 +4,7 @@ import { describe, expect, it } from '@effect/vitest';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Schema } from 'effect';
 import type { PlainTime } from '@norbital-ai/bolt';
-import { inputSchema } from '@norbital-ai/std/kind';
+import { input_schema } from '@norbital-ai/std/kind';
 import { createHash } from 'node:crypto';
 import { fixtureId } from './test-runtime.js';
 import {
@@ -35,7 +35,7 @@ const uuid = (label: string) => {
 const hid = (id: string) => fixtureId('helpers', uuid(`helper:${id}`));
 const vid = (id: string) => fixtureId('visits', uuid(`visit:${id}`));
 const time = (input: string) => {
-	const schema = inputSchema({ kind: 'time' });
+	const schema = input_schema({ kind: 'time' });
 	const decoded = Schema.decodeUnknownSync(schema)(input);
 	return Schema.decodeUnknownSync(
 		Schema.declare<PlainTime>((value): value is PlainTime =>

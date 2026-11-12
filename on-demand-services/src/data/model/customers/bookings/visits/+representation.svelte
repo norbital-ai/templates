@@ -1,28 +1,21 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	/** A visit, and for dispatch the helpers who could take it instead, best match first, each one click away. */
-	import { bolt } from '$bolt';
-	import {
-		type RecordSection,
-		type RecordView,
-		enumText,
-		RecordShell,
-		useBolt,
-		useKinds
-	} from '@norbital-ai/ui';
+	import { type RecordSection, type RecordView, RecordShell, use_enum_text } from '@norbital-ai/ui';
 	import { Schema } from 'effect';
 	import Recovery from '../../../../../lib/Recovery.svelte';
 	import { excerpt, useWhen } from '../../../../../lib/summary.js';
-	const when = useWhen();
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'visits'>;
+		ctx: PageContext;
 	} = $props();
-	const t = bolt.t;
-	const kinds = useKinds();
-	const ui = useBolt();
-	const word = (field: 'attention' | 'shift_check', value: string) =>
-		enumText(value, { t: (key) => ui.t(key), model: 'visits', field });
+	const when = useWhen(ctx);
+	const t = ctx.t;
+	const enumWord = use_enum_text();
+	const word = (field: 'attention' | 'shift_check', value: string) => enumWord(value, field);
 	const summaryText = Schema.optionalKey(
 		Schema.Union([Schema.String, Schema.Null, Schema.Undefined])
 	);
@@ -34,8 +27,10 @@
 		})
 	);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
-	/** Only dispatch reads warnings; a helper's catalogue has no such model. */
-	const dispatcher = $derived(kinds.catalog?.['helper_warnings'] !== undefined);
+	/** Only dispatch may hand the visit to another helper; a helper cannot. */
+	const dispatcher = $derived(
+		view.mode !== 'create' && view.capabilities?.fields['helper']?.writable === true
+	);
 	// when, where, who and what stay open; what dispatch must act on opens while the visit needs attention, completion
 	// while it is under way; the automatic checks and the map pin fold away
 	const sections = $derived<RecordSection[]>(
@@ -54,7 +49,7 @@
 						title: t('section.attention'),
 						fields: ['attention', 'proposed_slot', 'proposed_helper', 'unavailable_helper'],
 						// a helper's output has no attention or checks: their sections stay folded and blank
-						defaultOpen: typeof record.attention === 'string' && record.attention !== 'none',
+						default_open: typeof record.attention === 'string' && record.attention !== 'none',
 						summary: typeof record.attention === 'string' ? word('attention', record.attention) : ''
 					},
 					{
@@ -62,7 +57,7 @@
 						icon: 'lucide:list-checks',
 						title: t('section.checks'),
 						fields: ['shift_check', 'shift_asked_at', 'mc', 'eta_minutes', 'eta_checked_at'],
-						defaultOpen: false,
+						default_open: false,
 						summary: [
 							typeof record.shift_check === 'string' ? word('shift_check', record.shift_check) : '',
 							typeof record.eta_minutes === 'number'
@@ -77,7 +72,7 @@
 						icon: 'lucide:circle-check',
 						title: t('section.completion'),
 						fields: ['started_at', 'completed_at', 'completion_notes', 'late_cancellation'],
-						defaultOpen: record.status === 'in_progress',
+						default_open: record.status === 'in_progress',
 						summary: (row) => {
 							const r = completionSummary(row);
 							return [
@@ -97,7 +92,7 @@
 						icon: 'lucide:map',
 						title: t('section.map'),
 						fields: ['location'],
-						defaultOpen: false,
+						default_open: false,
 						summary: (r) => (r.location == null ? t('summary.not_set') : t('summary.pinned'))
 					}
 				]
@@ -105,7 +100,7 @@
 </script>
 
 {#snippet recovery()}
-	{#if record !== null}<Recovery visit={record.id} />{/if}
+	{#if record !== null}<Recovery {ctx} visit={record.id} />{/if}
 {/snippet}
 
 {#if record !== null}

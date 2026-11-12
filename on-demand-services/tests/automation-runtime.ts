@@ -1,7 +1,6 @@
 import { Effect, Schema } from 'effect';
-import type { Committed, PendingApproval, RunHandle } from '@norbital-ai/bolt';
-import { ActRefused, type ActFailure } from '@norbital-ai/bolt/errors';
-import type { Kit } from '@norbital-ai/bolt-cli/test';
+import { ActRefused } from '@norbital-ai/bolt/errors';
+import type { JobResult, Kit } from '@norbital-ai/bolt-cli/test';
 import { present } from './test-runtime.js';
 
 const Run = Schema.Struct({
@@ -15,19 +14,19 @@ const Run = Schema.Struct({
 			row: Schema.optional(Schema.Number),
 			rows: Schema.optional(Schema.Array(Schema.Number)),
 			rule: Schema.optional(Schema.String),
-			data: Schema.optional(Schema.Struct({ requestId: Schema.String }))
+			data: Schema.optional(Schema.Struct({ request_id: Schema.String }))
 		})
 	)
 });
 
 /** Admission queues a run; assertions inspect its real native completion separately. */
-export const finished = Effect.fnUntraced(function* (
+export const finished = Effect.fnUntraced(function* <E>(
 	t: Kit,
-	start: Effect.Effect<Committed<RunHandle<string>> | PendingApproval, ActFailure>
+	start: Effect.Effect<JobResult, E>
 ) {
 	const admitted = yield* start;
 	if (admitted.kind !== 'committed') throw new Error(JSON.stringify(admitted));
-	yield* t.runDue();
+	yield* t.run_due();
 	const run = present(
 		(yield* t.db.rows(Run, {
 			text: 'SELECT state, output, error FROM sys_run WHERE id = $1',

@@ -1,10 +1,10 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/availability_requests.ts';
 import { AREAS, REPEATS } from '../../../../lib/matching.js';
-export default model('availability_requests', {
+export default model({
 	description:
 		'A verified customer’s destination-specific availability, computed privately by dispatch.',
 	icon: 'lucide:calendar-search',
-	label: 'address',
+	record_label: 'record.address',
 	fields: {
 		phone: { kind: 'text', format: 'phone' },
 		address: { kind: 'text', max: 500 },
@@ -23,59 +23,43 @@ export default model('availability_requests', {
 			initial: 'pending',
 			states: {
 				pending: { to: ['ready', 'failed'] },
-				ready: { edit: 'none' },
-				failed: { edit: 'none' }
+				ready: {},
+				failed: {}
 			}
 		}
 	},
-	read: {
-		availability_requests: { fields: 'all' },
-		'availability_requests.service': { fields: ['name'] },
-		'availability_requests.helper': { fields: ['name'] }
-	},
+	constraints: { settled: { locked: { status: { in: ['ready', 'failed'] } } } },
 	outputs: {
+		default: { fields: 'all', service: { fields: ['name'] }, helper: { fields: ['name'] } },
 		customer: {
-			availability_requests: {
-				fields: [
-					'phone',
-					'address',
-					'area',
-					'service',
-					'preference',
-					'helper',
-					'repeat',
-					'starts',
-					'estimated',
-					'status',
-					'problem',
-					'checked_at'
-				]
-			}
-		}
-	},
-	create: {
-		columns: {
-			availability_requests: [
+			fields: [
 				'phone',
 				'address',
-				'location',
 				'area',
 				'service',
 				'preference',
 				'helper',
-				'repeat'
+				'repeat',
+				'starts',
+				'estimated',
+				'status',
+				'problem',
+				'checked_at'
 			]
+		}
+	},
+	create: {
+		columns: {
+			fields: ['phone', 'address', 'location', 'area', 'service', 'preference', 'helper', 'repeat']
+		},
+		// the writer (a customer) cannot time drives: `prepare_availability` does, as dispatch
+		effect: function* (changes, ctx) {
+			yield* ctx.schedule('prepare_availability', { ids: changes.map((c) => c.after.id) });
 		}
 	},
 	update: {
 		columns: {
-			availability_requests: ['location', 'starts', 'estimated', 'checked_at', 'problem', 'status']
-		}
-	},
-	// the writer (a customer) cannot time drives: `prepare_availability` does, as dispatch
-	effect: {
-		created: function* (rows, ctx) {
-			yield* ctx.schedule('prepare_availability', { ids: rows.map((r) => r.id) });
+			fields: ['location', 'starts', 'estimated', 'checked_at', 'problem', 'status']
 		}
 	}
 });

@@ -4,16 +4,17 @@ import { Effect } from 'effect';
  * pool a match runs over, and handing visits to another helper.
  */
 import {
+	instance_id,
 	type ActInput,
 	type AutomationCtx,
 	type EffectCtx,
-	type ModelName,
-	type CreateRow,
+	type CreateInput,
 	type Id,
+	type InstanceId,
 	type Where
 } from '@norbital-ai/bolt';
-import { addDays, Instant } from '@norbital-ai/std/date';
-import { localOf, utcOf } from '@norbital-ai/std/zone';
+import { add_days, Instant } from '@norbital-ai/std/date';
+import { local_of, utc_of } from '@norbital-ai/std/zone';
 import {
 	DEFAULTS,
 	improve,
@@ -28,6 +29,38 @@ import {
 type Reads = Pick<AutomationCtx, 'query' | 'tz' | 'now'>;
 type Writes = Reads & Pick<AutomationCtx, 'act' | 'notify'>;
 const iso = (t: number) => Instant(new Date(t).toISOString());
+/**
+ * The workspace's one active shared account of `definition` (Settings → Connections): `null` when there is none, or more
+ * than one to choose from, and then nothing is sent or requested through it.
+ */
+const accountOf = Effect.fnUntraced(function* (
+	ctx: Pick<AutomationCtx, 'query'>,
+	definition: string
+) {
+	const { rows } = (yield* ctx.query({
+		sys_integration: {
+			where: { integration: { eq: definition }, active: { eq: true }, owner: { is_null: true } },
+			fields: ['integration'],
+			limit: 2
+		}
+	})).sys_integration;
+	const [only] = rows;
+	if (rows.length !== 1 || only === undefined) {
+		yield* Effect.logWarning(`No single active ${definition} account: nothing goes through it.`);
+		return null;
+	}
+	return only;
+});
+/** The WhatsApp account notices and helper messages go out through (`accountOf`). */
+export const whatsappAccount = (ctx: Pick<AutomationCtx, 'query'>) =>
+	accountOf(ctx, 'whatsapp').pipe(
+		Effect.map((row) => (row === null ? null : instance_id('whatsapp', row)))
+	);
+/** The Google Routes account drives are timed through (`accountOf`). */
+export const routesAccount = (ctx: Pick<AutomationCtx, 'query'>) =>
+	accountOf(ctx, 'google_routes').pipe(
+		Effect.map((row) => (row === null ? null : instance_id('google_routes', row)))
+	);
 /** The dispatch thresholds: the workspace's row, else the defaults. */
 export const settingsOf = Effect.fnUntraced(function* (ctx: Pick<AutomationCtx, 'query'>) {
 	const { rows } = (yield* ctx.query({ dispatch_settings: { limit: 1 } })).dispatch_settings;
@@ -35,27 +68,27 @@ export const settingsOf = Effect.fnUntraced(function* (ctx: Pick<AutomationCtx, 
 });
 /** The local day of an instant as a UTC span. */
 export function dayOf(instant: string, zone: string): Slot {
-	const { date } = localOf(Date.parse(instant), zone);
-	return { start: iso(utcOf(date, 0, zone)), end: iso(utcOf(addDays(date, 1), 0, zone)) };
+	const { date } = local_of(Date.parse(instant), zone);
+	return { start: iso(utc_of(date, 0, zone)), end: iso(utc_of(add_days(date, 1), 0, zone)) };
 }
 /** The complete weeks covering `from` through `to`, a day's margin either side: what a match looks at. */
 function windowOf(from: string, to: string, zone: string) {
-	const first = localOf(Date.parse(from), zone).date;
-	const last = localOf(Date.parse(to), zone).date;
+	const first = local_of(Date.parse(from), zone).date;
+	const last = local_of(Date.parse(to), zone).date;
 	const weekday = (d: string) => (new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7;
-	const monday = addDays(first, -weekday(first));
-	const nextMonday = addDays(last, 7 - weekday(last));
+	const monday = add_days(first, -weekday(first));
+	const nextMonday = add_days(last, 7 - weekday(last));
 	return {
-		start: iso(utcOf(addDays(monday, -1), 0, zone)),
-		end: iso(utcOf(addDays(nextMonday, 1), 0, zone)),
-		firstDay: addDays(monday, -1),
-		lastDay: addDays(nextMonday, 1)
+		start: iso(utc_of(add_days(monday, -1), 0, zone)),
+		end: iso(utc_of(add_days(nextMonday, 1), 0, zone)),
+		firstDay: add_days(monday, -1),
+		lastDay: add_days(nextMonday, 1)
 	};
 }
 /**
  * The one read a match runs over (drive times aside): every active helper, the visits holding them and the
  * replacements awaiting approval (a proposal holds its cleaner, so one cleaner is not proposed twice for one time), and
- * their leave, across `windowOf(from, to)`. Pages read it with `bolt.query`, server code with `ctx.query`.
+ * their leave, across `windowOf(from, to)`. Pages read it with the page `ctx.query`, server code with `ctx.query`.
  */
 export const poolRequest = (from: string, to: string, zone: string) => {
 	const { start, end, firstDay, lastDay } = windowOf(from, to, zone);
@@ -77,13 +110,13 @@ export const poolRequest = (from: string, to: string, zone: string) => {
 			where: {
 				or: [
 					{
-						helper: { isNull: false },
+						helper: { is_null: false },
 						status: { ne: 'cancelled' },
 						slot: { overlaps: { start, end } }
 					},
 					{
 						attention: { eq: 'awaiting_approval' },
-						proposed_helper: { isNull: false },
+						proposed_helper: { is_null: false },
 						proposed_slot: { overlaps: { start, end } }
 					}
 				]
@@ -189,11 +222,12 @@ export const loadPool = Effect.fnUntraced(function* (
 });
 /**
  * Google's drive minutes from `origin` to each of `destinations` (at most 625), `null` for one it could not route; `null`
- * altogether when the call fails (no API key, quota, outage), so the caller keeps its estimate. With `traffic`, live
- * traffic at this moment; without, the typical time.
+ * altogether when there is no account (`accountOf`) or the call fails (quota, outage), so the caller keeps its estimate.
+ * With `traffic`, live traffic at this moment; without, the typical time.
  */
 export const googleMinutes = Effect.fnUntraced(function* (
 	ctx: Pick<AutomationCtx, 'request'>,
+	account: InstanceId<'google_routes'> | null,
 	origin: Point,
 	destinations: readonly Point[],
 	traffic: boolean
@@ -201,8 +235,9 @@ export const googleMinutes = Effect.fnUntraced(function* (
 	const at = (p: Point) => ({
 		waypoint: { location: { latLng: { latitude: p.lat, longitude: p.lng } } }
 	});
+	if (account === null) return null;
 	const answer = yield* ctx
-		.request('google_routes', {
+		.request(account, {
 			method: 'POST',
 			path: 'distanceMatrix/v2:computeRouteMatrix',
 			query: { fields: 'originIndex,destinationIndex,duration,condition' },
@@ -213,15 +248,13 @@ export const googleMinutes = Effect.fnUntraced(function* (
 				routingPreference: traffic ? 'TRAFFIC_AWARE' : 'TRAFFIC_UNAWARE'
 			},
 			output: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						originIndex: { kind: 'int', optional: true },
-						destinationIndex: { kind: 'int', optional: true },
-						duration: { kind: 'text', optional: true },
-						condition: { kind: 'text', optional: true }
-					}
+				kind: 'object',
+				many: true,
+				fields: {
+					originIndex: { kind: 'int', optional: true },
+					destinationIndex: { kind: 'int', optional: true },
+					duration: { kind: 'text', optional: true },
+					condition: { kind: 'text', optional: true }
 				}
 			}
 		})
@@ -236,16 +269,18 @@ export const googleMinutes = Effect.fnUntraced(function* (
 });
 /** Batch every route request in one guest crossing; absent routes keep their estimate. */
 export const learnLegs = Effect.fnUntraced(function* (
-	ctx: Pick<AutomationCtx, 'request'>,
+	ctx: Pick<AutomationCtx, 'request' | 'query'>,
 	groups: readonly {
 		from: Point;
 		to: readonly Point[];
 	}[],
 	known: ReadonlyMap<string, number>
 ) {
+	if (groups.length === 0) return [];
+	const account = yield* routesAccount(ctx);
 	const answers = yield* Effect.forEach(
 		groups,
-		(group) => googleMinutes(ctx, group.from, group.to, false),
+		(group) => googleMinutes(ctx, account, group.from, group.to, false),
 		{ concurrency: 'unbounded' }
 	);
 	const learned = new Map<string, number>();
@@ -262,9 +297,9 @@ export const visitsToMove = (where: Where<'visits'>) =>
 	({
 		visits: {
 			where,
-			fields: ['revision', 'number', 'slot', 'location', 'area', 'skill', 'booking']
-		},
-		'visits.booking': { fields: ['preference', 'customer'] }
+			fields: ['revision', 'number', 'slot', 'location', 'area', 'skill', 'booking'],
+			booking: { fields: ['preference', 'customer'] }
+		}
 	}) as const;
 type Visit = {
 	readonly id: Id<'visits'>;
@@ -288,10 +323,11 @@ type Visit = {
 };
 /** A shift its cleaner still holds: a declined or lapsed day is `shift_watch`'s to recover, never moved by dispatch. */
 export const HELD_SHIFT = { in: ['not_due', 'asked', 'confirmed'] } as const;
-/** The revisions a write read its records at: a newer write to any of them is a conflict, not overwritten. */
-export const observedOf = <C extends ModelName>(
-	rows: readonly { readonly id: Id<C>; readonly revision: number }[]
-) => Object.fromEntries(rows.map((row): [Id<C>, number] => [row.id, row.revision]));
+/** A write's target: the row as it was read, so a newer write to it is a conflict, not overwritten. */
+export const targetOf = <C extends string>(row: {
+	readonly id: Id<C>;
+	readonly revision: number;
+}) => ({ id: row.id, revision: row.revision });
 /** The WhatsApp address of a phone number. */
 export const whatsapp = (phone: string) => `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
 export const when = (instant: string, zone: string) =>
@@ -321,7 +357,7 @@ export const planReassignment = Effect.fnUntraced(function* (
 	const busy = [...pool.busy];
 	const names = new Map(pool.helpers.map((h) => [h.id, h.name]));
 	const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
-	const notices: CreateRow<'customer_notices'>[] = [];
+	const notices: CreateInput<'customer_notices'>[] = [];
 	let unassigned = 0;
 	for (const v of visits) {
 		const slot = { start: v.slot.start, end: v.slot.end! };
@@ -330,7 +366,7 @@ export const planReassignment = Effect.fnUntraced(function* (
 		if (best === undefined) unassigned += 1;
 		else busy.push({ id: v.id, helper: best.helper, slot, location: v.location });
 		updates.push({
-			target: v.id,
+			target: targetOf(v),
 			set: {
 				helper: best?.helper ?? null,
 				shift_check: 'not_due' as const,
@@ -357,12 +393,10 @@ export const reassign = Effect.fnUntraced(function* (
 ) {
 	if (visits.length === 0) return { assigned: 0, unassigned: 0 };
 	const { updates, notices, assigned, unassigned } = yield* planReassignment(ctx, visits, away);
-	yield* ctx.act.many([
-		{ callable: 'visits.update', input: updates, observed: observedOf(visits) },
-		...(notices.length > 0
-			? [{ callable: 'customer_notices.create' as const, input: notices }]
-			: [])
-	]);
+	yield* ctx.act({
+		'visits.update': updates,
+		...(notices.length > 0 ? { 'customer_notices.create': notices } : {})
+	});
 	if (unassigned > 0)
 		yield* ctx.notify({
 			title: `${unassigned} visit${unassigned === 1 ? '' : 's'} need a helper`,
@@ -402,7 +436,7 @@ export const recommend = Effect.fnUntraced(function* (
 		if (best !== undefined)
 			busy.push({ id: v.id, helper: best.helper, slot, location: v.location });
 		return {
-			target: v.id,
+			target: targetOf(v),
 			set: {
 				...(lapsed ? { shift_check: 'no_response' as const } : {}),
 				helper: null,
@@ -415,7 +449,7 @@ export const recommend = Effect.fnUntraced(function* (
 			}
 		};
 	});
-	yield* ctx.act('visits.update', updates, { observed: observedOf(visits) });
+	yield* ctx.act({ 'visits.update': updates });
 	yield* ctx.notify({
 		title: 'Approve replacement cleaners',
 		description: `${visits.length} visit${visits.length === 1 ? '' : 's'} need your decision. Recommendations include travel and workload; no replacement is assigned until approval.`,
@@ -439,14 +473,14 @@ export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
 		visits: {
 			where: {
 				status: { eq: 'scheduled' },
-				helper: { isNull: false },
+				helper: { is_null: false },
 				attention: { eq: 'none' },
 				shift_check: HELD_SHIFT,
 				slot: { overlaps: { start: from, end: to } }
 			},
-			fields: ['revision', 'slot', 'location', 'area', 'skill', 'booking']
-		},
-		'visits.booking': { fields: ['preference'] }
+			fields: ['revision', 'slot', 'location', 'area', 'skill', 'booking'],
+			booking: { fields: ['preference'] }
+		}
 	})).visits;
 	const movable = rows
 		.filter((v) => v.booking?.preference === 'any' && v.slot.start >= from)
@@ -466,12 +500,13 @@ export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
 	);
 	const result = improve(pool, movable, ctx.tz);
 	if (result.moves.length === 0) return;
-	const moved = new Set(result.moves.map((m) => m.visit));
-	yield* ctx.act(
-		'visits.update',
-		result.moves.map((m) => ({ target: m.visit, set: { helper: m.to } })),
-		{ observed: observedOf(rows.filter((v) => moved.has(v.id))) }
-	);
+	const read = new Map(rows.map((v) => [v.id, v]));
+	yield* ctx.act({
+		'visits.update': result.moves.map((m) => ({
+			target: targetOf(read.get(m.visit)!),
+			set: { helper: m.to }
+		}))
+	});
 	yield* ctx.notify({
 		title: `Schedule optimised: ${result.moves.length} reassignment${result.moves.length === 1 ? '' : 's'}`,
 		to: [{ team: 'operations' }],
@@ -493,12 +528,12 @@ export const alertHelpers = Effect.fnUntraced(function* (
 			where: {
 				id: { in: ids },
 				status: { eq: 'scheduled' },
-				helper: { isNull: false },
+				helper: { is_null: false },
 				slot: { overlaps: { start: ctx.now, end: null } }
 			},
-			fields: ['number', 'slot', 'address', 'helper']
-		},
-		'visits.helper': { fields: ['phone', 'user'] }
+			fields: ['number', 'slot', 'address', 'helper'],
+			helper: { fields: ['phone', 'user'] }
+		}
 	})).visits;
 	yield* ctx.notify(
 		rows.flatMap((v) =>
@@ -521,9 +556,11 @@ export const alertHelpers = Effect.fnUntraced(function* (
 		entry.lines.push(`• ${v.number}: ${when(v.slot.start, ctx.tz)}, ${v.address}`);
 		byHelper.set(h.id, entry);
 	}
-	for (const [, { phone, lines }] of byHelper)
-		yield* ctx.send('whatsapp', {
-			to: whatsapp(phone),
-			text: `New visit${lines.length === 1 ? '' : 's'} for you:\n${lines.join('\n')}`
-		});
+	const account = byHelper.size === 0 ? null : yield* whatsappAccount(ctx);
+	if (account !== null)
+		for (const [, { phone, lines }] of byHelper)
+			yield* ctx.send(account, {
+				to: whatsapp(phone),
+				text: `New visit${lines.length === 1 ? '' : 's'} for you:\n${lines.join('\n')}`
+			});
 });

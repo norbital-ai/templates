@@ -1,10 +1,11 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
 	/** The dispatch thresholds the watches and the change rules read. */
-	import { bolt } from '$bolt';
 	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Field, Form, Section } from '@norbital-ai/ui';
-	const t = bolt.t;
-	const settings = $derived(bolt.query({ dispatch_settings: { limit: 1 } }));
+	const t = ctx.t;
+	const settings = $derived(ctx.query({ dispatch_settings: { limit: 1 } }));
 	const row = $derived(settings.current?.dispatch_settings.rows[0]);
 	let saved = $state<string | null>(null);
 </script>
@@ -24,7 +25,7 @@
 				mode={row === undefined ? 'create' : 'update'}
 				{...row === undefined ? {} : { id: row.id }}
 				submit={t('app.configurations.save')}
-				onOutcome={(o) => (saved = o.kind === 'committed' ? t('app.configurations.saved') : null)}
+				on_outcome={(o) => (saved = o.kind === 'committed' ? t('app.configurations.saved') : null)}
 			>
 				<Stack gap="lg">
 					<Section

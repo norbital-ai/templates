@@ -1,8 +1,8 @@
 import { Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
-import { addDays } from '@norbital-ai/std/date';
-import { utcOf } from '@norbital-ai/std/zone';
-import { loadPool, learnLegs } from '../lib/dispatch.js';
+import { add_days } from '@norbital-ai/std/date';
+import { utc_of } from '@norbital-ai/std/zone';
+import { loadPool, learnLegs, targetOf } from '../lib/dispatch.js';
 import {
 	availableSlots,
 	BOOKING_AHEAD,
@@ -11,10 +11,10 @@ import {
 	occurrences,
 	type Point
 } from '../lib/matching.js';
-export default automation('prepare_availability', {
+export default automation({
 	description:
 		'Calculates customer-specific starts after preference, skills, address, travel and recurrence are known.',
-	input: { ids: { kind: 'list', of: { kind: 'id', of: 'availability_requests' }, min: 1 } },
+	input: { ids: { kind: 'ref', to: 'availability_requests', many: true, min_items: 1 } },
 	policies: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
 		const { rows } = (yield* ctx.query({
@@ -25,9 +25,11 @@ export default automation('prepare_availability', {
 				(yield* ctx.query({ services: { where: { id: { eq: r.service } }, limit: 1 } })).services
 					.rows[0] ?? null;
 			const fail = Effect.fnUntraced(function* (problem: string) {
-				return yield* ctx.act('availability_requests.update', [
-					{ target: r.id, set: { status: 'failed', problem, checked_at: ctx.now } }
-				]);
+				return yield* ctx.act({
+					'availability_requests.update': [
+						{ target: targetOf(r), set: { status: 'failed', problem, checked_at: ctx.now } }
+					]
+				});
 			});
 			if (service === null || !service.active) {
 				yield* fail('Pick an active service.');
@@ -49,9 +51,9 @@ export default automation('prepare_availability', {
 							.search(r.address)
 							.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as([]))));
 			const location = savedLocation ?? hits[0]?.point ?? null;
-			const days = Array.from({ length: 14 }, (_, i) => addDays(ctx.today, i));
-			const from = new Date(utcOf(days[0]!, 0, ctx.tz)).toISOString();
-			const last = new Date(utcOf(days.at(-1)!, 0, ctx.tz)).toISOString();
+			const days = Array.from({ length: 14 }, (_, i) => add_days(ctx.today, i));
+			const from = new Date(utc_of(days[0]!, 0, ctx.tz)).toISOString();
+			const last = new Date(utc_of(days.at(-1)!, 0, ctx.tz)).toISOString();
 			const end = occurrences(last, r.repeat, BOOKING_AHEAD, ctx.tz).at(-1)!;
 			const pool = yield* loadPool(ctx, from, end, [location]);
 			const preferred = r.preference === 'preferred' && r.helper !== null ? [r.helper] : [];
@@ -101,13 +103,15 @@ export default automation('prepare_availability', {
 			const timed = [...drive]
 				.filter(([leg]) => !pool.drive?.has(leg))
 				.map(([leg, minutes]) => ({ leg, minutes }));
-			if (timed.length > 0) yield* ctx.act('drive_times.create', timed);
-			yield* ctx.act('availability_requests.update', [
-				{
-					target: r.id,
-					set: { status: 'ready', starts, location, estimated: keyMissing, checked_at: ctx.now }
-				}
-			]);
+			yield* ctx.act({
+				...(timed.length > 0 ? { 'drive_times.create': timed } : {}),
+				'availability_requests.update': [
+					{
+						target: targetOf(r),
+						set: { status: 'ready', starts, location, estimated: keyMissing, checked_at: ctx.now }
+					}
+				]
+			});
 		}
 	}
 });

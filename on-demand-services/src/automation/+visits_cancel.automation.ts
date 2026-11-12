@@ -1,16 +1,15 @@
 import { automation } from '@norbital-ai/bolt';
-import { type ActInput, type CreateRow } from '@norbital-ai/bolt';
+import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
 import { Refusal } from '@norbital-ai/bolt/errors';
-import { observedOf } from '../lib/dispatch.js';
-import { settingsOf, when } from '../lib/dispatch.js';
+import { settingsOf, targetOf, when } from '../lib/dispatch.js';
 import { customerNotice } from '../lib/visit-recovery.js';
 const HOUR = 3600000;
 
-export default automation('visits_cancel', {
+export default automation({
 	description:
 		'Cancels the visit; inside the free-change window before its start it is a late, chargeable cancellation.',
 	input: {
-		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 }
+		targets: { kind: 'ref', to: 'visits', many: true, min_items: 1 }
 	},
 	policies: ['operations'],
 	run: function* ({ targets }, ctx) {
@@ -22,13 +21,13 @@ export default automation('visits_cancel', {
 				field: 'targets'
 			});
 		const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
-		const notices: CreateRow<'customer_notices'>[] = [];
+		const notices: CreateInput<'customer_notices'>[] = [];
 		for (const v of targetsOf) {
 			if (v.status !== 'scheduled')
 				return yield* new Refusal({ message: 'Only a scheduled visit can be cancelled.' });
 			const { free_change_hours } = yield* settingsOf(ctx);
 			updates.push({
-				target: v.id,
+				target: targetOf(v),
 				set: {
 					status: 'cancelled',
 					attention: 'none',
@@ -45,11 +44,9 @@ export default automation('visits_cancel', {
 			if (notice !== null) notices.push(notice);
 		}
 		if (updates.length > 0)
-			yield* ctx.act.many([
-				{ callable: 'visits.update', input: updates, observed: observedOf(targetsOf) },
-				...(notices.length > 0
-					? [{ callable: 'customer_notices.create' as const, input: notices }]
-					: [])
-			]);
+			yield* ctx.act({
+				'visits.update': updates,
+				...(notices.length > 0 ? { 'customer_notices.create': notices } : {})
+			});
 	}
 });

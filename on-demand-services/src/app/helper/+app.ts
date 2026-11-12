@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('helper', {
+export default app({
 	title: 'app.helper.title',
 	description: 'app.helper.description',
 	icon: 'lucide:spray-can',

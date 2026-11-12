@@ -1,24 +1,20 @@
 <script lang="ts">
-	import {
-		useKinds,
-		type RecordSection,
-		type RecordView,
-		RecordShell,
-		Table
-	} from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { type RecordSection, type RecordView, RecordShell, Table } from '@norbital-ai/ui';
 	/**
 	 * A customer's profile for the desk: their visits still to come (each with the cleaner it is planned with, or the one
 	 * proposed to cover, the shift check and the ETA), their past visits (done or cancelled, with the notes), the bookings
 	 * behind them and the notices sent to them.
 	 */
-	import { bolt } from '$bolt';
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'customers'>;
+		ctx: PageContext;
 	} = $props();
-	const t = bolt.t;
+	const zone = ctx.tz;
+	const t = ctx.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	/** Their visits through their bookings. */
 	const theirs = $derived(
@@ -36,19 +32,18 @@
 	const next = $derived(
 		upcomingWhere === null
 			? null
-			: bolt.query({
+			: ctx.query({
 					visits: {
 						where: upcomingWhere,
 						fields: ['slot', 'helper', 'booking'],
-						orderBy: 'number'
-					},
-					'visits.helper': { fields: ['name'] },
-					'visits.booking': { fields: ['service'] },
-					'visits.booking.service': { fields: ['name'] }
+						order_by: 'number',
+						helper: { fields: ['name'] },
+						booking: { fields: ['service'], service: { fields: ['name'] } }
+					}
 				})
 	);
 	const past = $derived(
-		pastWhere === null ? null : bolt.query({ visits: { where: pastWhere, fields: ['status'] } })
+		pastWhere === null ? null : ctx.query({ visits: { where: pastWhere, fields: ['status'] } })
 	);
 	const soonest = $derived(
 		[...(next?.current?.visits.rows ?? [])].sort((a, b) =>
@@ -56,7 +51,7 @@
 		)[0]
 	);
 	const when = (i: string) =>
-		new Intl.DateTimeFormat(bolt.locale, {
+		new Intl.DateTimeFormat(ctx.locale, {
 			timeZone: zone,
 			weekday: 'short',
 			day: 'numeric',
@@ -83,7 +78,7 @@
 			icon: 'lucide:map',
 			title: t('section.map'),
 			fields: ['location'],
-			defaultOpen: false,
+			default_open: false,
 			summary: (r) => (r.location == null ? t('summary.not_set') : t('summary.pinned'))
 		}
 	];
@@ -106,7 +101,7 @@
 			key="customer-upcoming"
 			toolbar={{ title: t('app.customers.upcoming'), new: false }}
 			where={upcomingWhere}
-			orderBy={{ number: 'asc' }}
+			order_by={{ number: 'asc' }}
 			columns={[
 				'number',
 				'slot',
@@ -131,7 +126,7 @@
 			key="customer-history"
 			toolbar={{ title: t('app.customers.history'), new: false }}
 			where={pastWhere}
-			orderBy={{ number: 'desc' }}
+			order_by={{ number: 'desc' }}
 			columns={[
 				'number',
 				'slot',
@@ -151,7 +146,7 @@
 			key="customer-bookings"
 			toolbar={{ title: t('app.customers.bookings'), new: false }}
 			where={{ customer: { eq: record.id } }}
-			orderBy={{ number: 'desc' }}
+			order_by={{ number: 'desc' }}
 			columns={['number', 'service', 'preference', 'repeat', 'status', 'visit_count']}
 		/>{/if}
 {/snippet}
@@ -161,7 +156,7 @@
 			key="customer-notices"
 			toolbar={{ title: t('app.customers.notices'), new: false }}
 			where={{ customer: { eq: record.id } }}
-			orderBy={{ created_at: 'desc' }}
+			order_by={{ created_at: 'desc' }}
 			columns={['subject', 'visit', 'created_at']}
 		/>{/if}
 {/snippet}

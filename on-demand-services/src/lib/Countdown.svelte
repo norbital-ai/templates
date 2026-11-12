@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	let {
+		ctx,
 		start
 	}: {
+		ctx: Pick<PageContext, 'clock' | 't'>;
 		start: string;
 	} = $props();
-	const clock = bolt.clock('minute');
+	const clock = ctx.clock('minute');
 	const now = $derived(Date.parse(clock.now));
 	const minutes = $derived(Math.ceil(Math.abs(Date.parse(start) - now) / 60000));
 	const time = $derived(`${Math.floor(minutes / 60)}h ${minutes % 60}m`);
@@ -17,5 +19,5 @@
 	class={overdue || minutes <= 90
 		? 'whitespace-normal font-medium tabular-nums text-warning'
 		: 'whitespace-normal tabular-nums text-muted-foreground'}
-	>{bolt.t(overdue ? 'app.recovery.overdue' : 'app.recovery.before_start', { time })}</span
+	>{ctx.t(overdue ? 'app.recovery.overdue' : 'app.recovery.before_start', { time })}</span
 >

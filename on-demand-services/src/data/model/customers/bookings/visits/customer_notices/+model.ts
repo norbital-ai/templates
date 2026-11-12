@@ -1,4 +1,5 @@
-import { model, type SyncRow } from '@norbital-ai/bolt';
+import type { SyncRow } from '@norbital-ai/bolt';
+import { model } from '../../../../../../../.norbital/models/customer_notices.ts';
 const DELIVERY = [
 	'queued',
 	'sent',
@@ -30,14 +31,14 @@ const moves = (current: Delivery | null, next: Delivery) =>
  * and records here every step the mailbox reports. Append-only: a notice is filed once; afterwards only its sends are
  * recorded. The customer's email address is taken when the notice is filed.
  */
-export default model('customer_notices', {
+export default model({
 	description:
 		'A notice to a customer about their booking: its WhatsApp send and, by email, where the mail got to.',
 	icon: 'lucide:mail',
-	label: 'subject',
+	record_label: 'record.subject',
 	fields: {
 		customer: { kind: 'ref', to: 'customers', inverse: 'notices' },
-		visit: { kind: 'ref', to: 'visits', optional: true, onDelete: 'setNull' },
+		visit: { kind: 'ref', to: 'visits', optional: true, on_delete: 'set_null' },
 		subject: { kind: 'text' },
 		body: { kind: 'text' },
 		/** The WhatsApp send: `sent`, or why it could not go. Its own delivery (delivered, read) is its message's timeline. */
@@ -61,43 +62,58 @@ export default model('customer_notices', {
 		/** An out-of-office or other automatic answer: kept apart, never the customer's reply. */
 		auto_replied_at: { kind: 'instant', optional: true }
 	},
-	search: { text: ['subject', 'visit'] },
-	read: {
-		customer_notices: { fields: 'all' },
-		'customer_notices.customer': { fields: 'all' },
-		'customer_notices.visit': { fields: ['number', 'address'] },
-		'customer_notices.visit.helper': { fields: ['name'] },
-		'customer_notices.visit.booking': { fields: ['number'] },
-		'customer_notices.visit.booking.customer': { fields: ['name', 'phone', 'email', 'address'] },
-		'customer_notices.visit.booking.service': { fields: ['name'] }
-	},
+	indexes: { find: { text: ['subject', 'visit'] } },
 	outputs: {
+		default: {
+			fields: 'all',
+			customer: { fields: 'all' },
+			visit: {
+				fields: ['number', 'address'],
+				helper: { fields: ['name'] },
+				booking: {
+					fields: ['number'],
+					customer: { fields: ['name', 'phone', 'email', 'address'] },
+					service: { fields: ['name'] }
+				}
+			}
+		},
 		customer: {
-			customer_notices: { fields: ['customer', 'visit', 'subject', 'body'] },
-			'customer_notices.customer': { fields: ['name'] },
-			'customer_notices.visit': { fields: ['number', 'address'] },
-			'customer_notices.visit.helper': { fields: ['name'] },
-			'customer_notices.visit.booking': { fields: ['number'] },
-			'customer_notices.visit.booking.customer': { fields: ['name', 'phone', 'email', 'address'] },
-			'customer_notices.visit.booking.service': { fields: ['name'] }
+			fields: ['customer', 'visit', 'subject', 'body'],
+			customer: { fields: ['name'] },
+			visit: {
+				fields: ['number', 'address'],
+				helper: { fields: ['name'] },
+				booking: {
+					fields: ['number'],
+					customer: { fields: ['name', 'phone', 'email', 'address'] },
+					service: { fields: ['name'] }
+				}
+			}
 		}
 	},
 	create: {
-		columns: { customer_notices: ['customer', 'visit', 'subject', 'body'] },
-		transform: function* (rows, ctx) {
-			const { rows: customers } = (yield* ctx.db.query({
-				customers: { where: { id: { in: rows.map((r) => r.customer) } }, fields: ['email'] }
+		columns: { fields: ['customer', 'visit', 'subject', 'body'] },
+		transform: function* (changes, ctx) {
+			const { rows: customers } = (yield* ctx.query({
+				customers: {
+					where: { id: { in: changes.map((c) => c.set.customer) } },
+					fields: ['email']
+				}
 			})).customers;
 			const email = new Map(customers.map((c) => [c.id, c.email]));
-			return rows.map((r) => {
-				const to = email.get(r.customer) ?? null;
-				return { ...r, to_address: to, delivery: to === null ? null : ('queued' as const) };
+			return changes.map(({ set }) => {
+				const to = email.get(set.customer) ?? null;
+				return { ...set, to_address: to, delivery: to === null ? null : ('queued' as const) };
 			});
+		},
+		// the desk cannot record delivery: `deliver_notices` sends and records it, as dispatch
+		effect: function* (changes, ctx) {
+			yield* ctx.schedule('deliver_notices', { ids: changes.map((c) => c.after.id) });
 		}
 	},
 	update: {
 		columns: {
-			customer_notices: [
+			fields: [
 				'whatsapp',
 				'delivery',
 				'delivery_reason',
@@ -159,7 +175,7 @@ export default model('customer_notices', {
 											: d.kind === 'replied'
 												? {
 														delivery: 'replied',
-														replied_at: d.reply.sentAt,
+														replied_at: d.reply.sent_at,
 														reply_excerpt: d.reply.text.slice(0, 500)
 													}
 												: null;
@@ -175,12 +191,6 @@ export default model('customer_notices', {
 				}
 				return { rows: [...mails.values()] };
 			}
-		}
-	},
-	// the desk cannot record delivery: `deliver_notices` sends and records it, as dispatch
-	effect: {
-		created: function* (rows, ctx) {
-			yield* ctx.schedule('deliver_notices', { ids: rows.map((r) => r.id) });
 		}
 	}
 });

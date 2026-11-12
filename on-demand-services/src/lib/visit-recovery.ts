@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import type { ActInput, AutomationCtx, Id, Instant, Row, StartInput } from '@norbital-ai/bolt';
-import { dayOf, loadPool, settingsOf, when } from './dispatch.js';
+import { dayOf, loadPool, settingsOf, targetOf, when } from './dispatch.js';
 import { rank, slotOf } from './matching.js';
 import { Refusal } from '@norbital-ai/bolt/errors';
 const UNREADABLE = 'The selected record does not exist or is not readable.';
@@ -37,16 +37,13 @@ export function* declineShift(
 	if (targetsOf.length !== targets.length)
 		return yield* new Refusal({ message: UNREADABLE, field: 'targets' });
 	const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
-	const revisions = new Map<string, number>();
 	for (const v of targetsOf) {
 		const day = yield* sameDay(ctx, v);
-		for (const row of day) revisions.set(row.id, row.revision);
 		updates.push(
-			...day.map((v) => ({ target: v.id, set: { shift_check: 'declined' as const, mc } }))
+			...day.map((v) => ({ target: targetOf(v), set: { shift_check: 'declined' as const, mc } }))
 		);
 	}
-	if (updates.length > 0)
-		yield* ctx.act('visits.update', updates, { observed: Object.fromEntries(revisions) });
+	if (updates.length > 0) yield* ctx.act({ 'visits.update': updates });
 }
 
 const HOUR = 3600000;
@@ -139,7 +136,7 @@ export const planRebooking = Effect.fnUntraced(function* (
 				'That cleaner or time is no longer available. Refresh the recommendation or choose another start.'
 		});
 	const update: Extract<ActInput<'visits.update'>, readonly unknown[]>[number] = {
-		target: v.id,
+		target: targetOf(v),
 		set: {
 			helper: best.helper,
 			slot,

@@ -6,6 +6,7 @@ import { fixtureId } from './test-runtime.js';
 
 const notice: Parameters<typeof deliverNoticeRows>[0][number] = {
 	id: fixtureId('customer_notices', '0d500007-0000-4000-8000-000000000001'),
+	revision: 1,
 	subject: 'Booked',
 	body: 'Confirmed',
 	customer: { phone: '6580000001' }
@@ -24,7 +25,7 @@ it.live('a conflicting notice status write retries without sending WhatsApp twic
 			.mockReturnValueOnce(
 				Effect.fail(
 					new ActConflict({
-						records: [{ model: 'customer_notices', id: notice.id, fields: [] }]
+						records: [{ model: 'customer_notices', id: notice.id }]
 					})
 				)
 			)
@@ -34,7 +35,7 @@ it.live('a conflicting notice status write retries without sending WhatsApp twic
 		expect(write).toHaveBeenCalledTimes(2);
 		expect(write.mock.calls[0]).toEqual([
 			'customer_notices.update',
-			[{ target: notice.id, set: { whatsapp: 'sent' } }]
+			[{ target: { id: notice.id, revision: 1 }, set: { whatsapp: 'sent' } }]
 		]);
 		expect(write.mock.calls[1]).toEqual(write.mock.calls[0]);
 	})

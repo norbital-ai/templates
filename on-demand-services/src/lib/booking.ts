@@ -64,35 +64,29 @@ export const bookService = Effect.fnUntraced(function* (
 
 	const repeats =
 		input.repeat === 'once' ? '' : ` (${input.repeat}, ${visits.length} visits booked ahead)`;
-	const { records } = yield* ctx.act.many([
-		{
-			callable: 'bookings.create',
-			input: [
-				{
-					customer: customer.id,
-					service: service.id,
-					address,
-					location,
-					area,
-					preference: input.preference,
-					repeat: input.repeat,
-					...(input.notes === undefined ? {} : { notes: input.notes }),
-					preferred_helpers: preferred.map((helper, i) => ({ helper, rank: i + 1 })),
-					visits
-				}
-			]
-		},
-		{
-			callable: 'customer_notices.create',
-			input: [
-				{
-					customer: customer.id,
-					subject: `Booking confirmed: ${service.name}, ${when(visits[0]!.slot.start, ctx.tz)}`,
-					body: `Your ${service.name} is booked for ${when(visits[0]!.slot.start, ctx.tz)}${repeats} at ${address}. We will message you if anything changes.`
-				}
-			]
-		}
-	]);
+	const { records } = yield* ctx.act({
+		'bookings.create': [
+			{
+				customer: customer.id,
+				service: service.id,
+				address,
+				location,
+				area,
+				preference: input.preference,
+				repeat: input.repeat,
+				...(input.notes === undefined ? {} : { notes: input.notes }),
+				preferred_helpers: preferred.map((helper, i) => ({ helper, rank: i + 1 })),
+				visits
+			}
+		],
+		'customer_notices.create': [
+			{
+				customer: customer.id,
+				subject: `Booking confirmed: ${service.name}, ${when(visits[0]!.slot.start, ctx.tz)}`,
+				body: `Your ${service.name} is booked for ${when(visits[0]!.slot.start, ctx.tz)}${repeats} at ${address}. We will message you if anything changes.`
+			}
+		]
+	});
 	const booking = records.find((record) => record.model === 'bookings');
 	if (booking === undefined)
 		return yield* new Refusal({ message: 'The booking creation did not return a booking record.' });

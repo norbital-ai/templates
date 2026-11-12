@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/bookings.ts';
 import { AREAS, REPEATS } from '../../../../lib/matching.js';
 /**
  * One customer order: a service at an address, once or recurring, with or without preferred helpers. Each occurrence is
@@ -8,11 +8,11 @@ import { AREAS, REPEATS } from '../../../../lib/matching.js';
  * the customer's helpers in their order; without one, ranking balances added travel and weekly load, with a small
  * continuity bonus for the previous recurring cleaner.
  */
-export default model('bookings', {
+export default model({
 	description:
 		'A booking: customer, service, address, preference and repeat. Its visits are the occurrences.',
 	icon: 'lucide:calendar-check',
-	label: 'number',
+	record_label: 'record.number',
 	fields: {
 		number: { kind: 'seq', pattern: 'BK-{yyyy}-{0000}' },
 		customer: { kind: 'ref', to: 'customers', inverse: 'bookings' },
@@ -25,35 +25,36 @@ export default model('bookings', {
 		status: {
 			kind: 'state',
 			initial: 'active',
-			states: { active: { to: ['cancelled'] }, cancelled: { edit: 'none' } }
+			states: { active: { to: ['cancelled'] }, cancelled: {} }
 		},
 		notes: { kind: 'text', optional: true },
 		visit_count: { kind: 'count', of: 'visits' }
 	},
-	index: ['status'],
-	search: { text: ['number', 'customer', 'service'] },
-	read: {
-		bookings: { fields: 'all' },
-		'bookings.customer': { fields: ['name', 'phone', 'email', 'address'] },
-		'bookings.service': { fields: ['name'] }
+	constraints: { cancelled: { locked: { status: { eq: 'cancelled' } } } },
+	indexes: {
+		status: { on: ['status'] },
+		find: { text: ['number', 'customer', 'service'] }
 	},
 	outputs: {
+		default: {
+			fields: 'all',
+			customer: { fields: ['name', 'phone', 'email', 'address'] },
+			service: { fields: ['name'] }
+		},
 		customer: {
-			bookings: {
-				fields: ['number', 'customer', 'service', 'repeat', 'status', 'visit_count']
-			},
-			'bookings.customer': { fields: ['name', 'phone', 'email', 'address'] },
-			'bookings.service': { fields: ['name'] }
+			fields: ['number', 'customer', 'service', 'repeat', 'status', 'visit_count'],
+			customer: { fields: ['name', 'phone', 'email', 'address'] },
+			service: { fields: ['name'] }
 		},
 		helper: {
-			bookings: { fields: ['number', 'service', 'customer', 'notes'] },
-			'bookings.customer': { fields: ['name', 'phone', 'email', 'address'] },
-			'bookings.service': { fields: ['name'] }
+			fields: ['number', 'service', 'customer', 'notes'],
+			customer: { fields: ['name', 'phone', 'email', 'address'] },
+			service: { fields: ['name'] }
 		}
 	},
 	create: {
 		columns: {
-			bookings: [
+			fields: [
 				'customer',
 				'service',
 				'address',
@@ -63,16 +64,14 @@ export default model('bookings', {
 				'repeat',
 				'notes'
 			],
-			'bookings.preferred_helpers': ['helper', 'rank'],
-			'bookings.visits': ['slot', 'address', 'location', 'area', 'skill', 'helper', 'attention']
-		}
-	},
-	update: { columns: { bookings: ['notes', 'status'] } },
-	// the portal's times and the drive checks are dispatch sweeps; a key coalesces a burst of writes into one run
-	effect: {
-		created: function* (_, ctx) {
+			preferred_helpers: { fields: ['helper', 'rank'] },
+			visits: { fields: ['slot', 'address', 'location', 'area', 'skill', 'helper', 'attention'] }
+		},
+		// the portal's times and the drive checks are dispatch sweeps; a key coalesces a burst of writes into one run
+		effect: function* (_, ctx) {
 			yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
 			yield* ctx.schedule('check_drives', {}, { key: 'check_drives' });
 		}
-	}
+	},
+	update: { columns: { fields: ['notes', 'status'] } }
 });

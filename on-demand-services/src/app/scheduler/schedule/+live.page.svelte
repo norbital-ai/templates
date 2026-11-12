@@ -1,30 +1,31 @@
 <script lang="ts">
-	import { useKinds, EmptyState, Map, Table } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
+	import { EmptyState, Map, Table } from '@norbital-ai/ui';
 	/**
 	 * Where every helper is: the last position their app reported, named on the map, with a dashed line to where they go
 	 * next (the visit under way, else their next one in the coming hours); and those visits as a list with the ETA the
 	 * watch last estimated. Both refresh as helpers report.
 	 */
-	import { bolt } from '$bolt';
 	import { Instant } from '@norbital-ai/std/date';
 	import { AppShell, Split } from '@norbital-ai/ui/layout';
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-	const t = bolt.t;
+	const zone = ctx.tz;
+	const t = ctx.t;
 	const HOUR = 3600000;
 	const time = (i: string) =>
-		new Intl.DateTimeFormat(bolt.locale, {
+		new Intl.DateTimeFormat(ctx.locale, {
 			timeZone: zone,
 			hour: 'numeric',
 			minute: '2-digit'
 		}).format(new Date(i));
 	/** The under-way window moves with the clock, minute by minute. */
-	const clock = bolt.clock('minute');
+	const clock = ctx.clock('minute');
 	const now = $derived(Date.parse(clock.now));
 	const ahead = $derived(
-		bolt.query({
+		ctx.query({
 			visits: {
 				where: {
-					helper: { isNull: false },
+					helper: { is_null: false },
 					status: { in: ['scheduled', 'in_progress'] },
 					slot: {
 						overlaps: {
@@ -33,11 +34,10 @@
 						}
 					}
 				},
-				fields: ['slot', 'status', 'location', 'helper', 'booking']
-			},
-			'visits.helper': { fields: ['name', 'last_location'] },
-			'visits.booking': { fields: ['customer'] },
-			'visits.booking.customer': { fields: ['name'] }
+				fields: ['slot', 'status', 'location', 'helper', 'booking'],
+				helper: { fields: ['name', 'last_location'] },
+				booking: { fields: ['customer'], customer: { fields: ['name'] } }
+			}
 		})
 	);
 	const soon = $derived(Instant(new Date(now + 4 * HOUR).toISOString()));
@@ -70,7 +70,7 @@
 		label="name"
 		labels="always"
 		{overlays}
-		where={{ status: { eq: 'active' }, last_location: { isNull: false } }}
+		where={{ status: { eq: 'active' }, last_location: { is_null: false } }}
 		toolbar={{ title: t('app.schedule.helper_positions'), new: false }}
 	/>
 {/snippet}
@@ -93,7 +93,7 @@
 				}
 			]
 		}}
-		orderBy={{ number: 'asc' }}
+		order_by={{ number: 'asc' }}
 		columns={['number', 'helper', 'booking', 'slot', 'status', 'eta_minutes', 'attention']}
 	/>
 {/snippet}
@@ -110,6 +110,6 @@
 		ratio="wide"
 		start={underWay}
 		end={positions}
-		switchLabels={[t('app.schedule.under_way'), t('app.schedule.helper_positions')]}
+		switch_labels={[t('app.schedule.under_way'), t('app.schedule.helper_positions')]}
 	/>
 </AppShell>

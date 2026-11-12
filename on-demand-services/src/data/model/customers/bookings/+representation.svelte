@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { fork, bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import {
-		useKinds,
 		Button,
 		Combobox,
-		enumText,
 		TimeInput,
 		Label,
 		Picker,
@@ -13,7 +12,6 @@
 		Section,
 		Table,
 		RunStatus,
-		useBolt,
 		type RecordSection,
 		type RecordView
 	} from '@norbital-ai/ui';
@@ -24,19 +22,20 @@
 	import SlotPicker from '../../../../lib/SlotPicker.svelte';
 	import { livePool } from '../../../../lib/pool.svelte.js';
 	import { bookingSlots, bookingWindow } from '../../../../lib/slots.js';
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'bookings'>;
+		ctx: PageContext;
 	} = $props();
-	const t = bolt.t;
-	const ui = useBolt();
-	const repeatWord = (value: string) =>
-		enumText(value, { t: (key) => ui.t(key), model: 'bookings', field: 'repeat' });
-	const day = bolt.clock('day');
-	const today = $derived<string>(day.today);
+	const zone = ctx.tz;
+	const t = ctx.t;
 	const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
+	const repeatWord = (value: (typeof REPEATS)[number]) =>
+		ctx.t(`models.bookings.fields.repeat.${value}`);
+	const day = ctx.clock('day');
+	const today = $derived<string>(day.today);
 	// a stored booking: what was booked (with its notes) and where; the preferred helpers sit in a tab of their own
 	const sections: RecordSection[] = [
 		{
@@ -79,7 +78,7 @@
 	const names = $derived(
 		helpers.length === 0
 			? null
-			: bolt.query({
+			: ctx.query({
 					helpers: { where: { id: { in: helpers } }, fields: ['name', 'skills'], limit: 5 }
 				})
 	);
@@ -87,7 +86,7 @@
 	const chosen = $derived(
 		customer === null || service === null
 			? null
-			: bolt.query({
+			: ctx.query({
 					customers: {
 						where: { id: { eq: customer } },
 						fields: ['location', 'area'],
@@ -104,13 +103,14 @@
 	const chosenService = $derived(chosen?.current?.services.rows[0] ?? null);
 	const horizon = $derived(bookingWindow({ from: PlainDate(from), days: 7, repeat }, zone));
 	const pool = livePool(
+		ctx,
 		() =>
 			chosen?.current !== undefined && (preference === 'any' || helpers.length > 0)
 				? { from: horizon.from, to: horizon.to, spots: [target?.location ?? null] }
 				: null,
 		zone
 	);
-	const clock = bolt.clock('minute');
+	const clock = ctx.clock('minute');
 	const offered = $derived(
 		pool.current === undefined || chosen?.current === undefined
 			? undefined
@@ -143,7 +143,7 @@
 		const order = helpers;
 		fork(
 			Effect.gen(function* () {
-				const call = bolt.start('bookings_book', {
+				const call = ctx.run('bookings_book', {
 					customer: selectedCustomer,
 					service: selectedService,
 					preference,
@@ -173,7 +173,7 @@
 			of="booking_helpers"
 			key="booking-helpers"
 			where={{ booking: { eq: view.record.id } }}
-			orderBy={{ rank: 'asc' }}
+			order_by={{ rank: 'asc' }}
 			columns={['rank', 'helper']}
 			toolbar={{ title: t('app.schedule.preferred_helpers'), new: false }}
 		/>{/if}
@@ -212,7 +212,7 @@
 								id="booking-customer"
 								of="customers"
 								value={customer}
-								onChange={(id) => {
+								on_change={(id) => {
 									customer = id;
 									start = null;
 								}}
@@ -226,7 +226,7 @@
 							of="services"
 							where={{ active: { eq: true } }}
 							value={service}
-							onChange={(id) => {
+							on_change={(id) => {
 								service = id;
 								start = null;
 							}}
@@ -250,7 +250,7 @@
 								{ value: 'any', label: t('app.schedule.no_preference') },
 								{ value: 'preferred', label: t('app.schedule.has_preference') }
 							]}
-							onChange={(value) => {
+							on_change={(value) => {
 								if (value !== null) {
 									preference = value;
 									start = null;
@@ -267,7 +267,7 @@
 								value: r,
 								label: repeatWord(r)
 							}))}
-							onChange={(value) => {
+							on_change={(value) => {
 								if (value !== null) {
 									repeat = value;
 									start = null;
@@ -303,7 +303,7 @@
 								of="helpers"
 								where={{ status: { eq: 'active' } }}
 								value={null}
-								onChange={(id) => {
+								on_change={(id) => {
 									if (id !== null && !helpers.includes(id)) {
 										helpers = [...helpers, id];
 										start = null;
@@ -325,7 +325,7 @@
 					<TimeInput
 						id="booking-date"
 						value={from}
-						onChange={(next: string | null) => {
+						on_change={(next: string | null) => {
 							from = next ?? today;
 							start = null;
 						}}
@@ -339,7 +339,8 @@
 						days={shown}
 						minutes={chosenService?.duration_minutes ?? 60}
 						value={start}
-						locale={bolt.locale}
+						locale={ctx.locale}
+						{zone}
 						onPick={(s) => (start = s)}
 						{t}
 					/>

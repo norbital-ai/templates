@@ -10,8 +10,8 @@
  * (the `check_drives` run fetches every planned leg), else the straight-line estimate.
  */
 import type { Id, PlainTime } from '@norbital-ai/bolt';
-import { addDays, addMonths, Instant, type PlainDate } from '@norbital-ai/std/date';
-import { localOf, utcOf } from '@norbital-ai/std/zone';
+import { add_days, add_months, Instant, type PlainDate } from '@norbital-ai/std/date';
+import { local_of, utc_of } from '@norbital-ai/std/zone';
 export const SKILLS = [
 	'home_cleaning',
 	'deep_cleaning',
@@ -151,8 +151,8 @@ export function driveMinutes(
 }
 /** The local day and minutes into it of an instant. */
 function local(instant: string, zone: string) {
-	const { date, msOfDay } = localOf(ms(instant), zone);
-	return { date, minutes: msOfDay / MINUTE };
+	const { date, ms_of_day } = local_of(ms(instant), zone);
+	return { date, minutes: ms_of_day / MINUTE };
 }
 /** The first hard requirement `helper` fails for `need`, or `null` when they may take it. */
 export function refusal(helper: Helper, need: Need, pool: Pool, zone: string): Refusal | null {
@@ -218,8 +218,8 @@ function detour(helper: Helper, need: Need, pool: Pool, zone: string): number {
 /** Service and travel minutes in the local Monday-started week, normalized by hours actually available. */
 function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
 	const day = local(need.slot.start, zone).date;
-	const monday = addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
-	const sunday = addDays(monday, 6);
+	const monday = add_days(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
+	const sunday = add_days(monday, 6);
 	const busy = pool.busy.filter((b) => {
 		const d = local(b.slot.start, zone).date;
 		return b.helper === helper.id && b.id !== need.visit && monday <= d && d <= sunday;
@@ -234,7 +234,7 @@ function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
 			),
 		0
 	);
-	const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i)).filter(
+	const days = Array.from({ length: 7 }, (_, i) => add_days(monday, i)).filter(
 		(d) =>
 			helper.work_days.includes(DAYS[new Date(`${d}T00:00:00Z`).getUTCDay()]!) &&
 			!pool.off.some(
@@ -453,14 +453,14 @@ function skillSimilarity(a: readonly string[], b: readonly string[]): number {
 }
 /** The start of every occurrence: the same local wall time each week, fortnight or month. */
 export function occurrences(start: string, repeat: string, count: number, zone: string): Instant[] {
-	const first = localOf(ms(start), zone);
+	const first = local_of(ms(start), zone);
 	const n = repeat === 'once' ? 1 : count;
 	return Array.from({ length: n }, (_, i) => {
 		const date =
 			repeat === 'monthly'
-				? addMonths(first.date, i)
-				: addDays(first.date, i * (repeat === 'fortnightly' ? 14 : 7));
-		return iso(utcOf(date, first.msOfDay, zone));
+				? add_months(first.date, i)
+				: add_days(first.date, i * (repeat === 'fortnightly' ? 14 : 7));
+		return iso(utc_of(date, first.ms_of_day, zone));
 	});
 }
 /** A slot of `minutes` from `start`. */
@@ -514,7 +514,7 @@ export function openSlots(
 		const starts: Instant[] = [];
 		for (const m of [...candidates].sort((a, b) => a - b)) {
 			if (m < from || m > to) continue;
-			const slot = slotOf(iso(utcOf(day, m * MINUTE, zone)), need.minutes);
+			const slot = slotOf(iso(utc_of(day, m * MINUTE, zone)), need.minutes);
 			if (ms(slot.start) > ms(now) && refusal(helper, { ...need, slot }, pool, zone) === null)
 				starts.push(slot.start);
 		}

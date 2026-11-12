@@ -1,14 +1,14 @@
 import { Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
-import { googleMinutes, settingsOf } from '../lib/dispatch.js';
+import { routesAccount, googleMinutes, settingsOf, targetOf } from '../lib/dispatch.js';
 import { driveMinutes } from '../lib/matching.js';
 
 const MINUTE = 60000;
 const FRESH_MINUTES = 15;
 
-export default automation('eta_check', {
+export default automation({
 	description: 'Checks one visit’s live ETA without sharing another visit’s read dependencies.',
-	input: { visit: { kind: 'id', of: 'visits' } },
+	input: { visit: { kind: 'ref', to: 'visits' } },
 	policies: ['dispatch_automation'],
 	concurrency: { max: 4 },
 	run: function* ({ visit }, ctx) {
@@ -20,9 +20,9 @@ export default automation('eta_check', {
 					visits: {
 						where: { id: { eq: visit } },
 						fields: ['revision', 'number', 'status', 'slot', 'location', 'attention', 'helper'],
-						limit: 1
-					},
-					'visits.helper': { fields: ['name', 'last_location', 'last_location_at'] }
+						limit: 1,
+						helper: { fields: ['name', 'last_location', 'last_location_at'] }
+					}
 				})
 			},
 			{ concurrency: 'unbounded' }
@@ -47,7 +47,8 @@ export default automation('eta_check', {
 			eta !== null &&
 			eta > settings.eta_limit_minutes / 2
 		) {
-			const live = yield* googleMinutes(ctx, from, [v.location], true);
+			const account = yield* routesAccount(ctx);
+			const live = yield* googleMinutes(ctx, account, from, [v.location], true);
 			eta = live?.[0] ?? eta;
 		}
 		const late = eta === null || eta > settings.eta_limit_minutes;
@@ -59,11 +60,11 @@ export default automation('eta_check', {
 					? 'eta_risk'
 					: 'none';
 		const written = yield* ctx
-			.act(
-				'visits.update',
-				[{ target: v.id, set: { eta_minutes: eta, eta_checked_at: ctx.now, attention } }],
-				{ observed: { [v.id]: v.revision } }
-			)
+			.act({
+				'visits.update': [
+					{ target: targetOf(v), set: { eta_minutes: eta, eta_checked_at: ctx.now, attention } }
+				]
+			})
 			.pipe(
 				Effect.as(true),
 				Effect.catchTag('ActConflict', () => Effect.succeed(false))

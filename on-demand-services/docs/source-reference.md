@@ -20,24 +20,24 @@ This is a local source inventory, not a declaration that a deployed tenant runs 
 
 Outputs fix field visibility. Policies select outputs and scope rows; write columns and checks constrain mutations. Each row links to its owning declaration.
 
-| Model                                                                                      | Fields | Read outputs                      | Writes                         | Post-commit effects | Syncs |
-| ------------------------------------------------------------------------------------------ | ------ | --------------------------------- | ------------------------------ | ------------------- | ----- |
-| [availability_requests](../src/data/model/services/availability_requests/+model.ts)        | 11     | default, customer                 | create, update, upsert         | created             | none  |
-| [booking_helpers](../src/data/model/customers/bookings/booking_helpers/+model.ts)          | 1      | default                           | none                           | none                | none  |
-| [booking_requests](../src/data/model/services/booking_requests/+model.ts)                  | 11     | default, customer                 | create, update, upsert         | created             | none  |
-| [bookings](../src/data/model/customers/bookings/+model.ts)                                 | 9      | default, customer, helper         | create, update, upsert         | created             | none  |
-| [customer_notices](../src/data/model/customers/bookings/visits/customer_notices/+model.ts) | 13     | default, customer                 | create, update, upsert         | created             | mail  |
-| [customers](../src/data/model/customers/+model.ts)                                         | 7      | default, customer, helper         | create, update, delete, upsert | none                | none  |
-| [dispatch_settings](../src/data/model/dispatch_settings/+model.ts)                         | 6      | default                           | create, update, upsert         | none                | none  |
-| [drive_times](../src/data/model/drive_times/+model.ts)                                     | 2      | default                           | create                         | none                | none  |
-| [helper_time_off](../src/data/model/helpers/helper_time_off/+model.ts)                     | 2      | default                           | create, update, delete, upsert | created             | none  |
-| [helper_warnings](../src/data/model/customers/bookings/visits/helper_warnings/+model.ts)   | 4      | default                           | create, update, upsert         | created             | none  |
-| [helpers](../src/data/model/helpers/+model.ts)                                             | 13     | default, customer, helper         | create, update, upsert         | updated             | none  |
-| [openings](../src/data/model/services/openings/+model.ts)                                  | 2      | default, portal                   | create, update, delete, upsert | none                | none  |
-| [services](../src/data/model/services/+model.ts)                                           | 6      | default, customer, portal, helper | create, update, delete, upsert | none                | none  |
-| [visits](../src/data/model/customers/bookings/visits/+model.ts)                            | 18     | default, customer, helper         | update                         | created, updated    | none  |
+| Model                                                                                      | Fields | Read outputs                      | Writes                 | Post-commit effects | Syncs |
+| ------------------------------------------------------------------------------------------ | ------ | --------------------------------- | ---------------------- | ------------------- | ----- |
+| [availability_requests](../src/data/model/services/availability_requests/+model.ts)        | 11     | default, customer                 | create, update         | create              | none  |
+| [booking_helpers](../src/data/model/customers/bookings/booking_helpers/+model.ts)          | 1      | default                           | none                   | none                | none  |
+| [booking_requests](../src/data/model/services/booking_requests/+model.ts)                  | 11     | default, customer                 | create, update         | create              | none  |
+| [bookings](../src/data/model/customers/bookings/+model.ts)                                 | 9      | default, customer, helper         | create, update         | create              | none  |
+| [customer_notices](../src/data/model/customers/bookings/visits/customer_notices/+model.ts) | 13     | default, customer                 | create, update         | create              | mail  |
+| [customers](../src/data/model/customers/+model.ts)                                         | 7      | default, customer, helper         | create, update, delete | none                | none  |
+| [dispatch_settings](../src/data/model/dispatch_settings/+model.ts)                         | 6      | default                           | create, update         | none                | none  |
+| [drive_times](../src/data/model/drive_times/+model.ts)                                     | 2      | default                           | create                 | none                | none  |
+| [helper_time_off](../src/data/model/helpers/helper_time_off/+model.ts)                     | 2      | default                           | create, update, delete | create              | none  |
+| [helper_warnings](../src/data/model/customers/bookings/visits/helper_warnings/+model.ts)   | 4      | default                           | create, update         | create              | none  |
+| [helpers](../src/data/model/helpers/+model.ts)                                             | 13     | default, customer, helper         | create, update         | update              | none  |
+| [openings](../src/data/model/services/openings/+model.ts)                                  | 2      | default, portal                   | create, update, delete | none                | none  |
+| [services](../src/data/model/services/+model.ts)                                           | 6      | default, customer, portal, helper | create, update, delete | none                | none  |
+| [visits](../src/data/model/customers/bookings/visits/+model.ts)                            | 18     | default, customer, helper         | create, update         | create, update      | none  |
 
-Upsert is available when both create and update are exposed; it resolves an explicit ID or the model’s natural key and requires an explicit conflict rule.
+Import is available on a model whose unique constraint is marked `import_key: true`; it matches rows on that key and requires an explicit conflict rule. No model here declares one.
 
 ## Automations
 
@@ -70,11 +70,11 @@ All named runs use the reserved system identity and the listed policies. A manua
 ## Integrations and source roles
 
 - Integration definitions: `google_routes`.
-- Named connections: `customer_mail`, `whatsapp`, `google_routes`.
+- Connections: none in source. The runs send through the workspace's one active `whatsapp` account and time drives through its one `google_routes` account; the `customer_notices` `mail` sync uses an `email` account.
 - Source policies: `customer`, `dispatch_automation`, `helper`, `helper_shift`, `operations`, `portal_visitor`.
 - Custom datatypes: none.
 
-Pairing and credentials belong to the host's Connections surface; defining a connection does not mean it is paired.
+Accounts, pairing and credentials belong to the host's Connections surface; an account that is not paired delivers nothing.
 
 ## Browser evidence
 

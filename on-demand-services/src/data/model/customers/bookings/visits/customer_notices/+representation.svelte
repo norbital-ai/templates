@@ -1,15 +1,17 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	/** A notice sent to a customer: what it said and about which visit stay open; its delivery trail folds away. */
-	import { bolt } from '$bolt';
 	import { type RecordSection, type RecordView, RecordShell } from '@norbital-ai/ui';
 	import { useWhen } from '../../../../../../lib/summary.js';
-	const when = useWhen();
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'customer_notices'>;
+		ctx: PageContext;
 	} = $props();
-	const t = bolt.t;
+	const when = useWhen(ctx);
+	const t = ctx.t;
 	const sections: RecordSection[] = [
 		{
 			name: 'notice',
@@ -34,7 +36,7 @@
 				'reply_excerpt',
 				'auto_replied_at'
 			],
-			defaultOpen: false,
+			default_open: false,
 			summary: (r) =>
 				r.sent_at == null
 					? t('summary.not_sent')

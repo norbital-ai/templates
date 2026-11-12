@@ -1,14 +1,14 @@
 import { automation } from '@norbital-ai/bolt';
-import { type ActInput, type CreateRow } from '@norbital-ai/bolt';
+import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
 import { Refusal } from '@norbital-ai/bolt/errors';
-import { planReassignment, visitsToMove, when } from '../lib/dispatch.js';
+import { planReassignment, targetOf, visitsToMove, when } from '../lib/dispatch.js';
 
-export default automation('visits_reassign', {
+export default automation({
 	description:
 		'Gives the visit to the named helper, or to the best-matched one when none is named. A customer who asked for particular helpers is told.',
 	input: {
-		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 },
-		helper: { kind: 'id', of: 'helpers', optional: true }
+		targets: { kind: 'ref', to: 'visits', many: true, min_items: 1 },
+		helper: { kind: 'ref', to: 'helpers', optional: true }
 	},
 	policies: ['operations'],
 	run: function* ({ helper, targets }, ctx) {
@@ -20,7 +20,7 @@ export default automation('visits_reassign', {
 				field: 'targets'
 			});
 		const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
-		const notices: CreateRow<'customer_notices'>[] = [];
+		const notices: CreateInput<'customer_notices'>[] = [];
 		for (const v of targetsOf) {
 			if (v.status !== 'scheduled')
 				return yield* new Refusal({ message: 'Only a scheduled visit can be reassigned.' });
@@ -39,7 +39,7 @@ export default automation('visits_reassign', {
 				continue;
 			}
 			updates.push({
-				target: v.id,
+				target: targetOf(v),
 				set: { helper, attention: 'none', proposed_helper: null, proposed_slot: null, mc: false }
 			});
 			const { bookings, helpers } = yield* ctx.query({
@@ -61,15 +61,9 @@ export default automation('visits_reassign', {
 				});
 		}
 		if (updates.length > 0)
-			yield* ctx.act.many([
-				{
-					callable: 'visits.update',
-					input: updates,
-					observed: Object.fromEntries(targetsOf.map((v): [string, number] => [v.id, v.revision]))
-				},
-				...(notices.length > 0
-					? [{ callable: 'customer_notices.create' as const, input: notices }]
-					: [])
-			]);
+			yield* ctx.act({
+				'visits.update': updates,
+				...(notices.length > 0 ? { 'customer_notices.create': notices } : {})
+			});
 	}
 });

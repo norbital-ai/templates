@@ -14,19 +14,15 @@
 				"approver_teams": {
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				},
 				"approver_users": {
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				},
 				"closed_at": {
@@ -38,15 +34,13 @@
 					"optional": true
 				},
 				"collection_name": {
-					"kind": "text",
-					"label": "Model"
+					"kind": "text"
 				},
 				"created_at": {
 					"kind": "instant"
 				},
 				"record_id": {
-					"kind": "text",
-					"label": "Record ID"
+					"kind": "text"
 				},
 				"revision": {
 					"default": 1,
@@ -59,7 +53,8 @@
 						"CHANGES_REQUESTED",
 						"APPROVED",
 						"REJECTED",
-						"SUPERSEDED"
+						"SUPERSEDED",
+						"WITHDRAWN"
 					]
 				},
 				"step": {
@@ -68,10 +63,8 @@
 				"step_names": {
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				},
 				"steps": {
@@ -80,15 +73,12 @@
 				"superseder_teams": {
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				}
 			},
 			"key": "uuid",
-			"nativeRules": 2,
 			"search": {
 				"text": [
 					"collection_name"
@@ -100,6 +90,7 @@
 						"collection_name",
 						"record_id"
 					],
+					"name": "one_ongoing_request",
 					"where": {
 						"status": {
 							"eq": "ONGOING"
@@ -183,23 +174,30 @@
 					"initial": "pending",
 					"kind": "state",
 					"states": {
-						"failed": {
-							"edit": "none"
-						},
+						"failed": {},
 						"pending": {
 							"to": [
 								"ready",
 								"failed"
 							]
 						},
-						"ready": {
-							"edit": "none"
+						"ready": {}
+					}
+				}
+			},
+			"locks": {
+				"settled": {
+					"where": {
+						"status": {
+							"in": [
+								"ready",
+								"failed"
+							]
 						}
 					}
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.address"
+			"record_label": "record.address"
 		},
 		"booking_helpers": {
 			"audit": true,
@@ -221,14 +219,14 @@
 					"min": 1
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.rank",
+			"record_label": "string(record.rank)",
 			"unique": [
 				{
 					"fields": [
 						"booking",
 						"helper"
-					]
+					],
+					"name": "one_rank_per_helper"
 				}
 			]
 		},
@@ -257,7 +255,7 @@
 				},
 				"booking": {
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "bookings"
 				},
@@ -313,12 +311,8 @@
 					"initial": "received",
 					"kind": "state",
 					"states": {
-						"booked": {
-							"edit": "none"
-						},
-						"closed": {
-							"edit": "none"
-						},
+						"booked": {},
+						"closed": {},
 						"follow_up": {
 							"to": [
 								"booked",
@@ -334,11 +328,26 @@
 					}
 				}
 			},
-			"index": [
-				"status"
+			"indexes": [
+				{
+					"on": [
+						"status"
+					]
+				}
 			],
-			"nativeRules": 2,
-			"recordLabel": "record.number",
+			"locks": {
+				"settled": {
+					"where": {
+						"status": {
+							"in": [
+								"booked",
+								"closed"
+							]
+						}
+					}
+				}
+			},
+			"record_label": "record.number",
 			"search": {
 				"text": [
 					"phone",
@@ -410,9 +419,7 @@
 								"cancelled"
 							]
 						},
-						"cancelled": {
-							"edit": "none"
-						}
+						"cancelled": {}
 					}
 				},
 				"visit_count": {
@@ -420,11 +427,23 @@
 					"of": "visits"
 				}
 			},
-			"index": [
-				"status"
+			"indexes": [
+				{
+					"on": [
+						"status"
+					]
+				}
 			],
-			"nativeRules": 2,
-			"recordLabel": "record.number",
+			"locks": {
+				"cancelled": {
+					"where": {
+						"status": {
+							"eq": "cancelled"
+						}
+					}
+				}
+			},
+			"record_label": "record.number",
 			"search": {
 				"text": [
 					"number",
@@ -499,7 +518,7 @@
 				},
 				"visit": {
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "visits"
 				},
@@ -508,8 +527,7 @@
 					"optional": true
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.subject",
+			"record_label": "record.subject",
 			"search": {
 				"text": [
 					"subject",
@@ -556,8 +574,7 @@
 					"unique": true
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.name",
+			"record_label": "record.name",
 			"search": {
 				"text": [
 					"name",
@@ -615,8 +632,7 @@
 					"min": 10
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.name"
+			"record_label": "record.name"
 		},
 		"drive_times": {
 			"audit": true,
@@ -631,8 +647,7 @@
 					"min": 0
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.minutes"
+			"record_label": "string(record.minutes)"
 		},
 		"helper_time_off": {
 			"audit": true,
@@ -656,16 +671,16 @@
 					]
 				}
 			},
-			"nativeRules": 2,
-			"noOverlap": [
+			"no_overlap": [
 				{
 					"key": [
 						"helper"
 					],
+					"name": "one_absence",
 					"period": "period"
 				}
 			],
-			"recordLabel": "record.reason"
+			"record_label": "record.reason"
 		},
 		"helper_warnings": {
 			"audit": true,
@@ -699,16 +714,19 @@
 				},
 				"visit": {
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "visits"
 				}
 			},
-			"index": [
-				"issued_at"
+			"indexes": [
+				{
+					"on": [
+						"issued_at"
+					]
+				}
 			],
-			"nativeRules": 2,
-			"recordLabel": "record.reason",
+			"record_label": "record.reason",
 			"search": {
 				"text": [
 					"helper",
@@ -800,7 +818,7 @@
 				},
 				"user": {
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "sys_user"
 				},
@@ -822,8 +840,7 @@
 					]
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.name",
+			"record_label": "record.name",
 			"search": {
 				"text": [
 					"name"
@@ -833,7 +850,8 @@
 				{
 					"fields": [
 						"user"
-					]
+					],
+					"name": "one_user"
 				}
 			]
 		},
@@ -855,14 +873,14 @@
 					"many": true
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.day",
+			"record_label": "string(record.day)",
 			"unique": [
 				{
 					"fields": [
 						"service",
 						"day"
-					]
+					],
+					"name": "one_per_day"
 				}
 			]
 		},
@@ -877,7 +895,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.user_id"
 		},
 		"services": {
 			"audit": true,
@@ -915,8 +933,7 @@
 					]
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.name",
+			"record_label": "record.name",
 			"search": {
 				"text": [
 					"name"
@@ -965,7 +982,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.name"
 		},
 		"sys_challenge": {
 			"fields": {
@@ -986,7 +1003,7 @@
 			"key": [
 				"address_mac"
 			],
-			"nativeRules": 2
+			"record_label": "record.address_mac"
 		},
 		"sys_config": {
 			"fields": {
@@ -1000,7 +1017,7 @@
 			"key": [
 				"key"
 			],
-			"nativeRules": 2
+			"record_label": "record.key"
 		},
 		"sys_conversation": {
 			"fields": {
@@ -1024,7 +1041,7 @@
 				},
 				"integration": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"optional": true,
 					"to": "sys_integration"
 				},
@@ -1064,6 +1081,14 @@
 					"default": {},
 					"kind": "json"
 				},
+				"restart_at": {
+					"kind": "text",
+					"optional": true
+				},
+				"restart_from": {
+					"kind": "text",
+					"optional": true
+				},
 				"revision": {
 					"default": 1,
 					"kind": "int"
@@ -1092,7 +1117,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.title"
 		},
 		"sys_envoy": {
 			"fields": {
@@ -1159,10 +1184,20 @@
 				"triage": {
 					"default": false,
 					"kind": "bool"
+				},
+				"triage_scope": {
+					"default": "all",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"dm",
+						"group",
+						"all"
+					]
 				}
 			},
 			"key": "uuid",
-			"nativeRules": 2
+			"record_label": "record.name"
 		},
 		"sys_file": {
 			"fields": {
@@ -1205,7 +1240,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.name"
 		},
 		"sys_inbox": {
 			"fields": {
@@ -1226,7 +1261,7 @@
 				},
 				"instance": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_integration"
 				},
 				"received_at": {
@@ -1245,20 +1280,21 @@
 					],
 					"where": {
 						"consumed_at": {
-							"isNull": true
+							"is_null": true
 						}
 					}
 				}
 			],
 			"key": "uuid",
-			"nativeRules": 2,
+			"record_label": "record.delivery",
 			"unique": [
 				{
 					"fields": [
 						"sync",
 						"instance",
 						"delivery"
-					]
+					],
+					"name": "one_inbound_delivery"
 				}
 			]
 		},
@@ -1290,10 +1326,6 @@
 				"name": {
 					"kind": "text"
 				},
-				"named": {
-					"default": false,
-					"kind": "bool"
-				},
 				"owner": {
 					"kind": "ref",
 					"optional": true,
@@ -1306,10 +1338,16 @@
 				"status": {
 					"kind": "json",
 					"optional": true
+				},
+				"updated_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
 				}
 			},
 			"key": "text",
-			"nativeRules": 2,
+			"record_label": "record.name",
 			"unique": [
 				{
 					"fields": [
@@ -1319,7 +1357,7 @@
 					"name": "one_per_member",
 					"where": {
 						"owner": {
-							"isNull": false
+							"is_null": false
 						}
 					}
 				}
@@ -1331,12 +1369,12 @@
 					"or": [
 						{
 							"email": {
-								"isNull": false
+								"is_null": false
 							}
 						},
 						{
 							"phone": {
-								"isNull": false
+								"is_null": false
 							}
 						}
 					]
@@ -1400,7 +1438,7 @@
 				}
 			],
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.email"
 		},
 		"sys_message": {
 			"fields": {
@@ -1433,6 +1471,10 @@
 					"optional": true
 				},
 				"conversation": {
+					"kind": "text",
+					"optional": true
+				},
+				"copied_from": {
 					"kind": "text",
 					"optional": true
 				},
@@ -1476,7 +1518,7 @@
 				},
 				"integration": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"optional": true,
 					"to": "sys_integration"
 				},
@@ -1581,17 +1623,19 @@
 				}
 			},
 			"identity": "seq",
-			"index": [
-				[
-					"conversation",
-					"seq"
-				],
-				[
-					"integration",
-					"provider_id"
-				]
-			],
 			"indexes": [
+				{
+					"on": [
+						"conversation",
+						"seq"
+					]
+				},
+				{
+					"on": [
+						"integration",
+						"provider_id"
+					]
+				},
 				{
 					"on": [
 						"conversation"
@@ -1627,7 +1671,7 @@
 				}
 			],
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.preview"
 		},
 		"sys_notification": {
 			"fields": {
@@ -1674,13 +1718,13 @@
 					],
 					"where": {
 						"member": {
-							"isNull": false
+							"is_null": false
 						}
 					}
 				}
 			],
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.title"
 		},
 		"sys_outbox": {
 			"fields": {
@@ -1699,15 +1743,22 @@
 					"default": [],
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				},
 				"claimed_at": {
 					"kind": "instant",
 					"optional": true
+				},
+				"delivery_op": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
 				},
 				"epoch": {
 					"kind": "text",
@@ -1723,7 +1774,7 @@
 				},
 				"instance": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_integration"
 				},
 				"key": {
@@ -1743,6 +1794,10 @@
 						"update",
 						"delete"
 					]
+				},
+				"preserve_local": {
+					"default": false,
+					"kind": "bool"
 				},
 				"record": {
 					"kind": "text"
@@ -1774,7 +1829,7 @@
 				},
 				"writer": {
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "sys_user"
 				}
@@ -1815,10 +1870,18 @@
 							"eq": "dead"
 						}
 					}
+				},
+				{
+					"on": [
+						"sync",
+						"instance",
+						"record",
+						"record_revision"
+					]
 				}
 			],
 			"key": "uuid",
-			"nativeRules": 2,
+			"record_label": "record.key",
 			"unique": [
 				{
 					"fields": [
@@ -1923,10 +1986,16 @@
 							"eq": "queued"
 						}
 					}
+				},
+				{
+					"on": [
+						"automation",
+						"state"
+					]
 				}
 			],
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.automation"
 		},
 		"sys_session": {
 			"fields": {
@@ -1954,7 +2023,7 @@
 				},
 				"user": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_user"
 				},
 				"via": {
@@ -1969,7 +2038,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.via"
 		},
 		"sys_sync": {
 			"fields": {
@@ -1990,7 +2059,7 @@
 				},
 				"instance": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_integration"
 				},
 				"last_change_at": {
@@ -2032,14 +2101,15 @@
 				}
 			},
 			"key": "uuid",
-			"nativeRules": 2,
+			"record_label": "record.sync",
 			"unique": [
 				{
 					"fields": [
 						"sync",
 						"instance",
 						"partition"
-					]
+					],
+					"name": "one_partition"
 				}
 			]
 		},
@@ -2054,7 +2124,7 @@
 				},
 				"instance": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_integration"
 				},
 				"partition": {
@@ -2065,7 +2135,8 @@
 					"kind": "text"
 				},
 				"remote_id": {
-					"kind": "text"
+					"kind": "text",
+					"optional": true
 				},
 				"remote_version": {
 					"kind": "text",
@@ -2075,30 +2146,39 @@
 					"kind": "text"
 				}
 			},
-			"index": [
-				[
-					"sync",
-					"instance",
-					"partition",
-					"cycle"
-				]
+			"indexes": [
+				{
+					"on": [
+						"sync",
+						"instance",
+						"partition",
+						"cycle"
+					]
+				}
 			],
 			"key": "uuid",
-			"nativeRules": 2,
+			"record_label": "record.remote_id",
 			"unique": [
 				{
 					"fields": [
 						"sync",
 						"instance",
 						"remote_id"
-					]
+					],
+					"name": "one_remote_id",
+					"where": {
+						"remote_id": {
+							"is_null": false
+						}
+					}
 				},
 				{
 					"fields": [
 						"sync",
 						"instance",
 						"record"
-					]
+					],
+					"name": "one_record"
 				}
 			]
 		},
@@ -2122,7 +2202,7 @@
 			"computed": {
 				"party_id": {
 					"expr": {
-						"jsonText": [
+						"json_text": [
 							{
 								"field": "party"
 							},
@@ -2133,7 +2213,7 @@
 				},
 				"phone_key": {
 					"expr": {
-						"regexReplace": [
+						"regex_replace": [
 							{
 								"field": "phone"
 							},
@@ -2223,8 +2303,7 @@
 				}
 			],
 			"key": "text",
-			"nativeRules": 2,
-			"recordLabel": "record.name",
+			"record_label": "record.name",
 			"search": {
 				"text": [
 					"name",
@@ -2286,7 +2365,7 @@
 				"helper": {
 					"inverse": "visits",
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "helpers"
 				},
@@ -2308,7 +2387,7 @@
 				},
 				"proposed_helper": {
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "helpers"
 				},
@@ -2356,19 +2435,9 @@
 					"initial": "scheduled",
 					"kind": "state",
 					"states": {
-						"cancelled": {
-							"edit": "none"
-						},
-						"done": {
-							"edit": "none"
-						},
+						"cancelled": {},
+						"done": {},
 						"in_progress": {
-							"edit": [
-								"status",
-								"completion_notes",
-								"completed_at",
-								"attention"
-							],
 							"to": [
 								"done"
 							]
@@ -2383,25 +2452,54 @@
 				},
 				"unavailable_helper": {
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "helpers"
 				}
 			},
-			"index": [
-				"attention",
-				"shift_check"
+			"indexes": [
+				{
+					"on": [
+						"attention",
+						"shift_check"
+					]
+				}
 			],
-			"nativeRules": 2,
-			"noOverlap": [
+			"locks": {
+				"finished": {
+					"where": {
+						"status": {
+							"in": [
+								"done",
+								"cancelled"
+							]
+						}
+					}
+				},
+				"under_way": {
+					"except": [
+						"status",
+						"completion_notes",
+						"completed_at",
+						"attention"
+					],
+					"where": {
+						"status": {
+							"eq": "in_progress"
+						}
+					}
+				}
+			},
+			"no_overlap": [
 				{
 					"key": [
 						"helper"
 					],
+					"name": "one_visit_at_a_time",
 					"period": "slot",
 					"where": {
 						"helper": {
-							"isNull": false
+							"is_null": false
 						},
 						"status": {
 							"ne": "cancelled"
@@ -2409,7 +2507,7 @@
 					}
 				}
 			],
-			"recordLabel": "record.number",
+			"record_label": "record.number",
 			"search": {
 				"text": [
 					"number",

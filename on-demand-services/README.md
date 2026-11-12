@@ -220,19 +220,20 @@ policy lists the runs it may start.
 The `visits` effect itself tells a helper when visits are given to them or moved: an in-app alert
 and one WhatsApp message listing the visits.
 
-`src/+workspace.ts` names three connections, each an integration instance an administrator pairs
-under **Settings → Integrations** with the business's own account:
+The runs reach the outside world through workspace accounts an administrator adds and pairs under
+**Settings → Connections** with the business's own account:
 
-| Connection      | Integration            | Used for                                                                                         |
-| --------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
-| `whatsapp`      | built-in `whatsapp`    | Customer and helper messages                                                                     |
-| `customer_mail` | built-in `email`       | Customer notices from your own mailbox (the `customer_notices` `mail` sync), with their delivery |
-| `google_routes` | `google_routes` (http) | Drive times; its API key is entered when it is paired                                            |
+| Integration            | Used for                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| built-in `whatsapp`    | Customer and helper messages                                                                     |
+| built-in `email`       | Customer notices from your own mailbox (the `customer_notices` `mail` sync), with their delivery |
+| `google_routes` (http) | Drive times; its API key is entered when it is paired                                            |
 
-No envoy answers on these instances. Until an instance is paired nothing is delivered through it:
-its messages stay queued, retrying or failed.
+The runs use the one active shared account of each: with none, or more than one, nothing is sent or
+timed through it (notices record `failed: no WhatsApp account`, drives keep their estimate). No envoy
+answers on these accounts. Until an account is paired its messages stay queued, retrying or failed.
 
-**Drive times (Google Maps).** Pair the `google_routes` connection in Settings → Integrations with a
+**Drive times (Google Maps).** Add and pair a `google_routes` account in Settings → Connections with a
 Google Routes API key (sealed on the instance; the **Routes API** must be enabled in Google Cloud).
 
 - `check_drives` runs every 15 minutes and whenever the schedule changes. It asks Google (Routes

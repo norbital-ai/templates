@@ -1,16 +1,15 @@
 import { automation } from '@norbital-ai/bolt';
-import { type ActInput, type CreateRow } from '@norbital-ai/bolt';
+import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
 import { Refusal } from '@norbital-ai/bolt/errors';
-import { observedOf } from '../lib/dispatch.js';
 import { planRebooking } from '../lib/visit-recovery.js';
 
-export default automation('visits_rebook', {
+export default automation({
 	description:
 		'Approves one occurrence at a feasible start; service recovery can bypass the customer change cutoff.',
 	input: {
-		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 },
+		targets: { kind: 'ref', to: 'visits', many: true, min_items: 1 },
 		start: { kind: 'instant' },
-		helper: { kind: 'id', of: 'helpers', optional: true }
+		helper: { kind: 'ref', to: 'helpers', optional: true }
 	},
 	policies: ['operations'],
 	run: function* ({ start, helper, targets }, ctx) {
@@ -22,7 +21,7 @@ export default automation('visits_rebook', {
 				field: 'targets'
 			});
 		const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
-		const notices: CreateRow<'customer_notices'>[] = [];
+		const notices: CreateInput<'customer_notices'>[] = [];
 		for (const v of targetsOf) {
 			const plan = yield* planRebooking(
 				v,
@@ -33,11 +32,9 @@ export default automation('visits_rebook', {
 			if (plan.notice !== null) notices.push(plan.notice);
 		}
 		if (updates.length > 0)
-			yield* ctx.act.many([
-				{ callable: 'visits.update', input: updates, observed: observedOf(targetsOf) },
-				...(notices.length > 0
-					? [{ callable: 'customer_notices.create' as const, input: notices }]
-					: [])
-			]);
+			yield* ctx.act({
+				'visits.update': updates,
+				...(notices.length > 0 ? { 'customer_notices.create': notices } : {})
+			});
 	}
 });

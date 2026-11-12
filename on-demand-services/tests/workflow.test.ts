@@ -4,8 +4,8 @@
  * Singapore; no `runDue` follows a clock step, so no cron fires.
  */
 import { expect, layer } from '@effect/vitest';
-import type { ActInput, Committed, Id, PendingApproval } from '@norbital-ai/bolt';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import type { ActInput, Id } from '@norbital-ai/bolt';
+import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Instant } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { finished } from './automation-runtime.js';
@@ -31,16 +31,31 @@ const Runs = Schema.Struct({
 	state: Schema.String
 });
 const desk = (t: Kit) => t.as(t.member(['operations']));
-function committed<O, N extends string>(outcome: Committed<O, N> | PendingApproval<N>) {
+function committed(outcome: { readonly kind: string }) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
-	return outcome;
 }
-const visitRow = Effect.fnUntraced(function* (t: Kit, target: Id<'visits'>) {
-	return present(
-		(yield* t.as(t.admin).query({ visits: { where: { id: { eq: target } }, limit: 1 } })).visits
-			.rows[0]
-	);
+/** The visit fields the assertions read, decoded from the native answer. */
+const VisitPage = Schema.Struct({
+	visits: Schema.Struct({
+		rows: Schema.Array(
+			Schema.Struct({
+				attention: Schema.String,
+				eta_minutes: Schema.NullOr(Schema.Number),
+				shift_check: Schema.String,
+				helper: Schema.NullOr(Schema.String),
+				proposed_helper: Schema.NullOr(Schema.String)
+			})
+		)
+	})
 });
+const visitRow = Effect.fnUntraced(function* (t: Kit, target: Id<'visits'>) {
+	const admin = yield* t.as(t.admin);
+	const page = yield* Schema.decodeUnknownEffect(VisitPage)(
+		yield* admin.query({ visits: { where: { id: { eq: target } }, limit: 1 } })
+	);
+	return present(page.visits.rows[0]);
+});
+const Rows = Schema.Struct({ rows: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)) });
 
 layer(
 	TestWorkspace.layer({
@@ -52,7 +67,8 @@ layer(
 	it.effect('the ETA check flags a helper whose drive exceeds the limit', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* finished(t, t.as(t.admin).start('eta_check', { visit: DRIVEN }));
+			const admin = yield* t.as(t.admin);
+			yield* finished(t, admin.run('eta_check', { visit: DRIVEN }, JobResult));
 			const late = yield* visitRow(t, DRIVEN);
 			expect(late.attention).toBe('eta_risk');
 			expect(late.eta_minutes).toBeGreaterThan(30);
@@ -63,48 +79,67 @@ layer(
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			// the seed asked Alpha at 07:45; the reply window has passed
-			yield* finished(t, t.as(t.admin).start('shift_watch', {}));
+			const admin = yield* t.as(t.admin);
+			yield* finished(t, admin.run('shift_watch', {}, JobResult));
 			expect(yield* visitRow(t, CHECKED)).toMatchObject({
 				shift_check: 'no_response',
 				helper: null,
 				proposed_helper: CHARLIE,
 				attention: 'awaiting_approval'
 			});
-			yield* finished(t, desk(t).start('visits_accept_proposal', { targets: [CHECKED] }));
+			yield* finished(
+				t,
+				(yield* desk(t)).run('visits_accept_proposal', { targets: [CHECKED] }, JobResult)
+			);
 			expect(yield* visitRow(t, CHECKED)).toMatchObject({
 				helper: CHARLIE,
 				proposed_helper: null,
 				attention: 'none'
 			});
-			expect(
-				(yield* t.as(t.admin).query({ helper_warnings: { where: { helper: { eq: ALPHA } } } }))
-					.helper_warnings.rows
-			).toMatchObject([{ reason: 'no_response' }]);
+			const warnings = yield* Schema.decodeUnknownEffect(Schema.Struct({ helper_warnings: Rows }))(
+				yield* admin.query({ helper_warnings: { where: { helper: { eq: ALPHA } } } })
+			);
+			expect(warnings.helper_warnings.rows).toMatchObject([{ reason: 'no_response' }]);
 		})
 	);
 
 	it.effect('a helper answers the shift check only for their own visits', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
+			const admin = yield* t.as(t.admin);
 			const helper = (row: Id<'helpers'>) =>
 				Effect.gen(function* () {
 					const member = t.member(['helper']);
 					const user = fixtureId('sys_user', member.id);
-					committed(yield* t.as(t.admin).act('helpers.update', [{ target: row, set: { user } }]));
-					return t.as(member);
+					const { helpers } = yield* Schema.decodeUnknownEffect(
+						Schema.Struct({
+							helpers: Schema.Struct({
+								rows: Schema.Array(Schema.Struct({ revision: Schema.Int }))
+							})
+						})
+					)(yield* admin.query({ helpers: { where: { id: { eq: row } }, fields: ['revision'] } }));
+					const revision = present(helpers.rows[0]).revision;
+					committed(
+						yield* admin.act({
+							'helpers.update': [{ target: { id: row, revision }, set: { user } }]
+						})
+					);
+					return yield* t.as(member);
 				});
 			// the run holds `helper`, scoped to its starter: Alpha cannot confirm Charlie's day (which now holds
 			// Alpha's reassigned visit)
 			const alpha = yield* helper(ALPHA);
 			expect(
-				yield* Effect.flip(finished(t, alpha.start('visits_confirm_shift', { targets: [DRIVEN] })))
+				yield* Effect.flip(
+					finished(t, alpha.run('visits_confirm_shift', { targets: [DRIVEN] }, JobResult))
+				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(yield* visitRow(t, CHECKED)).toMatchObject({
 				helper: CHARLIE,
 				shift_check: 'not_due'
 			});
 			const charlie = yield* helper(CHARLIE);
-			yield* finished(t, charlie.start('visits_confirm_shift', { targets: [DRIVEN] }));
+			yield* finished(t, charlie.run('visits_confirm_shift', { targets: [DRIVEN] }, JobResult));
 			expect(yield* visitRow(t, CHECKED)).toMatchObject({ shift_check: 'confirmed' });
 		})
 	);
@@ -112,7 +147,8 @@ layer(
 	it.effect('a quote binds to its exact inputs, and expires', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const customer = t.as(t.member(['customer'], { external: true, phone }));
+			const admin = yield* t.as(t.admin);
+			const customer = yield* t.as(t.member(['customer'], { external: true, phone }));
 			const request = (
 				over: Partial<ActInput<'booking_requests.create'>[number]> = {}
 			): ActInput<'booking_requests.create'>[number] => ({
@@ -128,19 +164,19 @@ layer(
 			});
 			expect(
 				yield* Effect.flip(
-					customer.act('booking_requests.create', [request({ address: 'Another address' })])
+					customer.act({ 'booking_requests.create': [request({ address: 'Another address' })] })
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
-			committed(yield* customer.act('booking_requests.create', [request()]));
+			committed(yield* customer.act({ 'booking_requests.create': [request()] }));
 			// the request's effect, as the customer, schedules `portal_intake`, which books it as dispatch
-			yield* t.runDue();
+			yield* t.run_due();
 			expect(
 				yield* t.db.rows(Runs, {
-					text: `SELECT automation, cause, state FROM sys_run WHERE automation IN ('booking_requests.effect.created', 'portal_intake') ORDER BY automation`,
+					text: `SELECT automation, cause, state FROM sys_run WHERE automation IN ('booking_requests.effect.create', 'portal_intake') ORDER BY automation`,
 					params: []
 				})
 			).toEqual([
-				{ automation: 'booking_requests.effect.created', cause: 'effect', state: 'succeeded' },
+				{ automation: 'booking_requests.effect.create', cause: 'effect', state: 'succeeded' },
 				{ automation: 'portal_intake', cause: expect.any(String), state: 'succeeded' }
 			]);
 			// no run the effects so far scheduled (the desk's, the dispatch runs', the customer's) failed
@@ -150,13 +186,13 @@ layer(
 					params: []
 				})
 			).toEqual([]);
-			expect(
-				(yield* t.as(t.admin).query({ booking_requests: { where: { phone: { eq: phone } } } }))
-					.booking_requests.rows
-			).toMatchObject([{ status: 'booked' }]);
+			const requests = yield* Schema.decodeUnknownEffect(Schema.Struct({ booking_requests: Rows }))(
+				yield* admin.query({ booking_requests: { where: { phone: { eq: phone } } } })
+			);
+			expect(requests.booking_requests.rows).toMatchObject([{ status: 'booked' }]);
 			t.clock.advance('16min');
 			expect(
-				yield* Effect.flip(customer.act('booking_requests.create', [request()]))
+				yield* Effect.flip(customer.act({ 'booking_requests.create': [request()] }))
 			).toMatchObject({
 				_tag: 'ActRefused',
 				message: expect.stringContaining('Check times again')

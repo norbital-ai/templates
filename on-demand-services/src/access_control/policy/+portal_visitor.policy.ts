@@ -6,7 +6,7 @@ import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description: 'Portal visitors: the active services and their open times.',
 	grants: {
-		services: { outputs: { portal: { services: { where: { active: { eq: true } } } } } },
+		services: { outputs: { portal: { where: { active: { eq: true } } } } },
 		openings: { outputs: { portal: true } }
 	},
 	limits: { read: '120/min' }

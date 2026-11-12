@@ -7,10 +7,10 @@ const MINUTE = 60000;
  * Every due visit gets its own read and write scope. A visit changed while Google times its drive cannot make another
  * visit's independent ETA check stale. Queued checks for the same visit coalesce until they run.
  */
-export default automation('eta_watch', {
+export default automation({
 	description:
 		'Until each visit starts, re-estimates the helper’s drive from their last GPS position every five minutes, flagging the visit for dispatch while it exceeds the ETA limit or the position is missing or stale.',
-	on: { cron: '*/5 * * * *' },
+	on: [{ cron: '*/5 * * * *' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
@@ -20,7 +20,7 @@ export default automation('eta_watch', {
 			visits: {
 				where: {
 					status: { eq: 'scheduled' },
-					helper: { isNull: false },
+					helper: { is_null: false },
 					slot: {
 						overlaps: {
 							start: ctx.now,

@@ -1,11 +1,11 @@
-import { integration } from '@norbital-ai/bolt';
+import { integration } from '../../../.norbital/integrations/google_routes.ts';
 /** Drive times for matching and live ETA checks; the account's API key stays sealed. */
-export default integration('google_routes', {
+export default integration({
 	description: 'Google Routes for drive times and traffic.',
 	driver: 'http',
-	credential: { apiKey: { kind: 'text', label: 'Google Routes API key' } },
+	credential: { api_key: { kind: 'text' } },
 	http: {
-		baseUrl: 'https://routes.googleapis.com/',
-		auth: { header: { name: 'X-Goog-Api-Key', value: 'apiKey' } }
+		base_url: 'https://routes.googleapis.com/',
+		auth: { header: { name: 'X-Goog-Api-Key', value: 'api_key' } }
 	}
 });

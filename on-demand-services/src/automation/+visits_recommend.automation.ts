@@ -1,14 +1,13 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput } from '@norbital-ai/bolt';
 import { Refusal } from '@norbital-ai/bolt/errors';
-import { observedOf } from '../lib/dispatch.js';
-import { loadPool } from '../lib/dispatch.js';
+import { loadPool, targetOf } from '../lib/dispatch.js';
 import { rank } from '../lib/matching.js';
 
-export default automation('visits_recommend', {
+export default automation({
 	description: 'Prepares a replacement recommendation; the controller must approve it.',
 	input: {
-		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 }
+		targets: { kind: 'ref', to: 'visits', many: true, min_items: 1 }
 	},
 	policies: ['operations'],
 	run: function* ({ targets }, ctx) {
@@ -43,7 +42,7 @@ export default automation('visits_recommend', {
 				ctx.tz
 			)[0];
 			updates.push({
-				target: v.id,
+				target: targetOf(v),
 				set: {
 					proposed_helper: best?.helper ?? null,
 					proposed_slot: best === undefined ? null : v.slot,
@@ -51,7 +50,6 @@ export default automation('visits_recommend', {
 				}
 			});
 		}
-		if (updates.length > 0)
-			yield* ctx.act('visits.update', updates, { observed: observedOf(targetsOf) });
+		if (updates.length > 0) yield* ctx.act({ 'visits.update': updates });
 	}
 });

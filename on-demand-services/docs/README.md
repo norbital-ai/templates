@@ -6,7 +6,7 @@ The [template README](../README.md) is the maintained workflow and authoring ref
 Use the [local run sheet](DEMO.md) for booking and recovery acceptance.
 
 Teams, policy links and approval routes are authored in source. People selects existing roles;
-it does not edit those definitions. Connected services use Settings → Integrations and native
+it does not edit those definitions. Connected services use Settings → Connections and native
 pairing/status controls. Credentials remain sealed; available providers determine the setup flow.
 
 A submitted approval proposal is awaiting a decision, not a completed business write. Record

@@ -1,15 +1,17 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	/** A helper's profile, with their upcoming visits, time off and warnings. */
-	import { bolt } from '$bolt';
 	import { type RecordSection, type RecordView, RecordShell, Table } from '@norbital-ai/ui';
 	import { useWhen } from '../../../lib/summary.js';
-	const when = useWhen();
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'helpers'>;
+		ctx: PageContext;
 	} = $props();
-	const t = bolt.t;
+	const when = useWhen(ctx);
+	const t = ctx.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	// who they are, what they do and when they work stay open (dispatch reads them); the sign-in account and the map
 	// pins fold away
@@ -31,7 +33,7 @@
 			icon: 'lucide:map-pin',
 			title: t('section.account_location'),
 			fields: ['user', 'home_location', 'last_location', 'last_location_at'],
-			defaultOpen: false,
+			default_open: false,
 			summary: (r) =>
 				r.last_location_at == null
 					? t('summary.no_location')
@@ -46,8 +48,8 @@
 			key="helper-visits"
 			toolbar={{ title: t('app.helpers.visits'), new: false }}
 			where={{ helper: { eq: record.id } }}
-			initialFilter={{ status: { in: ['scheduled', 'in_progress'] } }}
-			orderBy={{ number: 'asc' }}
+			initial_filter={{ status: { in: ['scheduled', 'in_progress'] } }}
+			order_by={{ number: 'asc' }}
 			columns={['number', 'slot', 'address', 'status', 'shift_check']}
 		/>{/if}
 {/snippet}
@@ -66,7 +68,7 @@
 			key="helper-warnings"
 			toolbar={{ title: t('app.helpers.warnings'), new: false }}
 			where={{ helper: { eq: record.id } }}
-			orderBy={{ issued_at: 'desc' }}
+			order_by={{ issued_at: 'desc' }}
 			columns={['reason', 'issued_at', 'visit', 'letter']}
 		/>{/if}
 {/snippet}

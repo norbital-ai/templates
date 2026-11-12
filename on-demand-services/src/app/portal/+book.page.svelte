@@ -1,48 +1,55 @@
 <script lang="ts">
-	import { fork, bolt } from '$bolt';
+	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import {
-		useKinds,
 		Button,
 		Combobox,
 		EmptyState,
-		enumText,
 		Icon,
 		Input,
 		Label,
-		notifyOutcome,
+		notify_outcome,
 		Section,
 		PhoneVerify,
 		PointInput,
 		Spinner,
 		Textarea,
-		useBolt,
 		type Point
 	} from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant } from '@norbital-ai/std/date';
 	import { Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from '../../lib/SlotPicker.svelte';
-	import type Data from './book.page.data.js';
-	import { bookReads } from './book.page.data.js';
-	let { data }: { data: typeof Data.Type } = $props();
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-	const t = bolt.t;
-	const ui = useBolt();
-	const repeatWord = (value: string) =>
-		enumText(value, { t: (key) => ui.t(key), model: 'bookings', field: 'repeat' });
+	import type { PublicPageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PublicPageContext } = $props();
+	const zone = ctx.tz;
+	const t = ctx.t;
 	const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
-	const me = bolt.actor?.kind === 'member' ? bolt.actor : null;
+	const repeatWord = (value: (typeof REPEATS)[number]) =>
+		ctx.t(`models.bookings.fields.repeat.${value}`);
+	const me = ctx.actor?.kind === 'member' ? ctx.actor : null;
 	const STEPS = ['details', 'time', 'done'] as const;
 	function changeAddress(next: string | null) {
 		if (next !== address) location = null;
 		address = next ?? '';
 	}
-	// read once verified: until then the page is the number alone; the server's answer until the live one arrives
-	const reads = me === null ? null : bolt.query(bookReads);
-	const answer = $derived(reads?.current ?? data);
+	// read once verified: until then the page is the number alone
+	const reads =
+		me === null
+			? null
+			: ctx.query({
+					customers: { output: 'customer', fields: ['name', 'address', 'location'], limit: 1 },
+					services: {
+						output: 'customer',
+						fields: ['name', 'duration_minutes', 'description', 'skill'],
+						order_by: { name: 'asc' },
+						limit: 20
+					},
+					helpers: { output: 'customer', fields: ['name', 'skills'] }
+				});
+	const answer = $derived(reads?.current);
 	// a returning customer starts with their details; typing replaces them
-	const known = $derived(answer.customers?.rows[0]);
+	const known = $derived(answer?.customers?.rows[0]);
 	let service = $state<Id<'services'> | null>(null);
 	let name = $derived(known?.name ?? '');
 	let address = $derived(known?.address ?? '');
@@ -60,7 +67,7 @@
 	const quote = $derived(
 		availability === null
 			? null
-			: bolt.query({
+			: ctx.query({
 					availability_requests: {
 						output: 'customer',
 						where: { id: { eq: availability } },
@@ -80,7 +87,7 @@
 	const settled = $derived(
 		request === null
 			? null
-			: bolt.query({
+			: ctx.query({
 					booking_requests: {
 						output: 'customer',
 						where: { id: { eq: request } },
@@ -90,27 +97,27 @@
 				})
 	);
 	const settledRow = $derived(settled?.current?.booking_requests.rows[0]);
-	const chosen = $derived(answer.services?.rows.find((s) => s.id === service));
+	const chosen = $derived(answer?.services?.rows.find((s) => s.id === service));
 	const mismatch = $derived(
 		preference === 'preferred' &&
 			helper !== null &&
 			chosen !== undefined &&
-			!answer.helpers?.rows.find((h) => h.id === helper)?.skills.includes(chosen.skill)
+			!answer?.helpers?.rows.find((h) => h.id === helper)?.skills.includes(chosen.skill)
 	);
 	/** The booking's first visit, once it is booked: who comes, and exactly when. */
 	const first = $derived.by(() => {
 		const booking = settledRow?.booking;
 		return booking == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					visits: {
 						output: 'customer',
 						where: { booking: { eq: booking } },
 						fields: ['slot', 'helper'],
-						orderBy: { number: 'asc' },
-						limit: 1
-					},
-					'visits.helper': { fields: ['name'] }
+						order_by: { number: 'asc' },
+						limit: 1,
+						helper: { fields: ['name'] }
+					}
 				});
 	});
 	const visitSpan = (
@@ -193,13 +200,13 @@
 			(preference === 'any' || (helper !== null && !mismatch))
 	);
 	const time = (i: string) =>
-		new Intl.DateTimeFormat(bolt.locale, {
+		new Intl.DateTimeFormat(ctx.locale, {
 			timeZone: zone,
 			hour: 'numeric',
 			minute: '2-digit'
 		}).format(new Date(i));
 	const when = (i: string) =>
-		new Intl.DateTimeFormat(bolt.locale, {
+		new Intl.DateTimeFormat(ctx.locale, {
 			timeZone: zone,
 			weekday: 'long',
 			day: 'numeric',
@@ -217,19 +224,21 @@
 		availability = null;
 		fork(
 			Effect.gen(function* () {
-				const outcome = yield* bolt.act('availability_requests.create', [
-					{
-						phone,
-						service: selectedService,
-						address: address.trim(),
-						...(location === null ? {} : { location }),
-						preference,
-						repeat,
-						...(preference === 'preferred' && helper !== null ? { helper } : {})
-					}
-				]);
+				const outcome = yield* ctx.act({
+					'availability_requests.create': [
+						{
+							phone,
+							service: selectedService,
+							address: address.trim(),
+							...(location === null ? {} : { location }),
+							preference,
+							repeat,
+							...(preference === 'preferred' && helper !== null ? { helper } : {})
+						}
+					]
+				});
 				// past the person-wait the request runs on: its run reports the outcome
-				if (outcome.kind === 'running') return notifyOutcome(bolt, outcome);
+				if (outcome.kind === 'running') return notify_outcome(ctx, outcome);
 				const record =
 					outcome.kind === 'committed'
 						? outcome.records.find((record) => record.model === 'availability_requests')
@@ -269,20 +278,22 @@
 		error = null;
 		fork(
 			Effect.gen(function* () {
-				const outcome = yield* bolt.act('booking_requests.create', [
-					{
-						availability: selectedAvailability,
-						name: name.trim(),
-						phone,
-						address: address.trim(),
-						service: selectedService,
-						start: Instant(selectedStart),
-						repeat,
-						...(notes.trim() === '' ? {} : { notes: notes.trim() })
-					}
-				]);
+				const outcome = yield* ctx.act({
+					'booking_requests.create': [
+						{
+							availability: selectedAvailability,
+							name: name.trim(),
+							phone,
+							address: address.trim(),
+							service: selectedService,
+							start: Instant(selectedStart),
+							repeat,
+							...(notes.trim() === '' ? {} : { notes: notes.trim() })
+						}
+					]
+				});
 				// past the person-wait the request runs on: its run reports the outcome
-				if (outcome.kind === 'running') return notifyOutcome(bolt, outcome);
+				if (outcome.kind === 'running') return notify_outcome(ctx, outcome);
 				const record =
 					outcome.kind === 'committed'
 						? outcome.records.find((record) => record.model === 'booking_requests')
@@ -317,7 +328,7 @@
 		<Stack gap="lg" class="py-6 sm:py-8">
 			<Stack as="header" gap="md">
 				<h1 class="text-title">{t('app.portal.title')}</h1>
-				<p class="text-sm text-muted-foreground" data-portal-org>{bolt.org.name}</p>
+				<p class="text-sm text-muted-foreground" data-portal-org>{ctx.org.name}</p>
 				<Inline as="ol" gap="lg" class="border-b pb-3 text-sm" aria-label={t('app.portal.title')}>
 					{#each STEPS as s, i (s)}
 						<li
@@ -333,7 +344,7 @@
 			{#if step === 'details'}
 				{#if me === null}
 					<Stack gap="md">
-						<PhoneVerify session={bolt.session} />
+						<PhoneVerify session={ctx.session} />
 					</Stack>
 				{:else}
 					<Stack gap="lg">
@@ -346,11 +357,11 @@
 									value={service}
 									clearable
 									placeholder={t('app.booking.select_service')}
-									options={(answer.services?.rows ?? []).map((s) => ({
+									options={(answer?.services?.rows ?? []).map((s) => ({
 										value: s.id,
 										label: s.name
 									}))}
-									onChange={(value) => {
+									on_change={(value) => {
 										service = value;
 										start = null;
 									}}
@@ -370,7 +381,7 @@
 										value: r,
 										label: repeatWord(r)
 									}))}
-									onChange={(value) => {
+									on_change={(value) => {
 										if (value !== null) repeat = value;
 									}}
 								/>
@@ -382,8 +393,8 @@
 								id="portal-address"
 								value={location}
 								{address}
-								onAddress={changeAddress}
-								onChange={(next) => {
+								on_address={changeAddress}
+								on_change={(next) => {
 									// The picker sets a point before its address callback; apply the point after address invalidation.
 									queueMicrotask(() => {
 										location = next;
@@ -403,11 +414,11 @@
 									value={helper}
 									clearable
 									placeholder={t('app.booking.no_preference')}
-									options={(answer.helpers?.rows ?? []).map((h) => ({
+									options={(answer?.helpers?.rows ?? []).map((h) => ({
 										value: h.id,
 										label: h.name
 									}))}
-									onChange={(value) => {
+									on_change={(value) => {
 										helper = value;
 										preference = helper === null ? 'any' : 'preferred';
 									}}
@@ -421,7 +432,7 @@
 							icon="lucide:notebook-pen"
 							name="notes"
 							title={t('app.portal.notes')}
-							defaultOpen={false}
+							default_open={false}
 							summary={notes.trim() || t('app.portal.no_notes')}
 						>
 							<Textarea
@@ -451,7 +462,8 @@
 							{days}
 							minutes={chosen?.duration_minutes ?? 60}
 							value={start}
-							locale={bolt.locale}
+							locale={ctx.locale}
+							{zone}
 							onPick={(s) => (start = s)}
 							{t}
 						/>

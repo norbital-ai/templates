@@ -1,15 +1,16 @@
 <script lang="ts">
-	import { useKinds, EmptyState, Table, Tabs } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
+	import { EmptyState, Table, Tabs } from '@norbital-ai/ui';
 	/**
 	 * What needs a person: visits flagged by the ETA check, left without a helper or waiting on a proposal; shift checks
 	 * still open; and the warning letters on file.
 	 */
-	import { bolt } from '$bolt';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	import type { ListRow } from '@norbital-ai/bolt';
 	import Countdown from '../../../lib/Countdown.svelte';
-	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-	const t = bolt.t;
+	const zone = ctx.tz;
+	const t = ctx.t;
 </script>
 
 {#snippet calm(message: string)}
@@ -22,14 +23,14 @@
 {#snippet timerCell({ row }: { row: ListRow<'visits'> })}
 	<Stack gap="xs"
 		><span
-			>{new Intl.DateTimeFormat(bolt.locale, {
+			>{new Intl.DateTimeFormat(ctx.locale, {
 				timeZone: zone,
 				day: 'numeric',
 				month: 'short',
 				hour: 'numeric',
 				minute: '2-digit'
 			}).format(new Date(row.slot.start))}</span
-		><Countdown start={row.slot.start} /></Stack
+		><Countdown {ctx} start={row.slot.start} /></Stack
 	>
 {/snippet}
 {#snippet attention()}
@@ -39,7 +40,7 @@
 		key="attention"
 		toolbar={{ title: t('app.schedule.needs_attention'), new: false }}
 		where={{ attention: { ne: 'none' }, status: { eq: 'scheduled' } }}
-		orderBy={{ number: 'asc' }}
+		order_by={{ number: 'asc' }}
 		columns={[
 			'number',
 			'attention',
@@ -48,15 +49,15 @@
 		]}
 		actions={[
 			{
-				run: (row) => bolt.start('visits_recommend', { targets: [row.id] }),
+				run: (row) => ctx.run('visits_recommend', { targets: [row.id] }),
 				label: t('app.schedule.auto_reassign')
 			},
 			{
-				run: (row) => bolt.start('visits_accept_proposal', { targets: [row.id] }),
+				run: (row) => ctx.run('visits_accept_proposal', { targets: [row.id] }),
 				label: t('app.schedule.accept_proposal')
 			},
 			{
-				run: (row) => bolt.start('visits_cancel', { targets: [row.id] }),
+				run: (row) => ctx.run('visits_cancel', { targets: [row.id] }),
 				label: t('app.schedule.cancel_visit'),
 				confirm: t('app.schedule.cancel_visit_confirm')
 			}
@@ -73,7 +74,7 @@
 			status: { eq: 'scheduled' },
 			shift_check: { in: ['asked', 'declined', 'no_response'] }
 		}}
-		orderBy={{ number: 'asc' }}
+		order_by={{ number: 'asc' }}
 		columns={['number', 'slot', 'helper', 'shift_check', 'shift_asked_at', 'mc']}
 	/>
 {/snippet}
@@ -81,7 +82,7 @@
 	<Table
 		empty={noLetters}
 		of="helper_warnings"
-		orderBy={{ issued_at: 'desc' }}
+		order_by={{ issued_at: 'desc' }}
 		toolbar={{ title: t('app.schedule.warning_letters'), new: false }}
 		columns={['helper', 'reason', 'issued_at', 'visit', 'letter']}
 	/>

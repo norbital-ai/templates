@@ -3,7 +3,7 @@ import { app } from '@norbital-ai/bolt';
  * The booking portal: standalone pages to link to or embed in another site. Anyone may open them; a customer verifies
  * their mobile number on the page, which signs them up, and from then on books and sees their own bookings as themselves.
  */
-export default app('portal', {
+export default app({
 	title: 'app.portal.title',
 	description: 'app.portal.description',
 	icon: 'lucide:calendar-heart',

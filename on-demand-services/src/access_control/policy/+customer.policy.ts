@@ -6,8 +6,13 @@ const MY_VISITS = { booking: { is: MINE } } as const;
 /** A request is theirs by the number they signed in with. */
 const MY_NUMBER = { phone: { eq: { var: 'requestor.phone' } } } as const;
 /** The first request raised under another number than the one the member signed in with; -1 when none. */
-const notMine = (rows: readonly { readonly phone?: string | null }[], actor: Actor) =>
-	rows.findIndex((r) => actor.kind !== 'member' || actor.phone === null || r.phone !== actor.phone);
+const notMine = (
+	changes: readonly { readonly set: { readonly phone?: string | null } }[],
+	actor: Actor
+) =>
+	changes.findIndex(
+		({ set }) => actor.kind !== 'member' || actor.phone === null || set.phone !== actor.phone
+	);
 const OTHER_NUMBER = 'Use the mobile number you signed in with.';
 /**
  * A customer, signed up with their mobile number: the portal's services and open times, booking requests under their
@@ -20,16 +25,16 @@ export default policy({
 	capabilities: { apps: ['portal'] },
 	grants: {
 		customers: {
-			outputs: { customer: { customers: { where: { id: ME } } } }
+			outputs: { customer: { where: { id: ME } } }
 		},
 		services: {
-			outputs: { customer: { services: { where: { active: { eq: true } } } } }
+			outputs: { customer: { where: { active: { eq: true } } } }
 		},
 		openings: { outputs: { portal: true } },
 		booking_requests: {
 			create: {
 				columns: {
-					booking_requests: [
+					fields: [
 						'name',
 						'email',
 						'phone',
@@ -42,26 +47,26 @@ export default policy({
 						'availability'
 					]
 				},
-				check: function* (rows, ctx) {
-					const row = notMine(rows, ctx.actor);
-					return row < 0 ? ctx.allow() : ctx.deny(OTHER_NUMBER, { row, field: 'phone' });
+				verdict: function* (changes, ctx) {
+					const row = notMine(changes, ctx.actor);
+					return row < 0 ? ctx.allow() : yield* ctx.refuse(OTHER_NUMBER, { row, field: 'phone' });
 				}
 			},
-			outputs: { customer: { booking_requests: { where: MY_NUMBER } } }
+			outputs: { customer: { where: MY_NUMBER } }
 		},
 		bookings: {
-			outputs: { customer: { bookings: { where: MINE } } }
+			outputs: { customer: { where: MINE } }
 		},
 		visits: {
-			outputs: { customer: { visits: { where: MY_VISITS } } }
+			outputs: { customer: { where: MY_VISITS } }
 		},
 		helpers: {
-			outputs: { customer: { helpers: { where: { status: { eq: 'active' } } } } }
+			outputs: { customer: { where: { status: { eq: 'active' } } } }
 		},
 		availability_requests: {
 			create: {
 				columns: {
-					availability_requests: [
+					fields: [
 						'phone',
 						'address',
 						'location',
@@ -72,15 +77,15 @@ export default policy({
 						'repeat'
 					]
 				},
-				check: function* (rows, ctx) {
-					const row = notMine(rows, ctx.actor);
-					return row < 0 ? ctx.allow() : ctx.deny(OTHER_NUMBER, { row, field: 'phone' });
+				verdict: function* (changes, ctx) {
+					const row = notMine(changes, ctx.actor);
+					return row < 0 ? ctx.allow() : yield* ctx.refuse(OTHER_NUMBER, { row, field: 'phone' });
 				}
 			},
-			outputs: { customer: { availability_requests: { where: MY_NUMBER } } }
+			outputs: { customer: { where: MY_NUMBER } }
 		},
 		customer_notices: {
-			outputs: { customer: { customer_notices: { where: MINE } } }
+			outputs: { customer: { where: MINE } }
 		}
 	},
 	limits: { read: '300/min', act: '30/h' }
