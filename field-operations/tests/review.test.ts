@@ -62,7 +62,7 @@ const scripted = Layer.effectDiscard(
 							_tag: 'Response' as const,
 							response: {
 								content: answer.value,
-								toolCalls: [],
+								tool_calls: [],
 								finish: 'stop' as const,
 								usage: { input: 0, output: 0, cost: 0 }
 							}
