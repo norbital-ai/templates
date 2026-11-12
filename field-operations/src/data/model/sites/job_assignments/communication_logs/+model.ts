@@ -1,10 +1,10 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../../.norbital/models/communication_logs.ts';
 /** A message is kept exactly as received: create only, so immutability is structural. */
-export default model('communication_logs', {
+export default model({
 	description:
 		'An immutable inbound field communication attached to a job assignment, retained independently of agent transcripts.',
 	icon: 'lucide:message-square-text',
-	label: 'message',
+	record_label: 'record.message',
 	fields: {
 		job_assignment_id: { kind: 'ref', to: 'job_assignments', inverse: 'communication_logs' },
 		/** The contractor's message as received. */
@@ -15,23 +15,21 @@ export default model('communication_logs', {
 		/** Provider message id: retries of one delivery resolve to one row. */
 		source_message_id: { kind: 'text', unique: true, hidden: true }
 	},
-	index: ['sent_at'],
-	search: { text: ['message', 'sender'] },
-	read: {
-		communication_logs: { fields: 'all' },
-		'communication_logs.job_assignment_id': { fields: ['title'] }
+	indexes: {
+		sent_at: { on: ['sent_at'] },
+		search: { text: ['message', 'sender'] }
 	},
 	outputs: {
+		default: { fields: 'all', job_assignment_id: { fields: ['title'] } },
 		/** A contractor's view of their job's messages, without the source provenance. */
-		contractor: {
-			communication_logs: { fields: ['job_assignment_id', 'message', 'sent_at', 'sender'] }
-		}
+		contractor: { fields: ['job_assignment_id', 'message', 'sent_at', 'sender'] }
 	},
 	create: {
 		columns: {
-			communication_logs: ['job_assignment_id', 'message', 'sent_at', 'sender', 'source_message_id']
+			fields: ['job_assignment_id', 'message', 'sent_at', 'sender', 'source_message_id']
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ set }) => set);
 			for (const [row, message] of rows.entries())
 				for (const field of ['message', 'sender', 'source_message_id'] as const)
 					if (message[field].trim() === '')

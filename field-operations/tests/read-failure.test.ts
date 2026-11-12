@@ -22,7 +22,7 @@ it.live('a failed batched facts read writes no review or finding and schedules r
 			}
 			return read(statements);
 		});
-		yield* t.runDue().pipe(Effect.ensuring(Effect.sync(() => failedRead.mockRestore())));
+		yield* t.run_due().pipe(Effect.ensuring(Effect.sync(() => failedRead.mockRestore())));
 		expect(failures).toBe(1);
 		expect(yield* rows(t, 'SELECT count(*)::int AS n FROM suspicion_reviews')).toEqual([{ n: 0 }]);
 		expect(yield* rows(t, 'SELECT count(*)::int AS n FROM suspicious_activity_logs')).toEqual([
@@ -41,7 +41,7 @@ it.live('a failed batched facts read writes no review or finding and schedules r
 		expect(
 			yield* rows(
 				t,
-				"SELECT cause, state FROM sys_run WHERE automation = 'job_assignments.effect.created'"
+				"SELECT cause, state FROM sys_run WHERE automation = 'job_assignments.effect.create'"
 			)
 		).toEqual([{ cause: 'effect', state: 'succeeded' }]);
 		const failed = yield* rows(

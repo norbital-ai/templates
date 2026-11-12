@@ -1,4 +1,4 @@
--- 0001_initial.sql: 171 step(s), from an empty database to a938686491800d4ff85a5328b7cddf86783e75c512dd6aaa9f8acf36c120cf8f.
+-- 0001_initial.sql: 216 step(s), from an empty database to 4cd787c92428288de20bde359484b547d32812c54b7b779a9db1385b41117279.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -27,10 +27,13 @@ declare
 begin
 	if value is null then return false; end if;
 	if value = 'null'::jsonb and coalesce((spec->>'optional')::boolean, false) then return true; end if;
-	if coalesce((spec->>'many')::boolean, false) or coalesce((spec->>'multiple')::boolean, false) then
+	if coalesce((spec->>'many')::boolean, false) then
 		if shape <> 'array' then return false; end if;
+		length_value := jsonb_array_length(value);
+		if (spec ? 'min_items' and length_value < (spec->>'min_items')::numeric) or
+			(spec ? 'max_items' and length_value > (spec->>'max_items')::numeric) then return false; end if;
 		for item in select v from jsonb_array_elements(value) items(v) loop
-			if not store_json_valid(item, spec - array['many','multiple','optional']) then return false; end if;
+			if not store_json_valid(item, spec - array['many','optional','min_items','max_items','key']) then return false; end if;
 		end loop;
 		return true;
 	end if;
@@ -38,14 +41,13 @@ begin
 	when 'json' then
 		return case when spec ? 'shape' then store_json_valid(value, spec->'shape') else true end;
 	when 'custom' then return true;
-	when 'list', 'vector' then
+	when 'vector' then
 		if shape <> 'array' then return false; end if;
 		length_value := jsonb_array_length(value);
 		if kind = 'vector' and length_value <> (spec->>'dim')::numeric then return false; end if;
-		if kind = 'list' and ((spec ? 'min' and length_value < (spec->>'min')::numeric) or
-			(spec ? 'max' and length_value > (spec->>'max')::numeric)) then return false; end if;
+
 		for item in select v from jsonb_array_elements(value) items(v) loop
-			if not store_json_valid(item, case when kind = 'vector' then '{"kind":"number"}'::jsonb else spec->'of' end) then return false; end if;
+			if not store_json_valid(item, '{"kind":"number"}'::jsonb) then return false; end if;
 		end loop;
 		return true;
 	when 'object' then
@@ -97,8 +99,8 @@ begin
 			and store_json_valid(value->'lng','{"kind":"number"}'::jsonb);
 	when 'ref' then
 		if jsonb_typeof(spec->'to') = 'string' then return shape = 'string'; end if;
-		return coalesce(shape = 'object' and jsonb_typeof(value->'collection') = 'string'
-			and spec->'to' ? (value->>'collection') and jsonb_typeof(value->'id') = 'string',false);
+		return coalesce(shape = 'object' and jsonb_typeof(value->'model') = 'string'
+			and spec->'to' ? (value->>'model') and jsonb_typeof(value->'id') = 'string',false);
 	when 'period' then
 		if shape <> 'object' then return false; end if;
 		field_name := case when spec->>'of' = 'date' then 'from' else 'start' end;
@@ -111,7 +113,7 @@ begin
 		return case when spec->>'of' = 'date' then from_value <= to_value
 			else from_value::timestamptz < to_value::timestamptz end;
 	when 'bool' then return shape = 'boolean';
-	when 'int', 'number', 'count', 'duration' then
+	when 'int', 'number', 'count' then
 		if shape <> 'number' then return false; end if;
 		text_value := value #>> '{}';
 		float_value := text_value::double precision;
@@ -186,6 +188,11 @@ declare
 	parent_id jsonb;
 	parent_row jsonb;
 	trusted boolean;
+	locked_rule jsonb;
+	locked boolean;
+	stamp_name text;
+	stamped jsonb := '[]'::jsonb;
+	stamps jsonb := '{}'::jsonb;
 	anonymised jsonb := '[]'::jsonb;
 	at_time timestamptz;
 begin
@@ -204,6 +211,21 @@ begin
 			end if;
 		end loop;
 	end if;
+	if not trusted and tg_op <> 'DELETE' then
+		at_time := coalesce((context->>'at')::timestamptz, clock_timestamp());
+		for state_name, state_spec in select key, value from jsonb_each(rules->'states') loop
+			if tg_op = 'INSERT' or before_row->state_name is distinct from after_row->state_name then
+				stamp_name := state_spec->'states'->(after_row->>state_name)->>'stamp';
+				if stamp_name is not null then
+					after_row := jsonb_set(after_row, array[stamp_name], to_jsonb(at_time), true);
+					stamped := stamped || jsonb_build_array(stamp_name);
+					stamps := stamps || jsonb_build_object(stamp_name, to_jsonb(at_time));
+				end if;
+			end if;
+		end loop;
+		-- only the stamp columns: a whole-row round trip would turn a stored JSON null into SQL NULL
+		if stamps <> '{}'::jsonb then new := jsonb_populate_record(new, stamps); end if;
+	end if;
 	if not trusted then
 		for state_name, state_spec in select key, value from jsonb_each(rules->'states') loop
 			if tg_op = 'INSERT' and after_row->>state_name is distinct from state_spec->>'initial' then
@@ -216,25 +238,31 @@ begin
 					raise exception '% cannot move from % to %', state_name, before_row->>state_name, after_row->>state_name
 						using errcode = '23514', column = state_name;
 				end if;
-				if coalesce(state_rule->>'edit', 'all') <> 'all' then
-					-- A host may admit exact anonymisation columns through its native operation, never a whole-row bypass.
-					if to_regprocedure(format('%I.%I(text,text)', tg_table_schema, 'store_anonymise_fields')) is not null then
-						execute format('select %I.%I($1,$2)', tg_table_schema, 'store_anonymise_fields')
-							into anonymised using tg_table_name, after_row->>'id';
-					end if;
-					for field_name, columns in select key, value from jsonb_each(rules->'fields') loop
-						if field_name = state_name or anonymised ? field_name
-							or (jsonb_typeof(state_rule->'edit') = 'array' and state_rule->'edit' ? field_name) then continue; end if;
-						for column_name in select jsonb_array_elements_text(columns) loop
-							if before_row->column_name is distinct from after_row->column_name then
-								raise exception '% is locked while % is %', field_name, state_name, before_row->>state_name
-									using errcode = '23514', column = field_name;
-								end if;
-						end loop;
-					end loop;
-				end if;
 			end if;
 		end loop;
+		if tg_op in ('DELETE', 'UPDATE') then
+			for locked_rule in select value from jsonb_array_elements(rules->'locks') loop
+				execute format('select coalesce((%s),false) from jsonb_populate_record(null::%I.%I,$1) t',
+					locked_rule->>'sql', tg_table_schema, tg_table_name) into locked using before_row;
+				if not locked then continue; end if;
+				if tg_op = 'DELETE' then
+					raise exception 'record is locked by %', locked_rule->>'name' using errcode = '23514', column = 'id', constraint = locked_rule->>'constraint';
+				end if;
+				if to_regprocedure(format('%I.%I(text,text)', tg_table_schema, 'store_anonymise_fields')) is not null then
+					execute format('select %I.%I($1,$2)', tg_table_schema, 'store_anonymise_fields')
+						into anonymised using tg_table_name, after_row->>'id';
+				end if;
+				for field_name, columns in select key, value from jsonb_each(rules->'fields') loop
+					if locked_rule->'except' ? field_name or stamped ? field_name or anonymised ? field_name then continue; end if;
+					for column_name in select jsonb_array_elements_text(columns) loop
+						if before_row->column_name is distinct from after_row->column_name then
+							raise exception '% is locked by %', field_name, locked_rule->>'name'
+								using errcode = '23514', column = field_name, constraint = locked_rule->>'constraint';
+						end if;
+					end loop;
+				end loop;
+			end loop;
+		end if;
 		for parent in select value from jsonb_array_elements(rules->'parents') loop
 			for parent_id in
 				select distinct value from jsonb_array_elements(jsonb_build_array(
@@ -245,12 +273,13 @@ begin
 					tg_table_schema, parent->>'table', parent->>'key', parent->>'type')
 					into parent_row using parent_id #>> '{}';
 				if parent_row is null then continue; end if;
-				for state_name, state_spec in select key, value from jsonb_each(parent->'states') loop
-					state_rule := state_spec->'states'->(parent_row->>state_name);
-					if coalesce(state_rule->>'edit', 'all') <> 'all' and
-						not coalesce(jsonb_typeof(state_rule->'edit') = 'array' and state_rule->'edit' ? (parent->>'relation'), false) then
-						raise exception 'relation % is locked while % is %', parent->>'relation', state_name, parent_row->>state_name
-							using errcode = '23514', column = parent->>'column';
+				for locked_rule in select value from jsonb_array_elements(parent->'locks') loop
+					if locked_rule->'except' ? (parent->>'relation') then continue; end if;
+					execute format('select coalesce((%s),false) from jsonb_populate_record(null::%I.%I,$1) t',
+						locked_rule->>'sql', tg_table_schema, parent->>'table') into locked using parent_row;
+					if locked then
+						raise exception 'relation % is locked by %', parent->>'relation', locked_rule->>'name'
+							using errcode = '23514', column = parent->>'column', constraint = locked_rule->>'constraint';
 					end if;
 				end loop;
 			end loop;
@@ -319,6 +348,176 @@ create or replace function bolt_search_query(term text, every boolean) returns t
 
 -- step create:function:bolt:function-search-6-filter (additive)
 create or replace function bolt_search_filter(term text) returns tsquery language plpgsql immutable strict parallel safe as $bolt_search$ begin return (select string_agg('(' || q::text || ')', ' & ')::tsquery from regexp_split_to_table(bolt_search_fold(regexp_replace(term, '[''’]s\M', '', 'gi')), ' ') as word, bolt_search_query(word, false) as q where q is not null); end $bolt_search$;
+
+-- step create:function:bolt_record_label_requestor_ecf94290 (additive)
+create function "bolt_record_label_requestor_ecf94290"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['user_id']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('user_id', to_jsonb("user_id")) AS j FROM (SELECT $1 AS "user_id") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_api_key_93340fdd (additive)
+create function "bolt_record_label_sys_api_key_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_challenge_df4146f1 (additive)
+create function "bolt_record_label_sys_challenge_df4146f1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['address_mac']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('address_mac', to_jsonb("address_mac")) AS j FROM (SELECT $1 AS "address_mac") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_config_3b2327df (additive)
+create function "bolt_record_label_sys_config_3b2327df"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['key']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('key', to_jsonb("key")) AS j FROM (SELECT $1 AS "key") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_conversation_06f5fc13 (additive)
+create function "bolt_record_label_sys_conversation_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_envoy_93340fdd (additive)
+create function "bolt_record_label_sys_envoy_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_file_93340fdd (additive)
+create function "bolt_record_label_sys_file_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_inbox_36426dfc (additive)
+create function "bolt_record_label_sys_inbox_36426dfc"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['delivery']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('delivery', to_jsonb("delivery")) AS j FROM (SELECT $1 AS "delivery") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_integration_93340fdd (additive)
+create function "bolt_record_label_sys_integration_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_invitation_34710ef4 (additive)
+create function "bolt_record_label_sys_invitation_34710ef4"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['email']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('email', to_jsonb("email")) AS j FROM (SELECT $1 AS "email") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_message_6667a00c (additive)
+create function "bolt_record_label_sys_message_6667a00c"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['preview']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('preview', to_jsonb("preview")) AS j FROM (SELECT $1 AS "preview") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_notification_06f5fc13 (additive)
+create function "bolt_record_label_sys_notification_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_outbox_3b2327df (additive)
+create function "bolt_record_label_sys_outbox_3b2327df"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['key']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('key', to_jsonb("key")) AS j FROM (SELECT $1 AS "key") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_run_09f15580 (additive)
+create function "bolt_record_label_sys_run_09f15580"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['automation']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('automation', to_jsonb("automation")) AS j FROM (SELECT $1 AS "automation") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_session_6a2ce92f (additive)
+create function "bolt_record_label_sys_session_6a2ce92f"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['via']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('via', to_jsonb("via")) AS j FROM (SELECT $1 AS "via") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_sync_35128a4d (additive)
+create function "bolt_record_label_sys_sync_35128a4d"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['sync']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('sync', to_jsonb("sync")) AS j FROM (SELECT $1 AS "sync") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_sync_row_605c7331 (additive)
+create function "bolt_record_label_sys_sync_row_605c7331"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['remote_id']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('remote_id', to_jsonb("remote_id")) AS j FROM (SELECT $1 AS "remote_id") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_user_93340fdd (additive)
 create function "bolt_record_label_sys_user_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -429,23 +628,24 @@ begin
 		insert into bolt_history_current(model,schema,active) values(model_name,version_id,true)
 		on conflict(model) do update set schema=excluded.schema,active=true;
 	end if;
-	-- Legacy payloads have no historical definition to recover; retain that fact instead of inventing one.
-	if to_regclass('bolt_history') is not null then
-		update bolt_history set meta=meta || jsonb_build_object('schema',version_id::text,'legacy',true)
-		where collection=model_name and coalesce(meta->>'schema','')='';
-	end if;
 	return version_id;
 end $bolt_history_schema$;
 create or replace function bolt_history_matches(history_model text, metadata jsonb, model_name text)
 returns boolean language plpgsql stable as $bolt_history_match$ begin
-	return case when coalesce(metadata->>'schema','')='' then history_model=model_name else exists(
+	if not exists(select 1 from bolt_history_schema where id::text=metadata->>'schema' and model=history_model) then
+		raise exception 'History requires a registered schema version for %', history_model;
+	end if;
+	return exists(
 		select 1 from bolt_history_schema old join bolt_history_current c on c.model=model_name
 		join bolt_history_schema current on current.id=c.schema and current.lineage=old.lineage
-		where old.id::text=metadata->>'schema') end;
+		where old.id::text=metadata->>'schema' and old.model=history_model and c.active);
 end $bolt_history_match$;
 create or replace function bolt_history_purge_fields(version_id text, model_name text, columns text[])
 returns text[] language plpgsql stable as $bolt_history_purge$ begin
-	if coalesce(version_id,'')='' then return columns; end if;
+	if not exists(select 1 from bolt_history_schema old join bolt_history_current c on c.model=model_name and c.active
+		join bolt_history_schema current on current.id=c.schema and current.lineage=old.lineage where old.id::text=version_id) then
+		raise exception 'History requires a registered schema version for %', model_name;
+	end if;
 	return array(with old as (select * from bolt_history_schema where id::text=version_id),
 	current as (select s.* from bolt_history_current c join bolt_history_schema s on s.id=c.schema where c.model=model_name),
 	fields as (select o.key as name,coalesce(old.definition->'fields'->o.key,old.definition->'computed'->o.key) as kind from old,current,
@@ -457,151 +657,70 @@ returns text[] language plpgsql stable as $bolt_history_purge$ begin
 end $bolt_history_purge$;
 
 -- step create:engine:bolt_audit (additive)
-create or replace function bolt_write_context() returns jsonb language plpgsql volatile as $bolt_audit$
-declare value jsonb;
-begin
-	value := nullif(current_setting('bolt.write', true), '')::jsonb;
-	if value is null then return null; end if;
-	if jsonb_typeof(value) is distinct from 'object'
-		or jsonb_typeof(value->'token') is distinct from 'string' then
-		raise exception using errcode='22023', message='invalid native write context';
-	end if;
-	if to_regclass('pg_temp.bolt_write_context') is null
-		or to_regclass('pg_temp.bolt_write_targets') is null then return null; end if;
-	select saved.context into value from pg_temp.bolt_write_context saved where saved.token=value->>'token';
-	if not found then return null; end if;
-	if jsonb_typeof(value) is distinct from 'object'
-		or jsonb_typeof(value->'token') is distinct from 'string'
-		or jsonb_typeof(value->'now') is distinct from 'string'
-		or jsonb_typeof(value->'actor') is distinct from 'string'
-		or coalesce(value->>'mode', '') not in ('write', 'seed', 'restore') then
-		raise exception using errcode='22023', message='invalid native write context';
-	end if;
-	return value;
-end;
-$bolt_audit$;
+drop function if exists bolt_audit_mark() cascade;
+drop function if exists bolt_write_context();
 create or replace function store_anonymise_fields(table_name text, record_id text) returns jsonb language plpgsql volatile as $bolt_audit$
-declare context jsonb; key text; fields jsonb;
+declare fields jsonb;
 begin
-	context := bolt_write_context();
-	key := table_name || '/' || record_id;
-	if context is null or context->>'mode' <> 'write'
-		or to_regclass('pg_temp.bolt_erased') is null then return '[]'::jsonb; end if;
-	select target.anonymise into fields from pg_temp.bolt_write_targets target
-	where target.token=context->>'token' and target.record_key=key and target.direct and target.erased
-		and exists (select 1 from pg_temp.bolt_erased erased
-			where erased.token=target.token and erased.c=table_name and erased.id=record_id);
+	if current_setting('bolt.write', true) is distinct from statement_timestamp()::text then return '[]'::jsonb; end if;
+	fields := nullif(current_setting('bolt.anonymise', true), '')::jsonb -> (table_name || '/' || record_id);
 	if jsonb_typeof(fields) is distinct from 'array' then return '[]'::jsonb; end if;
 	return fields;
 end;
 $bolt_audit$;
-create or replace function bolt_audit_mark() returns trigger language plpgsql volatile as $bolt_audit$
-declare context jsonb; old_row jsonb; new_row jsonb; key text; marked boolean; direct_row boolean;
-begin
-	context := bolt_write_context();
-	if context is not null then
-		old_row := case when TG_OP='INSERT' then null else to_jsonb(OLD) end;
-		new_row := case when TG_OP='DELETE' then null else to_jsonb(NEW) end;
-		key := TG_TABLE_NAME || '/' || coalesce(new_row->>'id', old_row->>'id');
-		select target.erased,target.direct into marked,direct_row from pg_temp.bolt_write_targets target
-		where target.token=context->>'token' and target.record_key=key;
-		marked := coalesce(marked,false);
-		if not marked and not coalesce(direct_row,false) then
-			select exists (
-				select 1 from (values (old_row), (new_row)) image(j)
-				cross join jsonb_array_elements(TG_ARGV[1]::jsonb) edge
-				join pg_temp.bolt_erased parent on parent.token=context->>'token'
-					and parent.c=edge->>1 and parent.id=image.j->>(edge->>0)
-			) into marked;
-		end if;
-		if marked then
-			insert into pg_temp.bolt_erased(token,c,id)
-			values(context->>'token',TG_TABLE_NAME,coalesce(new_row->>'id',old_row->>'id'))
-			on conflict do nothing;
-		end if;
-	end if;
-	if TG_OP='DELETE' then return OLD; else return NEW; end if;
-end;
-$bolt_audit$;
 create or replace function bolt_audit() returns trigger language plpgsql volatile as $bolt_audit$
-declare context jsonb; old_row jsonb; new_row jsonb; row_id text; key text; revision_number int;
-	operation text; reason text; history_reason text; source_revision int; erased_row boolean := false; schema_version text; schema_snapshot boolean := false;
-	explicit_reason text; explicit_erased boolean; ref_edge jsonb; parent_live boolean;
-	held_request uuid; changes jsonb; native_at timestamptz; native_actor text; native_request uuid;
+declare old_row jsonb; new_row jsonb; row_id text; revision_number int; operation text; reason text;
+	schema_version text; schema_snapshot boolean := false; ref_edge jsonb; parent_live boolean; held_request uuid; changes jsonb;
 begin
 	old_row := case when TG_OP='INSERT' then null else to_jsonb(OLD) end;
 	new_row := case when TG_OP='DELETE' then null else to_jsonb(NEW) end;
 	row_id := coalesce(new_row->>'id',old_row->>'id');
-	key := TG_TABLE_NAME || '/' || row_id;
 	operation := case TG_OP when 'INSERT' then 'create' when 'DELETE' then 'delete' else 'update' end;
 	revision_number := case when TG_OP='DELETE' then (old_row->>'revision')::int + 1 else (new_row->>'revision')::int end;
-	context := bolt_write_context();
-	if context is null then
-		with images(j) as (values (old_row),(new_row)), touched(c,id) as (
-			select TG_TABLE_NAME::text,j->>'id' from images
-			union
-			select edge->>1,j->>(edge->>0) from images cross join jsonb_array_elements(TG_ARGV[0]::jsonb) edge
-		)
-		select a.id into held_request from bolt_approvals a
-		where a.state in ('Pending','ChangesRequested') and exists (
-			select 1 from jsonb_array_elements(a.records) AS entry(value) join touched t
-			on t.c=entry.value->>'collection' and t.id=entry.value->>'id'
-		) order by a.id limit 1 for update;
-		if found then
-			raise exception using errcode='BA001', message='underApproval ' || held_request::text || ' Under approval: raw writes cannot change this record or its owned children.';
-		end if;
-		-- An AFTER trigger is not nested inside the referential action that fired it (pg_trigger_depth is 1 for a
-		-- cascaded row), so a row whose own referential parent is already gone was removed or unlinked by that action.
-		reason := 'direct';
-		if TG_OP <> 'INSERT' then
-			for ref_edge in select value from jsonb_array_elements(coalesce(TG_ARGV[1],'[]')::jsonb) loop
-				if old_row->>(ref_edge->>0) is not null then
-					execute format('select exists(select 1 from %I where id::text = $1)', ref_edge->>1)
-						using old_row->>(ref_edge->>0) into parent_live;
-					if not parent_live then reason := 'cascade'; exit; end if;
-				end if;
-			end loop;
-		end if;
-		native_at := clock_timestamp();
-		native_actor := 'sql';
-	else
-		select exists(select 1 from pg_temp.bolt_erased where token=context->>'token' and c=TG_TABLE_NAME and id=row_id) into erased_row;
-		reason := case when context->>'mode'='seed' then 'seed' else 'cascade' end;
-		select origin.cause,origin.erased into explicit_reason,explicit_erased from pg_temp.bolt_origins origin
-		where origin.token=context->>'token' and origin.c=TG_TABLE_NAME and origin.id=row_id
-			and origin.revision=revision_number and origin.op=operation;
-		if found then reason := explicit_reason; erased_row := explicit_erased; end if;
-		native_at := (context->>'now')::timestamptz;
-		native_actor := context->>'actor';
-		native_request := (context->>'request')::uuid;
-		if reason='direct' then
-			select target.restored into source_revision from pg_temp.bolt_write_targets target
-			where target.token=context->>'token' and target.record_key=key and target.direct;
-		end if;
+	with images(j) as (values (old_row),(new_row)), touched(c,id) as (
+		select TG_TABLE_NAME::text,j->>'id' from images
+		union
+		select edge->>1,j->>(edge->>0) from images cross join jsonb_array_elements(TG_ARGV[0]::jsonb) edge
+	)
+	select a.id into held_request from bolt_approvals a
+	where a.state in ('Pending','ChangesRequested') and exists (
+		select 1 from jsonb_array_elements(a.records) AS entry(value) join touched t
+		on t.c=entry.value->>'collection' and t.id=entry.value->>'id'
+	) order by a.id limit 1 for update;
+	if found then
+		raise exception using errcode='BA001', message='under_approval ' || held_request::text || ' Under approval: raw writes cannot change this record or its owned children.';
 	end if;
-	history_reason := case when source_revision is null then reason else 'restored' end;
-	changes := case when operation='create' or (erased_row and operation='update') then new_row - array['bolt_search','bolt_embedding','bolt_record_label']
+	-- An AFTER trigger is not nested inside the referential action that fired it (pg_trigger_depth is 1 for a
+	-- cascaded row), so a row whose own referential parent is already gone was removed or unlinked by that action.
+	reason := 'direct';
+	if TG_OP <> 'INSERT' then
+		for ref_edge in select value from jsonb_array_elements(coalesce(TG_ARGV[1],'[]')::jsonb) loop
+			if old_row->>(ref_edge->>0) is not null then
+				execute format('select exists(select 1 from %I where id::text = $1)', ref_edge->>1)
+					using old_row->>(ref_edge->>0) into parent_live;
+				if not parent_live then reason := 'cascade'; exit; end if;
+			end if;
+		end loop;
+	end if;
+	changes := case when operation='create' then new_row - array['bolt_search','bolt_embedding','bolt_record_label']
 		when operation='delete' then '{}'::jsonb else (
 			select coalesce(jsonb_object_agg(k,v),'{}'::jsonb) from jsonb_each(new_row) entry(k,v)
 			where k not in ('revision','updated_at','updated_by','bolt_search','bolt_embedding','bolt_record_label') and old_row->k is distinct from v
 		) end;
 	if row_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
-		if to_regclass('bolt_history_current') is not null then
-			select schema::text into schema_version from bolt_history_current where model=TG_TABLE_NAME and active;
+		select c.schema::text into schema_version from bolt_history_current c join bolt_history_schema s on s.id=c.schema
+		where c.model=TG_TABLE_NAME and c.active and s.model=TG_TABLE_NAME;
+		if schema_version is null then
+			raise exception using errcode='BA001', message='schema History requires a registered schema version';
 		end if;
-		if operation='update' and schema_version is not null and not exists(
-			select 1 from bolt_history where collection=TG_TABLE_NAME and record=row_id::uuid and meta->>'schema'=schema_version
-			and coalesce(meta->>'legacy','false')<>'true') then
+		if operation='update' and not exists(
+			select 1 from bolt_history where collection=TG_TABLE_NAME and record=row_id::uuid and meta->>'schema'=schema_version) then
 			changes := new_row - array['bolt_search','bolt_embedding','bolt_record_label'];
 			schema_snapshot := true;
 		end if;
 		insert into bolt_history(collection,record,revision,at,actor,op,cause,changes,restored_from,request,operation,meta)
-		values(TG_TABLE_NAME,row_id::uuid,revision_number,native_at,native_actor,operation,history_reason,changes,source_revision,native_request,nullif(current_setting('bolt.audit',true),''),
+		values(TG_TABLE_NAME,row_id::uuid,revision_number,clock_timestamp(),'sql',operation,reason,changes,null,null,nullif(current_setting('bolt.audit',true),''),
 		jsonb_build_object('id',row_id,'revision',coalesce(new_row,old_row)->'revision','updated_at',coalesce(new_row,old_row)->'updated_at','updated_by',coalesce(new_row,old_row)->'updated_by','created_at',coalesce(new_row,old_row)->'created_at','created_by',coalesce(new_row,old_row)->'created_by','schema',schema_version,'full',schema_snapshot));
-	end if;
-	if context is not null and to_regclass('pg_temp.bolt_changes') is not null then
-		insert into pg_temp.bolt_changes(token,c,id,revision,op,cause,erased,o,n)
-		values(context->>'token',TG_TABLE_NAME,row_id,revision_number,operation,reason,erased_row,old_row,new_row);
 	end if;
 	return null;
 end;
@@ -625,11 +744,11 @@ create table "approval_request" ("id" uuid primary key,
 	"created_at" timestamptz not null,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("collection_name"::text, ''))) stored,
 	constraint "approval_request__ck__fa21e76e" check ("action" in ('create', 'update', 'delete')),
-	constraint "approval_request__ck__8e3c4626" check ("status" in ('ONGOING', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED', 'SUPERSEDED')),
-	constraint "approval_request__ck__62ab75f9" check (("step_names" is null or store_json_valid("step_names", '{"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}'::jsonb) is true)),
-	constraint "approval_request__ck__27a1764b" check (("approver_teams" is null or store_json_valid("approver_teams", '{"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}'::jsonb) is true)),
-	constraint "approval_request__ck__68ec0c83" check (("approver_users" is null or store_json_valid("approver_users", '{"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}'::jsonb) is true)),
-	constraint "approval_request__ck__bb280767" check (("superseder_teams" is null or store_json_valid("superseder_teams", '{"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}'::jsonb) is true)),
+	constraint "approval_request__ck__74b8639f" check ("status" in ('ONGOING', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED', 'SUPERSEDED', 'WITHDRAWN')),
+	constraint "approval_request__ck__ffc1d7d4" check (("step_names" is null or store_json_valid("step_names", '{"kind":"json","shape":{"kind":"text","many":true}}'::jsonb) is true)),
+	constraint "approval_request__ck__179aee2e" check (("approver_teams" is null or store_json_valid("approver_teams", '{"kind":"json","shape":{"kind":"text","many":true}}'::jsonb) is true)),
+	constraint "approval_request__ck__77c4b650" check (("approver_users" is null or store_json_valid("approver_users", '{"kind":"json","shape":{"kind":"text","many":true}}'::jsonb) is true)),
+	constraint "approval_request__ck__a2ce8ad4" check (("superseder_teams" is null or store_json_valid("superseder_teams", '{"kind":"json","shape":{"kind":"text","many":true}}'::jsonb) is true)),
 	constraint "approval_request__ck__04466614" check (isfinite("closed_at")),
 	constraint "approval_request__ck__367d8eb4" check (isfinite("created_at"))
 );
@@ -637,6 +756,8 @@ create table "approval_request" ("id" uuid primary key,
 -- step create:table:requestor (additive)
 create table "requestor" ("id" text primary key,
 	"user_id" text not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_requestor_ecf94290"("user_id")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_requestor_ecf94290"("user_id"), ''))) stored,
 	"approval_request_id" uuid not null
 );
 
@@ -650,6 +771,8 @@ create table "sys_api_key" ("id" text primary key,
 	"last_used_at" timestamptz,
 	"revision" int default '1'::int not null,
 	"created_at" timestamptz default (now()) not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_api_key_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_api_key_93340fdd"("name"), ''))) stored,
 	"created_by" text,
 	constraint "sys_api_key__uq__410283f1" unique ("prefix"),
 	constraint "sys_api_key__ck__3ec0653c" check (isfinite("revoked_at")),
@@ -662,12 +785,16 @@ create table "sys_challenge" ("address_mac" text primary key,
 	"code_mac" text not null,
 	"attempts" int default '0'::int not null,
 	"expires_at" timestamptz not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_challenge_df4146f1"("address_mac")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_challenge_df4146f1"("address_mac"), ''))) stored,
 	constraint "sys_challenge__ck__58adc270" check (isfinite("expires_at"))
 );
 
 -- step create:table:sys_config (additive)
 create table "sys_config" ("key" text primary key,
-	"value" text not null
+	"value" text not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_config_3b2327df"("key")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_config_3b2327df"("key"), ''))) stored
 );
 
 -- step create:table:sys_conversation (additive)
@@ -680,6 +807,8 @@ create table "sys_conversation" ("id" text primary key,
 	"kind" text,
 	"participants" jsonb,
 	"parent" text,
+	"restart_from" text,
+	"restart_at" text,
 	"run" text,
 	"inputs" jsonb default '[]'::jsonb not null,
 	"outputs" jsonb default '[]'::jsonb not null,
@@ -691,6 +820,8 @@ create table "sys_conversation" ("id" text primary key,
 	"read" jsonb default '{}'::jsonb not null,
 	"revision" int default '1'::int not null,
 	"updated_at" timestamptz default (now()) not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_conversation_06f5fc13"("title")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_conversation_06f5fc13"("title"), ''))) stored,
 	"integration" text,
 	constraint "sys_conversation__ck__367d8eb4" check (isfinite("created_at")),
 	constraint "sys_conversation__ck__27c26974" check (("participants" is null or store_json_valid("participants", '{"kind":"json","optional":true}'::jsonb) is true)),
@@ -712,14 +843,18 @@ create table "sys_envoy" ("id" uuid primary key,
 	"group_messages" text default 'mention_or_reply'::text not null,
 	"delegation" text default 'disabled'::text not null,
 	"triage" boolean default false not null,
+	"triage_scope" text default 'all'::text not null,
 	"dm" text default 'union'::text not null,
 	"active" boolean default true not null,
 	"created_at" timestamptz default (now()) not null,
 	"revision" int default '1'::int not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_envoy_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_envoy_93340fdd"("name"), ''))) stored,
 	constraint "sys_envoy__ck__491bd369" check ("audience" in ('private', 'public')),
 	constraint "sys_envoy__ck__61930eb4" check (not jsonb_path_exists(to_jsonb("policies"), 'strict $[*] ? (@.type() != "string")')),
 	constraint "sys_envoy__ck__b5b45d76" check ("group_messages" in ('disabled', 'mention_or_reply', 'all')),
 	constraint "sys_envoy__ck__de16f910" check ("delegation" in ('enabled', 'disabled')),
+	constraint "sys_envoy__ck__2d3276e8" check ("triage_scope" in ('dm', 'group', 'all')),
 	constraint "sys_envoy__ck__62c03b05" check ("dm" in ('union', 'envoy')),
 	constraint "sys_envoy__ck__367d8eb4" check (isfinite("created_at"))
 );
@@ -737,6 +872,8 @@ create table "sys_file" ("id" text primary key,
 	"created_by" text,
 	"updated_at" timestamptz,
 	"updated_by" text,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_file_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_file_93340fdd"("name"), ''))) stored,
 	constraint "sys_file__ck__367d8eb4" check (isfinite("created_at")),
 	constraint "sys_file__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -749,6 +886,8 @@ create table "sys_inbox" ("id" uuid primary key,
 	"headers" jsonb,
 	"body" jsonb,
 	"consumed_at" timestamptz,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_inbox_36426dfc"("delivery")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_inbox_36426dfc"("delivery"), ''))) stored,
 	"instance" text not null,
 	constraint "sys_inbox__ck__c5857e25" check (isfinite("received_at")),
 	constraint "sys_inbox__ck__533ced4e" check (("headers" is null or store_json_valid("headers", '{"kind":"json","optional":true}'::jsonb) is true)),
@@ -761,7 +900,6 @@ create table "sys_inbox" ("id" uuid primary key,
 create table "sys_integration" ("id" text primary key,
 	"integration" text not null,
 	"name" text not null,
-	"named" boolean default false not null,
 	"envoy" text,
 	"active" boolean default true not null,
 	"configuration" jsonb default '{}'::jsonb not null,
@@ -769,10 +907,14 @@ create table "sys_integration" ("id" text primary key,
 	"status" jsonb,
 	"epoch" text,
 	"revision" int default '1'::int not null,
+	"updated_at" timestamptz default (now()) not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_integration_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_integration_93340fdd"("name"), ''))) stored,
 	"owner" text,
 	constraint "sys_integration__ck__fc03c40f" check (("configuration" is null or store_json_valid("configuration", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_integration__ck__da5b6244" check (("import_start" is null or store_json_valid("import_start", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_integration__ck__67fc27ec" check (("status" is null or store_json_valid("status", '{"kind":"json","optional":true}'::jsonb) is true))
+	constraint "sys_integration__ck__67fc27ec" check (("status" is null or store_json_valid("status", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_integration__ck__bfedbfd4" check (isfinite("updated_at"))
 );
 
 -- step create:table:sys_invitation (additive)
@@ -786,6 +928,8 @@ create table "sys_invitation" ("id" text primary key,
 	"accepted_at" timestamptz,
 	"revoked_at" timestamptz,
 	"revision" int default '1'::int not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_invitation_34710ef4"("email")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_invitation_34710ef4"("email"), ''))) stored,
 	"invited_by" text,
 	constraint "sys_invitation__ck__cceca9d3" check (("party" is null or store_json_valid("party", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_invitation__ck__58adc270" check (isfinite("expires_at")),
@@ -809,6 +953,7 @@ create table "sys_message" ("id" text primary key,
 	"author" text,
 	"meta" jsonb,
 	"supersedes" text,
+	"copied_from" text,
 	"turn" text,
 	"read_by" text,
 	"delivered_turn" text,
@@ -838,6 +983,8 @@ create table "sys_message" ("id" text primary key,
 	"epoch" text,
 	"delivery" jsonb default '[]'::jsonb not null,
 	"presume_at" timestamptz,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_message_6667a00c"("preview")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_message_6667a00c"("preview"), ''))) stored,
 	"integration" text,
 	constraint "sys_message__ck__367d8eb4" check (isfinite("created_at")),
 	constraint "sys_message__ck__d15d4c4e" check (("content" is null or store_json_valid("content", '{"kind":"json","optional":true}'::jsonb) is true)),
@@ -867,6 +1014,8 @@ create table "sys_notification" ("id" text primary key,
 	"at" timestamptz not null,
 	"member" text,
 	"read_at" timestamptz,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_notification_06f5fc13"("title")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_notification_06f5fc13"("title"), ''))) stored,
 	constraint "sys_notification__ck__8e13ac8a" check (("recipient" is null or store_json_valid("recipient", '{"kind":"json"}'::jsonb) is true)),
 	constraint "sys_notification__ck__af8b3b10" check (("link" is null or store_json_valid("link", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_notification__ck__c9a52988" check (("attachments" is null or store_json_valid("attachments", '{"default":[],"kind":"json"}'::jsonb) is true)),
@@ -882,7 +1031,9 @@ create table "sys_outbox" ("id" uuid primary key,
 	"model" text not null,
 	"record" text not null,
 	"op" text not null,
+	"delivery_op" text,
 	"record_revision" int not null,
+	"preserve_local" boolean default false not null,
 	"image" jsonb,
 	"changed" jsonb default '[]'::jsonb not null,
 	"key" text not null,
@@ -895,11 +1046,14 @@ create table "sys_outbox" ("id" uuid primary key,
 	"acked_at" timestamptz,
 	"result" jsonb,
 	"at" timestamptz not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_outbox_3b2327df"("key")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_outbox_3b2327df"("key"), ''))) stored,
 	"instance" text not null,
 	"writer" text,
 	constraint "sys_outbox__ck__4bdc0603" check ("op" in ('create', 'update', 'delete')),
+	constraint "sys_outbox__ck__0e6efdd2" check ("delivery_op" in ('create', 'update', 'delete')),
 	constraint "sys_outbox__ck__cb287458" check (("image" is null or store_json_valid("image", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_outbox__ck__a25a9f7c" check (("changed" is null or store_json_valid("changed", '{"default":[],"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}'::jsonb) is true)),
+	constraint "sys_outbox__ck__8ad02efa" check (("changed" is null or store_json_valid("changed", '{"default":[],"kind":"json","shape":{"kind":"text","many":true}}'::jsonb) is true)),
 	constraint "sys_outbox__uq__f1a22a1c" unique ("key"),
 	constraint "sys_outbox__ck__fb29df7c" check ("status" in ('queued', 'sending', 'acked', 'failed', 'dead', 'skipped')),
 	constraint "sys_outbox__ck__f6ff471a" check (isfinite("next_attempt_at")),
@@ -931,6 +1085,8 @@ create table "sys_run" ("id" text primary key,
 	"actor" text,
 	"starter" jsonb,
 	"trigger" jsonb,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_run_09f15580"("automation")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_run_09f15580"("automation"), ''))) stored,
 	constraint "sys_run__ck__fcb01943" check (("input" is null or store_json_valid("input", '{"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__9f882481" check (isfinite("due_at")),
 	constraint "sys_run__uq__f1a22a1c" unique ("key"),
@@ -952,6 +1108,8 @@ create table "sys_session" ("id" text primary key,
 	"expires_at" timestamptz not null,
 	"refreshed_at" timestamptz not null,
 	"agent" text,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_session_6a2ce92f"("via")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_session_6a2ce92f"("via"), ''))) stored,
 	"user" text not null,
 	"impersonated_by" text,
 	constraint "sys_session__uq__ba86567f" unique ("token_hash"),
@@ -975,6 +1133,8 @@ create table "sys_sync" ("id" uuid primary key,
 	"last_read_at" timestamptz,
 	"last_change_at" timestamptz,
 	"last_hint_at" timestamptz,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_sync_35128a4d"("sync")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_sync_35128a4d"("sync"), ''))) stored,
 	"instance" text not null,
 	constraint "sys_sync__ck__e99263c2" check (("cursor" is null or store_json_valid("cursor", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_sync__ck__f5908383" check ("phase" in ('read', 'reconcile')),
@@ -990,13 +1150,14 @@ create table "sys_sync" ("id" uuid primary key,
 create table "sys_sync_row" ("id" uuid primary key,
 	"sync" text not null,
 	"partition" text default ''::text not null,
-	"remote_id" text not null,
+	"remote_id" text,
 	"record" text not null,
 	"remote_version" text,
 	"cycle" int not null,
 	"acked_revision" int,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_sync_row_605c7331"("remote_id")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_sync_row_605c7331"("remote_id"), ''))) stored,
 	"instance" text not null,
-	constraint "sys_sync_row__uq__2381ae65" unique nulls not distinct ("sync", "instance", "remote_id"),
 	constraint "sys_sync_row__uq__d838f8ad" unique nulls not distinct ("sync", "instance", "record")
 );
 
@@ -1132,7 +1293,7 @@ create table "suspicion_reviews" ("id" uuid primary key, revision int not null d
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_suspicion_reviews_1ce14547"("reason"), '') || ' ' || coalesce("reason"::text, ''))) stored,
 	"job_assignment_id" uuid not null,
 	"evidence_id" uuid,
-	constraint "suspicion_reviews__ck__fe830a4b" check (("basis" is null or store_json_valid("basis", '{"kind":"json","shape":{"arms":{"review":{"assignment":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"site_id":{"kind":"text"},"status":{"kind":"text"},"summary":{"kind":"text","optional":true},"title":{"kind":"text"}},"kind":"object"},"candidates":{"kind":"list","of":{"fields":{"distance":{"kind":"number"},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"id","of":"photo_evidence"},"matched_photo_ids":{"kind":"list","of":{"kind":"id","of":"photo_evidence"}},"sha256":{"kind":"text"}},"kind":"object"}},"communications":{"kind":"list","of":{"fields":{"message":{"kind":"text"},"sender":{"kind":"text"},"sent_at":{"kind":"text"},"source_message_id":{"kind":"text"}},"kind":"object"}},"job":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"title":{"kind":"text"}},"kind":"object"},"photos":{"kind":"list","of":{"fields":{"created_at":{"kind":"text","optional":true},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"text"},"matched_evidence_ids":{"kind":"list","of":{"kind":"text"}},"sha256":{"kind":"text"}},"kind":"object"}},"site":{"fields":{"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"name":{"kind":"text"}},"kind":"object","optional":true}}},"by":"kind","kind":"union"}}'::jsonb) is true)),
+	constraint "suspicion_reviews__ck__7f0ff71e" check (("basis" is null or store_json_valid("basis", '{"kind":"json","shape":{"arms":{"review":{"assignment":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"site_id":{"kind":"text"},"status":{"kind":"text"},"summary":{"kind":"text","optional":true},"title":{"kind":"text"}},"kind":"object"},"candidates":{"fields":{"distance":{"kind":"number"},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"ref","to":"photo_evidence"},"matched_photo_ids":{"kind":"ref","many":true,"to":"photo_evidence"},"sha256":{"kind":"text"}},"kind":"object","many":true},"communications":{"fields":{"message":{"kind":"text"},"sender":{"kind":"text"},"sent_at":{"kind":"text"},"source_message_id":{"kind":"text"}},"kind":"object","many":true},"job":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"title":{"kind":"text"}},"kind":"object"},"photos":{"fields":{"created_at":{"kind":"text","optional":true},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"text"},"matched_evidence_ids":{"kind":"text","many":true},"sha256":{"kind":"text"}},"kind":"object","many":true},"site":{"fields":{"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"name":{"kind":"text"}},"kind":"object","optional":true}}},"by":"kind","kind":"union"}}'::jsonb) is true)),
 	constraint "suspicion_reviews__ck__13b6a524" check (isfinite("reviewed_at")),
 	constraint "suspicion_reviews__uq__3c4fee0b" unique ("source_key") deferrable initially immediate,
 	constraint "suspicion_reviews__uq__014ffc36" unique nulls not distinct ("job_assignment_id", "basis_hash") deferrable initially immediate
@@ -1154,14 +1315,12 @@ create table "suspicious_activity_logs" ("id" uuid primary key, revision int not
 	"resolved_by" text,
 	constraint "suspicious_activity_logs__uq__3c4fee0b" unique ("source_key") deferrable initially immediate,
 	constraint "suspicious_activity_logs__ck__506c4a36" check ("origin" in ('automation', 'human')),
-	constraint "suspicious_activity_logs__ck__21479bef" check (("basis" is null or store_json_valid("basis", '{"kind":"json","optional":true,"shape":{"arms":{"human_judgement":{"evidence_id":{"kind":"text","optional":true},"reason":{"kind":"text"}},"review":{"assignment":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"site_id":{"kind":"text"},"status":{"kind":"text"},"summary":{"kind":"text","optional":true},"title":{"kind":"text"}},"kind":"object"},"candidates":{"kind":"list","of":{"fields":{"distance":{"kind":"number"},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"id","of":"photo_evidence"},"matched_photo_ids":{"kind":"list","of":{"kind":"id","of":"photo_evidence"}},"sha256":{"kind":"text"}},"kind":"object"}},"communications":{"kind":"list","of":{"fields":{"message":{"kind":"text"},"sender":{"kind":"text"},"sent_at":{"kind":"text"},"source_message_id":{"kind":"text"}},"kind":"object"}},"job":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"title":{"kind":"text"}},"kind":"object"},"photos":{"kind":"list","of":{"fields":{"created_at":{"kind":"text","optional":true},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"text"},"matched_evidence_ids":{"kind":"list","of":{"kind":"text"}},"sha256":{"kind":"text"}},"kind":"object"}},"site":{"fields":{"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"name":{"kind":"text"}},"kind":"object","optional":true}}},"by":"kind","kind":"union"}}'::jsonb) is true)),
+	constraint "suspicious_activity_logs__ck__82c3b944" check (("basis" is null or store_json_valid("basis", '{"kind":"json","optional":true,"shape":{"arms":{"human_judgement":{"evidence_id":{"kind":"text","optional":true},"reason":{"kind":"text"}},"review":{"assignment":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"site_id":{"kind":"text"},"status":{"kind":"text"},"summary":{"kind":"text","optional":true},"title":{"kind":"text"}},"kind":"object"},"candidates":{"fields":{"distance":{"kind":"number"},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"ref","to":"photo_evidence"},"matched_photo_ids":{"kind":"ref","many":true,"to":"photo_evidence"},"sha256":{"kind":"text"}},"kind":"object","many":true},"communications":{"fields":{"message":{"kind":"text"},"sender":{"kind":"text"},"sent_at":{"kind":"text"},"source_message_id":{"kind":"text"}},"kind":"object","many":true},"job":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"title":{"kind":"text"}},"kind":"object"},"photos":{"fields":{"created_at":{"kind":"text","optional":true},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"text"},"matched_evidence_ids":{"kind":"text","many":true},"sha256":{"kind":"text"}},"kind":"object","many":true},"site":{"fields":{"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"name":{"kind":"text"}},"kind":"object","optional":true}}},"by":"kind","kind":"union"}}'::jsonb) is true)),
 	constraint "suspicious_activity_logs__ck__0cbbca1e" check (isfinite("resolved_at"))
 );
 
 -- step create:engine:bolt_history (additive)
-create table if not exists bolt_history (collection text not null, record uuid not null, revision int not null, at timestamptz not null default now(), actor text, op text not null check (op in ('create', 'update', 'delete')), cause text not null check (cause in ('direct', 'cascade', 'derived', 'seed', 'erased', 'restored')), changes jsonb not null default '{}', restored_from int check ((cause = 'restored') = (restored_from is not null)), request uuid, operation text);
-alter table bolt_history add column if not exists operation text;
-alter table bolt_history add column if not exists meta jsonb not null default '{}'::jsonb;
+create table if not exists bolt_history (collection text not null, record uuid not null, revision int not null, at timestamptz not null default now(), actor text, op text not null check (op in ('create', 'update', 'delete')), cause text not null check (cause in ('direct', 'cascade', 'derived', 'seed', 'erased', 'restored')), changes jsonb not null default '{}', restored_from int check ((cause = 'restored') = (restored_from is not null)), request uuid, operation text, meta jsonb not null default '{}'::jsonb);
 create index if not exists bolt_history__operation on bolt_history(operation) where operation is not null;
 create index if not exists bolt_history__record on bolt_history (collection, record, revision);
 
@@ -1176,29 +1335,58 @@ create table if not exists bolt_history_current (
 		model text primary key, schema uuid not null references bolt_history_schema(id), active boolean not null default true
 	);
 create index if not exists bolt_history__schema_record on bolt_history(record,revision);
-create index if not exists bolt_history__unversioned on bolt_history(collection) where coalesce(meta->>'schema','')='';
 
 -- step create:engine:bolt_approvals (additive)
-create table if not exists bolt_approvals (id uuid primary key, state text not null check (state in ('Pending', 'ChangesRequested', 'Approved', 'Rejected', 'Superseded')), step int not null, collection text not null, record text not null, action text not null, requestor text not null, requestor_user text, route jsonb not null, records jsonb not null, log jsonb not null default '[]', at timestamptz not null, closed_at timestamptz, seq bigint generated always as identity);
+create table if not exists bolt_approvals (id uuid primary key, state text not null check (state in ('Pending', 'ChangesRequested', 'Approved', 'Rejected', 'Superseded', 'Withdrawn')), step int not null, collection text not null, record text not null, action text not null, requestor text not null, requestor_user text, route jsonb not null, records jsonb not null, log jsonb not null default '[]', at timestamptz not null, closed_at timestamptz, seq bigint generated always as identity);
 create index if not exists bolt_approvals__open on bolt_approvals (state) where state in ('Pending', 'ChangesRequested');
+create table if not exists bolt_approval_effect (
+			request uuid not null references bolt_approvals(id) on delete cascade,
+			operation text not null, automation text not null, input jsonb not null,
+			due_at timestamptz not null, actor text not null, starter jsonb not null, depth int not null,
+			state text not null check (state in ('queued','failed')), error jsonb, finished_at timestamptz,
+			primary key (request, operation, automation));
+
+-- step create:history:schema:approval_request (additive)
+select bolt_history_register('approval_request','{"fields":{"action":{"kind":"enum","values":["create","update","delete"]},"approver_teams":{"kind":"json","shape":{"kind":"text","many":true}},"approver_users":{"kind":"json","shape":{"kind":"text","many":true}},"closed_at":{"kind":"instant","optional":true},"closed_by":{"kind":"text","optional":true},"collection_name":{"kind":"text"},"created_at":{"kind":"instant"},"record_id":{"kind":"text"},"revision":{"default":1,"kind":"int"},"status":{"kind":"enum","values":["ONGOING","CHANGES_REQUESTED","APPROVED","REJECTED","SUPERSEDED","WITHDRAWN"]},"step":{"kind":"int"},"step_names":{"kind":"json","shape":{"kind":"text","many":true}},"steps":{"kind":"int"},"superseder_teams":{"kind":"json","shape":{"kind":"text","many":true}}},"key":"uuid","search":{"text":["collection_name"]},"unique":[{"fields":["collection_name","record_id"],"name":"one_ongoing_request","where":{"status":{"eq":"ONGOING"}}}]}'::jsonb);
+
+-- step create:history:schema:sys_api_key (additive)
+select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text","unique":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
+
+-- step create:history:schema:sys_conversation (additive)
+select bolt_history_register('sys_conversation','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"goals":{"kind":"json","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
+
+-- step create:history:schema:sys_envoy (additive)
+select bolt_history_register('sys_envoy','{"fields":{"active":{"default":true,"kind":"bool"},"audience":{"default":"private","kind":"enum","values":["private","public"]},"created_at":{"default":{"var":"now"},"kind":"instant"},"delegation":{"default":"disabled","kind":"enum","values":["enabled","disabled"]},"dm":{"default":"union","kind":"enum","values":["union","envoy"]},"group_messages":{"default":"mention_or_reply","kind":"enum","values":["disabled","mention_or_reply","all"]},"name":{"kind":"text"},"policies":{"default":[],"kind":"text","many":true},"revision":{"default":1,"kind":"int"},"task":{"default":"","format":"markdown","kind":"text"},"triage":{"default":false,"kind":"bool"},"triage_scope":{"default":"all","hidden":true,"kind":"enum","values":["dm","group","all"]}},"key":"uuid","record_label":"record.name"}'::jsonb);
+
+-- step create:history:schema:sys_file (additive)
+select bolt_history_register('sys_file','{"fields":{"created_at":{"kind":"instant"},"created_by":{"kind":"text","optional":true},"field":{"kind":"text"},"key":{"kind":"text"},"mime":{"kind":"text"},"name":{"kind":"text"},"revision":{"default":1,"kind":"int"},"sha256":{"kind":"text"},"size":{"kind":"int"},"updated_at":{"kind":"instant","optional":true},"updated_by":{"kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
+
+-- step create:history:schema:sys_integration (additive)
+select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"configuration":{"default":{},"kind":"json"},"envoy":{"kind":"text","optional":true},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
+
+-- step create:history:schema:sys_invitation (additive)
+select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
+
+-- step create:history:schema:sys_user (additive)
+select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:sites (additive)
-select bolt_history_register('sites','{"audit":true,"fields":{"address":{"kind":"text","optional":true},"client_name":{"kind":"text","optional":true},"floor_area_sqm":{"kind":"decimal","optional":true,"scale":2},"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"location":{"kind":"point","optional":true},"name":{"kind":"text"},"site_code":{"kind":"text","optional":true,"unique":true},"site_key":{"hidden":true,"kind":"text","unique":true},"unit_number":{"kind":"text","optional":true}},"nativeRules":2,"recordLabel":"record.name","search":{"text":["name","address","unit_number","site_code","client_name"]}}'::jsonb);
+select bolt_history_register('sites','{"audit":true,"fields":{"address":{"kind":"text","optional":true},"client_name":{"kind":"text","optional":true},"floor_area_sqm":{"kind":"decimal","optional":true,"scale":2},"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"location":{"kind":"point","optional":true},"name":{"kind":"text"},"site_code":{"kind":"text","optional":true,"unique":true},"site_key":{"hidden":true,"kind":"text","unique":true},"unit_number":{"kind":"text","optional":true}},"record_label":"record.name","search":{"text":["name","address","unit_number","site_code","client_name"]}}'::jsonb);
 
 -- step create:history:schema:job_assignments (additive)
-select bolt_history_register('job_assignments','{"audit":true,"fields":{"amount_charged":{"currency":"SGD","kind":"money","optional":true},"assignee_contact":{"kind":"text","optional":true},"assignee_user_id":{"kind":"ref","optional":true,"to":"sys_user"},"completed_at":{"kind":"instant","optional":true},"description":{"kind":"text"},"dispatched_at":{"kind":"instant","optional":true},"external_ref":{"kind":"text","optional":true,"unique":true},"location":{"kind":"point","optional":true},"location_address":{"kind":"text","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"date"},"site_id":{"inverse":"job_assignments","kind":"ref","to":"sites"},"source_message_id":{"hidden":true,"kind":"text","optional":true,"unique":true},"status":{"default":"pending","kind":"enum","values":["pending","completed"]},"summary":{"kind":"text","optional":true},"suspicion_checked_at":{"hidden":true,"kind":"instant","optional":true},"title":{"kind":"text"}},"index":["scheduled_for","suspicion_checked_at"],"nativeRules":2,"recordLabel":"record.title","search":{"semantic":{"dim":1536,"fields":["title","description","summary"],"model":"default"},"text":["title","nature","summary","site_id"]}}'::jsonb);
+select bolt_history_register('job_assignments','{"audit":true,"fields":{"amount_charged":{"currency":"SGD","kind":"money","optional":true},"assignee_contact":{"kind":"text","optional":true},"assignee_user_id":{"kind":"ref","optional":true,"to":"sys_user"},"completed_at":{"kind":"instant","optional":true},"description":{"kind":"text"},"dispatched_at":{"kind":"instant","optional":true},"external_ref":{"kind":"text","optional":true,"unique":true},"location":{"kind":"point","optional":true},"location_address":{"kind":"text","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"date"},"site_id":{"inverse":"job_assignments","kind":"ref","to":"sites"},"source_message_id":{"hidden":true,"kind":"text","optional":true,"unique":true},"status":{"default":"pending","kind":"enum","values":["pending","completed"]},"summary":{"kind":"text","optional":true},"suspicion_checked_at":{"hidden":true,"kind":"instant","optional":true},"title":{"kind":"text"}},"indexes":[{"on":["scheduled_for"]},{"on":["suspicion_checked_at"]}],"record_label":"record.title","search":{"semantic":{"dim":1536,"fields":["title","description","summary"],"model":"default"},"text":["title","nature","summary","site_id"]}}'::jsonb);
 
 -- step create:history:schema:communication_logs (additive)
-select bolt_history_register('communication_logs','{"audit":true,"fields":{"job_assignment_id":{"inverse":"communication_logs","kind":"ref","to":"job_assignments"},"message":{"kind":"text"},"sender":{"hidden":true,"kind":"text"},"sent_at":{"kind":"instant"},"source_message_id":{"hidden":true,"kind":"text","unique":true}},"index":["sent_at"],"nativeRules":2,"recordLabel":"record.message","search":{"text":["message","sender"]}}'::jsonb);
+select bolt_history_register('communication_logs','{"audit":true,"fields":{"job_assignment_id":{"inverse":"communication_logs","kind":"ref","to":"job_assignments"},"message":{"kind":"text"},"sender":{"hidden":true,"kind":"text"},"sent_at":{"kind":"instant"},"source_message_id":{"hidden":true,"kind":"text","unique":true}},"indexes":[{"on":["sent_at"]}],"record_label":"record.message","search":{"text":["message","sender"]}}'::jsonb);
 
 -- step create:history:schema:photo_evidence (additive)
-select bolt_history_register('photo_evidence','{"audit":true,"fields":{"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"inspection_claimed_at":{"hidden":true,"kind":"instant","optional":true},"inspection_failed_at":{"hidden":true,"kind":"instant","optional":true},"inspection_failure_reason":{"hidden":true,"kind":"text","optional":true},"job_assignment_id":{"inverse":"photo_evidence","kind":"ref","optional":true,"to":"job_assignments"},"matched_evidence_ids":{"hidden":true,"kind":"text","many":true},"perceptual_embedding":{"dim":256,"hidden":true,"kind":"vector","metric":"l2"},"photo":{"accept":["image/jpeg","image/png","image/heic","image/heif","application/octet-stream"],"kind":"file","max":"20MiB"},"scene_embedding":{"dim":256,"hidden":true,"kind":"vector","metric":"cosine","optional":true},"sha256":{"hidden":true,"kind":"text"},"source":{"kind":"custom","of":"photo_source"},"source_key":{"hidden":true,"kind":"text","unique":true},"summary":{"kind":"text"}},"nativeRules":2,"recordLabel":"record.summary","search":{"indexes":{"pdq":{"description":"Photos nearest a PDQ vector: near-duplicates of the same pixels.","dim":256,"field":"perceptual_embedding","input":{"vector":{"kind":"list","of":{"kind":"number"}}},"metric":"l2"},"scene":{"description":"Photos nearest a scene embedding: the same place photographed again, cropped or re-shot.","dim":256,"field":"scene_embedding","input":{"vector":{"kind":"list","of":{"kind":"number"}}},"metric":"cosine"}},"text":[]}}'::jsonb);
+select bolt_history_register('photo_evidence','{"audit":true,"fields":{"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"inspection_claimed_at":{"hidden":true,"kind":"instant","optional":true},"inspection_failed_at":{"hidden":true,"kind":"instant","optional":true},"inspection_failure_reason":{"hidden":true,"kind":"text","optional":true},"job_assignment_id":{"inverse":"photo_evidence","kind":"ref","optional":true,"to":"job_assignments"},"matched_evidence_ids":{"hidden":true,"kind":"text","many":true},"perceptual_embedding":{"dim":256,"hidden":true,"kind":"vector","metric":"l2"},"photo":{"accept":["image/jpeg","image/png","image/heic","image/heif","application/octet-stream"],"kind":"file","max":"20MiB"},"scene_embedding":{"dim":256,"hidden":true,"kind":"vector","metric":"cosine","optional":true},"sha256":{"hidden":true,"kind":"text"},"source":{"kind":"custom","of":"photo_source"},"source_key":{"hidden":true,"kind":"text","unique":true},"summary":{"kind":"text"}},"record_label":"record.summary","search":{"indexes":{"pdq":{"description":"Photos nearest a PDQ vector: near-duplicates of the same pixels.","dim":256,"field":"perceptual_embedding","input":{"vector":{"kind":"number","many":true}},"metric":"l2"},"scene":{"description":"Photos nearest a scene embedding: the same place photographed again, cropped or re-shot.","dim":256,"field":"scene_embedding","input":{"vector":{"kind":"number","many":true}},"metric":"cosine"}},"text":[]}}'::jsonb);
 
 -- step create:history:schema:suspicion_reviews (additive)
-select bolt_history_register('suspicion_reviews','{"audit":true,"fields":{"basis":{"kind":"json","shape":{"arms":{"review":{"assignment":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"site_id":{"kind":"text"},"status":{"kind":"text"},"summary":{"kind":"text","optional":true},"title":{"kind":"text"}},"kind":"object"},"candidates":{"kind":"list","of":{"fields":{"distance":{"kind":"number"},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"id","of":"photo_evidence"},"matched_photo_ids":{"kind":"list","of":{"kind":"id","of":"photo_evidence"}},"sha256":{"kind":"text"}},"kind":"object"}},"communications":{"kind":"list","of":{"fields":{"message":{"kind":"text"},"sender":{"kind":"text"},"sent_at":{"kind":"text"},"source_message_id":{"kind":"text"}},"kind":"object"}},"job":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"title":{"kind":"text"}},"kind":"object"},"photos":{"kind":"list","of":{"fields":{"created_at":{"kind":"text","optional":true},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"text"},"matched_evidence_ids":{"kind":"list","of":{"kind":"text"}},"sha256":{"kind":"text"}},"kind":"object"}},"site":{"fields":{"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"name":{"kind":"text"}},"kind":"object","optional":true}}},"by":"kind","kind":"union"}},"basis_hash":{"hidden":true,"kind":"text"},"evidence_id":{"kind":"ref","onDelete":"setNull","optional":true,"to":"photo_evidence"},"job_assignment_id":{"inverse":"suspicion_reviews","kind":"ref","to":"job_assignments"},"model":{"kind":"text"},"reason":{"kind":"text"},"reviewed_at":{"kind":"instant"},"source_key":{"hidden":true,"kind":"text","unique":true},"suspicious":{"kind":"bool"}},"index":["reviewed_at"],"nativeRules":2,"recordLabel":"record.reason","search":{"text":["reason"]},"unique":[{"fields":["job_assignment_id","basis_hash"]}]}'::jsonb);
+select bolt_history_register('suspicion_reviews','{"audit":true,"fields":{"basis":{"kind":"json","shape":{"arms":{"review":{"assignment":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"site_id":{"kind":"text"},"status":{"kind":"text"},"summary":{"kind":"text","optional":true},"title":{"kind":"text"}},"kind":"object"},"candidates":{"fields":{"distance":{"kind":"number"},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"ref","to":"photo_evidence"},"matched_photo_ids":{"kind":"ref","many":true,"to":"photo_evidence"},"sha256":{"kind":"text"}},"kind":"object","many":true},"communications":{"fields":{"message":{"kind":"text"},"sender":{"kind":"text"},"sent_at":{"kind":"text"},"source_message_id":{"kind":"text"}},"kind":"object","many":true},"job":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"title":{"kind":"text"}},"kind":"object"},"photos":{"fields":{"created_at":{"kind":"text","optional":true},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"text"},"matched_evidence_ids":{"kind":"text","many":true},"sha256":{"kind":"text"}},"kind":"object","many":true},"site":{"fields":{"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"name":{"kind":"text"}},"kind":"object","optional":true}}},"by":"kind","kind":"union"}},"basis_hash":{"hidden":true,"kind":"text"},"evidence_id":{"kind":"ref","on_delete":"set_null","optional":true,"to":"photo_evidence"},"job_assignment_id":{"inverse":"suspicion_reviews","kind":"ref","to":"job_assignments"},"model":{"kind":"text"},"reason":{"kind":"text"},"reviewed_at":{"kind":"instant"},"source_key":{"hidden":true,"kind":"text","unique":true},"suspicious":{"kind":"bool"}},"indexes":[{"on":["reviewed_at"]}],"record_label":"record.reason","search":{"text":["reason"]},"unique":[{"fields":["job_assignment_id","basis_hash"],"name":"one_review_per_basis"}]}'::jsonb);
 
 -- step create:history:schema:suspicious_activity_logs (additive)
-select bolt_history_register('suspicious_activity_logs','{"audit":true,"fields":{"basis":{"kind":"json","optional":true,"shape":{"arms":{"human_judgement":{"evidence_id":{"kind":"text","optional":true},"reason":{"kind":"text"}},"review":{"assignment":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"site_id":{"kind":"text"},"status":{"kind":"text"},"summary":{"kind":"text","optional":true},"title":{"kind":"text"}},"kind":"object"},"candidates":{"kind":"list","of":{"fields":{"distance":{"kind":"number"},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"id","of":"photo_evidence"},"matched_photo_ids":{"kind":"list","of":{"kind":"id","of":"photo_evidence"}},"sha256":{"kind":"text"}},"kind":"object"}},"communications":{"kind":"list","of":{"fields":{"message":{"kind":"text"},"sender":{"kind":"text"},"sent_at":{"kind":"text"},"source_message_id":{"kind":"text"}},"kind":"object"}},"job":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"title":{"kind":"text"}},"kind":"object"},"photos":{"kind":"list","of":{"fields":{"created_at":{"kind":"text","optional":true},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"text"},"matched_evidence_ids":{"kind":"list","of":{"kind":"text"}},"sha256":{"kind":"text"}},"kind":"object"}},"site":{"fields":{"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"name":{"kind":"text"}},"kind":"object","optional":true}}},"by":"kind","kind":"union"}},"evidence_id":{"kind":"ref","onDelete":"setNull","optional":true,"to":"photo_evidence"},"job_assignment_id":{"inverse":"suspicion_logs","kind":"ref","to":"job_assignments"},"origin":{"default":"human","kind":"enum","values":["automation","human"]},"reason":{"kind":"text"},"resolution":{"kind":"text","optional":true},"resolved_at":{"kind":"instant","optional":true},"resolved_by":{"kind":"ref","onDelete":"setNull","optional":true,"to":"sys_user"},"review_id":{"inverse":"suspicious_activity_logs","kind":"ref","optional":true,"to":"suspicion_reviews"},"source_key":{"hidden":true,"kind":"text","unique":true}},"index":["resolved_at"],"nativeRules":2,"recordLabel":"record.reason","search":{"text":["reason","resolution"]}}'::jsonb);
+select bolt_history_register('suspicious_activity_logs','{"audit":true,"fields":{"basis":{"kind":"json","optional":true,"shape":{"arms":{"human_judgement":{"evidence_id":{"kind":"text","optional":true},"reason":{"kind":"text"}},"review":{"assignment":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"site_id":{"kind":"text"},"status":{"kind":"text"},"summary":{"kind":"text","optional":true},"title":{"kind":"text"}},"kind":"object"},"candidates":{"fields":{"distance":{"kind":"number"},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"ref","to":"photo_evidence"},"matched_photo_ids":{"kind":"ref","many":true,"to":"photo_evidence"},"sha256":{"kind":"text"}},"kind":"object","many":true},"communications":{"fields":{"message":{"kind":"text"},"sender":{"kind":"text"},"sent_at":{"kind":"text"},"source_message_id":{"kind":"text"}},"kind":"object","many":true},"job":{"fields":{"description":{"kind":"text"},"id":{"kind":"text"},"nature":{"kind":"text","optional":true},"scheduled_for":{"kind":"text"},"title":{"kind":"text"}},"kind":"object"},"photos":{"fields":{"created_at":{"kind":"text","optional":true},"file_id":{"kind":"text"},"flags":{"kind":"enum","many":true,"values":["exact_duplicate","visual_duplicate","metadata_anomaly","edited_metadata","low_quality","missing_geolocation","location_mismatch"]},"id":{"kind":"text"},"matched_evidence_ids":{"kind":"text","many":true},"sha256":{"kind":"text"}},"kind":"object","many":true},"site":{"fields":{"house_type":{"kind":"enum","optional":true,"values":["hdb_flat","condo","landed","commercial","industrial","other"]},"id":{"kind":"text"},"location":{"fields":{"lat":{"kind":"number"},"lng":{"kind":"number"}},"kind":"object","optional":true},"name":{"kind":"text"}},"kind":"object","optional":true}}},"by":"kind","kind":"union"}},"evidence_id":{"kind":"ref","on_delete":"set_null","optional":true,"to":"photo_evidence"},"job_assignment_id":{"inverse":"suspicion_logs","kind":"ref","to":"job_assignments"},"origin":{"default":"human","kind":"enum","values":["automation","human"]},"reason":{"kind":"text"},"resolution":{"kind":"text","optional":true},"resolved_at":{"kind":"instant","optional":true},"resolved_by":{"kind":"ref","on_delete":"set_null","optional":true,"to":"sys_user"},"review_id":{"inverse":"suspicious_activity_logs","kind":"ref","optional":true,"to":"suspicion_reviews"},"source_key":{"hidden":true,"kind":"text","unique":true}},"indexes":[{"on":["resolved_at"]}],"record_label":"record.reason","search":{"text":["reason","resolution"]}}'::jsonb);
 
 -- step create:fk:requestor.requestor__fk__5c80de5d (additive)
 alter table "requestor" add constraint "requestor__fk__5c80de5d" foreign key ("approval_request_id") references "approval_request" ("id") on delete restrict on update restrict;
@@ -1270,7 +1458,7 @@ alter table "suspicious_activity_logs" add constraint "suspicious_activity_logs_
 alter table "suspicious_activity_logs" add constraint "suspicious_activity_logs__fk__840d859b" foreign key ("resolved_by") references "sys_user" ("id") on delete set null on update restrict;
 
 -- step create:trigger:approval_request.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"fields":{"action":["action"],"approver_teams":["approver_teams"],"approver_users":["approver_users"],"closed_at":["closed_at"],"closed_by":["closed_by"],"collection_name":["collection_name"],"created_at":["created_at"],"record_id":["record_id"],"revision":["revision"],"status":["status"],"step":["step"],"step_names":["step_names"],"steps":["steps"],"superseder_teams":["superseder_teams"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"fields":{"action":["action"],"approver_teams":["approver_teams"],"approver_users":["approver_users"],"closed_at":["closed_at"],"closed_by":["closed_by"],"collection_name":["collection_name"],"created_at":["created_at"],"record_id":["record_id"],"revision":["revision"],"status":["status"],"step":["step"],"step_names":["step_names"],"steps":["steps"],"superseder_teams":["superseder_teams"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:approval_request.approval_request__gin__73732636 (additive)
 create index "approval_request__gin__73732636" on "approval_request" using gin (bolt_search);
@@ -1279,43 +1467,73 @@ create index "approval_request__gin__73732636" on "approval_request" using gin (
 create unique index "approval_request__ux__2e4b03bd" on "approval_request" ("collection_name", "record_id") where ("status" = 'ONGOING'::text);
 
 -- step create:trigger:requestor.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "requestor" for each row execute function store_row_rules('{"audit":false,"fields":{"approval_request_id":["approval_request_id"],"user_id":["user_id"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "requestor" for each row execute function store_row_rules('{"audit":false,"fields":{"approval_request_id":["approval_request_id"],"user_id":["user_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:requestor.requestor__gin__73732636 (additive)
+create index "requestor__gin__73732636" on "requestor" using gin (bolt_search);
 
 -- step create:trigger:sys_api_key.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_api_key" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"hash":["hash"],"last_used_at":["last_used_at"],"name":["name"],"prefix":["prefix"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_api_key" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"hash":["hash"],"last_used_at":["last_used_at"],"name":["name"],"prefix":["prefix"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_api_key.sys_api_key__gin__73732636 (additive)
+create index "sys_api_key__gin__73732636" on "sys_api_key" using gin (bolt_search);
 
 -- step create:trigger:sys_challenge.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_challenge" for each row execute function store_row_rules('{"audit":false,"fields":{"address_mac":["address_mac"],"attempts":["attempts"],"code_mac":["code_mac"],"expires_at":["expires_at"]},"key":["address_mac"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_challenge" for each row execute function store_row_rules('{"audit":false,"fields":{"address_mac":["address_mac"],"attempts":["attempts"],"code_mac":["code_mac"],"expires_at":["expires_at"]},"key":["address_mac"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_challenge.sys_challenge__gin__73732636 (additive)
+create index "sys_challenge__gin__73732636" on "sys_challenge" using gin (bolt_search);
 
 -- step create:trigger:sys_config.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_config" for each row execute function store_row_rules('{"audit":false,"fields":{"key":["key"],"value":["value"]},"key":["key"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_config" for each row execute function store_row_rules('{"audit":false,"fields":{"key":["key"],"value":["value"]},"key":["key"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_config.sys_config__gin__73732636 (additive)
+create index "sys_config__gin__73732636" on "sys_config" using gin (bolt_search);
 
 -- step create:trigger:sys_conversation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"envoy":["envoy"],"goals":["goals"],"inputs":["inputs"],"integration":["integration"],"kind":["kind"],"lease_until":["lease_until"],"model":["model"],"outputs":["outputs"],"owner":["owner"],"parent":["parent"],"participants":["participants"],"plan":["plan"],"read":["read"],"revision":["revision"],"run":["run"],"status":["status"],"thread":["thread"],"title":["title"],"updated_at":["updated_at"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"envoy":["envoy"],"goals":["goals"],"inputs":["inputs"],"integration":["integration"],"kind":["kind"],"lease_until":["lease_until"],"model":["model"],"outputs":["outputs"],"owner":["owner"],"parent":["parent"],"participants":["participants"],"plan":["plan"],"read":["read"],"restart_at":["restart_at"],"restart_from":["restart_from"],"revision":["revision"],"run":["run"],"status":["status"],"thread":["thread"],"title":["title"],"updated_at":["updated_at"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_conversation.sys_conversation__gin__73732636 (additive)
+create index "sys_conversation__gin__73732636" on "sys_conversation" using gin (bolt_search);
 
 -- step create:trigger:sys_envoy.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"audience":["audience"],"created_at":["created_at"],"delegation":["delegation"],"dm":["dm"],"group_messages":["group_messages"],"name":["name"],"policies":["policies"],"revision":["revision"],"task":["task"],"triage":["triage"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"audience":["audience"],"created_at":["created_at"],"delegation":["delegation"],"dm":["dm"],"group_messages":["group_messages"],"name":["name"],"policies":["policies"],"revision":["revision"],"task":["task"],"triage":["triage"],"triage_scope":["triage_scope"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:sys_envoy.sys_envoy__gin__0061abf6 (additive)
 create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
 
+-- step create:index:sys_envoy.sys_envoy__gin__73732636 (additive)
+create index "sys_envoy__gin__73732636" on "sys_envoy" using gin (bolt_search);
+
 -- step create:trigger:sys_file.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"field":["field"],"key":["key"],"mime":["mime"],"name":["name"],"revision":["revision"],"sha256":["sha256"],"size":["size"],"updated_at":["updated_at"],"updated_by":["updated_by"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"field":["field"],"key":["key"],"mime":["mime"],"name":["name"],"revision":["revision"],"sha256":["sha256"],"size":["size"],"updated_at":["updated_at"],"updated_by":["updated_by"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_file.sys_file__gin__73732636 (additive)
+create index "sys_file__gin__73732636" on "sys_file" using gin (bolt_search);
 
 -- step create:trigger:sys_inbox.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_inbox" for each row execute function store_row_rules('{"audit":false,"fields":{"body":["body"],"consumed_at":["consumed_at"],"delivery":["delivery"],"headers":["headers"],"instance":["instance"],"received_at":["received_at"],"sync":["sync"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_inbox" for each row execute function store_row_rules('{"audit":false,"fields":{"body":["body"],"consumed_at":["consumed_at"],"delivery":["delivery"],"headers":["headers"],"instance":["instance"],"received_at":["received_at"],"sync":["sync"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_inbox.sys_inbox__gin__73732636 (additive)
+create index "sys_inbox__gin__73732636" on "sys_inbox" using gin (bolt_search);
 
 -- step create:index:sys_inbox.sys_inbox__ix__e6ba37d2 (additive)
 create index "sys_inbox__ix__e6ba37d2" on "sys_inbox" ("sync", "instance", "received_at") where ("consumed_at" is null);
 
 -- step create:trigger:sys_integration.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_integration" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"configuration":["configuration"],"envoy":["envoy"],"epoch":["epoch"],"import_start":["import_start"],"integration":["integration"],"name":["name"],"named":["named"],"owner":["owner"],"revision":["revision"],"status":["status"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_integration" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"configuration":["configuration"],"envoy":["envoy"],"epoch":["epoch"],"import_start":["import_start"],"integration":["integration"],"name":["name"],"owner":["owner"],"revision":["revision"],"status":["status"],"updated_at":["updated_at"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_integration.sys_integration__gin__73732636 (additive)
+create index "sys_integration__gin__73732636" on "sys_integration" using gin (bolt_search);
 
 -- step create:index:sys_integration.sys_integration__ux__3c46fc6b (additive)
 create unique index "sys_integration__ux__3c46fc6b" on "sys_integration" ("owner", "integration") where ("owner" is not null);
 
 -- step create:trigger:sys_invitation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_invitation" for each row execute function store_row_rules('{"audit":false,"fields":{"accepted_at":["accepted_at"],"email":["email"],"expires_at":["expires_at"],"external":["external"],"invited_by":["invited_by"],"party":["party"],"phone":["phone"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_invitation" for each row execute function store_row_rules('{"audit":false,"fields":{"accepted_at":["accepted_at"],"email":["email"],"expires_at":["expires_at"],"external":["external"],"invited_by":["invited_by"],"party":["party"],"phone":["phone"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_invitation.sys_invitation__gin__73732636 (additive)
+create index "sys_invitation__gin__73732636" on "sys_invitation" using gin (bolt_search);
 
 -- step create:index:sys_invitation.sys_invitation__ix__08e69363 (additive)
 create index "sys_invitation__ix__08e69363" on "sys_invitation" (lower("email"));
@@ -1324,7 +1542,10 @@ create index "sys_invitation__ix__08e69363" on "sys_invitation" (lower("email"))
 create index "sys_invitation__ix__55565b71" on "sys_invitation" ("phone");
 
 -- step create:trigger:sys_message.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_message" for each row execute function store_row_rules('{"audit":false,"fields":{"about":["about"],"addressed":["addressed"],"as":["as"],"attempts":["attempts"],"author":["author"],"claimed_at":["claimed_at"],"content":["content"],"conversation":["conversation"],"created_at":["created_at"],"deleted_at":["deleted_at"],"delivered_turn":["delivered_turn"],"delivery":["delivery"],"direction":["direction"],"edited_at":["edited_at"],"email":["email"],"epoch":["epoch"],"error":["error"],"integration":["integration"],"invocation":["invocation"],"message":["message"],"meta":["meta"],"mode":["mode"],"next_attempt_at":["next_attempt_at"],"origin":["origin"],"presume_at":["presume_at"],"preview":["preview"],"provider_id":["provider_id"],"read_by":["read_by"],"refused":["refused"],"reply_to":["reply_to"],"role":["role"],"sender":["sender"],"sender_name":["sender_name"],"sent_at":["sent_at"],"seq":["seq"],"source_at":["source_at"],"state":["state"],"status":["status"],"supersedes":["supersedes"],"text":["text"],"thread":["thread"],"turn":["turn"],"version":["version"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_message" for each row execute function store_row_rules('{"audit":false,"fields":{"about":["about"],"addressed":["addressed"],"as":["as"],"attempts":["attempts"],"author":["author"],"claimed_at":["claimed_at"],"content":["content"],"conversation":["conversation"],"copied_from":["copied_from"],"created_at":["created_at"],"deleted_at":["deleted_at"],"delivered_turn":["delivered_turn"],"delivery":["delivery"],"direction":["direction"],"edited_at":["edited_at"],"email":["email"],"epoch":["epoch"],"error":["error"],"integration":["integration"],"invocation":["invocation"],"message":["message"],"meta":["meta"],"mode":["mode"],"next_attempt_at":["next_attempt_at"],"origin":["origin"],"presume_at":["presume_at"],"preview":["preview"],"provider_id":["provider_id"],"read_by":["read_by"],"refused":["refused"],"reply_to":["reply_to"],"role":["role"],"sender":["sender"],"sender_name":["sender_name"],"sent_at":["sent_at"],"seq":["seq"],"source_at":["source_at"],"state":["state"],"status":["status"],"supersedes":["supersedes"],"text":["text"],"thread":["thread"],"turn":["turn"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_message.sys_message__gin__73732636 (additive)
+create index "sys_message__gin__73732636" on "sys_message" using gin (bolt_search);
 
 -- step create:index:sys_message.sys_message__ix__a95ef2c9 (additive)
 create index "sys_message__ix__a95ef2c9" on "sys_message" ("conversation", "seq");
@@ -1342,13 +1563,19 @@ create index "sys_message__ix__ddeff634" on "sys_message" ("conversation") where
 create index "sys_message__ix__5c3f70a3" on "sys_message" ("seq") where ("status" in ('queued'::text, 'sending'::text));
 
 -- step create:trigger:sys_notification.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_notification" for each row execute function store_row_rules('{"audit":false,"fields":{"at":["at"],"attachments":["attachments"],"body":["body"],"link":["link"],"member":["member"],"once":["once"],"read_at":["read_at"],"recipient":["recipient"],"title":["title"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_notification" for each row execute function store_row_rules('{"audit":false,"fields":{"at":["at"],"attachments":["attachments"],"body":["body"],"link":["link"],"member":["member"],"once":["once"],"read_at":["read_at"],"recipient":["recipient"],"title":["title"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_notification.sys_notification__gin__73732636 (additive)
+create index "sys_notification__gin__73732636" on "sys_notification" using gin (bolt_search);
 
 -- step create:index:sys_notification.sys_notification__ix__846c656b (additive)
 create index "sys_notification__ix__846c656b" on "sys_notification" ("member", "at") where ("member" is not null);
 
 -- step create:trigger:sys_outbox.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_outbox" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_at":["acked_at"],"at":["at"],"attempts":["attempts"],"changed":["changed"],"claimed_at":["claimed_at"],"epoch":["epoch"],"error":["error"],"image":["image"],"instance":["instance"],"key":["key"],"model":["model"],"next_attempt_at":["next_attempt_at"],"op":["op"],"record":["record"],"record_revision":["record_revision"],"result":["result"],"seq":["seq"],"status":["status"],"sync":["sync"],"writer":["writer"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_outbox" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_at":["acked_at"],"at":["at"],"attempts":["attempts"],"changed":["changed"],"claimed_at":["claimed_at"],"delivery_op":["delivery_op"],"epoch":["epoch"],"error":["error"],"image":["image"],"instance":["instance"],"key":["key"],"model":["model"],"next_attempt_at":["next_attempt_at"],"op":["op"],"preserve_local":["preserve_local"],"record":["record"],"record_revision":["record_revision"],"result":["result"],"seq":["seq"],"status":["status"],"sync":["sync"],"writer":["writer"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_outbox.sys_outbox__gin__73732636 (additive)
+create index "sys_outbox__gin__73732636" on "sys_outbox" using gin (bolt_search);
 
 -- step create:index:sys_outbox.sys_outbox__ux__fb7eed3b (additive)
 create unique index "sys_outbox__ux__fb7eed3b" on "sys_outbox" ("sync", "instance", "record") where ("attempts" = '0'::int and "status" = 'queued'::text);
@@ -1362,26 +1589,47 @@ create index "sys_outbox__ix__565ce04f" on "sys_outbox" ("sync", "record", "seq"
 -- step create:index:sys_outbox.sys_outbox__ix__564640ab (additive)
 create index "sys_outbox__ix__564640ab" on "sys_outbox" ("sync") where ("status" = 'dead'::text);
 
+-- step create:index:sys_outbox.sys_outbox__ix__276b72a8 (additive)
+create index "sys_outbox__ix__276b72a8" on "sys_outbox" ("sync", "instance", "record", "record_revision");
+
 -- step create:trigger:sys_run.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_run" for each row execute function store_row_rules('{"audit":false,"fields":{"actor":["actor"],"attempts":["attempts"],"automation":["automation"],"cause":["cause"],"depth":["depth"],"due_at":["due_at"],"error":["error"],"finished_at":["finished_at"],"input":["input"],"key":["key"],"leases":["leases"],"output":["output"],"progress":["progress"],"results":["results"],"run_key":["run_key"],"started_at":["started_at"],"starter":["starter"],"state":["state"],"trigger":["trigger"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_run" for each row execute function store_row_rules('{"audit":false,"fields":{"actor":["actor"],"attempts":["attempts"],"automation":["automation"],"cause":["cause"],"depth":["depth"],"due_at":["due_at"],"error":["error"],"finished_at":["finished_at"],"input":["input"],"key":["key"],"leases":["leases"],"output":["output"],"progress":["progress"],"results":["results"],"run_key":["run_key"],"started_at":["started_at"],"starter":["starter"],"state":["state"],"trigger":["trigger"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_run.sys_run__gin__73732636 (additive)
+create index "sys_run__gin__73732636" on "sys_run" using gin (bolt_search);
 
 -- step create:index:sys_run.sys_run__ix__1ee5eb39 (additive)
 create index "sys_run__ix__1ee5eb39" on "sys_run" ("due_at") where ("state" = 'queued'::text);
 
+-- step create:index:sys_run.sys_run__ix__f2739d46 (additive)
+create index "sys_run__ix__f2739d46" on "sys_run" ("automation", "state");
+
 -- step create:trigger:sys_session.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_session" for each row execute function store_row_rules('{"audit":false,"fields":{"agent":["agent"],"created_at":["created_at"],"expires_at":["expires_at"],"impersonated_by":["impersonated_by"],"refreshed_at":["refreshed_at"],"token_hash":["token_hash"],"user":["user"],"via":["via"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_session" for each row execute function store_row_rules('{"audit":false,"fields":{"agent":["agent"],"created_at":["created_at"],"expires_at":["expires_at"],"impersonated_by":["impersonated_by"],"refreshed_at":["refreshed_at"],"token_hash":["token_hash"],"user":["user"],"via":["via"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_session.sys_session__gin__73732636 (additive)
+create index "sys_session__gin__73732636" on "sys_session" using gin (bolt_search);
 
 -- step create:trigger:sys_sync.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_sync" for each row execute function store_row_rules('{"audit":false,"fields":{"cursor":["cursor"],"cycle":["cycle"],"digest":["digest"],"health":["health"],"instance":["instance"],"last_change_at":["last_change_at"],"last_hint_at":["last_hint_at"],"last_read_at":["last_read_at"],"partition":["partition"],"phase":["phase"],"started_at":["started_at"],"sync":["sync"],"version":["version"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_sync" for each row execute function store_row_rules('{"audit":false,"fields":{"cursor":["cursor"],"cycle":["cycle"],"digest":["digest"],"health":["health"],"instance":["instance"],"last_change_at":["last_change_at"],"last_hint_at":["last_hint_at"],"last_read_at":["last_read_at"],"partition":["partition"],"phase":["phase"],"started_at":["started_at"],"sync":["sync"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_sync.sys_sync__gin__73732636 (additive)
+create index "sys_sync__gin__73732636" on "sys_sync" using gin (bolt_search);
 
 -- step create:trigger:sys_sync_row.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_sync_row" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_revision":["acked_revision"],"cycle":["cycle"],"instance":["instance"],"partition":["partition"],"record":["record"],"remote_id":["remote_id"],"remote_version":["remote_version"],"sync":["sync"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_sync_row" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_revision":["acked_revision"],"cycle":["cycle"],"instance":["instance"],"partition":["partition"],"record":["record"],"remote_id":["remote_id"],"remote_version":["remote_version"],"sync":["sync"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:sys_sync_row.sys_sync_row__gin__73732636 (additive)
+create index "sys_sync_row__gin__73732636" on "sys_sync_row" using gin (bolt_search);
+
+-- step create:index:sys_sync_row.sys_sync_row__ux__b176bf1e (additive)
+create unique index "sys_sync_row__ux__b176bf1e" on "sys_sync_row" ("sync", "instance", "remote_id") where ("remote_id" is not null);
 
 -- step create:index:sys_sync_row.sys_sync_row__ix__c5cc52ee (additive)
 create index "sys_sync_row__ix__c5cc52ee" on "sys_sync_row" ("sync", "instance", "partition", "cycle");
 
 -- step create:trigger:sys_user.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_user" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"admin":["admin"],"created_at":["created_at"],"email":["email"],"kind":["kind"],"last_seen":["last_seen"],"name":["name"],"party":["party"],"phone":["phone"],"revision":["revision"],"signup":["signup"],"team":["team"],"telegram":["telegram"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_user" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"admin":["admin"],"created_at":["created_at"],"email":["email"],"kind":["kind"],"last_seen":["last_seen"],"name":["name"],"party":["party"],"phone":["phone"],"revision":["revision"],"signup":["signup"],"team":["team"],"telegram":["telegram"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:sys_user.sys_user__gin__73732636 (additive)
 create index "sys_user__gin__73732636" on "sys_user" using gin (bolt_search);
@@ -1393,7 +1641,7 @@ create unique index "sys_user__ux__08e69363" on "sys_user" (lower("email"));
 create unique index "sys_user__ux__1c9f4db2" on "sys_user" ("phone_key");
 
 -- step create:trigger:sites.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sites" for each row execute function store_row_rules('{"audit":true,"fields":{"address":["address"],"client_name":["client_name"],"floor_area_sqm":["floor_area_sqm"],"house_type":["house_type"],"location":["location"],"name":["name"],"site_code":["site_code"],"site_key":["site_key"],"unit_number":["unit_number"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sites" for each row execute function store_row_rules('{"audit":true,"fields":{"address":["address"],"client_name":["client_name"],"floor_area_sqm":["floor_area_sqm"],"house_type":["house_type"],"location":["location"],"name":["name"],"site_code":["site_code"],"site_key":["site_key"],"unit_number":["unit_number"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:sites.sites__gist__bb1c4cd7 (additive)
 create index "sites__gist__bb1c4cd7" on "sites" using gist ("location");
@@ -1402,7 +1650,7 @@ create index "sites__gist__bb1c4cd7" on "sites" using gist ("location");
 create index "sites__gin__73732636" on "sites" using gin (bolt_search);
 
 -- step create:trigger:job_assignments.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "job_assignments" for each row execute function store_row_rules('{"audit":true,"fields":{"amount_charged":["amount_charged"],"assignee_contact":["assignee_contact"],"assignee_user_id":["assignee_user_id"],"completed_at":["completed_at"],"description":["description"],"dispatched_at":["dispatched_at"],"external_ref":["external_ref"],"location":["location"],"location_address":["location_address"],"nature":["nature"],"scheduled_for":["scheduled_for"],"site_id":["site_id"],"source_message_id":["source_message_id"],"status":["status"],"summary":["summary"],"suspicion_checked_at":["suspicion_checked_at"],"title":["title"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "job_assignments" for each row execute function store_row_rules('{"audit":true,"fields":{"amount_charged":["amount_charged"],"assignee_contact":["assignee_contact"],"assignee_user_id":["assignee_user_id"],"completed_at":["completed_at"],"description":["description"],"dispatched_at":["dispatched_at"],"external_ref":["external_ref"],"location":["location"],"location_address":["location_address"],"nature":["nature"],"scheduled_for":["scheduled_for"],"site_id":["site_id"],"source_message_id":["source_message_id"],"status":["status"],"summary":["summary"],"suspicion_checked_at":["suspicion_checked_at"],"title":["title"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:job_assignments.job_assignments__gist__bb1c4cd7 (additive)
 create index "job_assignments__gist__bb1c4cd7" on "job_assignments" using gist ("location");
@@ -1420,7 +1668,7 @@ create index "job_assignments__ix__36edd5a1" on "job_assignments" ("scheduled_fo
 create index "job_assignments__ix__22c0549c" on "job_assignments" ("suspicion_checked_at");
 
 -- step create:trigger:communication_logs.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "communication_logs" for each row execute function store_row_rules('{"audit":true,"fields":{"job_assignment_id":["job_assignment_id"],"message":["message"],"sender":["sender"],"sent_at":["sent_at"],"source_message_id":["source_message_id"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "communication_logs" for each row execute function store_row_rules('{"audit":true,"fields":{"job_assignment_id":["job_assignment_id"],"message":["message"],"sender":["sender"],"sent_at":["sent_at"],"source_message_id":["source_message_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:communication_logs.communication_logs__gin__73732636 (additive)
 create index "communication_logs__gin__73732636" on "communication_logs" using gin (bolt_search);
@@ -1429,7 +1677,7 @@ create index "communication_logs__gin__73732636" on "communication_logs" using g
 create index "communication_logs__ix__9f3504fa" on "communication_logs" ("sent_at");
 
 -- step create:trigger:photo_evidence.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "photo_evidence" for each row execute function store_row_rules('{"audit":true,"fields":{"flags":["flags"],"inspection_claimed_at":["inspection_claimed_at"],"inspection_failed_at":["inspection_failed_at"],"inspection_failure_reason":["inspection_failure_reason"],"job_assignment_id":["job_assignment_id"],"matched_evidence_ids":["matched_evidence_ids"],"perceptual_embedding":["perceptual_embedding"],"photo":["photo"],"scene_embedding":["scene_embedding"],"sha256":["sha256"],"source":["source"],"source_key":["source_key"],"summary":["summary"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "photo_evidence" for each row execute function store_row_rules('{"audit":true,"fields":{"flags":["flags"],"inspection_claimed_at":["inspection_claimed_at"],"inspection_failed_at":["inspection_failed_at"],"inspection_failure_reason":["inspection_failure_reason"],"job_assignment_id":["job_assignment_id"],"matched_evidence_ids":["matched_evidence_ids"],"perceptual_embedding":["perceptual_embedding"],"photo":["photo"],"scene_embedding":["scene_embedding"],"sha256":["sha256"],"source":["source"],"source_key":["source_key"],"summary":["summary"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:photo_evidence.photo_evidence__hnsw__5e1c63a5 (additive)
 create index "photo_evidence__hnsw__5e1c63a5" on "photo_evidence" using hnsw ("perceptual_embedding" vector_l2_ops);
@@ -1447,7 +1695,7 @@ create index "photo_evidence__gin__9be3a507" on "photo_evidence" using gin ("mat
 create index "photo_evidence__gin__73732636" on "photo_evidence" using gin (bolt_search);
 
 -- step create:trigger:suspicion_reviews.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "suspicion_reviews" for each row execute function store_row_rules('{"audit":true,"fields":{"basis":["basis"],"basis_hash":["basis_hash"],"evidence_id":["evidence_id"],"job_assignment_id":["job_assignment_id"],"model":["model"],"reason":["reason"],"reviewed_at":["reviewed_at"],"source_key":["source_key"],"suspicious":["suspicious"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "suspicion_reviews" for each row execute function store_row_rules('{"audit":true,"fields":{"basis":["basis"],"basis_hash":["basis_hash"],"evidence_id":["evidence_id"],"job_assignment_id":["job_assignment_id"],"model":["model"],"reason":["reason"],"reviewed_at":["reviewed_at"],"source_key":["source_key"],"suspicious":["suspicious"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:suspicion_reviews.suspicion_reviews__gin__73732636 (additive)
 create index "suspicion_reviews__gin__73732636" on "suspicion_reviews" using gin (bolt_search);
@@ -1456,7 +1704,7 @@ create index "suspicion_reviews__gin__73732636" on "suspicion_reviews" using gin
 create index "suspicion_reviews__ix__3a208d79" on "suspicion_reviews" ("reviewed_at");
 
 -- step create:trigger:suspicious_activity_logs.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "suspicious_activity_logs" for each row execute function store_row_rules('{"audit":true,"fields":{"basis":["basis"],"evidence_id":["evidence_id"],"job_assignment_id":["job_assignment_id"],"origin":["origin"],"reason":["reason"],"resolution":["resolution"],"resolved_at":["resolved_at"],"resolved_by":["resolved_by"],"review_id":["review_id"],"source_key":["source_key"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "suspicious_activity_logs" for each row execute function store_row_rules('{"audit":true,"fields":{"basis":["basis"],"evidence_id":["evidence_id"],"job_assignment_id":["job_assignment_id"],"origin":["origin"],"reason":["reason"],"resolution":["resolution"],"resolved_at":["resolved_at"],"resolved_by":["resolved_by"],"review_id":["review_id"],"source_key":["source_key"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:suspicious_activity_logs.suspicious_activity_logs__gin__73732636 (additive)
 create index "suspicious_activity_logs__gin__73732636" on "suspicious_activity_logs" using gin (bolt_search);
@@ -1534,40 +1782,34 @@ create index "suspicious_activity_logs__ix__cbb76264" on "suspicious_activity_lo
 create index "suspicious_activity_logs__ix__7901b40e" on "suspicious_activity_logs" ("resolved_by");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['communication_logs','job_assignments','photo_evidence','sites','suspicion_reviews','suspicious_activity_logs']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['approval_request','communication_logs','job_assignments','photo_evidence','sites','suspicion_reviews','suspicious_activity_logs','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user']::text[]));
 
 -- step create:engine:audit:sites (additive)
 drop trigger if exists bolt_audit_mark on "sites";
-create trigger bolt_audit_mark before insert or update or delete on "sites" for each row execute function bolt_audit_mark('[]','[]');
 drop trigger if exists bolt_audit on "sites";
-create trigger bolt_audit after insert or update or delete on "sites" for each row execute function bolt_audit('[]','[]');
+create trigger bolt_audit after insert or update or delete on "sites" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
 -- step create:engine:audit:job_assignments (additive)
 drop trigger if exists bolt_audit_mark on "job_assignments";
-create trigger bolt_audit_mark before insert or update or delete on "job_assignments" for each row execute function bolt_audit_mark('[]','[["assignee_user_id","sys_user"],["site_id","sites"]]');
 drop trigger if exists bolt_audit on "job_assignments";
-create trigger bolt_audit after insert or update or delete on "job_assignments" for each row execute function bolt_audit('[]','[["assignee_user_id","sys_user"],["site_id","sites"]]');
+create trigger bolt_audit after insert or update or delete on "job_assignments" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["assignee_user_id","sys_user"],["site_id","sites"]]');
 
 -- step create:engine:audit:communication_logs (additive)
 drop trigger if exists bolt_audit_mark on "communication_logs";
-create trigger bolt_audit_mark before insert or update or delete on "communication_logs" for each row execute function bolt_audit_mark('[]','[["job_assignment_id","job_assignments"]]');
 drop trigger if exists bolt_audit on "communication_logs";
-create trigger bolt_audit after insert or update or delete on "communication_logs" for each row execute function bolt_audit('[]','[["job_assignment_id","job_assignments"]]');
+create trigger bolt_audit after insert or update or delete on "communication_logs" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["job_assignment_id","job_assignments"]]');
 
 -- step create:engine:audit:photo_evidence (additive)
 drop trigger if exists bolt_audit_mark on "photo_evidence";
-create trigger bolt_audit_mark before insert or update or delete on "photo_evidence" for each row execute function bolt_audit_mark('[]','[["job_assignment_id","job_assignments"]]');
 drop trigger if exists bolt_audit on "photo_evidence";
-create trigger bolt_audit after insert or update or delete on "photo_evidence" for each row execute function bolt_audit('[]','[["job_assignment_id","job_assignments"]]');
+create trigger bolt_audit after insert or update or delete on "photo_evidence" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["job_assignment_id","job_assignments"]]');
 
 -- step create:engine:audit:suspicion_reviews (additive)
 drop trigger if exists bolt_audit_mark on "suspicion_reviews";
-create trigger bolt_audit_mark before insert or update or delete on "suspicion_reviews" for each row execute function bolt_audit_mark('[]','[["evidence_id","photo_evidence"],["job_assignment_id","job_assignments"]]');
 drop trigger if exists bolt_audit on "suspicion_reviews";
-create trigger bolt_audit after insert or update or delete on "suspicion_reviews" for each row execute function bolt_audit('[]','[["evidence_id","photo_evidence"],["job_assignment_id","job_assignments"]]');
+create trigger bolt_audit after insert or update or delete on "suspicion_reviews" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["evidence_id","photo_evidence"],["job_assignment_id","job_assignments"]]');
 
 -- step create:engine:audit:suspicious_activity_logs (additive)
 drop trigger if exists bolt_audit_mark on "suspicious_activity_logs";
-create trigger bolt_audit_mark before insert or update or delete on "suspicious_activity_logs" for each row execute function bolt_audit_mark('[]','[["evidence_id","photo_evidence"],["job_assignment_id","job_assignments"],["resolved_by","sys_user"],["review_id","suspicion_reviews"]]');
 drop trigger if exists bolt_audit on "suspicious_activity_logs";
-create trigger bolt_audit after insert or update or delete on "suspicious_activity_logs" for each row execute function bolt_audit('[]','[["evidence_id","photo_evidence"],["job_assignment_id","job_assignments"],["resolved_by","sys_user"],["review_id","suspicion_reviews"]]');
+create trigger bolt_audit after insert or update or delete on "suspicious_activity_logs" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["evidence_id","photo_evidence"],["job_assignment_id","job_assignments"],["resolved_by","sys_user"],["review_id","suspicion_reviews"]]');

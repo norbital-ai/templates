@@ -1,26 +1,28 @@
 <script lang="ts">
 	/** One automated review: its decision, reason and the evidence it judged. Written by the review run only. */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { type RecordView, EmptyState, Field, Form, RecordShell, Section } from '@norbital-ai/ui';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import EvidenceBasis from '../../../../../lib/evidence-basis.svelte';
 	let {
+		ctx,
 		view
 	}: {
+		ctx: PageContext;
 		view: RecordView<'suspicion_reviews'>;
 	} = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 
 {#if record == null}
-	<EmptyState title={bolt.t('component.suspicion_review_read_only')} />
+	<EmptyState title={ctx.t('component.suspicion_review_read_only')} />
 {:else}
 	<RecordShell
 		of="suspicion_reviews"
 		id={record.id}
 		subtitle={record.suspicious
-			? bolt.t('component.suspicion_open')
-			: bolt.t('component.suspicion_review_decision')}
+			? ctx.t('component.suspicion_open')
+			: ctx.t('component.suspicion_review_decision')}
 	>
 		<!-- the decision and why stay open; the judged evidence and the model fold away -->
 		<Form of="suspicion_reviews" mode="update" id={record.id} {record} readonly>
@@ -29,7 +31,7 @@
 					icon="lucide:search-check"
 					first
 					name="review"
-					title={bolt.t('models.suspicion_reviews.singular')}
+					title={ctx.t('models.suspicion_reviews.singular')}
 				>
 					<Grid minimum="compact">
 						<Field name="suspicious" />
@@ -42,14 +44,15 @@
 				<Section
 					icon="lucide:list-checks"
 					name="basis"
-					title={bolt.t('component.section_basis')}
-					defaultOpen={false}
+					title={ctx.t('component.section_basis')}
+					default_open={false}
 					summary={record.model}
 				>
 					<Grid minimum="compact">
 						<Field name="model" />
 						<Field name="basis">
 							{#snippet view()}<EvidenceBasis
+									{ctx}
 									basis={record.basis}
 									job={record.job_assignment_id}
 								/>{/snippet}

@@ -1,6 +1,6 @@
-import { customField } from '@norbital-ai/bolt';
+import { custom_field } from '@norbital-ai/bolt';
 /** Where a photo came from: a workspace upload, or the integration message and attachment that delivered it. */
-export default customField('photo_source', {
+export default custom_field({
 	description:
 		'Where a photo came from: either a workspace upload, or the messaging conversation, message, attachment and sender that delivered it.',
 	shape: {

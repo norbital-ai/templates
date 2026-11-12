@@ -1,17 +1,19 @@
 <script lang="ts">
 	/** A site: its details, the jobs still ahead of it (scheduled from today, or overdue and not done), and its history. */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { type RecordView, Field, Form, RecordShell, Table } from '@norbital-ai/ui';
 	import { Grid } from '@norbital-ai/ui/layout';
 	let {
+		ctx,
 		view
 	}: {
+		ctx: PageContext;
 		view: RecordView<'sites'>;
 	} = $props();
-	const t = bolt.t;
+	const t = ctx.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	/** Rolls over at midnight in the workspace zone, so "upcoming" follows the day. */
-	const clock = bolt.clock('day');
+	const clock = ctx.clock('day');
 </script>
 
 {#snippet upcoming()}
@@ -23,7 +25,7 @@
 				site_id: { eq: record.id },
 				or: [{ scheduled_for: { gte: clock.today } }, { status: { eq: 'pending' } }]
 			}}
-			orderBy={{ scheduled_for: 'asc' }}
+			order_by={{ scheduled_for: 'asc' }}
 			columns={[
 				'title',
 				{ field: 'scheduled_for', label: t('component.scheduled') },
@@ -38,8 +40,8 @@
 			of="job_assignments"
 			key="site-history"
 			toolbar={{ title: t('component.activity_history') }}
-			where={{ site_id: { eq: record.id }, dispatched_at: { isNull: false } }}
-			orderBy={{ dispatched_at: 'desc' }}
+			where={{ site_id: { eq: record.id }, dispatched_at: { is_null: false } }}
+			order_by={{ dispatched_at: 'desc' }}
 			columns={[
 				'title',
 				{ field: 'dispatched_at', label: t('component.dispatched') },

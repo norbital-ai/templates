@@ -3,6 +3,7 @@ import { Files, Port } from '@norbital-ai/bolt/engine';
 import { createHash } from 'node:crypto';
 /** The site handover (L-TPL-field-operations-018): per selected site, one JSON bundle and a CSV per table on the run. */
 import { expect, it } from '@effect/vitest';
+import { JobResult } from '@norbital-ai/bolt-cli/test';
 import { CONTROLLER, rows, siteWithJob, workspace } from './kit.ts';
 it.live('bundles each selected site with its jobs and photos, as the starter reads them', () =>
 	Effect.gen(function* () {
@@ -38,9 +39,13 @@ it.live('bundles each selected site with its jobs and photos, as the starter rea
 			})
 		});
 		const { site } = yield* siteWithJob(t);
-		const outcome = yield* t.as(t.member(CONTROLLER)).start('site_handover', { ids: [site] });
+		const outcome = yield* (yield* t.as(t.member(CONTROLLER))).run(
+			'site_handover',
+			{ ids: [site] },
+			JobResult
+		);
 		expect(outcome.kind).toBe('committed');
-		yield* t.runDue();
+		yield* t.run_due();
 		const [run] = yield* rows(
 			t,
 			`SELECT state, output, error FROM sys_run WHERE automation = 'site_handover'`

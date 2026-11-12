@@ -4,10 +4,10 @@
 	 * a burst of photos from one sender within two minutes as one bubble. Read-only; it follows the latest message until
 	 * the reader scrolls away.
 	 */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { watch } from 'runed';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Button, EmptyState, useKinds } from '@norbital-ai/ui';
+	import { Button, EmptyState } from '@norbital-ai/ui';
 	import { Frame, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { dayIn, timeIn, weekdayIn } from './format.js';
 	import { senderName } from './dispatch.js';
@@ -22,36 +22,37 @@
 		system: boolean;
 	};
 	let {
+		ctx,
 		job,
-		onOpen
+		on_open
 	}: {
+		ctx: PageContext;
 		job: Id<'job_assignments'>;
-		onOpen: (photo: { name: string; url: string }) => void;
+		on_open: (photo: { name: string; url: string }) => void;
 	} = $props();
-	const t = bolt.t;
-	const kinds = useKinds();
+	const t = ctx.t;
 	/** A contractor reads the `contractor` outputs: messages without their provenance, members by name only. */
-	const contractor = kinds.catalog?.['communication_logs']?.output === 'contractor';
+	const contractor = ctx.catalog?.['communication_logs']?.output === 'contractor';
 	const traceable = $derived(
 		contractor
 			? null
-			: bolt.query({
+			: ctx.query({
 					communication_logs: {
 						where: { job_assignment_id: { eq: job } },
 						fields: ['message', 'sent_at', 'sender', 'source_message_id'],
-						orderBy: 'sent_at',
+						order_by: 'sent_at',
 						limit: 250
 					}
 				})
 	);
 	const untraceable = $derived(
 		contractor
-			? bolt.query({
+			? ctx.query({
 					communication_logs: {
 						output: 'contractor',
 						where: { job_assignment_id: { eq: job } },
 						fields: ['message', 'sent_at', 'sender'],
-						orderBy: 'sent_at',
+						order_by: 'sent_at',
 						limit: 250
 					}
 				})
@@ -70,9 +71,9 @@
 	/** Who sent each message, by name; a reader without members sees none. */
 	const staff = contractor
 		? null
-		: bolt.query({ sys_user: { fields: ['name', 'email', 'phone'], limit: 1000 } });
+		: ctx.query({ sys_user: { fields: ['name', 'email', 'phone'], limit: 1000 } });
 	const directory = contractor
-		? bolt.query({ sys_user: { output: 'directory', fields: ['name'], limit: 1000 } })
+		? ctx.query({ sys_user: { output: 'directory', fields: ['name'], limit: 1000 } })
 		: null;
 	const members = $derived([
 		...(staff?.current?.sys_user.rows ?? []),
@@ -80,15 +81,15 @@
 	]);
 	const nameOf = (sender: string) => senderName(sender, members) ?? '—';
 	/** A contractor's output omits a photo's provenance: select it only where it is readable. */
-	const locale = kinds.locale ?? bolt.locale;
-	const provenance = kinds.catalog?.['photo_evidence']?.fields['source'] !== undefined;
+	const locale = ctx.locale;
+	const provenance = ctx.catalog?.['photo_evidence']?.fields['source'] !== undefined;
 	const traced = $derived(
 		provenance
-			? bolt.query({
+			? ctx.query({
 					photo_evidence: {
 						where: { job_assignment_id: { eq: job } },
 						fields: ['photo', 'created_at', 'source', 'flags'],
-						orderBy: 'created_at',
+						order_by: 'created_at',
 						limit: 250
 					}
 				})
@@ -97,12 +98,12 @@
 	const untraced = $derived(
 		provenance
 			? null
-			: bolt.query({
+			: ctx.query({
 					photo_evidence: {
 						output: 'contractor',
 						where: { job_assignment_id: { eq: job } },
 						fields: ['photo', 'created_at'],
-						orderBy: 'created_at',
+						order_by: 'created_at',
 						limit: 250
 					}
 				})
@@ -127,7 +128,7 @@
 				{
 					id: String(row.id),
 					name: file.name,
-					url: bolt.fileUrl(file, { preview: 1024 }),
+					url: ctx.file_url(file, { preview: 1024 }),
 					flags,
 					sender: message ? nameOf(message.sender_id) : t('component.workspace_upload'),
 					sentAt: message?.sent_at ?? String(row.created_at ?? ''),
@@ -183,13 +184,13 @@
 				!item.system &&
 				!last.system &&
 				last.sender === item.sender &&
-				dayIn(kinds.zone, last.sentAt) === dayIn(kinds.zone, item.sentAt) &&
+				dayIn(ctx.tz, last.sentAt) === dayIn(ctx.tz, item.sentAt) &&
 				Math.abs(Date.parse(item.sentAt) - Date.parse(last.sentAt)) <= 120000
 			)
 				last.photos.push(...item.photos);
 			else grouped.push({ ...item, photos: [...item.photos] });
 		}
-		return Map.groupBy(grouped, (item) => dayIn(kinds.zone, item.sentAt));
+		return Map.groupBy(grouped, (item) => dayIn(ctx.tz, item.sentAt));
 	});
 	let port = $state<HTMLElement | null>(null);
 	let pinned = $state(true);
@@ -223,10 +224,10 @@
 		{/if}
 		<Stack as="ol" gap="sm">
 			{#each timeline as [day, items] (day)}
-				<li class="text-center text-meta">{weekdayIn(kinds.zone, locale, items[0]!.sentAt)}</li>
+				<li class="text-center text-meta">{weekdayIn(ctx.tz, locale, items[0]!.sentAt)}</li>
 				{#each items as item (item.id)}
 					<li class="rounded-md border bg-card p-2" data-conversation-item>
-						<p class="text-meta">{item.sender} · {timeIn(kinds.zone, locale, item.sentAt)}</p>
+						<p class="text-meta">{item.sender} · {timeIn(ctx.tz, locale, item.sentAt)}</p>
 						{#if item.text}<p class="text-sm whitespace-pre-wrap">{item.text}</p>{/if}
 						{#if item.photos.length > 0}
 							<Grid minimum="compact" gap="xs">
@@ -234,7 +235,7 @@
 									<button
 										type="button"
 										aria-label={t('component.open_photo', { name: photo.name })}
-										onclick={() => onOpen(photo)}
+										onclick={() => on_open(photo)}
 									>
 										<Frame ratio="square" class="rounded-md"
 											><img src={photo.url} alt={photo.name} loading="lazy" /></Frame

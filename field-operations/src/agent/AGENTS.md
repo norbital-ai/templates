@@ -20,7 +20,6 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 ## Surfaces
 
 - Apps: `field_ops_contractor`, `field_ops_controller`
-- Kiosks: none
 - Automations: `inspect_photo_evidence`, `job_assignments_import_work_orders`, `review_job_assignment_suspicion`, `site_handover`, `suspicious_activity_logs_resolve`
 - Policies: `field_ops_contractor`, `field_ops_controller`, `field_ops_whatsapp`, `suspicion_review_automation`
 - Custom fields: `photo_source`

@@ -1,11 +1,11 @@
 import { automation } from '@norbital-ai/bolt';
 import { Refusal } from '@norbital-ai/bolt/errors';
 
-export default automation('suspicious_activity_logs_resolve', {
+export default automation({
 	description: 'Close this finding with the controller’s conclusion.',
 	policies: ['field_ops_controller'],
 	input: {
-		finding: { kind: 'id', of: 'suspicious_activity_logs' },
+		finding: { kind: 'ref', to: 'suspicious_activity_logs' },
 		resolution: { kind: 'text' }
 	},
 	run: function* ({ finding, resolution }, ctx) {
@@ -17,11 +17,10 @@ export default automation('suspicious_activity_logs_resolve', {
 			suspicious_activity_logs: { where: { id: { eq: finding } }, fields: ['revision'], limit: 1 }
 		});
 		if (target === undefined) return yield* new Refusal({ message: 'The finding is unavailable.' });
-		yield* ctx.act(
-			'suspicious_activity_logs.update',
-			[
+		yield* ctx.act({
+			'suspicious_activity_logs.update': [
 				{
-					target: target.id,
+					target: { id: target.id, revision: target.revision },
 					set: {
 						resolution,
 						resolved_at: ctx.now,
@@ -32,8 +31,7 @@ export default automation('suspicious_activity_logs_resolve', {
 								: null
 					}
 				}
-			],
-			{ observed: { [target.id]: target.revision } }
-		);
+			]
+		});
 	}
 });

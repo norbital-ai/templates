@@ -24,41 +24,38 @@ const JOB_FIELDS = [
 export default policy({
 	description:
 		'Controller access to dispatch records, private review records, and immutable communication or AI audit ledgers.',
-	capabilities: { apps: ['field_ops_controller', 'field_ops_contractor'] },
-	automations: [
-		'review_job_assignment_suspicion',
-		'site_handover',
-		'job_assignments_import_work_orders',
-		'suspicious_activity_logs_resolve'
-	],
+	capabilities: {
+		apps: ['field_ops_controller', 'field_ops_contractor'],
+		automations: [
+			'review_job_assignment_suspicion',
+			'site_handover',
+			'job_assignments_import_work_orders',
+			'suspicious_activity_logs_resolve'
+		]
+	},
 	grants: {
-		sites: { read: true, create: true, update: true, delete: true },
+		sites: { outputs: { default: true }, create: true, update: true, delete: true },
 		job_assignments: {
-			read: true,
+			outputs: { default: true },
 			create: true,
 			update: {
 				columns: {
-					job_assignments: JOB_FIELDS,
-					'job_assignments.photo_evidence': ['photo', 'source'],
-					'job_assignments.communication_logs': [
-						'message',
-						'sent_at',
-						'sender',
-						'source_message_id'
-					]
+					fields: JOB_FIELDS,
+					photo_evidence: { fields: ['photo', 'source'] },
+					communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
 				}
 			},
 			delete: true
 		},
 		suspicious_activity_logs: {
-			read: true,
+			outputs: { default: true },
 			create: true,
 			update: true
 		},
-		photo_evidence: { read: true, create: true, update: true, delete: true },
-		communication_logs: { read: true, create: true },
-		suspicion_reviews: { read: true, create: true },
-		sys_user: { read: true }
+		photo_evidence: { outputs: { default: true }, create: true, update: true, delete: true },
+		communication_logs: { outputs: { default: true }, create: true },
+		suspicion_reviews: { outputs: { default: true }, create: true },
+		sys_user: { outputs: { default: true } }
 	},
 	limits: { act: '600/min', read: '600/min', agent: '100/h' }
 });

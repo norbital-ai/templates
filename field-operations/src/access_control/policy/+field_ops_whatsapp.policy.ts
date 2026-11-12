@@ -12,21 +12,16 @@ export default policy({
 		'The WhatsApp envoy may read every site and job assignment and update any one: its status, completion and summary, the photos sent and the messages they came in.',
 	grants: {
 		job_assignments: {
-			read: true,
+			outputs: { default: true },
 			update: {
 				columns: {
-					job_assignments: ['status', 'completed_at', 'summary'],
-					'job_assignments.photo_evidence': ['photo', 'source'],
-					'job_assignments.communication_logs': [
-						'message',
-						'sent_at',
-						'sender',
-						'source_message_id'
-					]
+					fields: ['status', 'completed_at', 'summary'],
+					photo_evidence: { fields: ['photo', 'source'] },
+					communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
 				}
 			}
 		},
-		sites: { read: true },
+		sites: { outputs: { default: true } },
 		communication_logs: { create: true },
 		sys_user: { outputs: { directory: true } }
 	},

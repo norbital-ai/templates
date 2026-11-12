@@ -13,14 +13,14 @@ import {
 } from '../lib/suspicion-review.js';
 /** Reviews in flight at once: bounded by the provider's rate, not by the run. */
 const REVIEWS_AT_ONCE = 6;
-export default automation('review_job_assignment_suspicion', {
+export default automation({
 	description:
-		"Started when an assignment is filed or changes (`job_assignments.effect`): inspects photos awaiting facts (fills each one's sha256, perceptual embedding and integrity flags), then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious. A review that fails stamps nothing and is retried at the next two-hour slot.",
+		"Started when an assignment is filed or changes (`job_assignments` create and update effects): inspects photos awaiting facts (fills each one's sha256, perceptual embedding and integrity flags), then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious. A review that fails stamps nothing and is retried at the next two-hour slot.",
 	input: {
 		/** Runs an inspection starts: the assignments that waited on its photos. */
-		ids: { kind: 'list', of: { kind: 'id', of: 'job_assignments' }, optional: true },
+		ids: { kind: 'ref', to: 'job_assignments', many: true, optional: true },
 		/** Manual runs may target one unchecked assignment. */
-		assignment_id: { kind: 'id', of: 'job_assignments', optional: true }
+		assignment_id: { kind: 'ref', to: 'job_assignments', optional: true }
 	},
 	output: {
 		kind: 'object',

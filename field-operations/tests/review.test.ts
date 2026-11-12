@@ -8,18 +8,14 @@ import { Schema, Effect, Layer, Stream } from 'effect';
  */
 import { readFileSync } from 'node:fs';
 import { expect, layer, vi } from '@effect/vitest';
-import {
-	Ai,
-	Facilities,
-	type CrossAnswer,
-	type FacilityCall,
-	type Json
-} from '@norbital-ai/bolt/engine';
+import { Ai, Facilities, type FacilitiesShape, type Json } from '@norbital-ai/bolt/engine';
 import { Unavailable } from '@norbital-ai/bolt/errors';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import type { Id } from '@norbital-ai/bolt';
-import { committed, CONTROLLER, rows, shared, siteWithJob, type T } from './kit.ts';
+import { committed, CONTROLLER, rows, shared, siteWithJob, target, type T } from './kit.ts';
 import { fixtureId } from './test-runtime.js';
+type FacilityCall = Parameters<FacilitiesShape['dispatch']>[0];
+type CrossAnswer = Effect.Success<ReturnType<FacilitiesShape['dispatch']>>;
 /** A scripted host call: a facility crossing, or the model route's `sys_2` request as the port receives it. */
 type ScriptedCall =
 	| FacilityCall
@@ -138,7 +134,7 @@ const filedPhotos = Effect.fnUntraced(function* (
 	job: Id<'job_assignments'>,
 	names: string[]
 ) {
-	const as = t.as(t.admin);
+	const as = yield* t.as(t.admin);
 	const bytes = readFileSync('tests/fixtures/photo-evidence.jpg');
 	const photos = yield* Effect.forEach(names, (name) =>
 		as.upload('photo_evidence.photo', { name, mime: 'image/jpeg', bytes }).pipe(
@@ -148,7 +144,7 @@ const filedPhotos = Effect.fnUntraced(function* (
 			})
 		)
 	);
-	const filed = yield* as.act('photo_evidence.create', photos);
+	const filed = yield* as.act({ 'photo_evidence.create': photos });
 	if (filed.kind !== 'committed') throw new Error(JSON.stringify(filed));
 	return filed.records.flatMap((record) =>
 		record.model === 'photo_evidence' ? [fixtureId('photo_evidence', record.id)] : []
@@ -185,7 +181,7 @@ layer(scripted)('suspicion review', (it) => {
 				);
 				const id = String(present(file).id);
 				unreadable.add(id);
-				yield* t.runDue();
+				yield* t.run_due();
 				const [facts] = yield* rows(
 					t,
 					`SELECT source, source_key, sha256, photo->>'id' AS file, flags FROM photo_evidence WHERE id = $1`,
@@ -225,14 +221,17 @@ layer(scripted)('suspicion review', (it) => {
 				const infers = () => calls.filter((c) => c._tag === 'ai.sys_2.infer').length;
 				expect(infers()).toBe(1);
 				committed(
-					yield* t
-						.as(t.member(CONTROLLER))
-						.act('job_assignments.update', [
-							{ target: job, set: { summary: 'Installed two bars' } }
-						])
+					yield* (yield* t.as(t.member(CONTROLLER))).act({
+						'job_assignments.update': [
+							{
+								target: yield* target(t, 'job_assignments', job),
+								set: { summary: 'Installed two bars' }
+							}
+						]
+					})
 				);
 				expect(yield* checkedAt(t, job)).toBeNull();
-				yield* t.runDue();
+				yield* t.run_due();
 				expect(yield* checkedAt(t, job)).not.toBeNull();
 				expect(infers()).toBe(2);
 				expect(yield* logs()).toHaveLength(1); // the open finding stands; no second one

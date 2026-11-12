@@ -43,11 +43,11 @@ const WORK_ORDER_ROW = {
 	}
 } as const;
 
-export default automation('job_assignments_import_work_orders', {
+export default automation({
 	description:
 		'Creates job assignments from a work-order sheet, matching existing sites and skipping filed rows. The complete sheet is checked before sites and jobs commit together.',
 	policies: ['field_ops_controller'],
-	input: { rows: { kind: 'list', min: 1, max: 5000, of: WORK_ORDER_ROW } },
+	input: { rows: { ...WORK_ORDER_ROW, many: true, min_items: 1, max_items: 5000 } },
 	output: {
 		kind: 'object',
 		fields: { created: { kind: 'int' }, sites: { kind: 'int' }, skipped: { kind: 'int' } }
@@ -164,13 +164,11 @@ export default automation('job_assignments_import_work_orders', {
 			job_assignments: site.jobs
 		}));
 		// Fresh sites carry their own jobs; the other jobs name existing sites. Both settle together.
-		if (newSites.length > 0 && onSites.length > 0)
-			yield* ctx.act.many([
-				{ callable: 'sites.create', input: newSites },
-				{ callable: 'job_assignments.create', input: onSites }
-			]);
-		else if (newSites.length > 0) yield* ctx.act('sites.create', newSites);
-		else if (onSites.length > 0) yield* ctx.act('job_assignments.create', onSites);
+		if (newSites.length > 0 || onSites.length > 0)
+			yield* ctx.act({
+				...(newSites.length > 0 ? { 'sites.create': newSites } : {}),
+				...(onSites.length > 0 ? { 'job_assignments.create': onSites } : {})
+			});
 		return { created: rows.length - skipped, sites: fresh.size, skipped };
 	}
 });

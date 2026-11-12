@@ -1,7 +1,11 @@
 import { Result } from 'effect';
+import type { MessageKey } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
+import catalog from '../i18n/+messages.js';
+/** Whether `key` is one of the workspace's messages, such as an enum value's `models.<model>.fields.<field>.<value>`. */
+export const isMessageKey = (key: string): key is MessageKey => Object.hasOwn(catalog, key);
 /**
- * Readings of an instant in the workspace zone, which a page takes from the kit (`useKinds().zone`), never a zone of
+ * Readings of an instant in the workspace zone, which a page takes from its context (`ctx.tz`), never a zone of
  * its own. A stored value on screen is the kit's (`Show`, `format`, a record sheet's field-list `subtitle`).
  */
 /** The calendar day of an instant in `zone`, `YYYY-MM-DD`. */

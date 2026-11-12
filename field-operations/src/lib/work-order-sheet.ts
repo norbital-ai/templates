@@ -51,7 +51,7 @@ export const decodeWorkOrders = Effect.fnUntraced(function* (
 		});
 	return decoded.rows.map((row): Row => ({
 		...row,
-		latitude: row.latitude?.toNumber() ?? null,
-		longitude: row.longitude?.toNumber() ?? null
+		latitude: row.latitude?.to_number() ?? null,
+		longitude: row.longitude?.to_number() ?? null
 	}));
 });

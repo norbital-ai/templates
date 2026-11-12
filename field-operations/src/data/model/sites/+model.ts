@@ -1,4 +1,5 @@
-import { model, type Point, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type Point, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/sites.ts';
 import * as Effect from 'effect/Effect';
 import { siteKey } from '../../../lib/site-key.js';
 const columns = [
@@ -69,7 +70,7 @@ const placed = Effect.fnUntraced(function* (
 	const keys = places.map((place) => siteKey(place.name, place.unit_number));
 	if (new Set(keys).size < keys.length)
 		return yield* ctx.refuse('Two sites in this batch have one address.');
-	const { sites: holders } = yield* ctx.db.query({
+	const { sites: holders } = yield* ctx.query({
 		sites: { where: { site_key: { in: keys } }, fields: ['site_key', 'name'] }
 	});
 	const holderOf = new Map(holders.rows.map((site) => [site.site_key, site]));
@@ -97,10 +98,10 @@ const placed = Effect.fnUntraced(function* (
  * already carries is refused with that site's name, and a site may not move onto another's address. Jobs filed or moved
  * under a site are dispatched and re-keyed by their own callbacks.
  */
-export default model('sites', {
+export default model({
 	description: 'Physical site with tenant and dwelling context. Past jobs hang off the site.',
 	icon: 'lucide:map-pin',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		/** The dispatch system's own code for this site; absent for a site entered here. */
 		site_code: { kind: 'text', optional: true, unique: true },
@@ -120,42 +121,40 @@ export default model('sites', {
 		},
 		floor_area_sqm: { kind: 'decimal', scale: 2, optional: true }
 	},
-	search: { text: ['name', 'address', 'unit_number', 'site_code', 'client_name'] },
-	read: {
-		sites: { fields: 'all' },
-		/** The work at a site: how a message naming an address finds its job (today's, else the next pending). */
-		'sites.job_assignments': { fields: siteJobs }
-	},
+	indexes: { search: { text: ['name', 'address', 'unit_number', 'site_code', 'client_name'] } },
 	outputs: {
+		default: {
+			fields: 'all',
+			/** The work at a site: how a message naming an address finds its job (today's, else the next pending). */
+			job_assignments: { fields: siteJobs }
+		},
 		/** A contractor's view of the sites they work at: the place and the dwelling, never its key. */
 		contractor: {
-			sites: {
-				fields: [
-					'site_code',
-					'name',
-					'location',
-					'address',
-					'unit_number',
-					'client_name',
-					'house_type',
-					'floor_area_sqm'
-				]
-			},
-			'sites.job_assignments': { fields: siteJobs }
+			fields: [
+				'site_code',
+				'name',
+				'location',
+				'address',
+				'unit_number',
+				'client_name',
+				'house_type',
+				'floor_area_sqm'
+			],
+			job_assignments: { fields: siteJobs }
 		}
 	},
 	create: {
-		columns: { sites: columns, 'sites.job_assignments': jobs },
-		transform: function* (rows, ctx) {
+		columns: { fields: columns, job_assignments: { fields: jobs } },
+		transform: function* (changes, ctx) {
 			const derived = yield* placed(
-				rows.map((set) => ({ set, before: undefined })),
+				changes.map(({ set }) => ({ set, before: undefined })),
 				ctx
 			);
-			return rows.map((row, i) => ({ ...row, ...derived[i] }));
+			return changes.map(({ set }, i) => ({ ...set, ...derived[i] }));
 		}
 	},
 	update: {
-		columns: { sites: columns, 'sites.job_assignments': jobs },
+		columns: { fields: columns, job_assignments: { fields: jobs } },
 		transform: function* (changes, ctx) {
 			// from the site's side a job is only filed or moved here; its own update changes it
 			const rewrite = changes.findIndex(

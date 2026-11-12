@@ -4,7 +4,7 @@
 	let { photo = $bindable() }: { photo: { name: string; url: string } | null } = $props();
 </script>
 
-<Dialog.Root open={photo !== null} onOpenChange={(next) => !next && (photo = null)}>
+<Dialog.Root open={photo !== null} on_open_change={(next: boolean) => !next && (photo = null)}>
 	<Dialog.Content class="max-w-5xl">
 		{#if photo}
 			<Dialog.Header><Dialog.Title>{photo.name}</Dialog.Title></Dialog.Header>

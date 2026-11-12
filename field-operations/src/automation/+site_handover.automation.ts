@@ -43,13 +43,13 @@ const csv = (
  * reads with dispatch's authority (`field_ops_controller`). `location` keeps the downstream contract's `{ geometry, formatted_address }`
  * shape.
  */
-export default automation('site_handover', {
+export default automation({
 	description:
 		'Bundles each selected site with its dispatched jobs and photo evidence into one JSON file plus a CSV per table, for handover to another system.',
-	input: { ids: { kind: 'list', of: { kind: 'id', of: 'sites' }, min: 1 } },
+	input: { ids: { kind: 'ref', to: 'sites', many: true, min_items: 1 } },
 	output: {
 		kind: 'object',
-		fields: { files: { kind: 'file', accept: ['*/*'], max: '20MiB', multiple: true } }
+		fields: { files: { kind: 'file', accept: ['*/*'], max: '20MiB', many: true } }
 	},
 	policies: ['field_ops_controller'],
 	run: function* ({ ids }, ctx) {

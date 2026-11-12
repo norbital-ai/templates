@@ -1,10 +1,10 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../../.norbital/models/photo_evidence.ts';
 import {
 	photoSourceKey,
 	photoSummary,
 	uninspectedPhotoFacts
 } from '../../../../../lib/photo-integrity.js';
-const PROBE = { vector: { kind: 'list', of: { kind: 'number' } } } as const;
+const PROBE = { vector: { kind: 'number', many: true } } as const;
 /**
  * One photo filed against one job assignment, with its integrity facts. A photo is born
  * uninspected (`sha256` empty, a zero `perceptual_embedding`); the suspicion review fills the facts from
@@ -15,11 +15,11 @@ const PROBE = { vector: { kind: 'list', of: { kind: 'number' } } } as const;
  * assignment's update, whose `job_assignments.photo_evidence` layer states the message `source`. Provenance (the file, the
  * parent, the source and its key) never changes; the facts may. The indexes read the vectors the review writes (image facts need the host).
  */
-export default model('photo_evidence', {
+export default model({
 	description:
 		'One explicitly selected photo and its deterministic integrity facts, linked to one job assignment. Flags and similarity are evidence for a later AI or human judgement, never suspicion by themselves.',
 	icon: 'lucide:scan-search',
-	label: 'summary',
+	record_label: 'record.summary',
 	fields: {
 		job_assignment_id: {
 			kind: 'ref',
@@ -64,43 +64,41 @@ export default model('photo_evidence', {
 		/** The photo's title: where it came from. */
 		summary: { kind: 'text' }
 	},
-	search: {
-		text: [],
-		indexes: {
-			pdq: {
-				description: 'Photos nearest a PDQ vector: near-duplicates of the same pixels.',
-				dim: 256,
-				metric: 'l2',
-				vector: 'perceptual_embedding',
-				input: PROBE,
-				probe: (input) => ({ vector: input.vector })
-			},
-			scene: {
-				description:
-					'Photos nearest a scene embedding: the same place photographed again, cropped or re-shot.',
-				dim: 256,
-				metric: 'cosine',
-				vector: 'scene_embedding',
-				input: PROBE,
-				probe: (input) => ({ vector: input.vector })
-			}
+	indexes: {
+		pdq: {
+			description: 'Photos nearest a PDQ vector: near-duplicates of the same pixels.',
+			dim: 256,
+			metric: 'l2',
+			vector: 'perceptual_embedding',
+			input: PROBE,
+			probe: (input) => ({ vector: input.vector })
+		},
+		scene: {
+			description:
+				'Photos nearest a scene embedding: the same place photographed again, cropped or re-shot.',
+			dim: 256,
+			metric: 'cosine',
+			vector: 'scene_embedding',
+			input: PROBE,
+			probe: (input) => ({ vector: input.vector })
 		}
 	},
-	read: {
-		photo_evidence: { fields: 'all' },
-		/**
-		 * The job a photo was filed against: its title (the review panel's other-assignment photos) and its site (a
-		 * `where` hop through this layer, e.g. the site handover).
-		 */
-		'photo_evidence.job_assignment_id': { fields: ['title', 'site_id'] }
-	},
 	outputs: {
+		default: {
+			fields: 'all',
+			/**
+			 * The job a photo was filed against: its title (the review panel's other-assignment photos) and its site (a
+			 * `where` hop through this layer, e.g. the site handover).
+			 */
+			job_assignment_id: { fields: ['title', 'site_id'] }
+		},
 		/** A contractor's view of their photos: the picture and its summary, never its forensic facts. */
-		contractor: { photo_evidence: { fields: ['job_assignment_id', 'photo', 'summary'] } }
+		contractor: { fields: ['job_assignment_id', 'photo', 'summary'] }
 	},
 	create: {
-		columns: { photo_evidence: ['job_assignment_id', 'photo'] },
-		transform: function* (rows, ctx) {
+		columns: { fields: ['job_assignment_id', 'photo'] },
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ set }) => set);
 			const orphan = rows.findIndex((row) => row.job_assignment_id == null);
 			if (orphan >= 0)
 				return yield* ctx.refuse('Photo evidence must reference a job assignment.', {
@@ -116,11 +114,15 @@ export default model('photo_evidence', {
 					...uninspectedPhotoFacts()
 				};
 			});
+		},
+		// a filed photo is born uninspected: the sweep fills its facts (the filer may start it, `capabilities.automations`)
+		effect: function* (_changes, ctx) {
+			yield* ctx.schedule('inspect_photo_evidence', {}, { key: 'inspect_photo_evidence' });
 		}
 	},
 	update: {
 		columns: {
-			photo_evidence: [
+			fields: [
 				'sha256',
 				'inspection_failed_at',
 				'inspection_failure_reason',
@@ -132,11 +134,5 @@ export default model('photo_evidence', {
 			]
 		}
 	},
-	delete: {},
-	effect: {
-		// a filed photo is born uninspected: the sweep fills its facts (the filer may start it, `policy.automations`)
-		created: function* (_rows, ctx) {
-			yield* ctx.schedule('inspect_photo_evidence', {}, { key: 'inspect_photo_evidence' });
-		}
-	}
+	delete: {}
 });

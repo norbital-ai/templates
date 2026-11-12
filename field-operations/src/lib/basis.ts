@@ -7,8 +7,8 @@ const point = {
 } as const;
 const identity = { kind: 'text' } as const;
 const nullableText = { kind: 'text', optional: true } as const;
-const texts = { kind: 'list', of: { kind: 'text' } } as const;
-const photo = { kind: 'id', of: 'photo_evidence' } as const;
+const texts = { kind: 'text', many: true } as const;
+const photo = { kind: 'ref', to: 'photo_evidence' } as const;
 /** The stored evidence language, shared by inference reviews and findings. */
 const REVIEW_BASIS_FIELDS = {
 	assignment: {
@@ -46,43 +46,37 @@ const REVIEW_BASIS_FIELDS = {
 		}
 	},
 	photos: {
-		kind: 'list',
-		of: {
-			kind: 'object',
-			fields: {
-				id: identity,
-				file_id: identity,
-				sha256: identity,
-				flags: photos.spec.fields.flags,
-				matched_evidence_ids: texts,
-				created_at: nullableText
-			}
+		kind: 'object',
+		many: true,
+		fields: {
+			id: identity,
+			file_id: identity,
+			sha256: identity,
+			flags: photos.spec.fields.flags,
+			matched_evidence_ids: texts,
+			created_at: nullableText
 		}
 	},
 	candidates: {
-		kind: 'list',
-		of: {
-			kind: 'object',
-			fields: {
-				id: photo,
-				file_id: identity,
-				sha256: identity,
-				flags: photos.spec.fields.flags,
-				distance: { kind: 'number' },
-				matched_photo_ids: { kind: 'list', of: photo }
-			}
+		kind: 'object',
+		many: true,
+		fields: {
+			id: photo,
+			file_id: identity,
+			sha256: identity,
+			flags: photos.spec.fields.flags,
+			distance: { kind: 'number' },
+			matched_photo_ids: { ...photo, many: true }
 		}
 	},
 	communications: {
-		kind: 'list',
-		of: {
-			kind: 'object',
-			fields: {
-				source_message_id: identity,
-				sender: identity,
-				sent_at: identity,
-				message: identity
-			}
+		kind: 'object',
+		many: true,
+		fields: {
+			source_message_id: identity,
+			sender: identity,
+			sent_at: identity,
+			message: identity
 		}
 	}
 } as const;

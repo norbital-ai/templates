@@ -1,6 +1,6 @@
 import { present } from './test-runtime.js';
 import type { Id } from '@norbital-ai/bolt';
-import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
+import { JobResult, TestWorkspace, type Caller } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { createHash } from 'node:crypto';
 /**
@@ -13,17 +13,21 @@ import { fixtureId } from './test-runtime.js';
 import {
 	committed,
 	completedRun,
+	CONTRACTOR,
 	CONTROLLER,
 	person,
+	rootRows,
 	rows,
 	shared,
 	siteWithJob,
-	type T
+	target
 } from './kit.ts';
 /** One site as the caller reads it, or `null`. */
-const siteRow = Effect.fnUntraced(function* (as: ReturnType<T['as']>, site: Id<'sites'>) {
-	const { sites } = yield* as.query({ sites: { where: { id: { eq: site } }, limit: 1 } });
-	return sites.rows[0] ?? null;
+const siteRow = Effect.fnUntraced(function* (as: Caller, site: Id<'sites'>) {
+	return (
+		rootRows(yield* as.query({ sites: { where: { id: { eq: site } }, limit: 1 } }), 'sites')[0] ??
+		null
+	);
 });
 it('a Singapore address is its postal code plus its unit, spelled one way', () => {
 	expect(siteKey('58 Kismis Avenue, Singapore 598235')).toBe('598235');
@@ -37,17 +41,24 @@ layer(shared())('field-operations rules', (it) => {
 	it.effect('an address already filed is refused with the site that carries it', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const as = t.as(t.member(CONTROLLER));
+			const as = yield* t.as(t.member(CONTROLLER));
 			committed(
-				yield* as.act('sites.create', [
-					{ location: { lat: 1.34, lng: 103.77 }, address: '58 Kismis Ave, S598235' }
-				])
+				yield* as.act({
+					'sites.create': [
+						{ location: { lat: 1.34, lng: 103.77 }, address: '58 Kismis Ave, S598235' }
+					]
+				})
 			);
 			expect(
 				yield* Effect.flip(
-					as.act('sites.create', [
-						{ location: { lat: 1.34, lng: 103.77 }, address: '58 Kismis Avenue, Singapore 598235' }
-					])
+					as.act({
+						'sites.create': [
+							{
+								location: { lat: 1.34, lng: 103.77 },
+								address: '58 Kismis Avenue, Singapore 598235'
+							}
+						]
+					})
 				)
 			).toMatchObject({
 				_tag: 'ActRefused',
@@ -58,14 +69,14 @@ layer(shared())('field-operations rules', (it) => {
 	it.effect('requires a location on writes and derives the title, keeping the unit', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const as = t.as(t.member(CONTROLLER));
+			const as = yield* t.as(t.member(CONTROLLER));
 			expect(
-				yield* Effect.flip(as.act('sites.create', [{ address: 'Unresolved address' }]))
+				yield* Effect.flip(as.act({ 'sites.create': [{ address: 'Unresolved address' }] }))
 			).toMatchObject({ _tag: 'ActRefused', message: 'Choose a location for the site.' });
 			const [created] = committed(
-				yield* as.act('sites.create', [
-					{ location: { lat: 1.34, lng: 103.77 }, unit_number: '05-12' }
-				])
+				yield* as.act({
+					'sites.create': [{ location: { lat: 1.34, lng: 103.77 }, unit_number: '05-12' }]
+				})
 			);
 			const site = fixtureId('sites', created);
 			expect(yield* siteRow(as, site)).toMatchObject({
@@ -73,15 +84,17 @@ layer(shared())('field-operations rules', (it) => {
 				unit_number: '05-12'
 			});
 			committed(
-				yield* as.act('sites.update', [
-					{
-						target: site,
-						set: {
-							location: { lat: 1.35, lng: 103.78 },
-							address: 'Resolved map address, Singapore 598236'
+				yield* as.act({
+					'sites.update': [
+						{
+							target: yield* target(t, 'sites', site),
+							set: {
+								location: { lat: 1.35, lng: 103.78 },
+								address: 'Resolved map address, Singapore 598236'
+							}
 						}
-					}
-				])
+					]
+				})
 			);
 			expect(yield* siteRow(as, site)).toMatchObject({
 				name: 'Resolved map address, Singapore 598236',
@@ -95,30 +108,40 @@ layer(shared())('field-operations rules', (it) => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const { job } = yield* siteWithJob(t);
-				const as = t.as(t.member(CONTROLLER));
+				const as = yield* t.as(t.member(CONTROLLER));
 				const read = Effect.fnUntraced(function* () {
 					return present((yield* rows(t, `SELECT * FROM job_assignments WHERE id = $1`, [job]))[0]);
 				});
-				const [bob] = yield* rows(
-					t,
-					`INSERT INTO sys_user (id, email, name, kind, phone) VALUES (gen_random_uuid(), 'Bob@X.test', 'Bob', 'staff', '+6581234567') RETURNING id`
-				);
+				const bob = yield* person(t, CONTRACTOR, '+6581234567');
 				// a local number names the member stored with +65
 				committed(
-					yield* as.act('job_assignments.update', [
-						{ target: job, set: { assignee_contact: '8123 4567' } }
-					])
+					yield* as.act({
+						'job_assignments.update': [
+							{
+								target: yield* target(t, 'job_assignments', job),
+								set: { assignee_contact: '8123 4567' }
+							}
+						]
+					})
 				);
-				expect(yield* read()).toMatchObject({ status: 'pending', assignee_user_id: bob?.id });
+				expect(yield* read()).toMatchObject({ status: 'pending', assignee_user_id: bob.id });
 				const dispatched = (yield* read()).dispatched_at;
 				expect(dispatched).not.toBeNull();
 				committed(
-					yield* as.act('job_assignments.update', [{ target: job, set: { status: 'completed' } }])
+					yield* as.act({
+						'job_assignments.update': [
+							{ target: yield* target(t, 'job_assignments', job), set: { status: 'completed' } }
+						]
+					})
 				);
 				const completed = (yield* read()).completed_at;
 				t.clock.advance('1h');
 				committed(
-					yield* as.act('job_assignments.update', [{ target: job, set: { summary: 'done' } }])
+					yield* as.act({
+						'job_assignments.update': [
+							{ target: yield* target(t, 'job_assignments', job), set: { summary: 'done' } }
+						]
+					})
 				);
 				expect(yield* read()).toMatchObject({
 					dispatched_at: dispatched,
@@ -132,11 +155,13 @@ layer(shared())('field-operations rules', (it) => {
 			const t = yield* TestWorkspace;
 			const { job } = yield* siteWithJob(t);
 			const controller = yield* person(t, CONTROLLER);
-			const as = t.as(controller);
+			const as = yield* t.as(controller);
 			const [createdFinding] = committed(
-				yield* as.act('suspicious_activity_logs.create', [
-					{ job_assignment_id: job, reason: 'Two sites in one set' }
-				])
+				yield* as.act({
+					'suspicious_activity_logs.create': [
+						{ job_assignment_id: job, reason: 'Two sites in one set' }
+					]
+				})
 			);
 			const finding = fixtureId('suspicious_activity_logs', createdFinding);
 			const stored = present(
@@ -157,10 +182,11 @@ layer(shared())('field-operations rules', (it) => {
 				`human:${job}:${createHash('sha256').update(basis).digest('hex')}`
 			);
 			const resolve = Effect.fnUntraced(function* (resolution: string) {
-				const started = yield* as.start('suspicious_activity_logs_resolve', {
-					finding,
-					resolution
-				});
+				const started = yield* as.run(
+					'suspicious_activity_logs_resolve',
+					{ finding, resolution },
+					JobResult
+				);
 				if (started.kind !== 'committed') throw new Error('The finding resolution did not start.');
 				return yield* completedRun(t, started.output.id);
 			});
@@ -180,9 +206,11 @@ layer(shared())('field-operations rules', (it) => {
 			});
 			expect(
 				yield* Effect.flip(
-					as.act('suspicious_activity_logs.create', [
-						{ job_assignment_id: job, origin: 'automation', reason: 'x' }
-					])
+					as.act({
+						'suspicious_activity_logs.create': [
+							{ job_assignment_id: job, origin: 'automation', reason: 'x' }
+						]
+					})
 				)
 			).toMatchObject({
 				_tag: 'ActRefused',

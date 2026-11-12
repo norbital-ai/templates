@@ -15,17 +15,17 @@ export default policy({
 		sites: {
 			outputs: {
 				contractor: {
-					sites: { where: { job_assignments: { some: OWN } } },
+					where: { job_assignments: { some: OWN } },
 					// a site's other jobs are not theirs
-					'sites.job_assignments': { where: OWN }
+					job_assignments: { where: OWN }
 				}
 			}
 		},
 		job_assignments: {
-			outputs: { contractor: { job_assignments: { where: OWN } } },
+			outputs: { contractor: { where: OWN } },
 			update: {
 				columns: {
-					job_assignments: [
+					fields: [
 						'status',
 						'completed_at',
 						'amount_charged',
@@ -34,23 +34,23 @@ export default policy({
 						'summary'
 					]
 				},
-				check: function* (changes, ctx) {
+				verdict: function* (changes, ctx) {
 					const me = memberOf(ctx.actor);
 					const other = changes.findIndex(({ before }) => before.assignee_user_id !== me);
 					return other < 0
 						? ctx.allow()
-						: ctx.deny('Only the jobs assigned to you can be updated.', { row: other });
+						: yield* ctx.refuse('Only the jobs assigned to you can be updated.', { row: other });
 				}
 			}
 		},
 		photo_evidence: {
-			outputs: { contractor: { photo_evidence: { where: OWN_JOB } } },
+			outputs: { contractor: { where: OWN_JOB } },
 			create: {
-				columns: { photo_evidence: ['job_assignment_id', 'photo'] }
+				columns: { fields: ['job_assignment_id', 'photo'] }
 			}
 		},
 		communication_logs: {
-			outputs: { contractor: { communication_logs: { where: OWN_JOB } } },
+			outputs: { contractor: { where: OWN_JOB } },
 			create: true
 		}
 	},

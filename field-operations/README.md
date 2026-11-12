@@ -39,7 +39,7 @@ record: a user whose team holds `field_ops_contractor`.
 | Policy                        | What it grants                                                                                                                                                                                                                                                            |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `field_ops_controller`        | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                       |
-| `field_ops_contractor`        | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + scoped `update`, `assignee_user_id = actor.id`); own evidence (`read` + `create`).                                                                                           |
+| `field_ops_contractor`        | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`contractor` output + scoped `update`, `assignee_user_id = actor.id`); own evidence (`contractor` output + `create`).                                                                 |
 | `field_ops_whatsapp`          | The WhatsApp envoy's declared policy: read sites and assignments; update status, completion and summary on any one; file new photo and message rows under it. This policy grants no other writes, deletes, evidence or log reads, reviews, suspicion data or apps.        |
 | `suspicion_review_automation` | The review automation's authority: the photo corpus it inspects (facts for an uninspected photo, or a scene backfilled on a hashed photo without one), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review. |
 
@@ -59,7 +59,7 @@ returns to the surrounding board or table.
 | File and inspect evidence | Contractor, Envoy and controller | Photo record or WhatsApp report, then the job's **Conversation** and **Suspicion logs** tabs.                      |
 | Review and resolve        | Controller                       | **Suspicion review**, then **Resolve**: inspect the evidence basis and record the controller's conclusion.         |
 | Hand over sites           | Controller                       | **Sites → Site handover**: download the selected sites' JSON and CSV outputs from the automation run.              |
-| Configure the Envoy       | Administrator                    | **System → Integrations**: connect WhatsApp, select the deployed Envoy, and inspect its messages.                  |
+| Configure the Envoy       | Administrator                    | **Settings → Envoys**: create the Envoy, connect WhatsApp from its card, and inspect its messages.                 |
 
 ### 1. Prepare the people who dispatch and carry out work
 
@@ -238,10 +238,15 @@ records rather than changing their workflow state.
 
 ### 9. Connect and operate the WhatsApp Envoy
 
-An administrator opens **More → System → Integrations**
-(`/settings/integrations`). Under **Agent channels**, **Norbital · Private** is the
-`field_ops_whatsapp` source role. This template already declares its named WhatsApp connection;
-use that instance rather than creating another channel for the same Envoy.
+An administrator first creates the Envoy under **Settings → Envoys**: an active, private envoy
+named **Norbital** holding the `field_ops_whatsapp` policy, with delegation disabled, triage on,
+group messages `mention_or_reply`, and this task:
+
+> You answer questions about job assignments on WhatsApp and keep them up to date from what people report. Handle messages in the order they arrived. When a message needs work (a report, a photo, an update), first reply with one short line saying what you are about to do, e.g. "Got it — attaching this to the 4 Ubi View job.", then do the work, then confirm briefly, one line per job. Find the job with one read of sites (where address like the words they name) with its job_assignments layer (order_by scheduled_for); take the site's job scheduled today, else its nearest pending job. Ask only when two sites or two jobs fit equally, and never invent one. One photo goes to exactly one job. Then make one job_assignments.update on that job carrying everything the report says: status completed only when they say the work is done (otherwise leave status out) and summary if they describe what was done; photo_evidence.create with one row per photo — photo is the attachment FileRef from the message files, source is {kind: "message", integration: "whatsapp", conversation_id: the message's chat, message_id: its message, attachment_id: the attachment file id, sender_id: its sender, sent_at: its time}; and communication_logs.create with one row per message about this work that has text — message, sent_at, sender and source_message_id: its message. Photos are filed only through that nested create, never photo_evidence directly: a direct create drops the message source. Confirm only after the update succeeds. You never assign, change or remove a job's contractor and never offer to: if someone asks, reply that a controller assigns contractors in the dispatch app. When you report a job, state only fields you read — read assignee_user_id (and the person it names) before saying who holds the work.
+
+Its inline card then offers the WhatsApp channel; connect that one instance rather than creating
+another channel for the same Envoy. **More → System → Integrations** (`/settings/integrations`)
+lists it under **Agent channels**.
 
 ![A connected WhatsApp agent channel with Manage, Disconnect and its import start (account number redacted)](docs/screenshots/14-envoy-integrations.jpg)
 
@@ -261,9 +266,9 @@ use that instance rather than creating another channel for the same Envoy.
    Other providers display their own required credentials and callback instructions. Wait for
    **Connected**, and confirm the displayed account is the intended one.
 3. In the instance's **Configuration** tab, verify **Envoy** is **Norbital** and **Active** is
-   enabled; **Save** any changes. The source supplies the named connection and its default
-   Envoy, while a saved pause survives a rebuild. The connection owns pairing, the deployed Envoy and pause state; the source
-   role owns its task, policies and conversation behaviour.
+   enabled; **Save** any changes. A saved pause survives a rebuild. The connection owns pairing,
+   the deployed Envoy and pause state; the Envoy row owns its task, policies and conversation
+   behaviour.
 4. Finish the member's Mobile number setup described above. A direct message from an unknown
    number receives the fixed not-recognised notice and does not start a model turn.
 5. From a linked member, report the existing job by site and work, for example: “The fixture
@@ -286,14 +291,14 @@ The Envoy's task is to update existing assignments. Its own policy grants no job
 deletion or reassignment. A DM combines the linked member's authority with the Envoy's policy,
 so a controller or administrator's DM can have broader permissions. A group turn uses only the
 Envoy policy, which permits updating any assignment. In groups, a mention or reply is a direct trigger.
-This template also enables triage with `triage: {}`, so ordinary linked group messages can be
+The Envoy also enables triage (`triage: true`), so ordinary linked group messages can be
 considered for a response; absence of a mention does not guarantee silence. Delegation is disabled.
 
 Use **Test connection** when the provider offers it, supplying the destination it asks for.
 After connecting, use **Manage → Connection → Import start → Apply import start** to change the
 boundary for future imports. Previously stored messages remain available.
-**Reconnect** repeats setup; **Disconnect** unpairs the session. A source-named connection remains
-in the workspace after disconnect. To pause processing, turn **Active** off and save; enable it
+**Reconnect** repeats setup; **Disconnect** unpairs the session. The connection remains in the
+workspace after disconnect. To pause processing, turn **Active** off and save; enable it
 again to resume. This private Envoy's Agent transcripts are available to linked members who have
 participated in the conversation. A group transcript includes shared group history; it is not
 automatically listed for every contractor. Administrators can inspect the integration's raw
@@ -368,11 +373,11 @@ site → job assignment → user (the assignee)
 
 ## Automations and integrations
 
-| Automation                        | Trigger                                                          | What it does                                                                                                                 |
-| --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `inspect_photo_evidence`          | scheduled by `photo_evidence.effect.created`                     | Fills each pending photo's SHA-256, PDQ and scene embeddings, integrity flags and near-duplicate matches                     |
-| `review_job_assignment_suspicion` | scheduled by `job_assignments.effect`; manual by `assignment_id` | Inspects photos still pending, then reviews every unchecked assignment with AI; logs a suspicion only when judged suspicious |
-| `site_handover`                   | manual, selected sites                                           | One JSON file per site (site, jobs, photo evidence) plus a CSV per table, for another system                                 |
+| Automation                        | Trigger                                                           | What it does                                                                                                                 |
+| --------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `inspect_photo_evidence`          | scheduled by the `photo_evidence` create effect                   | Fills each pending photo's SHA-256, PDQ and scene embeddings, integrity flags and near-duplicate matches                     |
+| `review_job_assignment_suspicion` | scheduled by `job_assignments` effects; manual by `assignment_id` | Inspects photos still pending, then reviews every unchecked assignment with AI; logs a suspicion only when judged suspicious |
+| `site_handover`                   | manual, selected sites                                            | One JSON file per site (site, jobs, photo evidence) plus a CSV per table, for another system                                 |
 
 ### Photo integrity
 
@@ -397,7 +402,7 @@ requires new evidence so every check runs again.
 - **Scene reuse.** PDQ cannot separate a crop of the same scene from an unrelated pair, so inspection
   also embeds the photo (`ctx.ai.embed` with the `scene` model) into `scene_embedding`, and the
   `scene` search index ranks by cosine. Both indexes read the vector fields the inspection writes
-  (`search.indexes` with `vector: '<field>'`), since image facts need the host. The host maps the
+  (`indexes` entries with `vector: '<field>'`), since image facts need the host. The host maps the
   `scene` embedding model; the review context
   reports `scene_embedding_photos` so a review taken without it is visible rather than silently clear.
 
@@ -417,10 +422,10 @@ a log. The review calls no tools and reads no web page: its inputs are tenant ro
 
 ### The WhatsApp envoy
 
-`field_ops_whatsapp` is a conversational entry point for contractors who already have an active
-workspace account. Its source role is `src/agent/envoy/+field_ops_whatsapp.envoy.ts`, deployed
-on the named WhatsApp instance in `src/+workspace.ts`. Pairing and pause belong to that runtime
-instance. An administrator records the contractor's WhatsApp number on that account
+The WhatsApp Envoy is a conversational entry point for contractors who already have an active
+workspace account. It is a `sys_envoy` row holding the `field_ops_whatsapp` policy (step 9 above),
+deployed on a WhatsApp instance through that instance's `envoy` field. Pairing and pause belong to
+that runtime instance. An administrator records the contractor's WhatsApp number on that account
 (Command center → People); an unknown number is told it is not recognised and gets no model run.
 
 The envoy's whole job is to bring a contractor's **existing** assignments up to date from what
@@ -451,11 +456,10 @@ The envoy's authority depends on the conversation:
   job does not itself list that group transcript. Administrators inspect raw channel messages
   through the integration instance.
 
-The `field_ops_whatsapp` connection in `src/+workspace.ts` names an instance of Bolt's built-in
-`whatsapp` integration; an administrator pairs it under **System → Integrations**, and the host's
-WhatsApp provider holds its paired session and delivers inbound messages, each stored once. The
-envoy role `src/agent/envoy/+field_ops_whatsapp.envoy.ts` supplies the policies; the instance's
-envoy field (`sys_integration.envoy`) deploys it there. Bolt matches each sender to the registered
+The WhatsApp connection is an instance of Bolt's built-in `whatsapp` integration; an administrator
+pairs it from the Envoy's card, and the host's WhatsApp provider holds its paired session and
+delivers inbound messages, each stored once. The `sys_envoy` row supplies the policies; the
+instance's envoy field (`sys_integration.envoy`) deploys it there. Bolt matches each sender to the registered
 mobile number on an active member's account. A private DM joins the linked member's current authority
 (the default `dm: 'union'`); a group turn uses the envoy's policy alone. Source teams and native
 member admission determine authority, not a sender-supplied identity or team label.
@@ -466,13 +470,12 @@ what it files on the assignment. The reply goes back through the same instance.
 
 ```text
 src/
-├── +workspace.ts                   Asia/Singapore, SGD, the app order, the AI model classes, the field_ops_whatsapp connection
+├── +workspace.ts                   Asia/Singapore, SGD, the app order, the embedding models
 ├── data/
-│   ├── model/<m>/                  +model.ts (fields and refs, exposure, write callbacks, actions, search indexes) and +representation.svelte
+│   ├── model/<m>/                  +model.ts (fields and refs, outputs, write callbacks and effects, indexes) and +representation.svelte
 │   └── custom_field/photo_source/  where a photo came from: workspace upload or a WhatsApp message
 ├── access_control/                 policy/: the four +<name>.policy.ts; team/+team.ts
 ├── agent/                          +agent.md
-├── agent/envoy/                    +field_ops_whatsapp.envoy.ts
 ├── automation/                     inspect_photo_evidence, review_job_assignment_suspicion, site_handover
 ├── app/                            field_ops_controller (dispatch, sites) and field_ops_contractor (jobs)
 ├── i18n/                           +messages.ts, +zh.messages.ts
@@ -483,7 +486,7 @@ seed/                               +seeder.ts reads the private bank tree `fiel
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
 its job scope, activity, and photo evidence together; opening a site separates upcoming
 work from activity history. Each model's `+model.ts` declares what a caller may submit, and its
-`create.transform`, `update.transform` and `delete.check` carry the domain rules, so they apply to
+`create.transform` and `update.transform` carry the domain rules, so they apply to
 every client, function, and agent — not only the UI:
 
 - A dispatched job must reference an existing site. Every job is `pending` until `completed`; a

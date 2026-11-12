@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../../../.norbital/models/suspicious_activity_logs.ts';
 import * as Effect from 'effect/Effect';
 import { SUSPICION_BASIS } from '../../../../../../lib/basis.js';
 /**
@@ -6,11 +6,11 @@ import { SUSPICION_BASIS } from '../../../../../../lib/basis.js';
  * with an immutable basis; it is closed once, by `resolve`, with all three resolution fields together, and that sentence
  * is the record. The judgement is outside the update columns, so it cannot be rewritten.
  */
-export default model('suspicious_activity_logs', {
+export default model({
 	description:
 		'A suspicion log (finding): an AI or authorized-human suspicion judgement against one job assignment, with immutable evidence basis and an explicit controller resolution.',
 	icon: 'lucide:shield-alert',
-	label: 'reason',
+	record_label: 'record.reason',
 	fields: {
 		/** A job's findings read as its `suspicion_logs` ("jobs with a suspicion log" filters on it). */
 		job_assignment_id: {
@@ -25,8 +25,8 @@ export default model('suspicious_activity_logs', {
 			optional: true
 		},
 		/** The cited photo is a pointer into the evidence, never a hold on it: deleting the photo clears the citation. */
-		evidence_id: { kind: 'ref', to: 'photo_evidence', optional: true, onDelete: 'setNull' },
-		resolved_by: { kind: 'ref', to: 'sys_user', optional: true, onDelete: 'setNull' },
+		evidence_id: { kind: 'ref', to: 'photo_evidence', optional: true, on_delete: 'set_null' },
+		resolved_by: { kind: 'ref', to: 'sys_user', optional: true, on_delete: 'set_null' },
 		/** `<origin>:<assignment>:<sha256(basis)>`, derived: one log per judged basis. */
 		source_key: { kind: 'text', unique: true, hidden: true },
 		origin: { kind: 'enum', values: ['automation', 'human'], default: 'human' },
@@ -36,25 +36,23 @@ export default model('suspicious_activity_logs', {
 		resolution: { kind: 'text', optional: true },
 		resolved_at: { kind: 'instant', optional: true }
 	},
-	index: ['resolved_at'],
-	search: { text: ['reason', 'resolution'] },
-	read: {
-		suspicious_activity_logs: { fields: 'all' },
-		'suspicious_activity_logs.job_assignment_id': { fields: ['title'] },
-		'suspicious_activity_logs.evidence_id': { fields: ['summary'] }
+	indexes: {
+		resolved_at: { on: ['resolved_at'] },
+		search: { text: ['reason', 'resolution'] }
+	},
+	outputs: {
+		default: {
+			fields: 'all',
+			job_assignment_id: { fields: ['title'] },
+			evidence_id: { fields: ['summary'] }
+		}
 	},
 	create: {
 		columns: {
-			suspicious_activity_logs: [
-				'job_assignment_id',
-				'origin',
-				'basis',
-				'review_id',
-				'evidence_id',
-				'reason'
-			]
+			fields: ['job_assignment_id', 'origin', 'basis', 'review_id', 'evidence_id', 'reason']
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ set }) => set);
 			const reviewIds = [
 				...new Set(rows.flatMap((row) => (row.review_id == null ? [] : [row.review_id])))
 			];
@@ -62,7 +60,7 @@ export default model('suspicious_activity_logs', {
 				...new Set(rows.flatMap((row) => (row.evidence_id == null ? [] : [row.evidence_id])))
 			];
 			// one read: the cited reviews and photos
-			const { suspicion_reviews: reviews, photo_evidence: evidence } = yield* ctx.db.query({
+			const { suspicion_reviews: reviews, photo_evidence: evidence } = yield* ctx.query({
 				suspicion_reviews: { where: { id: { in: reviewIds } }, fields: ['job_assignment_id'] },
 				photo_evidence: { where: { id: { in: evidenceIds } }, fields: ['job_assignment_id'] }
 			});
@@ -117,10 +115,28 @@ export default model('suspicious_activity_logs', {
 				out.push({ ...input, origin, basis, source_key: `${origin}:${job}:${digest}` });
 			}
 			return out;
+		},
+		/** A new judgement needs a controller's resolution: every controller hears of it in the app. */
+		effect: function* (changes, ctx) {
+			const logs = changes.map(({ after }) => after);
+			const jobs = (yield* ctx.query({
+				job_assignments: {
+					where: { id: { in: logs.map((log) => log.job_assignment_id) } },
+					fields: ['title']
+				}
+			})).job_assignments;
+			const titleOf = new Map(jobs.rows.map((job) => [job.id, job.title]));
+			yield* ctx.notify(
+				logs.map((log) => ({
+					title: 'Suspicion raised',
+					description: `${titleOf.get(log.job_assignment_id) ?? 'An assignment'}: ${log.reason}`,
+					to: [{ team: 'field_ops_controllers' }, { team: 'contractor_controllers' }]
+				}))
+			);
 		}
 	},
 	update: {
-		columns: { suspicious_activity_logs: ['resolution', 'resolved_at', 'resolved_by'] },
+		columns: { fields: ['resolution', 'resolved_at', 'resolved_by'] },
 		transform: function* (changes, ctx) {
 			for (const [row, { before, set }] of changes.entries()) {
 				if (before.resolved_at != null)
@@ -140,21 +156,5 @@ export default model('suspicious_activity_logs', {
 			}
 			return changes.map(({ set }) => set);
 		}
-	},
-	/** A new judgement needs a controller's resolution: every controller hears of it in the app. */
-	notify: function* (event, ctx) {
-		if (event.kind !== 'write' || event.action !== 'create') return [];
-		const jobs = (yield* ctx.db.query({
-			job_assignments: {
-				where: { id: { in: event.records.map((log) => log.job_assignment_id) } },
-				fields: ['title']
-			}
-		})).job_assignments;
-		const titleOf = new Map(jobs.rows.map((job) => [job.id, job.title]));
-		return event.records.map((log) => ({
-			title: 'Suspicion raised',
-			description: `${titleOf.get(log.job_assignment_id) ?? 'An assignment'}: ${log.reason}`,
-			to: [{ team: 'field_ops_controllers' }, { team: 'contractor_controllers' }]
-		}));
 	}
 });

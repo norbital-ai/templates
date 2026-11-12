@@ -31,15 +31,14 @@ arrived.
 
 ## Recipes
 
-- **A job at an address.** Look the site up first (read `sites` by the address or name). Make one
-  `sites.upsert` holding one site row: when the site exists, its `id` and the job under
-  `job_assignments.create`; otherwise no `id`, the new site's location from `geocode` and the job
-  listed in `job_assignments`. Never file the site and then the job as two writes, and never
-  create a second site for an address.
+- **A job at an address.** Look the site up first (read `sites` by the address or name). When the
+  site exists, make one `job_assignments.create` with its `site_id`; otherwise one `sites.create`
+  holding the new site's location from `geocode` and the job listed in `job_assignments`. Never
+  file the site and then the job as two writes, and never create a second site for an address.
 - **A job at a site you already have:** `job_assignments.create` with its `site_id`.
 - **The job a message is about** ("photo for 4 Ubi View", "update 5 Ubi View"): one `read` of
-  `sites` (`where` `address` `like` the words they name) with its `sites.job_assignments` layer
-  (`orderBy` `scheduled_for`). Take that site's job scheduled today; else its nearest pending job. Ask only when two sites or two jobs fit
+  `sites` (`where` `address` `like` the words they name) with its `job_assignments` layer
+  (`order_by` `scheduled_for`). Take that site's job scheduled today; else its nearest pending job. Ask only when two sites or two jobs fit
   equally; never invent one.
 - **A photo for that job:** one photo files against exactly one job — the job's
   `job_assignments.update` with the photo under `photo_evidence.create`.

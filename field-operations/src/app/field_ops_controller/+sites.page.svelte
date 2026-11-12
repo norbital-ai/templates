@@ -1,9 +1,10 @@
 <script lang="ts">
 	/** Every site: its tenant, dwelling, area and address; a site's record holds its upcoming and past jobs. */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
-	const t = bolt.t;
+	let { ctx }: { ctx: PageContext } = $props();
+	const t = ctx.t;
 </script>
 
 <AppShell
@@ -20,12 +21,12 @@
 				{
 					icon: 'lucide:key-round',
 					name: t('app.field_ops_controller.site_handover'),
-					run: (ids) => bolt.start('site_handover', { ids }),
-					requiresSelection: true
+					run: (ids) => ctx.run('site_handover', { ids }),
+					requires_selection: true
 				}
 			]
 		}}
-		orderBy={{ name: 'asc' }}
+		order_by={{ name: 'asc' }}
 		columns={[
 			'name',
 			{ field: 'client_name', label: t('component.client_tenant') },

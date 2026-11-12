@@ -4,15 +4,9 @@ import { workspace } from '@norbital-ai/bolt';
  * The suspicion review reads photographs (every `sys_2` model is multimodal); `scene` embeds a photo's scene.
  */
 export default workspace({
-	connections: {
-		field_ops_whatsapp: {
-			integration: 'whatsapp',
-			envoy: 'field_ops_whatsapp'
-		}
-	},
 	tz: 'Asia/Singapore',
 	locale: 'en-SG',
 	currency: 'SGD',
 	apps: ['field_ops_controller', 'field_ops_contractor'],
-	ai: { models: ['default'], default: 'default', embeddings: ['scene', 'default'] }
+	ai: { embeddings: ['scene', 'default'] }
 });

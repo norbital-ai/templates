@@ -3,26 +3,19 @@
 	 * A finding: open or resolved, the judgement and the basis it was made on, and the controller's conclusion. An open
 	 * one is closed by resolving it; a person raises one against a job with a reason.
 	 */
-	import { bolt } from '$bolt';
-	import {
-		type RecordView,
-		Field,
-		Form,
-		format,
-		RecordShell,
-		Section,
-		useKinds
-	} from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { type RecordView, Field, Form, format, RecordShell, Section } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import EvidenceBasis from '../../../../../../lib/evidence-basis.svelte';
 	let {
+		ctx,
 		view
 	}: {
+		ctx: PageContext;
 		view: RecordView<'suspicious_activity_logs'>;
 	} = $props();
-	const t = bolt.t;
-	const kinds = useKinds();
+	const t = ctx.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const open = $derived(record?.resolved_at == null);
 </script>
@@ -64,14 +57,14 @@
 				icon="lucide:list-checks"
 				name="basis"
 				title={t('component.suspicion_basis')}
-				defaultOpen={false}
+				default_open={false}
 				size="fill"
 				summary={record.basis?.kind === 'human_judgement'
 					? record.basis.reason
 					: (record.basis?.job.title ?? t('component.not_recorded'))}
 			>
 				{#if record.basis?.kind === 'review'}
-					<EvidenceBasis basis={record.basis} job={record.job_assignment_id} />
+					<EvidenceBasis {ctx} basis={record.basis} job={record.job_assignment_id} />
 				{:else}
 					<p class="text-sm break-words whitespace-pre-wrap">
 						{record.basis?.reason ?? t('component.not_recorded')}
@@ -91,8 +84,8 @@
 						{t('component.suspicion_resolved_at', {
 							instant:
 								format({ kind: 'instant' }, record.resolved_at ?? null, {
-									locale: kinds.locale ?? bolt.locale,
-									...(kinds.zone == null ? {} : { zone: kinds.zone })
+									locale: ctx.locale,
+									zone: ctx.tz
 								}) || '—'
 						})}
 					</p>

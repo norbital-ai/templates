@@ -61,10 +61,11 @@ export function imageFlags(
 	const flags = new Set<PhotoFlag>();
 	const declared = declaredMime.toLowerCase();
 	const expected = FORMAT_MIME[facts.format.toLowerCase()] ?? [];
-	const takenAt = facts.exif.takenAt == null ? Number.NaN : Date.parse(String(facts.exif.takenAt));
+	const taken_at =
+		facts.exif.taken_at == null ? Number.NaN : Date.parse(String(facts.exif.taken_at));
 	if (
 		(!expected.includes(declared) && !UNDECLARED.has(declared)) ||
-		takenAt > Date.parse(String(now)) + 86400000
+		taken_at > Date.parse(String(now)) + 86400000
 	)
 		flags.add('metadata_anomaly');
 	if (/photoshop|lightroom|gimp|snapseed|pixelmator/i.test(facts.exif.software ?? ''))

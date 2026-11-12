@@ -1,6 +1,6 @@
 import { present } from './test-runtime.js';
 import { Effect } from 'effect';
-import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
+import { JobResult, TestWorkspace } from '@norbital-ai/bolt-cli/test';
 /**
  * The work-order sheet import (L-TPL-field-operations-017): the sample xlsx files its jobs once, one new site per
  * address the workspace lacks; a second import files nothing; new work at a filed address lands on that site; a bad
@@ -12,7 +12,16 @@ import { zipSync } from 'fflate';
 import { csvRecords } from '../src/lib/csv.ts';
 import { xlsxRecords } from '../src/lib/xlsx.ts';
 import { decodeWorkOrders } from '../src/lib/work-order-sheet.ts';
-import { committed, completedRun, CONTRACTOR, CONTROLLER, person, rows, shared } from './kit.ts';
+import {
+	committed,
+	completedRun,
+	CONTRACTOR,
+	CONTROLLER,
+	person,
+	rootRows,
+	rows,
+	shared
+} from './kit.ts';
 layer(shared())('work-order sheet import', (it) => {
 	it.effect(
 		'imports the sample xlsx once, filing a site for every address the workspace lacks',
@@ -37,13 +46,17 @@ layer(shared())('work-order sheet import', (it) => {
 				const decoded = yield* decodeWorkOrders(sheet);
 				expect(decoded[0]).toMatchObject({ latitude: 1.3572, longitude: 103.9466 });
 				const t = yield* TestWorkspace;
-				const as = t.as(t.member(CONTROLLER));
+				const as = yield* t.as(t.member(CONTROLLER));
 				const count = Effect.fnUntraced(function* (c: string) {
 					return Number(present((yield* rows(t, `SELECT count(*)::int AS n FROM ${c}`))[0]).n);
 				});
 				const sites = yield* count('sites'),
 					jobs = yield* count('job_assignments');
-				const started = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
+				const started = yield* as.run(
+					'job_assignments_import_work_orders',
+					{ rows: decoded },
+					JobResult
+				);
 				if (started.kind !== 'committed') throw new Error('The sheet import did not start.');
 				expect(yield* completedRun(t, started.output.id)).toMatchObject({
 					state: 'succeeded',
@@ -56,8 +69,10 @@ layer(shared())('work-order sheet import', (it) => {
 				]);
 				expect(
 					present(
-						(yield* as.query({ sites: { where: { site_key: { eq: '520412#07-221' } } } })).sites
-							.rows[0]
+						rootRows(
+							yield* as.query({ sites: { where: { site_key: { eq: '520412#07-221' } } } }),
+							'sites'
+						)[0]
 					)
 				).toMatchObject({
 					address: 'Blk 412 Tampines Street 41, Singapore 520412',
@@ -70,7 +85,11 @@ layer(shared())('work-order sheet import', (it) => {
 				);
 				expect(survey).toMatchObject({ day: '2026-10-12', status: 'pending' });
 				expect(present(install).site_id).toBe(present(survey).site_id);
-				const repeated = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
+				const repeated = yield* as.run(
+					'job_assignments_import_work_orders',
+					{ rows: decoded },
+					JobResult
+				);
 				if (repeated.kind !== 'committed')
 					throw new Error('The repeated sheet import did not start.');
 				expect(yield* completedRun(t, repeated.output.id)).toMatchObject({
@@ -78,13 +97,17 @@ layer(shared())('work-order sheet import', (it) => {
 					error: null,
 					output: { created: 0, skipped: 5 }
 				});
-				const additional = yield* as.start('job_assignments_import_work_orders', {
-					rows: yield* decodeWorkOrders(
-						csvRecords(
-							'site,postal_code,scheduled_for,title\nBlk 412 Tampines St 41 #07-221,520412,2026-10-26,Defect rectification'
+				const additional = yield* as.run(
+					'job_assignments_import_work_orders',
+					{
+						rows: yield* decodeWorkOrders(
+							csvRecords(
+								'site,postal_code,scheduled_for,title\nBlk 412 Tampines St 41 #07-221,520412,2026-10-26,Defect rectification'
+							)
 						)
-					)
-				});
+					},
+					JobResult
+				);
 				if (additional.kind !== 'committed')
 					throw new Error('The additional sheet import did not start.');
 				expect(yield* completedRun(t, additional.output.id)).toMatchObject({
@@ -102,7 +125,7 @@ layer(shared())('work-order sheet import', (it) => {
 	it.effect('refuses every unresolved site without valid coordinates before writing any row', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const as = t.as(t.member(CONTROLLER));
+			const as = yield* t.as(t.member(CONTROLLER));
 			const decoded = yield* decodeWorkOrders(
 				csvRecords(
 					'site,scheduled_for,title,latitude,longitude\n' +
@@ -112,7 +135,11 @@ layer(shared())('work-order sheet import', (it) => {
 						'40 Fourth Road,2026-10-01,Incomplete location,1.3,'
 				)
 			);
-			const started = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
+			const started = yield* as.run(
+				'job_assignments_import_work_orders',
+				{ rows: decoded },
+				JobResult
+			);
 			if (started.kind !== 'committed')
 				throw new Error('The invalid-location sheet did not start.');
 			const refused = yield* completedRun(t, started.output.id);
@@ -139,12 +166,17 @@ layer(shared())('work-order sheet import', (it) => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const as = t.as(yield* person(t, CONTROLLER));
+				const as = yield* t.as(yield* person(t, CONTROLLER));
 				const assignee = yield* person(t, CONTRACTOR, '+6591234567');
 				committed(
-					yield* as.act('sites.create', [
-						{ address: '10 Existing Road, Singapore 500001', location: { lat: 1.3, lng: 103.8 } }
-					])
+					yield* as.act({
+						'sites.create': [
+							{
+								address: '10 Existing Road, Singapore 500001',
+								location: { lat: 1.3, lng: 103.8 }
+							}
+						]
+					})
 				);
 				const decoded = yield* decodeWorkOrders([
 					{
@@ -171,7 +203,11 @@ layer(shared())('work-order sheet import', (it) => {
 						assignee_contact: 'nobody@field.test'
 					}
 				]);
-				const started = yield* as.start('job_assignments_import_work_orders', { rows: decoded });
+				const started = yield* as.run(
+					'job_assignments_import_work_orders',
+					{ rows: decoded },
+					JobResult
+				);
 				if (started.kind !== 'committed')
 					throw new Error('The contact sheet import did not start.');
 				expect(yield* completedRun(t, started.output.id)).toMatchObject({

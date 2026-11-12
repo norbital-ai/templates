@@ -437,7 +437,7 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 	);
 	const { photo_evidence: pending } = yield* ctx.query({
 		photo_evidence: {
-			where: { sha256: { eq: '' }, inspection_failed_at: { isNull: true } },
+			where: { sha256: { eq: '' }, inspection_failed_at: { is_null: true } },
 			fields: ['revision', 'photo', 'job_assignment_id', 'inspection_claimed_at'],
 			limit: INSPECTIONS_PER_RUN
 		}
@@ -473,19 +473,26 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 	let inspected = 0;
 	for (const photo of rows) {
 		const own = photo.job_assignment_id;
-		const claimed =
-			!photo.claimed &&
-			(yield* ctx
-				.act(
-					'photo_evidence.update',
-					[{ target: photo.id, set: { inspection_claimed_at: ctx.now } }],
-					{ observed: { [photo.id]: photo.revision } }
-				)
-				.pipe(
-					Effect.as(true),
-					Effect.catchTag('ActConflict', () => Effect.succeed(false))
-				));
-		if (!claimed) {
+		// the revision the claim wrote: the facts below are written at it
+		const claimed = photo.claimed
+			? null
+			: yield* ctx
+					.act({
+						'photo_evidence.update': [
+							{
+								target: { id: photo.id, revision: photo.revision },
+								set: { inspection_claimed_at: ctx.now }
+							}
+						]
+					})
+					.pipe(
+						Effect.map(
+							(written) =>
+								written.records.find((record) => record.id === photo.id)?.revision ?? null
+						),
+						Effect.catchTag('ActConflict', () => Effect.succeed(null))
+					);
+		if (claimed === null) {
 			if (own != null) held.add(own);
 			continue;
 		}
@@ -494,12 +501,14 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 		if (Result.isFailure(inspectedPhoto)) {
 			const reason = clipText(inspectedPhoto.failure.message, MAX_INSPECTION_FAILURE_REASON_CHARS);
 			failures.push({ photo_id: photo.id, reason });
-			yield* ctx.act('photo_evidence.update', [
-				{
-					target: photo.id,
-					set: { inspection_failed_at: ctx.now, inspection_failure_reason: reason }
-				}
-			]);
+			yield* ctx.act({
+				'photo_evidence.update': [
+					{
+						target: { id: photo.id, revision: claimed },
+						set: { inspection_failed_at: ctx.now, inspection_failure_reason: reason }
+					}
+				]
+			});
 			continue;
 		}
 		const facts = inspectedPhoto.success;
@@ -527,18 +536,20 @@ export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 			.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as(null))));
 		const scene_embedding =
 			scene === null || scene[0]?.length !== SCENE_DIMENSIONS ? null : [...scene[0]];
-		yield* ctx.act('photo_evidence.update', [
-			{
-				target: photo.id,
-				set: {
-					sha256: facts.sha256,
-					perceptual_embedding: embedding,
-					scene_embedding,
-					flags: [...flags],
-					matched_evidence_ids: foreign.map((hit) => hit.id)
+		yield* ctx.act({
+			'photo_evidence.update': [
+				{
+					target: { id: photo.id, revision: claimed },
+					set: {
+						sha256: facts.sha256,
+						perceptual_embedding: embedding,
+						scene_embedding,
+						flags: [...flags],
+						matched_evidence_ids: foreign.map((hit) => hit.id)
+					}
 				}
-			}
-		]);
+			]
+		});
 		inspected += 1;
 	}
 	return { inspected, failures, settled: [...settled], held: [...held] };
@@ -554,8 +565,8 @@ export const backfillScenes = Effect.fnUntraced(function* (ctx: Ctx) {
 		photo_evidence: { rows }
 	} = yield* ctx.query({
 		photo_evidence: {
-			where: { sha256: { ne: '' }, scene_embedding: { isNull: true } },
-			fields: ['photo'],
+			where: { sha256: { ne: '' }, scene_embedding: { is_null: true } },
+			fields: ['revision', 'photo'],
 			limit: SCENE_BACKFILL_PER_RUN
 		}
 	});
@@ -586,9 +597,11 @@ export const backfillScenes = Effect.fnUntraced(function* (ctx: Ctx) {
 				});
 				continue;
 			}
-			yield* ctx.act('photo_evidence.update', [
-				{ target: row.id, set: { scene_embedding: [...scene] } }
-			]);
+			yield* ctx.act({
+				'photo_evidence.update': [
+					{ target: { id: row.id, revision: row.revision }, set: { scene_embedding: [...scene] } }
+				]
+			});
 			filled += 1;
 		}
 	});
@@ -610,10 +623,11 @@ export const uncheckedAssignments = Effect.fnUntraced(function* (
 	} = yield* ctx.query({
 		job_assignments: {
 			where: {
-				suspicion_checked_at: { isNull: true },
+				suspicion_checked_at: { is_null: true },
 				...(only === undefined ? {} : { id: { in: only } })
 			},
 			fields: [
+				'revision',
 				'site_id',
 				'title',
 				'nature',
@@ -627,6 +641,7 @@ export const uncheckedAssignments = Effect.fnUntraced(function* (
 	});
 	return rows.map((row) => ({
 		id: row.id,
+		revision: row.revision,
 		site_id: row.site_id,
 		title: row.title,
 		nature: row.nature,
@@ -771,14 +786,14 @@ const sceneCandidates = Effect.fnUntraced(function* (ctx: Ctx, facts: ReviewFact
 const visible = Effect.fnUntraced(function* (ctx: Ctx, ref: FileRef) {
 	if (/^image\/(jpeg|png|webp|gif)$/.test(ref.mime)) return ref;
 	return yield* ctx.files
-		.image(ref, { jpeg: { maxEdge: 2048 } })
+		.image(ref, { jpeg: { max_edge: 2048 } })
 		.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as(ref))));
 });
 type ReviewStatus =
 	'clear' | 'clear_existing' | 'suspicious' | 'suspicious_open_exists' | 'suspicious_log_exists';
 export const reviewAssignment = Effect.fnUntraced(function* (
 	ctx: Ctx,
-	assignment: ReviewFacts['assignment']
+	{ revision, ...assignment }: ReviewFacts['assignment'] & { readonly revision: number }
 ) {
 	const loaded = yield* loadFacts(ctx, assignment);
 	const candidates = yield* sceneCandidates(ctx, loaded);
@@ -841,19 +856,21 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 	const job = assignment.id;
 	// a retried run with the same basis finds its review by the unique key instead of writing a second
 	const written = yield* Effect.result(
-		ctx.act('suspicion_reviews.create', [
-			{
-				job_assignment_id: job,
-				basis_hash: basisHash,
-				basis,
-				suspicious: verdict.suspicious,
-				reason: verdict.reason,
-				evidence_id: verdict.evidence_id,
-				model: SUSPICION_REVIEW_MODEL,
-				reviewed_at: ctx.now,
-				source_key: reviewSourceKey(assignment.id, basisHash)
-			}
-		])
+		ctx.act({
+			'suspicion_reviews.create': [
+				{
+					job_assignment_id: job,
+					basis_hash: basisHash,
+					basis,
+					suspicious: verdict.suspicious,
+					reason: verdict.reason,
+					evidence_id: verdict.evidence_id,
+					model: SUSPICION_REVIEW_MODEL,
+					reviewed_at: ctx.now,
+					source_key: reviewSourceKey(assignment.id, basisHash)
+				}
+			]
+		})
 	);
 	if (
 		Result.isFailure(written) &&
@@ -889,7 +906,7 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 				where: {
 					or: [
 						{ review_id: { eq: review.id } },
-						{ job_assignment_id: { eq: job }, resolved_at: { isNull: true } }
+						{ job_assignment_id: { eq: job }, resolved_at: { is_null: true } }
 					]
 				},
 				fields: ['review_id']
@@ -898,22 +915,26 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 		if (standing.rows.some((log) => log.review_id === review.id)) status = 'suspicious_log_exists';
 		else if (standing.rows.length > 0) status = 'suspicious_open_exists';
 		else {
-			yield* ctx.act('suspicious_activity_logs.create', [
-				{
-					job_assignment_id: job,
-					origin: 'automation',
-					basis: review.basis,
-					review_id: review.id,
-					evidence_id: review.evidence_id,
-					reason: review.reason
-				}
-			]);
+			yield* ctx.act({
+				'suspicious_activity_logs.create': [
+					{
+						job_assignment_id: job,
+						origin: 'automation',
+						basis: review.basis,
+						review_id: review.id,
+						evidence_id: review.evidence_id,
+						reason: review.reason
+					}
+				]
+			});
 			status = 'suspicious';
 		}
 	}
-	yield* ctx.act('job_assignments.update', [
-		{ target: job, set: { suspicion_checked_at: ctx.now } }
-	]);
+	yield* ctx.act({
+		'job_assignments.update': [
+			{ target: { id: job, revision }, set: { suspicion_checked_at: ctx.now } }
+		]
+	});
 	return status;
 });
 /** The next two-hour slot (00:00, 02:00, … UTC), when a review that did not complete is tried again. */

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { run, bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Effect, Option, Schema } from 'effect';
-	import { observe } from '@norbital-ai/ui/effect';
+	import { observe, run } from '@norbital-ai/ui/effect';
 	import { watch } from 'runed';
 	import type { ListRow } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Split, Stack } from '@norbital-ai/ui/layout';
@@ -12,7 +12,7 @@
 		EmptyState,
 		Map,
 		RunStatus,
-		notifyOutcome
+		notify_outcome
 	} from '@norbital-ai/ui';
 	import Icon from '@iconify/svelte';
 	import { csvRecords } from '../../lib/csv.js';
@@ -23,9 +23,10 @@
 		'SheetFileUnavailable',
 		{ message: Schema.String }
 	) {}
-	const t = bolt.t;
+	let { ctx }: { ctx: PageContext } = $props();
+	const t = ctx.t;
 	/** Today in the workspace zone, rolling over at midnight. */
-	const clock = bolt.clock('day');
+	const clock = ctx.clock('day');
 	/** The day is in the URL, so opening a record (which re-renders the page) keeps it. */
 	let day = $state<string>(new URL(location.href).searchParams.get('day') ?? clock.today);
 	/** The day as a date; an unreadable one reads as today. */
@@ -42,7 +43,7 @@
 		{ lazy: false }
 	);
 	const jobs = $derived(
-		bolt.query({
+		ctx.query({
 			job_assignments: {
 				where: { scheduled_for: { eq: date } },
 				fields: ['site_id'],
@@ -55,7 +56,7 @@
 	const sites = $derived(
 		siteIds.length === 0
 			? null
-			: bolt.query({
+			: ctx.query({
 					sites: { where: { id: { in: siteIds } }, fields: ['name', 'location'], limit: 1000 }
 				})
 	);
@@ -71,10 +72,10 @@
 	const open = $derived(
 		dayJobs.length === 0
 			? null
-			: bolt.query({
+			: ctx.query({
 					suspicious_activity_logs: {
 						where: {
-							resolved_at: { isNull: true },
+							resolved_at: { is_null: true },
 							job_assignment_id: { in: dayJobs.map((job) => job.id) }
 						},
 						fields: ['job_assignment_id'],
@@ -94,7 +95,7 @@
 	const importRuns = observe(() =>
 		importRun === null
 			? null
-			: bolt.runs('job_assignments_import_work_orders', {
+			: ctx.runs('job_assignments_import_work_orders', {
 					where: { id: { eq: importRun.id } },
 					limit: 1
 				})
@@ -144,14 +145,14 @@
 			message = t('app.field_ops_controller.import_empty', { file: file.name });
 			return;
 		}
-		const started = bolt.start('job_assignments_import_work_orders', {
+		const started = ctx.run('job_assignments_import_work_orders', {
 			rows: yield* decodeWorkOrders(rows)
 		});
 		const outcome = yield* started;
 		if (outcome.kind !== 'committed') {
 			message =
 				outcome.kind === 'refused' ? outcome.message : t('app.field_ops_controller.import_failed');
-			notifyOutcome(bolt, outcome);
+			notify_outcome(ctx, outcome);
 			return;
 		}
 		importRun = { id: outcome.output.id, file: file.name };
@@ -186,7 +187,7 @@
 			<TimeInput
 				id="dispatch-day"
 				value={day}
-				onChange={(next: string | null) => (day = next ?? clock.today)}
+				on_change={(next: string | null) => (day = next ?? clock.today)}
 			/>
 		</div>
 		<Button variant="ghost" onclick={() => (day = clock.today)}
@@ -251,7 +252,7 @@
 		<Split
 			ratio="wide"
 			collapse="switch"
-			switchLabels={[t('app.field_ops_controller.tab_dispatch'), t('component.section_map')]}
+			switch_labels={[t('app.field_ops_controller.tab_dispatch'), t('component.section_map')]}
 			gap="md"
 			size="fill"
 		>
@@ -262,14 +263,14 @@
 					key="dispatch"
 					columns={2}
 					where={{ scheduled_for: { eq: date } }}
-					orderBy={{ dispatched_at: 'asc' }}
+					order_by={{ dispatched_at: 'asc' }}
 					toolbar={{
 						actions: [
 							{
 								icon: 'lucide:shield-alert',
 								name: t('app.field_ops_controller.run_suspicion_review'),
 								description: t('app.field_ops_controller.suspicion_review_description'),
-								run: () => bolt.start('review_job_assignment_suspicion', {})
+								run: () => ctx.run('review_job_assignment_suspicion', {})
 							},
 							{
 								icon: 'lucide:upload',

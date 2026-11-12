@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('field_ops_controller', {
+export default app({
 	title: 'app.field_ops_controller.title',
 	description: 'app.field_ops_controller.header_description',
 	icon: 'lucide:building-2',

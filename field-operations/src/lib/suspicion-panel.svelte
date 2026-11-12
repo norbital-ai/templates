@@ -4,25 +4,27 @@
 	 * the review showed the model beside its own (from the reviews' stored bases), and its findings, each open one
 	 * closed by writing what was concluded. Embedded in a review's own evidence, `findings` leaves the findings out.
 	 */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { FileRef, Id } from '@norbital-ai/bolt';
-	import { EmptyState, enumText, Form, useBolt } from '@norbital-ai/ui';
+	import { EmptyState, enum_text, Form } from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
+	import { isMessageKey } from './format.js';
 	let {
+		ctx,
 		job,
-		onOpen,
+		on_open,
 		findings = true
 	}: {
+		ctx: PageContext;
 		job: Id<'job_assignments'>;
-		onOpen: (photo: { name: string; url: string }) => void;
+		on_open: (photo: { name: string; url: string }) => void;
 		findings?: boolean;
 	} = $props();
-	const t = bolt.t;
-	const ui = useBolt();
+	const t = ctx.t;
 	const photos = $derived(
-		bolt.query({
+		ctx.query({
 			photo_evidence: {
 				where: { job_assignment_id: { eq: job } },
 				fields: ['photo', 'flags'],
@@ -31,10 +33,10 @@
 		})
 	);
 	const reviews = $derived(
-		bolt.query({
+		ctx.query({
 			suspicion_reviews: {
 				where: { job_assignment_id: { eq: job } },
-				orderBy: { reviewed_at: 'desc' },
+				order_by: { reviewed_at: 'desc' },
 				fields: ['basis'],
 				limit: 100
 			}
@@ -46,28 +48,28 @@
 	const others = $derived(
 		candidates.length === 0
 			? null
-			: bolt.query({
+			: ctx.query({
 					photo_evidence: {
 						where: { id: { in: candidates.map((c) => c.id) } },
 						fields: ['photo'],
-						limit: 250
-					},
-					'photo_evidence.job_assignment_id': { fields: ['title'] }
+						limit: 250,
+						job_assignment_id: { fields: ['title'] }
+					}
 				})
 	);
 	const logs = $derived(
 		!findings
 			? null
-			: bolt.query({
+			: ctx.query({
 					suspicious_activity_logs: {
 						where: { job_assignment_id: { eq: job } },
-						orderBy: 'created_at',
+						order_by: 'created_at',
 						fields: ['reason', 'resolution', 'resolved_at'],
 						limit: 100
 					}
 				})
 	);
-	const view = (file: FileRef) => ({ name: file.name, url: bolt.fileUrl(file, { preview: 1024 }) });
+	const view = (file: FileRef) => ({ name: file.name, url: ctx.file_url(file, { preview: 1024 }) });
 	const flagged = $derived(
 		(photos.current?.photo_evidence.rows ?? []).filter((p) => p.flags.length > 0)
 	);
@@ -104,10 +106,10 @@
 							as="button"
 							type="button"
 							class="w-full text-left"
-							onclick={() => onOpen(view(photo.photo))}
+							onclick={() => on_open(view(photo.photo))}
 						>
 							<img
-								src={bolt.fileUrl(photo.photo, { preview: 1024 })}
+								src={ctx.file_url(photo.photo, { preview: 1024 })}
 								alt={photo.photo.name}
 								class="size-14 rounded-md object-cover"
 								loading="lazy"
@@ -117,8 +119,8 @@
 								<Cluster gap="xs">
 									{#each photo.flags as flag (flag)}
 										<span class="rounded-full bg-muted px-2 py-0.5 text-micro text-muted-foreground"
-											>{enumText(flag, {
-												t: (key) => ui.t(key),
+											>{enum_text(flag, {
+												t: (key) => (isMessageKey(key) ? ctx.t(key) : key),
 												model: 'photo_evidence',
 												field: 'flags'
 											})}</span
@@ -151,17 +153,17 @@
 								})}
 							</p>
 							<Cluster gap="xs" align="center">
-								<button type="button" onclick={() => onOpen(view(pair.mine.photo))}>
+								<button type="button" onclick={() => on_open(view(pair.mine.photo))}>
 									<img
-										src={bolt.fileUrl(pair.mine.photo, { preview: 1024 })}
+										src={ctx.file_url(pair.mine.photo, { preview: 1024 })}
 										alt={pair.mine.photo.name}
 										class="h-14 w-20 rounded object-cover"
 									/>
 								</button>
 								<Icon icon="lucide:arrow-left-right" class="size-3.5 text-muted-foreground" />
-								<button type="button" onclick={() => onOpen(view(pair.other.photo))}>
+								<button type="button" onclick={() => on_open(view(pair.other.photo))}>
 									<img
-										src={bolt.fileUrl(pair.other.photo, { preview: 1024 })}
+										src={ctx.file_url(pair.other.photo, { preview: 1024 })}
 										alt={pair.other.photo.name}
 										class="h-14 w-20 rounded object-cover"
 									/>

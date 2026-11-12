@@ -5,9 +5,9 @@ import { inspectPendingPhotos } from '../lib/suspicion-review.js';
  * for them (and inspects any still pending itself); a review that waited on a photo this run took is started again
  * once the photo is settled, inspected or durably failed.
  */
-export default automation('inspect_photo_evidence', {
+export default automation({
 	description:
-		"Started when a photo is filed (`photo_evidence.effect.created`): fills its sha256, perceptual and scene embeddings, integrity flags and near-duplicate matches from the host's image facts.",
+		"Started when a photo is filed (`photo_evidence.create.effect`): fills its sha256, perceptual and scene embeddings, integrity flags and near-duplicate matches from the host's image facts.",
 	output: { kind: 'object', fields: { inspected: { kind: 'int' }, failed: { kind: 'int' } } },
 	policies: ['suspicion_review_automation'],
 	concurrency: { max: 1 },
@@ -16,7 +16,7 @@ export default automation('inspect_photo_evidence', {
 		const { job_assignments: waiting } = settled.length
 			? yield* ctx.query({
 					job_assignments: {
-						where: { id: { in: settled }, suspicion_checked_at: { isNull: true } },
+						where: { id: { in: settled }, suspicion_checked_at: { is_null: true } },
 						fields: ['id']
 					}
 				})

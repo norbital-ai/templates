@@ -1,4 +1,5 @@
-import { model, type WorkspaceQuery } from '@norbital-ai/bolt';
+import { type WorkspaceQuery } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/job_assignments.ts';
 import * as Effect from 'effect/Effect';
 import { dispatchFacts, memberByContact } from '../../../../lib/dispatch.js';
 const contacted = (contact: string | null | undefined) => (contact?.trim() ?? '') !== '';
@@ -40,11 +41,11 @@ const progress = [
  * create callback stamps it). `suspicion_checked_at` is the review's stamp; any other change clears it, so the review
  * judges the job again.
  */
-export default model('job_assignments', {
+export default model({
 	description:
 		'One dispatched day job: the work order, who holds it and where it got to. Evidence facts and suspicion judgements live in their own models.',
 	icon: 'lucide:clipboard-check',
-	label: 'title',
+	record_label: 'record.title',
 	fields: {
 		site_id: { kind: 'ref', to: 'sites', inverse: 'job_assignments' },
 		/** The contractor holding the work: a member whose team holds `field_ops_contractor`, not a record. */
@@ -74,65 +75,69 @@ export default model('job_assignments', {
 		/** Written by the suspicion review only; any other change clears it. */
 		suspicion_checked_at: { kind: 'instant', optional: true, hidden: true }
 	},
-	index: ['scheduled_for', 'suspicion_checked_at'],
-	search: {
+	indexes: {
+		scheduled_for: { on: ['scheduled_for'] },
+		suspicion_checked_at: { on: ['suspicion_checked_at'] },
 		// `site_id` matches the site's own search text (name, address, unit, code, client); `external_ref` stays out, as
 		// the contractor's output omits it
-		text: ['title', 'nature', 'summary', 'site_id'],
+		search: { text: ['title', 'nature', 'summary', 'site_id'] },
 		// `/semantic` in the jobs search box: the work described, on the host's default embedding model. `dim` is the width
 		// of the `bolt_embedding` column every job's vector and every probe are read at, so the host's model must honour it.
-		semantic: { fields: ['title', 'description', 'summary'], model: 'default', dim: 1536 }
-	},
-	read: {
-		job_assignments: { fields: 'all' },
-		/** The photos filed on a job: so a reader (a controller, the WhatsApp envoy) sees what was sent for it. */
-		'job_assignments.photo_evidence': { fields: ['photo', 'summary', 'flags', 'created_at'] },
-		'job_assignments.site_id': {
-			fields: ['name', 'address', 'unit_number', 'site_code', 'client_name', 'site_key']
+		semantic: {
+			semantic: { fields: ['title', 'description', 'summary'], model: 'default', dim: 1536 }
 		}
 	},
 	outputs: {
+		default: {
+			fields: 'all',
+			/** The photos filed on a job: so a reader (a controller, the WhatsApp envoy) sees what was sent for it. */
+			photo_evidence: { fields: ['photo', 'summary', 'flags', 'created_at'] },
+			site_id: {
+				fields: ['name', 'address', 'unit_number', 'site_code', 'client_name', 'site_key']
+			}
+		},
 		/** A contractor's view of the jobs they hold: the work order and its progress, never dispatch provenance. */
 		contractor: {
-			job_assignments: {
-				fields: [
-					'site_id',
-					'title',
-					'nature',
-					'scheduled_for',
-					'description',
-					'assignee_user_id',
-					'dispatched_at',
-					'status',
-					'completed_at',
-					'amount_charged',
-					'location',
-					'location_address',
-					'summary'
-				]
-			}
+			fields: [
+				'site_id',
+				'title',
+				'nature',
+				'scheduled_for',
+				'description',
+				'assignee_user_id',
+				'dispatched_at',
+				'status',
+				'completed_at',
+				'amount_charged',
+				'location',
+				'location_address',
+				'summary'
+			]
 		}
 	},
 	create: {
-		columns: { job_assignments: ['external_ref', ...progress, 'source_message_id'] },
-		transform: function* (rows, ctx) {
+		columns: { fields: ['external_ref', ...progress, 'source_message_id'] },
+		transform: function* (changes, ctx) {
 			const members = yield* membersFor(
-				ctx.db,
-				rows.map((row) => row.assignee_contact)
+				ctx,
+				changes.map(({ set }) => set.assignee_contact)
 			);
-			return rows.map((row) => {
+			return changes.map(({ set: row }) => {
 				const linked = contacted(row.assignee_contact)
 					? { ...row, assignee_user_id: memberByContact(members, row.assignee_contact) }
 					: row;
 				return { ...linked, ...dispatchFacts(linked, ctx.now) };
 			});
+		},
+		effect: function* (_changes, ctx) {
+			yield* ctx.schedule('review_job_assignment_suspicion', {}, { key: 'suspicion_review' });
 		}
 	},
 	update: {
 		columns: {
-			job_assignments: [...progress, 'suspicion_checked_at'],
-			'job_assignments.photo_evidence': ['photo', 'source'],
-			'job_assignments.communication_logs': ['message', 'sent_at', 'sender', 'source_message_id']
+			fields: [...progress, 'suspicion_checked_at'],
+			photo_evidence: { fields: ['photo', 'source'] },
+			communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
 		},
 		transform: function* (changes, ctx) {
 			// a report files photos and messages; it never changes or removes one already filed
@@ -147,7 +152,7 @@ export default model('job_assignments', {
 					{ row: rewrite }
 				);
 			const members = yield* membersFor(
-				ctx.db,
+				ctx,
 				changes.map(({ set }) => set.assignee_contact)
 			);
 			return changes.map(({ before, set: given }) => {
@@ -171,16 +176,10 @@ export default model('job_assignments', {
 					...(reviewStamp ? {} : { suspicion_checked_at: null })
 				};
 			});
-		}
-	},
-	delete: {},
-	effect: {
-		created: function* (_rows, ctx) {
-			yield* ctx.schedule('review_job_assignment_suspicion', {}, { key: 'suspicion_review' });
 		},
 		// a change that cleared the review's stamp; a writer whose output omits the stamp sees it `undefined` on both
 		// sides and counts (the review sweeps only unchecked jobs), while the review's own stamp is skipped
-		updated: function* (changes, ctx) {
+		effect: function* (changes, ctx) {
 			if (
 				changes.some(
 					({ before, after }) =>
@@ -189,5 +188,6 @@ export default model('job_assignments', {
 			)
 				yield* ctx.schedule('review_job_assignment_suspicion', {}, { key: 'suspicion_review' });
 		}
-	}
+	},
+	delete: {}
 });

@@ -3,39 +3,32 @@
 	 * A job: its scope and progress (the dispatch is the contractor's email or phone, linking that member), its
 	 * conversation, and for a controller its review evidence and findings. Creating one can first add the site by its address.
 	 */
-	import { bolt } from '$bolt';
-	import {
-		type RecordView,
-		Button,
-		Field,
-		Form,
-		RecordShell,
-		Section,
-		useKinds
-	} from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { type RecordView, Button, Field, Form, RecordShell, Section } from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import Conversation from '../../../../lib/conversation.svelte';
 	import SuspicionPanel from '../../../../lib/suspicion-panel.svelte';
 	import PhotoDialog from '../../../../lib/photo-dialog.svelte';
 	let {
+		ctx,
 		view
 	}: {
+		ctx: PageContext;
 		view: RecordView<'job_assignments'>;
 	} = $props();
-	const t = bolt.t;
-	const kinds = useKinds();
+	const t = ctx.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const id = $derived(record?.id);
 	/** Controllers read the review ledgers; the evidence tab and the finding banner are theirs. */
-	const reviewer = $derived(kinds.catalog?.['suspicion_reviews'] !== undefined);
-	const talker = $derived(kinds.catalog?.['communication_logs'] !== undefined);
+	const reviewer = $derived(ctx.catalog?.['suspicion_reviews'] !== undefined);
+	const talker = $derived(ctx.catalog?.['communication_logs'] !== undefined);
 	const open = $derived(
 		id == null || !reviewer
 			? null
-			: bolt.query({
+			: ctx.query({
 					suspicious_activity_logs: {
-						where: { job_assignment_id: { eq: id }, resolved_at: { isNull: true } },
+						where: { job_assignment_id: { eq: id }, resolved_at: { is_null: true } },
 						fields: ['reason'],
 						limit: 1
 					}
@@ -50,8 +43,8 @@
 	const show = (photo: { name: string; url: string }) => (opened = photo);
 </script>
 
-{#snippet conversation()}{#if id}<Conversation job={id} onOpen={show} />{/if}{/snippet}
-{#snippet evidence()}{#if id}<SuspicionPanel job={id} onOpen={show} />{/if}{/snippet}
+{#snippet conversation()}{#if id}<Conversation {ctx} job={id} on_open={show} />{/if}{/snippet}
+{#snippet evidence()}{#if id}<SuspicionPanel {ctx} job={id} on_open={show} />{/if}{/snippet}
 
 {#if record == null}
 	<Stack gap="md">
@@ -69,7 +62,7 @@
 				of="sites"
 				mode="create"
 				submit={t('component.add_site')}
-				onOutcome={(o) => o.kind === 'committed' && (addingSite = false)}
+				on_outcome={(o) => o.kind === 'committed' && (addingSite = false)}
 			>
 				{#snippet children()}
 					<Grid minimum="card">
@@ -160,7 +153,7 @@
 					icon="lucide:map-pin"
 					name="reported_location"
 					title={t('component.reported_location')}
-					defaultOpen={false}
+					default_open={false}
 					summary={record.location_address || t('component.not_recorded')}
 				>
 					<Field
