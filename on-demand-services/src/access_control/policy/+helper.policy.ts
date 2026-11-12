@@ -21,15 +21,13 @@ export default policy({
 				verdict: function* (changes, ctx) {
 					const me = memberOf(ctx.actor);
 					const row = changes.findIndex((c) => me === null || c.before.user !== me);
-					return row < 0
-						? ctx.allow()
-						: yield* ctx.refuse('Report your own position only.', { row });
+					return row < 0 ? ctx.allow() : yield* ctx.refuse('errors.own_position', { row });
 				}
 			}
 		},
 		helper_time_off: { outputs: { default: { where: OWN } } },
 		services: {
-			outputs: { helper: true }
+			outputs: { helper: {} }
 		},
 		visits: {
 			outputs: {
@@ -55,7 +53,7 @@ export default policy({
 					const row = changes.findIndex(
 						(c) => c.before.helper === null || !mine.has(c.before.helper)
 					);
-					return row < 0 ? ctx.allow() : yield* ctx.refuse('Only your own visits.', { row });
+					return row < 0 ? ctx.allow() : yield* ctx.refuse('errors.own_visits', { row });
 				}
 			}
 		},

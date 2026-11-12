@@ -113,6 +113,7 @@
 
 {#snippet byHelper()}
 	<Board
+		{ctx}
 		of="visits"
 		key="by-helper"
 		by="helper"
@@ -126,6 +127,7 @@
 
 {#snippet list()}
 	<Table
+		{ctx}
 		of="visits"
 		key="list"
 		{where}

@@ -14,7 +14,7 @@
 	} = $props();
 	const when = useWhen(ctx);
 	const t = ctx.t;
-	const enumWord = use_enum_text();
+	const enumWord = use_enum_text(() => ctx);
 	const word = (field: 'attention' | 'shift_check', value: string) => enumWord(value, field);
 	const summaryText = Schema.optionalKey(
 		Schema.Union([Schema.String, Schema.Null, Schema.Undefined])
@@ -105,6 +105,7 @@
 
 {#if record !== null}
 	<RecordShell
+		{ctx}
 		of="visits"
 		fields={[
 			'number',

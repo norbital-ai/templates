@@ -170,6 +170,7 @@
 
 {#snippet preferred()}
 	{#if view.mode !== 'create'}<Table
+			{ctx}
 			of="booking_helpers"
 			key="booking-helpers"
 			where={{ booking: { eq: view.record.id } }}
@@ -181,6 +182,7 @@
 
 {#if view.mode === 'create'}
 	<RecordShell
+		{ctx}
 		of="bookings"
 		fields={[
 			'number',
@@ -209,6 +211,7 @@
 						<Stack gap="xs">
 							<Label for="booking-customer">{t('component.customer')}</Label>
 							<Picker
+								{ctx}
 								id="booking-customer"
 								of="customers"
 								value={customer}
@@ -222,6 +225,7 @@
 					<Stack gap="xs">
 						<Label for="booking-service">{t('component.service')}</Label>
 						<Picker
+							{ctx}
 							id="booking-service"
 							of="services"
 							where={{ active: { eq: true } }}
@@ -300,6 +304,7 @@
 						<!-- a fresh picker after each pick, so it offers the next helper -->
 						{#key helpers.length}
 							<Picker
+								{ctx}
 								of="helpers"
 								where={{ status: { eq: 'active' } }}
 								value={null}
@@ -355,12 +360,13 @@
 			<Cluster gap="sm" align="center">
 				<Button disabled={!ready || booking} onclick={book}>{t('app.schedule.book')}</Button>
 				{#if message}<p class="text-sm">{message}</p>{/if}
-				{#if started}<RunStatus automation="bookings_book" run={started} />{/if}
+				{#if started}<RunStatus {ctx} automation="bookings_book" run={started} />{/if}
 			</Cluster>
 		</Stack>
 	</RecordShell>
 {:else}
 	<RecordShell
+		{ctx}
 		of="bookings"
 		fields={[
 			'number',

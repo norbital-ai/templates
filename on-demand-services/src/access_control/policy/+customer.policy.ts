@@ -13,7 +13,7 @@ const notMine = (
 	changes.findIndex(
 		({ set }) => actor.kind !== 'member' || actor.phone === null || set.phone !== actor.phone
 	);
-const OTHER_NUMBER = 'Use the mobile number you signed in with.';
+const OTHER_NUMBER = 'errors.other_number';
 /**
  * A customer, signed up with their mobile number: the portal's services and open times, booking requests under their
  * own number, and their own record, bookings, visits (when, where, who comes and how far away they are) and notices.
@@ -30,7 +30,7 @@ export default policy({
 		services: {
 			outputs: { customer: { where: { active: { eq: true } } } }
 		},
-		openings: { outputs: { portal: true } },
+		openings: { outputs: { portal: {} } },
 		booking_requests: {
 			create: {
 				columns: {

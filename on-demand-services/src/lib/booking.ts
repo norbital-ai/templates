@@ -2,18 +2,17 @@ import { Effect } from 'effect';
 import type { AutomationCtx, StartInput } from '@norbital-ai/bolt';
 import { loadPool, when } from './dispatch.js';
 import { BOOKING_AHEAD, occurrences, planBooking } from './matching.js';
-import { Refusal } from '@norbital-ai/bolt/errors';
 
 /** Plan every occurrence before the booking, its children and its notice commit together. */
 export const bookService = Effect.fnUntraced(function* (
 	input: StartInput<'bookings_book'>,
-	ctx: Pick<AutomationCtx, 'query' | 'act' | 'now' | 'tz'>
+	ctx: Pick<AutomationCtx, 'query' | 'act' | 'now' | 'tz' | 'refuse'>
 ) {
 	const preferred = input.preference === 'preferred' ? (input.helpers ?? []) : [];
 	if (input.preference === 'preferred' && preferred.length === 0)
-		return yield* new Refusal({ message: 'Name at least one preferred helper.', field: 'helpers' });
+		return yield* ctx.refuse('errors.preferred_helper_required', { field: 'helpers' });
 	if (Date.parse(input.start) <= Date.parse(ctx.now))
-		return yield* new Refusal({ message: 'Pick a time in the future.', field: 'start' });
+		return yield* ctx.refuse('errors.start_in_past', { field: 'start' });
 	const { customers, services } = yield* ctx.query({
 		customers: { where: { id: { eq: input.customer } }, limit: 1 },
 		services: { where: { id: { eq: input.service } }, limit: 1 }
@@ -21,7 +20,7 @@ export const bookService = Effect.fnUntraced(function* (
 	const customer = customers.rows[0] ?? null,
 		service = services.rows[0] ?? null;
 	if (customer === null || service === null || !service.active)
-		return yield* new Refusal({ message: 'Pick a customer and an active service.' });
+		return yield* ctx.refuse('errors.customer_service_required');
 	const starts = occurrences(input.start, input.repeat, input.visits ?? BOOKING_AHEAD, ctx.tz);
 	const address = input.address ?? customer.address;
 	const location = input.address === undefined ? customer.location : (input.location ?? null);
@@ -30,14 +29,11 @@ export const bookService = Effect.fnUntraced(function* (
 	for (const id of preferred) {
 		const h = pool.helpers.find((h) => h.id === id);
 		if (h === undefined)
-			return yield* new Refusal({
-				message: 'The selected helper is not available.',
-				field: 'helpers'
-			});
+			return yield* ctx.refuse('errors.helper_unavailable', { field: 'helpers' });
 		if (!h.skills.includes(service.skill))
-			return yield* new Refusal({
-				message: `${h.name} cannot perform the selected service.`,
-				field: 'helpers'
+			return yield* ctx.refuse('errors.helper_lacks_skill', {
+				field: 'helpers',
+				values: { name: h.name }
 			});
 	}
 	const plan = planBooking(
@@ -48,9 +44,9 @@ export const bookService = Effect.fnUntraced(function* (
 		preferred
 	);
 	if (plan.missing !== null)
-		return yield* new Refusal({
-			message: `No eligible helper is free for occurrence ${plan.missing + 1}. Pick another time.`,
-			field: 'start'
+		return yield* ctx.refuse('errors.no_helper_for_occurrence', {
+			field: 'start',
+			values: { occurrence: plan.missing + 1 }
 		});
 	const visits = plan.visits.map((v) => ({
 		...v,
@@ -88,8 +84,7 @@ export const bookService = Effect.fnUntraced(function* (
 		]
 	});
 	const booking = records.find((record) => record.model === 'bookings');
-	if (booking === undefined)
-		return yield* new Refusal({ message: 'The booking creation did not return a booking record.' });
+	if (booking === undefined) return yield* ctx.refuse('errors.booking_not_created');
 	return {
 		booking: booking.id,
 		assigned: visits.length,

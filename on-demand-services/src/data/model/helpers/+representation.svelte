@@ -44,6 +44,7 @@
 
 {#snippet visits()}
 	{#if record}<Table
+			{ctx}
 			of="visits"
 			key="helper-visits"
 			toolbar={{ title: t('app.helpers.visits'), new: false }}
@@ -55,6 +56,7 @@
 {/snippet}
 {#snippet timeOff()}
 	{#if record}<Table
+			{ctx}
 			of="helper_time_off"
 			key="helper-time-off"
 			toolbar={{ title: t('app.helpers.time_off') }}
@@ -64,6 +66,7 @@
 {/snippet}
 {#snippet warnings()}
 	{#if record}<Table
+			{ctx}
 			of="helper_warnings"
 			key="helper-warnings"
 			toolbar={{ title: t('app.helpers.warnings'), new: false }}
@@ -76,6 +79,7 @@
 {#if record === null}
 	<!-- the warning count and the reported position are the system's to fill -->
 	<RecordShell
+		{ctx}
 		of="helpers"
 		fields={[
 			'name',
@@ -96,6 +100,7 @@
 	/>
 {:else}
 	<RecordShell
+		{ctx}
 		of="helpers"
 		fields={[
 			'name',

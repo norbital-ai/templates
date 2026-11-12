@@ -46,7 +46,7 @@
 </script>
 
 {#if view.mode !== 'create'}
-	<RecordShell of="customer_notices" id={view.record.id} {sections} />
+	<RecordShell {ctx} of="customer_notices" id={view.record.id} {sections} />
 {:else}
-	<RecordShell of="customer_notices" mode="create" values={view.values} {sections} />
+	<RecordShell {ctx} of="customer_notices" mode="create" values={view.values} {sections} />
 {/if}

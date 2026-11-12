@@ -1,31 +1,20 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput } from '@norbital-ai/bolt';
-import { Refusal } from '@norbital-ai/bolt/errors';
-import { loadPool, targetOf } from '../lib/dispatch.js';
+import { loadPool } from '../lib/dispatch.js';
 import { rank } from '../lib/matching.js';
 
 export default automation({
 	description: 'Prepares a replacement recommendation; the controller must approve it.',
 	input: {
-		targets: { kind: 'ref', to: 'visits', many: true, min_items: 1 }
+		targets: { kind: 'rows', of: 'visits' }
 	},
 	policies: ['operations'],
 	run: function* ({ targets }, ctx) {
-		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
-			.visits;
-		if (targetsOf.length !== targets.length)
-			return yield* new Refusal({
-				message: 'The selected record does not exist or is not readable.',
-				field: 'targets'
-			});
 		const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
-		for (const v of targetsOf) {
-			if (v.status !== 'scheduled')
-				return yield* new Refusal({ message: 'Only a scheduled visit can have a replacement.' });
+		for (const v of targets) {
+			if (v.status !== 'scheduled') return yield* ctx.refuse('errors.recommend_not_scheduled');
 			if (Date.parse(v.slot.start) <= Date.parse(ctx.now))
-				return yield* new Refusal({
-					message: 'This visit has already started. Choose a new future time.'
-				});
+				return yield* ctx.refuse('errors.visit_started');
 			const pool = yield* loadPool(ctx, v.slot.start, v.slot.start, [v.location]);
 			const best = rank(
 				{
@@ -42,7 +31,7 @@ export default automation({
 				ctx.tz
 			)[0];
 			updates.push({
-				target: targetOf(v),
+				target: v,
 				set: {
 					proposed_helper: best?.helper ?? null,
 					proposed_slot: best === undefined ? null : v.slot,

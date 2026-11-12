@@ -304,6 +304,6 @@
 			<p class="text-caption">{t('app.recovery.scope')}</p>
 		{/if}
 		{#if message}<p role="status" class="text-sm">{message}</p>{/if}
-		{#if started}<RunStatus automation={started.automation} run={started.id} />{/if}
+		{#if started}<RunStatus {ctx} automation={started.automation} run={started.id} />{/if}
 	{/if}
 </Stack>

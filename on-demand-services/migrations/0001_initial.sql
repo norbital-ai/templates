@@ -1,4 +1,4 @@
--- 0001_initial.sql: 286 step(s), from an empty database to 412807cecc22f8aa6eebbf2dd4df32389d5bd72b836666352d67d269d284fea8.
+-- 0001_initial.sql: 286 step(s), from an empty database to 9fb105b188854564f146ef802d930c677a0a575641cfa3b8f86d374073490634.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -854,10 +854,10 @@ create table "sys_api_key" ("id" text primary key,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_api_key_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_api_key_93340fdd"("name"), ''))) stored,
 	"created_by" text,
-	constraint "sys_api_key__uq__410283f1" unique ("prefix"),
 	constraint "sys_api_key__ck__3ec0653c" check (isfinite("revoked_at")),
 	constraint "sys_api_key__ck__21d4c9ff" check (isfinite("last_used_at")),
-	constraint "sys_api_key__ck__367d8eb4" check (isfinite("created_at"))
+	constraint "sys_api_key__ck__367d8eb4" check (isfinite("created_at")),
+	constraint "sys_api_key__uq__410283f1" unique ("prefix")
 );
 
 -- step create:table:sys_challenge (additive)
@@ -1099,9 +1099,9 @@ create table "sys_notification" ("id" text primary key,
 	constraint "sys_notification__ck__8e13ac8a" check (("recipient" is null or store_json_valid("recipient", '{"kind":"json"}'::jsonb) is true)),
 	constraint "sys_notification__ck__af8b3b10" check (("link" is null or store_json_valid("link", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_notification__ck__c9a52988" check (("attachments" is null or store_json_valid("attachments", '{"default":[],"kind":"json"}'::jsonb) is true)),
-	constraint "sys_notification__uq__544dc786" unique ("once"),
 	constraint "sys_notification__ck__2298f760" check (isfinite("at")),
-	constraint "sys_notification__ck__db820902" check (isfinite("read_at"))
+	constraint "sys_notification__ck__db820902" check (isfinite("read_at")),
+	constraint "sys_notification__uq__544dc786" unique ("once")
 );
 
 -- step create:table:sys_outbox (additive)
@@ -1134,14 +1134,14 @@ create table "sys_outbox" ("id" uuid primary key,
 	constraint "sys_outbox__ck__0e6efdd2" check ("delivery_op" in ('create', 'update', 'delete')),
 	constraint "sys_outbox__ck__cb287458" check (("image" is null or store_json_valid("image", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_outbox__ck__8ad02efa" check (("changed" is null or store_json_valid("changed", '{"default":[],"kind":"json","shape":{"kind":"text","many":true}}'::jsonb) is true)),
-	constraint "sys_outbox__uq__f1a22a1c" unique ("key"),
 	constraint "sys_outbox__ck__fb29df7c" check ("status" in ('queued', 'sending', 'acked', 'failed', 'dead', 'skipped')),
 	constraint "sys_outbox__ck__f6ff471a" check (isfinite("next_attempt_at")),
 	constraint "sys_outbox__ck__a7d38bd9" check (isfinite("claimed_at")),
 	constraint "sys_outbox__ck__b77b5c87" check (("error" is null or store_json_valid("error", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_outbox__ck__c8a3b1f1" check (isfinite("acked_at")),
 	constraint "sys_outbox__ck__0bde5ff1" check (("result" is null or store_json_valid("result", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_outbox__ck__2298f760" check (isfinite("at"))
+	constraint "sys_outbox__ck__2298f760" check (isfinite("at")),
+	constraint "sys_outbox__uq__f1a22a1c" unique ("key")
 );
 
 -- step create:table:sys_run (additive)
@@ -1169,7 +1169,6 @@ create table "sys_run" ("id" text primary key,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_run_09f15580"("automation"), ''))) stored,
 	constraint "sys_run__ck__fcb01943" check (("input" is null or store_json_valid("input", '{"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__9f882481" check (isfinite("due_at")),
-	constraint "sys_run__uq__f1a22a1c" unique ("key"),
 	constraint "sys_run__ck__df253602" check (isfinite("started_at")),
 	constraint "sys_run__ck__a6d9a98d" check (isfinite("finished_at")),
 	constraint "sys_run__ck__ca03cc42" check (("progress" is null or store_json_valid("progress", '{"kind":"json","optional":true}'::jsonb) is true)),
@@ -1177,7 +1176,8 @@ create table "sys_run" ("id" text primary key,
 	constraint "sys_run__ck__b77b5c87" check (("error" is null or store_json_valid("error", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__ck__f38716e4" check (("results" is null or store_json_valid("results", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__20970459" check (("starter" is null or store_json_valid("starter", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true))
+	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_run__uq__f1a22a1c" unique ("key")
 );
 
 -- step create:table:sys_session (additive)
@@ -1192,11 +1192,11 @@ create table "sys_session" ("id" text primary key,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_session_6a2ce92f"("via"), ''))) stored,
 	"user" text not null,
 	"impersonated_by" text,
-	constraint "sys_session__uq__ba86567f" unique ("token_hash"),
 	constraint "sys_session__ck__30a5a136" check ("via" in ('code', 'invitation', 'signup', 'host', 'anonymous')),
 	constraint "sys_session__ck__367d8eb4" check (isfinite("created_at")),
 	constraint "sys_session__ck__58adc270" check (isfinite("expires_at")),
-	constraint "sys_session__ck__e61a07a4" check (isfinite("refreshed_at"))
+	constraint "sys_session__ck__e61a07a4" check (isfinite("refreshed_at")),
+	constraint "sys_session__uq__ba86567f" unique ("token_hash")
 );
 
 -- step create:table:sys_sync (additive)
@@ -1280,10 +1280,10 @@ create table "customers" ("id" uuid primary key, revision int not null default 1
 	"bolt_record_label" text generated always as ("bolt_record_label_customers_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_customers_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("phone"::text, '') || ' ' || coalesce("email"::text, '') || ' ' || coalesce("address"::text, ''))) stored,
 	constraint "customers__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
-	constraint "customers__uq__9dafea68" unique ("phone") deferrable initially immediate,
 	constraint "customers__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
 	constraint "customers__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
-	constraint "customers__ck__651ad380" check ("area" in ('central', 'north', 'north_east', 'east', 'west'))
+	constraint "customers__ck__651ad380" check ("area" in ('central', 'north', 'north_east', 'east', 'west')),
+	constraint "customers__uq__9dafea68" unique ("phone") deferrable initially immediate
 );
 
 -- step create:table:bookings (additive)
@@ -1415,12 +1415,12 @@ create table "dispatch_settings" ("id" uuid primary key, revision int not null d
 	"free_change_hours" int default '24'::int not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_dispatch_settings_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_dispatch_settings_93340fdd"("name"), ''))) stored,
-	constraint "dispatch_settings__uq__27f44ac5" unique ("name") deferrable initially immediate,
 	constraint "dispatch_settings__ck__786c73b3" check ("eta_limit_minutes" >= 5 and "eta_limit_minutes" <= 240),
 	constraint "dispatch_settings__ck__4446483f" check ("eta_check_lead_minutes" >= 15 and "eta_check_lead_minutes" <= 240),
 	constraint "dispatch_settings__ck__f142e450" check ("shift_check_lead_minutes" >= 30 and "shift_check_lead_minutes" <= 720),
 	constraint "dispatch_settings__ck__9f371d94" check ("shift_reply_minutes" >= 10 and "shift_reply_minutes" <= 240),
 	constraint "dispatch_settings__ck__8d366436" check ("free_change_hours" >= 0 and "free_change_hours" <= 168),
+	constraint "dispatch_settings__uq__27f44ac5" unique ("name") deferrable initially immediate,
 	constraint "dispatch_settings__ck__df42c5c1" check ((coalesce("shift_reply_minutes" < "shift_check_lead_minutes", false)))
 );
 
@@ -1430,8 +1430,8 @@ create table "drive_times" ("id" uuid primary key, revision int not null default
 	"minutes" int not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_drive_times_9cc16d6b"("minutes")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_drive_times_9cc16d6b"("minutes"), ''))) stored,
-	constraint "drive_times__uq__ffaf0853" unique ("leg") deferrable initially immediate,
-	constraint "drive_times__ck__8d7c148e" check ("minutes" >= 0)
+	constraint "drive_times__ck__8d7c148e" check ("minutes" >= 0),
+	constraint "drive_times__uq__ffaf0853" unique ("leg") deferrable initially immediate
 );
 
 -- step create:table:helpers (additive)
@@ -1489,10 +1489,10 @@ create table "services" ("id" uuid primary key, revision int not null default 1,
 	"active" boolean default true not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_services_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_services_93340fdd"("name"), '') || ' ' || coalesce("name"::text, ''))) stored,
-	constraint "services__uq__27f44ac5" unique ("name") deferrable initially immediate,
 	constraint "services__ck__13927f40" check ("skill" in ('home_cleaning', 'deep_cleaning', 'move_in_out', 'post_renovation', 'office_cleaning', 'laundry_ironing', 'handyman')),
 	constraint "services__ck__e56acf6a" check ("duration_minutes" >= 30 and "duration_minutes" <= 720),
-	constraint "services__ck__5b5e0602" check ("price" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("price", 2) = "price")
+	constraint "services__ck__5b5e0602" check ("price" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("price", 2) = "price"),
+	constraint "services__uq__27f44ac5" unique ("name") deferrable initially immediate
 );
 
 -- step create:table:availability_requests (additive)
@@ -1596,7 +1596,7 @@ create table if not exists bolt_approval_effect (
 select bolt_history_register('approval_request','{"fields":{"action":{"kind":"enum","values":["create","update","delete"]},"approver_teams":{"kind":"json","shape":{"kind":"text","many":true}},"approver_users":{"kind":"json","shape":{"kind":"text","many":true}},"closed_at":{"kind":"instant","optional":true},"closed_by":{"kind":"text","optional":true},"collection_name":{"kind":"text"},"created_at":{"kind":"instant"},"record_id":{"kind":"text"},"revision":{"default":1,"kind":"int"},"status":{"kind":"enum","values":["ONGOING","CHANGES_REQUESTED","APPROVED","REJECTED","SUPERSEDED","WITHDRAWN"]},"step":{"kind":"int"},"step_names":{"kind":"json","shape":{"kind":"text","many":true}},"steps":{"kind":"int"},"superseder_teams":{"kind":"json","shape":{"kind":"text","many":true}}},"key":"uuid","search":{"text":["collection_name"]},"unique":[{"fields":["collection_name","record_id"],"name":"one_ongoing_request","where":{"status":{"eq":"ONGOING"}}}]}'::jsonb);
 
 -- step create:history:schema:sys_api_key (additive)
-select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text","unique":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
+select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text"},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name","unique":[{"fields":["prefix"],"name":"prefix"}]}'::jsonb);
 
 -- step create:history:schema:sys_conversation (additive)
 select bolt_history_register('sys_conversation','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"goals":{"kind":"json","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
@@ -1617,7 +1617,7 @@ select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"em
 select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:customers (additive)
-select bolt_history_register('customers','{"audit":true,"fields":{"address":{"kind":"text"},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"email":{"format":"email","kind":"text","optional":true},"location":{"kind":"point","optional":true},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"phone":{"format":"phone","kind":"text","unique":true}},"record_label":"record.name","search":{"text":["name","phone","email","address"]}}'::jsonb);
+select bolt_history_register('customers','{"audit":true,"fields":{"address":{"kind":"text"},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"email":{"format":"email","kind":"text","optional":true},"location":{"kind":"point","optional":true},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"phone":{"format":"phone","kind":"text"}},"record_label":"record.name","search":{"text":["name","phone","email","address"]},"unique":[{"fields":["phone"],"name":"phone"}]}'::jsonb);
 
 -- step create:history:schema:bookings (additive)
 select bolt_history_register('bookings','{"audit":true,"fields":{"address":{"kind":"text"},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"customer":{"inverse":"bookings","kind":"ref","to":"customers"},"location":{"kind":"point","optional":true},"notes":{"kind":"text","optional":true},"number":{"kind":"seq","pattern":"BK-{yyyy}-{0000}"},"preference":{"kind":"enum","values":["any","preferred"]},"repeat":{"kind":"enum","values":["once","weekly","fortnightly","monthly"]},"service":{"inverse":"bookings","kind":"ref","to":"services"},"status":{"initial":"active","kind":"state","states":{"active":{"to":["cancelled"]},"cancelled":{}}},"visit_count":{"kind":"count","of":"visits"}},"indexes":[{"on":["status"]}],"locks":{"cancelled":{"where":{"status":{"eq":"cancelled"}}}},"record_label":"record.number","search":{"text":["number","customer","service"]}}'::jsonb);
@@ -1635,10 +1635,10 @@ select bolt_history_register('customer_notices','{"audit":true,"fields":{"auto_r
 select bolt_history_register('helper_warnings','{"audit":true,"fields":{"helper":{"inverse":"warnings","kind":"ref","to":"helpers"},"issued_at":{"kind":"instant"},"letter":{"accept":["application/pdf"],"kind":"file","max":"2MiB","optional":true},"notes":{"kind":"text","optional":true},"reason":{"kind":"enum","values":["no_response","declined_without_mc"]},"visit":{"kind":"ref","on_delete":"set_null","optional":true,"to":"visits"}},"indexes":[{"on":["issued_at"]}],"record_label":"record.reason","search":{"text":["helper","visit","reason"]}}'::jsonb);
 
 -- step create:history:schema:dispatch_settings (additive)
-select bolt_history_register('dispatch_settings','{"audit":true,"check":{"reply_inside_lead":{"shift_reply_minutes":{"lt":{"field":"shift_check_lead_minutes"}}}},"fields":{"eta_check_lead_minutes":{"default":60,"kind":"int","max":240,"min":15},"eta_limit_minutes":{"default":30,"kind":"int","max":240,"min":5},"free_change_hours":{"default":24,"kind":"int","max":168,"min":0},"name":{"default":"Dispatch","kind":"text","unique":true},"shift_check_lead_minutes":{"default":120,"kind":"int","max":720,"min":30},"shift_reply_minutes":{"default":60,"kind":"int","max":240,"min":10}},"record_label":"record.name"}'::jsonb);
+select bolt_history_register('dispatch_settings','{"audit":true,"check":{"reply_inside_lead":{"shift_reply_minutes":{"lt":{"field":"shift_check_lead_minutes"}}}},"fields":{"eta_check_lead_minutes":{"default":60,"kind":"int","max":240,"min":15},"eta_limit_minutes":{"default":30,"kind":"int","max":240,"min":5},"free_change_hours":{"default":24,"kind":"int","max":168,"min":0},"name":{"default":"Dispatch","kind":"text"},"shift_check_lead_minutes":{"default":120,"kind":"int","max":720,"min":30},"shift_reply_minutes":{"default":60,"kind":"int","max":240,"min":10}},"record_label":"record.name","unique":[{"fields":["name"],"name":"name"}]}'::jsonb);
 
 -- step create:history:schema:drive_times (additive)
-select bolt_history_register('drive_times','{"audit":true,"fields":{"leg":{"hidden":true,"kind":"text","unique":true},"minutes":{"kind":"int","min":0}},"record_label":"string(record.minutes)"}'::jsonb);
+select bolt_history_register('drive_times','{"audit":true,"fields":{"leg":{"hidden":true,"kind":"text"},"minutes":{"kind":"int","min":0}},"record_label":"string(record.minutes)","unique":[{"fields":["leg"],"name":"leg"}]}'::jsonb);
 
 -- step create:history:schema:helpers (additive)
 select bolt_history_register('helpers','{"audit":true,"check":{"hours":{"day_end":{"gt":{"field":"day_start"}}}},"fields":{"day_end":{"kind":"time"},"day_start":{"kind":"time"},"home_area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"home_location":{"kind":"point","optional":true},"last_location":{"kind":"point","optional":true},"last_location_at":{"kind":"instant","optional":true},"left_on":{"kind":"date","optional":true},"name":{"kind":"text"},"phone":{"format":"phone","kind":"text"},"skills":{"kind":"enum","many":true,"values":["home_cleaning","deep_cleaning","move_in_out","post_renovation","office_cleaning","laundry_ironing","handyman"]},"status":{"initial":"active","kind":"state","states":{"active":{"to":["left"]},"left":{"to":["active"]}}},"user":{"kind":"ref","on_delete":"set_null","optional":true,"to":"sys_user"},"warning_count":{"kind":"count","of":"warnings"},"work_days":{"kind":"enum","many":true,"values":["sun","mon","tue","wed","thu","fri","sat"]}},"record_label":"record.name","search":{"text":["name"]},"unique":[{"fields":["user"],"name":"one_user"}]}'::jsonb);
@@ -1647,7 +1647,7 @@ select bolt_history_register('helpers','{"audit":true,"check":{"hours":{"day_end
 select bolt_history_register('helper_time_off','{"audit":true,"fields":{"helper":{"inverse":"time_off","kind":"ref","owned":true,"to":"helpers"},"period":{"kind":"period","of":"date"},"reason":{"kind":"enum","values":["leave","medical","other"]}},"no_overlap":[{"key":["helper"],"name":"one_absence","period":"period"}],"record_label":"record.reason"}'::jsonb);
 
 -- step create:history:schema:services (additive)
-select bolt_history_register('services','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"description":{"kind":"text","optional":true},"duration_minutes":{"kind":"int","max":720,"min":30},"name":{"kind":"text","unique":true},"price":{"currency":"SGD","kind":"money"},"skill":{"kind":"enum","values":["home_cleaning","deep_cleaning","move_in_out","post_renovation","office_cleaning","laundry_ironing","handyman"]}},"record_label":"record.name","search":{"text":["name"]}}'::jsonb);
+select bolt_history_register('services','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"description":{"kind":"text","optional":true},"duration_minutes":{"kind":"int","max":720,"min":30},"name":{"kind":"text"},"price":{"currency":"SGD","kind":"money"},"skill":{"kind":"enum","values":["home_cleaning","deep_cleaning","move_in_out","post_renovation","office_cleaning","laundry_ironing","handyman"]}},"record_label":"record.name","search":{"text":["name"]},"unique":[{"fields":["name"],"name":"name"}]}'::jsonb);
 
 -- step create:history:schema:availability_requests (additive)
 select bolt_history_register('availability_requests','{"audit":true,"fields":{"address":{"kind":"text","max":500},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"checked_at":{"kind":"instant","optional":true},"estimated":{"default":true,"kind":"bool"},"helper":{"kind":"ref","optional":true,"to":"helpers"},"location":{"kind":"point","optional":true},"phone":{"format":"phone","kind":"text"},"preference":{"default":"any","kind":"enum","values":["any","preferred"]},"problem":{"kind":"text","optional":true},"repeat":{"default":"once","kind":"enum","values":["once","weekly","fortnightly","monthly"]},"service":{"kind":"ref","to":"services"},"starts":{"default":[],"hidden":true,"kind":"text","many":true},"status":{"initial":"pending","kind":"state","states":{"failed":{},"pending":{"to":["ready","failed"]},"ready":{}}}},"locks":{"settled":{"where":{"status":{"in":["ready","failed"]}}}},"record_label":"record.address"}'::jsonb);

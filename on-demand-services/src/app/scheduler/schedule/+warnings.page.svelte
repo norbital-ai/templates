@@ -35,6 +35,7 @@
 {/snippet}
 {#snippet attention()}
 	<Table
+		{ctx}
 		empty={noAttention}
 		of="visits"
 		key="attention"
@@ -66,6 +67,7 @@
 {/snippet}
 {#snippet shifts()}
 	<Table
+		{ctx}
 		empty={noShifts}
 		of="visits"
 		key="shifts"
@@ -80,6 +82,7 @@
 {/snippet}
 {#snippet letters()}
 	<Table
+		{ctx}
 		empty={noLetters}
 		of="helper_warnings"
 		order_by={{ issued_at: 'desc' }}

@@ -13,6 +13,7 @@
 	description={t('app.customers.description')}
 >
 	<Table
+		{ctx}
 		of="customers"
 		order_by={{ name: 'asc' }}
 		toolbar={{ title: t('app.customers.tab_profiles') }}

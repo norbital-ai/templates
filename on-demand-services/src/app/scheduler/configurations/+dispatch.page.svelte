@@ -21,6 +21,7 @@
 			<p class="text-caption">{t('component.loading')}</p>
 		{:else}
 			<Form
+				{ctx}
 				of="dispatch_settings"
 				mode={row === undefined ? 'create' : 'update'}
 				{...row === undefined ? {} : { id: row.id }}
@@ -37,11 +38,13 @@
 					>
 						<Grid minimum="compact">
 							<Field
+								{ctx}
 								name="eta_limit_minutes"
 								label={t('component.eta_limit_minutes')}
 								help={t('component.eta_limit_minutes_help')}
 							/>
 							<Field
+								{ctx}
 								name="eta_check_lead_minutes"
 								label={t('component.eta_check_lead_minutes')}
 								help={t('component.eta_check_lead_minutes_help')}
@@ -56,11 +59,13 @@
 					>
 						<Grid minimum="compact">
 							<Field
+								{ctx}
 								name="shift_check_lead_minutes"
 								label={t('component.shift_check_lead_minutes')}
 								help={t('component.shift_check_lead_minutes_help')}
 							/>
 							<Field
+								{ctx}
 								name="shift_reply_minutes"
 								label={t('component.shift_reply_minutes')}
 								help={t('component.shift_reply_minutes_help')}
@@ -70,6 +75,7 @@
 					<!-- one setting: a section groups at least two controls, so it stands in the flow on its own -->
 					<Grid minimum="compact">
 						<Field
+							{ctx}
 							name="free_change_hours"
 							label={t('component.free_change_hours')}
 							help={t('component.free_change_hours_help')}

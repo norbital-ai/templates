@@ -65,6 +65,7 @@
 
 {#snippet positions()}
 	<Map
+		{ctx}
 		of="helpers"
 		at="last_location"
 		label="name"
@@ -79,6 +80,7 @@
 {/snippet}
 {#snippet underWay()}
 	<Table
+		{ctx}
 		empty={quiet}
 		of="visits"
 		key="live"

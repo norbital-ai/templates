@@ -13,7 +13,7 @@ export default model({
 	icon: 'lucide:sliders-horizontal',
 	record_label: 'record.name',
 	fields: {
-		name: { kind: 'text', unique: true, default: 'Dispatch' },
+		name: { kind: 'text', default: 'Dispatch' },
 		eta_limit_minutes: {
 			kind: 'int',
 			min: 5,
@@ -46,6 +46,7 @@ export default model({
 		}
 	},
 	constraints: {
+		name: { unique: ['name'] },
 		reply_inside_lead: {
 			check: { shift_reply_minutes: { lt: { field: 'shift_check_lead_minutes' } } }
 		}

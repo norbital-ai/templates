@@ -7,7 +7,7 @@ export default policy({
 	description: 'Portal visitors: the active services and their open times.',
 	grants: {
 		services: { outputs: { portal: { where: { active: { eq: true } } } } },
-		openings: { outputs: { portal: true } }
+		openings: { outputs: { portal: {} } }
 	},
 	limits: { read: '120/min' }
 });

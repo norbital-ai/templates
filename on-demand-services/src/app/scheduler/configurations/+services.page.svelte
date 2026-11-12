@@ -13,6 +13,7 @@
 	description={t('app.configurations.services_description')}
 >
 	<Table
+		{ctx}
 		of="services"
 		order_by={{ name: 'asc' }}
 		toolbar={{ title: t('app.configurations.tab_services') }}

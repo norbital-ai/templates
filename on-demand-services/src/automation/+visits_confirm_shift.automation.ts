@@ -1,6 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput } from '@norbital-ai/bolt';
-import { Refusal } from '@norbital-ai/bolt/errors';
 import { targetOf } from '../lib/dispatch.js';
 import { ownVisits, sameDay } from '../lib/visit-recovery.js';
 
@@ -16,10 +15,7 @@ export default automation({
 			visits: { output: 'helper', where: { id: { in: targets } } }
 		})).visits;
 		if (targetsOf.length !== targets.length)
-			return yield* new Refusal({
-				message: 'The selected record does not exist or is not readable.',
-				field: 'targets'
-			});
+			return yield* ctx.refuse('errors.unreadable', { field: 'targets' });
 		const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
 		for (const v of targetsOf) {
 			const day = yield* sameDay(ctx, v);

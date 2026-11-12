@@ -73,7 +73,7 @@ export default model({
 							.availability_requests.rows;
 			for (const [row, r] of rows.entries()) {
 				if (Date.parse(r.start) <= Date.parse(ctx.now))
-					return yield* ctx.refuse('Pick a time in the future.', { field: 'start', row });
+					return yield* ctx.refuse('errors.start_in_past', { field: 'start', row });
 				if (r.availability === undefined || r.availability === null) continue;
 				const q = quotes.find((q) => q.id === r.availability);
 				if (
@@ -88,7 +88,7 @@ export default model({
 					q.checked_at === null ||
 					Date.parse(ctx.now) - Date.parse(q.checked_at) > QUOTE_FRESH_MS
 				)
-					return yield* ctx.refuse('Availability changed. Check times again.', {
+					return yield* ctx.refuse('errors.availability_changed', {
 						field: 'start',
 						row
 					});

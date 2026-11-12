@@ -4,16 +4,14 @@ import { alertHelpers } from '../../../../../lib/dispatch.js';
 import { Instant as instant } from '@norbital-ai/std/date';
 import { AREAS, lookups, refusal, SKILLS, type Refusal } from '../../../../../lib/matching.js';
 const HOUR = 3600000;
-const WHY: {
-	[R in Refusal]: string;
-} = {
-	left: 'has left',
-	skill: 'does not have the skill this service needs',
-	day: 'does not work that day',
-	hours: 'is outside their working hours then',
-	time_off: 'is off that day',
-	booked: 'has another visit too close to this one, counting the drive between them'
-};
+const WHY = {
+	left: 'errors.helper.left',
+	skill: 'errors.helper.skill',
+	day: 'errors.helper.day',
+	hours: 'errors.helper.hours',
+	time_off: 'errors.helper.time_off',
+	booked: 'errors.helper.booked'
+} as const satisfies { [R in Refusal]: string };
 /** The start and the finish are stamped as the helper moves the visit through its day. */
 const stamped = <
 	I extends {
@@ -191,15 +189,13 @@ export default model({
 			]
 		},
 		transform: function* (changes, ctx) {
-			const touched = changes.flatMap(({ before, set }) => {
-				const helper = set.helper === undefined ? before.helper : set.helper;
+			const touched = changes.flatMap(({ set, after }) => {
 				const moved = set.helper !== undefined || set.slot !== undefined;
-				const status = set.status ?? before.status;
-				return moved && helper != null && status !== 'cancelled' ? [helper] : [];
+				return moved && after.helper != null && after.status !== 'cancelled' ? [after.helper] : [];
 			});
 			if (touched.length === 0) return changes.map(({ set }) => stamped(set, ctx.now));
 			const ids = [...new Set(touched)];
-			const starts = changes.map(({ before, set }) => Date.parse((set.slot ?? before.slot).start));
+			const starts = changes.map(({ after }) => Date.parse(after.slot.start));
 			const from = instant(new Date(Math.min(...starts) - 2 * 24 * HOUR).toISOString());
 			const to = instant(new Date(Math.max(...starts) + 2 * 24 * HOUR).toISOString());
 			const {
@@ -220,16 +216,13 @@ export default model({
 			});
 			// the stored holds with this batch laid over them, so two visits of one batch cannot collide either
 			const held = new Map(stored.rows.map((v) => [String(v.id), v]));
-			for (const { before: v, set } of changes)
+			for (const { after: v } of changes)
 				held.set(String(v.id), {
 					id: v.id,
-					helper: set.helper === undefined ? v.helper : set.helper,
-					slot:
-						set.slot === undefined
-							? v.slot
-							: { start: instant(set.slot.start), end: instant(set.slot.end!) },
+					helper: v.helper,
+					slot: { start: instant(v.slot.start), end: instant(v.slot.end!) },
 					location: v.location,
-					status: set.status ?? v.status
+					status: v.status
 				});
 			const holds = {
 				helpers: helpers.rows,
@@ -260,16 +253,16 @@ export default model({
 						})).drive_times.rows;
 			const pool = { ...holds, drive: new Map(drive.map((d) => [d.leg, d.minutes])) };
 			const out: (typeof changes)[number]['set'][] = [];
-			for (const [row, { before, set }] of changes.entries()) {
-				const helper = set.helper === undefined ? before.helper : set.helper;
+			for (const [row, { before, set, after }] of changes.entries()) {
+				const helper = after.helper;
 				const changed = set.helper !== undefined && set.helper !== before.helper;
 				if (
 					(set.helper !== undefined || set.slot !== undefined) &&
 					helper != null &&
-					(set.status ?? before.status) !== 'cancelled'
+					after.status !== 'cancelled'
 				) {
 					const h = pool.helpers.find((x) => x.id === helper)!;
-					const slot = set.slot ?? before.slot;
+					const slot = after.slot;
 					const no = refusal(
 						h,
 						{
@@ -282,8 +275,7 @@ export default model({
 						pool,
 						ctx.tz
 					);
-					if (no !== null)
-						return yield* ctx.refuse(`${h.name} ${WHY[no]}.`, { field: 'helper', row });
+					if (no !== null) return yield* ctx.refuse(WHY[no], { field: 'helper', row, values: { name: h.name } });
 				}
 				out.push(
 					stamped(

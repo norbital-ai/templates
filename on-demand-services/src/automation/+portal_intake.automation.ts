@@ -1,6 +1,5 @@
 import { Effect, Result } from 'effect';
 import { automation } from '@norbital-ai/bolt';
-import { Refusal } from '@norbital-ai/bolt/errors';
 import { targetOf, when } from '../lib/dispatch.js';
 import { bookService } from '../lib/booking.js';
 /**
@@ -41,10 +40,7 @@ export default automation({
 					]
 				});
 				const created = records.find((record) => record.model === 'customers');
-				if (created === undefined)
-					return yield* new Refusal({
-						message: 'The customer creation did not return a customer record.'
-					});
+				if (created === undefined) return yield* ctx.refuse('errors.customer_not_created');
 				customer = created.id;
 			}
 			const availability =

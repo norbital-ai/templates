@@ -2,19 +2,17 @@ import { Effect } from 'effect';
 import type { ActInput, AutomationCtx, Id, Instant, Row, StartInput } from '@norbital-ai/bolt';
 import { dayOf, loadPool, settingsOf, targetOf, when } from './dispatch.js';
 import { rank, slotOf } from './matching.js';
-import { Refusal } from '@norbital-ai/bolt/errors';
-const UNREADABLE = 'The selected record does not exist or is not readable.';
 /**
  * A helper answers only for their own visits: the run is the system identity, so the member who started it (its
  * trigger) must be the helper of every target.
  */
 export const ownVisits = Effect.fnUntraced(function* (
-	ctx: Pick<AutomationCtx, 'query' | 'run'>,
+	ctx: Pick<AutomationCtx, 'query' | 'run' | 'refuse'>,
 	targets: readonly Id<'visits'>[]
 ) {
 	const by = ctx.run.trigger;
 	const user = by.kind === 'person' && by.actor.kind === 'member' ? by.actor.id : null;
-	if (user === null) return yield* new Refusal({ message: UNREADABLE, field: 'targets' });
+	if (user === null) return yield* ctx.refuse('errors.unreadable', { field: 'targets' });
 	const { visits, helpers } = yield* ctx.query({
 		visits: { output: 'helper', where: { id: { in: targets } }, fields: ['helper'] },
 		helpers: { where: { user: { eq: user } }, fields: ['id'] }
@@ -24,18 +22,18 @@ export const ownVisits = Effect.fnUntraced(function* (
 		visits.rows.length !== new Set(targets).size ||
 		visits.rows.some((v) => v.helper === null || !mine.has(v.helper))
 	)
-		return yield* new Refusal({ message: UNREADABLE, field: 'targets' });
+		return yield* ctx.refuse('errors.unreadable', { field: 'targets' });
 });
 /** The helper and controller report the same unavailable day through their own grants. */
 export function* declineShift(
 	{ mc, targets }: { readonly mc: boolean; readonly targets: readonly Id<'visits'>[] },
-	ctx: Pick<AutomationCtx, 'query' | 'act' | 'tz'>
+	ctx: Pick<AutomationCtx, 'query' | 'act' | 'tz' | 'refuse'>
 ) {
 	const { rows: targetsOf } = (yield* ctx.query({
 		visits: { output: 'helper', where: { id: { in: targets } } }
 	})).visits;
 	if (targetsOf.length !== targets.length)
-		return yield* new Refusal({ message: UNREADABLE, field: 'targets' });
+		return yield* ctx.refuse('errors.unreadable', { field: 'targets' });
 	const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
 	for (const v of targetsOf) {
 		const day = yield* sameDay(ctx, v);
@@ -70,7 +68,7 @@ export const customerNotice = Effect.fnUntraced(function* (
 	return null;
 });
 export const sameDay = Effect.fnUntraced(function* (
-	ctx: Pick<AutomationCtx, 'query' | 'tz'>,
+	ctx: Pick<AutomationCtx, 'query' | 'tz' | 'refuse'>,
 	v: {
 		readonly helper: Id<'helpers'> | null;
 		readonly status: string;
@@ -79,8 +77,7 @@ export const sameDay = Effect.fnUntraced(function* (
 		};
 	}
 ) {
-	if (v.helper === null || v.status !== 'scheduled')
-		return yield* new Refusal({ message: 'This visit has no shift to answer for.' });
+	if (v.helper === null || v.status !== 'scheduled') return yield* ctx.refuse('errors.no_shift');
 	const { rows } = (yield* ctx.query({
 		visits: {
 			output: 'helper',
@@ -99,12 +96,11 @@ export const sameDay = Effect.fnUntraced(function* (
 export const planRebooking = Effect.fnUntraced(function* (
 	v: Row<'visits'>,
 	{ start, helper }: Pick<StartInput<'visits_rebook'>, 'start' | 'helper'>,
-	ctx: Pick<AutomationCtx, 'query' | 'tz' | 'now'>
+	ctx: Pick<AutomationCtx, 'query' | 'tz' | 'now' | 'refuse'>
 ) {
-	if (v.status !== 'scheduled')
-		return yield* new Refusal({ message: 'Only a scheduled visit can be rebooked.' });
+	if (v.status !== 'scheduled') return yield* ctx.refuse('errors.rebook_not_scheduled');
 	if (Date.parse(start) <= Date.parse(ctx.now))
-		return yield* new Refusal({ message: 'Choose a start in the future.', field: 'start' });
+		return yield* ctx.refuse('errors.start_in_past', { field: 'start' });
 	const sameTime = start === v.slot.start;
 	const recovery =
 		(v.unavailable_helper !== null && v.helper === null) ||
@@ -116,8 +112,8 @@ export const planRebooking = Effect.fnUntraced(function* (
 		!recovery &&
 		Date.parse(v.slot.start) - Date.parse(ctx.now) < free_change_hours * HOUR
 	)
-		return yield* new Refusal({
-			message: `A customer time change must be at least ${free_change_hours} hours before the visit. Confirm the cleaner is unavailable before using service recovery.`
+		return yield* ctx.refuse('errors.customer_change_window', {
+			values: { hours: free_change_hours }
 		});
 	const slot = slotOf(start, (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60000);
 	const pool = yield* loadPool(ctx, start, start, [v.location]);
@@ -130,11 +126,7 @@ export const planRebooking = Effect.fnUntraced(function* (
 		ctx.tz,
 		v.helper
 	)[0];
-	if (best === undefined)
-		return yield* new Refusal({
-			message:
-				'That cleaner or time is no longer available. Refresh the recommendation or choose another start.'
-		});
+	if (best === undefined) return yield* ctx.refuse('errors.rebook_unavailable');
 	const update: Extract<ActInput<'visits.update'>, readonly unknown[]>[number] = {
 		target: targetOf(v),
 		set: {

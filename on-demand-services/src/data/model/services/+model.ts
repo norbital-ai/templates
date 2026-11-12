@@ -7,13 +7,14 @@ export default model({
 	icon: 'lucide:sparkles',
 	record_label: 'record.name',
 	fields: {
-		name: { kind: 'text', unique: true },
+		name: { kind: 'text' },
 		skill: { kind: 'enum', values: SKILLS },
 		duration_minutes: { kind: 'int', min: 30, max: 720 },
 		price: { kind: 'money' },
 		description: { kind: 'text', optional: true },
 		active: { kind: 'bool', default: true }
 	},
+	constraints: { name: { unique: ['name'] } },
 	indexes: { find: { text: ['name'] } },
 	outputs: {
 		default: { fields: 'all' },

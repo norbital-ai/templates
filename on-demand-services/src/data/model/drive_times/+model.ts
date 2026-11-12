@@ -10,9 +10,10 @@ export default model({
 	record_label: 'string(record.minutes)',
 	fields: {
 		/** `<lat>,<lng>><lat>,<lng>`, each rounded to 0.01°. */
-		leg: { kind: 'text', unique: true, hidden: true },
+		leg: { kind: 'text', hidden: true },
 		minutes: { kind: 'int', min: 0 }
 	},
+	constraints: { leg: { unique: ['leg'] } },
 	outputs: { default: { fields: 'all' } },
 	create: { columns: { fields: ['leg', 'minutes'] } }
 });

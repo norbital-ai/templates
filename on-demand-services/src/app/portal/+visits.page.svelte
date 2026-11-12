@@ -64,7 +64,7 @@
 			</Stack>
 			{#if !me}
 				<p class="text-sm text-muted-foreground">{t('app.portal.verify_to_see')}</p>
-				<PhoneVerify session={ctx.session} />
+				<PhoneVerify {ctx} session={ctx.session} />
 			{:else}
 				<Stack gap="sm">
 					<Label>{t('app.portal.visits_upcoming')}</Label>

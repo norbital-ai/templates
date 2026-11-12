@@ -97,6 +97,7 @@
 					})}
 		</p>
 		<Table
+			{ctx}
 			of="visits"
 			key="customer-upcoming"
 			toolbar={{ title: t('app.customers.upcoming'), new: false }}
@@ -122,6 +123,7 @@
 			{t('app.customers.history_summary', { done, cancelled })}
 		</p>
 		<Table
+			{ctx}
 			of="visits"
 			key="customer-history"
 			toolbar={{ title: t('app.customers.history'), new: false }}
@@ -142,6 +144,7 @@
 {/snippet}
 {#snippet bookings()}
 	{#if record}<Table
+			{ctx}
 			of="bookings"
 			key="customer-bookings"
 			toolbar={{ title: t('app.customers.bookings'), new: false }}
@@ -152,6 +155,7 @@
 {/snippet}
 {#snippet notices()}
 	{#if record}<Table
+			{ctx}
 			of="customer_notices"
 			key="customer-notices"
 			toolbar={{ title: t('app.customers.notices'), new: false }}
@@ -163,6 +167,7 @@
 
 {#if record === null}
 	<RecordShell
+		{ctx}
 		of="customers"
 		fields={['name', 'phone', 'email', 'address', 'notes', 'location']}
 		mode="create"
@@ -171,6 +176,7 @@
 	/>
 {:else}
 	<RecordShell
+		{ctx}
 		of="customers"
 		fields={['name', 'phone', 'email', 'address', 'notes', 'location']}
 		id={record.id}

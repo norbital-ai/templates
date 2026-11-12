@@ -12,6 +12,7 @@
 
 {#snippet list()}
 	<Table
+		{ctx}
 		of="bookings"
 		order_by={{ number: 'desc' }}
 		toolbar={{ title: t('app.schedule.all_bookings') }}
@@ -28,6 +29,7 @@
 
 {#snippet requests()}
 	<Table
+		{ctx}
 		of="booking_requests"
 		order_by={{ number: 'desc' }}
 		initial_filter={{ status: { eq: 'follow_up' } }}

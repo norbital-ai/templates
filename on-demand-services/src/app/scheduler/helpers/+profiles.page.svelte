@@ -14,6 +14,7 @@
 	description={t('app.helpers.description')}
 >
 	<Table
+		{ctx}
 		of="helpers"
 		initial_filter={{ status: { eq: 'active' } }}
 		order_by={{ name: 'asc' }}

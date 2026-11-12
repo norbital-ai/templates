@@ -6,9 +6,9 @@ import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description: 'The shift-check runs: read visits and record a helper’s answer for their own day.',
 	grants: {
-		helpers: { outputs: { default: true } },
+		helpers: { outputs: { default: {} } },
 		visits: {
-			outputs: { helper: true },
+			outputs: { helper: {} },
 			update: { columns: { fields: ['shift_check', 'mc'] } }
 		}
 	},

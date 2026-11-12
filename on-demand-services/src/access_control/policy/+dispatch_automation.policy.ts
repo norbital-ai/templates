@@ -8,24 +8,24 @@ export default policy({
 	description:
 		'The dispatch runs: re-dispatch visits, file warnings and their letters, notify customers, and book portal requests.',
 	grants: {
-		dispatch_settings: { outputs: { default: true } },
-		services: { outputs: { default: true } },
-		openings: { outputs: { default: true }, create: true, update: true, delete: true },
-		drive_times: { outputs: { default: true }, create: true },
-		helpers: { outputs: { default: true } },
-		helper_time_off: { outputs: { default: true }, create: true },
-		customers: { outputs: { default: true }, create: true },
-		availability_requests: { outputs: { default: true }, update: { moves: 'all' } },
+		dispatch_settings: { outputs: { default: {} } },
+		services: { outputs: { default: {} } },
+		openings: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
+		drive_times: { outputs: { default: {} }, create: {} },
+		helpers: { outputs: { default: {} } },
+		helper_time_off: { outputs: { default: {} }, create: {} },
+		customers: { outputs: { default: {} }, create: {} },
+		availability_requests: { outputs: { default: {} }, update: { moves: 'all' } },
 		booking_requests: {
-			outputs: { default: true },
+			outputs: { default: {} },
 			update: {
 				columns: { fields: ['status', 'booking', 'outcome'] },
 				moves: { status: ['received->booked', 'received->follow_up'] }
 			}
 		},
-		bookings: { outputs: { default: true }, create: true },
+		bookings: { outputs: { default: {} }, create: {} },
 		visits: {
-			outputs: { default: true },
+			outputs: { default: {} },
 			update: {
 				columns: {
 					fields: [
@@ -43,17 +43,17 @@ export default policy({
 			}
 		},
 		helper_warnings: {
-			outputs: { default: true },
-			create: true,
+			outputs: { default: {} },
+			create: {},
 			update: { columns: { fields: ['letter'] } }
 		},
 		customer_notices: {
-			outputs: { default: true },
-			create: true,
+			outputs: { default: {} },
+			create: {},
 			update: { columns: { fields: ['whatsapp'] } }
 		},
 		// the shared WhatsApp and Google Routes accounts the runs send and time drives through
-		sys_integration: { outputs: { default: true } }
+		sys_integration: { outputs: { default: {} } }
 	},
 	limits: { act: '600/min', read: '600/min' }
 });

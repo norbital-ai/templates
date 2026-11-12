@@ -195,7 +195,7 @@ layer(
 				yield* Effect.flip(customer.act({ 'booking_requests.create': [request()] }))
 			).toMatchObject({
 				_tag: 'ActRefused',
-				message: expect.stringContaining('Check times again')
+				key: 'errors.availability_changed'
 			});
 		})
 	);

@@ -11,13 +11,14 @@ export default model({
 	record_label: 'record.name',
 	fields: {
 		name: { kind: 'text' },
-		phone: { kind: 'text', format: 'phone', unique: true },
+		phone: { kind: 'text', format: 'phone' },
 		email: { kind: 'text', format: 'email', optional: true },
 		address: { kind: 'text' },
 		location: { kind: 'point', optional: true },
 		area: { kind: 'enum', values: AREAS, optional: true },
 		notes: { kind: 'text', optional: true }
 	},
+	constraints: { phone: { unique: ['phone'] } },
 	indexes: { find: { text: ['name', 'phone', 'email', 'address'] } },
 	outputs: {
 		default: { fields: 'all' },

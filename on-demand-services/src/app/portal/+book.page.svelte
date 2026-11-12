@@ -344,7 +344,7 @@
 			{#if step === 'details'}
 				{#if me === null}
 					<Stack gap="md">
-						<PhoneVerify session={ctx.session} />
+						<PhoneVerify {ctx} session={ctx.session} />
 					</Stack>
 				{:else}
 					<Stack gap="lg">
@@ -390,6 +390,7 @@
 						<Stack gap="sm" class="booking-destination">
 							<Label for="portal-address">{t('app.portal.address')}</Label>
 							<PointInput
+								{ctx}
 								id="portal-address"
 								value={location}
 								{address}

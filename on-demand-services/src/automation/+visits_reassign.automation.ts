@@ -1,45 +1,33 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
-import { Refusal } from '@norbital-ai/bolt/errors';
-import { planReassignment, targetOf, visitsToMove, when } from '../lib/dispatch.js';
+import { planReassignment, visitsToMove, when } from '../lib/dispatch.js';
 
 export default automation({
 	description:
 		'Gives the visit to the named helper, or to the best-matched one when none is named. A customer who asked for particular helpers is told.',
 	input: {
-		targets: { kind: 'ref', to: 'visits', many: true, min_items: 1 },
+		targets: { kind: 'rows', of: 'visits' },
 		helper: { kind: 'ref', to: 'helpers', optional: true }
 	},
 	policies: ['operations'],
 	run: function* ({ helper, targets }, ctx) {
-		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
-			.visits;
-		if (targetsOf.length !== targets.length)
-			return yield* new Refusal({
-				message: 'The selected record does not exist or is not readable.',
-				field: 'targets'
-			});
 		const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
 		const notices: CreateInput<'customer_notices'>[] = [];
-		for (const v of targetsOf) {
-			if (v.status !== 'scheduled')
-				return yield* new Refusal({ message: 'Only a scheduled visit can be reassigned.' });
+		for (const v of targets) {
+			if (v.status !== 'scheduled') return yield* ctx.refuse('errors.reassign_not_scheduled');
 			if (helper == null) {
 				const [row] = (yield* ctx.query(visitsToMove({ id: { eq: v.id } }))).visits.rows;
 				if (row === undefined || v.helper === null)
-					return yield* new Refusal({ message: 'The assigned visit is not readable.' });
+					return yield* ctx.refuse('errors.assigned_unreadable');
 				const plan = yield* planReassignment(ctx, [row], v.helper);
 				const { assigned } = plan;
-				if (assigned === 0)
-					return yield* new Refusal({
-						message: 'No other helper is free for this visit. Reschedule it instead.'
-					});
+				if (assigned === 0) return yield* ctx.refuse('errors.no_other_helper');
 				updates.push(...plan.updates);
 				notices.push(...plan.notices);
 				continue;
 			}
 			updates.push({
-				target: targetOf(v),
+				target: v,
 				set: { helper, attention: 'none', proposed_helper: null, proposed_slot: null, mc: false }
 			});
 			const { bookings, helpers } = yield* ctx.query({
