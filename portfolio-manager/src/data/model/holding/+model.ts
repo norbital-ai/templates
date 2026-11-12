@@ -1,9 +1,6 @@
 import { model } from '../../../../.norbital/models/holding.ts';
 
-/**
- * One line of the book: a security, a cash balance or a facility. The research on the line lives
- * here too: the direction the agent should follow, and the insights with the references behind them.
- */
+/** Every field is written: the statement's by people, the calculated ones by the daily agent. */
 const columns = [
 	'instrument',
 	'symbol',
@@ -20,10 +17,7 @@ const columns = [
 	'detail',
 	'documents',
 	'sources',
-	'research_direction'
-] as const;
-/** What the daily agent calculates; people read these, the agent writes them. */
-const calculated = [
+	'research_direction',
 	'live_price',
 	'live_value_base',
 	'live_change_pct',
@@ -36,6 +30,10 @@ const calculated = [
 	'insights'
 ] as const;
 
+/**
+ * One line of the book: a security, a cash balance or a facility. The research on the line lives
+ * here too: the direction the agent should follow, and the insights with the references behind them.
+ */
 export default model({
 	description: 'A line of the book (security, cash or facility) with the research kept on it.',
 	icon: 'lucide:trending-up',
@@ -129,7 +127,7 @@ export default model({
 		find: { text: ['instrument', 'symbol', 'detail', 'research_direction', 'research_summary'] }
 	},
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: [...columns, ...calculated] } },
-	update: { columns: { fields: [...columns, ...calculated] } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } },
 	delete: {}
 });

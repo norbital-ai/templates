@@ -1,4 +1,4 @@
--- 0001_initial.sql: 159 step(s), from an empty database to ad7b63c162f60cfadb1a5a267650604401b13ffaa2b7a8c6bff436a420214a42.
+-- 0001_initial.sql: 167 step(s), from an empty database to c1a741d1d8878434ab84837f76e290602ef43fb992415d175ab83f5ff12f4a81.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -535,6 +535,16 @@ create function "bolt_record_label_holding_5929d345"(text) returns text language
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['instrument']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('instrument', to_jsonb("instrument")) AS j FROM (SELECT $1 AS "instrument") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_portfolio_settings_4abbb1dc (additive)
+create function "bolt_record_label_portfolio_settings_4abbb1dc"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (to_jsonb((coalesce((label_row.j #> ARRAY['base_currency']), 'null'::jsonb) #>> '{}')) #>> '{}') AS value FROM (SELECT jsonb_build_object('base_currency', to_jsonb("base_currency")) AS j FROM (SELECT $1 AS "base_currency") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_record_label_report_fd2e04a3 (additive)
 create function "bolt_record_label_report_fd2e04a3"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -1198,6 +1208,17 @@ create table "holding" ("id" uuid primary key, revision int not null default 1, 
 	constraint "holding__ck__eef166b1" check (("asset_class" is distinct from 'loan'::text or coalesce("value_base" <= '0'::numeric, false)))
 );
 
+-- step create:table:portfolio_settings (additive)
+create table "portfolio_settings" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"base_currency" text not null,
+	"recipients" jsonb,
+	"bolt_record_label" text generated always as ("bolt_record_label_portfolio_settings_4abbb1dc"("base_currency")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_portfolio_settings_4abbb1dc"("base_currency"), ''))) stored,
+	"report_via" text,
+	constraint "portfolio_settings__ck__11afee8d" check ("base_currency" ~ '^[A-Z]{3}$'),
+	constraint "portfolio_settings__ck__c1c5d933" check (("recipients" is null or store_json_valid("recipients", '{"fields":{"handle":{"kind":"text"},"name":{"kind":"text","optional":true}},"key":"handle","kind":"object","many":true,"optional":true}'::jsonb) is true))
+);
+
 -- step create:table:report (additive)
 create table "report" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"for_date" date not null,
@@ -1215,6 +1236,7 @@ create table "report" ("id" uuid primary key, revision int not null default 1, c
 	"allocation" jsonb,
 	"fx_used" jsonb,
 	"positions" jsonb,
+	"deliveries" jsonb,
 	"bolt_record_label" text generated always as ("bolt_record_label_report_fd2e04a3"("for_date")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_report_fd2e04a3"("for_date"), '') || ' ' || coalesce("headline"::text, '') || ' ' || coalesce("summary"::text, '') || ' ' || coalesce("market_view"::text, ''))) stored,
 	constraint "report__ck__1b18f681" check (isfinite("for_date")),
@@ -1228,6 +1250,7 @@ create table "report" ("id" uuid primary key, revision int not null default 1, c
 	constraint "report__ck__fbc49a1a" check (("allocation" is null or store_json_valid("allocation", '{"fields":{"label":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"label","kind":"object","many":true,"optional":true}'::jsonb) is true)),
 	constraint "report__ck__00cf8ba0" check (("fx_used" is null or store_json_valid("fx_used", '{"fields":{"pair":{"kind":"text"},"rate":{"kind":"decimal","scale":6}},"key":"pair","kind":"object","many":true,"optional":true}'::jsonb) is true)),
 	constraint "report__ck__4595e08e" check (("positions" is null or store_json_valid("positions", '{"fields":{"analysis":{"kind":"text"},"call":{"kind":"enum","values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true}'::jsonb) is true)),
+	constraint "report__ck__5586dd6b" check (("deliveries" is null or store_json_valid("deliveries", '{"kind":"ref","many":true,"optional":true,"to":"sys_message"}'::jsonb) is true)),
 	constraint "report__uq__97507803" unique ("for_date") deferrable initially immediate
 );
 
@@ -1285,8 +1308,11 @@ select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin"
 -- step create:history:schema:holding (additive)
 select bolt_history_register('holding','{"audit":true,"check":{"loan_is_owed":{"or":[{"asset_class":{"ne":"loan"}},{"value_base":{"lte":"0"}}]}},"fields":{"asset_class":{"default":"equity","kind":"enum","values":["equity","structured","fund","bond","metal","cash","loan","other"]},"cost_value":{"kind":"decimal","optional":true,"scale":2},"currency":{"kind":"currency"},"detail":{"kind":"text","optional":true},"documents":{"accept":["application/pdf","image/png","image/jpeg","text/csv"],"kind":"file","many":true,"max":"32MiB","optional":true},"insights":{"fields":{"headline":{"kind":"text"},"source_name":{"kind":"text","optional":true},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"instrument":{"kind":"text"},"isin":{"kind":"text","optional":true},"live_change_pct":{"kind":"decimal","optional":true,"scale":2},"live_price":{"kind":"decimal","optional":true,"scale":4},"live_value_base":{"kind":"decimal","optional":true,"scale":2},"market_value":{"default":0,"kind":"decimal","scale":2},"movement":{"kind":"enum","optional":true,"values":["surge","active","normal","quiet"]},"pnl_history":{"fields":{"date":{"kind":"date"},"pnl":{"kind":"decimal","scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2}},"key":"date","kind":"object","many":true,"optional":true},"price_date":{"kind":"date","optional":true},"price_updated_at":{"kind":"instant","optional":true},"quantity":{"default":1,"kind":"decimal","scale":4},"research_at":{"kind":"instant","optional":true},"research_direction":{"kind":"text","optional":true},"research_summary":{"kind":"text","optional":true},"risk_rating":{"kind":"int","max":5,"min":1,"optional":true},"sources":{"fields":{"label":{"kind":"text"},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"symbol":{"kind":"text","optional":true},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2},"value_base":{"kind":"decimal","scale":2},"volume_ratio":{"kind":"decimal","optional":true,"scale":2}},"record_label":"record.instrument","search":{"text":["instrument","symbol","detail","research_direction","research_summary"]}}'::jsonb);
 
+-- step create:history:schema:portfolio_settings (additive)
+select bolt_history_register('portfolio_settings','{"audit":true,"fields":{"base_currency":{"kind":"currency"},"recipients":{"fields":{"handle":{"kind":"text"},"name":{"kind":"text","optional":true}},"key":"handle","kind":"object","many":true,"optional":true},"report_via":{"kind":"ref","optional":true,"to":"sys_integration"}},"record_label":"string(record.base_currency)"}'::jsonb);
+
 -- step create:history:schema:report (additive)
-select bolt_history_register('report','{"audit":true,"fields":{"allocation":{"fields":{"label":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"label","kind":"object","many":true,"optional":true},"base_currency":{"kind":"currency"},"cash":{"kind":"decimal","scale":2},"day_change":{"kind":"decimal","optional":true,"scale":2},"for_date":{"kind":"date"},"fx_used":{"fields":{"pair":{"kind":"text"},"rate":{"kind":"decimal","scale":6}},"key":"pair","kind":"object","many":true,"optional":true},"headline":{"kind":"text"},"invested":{"kind":"decimal","scale":2},"liabilities":{"kind":"decimal","scale":2},"market_view":{"kind":"text","optional":true},"net_assets":{"kind":"decimal","scale":2},"positions":{"fields":{"analysis":{"kind":"text"},"call":{"kind":"enum","values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true},"research_log":{"kind":"text","optional":true},"summary":{"kind":"text"},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2}},"record_label":"string(record.for_date)","search":{"text":["headline","summary","market_view"]},"unique":[{"fields":["for_date"],"name":"one_per_day"}]}'::jsonb);
+select bolt_history_register('report','{"audit":true,"fields":{"allocation":{"fields":{"label":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"label","kind":"object","many":true,"optional":true},"base_currency":{"kind":"currency"},"cash":{"kind":"decimal","scale":2},"day_change":{"kind":"decimal","optional":true,"scale":2},"deliveries":{"kind":"ref","many":true,"optional":true,"to":"sys_message"},"for_date":{"kind":"date"},"fx_used":{"fields":{"pair":{"kind":"text"},"rate":{"kind":"decimal","scale":6}},"key":"pair","kind":"object","many":true,"optional":true},"headline":{"kind":"text"},"invested":{"kind":"decimal","scale":2},"liabilities":{"kind":"decimal","scale":2},"market_view":{"kind":"text","optional":true},"net_assets":{"kind":"decimal","scale":2},"positions":{"fields":{"analysis":{"kind":"text"},"call":{"kind":"enum","values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true},"research_log":{"kind":"text","optional":true},"summary":{"kind":"text"},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2}},"record_label":"string(record.for_date)","search":{"text":["headline","summary","market_view"]},"unique":[{"fields":["for_date"],"name":"one_per_day"}]}'::jsonb);
 
 -- step create:fk:requestor.requestor__fk__5c80de5d (additive)
 alter table "requestor" add constraint "requestor__fk__5c80de5d" foreign key ("approval_request_id") references "approval_request" ("id") on delete restrict on update restrict;
@@ -1326,6 +1352,9 @@ alter table "sys_sync" add constraint "sys_sync__fk__328a1493" foreign key ("ins
 
 -- step create:fk:sys_sync_row.sys_sync_row__fk__328a1493 (additive)
 alter table "sys_sync_row" add constraint "sys_sync_row__fk__328a1493" foreign key ("instance") references "sys_integration" ("id") on delete cascade on update restrict;
+
+-- step create:fk:portfolio_settings.portfolio_settings__fk__bf92d9ec (additive)
+alter table "portfolio_settings" add constraint "portfolio_settings__fk__bf92d9ec" foreign key ("report_via") references "sys_integration" ("id") on delete restrict on update restrict;
 
 -- step create:trigger:approval_request.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"fields":{"action":["action"],"approver_teams":["approver_teams"],"approver_users":["approver_users"],"closed_at":["closed_at"],"closed_by":["closed_by"],"collection_name":["collection_name"],"created_at":["created_at"],"record_id":["record_id"],"revision":["revision"],"status":["status"],"step":["step"],"step_names":["step_names"],"steps":["steps"],"superseder_teams":["superseder_teams"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
@@ -1516,8 +1545,14 @@ create trigger store_row_rules before insert or update or delete on "holding" fo
 -- step create:index:holding.holding__gin__73732636 (additive)
 create index "holding__gin__73732636" on "holding" using gin (bolt_search);
 
+-- step create:trigger:portfolio_settings.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "portfolio_settings" for each row execute function store_row_rules('{"audit":true,"fields":{"base_currency":["base_currency"],"recipients":["recipients"],"report_via":["report_via"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+
+-- step create:index:portfolio_settings.portfolio_settings__gin__73732636 (additive)
+create index "portfolio_settings__gin__73732636" on "portfolio_settings" using gin (bolt_search);
+
 -- step create:trigger:report.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "report" for each row execute function store_row_rules('{"audit":true,"fields":{"allocation":["allocation"],"base_currency":["base_currency"],"cash":["cash"],"day_change":["day_change"],"for_date":["for_date"],"fx_used":["fx_used"],"headline":["headline"],"invested":["invested"],"liabilities":["liabilities"],"market_view":["market_view"],"net_assets":["net_assets"],"positions":["positions"],"research_log":["research_log"],"summary":["summary"],"unrealised_pl":["unrealised_pl"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "report" for each row execute function store_row_rules('{"audit":true,"fields":{"allocation":["allocation"],"base_currency":["base_currency"],"cash":["cash"],"day_change":["day_change"],"deliveries":["deliveries"],"for_date":["for_date"],"fx_used":["fx_used"],"headline":["headline"],"invested":["invested"],"liabilities":["liabilities"],"market_view":["market_view"],"net_assets":["net_assets"],"positions":["positions"],"research_log":["research_log"],"summary":["summary"],"unrealised_pl":["unrealised_pl"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
 
 -- step create:index:report.report__gin__73732636 (additive)
 create index "report__gin__73732636" on "report" using gin (bolt_search);
@@ -1561,15 +1596,23 @@ create index "sys_sync__ix__8be7dc72" on "sys_sync" ("instance");
 -- step create:index:sys_sync_row.sys_sync_row__ix__8be7dc72 (additive)
 create index "sys_sync_row__ix__8be7dc72" on "sys_sync_row" ("instance");
 
+-- step create:index:portfolio_settings.portfolio_settings__ix__4dd9fddd (additive)
+create index "portfolio_settings__ix__4dd9fddd" on "portfolio_settings" ("report_via");
+
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['approval_request','holding','report','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['approval_request','holding','portfolio_settings','report','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user']::text[]));
 
 -- step create:engine:audit:holding (additive)
 drop trigger if exists bolt_audit_mark on "holding";
 drop trigger if exists bolt_audit on "holding";
 create trigger bolt_audit after insert or update or delete on "holding" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
+-- step create:engine:audit:portfolio_settings (additive)
+drop trigger if exists bolt_audit_mark on "portfolio_settings";
+drop trigger if exists bolt_audit on "portfolio_settings";
+create trigger bolt_audit after insert or update or delete on "portfolio_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["report_via","sys_integration"]]');
+
 -- step create:engine:audit:report (additive)
 drop trigger if exists bolt_audit_mark on "report";
 drop trigger if exists bolt_audit on "report";
-create trigger bolt_audit after insert or update or delete on "report" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
+create trigger bolt_audit after insert or update or delete on "report" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["deliveries","sys_message"]]');

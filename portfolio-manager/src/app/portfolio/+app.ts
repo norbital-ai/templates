@@ -8,6 +8,7 @@ export default app({
 	pages: {
 		dashboard: { title: 'Dashboard', icon: 'lucide:layout-dashboard' },
 		reports: { title: 'Reports', icon: 'lucide:newspaper' },
-		holdings: { title: 'Holdings', icon: 'lucide:trending-up' }
+		holdings: { title: 'Holdings', icon: 'lucide:trending-up' },
+		settings: { title: 'Settings', icon: 'lucide:settings' }
 	}
 });

@@ -1,6 +1,6 @@
 import { Effect, Option } from 'effect';
-import { automation } from '@norbital-ai/bolt';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { automation, is_instance, type AutomationCtx, type Id } from '@norbital-ai/bolt';
+import { Decimal, currency } from '@norbital-ai/std/decimal';
 import {
 	NEWS_URL,
 	QUOTE_URL,
@@ -9,20 +9,18 @@ import {
 	parseHeadlines,
 	parseQuote,
 	parseRates,
-	quoteSymbol
-} from '../lib/market.ts';
-import {
-	BASE_CURRENCY,
-	computeMetrics,
-	costInBase,
-	isPosition,
-	lineValue,
-	round
-} from '../lib/metrics.ts';
+	quoteSymbol,
+	readPage,
+	search,
+	type Read
+} from '../lib/portfolio/market.ts';
+import { computeMetrics, costInBase, isPosition, lineValue, round } from '../lib/portfolio/book.ts';
 
 /** How many dated P&L entries a line keeps, and how many of the largest lines are researched. */
 const PNL_DAYS = 90;
 const RESEARCHED = 6;
+/** The base currency of a workspace with no `portfolio_settings` row. */
+const DEFAULT_CURRENCY = currency('USD');
 const PROSE =
 	'Write plain prose only: no lists, no markdown. Keep sentences short and never invent a figure, a headline or a source.';
 
@@ -32,23 +30,61 @@ const money = (value: number) =>
 	value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
- * The one agent. Once a day it prices the book, measures each line's trading, files each line's
- * P&L for the day, reads the news and the stored sources on the largest lines, asks the model for
- * the market view and one call per position, and files the day's report.
+ * How a text reaches one recipient through the configured account, by its channel: `null` for an account that carries
+ * no chat. A WhatsApp recipient may be a plain number.
+ */
+const senderOf = (
+	ctx: Pick<AutomationCtx, 'send'>,
+	account: { readonly id: Id<'sys_integration'>; readonly integration: string }
+) => {
+	if (is_instance('whatsapp', account))
+		return (to: string, text: string) =>
+			ctx.send(account.id, {
+				to: to.includes('@') ? to : `${to.replace(/\D/g, '')}@s.whatsapp.net`,
+				text
+			});
+	if (is_instance('telegram', account))
+		return (to: string, text: string) => ctx.send(account.id, { to, text });
+	if (is_instance('slack', account))
+		return (to: string, text: string) => ctx.send(account.id, { to, text });
+	if (is_instance('discord', account))
+		return (to: string, text: string) => ctx.send(account.id, { to, text });
+	return null;
+};
+
+/**
+ * The one agent. Once a day it prices the book, measures each line's trading, files each line's P&L for the day,
+ * researches the market and the largest lines in its browser, asks the model for the market view and one call per
+ * position, files the day's report and sends it to the configured recipients.
  */
 export default automation({
 	description:
-		'Once a day: prices the book, files each line’s P&L, reads the news on the largest lines, writes one call per holding and the market view into the day’s report, and notifies the owners.',
-	on: [{ cron: '0 8 * * *', tz: 'America/New_York' }],
+		'Once a day: prices the book, files each line’s P&L, researches the market and the largest lines in its browser, writes one call per holding and the market view into the day’s report, and sends it to the recipients in the portfolio settings.',
+	input: { send: { kind: 'bool', optional: true, default: true } },
+	on: [{ cron: '0 8 * * *' }],
 	policies: ['portfolio_automation'],
-	run: function* (_, ctx) {
-		const base = BASE_CURRENCY;
+	run: function* (input, ctx) {
 		const log: string[] = [];
 		const read = (url: string, raw = false) => ctx.web.read(url, { raw }).pipe(Effect.option);
 
-		const { holding } = yield* ctx.query({
-			holding: { order_by: { value_base: 'desc' }, limit: 200 }
+		const { holding, portfolio_settings } = yield* ctx.query({
+			holding: { order_by: { value_base: 'desc' }, limit: 200 },
+			portfolio_settings: { limit: 2 }
 		});
+		if (portfolio_settings.rows.length > 1) return yield* ctx.refuse('errors.settings_ambiguous');
+		const settings = portfolio_settings.rows[0];
+		const base = settings?.base_currency ?? DEFAULT_CURRENCY;
+		const recipients = input.send === false ? [] : (settings?.recipients ?? []);
+		const via = recipients.length > 0 ? (settings?.report_via ?? null) : null;
+		const account =
+			via === null
+				? undefined
+				: (yield* ctx.query({
+						sys_integration: { where: { id: { eq: via }, active: { eq: true } }, limit: 1 }
+					})).sys_integration.rows[0];
+		const send = account === undefined ? null : senderOf(ctx, account);
+		if (recipients.length > 0 && send === null)
+			return yield* ctx.refuse('errors.no_report_account');
 		if (holding.rows.length === 0) return;
 
 		const ratesPage = yield* read(RATES_URL(base));
@@ -98,31 +134,31 @@ export default automation({
 			}))
 		);
 
-		/** The largest positions are researched: their news feed and the sources stored on them. */
-		type Read = { label: string; url: string; text: string };
+		/**
+		 * The market and the largest positions, searched in the browser; a line the browser finds nothing on falls back to
+		 * its news feed. Each line's stored sources are read too.
+		 */
+		const market = yield* search(ctx, 'stock market today', 3, log);
 		const reads = new Map<string, Read[]>();
 		for (const { row } of book.filter(({ row }) => isPosition(row)).slice(0, RESEARCHED)) {
 			const name = row.symbol ?? row.instrument;
-			const feed = yield* read(NEWS_URL(`${name} stock`), true);
-			const pages = Option.match(feed, {
-				onNone: (): Read[] => [],
-				onSome: (page) =>
-					parseHeadlines(page.html ?? page.text).map((one) => ({
-						label: one.title,
-						url: one.url,
-						text: ''
-					}))
-			});
-			log.push(`news ${name}: ${pages.length} item(s)`);
+			const pages = yield* search(ctx, `${name} stock news`, 2, log);
+			if (pages.length === 0) {
+				const feed = yield* read(NEWS_URL(`${name} stock`), true);
+				const headlines = Option.match(feed, {
+					onNone: () => [],
+					onSome: (page) => parseHeadlines(page.html ?? page.text)
+				});
+				log.push(`news ${name}: ${headlines.length} item(s)`);
+				pages.push(...headlines.map((one) => ({ label: one.title, url: one.url, text: '' })));
+			}
 			for (const source of row.sources ?? []) {
-				const page = yield* read(source.url);
-				const text = Option.isSome(page)
-					? page.value.text.replace(/\s+/g, ' ').trim().slice(0, 1800)
-					: '';
+				const text = yield* readPage(ctx, source.url);
 				log.push(
-					`source ${source.label}: ${text ? `${text.length} characters` : 'nothing readable'}`
+					`source ${source.label}: ${Option.isSome(text) ? `${text.value.length} characters` : 'nothing readable'}`
 				);
-				if (text) pages.push({ label: source.label, url: source.url, text });
+				if (Option.isSome(text))
+					pages.push({ label: source.label, url: source.url, text: text.value });
 			}
 			reads.set(row.id, pages);
 		}
@@ -135,6 +171,9 @@ export default automation({
 					`Today is ${ctx.today}. The book is valued in ${base}.`,
 					`Net assets ${money(metrics.net_assets)}; invested ${money(metrics.invested)}; cash ${money(metrics.cash)}; owed ${money(metrics.liabilities)}.`,
 					`Allocation: ${metrics.allocation.map((one) => `${one.label} ${one.weight}%`).join(', ') || 'none'}.`,
+					'The market, as the agent read it:',
+					market.map((one) => `- ${one.label}: ${one.text.slice(0, 1200)}`).join('\n') ||
+						'- nothing was readable',
 					'Headlines on the largest lines:',
 					[...reads.values()]
 						.flat()
@@ -150,8 +189,8 @@ export default automation({
 				}
 			})
 			.pipe(Effect.option);
-		const market = Option.getOrNull(view);
-		log.push(market ? 'model: market view answered' : 'model: no market view');
+		const marketView = Option.getOrNull(view);
+		log.push(marketView ? 'model: market view answered' : 'model: no market view');
 
 		/** One call per position, with its P&L as the yardstick; every line takes its price read. */
 		const positions = [];
@@ -176,7 +215,7 @@ export default automation({
 							`Holding: ${row.instrument} (${row.symbol ?? 'no ticker'}), ${row.asset_class}, ${row.currency}.`,
 							`Cost ${money(cost)}. Worth now ${money(value)}. P&L ${money(pnl)}${pnl_pct === null ? '' : ` (${pnl_pct}%)`}.`,
 							row.research_direction ? `Research direction: ${row.research_direction}.` : '',
-							market ? `The market view: ${market.market_view}` : '',
+							marketView ? `The market view: ${marketView.market_view}` : '',
 							'What the agent read on this line:',
 							pages
 								.map((one) => `- ${one.label}${one.text ? `: ${one.text.slice(0, 900)}` : ''}`)
@@ -254,15 +293,34 @@ export default automation({
 		const headline = `Net assets ${base} ${money(metrics.net_assets)}${dayChange === null ? '' : ` (${dayChange >= 0 ? '+' : ''}${money(dayChange)} on the day)`}`;
 		const summary = [
 			`Invested ${money(metrics.invested)}, cash ${money(metrics.cash)}, owed ${money(metrics.liabilities)}.`,
-			market ? market.summary : ''
+			marketView ? marketView.summary : ''
 		]
 			.filter((part) => part.length > 0)
 			.join(' ');
+		const title = `Portfolio report · ${ctx.today}`;
+
+		/** The report as text, queued to each recipient; the message ids are kept on the report. */
+		const text = [
+			title,
+			headline,
+			summary,
+			marketView ? `Market: ${marketView.market_view}` : '',
+			...positions.map(
+				(one) => `${one.symbol ?? one.instrument}: ${one.call.toUpperCase()}. ${one.analysis}`
+			)
+		]
+			.filter((part) => part.length > 0)
+			.join('\n\n');
+		const deliveries = [];
+		if (send !== null)
+			for (const recipient of recipients) deliveries.push(yield* send(recipient.handle, text));
+		log.push(`sent to ${deliveries.length} recipient(s)`);
+
 		const filed = {
 			base_currency: base,
 			headline,
 			summary,
-			market_view: market ? market.market_view : null,
+			market_view: marketView ? marketView.market_view : null,
 			research_log: log.join('\n').slice(0, 8000),
 			net_assets: metrics.net_assets,
 			invested: metrics.invested,
@@ -278,7 +336,8 @@ export default automation({
 			fx_used: [...rates]
 				.filter(([code]) => code !== base && book.some(({ row }) => row.currency === code))
 				.map(([code, rate]) => ({ pair: `${code}/${base}`, rate: Decimal.from_number(rate, 6) })),
-			positions
+			positions,
+			deliveries: [...(existing?.deliveries ?? []), ...deliveries]
 		};
 		if (existing) yield* ctx.act({ 'report.update': [{ target: existing, set: filed }] });
 		else yield* ctx.act({ 'report.create': [{ for_date: ctx.today, ...filed }] });
@@ -286,7 +345,7 @@ export default automation({
 		const busy = book.filter(({ live }) => live?.movement === 'surge').map(({ row }) => row);
 		yield* ctx.notify([
 			{
-				title: `Portfolio report · ${ctx.today}`,
+				title,
 				description: `${headline}. ${summary}`,
 				to: [{ team: 'investors' }],
 				once: `report-${ctx.today}`

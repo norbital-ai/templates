@@ -15,12 +15,13 @@ const columns = [
 	'day_change',
 	'allocation',
 	'fx_used',
-	'positions'
+	'positions',
+	'deliveries'
 ] as const;
 
 /**
  * One day's report: the book's totals, its allocation and the rates they were struck at, the
- * market view and one call per holding. The daily agent writes it; people read it.
+ * market view and one call per holding. The daily agent writes it and sends it; people read it.
  */
 export default model({
 	description:
@@ -77,7 +78,9 @@ export default model({
 				analysis: { kind: 'text' },
 				confidence: { kind: 'decimal', scale: 2, optional: true }
 			}
-		}
+		},
+		/** The messages the report went out as: queue admission; each message's own status says whether it arrived. */
+		deliveries: { kind: 'ref', to: 'sys_message', many: true, optional: true }
 	},
 	constraints: { one_per_day: { unique: ['for_date'], message: 'errors.report_exists' } },
 	indexes: { find: { text: ['headline', 'summary', 'market_view'] } },

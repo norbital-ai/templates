@@ -1,7 +1,12 @@
 import { expect, it } from '@effect/vitest';
 import { dec } from '@norbital-ai/std/decimal';
-import { parseHeadlines, parseQuote, parseRates, quoteSymbol } from '../src/lib/market.ts';
-import { computeMetrics, costInBase } from '../src/lib/metrics.ts';
+import {
+	parseHeadlines,
+	parseQuote,
+	parseRates,
+	quoteSymbol
+} from '../src/lib/portfolio/market.ts';
+import { computeMetrics, costInBase } from '../src/lib/portfolio/book.ts';
 
 it('reads tickers, a quote, a rate answer and a headline feed', () => {
 	expect(quoteSymbol('ACME UW')).toBe('ACME');

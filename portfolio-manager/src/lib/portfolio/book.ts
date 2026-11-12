@@ -1,7 +1,4 @@
-import { currency, type Decimal } from '@norbital-ai/std/decimal';
-
-/** The book is valued in the workspace's currency. */
-export const BASE_CURRENCY = currency('USD');
+import type { Decimal } from '@norbital-ai/std/decimal';
 
 /** The statement fields of a holding the figures read. */
 export type Statement = {

@@ -9,17 +9,19 @@ says where the source lives and what an edit must not break.
 
 ```text
 holding/
+portfolio_settings/
 report/
 ```
 
 ## Surfaces
 
-- App: `portfolio` — `dashboard`, `reports`, `holdings`
-- Automation: `portfolio_agent` (daily, 08:00 America/New_York)
+- App: `portfolio` — `dashboard`, `reports`, `holdings`, `settings`
+- Automation: `portfolio_agent` (daily, 08:00 in the workspace zone, `src/+workspace.ts` `tz`)
 - Policies: `portfolio_manage`, `portfolio_read`, `portfolio_automation`
 - Teams: `investors`, `portfolio_viewers`
-- Shared modules: `src/lib/metrics.ts` (the totals), `src/lib/market.ts` (rate, quote and headline readers)
-- Custom fields, integrations: none
+- Shared modules: `src/lib/portfolio/book.ts` (the totals), `src/lib/portfolio/market.ts` (rate, quote
+  and headline readers, browser research)
+- Custom fields, integrations: none; delivery uses a built-in chat account named by the settings row
 
 ## Gates
 
@@ -29,6 +31,7 @@ generated: commit SQL, `snapshot.json`, `migrations.lock.json` and `physical.jso
 
 ## Invariants
 
-- Two models. Cash and facilities are `holding` lines; a facility's base value is never positive.
+- Three models. Cash and facilities are `holding` lines; a facility's base value is never positive.
+- Currency, delivery account and recipients are the `portfolio_settings` row: configuration, not code.
 - One report per day: a second run that day updates it.
 - The agent asks the model for no host tool.

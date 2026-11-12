@@ -306,6 +306,35 @@
 				]
 			}
 		},
+		"portfolio_settings": {
+			"audit": true,
+			"fields": {
+				"base_currency": {
+					"kind": "currency"
+				},
+				"recipients": {
+					"fields": {
+						"handle": {
+							"kind": "text"
+						},
+						"name": {
+							"kind": "text",
+							"optional": true
+						}
+					},
+					"key": "handle",
+					"kind": "object",
+					"many": true,
+					"optional": true
+				},
+				"report_via": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_integration"
+				}
+			},
+			"record_label": "string(record.base_currency)"
+		},
 		"report": {
 			"audit": true,
 			"fields": {
@@ -339,6 +368,12 @@
 					"kind": "decimal",
 					"optional": true,
 					"scale": 2
+				},
+				"deliveries": {
+					"kind": "ref",
+					"many": true,
+					"optional": true,
+					"to": "sys_message"
 				},
 				"for_date": {
 					"kind": "date"

@@ -1,5 +1,7 @@
-import { Effect } from 'effect';
+import { Effect, Predicate, Schema } from 'effect';
 import { JobResult, TestWorkspace, expect, it } from '@norbital-ai/bolt-cli/test';
+import { id_of } from '@norbital-ai/bolt';
+import type { Provider } from '@norbital-ai/bolt/engine';
 import { ActRefused } from '@norbital-ai/bolt/errors';
 import { Decimal } from '@norbital-ai/std/decimal';
 
@@ -148,5 +150,113 @@ it.layer(
 			const refused = yield* Effect.flip(viewer.run('portfolio_agent', {}, JobResult));
 			expect(refused).toBeInstanceOf(ActRefused);
 		})
+	);
+});
+
+/** A WhatsApp provider that pairs on `{ key }`, as a real one writes its credential and connected status. */
+const whatsapp: Provider = {
+	driver: 'whatsapp',
+	id: 'fake',
+	label: 'Fake',
+	setup: { kind: 'form', steps: [], fields: [{ name: 'key', label: 'Key', secret: true }] },
+	async open(ctx) {
+		return {
+			async pair(input) {
+				const key = Predicate.isObject(input) ? input['key'] : undefined;
+				if (typeof key !== 'string') throw new Error('a key is required');
+				await ctx.credentials.write(new Map([['credential', { key }]]));
+				await ctx.status({ state: 'connected', account: key });
+			},
+			async close() {}
+		};
+	}
+};
+
+const settled = (answer: { readonly kind: string }) =>
+	answer.kind === 'committed' ? Effect.void : Effect.die(new Error(answer.kind));
+const sgd = {
+	base_currency: 'SGD',
+	recipients: [{ name: 'Owner', handle: '+65 9123 4567' }]
+} as const;
+
+it.layer(TestWorkspace.layer({ root, now: '2026-11-02T12:00:00.000Z' }))(
+	'recipients with no account',
+	(it) => {
+		it.effect('refuse the run before it starts work', () =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const owner = yield* t.as(t.member(['portfolio_manage']));
+				yield* settled(yield* owner.act({ 'portfolio_settings.create': [sgd] }));
+				yield* owner.run('portfolio_agent', {}, JobResult);
+				const { failed } = yield* t.run_due();
+				expect(failed).toMatchObject([{ error: expect.stringContaining('no active account') }]);
+			})
+		);
+	}
+);
+
+it.layer(
+	TestWorkspace.layer({
+		root,
+		now: '2026-11-02T12:00:00.000Z',
+		providers: [whatsapp],
+		fakes: { ai: { cassette: { default: [market, hold, watch] } } }
+	})
+)('the report in another currency, sent on WhatsApp', (it) => {
+	it.effect(
+		'values the book in SGD and queues the report to each recipient through the paired account',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const owner = yield* t.as(t.member(['portfolio_manage']));
+				const admin = yield* t.as(t.admin);
+				yield* settled(
+					yield* admin.act({
+						'sys_integration.create': [{ integration: 'whatsapp', name: 'Reports' }]
+					})
+				);
+				const [account] = yield* t.db.rows(Schema.Struct({ id: id_of('sys_integration') }), {
+					text: `SELECT id FROM sys_integration WHERE name = 'Reports'`,
+					params: []
+				});
+				if (account === undefined) return yield* Effect.die(new Error('no account'));
+				yield* t.integrations.pair(account.id, { key: 'k1' });
+				yield* settled(
+					yield* owner.act({ 'portfolio_settings.create': [{ ...sgd, report_via: account.id }] })
+				);
+
+				yield* owner.run('portfolio_agent', {}, JobResult);
+				expect((yield* t.run_due()).failed).toEqual([]);
+				expect(yield* owner.query({ report: { limit: 1 } })).toMatchObject({
+					report: {
+						rows: [
+							{
+								base_currency: 'SGD',
+								headline: expect.stringContaining('Net assets SGD'),
+								deliveries: [expect.any(String)]
+							}
+						]
+					}
+				});
+
+				yield* t.syncs.deliver();
+				expect(t.fakes.links.sent).toMatchObject([
+					{
+						instance: account.id,
+						message: { to: '6591234567@s.whatsapp.net', text: expect.stringContaining('SGD') }
+					}
+				]);
+				yield* t.event(account.id, {
+					kind: 'delivery',
+					provider_id: `${account.id}:1`,
+					report: { kind: 'delivered', at: t.clock.now(), provider: 'fake' }
+				});
+				expect(
+					yield* t.db.rows(Schema.Struct({ status: Schema.NullOr(Schema.String) }), {
+						text: 'SELECT status FROM sys_message WHERE integration = $1',
+						params: [account.id]
+					})
+				).toEqual([{ status: 'delivered' }]);
+			})
 	);
 });

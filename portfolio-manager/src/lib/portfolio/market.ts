@@ -1,4 +1,5 @@
-import { Option, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
+import type { AutomationCtx } from '@norbital-ai/bolt';
 
 /** Free, keyless sources the daily agent reads over plain HTTP. */
 export const RATES_URL = (base: string) => `https://open.er-api.com/v6/latest/${base}`;
@@ -131,3 +132,77 @@ export const parseHeadlines = (payload: string, limit = 4): Headline[] =>
 				!/stock (price|quote|chart)|quote and history/i.test(one.title)
 		)
 		.slice(0, limit);
+
+/** What the agent read: a search result, a headline or a stored source, with its readable text when it has one. */
+export type Read = { readonly label: string; readonly url: string; readonly text: string };
+/** The run's browser tab, falling back to a plain web read where the browser cannot open a page. */
+export type Reader = {
+	readonly browser: Pick<AutomationCtx['browser'], 'navigate' | 'evaluate'>;
+	readonly web: AutomationCtx['web'];
+};
+
+const clip = (text: string) => text.replace(/\s+/g, ' ').trim().slice(0, 1800);
+
+/** One page's readable text: as the browser renders it, else as a plain read; none when neither answers. */
+export const readPage = (reader: Reader, url: string) =>
+	reader.browser.navigate(url).pipe(
+		Effect.catch(() => reader.web.read(url)),
+		Effect.map((page) => clip(page.text)),
+		Effect.option,
+		Effect.map(Option.filter((text) => text.length > 0))
+	);
+
+/** The search pages a query's results are read from, each with the selector of its result links. */
+const ENGINES = [
+	{ name: 'bing', url: 'https://www.bing.com/search?q=', selector: 'li.b_algo h2 a' },
+	{ name: 'duckduckgo', url: 'https://html.duckduckgo.com/html/?q=', selector: 'a.result__a' },
+	{ name: 'mojeek', url: 'https://www.mojeek.com/search?q=', selector: 'ul.results-standard h2 a' }
+] as const;
+const decodeLinks = Schema.decodeUnknownOption(
+	Schema.Array(Schema.Struct({ title: Schema.String, url: Schema.String }))
+);
+
+/**
+ * A query searched in the browser and its first `keep` results read: the first engine whose results read. Without a
+ * browser it answers nothing at once, and the caller keeps its other sources. `log` records each step.
+ */
+export const search = Effect.fnUntraced(function* (
+	reader: Reader,
+	query: string,
+	keep: number,
+	log: string[]
+) {
+	for (const engine of ENGINES) {
+		const opened = yield* reader.browser.navigate(`${engine.url}${encodeURIComponent(query)}`).pipe(
+			Effect.as('open' as const),
+			Effect.catchTag('Unavailable', () => Effect.succeed('no browser' as const)),
+			Effect.catchTag('FacilityFailure', () => Effect.succeed('failed' as const))
+		);
+		if (opened === 'no browser') {
+			log.push(`search "${query}": no browser`);
+			return [];
+		}
+		const found =
+			opened === 'failed'
+				? Option.none()
+				: yield* reader.browser
+						.evaluate(
+							`Array.from(document.querySelectorAll(${JSON.stringify(engine.selector)})).slice(0, ${keep}).map((a) => ({ title: (a.textContent || '').trim(), url: a.href }))`
+						)
+						.pipe(Effect.option, Effect.map(Option.flatMap(decodeLinks)));
+		const links = Option.getOrElse(found, () => []).filter(
+			(one) => one.title.length > 0 && one.url.startsWith('http')
+		);
+		log.push(`search ${engine.name} "${query}": ${links.length} result(s)`);
+		const pages: Read[] = [];
+		for (const link of links) {
+			const text = yield* readPage(reader, link.url);
+			log.push(
+				`  ${link.url}: ${Option.isSome(text) ? `${text.value.length} characters` : 'nothing readable'}`
+			);
+			if (Option.isSome(text)) pages.push({ label: link.title, url: link.url, text: text.value });
+		}
+		if (pages.length > 0) return pages;
+	}
+	return [];
+});
