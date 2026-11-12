@@ -14,19 +14,15 @@
 				"approver_teams": {
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				},
 				"approver_users": {
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				},
 				"closed_at": {
@@ -38,15 +34,13 @@
 					"optional": true
 				},
 				"collection_name": {
-					"kind": "text",
-					"label": "Model"
+					"kind": "text"
 				},
 				"created_at": {
 					"kind": "instant"
 				},
 				"record_id": {
-					"kind": "text",
-					"label": "Record ID"
+					"kind": "text"
 				},
 				"revision": {
 					"default": 1,
@@ -59,7 +53,8 @@
 						"CHANGES_REQUESTED",
 						"APPROVED",
 						"REJECTED",
-						"SUPERSEDED"
+						"SUPERSEDED",
+						"WITHDRAWN"
 					]
 				},
 				"step": {
@@ -68,10 +63,8 @@
 				"step_names": {
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				},
 				"steps": {
@@ -80,15 +73,12 @@
 				"superseder_teams": {
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				}
 			},
 			"key": "uuid",
-			"nativeRules": 2,
 			"search": {
 				"text": [
 					"collection_name"
@@ -100,6 +90,7 @@
 						"collection_name",
 						"record_id"
 					],
+					"name": "one_ongoing_request",
 					"where": {
 						"status": {
 							"eq": "ONGOING"
@@ -119,8 +110,7 @@
 					"kind": "text"
 				}
 			},
-			"nativeRules": 2,
-			"recordLabel": "record.title"
+			"record_label": "record.title"
 		},
 		"requestor": {
 			"fields": {
@@ -133,7 +123,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.user_id"
 		},
 		"sys_api_key": {
 			"fields": {
@@ -177,7 +167,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.name"
 		},
 		"sys_challenge": {
 			"fields": {
@@ -198,7 +188,7 @@
 			"key": [
 				"address_mac"
 			],
-			"nativeRules": 2
+			"record_label": "record.address_mac"
 		},
 		"sys_config": {
 			"fields": {
@@ -212,7 +202,7 @@
 			"key": [
 				"key"
 			],
-			"nativeRules": 2
+			"record_label": "record.key"
 		},
 		"sys_conversation": {
 			"fields": {
@@ -236,7 +226,7 @@
 				},
 				"integration": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"optional": true,
 					"to": "sys_integration"
 				},
@@ -276,6 +266,14 @@
 					"default": {},
 					"kind": "json"
 				},
+				"restart_at": {
+					"kind": "text",
+					"optional": true
+				},
+				"restart_from": {
+					"kind": "text",
+					"optional": true
+				},
 				"revision": {
 					"default": 1,
 					"kind": "int"
@@ -304,7 +302,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.title"
 		},
 		"sys_envoy": {
 			"fields": {
@@ -371,10 +369,20 @@
 				"triage": {
 					"default": false,
 					"kind": "bool"
+				},
+				"triage_scope": {
+					"default": "all",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"dm",
+						"group",
+						"all"
+					]
 				}
 			},
 			"key": "uuid",
-			"nativeRules": 2
+			"record_label": "record.name"
 		},
 		"sys_file": {
 			"fields": {
@@ -417,7 +425,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.name"
 		},
 		"sys_inbox": {
 			"fields": {
@@ -438,7 +446,7 @@
 				},
 				"instance": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_integration"
 				},
 				"received_at": {
@@ -457,20 +465,21 @@
 					],
 					"where": {
 						"consumed_at": {
-							"isNull": true
+							"is_null": true
 						}
 					}
 				}
 			],
 			"key": "uuid",
-			"nativeRules": 2,
+			"record_label": "record.delivery",
 			"unique": [
 				{
 					"fields": [
 						"sync",
 						"instance",
 						"delivery"
-					]
+					],
+					"name": "one_inbound_delivery"
 				}
 			]
 		},
@@ -502,10 +511,6 @@
 				"name": {
 					"kind": "text"
 				},
-				"named": {
-					"default": false,
-					"kind": "bool"
-				},
 				"owner": {
 					"kind": "ref",
 					"optional": true,
@@ -518,10 +523,16 @@
 				"status": {
 					"kind": "json",
 					"optional": true
+				},
+				"updated_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
 				}
 			},
 			"key": "text",
-			"nativeRules": 2,
+			"record_label": "record.name",
 			"unique": [
 				{
 					"fields": [
@@ -531,7 +542,7 @@
 					"name": "one_per_member",
 					"where": {
 						"owner": {
-							"isNull": false
+							"is_null": false
 						}
 					}
 				}
@@ -543,12 +554,12 @@
 					"or": [
 						{
 							"email": {
-								"isNull": false
+								"is_null": false
 							}
 						},
 						{
 							"phone": {
-								"isNull": false
+								"is_null": false
 							}
 						}
 					]
@@ -612,7 +623,7 @@
 				}
 			],
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.email"
 		},
 		"sys_message": {
 			"fields": {
@@ -645,6 +656,10 @@
 					"optional": true
 				},
 				"conversation": {
+					"kind": "text",
+					"optional": true
+				},
+				"copied_from": {
 					"kind": "text",
 					"optional": true
 				},
@@ -688,7 +703,7 @@
 				},
 				"integration": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"optional": true,
 					"to": "sys_integration"
 				},
@@ -793,17 +808,19 @@
 				}
 			},
 			"identity": "seq",
-			"index": [
-				[
-					"conversation",
-					"seq"
-				],
-				[
-					"integration",
-					"provider_id"
-				]
-			],
 			"indexes": [
+				{
+					"on": [
+						"conversation",
+						"seq"
+					]
+				},
+				{
+					"on": [
+						"integration",
+						"provider_id"
+					]
+				},
 				{
 					"on": [
 						"conversation"
@@ -839,7 +856,7 @@
 				}
 			],
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.preview"
 		},
 		"sys_notification": {
 			"fields": {
@@ -886,13 +903,13 @@
 					],
 					"where": {
 						"member": {
-							"isNull": false
+							"is_null": false
 						}
 					}
 				}
 			],
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.title"
 		},
 		"sys_outbox": {
 			"fields": {
@@ -911,15 +928,22 @@
 					"default": [],
 					"kind": "json",
 					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
+						"kind": "text",
+						"many": true
 					}
 				},
 				"claimed_at": {
 					"kind": "instant",
 					"optional": true
+				},
+				"delivery_op": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
 				},
 				"epoch": {
 					"kind": "text",
@@ -935,7 +959,7 @@
 				},
 				"instance": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_integration"
 				},
 				"key": {
@@ -955,6 +979,10 @@
 						"update",
 						"delete"
 					]
+				},
+				"preserve_local": {
+					"default": false,
+					"kind": "bool"
 				},
 				"record": {
 					"kind": "text"
@@ -986,7 +1014,7 @@
 				},
 				"writer": {
 					"kind": "ref",
-					"onDelete": "setNull",
+					"on_delete": "set_null",
 					"optional": true,
 					"to": "sys_user"
 				}
@@ -1027,10 +1055,18 @@
 							"eq": "dead"
 						}
 					}
+				},
+				{
+					"on": [
+						"sync",
+						"instance",
+						"record",
+						"record_revision"
+					]
 				}
 			],
 			"key": "uuid",
-			"nativeRules": 2,
+			"record_label": "record.key",
 			"unique": [
 				{
 					"fields": [
@@ -1135,10 +1171,16 @@
 							"eq": "queued"
 						}
 					}
+				},
+				{
+					"on": [
+						"automation",
+						"state"
+					]
 				}
 			],
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.automation"
 		},
 		"sys_session": {
 			"fields": {
@@ -1166,7 +1208,7 @@
 				},
 				"user": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_user"
 				},
 				"via": {
@@ -1181,7 +1223,7 @@
 				}
 			},
 			"key": "text",
-			"nativeRules": 2
+			"record_label": "record.via"
 		},
 		"sys_sync": {
 			"fields": {
@@ -1202,7 +1244,7 @@
 				},
 				"instance": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_integration"
 				},
 				"last_change_at": {
@@ -1244,14 +1286,15 @@
 				}
 			},
 			"key": "uuid",
-			"nativeRules": 2,
+			"record_label": "record.sync",
 			"unique": [
 				{
 					"fields": [
 						"sync",
 						"instance",
 						"partition"
-					]
+					],
+					"name": "one_partition"
 				}
 			]
 		},
@@ -1266,7 +1309,7 @@
 				},
 				"instance": {
 					"kind": "ref",
-					"onDelete": "cascade",
+					"on_delete": "cascade",
 					"to": "sys_integration"
 				},
 				"partition": {
@@ -1277,7 +1320,8 @@
 					"kind": "text"
 				},
 				"remote_id": {
-					"kind": "text"
+					"kind": "text",
+					"optional": true
 				},
 				"remote_version": {
 					"kind": "text",
@@ -1287,30 +1331,39 @@
 					"kind": "text"
 				}
 			},
-			"index": [
-				[
-					"sync",
-					"instance",
-					"partition",
-					"cycle"
-				]
+			"indexes": [
+				{
+					"on": [
+						"sync",
+						"instance",
+						"partition",
+						"cycle"
+					]
+				}
 			],
 			"key": "uuid",
-			"nativeRules": 2,
+			"record_label": "record.remote_id",
 			"unique": [
 				{
 					"fields": [
 						"sync",
 						"instance",
 						"remote_id"
-					]
+					],
+					"name": "one_remote_id",
+					"where": {
+						"remote_id": {
+							"is_null": false
+						}
+					}
 				},
 				{
 					"fields": [
 						"sync",
 						"instance",
 						"record"
-					]
+					],
+					"name": "one_record"
 				}
 			]
 		},
@@ -1334,7 +1387,7 @@
 			"computed": {
 				"party_id": {
 					"expr": {
-						"jsonText": [
+						"json_text": [
 							{
 								"field": "party"
 							},
@@ -1345,7 +1398,7 @@
 				},
 				"phone_key": {
 					"expr": {
-						"regexReplace": [
+						"regex_replace": [
 							{
 								"field": "phone"
 							},
@@ -1435,8 +1488,7 @@
 				}
 			],
 			"key": "text",
-			"nativeRules": 2,
-			"recordLabel": "record.name",
+			"record_label": "record.name",
 			"search": {
 				"text": [
 					"name",

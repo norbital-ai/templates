@@ -19,7 +19,7 @@ Outputs fix field visibility. Policies select outputs and scope rows; write colu
 | ------------------------------------------ | ------ | ------------ | ------ | ------------------- | ----- |
 | [notes](../src/data/model/notes/+model.ts) | 2      | default      | none   | none                | none  |
 
-Upsert is available when both create and update are exposed; it resolves an explicit ID or the model’s natural key and requires an explicit conflict rule.
+Import is available on a model whose unique constraint is marked `import_key: true`; it matches rows on that key and requires an explicit conflict rule.
 
 ## Automations
 
