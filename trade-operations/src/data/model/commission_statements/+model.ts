@@ -1,10 +1,10 @@
+import { model } from '../../../../.norbital/models/commission_statements.ts';
 import { Effect } from 'effect';
 import { PlainDate } from '@norbital-ai/std/date';
-import { model } from '@norbital-ai/bolt';
 import { boardRead, calculateBoard, readCommissionBoard } from '../../../lib/monthly-commission.js';
-export default model('commission_statements', {
+export default model({
 	description: 'Monthly salesperson commission statement.',
-	label: 'number',
+	record_label: 'record.number',
 	fields: {
 		owner: { kind: 'ref', to: 'sys_user' },
 		acknowledged_by: { kind: 'ref', to: 'sys_user', default: { var: 'requestor.id' } },
@@ -19,44 +19,41 @@ export default model('commission_statements', {
 			hidden: true,
 			kind: 'json',
 			shape: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						order: { kind: 'text' },
-						number: { kind: 'text' },
-						seal_hash: { kind: 'text' },
-						calculation_hash: { kind: 'text' },
-						amount: { kind: 'text', optional: true },
-						unresolved_lines: { kind: 'int' },
-						awaiting_approval: { kind: 'bool' }
-					}
-				}
+				kind: 'object',
+				fields: {
+					order: { kind: 'text' },
+					number: { kind: 'text' },
+					seal_hash: { kind: 'text' },
+					calculation_hash: { kind: 'text' },
+					amount: { kind: 'text', optional: true },
+					unresolved_lines: { kind: 'int' },
+					awaiting_approval: { kind: 'bool' }
+				},
+				many: true
 			}
 		}
 	},
-	unique: [
-		{
-			fields: ['owner', 'period', 'currency', 'calculation_hash'],
-			name: 'one_monthly_commission_statement'
+	outputs: { default: { fields: 'all' } },
+	constraints: {
+		one_monthly_commission_statement: {
+			unique: ['owner', 'period', 'currency', 'calculation_hash']
 		}
-	],
-	read: 'all',
+	},
 	create: {
-		columns: { commission_statements: ['owner', 'period', 'currency', 'calculation_hash'] },
-		transform: function* (rows, ctx) {
+		columns: { fields: ['owner', 'period', 'currency', 'calculation_hash'] },
+		transform: function* (changes, ctx) {
 			if (ctx.actor.kind !== 'member') return yield* ctx.refuse('errors.commission_member');
 			const acknowledged_by = ctx.actor.id;
 			return yield* Effect.forEach(
-				rows,
-				(input) =>
+				changes,
+				({ after: input, set }) =>
 					Effect.gen(function* () {
 						if (!input.period || input.period.slice(8) !== '01')
 							return yield* ctx.refuse('errors.commission_month');
 						const period = PlainDate(input.period);
 						const request = boardRead(period, false, input.owner);
-						const answer = yield* ctx.db.query(request);
-						const complete = yield* readCommissionBoard(ctx.db, request, answer).pipe(
+						const answer = yield* ctx.query(request);
+						const complete = yield* readCommissionBoard(ctx, request, answer).pipe(
 							Effect.catchTag('ReportRowsChanged', () => ctx.refuse('errors.commission_incomplete'))
 						);
 						const current = (yield* calculateBoard(
@@ -80,7 +77,7 @@ export default model('commission_statements', {
 						)
 							return yield* ctx.refuse('errors.commission_unchanged');
 						return {
-							...input,
+							...set,
 							amount: current.amount,
 							order_count: current.order_count,
 							snapshot: current.snapshot,

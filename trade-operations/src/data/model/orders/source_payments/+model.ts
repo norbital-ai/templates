@@ -1,11 +1,13 @@
+import { model } from '../../../../../.norbital/models/source_payments.ts';
+import { fromSource } from '../../../../integration/kingdee/polling.js';
 import { readPaymentSource } from '../../../../integration/kingdee/financial-source.js';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
-import { model, type CreateRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { agreement } from '../../../../lib/agreements.js';
 
 type Payment = Pick<
-	CreateRow<'source_payments'>,
+	CreatedRow<'source_payments'>,
 	| 'source'
 	| 'order'
 	| 'invoice'
@@ -23,7 +25,7 @@ const settle = Effect.fnUntraced(function* (
 	rows: readonly { readonly value: Payment; readonly old: StoredRow<'source_payments'> | null }[],
 	ctx: WriteCtx<'source_payments'>
 ) {
-	const { orders, transactions: invoices } = yield* ctx.db.query({
+	const { orders, transactions: invoices } = yield* ctx.query({
 		orders: { where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.order ?? []))] } } },
 		transactions: {
 			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.invoice ?? []))] } }
@@ -77,9 +79,9 @@ const settle = Effect.fnUntraced(function* (
 		}
 	}
 });
-export default model('source_payments', {
+export default model({
 	description: 'Payments and refunds for each order.',
-	label: 'reference',
+	record_label: 'record.reference',
 	fields: {
 		external_code: { kind: 'text' },
 		kind: { kind: 'enum', values: ['receipt', 'refund'] },
@@ -94,29 +96,31 @@ export default model('source_payments', {
 		invoice: { kind: 'ref', to: 'transactions', optional: true },
 		order: { kind: 'ref', to: 'orders', inverse: 'source_payments' }
 	},
-	key: ['source', 'external_code'],
-	unique: [{ fields: ['order', 'reference'], name: 'one_source_receipt_per_order' }],
 	// the payment ledger reads each payment's order (and its party) and invoice
-	read: {
-		source_payments: { fields: 'all' },
-		'source_payments.order': { fields: 'all' },
-		'source_payments.order.ledger': { fields: ['name'] },
-		'source_payments.order.party': { fields: 'all' },
-		'source_payments.invoice': { fields: 'all' }
+	outputs: {
+		default: {
+			fields: 'all',
+			order: { fields: 'all', ledger: { fields: ['name'] }, party: { fields: 'all' } },
+			invoice: { fields: 'all' }
+		}
+	},
+	constraints: {
+		natural_key: { unique: ['source', 'external_code'], import_key: true },
+		one_source_receipt_per_order: { unique: ['order', 'reference'] }
 	},
 	// the sync alone writes payments (no local columns); its rows pass through these checks
 	create: {
-		columns: { source_payments: [] },
-		transform: function* (rows, ctx) {
+		columns: { fields: [] },
+		transform: function* (changes, ctx) {
 			yield* settle(
-				rows.map((value) => ({ value, old: null })),
+				changes.map(({ after }) => ({ value: after, old: null })),
 				ctx
 			);
-			return rows;
+			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
-		columns: { source_payments: [] },
+		columns: { fields: [] },
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, set }) => ({ value: { ...before, ...set }, old: before })),
@@ -130,7 +134,7 @@ export default model('source_payments', {
 			with: 'kingdee',
 			every: '5min',
 			read: function* ({ cursor, instance }, ctx) {
-				return yield* readPaymentSource(instance, cursor, ctx);
+				return fromSource(yield* readPaymentSource(instance, cursor, ctx), instance);
 			}
 		}
 	}

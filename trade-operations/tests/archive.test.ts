@@ -10,7 +10,7 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
-				const as = t.as(t.admin);
+				const as = yield* t.as(t.admin);
 				const own = yield* draft(t);
 				yield* confirm(t, own.order);
 				const before = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
@@ -31,7 +31,9 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 				const retained = yield* evidence();
 				committed(
 					'orders',
-					yield* as.act('orders.update', [{ target: own.order, set: { archived: true } }])
+					yield* as.act({
+						'orders.update': [{ target: yield* t.at('orders', own.order), set: { archived: true } }]
+					})
 				);
 				expect(
 					(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders
@@ -50,24 +52,35 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 	test.effect('an archived draft is read-only until unarchived and needs no status reason', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const own = yield* draft(t);
 			const line = (yield* as.query({ order_lines: { where: { id: { eq: own.line } }, limit: 1 } }))
 				.order_lines.rows[0];
 			committed(
 				'orders',
-				yield* as.act('orders.update', [{ target: own.order, set: { archived: true } }])
+				yield* as.act({
+					'orders.update': [{ target: yield* t.at('orders', own.order), set: { archived: true } }]
+				})
 			);
 			expect(
 				yield* as
-					.act('orders.update', [
-						{ target: own.order, set: { notes: 'Cannot edit archived remarks' } }
-					])
+					.act({
+						'orders.update': [
+							{
+								target: yield* t.at('orders', own.order),
+								set: { notes: 'Cannot edit archived remarks' }
+							}
+						]
+					})
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(
 				yield* as
-					.act('order_lines.update', [{ target: own.line, set: { quantity: Decimal.of(12) } }])
+					.act({
+						'order_lines.update': [
+							{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+						]
+					})
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(yield* confirm(t, own.order).pipe(Effect.flip)).toMatchObject({ _tag: 'ActRefused' });
@@ -77,25 +90,28 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 			).toEqual(line);
 			committed(
 				'orders',
-				yield* as.act('orders.update', [{ target: own.order, set: { archived: false } }])
+				yield* as.act({
+					'orders.update': [{ target: yield* t.at('orders', own.order), set: { archived: false } }]
+				})
 			);
 			committed(
 				'orders',
-				yield* as.act('orders.update', [
-					{
-						target: own.order,
-						set: { notes: 'Customer may resume later' }
-					}
-				])
+				yield* as.act({
+					'orders.update': [
+						{
+							target: yield* t.at('orders', own.order),
+							set: { notes: 'Customer may resume later' }
+						}
+					]
+				})
 			);
 			committed(
 				'order_lines',
-				yield* as.act('order_lines.update', [
-					{
-						target: own.line,
-						set: { quantity: Decimal.of(12) }
-					}
-				])
+				yield* as.act({
+					'order_lines.update': [
+						{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+					]
+				})
 			);
 			expect(
 				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]

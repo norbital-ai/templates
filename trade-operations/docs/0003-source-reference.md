@@ -7,12 +7,12 @@ This is a local source inventory, not a declaration that a deployed tenant runs 
 
 ## Applications and pages
 
-| Source application                                              | Title               | Pages                                                                                                                 | Purpose                                                |
-| --------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| [operations/analysis](../src/app/operations/analysis/+app.ts)   | Analysis            | reports: Analysis                                                                                                     | Sales, balances and commissions.                       |
-| [operations/partners](../src/app/operations/partners/+app.ts)   | Partners            | parties: Partners                                                                                                     | Customers, suppliers and their agreements.             |
-| [operations/trade](../src/app/operations/trade/+app.ts)         | Orders              | orders: Orders                                                                                                        | Commercial work within each order.                     |
-| [operations/warehouse](../src/app/operations/warehouse/+app.ts) | Warehouse           | stock: Warehouse                                                                                                      | Products, lots and stock.                              |
+| Source application                                              | Title               | Pages                                               | Purpose                                                                                       |
+| --------------------------------------------------------------- | ------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [operations/analysis](../src/app/operations/analysis/+app.ts)   | Analysis            | reports: Analysis                                   | Sales, balances and commissions.                                                              |
+| [operations/partners](../src/app/operations/partners/+app.ts)   | Partners            | parties: Partners                                   | Customers, suppliers and their agreements.                                                    |
+| [operations/trade](../src/app/operations/trade/+app.ts)         | Orders              | orders: Orders                                      | Commercial work within each order.                                                            |
+| [operations/warehouse](../src/app/operations/warehouse/+app.ts) | Warehouse           | stock: Warehouse                                    | Products, lots and stock.                                                                     |
 | [trade_configuration](../src/app/trade_configuration/+app.ts)   | Trade configuration | `templates` (Documents), `pricing_floors` (Pricing) | Document templates and defaults, the dated price book, pricing defaults and commission rules. |
 
 ## Models and exposed operations
@@ -46,7 +46,7 @@ Outputs fix field visibility. Policies select outputs and scope rows; write colu
 | [transactions](../src/data/model/orders/transactions/+model.ts)                          | 12     | default, logistics  | create, update         | kingdee               |
 | [warehouses](../src/data/model/warehouses/+model.ts)                                     | 6      | default             | none                   | kingdee, sheet        |
 
-Upsert is available when both create and update are exposed; it resolves an explicit ID or the model’s natural key and requires an explicit conflict rule. Writes listed on a source mirror are the sync’s path, not a member permission: policies grant those rows read-only. A model with no write exposed has no caller path at all.
+Import is available on a model with an `import_key` constraint; it matches by that key and names its conflict rule (`on_conflict`). Writes listed on a source mirror are the sync’s path, not a member permission: policies grant those rows read-only. A model with no write exposed has no caller path at all.
 
 ## Automations
 
@@ -55,12 +55,12 @@ All named runs use the reserved system identity and the listed policies. A manua
 | Automation                                                      | Trigger                        | Policies       | Purpose                                                                              |
 | --------------------------------------------------------------- | ------------------------------ | -------------- | ------------------------------------------------------------------------------------ |
 | [orders_revise](../src/automation/+orders_revise.automation.ts) | started or scheduled from code | order_revision | Start or resume a replacement contract from the current accepted terms.              |
-| [source_health](../src/automation/+source_health.automation.ts) | {"cron":"*/5 * * * *"}         | configuration  | Notifies configuration holders when an accounting ledger connection needs attention. |
+| [source_health](../src/automation/+source_health.automation.ts) | [{"cron":"*/5 * * * *"}]       | configuration  | Notifies configuration holders when an accounting ledger connection needs attention. |
 
 ## Integrations and source roles
 
 - Integration definitions: `kingdee`.
-- Named connections: `kingdee`.
+- Named connections: none; each Kingdee ledger is a `sys_integration` row an administrator adds at run time.
 - Source policies: `configuration`, `finance`, `logistics`, `manager`, `order_revision`, `procurement`, `sales`.
 - Custom datatypes: none.
 

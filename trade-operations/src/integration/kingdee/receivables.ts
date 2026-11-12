@@ -157,7 +157,7 @@ export const readReceivables = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'Receivables aging requires a verified account identity'
 		});
-	const { sys_integration: ledgers } = yield* ctx.db.query({
+	const { sys_integration: ledgers } = yield* ctx.query({
 		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] }
 	});
 	if (

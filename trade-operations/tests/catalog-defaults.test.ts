@@ -9,26 +9,28 @@ test.live(
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const make = (
 				direction: 'sales' | 'purchasing',
 				currency: Row<'orders'>['currency'] = 'SGD'
 			) =>
-				as.act('orders.create', [
-					{
-						title: 'Catalog defaults',
-						direction,
-						party: direction === 'sales' ? CUSTOMER : SUPPLIER,
-						currency,
-						payment_terms: 'Net 30'
-					}
-				]);
+				as.act({
+					'orders.create': [
+						{
+							title: 'Catalog defaults',
+							direction,
+							party: direction === 'sales' ? CUSTOMER : SUPPLIER,
+							currency,
+							payment_terms: 'Net 30'
+						}
+					]
+				});
 			const order = committed('orders', yield* make('sales'));
 			const line = committed(
 				'order_lines',
-				yield* as.act('order_lines.create', [
-					{ order, product: PRODUCT, quantity: Decimal.of('10') }
-				])
+				yield* as.act({
+					'order_lines.create': [{ order, product: PRODUCT, quantity: Decimal.of('10') }]
+				})
 			);
 			expect(
 				(yield* as.query({ order_lines: { where: { id: { eq: line } }, limit: 1 } })).order_lines
@@ -40,14 +42,16 @@ test.live(
 			});
 			const zero = committed(
 				'order_lines',
-				yield* as.act('order_lines.create', [
-					{
-						order,
-						product: PRODUCT,
-						quantity: Decimal.of('1'),
-						tax_rate: Decimal.of('0')
-					}
-				])
+				yield* as.act({
+					'order_lines.create': [
+						{
+							order,
+							product: PRODUCT,
+							quantity: Decimal.of('1'),
+							tax_rate: Decimal.of('0')
+						}
+					]
+				})
 			);
 			expect(
 				(yield* as.query({ order_lines: { where: { id: { eq: zero } }, limit: 1 } })).order_lines
@@ -59,25 +63,29 @@ test.live(
 			const purchase = committed('orders', yield* make('purchasing'));
 			expect(
 				yield* Effect.flip(
-					as.act('order_lines.create', [
-						{
-							order: purchase,
-							product: PRODUCT,
-							quantity: Decimal.of('1')
-						}
-					])
+					as.act({
+						'order_lines.create': [
+							{
+								order: purchase,
+								product: PRODUCT,
+								quantity: Decimal.of('1')
+							}
+						]
+					})
 				)
 			).toMatchObject({ _tag: 'ActRefused', message: 'errors.price_required' });
 			const cost = committed(
 				'order_lines',
-				yield* as.act('order_lines.create', [
-					{
-						order: purchase,
-						product: PRODUCT,
-						quantity: Decimal.of('1'),
-						unit_price: Decimal.of('1.25')
-					}
-				])
+				yield* as.act({
+					'order_lines.create': [
+						{
+							order: purchase,
+							product: PRODUCT,
+							quantity: Decimal.of('1'),
+							unit_price: Decimal.of('1.25')
+						}
+					]
+				})
 			);
 			expect(
 				(yield* as.query({ order_lines: { where: { id: { eq: cost } }, limit: 1 } })).order_lines
@@ -89,9 +97,9 @@ test.live(
 			const usd = committed('orders', yield* make('sales', 'USD'));
 			expect(
 				yield* Effect.flip(
-					as.act('order_lines.create', [
-						{ order: usd, product: PRODUCT, quantity: Decimal.of('1') }
-					])
+					as.act({
+						'order_lines.create': [{ order: usd, product: PRODUCT, quantity: Decimal.of('1') }]
+					})
 				)
 			).toMatchObject({ _tag: 'ActRefused', message: 'errors.currency_price' });
 		})

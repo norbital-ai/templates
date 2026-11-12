@@ -1,7 +1,7 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/salesperson_signatures.ts';
 import { SIGNATURE_BASE64 } from '../../../lib/salesperson-signatures.js';
 
-export default model('salesperson_signatures', {
+export default model({
 	description: 'Personal artwork retained for previously sealed contracts.',
 	icon: 'lucide:signature',
 	fields: {
@@ -12,6 +12,6 @@ export default model('salesperson_signatures', {
 			optional: true
 		}
 	},
-	index: ['owner'],
-	read: 'all'
+	outputs: { default: { fields: 'all' } },
+	indexes: { by_owner: { on: ['owner'] } }
 });

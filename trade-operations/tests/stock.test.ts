@@ -27,7 +27,7 @@ layer(shared(), { excludeTestServices: true })('stock on a workspace', (it) => {
 						orders_as_of: '2026-10-12T00:00:00Z'
 					}
 				]);
-				const as = t.as(t.member(['configuration']));
+				const as = yield* t.as(t.member(['configuration']));
 				const input = {
 					product: PRODUCT,
 					unit: 'kg',

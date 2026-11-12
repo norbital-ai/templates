@@ -81,7 +81,7 @@ export const readAmendmentProofs = Effect.fnUntraced(function* (
 					}))
 				)
 			},
-			maxRows: batch.length
+			max_rows: batch.length
 		});
 		const requested = new Set(batch.map((proof) => proof.seal));
 		for (const row of rows) {
@@ -174,7 +174,7 @@ export function previousOrderDocument(
 				total: line.total,
 				standard_total: Decimal.of(line.total)
 					.times(previous.source_exchange_rate)
-					.roundTo(bindings.baseCurrency)
+					.round_to(bindings.baseCurrency)
 					.toString()
 			};
 			return `<line ${Object.entries(values)

@@ -1,39 +1,35 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/source_stock_commitments.ts';
+import { fromSource } from '../../../integration/kingdee/polling.js';
 import { readStockCommitments } from '../../../integration/kingdee/stock-commitments.js';
 
-export default model('source_stock_commitments', {
+export default model({
 	description: 'Open sales quantities by product and warehouse from Kingdee.',
-	label: 'observed_at',
+	record_label: 'string(record.observed_at)',
 	fields: {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		observed_at: { kind: 'instant' },
 		entries: {
 			kind: 'json',
 			shape: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						product_code: { kind: 'text' },
-						warehouse: { kind: 'text', optional: true },
-						unit: { kind: 'text', optional: true },
-						quantity: { kind: 'text' }
-					}
+				kind: 'object',
+				many: true,
+				fields: {
+					product_code: { kind: 'text' },
+					warehouse: { kind: 'text', optional: true },
+					unit: { kind: 'text', optional: true },
+					quantity: { kind: 'text' }
 				}
 			}
 		}
 	},
-	key: ['source'],
-	read: {
-		source_stock_commitments: { fields: 'all' },
-		'source_stock_commitments.source': { fields: ['name'] }
-	},
+	outputs: { default: { fields: 'all', source: { fields: ['name'] } } },
+	constraints: { one_per_source: { unique: ['source'], import_key: true } },
 	syncs: {
 		kingdee: {
 			with: 'kingdee',
 			every: '5min',
 			read: function* ({ instance, cursor }, ctx) {
-				return yield* readStockCommitments(instance, cursor, ctx);
+				return fromSource(yield* readStockCommitments(instance, cursor, ctx), instance);
 			}
 		}
 	}

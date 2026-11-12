@@ -5,9 +5,9 @@ import { Effect, Exit, Schema } from 'effect';
 import mssql from 'mssql';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { PlainDate } from '@norbital-ai/std/date';
-import { validateDatabaseRequest, type DatabaseRequest } from '@norbital-ai/bolt/engine';
+import { validate_database_request, type DatabaseRequest } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { compileSqlServer } from '@norbital-ai/store/sqlserver';
+import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { committed, confirm, revise, SETTINGS, workspace } from './kit.js';
 import { firstRow, fixtureId } from './test-runtime.js';
 import { agreements, currentAgreement } from '../src/lib/agreements.js';
@@ -121,7 +121,9 @@ it.effect.skipIf(!password)(
 				source: (operation) =>
 					Effect.tryPromise({
 						try: async () => {
-							const compiled = compileSqlServer(validateDatabaseRequest(operation));
+							const compiled = compile_sql_server(
+								await Effect.runPromise(validate_database_request(operation))
+							);
 							const isStock = String(compiled.parameters.stmt).includes(
 								'kingdee-stock-commitments'
 							);
@@ -157,23 +159,25 @@ it.effect.skipIf(!password)(
 						catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
 					})
 			});
-			const admin = t.as(t.admin);
-			const sales = t.as(t.member(['sales']));
-			const logistics = t.as(t.member(['logistics']));
+			const admin = yield* t.as(t.admin);
+			const sales = yield* t.as(t.member(['sales']));
+			const logistics = yield* t.as(t.member(['logistics']));
 			const instance = fixtureId('sys_integration', 'kingdee');
 			const configure = (stockAvailabilityAccount: string, stockLotCostAccount?: string) =>
-				admin.act('sys_integration.update', [
-					{
-						target: instance,
-						set: {
-							configuration: {
-								baseCurrency: 'CNY',
-								stockAvailabilityAccount,
-								...(stockLotCostAccount ? { stockLotCostAccount } : {})
+				admin.act({
+					'sys_integration.update': [
+						{
+							target: { id: instance },
+							set: {
+								configuration: {
+									baseCurrency: 'CNY',
+									stockAvailabilityAccount,
+									...(stockLotCostAccount ? { stockLotCostAccount } : {})
+								}
 							}
 						}
-					}
-				]);
+					]
+				});
 			yield* t.pull('products');
 			yield* t.pull('warehouses');
 			yield* t.pull('stock_snapshots');
@@ -208,9 +212,14 @@ it.effect.skipIf(!password)(
 			expect(stale.on_hand?.eq('10.500')).toBe(true);
 			committed(
 				'commercial_settings',
-				yield* admin.act('commercial_settings.update', [
-					{ target: SETTINGS, set: { stock_fresh_minutes: 45 } }
-				])
+				yield* admin.act({
+					'commercial_settings.update': [
+						{
+							target: yield* t.at('commercial_settings', SETTINGS),
+							set: { stock_fresh_minutes: 45 }
+						}
+					]
+				})
 			);
 			const configured = yield* logistics.query(logisticsStockAvailabilityRead);
 			expect(
@@ -244,7 +253,7 @@ it.effect.skipIf(!password)(
 			expect(Exit.isFailure(yield* Effect.exit(pullCosts()))).toBe(true);
 			yield* configure(account, account);
 			yield* pullCosts();
-			const configuration = t.as(t.member(['configuration']));
+			const configuration = yield* t.as(t.member(['configuration']));
 			const sourceCosts = () =>
 				configuration
 					.query(purchaseLotCostRead(instance))
@@ -271,7 +280,7 @@ it.effect.skipIf(!password)(
 			const product = firstRow(masters.products.rows).id;
 			const onHand = yield* configuration.query(inventoryCostRead(product, 'WH'));
 			const warehouse = firstRow(onHand.warehouses.rows).id;
-			const estimate = (quantity: string, currency = 'CNY', asOf = new Date().toISOString()) =>
+			const estimate = (quantity: string, currency = 'CNY', as_of = new Date().toISOString()) =>
 				estimateFifoCost(onHand.stock_snapshots.rows, costs, {
 					product,
 					productCode: '210',
@@ -280,7 +289,7 @@ it.effect.skipIf(!password)(
 					quantity,
 					unit: 'kg',
 					currency,
-					asOf
+					as_of
 				});
 			expect(estimate('5')?.unit_cost.eq('2')).toBe(true);
 			expect(estimate('8')?.unit_cost.eq('2.375')).toBe(true);
@@ -289,28 +298,29 @@ it.effect.skipIf(!password)(
 			expect(estimate('8', 'CNY', new Date(Date.now() + 31 * 60_000).toISOString())).toBeNull();
 			const order = committed(
 				'orders',
-				yield* admin.act('orders.create', [
-					{
-						title: 'FIFO SQL probe',
-						direction: 'sales',
-						party: firstRow(masters.parties.rows).id,
-						warehouse,
-						currency: 'CNY',
-						ordered_on: PlainDate('2026-11-07'),
-						payment_terms: 'NET30'
-					}
-				])
+				yield* admin.act({
+					'orders.create': [
+						{
+							title: 'FIFO SQL probe',
+							direction: 'sales',
+							party: firstRow(masters.parties.rows).id,
+							warehouse,
+							currency: 'CNY',
+							ordered_on: PlainDate('2026-11-07'),
+							payment_terms: 'NET30'
+						}
+					]
+				})
 			);
-			yield* admin.act(
-				'order_lines.create',
-				[5, 3].map((quantity) => ({
+			yield* admin.act({
+				'order_lines.create': [5, 3].map((quantity) => ({
 					order,
 					product,
 					quantity: Decimal.of(quantity),
 					unit_price: Decimal.of('2.25'),
 					tax_rate: Decimal.of(0)
 				}))
-			);
+			});
 			const savedQuote = yield* admin.query(confirmationRead(order));
 			const guidance = quotationFifoCosts(savedQuote, costs, new Date().toISOString());
 			expect(guidance).toHaveLength(1);
@@ -365,7 +375,9 @@ it.effect.skipIf(!password)(
 					Effect.tryPromise({
 						try: async () => {
 							requests++;
-							const compiled = compileSqlServer(validateDatabaseRequest(operation));
+							const compiled = compile_sql_server(
+								await Effect.runPromise(validate_database_request(operation))
+							);
 							const args = compiled.parameters;
 							const request = bind(source.request(), args);
 							const result =
@@ -528,7 +540,9 @@ it.effect.skipIf(!password)(
 				source: (operation) =>
 					Effect.tryPromise({
 						try: async () => {
-							const compiled = compileSqlServer(validateDatabaseRequest(operation));
+							const compiled = compile_sql_server(
+								await Effect.runPromise(validate_database_request(operation))
+							);
 							requests++;
 							if (String(compiled.parameters.stmt).includes('AS cost_amount')) deliveryCostReads++;
 							const tx = source.transaction();
@@ -569,7 +583,7 @@ it.effect.skipIf(!password)(
 						catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
 					})
 			});
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const instance = fixtureId('sys_integration', 'kingdee');
 			yield* t.pull('parties');
 			yield* t.pull('products');
@@ -579,28 +593,32 @@ it.effect.skipIf(!password)(
 			});
 			const order = committed(
 				'orders',
-				yield* as.act('orders.create', [
-					{
-						title: 'SQL 2017 lineage probe',
-						direction: 'sales',
-						party: firstRow(masters.parties.rows).id,
-						currency: 'CNY',
-						ordered_on: PlainDate('2026-10-26'),
-						payment_terms: 'NET30'
-					}
-				])
+				yield* as.act({
+					'orders.create': [
+						{
+							title: 'SQL 2017 lineage probe',
+							direction: 'sales',
+							party: firstRow(masters.parties.rows).id,
+							currency: 'CNY',
+							ordered_on: PlainDate('2026-10-26'),
+							payment_terms: 'NET30'
+						}
+					]
+				})
 			);
 			const line = committed(
 				'order_lines',
-				yield* as.act('order_lines.create', [
-					{
-						order,
-						product: firstRow(masters.products.rows).id,
-						quantity: Decimal.of(10),
-						unit_price: Decimal.of(2),
-						tax_rate: Decimal.of(13)
-					}
-				])
+				yield* as.act({
+					'order_lines.create': [
+						{
+							order,
+							product: firstRow(masters.products.rows).id,
+							quantity: Decimal.of(10),
+							unit_price: Decimal.of(2),
+							tax_rate: Decimal.of(13)
+						}
+					]
+				})
 			);
 			const read = () =>
 				as
@@ -626,17 +644,19 @@ it.effect.skipIf(!password)(
 				settlementRules: '{"NET30":{"creditDays":30,"fromMonthEnd":false}}'
 			};
 			const configureDeliveryCost = (deliveryCostAccount?: string) =>
-				as.act('sys_integration.update', [
-					{
-						target: instance,
-						set: {
-							configuration: {
-								...orderConfiguration,
-								...(deliveryCostAccount ? { deliveryCostAccount } : {})
+				as.act({
+					'sys_integration.update': [
+						{
+							target: { id: instance },
+							set: {
+								configuration: {
+									...orderConfiguration,
+									...(deliveryCostAccount ? { deliveryCostAccount } : {})
+								}
 							}
 						}
-					}
-				]);
+					]
+				});
 			yield* configureDeliveryCost();
 			yield* confirm(t, order);
 			yield* t.deliver();
@@ -768,7 +788,11 @@ it.effect.skipIf(!password)(
 			expect(payment.amount.eq(3)).toBe(true);
 
 			yield* revise(t, order);
-			yield* as.act('order_lines.update', [{ target: line, set: { quantity: Decimal.of(12) } }]);
+			yield* as.act({
+				'order_lines.update': [
+					{ target: yield* t.at('order_lines', line), set: { quantity: Decimal.of(12) } }
+				]
+			});
 			yield* confirm(t, order);
 			yield* t.deliver();
 			yield* synchronize();
@@ -788,16 +812,18 @@ it.effect.skipIf(!password)(
 			expect(after.source_sales_lines.rows).toEqual(before.source_sales_lines.rows);
 			expect(after.source_payments.rows).toEqual(before.source_payments.rows);
 			const connection = (active: boolean) =>
-				as.act('sys_integration.update', [{ target: instance, set: { active } }]);
+				as.act({ 'sys_integration.update': [{ target: { id: instance }, set: { active } }] });
 			yield* connection(false);
 			for (const [version, quantity] of [
 				[3, 13],
 				[4, 14]
 			] as const) {
 				yield* revise(t, order);
-				yield* as.act('order_lines.update', [
-					{ target: line, set: { quantity: Decimal.of(quantity) } }
-				]);
+				yield* as.act({
+					'order_lines.update': [
+						{ target: yield* t.at('order_lines', line), set: { quantity: Decimal.of(quantity) } }
+					]
+				});
 				yield* confirm(t, order);
 				expect(currentAgreement(yield* read())).toMatchObject({
 					version,
@@ -824,7 +850,7 @@ it.effect.skipIf(!password)(
 			expect(agreements(resumed)[2]).toMatchObject({ version: 3, lifecycle: 'superseded' });
 			expect(agreements(resumed)[2]?.kingdee).toBeUndefined();
 			expect(yield* evidence()).toEqual(before);
-			const finance = t.as(t.member(['finance']));
+			const finance = yield* t.as(t.member(['finance']));
 			for (const [basis, month, date] of [
 				['delivery', '10', '26'],
 				['invoice', '11', '02']
@@ -914,7 +940,7 @@ it.effect.skipIf(!password)(
 				(row) => row.reference === 'CREDIT-PROBE'
 			);
 			expect(credit?.credit.eq('2.26')).toBe(true);
-			expect(credit?.overpaid.isZero()).toBe(true);
+			expect(credit?.overpaid.is_zero()).toBe(true);
 
 			yield* sql(`
 				INSERT dbo.ICSale (FInterID,FBillNo,FDate,FTranType,FCheckDate,FCancellation,FROB,FCurrencyID,FCustID,FEmpID)
@@ -931,7 +957,7 @@ it.effect.skipIf(!password)(
 			const independent = () =>
 				as
 					.query({
-						source_sales_lines: { where: { order: { isNull: true } } }
+						source_sales_lines: { where: { order: { is_null: true } } }
 					})
 					.pipe(Effect.map((answer) => answer.source_sales_lines.rows));
 			yield* pullInvoices();
@@ -945,12 +971,14 @@ it.effect.skipIf(!password)(
 			if (!configuration || typeof configuration !== 'object' || Array.isArray(configuration))
 				throw new Error('Kingdee test ledger configuration is required');
 			const pin = (invoiceAnalysisAccount: string) =>
-				as.act('sys_integration.update', [
-					{
-						target: instance,
-						set: { configuration: { ...configuration, invoiceAnalysisAccount } }
-					}
-				]);
+				as.act({
+					'sys_integration.update': [
+						{
+							target: { id: instance },
+							set: { configuration: { ...configuration, invoiceAnalysisAccount } }
+						}
+					]
+				});
 			yield* pin('11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111');
 			expect(Exit.isFailure(yield* Effect.exit(pullInvoices()))).toBe(true);
 			expect(yield* independent()).toEqual([]);
@@ -1018,7 +1046,7 @@ it.effect.skipIf(!password)(
 						basis: 'delivery'
 					}).some((row) => row.kind === 'invoice_only')
 				).toBe(false);
-				const seller = t.as(t.member(['sales']));
+				const seller = yield* t.as(t.member(['sales']));
 				expect(
 					salesDetail(yield* seller.query(salesReadDuring({ ...span, basis: 'invoice' }, true)), {
 						basis: 'invoice'
@@ -1062,19 +1090,21 @@ it.effect.skipIf(!password)(
 			const pullReceivables = () =>
 				t.syncs.read('source_receivables.sync.kingdee', { instance: 'kingdee' });
 			const configureReceivables = (receivablesAccount: string) =>
-				as.act('sys_integration.update', [
-					{
-						target: instance,
-						set: {
-							configuration: {
-								...configuration,
-								invoiceAnalysisAccount: account,
-								receivablesAccount,
-								receivablesExcludedContacts: '10006'
+				as.act({
+					'sys_integration.update': [
+						{
+							target: { id: instance },
+							set: {
+								configuration: {
+									...configuration,
+									invoiceAnalysisAccount: account,
+									receivablesAccount,
+									receivablesExcludedContacts: '10006'
+								}
 							}
 						}
-					}
-				]);
+					]
+				});
 			yield* pullReceivables();
 			expect((yield* finance.query(receivablesRead)).source_receivables.rows).toEqual([]);
 			yield* configureReceivables(
@@ -1087,7 +1117,9 @@ it.effect.skipIf(!password)(
 			expect(snapshots).toHaveLength(1);
 			expect(snapshots[0]?.source?.id).toBe(instance);
 			expect(snapshots[0]?.entries).toHaveLength(5);
-			const sellerSnapshot = yield* Effect.exit(t.as(t.member(['sales'])).query(receivablesRead));
+			const sellerSnapshot = yield* Effect.exit(
+				(yield* t.as(t.member(['sales']))).query(receivablesRead)
+			);
 			expect(
 				Exit.isFailure(sellerSnapshot) || sellerSnapshot.value.source_receivables.rows.length === 0
 			).toBe(true);

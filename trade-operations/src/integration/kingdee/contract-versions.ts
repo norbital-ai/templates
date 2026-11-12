@@ -124,7 +124,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 		orders,
 		products,
 		order_lines: editorLines
-	} = yield* ctx.db.query({
+	} = yield* ctx.query({
 		orders: {
 			where: owned,
 			fields: [...agreementFields, 'number', 'source_order_key', 'draft_setup']

@@ -2,7 +2,7 @@
 // (`src/lib`) answered under the caller's authority, then the same pure helper the page and the file sync call.
 import { Effect, Result } from 'effect';
 import type { Id } from '@norbital-ai/bolt';
-import type { Caller } from '@norbital-ai/bolt-cli/test';
+import type { Typed } from './test-runtime.js';
 import { Refusal } from '@norbital-ai/bolt/errors';
 import { PlainDate } from '@norbital-ai/std/date';
 import { previewRead, commissionPreview } from '../src/lib/commission-expressions.js';
@@ -32,7 +32,7 @@ import {
 	salesAnalysis,
 	salesDetail
 } from '../src/lib/reports.js';
-type Reader = Pick<Caller, 'query'>;
+type Reader = Pick<Typed, 'query'>;
 /** A helper's refusal surfaces as the message key the declared query refused with. */
 const settled = <A>(result: Result.Result<A, string>) =>
 	Result.isSuccess(result)

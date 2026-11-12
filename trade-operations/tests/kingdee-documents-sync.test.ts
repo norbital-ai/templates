@@ -26,7 +26,7 @@ const ownedSale = Effect.fnUntraced(function* () {
 	const source = kingdeeFixture();
 	const clock = { at: '2026-10-26T00:00:00.000Z' };
 	const t = yield* acquire(source, clock);
-	const as = t.as(t.admin);
+	const as = yield* t.as(t.admin);
 	const { order, line } = yield* kingdeeSale(t, source);
 	yield* t.deliver();
 	const submission = [...source.submissions.values()].at(-1);

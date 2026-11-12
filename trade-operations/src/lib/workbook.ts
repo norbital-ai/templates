@@ -5,75 +5,75 @@ import type { InputFields } from '@norbital-ai/bolt';
  * Reference values are the source code (not the row id), so a sheet survives a re-import.
  */
 export const orderWorkbook = {
-	number: { kind: 'text', label: 'Order number', optional: true },
-	direction: { kind: 'enum', values: ['sales', 'purchasing'], label: 'Direction' },
-	party_code: { kind: 'text', label: 'Party code' },
-	title: { kind: 'text', label: 'Title' },
-	owner: { kind: 'text', label: 'Salesperson id', optional: true },
-	warehouse_code: { kind: 'text', label: 'Warehouse code', optional: true },
-	ordered_on: { kind: 'date', label: 'Order date', optional: true },
-	currency: { kind: 'currency', label: 'Currency', optional: true },
-	tax_inclusive: { kind: 'bool', label: 'Tax inclusive', optional: true },
-	valid_from: { kind: 'date', label: 'Valid from', optional: true },
-	valid_until: { kind: 'date', label: 'Valid until', optional: true },
-	payment_terms: { kind: 'text', label: 'Payment terms' },
-	delivery_terms: { kind: 'text', label: 'Delivery terms', optional: true },
-	shipping_terms: { kind: 'text', label: 'Shipping terms', optional: true },
-	place_of_loading: { kind: 'text', label: 'Place of loading', optional: true },
-	place_of_delivery: { kind: 'text', label: 'Place of delivery', optional: true },
-	packaging: { kind: 'text', label: 'Packaging', optional: true },
-	shipping_mark: { kind: 'text', label: 'Shipping mark', optional: true },
-	time_of_shipment: { kind: 'text', label: 'Time of shipment', optional: true },
-	other_terms: { kind: 'text', label: 'Other terms', optional: true },
-	payment_method: { kind: 'text', label: 'Payment method', optional: true },
-	buyer_contact: { kind: 'text', label: 'Buyer contact', optional: true },
-	buyer_mobile: { kind: 'text', label: 'Buyer mobile', optional: true },
-	delivery_address: { kind: 'text', label: 'Delivery address', optional: true },
-	delivery_date: { kind: 'date', label: 'Delivery date', optional: true },
-	logistics_handler: { kind: 'text', label: 'Logistics handler id', optional: true },
-	notes: { kind: 'text', label: 'Remarks', optional: true }
+	number: { kind: 'text', optional: true },
+	direction: { kind: 'enum', values: ['sales', 'purchasing'] },
+	party_code: { kind: 'text' },
+	title: { kind: 'text' },
+	owner: { kind: 'text', optional: true },
+	warehouse_code: { kind: 'text', optional: true },
+	ordered_on: { kind: 'date', optional: true },
+	currency: { kind: 'currency', optional: true },
+	tax_inclusive: { kind: 'bool', optional: true },
+	valid_from: { kind: 'date', optional: true },
+	valid_until: { kind: 'date', optional: true },
+	payment_terms: { kind: 'text' },
+	delivery_terms: { kind: 'text', optional: true },
+	shipping_terms: { kind: 'text', optional: true },
+	place_of_loading: { kind: 'text', optional: true },
+	place_of_delivery: { kind: 'text', optional: true },
+	packaging: { kind: 'text', optional: true },
+	shipping_mark: { kind: 'text', optional: true },
+	time_of_shipment: { kind: 'text', optional: true },
+	other_terms: { kind: 'text', optional: true },
+	payment_method: { kind: 'text', optional: true },
+	buyer_contact: { kind: 'text', optional: true },
+	buyer_mobile: { kind: 'text', optional: true },
+	delivery_address: { kind: 'text', optional: true },
+	delivery_date: { kind: 'date', optional: true },
+	logistics_handler: { kind: 'text', optional: true },
+	notes: { kind: 'text', optional: true }
 } as const satisfies InputFields;
 
 export const orderLineWorkbook = {
-	order_number: { kind: 'text', label: 'Order number' },
-	line_key: { kind: 'text', label: 'Line key', optional: true },
-	product_code: { kind: 'text', label: 'Product code' },
-	quantity: { kind: 'number', label: 'Quantity' },
-	unit_price: { kind: 'number', label: 'Unit price', optional: true },
-	discount_pct: { kind: 'number', label: 'Discount (%)', optional: true },
-	tax_rate: { kind: 'number', label: 'Tax rate (%)', optional: true }
+	order_number: { kind: 'text' },
+	line_key: { kind: 'text', optional: true },
+	product_code: { kind: 'text' },
+	quantity: { kind: 'number' },
+	unit_price: { kind: 'number', optional: true },
+	discount_pct: { kind: 'number', optional: true },
+	tax_rate: { kind: 'number', optional: true }
 } as const satisfies InputFields;
 
 export const partyWorkbook = {
-	ledger: { kind: 'text', label: 'Ledger' },
-	external_code: { kind: 'text', label: 'External code' },
-	source_number: { kind: 'text', label: 'Source number', optional: true },
-	name: { kind: 'text', label: 'Name' },
-	kind: { kind: 'enum', values: ['customer', 'supplier', 'both'], label: 'Kind' },
-	currency: { kind: 'currency', label: 'Currency' },
-	active: { kind: 'bool', label: 'Active' },
-	address: { kind: 'text', label: 'Address', optional: true },
-	phone: { kind: 'text', label: 'Phone', optional: true }
+	ledger: { kind: 'text' },
+	external_code: { kind: 'text' },
+	source_number: { kind: 'text', optional: true },
+	name: { kind: 'text' },
+	kind: { kind: 'enum', values: ['customer', 'supplier', 'both'] },
+	currency: { kind: 'currency' },
+	active: { kind: 'bool' },
+	address: { kind: 'text', optional: true },
+	phone: { kind: 'text', optional: true }
 } as const satisfies InputFields;
 
 export const warehouseWorkbook = {
-	ledger: { kind: 'text', label: 'Ledger' },
-	external_code: { kind: 'text', label: 'External code' },
-	source_number: { kind: 'text', label: 'Source number', optional: true },
-	name: { kind: 'text', label: 'Name' },
-	group_code: { kind: 'text', label: 'Warehouse group', optional: true },
-	active: { kind: 'bool', label: 'Active' }
+	ledger: { kind: 'text' },
+	external_code: { kind: 'text' },
+	source_number: { kind: 'text', optional: true },
+	name: { kind: 'text' },
+	group_code: { kind: 'text', optional: true },
+	active: { kind: 'bool' }
 } as const satisfies InputFields;
 
 export const commissionRuleWorkbook = {
-	code: { kind: 'text', label: 'Code', default: 'default' },
-	currency: { kind: 'currency', label: 'Currency' },
-	effective_on: { kind: 'date', label: 'Effective date' },
-	basis_unit: { kind: 'text', label: 'Basis unit', optional: true },
-	fixed_rate: { kind: 'number', label: 'Fixed rate' },
-	spread_pct: { kind: 'number', label: 'Spread (%)' },
-	eligibility_expression: { kind: 'text', label: 'Eligibility expression' },
-	amount_expression: { kind: 'text', label: 'Amount expression' },
-	parameters: { kind: 'text', label: 'Parameters (JSON)', optional: true },
-	active: { kind: 'bool', label: 'Active', optional: true }
+	code: { kind: 'text', default: 'default' },
+	currency: { kind: 'currency' },
+	effective_on: { kind: 'date' },
+	basis_unit: { kind: 'text', optional: true },
+	fixed_rate: { kind: 'number' },
+	spread_pct: { kind: 'number' },
+	eligibility_expression: { kind: 'text' },
+	amount_expression: { kind: 'text' },
+	parameters: { kind: 'text', optional: true },
+	active: { kind: 'bool', optional: true }
 } as const satisfies InputFields;

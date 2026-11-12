@@ -1,3 +1,4 @@
+import { JobResult } from '@norbital-ai/bolt-cli/test';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
 import { expect, layer } from '@effect/vitest';
@@ -19,8 +20,9 @@ const set = (fid: string, change: SqlRow) => {
 };
 /** The live source header the writer created for a local order (its bill number is the order number). */
 const headOf = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const local = (yield* t.as(t.admin).query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
-		.orders.rows[0];
+	const local = (yield* (yield* t.as(t.admin)).query({
+		orders: { where: { id: { eq: order } }, limit: 1 }
+	})).orders.rows[0];
 	const head = source.tables.SEOrder?.find(
 		(row) => row.reference === local?.number && !row.archive
 	);
@@ -76,7 +78,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 			() =>
 				Effect.gen(function* () {
 					const t = yield* Trade;
-					const as = t.as(t.member(['manager'], { teams: ['commercial_managers'] }));
+					const as = yield* t.as(t.member(['manager'], { teams: ['commercial_managers'] }));
 					const actor = as.authority.actor;
 					if (actor.kind !== 'member') throw new Error('Member required');
 					const { own, fid } = yield* issued(t);
@@ -91,13 +93,17 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					const sourceVersion = before && kingdeeAgreement(agreements(before));
 					if (!before || !sourceVersion) throw new Error('Observed conflict required');
 
-					const started = yield* as.start('orders_revise', {
-						target: own.order,
-						revision: before.revision,
-						source: sourceVersion.seal_hash,
-						resolution: 'adopt'
-					});
-					yield* t.runDue();
+					const started = yield* as.run(
+						'orders_revise',
+						{
+							target: own.order,
+							revision: before.revision,
+							source: sourceVersion.seal_hash,
+							resolution: 'adopt'
+						},
+						JobResult
+					);
+					yield* t.run_due();
 					if (started.kind !== 'committed') throw new Error('Resolution must start');
 					const runs = yield* t.db.rows(
 						Schema.Struct({ state: Schema.String, error: Schema.NullOr(Schema.Json) }),
@@ -141,19 +147,28 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					expect(
 						currentAgreement(later)?.events?.some((event) => event.kind === 'sourceConflict')
 					).toBe(true);
-					yield* as.start('orders_revise', {
-						target: own.order,
-						source: sourceVersion.seal_hash,
-						resolution: 'adopt'
-					});
-					yield* t.runDue();
+					yield* as.run(
+						'orders_revise',
+						{
+							target: own.order,
+							source: sourceVersion.seal_hash,
+							resolution: 'adopt'
+						},
+						JobResult
+					);
+					yield* t.run_due();
 					const stale = yield* read();
 					if (!stale) throw new Error('Order required');
 					expect(stale.revision).toBe(later.revision);
 					yield* as
-						.act('orders.update', [
-							{ target: own.order, set: { contract_versions: agreements(stale) } }
-						])
+						.act({
+							'orders.update': [
+								{
+									target: yield* t.at('orders', own.order),
+									set: { contract_versions: agreements(stale) }
+								}
+							]
+						})
 						.pipe(
 							Effect.flip,
 							Effect.tap((failure) => Effect.sync(() => expect(failure._tag).toBe('ActRefused')))
@@ -166,7 +181,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 			() =>
 				Effect.gen(function* () {
 					const t = yield* Trade;
-					const as = t.as(t.admin);
+					const as = yield* t.as(t.admin);
 					const { own, fid } = yield* issued(t);
 					yield* t.pull('orders');
 					amend(fid, '51002');
@@ -178,13 +193,17 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					const before = yield* read();
 					const native = before && kingdeeAgreement(agreements(before));
 					if (!before || !native) throw new Error('Observed conflict required');
-					const started = yield* as.start('orders_revise', {
-						target: own.order,
-						revision: before.revision,
-						source: native.seal_hash,
-						resolution: 'revise'
-					});
-					yield* t.runDue();
+					const started = yield* as.run(
+						'orders_revise',
+						{
+							target: own.order,
+							revision: before.revision,
+							source: native.seal_hash,
+							resolution: 'revise'
+						},
+						JobResult
+					);
+					yield* t.run_due();
 					if (started.kind !== 'committed') throw new Error('Resolution must start');
 					const runs = yield* t.db.rows(
 						Schema.Struct({ state: Schema.String, error: Schema.NullOr(Schema.Json) }),
@@ -207,9 +226,11 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					expect(lines).toHaveLength(1);
 					expect(lines[0]?.quantity.toString()).toBe('12');
 					if (!lines[0]) throw new Error('Copied line required');
-					yield* as.act('order_lines.update', [
-						{ target: lines[0].id, set: { quantity: Decimal.of(14) } }
-					]);
+					yield* as.act({
+						'order_lines.update': [
+							{ target: yield* t.at('order_lines', lines[0].id), set: { quantity: Decimal.of(14) } }
+						]
+					});
 					yield* confirm(t, own.order);
 					const approved = yield* read();
 					if (!approved) throw new Error('Approval required');
@@ -234,7 +255,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 		it.effect('a formal Kingdee version retains immutable prior terms and the order binding', () =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
-				const as = t.as(t.admin);
+				const as = yield* t.as(t.admin);
 				const { own, fid } = yield* issued(t);
 				yield* t.pull('orders');
 				const read = () =>
@@ -281,7 +302,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 			() =>
 				Effect.gen(function* () {
 					const t = yield* Trade,
-						as = t.as(t.admin);
+						as = yield* t.as(t.admin);
 					const { own, fid } = yield* issued(t);
 					yield* t.pull('orders');
 					amend(fid, '51006');
@@ -301,12 +322,16 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					amend(fid, '51007');
 					set(fid, { version: '002' });
 					yield* t.pull('orders');
-					yield* as.start('orders_revise', {
-						target: own.order,
-						source: basis.seal_hash,
-						resolution: 'revise'
-					});
-					yield* t.runDue();
+					yield* as.run(
+						'orders_revise',
+						{
+							target: own.order,
+							source: basis.seal_hash,
+							resolution: 'revise'
+						},
+						JobResult
+					);
+					yield* t.run_due();
 					const ready = yield* read();
 					if (!ready) throw new Error('Resumed draft required');
 					expect(ready).toMatchObject({
@@ -328,7 +353,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 			() =>
 				Effect.gen(function* () {
 					const t = yield* Trade;
-					const as = t.as(t.admin);
+					const as = yield* t.as(t.admin);
 					const { own, fid } = yield* issued(t);
 					source.tables.SEOrderEntry = (source.tables.SEOrderEntry ?? []).map((row) =>
 						row.fid === fid ? { ...row, quantity: '99' } : row

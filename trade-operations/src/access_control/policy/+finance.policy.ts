@@ -1,71 +1,82 @@
 import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description: 'Finance manages order-scoped billing and payment evidence.',
-	capabilities: {
-		apps: ['operations']
-	},
+	capabilities: { apps: ['operations'] },
 	grants: {
-		source_lot_costs: { read: true },
-		source_stock_commitments: { read: true },
-		ext_sales_orders: { read: true, history: true },
-		ext_purchase_orders: { read: true, history: true },
+		source_lot_costs: {
+			outputs: { default: true }
+		},
+		source_stock_commitments: {
+			outputs: { default: true }
+		},
+		ext_sales_orders: {
+			outputs: { default: { history: true } }
+		},
+		ext_purchase_orders: {
+			outputs: { default: { history: true } }
+		},
 		document_templates: {
-			read: { document_templates: { where: { status: { eq: 'published' } } } }
+			outputs: { default: { where: { status: { eq: 'published' } } } }
 		},
-		transactions: { read: true, history: true },
-		commission_statements: { read: true, history: true, create: true },
+		transactions: {
+			outputs: { default: { history: true } }
+		},
+		commission_statements: {
+			outputs: { default: { history: true } },
+			create: true
+		},
 		source_payments: {
-			history: true,
-			read: true
+			outputs: { default: { history: true } }
 		},
-		source_sales_lines: { read: true, history: true },
-		source_receivables: { read: true, history: true },
+		source_sales_lines: {
+			outputs: { default: { history: true } }
+		},
+		source_receivables: {
+			outputs: { default: { history: true } }
+		},
 		parties: {
-			read: true
+			outputs: { default: true }
 		},
 		products: {
-			read: true
+			outputs: { default: true }
 		},
 		warehouses: {
-			read: true
+			outputs: { default: true }
 		},
 		stock_snapshots: {
-			read: true
+			outputs: { default: true }
 		},
 		credit_snapshots: {
-			read: true
+			outputs: { default: true }
 		},
 		commercial_settings: {
-			read: true
+			outputs: { default: true }
 		},
 		pricing_floors: {
-			history: true,
-			read: true
+			outputs: { default: { history: true } }
 		},
 		commission_rules: {
-			read: true
+			outputs: { default: true }
 		},
 		sys_user: {
-			read: true
+			outputs: { default: true }
 		},
 		orders: {
-			read: true,
-			history: true
+			outputs: { default: { history: true } }
 		},
 		order_lines: {
-			read: true,
-			history: true
+			outputs: { default: { history: true } }
 		},
-		order_files: { read: true, history: true },
+		order_files: {
+			outputs: { default: { history: true } }
+		},
 		activities: {
-			read: true,
-			history: true,
+			outputs: { default: { history: true } },
 			create: true,
 			update: true
 		},
 		contacts: {
-			read: true,
-			history: true,
+			outputs: { default: { history: true } },
 			create: true,
 			update: true
 		}

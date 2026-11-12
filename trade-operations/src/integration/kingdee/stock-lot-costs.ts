@@ -69,7 +69,7 @@ export const readStockLotCosts = Effect.fnUntraced(function* (
 			'$cursor',
 			'The verified purchase lot account or currency changed. Review its snapshot before resetting.'
 		);
-	const { sys_integration: ledgers } = yield* ctx.db.query({
+	const { sys_integration: ledgers } = yield* ctx.query({
 		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] }
 	});
 	if (

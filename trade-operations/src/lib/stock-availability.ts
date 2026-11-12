@@ -13,8 +13,10 @@ export const stockAvailabilityRead = {
 		fields: ['source', 'product', 'warehouse', 'unit', 'on_hand', 'as_of'],
 		limit: 10000
 	},
-	source_stock_commitments: { fields: ['source', 'observed_at', 'entries'] },
-	'source_stock_commitments.source': { fields: ['name'] }
+	source_stock_commitments: {
+		fields: ['source', 'observed_at', 'entries'],
+		source: { fields: ['name'] }
+	}
 } as const;
 export const logisticsStockAvailabilityRead = {
 	...stockAvailabilityRead,

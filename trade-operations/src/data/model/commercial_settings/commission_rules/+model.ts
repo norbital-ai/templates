@@ -1,5 +1,6 @@
+import { model } from '../../../../../.norbital/models/commission_rules.ts';
 import { Result } from 'effect';
-import { model, type Finding } from '@norbital-ai/bolt';
+import { type Finding } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/std/wire';
 import {
 	commissionFault,
@@ -29,9 +30,10 @@ const valid = ({ eligibility, amount, parameters }: Expressions) =>
 			}
 		})
 	);
-export default model('commission_rules', {
+export default model({
 	description: 'commission rules',
-	label: ['currency', 'effective_on'],
+	record_label:
+		"[record.currency != null ? string(record.currency) : '', record.effective_on != null ? string(record.effective_on) : ''].filter(part, part != '').join(' · ')",
 	fields: {
 		eligibility_expression: { kind: 'text', format: 'cel', default: 'true' },
 		amount_expression: { kind: 'text', format: 'cel', default: DEFAULT_COMMISSION_EXPRESSION },
@@ -39,8 +41,9 @@ export default model('commission_rules', {
 			kind: 'json',
 			optional: true,
 			shape: {
-				kind: 'list',
-				of: { kind: 'object', fields: { name: { kind: 'text' }, value: { kind: 'text' } } }
+				kind: 'object',
+				fields: { name: { kind: 'text' }, value: { kind: 'text' } },
+				many: true
 			}
 		},
 		code: {
@@ -77,16 +80,18 @@ export default model('commission_rules', {
 			default: true
 		}
 	},
-	key: ['code', 'currency', 'effective_on'],
-	check: {
+	outputs: { default: { fields: 'all' } },
+	constraints: {
+		natural_key: { unique: ['code', 'currency', 'effective_on'], import_key: true },
 		fixed_rate_nonnegative: {
-			fixed_rate: {
-				gte: '0'
+			check: {
+				fixed_rate: {
+					gte: '0'
+				}
 			}
 		}
 	},
-	search: { text: ['basis_unit'] },
-	read: 'all',
+	indexes: { search: { text: ['basis_unit'] } },
 	syncs: {
 		sheet: {
 			with: 'file',
@@ -141,7 +146,7 @@ export default model('commission_rules', {
 				return { rows, findings };
 			},
 			write: function* (_input, ctx) {
-				const { commission_rules: rules } = yield* ctx.db.query({
+				const { commission_rules: rules } = yield* ctx.query({
 					commission_rules: {
 						fields: [
 							'code',
@@ -155,7 +160,7 @@ export default model('commission_rules', {
 							'parameters',
 							'active'
 						],
-						orderBy: { effective_on: 'desc' },
+						order_by: { effective_on: 'desc' },
 						limit: 10000
 					}
 				});
@@ -164,8 +169,8 @@ export default model('commission_rules', {
 					currency: rule.currency,
 					effective_on: rule.effective_on,
 					basis_unit: rule.basis_unit ?? '',
-					fixed_rate: rule.fixed_rate.toNumber(),
-					spread_pct: rule.spread_pct.toNumber(),
+					fixed_rate: rule.fixed_rate.to_number(),
+					spread_pct: rule.spread_pct.to_number(),
 					eligibility_expression: rule.eligibility_expression,
 					amount_expression: rule.amount_expression,
 					parameters: JSON.stringify(rule.parameters ?? []),
@@ -176,7 +181,7 @@ export default model('commission_rules', {
 	},
 	create: {
 		columns: {
-			commission_rules: [
+			fields: [
 				'eligibility_expression',
 				'amount_expression',
 				'parameters',
@@ -189,19 +194,19 @@ export default model('commission_rules', {
 				'active'
 			]
 		},
-		transform: function* (rows, ctx) {
-			const expressions = rows.map((row) => ({
-				eligibility: row.eligibility_expression ?? 'true',
-				amount: row.amount_expression ?? DEFAULT_COMMISSION_EXPRESSION,
-				parameters: row.parameters ?? []
+		transform: function* (changes, ctx) {
+			const expressions = changes.map(({ after }) => ({
+				eligibility: after.eligibility_expression ?? 'true',
+				amount: after.amount_expression ?? DEFAULT_COMMISSION_EXPRESSION,
+				parameters: after.parameters ?? []
 			}));
 			if (!expressions.every(valid)) yield* ctx.refuse('errors.commission_expression_invalid');
-			return rows;
+			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
 		columns: {
-			commission_rules: [
+			fields: [
 				'eligibility_expression',
 				'amount_expression',
 				'parameters',

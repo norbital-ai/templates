@@ -11,8 +11,9 @@ const receipt = Effect.fnUntraced(function* (
 	order: Id<'orders'>,
 	external_id: string = randomUUID()
 ) {
-	const seal = (yield* t.as(t.admin).query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
-		.orders.rows[0];
+	const seal = (yield* (yield* t.as(t.admin)).query({
+		orders: { where: { id: { eq: order } }, limit: 1 }
+	})).orders.rows[0];
 	return {
 		order,
 		external_id,
@@ -42,10 +43,9 @@ it.live(
 				kind: 'committed'
 			});
 			expect(
-				(yield* t
-					.as(t.admin)
-					.query({ ext_sales_orders: { where: { external_id: { eq: source.external_id } } } }))
-					.ext_sales_orders.rows[0]?.order
+				(yield* (yield* t.as(t.admin)).query({
+					ext_sales_orders: { where: { external_id: { eq: source.external_id } } }
+				})).ext_sales_orders.rows[0]?.order
 			).toBe(own.order);
 			const other = writtenId(
 				'ext_sales_orders',
@@ -98,8 +98,9 @@ it.live(
 				kind: 'committed'
 			});
 			expect(
-				(yield* t.as(t.admin).query({ transactions: { where: { erp_id: { eq: row.erp_id } } } }))
-					.transactions.rows[0]
+				(yield* (yield* t.as(t.admin)).query({
+					transactions: { where: { erp_id: { eq: row.erp_id } } }
+				})).transactions.rows[0]
 			).toMatchObject({ status: 'void', ext_sales_order: parent });
 		})
 );

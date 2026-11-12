@@ -1,0 +1,14 @@
+[
+	{
+		"id": "kingdee",
+		"integration": "kingdee",
+		"name": "kingdee",
+		"active": true,
+		"configuration": {
+			"baseCurrency": "CNY",
+			"branchNo": "0",
+			"fullSnapshotMinutes": 1440,
+			"maxWindowMinutes": 15
+		}
+	}
+]

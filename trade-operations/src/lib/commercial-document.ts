@@ -1,5 +1,5 @@
 import type { Row } from '@norbital-ai/bolt';
-import { minorDigits } from '@norbital-ai/std/decimal';
+import { minor_digits } from '@norbital-ai/std/decimal';
 
 type Snapshot = NonNullable<Row<'orders'>['sealed_snapshot']>;
 type Locale = Row<'document_templates'>['locale'];
@@ -66,7 +66,7 @@ export function paragraphs(text: string) {
 
 function paperAmount(value: string, currency: string) {
 	const [whole, fraction = ''] = value.split('.');
-	const decimals = fraction.padEnd(minorDigits(currency), '0');
+	const decimals = fraction.padEnd(minor_digits(currency), '0');
 	return decimals ? `${whole}.${decimals}` : (whole ?? '');
 }
 

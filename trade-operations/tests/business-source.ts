@@ -94,7 +94,7 @@ export const businessRows = Effect.fnUntraced(function* (
 	const rows = yield* Schema.decodeUnknownEffect(Schema.Array(Record))(values).pipe(
 		Effect.mapError((cause) => new BusinessFixtureInvalid({ reason: String(cause) }))
 	);
-	const as = t.as(t.admin);
+	const as = yield* t.as(t.admin);
 	const products =
 		model === 'stock_snapshots'
 			? (yield* as.query({

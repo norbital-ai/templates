@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { attach, bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { attach } from '@norbital-ai/ui/effect';
 	import { type Id } from '@norbital-ai/bolt';
 	import { Button, Dialog } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
@@ -17,11 +18,13 @@
 	let {
 		order,
 		version = null,
-		onClose
+		on_close,
+		ctx
 	}: {
 		order: Id<'orders'>;
 		version?: number | null;
-		onClose: () => void;
+		on_close: () => void;
+		ctx: PageContext;
 	} = $props();
 
 	let file = $state<{ title: string; url: string; name: string } | null>(null);
@@ -35,11 +38,11 @@
 		const selectedVersion = version;
 		const stamp = includeStamp;
 		const withSignature = includeSignature;
-		const actor = bolt.actor;
+		const actor = ctx.actor;
 		return Effect.gen(function* () {
 			file = null;
 			error = null;
-			const document = yield* orderDocument(yield* bolt.query(request), {
+			const document = yield* orderDocument(yield* ctx.query(request), {
 				version: selectedVersion
 			});
 			stampAvailable = document.stamp != null;
@@ -47,7 +50,7 @@
 			signatureAvailable = !!signing && actor?.kind === 'member' && actor.id === signing.owner;
 			const signature =
 				withSignature && signatureAvailable && signing
-					? (yield* bolt.query(contractSignatureRead(signing))).salesperson_signatures.rows[0]
+					? (yield* ctx.query(contractSignatureRead(signing))).salesperson_signatures.rows[0]
 							?.signature?.png
 					: null;
 			if (withSignature && signatureAvailable && !signature)
@@ -55,13 +58,13 @@
 			const source = yield* documentSource(
 				{ ...document, stamp: stamp ? document.stamp : null, signature: signature ?? null },
 				(asset) =>
-					HttpClient.get(bolt.fileUrl(asset)).pipe(
+					HttpClient.get(ctx.file_url(asset)).pipe(
 						Effect.flatMap((response) => response.arrayBuffer),
 						Effect.map((bytes) => new Uint8Array(bytes)),
 						Effect.provide(FetchHttpClient.layer)
 					)
 			);
-			const bytes = yield* bolt.previewPdf(source, { page: 'A4' });
+			const bytes = yield* ctx.preview_pdf(source, { page: 'A4' });
 			const url = yield* Effect.acquireRelease(
 				Effect.sync(() =>
 					URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }))
@@ -76,8 +79,8 @@
 					error =
 						cause instanceof DocumentUnavailable &&
 						cause.message === 'errors.document_layout_unpublished'
-							? bolt.t('errors.document_layout_unpublished')
-							: bolt.t('component.document_unavailable');
+							? ctx.t('errors.document_layout_unpublished')
+							: ctx.t('component.document_unavailable');
 				})
 			)
 		);
@@ -86,38 +89,38 @@
 
 <Dialog.Root
 	open
-	onOpenChange={(open) => {
-		if (!open) onClose();
+	on_open_change={(open) => {
+		if (!open) on_close();
 	}}
 >
 	<Dialog.Content class="sm:max-w-4xl">
-		<Dialog.Title>{bolt.t('component.preview_document')}</Dialog.Title>
+		<Dialog.Title>{ctx.t('component.preview_document')}</Dialog.Title>
 		<div {@attach loadPdf}>
 			{#if stampAvailable || signatureAvailable}
 				<div class="mb-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
 					{#if stampAvailable}
 						<label class="flex items-center gap-2">
 							<input type="checkbox" bind:checked={includeStamp} />
-							{bolt.t('component.include_company_stamp')}
+							{ctx.t('component.include_company_stamp')}
 						</label>
 					{/if}
 					{#if signatureAvailable}
 						<label class="flex items-center gap-2">
 							<input type="checkbox" bind:checked={includeSignature} />
-							{bolt.t('component.include_sales_signature')}
+							{ctx.t('component.include_sales_signature')}
 						</label>
 					{/if}
 				</div>
 			{/if}
 			{#if file}
 				<Stack gap="md">
-					<OrderPdfViewer url={file.url} title={file.title} />
-					<Button href={file.url} download={file.name}>{bolt.t('component.export_pdf')}</Button>
+					<OrderPdfViewer {ctx} url={file.url} title={file.title} />
+					<Button href={file.url} download={file.name}>{ctx.t('component.export_pdf')}</Button>
 				</Stack>
 			{:else if error}
 				<p role="alert">{error}</p>
 			{:else}
-				<p role="status">{bolt.t('component.preparing_pdf')}</p>
+				<p role="status">{ctx.t('component.preparing_pdf')}</p>
 			{/if}
 		</div>
 	</Dialog.Content>

@@ -1,9 +1,10 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/source_lot_costs.ts';
+import { fromSource } from '../../../integration/kingdee/polling.js';
 import { readStockLotCosts } from '../../../integration/kingdee/stock-lot-costs.js';
 
-export default model('source_lot_costs', {
+export default model({
 	description: 'Audited purchase receipt cost and first receipt date for on-hand lots.',
-	label: 'observed_at',
+	record_label: 'string(record.observed_at)',
 	fields: {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		observed_at: { kind: 'instant' },
@@ -11,28 +12,26 @@ export default model('source_lot_costs', {
 		entries: {
 			kind: 'json',
 			shape: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						product_code: { kind: 'text' },
-						lot_number: { kind: 'text' },
-						unit: { kind: 'text' },
-						received_on: { kind: 'date' },
-						received_qty: { kind: 'text' },
-						unit_cost: { kind: 'text' }
-					}
+				kind: 'object',
+				many: true,
+				fields: {
+					product_code: { kind: 'text' },
+					lot_number: { kind: 'text' },
+					unit: { kind: 'text' },
+					received_on: { kind: 'date' },
+					received_qty: { kind: 'text' },
+					unit_cost: { kind: 'text' }
 				}
 			}
 		}
 	},
-	key: ['source'],
-	read: 'all',
+	outputs: { default: { fields: 'all' } },
+	constraints: { one_per_source: { unique: ['source'], import_key: true } },
 	syncs: {
 		kingdee: {
 			with: 'kingdee',
 			read: function* ({ instance, cursor }, ctx) {
-				return yield* readStockLotCosts(instance, cursor, ctx);
+				return fromSource(yield* readStockLotCosts(instance, cursor, ctx), instance);
 			}
 		}
 	}

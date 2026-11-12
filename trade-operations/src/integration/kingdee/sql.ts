@@ -85,7 +85,7 @@ const execute = Effect.fnUntraced(function* (
 	return (yield* ctx.request({
 		op: 'call',
 		procedure: { schema: 'sys', name: 'sp_executesql' },
-		maxRows: 1000,
+		max_rows: 1000,
 		arguments: {
 			stmt: statement,
 			params: Object.entries(values)

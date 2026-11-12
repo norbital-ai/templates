@@ -1,7 +1,7 @@
 import { automation, type Id } from '@norbital-ai/bolt';
 import { Effect, Schema } from 'effect';
 import { Refusal } from '@norbital-ai/bolt/errors';
-import { inputSchema } from '@norbital-ai/std/kind';
+import { input_schema } from '@norbital-ai/std/kind';
 import { Decimal, currency } from '@norbital-ai/std/decimal';
 import { PlainDate } from '@norbital-ai/std/date';
 import { agreements, currentAgreement, resolvableKingdee } from '../lib/agreements.js';
@@ -10,15 +10,15 @@ import { contractEntryId } from '../lib/contract-draft.js';
 const identity = <C extends string>(of: C, value: string) =>
 	Schema.decodeUnknownEffect(
 		Schema.declare<Id<C>>((input): input is Id<C> =>
-			Schema.is(inputSchema({ kind: 'id', of }))(input)
+			Schema.is(input_schema({ kind: 'ref', to: of }))(input)
 		)
 	)(value).pipe(Effect.mapError(() => new Refusal({ message: 'errors.evidence_sealed' })));
 
-export default automation('orders_revise', {
+export default automation({
 	description: 'Start or resume a replacement contract from the current accepted terms.',
 	policies: ['order_revision'],
 	input: {
-		target: { kind: 'id', of: 'orders' },
+		target: { kind: 'ref', to: 'orders' },
 		revision: { kind: 'int', optional: true },
 		source: { kind: 'text', optional: true },
 		resolution: { kind: 'enum', values: ['adopt', 'revise'], optional: true }
@@ -59,11 +59,10 @@ export default automation('orders_revise', {
 			if (!current.kingdee || order.status !== 'confirmed')
 				return yield* new Refusal({ message: 'errors.contract_source_changed' });
 			const native = current.kingdee;
-			yield* ctx.act(
-				'orders.update',
-				[
+			yield* ctx.act({
+				'orders.update': [
 					{
-						target,
+						target: { id: target, revision: revision ?? order.revision },
 						set: {
 							contract_versions: versions.map((version) =>
 								version.seal_hash === current.seal_hash
@@ -87,17 +86,15 @@ export default automation('orders_revise', {
 							)
 						}
 					}
-				],
-				{ observed: { [target]: revision ?? order.revision } }
-			);
+				]
+			});
 			return;
 		}
 		// Parent aggregates cannot be read prospectively inside a combined parent/line write.
-		const opened = yield* ctx.act(
-			'orders.update',
-			[
+		const opened = yield* ctx.act({
+			'orders.update': [
 				{
-					target,
+					target: { id: target, revision: revision ?? order.revision },
 					set: {
 						status: 'draft',
 						draft_setup: current.seal_hash,
@@ -120,10 +117,9 @@ export default automation('orders_revise', {
 						supporting_documents: current.supporting_documents ?? []
 					}
 				}
-			],
-			{ observed: { [target]: revision ?? order.revision } }
-		);
-		if (opened.kind === 'pendingApproval') return;
+			]
+		});
+		if (opened.kind === 'pending_approval') return;
 		const { rows } = (yield* ctx.query({ order_lines: { where: { order: { eq: target } } } }))
 			.order_lines;
 		const lines = yield* Effect.forEach(current.snapshot.lines, (line) =>
@@ -152,36 +148,31 @@ export default automation('orders_revise', {
 		);
 		const retained = new Set(lines.flatMap((line) => (line.existing ? [line.existing.id] : [])));
 		const updates = lines.flatMap((line) =>
-			line.existing ? [{ target: line.existing.id, set: line.set }] : []
+			line.existing
+				? [{ target: { id: line.existing.id, revision: line.existing.revision }, set: line.set }]
+				: []
 		);
 		const creates = lines.flatMap((line) =>
 			line.existing ? [] : [{ order: target, product: line.product, ...line.set }]
 		);
-		const deletes = rows.filter((line) => !retained.has(line.id)).map((line) => line.id);
-		const observed = Object.fromEntries(rows.map((line) => [line.id, line.revision]));
-		const copied = yield* ctx.act.many([
-			...(updates.length
-				? [{ callable: 'order_lines.update' as const, input: updates, observed }]
-				: []),
-			...(creates.length ? [{ callable: 'order_lines.create' as const, input: creates }] : []),
-			...(deletes.length
-				? [
-						{
-							callable: 'order_lines.delete' as const,
-							input: deletes.map((id) => ({ target: id })),
-							observed
-						}
-					]
-				: [])
-		]);
-		if (copied.kind === 'pendingApproval') return;
+		const deletes = rows
+			.filter((line) => !retained.has(line.id))
+			.map((line) => ({ target: { id: line.id, revision: line.revision } }));
+		const copied = yield* ctx.act({
+			...(updates.length ? { 'order_lines.update': updates } : {}),
+			...(creates.length ? { 'order_lines.create': creates } : {}),
+			...(deletes.length ? { 'order_lines.delete': deletes } : {})
+		});
+		if (copied.kind === 'pending_approval') return;
 		const [ready] = (yield* ctx.query({ orders: { where: { id: { eq: target } }, limit: 1 } }))
 			.orders.rows;
 		if (!ready || ready.draft_setup !== current.seal_hash)
 			return yield* new Refusal({ message: 'errors.contract_setup' });
 		// Clearing the marker validates the complete one-to-one copy before editing or sealing is enabled.
-		yield* ctx.act('orders.update', [{ target, set: { draft_setup: null } }], {
-			observed: { [target]: ready.revision }
+		yield* ctx.act({
+			'orders.update': [
+				{ target: { id: target, revision: ready.revision }, set: { draft_setup: null } }
+			]
 		});
 	}
 });

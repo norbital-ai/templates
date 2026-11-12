@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button } from '@norbital-ai/ui';
 	import { Bound, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { getAbortSignal } from 'svelte';
 	import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 	import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-	let { url, title }: { url: string; title: string } = $props();
+	let { url, title, ctx }: { url: string; title: string; ctx: PageContext } = $props();
 	let pdf = $state.raw<PDFDocumentProxy>();
 	let canvas = $state<HTMLCanvasElement>();
 	let pageNumber = $state(1);
@@ -58,13 +58,13 @@
 </script>
 
 {#if failed}
-	<p role="alert">{bolt.t('component.pdf_preview_failed')}</p>
+	<p role="alert">{ctx.t('component.pdf_preview_failed')}</p>
 {:else}
 	<Stack gap="sm">
 		{#if pdf && pdf.numPages > 1}
 			<Cluster gap="sm" align="center">
 				<Button variant="outline" disabled={pageNumber === 1} onclick={() => pageNumber--}>
-					{bolt.t('component.pdf_previous')}
+					{ctx.t('component.pdf_previous')}
 				</Button>
 				<span aria-live="polite">{pageNumber} / {pdf.numPages}</span>
 				<Button
@@ -72,12 +72,12 @@
 					disabled={pageNumber === pdf.numPages}
 					onclick={() => pageNumber++}
 				>
-					{bolt.t('component.pdf_next')}
+					{ctx.t('component.pdf_next')}
 				</Button>
 			</Cluster>
 		{/if}
 		{#if renderedPage !== pageNumber}
-			<p role="status">{bolt.t('component.preparing_pdf')}</p>
+			<p role="status">{ctx.t('component.preparing_pdf')}</p>
 		{/if}
 		<Bound size="viewport"
 			><Scroll name="order-pdf" size="fill" class="bg-muted">

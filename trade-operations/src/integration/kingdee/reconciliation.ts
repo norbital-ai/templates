@@ -5,7 +5,7 @@ import { sourceKeys, type SourceProjection } from './sql.js';
 
 const PAGE = 999;
 type PreservedModel = 'parties' | 'products' | 'warehouses' | 'source_sales_lines';
-type Context = DatabaseContext & Pick<SyncCtx<'kingdee'>, 'db'>;
+type Context = DatabaseContext & Pick<SyncCtx<'kingdee'>, 'query'>;
 
 /** A completed source listing verifies absence again before retaining a local master as inactive. */
 export const preserveSource = ({
@@ -25,23 +25,23 @@ export const preserveSource = ({
 		const page = {
 			where: { source: { eq: instance }, external_code: { gt: after } },
 			fields: ['external_code', 'active'],
-			orderBy: 'external_code',
+			order_by: 'external_code',
 			limit: PAGE
 		} as const;
 		const local =
 			model === 'parties'
-				? (yield* ctx.db.query({ parties: page })).parties
+				? (yield* ctx.query({ parties: page })).parties
 				: model === 'products'
-					? (yield* ctx.db.query({ products: page })).products
+					? (yield* ctx.query({ products: page })).products
 					: model === 'warehouses'
-						? (yield* ctx.db.query({ warehouses: page })).warehouses
-						: (yield* ctx.db.query({
+						? (yield* ctx.query({ warehouses: page })).warehouses
+						: (yield* ctx.query({
 								source_sales_lines: {
 									...page,
 									where: {
 										...page.where,
 										kind: { eq: 'invoice_only' },
-										order: { isNull: true },
+										order: { is_null: true },
 										active: { eq: true }
 									}
 								}

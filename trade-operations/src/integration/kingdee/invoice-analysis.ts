@@ -134,7 +134,7 @@ export const readInvoiceAnalysis = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'Invoice-only analysis requires a verified database and recovery fork identity'
 		});
-	const { sys_integration: ledgers } = yield* ctx.db.query({
+	const { sys_integration: ledgers } = yield* ctx.query({
 		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] }
 	});
 	if (

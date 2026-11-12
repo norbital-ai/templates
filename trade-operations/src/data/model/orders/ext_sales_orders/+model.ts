@@ -1,10 +1,12 @@
+import { model } from '../../../../../.norbital/models/ext_sales_orders.ts';
+import { fromSource } from '../../../../integration/kingdee/polling.js';
 import { Effect } from 'effect';
 import { logisticsReceipt } from '../../../../lib/logistics.js';
 import { readSalesOrders } from '../../../../integration/kingdee/order-source.js';
-import { model, type CreateRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { agreement, agreementFields } from '../../../../lib/agreements.js';
 type Header = Pick<
-	CreateRow<'ext_sales_orders'>,
+	CreatedRow<'ext_sales_orders'>,
 	| 'order'
 	| 'source'
 	| 'external_id'
@@ -19,7 +21,7 @@ const settle = Effect.fnUntraced(function* (
 	rows: readonly { readonly value: Header; readonly old: StoredRow<'ext_sales_orders'> | null }[],
 	ctx: WriteCtx<'ext_sales_orders'>
 ) {
-	const { orders } = yield* ctx.db.query({
+	const { orders } = yield* ctx.query({
 		orders: {
 			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.order ?? []))] } },
 			fields: [...agreementFields, 'direction', 'ledger']
@@ -52,9 +54,9 @@ const settle = Effect.fnUntraced(function* (
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 	}
 });
-export default model('ext_sales_orders', {
+export default model({
 	description: 'Customer order confirmation.',
-	label: 'reference',
+	record_label: 'record.reference',
 	fields: {
 		external_id: { kind: 'text', hidden: true },
 		reference: { kind: 'text' },
@@ -65,22 +67,21 @@ export default model('ext_sales_orders', {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		order: { kind: 'ref', to: 'orders', inverse: 'ext_sales_orders' }
 	},
-	key: ['source', 'external_id'],
-	read: 'all',
-	outputs: { logistics: { ext_sales_orders: { fields: logisticsReceipt } } },
+	outputs: { default: { fields: 'all' }, logistics: { fields: logisticsReceipt } },
+	constraints: { natural_key: { unique: ['source', 'external_id'], import_key: true } },
 	// the sync alone writes confirmations (no local columns); its rows pass through these checks
 	create: {
-		columns: { ext_sales_orders: [] },
-		transform: function* (rows, ctx) {
+		columns: { fields: [] },
+		transform: function* (changes, ctx) {
 			yield* settle(
-				rows.map((value) => ({ value, old: null })),
+				changes.map(({ after }) => ({ value: after, old: null })),
 				ctx
 			);
-			return rows;
+			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
-		columns: { ext_sales_orders: [] },
+		columns: { fields: [] },
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, set }) => ({ value: { ...before, ...set }, old: before })),
@@ -94,7 +95,7 @@ export default model('ext_sales_orders', {
 			with: 'kingdee',
 			every: '5min',
 			read: function* ({ cursor, instance }, ctx) {
-				return yield* readSalesOrders(instance, cursor, ctx);
+				return fromSource(yield* readSalesOrders(instance, cursor, ctx), instance);
 			}
 		}
 	}

@@ -276,7 +276,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 			correlation,
 			write_account: target.account
 		},
-		maxRows: 1000
+		max_rows: 1000
 	});
 	const source = yield* decode(Schema.Array(LookupRow), lookup);
 	const bindings = yield* Effect.try({
@@ -377,7 +377,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 					: {})
 			},
 			transaction: 'serializable',
-			maxRows: 1
+			max_rows: 1
 		})
 	);
 	const receipt = result.rows[0];

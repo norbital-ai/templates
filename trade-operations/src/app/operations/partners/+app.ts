@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('operations/partners', {
+export default app({
 	title: 'component.partners',
 	description: 'app.partners.description',
 	icon: 'lucide:building-2',

@@ -98,7 +98,7 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 	const outcome = (yield* Context.get(t.services, Writes).act({
 		model,
 		verb: 'upsert',
-		onConflict: 'update',
+		on_conflict: 'update',
 		input: rows.map(({ value }) => value),
 		key,
 		authority,
@@ -125,9 +125,9 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 	return outcome;
 });
 export const sourceOrder = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const agreement = (yield* t
-		.as(t.admin)
-		.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0];
+	const agreement = (yield* (yield* t.as(t.admin)).query({
+		orders: { where: { id: { eq: order } }, limit: 1 }
+	})).orders.rows[0];
 	if (typeof agreement?.seal_hash !== 'string' || typeof agreement.currency !== 'string')
 		throw new Error('Sealed agreement required');
 	const model: 'ext_sales_orders' | 'ext_purchase_orders' =

@@ -1,9 +1,12 @@
 <script lang="ts">
-	import { bolt, run } from '$bolt';
+	import { translated } from '../../lib/ui/message.js';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
+	import { run } from '@norbital-ai/ui/effect';
 	import type { CurrencyCode } from '@norbital-ai/bolt';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { PlainDate } from '@norbital-ai/std/date';
-	import { Combobox, CustomView, Table, Tabs, TimeInput, useKinds, useBolt } from '@norbital-ai/ui';
+	import { Combobox, CustomView, Table, Tabs, TimeInput } from '@norbital-ai/ui';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
@@ -15,12 +18,10 @@
 		type PriceRow
 	} from '../../lib/price-book.js';
 
-	const kinds = useKinds();
-	const translate = useBolt().t;
-	const clock = bolt.clock('day');
+	const clock = ctx.clock('day');
 	const today = clock.today;
 	const currentMonth = today.slice(0, 7);
-	const catalog = bolt.query({
+	const catalog = ctx.query({
 		pricing_floors: { fields: ['group_code', 'currency'], limit: 10000 },
 		warehouses: { fields: ['name', 'group_code', 'active'] }
 	});
@@ -76,7 +77,7 @@
 			: (currencies.find((value) => value === 'CNY') ?? currencies[0] ?? null)
 	);
 	const book = $derived(
-		group !== null && currency !== null ? bolt.query(priceBookRead(group, currency)) : null
+		group !== null && currency !== null ? ctx.query(priceBookRead(group, currency)) : null
 	);
 	const months = $derived(book?.current ? priceBookMonths(book.current) : []);
 	const month = $derived(
@@ -116,39 +117,46 @@
 		try {
 			price = Decimal.of(value);
 		} catch {
-			error = bolt.t('component.price_floor_positive');
+			error = ctx.t('component.price_floor_positive');
 			return;
 		}
 		if (!price.gt(0)) {
-			error = bolt.t('component.price_floor_positive');
+			error = ctx.t('component.price_floor_positive');
 			return;
 		}
 		error = null;
 		writing = key;
 		try {
-			const outcome = await run(
-				existing
-					? bolt.act(
-							'pricing_floors.update',
-							[{ target: existing.id, set: { floor_price: price } }],
-							{ observed: { [existing.id]: existing.revision } }
-						)
-					: bolt.act('pricing_floors.create', [
-							{
-								product: row.product,
-								group_code: group,
-								currency,
-								effective_on: PlainDate(day),
-								unit: row.latest.unit,
-								floor_price: price,
-								tax_inclusive: row.latest.tax_inclusive,
-								tax_rate: Decimal.of(row.latest.tax_rate),
-								minimum_quantity: Decimal.of(row.minimum_quantity)
-							}
-						])
-			);
-			if (outcome.kind === 'pendingApproval') error = bolt.t('component.awaiting_approval');
-			else if (outcome.kind !== 'committed') error = bolt.t('component.seal_uncertain');
+			const outcome = existing
+				? await run(
+						ctx.act({
+							'pricing_floors.update': [
+								{
+									target: { id: existing.id, revision: existing.revision },
+									set: { floor_price: price }
+								}
+							]
+						})
+					)
+				: await run(
+						ctx.act({
+							'pricing_floors.create': [
+								{
+									product: row.product,
+									group_code: group,
+									currency,
+									effective_on: PlainDate(day),
+									unit: row.latest.unit,
+									floor_price: price,
+									tax_inclusive: row.latest.tax_inclusive,
+									tax_rate: Decimal.of(row.latest.tax_rate),
+									minimum_quantity: Decimal.of(row.minimum_quantity)
+								}
+							]
+						})
+					);
+			if (outcome.kind === 'pending_approval') error = ctx.t('component.awaiting_approval');
+			else if (outcome.kind !== 'committed') error = ctx.t('component.seal_uncertain');
 		} catch (failure) {
 			error =
 				typeof failure === 'object' &&
@@ -157,8 +165,8 @@
 				failure._tag === 'ActRefused' &&
 				'message' in failure &&
 				typeof failure.message === 'string'
-					? translate(failure.message)
-					: bolt.t('component.seal_uncertain');
+					? translated(ctx, failure.message)
+					: ctx.t('component.seal_uncertain');
 		} finally {
 			writing = null;
 		}
@@ -181,32 +189,32 @@
 		<Combobox
 			options={groups}
 			value={group}
-			onChange={(value) => (chosenGroup = value)}
-			placeholder={bolt.t('models.pricing_floors.fields.group_code')}
-			aria-label={bolt.t('models.pricing_floors.fields.group_code')}
+			on_change={(value) => (chosenGroup = value)}
+			placeholder={ctx.t('models.pricing_floors.fields.group_code')}
+			aria-label={ctx.t('models.pricing_floors.fields.group_code')}
 		/>
 	</div>
 	<div class="w-18">
 		<Combobox
 			options={currencies.map((value) => ({ value, label: value }))}
 			value={currency}
-			onChange={(value) => (chosenCurrency = value)}
-			placeholder={bolt.t('models.pricing_floors.fields.currency')}
-			aria-label={bolt.t('models.pricing_floors.fields.currency')}
+			on_change={(value) => (chosenCurrency = value)}
+			placeholder={ctx.t('models.pricing_floors.fields.currency')}
+			aria-label={ctx.t('models.pricing_floors.fields.currency')}
 		/>
 	</div>
 {/snippet}
 
 {#snippet bookScope()}
 	{@render scope()}
-	<label class="sr-only" for="price-book-month">{bolt.t('component.price_book_month')}</label>
+	<label class="sr-only" for="price-book-month">{ctx.t('component.price_book_month')}</label>
 	<div class="w-36">
 		<TimeInput
 			id="price-book-month"
 			of="date"
 			precision="month"
 			value={`${month}-01`}
-			onChange={(date: string | null) => {
+			on_change={(date: string | null) => {
 				if (date !== null) chosenMonth = date.slice(0, 7);
 			}}
 		/>
@@ -220,11 +228,11 @@
 		</p>
 	{:else if catalog.loading || book?.loading}
 		<p role="status" class="text-sm text-muted-foreground">
-			{bolt.t('component.price_book_loading')}
+			{ctx.t('component.price_book_loading')}
 		</p>
 	{:else}
 		<p class="p-10 text-center text-sm text-muted-foreground">
-			{bolt.t('component.price_book_empty')}
+			{ctx.t('component.price_book_empty')}
 		</p>
 	{/if}
 {/snippet}
@@ -235,15 +243,15 @@
 		key="monthly_price_book"
 		of={rows}
 		fields={[
-			{ field: 'name', label: bolt.t('models.pricing_floors.fields.product') },
-			{ field: 'code', label: bolt.t('models.products.fields.external_code') }
+			{ field: 'name', label: ctx.t('models.pricing_floors.fields.product') },
+			{ field: 'code', label: ctx.t('models.products.fields.external_code') }
 		]}
 		empty={rows.length === 0 ? bookState : undefined}
 		toolbar={{
 			title: false,
-			description: bolt.t('component.price_book_help'),
+			description: ctx.t('component.price_book_help'),
 			controls: bookScope,
-			new: kinds.catalog?.pricing_floors?.create ? create : false
+			new: ctx.catalog?.pricing_floors?.create ? create : false
 		}}
 	>
 		{#snippet children(shown)}
@@ -256,13 +264,13 @@
 								<th
 									class="bg-card sticky top-0 left-0 z-30 min-w-56 border-b border-border px-3 py-2 text-left font-medium"
 								>
-									{bolt.t('models.pricing_floors.fields.product')}
+									{ctx.t('models.pricing_floors.fields.product')}
 								</th>
 								{#each ['unit', 'minimum_quantity'] as const as field (field)}
 									<th
 										class="bg-card sticky top-0 z-20 border-b border-border px-2 py-2 text-left font-medium whitespace-nowrap"
 									>
-										{bolt.t(`models.pricing_floors.fields.${field}`)}
+										{ctx.t(`models.pricing_floors.fields.${field}`)}
 									</th>
 								{/each}
 								{#each days as day (day)}
@@ -381,11 +389,11 @@
 	<Table
 		of="commission_rules"
 		columns={['effective_on', 'currency', 'basis_unit', 'fixed_rate', 'spread_pct', 'active']}
-		toolbar={{ title: false, description: bolt.t('component.commission_rules_hint') }}
+		toolbar={{ title: false, description: ctx.t('component.commission_rules_hint') }}
 	/>
 {/snippet}
 
-<AppShell icon="lucide:chart-no-axes-combined" title={bolt.t('section.pricing')} variant="full">
+<AppShell icon="lucide:chart-no-axes-combined" title={ctx.t('section.pricing')} variant="full">
 	<Tabs
 		orientation="vertical"
 		side="end"
@@ -393,19 +401,19 @@
 		tabs={[
 			{
 				name: 'book',
-				title: bolt.t('component.price_book'),
+				title: ctx.t('component.price_book'),
 				icon: 'lucide:table-2',
 				body: priceBook
 			},
 			{
 				name: 'history',
-				title: bolt.t('component.pricing_history'),
+				title: ctx.t('component.pricing_history'),
 				icon: 'lucide:list',
 				body: history
 			},
 			{
 				name: 'commission',
-				title: bolt.t('models.commission_rules.label'),
+				title: ctx.t('models.commission_rules.label'),
 				icon: 'lucide:percent',
 				body: commissionRules
 			}

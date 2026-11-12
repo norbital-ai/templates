@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { RecordShell, Show, type RecordView } from '@norbital-ai/ui';
 	import RecordLink from '../../../../lib/ui/record-link.svelte';
 	import { Grid } from '@norbital-ai/ui/layout';
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'source_payments'>;
+		ctx: PageContext;
 	} = $props();
 	const fields = [
 		{ name: 'reference', kind: { kind: 'text' } },
@@ -25,10 +27,11 @@
 				{@const value = shown.record[relation]}
 				{#if value}<div>
 						<dt class="text-sm text-muted-foreground">
-							{bolt.t(`models.source_payments.fields.${relation}`)}
+							{ctx.t(`models.source_payments.fields.${relation}`)}
 						</dt>
 						<dd>
 							<RecordLink
+								{ctx}
 								of={relation === 'order' ? 'orders' : 'transactions'}
 								id={String(value)}
 							/>
@@ -37,7 +40,7 @@
 			{/each}
 			{#each fields as field (field.name)}<div>
 					<dt class="text-sm text-muted-foreground">
-						{bolt.t(`models.source_payments.fields.${field.name}`)}
+						{ctx.t(`models.source_payments.fields.${field.name}`)}
 					</dt>
 					<dd>
 						<Show

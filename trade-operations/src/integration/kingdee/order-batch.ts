@@ -340,7 +340,7 @@ export function sourceOrderBatch(
 			FCESS: taxRate.toString(),
 			FAmount: actual.net.toString(),
 			FAllAmount: actual.total.toString(),
-			FAllStdAmount: actual.total.times(rate).roundTo(bindings.baseCurrency).toString(),
+			FAllStdAmount: actual.total.times(rate).round_to(bindings.baseCurrency).toString(),
 			FTaxAmt: actual.tax.toString(),
 			FDate: date,
 			FAdviceConsignDate: date,

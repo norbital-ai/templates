@@ -1,20 +1,22 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Decimal } from '@norbital-ai/std/decimal';
 
 	import { commissionPreview, previewRead } from '../../../../lib/commission-expressions.js';
-	import { fork, bolt } from '$bolt';
+	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect, Schema } from 'effect';
-	import { Input, Button, Show, useKinds, TimeInput, type RecordView } from '@norbital-ai/ui';
+	import { Input, Button, Show, TimeInput, type RecordView } from '@norbital-ai/ui';
 	import { PlainDate } from '@norbital-ai/std/date';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'commission_rules'>;
+		ctx: PageContext;
 	} = $props();
-	const kinds = useKinds();
 	let quantity = $state('1000');
 	let net = $state('2000');
 	let floor = $state('1');
@@ -22,7 +24,7 @@
 	let product = $state('');
 	let unit = $state('kg');
 	let party = $state('');
-	const day = bolt.clock('day');
+	const day = ctx.clock('day');
 	let orderedOn = $state<string | null>(day.today);
 	let result = $state<ReturnType<typeof commissionPreview>>(null);
 	let feedback = $state('');
@@ -53,7 +55,7 @@
 				catch: (cause) => new PreviewInputInvalid({ message: String(cause) })
 			}).pipe(
 				Effect.flatMap((sample) =>
-					bolt.query(previewRead(rule)).pipe(
+					ctx.query(previewRead(rule)).pipe(
 						Effect.flatMap((answer) => {
 							const outcome = commissionPreview(answer, sample);
 							return outcome === null
@@ -74,7 +76,7 @@
 				)
 			),
 			() => {
-				feedback = bolt.t('errors.commission_preview_invalid');
+				feedback = ctx.t('errors.commission_preview_invalid');
 			}
 		);
 	}
@@ -82,7 +84,7 @@
 
 {#snippet reference()}
 	<Stack gap="md">
-		<p>{bolt.t('component.commission_expression_help')}</p>
+		<p>{ctx.t('component.commission_expression_help')}</p>
 		<p><code>net * decimal("0.05")</code></p>
 		<p><code>min(net * params.rate, params.cap)</code></p>
 		<p><code>quantity &gt;= 1000 ? net * decimal("0.10") : net * decimal("0.05")</code></p>
@@ -105,72 +107,72 @@
 	</Stack>
 {/snippet}
 {#snippet testExpression()}
-	{#if view.mode !== 'create' && kinds.catalog?.commission_rules?.update}
+	{#if view.mode !== 'create' && ctx.catalog?.commission_rules?.update}
 		<Stack gap="md">
-			<p>{bolt.t('component.commission_preview_saved')}</p>
+			<p>{ctx.t('component.commission_preview_saved')}</p>
 			<Grid gap="md" minimum="compact">
 				{@render input(
 					'commission-preview-quantity',
-					bolt.t('models.order_lines.fields.quantity'),
+					ctx.t('models.order_lines.fields.quantity'),
 					quantity,
 					(next) => (quantity = next)
 				)}
 				{@render input(
 					'commission-preview-net',
-					bolt.t('component.commission_preview_net'),
+					ctx.t('component.commission_preview_net'),
 					net,
 					(next) => (net = next)
 				)}
 				{@render input(
 					'commission-preview-floor',
-					bolt.t('models.order_lines.fields.floor_net'),
+					ctx.t('models.order_lines.fields.floor_net'),
 					floor,
 					(next) => (floor = next)
 				)}
 				{@render input(
 					'commission-preview-factor',
-					bolt.t('models.products.fields.commission_factor'),
+					ctx.t('models.products.fields.commission_factor'),
 					factor,
 					(next) => (factor = next)
 				)}
 				{@render input(
 					'commission-preview-product',
-					bolt.t('component.commission_preview_product'),
+					ctx.t('component.commission_preview_product'),
 					product,
 					(next) => (product = next),
 					false
 				)}
 				{@render input(
 					'commission-preview-unit',
-					bolt.t('models.order_lines.fields.unit'),
+					ctx.t('models.order_lines.fields.unit'),
 					unit,
 					(next) => (unit = next),
 					false
 				)}
 				{@render input(
 					'commission-preview-party',
-					bolt.t('component.commission_preview_party'),
+					ctx.t('component.commission_preview_party'),
 					party,
 					(next) => (party = next),
 					false
 				)}
 				<Stack gap="xs">
 					<label class="text-xs font-medium text-muted-foreground" for="commission-preview-date"
-						>{bolt.t('models.orders.fields.ordered_on')}</label
+						>{ctx.t('models.orders.fields.ordered_on')}</label
 					><TimeInput
 						id="commission-preview-date"
 						value={orderedOn}
-						onChange={(value: string | null) => (orderedOn = value)}
+						on_change={(value: string | null) => (orderedOn = value)}
 					/>
 				</Stack>
 			</Grid>
 			<!-- the answer beside the button that asks for it -->
 			<Cluster gap="md" align="center">
 				<Button disabled={busy || !orderedOn} onclick={preview}
-					>{bolt.t('component.commission_preview')}</Button
+					>{ctx.t('component.commission_preview')}</Button
 				>
 				{#if result}<p role="status">
-						{bolt.t(`reports.commission.${result.reason}`)} ·
+						{ctx.t(`reports.commission.${result.reason}`)} ·
 						<Show
 							kind={{ kind: 'money', currency: 'currency', optional: true }}
 							value={result.amount}
@@ -183,6 +185,7 @@
 	{/if}
 {/snippet}
 <RecordForm
+	{ctx}
 	{view}
 	subtitle={['basis_unit']}
 	sections={[
@@ -193,19 +196,19 @@
 		{
 			name: 'formula',
 			icon: 'lucide:sigma',
-			title: bolt.t('section.custom_formula'),
-			closed: bolt.t('component.custom_formula_summary'),
+			title: ctx.t('section.custom_formula'),
+			closed: ctx.t('component.custom_formula_summary'),
 			fields: ['eligibility_expression', 'amount_expression', 'parameters']
 		}
 	]}
 	tabs={[
 		{
 			name: 'reference',
-			title: bolt.t('component.commission_expression_reference'),
+			title: ctx.t('component.commission_expression_reference'),
 			body: reference
 		},
-		...(view.mode !== 'create' && kinds.catalog?.commission_rules?.update
-			? [{ name: 'preview', title: bolt.t('component.commission_preview'), body: testExpression }]
+		...(view.mode !== 'create' && ctx.catalog?.commission_rules?.update
+			? [{ name: 'preview', title: ctx.t('component.commission_preview'), body: testExpression }]
 			: [])
 	]}
 />

@@ -1,3 +1,4 @@
+import { JobResult } from '@norbital-ai/bolt-cli/test';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
@@ -19,8 +20,8 @@ it.live('sales can approve revised local terms without Kingdee or retroactive ex
 			}
 		});
 		const seller = t.member(['sales'], { teams: ['sales'] });
-		const manager = t.as(t.member(['manager'], { teams: ['commercial_managers'] }));
-		const as = t.as(seller);
+		const manager = yield* t.as(t.member(['manager'], { teams: ['commercial_managers'] }));
+		const as = yield* t.as(seller);
 		const { order, line } = yield* draft(
 			t,
 			'sales',
@@ -34,29 +35,44 @@ it.live('sales can approve revised local terms without Kingdee or retroactive ex
 				.pipe(Effect.map((answer) => firstRow(answer.orders.rows)));
 		const seal = Effect.gen(function* () {
 			const check = yield* confirmationOf(as, { order, as_of: Instant(t.clock.now()) });
-			const request = yield* as.act('orders.update', [
-				{ target: order, set: { status: 'confirmed', check_hash: check.check_hash } }
-			]);
-			if (request.kind !== 'pendingApproval') throw new Error('Commercial review is required');
-			yield* manager.approvals.decide(request.requestId, { decision: 'approve' });
+			const request = yield* as.act({
+				'orders.update': [
+					{
+						target: yield* t.at('orders', order),
+						set: { status: 'confirmed', check_hash: check.check_hash }
+					}
+				]
+			});
+			if (request.kind !== 'pending_approval') throw new Error('Commercial review is required');
+			yield* manager.approvals.decide(request.request_id, { decision: 'approve' });
 		});
 		yield* seal;
 		const before = yield* read();
 		const original = currentAgreement(before);
 		expect(original).toMatchObject({ version: 1, lifecycle: 'current' });
 
-		const run = yield* as.start('orders_revise', { target: order, revision: before.revision });
+		const run = yield* as.run(
+			'orders_revise',
+			{ target: order, revision: before.revision },
+			JobResult
+		);
 		expect(run.kind).toBe('committed');
-		yield* t.runDue();
+		yield* t.run_due();
 		expect(yield* read()).toMatchObject({ status: 'draft', draft_setup: null });
 		expect(currentAgreement(yield* read())).toEqual(original);
-		yield* as.act('order_lines.update', [{ target: line, set: { quantity: Decimal.of(7) } }]);
-		yield* t.as(t.admin).act('sys_integration.update', [
-			{
-				target: fixtureId('sys_integration', 'kingdee'),
-				set: { configuration: kingdeeFixture().configuration(seller.id) }
-			}
-		]);
+		yield* as.act({
+			'order_lines.update': [
+				{ target: yield* t.at('order_lines', line), set: { quantity: Decimal.of(7) } }
+			]
+		});
+		yield* (yield* t.as(t.admin)).act({
+			'sys_integration.update': [
+				{
+					target: { id: fixtureId('sys_integration', 'kingdee') },
+					set: { configuration: kingdeeFixture().configuration(seller.id) }
+				}
+			]
+		});
 		yield* seal;
 		yield* t.deliver();
 		const revised = yield* read();
@@ -77,7 +93,7 @@ it.live(
 		Effect.gen(function* () {
 			const fixture = kingdeeFixture();
 			const t = yield* workspace({ source: fixture.request, now: '2026-10-10T01:00:00Z' });
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const own = yield* kingdeeDraft(t, fixture);
 			yield* confirm(t, own.order);
 			yield* observeKingdeeOrder(t, fixture, own.order);
@@ -92,21 +108,27 @@ it.live(
 			// This is the committed first phase if revision setup stops before copying its lines.
 			committed(
 				'orders',
-				yield* as.act('orders.update', [{ target: own.order, set: { status: 'draft' } }])
+				yield* as.act({
+					'orders.update': [{ target: yield* t.at('orders', own.order), set: { status: 'draft' } }]
+				})
 			);
 			expect(yield* read()).toMatchObject({ status: 'draft', draft_setup: current.seal_hash });
 			expect(
 				yield* as
-					.act('orders.update', [
-						{ target: own.order, set: { status: 'confirmed', check_hash: 'incomplete-draft' } }
-					])
+					.act({
+						'orders.update': [
+							{
+								target: yield* t.at('orders', own.order),
+								set: { status: 'confirmed', check_hash: 'incomplete-draft' }
+							}
+						]
+					})
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused', message: 'errors.contract_setup' });
 			// the run holds `order_revision`; a start names only an order its starter reads (not another seller's)
 			expect(
-				yield* t
-					.as(t.member(['sales', 'logistics']))
-					.start('orders_revise', { target: own.order })
+				yield* (yield* t.as(t.member(['sales', 'logistics'])))
+					.run('orders_revise', { target: own.order }, JobResult)
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused' });
 			yield* revise(t, own.order);
@@ -116,9 +138,11 @@ it.live(
 			expect(currentAgreement(ready)?.snapshot).toEqual(current.snapshot);
 			committed(
 				'order_lines',
-				yield* as.act('order_lines.update', [
-					{ target: own.line, set: { quantity: Decimal.of(12) } }
-				])
+				yield* as.act({
+					'order_lines.update': [
+						{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+					]
+				})
 			);
 			yield* confirm(t, own.order);
 			const replacement = yield* read();
@@ -166,7 +190,7 @@ it.live('equal terms do not transfer a Kingdee audit to an unproven local amendm
 	Effect.gen(function* () {
 		const fixture = kingdeeFixture();
 		const t = yield* workspace({ source: fixture.request, now: '2026-10-10T02:00:00Z' });
-		const as = t.as(t.admin);
+		const as = yield* t.as(t.admin);
 		const own = yield* kingdeeDraft(t, fixture);
 		const read = () =>
 			as
@@ -177,8 +201,16 @@ it.live('equal terms do not transfer a Kingdee audit to an unproven local amendm
 		const original = currentAgreement(yield* read());
 		if (!original?.kingdee) throw new Error('A bound first contract is required');
 		yield* revise(t, own.order);
-		yield* as.act('orders.update', [{ target: own.order, set: { delivery_terms: 'Call ahead' } }]);
-		yield* as.act('order_lines.update', [{ target: own.line, set: { quantity: Decimal.of(12) } }]);
+		yield* as.act({
+			'orders.update': [
+				{ target: yield* t.at('orders', own.order), set: { delivery_terms: 'Call ahead' } }
+			]
+		});
+		yield* as.act({
+			'order_lines.update': [
+				{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+			]
+		});
 		yield* confirm(t, own.order);
 		const replacement = (yield* read()).seal_hash;
 		const callsBefore = fixture.calls.length;
@@ -238,7 +270,7 @@ it.live(
 		Effect.gen(function* () {
 			const fixture = kingdeeFixture();
 			const t = yield* workspace({ source: fixture.request, now: '2026-10-10T03:02:00Z' });
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const own = yield* kingdeeDraft(t, fixture);
 			const read = () =>
 				as
@@ -247,14 +279,19 @@ it.live(
 			const replace = (quantity: number) =>
 				Effect.gen(function* () {
 					yield* revise(t, own.order);
-					yield* as.act('order_lines.update', [
-						{ target: own.line, set: { quantity: Decimal.of(quantity) } }
-					]);
+					yield* as.act({
+						'order_lines.update': [
+							{
+								target: yield* t.at('order_lines', own.line),
+								set: { quantity: Decimal.of(quantity) }
+							}
+						]
+					});
 					yield* confirm(t, own.order);
 				});
 			const instance = fixtureId('sys_integration', 'kingdee');
 			const connection = (active: boolean) =>
-				as.act('sys_integration.update', [{ target: instance, set: { active } }]);
+				as.act({ 'sys_integration.update': [{ target: { id: instance }, set: { active } }] });
 
 			yield* connection(false);
 			const pausedCalls = fixture.calls.length;
@@ -316,7 +353,7 @@ it.live('local-only terms keep the source version available for the next mapped 
 	Effect.gen(function* () {
 		const fixture = kingdeeFixture();
 		const t = yield* workspace({ source: fixture.request, now: '2026-10-10T04:00:00Z' });
-		const as = t.as(t.admin);
+		const as = yield* t.as(t.admin);
 		const own = yield* kingdeeDraft(t, fixture);
 		const read = () =>
 			as
@@ -326,7 +363,11 @@ it.live('local-only terms keep the source version available for the next mapped 
 		yield* observeKingdeeOrder(t, fixture, own.order);
 		const original = currentAgreement(yield* read());
 		yield* revise(t, own.order);
-		yield* as.act('orders.update', [{ target: own.order, set: { delivery_terms: 'Call ahead' } }]);
+		yield* as.act({
+			'orders.update': [
+				{ target: yield* t.at('orders', own.order), set: { delivery_terms: 'Call ahead' } }
+			]
+		});
 		yield* confirm(t, own.order);
 		const callsBefore = fixture.calls.length;
 		yield* t.deliver();
@@ -345,7 +386,11 @@ it.live('local-only terms keep the source version available for the next mapped 
 		).toBe(false);
 
 		yield* revise(t, own.order);
-		yield* as.act('order_lines.update', [{ target: own.line, set: { quantity: Decimal.of(12) } }]);
+		yield* as.act({
+			'order_lines.update': [
+				{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+			]
+		});
 		yield* confirm(t, own.order);
 		yield* t.deliver();
 		yield* t.pull('orders');
@@ -363,25 +408,34 @@ it.live('a rejected resubmission restores the draft before the approval request'
 	Effect.gen(function* () {
 		const t = yield* workspace();
 		const seller = t.member(['sales'], { teams: ['sales'] });
-		const manager = t.as(t.member(['manager'], { teams: ['commercial_managers'] }));
-		const as = t.as(seller);
+		const manager = yield* t.as(t.member(['manager'], { teams: ['commercial_managers'] }));
+		const as = yield* t.as(seller);
 		const { order } = yield* draft(t, 'sales', fixtureId('sys_user', seller.id), undefined, WEST);
 		const before = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 			.rows[0];
 		if (!before) throw new Error('Expected the draft');
 		const check = yield* confirmationOf(as, { order, as_of: Instant(t.clock.now()) });
-		const request = yield* as.act('orders.update', [
-			{ target: order, set: { status: 'confirmed', check_hash: check.check_hash } }
-		]);
-		if (request.kind !== 'pendingApproval') throw new Error('Commercial review is required');
-		yield* manager.approvals.decide(request.requestId, {
-			decision: 'requestChanges',
+		const request = yield* as.act({
+			'orders.update': [
+				{
+					target: yield* t.at('orders', order),
+					set: { status: 'confirmed', check_hash: check.check_hash }
+				}
+			]
+		});
+		if (request.kind !== 'pending_approval') throw new Error('Commercial review is required');
+		yield* manager.approvals.decide(request.request_id, {
+			decision: 'request_changes',
 			reason: 'Clarify the title'
 		});
 		expect(
-			yield* as.act('orders.update', [{ target: order, set: { title: 'Resubmitted title' } }])
-		).toMatchObject({ kind: 'pendingApproval', requestId: request.requestId });
-		yield* manager.approvals.decide(request.requestId, {
+			yield* as.act({
+				'orders.update': [
+					{ target: yield* t.at('orders', order), set: { title: 'Resubmitted title' } }
+				]
+			})
+		).toMatchObject({ kind: 'pending_approval', request_id: request.request_id });
+		yield* manager.approvals.decide(request.request_id, {
 			decision: 'reject',
 			reason: 'Return to the original draft'
 		});

@@ -20,9 +20,7 @@ import { agreementText, agreementTemplate, sealDocument } from './order-document
 /** One draft's quotation read: the order with its party and lines, the published templates and the settings. */
 export const quotationRead = (order: Id<'orders'>) =>
 	({
-		orders: { where: { id: { eq: order } }, limit: 1 },
-		'orders.party': {},
-		'orders.lines': {},
+		orders: { where: { id: { eq: order } }, limit: 1, party: {}, lines: {} },
 		document_templates: { where: { status: { eq: 'published' } } },
 		commercial_settings: { where: { code: { eq: 'default' } }, limit: 1 }
 	}) as const;
@@ -129,7 +127,7 @@ export function confirmationCheck(
 export function quotationFifoCosts(
 	answer: ReadAnswer<ReturnType<typeof confirmationRead>>,
 	purchase: PurchaseLotCosts,
-	asOf: string
+	as_of: string
 ) {
 	const doc = answer.orders.rows[0];
 	if (!doc || doc.direction !== 'sales' || !doc.warehouse || !doc.ledger) return [];
@@ -159,7 +157,7 @@ export function quotationFifoCosts(
 					quantity,
 					unit: line.unit,
 					currency: doc.currency,
-					asOf
+					as_of
 				});
 		return {
 			key,

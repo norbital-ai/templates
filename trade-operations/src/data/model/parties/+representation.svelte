@@ -1,15 +1,16 @@
 <script lang="ts">
-	import { Table, format, useKinds, type RecordView } from '@norbital-ai/ui';
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { Table, format, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { openCreate } from '../../../lib/ui/create-values.js';
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'parties'>;
+		ctx: PageContext;
 	} = $props();
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
-	const kinds = useKinds();
 	const supplier = $derived(
 		view.mode !== 'create' && ['supplier', 'both'].includes(view.record.kind)
 	);
@@ -20,7 +21,7 @@
 			where={{ party: { eq: id } }}
 			columns={['name', 'email', 'phone', 'job_title']}
 			toolbar={{
-				new: kinds.catalog?.contacts?.create ? () => openCreate('contacts', { party: id }) : false
+				new: ctx.catalog?.contacts?.create ? () => openCreate('contacts', { party: id }) : false
 			}}
 		/>{/if}{/snippet}
 {#snippet orders()}{#if id}<Table
@@ -28,7 +29,7 @@
 			where={{ party: { eq: id } }}
 			columns={['number', 'status', 'ordered_on', 'total']}
 			toolbar={{
-				new: !kinds.catalog?.orders?.create
+				new: !ctx.catalog?.orders?.create
 					? false
 					: () =>
 							openCreate('orders', {
@@ -47,7 +48,8 @@
 			toolbar={{ new: false }}
 		/>{/if}{/snippet}
 <RecordForm
-	afterForm={credit}
+	{ctx}
+	after_form={credit}
 	{view}
 	sections={[
 		{
@@ -58,19 +60,19 @@
 		{
 			name: 'sync',
 			icon: 'lucide:refresh-cw',
-			title: bolt.t('section.sync'),
+			title: ctx.t('section.sync'),
 			closed:
 				view.mode === 'create'
 					? ''
 					: format({ kind: 'instant' }, view.record.source_updated_at, {
-							locale: kinds.locale ?? bolt.locale,
-							...(kinds.zone == null ? {} : { zone: kinds.zone })
+							locale: ctx.locale ?? ctx.locale,
+							...(ctx.tz == null ? {} : { zone: ctx.tz })
 						}),
 			fields: ['source_updated_at']
 		}
 	]}
 	tabs={[
-		{ name: 'poc', title: bolt.t('component.poc'), body: contacts },
-		{ name: 'orders', title: bolt.t('component.orders'), body: orders }
+		{ name: 'poc', title: ctx.t('component.poc'), body: contacts },
+		{ name: 'orders', title: ctx.t('component.orders'), body: orders }
 	]}
 />

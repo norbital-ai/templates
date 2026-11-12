@@ -36,10 +36,9 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 						yield* sync(t, 'transactions', [{ ...invoice.input, ...change }], 'upsert')
 					).not.toMatchObject({ kind: 'committed' });
 				expect(
-					(yield* t
-						.as(t.admin)
-						.query({ transactions: { where: { id: { eq: invoice.id } }, limit: 1 } })).transactions
-						.rows[0]
+					(yield* (yield* t.as(t.admin)).query({
+						transactions: { where: { id: { eq: invoice.id } }, limit: 1 }
+					})).transactions.rows[0]
 				).toMatchObject({
 					total: decimalText('21.80'),
 					issued_on: '2026-08-01',
@@ -70,9 +69,9 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 					expect(
 						yield* sync(t, 'transactions', [{ ...delivery.input, items }], 'upsert')
 					).not.toMatchObject({ kind: 'committed' });
-				const result = yield* t
-					.as(t.admin)
-					.query({ transactions: { where: { order: { eq: own.order } } } });
+				const result = yield* (yield* t.as(t.admin)).query({
+					transactions: { where: { order: { eq: own.order } } }
+				});
 				expect(result.transactions.rows).toHaveLength(1);
 				expect(result.transactions.rows[0]?.id).toBe(delivery.id);
 				expect(result.transactions.rows[0]?.items?.[0]?.quantity.eq(10)).toBe(true);
@@ -100,7 +99,7 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 				expect(yield* sync(t, 'transactions', corrected, 'upsert')).toMatchObject({
 					kind: 'committed'
 				});
-				const { transactions } = yield* t.as(t.admin).query({
+				const { transactions } = yield* (yield* t.as(t.admin)).query({
 					transactions: { where: { order: { eq: own.order } }, fields: ['erp_id', 'reference'] }
 				});
 				expect(transactions.rows).toHaveLength(page.length + 1);
@@ -116,17 +115,19 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 			Effect.gen(function* () {
 				const t = yield* Trade,
 					own = yield* draft(t),
-					as = t.as(t.admin);
+					as = yield* t.as(t.admin);
 				const other = committed(
 					'order_lines',
-					yield* as.act('order_lines.create', [
-						{
-							order: own.order,
-							product: PRODUCT,
-							quantity: Decimal.of('10'),
-							unit_price: Decimal.of('2')
-						}
-					])
+					yield* as.act({
+						'order_lines.create': [
+							{
+								order: own.order,
+								product: PRODUCT,
+								quantity: Decimal.of('10'),
+								unit_price: Decimal.of('2')
+							}
+						]
+					})
 				);
 				yield* confirm(t, own.order);
 				const parent = yield* sourceOrder(t, own.order);

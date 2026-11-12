@@ -1,8 +1,8 @@
 export const earliestReceivablesCutoff = '2024-12-31';
 
 export const receivableEntries = {
-	kind: 'list',
-	of: {
+	kind: 'json',
+	shape: {
 		kind: 'object',
 		fields: {
 			contact_id: { kind: 'text' },
@@ -14,12 +14,11 @@ export const receivableEntries = {
 			due_on: { kind: 'date', optional: true },
 			remaining: { kind: 'text' },
 			settlements: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: { on: { kind: 'date' }, amount: { kind: 'text' } }
-				}
+				kind: 'object',
+				fields: { on: { kind: 'date' }, amount: { kind: 'text' } },
+				many: true
 			}
 		}
-	}
+	},
+	many: true
 } as const;

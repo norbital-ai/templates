@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { run, bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { run } from '@norbital-ai/ui/effect';
 	import { selectOrderProduct } from '../../../../lib/ui/order-product-defaults.js';
 	import {
 		Picker,
@@ -12,9 +13,11 @@
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'order_lines'>;
+		ctx: PageContext;
 	} = $props();
 	// a new line is opened from its order (`openCreate`)
 	const preset = createValues<'order_lines'>();
@@ -22,7 +25,7 @@
 		view.mode !== 'create' ? view.record.order : (view.values.order ?? preset.order)
 	);
 	const order = $derived(
-		parent ? bolt.query({ orders: { where: { id: { eq: parent } }, limit: 1 } }) : null
+		parent ? ctx.query({ orders: { where: { id: { eq: parent } }, limit: 1 } }) : null
 	);
 	const header = $derived(order?.current?.orders.rows[0]);
 	let chosenCurrency = $state<string | undefined>(undefined);
@@ -39,9 +42,10 @@
 		where={{ active: { eq: true } }}
 		disabled={field.disabled}
 		invalid={Boolean(field.error)}
-		onChange={(id) =>
+		on_change={(id) =>
 			void run(
 				selectOrderProduct(
+					ctx,
 					form,
 					field,
 					id,
@@ -57,7 +61,7 @@
 	<MoneyInput
 		id={field.id}
 		value={field.value}
-		onChange={field.onChange}
+		on_change={field.on_change}
 		{...currency ? { currency } : {}}
 		scale={4}
 		disabled={field.disabled}
@@ -66,21 +70,28 @@
 {/snippet}
 {#snippet printDetails(_form: FormState, field: FieldEditor)}
 	<PrintDetails
+		{ctx}
 		layout={header?.document_template}
 		scope="line"
 		value={field.value}
-		onChange={field.onChange}
+		on_change={field.on_change}
 		id={field.id}
 		disabled={field.disabled}
 	/>
 {/snippet}
 {#snippet printDetailsView(form: FormState)}
-	<PrintDetails layout={header?.document_template} scope="line" value={form.get('print_values')} />
+	<PrintDetails
+		{ctx}
+		layout={header?.document_template}
+		scope="line"
+		value={form.get('print_values')}
+	/>
 {/snippet}
 <RecordForm
+	{ctx}
 	{view}
 	readonly={header?.status !== 'draft' || Boolean(header?.archived || header?.draft_setup)}
-	readonlyReason={bolt.t(
+	readonly_reason={ctx.t(
 		header?.archived
 			? 'component.order_archived'
 			: header?.draft_setup
@@ -94,7 +105,7 @@
 		{
 			name: 'line',
 			icon: 'lucide:list',
-			title: bolt.t('section.lines'),
+			title: ctx.t('section.lines'),
 			fields: [
 				'product',
 				'quantity',

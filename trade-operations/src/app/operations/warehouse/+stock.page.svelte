@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
-	import { EmptyState, Table, Tabs, useKinds } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
+	import { EmptyState, Table, Tabs } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { xlsxWorkbook, type XlsxColumn } from '../../../lib/xlsx.js';
 	import {
@@ -9,16 +10,15 @@
 		stockAvailabilityRead
 	} from '../../../lib/stock-availability.js';
 
-	const kinds = useKinds();
-	const clock = bolt.clock('minute');
+	const clock = ctx.clock('minute');
 	let tab = $state('products');
 	let view = $state<'product' | 'warehouse'>('product');
-	const shown = $derived(Boolean(kinds.catalog?.source_stock_commitments));
+	const shown = $derived(Boolean(ctx.catalog?.source_stock_commitments));
 	const availability = $derived(
 		shown && tab === 'availability'
-			? kinds.catalog?.products?.output === 'logistics'
-				? bolt.query(logisticsStockAvailabilityRead)
-				: bolt.query(stockAvailabilityRead)
+			? ctx.catalog?.products?.output === 'logistics'
+				? ctx.query(logisticsStockAvailabilityRead)
+				: ctx.query(stockAvailabilityRead)
 			: null
 	);
 	const incomplete = $derived(
@@ -27,63 +27,63 @@
 	const rows = $derived(
 		availability?.current && !incomplete
 			? stockAvailability(availability.current, Date.parse(clock.now), view === 'warehouse').map(
-					(row) => ({ ...row, warehouse: row.warehouse ?? bolt.t('stock.availability.unassigned') })
+					(row) => ({ ...row, warehouse: row.warehouse ?? ctx.t('stock.availability.unassigned') })
 				)
 			: null
 	);
 	const quantities = ['on_hand', 'awaiting', 'available'] as const;
 	const quantityKind = { kind: 'decimal', scale: 3, optional: true } as const;
 	const productColumns = $derived<XlsxColumn[]>(
-		kinds.catalog?.products?.output === 'logistics'
+		ctx.catalog?.products?.output === 'logistics'
 			? [
-					{ field: 'external_code', label: bolt.t('models.products.fields.external_code') },
-					{ field: 'name', label: bolt.t('models.products.fields.name') },
-					{ field: 'spec', label: bolt.t('models.products.fields.spec') },
-					{ field: 'producing_area', label: bolt.t('models.products.fields.producing_area') },
-					{ field: 'brand', label: bolt.t('models.products.fields.brand') },
-					{ field: 'brand_en', label: bolt.t('models.products.fields.brand_en') },
-					{ field: 'unit', label: bolt.t('models.products.fields.unit') },
-					{ field: 'active', label: bolt.t('models.products.fields.active') }
+					{ field: 'external_code', label: ctx.t('models.products.fields.external_code') },
+					{ field: 'name', label: ctx.t('models.products.fields.name') },
+					{ field: 'spec', label: ctx.t('models.products.fields.spec') },
+					{ field: 'producing_area', label: ctx.t('models.products.fields.producing_area') },
+					{ field: 'brand', label: ctx.t('models.products.fields.brand') },
+					{ field: 'brand_en', label: ctx.t('models.products.fields.brand_en') },
+					{ field: 'unit', label: ctx.t('models.products.fields.unit') },
+					{ field: 'active', label: ctx.t('models.products.fields.active') }
 				]
 			: [
-					{ field: 'external_code', label: bolt.t('models.products.fields.external_code') },
-					{ field: 'source_number', label: bolt.t('models.products.fields.source_number') },
-					{ field: 'name', label: bolt.t('models.products.fields.name') },
-					{ field: 'spec', label: bolt.t('models.products.fields.spec') },
-					{ field: 'producing_area', label: bolt.t('models.products.fields.producing_area') },
-					{ field: 'brand', label: bolt.t('models.products.fields.brand') },
-					{ field: 'brand_en', label: bolt.t('models.products.fields.brand_en') },
-					{ field: 'unit', label: bolt.t('models.products.fields.unit') },
-					{ field: 'currency', label: bolt.t('models.products.fields.currency') },
+					{ field: 'external_code', label: ctx.t('models.products.fields.external_code') },
+					{ field: 'source_number', label: ctx.t('models.products.fields.source_number') },
+					{ field: 'name', label: ctx.t('models.products.fields.name') },
+					{ field: 'spec', label: ctx.t('models.products.fields.spec') },
+					{ field: 'producing_area', label: ctx.t('models.products.fields.producing_area') },
+					{ field: 'brand', label: ctx.t('models.products.fields.brand') },
+					{ field: 'brand_en', label: ctx.t('models.products.fields.brand_en') },
+					{ field: 'unit', label: ctx.t('models.products.fields.unit') },
+					{ field: 'currency', label: ctx.t('models.products.fields.currency') },
 					{
 						field: 'unit_price',
-						label: bolt.t('models.products.fields.unit_price'),
+						label: ctx.t('models.products.fields.unit_price'),
 						numeric: true,
 						scale: 4
 					},
 					{
 						field: 'tax_rate',
-						label: bolt.t('models.products.fields.tax_rate'),
+						label: ctx.t('models.products.fields.tax_rate'),
 						numeric: true,
 						scale: 2
 					},
 					{
 						field: 'commission_factor',
-						label: bolt.t('models.products.fields.commission_factor'),
+						label: ctx.t('models.products.fields.commission_factor'),
 						numeric: true,
 						scale: 6
 					},
 					{
 						field: 'commission_basis_unit',
-						label: bolt.t('models.products.fields.commission_basis_unit')
+						label: ctx.t('models.products.fields.commission_basis_unit')
 					},
-					{ field: 'active', label: bolt.t('models.products.fields.active') }
+					{ field: 'active', label: ctx.t('models.products.fields.active') }
 				]
 	);
 	async function exportProducts() {
-		const logistics = kinds.catalog?.products?.output === 'logistics';
+		const logistics = ctx.catalog?.products?.output === 'logistics';
 		const answer = logistics
-			? await bolt.query({
+			? await ctx.query({
 					products: {
 						output: 'logistics',
 						fields: [
@@ -99,7 +99,7 @@
 						limit: 10000
 					}
 				})
-			: await bolt.query({
+			: await ctx.query({
 					products: {
 						fields: [
 							'external_code',
@@ -144,7 +144,7 @@
 			actions: [
 				{
 					icon: 'lucide:file-spreadsheet',
-					name: bolt.t('component.export_xlsx'),
+					name: ctx.t('component.export_xlsx'),
 					run: () => void exportProducts()
 				}
 			]
@@ -171,10 +171,10 @@
 	/>{/snippet}
 {#snippet availabilityControls()}
 	<label class="flex items-center gap-2 text-sm">
-		{bolt.t('stock.availability.view')}
+		{ctx.t('stock.availability.view')}
 		<select bind:value={view} class="h-9 rounded-md border border-input bg-background px-2">
-			<option value="product">{bolt.t('models.products.label')}</option>
-			<option value="warehouse">{bolt.t('models.warehouses.label')}</option>
+			<option value="product">{ctx.t('models.products.label')}</option>
+			<option value="warehouse">{ctx.t('models.warehouses.label')}</option>
 		</select>
 	</label>
 {/snippet}
@@ -182,82 +182,82 @@
 	{#if availability?.error}
 		<EmptyState title={availability.error.message} tone="danger" />
 	{:else if incomplete}
-		<EmptyState title={bolt.t('stock.availability.incomplete')} tone="danger" />
+		<EmptyState title={ctx.t('stock.availability.incomplete')} tone="danger" />
 	{:else if rows?.length}
 		<Table
 			layout="grid"
 			of={rows}
 			key={view === 'warehouse' ? 'stock-by-warehouse' : 'stock-by-product'}
 			columns={[
-				{ field: 'product', label: bolt.t('models.products.singular'), width: 124 },
+				{ field: 'product', label: ctx.t('models.products.singular'), width: 124 },
 				...(view === 'warehouse'
 					? [
 							{
 								field: 'warehouse' as const,
-								label: bolt.t('models.stock_snapshots.fields.warehouse'),
+								label: ctx.t('models.stock_snapshots.fields.warehouse'),
 								width: 142
 							}
 						]
 					: []),
 				...quantities.map((field) => ({
 					field,
-					label: bolt.t(`stock.availability.${field}`),
+					label: ctx.t(`stock.availability.${field}`),
 					kind: quantityKind,
 					width: field === 'awaiting' ? 176 : field === 'available' ? 122 : 106,
 					align: 'end' as const
 				})),
-				{ field: 'unit', label: bolt.t('models.stock_snapshots.fields.unit'), width: 88 },
+				{ field: 'unit', label: ctx.t('models.stock_snapshots.fields.unit'), width: 88 },
 				...(view === 'warehouse'
 					? [
 							{
 								field: 'warehouse_group' as const,
-								label: bolt.t('stock.availability.warehouse_group')
+								label: ctx.t('stock.availability.warehouse_group')
 							}
 						]
 					: []),
-				{ field: 'code', label: bolt.t('models.products.fields.external_code') },
-				{ field: 'ledger', label: bolt.t('reports.aging.ledger') },
+				{ field: 'code', label: ctx.t('models.products.fields.external_code') },
+				{ field: 'ledger', label: ctx.t('reports.aging.ledger') },
 				{
 					field: 'stock_as_of',
-					label: bolt.t('stock.availability.stock_as_of'),
+					label: ctx.t('stock.availability.stock_as_of'),
 					kind: { kind: 'instant', optional: true }
 				},
 				{
 					field: 'orders_as_of',
-					label: bolt.t('stock.availability.orders_as_of'),
+					label: ctx.t('stock.availability.orders_as_of'),
 					kind: { kind: 'instant', optional: true }
 				}
 			]}
 			toolbar={{
 				new: false,
 				export: true,
-				description: bolt.t(
+				description: ctx.t(
 					view === 'warehouse' ? 'stock.availability.warehouse_basis' : 'stock.availability.basis'
 				),
 				controls: availabilityControls
 			}}
 		/>
 	{:else if rows}
-		<EmptyState title={bolt.t('stock.availability.empty')} />
+		<EmptyState title={ctx.t('stock.availability.empty')} />
 	{:else}
-		<EmptyState title={bolt.t('component.reports_loading')} />
+		<EmptyState title={ctx.t('component.reports_loading')} />
 	{/if}
 {/snippet}
 <AppShell
-	description={bolt.t('app.warehouse.description')}
+	description={ctx.t('app.warehouse.description')}
 	icon="lucide:package"
-	title={bolt.t('component.stock')}
+	title={ctx.t('component.stock')}
 	variant="full"
 	><Tabs
 		value={tab}
-		onValueChange={(value) => (tab = value)}
+		on_value_change={(value) => (tab = value)}
 		tabs={[
-			{ name: 'products', title: bolt.t('models.products.label'), body: products },
-			{ name: 'stock', title: bolt.t('models.stock_snapshots.label'), body: stock },
+			{ name: 'products', title: ctx.t('models.products.label'), body: products },
+			{ name: 'stock', title: ctx.t('models.stock_snapshots.label'), body: stock },
 			...(shown
-				? [{ name: 'availability', title: bolt.t('stock.availability.title'), body: sellable }]
+				? [{ name: 'availability', title: ctx.t('stock.availability.title'), body: sellable }]
 				: []),
-			{ name: 'warehouses', title: bolt.t('models.warehouses.label'), body: warehouses }
+			{ name: 'warehouses', title: ctx.t('models.warehouses.label'), body: warehouses }
 		]}
 	/></AppShell
 >

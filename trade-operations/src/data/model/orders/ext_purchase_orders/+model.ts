@@ -1,9 +1,10 @@
+import { model } from '../../../../../.norbital/models/ext_purchase_orders.ts';
 import { Effect } from 'effect';
 import { logisticsReceipt } from '../../../../lib/logistics.js';
-import { model, type CreateRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { agreement, agreementFields } from '../../../../lib/agreements.js';
 type Header = Pick<
-	CreateRow<'ext_purchase_orders'>,
+	CreatedRow<'ext_purchase_orders'>,
 	| 'order'
 	| 'source'
 	| 'external_id'
@@ -21,7 +22,7 @@ const settle = Effect.fnUntraced(function* (
 	}[],
 	ctx: WriteCtx<'ext_purchase_orders'>
 ) {
-	const { orders } = yield* ctx.db.query({
+	const { orders } = yield* ctx.query({
 		orders: {
 			where: {
 				id: {
@@ -58,9 +59,9 @@ const settle = Effect.fnUntraced(function* (
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 	}
 });
-export default model('ext_purchase_orders', {
+export default model({
 	description: 'Supplier order confirmation.',
-	label: 'reference',
+	record_label: 'record.reference',
 	fields: {
 		external_id: { kind: 'text', hidden: true },
 		reference: { kind: 'text' },
@@ -71,22 +72,21 @@ export default model('ext_purchase_orders', {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		order: { kind: 'ref', to: 'orders', inverse: 'ext_purchase_orders' }
 	},
-	key: ['source', 'external_id'],
-	read: 'all',
-	outputs: { logistics: { ext_purchase_orders: { fields: logisticsReceipt } } },
+	outputs: { default: { fields: 'all' }, logistics: { fields: logisticsReceipt } },
+	constraints: { natural_key: { unique: ['source', 'external_id'], import_key: true } },
 	// Retain existing confirmation evidence. No PO sync is scheduled without a verified source binding.
 	create: {
-		columns: { ext_purchase_orders: [] },
-		transform: function* (rows, ctx) {
+		columns: { fields: [] },
+		transform: function* (changes, ctx) {
 			yield* settle(
-				rows.map((value) => ({ value, old: null })),
+				changes.map(({ after }) => ({ value: after, old: null })),
 				ctx
 			);
-			return rows;
+			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
-		columns: { ext_purchase_orders: [] },
+		columns: { fields: [] },
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, set }) => ({ value: { ...before, ...set }, old: before })),

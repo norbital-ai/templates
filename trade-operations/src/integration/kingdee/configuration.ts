@@ -1,61 +1,51 @@
 export const kingdeeConfiguration = {
-	baseCurrency: { kind: 'text', default: 'CNY', label: 'Verified account-set base currency' },
-	branchNo: { kind: 'text', default: '0', label: 'Kingdee branch number' },
+	baseCurrency: { kind: 'text', default: 'CNY' },
+	branchNo: { kind: 'text', default: '0' },
 	stockAvailabilityAccount: {
 		kind: 'text',
-		optional: true,
-		label: 'Verified SQL account for stock availability'
+		optional: true
 	},
 	stockLotCostAccount: {
 		kind: 'text',
-		optional: true,
-		label: 'Verified SQL account for purchase lot costs'
+		optional: true
 	},
 	deliveryCostAccount: {
 		kind: 'text',
-		optional: true,
-		label: 'Verified SQL account for booked delivery costs'
+		optional: true
 	},
-	writeAccount: { kind: 'text', optional: true, label: 'Verified SQL account for order writes' },
+	writeAccount: { kind: 'text', optional: true },
 	invoiceAnalysisAccount: {
 		kind: 'text',
-		optional: true,
-		label: 'Verified SQL account for invoice-only sales analysis'
+		optional: true
 	},
 	receivablesAccount: {
 		kind: 'text',
-		optional: true,
-		label: 'Verified SQL account for receivables aging'
+		optional: true
 	},
 	receivablesExcludedContacts: {
 		kind: 'text',
-		optional: true,
-		label: 'Verified legacy AR contact exclusions (comma-separated IDs)'
+		optional: true
 	},
-	billerId: { kind: 'text', optional: true, label: 'Kingdee biller ID' },
-	packagingId: { kind: 'text', optional: true, label: 'Kingdee packaging ID' },
+	billerId: { kind: 'text', optional: true },
+	packagingId: { kind: 'text', optional: true },
 	salespersonBindings: {
 		kind: 'text',
-		optional: true,
-		label: 'Owner to employee/department bindings (JSON)'
+		optional: true
 	},
 	currencyBindings: {
 		kind: 'text',
-		optional: true,
-		label: 'Currency to Kingdee ID bindings (JSON)'
+		optional: true
 	},
 	settlementRules: {
 		kind: 'text',
-		optional: true,
-		label: 'Settlement-number credit rules (JSON)'
+		optional: true
 	},
 	fullSnapshotMinutes: {
 		kind: 'int',
 		min: 1,
-		default: 1440,
-		label: 'Full reconciliation interval (minutes)'
+		default: 1440
 	},
-	maxWindowMinutes: { kind: 'int', min: 1, default: 15, label: 'Sync window age alert (minutes)' }
+	maxWindowMinutes: { kind: 'int', min: 1, default: 15 }
 } as const;
 
 const guid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';

@@ -28,13 +28,13 @@ at the read mirrors, the observed contract versions, and the verified sales-orde
 
 ## 2. Application surfaces
 
-| App                    | Page(s)                                               | Owns                                                                       |
-| ---------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------- |
-| Operations → Orders    | Sales orders; Purchase orders                         | Draft, approve, seal, revise, archive and read one agreement               |
-| Operations → Partners  | Customers and suppliers                               | Parties, contacts, credit evidence, orders and agreement fulfilment        |
-| Operations → Warehouse | Products; Stock; Warehouses; Availability             | Product master, lots, stock, warehouse groups and sellable quantities      |
-| Operations → Analysis  | Reports                                               | Sales, AR aging, credit, commission board and statements                   |
-| Trade configuration    | Documents, Pricing | Templates with document and pricing defaults; dated price book, price history and CEL commission rules |
+| App                    | Page(s)                                   | Owns                                                                                                   |
+| ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Operations → Orders    | Sales orders; Purchase orders             | Draft, approve, seal, revise, archive and read one agreement                                           |
+| Operations → Partners  | Customers and suppliers                   | Parties, contacts, credit evidence, orders and agreement fulfilment                                    |
+| Operations → Warehouse | Products; Stock; Warehouses; Availability | Product master, lots, stock, warehouse groups and sellable quantities                                  |
+| Operations → Analysis  | Reports                                   | Sales, AR aging, credit, commission board and statements                                               |
+| Trade configuration    | Documents, Pricing                        | Templates with document and pricing defaults; dated price book, price history and CEL commission rules |
 
 The navigation is one shell; apps are capability-scoped. `operations` is the commercial application family;
 `trade_configuration` is separate and grants no commercial records.
@@ -120,7 +120,7 @@ per-order acknowledgment table. The commission board and statement retain their 
 - optional letterhead and company-stamp artwork, with read-only support for historical personal artwork.
 
 A draft selects a published layout; a confirmed version retains the layout it used. Preview and download render
-the same PDF through `bolt.convert`. Supporting documents are attached to a draft or filed against a recorded
+the same PDF through `ctx.preview_pdf`. Supporting documents are attached to a draft or filed against a recorded
 version; `order_files` keeps received bytes with the relevant `seal_hash`. The company stamp is applied only when
 the layout is used on a sealed local sales agreement.
 
@@ -135,7 +135,7 @@ Teams map to one policy each:
 | Commercial Managers | `manager`       | Both directions, approvals, commission statements              |
 | Finance             | `finance`       | Payments, invoices, credit, receivables and reports            |
 | Logistics           | `logistics`     | Operational quantities; commercial fields masked via an output |
-| Configurators       | `configuration` | Business defaults, floors, rules and layouts         |
+| Configurators       | `configuration` | Business defaults, floors, rules and layouts                   |
 
 Policies filter rows and choose read outputs; they never reshape a model. The `logistics` output removes
 commercial prices and totals while preserving quantities, dates and references. Direct permission executes; a
@@ -154,7 +154,7 @@ Models declare no post-commit effects. Ordinary writes, approvals and syncs own 
 ## 8. Storage and runtime
 
 - Each tenant has one Bolt database. Local development and tests use PGlite; production uses PostgreSQL.
-- Reads are live queries; a committed write invalidates the mounted reads. Materialize `bolt.clock` values before
+- Reads are live queries; a committed write invalidates the mounted reads. Materialize `ctx.clock` values before
   using them as query inputs.
 - Native history records who changed which fields; approvals, files, runs, notifications and audit are Bolt's,
   not a second local mechanism.

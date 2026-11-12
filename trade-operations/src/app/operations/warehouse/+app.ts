@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('operations/warehouse', {
+export default app({
 	title: 'component.warehouse',
 	description: 'app.warehouse.description',
 	icon: 'lucide:package',

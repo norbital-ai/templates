@@ -1,14 +1,35 @@
 import { policy } from '@norbital-ai/bolt';
+import { lineDeletes } from '../../lib/order-review.js';
 export default policy({
 	description:
 		'Reopens a confirmed order as a replacement draft; a start names only an order its starter reads.',
 	grants: {
-		orders: { read: true, update: true, moves: { status: ['confirmed->draft'] } },
-		order_lines: { read: true, create: true, update: true, delete: true },
-		document_templates: {
-			read: { document_templates: { where: { status: { eq: 'published' } } } }
+		orders: {
+			outputs: { default: true },
+			update: { moves: { status: ['confirmed->draft'] } }
 		},
-		products: { read: true },
-		warehouses: { read: true }
+		order_lines: {
+			outputs: { default: true },
+			create: true,
+			update: true,
+			delete: {
+				verdict: function* (changes, ctx) {
+					yield* lineDeletes(
+						changes.map(({ before }) => before),
+						ctx
+					);
+					return ctx.allow();
+				}
+			}
+		},
+		document_templates: {
+			outputs: { default: { where: { status: { eq: 'published' } } } }
+		},
+		products: {
+			outputs: { default: true }
+		},
+		warehouses: {
+			outputs: { default: true }
+		}
 	}
 });

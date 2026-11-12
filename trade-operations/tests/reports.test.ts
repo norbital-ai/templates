@@ -1,5 +1,5 @@
 import { decimalText, firstRow, fixtureId } from './test-runtime.js';
-import { addDays, PlainDate } from '@norbital-ai/std/date';
+import { add_days, PlainDate } from '@norbital-ai/std/date';
 import { Decimal, currency } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { sourceOrder, sourceTransaction, sourcePayment } from './synced-kit.js';
@@ -20,7 +20,7 @@ test.live(
 			const t = yield* workspace();
 			const { order, line } = yield* draft(t);
 			yield* confirm(t, order);
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const parent = yield* sourceOrder(t, order);
 			const invoice = yield* sourceTransaction(t, { order, line }, parent);
 			yield* sourcePayment(t, parent, invoice.id, '5');
@@ -40,7 +40,9 @@ test.live(
 			yield* sourcePayment(t, parent, invoice.id, '20');
 			committed(
 				'orders',
-				yield* as.act('orders.update', [{ target: order, set: { archived: true } }])
+				yield* as.act({
+					'orders.update': [{ target: yield* t.at('orders', order), set: { archived: true } }]
+				})
 			);
 			expect(yield* agingOf(as, { as_of: PlainDate('2026-10-10') })).toMatchObject([
 				{ balance: decimalText('0'), overpaid: decimalText('3.20') }
@@ -167,7 +169,7 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 		yield* sourcePayment(t, parent, invoice.id, '-5', 'REFUND-5', { settled_on: cutoff });
 		yield* sourcePayment(t, parent, null, '20', 'UNALLOCATED-20', { settled_on: cutoff });
 		yield* sourcePayment(t, parent, invoice.id, '75', 'FUTURE-75', {
-			settled_on: addDays(cutoff, 1),
+			settled_on: add_days(cutoff, 1),
 			source_updated_at: '2026-10-11T00:00:00Z'
 		});
 		const boundaries = [
@@ -185,7 +187,7 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 			yield* sourceTransaction(t, own, parent, 'invoice', '4', {
 				reference: `DUE-${days ?? 'UNKNOWN'}`,
 				total: '1',
-				due_on: days === null ? null : addDays(cutoff, -days)
+				due_on: days === null ? null : add_days(cutoff, -days)
 			});
 		const purchase = yield* draft(t, 'purchasing');
 		yield* confirm(t, purchase.order);
@@ -195,10 +197,10 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 			total: '999'
 		});
 
-		const finance = t.as(t.member(['finance']));
+		const finance = yield* t.as(t.member(['finance']));
 		const read = (day: PlainDate) =>
 			finance.query(agingRead(day)).pipe(Effect.map((answer) => agingDetails(answer, day)));
-		const earlier = yield* read(addDays(cutoff, -1));
+		const earlier = yield* read(add_days(cutoff, -1));
 		expect(earlier.find((row) => row.reference === 'INV-100')?.balance).toEqual(decimalText('70'));
 		expect(earlier.find((row) => row.reference === 'UNALLOCATED-20')).toBeUndefined();
 		const details = yield* read(cutoff);
@@ -226,7 +228,7 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 				no_due_date: decimalText('1')
 			}
 		]);
-		const later = yield* read(addDays(cutoff, 1));
+		const later = yield* read(add_days(cutoff, 1));
 		expect(later.find((row) => row.reference === 'INV-100')).toBeUndefined();
 		const otherCurrency = details.find((row) => row.reference === 'INV-100');
 		if (!otherCurrency) throw new Error('Expected the funded invoice');

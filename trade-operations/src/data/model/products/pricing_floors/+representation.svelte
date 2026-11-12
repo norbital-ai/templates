@@ -1,17 +1,20 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { RecordView, FormState } from '@norbital-ai/ui';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	import FloorWarning from '../../../../lib/ui/floor-warning.svelte';
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'pricing_floors'>;
+		ctx: PageContext;
 	} = $props();
 </script>
 
-{#snippet warning(form: FormState)}<FloorWarning {form} />{/snippet}
+{#snippet warning(form: FormState)}<FloorWarning {ctx} {form} />{/snippet}
 <RecordForm
+	{ctx}
 	{view}
 	subtitle={['product', 'currency', 'unit']}
 	sections={[
@@ -35,5 +38,5 @@
 					: ['product', 'currency', 'group_code', 'effective_on', 'unit', 'minimum_quantity']
 		}
 	]}
-	formActions={warning}
+	form_actions={warning}
 />

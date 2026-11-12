@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect';
 import * as Hex from 'effect/encoding/Hex';
-import { Decimal, minorDigits, sum, type DecimalLike } from '@norbital-ai/std/decimal';
+import { Decimal, minor_digits, sum, type DecimalLike } from '@norbital-ai/std/decimal';
 import type { Row } from '@norbital-ai/bolt';
 
 export function price(
@@ -12,7 +12,7 @@ export function price(
 		tax_rate: DecimalLike;
 	}
 ) {
-	const digits = minorDigits(document.currency);
+	const digits = minor_digits(document.currency);
 	const base = Decimal.of(line.quantity)
 		.times(line.unit_price)
 		.times(Decimal.of(100).minus(line.discount_pct))

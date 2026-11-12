@@ -64,7 +64,7 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 			'$cursor',
 			'The verified stock account changed. Review its snapshot before resetting.'
 		);
-	const { sys_integration: ledgers, orders } = yield* ctx.db.query({
+	const { sys_integration: ledgers, orders } = yield* ctx.query({
 		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] },
 		orders: {
 			where: { ledger: { eq: instance }, direction: { eq: 'sales' } },

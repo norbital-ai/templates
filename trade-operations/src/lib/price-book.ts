@@ -19,12 +19,11 @@ export const priceBookRead = (group: string, currency: CurrencyCode) =>
 				'minimum_quantity',
 				'revision'
 			],
-			orderBy: { effective_on: 'asc' },
-			// shortcut: one group's whole book is read at once; page by date once a real ledger outgrows 10k rows
-			limit: 10000
-		},
-		'pricing_floors.product': {
-			fields: ['name', 'external_code', 'source_number']
+			order_by: { effective_on: 'asc' }, // shortcut: one group's whole book is read at once; page by date once a real ledger outgrows 10k rows
+			limit: 10000,
+			product: {
+				fields: ['name', 'external_code', 'source_number']
+			}
 		}
 	}) as const;
 

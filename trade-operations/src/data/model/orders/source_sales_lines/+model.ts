@@ -1,16 +1,17 @@
+import { model } from '../../../../../.norbital/models/source_sales_lines.ts';
+import { fromSource } from '../../../../integration/kingdee/polling.js';
 import { readSalesFactSource } from '../../../../integration/kingdee/financial-source.js';
 import { readInvoiceAnalysis } from '../../../../integration/kingdee/invoice-analysis.js';
-import { model } from '@norbital-ai/bolt';
 import { commercialSalesFields } from '../../../../lib/sales-fact-fields.js';
 
-const orderLayers = {
-	'source_sales_lines.order': { fields: 'all' },
-	'source_sales_lines.order.party': { fields: 'all' },
-	'source_sales_lines.order.lines': { fields: 'all' }
+const order = {
+	fields: 'all',
+	party: { fields: 'all' },
+	lines: { fields: 'all' }
 } as const;
-export default model('source_sales_lines', {
+export default model({
 	description: 'source_sales_lines',
-	label: 'reference',
+	record_label: 'record.reference',
 	fields: {
 		lot_number: { kind: 'text', optional: true },
 		unit_cost: { kind: 'decimal', scale: 8, optional: true },
@@ -48,26 +49,23 @@ export default model('source_sales_lines', {
 			}
 		}
 	},
-	key: ['source', 'external_code'],
-	// the sales reports price each line against its order's seal (its party, its lines' products)
-	read: {
-		source_sales_lines: { fields: 'all' },
-		...orderLayers
-	},
 	outputs: {
-		commercial: { source_sales_lines: { fields: commercialSalesFields }, ...orderLayers }
+		default: { fields: 'all', order },
+		commercial: { fields: commercialSalesFields, order }
 	},
+	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
+	// the sales reports price each line against its order's seal (its party, its lines' products)
 	syncs: {
 		kingdee: {
 			with: 'kingdee',
 			read: function* ({ cursor, instance }, ctx) {
-				return yield* readSalesFactSource(instance, cursor, ctx);
+				return fromSource(yield* readSalesFactSource(instance, cursor, ctx), instance);
 			}
 		},
 		invoice_only: {
 			with: 'kingdee',
 			read: function* ({ cursor, instance }, ctx) {
-				return yield* readInvoiceAnalysis(instance, cursor, ctx);
+				return fromSource(yield* readInvoiceAnalysis(instance, cursor, ctx), instance);
 			}
 		}
 	}

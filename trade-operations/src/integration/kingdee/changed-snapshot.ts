@@ -25,7 +25,7 @@ export const readChangedSnapshot = Effect.fnUntraced(function* (
 	const [row] = yield* query(ctx, {
 		op: 'call',
 		procedure: { schema: 'sys', name: 'sp_executesql' },
-		maxRows: 1,
+		max_rows: 1,
 		arguments: {
 			stmt,
 			params: '@read_account nvarchar(73),@prior varchar(64),@probe bit',

@@ -4,8 +4,10 @@ export default policy({
 	description: 'Lets the ledger health check notify active workspace administrators.',
 	grants: {
 		sys_integration: {
-			read: { sys_integration: { where: { integration: { eq: 'kingdee' } } } }
+			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
 		},
-		sys_user: { read: true }
+		sys_user: {
+			outputs: { default: true }
+		}
 	}
 });

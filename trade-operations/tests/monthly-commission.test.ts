@@ -15,7 +15,7 @@ it.live(
 			const t = yield* workspace();
 			yield* commissionRule(t);
 			const { sales, own } = yield* commissionSale(t);
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const seal_hash = String(
 				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
 					?.seal_hash
@@ -44,8 +44,8 @@ it.live(
 				);
 			yield* fact(true, '2026-10-10T00:00:00Z');
 			const finance = t.member(['finance']);
-			const f = t.as(finance);
-			const manager = t.as(t.member(['manager']));
+			const f = yield* t.as(finance);
+			const manager = yield* t.as(t.member(['manager']));
 			const board = () => boardOf(f, { period: PlainDate('2026-10-10') });
 			const current = firstRow(yield* board());
 			const period = PlainDate('2026-10-01');
@@ -63,10 +63,10 @@ it.live(
 				state: 'unacknowledged'
 			});
 			expect(
-				yield* boardOf(t.as(sales), { period: PlainDate('2026-10-01'), commercial: true })
+				yield* boardOf(yield* t.as(sales), { period: PlainDate('2026-10-01'), commercial: true })
 			).toMatchObject([{ owner: fixtureId('sys_user', sales.id), amount: decimalText('210.00') }]);
 			expect(
-				yield* boardOf(t.as(t.member(['sales'])), {
+				yield* boardOf(yield* t.as(t.member(['sales'])), {
 					period: PlainDate('2026-10-01'),
 					commercial: true
 				})
@@ -78,17 +78,17 @@ it.live(
 				calculation_hash: current.calculation_hash
 			};
 			expect(
-				yield* Effect.flip(t.as(sales).act('commission_statements.create', [input]))
+				yield* Effect.flip((yield* t.as(sales)).act({ 'commission_statements.create': [input] }))
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(
 				yield* Effect.flip(
-					f.act('commission_statements.create', [{ ...input, calculation_hash: 'stale' }])
+					f.act({ 'commission_statements.create': [{ ...input, calculation_hash: 'stale' }] })
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			const concurrent = yield* Effect.all(
 				[
-					f.act('commission_statements.create', [input]),
-					f.act('commission_statements.create', [input])
+					f.act({ 'commission_statements.create': [input] }),
+					f.act({ 'commission_statements.create': [input] })
 				],
 				{ concurrency: 'unbounded', mode: 'result' }
 			);
@@ -117,14 +117,14 @@ it.live(
 				latest_amount: decimalText('210.00'),
 				order_count: 0
 			});
-			expect(yield* Effect.flip(f.act('commission_statements.create', [input]))).toMatchObject({
+			expect(yield* Effect.flip(f.act({ 'commission_statements.create': [input] }))).toMatchObject({
 				_tag: 'ActRefused'
 			});
 			committed(
 				'commission_statements',
-				yield* manager.act('commission_statements.create', [
-					{ ...input, calculation_hash: changed.calculation_hash }
-				])
+				yield* manager.act({
+					'commission_statements.create': [{ ...input, calculation_hash: changed.calculation_hash }]
+				})
 			);
 			expect((yield* board())[0]).toMatchObject({ state: 'current', amount: decimalText('0.00') });
 			expect(

@@ -65,16 +65,19 @@ const exportRun =
 		format: 'csv' | 'xlsx' = 'csv'
 	) =>
 		Effect.gen(function* () {
-			const run = yield* t.as(who).start(`${model}.sync.sheet`, { mode: 'export', format });
+			const run = yield* (yield* t.as(who)).sync_control(model, 'sheet', {
+				mode: 'export',
+				format
+			});
 			if (run.kind !== 'committed') throw new Error(JSON.stringify(run));
-			yield* t.runDue();
+			yield* t.run_due();
 			return yield* readExport(t)(run.output.id);
 		});
 
 it.live('round-trips the order workbook by sequential number', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
-		const as = t.as(t.admin);
+		const as = yield* t.as(t.admin);
 		const { order } = yield* draft(t);
 		const number = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 			.rows[0]?.number;
@@ -87,12 +90,12 @@ it.live('round-trips the order workbook by sequential number', () =>
 					bytes: new TextEncoder().encode([orderHeader.join(','), ...lines].join('\n'))
 				});
 				if (upload.kind !== 'committed') throw new Error('The upload needs to commit');
-				const run = yield* as.start('orders.sync.sheet', {
+				const run = yield* as.sync_control('orders', 'sheet', {
 					mode: 'import',
 					file: upload.output.id
 				});
 				if (run.kind !== 'committed') throw new Error('The import needs to start');
-				yield* t.runDue();
+				yield* t.run_due();
 				return yield* t.db.rows(Schema.Struct({ state: Schema.String, output: Schema.Json }), {
 					text: 'SELECT state, output FROM sys_run WHERE id = $1',
 					params: [run.output.id]
@@ -179,7 +182,7 @@ it.live('exports parties and warehouses as source workbooks', () =>
 it.live('updates and inserts order lines by the order number and stable line key', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
-		const as = t.as(t.admin);
+		const as = yield* t.as(t.admin);
 		const { order, line } = yield* draft(t);
 		const number = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 			.rows[0]?.number;
@@ -204,12 +207,12 @@ it.live('updates and inserts order lines by the order number and stable line key
 					bytes: new TextEncoder().encode([header.join(','), ...lines].join('\n'))
 				});
 				if (upload.kind !== 'committed') throw new Error('The upload needs to commit');
-				const run = yield* as.start('orders.sync.lines', {
+				const run = yield* as.sync_control('orders', 'lines', {
 					mode: 'import',
 					file: upload.output.id
 				});
 				if (run.kind !== 'committed') throw new Error('The import needs to start');
-				yield* t.runDue();
+				yield* t.run_due();
 				return yield* t.db.rows(Schema.Struct({ state: Schema.String, output: Schema.Json }), {
 					text: 'SELECT state, output FROM sys_run WHERE id = $1',
 					params: [run.output.id]
@@ -236,9 +239,9 @@ it.live('updates and inserts order lines by the order number and stable line key
 		expect(yield* load([['MISSING', '', 'RESIN-A', '1', '1', '0', '9'].join(',')])).toMatchObject([
 			{ state: 'succeeded', output: { applied: false } }
 		]);
-		const runLines = yield* as.start('orders.sync.lines', { mode: 'export', format: 'csv' });
+		const runLines = yield* as.sync_control('orders', 'lines', { mode: 'export', format: 'csv' });
 		if (runLines.kind !== 'committed') throw new Error(JSON.stringify(runLines));
-		yield* t.runDue();
+		yield* t.run_due();
 		const exported = yield* readExport(t)(runLines.output.id);
 		expect(exported.text).toContain(number);
 		expect(exported.text).toContain('RESIN-A');
@@ -249,18 +252,20 @@ it.live('updates and inserts order lines by the order number and stable line key
 it.live('imports commission rules and exports the same columns', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
-		const as = t.as(t.admin);
-		yield* as.act('commission_rules.create', [
-			{
-				code: 'default',
-				currency: 'SGD',
-				effective_on: PlainDate('2026-10-01'),
-				fixed_rate: Decimal.of('0.10'),
-				spread_pct: Decimal.of('0'),
-				eligibility_expression: 'true',
-				amount_expression: 'quantity * rule.fixed_rate'
-			}
-		]);
+		const as = yield* t.as(t.admin);
+		yield* as.act({
+			'commission_rules.create': [
+				{
+					code: 'default',
+					currency: 'SGD',
+					effective_on: PlainDate('2026-10-01'),
+					fixed_rate: Decimal.of('0.10'),
+					spread_pct: Decimal.of('0'),
+					eligibility_expression: 'true',
+					amount_expression: 'quantity * rule.fixed_rate'
+				}
+			]
+		});
 		const header = [
 			'Code',
 			'Currency',
@@ -292,12 +297,12 @@ it.live('imports commission rules and exports the same columns', () =>
 			bytes: new TextEncoder().encode([header.join(','), row('0.25')].join('\n'))
 		});
 		if (upload.kind !== 'committed') throw new Error('The upload needs to commit');
-		const run = yield* as.start('commission_rules.sync.sheet', {
+		const run = yield* as.sync_control('commission_rules', 'sheet', {
 			mode: 'import',
 			file: upload.output.id
 		});
 		if (run.kind !== 'committed') throw new Error('The import needs to start');
-		yield* t.runDue();
+		yield* t.run_due();
 		expect(
 			yield* t.db.rows(Schema.Struct({ state: Schema.String, output: Schema.Json }), {
 				text: 'SELECT state, output FROM sys_run WHERE id = $1',

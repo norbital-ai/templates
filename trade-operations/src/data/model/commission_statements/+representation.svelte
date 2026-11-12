@@ -1,19 +1,21 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Form,
 		RecordShell,
 		Table,
-		openRecord,
+		open_record,
 		label,
 		Show,
 		type RecordView,
 		type ShowProps
 	} from '@norbital-ai/ui';
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'commission_statements'>;
+		ctx: PageContext;
 	} = $props();
 </script>
 
@@ -26,16 +28,16 @@
 {/snippet}
 {#snippet evidence()}
 	{#if view.mode !== 'create'}
-		<p>{bolt.t('component.monthly_commission_evidence')}</p>
+		<p>{ctx.t('component.monthly_commission_evidence')}</p>
 		<Table
 			of={view.record.snapshot}
 			key="commission_statement_items"
 			columns={[
-				{ field: 'number', label: label(bolt, 'orders', 'order') },
-				{ field: 'amount', label: label(bolt, 'orders', 'amount'), cell: amount }
+				{ field: 'number', label: label(ctx, 'orders', 'order') },
+				{ field: 'amount', label: label(ctx, 'orders', 'amount'), cell: amount }
 			]}
 			toolbar={{ new: false, export: true }}
-			onOpen={(row) => openRecord('orders', row.order)}
+			on_open={(row) => open_record('orders', row.order)}
 		/>
 	{/if}
 {/snippet}
@@ -45,7 +47,7 @@
 		mode={view.mode}
 		id={view.record.id}
 		subtitle={['owner', 'period']}
-		tabs={[{ name: 'orders', title: bolt.t('component.monthly_commission_items'), body: evidence }]}
+		tabs={[{ name: 'orders', title: ctx.t('component.monthly_commission_items'), body: evidence }]}
 	>
 		<Form
 			of="commission_statements"
@@ -66,13 +68,13 @@
 	</RecordShell>
 {:else if view.values.owner && view.values.period && view.values.currency && view.values.calculation_hash}
 	<RecordShell of="commission_statements" mode="create" values={view.values}>
-		<p>{bolt.t('component.monthly_commission_evidence')}</p>
+		<p>{ctx.t('component.monthly_commission_evidence')}</p>
 		<Form
 			of="commission_statements"
 			mode="create"
 			values={view.values}
 			fields={[]}
-			submit={bolt.t('component.commission_acknowledge')}
+			submit={ctx.t('component.commission_acknowledge')}
 		/>
 	</RecordShell>
-{:else}<p>{bolt.t('component.monthly_commission_from_board')}</p>{/if}
+{:else}<p>{ctx.t('component.monthly_commission_from_board')}</p>{/if}

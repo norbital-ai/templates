@@ -1,159 +1,154 @@
 import { policy } from '@norbital-ai/bolt';
-import { ordersIn, purchasing, reviewOrders } from '../../lib/order-review.js';
+import { lineDeletes, ordersIn, purchasing, reviewOrders } from '../../lib/order-review.js';
 const own = { order: { is: { direction: { eq: 'purchasing' } } } } as const;
 export default policy({
 	description: 'procurement commercial work scoped by order.',
-	capabilities: {
-		apps: ['operations']
-	},
-	automations: ['orders_revise'],
+	capabilities: { apps: ['operations'], automations: ['orders_revise'] },
 	grants: {
-		source_stock_commitments: { read: true },
+		source_stock_commitments: {
+			outputs: { default: true }
+		},
 		ext_purchase_orders: {
-			read: { ext_purchase_orders: { where: own } },
-			history: own
+			outputs: { default: { where: own, history: true } }
 		},
 		document_templates: {
-			read: { document_templates: { where: { status: { eq: 'published' } } } }
+			outputs: { default: { where: { status: { eq: 'published' } } } }
 		},
 		transactions: {
-			read: { transactions: { where: own } },
-			history: own
+			outputs: { default: { where: own, history: true } }
 		},
 		parties: {
-			read: true
+			outputs: { default: true }
 		},
 		products: {
-			read: true
+			outputs: { default: true }
 		},
 		warehouses: {
-			read: true
+			outputs: { default: true }
 		},
 		stock_snapshots: {
-			read: true
+			outputs: { default: true }
 		},
 		credit_snapshots: {
-			read: true
+			outputs: { default: true }
 		},
 		commercial_settings: {
-			read: true
+			outputs: { default: true }
 		},
 		pricing_floors: {
-			history: true,
-			read: true
+			outputs: { default: { history: true } }
 		},
 		commission_rules: {
-			read: true
+			outputs: { default: true }
 		},
 		contacts: {
-			read: true,
+			outputs: { default: true },
 			create: true,
 			update: true
 		},
 		orders: {
 			// the layers under a purchasing order (its party, lines and documents) are read with it
-			read: { orders: { where: { direction: { eq: 'purchasing' } } } },
-			history: { direction: { eq: 'purchasing' } },
+			outputs: { default: { where: { direction: { eq: 'purchasing' } }, history: true } },
 			create: {
-				check: function* (rows, ctx) {
-					const away = rows.findIndex((row) => row.direction !== 'purchasing');
+				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(({ after }) => after.direction !== 'purchasing');
 					return away >= 0
-						? ctx.deny('errors.purchasing_scope', { row: away, field: 'direction' })
+						? yield* ctx.refuse('errors.purchasing_scope', { row: away, field: 'direction' })
 						: ctx.allow();
 				}
 			},
 			// Purchase commitments are tracked directly by procurement.
 			update: {
-				check: function* (changes, ctx) {
-					return reviewOrders(changes, ctx, purchasing, 'errors.purchasing_scope', false);
-				}
-			},
-			moves: 'all'
+				verdict: function* (changes, ctx) {
+					return yield* reviewOrders(changes, ctx, purchasing, 'errors.purchasing_scope', false);
+				},
+				moves: 'all'
+			}
 		},
 		order_lines: {
-			read: { order_lines: { where: own } },
-			history: own,
+			outputs: { default: { where: own, history: true } },
 			create: {
-				check: function* (rows, ctx) {
+				verdict: function* (changes, ctx) {
 					return (yield* ordersIn(
 						ctx,
-						rows.map((row) => row.order),
+						changes.map(({ after }) => after.order),
 						purchasing
 					))
 						? ctx.allow()
-						: ctx.deny('errors.purchasing_scope');
+						: yield* ctx.refuse('errors.purchasing_scope');
 				}
 			},
 			update: {
-				check: function* (changes, ctx) {
+				verdict: function* (changes, ctx) {
 					return (yield* ordersIn(
 						ctx,
 						changes.map((change) => change.before.order),
 						purchasing
 					))
 						? ctx.allow()
-						: ctx.deny('errors.purchasing_scope');
+						: yield* ctx.refuse('errors.purchasing_scope');
 				}
 			},
 			delete: {
-				check: function* (rows, ctx) {
+				verdict: function* (changes, ctx) {
+					yield* lineDeletes(
+						changes.map(({ before }) => before),
+						ctx
+					);
 					return (yield* ordersIn(
 						ctx,
-						rows.map((row) => row.order),
+						changes.map(({ before }) => before.order),
 						purchasing
 					))
 						? ctx.allow()
-						: ctx.deny('errors.purchasing_scope');
+						: yield* ctx.refuse('errors.purchasing_scope');
 				}
 			}
 		},
 		order_files: {
-			read: { order_files: { where: own } },
-			history: own,
+			outputs: { default: { where: own, history: true } },
 			create: {
-				check: function* (rows, ctx) {
+				verdict: function* (changes, ctx) {
 					return (yield* ordersIn(
 						ctx,
-						rows.map((row) => row.order),
+						changes.map(({ after }) => after.order),
 						purchasing
 					))
 						? ctx.allow()
-						: ctx.deny('errors.purchasing_scope');
+						: yield* ctx.refuse('errors.purchasing_scope');
 				}
 			}
 		},
 		activities: {
-			read: { activities: { where: own } },
-			history: own,
+			outputs: { default: { where: own, history: true } },
 			create: {
-				check: function* (rows, ctx) {
+				verdict: function* (changes, ctx) {
 					return (yield* ordersIn(
 						ctx,
-						rows.map((row) => row.order),
+						changes.map(({ after }) => after.order),
 						purchasing
 					))
 						? ctx.allow()
-						: ctx.deny('errors.purchasing_scope');
+						: yield* ctx.refuse('errors.purchasing_scope');
 				}
 			},
 			update: {
-				check: function* (changes, ctx) {
+				verdict: function* (changes, ctx) {
 					return (yield* ordersIn(
 						ctx,
 						changes.map((change) => change.before.order),
 						purchasing
 					))
 						? ctx.allow()
-						: ctx.deny('errors.purchasing_scope');
+						: yield* ctx.refuse('errors.purchasing_scope');
 				}
 			}
 		},
 		source_payments: {
-			history: own,
-			read: { source_payments: { where: own } }
+			outputs: { default: { where: own, history: true } }
 		},
 		source_sales_lines: {
-			outputs: { commercial: { source_sales_lines: { where: own } } }
+			outputs: { commercial: { where: own, history: true } }
 		}
 	}
 });

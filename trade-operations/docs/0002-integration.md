@@ -48,7 +48,7 @@ Every model sync is one declared read. A read:
 1. captures the source ceiling and a fingerprint of the tables/columns it is allowed to see;
 2. reads a page of source rows in a stable order, normally **999** rows at a time;
 3. normalizes values through typed readers (`text`, `bool`, `decimal`, `date`, `instant`, `currency`);
-4. upserts the page by the model's stable source key;
+4. writes the page by the model's import key (its `import_key` constraint);
 5. writes the page's continuation cursor in the **same transaction**;
 6. only on the final page advances the completed-window bookmark.
 
@@ -159,20 +159,20 @@ The platform tables beside them carry the sync machinery, not business rows:
 
 ## 7. Failure states an operator will see
 
-| State                         | Meaning                                                              | Recovery                                                       |
-| ----------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `attention` / `parentPending` | A child feed arrived before its issued source order or invoice       | Wait for the parent sync; no local row is written              |
-| `attention` / `windowLag`     | A source window is older than `maxWindowMinutes`                     | Check the SQL route, locks and source load; the cursor is kept |
+| State                         | Meaning                                                              | Recovery                                                           |
+| ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `attention` / `parentPending` | A child feed arrived before its issued source order or invoice       | Wait for the parent sync; no local row is written                  |
+| `attention` / `windowLag`     | A source window is older than `maxWindowMinutes`                     | Check the SQL route, locks and source load; the cursor is kept     |
 | Connection error              | The SQL login, route or account set failed                           | Fix the connection in Settings → Integrations. Queued writes wait. |
-| `dead` outbox row             | A write-back exhausted retries or was refused by source verification | Read the dead letter, correct the cause, retry deliberately    |
-| Stale cursor/account          | The verified account or source identity changed                      | Review the snapshot before resetting; do not guess             |
+| `dead` outbox row             | A write-back exhausted retries or was refused by source verification | Read the dead letter, correct the cause, retry deliberately        |
+| Stale cursor/account          | The verified account or source identity changed                      | Review the snapshot before resetting; do not guess                 |
 
 `source_health` notifies configuration holders once per instance revision. The record's status is the source of
 truth; a notification is a prompt, not a second state.
 
 ## 8. Adding a feed
 
-1. Add a model or a model sync under `src/data/model/`, with a stable source key and only the fields the business
+1. Add a model or a model sync under `src/data/model/`, with an `import_key` constraint and only the fields the business
    reads.
 2. Put the SQL projection under `src/integration/kingdee/` and declare its tables, joins, rowversions, filters
    and typed columns. Fake nothing: a missing column is a refusal.

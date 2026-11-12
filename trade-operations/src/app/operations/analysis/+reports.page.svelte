@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { bolt, run } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
+	import { run } from '@norbital-ai/ui/effect';
 	import { marginSeries } from '../../../lib/financial-series.js';
 	import {
 		agingBuckets,
@@ -18,15 +20,14 @@
 	import { earliestReceivablesCutoff } from '../../../lib/receivables.js';
 	import { xlsxWorkbook, type XlsxColumn } from '../../../lib/xlsx.js';
 	import { boardRead, completeCommissionBoard, monthOf } from '../../../lib/monthly-commission.js';
-	import { PlainDate, addDays, addMonths } from '@norbital-ai/std/date';
+	import { PlainDate, add_days, add_months } from '@norbital-ai/std/date';
 	import {
 		Dialog,
 		Table,
 		Tabs,
-		useKinds,
 		Show,
 		Button,
-		openRecord,
+		open_record,
 		Form,
 		label,
 		TimeInput,
@@ -45,18 +46,17 @@
 		from: Schema.NullOr(Schema.String),
 		to: Schema.NullOr(Schema.String)
 	});
-	const kinds = useKinds();
 	const moneyKind: Kind = { kind: 'money', currency: 'currency', optional: true };
 	const costKind: Kind = { kind: 'money', currency: 'cost_currency', optional: true };
 	// a cleared date means today, which rolls over at midnight
-	const day = bolt.clock('day');
+	const day = ctx.clock('day');
 	const currentMonth = day.today.slice(0, 7) + '-01';
 	let commissionPeriod = $state<string | null>(currentMonth);
 	type MonthlyCommission = Effect.Success<ReturnType<typeof completeCommissionBoard>>[number];
 	let monthSelection = $state<MonthlyCommission | null>(null);
 	const monthEnd = (value: string) =>
-		addDays(addMonths(PlainDate(value.slice(0, 7) + '-01'), 1), -1);
-	let asOf = $state<string | null>(day.today);
+		add_days(add_months(PlainDate(value.slice(0, 7) + '-01'), 1), -1);
+	let as_of = $state<string | null>(day.today);
 	let agingView = $state<'customers' | 'entries'>('customers');
 	let agingBasis = $state<'estimated' | 'gross'>('estimated');
 	let agingCustomer = $state<{ key: string; name: string } | null>(null);
@@ -65,18 +65,16 @@
 	let salesFrom = $state<string | null>(currentMonth);
 	let salesTo = $state<string | null>(currentMonth);
 	// each report shows to whoever reads its root: sales lines, invoices with payments, statements
-	const salesShown = $derived(Boolean(kinds.catalog?.source_sales_lines));
-	const agingShown = $derived(
-		Boolean(kinds.catalog?.transactions && kinds.catalog?.source_payments)
-	);
-	const boardShown = $derived(Boolean(kinds.catalog?.commission_statements));
+	const salesShown = $derived(Boolean(ctx.catalog?.source_sales_lines));
+	const agingShown = $derived(Boolean(ctx.catalog?.transactions && ctx.catalog?.source_payments));
+	const boardShown = $derived(Boolean(ctx.catalog?.commission_statements));
 	// the header shows the open tab's scope
 	let chosenTab = $state<string | null>(null);
 	const tab = $derived(
 		chosenTab ?? (salesShown ? 'sales' : agingShown ? 'aging' : boardShown ? 'commission' : null)
 	);
 	const invalidSalesRange = $derived(Boolean(salesFrom && salesTo && salesFrom > salesTo));
-	const agingDay = $derived(asOf ? PlainDate(asOf) : day.today);
+	const agingDay = $derived(as_of ? PlainDate(as_of) : day.today);
 	const futureAging = $derived(agingDay > day.today);
 	const salesRequest = $derived(
 		salesShown && tab === 'sales' && !invalidSalesRange
@@ -86,7 +84,7 @@
 						from: salesFrom ? PlainDate(salesFrom) : null,
 						to: salesTo ? PlainDate(monthEnd(salesTo)) : null
 					},
-					kinds.catalog?.source_sales_lines?.output === 'commercial',
+					ctx.catalog?.source_sales_lines?.output === 'commercial',
 					pageSize
 				)
 			: null
@@ -104,7 +102,7 @@
 		const { products: _, ...request } = salesRequest;
 		return request;
 	});
-	const liveSales = $derived(salesPageRequest && !salesAfter ? bolt.query(salesPageRequest) : null);
+	const liveSales = $derived(salesPageRequest && !salesAfter ? ctx.query(salesPageRequest) : null);
 	type SalesPage = NonNullable<NonNullable<typeof liveSales>['current']>;
 	let laterSales = $state.raw<SalesPage | null>(null);
 	let salesPageError = $state(false);
@@ -117,7 +115,7 @@
 		let current = true;
 		// Cursor pages are one-shot reads. The first page can stay subscribed to source changes.
 		void run(
-			bolt.query({ ...request, source_sales_lines: { ...request.source_sales_lines, after } })
+			ctx.query({ ...request, source_sales_lines: { ...request.source_sales_lines, after } })
 		).then(
 			(page) => {
 				if (current) laterSales = page;
@@ -146,7 +144,7 @@
 		basis: SalesBasis
 	) {
 		const batch = { ...request, source_sales_lines: { ...request.source_sales_lines, limit: 500 } };
-		return yield* readSalesReport(bolt, batch, yield* bolt.query(batch), basis);
+		return yield* readSalesReport(ctx, batch, yield* ctx.query(batch), basis);
 	});
 	let marginRequest = $state.raw<{
 		request: NonNullable<typeof salesRequest>;
@@ -167,8 +165,8 @@
 	let exporting = $state(false);
 	let salesExportError = $state(false);
 	const agingSources = $derived(
-		tab === 'aging' && agingShown && kinds.catalog?.source_receivables
-			? bolt.query(receivablesHeadRead)
+		tab === 'aging' && agingShown && ctx.catalog?.source_receivables
+			? ctx.query(receivablesHeadRead)
 			: null
 	);
 	let snapshotTail = $state.raw<Effect.Success<ReturnType<typeof readReceivablesReport>> | null>(
@@ -185,7 +183,7 @@
 			return;
 		}
 		let current = true;
-		void run(readReceivablesReport(bolt)).then(
+		void run(readReceivablesReport(ctx)).then(
 			(rows) => {
 				if (current) snapshotTail = rows;
 			},
@@ -210,9 +208,9 @@
 			? agingRead(agingDay, coveredLedgers, 500)
 			: null
 	);
-	const agingAnswer = $derived(agingRequest ? bolt.query(agingRequest) : null);
+	const agingAnswer = $derived(agingRequest ? ctx.query(agingRequest) : null);
 	const agingScope = $derived(
-		bolt.t(
+		ctx.t(
 			showAgingEstimate
 				? 'reports.aging.estimate_scope'
 				: snapshots.length
@@ -229,7 +227,7 @@
 		agingIncomplete = false;
 		if (!request || !first) return;
 		let current = true;
-		void run(readAgingReport(bolt, request, first, agingDay, snapshots)).then(
+		void run(readAgingReport(ctx, request, first, agingDay, snapshots)).then(
 			(rows) => {
 				if (current) agingFacts = rows;
 			},
@@ -251,28 +249,28 @@
 	const period = $derived(commissionPeriod ? monthOf(commissionPeriod) : null);
 	const boardRequest = $derived(
 		tab === 'commission' && boardShown && period
-			? boardRead(period, kinds.catalog?.source_sales_lines?.output === 'commercial')
+			? boardRead(period, ctx.catalog?.source_sales_lines?.output === 'commercial')
 			: null
 	);
-	const boardAnswer = $derived(boardRequest ? bolt.query(boardRequest) : null);
+	const boardAnswer = $derived(boardRequest ? ctx.query(boardRequest) : null);
 	const monthlyRows = $derived(
 		boardRequest && boardAnswer?.current && period
-			? run(completeCommissionBoard(bolt, boardRequest, boardAnswer.current, period))
+			? run(completeCommissionBoard(ctx, boardRequest, boardAnswer.current, period))
 			: null
 	);
 	const shapeSalesRows = (rows: ReturnType<typeof salesDetail>) =>
 		rows.map((row) => ({
 			...row,
 			freight_treatment_label: row.freight_treatment
-				? bolt.t(`reports.freight.${row.freight_treatment}`)
+				? ctx.t(`reports.freight.${row.freight_treatment}`)
 				: '',
-			kind_label: bolt.t(`reports.sales.kind.${row.kind}`)
+			kind_label: ctx.t(`reports.sales.kind.${row.kind}`)
 		}));
 	let reportPages = $state({ customers: 0, entries: 0, commission: 0 });
 	const pageIndex = (kind: keyof typeof reportPages, total: number) =>
 		Math.min(reportPages[kind], Math.max(0, Math.ceil(total / pageSize) - 1));
 	$effect.pre(() => {
-		void asOf;
+		void as_of;
 		void agingView;
 		void agingBasis;
 		void agingCustomer;
@@ -341,19 +339,19 @@
 
 {#snippet salesRange()}<div class="flex max-w-full flex-wrap items-center gap-2">
 		<select
-			aria-label={bolt.t('reports.sales.date_basis')}
+			aria-label={ctx.t('reports.sales.date_basis')}
 			bind:value={salesBasis}
 			class="h-9 rounded-md border border-input bg-background px-2 text-sm"
 		>
-			<option value="invoice">{bolt.t('reports.sales.date_invoice')}</option>
-			<option value="delivery">{bolt.t('reports.sales.date_delivery')}</option>
+			<option value="invoice">{ctx.t('reports.sales.date_invoice')}</option>
+			<option value="delivery">{ctx.t('reports.sales.date_delivery')}</option>
 		</select>
-		<span class="sr-only">{bolt.t('component.sales_analysis')}</span><TimeRangeInput
+		<span class="sr-only">{ctx.t('component.sales_analysis')}</span><TimeRangeInput
 			id="sales-range"
 			of="date"
 			precision="month"
 			value={{ from: salesFrom, to: salesTo }}
-			onChange={(range) => {
+			on_change={(range) => {
 				if (Schema.is(DateBounds)(range)) {
 					salesFrom = range.from;
 					salesTo = range.to;
@@ -365,12 +363,12 @@
 		/>
 	</div>{/snippet}
 {#snippet commissionMonth()}<label class="w-40"
-		><span class="sr-only">{bolt.t('models.commission_statements.fields.period')}</span><TimeInput
+		><span class="sr-only">{ctx.t('models.commission_statements.fields.period')}</span><TimeInput
 			id="commission-month"
 			of="date"
 			precision="month"
 			value={commissionPeriod}
-			onChange={(value: string | null) =>
+			on_change={(value: string | null) =>
 				(commissionPeriod = value ? value.slice(0, 7) + '-01' : null)}
 		/></label
 	>{/snippet}
@@ -408,26 +406,26 @@
 		<button
 			type="button"
 			class="underline-offset-4 hover:underline focus-visible:underline"
-			onclick={() => openRecord('orders', order)}
+			onclick={() => open_record('orders', order)}
 		>
 			{row.order_number}
 		</button>
 	{/if}
 {/snippet}
-{#snippet salesTab()}<Stack size="fill" minHeight="18rem" gap="sm">
-		{#if invalidSalesRange}<EmptyState tone="danger" title={bolt.t('errors.report_range')} />
+{#snippet salesTab()}<Stack size="fill" min_height="18rem" gap="sm">
+		{#if invalidSalesRange}<EmptyState tone="danger" title={ctx.t('errors.report_range')} />
 		{:else if salesPageError || liveSales?.error}<EmptyState
 				tone="danger"
-				title={bolt.t('reports.sales.incomplete')}
+				title={ctx.t('reports.sales.incomplete')}
 			/>
 			{#if salesAfter}<Button variant="outline" onclick={() => (salesNavigation = null)}
-					>{bolt.t('reports.first_page')}</Button
+					>{ctx.t('reports.first_page')}</Button
 				>{/if}
 		{:else if detailRows}
 			{@const rows = shapeSalesRows(detailRows)}
 			{#if margins}
 				{#await margins}<p class="text-sm text-muted-foreground" role="status">
-						{bolt.t('component.reports_loading')}
+						{ctx.t('component.reports_loading')}
 					</p>
 				{:then summary}
 					{@const known = summary.filter((row) => row.margin !== null)}
@@ -437,61 +435,61 @@
 							x="salesperson"
 							y="margin"
 							orientation="horizontal"
-							title={`${bolt.t('component.actual_margins')} · ${currency}`}
+							title={`${ctx.t('component.actual_margins')} · ${currency}`}
 						/>
 					{:else}<p class="text-sm text-muted-foreground">
-							{bolt.t('component.unpriced_margin')}
+							{ctx.t('component.unpriced_margin')}
 						</p>{/each}
 				{:catch}<p class="text-sm text-destructive" role="alert">
-						{bolt.t('reports.sales.incomplete')}
+						{ctx.t('reports.sales.incomplete')}
 					</p>{/await}
 			{/if}
 			{#if salesExportError}<p class="text-sm text-destructive" role="alert">
-					{bolt.t('reports.sales.incomplete')}
+					{ctx.t('reports.sales.incomplete')}
 				</p>{/if}
 			{#if exporting}<p class="text-sm text-muted-foreground" role="status">
-					{bolt.t('reports.exporting')}
+					{ctx.t('reports.exporting')}
 				</p>{/if}
-			{@const hasCost = kinds.catalog?.source_sales_lines?.output !== 'commercial'}
+			{@const hasCost = ctx.catalog?.source_sales_lines?.output !== 'commercial'}
 			{@const separateCostCurrency = hasCost}
 			{@const salesColumns: readonly Col<(typeof rows)[number]>[] = [
-					{ field: 'order_number', label: bolt.t('models.orders.singular'), cell: salesOrderCell },
-					{ field: 'reference', label: bolt.t('reports.sales.reference') },
+					{ field: 'order_number', label: ctx.t('models.orders.singular'), cell: salesOrderCell },
+					{ field: 'reference', label: ctx.t('reports.sales.reference') },
 					{
 						field: 'business_on',
-						label: bolt.t(
+						label: ctx.t(
 							salesBasis === 'invoice'
 								? 'reports.sales.date_invoice'
 								: 'reports.sales.date_delivery'
 						),
 						cell: date
 					},
-					{ field: 'party_name', label: label(bolt, 'orders', 'party_name') },
-					{ field: 'product_name', label: bolt.t('reports.sales.product') },
-					{ field: 'owner_name', label: label(bolt, 'orders', 'owner_name') },
-					{ field: 'kind_label', label: bolt.t('reports.sales.kind'), cell: enumCell },
+					{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
+					{ field: 'product_name', label: ctx.t('reports.sales.product') },
+					{ field: 'owner_name', label: label(ctx, 'orders', 'owner_name') },
+					{ field: 'kind_label', label: ctx.t('reports.sales.kind'), cell: enumCell },
 					{
 						field: 'quantity',
 						kind: { kind: 'decimal', scale: 3 },
-						label: label(bolt, 'orders', 'quantity'),
+						label: label(ctx, 'orders', 'quantity'),
 						align: 'end' as const,
 						cell: decimal
 					},
-					{ field: 'unit', label: bolt.t('reports.sales.unit') },
-					{ field: 'lot_number', label: bolt.t('models.stock_snapshots.fields.lot_number') },
-					{ field: 'currency', label: label(bolt, 'orders', 'currency') },
-					{ field: 'freight_treatment_label', label: bolt.t('reports.sales.freight_treatment') },
+					{ field: 'unit', label: ctx.t('reports.sales.unit') },
+					{ field: 'lot_number', label: ctx.t('models.stock_snapshots.fields.lot_number') },
+					{ field: 'currency', label: label(ctx, 'orders', 'currency') },
+					{ field: 'freight_treatment_label', label: ctx.t('reports.sales.freight_treatment') },
 					...(['sold_price', 'floor_net'] as const).map((field) => ({
 						field,
 						kind: { kind: 'decimal' as const, scale: 8 },
-						label: bolt.t(`reports.sales.${field}`),
+						label: ctx.t(`reports.sales.${field}`),
 						align: 'end' as const,
 						cell: decimal
 					})),
 					...(['source_net', 'net', 'tax', 'total', 'freight'] as const).map((field) => ({
 						field,
 						kind: moneyKind,
-						label: bolt.t(`reports.sales.${field}`),
+						label: ctx.t(`reports.sales.${field}`),
 						align: 'end' as const,
 						cell: money
 					})),
@@ -500,19 +498,19 @@
 								{
 									field: 'cost' as const,
 									kind: costKind,
-									label: bolt.t('reports.sales.cost'),
+									label: ctx.t('reports.sales.cost'),
 									align: 'end' as const,
 									cell: deliveryCost
 								}
 							]
 						: []),
 					...(separateCostCurrency
-						? [{ field: 'cost_currency' as const, label: bolt.t('reports.sales.cost_currency') }]
+						? [{ field: 'cost_currency' as const, label: ctx.t('reports.sales.cost_currency') }]
 						: []),
 					{
 						field: 'margin',
 						kind: moneyKind,
-						label: bolt.t('reports.sales.margin'),
+						label: ctx.t('reports.sales.margin'),
 						align: 'end',
 						cell: money
 					}
@@ -537,16 +535,16 @@
 					new: false,
 					search: false,
 					filter: false,
-					description: bolt.t('component.unpriced_margin'),
+					description: ctx.t('component.unpriced_margin'),
 					actions: [
 						{
 							icon: 'lucide:chart-column',
-							name: bolt.t('component.actual_margins'),
+							name: ctx.t('component.actual_margins'),
 							run: toggleMargins
 						},
 						{
 							icon: 'lucide:file-spreadsheet',
-							name: bolt.t('component.export_xlsx'),
+							name: ctx.t('component.export_xlsx'),
 							run: () => {
 								if (!salesRequest || exporting) return;
 								exporting = true;
@@ -575,26 +573,26 @@
 					)}
 				{/snippet}
 				{#snippet empty()}<EmptyState
-						title={bolt.t(
+						title={ctx.t(
 							salesBasis === 'invoice' ? 'reports.sales.no_invoices' : 'reports.sales.no_deliveries'
 						)}
 					/>{/snippet}
 			</Table>
-		{:else}<EmptyState title={bolt.t('component.reports_loading')} />{/if}
+		{:else}<EmptyState title={ctx.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
 {#snippet pager(index: number, next: boolean, move: (direction: number) => void)}
 	<div
 		class="flex flex-wrap items-center justify-end gap-2"
-		aria-label={bolt.t('reports.page_navigation')}
+		aria-label={ctx.t('reports.page_navigation')}
 	>
 		<span class="text-sm tabular-nums text-muted-foreground"
-			>{bolt.t('reports.page_number', { page: index + 1 })}</span
+			>{ctx.t('reports.page_number', { page: index + 1 })}</span
 		>
 		<Button variant="outline" disabled={index === 0} onclick={() => move(-1)}
-			>{bolt.t('reports.previous')}</Button
+			>{ctx.t('reports.previous')}</Button
 		>
 		<Button variant="outline" disabled={!next} onclick={() => move(1)}
-			>{bolt.t('reports.next')}</Button
+			>{ctx.t('reports.next')}</Button
 		>
 	</div>
 {/snippet}
@@ -616,41 +614,41 @@
 			type="button"
 			class="underline-offset-4 hover:underline focus-visible:underline"
 			onclick={() => {
-				if (row.invoice) openRecord('transactions', row.invoice);
-				else if (row.order) openRecord('orders', row.order);
+				if (row.invoice) open_record('transactions', row.invoice);
+				else if (row.order) open_record('orders', row.order);
 			}}>{row.reference}</button
 		>
 	{:else}{row.reference}{/if}
 {/snippet}
 {#snippet agingControls()}<div class="flex max-w-full flex-wrap items-end gap-2">
 		<label class="flex w-44 flex-col gap-1 text-sm" for="ar-aging-date">
-			{bolt.t('component.aging_as_of')}
+			{ctx.t('component.aging_as_of')}
 			<TimeInput
 				id="ar-aging-date"
-				value={asOf}
-				onChange={(value: string | null) => (asOf = value)}
+				value={as_of}
+				on_change={(value: string | null) => (as_of = value)}
 			/>
 		</label>
 		<label class="flex flex-col gap-1 text-sm">
-			{bolt.t('reports.aging.view')}
+			{ctx.t('reports.aging.view')}
 			<select
 				bind:value={agingView}
 				onchange={() => (agingCustomer = null)}
 				class="h-9 rounded-md border border-input bg-background px-2"
 			>
-				<option value="customers">{bolt.t('reports.aging.customers')}</option>
-				<option value="entries">{bolt.t('reports.aging.entries')}</option>
+				<option value="customers">{ctx.t('reports.aging.customers')}</option>
+				<option value="entries">{ctx.t('reports.aging.entries')}</option>
 			</select>
 		</label>
 		{#if snapshots.length}
 			<label class="flex flex-col gap-1 text-sm">
-				{bolt.t('reports.aging.basis')}
+				{ctx.t('reports.aging.basis')}
 				<select
 					bind:value={agingBasis}
 					class="h-9 rounded-md border border-input bg-background px-2"
 				>
-					<option value="estimated">{bolt.t('reports.aging.basis_estimated')}</option>
-					<option value="gross">{bolt.t('reports.aging.basis_gross')}</option>
+					<option value="estimated">{ctx.t('reports.aging.basis_estimated')}</option>
+					<option value="gross">{ctx.t('reports.aging.basis_gross')}</option>
 				</select>
 			</label>
 		{/if}
@@ -662,47 +660,47 @@
 					agingView = 'customers';
 				}}
 			>
-				{bolt.t('reports.aging.all_customers')}
+				{ctx.t('reports.aging.all_customers')}
 			</Button>
 		{/if}
 	</div>
 {/snippet}
 {#snippet customersPager()}{@render localPager('customers', agingCustomers?.length ?? 0)}{/snippet}
 {#snippet entriesPager()}{@render localPager('entries', visibleAgingRows?.length ?? 0)}{/snippet}
-{#snippet aging()}<Stack size="fill" minHeight="18rem" gap="sm">
+{#snippet aging()}<Stack size="fill" min_height="18rem" gap="sm">
 		{#each snapshots as snapshot (snapshot.id)}
 			<p class="text-sm text-muted-foreground">
-				{snapshot.source?.name} · {bolt.t('reports.aging.snapshot_at')}
+				{snapshot.source?.name} · {ctx.t('reports.aging.snapshot_at')}
 				<Show kind={{ kind: 'instant' }} value={snapshot.observed_at} />
 			</p>
 		{/each}
 		{#if agingCustomer}<p class="text-sm font-medium">{agingCustomer.name}</p>{/if}
-		{#if futureAging}<EmptyState tone="danger" title={bolt.t('errors.report_future')} />
-		{:else if earlyAging}<EmptyState tone="danger" title={bolt.t('reports.aging.early_cutoff')} />
+		{#if futureAging}<EmptyState tone="danger" title={ctx.t('errors.report_future')} />
+		{:else if earlyAging}<EmptyState tone="danger" title={ctx.t('reports.aging.early_cutoff')} />
 		{:else if agingSources?.error}<EmptyState tone="danger" title={agingSources.error.message} />
 		{:else if agingIncomplete || snapshotError}<EmptyState
 				tone="danger"
-				title={bolt.t('reports.aging.incomplete')}
+				title={ctx.t('reports.aging.incomplete')}
 			/>
 		{:else if agingView === 'customers' && agingCustomers?.length}
 			{@const agingCustomerColumns: readonly Col<NonNullable<typeof agingCustomers>[number]>[] = [
-					{ field: 'party_name', label: label(bolt, 'orders', 'party_name') },
+					{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
 					...(['net', 'balance', 'unapplied', 'credit', 'overpaid'] as const).map((field) => ({
 						field,
 						kind: moneyKind,
-						label: bolt.t(`reports.aging.${field}`),
+						label: ctx.t(`reports.aging.${field}`),
 						align: 'end' as const,
 						cell: money
 					})),
-					{ field: 'ledger_name', label: bolt.t('reports.aging.ledger') },
-					{ field: 'currency', label: label(bolt, 'orders', 'currency') },
-					{ field: 'as_of', label: bolt.t('component.aging_as_of'), cell: date },
+					{ field: 'ledger_name', label: ctx.t('reports.aging.ledger') },
+					{ field: 'currency', label: label(ctx, 'orders', 'currency') },
+					{ field: 'as_of', label: ctx.t('component.aging_as_of'), cell: date },
 					...(showAgingEstimate
 						? [
 								{
 									field: 'estimated_balance' as const,
 									kind: moneyKind,
-									label: bolt.t('reports.aging.estimated_balance'),
+									label: ctx.t('reports.aging.estimated_balance'),
 									align: 'end' as const,
 									cell: money
 								}
@@ -711,7 +709,7 @@
 					...agingBuckets.map((field) => ({
 						field,
 						kind: moneyKind,
-						label: bolt.t(`reports.aging.${field}`),
+						label: ctx.t(`reports.aging.${field}`),
 						align: 'end' as const,
 						cell: money
 					}))
@@ -722,7 +720,7 @@
 				controlled
 				footer={customersPager}
 				key="ar_customers"
-				onOpen={(row) => {
+				on_open={(row) => {
 					agingCustomer = {
 						key: row.group,
 						name: [row.party_name, row.ledger_name, row.currency].filter(Boolean).join(' · ')
@@ -737,7 +735,7 @@
 					actions: [
 						{
 							icon: 'lucide:file-spreadsheet',
-							name: bolt.t('component.export_xlsx'),
+							name: ctx.t('component.export_xlsx'),
 							run: () =>
 								downloadWorkbook('ar-aging-customers', agingCustomerColumns, agingCustomers)
 						}
@@ -749,14 +747,14 @@
 				estimated_applied: null,
 				estimated_balance: null,
 				...row,
-				bucket_label: bolt.t(`reports.aging.${row.bucket}`)
+				bucket_label: ctx.t(`reports.aging.${row.bucket}`)
 			}))};
 			{@const agingEntryColumns: readonly Col<(typeof agingEntryRows)[number]>[] = [
-					{ field: 'reference', label: bolt.t('reports.aging.reference'), cell: agingReference },
+					{ field: 'reference', label: ctx.t('reports.aging.reference'), cell: agingReference },
 					...(['balance', 'unapplied', 'credit', 'overpaid'] as const).map((field) => ({
 						field,
 						kind: moneyKind,
-						label: bolt.t(`reports.aging.${field}`),
+						label: ctx.t(`reports.aging.${field}`),
 						align: 'end' as const,
 						cell: money
 					})),
@@ -764,22 +762,22 @@
 						? (['estimated_applied', 'estimated_balance'] as const).map((field) => ({
 								field,
 								kind: moneyKind,
-								label: bolt.t(`reports.aging.${field}`),
+								label: ctx.t(`reports.aging.${field}`),
 								align: 'end' as const,
 								cell: money
 							}))
 						: []),
-					{ field: 'bucket_label', label: bolt.t('reports.aging.bucket'), cell: enumCell },
-					{ field: 'order_number', label: bolt.t('models.orders.singular') },
-					{ field: 'party_name', label: label(bolt, 'orders', 'party_name') },
-					{ field: 'ledger_name', label: bolt.t('reports.aging.ledger') },
-					{ field: 'currency', label: label(bolt, 'orders', 'currency') },
-					{ field: 'as_of', label: bolt.t('component.aging_as_of'), cell: date },
-					{ field: 'issued_on', label: bolt.t('models.transactions.fields.issued_on'), cell: date },
-					{ field: 'due_on', label: label(bolt, 'orders', 'due_on'), cell: date },
+					{ field: 'bucket_label', label: ctx.t('reports.aging.bucket'), cell: enumCell },
+					{ field: 'order_number', label: ctx.t('models.orders.singular') },
+					{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
+					{ field: 'ledger_name', label: ctx.t('reports.aging.ledger') },
+					{ field: 'currency', label: label(ctx, 'orders', 'currency') },
+					{ field: 'as_of', label: ctx.t('component.aging_as_of'), cell: date },
+					{ field: 'issued_on', label: ctx.t('models.transactions.fields.issued_on'), cell: date },
+					{ field: 'due_on', label: label(ctx, 'orders', 'due_on'), cell: date },
 					{
 						field: 'settled_on',
-						label: bolt.t('reports.aging.receipt_date'),
+						label: ctx.t('reports.aging.receipt_date'),
 						cell: date
 					}
 				]}
@@ -797,49 +795,49 @@
 					actions: [
 						{
 							icon: 'lucide:file-spreadsheet',
-							name: bolt.t('component.export_xlsx'),
+							name: ctx.t('component.export_xlsx'),
 							run: () => downloadWorkbook('ar-aging-entries', agingEntryColumns, agingEntryRows)
 						}
 					]
 				}}
 			/>
 		{:else if agingAnswer?.error}<EmptyState tone="danger" title={agingAnswer.error.message} />
-		{:else if agingRows}<EmptyState title={bolt.t('reports.aging.empty')} />
-		{:else}<EmptyState title={bolt.t('component.reports_loading')} />{/if}
+		{:else if agingRows}<EmptyState title={ctx.t('reports.aging.empty')} />
+		{:else}<EmptyState title={ctx.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
 {#snippet monthActions({ row }: { row: MonthlyCommission })}
 	{#if row.latest_statement}{row.latest_number}{/if}
-	{#if kinds.catalog?.commission_statements?.create && ['unacknowledged', 'changed'].includes(row.state)}<Button
-			onclick={() => (monthSelection = row)}>{bolt.t('component.commission_acknowledge')}</Button
+	{#if ctx.catalog?.commission_statements?.create && ['unacknowledged', 'changed'].includes(row.state)}<Button
+			onclick={() => (monthSelection = row)}>{ctx.t('component.commission_acknowledge')}</Button
 		>{/if}
 {/snippet}
-{#snippet monthlyCommission()}<Stack size="fill" minHeight="18rem" gap="sm">
-		{#if monthlyRows}{#await monthlyRows}<EmptyState title={bolt.t('component.reports_loading')} />
+{#snippet monthlyCommission()}<Stack size="fill" min_height="18rem" gap="sm">
+		{#if monthlyRows}{#await monthlyRows}<EmptyState title={ctx.t('component.reports_loading')} />
 			{:then monthly}
 				{@const rows = monthly.map((row) => ({
 					...row,
-					state_label: bolt.t(`reports.commission_ack.${row.state}`)
+					state_label: ctx.t(`reports.commission_ack.${row.state}`)
 				}))}
 				{#snippet commissionPager()}{@render localPager('commission', rows.length)}{/snippet}
 				{@const commissionExport = [
-					{ field: 'owner_name', label: label(bolt, 'orders', 'owner_name') },
-					{ field: 'currency', label: label(bolt, 'orders', 'currency') },
-					{ field: 'order_count', label: label(bolt, 'commission_statements', 'order_count') },
+					{ field: 'owner_name', label: label(ctx, 'orders', 'owner_name') },
+					{ field: 'currency', label: label(ctx, 'orders', 'currency') },
+					{ field: 'order_count', label: label(ctx, 'commission_statements', 'order_count') },
 					{
 						field: 'amount',
-						label: label(bolt, 'orders', 'amount'),
+						label: label(ctx, 'orders', 'amount'),
 						numeric: true,
 						scale: 2
 					},
 					{
 						field: 'latest_amount',
-						label: bolt.t('component.commission_previous'),
+						label: ctx.t('component.commission_previous'),
 						numeric: true,
 						scale: 2
 					},
-					{ field: 'unresolved_lines', label: bolt.t('component.commission_unresolved_items') },
-					{ field: 'state_label', label: label(bolt, 'orders', 'status') },
-					{ field: 'latest_number', label: bolt.t('component.monthly_commission_statement') }
+					{ field: 'unresolved_lines', label: ctx.t('component.commission_unresolved_items') },
+					{ field: 'state_label', label: label(ctx, 'orders', 'status') },
+					{ field: 'latest_number', label: ctx.t('component.monthly_commission_statement') }
 				]}
 				<Table
 					layout="grid"
@@ -847,33 +845,33 @@
 					controlled
 					footer={commissionPager}
 					key="monthly_commission"
-					onOpen={(row) => {
-						if (row.latest_statement) openRecord('commission_statements', row.latest_statement);
+					on_open={(row) => {
+						if (row.latest_statement) open_record('commission_statements', row.latest_statement);
 					}}
 					columns={[
-						{ field: 'owner_name', label: label(bolt, 'orders', 'owner_name') },
-						{ field: 'currency', label: label(bolt, 'orders', 'currency') },
-						{ field: 'order_count', label: label(bolt, 'commission_statements', 'order_count') },
+						{ field: 'owner_name', label: label(ctx, 'orders', 'owner_name') },
+						{ field: 'currency', label: label(ctx, 'orders', 'currency') },
+						{ field: 'order_count', label: label(ctx, 'commission_statements', 'order_count') },
 						{
 							field: 'amount',
 							kind: moneyKind,
-							label: label(bolt, 'orders', 'amount'),
+							label: label(ctx, 'orders', 'amount'),
 							align: 'end' as const,
 							cell: money
 						},
 						{
 							field: 'latest_amount',
 							kind: moneyKind,
-							label: bolt.t('component.commission_previous'),
+							label: ctx.t('component.commission_previous'),
 							align: 'end' as const,
 							cell: money
 						},
-						{ field: 'unresolved_lines', label: bolt.t('component.commission_unresolved_items') },
+						{ field: 'unresolved_lines', label: ctx.t('component.commission_unresolved_items') },
 
-						{ field: 'state_label', label: label(bolt, 'orders', 'status'), cell: enumCell },
+						{ field: 'state_label', label: label(ctx, 'orders', 'status'), cell: enumCell },
 						{
 							field: 'latest_number',
-							label: bolt.t('component.monthly_commission_statement'),
+							label: ctx.t('component.monthly_commission_statement'),
 							cell: monthActions
 						}
 					]}
@@ -883,7 +881,7 @@
 						actions: [
 							{
 								icon: 'lucide:file-spreadsheet',
-								name: bolt.t('component.export_xlsx'),
+								name: ctx.t('component.export_xlsx'),
 								run: () => downloadWorkbook('commission-statements', commissionExport, rows)
 							}
 						]
@@ -892,11 +890,11 @@
 				{#if monthSelection && rows.some((row) => row.calculation_hash === monthSelection?.calculation_hash && ['unacknowledged', 'changed'].includes(row.state))}
 					<Dialog.Root
 						open={monthSelection !== null}
-						onOpenChange={(open) => {
+						on_open_change={(open) => {
 							if (!open) monthSelection = null;
 						}}
 						><Dialog.Content
-							><Dialog.Title>{bolt.t('component.monthly_commission_statement')}</Dialog.Title>
+							><Dialog.Title>{ctx.t('component.monthly_commission_statement')}</Dialog.Title>
 							<p>
 								{monthSelection.owner_name} · {monthSelection.period.slice(0, 7)} · <Show
 									kind={{ kind: 'money', currency: 'currency' }}
@@ -914,8 +912,8 @@
 									calculation_hash: monthSelection.calculation_hash
 								}}
 								fields={[]}
-								submit={bolt.t('component.commission_acknowledge')}
-								onOutcome={() => (monthSelection = null)}
+								submit={ctx.t('component.commission_acknowledge')}
+								on_outcome={() => (monthSelection = null)}
 							/>
 						</Dialog.Content></Dialog.Root
 					>
@@ -925,12 +923,12 @@
 					title={failure instanceof Error ? failure.message : String(failure)}
 				/>{/await}
 		{:else if boardAnswer?.error}<EmptyState tone="danger" title={boardAnswer.error.message} />
-		{:else}<EmptyState title={bolt.t('component.reports_loading')} />{/if}
+		{:else}<EmptyState title={ctx.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
 <AppShell
-	description={bolt.t('app.analysis.description')}
+	description={ctx.t('app.analysis.description')}
 	icon="lucide:chart-column"
-	title={bolt.t('component.reports')}
+	title={ctx.t('component.reports')}
 	variant="full"
 >
 	{#snippet actions()}
@@ -941,17 +939,15 @@
 	{/snippet}
 	{#if salesShown || agingShown || boardShown}<Tabs
 			value={tab ?? undefined}
-			onValueChange={(value) => (chosenTab = value)}
+			on_value_change={(value) => (chosenTab = value)}
 			tabs={[
 				...(salesShown
-					? [{ name: 'sales', title: bolt.t('component.sales_analysis'), body: salesTab }]
+					? [{ name: 'sales', title: ctx.t('component.sales_analysis'), body: salesTab }]
 					: []),
-				...(agingShown
-					? [{ name: 'aging', title: bolt.t('component.ar_aging'), body: aging }]
-					: []),
+				...(agingShown ? [{ name: 'aging', title: ctx.t('component.ar_aging'), body: aging }] : []),
 				...(boardShown
-					? [{ name: 'commission', title: bolt.t('component.commission'), body: monthlyCommission }]
+					? [{ name: 'commission', title: ctx.t('component.commission'), body: monthlyCommission }]
 					: [])
 			]}
-		/>{:else}<EmptyState title={bolt.t('component.reports_access')} />{/if}
+		/>{:else}<EmptyState title={ctx.t('component.reports_access')} />{/if}
 </AppShell>

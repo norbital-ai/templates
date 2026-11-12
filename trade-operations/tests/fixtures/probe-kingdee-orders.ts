@@ -2,15 +2,15 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import mssql from 'mssql';
 import { Effect, Schema } from 'effect';
-import { inputSchema } from '@norbital-ai/std/kind';
+import { input_schema } from '@norbital-ai/std/kind';
 import type { Id } from '@norbital-ai/bolt';
 import {
-	validateDatabaseRequest,
+	validate_database_request,
 	type DatabaseRequest,
 	type DatabaseResult
 } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { compileSqlServer } from '@norbital-ai/store/sqlserver';
+import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { type OrderPayload } from '../../src/integration/kingdee/order-batch.js';
 import { readSourceOrderFamilies } from '../../src/integration/kingdee/order-source.js';
 import { submitOrder, sourceOrderUuid } from '../../src/integration/kingdee/submission.js';
@@ -75,7 +75,9 @@ const initial: OrderPayload = {
 const correlation = await Effect.runPromise(sourceOrderUuid(orderId, initial.agreement_hash));
 
 async function execute(operation: DatabaseRequest): Promise<DatabaseResult> {
-	const compiled = compileSqlServer(validateDatabaseRequest(operation));
+	const compiled = compile_sql_server(
+		await Effect.runPromise(validate_database_request(operation))
+	);
 	const pool = await new mssql.ConnectionPool(server).connect();
 	const transaction = new mssql.Transaction(pool);
 	try {
@@ -138,7 +140,7 @@ const submit = (payload: OrderPayload, loseReceipt = false) =>
 	);
 const nativeId = Schema.decodeUnknownSync(
 	Schema.declare<Id<'orders'>>((value): value is Id<'orders'> =>
-		Schema.is(inputSchema({ kind: 'id', of: 'orders' }))(value)
+		Schema.is(input_schema({ kind: 'ref', to: 'orders' }))(value)
 	)
 )(orderId);
 const readFamilies = () =>

@@ -1,10 +1,10 @@
 import { Effect, Record as EffectRecord, Result, Schema } from 'effect';
-import type { FacilityFailure, Unavailable } from '@norbital-ai/bolt/errors';
+import type { FacilityFailure, ReadFailed, Unavailable } from '@norbital-ai/bolt/errors';
 import { sha256Hex, type DigestUnavailable } from '../../lib/commercial.js';
-import type { Health, Id } from '@norbital-ai/bolt';
+import type { Health, Id, InstanceId } from '@norbital-ai/bolt';
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
 import { Decimal, currency } from '@norbital-ai/std/decimal';
-import { inputSchema } from '@norbital-ai/std/kind';
+import { input_schema } from '@norbital-ai/std/kind';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import type { SourceProjection as Projection } from './sql.js';
 import { sourceCheckpoint, sourcePage, sourceMarkers } from './sql.js';
@@ -109,7 +109,7 @@ export function columns(row: SqlRow) {
 		id: <C extends string>(name: string, _model: C) =>
 			reader(
 				Schema.declare<Id<C>>((input): input is Id<C> =>
-					Schema.is(inputSchema({ kind: 'id', of: _model }))(input)
+					Schema.is(input_schema({ kind: 'ref', to: _model }))(input)
 				),
 				same,
 				'an id'
@@ -211,7 +211,7 @@ type Reconciler<R extends object> = (after: string) => Effect.Effect<
 		readonly after: string;
 		readonly more: boolean;
 	},
-	FacilityFailure | Unavailable | SourceRowInvalid
+	FacilityFailure | Unavailable | SourceRowInvalid | ReadFailed
 >;
 /**
  * Current-state polling: native eight-byte rowversions select [bookmark, upper); feeds without a verified marker use
@@ -234,6 +234,7 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 	account?: string
 ): Effect.fn.Return<
 	SourcePage<R | M>,
+	| ReadFailed
 	| FacilityFailure
 	| Unavailable
 	| SourceRowInvalid
@@ -424,3 +425,9 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 		health
 	};
 });
+
+/** A read's rows name the account they came from: a sync stamps no reference itself. */
+export const fromSource = <P extends { readonly rows: readonly object[] }>(
+	page: P,
+	instance: InstanceId<'kingdee'>
+) => ({ ...page, rows: page.rows.map((row) => ({ ...row, source: instance })) });

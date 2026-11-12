@@ -26,7 +26,7 @@ import type {
 } from '@norbital-ai/bolt';
 import { hash } from './commercial.js';
 import { commercialSalesFields } from './sales-fact-fields.js';
-import { minorDigits, Decimal, sum } from '@norbital-ai/std/decimal';
+import { minor_digits, Decimal, sum } from '@norbital-ai/std/decimal';
 /** The order fields the commission and report helpers read. */
 export const reportFields = [
 	...agreementFields,
@@ -144,7 +144,7 @@ function commissionLines(
 				...base,
 				spread,
 				amount: (fact?.kind === 'return' ? result.amount.neg() : result.amount).round(
-					minorDigits(order.currency)
+					minor_digits(order.currency)
 				),
 				reason: result.eligible ? ('resolved' as const) : ('ineligible' as const)
 			};
@@ -203,7 +203,7 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 	const amount = unresolved_lines
 		? null
 		: sum(lines.flatMap((line) => (line.amount === null ? [] : [line.amount]))).round(
-				minorDigits(order.currency)
+				minor_digits(order.currency)
 			);
 	const snapshot = {
 		seal_hash: order.seal_hash ?? '',
@@ -255,14 +255,14 @@ export function commissionReport(
 export const salesRead = {
 	source_sales_lines: {
 		where: { active: { eq: true }, kind: { ne: 'invoice' } },
-		fields: [...commercialSalesFields, 'booked_cost', 'booked_cost_currency']
+		fields: [...commercialSalesFields, 'booked_cost', 'booked_cost_currency'],
+		order: {
+			where: { direction: { eq: 'sales' }, seal_hash: { is_null: false } },
+			fields: [...agreementFields, 'number', 'party', 'owner', 'currency'],
+			party: { fields: ['name'] },
+			lines: { fields: ['product'] }
+		}
 	},
-	'source_sales_lines.order': {
-		where: { direction: { eq: 'sales' }, seal_hash: { isNull: false } },
-		fields: [...agreementFields, 'number', 'party', 'owner', 'currency']
-	},
-	'source_sales_lines.order.party': { fields: ['name'] },
-	'source_sales_lines.order.lines': { fields: ['product'] },
 	products: { fields: ['name'] },
 	sys_user: { output: 'directory', fields: ['name'] }
 } as const;
@@ -316,7 +316,7 @@ export function salesReadDuring(
 			...read.source_sales_lines,
 			where,
 			limit,
-			orderBy: [{ business_on: 'desc' }, { reference: 'asc' }] as const
+			order_by: [{ business_on: 'desc' }, { reference: 'asc' }] as const
 		}
 	};
 }
@@ -491,11 +491,11 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 		.map(({ orderIds, ...row }) => ({
 			...row,
 			orders: orderIds.size,
-			net: row.net?.round(minorDigits(row.currency)) ?? null,
-			source_net: row.source_net?.round(minorDigits(row.currency)) ?? null,
-			tax: row.tax?.round(minorDigits(row.currency)) ?? null,
-			total: row.total?.round(minorDigits(row.currency)) ?? null,
-			freight: row.freight?.round(minorDigits(row.currency)) ?? null
+			net: row.net?.round(minor_digits(row.currency)) ?? null,
+			source_net: row.source_net?.round(minor_digits(row.currency)) ?? null,
+			tax: row.tax?.round(minor_digits(row.currency)) ?? null,
+			total: row.total?.round(minor_digits(row.currency)) ?? null,
+			freight: row.freight?.round(minor_digits(row.currency)) ?? null
 		}))
 		.sort(
 			(a, b) =>
@@ -524,7 +524,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 			const treatment = order?.freight_treatment ?? null;
 			const denomination = order?.currency ?? source.currency;
 			const booked = treatment ? bookedNet(net, freight, treatment) : null;
-			const digits = minorDigits(denomination);
+			const digits = minor_digits(denomination);
 			const legacyCost =
 				source.lot_number && source.unit_cost !== null
 					? Decimal.of(source.unit_cost).times(source.quantity)
@@ -545,7 +545,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					owner: order?.owner ?? null,
 					source_owner: dimensions ? sourceOwner(source) : null,
 					sold_price:
-						net === null || Decimal.of(source.quantity).isZero()
+						net === null || Decimal.of(source.quantity).is_zero()
 							? null
 							: net.div(source.quantity, 8),
 					floor_net: sealed?.floor_net ? Decimal.of(sealed.floor_net) : null,
@@ -563,7 +563,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					unit: source.unit,
 					quantity: source.quantity,
 					lot_number: source.lot_number,
-					cost: cost !== null && costCurrency ? cost.round(minorDigits(costCurrency)) : null,
+					cost: cost !== null && costCurrency ? cost.round(minor_digits(costCurrency)) : null,
 					cost_currency: costCurrency,
 					margin:
 						cost !== null && costCurrency === denomination && booked !== null
@@ -603,10 +603,9 @@ export const agingRead = (
 				issued_on: { lte: as_of }
 			},
 			fields: ['source', 'order', 'reference', 'currency', 'total', 'issued_on', 'due_on'],
-			limit
+			limit,
+			order: { fields: ['number', 'party', 'party_name', 'ledger'], ledger: { fields: ['name'] } }
 		},
-		'transactions.order': { fields: ['number', 'party', 'party_name', 'ledger'] },
-		'transactions.order.ledger': { fields: ['name'] },
 		source_payments: {
 			where: {
 				...salesReceivable,
@@ -615,15 +614,16 @@ export const agingRead = (
 				active: { eq: true }
 			},
 			fields: ['source', 'order', 'invoice', 'reference', 'currency', 'amount', 'settled_on'],
-			limit
-		},
-		'source_payments.order': { fields: ['number', 'party', 'party_name', 'ledger'] },
-		'source_payments.order.ledger': { fields: ['name'] }
+			limit,
+			order: { fields: ['number', 'party', 'party_name', 'ledger'], ledger: { fields: ['name'] } }
+		}
 	}) as const;
 type AgingAnswer = ReadAnswer<ReturnType<typeof agingRead>>;
 export const receivablesRead = {
-	source_receivables: { fields: ['source', 'currency', 'observed_at', 'entries'] },
-	'source_receivables.source': { fields: ['name'] }
+	source_receivables: {
+		fields: ['source', 'currency', 'observed_at', 'entries'],
+		source: { fields: ['name'] }
+	}
 } as const;
 type ReceivablesSnapshot = ReadAnswer<typeof receivablesRead>['source_receivables']['rows'][number];
 
@@ -656,21 +656,13 @@ export const readAgingReport = <E>(
 		{
 			transactions: reportPages(first.transactions, (after) =>
 				Effect.map(
-					reader.query({
-						transactions: { ...request.transactions, after },
-						'transactions.order': request['transactions.order'],
-						'transactions.order.ledger': request['transactions.order.ledger']
-					}),
+					reader.query({ transactions: { ...request.transactions, after } }),
 					(page) => page.transactions
 				)
 			),
 			source_payments: reportPages(first.source_payments, (after) =>
 				Effect.map(
-					reader.query({
-						source_payments: { ...request.source_payments, after },
-						'source_payments.order': request['source_payments.order'],
-						'source_payments.order.ledger': request['source_payments.order.ledger']
-					}),
+					reader.query({ source_payments: { ...request.source_payments, after } }),
 					(page) => page.source_payments
 				)
 			)
@@ -738,7 +730,7 @@ export function arAging(answer: AgingAnswer, as_of: PlainDate) {
 		if (!order || invoice.total === null) return [];
 		const total = Decimal.of(invoice.total);
 		const raw = total.minus(paidByInvoice.get(invoice.id) ?? zero);
-		if (raw.isZero()) return [];
+		if (raw.is_zero()) return [];
 		const balance = raw.lt(0) ? zero : raw;
 		const credit = total.lt(0) && raw.lt(0) ? raw.neg() : zero;
 		const overpaid = !total.lt(0) && raw.lt(0) ? raw.neg() : zero;
@@ -772,7 +764,7 @@ export function receivablesDetails(snapshots: readonly ReceivablesSnapshot[], as
 				...entry.settlements
 					.filter((settlement) => settlement.on > as_of)
 					.map((settlement) => settlement.amount)
-			]).round(minorDigits(snapshot.currency));
+			]).round(minor_digits(snapshot.currency));
 			if (amount.eq(0)) return [];
 			const receipt = entry.kind === 'receipt';
 			return [
@@ -971,11 +963,10 @@ export function ledgerRead(input: { order?: Id<'orders'> | null; as_of?: PlainDa
 	return {
 		source_payments: {
 			where,
-			fields: ['order', 'invoice', 'reference', 'currency', 'amount', 'settled_on', 'active']
-		},
-		'source_payments.order': { fields: ['number', 'party'] },
-		'source_payments.order.party': { fields: ['name'] },
-		'source_payments.invoice': { fields: ['reference'] }
+			fields: ['order', 'invoice', 'reference', 'currency', 'amount', 'settled_on', 'active'],
+			order: { fields: ['number', 'party'], party: { fields: ['name'] } },
+			invoice: { fields: ['reference'] }
+		}
 	} as const;
 }
 /** Payments and refunds, newest first: active ones (withdrawn too when asked), or only those no invoice applies. */

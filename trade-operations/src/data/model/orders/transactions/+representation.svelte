@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button, RecordShell, Table, Show, type RecordView } from '@norbital-ai/ui';
 	import RecordLink from '../../../../lib/ui/record-link.svelte';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'transactions'>;
+		ctx: PageContext;
 	} = $props();
 	const fields = [
 		{ name: 'reference', kind: { kind: 'text' } },
@@ -28,10 +30,11 @@
 					{@const value = shown.record[relation]}
 					{#if value}<div>
 							<dt class="text-xs font-medium text-muted-foreground">
-								{bolt.t(`models.transactions.fields.${relation}`)}
+								{ctx.t(`models.transactions.fields.${relation}`)}
 							</dt>
 							<dd>
 								<RecordLink
+									{ctx}
 									of={relation === 'order'
 										? 'orders'
 										: relation === 'ext_sales_order'
@@ -44,7 +47,7 @@
 				{/each}
 				{#each fields as field (field.name)}<div>
 						<dt class="text-xs font-medium text-muted-foreground">
-							{bolt.t(`models.transactions.fields.${field.name}`)}
+							{ctx.t(`models.transactions.fields.${field.name}`)}
 						</dt>
 						<dd>
 							<Show
@@ -59,30 +62,30 @@
 			{#if shown.record.items}<Table
 					of={shown.record.items}
 					columns={[
-						{ field: 'product_name', label: bolt.t('models.order_lines.fields.product_name') },
+						{ field: 'product_name', label: ctx.t('models.order_lines.fields.product_name') },
 						...(shown.record.items.some((item) => item.lot_number != null)
 							? [
 									{
 										field: 'lot_number' as const,
-										label: bolt.t('models.stock_snapshots.fields.lot_number')
+										label: ctx.t('models.stock_snapshots.fields.lot_number')
 									}
 								]
 							: []),
-						{ field: 'quantity', label: bolt.t('models.orders.fields.quantity') },
-						{ field: 'unit', label: bolt.t('models.order_lines.fields.unit') },
-						{ field: 'unit_price', label: bolt.t('models.order_lines.fields.unit_price') },
+						{ field: 'quantity', label: ctx.t('models.orders.fields.quantity') },
+						{ field: 'unit', label: ctx.t('models.order_lines.fields.unit') },
+						{ field: 'unit_price', label: ctx.t('models.order_lines.fields.unit_price') },
 						...(shown.record.items.some((item) => item.unit_cost != null)
 							? [
 									{
 										field: 'unit_cost' as const,
-										label: bolt.t('models.stock_snapshots.fields.unit_cost')
+										label: ctx.t('models.stock_snapshots.fields.unit_cost')
 									}
 								]
 							: [])
 					]}
-					toolbar={{ new: false, title: bolt.t('section.lines') }}
+					toolbar={{ new: false, title: ctx.t('section.lines') }}
 				/>{/if}
-			<h3>{bolt.t('component.transaction_documents')}</h3>
+			<h3>{ctx.t('component.transaction_documents')}</h3>
 			{#if shown.record.documents?.length}
 				<Cluster gap="sm">
 					{#each shown.record.documents as document (document.sha256)}<Button
@@ -92,7 +95,7 @@
 							rel="noopener noreferrer">{document.name}</Button
 						>{/each}
 				</Cluster>
-			{:else}<p>{bolt.t('component.transaction_documents_pending')}</p>{/if}
+			{:else}<p>{ctx.t('component.transaction_documents_pending')}</p>{/if}
 		</Stack>
 	{/if}
 {/snippet}

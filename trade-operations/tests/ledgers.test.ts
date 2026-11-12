@@ -19,9 +19,9 @@ const ledgers = Effect.fnUntraced(function* () {
 	const t = yield* workspace();
 	const second = committed(
 		'sys_integration',
-		yield* t
-			.as(t.admin)
-			.act('sys_integration.create', [{ integration: 'kingdee', name: 'Second ledger' }])
+		yield* (yield* t.as(t.admin)).act({
+			'sys_integration.create': [{ integration: 'kingdee', name: 'Second ledger' }]
+		})
 	);
 	const routes = new Map<string, Source>([
 		[first, sources.first.request],
@@ -53,9 +53,9 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 					yield* t.pull('products', first);
 					yield* t.pull('products', second);
 					yield* t.pull('parties', second);
+					const admin = yield* t.as(t.admin);
 					const read = (instance: typeof first) =>
-						t
-							.as(t.admin)
+						admin
 							.query({
 								products: {
 									where: { source: { eq: instance }, external_code: { eq: '301' } }
@@ -63,12 +63,14 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 							})
 							.pipe(Effect.map((answer) => answer.products));
 					const original = firstRow((yield* read(first)).rows);
-					yield* t.as(t.admin).act('products.update', [
-						{
-							target: original.id,
-							set: { commission_factor: Decimal.of('1.25'), commission_basis_unit: 'kg' }
-						}
-					]);
+					yield* (yield* t.as(t.admin)).act({
+						'products.update': [
+							{
+								target: yield* t.at('products', original.id),
+								set: { commission_factor: Decimal.of('1.25'), commission_basis_unit: 'kg' }
+							}
+						]
+					});
 					records.first['/products'] = (records.first['/products'] ?? []).map((row) => {
 						return {
 							...Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(row),
@@ -88,34 +90,38 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 						spec: 'A'
 					});
 					const party = firstRow(
-						(yield* t.as(t.admin).query({
+						(yield* (yield* t.as(t.admin)).query({
 							parties: { where: { source: { eq: second }, external_code: { eq: '101' } } }
 						})).parties.rows
 					);
 					const order = committed(
 						'orders',
-						yield* t.as(t.admin).act('orders.create', [
-							{
-								title: 'Mixed product',
-								direction: 'sales',
-								party: party.id,
-								currency: 'CNY',
-								payment_terms: 'PROBE-NET30'
-							}
-						])
+						yield* (yield* t.as(t.admin)).act({
+							'orders.create': [
+								{
+									title: 'Mixed product',
+									direction: 'sales',
+									party: party.id,
+									currency: 'CNY',
+									payment_terms: 'PROBE-NET30'
+								}
+							]
+						})
 					);
 					expect(
 						yield* Effect.flip(
-							t.as(t.admin).act('order_lines.create', [
-								{
-									order,
-									product: original.id,
-									quantity: Decimal.of(1),
-									unit_price: Decimal.of(2),
-									discount_pct: Decimal.of(0),
-									tax_rate: Decimal.of(13)
-								}
-							])
+							(yield* t.as(t.admin)).act({
+								'order_lines.create': [
+									{
+										order,
+										product: original.id,
+										quantity: Decimal.of(1),
+										unit_price: Decimal.of(2),
+										discount_pct: Decimal.of(0),
+										tax_rate: Decimal.of(13)
+									}
+								]
+							})
 						)
 					).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
 				})
@@ -158,9 +164,9 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 					)
 				).toMatchObject({
 					cursor: before?.cursor,
-					health: { state: 'attention', failures: 1, code: 'guestError' }
+					health: { state: 'attention', failures: 1, code: 'guest_error' }
 				});
-				const products = yield* t.as(t.admin).query({
+				const products = yield* (yield* t.as(t.admin)).query({
 					products: { where: { source: { eq: first } }, fields: ['name'] }
 				});
 				expect(products.products.rows.length).toBeGreaterThan(0);

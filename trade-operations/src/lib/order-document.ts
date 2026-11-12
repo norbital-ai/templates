@@ -224,10 +224,10 @@ export const documentRead = (order: Id<'orders'>) =>
 				'delivery_address',
 				'delivery_date'
 			],
-			limit: 1
+			limit: 1,
+			party: { fields: ['name', 'external_code'] },
+			lines: {}
 		},
-		'orders.party': { fields: ['name', 'external_code'] },
-		'orders.lines': {},
 		document_templates: { where: { status: { eq: 'published' } } }
 	}) as const;
 /** A saved quotation uses its published layout. Approved terms render from the retained seal. */
@@ -358,7 +358,7 @@ export function documentSource<E>(
 		if (document.print) {
 			const print = document.print;
 			const bytes = yield* read(print.file, '3MiB');
-			const layoutHtml = yield* Effect.try({
+			const layout_html = yield* Effect.try({
 				try: () => {
 					const layout = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 					const html = renderPrintLayout(
@@ -375,7 +375,7 @@ export function documentSource<E>(
 						message: error instanceof Error ? error.message : 'Print layout is unavailable'
 					})
 			});
-			return { layoutHtml } satisfies ConvertSource;
+			return { layout_html } satisfies ConvertSource;
 		}
 		let { html } = document;
 		if (letterhead) {

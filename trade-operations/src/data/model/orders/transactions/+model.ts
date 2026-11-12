@@ -1,40 +1,38 @@
+import { model } from '../../../../../.norbital/models/transactions.ts';
+import { fromSource } from '../../../../integration/kingdee/polling.js';
 import { Effect } from 'effect';
 import { logisticsDocument, logisticsOrder } from '../../../../lib/logistics.js';
 import { readTransactions } from '../../../../integration/kingdee/order-source.js';
-import { model, type CreateRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { agreement } from '../../../../lib/agreements.js';
 
 const transactionItems = {
-	kind: 'list',
-	of: {
-		kind: 'object',
-		fields: {
-			lot_number: { kind: 'text', optional: true },
-			unit_cost: { kind: 'decimal', scale: 8, optional: true },
-			net_amount: { kind: 'decimal', scale: 8, optional: true },
-			order_line_id: { kind: 'text' },
-			product_name: { kind: 'text' },
-			unit: { kind: 'text' },
-			quantity: { kind: 'decimal', scale: 3 },
-			unit_price: { kind: 'decimal', scale: 4, optional: true }
-		}
-	}
+	kind: 'object',
+	fields: {
+		lot_number: { kind: 'text', optional: true },
+		unit_cost: { kind: 'decimal', scale: 8, optional: true },
+		net_amount: { kind: 'decimal', scale: 8, optional: true },
+		order_line_id: { kind: 'text' },
+		product_name: { kind: 'text' },
+		unit: { kind: 'text' },
+		quantity: { kind: 'decimal', scale: 3 },
+		unit_price: { kind: 'decimal', scale: 4, optional: true }
+	},
+	many: true
 } as const;
 const transactionDocuments = {
-	kind: 'list',
-	of: {
-		kind: 'object',
-		fields: {
-			name: { kind: 'text' },
-			url: { kind: 'text' },
-			sha256: { kind: 'text' }
-		}
-	}
+	kind: 'object',
+	fields: {
+		name: { kind: 'text' },
+		url: { kind: 'text' },
+		sha256: { kind: 'text' }
+	},
+	many: true
 } as const;
 
 type Evidence = Pick<
-	CreateRow<'transactions'>,
+	CreatedRow<'transactions'>,
 	| 'source'
 	| 'order'
 	| 'ext_sales_order'
@@ -58,7 +56,7 @@ const settle = Effect.fnUntraced(function* (
 		orders: owners,
 		ext_sales_orders: sales,
 		ext_purchase_orders: purchases
-	} = yield* ctx.db.query({
+	} = yield* ctx.query({
 		orders: {
 			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.order ?? []))] } }
 		},
@@ -154,9 +152,9 @@ const settle = Effect.fnUntraced(function* (
 		}
 	}
 });
-export default model('transactions', {
+export default model({
 	description: 'Issued deliveries and invoices against an order agreement.',
-	label: 'reference',
+	record_label: 'record.reference',
 	fields: {
 		erp_id: { kind: 'text', hidden: true },
 		kind: { kind: 'enum', values: ['invoice', 'delivery'] },
@@ -185,33 +183,26 @@ export default model('transactions', {
 		},
 		order: { kind: 'ref', to: 'orders', inverse: 'transactions' }
 	},
-	key: ['source', 'erp_id'],
-	// aging names each invoice's order
-	search: { text: ['reference', 'kind'] },
-	read: {
-		transactions: { fields: 'all' },
-		'transactions.order': { fields: 'all' },
-		'transactions.order.ledger': { fields: ['name'] }
-	},
 	outputs: {
-		logistics: {
-			transactions: { fields: logisticsDocument },
-			'transactions.order': { fields: logisticsOrder }
-		}
+		default: { fields: 'all', order: { fields: 'all', ledger: { fields: ['name'] } } },
+		logistics: { fields: logisticsDocument, order: { fields: logisticsOrder } }
 	},
+	constraints: { natural_key: { unique: ['source', 'erp_id'], import_key: true } },
+	// aging names each invoice's order
+	indexes: { search: { text: ['reference', 'kind'] } },
 	// the sync alone writes transactions (no local columns); its rows pass through these checks
 	create: {
-		columns: { transactions: [] },
-		transform: function* (rows, ctx) {
+		columns: { fields: [] },
+		transform: function* (changes, ctx) {
 			yield* settle(
-				rows.map((value) => ({ value, old: null })),
+				changes.map(({ after }) => ({ value: after, old: null })),
 				ctx
 			);
-			return rows;
+			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
-		columns: { transactions: [] },
+		columns: { fields: [] },
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, set }) => ({ value: { ...before, ...set }, old: before })),
@@ -225,7 +216,7 @@ export default model('transactions', {
 			with: 'kingdee',
 			every: '5min',
 			read: function* ({ cursor, instance }, ctx) {
-				return yield* readTransactions(instance, cursor, ctx);
+				return fromSource(yield* readTransactions(instance, cursor, ctx), instance);
 			}
 		}
 	}

@@ -1,24 +1,23 @@
 import { Schema } from 'effect';
 
 export const printValueKind = {
-	kind: 'list',
+	kind: 'object',
+	fields: { key: { kind: 'text' }, value: { kind: 'text' } },
 	optional: true,
-	of: { kind: 'object', fields: { key: { kind: 'text' }, value: { kind: 'text' } } }
+	many: true
 } as const;
 
 export const printFieldKind = {
-	kind: 'list',
+	kind: 'object',
+	fields: {
+		key: { kind: 'text' },
+		label: { kind: 'text' },
+		scope: { kind: 'enum', values: ['order', 'line'] },
+		multiline: { kind: 'bool', optional: true },
+		default_value: { kind: 'text', optional: true }
+	},
 	optional: true,
-	of: {
-		kind: 'object',
-		fields: {
-			key: { kind: 'text' },
-			label: { kind: 'text' },
-			scope: { kind: 'enum', values: ['order', 'line'] },
-			multiline: { kind: 'bool', optional: true },
-			default_value: { kind: 'text', optional: true }
-		}
-	}
+	many: true
 } as const;
 
 export const PrintValues = Schema.Array(

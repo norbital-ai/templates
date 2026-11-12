@@ -1,7 +1,12 @@
-import type { Committed, PendingApproval, Id, Row, ModelName } from '@norbital-ai/bolt';
+import type { Id, Row, ModelName } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { PlainDate, Instant } from '@norbital-ai/std/date';
-import { type TestOptions, type TestPorts } from '@norbital-ai/bolt-cli/test';
+import {
+	JobResult,
+	type NativeActAnswer,
+	type TestOptions,
+	type TestPorts
+} from '@norbital-ai/bolt-cli/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { DatabaseRequest, type DatabaseResult, type BoltError } from '@norbital-ai/bolt/engine';
@@ -11,10 +16,7 @@ export const CUSTOMER = fixtureId('parties', '00000000-0000-4000-8000-0000000001
 export const SUPPLIER = fixtureId('parties', '00000000-0000-4000-8000-000000000102');
 export const PRODUCT = fixtureId('products', '00000000-0000-4000-8000-000000000201');
 export const SETTINGS = fixtureId('commercial_settings', '00000000-0000-4000-8000-000000000401');
-export function committed<C extends ModelName, O, N extends string>(
-	model: C,
-	outcome: Committed<O, N> | PendingApproval<N>
-) {
+export function committed<C extends ModelName>(model: C, outcome: NativeActAnswer) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
 	const record = outcome.records.find((record) => record.model === model);
 	if (record === undefined) throw new Error('The act committed no record');
@@ -83,61 +85,72 @@ export const draft = Effect.fnUntraced(function* (
 	ordered_on?: string,
 	warehouse?: Id<'warehouses'>
 ) {
-	const as = t.as(t.admin);
+	const as = yield* t.as(t.admin);
 	const order = committed(
 		'orders',
-		yield* as.act('orders.create', [
-			{
-				title: 'Sample order',
-				direction,
-				party: direction === 'sales' ? CUSTOMER : SUPPLIER,
-				currency: 'SGD',
-				payment_terms: 'Net 30',
-				...(owner ? { owner } : {}),
-				...(warehouse ? { warehouse } : {}),
-				...(ordered_on ? { ordered_on: PlainDate(ordered_on) } : {})
-			}
-		])
+		yield* as.act({
+			'orders.create': [
+				{
+					title: 'Sample order',
+					direction,
+					party: direction === 'sales' ? CUSTOMER : SUPPLIER,
+					currency: 'SGD',
+					payment_terms: 'Net 30',
+					...(owner ? { owner } : {}),
+					...(warehouse ? { warehouse } : {}),
+					...(ordered_on ? { ordered_on: PlainDate(ordered_on) } : {})
+				}
+			]
+		})
 	);
 	const line = committed(
 		'order_lines',
-		yield* as.act('order_lines.create', [
-			{
-				order,
-				product: PRODUCT,
-				quantity: Decimal.of('10'),
-				unit_price: Decimal.of('2'),
-				discount_pct: Decimal.of('0'),
-				tax_rate: Decimal.of('9')
-			}
-		])
+		yield* as.act({
+			'order_lines.create': [
+				{
+					order,
+					product: PRODUCT,
+					quantity: Decimal.of('10'),
+					unit_price: Decimal.of('2'),
+					discount_pct: Decimal.of('0'),
+					tax_rate: Decimal.of('9')
+				}
+			]
+		})
 	);
 	return { order, line };
 });
 export const confirm = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const check = yield* confirmationOf(t.as(t.admin), { as_of: Instant(t.clock.now()), order });
+	const as = yield* t.as(t.admin);
+	const check = yield* confirmationOf(as, { as_of: Instant(t.clock.now()), order });
 	return committed(
 		'orders',
-		yield* t.as(t.admin).act('orders.update', [
-			{
-				target: order,
-				set: { status: 'confirmed', check_hash: check.check_hash }
-			}
-		])
+		yield* as.act({
+			'orders.update': [
+				{
+					target: yield* t.at('orders', order),
+					set: { status: 'confirmed', check_hash: check.check_hash }
+				}
+			]
+		})
 	);
 });
 
 /** Start a replacement draft without mutating the current sealed contract. */
 export const revise = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const as = t.as(t.admin);
+	const as = yield* t.as(t.admin);
 	// the revision the replacement observes: after the order's own queued syncs wrote back
-	yield* t.runDue();
+	yield* t.run_due();
 	const before = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 		.rows[0];
 	if (!before) throw new Error('Current contract required');
-	const started = yield* as.start('orders_revise', { target: order, revision: before.revision });
+	const started = yield* as.run(
+		'orders_revise',
+		{ target: order, revision: before.revision },
+		JobResult
+	);
 	if (started.kind !== 'committed') throw new Error('Replacement must be admitted directly');
-	yield* t.runDue();
+	yield* t.run_due();
 	const [run] = yield* t.db.rows(
 		Schema.Struct({ state: Schema.String, error: Schema.NullOr(Schema.Json) }),
 		{

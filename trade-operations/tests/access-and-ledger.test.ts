@@ -19,7 +19,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 			Effect.gen(function* () {
 				const t = yield* Trade;
 				const sales = t.member(['sales']);
-				const as = t.as(sales);
+				const as = yield* t.as(sales);
 				const mine = yield* draft(t, 'sales', fixtureId('sys_user', sales.id));
 				const other = yield* draft(t);
 				expect((yield* as.query({ orders: {} })).orders.rows.map((r) => r.id)).toEqual([
@@ -30,18 +30,25 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 				]);
 				expect(
 					yield* Effect.flip(
-						as.act('order_lines.update', [
-							{ target: other.line, set: { unit_price: Decimal.of('1') } }
-						])
+						as.act({
+							'order_lines.update': [
+								{
+									target: yield* t.at('order_lines', other.line),
+									set: { unit_price: Decimal.of('1') }
+								}
+							]
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 				expect(
 					yield* Effect.flip(
-						as.act('activities.create', [{ order: other.order, title: 'Sneak in', kind: 'note' }])
+						as.act({
+							'activities.create': [{ order: other.order, title: 'Sneak in', kind: 'note' }]
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 				yield* rejects(confirmationOf(as, { as_of: Instant(t.clock.now()), order: other.order }));
-				yield* rejects(t.as(t.member(['configuration'])).query({ orders: {} }));
+				yield* rejects((yield* t.as(t.member(['configuration']))).query({ orders: {} }));
 				expect(
 					yield* direct(t, as.authority, {
 						model: 'products',
@@ -64,7 +71,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 				yield* commissionRule(t);
 				const foreign = yield* draft(t, 'sales', undefined, undefined, WEST);
 				yield* confirm(t, foreign.order);
-				const logistics = t.as(t.member(['logistics']));
+				const logistics = yield* t.as(t.member(['logistics']));
 				const line = (yield* logistics.query({
 					order_lines: { output: 'logistics', where: { id: { eq: foreign.line } }, limit: 1 }
 				})).order_lines.rows[0];
@@ -79,7 +86,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 					})
 				).not.toMatchObject({ kind: 'committed' });
 				const mixed = t.member(['sales', 'logistics']);
-				const actor = t.as(mixed);
+				const actor = yield* t.as(mixed);
 				// sales' default output admits only its own orders; the logistics output carries no terms
 				expect(
 					(yield* actor.query({ orders: { where: { id: { eq: foreign.order } } } })).orders.rows

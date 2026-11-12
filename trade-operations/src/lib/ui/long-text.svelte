@@ -13,5 +13,5 @@
 	rows={10}
 	disabled={field.disabled}
 	aria-invalid={Boolean(field.error)}
-	oninput={(event) => field.onChange(event.currentTarget.value)}
+	oninput={(event) => field.on_change(event.currentTarget.value)}
 />

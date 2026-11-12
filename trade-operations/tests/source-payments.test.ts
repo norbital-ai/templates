@@ -11,7 +11,7 @@ it.live(
 		Effect.gen(function* () {
 			const t = yield* workspace(),
 				own = yield* draft(t),
-				as = t.as(t.admin);
+				as = yield* t.as(t.admin);
 			yield* confirm(t, own.order);
 			const parent = yield* sourceOrder(t, own.order),
 				invoice = yield* sourceTransaction(t, own, parent),

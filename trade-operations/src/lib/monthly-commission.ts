@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { agreement, withAgreement } from './agreements.js';
-import { minorDigits, sum } from '@norbital-ai/std/decimal';
+import { minor_digits, sum } from '@norbital-ai/std/decimal';
 import {
 	AgreementUnavailable,
 	commissionCalculation,
@@ -12,7 +12,7 @@ import {
 	type ReportOrder
 } from './reports.js';
 import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
-import { PlainDate, addMonths } from '@norbital-ai/std/date';
+import { PlainDate, add_months } from '@norbital-ai/std/date';
 import { hash } from './commercial.js';
 type MonthlyOrder = ReportOrder;
 /** The fields a statement's sign-off compares (the board and the statement create read them). */
@@ -47,13 +47,13 @@ export const boardRead = (
 			where: {
 				active: { eq: true },
 				kind: { in: ['shipment', 'return'] },
-				business_on: { gte: period, lt: addMonths(period, 1) },
+				business_on: { gte: period, lt: add_months(period, 1) },
 				order: { is: { direction: { eq: 'sales' }, ...(owner ? { owner: { eq: owner } } : {}) } }
 			},
 			fields: commissionFactFields,
-			limit
-		},
-		'source_sales_lines.order': { fields: reportFields }
+			limit,
+			order: { fields: reportFields }
+		}
 	}) as const;
 export const monthlyCommission = Effect.fnUntraced(function* (
 	orders: readonly MonthlyOrder[],
@@ -148,7 +148,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 						unresolved_lines || awaiting_approval
 							? null
 							: sum(snapshot.flatMap((row) => (row.amount === null ? [] : [row.amount]))).round(
-									minorDigits(group.currency)
+									minor_digits(group.currency)
 								);
 					return hash({
 						owner: group.owner,
@@ -206,8 +206,7 @@ export const readCommissionBoard = <E>(
 			facts: reportPages(first.source_sales_lines, (after) =>
 				Effect.map(
 					reader.query({
-						source_sales_lines: { ...request.source_sales_lines, after },
-						'source_sales_lines.order': request['source_sales_lines.order']
+						source_sales_lines: { ...request.source_sales_lines, after }
 					}),
 					(page) => page.source_sales_lines
 				)

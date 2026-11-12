@@ -74,9 +74,9 @@ const workspace = shared({
 			),
 		previewPdf: (source) =>
 			Effect.gen(function* () {
-				if ('layoutHtml' in source) {
-					printed.push(source.layoutHtml);
-					return new TextEncoder().encode(source.layoutHtml);
+				if ('layout_html' in source) {
+					printed.push(source.layout_html);
+					return new TextEncoder().encode(source.layout_html);
 				}
 				if (!('html' in source))
 					return yield* new FacilityFailure({ kind: 'invalid', message: 'HTML required' });
@@ -116,7 +116,7 @@ const renderPreview = Effect.fnUntraced(function* (
 			body: JSON.stringify({
 				callable: 'convert.previewPdf',
 				input: { source, options: { page: 'A4' } },
-				issuedAt: t.clock.now()
+				issued_at: t.clock.now()
 			})
 		})
 	);
@@ -130,37 +130,42 @@ const renderPreview = Effect.fnUntraced(function* (
 });
 
 layer(workspace, { excludeTestServices: true })('order documents', (test) => {
-	test.effect('new contracts omit personal artwork and historical exports retain their original image', () =>
-		Effect.gen(function* () {
-			const t = yield* Trade;
-			const signer = t.member(['sales', 'own_signature']);
-			const owner = fixtureId('sys_user', signer.id);
-			const self = t.as(signer);
-			const manager = t.as(t.member(['manager', 'own_signature']));
-			const image =
-				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGMQ0Er5DwACigGewaDUQwAAAABJRU5ErkJggg==';
-			const retained = fixtureId('salesperson_signatures', randomUUID());
-			yield* t.db.write({
-				text: `INSERT INTO salesperson_signatures (id,owner,signature) VALUES ($1,$2,jsonb_build_object('png',$3::text))`,
-				params: [retained, owner, image]
-			});
-			const { order } = yield* draft(t, 'sales', owner);
-			yield* confirm(t, order);
-			expect((yield* documentOf(self, { order })).signing).toBeNull();
+	test.effect(
+		'new contracts omit personal artwork and historical exports retain their original image',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* Trade;
+				const signer = t.member(['sales', 'own_signature']);
+				const owner = fixtureId('sys_user', signer.id);
+				const self = yield* t.as(signer);
+				const manager = yield* t.as(t.member(['manager', 'own_signature']));
+				const image =
+					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGMQ0Er5DwACigGewaDUQwAAAABJRU5ErkJggg==';
+				const retained = fixtureId('salesperson_signatures', randomUUID());
+				yield* t.db.write({
+					text: `INSERT INTO salesperson_signatures (id,owner,signature) VALUES ($1,$2,jsonb_build_object('png',$3::text))`,
+					params: [retained, owner, image]
+				});
+				const { order } = yield* draft(t, 'sales', owner);
+				yield* confirm(t, order);
+				expect((yield* documentOf(self, { order })).signing).toBeNull();
 
-			// Represent a version sealed by the prior release, which captured the image pointer.
-			yield* t.db.write({
-				text: `UPDATE orders SET contract_versions=jsonb_set(contract_versions,'{0,signature_version}',to_jsonb($2::text),true) WHERE id=$1`,
-				params: [order, retained]
-			});
-			const historical = yield* documentOf(self, { order });
-			expect(historical.signing).toEqual({ owner, version: retained });
-			const read = contractSignatureRead({ owner, version: retained });
-			expect((yield* manager.query(read)).salesperson_signatures.rows).toEqual([]);
-			const artwork = firstRow((yield* self.query(read)).salesperson_signatures.rows).signature;
-			const rendered = yield* renderPreview(t, { ...historical, signature: artwork?.png ?? null });
-			expect(rendered).toContain(`src="data:image/png;base64,${image}"`);
-		})
+				// Represent a version sealed by the prior release, which captured the image pointer.
+				yield* t.db.write({
+					text: `UPDATE orders SET contract_versions=jsonb_set(contract_versions,'{0,signature_version}',to_jsonb($2::text),true) WHERE id=$1`,
+					params: [order, retained]
+				});
+				const historical = yield* documentOf(self, { order });
+				expect(historical.signing).toEqual({ owner, version: retained });
+				const read = contractSignatureRead({ owner, version: retained });
+				expect((yield* manager.query(read)).salesperson_signatures.rows).toEqual([]);
+				const artwork = firstRow((yield* self.query(read)).salesperson_signatures.rows).signature;
+				const rendered = yield* renderPreview(t, {
+					...historical,
+					signature: artwork?.png ?? null
+				});
+				expect(rendered).toContain(`src="data:image/png;base64,${image}"`);
+			})
 	);
 
 	test.effect('Sales has a direct full record only for the signed-in system user', () =>
@@ -168,7 +173,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			const t = yield* Trade;
 			const seller = t.member(['sales']);
 			const other = t.member(['sales']);
-			const { sys_user } = yield* t.as(seller).query({
+			const { sys_user } = yield* (yield* t.as(seller)).query({
 				sys_user: {
 					where: {
 						id: { in: [fixtureId('sys_user', seller.id), fixtureId('sys_user', other.id)] }
@@ -183,7 +188,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 	test.effect('a named HTML layout exports the saved order through the print renderer', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			const html =
 				'<!doctype html><html><style>@page{size:A4;margin:20mm}</style><body>' +
 				'<h1>{{title}}</h1><p>{{reference}} · {{party}} · {{detail_buyer_reference}}</p><ul>' +
@@ -196,39 +201,52 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			if (upload.kind !== 'committed') throw new Error('Print layout upload required');
 			const layout = committed(
 				'document_templates',
-				yield* admin.act('document_templates.create', [
-					{
-						title: 'Approved print layout',
-						locale: 'en',
-						version: '1',
-						body: '{agreement}\nDelivery by arrangement.',
-						print_layout: upload.output,
-						print_fields: [
-							{ key: 'buyer_reference', label: 'Buyer reference', scope: 'order', multiline: true },
-							{ key: 'brand', label: 'Brand', scope: 'line', default_value: 'Standard' }
-						]
-					}
-				])
+				yield* admin.act({
+					'document_templates.create': [
+						{
+							title: 'Approved print layout',
+							locale: 'en',
+							version: '1',
+							body: '{agreement}\nDelivery by arrangement.',
+							print_layout: upload.output,
+							print_fields: [
+								{
+									key: 'buyer_reference',
+									label: 'Buyer reference',
+									scope: 'order',
+									multiline: true
+								},
+								{ key: 'brand', label: 'Brand', scope: 'line', default_value: 'Standard' }
+							]
+						}
+					]
+				})
 			);
-			yield* admin.act('document_templates.update', [
-				{ target: layout, set: { status: 'published' } }
-			]);
+			yield* admin.act({
+				'document_templates.update': [
+					{ target: yield* t.at('document_templates', layout), set: { status: 'published' } }
+				]
+			});
 			const { order, line } = yield* draft(t, 'purchasing');
-			yield* admin.act('orders.update', [
-				{
-					target: order,
-					set: {
-						document_template: layout,
-						print_values: [{ key: 'buyer_reference', value: 'BUY <42>\nNorth entrance' }]
+			yield* admin.act({
+				'orders.update': [
+					{
+						target: yield* t.at('orders', order),
+						set: {
+							document_template: layout,
+							print_values: [{ key: 'buyer_reference', value: 'BUY <42>\nNorth entrance' }]
+						}
 					}
-				}
-			]);
-			yield* admin.act('order_lines.update', [
-				{
-					target: line,
-					set: { print_values: [{ key: 'brand', value: 'Synthetic & Co' }] }
-				}
-			]);
+				]
+			});
+			yield* admin.act({
+				'order_lines.update': [
+					{
+						target: yield* t.at('order_lines', line),
+						set: { print_values: [{ key: 'brand', value: 'Synthetic & Co' }] }
+					}
+				]
+			});
 			yield* confirm(t, order);
 			const document = yield* documentOf(admin, { order });
 			expect(document.print?.file.id).toBe(upload.output.id);
@@ -262,18 +280,22 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			yield* revise(t, order);
 			const draftCopy = yield* documentOf(admin, { order });
 			expect(draftCopy.print).toEqual(document.print);
-			yield* admin.act('orders.update', [
-				{
-					target: order,
-					set: { print_values: [{ key: 'buyer_reference', value: 'BUY 43' }] }
-				}
-			]);
-			yield* admin.act('order_lines.update', [
-				{
-					target: line,
-					set: { quantity: Decimal.of('20'), print_values: [{ key: 'brand', value: '' }] }
-				}
-			]);
+			yield* admin.act({
+				'orders.update': [
+					{
+						target: yield* t.at('orders', order),
+						set: { print_values: [{ key: 'buyer_reference', value: 'BUY 43' }] }
+					}
+				]
+			});
+			yield* admin.act({
+				'order_lines.update': [
+					{
+						target: yield* t.at('order_lines', line),
+						set: { quantity: Decimal.of('20'), print_values: [{ key: 'brand', value: '' }] }
+					}
+				]
+			});
 			yield* confirm(t, order);
 			const next = yield* documentOf(admin, { order });
 			expect(next.print?.fields).toMatchObject({ detail_buyer_reference: 'BUY 43' });
@@ -284,15 +306,20 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 	test.effect('a published layout cannot be changed', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			const published = (yield* admin.query({
 				document_templates: { where: { status: { eq: 'published' } }, limit: 1 }
 			})).document_templates.rows;
 			expect(
 				yield* Effect.flip(
-					admin.act('document_templates.update', [
-						{ target: firstRow(published).id, set: { body: '{agreement}\nOverwrite' } }
-					])
+					admin.act({
+						'document_templates.update': [
+							{
+								target: yield* t.at('document_templates', firstRow(published).id),
+								set: { body: '{agreement}\nOverwrite' }
+							}
+						]
+					})
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 		})
@@ -302,36 +329,52 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
-				const admin = t.as(t.admin);
-				yield* admin.act('sys_integration.update', [
-					{ target: fixtureId('sys_integration', 'kingdee'), set: { active: false } }
-				]);
+				const admin = yield* t.as(t.admin);
+				yield* admin.act({
+					'sys_integration.update': [
+						{ target: { id: fixtureId('sys_integration', 'kingdee') }, set: { active: false } }
+					]
+				});
 				const { order } = yield* draft(t);
 				const draftPreview = yield* documentOf(admin, { order });
 				const newer = committed(
 					'document_templates',
-					yield* admin.act('document_templates.create', [
-						{
-							locale: 'zh',
-							version: '3',
-							title: 'New document heading',
-							body: '{agreement}\nNew contract wording'
-						}
-					])
+					yield* admin.act({
+						'document_templates.create': [
+							{
+								locale: 'zh',
+								version: '3',
+								title: 'New document heading',
+								body: '{agreement}\nNew contract wording'
+							}
+						]
+					})
 				);
 				expect(
 					yield* Effect.flip(
-						admin.act('commercial_settings.update', [
-							{ target: SETTINGS, set: { default_document_layout: newer } }
-						])
+						admin.act({
+							'commercial_settings.update': [
+								{
+									target: yield* t.at('commercial_settings', SETTINGS),
+									set: { default_document_layout: newer }
+								}
+							]
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
-				yield* admin.act('document_templates.update', [
-					{ target: newer, set: { status: 'published' } }
-				]);
-				yield* admin.act('commercial_settings.update', [
-					{ target: SETTINGS, set: { default_document_layout: newer } }
-				]);
+				yield* admin.act({
+					'document_templates.update': [
+						{ target: yield* t.at('document_templates', newer), set: { status: 'published' } }
+					]
+				});
+				yield* admin.act({
+					'commercial_settings.update': [
+						{
+							target: yield* t.at('commercial_settings', SETTINGS),
+							set: { default_document_layout: newer }
+						}
+					]
+				});
 				expect(yield* documentOf(admin, { order })).toEqual(draftPreview);
 				const next = yield* draft(t);
 				expect((yield* documentOf(admin, { order: next.order })).title).toBe(
@@ -353,13 +396,18 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 						document_templates: { ...answer.document_templates, rows: [] }
 					})
 				).toEqual(preview);
-				yield* admin.act('commercial_settings.update', [
-					{ target: SETTINGS, set: { default_document_layout: confirmed.document_template } }
-				]);
+				yield* admin.act({
+					'commercial_settings.update': [
+						{
+							target: yield* t.at('commercial_settings', SETTINGS),
+							set: { default_document_layout: confirmed.document_template }
+						}
+					]
+				});
 				expect(preview.html).toContain('21.80');
 				// Logistics reads no order terms through the default document query.
 				expect(
-					yield* Effect.flip(documentOf(t.as(t.member(['logistics'])), { order }))
+					yield* Effect.flip(documentOf(yield* t.as(t.member(['logistics'])), { order }))
 				).toBeDefined();
 				converted.length = 0;
 				expect(yield* renderPreview(t, preview)).toBe(preview.html);
@@ -369,7 +417,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 	test.effect('the published contract stamp is included only on its sealed sales contracts', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			const png = Result.getOrThrow(
 				Base64.decode(
 					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
@@ -383,30 +431,41 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			if (upload.kind !== 'committed') throw new Error('Stamp upload required');
 			const layout = committed(
 				'document_templates',
-				yield* admin.act('document_templates.create', [
-					{
-						locale: 'en',
-						version: '4',
-						title: 'Stamped sales agreement',
-						body: '{agreement}',
-						contract_stamp: upload.output
-					}
-				])
+				yield* admin.act({
+					'document_templates.create': [
+						{
+							locale: 'en',
+							version: '4',
+							title: 'Stamped sales agreement',
+							body: '{agreement}',
+							contract_stamp: upload.output
+						}
+					]
+				})
 			);
-			yield* admin.act('document_templates.update', [
-				{ target: layout, set: { status: 'published' } }
-			]);
+			yield* admin.act({
+				'document_templates.update': [
+					{ target: yield* t.at('document_templates', layout), set: { status: 'published' } }
+				]
+			});
 			const { order } = yield* draft(t);
-			yield* admin.act('orders.update', [
-				{ target: order, set: { document_template: fixtureId('document_templates', layout) } }
-			]);
+			yield* admin.act({
+				'orders.update': [
+					{
+						target: yield* t.at('orders', order),
+						set: { document_template: fixtureId('document_templates', layout) }
+					}
+				]
+			});
 			expect((yield* documentOf(admin, { order })).stamp).toBeNull();
 			yield* confirm(t, order);
 			expect((yield* documentOf(admin, { order })).stamp?.id).toBe(upload.output.id);
 			const purchase = yield* draft(t, 'purchasing');
-			yield* admin.act('orders.update', [
-				{ target: purchase.order, set: { document_template: layout } }
-			]);
+			yield* admin.act({
+				'orders.update': [
+					{ target: yield* t.at('orders', purchase.order), set: { document_template: layout } }
+				]
+			});
 			yield* confirm(t, purchase.order);
 			expect((yield* documentOf(admin, { order: purchase.order })).stamp).toBeNull();
 			converted.length = 0;
@@ -418,7 +477,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 	test.effect('each published document variant renders its own title and clauses', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			const variants = [
 				[
 					'00000000-0000-4000-8000-000000000504',
@@ -431,9 +490,14 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			] as const;
 			for (const [layout, title, clause] of variants) {
 				const { order } = yield* draft(t);
-				yield* admin.act('orders.update', [
-					{ target: order, set: { document_template: fixtureId('document_templates', layout) } }
-				]);
+				yield* admin.act({
+					'orders.update': [
+						{
+							target: yield* t.at('orders', order),
+							set: { document_template: fixtureId('document_templates', layout) }
+						}
+					]
+				});
 				const document = yield* documentOf(admin, { order });
 				expect(document.title).toBe(title);
 				expect(document.html).toContain(clause);
@@ -443,7 +507,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 	test.effect('a purchase commitment defaults to the seeded supplier contract layout', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			const { order } = yield* draft(t, 'purchasing');
 			const layout = (yield* admin.query({
 				orders: { where: { id: { eq: order } }, fields: ['document_template'], limit: 1 }
@@ -461,7 +525,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
-				const admin = t.as(t.admin);
+				const admin = yield* t.as(t.admin);
 				const png = Result.getOrThrow(
 					Base64.decode(
 						'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
@@ -477,20 +541,24 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					Effect.gen(function* () {
 						const id = committed(
 							'document_templates',
-							yield* admin.act('document_templates.create', [
-								{
-									locale: 'en',
-									version,
-									title,
-									body,
-									layout: 'table_v1',
-									letterhead: file.output
-								}
-							])
+							yield* admin.act({
+								'document_templates.create': [
+									{
+										locale: 'en',
+										version,
+										title,
+										body,
+										layout: 'table_v1',
+										letterhead: file.output
+									}
+								]
+							})
 						);
-						yield* admin.act('document_templates.update', [
-							{ target: id, set: { status: 'published' } }
-						]);
+						yield* admin.act({
+							'document_templates.update': [
+								{ target: yield* t.at('document_templates', id), set: { status: 'published' } }
+							]
+						});
 						return id;
 					});
 				const layout = yield* publish(
@@ -503,9 +571,14 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					params: ['A-110 <grade>', PRODUCT]
 				});
 				const { order } = yield* draft(t, 'purchasing', undefined, '2026-10-09');
-				yield* admin.act('orders.update', [
-					{ target: order, set: { document_template: fixtureId('document_templates', layout) } }
-				]);
+				yield* admin.act({
+					'orders.update': [
+						{
+							target: yield* t.at('orders', order),
+							set: { document_template: fixtureId('document_templates', layout) }
+						}
+					]
+				});
 				const draftPdf = yield* documentOf(admin, { order });
 				expect(draftPdf.filename).toMatch(/-purchase-commitment\.pdf$/);
 				expect(draftPdf.html).toContain('A-110 &lt;grade&gt;');
@@ -534,9 +607,11 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(converted[0]).toContain('Retained terms.');
 				expect(converted[0]).not.toContain('A-120');
 				yield* revise(t, order);
-				yield* admin.act('orders.update', [
-					{ target: order, set: { document_template: nextLayout } }
-				]);
+				yield* admin.act({
+					'orders.update': [
+						{ target: yield* t.at('orders', order), set: { document_template: nextLayout } }
+					]
+				});
 				yield* confirm(t, order);
 				expect((yield* documentOf(admin, { order })).html).toContain('Changed terms.');
 				expect(yield* documentOf(admin, { order, version: 1 })).toEqual(original);

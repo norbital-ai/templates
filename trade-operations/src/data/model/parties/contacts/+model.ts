@@ -1,7 +1,7 @@
-import { model } from '@norbital-ai/bolt';
-export default model('contacts', {
+import { model } from '../../../../../.norbital/models/contacts.ts';
+export default model({
 	description: 'contacts',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		party: { kind: 'ref', to: 'parties', inverse: 'contacts' },
 		name: {
@@ -22,12 +22,8 @@ export default model('contacts', {
 			optional: true
 		}
 	},
-	search: { text: ['name', 'email', 'phone'] },
-	read: { contacts: { fields: 'all' }, 'contacts.party': { fields: ['name'] } },
-	create: {
-		columns: { contacts: ['party', 'name', 'email', 'phone', 'job_title'] }
-	},
-	update: {
-		columns: { contacts: ['name', 'email', 'phone', 'job_title'] }
-	}
+	outputs: { default: { fields: 'all', party: { fields: ['name'] } } },
+	indexes: { search: { text: ['name', 'email', 'phone'] } },
+	create: { columns: { fields: ['party', 'name', 'email', 'phone', 'job_title'] } },
+	update: { columns: { fields: ['name', 'email', 'phone', 'job_title'] } }
 });

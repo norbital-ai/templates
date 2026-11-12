@@ -6,7 +6,7 @@ import { PRODUCT, workspace } from './kit.js';
 it.live('imports atomically and refuses stale price book changes at the write boundary', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
-		const actor = t.as(t.member(['configuration']));
+		const actor = yield* t.as(t.member(['configuration']));
 		yield* t.db.write({
 			text: 'UPDATE products SET source_number = $1 WHERE id = $2',
 			params: ['RESIN-A', PRODUCT]
@@ -26,12 +26,12 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 					bytes: new TextEncoder().encode(contents)
 				});
 				if (upload.kind !== 'committed') throw new Error('File upload needs to commit');
-				const run = yield* actor.start('pricing_floors.sync.price_book', {
+				const run = yield* actor.sync_control('pricing_floors', 'price_book', {
 					mode: 'import',
 					file: upload.output.id
 				});
 				if (run.kind !== 'committed') throw new Error('Import needs to start');
-				yield* t.runDue();
+				yield* t.run_due();
 				return yield* t.db.rows(Schema.Struct({ state: Schema.String, output: Schema.Json }), {
 					text: 'SELECT state, output FROM sys_run WHERE id = $1',
 					params: [run.output.id]

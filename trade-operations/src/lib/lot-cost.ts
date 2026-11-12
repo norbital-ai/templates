@@ -46,11 +46,11 @@ export function estimateFifoCost(
 		quantity: DecimalLike;
 		unit: string;
 		currency: string;
-		asOf: string;
+		as_of: string;
 	}
 ) {
 	const quantity = Decimal.of(input.quantity);
-	const now = Date.parse(input.asOf);
+	const now = Date.parse(input.as_of);
 	const fresh = (value: string) => Math.abs(now - Date.parse(value)) < 30 * 60_000;
 	if (quantity.lte(0) || purchase.currency !== input.currency || !fresh(purchase.observed_at))
 		return null;
@@ -58,7 +58,7 @@ export function estimateFifoCost(
 		(lot) => lot.product === input.product && lot.source === input.source
 	);
 	const selected = productLots.filter(
-		(lot) => input.warehouses.includes(lot.warehouse) && !Decimal.of(lot.on_hand).isZero()
+		(lot) => input.warehouses.includes(lot.warehouse) && !Decimal.of(lot.on_hand).is_zero()
 	);
 	if (
 		selected.some(
@@ -112,7 +112,7 @@ export function estimateFifoCost(
 		allocated.push({ ...lot, quantity: used });
 		total = total.plus(used.times(lot.unit_cost));
 		left = left.minus(used);
-		if (left.isZero()) return { total, unit_cost: total.div(quantity, 8), lots: allocated };
+		if (left.is_zero()) return { total, unit_cost: total.div(quantity, 8), lots: allocated };
 	}
 	return null;
 }

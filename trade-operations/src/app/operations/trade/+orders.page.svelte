@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { type RowIn, type ColumnsIn, Button, Table, Tabs, useKinds, Show } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	let { ctx }: { ctx: PageContext } = $props();
+	import { type RowIn, type ColumnsIn, Button, Table, Tabs, Show } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
-	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { openCreate } from '../../../lib/ui/create-values.js';
 	import OrderDocumentDialog from '../../../data/model/orders/order-document-dialog.svelte';
 
-	const kinds = useKinds();
-	const actor = $derived(bolt.actor?.kind === 'member' ? bolt.actor : null);
+	const actor = $derived(ctx.actor?.kind === 'member' ? ctx.actor : null);
 	const canCreate = (direction: 'sales' | 'purchasing') =>
-		kinds.catalog?.orders?.create &&
+		ctx.catalog?.orders?.create &&
 		(actor?.admin ||
 			actor?.teams.includes('commercial_managers') ||
 			actor?.teams.includes(direction === 'sales' ? 'sales' : 'procurement'));
 	async function newOrder(direction: 'sales' | 'purchasing') {
-		const settings = await bolt
+		const settings = await ctx
 			.query({
 				commercial_settings: {
 					where: { code: { eq: 'default' } },
@@ -73,17 +73,17 @@
 	<Table
 		of="orders"
 		where={{ direction: { eq: direction } }}
-		hiddenWhere={{ archived: { eq: false } }}
+		hidden_where={{ archived: { eq: false } }}
 		columns={[
 			'number',
 			'title',
 			'party',
 			'status',
-			...(kinds.catalog?.orders?.fields?.agreed_total
+			...(ctx.catalog?.orders?.fields?.agreed_total
 				? [
 						{
 							field: 'agreed_total' as const,
-							label: bolt.t('models.orders.fields.total'),
+							label: ctx.t('models.orders.fields.total'),
 							align: 'end' as const,
 							cell: orderTotal
 						}
@@ -92,18 +92,18 @@
 			'owner'
 		]}
 		toolbar={{
-			title: bolt.t(
+			title: ctx.t(
 				direction === 'purchasing' ? 'component.purchase_orders' : 'component.sales_orders'
 			),
 			new: canCreate(direction) ? () => newOrder(direction) : false,
 			actions:
-				kinds.catalog?.document_templates && kinds.catalog?.orders?.fields?.sealed_snapshot
+				ctx.catalog?.document_templates && ctx.catalog?.orders?.fields?.sealed_snapshot
 					? [
 							{
 								icon: 'lucide:eye',
-								name: bolt.t('component.preview_document'),
-								requiresSelection: true,
-								disabled: (ids) => (ids.length === 1 ? null : bolt.t('component.select_one_order')),
+								name: ctx.t('component.preview_document'),
+								requires_selection: true,
+								disabled: (ids) => (ids.length === 1 ? null : ctx.t('component.select_one_order')),
 								run: (ids) => {
 									selectedOrder = ids[0] ?? null;
 								}
@@ -116,29 +116,30 @@
 {#snippet sales()}{@render orders('sales')}{/snippet}
 {#snippet purchases()}{@render orders('purchasing')}{/snippet}
 <AppShell
-	description={bolt.t('app.trade.description')}
+	description={ctx.t('app.trade.description')}
 	icon="lucide:clipboard-list"
-	title={bolt.t('component.orders')}
+	title={ctx.t('component.orders')}
 	variant="full"
 >
 	{#snippet actions()}
 		{#if actor?.teams.includes('sales')}
 			<Button
 				variant="ghost"
-				href={bolt.href('operations/trade', 'orders', { model: 'sys_user', id: actor.id })}
-			>{bolt.t('component.my_user_record')}</Button>
+				href={ctx.href('operations/trade', 'orders', { model: 'sys_user', id: actor.id })}
+				>{ctx.t('component.my_user_record')}</Button
+			>
 		{/if}
 	{/snippet}
 	{#if purchaseOnly}{@render purchases()}
 	{:else if showPurchase}
 		<Tabs
 			tabs={[
-				{ name: 'sales', title: bolt.t('component.sales_orders'), body: sales },
-				{ name: 'purchasing', title: bolt.t('component.purchase_orders'), body: purchases }
+				{ name: 'sales', title: ctx.t('component.sales_orders'), body: sales },
+				{ name: 'purchasing', title: ctx.t('component.purchase_orders'), body: purchases }
 			]}
 		/>
 	{:else}{@render sales()}{/if}
 </AppShell>
 {#if selectedOrder}
-	<OrderDocumentDialog order={selectedOrder} onClose={() => (selectedOrder = null)} />
+	<OrderDocumentDialog {ctx} order={selectedOrder} on_close={() => (selectedOrder = null)} />
 {/if}

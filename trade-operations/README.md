@@ -96,7 +96,7 @@ required. Issued transactions or active payments prevent cancellation.
 | --------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
 | `source_health` | every 5 minutes, over `kingdee` instances | Notifies configuration holders when a ledger connection needs attention |
 
-Order documents need no automation. The shared preview generates a PDF with `bolt.convert` and uses
+Order documents need no automation. The shared preview generates a PDF with `ctx.preview_pdf` and uses
 its file for both preview and download. The `orders` file export renders the same saved quotation or
 retained agreement. The price book opens a month matrix per warehouse group and currency with inline day-cell editing; the dated rows keep native Excel and CSV import/export with ledger-scoped SKU codes.
 
@@ -108,9 +108,10 @@ Supplier commitments are local records.
 Bolt supplies the generic SQL Server request driver, sync scheduling, the outbox and its retries,
 ledger-scoped identity and atomic cursor/model writes.
 Each Kingdee ledger is one `sys_integration` instance with its sealed credential and safe
-configuration; the named `kingdee` connection is the first, and more can be added at run time.
-Every source record carries its ledger (`source`), and an order belongs to its party's ledger
-(`ledger`), which is where its sealed agreement is submitted.
+configuration; an administrator adds each at run time (the workspace declares no connection slot).
+Every read stamps its rows with the ledger it came from (`source`), and an order belongs to its party's
+ledger (`ledger`). Every active ledger receives order changes; the `orders` write submits an order only to
+its own ledger.
 
 Workspace administrators open Settings → Integrations → Connections → Kingdee for native
 pairing, testing, sync options and data freshness. The Connections list shows the ledger state.

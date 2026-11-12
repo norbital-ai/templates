@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('operations/analysis', {
+export default app({
 	title: 'component.analysis',
 	description: 'app.analysis.description',
 	icon: 'lucide:chart-column',

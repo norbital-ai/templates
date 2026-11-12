@@ -421,7 +421,7 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 	fixture: ReturnType<typeof kingdeeFixture>,
 	instance: Id<'sys_integration'> = fixtureId('sys_integration', 'kingdee')
 ) {
-	const as = t.as(t.admin);
+	const as = yield* t.as(t.admin);
 	const masters = yield* as.query({
 		parties: { where: { source: { eq: instance }, external_code: { eq: '101' } }, limit: 1 },
 		products: { where: { source: { eq: instance }, external_code: { eq: '301' } }, limit: 1 }
@@ -432,40 +432,43 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 		throw new Error('seed/test must hold the source-bound party 101 and product 301');
 	const order = committed(
 		'orders',
-		yield* as.act('orders.create', [
-			{
-				title: 'Kingdee integration sale',
-				direction: 'sales',
-				party: party.id,
-				currency: 'CNY',
-				payment_terms: 'PROBE-NET30',
-				ordered_on: PlainDate('2026-10-10'),
-				tax_inclusive: false
-			}
-		])
+		yield* as.act({
+			'orders.create': [
+				{
+					title: 'Kingdee integration sale',
+					direction: 'sales',
+					party: party.id,
+					currency: 'CNY',
+					payment_terms: 'PROBE-NET30',
+					ordered_on: PlainDate('2026-10-10'),
+					tax_inclusive: false
+				}
+			]
+		})
 	);
 	const line = committed(
 		'order_lines',
-		yield* as.act('order_lines.create', [
-			{
-				order,
-				product: product.id,
-				quantity: Decimal.of(10),
-				unit_price: Decimal.of(2),
-				discount_pct: Decimal.of(0),
-				tax_rate: Decimal.of(13)
-			}
-		])
+		yield* as.act({
+			'order_lines.create': [
+				{
+					order,
+					product: product.id,
+					quantity: Decimal.of(10),
+					unit_price: Decimal.of(2),
+					discount_pct: Decimal.of(0),
+					tax_rate: Decimal.of(13)
+				}
+			]
+		})
 	);
 	const header = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 		.rows[0];
 	if (!header) throw new Error('The draft was not committed');
-	yield* as.act('sys_integration.update', [
-		{
-			target: instance,
-			set: { configuration: fixture.configuration(header.owner) }
-		}
-	]);
+	yield* as.act({
+		'sys_integration.update': [
+			{ target: { id: instance }, set: { configuration: fixture.configuration(header.owner) } }
+		]
+	});
 	return { order, line, party: party.id, product: product.id };
 });
 export const kingdeeSale = Effect.fnUntraced(function* (
@@ -475,9 +478,9 @@ export const kingdeeSale = Effect.fnUntraced(function* (
 ) {
 	const created = yield* kingdeeDraft(t, fixture, instance);
 	yield* confirm(t, created.order);
-	const sealed = (yield* t
-		.as(t.admin)
-		.query({ orders: { where: { id: { eq: created.order } }, limit: 1 } })).orders.rows[0];
+	const sealed = (yield* (yield* t.as(t.admin)).query({
+		orders: { where: { id: { eq: created.order } }, limit: 1 }
+	})).orders.rows[0];
 	if (typeof sealed?.seal_hash !== 'string') throw new Error('A sealed sale is required');
 	return { ...created, seal: sealed.seal_hash };
 });
@@ -489,8 +492,9 @@ export const observeKingdeeOrder = Effect.fnUntraced(function* (
 	...orders: Id<'orders'>[]
 ) {
 	yield* t.deliver();
-	const locals = (yield* t.as(t.admin).query({ orders: { where: { id: { in: orders } } } })).orders
-		.rows;
+	const locals = (yield* (yield* t.as(t.admin)).query({
+		orders: { where: { id: { in: orders } } }
+	})).orders.rows;
 	for (const order of orders) {
 		const local = locals.find((row) => row.id === order);
 		const header = fixture.tables.SEOrder?.find(

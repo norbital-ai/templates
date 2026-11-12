@@ -1,4 +1,4 @@
-import { integration } from '@norbital-ai/bolt';
+import { integration } from '../../../.norbital/integrations/kingdee.ts';
 import { sourceState, SourceUnavailable } from './polling.js';
 import {
 	kingdeeConfiguration,
@@ -17,12 +17,12 @@ import { testStockLotCosts } from './stock-lot-costs.js';
 import { testDeliveryCosts } from './order-source.js';
 import { sourcePage } from './sql.js';
 
-export default integration('kingdee', {
+export default integration({
 	description:
 		'Kingdee SQL Server: direct SQL sync with the on-premises account set over the Alibaba link.',
 	driver: 'sqlserver',
 	credential: {
-		connectionString: { kind: 'text', label: 'SQL Server connection string' }
+		connectionString: { kind: 'text' }
 	},
 	configuration: kingdeeConfiguration,
 	test: function* (ctx) {

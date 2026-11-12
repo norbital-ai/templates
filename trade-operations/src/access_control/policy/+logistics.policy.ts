@@ -1,31 +1,46 @@
 import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description: 'Logistics records delivery and receipt quantities without commercial prices.',
-	capabilities: {
-		apps: ['operations']
-	},
+	capabilities: { apps: ['operations'] },
 	grants: {
-		source_stock_commitments: { read: true },
-		ext_sales_orders: { history: true, outputs: { logistics: true } },
-		ext_purchase_orders: { history: true, outputs: { logistics: true } },
-		transactions: { history: true, outputs: { logistics: true } },
-		commercial_settings: { outputs: { logistics: true } },
+		source_stock_commitments: {
+			outputs: { default: true }
+		},
+		ext_sales_orders: {
+			outputs: { logistics: { history: true } }
+		},
+		ext_purchase_orders: {
+			outputs: { logistics: { history: true } }
+		},
+		transactions: {
+			outputs: { logistics: { history: true } }
+		},
+		commercial_settings: {
+			outputs: { logistics: true }
+		},
 		parties: {
-			read: true
+			outputs: { default: true }
 		},
 		warehouses: {
-			read: true
+			outputs: { default: true }
 		},
-		stock_snapshots: { outputs: { logistics: true } },
+		stock_snapshots: {
+			outputs: { logistics: true }
+		},
 		contacts: {
-			read: true
+			outputs: { default: true }
 		},
-		products: { outputs: { logistics: true } },
-		orders: { history: true, outputs: { logistics: true } },
-		order_lines: { history: true, outputs: { logistics: true } },
+		products: {
+			outputs: { logistics: true }
+		},
+		orders: {
+			outputs: { logistics: { history: true } }
+		},
+		order_lines: {
+			outputs: { logistics: { history: true } }
+		},
 		activities: {
-			history: true,
-			read: true,
+			outputs: { default: { history: true } },
 			create: true,
 			update: true
 		}

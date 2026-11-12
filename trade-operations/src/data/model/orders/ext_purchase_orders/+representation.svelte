@@ -1,15 +1,18 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import ExternalOrderGeneral from '../../../../lib/ui/external-order-general.svelte';
 	import { RecordShell, Table, type RecordView } from '@norbital-ai/ui';
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'ext_purchase_orders'>;
+		ctx: PageContext;
 	} = $props();
 </script>
 
 {#snippet general(recordView: RecordView)}<ExternalOrderGeneral
+		{ctx}
 		of="ext_purchase_orders"
 		view={recordView}
 	/>{/snippet}
@@ -26,5 +29,5 @@
 	mode={view.mode}
 	{...view.mode !== 'create' ? { id: view.record.id } : { values: view.values }}
 	children={general}
-	tabs={[{ name: 'transactions', title: bolt.t('section.transactions'), body: transactions }]}
+	tabs={[{ name: 'transactions', title: ctx.t('section.transactions'), body: transactions }]}
 />

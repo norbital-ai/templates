@@ -12,7 +12,7 @@ layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
-				const as = t.as(t.member(['configuration']));
+				const as = yield* t.as(t.member(['configuration']));
 				expect(
 					yield* direct(t, as.authority, {
 						model: 'commercial_settings',
@@ -22,24 +22,34 @@ layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 				).not.toMatchObject({ kind: 'committed' });
 				expect(
 					yield* Effect.flip(
-						as.act('commercial_settings.update', [
-							{ target: SETTINGS, set: { stock_fresh_minutes: 21 } }
-						])
+						as.act({
+							'commercial_settings.update': [
+								{
+									target: yield* t.at('commercial_settings', SETTINGS),
+									set: { stock_fresh_minutes: 21 }
+								}
+							]
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 				committed(
 					'commercial_settings',
-					yield* as.act('commercial_settings.update', [
-						{ target: SETTINGS, set: { require_floor: true } }
-					])
+					yield* as.act({
+						'commercial_settings.update': [
+							{ target: yield* t.at('commercial_settings', SETTINGS), set: { require_floor: true } }
+						]
+					})
 				);
 				committed(
 					'commercial_settings',
-					yield* t
-						.as(t.admin)
-						.act('commercial_settings.update', [
-							{ target: SETTINGS, set: { stock_fresh_minutes: 21 } }
-						])
+					yield* (yield* t.as(t.admin)).act({
+						'commercial_settings.update': [
+							{
+								target: yield* t.at('commercial_settings', SETTINGS),
+								set: { stock_fresh_minutes: 21 }
+							}
+						]
+					})
 				);
 				expect(
 					(yield* as.query({ commercial_settings: {} })).commercial_settings.rows
@@ -54,18 +64,18 @@ layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 			const kingdee = fixtureId('sys_integration', 'kingdee');
 			committed(
 				'sys_integration',
-				yield* t
-					.as(t.admin)
-					.act('sys_integration.update', [
-						{ target: kingdee, set: { configuration: { maxWindowMinutes: 20 } } }
-					])
+				yield* (yield* t.as(t.admin)).act({
+					'sys_integration.update': [
+						{ target: { id: kingdee }, set: { configuration: { maxWindowMinutes: 20 } } }
+					]
+				})
 			);
 			for (const team of ['configuration', 'sales'] as const)
 				expect(
 					yield* Effect.flip(
-						t
-							.as(t.member([team]))
-							.act('sys_integration.update', [{ target: kingdee, set: { active: false } }])
+						(yield* t.as(t.member([team]))).act({
+							'sys_integration.update': [{ target: { id: kingdee }, set: { active: false } }]
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 		})

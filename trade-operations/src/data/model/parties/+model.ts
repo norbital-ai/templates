@@ -1,11 +1,11 @@
-import { model } from '@norbital-ai/bolt';
-import { columns, readSource } from '../../../integration/kingdee/polling.js';
+import { model } from '../../../../.norbital/models/parties.ts';
+import { columns, readSource, fromSource } from '../../../integration/kingdee/polling.js';
 import { projections } from '../../../integration/kingdee/projections.js';
 import { preserveSource } from '../../../integration/kingdee/reconciliation.js';
 import { partyWorkbook } from '../../../lib/workbook.js';
-export default model('parties', {
+export default model({
 	description: 'parties',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		external_code: {
 			kind: 'text'
@@ -39,35 +39,36 @@ export default model('parties', {
 		},
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } }
 	},
-	search: {
-		text: ['name', 'external_code']
-	},
-	key: ['source', 'external_code'],
-	read: 'all',
+	outputs: { default: { fields: 'all' } },
+	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
+	indexes: { search: { text: ['name', 'external_code'] } },
 	syncs: {
 		kingdee: {
 			with: 'kingdee',
 			every: '1min',
 			read: function* ({ cursor, instance }, ctx) {
-				return yield* readSource(
-					projections.parties,
-					cursor,
-					ctx,
-					(row) => {
-						const r = columns(row);
-						return {
-							external_code: r.text('external_code'),
-							source_number: r.text('source_number', null),
-							name: r.text('name'),
-							kind: r.one('kind', ['customer', 'supplier', 'both']),
-							currency: r.currency('currency'),
-							active: r.bool('active', true),
-							address: r.text('address', null),
-							phone: r.text('phone', null),
-							source_updated_at: r.instant('source_updated_at')
-						};
-					},
-					preserveSource({ model: 'parties', instance, projection: projections.parties, ctx })
+				return fromSource(
+					yield* readSource(
+						projections.parties,
+						cursor,
+						ctx,
+						(row) => {
+							const r = columns(row);
+							return {
+								external_code: r.text('external_code'),
+								source_number: r.text('source_number', null),
+								name: r.text('name'),
+								kind: r.one('kind', ['customer', 'supplier', 'both']),
+								currency: r.currency('currency'),
+								active: r.bool('active', true),
+								address: r.text('address', null),
+								phone: r.text('phone', null),
+								source_updated_at: r.instant('source_updated_at')
+							};
+						},
+						preserveSource({ model: 'parties', instance, projection: projections.parties, ctx })
+					),
+					instance
 				);
 			}
 		},
@@ -76,7 +77,7 @@ export default model('parties', {
 			parser: ['xlsx', 'csv'],
 			schema: partyWorkbook,
 			write: function* (_input, ctx) {
-				const { parties } = yield* ctx.db.query({
+				const { parties } = yield* ctx.query({
 					parties: {
 						fields: [
 							'source',
@@ -89,7 +90,7 @@ export default model('parties', {
 							'address',
 							'phone'
 						],
-						orderBy: { external_code: 'asc' },
+						order_by: { external_code: 'asc' },
 						limit: 10000
 					}
 				});

@@ -13,12 +13,12 @@ const reasons: Readonly<Record<string, string>> = {
 /**
  * Notifies administrators once per instance revision when an accounting ledger needs attention.
  */
-export default automation('source_health', {
+export default automation({
 	description: 'Notifies administrators when an accounting ledger connection needs attention.',
 	// ponytail: a system model hosts no effect, so this sweeps every kingdee instance each 5 minutes and `once` per
 	// revision dedupes; a notice lags a status change by up to 5 minutes, and any other edit of an instance still in
 	// attention notifies again
-	on: { cron: '*/5 * * * *' },
+	on: [{ cron: '*/5 * * * *' }],
 	policies: ['source_health'],
 	run: function* (_input, ctx) {
 		const { sys_integration, sys_user } = yield* ctx.query({

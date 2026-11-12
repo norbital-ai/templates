@@ -1,7 +1,8 @@
-import { model, type Id } from '@norbital-ai/bolt';
-export default model('commercial_settings', {
+import { model } from '../../../../.norbital/models/commercial_settings.ts';
+import { type Id } from '@norbital-ai/bolt';
+export default model({
 	description: 'commercial settings',
-	label: 'code',
+	record_label: 'record.code',
 	fields: {
 		default_document_layout: {
 			kind: 'ref',
@@ -37,14 +38,11 @@ export default model('commercial_settings', {
 			default: 30
 		}
 	},
-	key: ['code'],
-	read: 'all',
-	outputs: {
-		logistics: { commercial_settings: { fields: ['code', 'stock_fresh_minutes'] } }
-	},
+	outputs: { default: { fields: 'all' }, logistics: { fields: ['code', 'stock_fresh_minutes'] } },
+	constraints: { natural_key: { unique: ['code'], import_key: true } },
 	update: {
 		columns: {
-			commercial_settings: [
+			fields: [
 				'default_document_layout',
 				'default_purchase_document_layout',
 				'freight_treatment',
@@ -59,7 +57,7 @@ export default model('commercial_settings', {
 				...(set.default_purchase_document_layout ? [set.default_purchase_document_layout] : [])
 			]);
 			if (ids.length) {
-				const { document_templates } = yield* ctx.db.query({
+				const { document_templates } = yield* ctx.query({
 					document_templates: {
 						where: { id: { in: ids }, status: { eq: 'published' } },
 						fields: ['id']

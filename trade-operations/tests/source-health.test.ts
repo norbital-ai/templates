@@ -18,7 +18,7 @@ it.live('a ledger in attention notifies the workspace administrator only', () =>
 		});
 		t.member([], { teams: ['configurators'], email: 'configuration@test.example' });
 		t.clock.set('2026-10-10T00:05:00.000Z');
-		yield* t.runDue();
+		yield* t.run_due();
 		const notices = yield* t.db.rows(
 			Schema.Struct({
 				member: Schema.String,

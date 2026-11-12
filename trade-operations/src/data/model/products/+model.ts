@@ -1,11 +1,11 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/products.ts';
 import { logisticsProduct } from '../../../lib/logistics.js';
-import { columns, readSource } from '../../../integration/kingdee/polling.js';
+import { columns, readSource, fromSource } from '../../../integration/kingdee/polling.js';
 import { projections } from '../../../integration/kingdee/projections.js';
 import { preserveSource } from '../../../integration/kingdee/reconciliation.js';
-export default model('products', {
+export default model({
 	description: 'products',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		external_code: {
 			kind: 'text'
@@ -60,57 +60,59 @@ export default model('products', {
 		},
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } }
 	},
-	search: {
-		text: ['name', 'external_code']
-	},
-	key: ['source', 'external_code'],
-	check: {
+	outputs: { default: { fields: 'all' }, logistics: { fields: logisticsProduct } },
+	constraints: {
+		natural_key: { unique: ['source', 'external_code'], import_key: true },
 		unit_price_nonnegative: {
-			or: [
-				{
-					unit_price: {
-						isNull: true
+			check: {
+				or: [
+					{
+						unit_price: {
+							is_null: true
+						}
+					},
+					{
+						unit_price: {
+							gte: '0'
+						}
 					}
-				},
-				{
-					unit_price: {
-						gte: '0'
-					}
-				}
-			]
+				]
+			}
 		}
 	},
-	read: 'all',
-	outputs: { logistics: { products: { fields: logisticsProduct } } },
-	update: { columns: { products: ['commission_factor', 'commission_basis_unit'] } },
+	indexes: { search: { text: ['name', 'external_code'] } },
+	update: { columns: { fields: ['commission_factor', 'commission_basis_unit'] } },
 	syncs: {
 		kingdee: {
 			with: 'kingdee',
 			every: '1min',
 			read: function* ({ cursor, instance }, ctx) {
-				return yield* readSource(
-					projections.products,
-					cursor,
-					ctx,
-					(row) => {
-						const r = columns(row);
-						return {
-							external_code: r.text('external_code'),
-							source_number: r.text('source_number', null),
-							name: r.text('name'),
-							spec: r.text('spec', null),
-							producing_area: r.text('producing_area', null),
-							brand: r.text('brand', null),
-							brand_en: r.text('brand_en', null),
-							unit: r.text('unit', null),
-							currency: r.currency('currency'),
-							unit_price: r.decimal('unit_price', null),
-							tax_rate: r.decimal('tax_rate', null),
-							active: r.bool('active', true),
-							source_updated_at: r.instant('source_updated_at')
-						};
-					},
-					preserveSource({ model: 'products', instance, projection: projections.products, ctx })
+				return fromSource(
+					yield* readSource(
+						projections.products,
+						cursor,
+						ctx,
+						(row) => {
+							const r = columns(row);
+							return {
+								external_code: r.text('external_code'),
+								source_number: r.text('source_number', null),
+								name: r.text('name'),
+								spec: r.text('spec', null),
+								producing_area: r.text('producing_area', null),
+								brand: r.text('brand', null),
+								brand_en: r.text('brand_en', null),
+								unit: r.text('unit', null),
+								currency: r.currency('currency'),
+								unit_price: r.decimal('unit_price', null),
+								tax_rate: r.decimal('tax_rate', null),
+								active: r.bool('active', true),
+								source_updated_at: r.instant('source_updated_at')
+							};
+						},
+						preserveSource({ model: 'products', instance, projection: projections.products, ctx })
+					),
+					instance
 				);
 			}
 		}

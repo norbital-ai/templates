@@ -1,4 +1,4 @@
-import { Decimal, minorDigits, type DecimalLike } from '@norbital-ai/std/decimal';
+import { Decimal, minor_digits, type DecimalLike } from '@norbital-ai/std/decimal';
 import { Result } from 'effect';
 import type { Id, ReadAnswer } from '@norbital-ai/bolt';
 import { compile, context, evaluate, formula } from '@norbital-ai/std/formula';
@@ -135,7 +135,7 @@ export function commissionPreview(
 		);
 		return {
 			currency: rule.currency,
-			amount: result.amount.round(minorDigits(rule.currency)),
+			amount: result.amount.round(minor_digits(rule.currency)),
 			reason: result.eligible ? ('resolved' as const) : ('ineligible' as const)
 		};
 	});

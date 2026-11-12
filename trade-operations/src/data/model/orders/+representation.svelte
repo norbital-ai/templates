@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { attach, fork, bolt } from '$bolt';
+	import { translated } from '../../../lib/ui/message.js';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { attach, fork } from '@norbital-ai/ui/effect';
 	import { Effect, Result, Schema, Scope } from 'effect';
 	import { Decimal } from '@norbital-ai/std/decimal';
-	import { observeOnce } from '@norbital-ai/ui/effect';
+	import { observe_once } from '@norbital-ai/ui/effect';
 	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
 	import { reportPages } from '../../../lib/reports.js';
 	import {
@@ -39,15 +41,13 @@
 		Icon,
 		RunStatus,
 		TimeRangeInput,
-		useKinds,
-		useBolt,
-		useRecordController,
-		enumText,
+		use_record_controller,
+		enum_text,
 		type FieldEditor,
 		type FormState,
 		type RecordView,
 		type RowOf,
-		openRecord
+		open_record
 	} from '@norbital-ai/ui';
 	import { Stack, Grid, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
@@ -79,17 +79,21 @@
 		to: Schema.NullOr(Schema.String)
 	});
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'orders'>;
+		ctx: PageContext;
 	} = $props();
-	const kinds = useKinds();
 	// a narrower output (logistics) carries no commercial terms
-	const commercial = $derived(kinds.catalog?.orders?.output === undefined);
-	const translate = useBolt().t;
+	const commercial = $derived(ctx.catalog?.orders?.output === undefined);
 	const statusText = (status: string) =>
-		enumText(status, { t: translate, model: 'ext_sales_orders', field: 'status' });
-	const recordController = useRecordController();
+		enum_text(status, {
+			t: (key) => translated(ctx, key),
+			model: 'ext_sales_orders',
+			field: 'status'
+		});
+	const recordController = use_record_controller();
 	let pending = $state(false);
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
 	const preset = createValues();
@@ -104,9 +108,13 @@
 	);
 	const ledgerRead = $derived(
 		id && commercial && !purchase
-			? bolt.query({
-					orders: { where: { id: { eq: id } }, fields: ['ledger'], limit: 1 },
-					'orders.ledger': { fields: ['active', 'status'] }
+			? ctx.query({
+					orders: {
+						where: { id: { eq: id } },
+						fields: ['ledger'],
+						limit: 1,
+						ledger: { fields: ['active', 'status'] }
+					}
 				})
 			: null
 	);
@@ -114,10 +122,10 @@
 	const sourceState = $derived(ledger ? kingdeeConnectionStatus(ledger) : null);
 	const draftSetup = $derived(view.mode !== 'create' && Boolean(view.record.draft_setup));
 	// credit freshness is judged against the minute, so the check re-answers as the minute turns
-	const clock = bolt.clock('minute');
+	const clock = ctx.clock('minute');
 	const checkRead = $derived(
 		id && view.mode !== 'create' && view.record.status === 'draft' && !draftSetup && commercial
-			? bolt.query(confirmationRead(id))
+			? ctx.query(confirmationRead(id))
 			: null
 	);
 	const check = $derived(
@@ -135,8 +143,8 @@
 		)
 	);
 	const purchaseCostRead = $derived(
-		quote?.direction === 'sales' && quote.ledger && kinds.catalog?.source_lot_costs
-			? bolt.query(purchaseLotCostRead(quote.ledger))
+		quote?.direction === 'sales' && quote.ledger && ctx.catalog?.source_lot_costs
+			? ctx.query(purchaseLotCostRead(quote.ledger))
 			: null
 	);
 	const purchaseCosts = $derived(purchaseCostRead?.current?.source_lot_costs.rows[0]);
@@ -151,8 +159,8 @@
 	);
 	const sourceChoice = $derived(resolvableKingdee(versions));
 	const canResolve = $derived(
-		bolt.actor?.kind === 'member' &&
-			(bolt.actor.admin || bolt.actor.teams.includes('commercial_managers')) &&
+		ctx.actor?.kind === 'member' &&
+			(ctx.actor.admin || ctx.actor.teams.includes('commercial_managers')) &&
 			sourceChoice &&
 			sourceChoice.seal_hash !== currentContract?.seal_hash &&
 			sourceChoice.seal_hash !== currentContract?.basis_seal
@@ -171,36 +179,36 @@
 			: (versions.find((v) => String(v.version) === selectedVersion) ?? currentContract)
 	);
 	const filedRequest = $derived(
-		id && selectedContract && commercial && kinds.catalog?.order_files
+		id && selectedContract && commercial && ctx.catalog?.order_files
 			? ({
 					where: { order: { eq: id }, seal_hash: { eq: selectedContract.seal_hash } },
 					fields: ['file'],
-					orderBy: { created_at: 'desc' },
+					order_by: { created_at: 'desc' },
 					limit: 100
 				} as const)
 			: null
 	);
-	const filedRead = $derived(filedRequest ? bolt.query({ order_files: filedRequest }) : null);
+	const filedRead = $derived(filedRequest ? ctx.query({ order_files: filedRequest }) : null);
 	const filedPage = $derived(filedRead?.current?.order_files);
-	const remainingFiles = observeOnce(() => {
+	const remainingFiles = observe_once(() => {
 		const request = filedRequest;
 		const first = filedPage;
 		return request && first?.next
 			? reportPages(first, (after) =>
-					bolt
+					ctx
 						.query({ order_files: { ...request, after } })
 						.pipe(Effect.map((answer) => answer.order_files))
 				).pipe(Effect.map((rows) => ({ request, rows })))
 			: null;
 	});
-	const documentKind = { kind: 'file', multiple: true, accept: ['*/*'], max: '20MiB' } as const;
+	const documentKind = { kind: 'file', many: true, accept: ['*/*'], max: '20MiB' } as const;
 	const sealedDocuments = $derived.by(() => {
 		const remaining = remainingFiles.current;
 		const rows =
 			remaining && remaining.request === filedRequest ? remaining.rows : (filedPage?.rows ?? []);
 		return retainedContractDocuments(
 			[
-				kinds.catalog?.orders?.fields?.supporting_documents
+				ctx.catalog?.orders?.fields?.supporting_documents
 					? selectedContract?.supporting_documents
 					: undefined
 			],
@@ -212,19 +220,19 @@
 			selectedContract &&
 			selectedContract.lifecycle !== 'pending' &&
 			commercial &&
-			kinds.catalog?.transactions &&
-			kinds.catalog.transactions.output === undefined
+			ctx.catalog?.transactions &&
+			ctx.catalog.transactions.output === undefined
 			? orderDeliveries(id)
 			: null
 	);
-	const deliveryRead = $derived(deliveryRequest ? bolt.query(deliveryRequest) : null);
+	const deliveryRead = $derived(deliveryRequest ? ctx.query(deliveryRequest) : null);
 	const deliveryPage = $derived(deliveryRead?.current?.transactions);
-	const remainingDeliveries = observeOnce(() => {
+	const remainingDeliveries = observe_once(() => {
 		const request = deliveryRequest;
 		const first = deliveryPage;
 		return request && first?.next
 			? reportPages(first, (after) =>
-					bolt
+					ctx
 						.query({
 							transactions: { ...request.transactions, after }
 						})
@@ -260,11 +268,11 @@
 		const fields = ['reference', 'status'] as const;
 		if (confirmationModel === 'ext_purchase_orders')
 			return commercial
-				? bolt.query({ ext_purchase_orders: { where, fields } })
-				: bolt.query({ ext_purchase_orders: { output: 'logistics', where, fields } });
+				? ctx.query({ ext_purchase_orders: { where, fields } })
+				: ctx.query({ ext_purchase_orders: { output: 'logistics', where, fields } });
 		return commercial
-			? bolt.query({ ext_sales_orders: { where, fields } })
-			: bolt.query({ ext_sales_orders: { output: 'logistics', where, fields } });
+			? ctx.query({ ext_sales_orders: { where, fields } })
+			: ctx.query({ ext_sales_orders: { output: 'logistics', where, fields } });
 	});
 	const confirmationRows = $derived(
 		receiptRead && {
@@ -286,7 +294,7 @@
 		Boolean(
 			recordController?.historical ||
 			recordController?.current?.dirty ||
-			recordController?.current?.capabilities?.update.reasons.includes('underApproval') ||
+			recordController?.current?.capabilities?.update.reasons.includes('under_approval') ||
 			pending
 		)
 	);
@@ -295,13 +303,13 @@
 			...event,
 			status:
 				event.status === 'closed'
-					? translate('component.kingdee_status_closed')
+					? ctx.t('component.kingdee_status_closed')
 					: event.status === 'superseded'
-						? translate('component.contract_superseded')
+						? ctx.t('component.contract_superseded')
 						: event.status === 'changedUnversioned' || event.status === 'sourceConflict'
-							? translate('component.kingdee_status_changedUnversioned')
+							? ctx.t('component.kingdee_status_changedUnversioned')
 							: statusText(event.status),
-			kind: translate(`component.kingdee_event_${event.kind}`)
+			kind: translated(ctx, `component.kingdee_event_${event.kind}`)
 		}))
 	);
 	const liveSource = $derived(kingdeeAgreement(versions));
@@ -313,7 +321,7 @@
 				liveSource.seal_hash !== selectedContract?.basis_seal)
 	);
 	function contractLabel(version: ContractVersion) {
-		return bolt.t(
+		return ctx.t(
 			version.seal_hash === currentContract?.seal_hash
 				? 'component.contract_current'
 				: version.lifecycle === 'pending'
@@ -327,7 +335,7 @@
 		status: 'draft' | 'issued' | 'void' | 'closed' | null | undefined
 	) {
 		return {
-			label: bolt.t(
+			label: ctx.t(
 				needsReconciliation
 					? 'component.kingdee_status_changedUnversioned'
 					: status === 'closed'
@@ -368,15 +376,27 @@
 		})
 	);
 	const confirmOrder = Effect.fn('Trading.confirmOrder')(function* () {
-		if (!id || !check || Result.isFailure(check) || pending || archived || draftSetup) return;
+		if (
+			!id ||
+			view.mode === 'create' ||
+			!check ||
+			Result.isFailure(check) ||
+			pending ||
+			archived ||
+			draftSetup
+		)
+			return;
+		const revision = view.record.revision;
 		const check_hash = yield* confirmationHash(check.success);
 		const target = id;
-		const awaiting = bolt.t('component.awaiting_approval');
-		const uncertain = bolt.t('component.seal_uncertain');
+		const awaiting = ctx.t('component.awaiting_approval');
+		const uncertain = ctx.t('component.seal_uncertain');
 		pending = true;
-		const result = yield* bolt.act('orders.update', [
-			{ target, set: { status: 'confirmed', check_hash } }
-		]);
+		const result = yield* ctx.act({
+			'orders.update': [
+				{ target: { id: target, revision }, set: { status: 'confirmed', check_hash } }
+			]
+		});
 		const controller = recordController?.current;
 		if (
 			result.kind === 'committed' &&
@@ -386,12 +406,12 @@
 		)
 			controller.view();
 		feedback =
-			result.kind === 'committed' ? '' : result.kind === 'pendingApproval' ? awaiting : uncertain;
+			result.kind === 'committed' ? '' : result.kind === 'pending_approval' ? awaiting : uncertain;
 	});
 	function confirm() {
 		const owner = actionScope;
 		if (owner === undefined) return;
-		const uncertain = bolt.t('component.seal_uncertain');
+		const uncertain = ctx.t('component.seal_uncertain');
 		fork(
 			Effect.forkIn(
 				confirmOrder().pipe(
@@ -399,9 +419,9 @@
 						Effect.sync(() => {
 							feedback =
 								failure._tag === 'ActRefused'
-									? translate(failure.message)
+									? translated(ctx, failure.message)
 									: failure._tag === 'ActConflict'
-										? bolt.t('component.order_changed')
+										? ctx.t('component.order_changed')
 										: uncertain;
 						})
 					),
@@ -424,7 +444,7 @@
 		if (change === 'revise' || change === 'adopt' || change === 'rebase') {
 			const resolving = change !== 'revise';
 			if (resolving && (!canResolve || !sourceChoice)) return;
-			const started = bolt.start('orders_revise', {
+			const started = ctx.run('orders_revise', {
 				target: id,
 				revision: view.record.revision,
 				...(resolving && sourceChoice
@@ -436,21 +456,24 @@
 			});
 			revisionRun = started.id;
 			const outcome = yield* started;
-			if (outcome.kind === 'pendingApproval') feedback = bolt.t('component.awaiting_approval');
+			if (outcome.kind === 'pending_approval') feedback = ctx.t('component.awaiting_approval');
 			else if (outcome.kind === 'committed')
 				selectedVersion =
 					change === 'adopt' && sourceChoice ? String(sourceChoice.version) : 'draft';
-			else if (outcome.kind === 'refused') feedback = translate(outcome.message);
-			else feedback = bolt.t('component.seal_uncertain');
+			else if (outcome.kind === 'refused') feedback = translated(ctx, outcome.message);
+			else feedback = ctx.t('component.seal_uncertain');
 			return;
 		}
-		const result = yield* bolt.act(
-			'orders.update',
-			[{ target: id, set: { archived: change === 'archive' } }],
-			{ observed: { [id]: view.record.revision } }
-		);
-		if (result.kind === 'pendingApproval') feedback = bolt.t('component.awaiting_approval');
-		else if (result.kind !== 'committed') feedback = bolt.t('component.seal_uncertain');
+		const result = yield* ctx.act({
+			'orders.update': [
+				{
+					target: { id, revision: view.record.revision },
+					set: { archived: change === 'archive' }
+				}
+			]
+		});
+		if (result.kind === 'pending_approval') feedback = ctx.t('component.awaiting_approval');
+		else if (result.kind !== 'committed') feedback = ctx.t('component.seal_uncertain');
 	});
 	function change(change: 'archive' | 'unarchive' | 'revise' | 'adopt' | 'rebase') {
 		const owner = actionScope;
@@ -462,10 +485,10 @@
 						Effect.sync(() => {
 							feedback =
 								failure._tag === 'ActRefused'
-									? translate(failure.message)
+									? translated(ctx, failure.message)
 									: failure._tag === 'ActConflict'
-										? bolt.t('component.order_changed')
-										: bolt.t('component.seal_uncertain');
+										? ctx.t('component.order_changed')
+										: ctx.t('component.seal_uncertain');
 						})
 					),
 					Effect.ensuring(
@@ -486,7 +509,7 @@
 		precision="day"
 		id={field.id}
 		value={{ from: form.get('valid_from'), to: form.get('valid_until') }}
-		onChange={(range) => {
+		on_change={(range) => {
 			if (Schema.is(DateBounds)(range)) {
 				form.set('valid_from', range.from ?? null);
 				form.set('valid_until', range.to ?? null);
@@ -512,15 +535,16 @@
 		}}
 		disabled={field.disabled}
 		invalid={Boolean(field.error)}
-		onChange={field.onChange}
+		on_change={field.on_change}
 	/>
 {/snippet}
 {#snippet printDetails(form: FormState, field: FieldEditor)}
 	<PrintDetails
+		{ctx}
 		layout={form.id<'document_templates'>('document_template')}
 		scope="order"
 		value={field.value}
-		onChange={field.onChange}
+		on_change={field.on_change}
 		id={field.id}
 		disabled={field.disabled}
 	/>
@@ -528,6 +552,7 @@
 
 {#snippet printDetailsView(form: FormState)}
 	<PrintDetails
+		{ctx}
 		layout={form.id<'document_templates'>('document_template')}
 		scope="order"
 		value={form.get('print_values')}
@@ -543,7 +568,7 @@
 			id={field.id}
 			disabled={field.disabled}
 			invalid={Boolean(field.error)}
-			onChange={(next) => {
+			on_change={(next) => {
 				if (!Schema.is(DocumentRefs)(next)) return;
 				form.set(
 					'supporting_documents',
@@ -561,29 +586,27 @@
 	{/if}
 {/snippet}
 {#snippet documentView(form: FormState)}
-	{@const kind = kinds.catalog?.orders?.fields?.supporting_documents}
+	{@const kind = ctx.catalog?.orders?.fields?.supporting_documents}
 	{#if kind}<Show readonly {kind} value={draftDocuments(form)} />{/if}
 {/snippet}
 {#snippet confirmationNotices(form: FormState)}
 	{#if checkRead && draftContract}
 		{#if form.dirty}
 			<p class="text-sm text-muted-foreground">
-				{bolt.t(purchase ? 'component.commitment_save_first' : 'component.seal_explanation')}
+				{ctx.t(purchase ? 'component.commitment_save_first' : 'component.seal_explanation')}
 			</p>
 		{/if}
 		{#if check && Result.isSuccess(check)}
 			{#if !purchaseCosts && check.success.below_inventory_cost.length}<p class="text-sm">
-					{bolt.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(
-						', '
-					)}
+					{ctx.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(', ')}
 				</p>{/if}
 			{#if purchaseCosts && !form.dirty}
 				{#if !quote?.warehouse}
-					<p class="text-sm text-muted-foreground">{bolt.t('stock.fifo.choose_warehouse')}</p>
+					<p class="text-sm text-muted-foreground">{ctx.t('stock.fifo.choose_warehouse')}</p>
 				{:else if fifoCosts.length}
 					<details class="rounded-md border border-input px-3 py-2 text-sm">
-						<summary class="cursor-pointer font-medium">{bolt.t('stock.fifo.title')}</summary>
-						<p class="mt-2 text-muted-foreground">{bolt.t('stock.fifo.scope')}</p>
+						<summary class="cursor-pointer font-medium">{ctx.t('stock.fifo.title')}</summary>
+						<p class="mt-2 text-muted-foreground">{ctx.t('stock.fifo.scope')}</p>
 						<ul class="mt-2 space-y-2">
 							{#each fifoCosts as row (row.key)}
 								<li>
@@ -593,14 +616,14 @@
 										· {purchaseCosts.currency}
 										{row.estimate.unit_cost.round(4).toString()} / {row.unit}
 										{#if row.below}
-											· {bolt.t('stock.fifo.below_quote')}{/if}
+											· {ctx.t('stock.fifo.below_quote')}{/if}
 										<div class="text-muted-foreground">
 											{row.estimate.lots
 												.map((lot) => `${lot.lot_number} × ${lot.quantity.toString()}`)
 												.join(' · ')}
 										</div>
 									{:else}
-										· {bolt.t('component.inventory_cost_unavailable')}{/if}
+										· {ctx.t('component.inventory_cost_unavailable')}{/if}
 								</li>
 							{/each}
 						</ul>
@@ -610,8 +633,8 @@
 		{:else}
 			<p>
 				{check && Result.isFailure(check)
-					? translate(check.failure)
-					: (checkRead.error?.message ?? bolt.t('component.check_loading'))}
+					? ctx.t(check.failure)
+					: (checkRead.error?.message ?? ctx.t('component.check_loading'))}
 			</p>
 		{/if}
 	{/if}
@@ -627,7 +650,7 @@
 				!check ||
 				Result.isFailure(check)}
 			onclick={confirm}
-			>{bolt.t(purchase ? 'component.record_commitment' : 'component.confirm_seal')}</Button
+			>{ctx.t(purchase ? 'component.record_commitment' : 'component.confirm_seal')}</Button
 		>
 	{/if}
 {/snippet}
@@ -637,7 +660,7 @@
 		{@const canFile =
 			view.mode === 'edit' &&
 			filedRequest &&
-			kinds.catalog?.order_files?.create &&
+			ctx.catalog?.order_files?.create &&
 			!archived &&
 			selectedContract.lifecycle !== 'pending' &&
 			!recordController?.historical}
@@ -645,14 +668,14 @@
 			<Grid as="dl" gap="md" minimum="compact">
 				<div>
 					<dt class="text-xs font-medium text-muted-foreground">
-						{bolt.t('models.orders.fields.party')}
+						{ctx.t('models.orders.fields.party')}
 					</dt>
 					<dd class="text-sm">{selectedContract.snapshot.party_name}</dd>
 				</div>
-				{@const warehouseKind = kinds.catalog?.orders?.fields?.warehouse}
+				{@const warehouseKind = ctx.catalog?.orders?.fields?.warehouse}
 				{#if warehouseKind}<div>
 						<dt class="text-xs font-medium text-muted-foreground">
-							{bolt.t('models.orders.fields.warehouse')}
+							{ctx.t('models.orders.fields.warehouse')}
 						</dt>
 						<dd class="text-sm">
 							<Show
@@ -665,13 +688,13 @@
 					</div>{/if}
 				<div>
 					<dt class="text-xs font-medium text-muted-foreground">
-						{bolt.t('models.orders.fields.currency')}
+						{ctx.t('models.orders.fields.currency')}
 					</dt>
 					<dd class="text-sm">{selectedContract.snapshot.currency}</dd>
 				</div>
 				<div>
 					<dt class="text-xs font-medium text-muted-foreground">
-						{bolt.t('models.orders.fields.ordered_on')}
+						{ctx.t('models.orders.fields.ordered_on')}
 					</dt>
 					<dd class="text-sm">
 						<Show kind={{ kind: 'date' }} value={selectedContract.ordered_on} />
@@ -679,7 +702,7 @@
 				</div>
 				<div>
 					<dt class="text-xs font-medium text-muted-foreground">
-						{bolt.t('models.orders.fields.tax_inclusive')}
+						{ctx.t('models.orders.fields.tax_inclusive')}
 					</dt>
 					<dd class="text-sm">
 						<Show kind={{ kind: 'bool' }} value={selectedContract.snapshot.tax_inclusive} />
@@ -687,7 +710,7 @@
 				</div>
 				<div>
 					<dt class="text-xs font-medium text-muted-foreground">
-						{bolt.t(
+						{ctx.t(
 							selectedContract.origin === 'kingdee'
 								? 'component.contract_imported_at'
 								: 'models.orders.fields.sealed_at'
@@ -699,19 +722,19 @@
 				</div>
 				<div>
 					<dt class="text-xs font-medium text-muted-foreground">
-						{bolt.t('models.orders.fields.payment_terms')}
+						{ctx.t('models.orders.fields.payment_terms')}
 					</dt>
 					<dd class="text-sm">{selectedContract.snapshot.payment_terms}</dd>
 				</div>
 				<div>
 					<dt class="text-xs font-medium text-muted-foreground">
-						{bolt.t('models.orders.fields.delivery_terms')}
+						{ctx.t('models.orders.fields.delivery_terms')}
 					</dt>
 					<dd class="text-sm">{selectedContract.snapshot.delivery_terms || '—'}</dd>
 				</div>
 				<div>
 					<dt class="text-xs font-medium text-muted-foreground">
-						{bolt.t('models.orders.fields.valid_from')}
+						{ctx.t('models.orders.fields.valid_from')}
 					</dt>
 					<dd class="text-sm">
 						<Show
@@ -728,7 +751,7 @@
 				{#if sealedDocuments.length || canFile || filedRead?.error || remainingFiles.error}
 					<div class="min-w-0">
 						<dt class="text-xs font-medium text-muted-foreground">
-							{bolt.t('models.orders.fields.supporting_documents')}
+							{ctx.t('models.orders.fields.supporting_documents')}
 						</dt>
 						<dd class="text-sm">
 							<Cluster gap="xs">
@@ -741,8 +764,8 @@
 									<Button
 										variant="ghost"
 										size="icon"
-										aria-label={bolt.t('component.file_order_document')}
-										title={bolt.t('component.file_order_document')}
+										aria-label={ctx.t('component.file_order_document')}
+										title={ctx.t('component.file_order_document')}
 										onclick={() => openCreate('order_files', { order: id, seal_hash: seal })}
 									>
 										<Icon name="lucide:plus" class="size-4" />
@@ -750,7 +773,7 @@
 								{/if}
 								{#if filedRead?.error || remainingFiles.error}
 									<span role="status" class="text-sm text-muted-foreground"
-										>{bolt.t('component.order_documents_unavailable')}</span
+										>{ctx.t('component.order_documents_unavailable')}</span
 									>
 								{/if}
 							</Cluster>
@@ -764,13 +787,13 @@
 					<thead class="bg-muted/50 text-left text-muted-foreground">
 						<tr>
 							<th class="w-2/5 px-3 py-2 font-medium @2xl:w-auto"
-								>{bolt.t('models.order_lines.fields.product')}</th
+								>{ctx.t('models.order_lines.fields.product')}</th
 							>
 							{#each ['quantity', 'unit_price', 'discount_pct', 'tax_rate', 'total'] as const as name (name)}<th
 									class={[
 										'px-3 py-2 text-right font-medium',
 										name !== 'quantity' && name !== 'total' && 'hidden @2xl:table-cell'
-									]}>{bolt.t(`models.order_lines.fields.${name}`)}</th
+									]}>{ctx.t(`models.order_lines.fields.${name}`)}</th
 								>{/each}
 						</tr>
 					</thead>
@@ -783,7 +806,7 @@
 									<span class="block text-xs text-muted-foreground">{line.product_code}</span>
 									<dl class="mt-1 text-xs text-muted-foreground @2xl:hidden">
 										<div>
-											<dt class="inline">{bolt.t('models.order_lines.fields.unit_price')}</dt>
+											<dt class="inline">{ctx.t('models.order_lines.fields.unit_price')}</dt>
 											<dd class="inline">
 												<Show
 													kind={{ ...moneyKind, scale: 4 }}
@@ -794,12 +817,12 @@
 										</div>
 										{#if Decimal.of(line.discount_pct).gt(0)}
 											<div>
-												<dt class="inline">{bolt.t('models.order_lines.fields.discount_pct')}</dt>
+												<dt class="inline">{ctx.t('models.order_lines.fields.discount_pct')}</dt>
 												<dd class="inline">{displayDecimal(line.discount_pct)}%</dd>
 											</div>
 										{/if}
 										<div>
-											<dt class="inline">{bolt.t('models.order_lines.fields.tax_rate')}</dt>
+											<dt class="inline">{ctx.t('models.order_lines.fields.tax_rate')}</dt>
 											<dd class="inline">{displayDecimal(line.tax_rate)}%</dd>
 										</div>
 									</dl></td
@@ -808,7 +831,7 @@
 									{displayDecimal(line.quantity)}
 									{line.unit}
 									{#if delivered && Decimal.of(line.quantity).gt(0)}
-										{@const label = bolt.t('component.line_delivery_progress', {
+										{@const label = ctx.t('component.line_delivery_progress', {
 											quantity: displayDecimal(delivered.toString()),
 											unit: line.unit
 										})}
@@ -816,7 +839,7 @@
 											class="mt-1 h-1"
 											value={Math.max(
 												0,
-												Math.min(100, delivered.times(100).div(line.quantity, 2).toNumber())
+												Math.min(100, delivered.times(100).div(line.quantity, 2).to_number())
 											)}
 											aria-label={label}
 										/>
@@ -848,10 +871,10 @@
 								class={name === 'total' ? 'font-medium' : 'text-muted-foreground'}
 							>
 								<td colspan="2" class="px-3 py-1.5 text-right @2xl:hidden"
-									>{bolt.t(`models.orders.fields.${name}`)}</td
+									>{ctx.t(`models.orders.fields.${name}`)}</td
 								>
 								<td colspan="5" class="hidden px-3 py-1.5 text-right @2xl:table-cell"
-									>{bolt.t(`models.orders.fields.${name}`)}</td
+									>{ctx.t(`models.orders.fields.${name}`)}</td
 								>
 								<td class="px-3 py-1.5 text-right"
 									><Show
@@ -868,9 +891,9 @@
 	{:else if view.mode !== 'create' && view.record.status === 'draft'}
 		<EmptyState
 			variant="inset"
-			title={bolt.t(purchase ? 'component.commitment_draft' : 'component.unfinalized_quotation')}
+			title={ctx.t(purchase ? 'component.commitment_draft' : 'component.unfinalized_quotation')}
 		/>
-	{:else}<EmptyState variant="inset" title={bolt.t('errors.agreement_access')} />{/if}
+	{:else}<EmptyState variant="inset" title={ctx.t('errors.agreement_access')} />{/if}
 {/snippet}
 {#snippet lineUnitPrice({
 	row,
@@ -881,9 +904,9 @@
 })}
 	{@const floor = draftContract ? quoteFloors.get(row.id) : undefined}
 	{#if floor?.net != null && quote && value != null}
-		{@const status = bolt.t(floor.below ? 'errors.floor_below' : 'component.quote_floor_met')}
+		{@const status = ctx.t(floor.below ? 'errors.floor_below' : 'component.quote_floor_met')}
 		{@const minimum = `${quote.currency} ${displayDecimal(floor.net.toString())}/${floor.unit}`}
-		{@const hint = `${status} ${bolt.t('component.quote_floor_minimum')}: ${minimum} · ${floor.effective_on}`}
+		{@const hint = `${status} ${ctx.t('component.quote_floor_minimum')}: ${minimum} · ${floor.effective_on}`}
 		<Tooltip text={hint}>
 			{#snippet trigger({ props })}
 				<button
@@ -917,7 +940,7 @@
 			]}
 			toolbar={{
 				new:
-					kinds.catalog?.order_lines?.create &&
+					ctx.catalog?.order_lines?.create &&
 					view.mode !== 'create' &&
 					view.record.status === 'draft' &&
 					!archived &&
@@ -938,10 +961,7 @@
 					columns={['reference', 'kind', 'status', 'source_updated_at']}
 					toolbar={{ new: false, controls: versionPicker }}
 				/>
-			{:else}<EmptyState
-					variant="inset"
-					title={bolt.t('component.contract_no_transactions')}
-				/>{/if}
+			{:else}<EmptyState variant="inset" title={ctx.t('component.contract_no_transactions')} />{/if}
 		</Stack>{/if}{/snippet}
 {#snippet activity()}{#if id}
 		<Stack gap="md">
@@ -951,7 +971,7 @@
 				columns={['title', 'kind', 'owner', 'due_on', 'done']}
 				toolbar={{
 					new:
-						kinds.catalog?.activities?.create && !archived
+						ctx.catalog?.activities?.create && !archived
 							? () => openCreate('activities', { order: id })
 							: false
 				}}
@@ -959,7 +979,7 @@
 		</Stack>{/if}{/snippet}
 {#snippet versionPicker()}{#if versions.length}<label class="w-36 md:w-44">
 			<span class="sr-only"
-				>{bolt.t(
+				>{ctx.t(
 					purchase ? 'component.commitment_version' : 'models.orders.fields.contract_version'
 				)}</span
 			>
@@ -970,36 +990,36 @@
 						? [
 								{
 									value: 'draft',
-									label: `${bolt.t('component.contract_draft')} · ${String(view.record.contract_version).padStart(3, '0')}`
+									label: `${ctx.t('component.contract_draft')} · ${String(view.record.contract_version).padStart(3, '0')}`
 								}
 							]
 						: []),
 					...versions.map((v) => ({
 						value: String(v.version),
-						label: `${bolt.t(purchase ? 'component.commitment' : 'section.seal')} ${String(v.version).padStart(3, '0')}`,
+						label: `${ctx.t(purchase ? 'component.commitment' : 'section.seal')} ${String(v.version).padStart(3, '0')}`,
 						description: contractLabel(v)
 					}))
 				]}
 				value={draftContract ? 'draft' : String(selectedContract?.version)}
-				onChange={(v) => {
+				on_change={(v) => {
 					selectedVersion = v;
 				}}
 			/>
 		</label>{/if}{/snippet}
 {#snippet sourceConfirmation()}
 	{#if selectedContract && !purchase && sourceState && sourceState !== 'connected'}
-		<Badge variant="outline">{bolt.t(`component.kingdee_${sourceState}`)}</Badge>
+		<Badge variant="outline">{ctx.t(`component.kingdee_${sourceState}`)}</Badge>
 	{:else if selectedContract && !purchase && (selectedContract.kingdee || awaitingKingdee(selectedContract, versions) || needsReconciliation)}
 		{@const status = selectedContract.kingdee?.closed ? 'closed' : selectedContract.kingdee?.status}
 		{@const presentation = confirmationPresentation(status)}
 		<Tooltip
 			text={status
-				? `Kingdee · ${bolt.t('component.kingdee_version')} ${selectedContract.kingdee?.source_version} · ${presentation.label}`
+				? `Kingdee · ${ctx.t('component.kingdee_version')} ${selectedContract.kingdee?.source_version} · ${presentation.label}`
 				: (confirmationRows?.error?.message ??
 					(pushFailed && view.mode !== 'create'
 						? view.record.$sync?.kingdee?.message
 						: undefined) ??
-					bolt.t('component.kingdee_waiting'))}
+					ctx.t('component.kingdee_waiting'))}
 		>
 			{#snippet trigger({ props })}<Badge {...props} tabindex={0} variant={presentation.variant}
 					>{presentation.label}</Badge
@@ -1016,43 +1036,43 @@
 			class="inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
 		>
 			<Badge variant={disconnected ? 'outline' : presentation.variant}>
-				{disconnected ? bolt.t(`component.kingdee_${disconnected}`) : presentation.label}
+				{disconnected ? ctx.t(`component.kingdee_${disconnected}`) : presentation.label}
 			</Badge>
 		</Popover.Trigger>
 		<Popover.Content
 			align="start"
 			class="w-96 max-w-[calc(100vw-2rem)] p-3"
-			aria-label={bolt.t('component.kingdee_tracking')}
+			aria-label={ctx.t('component.kingdee_tracking')}
 		>
 			<Stack gap="sm">
 				<dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
 					<div>
-						<dt class="text-muted-foreground">{bolt.t('models.ext_sales_orders.fields.status')}</dt>
+						<dt class="text-muted-foreground">{ctx.t('models.ext_sales_orders.fields.status')}</dt>
 						<dd>
 							{status === 'closed'
-								? bolt.t('component.kingdee_status_closed')
+								? ctx.t('component.kingdee_status_closed')
 								: status
 									? statusText(status)
-									: bolt.t('component.not_set')}
+									: ctx.t('component.not_set')}
 						</dd>
 					</div>
 					<div>
-						<dt class="text-muted-foreground">{bolt.t('component.kingdee_version')}</dt>
+						<dt class="text-muted-foreground">{ctx.t('component.kingdee_version')}</dt>
 						<dd>{source.source_version}</dd>
 					</div>
 					<div>
-						<dt class="text-muted-foreground">{bolt.t('component.kingdee_observed_at')}</dt>
+						<dt class="text-muted-foreground">{ctx.t('component.kingdee_observed_at')}</dt>
 						<dd><Show kind={{ kind: 'instant' }} value={source.observed_at} /></dd>
 					</div>
 					{#if source.source_changed_at}
 						<div>
-							<dt class="text-muted-foreground">{bolt.t('component.kingdee_changed_at')}</dt>
+							<dt class="text-muted-foreground">{ctx.t('component.kingdee_changed_at')}</dt>
 							<dd>{source.source_changed_at}</dd>
 						</div>
 					{/if}
 					{#if source.source_changed_by}
 						<div>
-							<dt class="text-muted-foreground">{bolt.t('component.kingdee_changed_by')}</dt>
+							<dt class="text-muted-foreground">{ctx.t('component.kingdee_changed_by')}</dt>
 							<dd>{source.source_changed_by}</dd>
 						</div>
 					{/if}
@@ -1074,7 +1094,7 @@
 				{#each confirmationRows?.current?.rows ?? [] as receipt (receipt.id)}
 					<Popover.Close
 						class="flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
-						onclick={() => openRecord('ext_sales_orders', receipt.id)}
+						onclick={() => open_record('ext_sales_orders', receipt.id)}
 					>
 						<Icon name="lucide:arrow-up-right" class="size-4" />
 						{receipt.reference}
@@ -1095,7 +1115,7 @@
 					? 'closed'
 					: (selectedContract.kingdee?.status ?? receipt.status)}
 				{@const presentation = confirmationPresentation(status)}
-				{@const receiptInfo = `Kingdee · ${receipt.reference}${selectedContract.kingdee ? ` · ${bolt.t('component.kingdee_version')} ${selectedContract.kingdee.source_version}` : ''} · ${presentation.label}`}
+				{@const receiptInfo = `Kingdee · ${receipt.reference}${selectedContract.kingdee ? ` · ${ctx.t('component.kingdee_version')} ${selectedContract.kingdee.source_version}` : ''} · ${presentation.label}`}
 				<Tooltip text={receiptInfo}>
 					{#snippet trigger({ props })}
 						<button
@@ -1103,7 +1123,7 @@
 							type="button"
 							aria-label={receiptInfo}
 							class="inline-flex rounded-full focus-visible:outline-2 focus-visible:outline-ring"
-							onclick={() => openRecord(confirmationModel, receipt.id)}
+							onclick={() => open_record(confirmationModel, receipt.id)}
 						>
 							<Badge variant={presentation.variant}>{presentation.label}</Badge>
 						</button>
@@ -1114,7 +1134,7 @@
 	{/if}{/snippet}
 {#snippet contractActions(form: FormState)}
 	{@const lockedLabel = selectedContract
-		? bolt.t(purchase ? 'component.commitment_recorded' : 'component.sealed')
+		? ctx.t(purchase ? 'component.commitment_recorded' : 'component.sealed')
 		: null}
 	<Cluster gap="sm" class="max-w-full">
 		{@render versionPicker()}
@@ -1123,12 +1143,12 @@
 				type="button"
 				variant="outline"
 				onclick={() => (documentRequest = { version: selectedContract?.version ?? null })}
-				>{bolt.t('component.preview_document')}</Button
+				>{ctx.t('component.preview_document')}</Button
 			>
 		{/if}
-		{#if view.mode !== 'create' && !archived && !recordController?.historical && kinds.automations?.orders_revise && (draftSetup || (view.record.status === 'confirmed' && selectedContract && selectedContract.seal_hash === currentContract?.seal_hash))}
+		{#if view.mode !== 'create' && !archived && !recordController?.historical && ctx.automations?.orders_revise && (draftSetup || (view.record.status === 'confirmed' && selectedContract && selectedContract.seal_hash === currentContract?.seal_hash))}
 			<Button variant="outline" {disabled} onclick={() => change('revise')}
-				>{bolt.t(
+				>{ctx.t(
 					draftSetup
 						? 'component.resume_contract_setup'
 						: purchase
@@ -1139,17 +1159,17 @@
 		{/if}
 		{#if view.mode === 'view' && !archived && !recordController?.historical && view.record.status === 'confirmed' && canResolve}
 			<Button variant="outline" {disabled} onclick={() => change('adopt')}
-				>{bolt.t('component.adopt_kingdee')}</Button
+				>{ctx.t('component.adopt_kingdee')}</Button
 			>
 			<Button variant="outline" {disabled} onclick={() => change('rebase')}
-				>{bolt.t('component.revise_kingdee')}</Button
+				>{ctx.t('component.revise_kingdee')}</Button
 			>
 		{/if}
 		{@render sealButton(form)}
 		{#if lockedLabel}
 			<Tooltip
 				text={selectedContract?.origin === 'kingdee'
-					? `${bolt.t('component.contract_imported')}. ${lockedLabel}`
+					? `${ctx.t('component.contract_imported')}. ${lockedLabel}`
 					: lockedLabel}
 			>
 				{#snippet trigger({ props })}<span
@@ -1186,7 +1206,7 @@
 		{#if selectedContract}{@render contractControls()}{/if}
 		{@render confirmationNotices(form)}
 		{#if purchase && (draftContract || view.mode === 'create')}
-			<p class="text-sm text-muted-foreground">{bolt.t('component.commitment_help')}</p>
+			<p class="text-sm text-muted-foreground">{ctx.t('component.commitment_help')}</p>
 		{/if}
 		{#if revisionRun}<RunStatus automation="orders_revise" run={revisionRun} />{/if}
 		{#if draftContract || view.mode === 'create'}{@render lines()}{:else}{@render agreement()}{/if}
@@ -1195,15 +1215,15 @@
 	{#if view.mode !== 'create'}
 		<Combobox
 			options={[
-				{ value: 'active', label: bolt.t('component.order_active') },
-				{ value: 'archived', label: bolt.t('component.order_archived') }
+				{ value: 'active', label: ctx.t('component.order_active') },
+				{ value: 'archived', label: ctx.t('component.order_archived') }
 			]}
 			variant="ghost"
 			value={archived ? 'archived' : 'active'}
-			aria-label={bolt.t('models.orders.fields.archived')}
+			aria-label={ctx.t('models.orders.fields.archived')}
 			{disabled}
-			readonly={!kinds.catalog?.orders?.update}
-			onChange={(value) => {
+			readonly={!ctx.catalog?.orders?.update}
+			on_change={(value) => {
 				if (value && (value === 'archived') !== archived)
 					change(value === 'archived' ? 'archive' : 'unarchive');
 			}}
@@ -1212,10 +1232,11 @@
 {/snippet}
 <span hidden {@attach actionLifetime}></span>
 <RecordForm
-	editablePresets={['document_template']}
+	{ctx}
+	editable_presets={['document_template']}
 	trailing={orderState}
 	readonly={archived || draftSetup}
-	readonlyReason={bolt.t(archived ? 'component.order_archived' : 'errors.contract_setup')}
+	readonly_reason={ctx.t(archived ? 'component.order_archived' : 'errors.contract_setup')}
 	history={{
 		fields: [
 			'title',
@@ -1266,7 +1287,7 @@
 				]
 			: []
 	}}
-	afterForm={generalDetails}
+	after_form={generalDetails}
 	editors={{
 		party,
 		valid_from: validity,
@@ -1284,7 +1305,7 @@
 		{
 			name: 'contract',
 			icon: 'lucide:file-signature',
-			title: bolt.t(purchase ? 'component.purchase_commitment' : 'section.seal'),
+			title: ctx.t(purchase ? 'component.purchase_commitment' : 'section.seal'),
 			actions: contractActions,
 			body: contractBody,
 			fields:
@@ -1354,16 +1375,17 @@
 	]}
 	tabs={id
 		? [
-				{ name: 'activities', title: bolt.t('models.activities.label'), body: activity },
-				{ name: 'transactions', title: bolt.t('section.transactions'), body: fulfillment }
+				{ name: 'activities', title: ctx.t('models.activities.label'), body: activity },
+				{ name: 'transactions', title: ctx.t('section.transactions'), body: fulfillment }
 			]
 		: []}
 />
 
 {#if id && documentRequest}
 	<OrderDocumentDialog
+		{ctx}
 		order={id}
 		version={documentRequest.version}
-		onClose={() => (documentRequest = null)}
+		on_close={() => (documentRequest = null)}
 	/>
 {/if}

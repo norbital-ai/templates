@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import type { StoredRow, Id } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Decimal, currency, minorDigits, sum } from '@norbital-ai/std/decimal';
+import { Decimal, currency, minor_digits, sum } from '@norbital-ai/std/decimal';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import {
 	readSalesGraph,
@@ -91,7 +91,7 @@ const signedAmounts = (
 	net: Decimal | null,
 	gross: Decimal | null
 ): boolean => {
-	if (quantity !== null && quantity.isZero()) return false;
+	if (quantity !== null && quantity.is_zero()) return false;
 	if (net === null || gross === null) return true;
 	if (net.lt(0) !== gross.lt(0)) return false;
 	return gross.abs().gte(net.abs());
@@ -173,12 +173,12 @@ export function mapSalesFacts(
 			!costCurrency ||
 			deliveryLine.costAmount == null ||
 			!quantity ||
-			deliveryLine.quantity.isZero()
+			deliveryLine.quantity.is_zero()
 		)
 			return fact;
 		if (
 			quantity.abs().gt(deliveryLine.quantity.abs()) ||
-			(!quantity.isZero() && quantity.lt(0) !== deliveryLine.quantity.lt(0))
+			(!quantity.is_zero() && quantity.lt(0) !== deliveryLine.quantity.lt(0))
 		)
 			return fact;
 		return {
@@ -189,7 +189,7 @@ export function mapSalesFacts(
 	});
 	const shipmentFacts = deliveries.flatMap((delivery) =>
 		delivery.lines.map((line): SalesFact & { $id: string } => {
-			if (delivery.currency !== delivery.owner.currency || line.quantity.isZero())
+			if (delivery.currency !== delivery.owner.currency || line.quantity.is_zero())
 				return invalid('FQty', 'An owned delivery requires a quantity and its sealed currency');
 			const returned = line.quantity.lt(0);
 			if (
@@ -319,7 +319,7 @@ export function mapPayments(
 				'FCheckAmount',
 				'The verified settlement amount is in base currency; foreign allocation requires a verified original-currency binding'
 			);
-		if (!amount.round(minorDigits(base)).eq(amount))
+		if (!amount.round(minor_digits(base)).eq(amount))
 			return invalid('FCheckAmount', 'The settlement amount exceeds its currency precision');
 		const seen = new Set<string>();
 		for (const row of entries) {
@@ -386,12 +386,12 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const { orders: purchases } = yield* ctx.db.query({
+	const { orders: purchases } = yield* ctx.query({
 		orders: {
 			where: {
 				ledger: { eq: instance },
 				direction: { eq: 'purchasing' },
-				seal_hash: { isNull: false }
+				seal_hash: { is_null: false }
 			},
 			fields: ['status'],
 			limit: 1
@@ -431,7 +431,7 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 			}
 		);
 	});
-	const { transactions: invoices } = yield* ctx.db.query({
+	const { transactions: invoices } = yield* ctx.query({
 		transactions: {
 			where: { source: { eq: instance }, kind: { eq: 'invoice' } },
 			fields: ['erp_id', 'order', 'seal_hash']
@@ -453,7 +453,7 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 			})
 			.filter((fact) => !graph.held.has(fact.order))
 	);
-	const { source_payments: previous } = yield* ctx.db.query({
+	const { source_payments: previous } = yield* ctx.query({
 		source_payments: {
 			where: { source: { eq: instance } },
 			fields: ['external_code', 'active', 'order']
@@ -494,9 +494,9 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 	const facts = yield* checked(() =>
 		mapSalesFacts(graph.deliveries, graph.invoices, graph.observedAt, costCurrency)
 	);
-	const { source_sales_lines: previous } = yield* ctx.db.query({
+	const { source_sales_lines: previous } = yield* ctx.query({
 		source_sales_lines: {
-			where: { source: { eq: instance }, order: { isNull: false } },
+			where: { source: { eq: instance }, order: { is_null: false } },
 			fields: [
 				'external_code',
 				'order',

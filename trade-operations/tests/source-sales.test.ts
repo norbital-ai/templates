@@ -13,9 +13,9 @@ const fact = Effect.fnUntraced(function* (
 	order: Effect.Success<ReturnType<typeof draft>>,
 	external_code: string
 ) {
-	const sealed = (yield* t
-		.as(t.admin)
-		.query({ orders: { where: { id: { eq: order.order } }, limit: 1 } })).orders.rows[0];
+	const sealed = (yield* (yield* t.as(t.admin)).query({
+		orders: { where: { id: { eq: order.order } }, limit: 1 }
+	})).orders.rows[0];
 	expect(sealed?.seal_hash).toBeTruthy();
 	return {
 		external_code,
@@ -41,7 +41,7 @@ it.live(
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			const as = t.as(t.admin),
+			const as = yield* t.as(t.admin),
 				sales = t.member(['sales']),
 				other = t.member(['sales']);
 			const own = yield* draft(t, 'sales', fixtureId('sys_user', sales.id), '2026-08-01');
@@ -78,7 +78,7 @@ it.live(
 			expect(raw).toHaveLength(4);
 			const physicalShipment = raw.find((row) => row.external_code === 'SHIP-1');
 			if (!physicalShipment) throw new Error('Expected an owned delivery fact');
-			const seller = t.as(sales);
+			const seller = yield* t.as(sales);
 			expect(
 				Exit.isFailure(
 					yield* Effect.exit(seller.query({ source_sales_lines: { fields: ['booked_cost'] } }))
@@ -103,7 +103,7 @@ it.live(
 				try: () =>
 					expect(
 						Effect.runPromise(
-							salesDetailOf(t.as(sales), {
+							salesDetailOf(seller, {
 								from: PlainDate('2026-09-30'),
 								to: PlainDate('2026-09-01')
 							})
@@ -111,7 +111,7 @@ it.live(
 					).rejects.toThrow('errors.report_range'),
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});
-			const detail = yield* salesDetailOf(t.as(sales), {
+			const detail = yield* salesDetailOf(yield* t.as(sales), {
 				from: PlainDate('2026-09-01'),
 				to: PlainDate('2026-09-30')
 			});
@@ -157,9 +157,9 @@ it.live(
 					freight: decimalText('2.40')
 				}
 			];
-			expect(yield* salesAnalysisOf(t.as(sales), {})).toMatchObject(before);
+			expect(yield* salesAnalysisOf(yield* t.as(sales), {})).toMatchObject(before);
 			expect(
-				yield* salesAnalysisOf(t.as(sales), {
+				yield* salesAnalysisOf(yield* t.as(sales), {
 					from: PlainDate('2026-12-01'),
 					to: PlainDate('2026-12-31')
 				})
@@ -167,13 +167,18 @@ it.live(
 			// the order captured its freight treatment when sealed: a later setting does not rewrite it
 			committed(
 				'commercial_settings',
-				yield* as.act('commercial_settings.update', [
-					{ target: SETTINGS, set: { freight_treatment: 'include' } }
-				])
+				yield* as.act({
+					'commercial_settings.update': [
+						{
+							target: yield* t.at('commercial_settings', SETTINGS),
+							set: { freight_treatment: 'include' }
+						}
+					]
+				})
 			);
-			expect(yield* salesAnalysisOf(t.as(sales), {})).toMatchObject(before);
+			expect(yield* salesAnalysisOf(yield* t.as(sales), {})).toMatchObject(before);
 			yield* pull(t, [{ ...returned, active: false, source_updated_at: '2026-10-10T00:00:01Z' }]);
-			expect(yield* salesAnalysisOf(t.as(sales), {})).toMatchObject([
+			expect(yield* salesAnalysisOf(yield* t.as(sales), {})).toMatchObject([
 				{ period: '2026-10-01', net: null },
 				{ freight_treatment: 'deduct', source_lines: 1, net: decimalText('17.00') }
 			]);

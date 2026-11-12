@@ -1,6 +1,7 @@
+import { model } from '../../../../../.norbital/models/order_lines.ts';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { logisticsLine } from '../../../../lib/logistics.js';
-import { model, type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { agreement } from '../../../../lib/agreements.js';
 import {
@@ -41,7 +42,7 @@ const priced = Effect.fnUntraced(function* (
 		warehouses,
 		ext_sales_orders: salesOrders,
 		ext_purchase_orders: purchaseOrders
-	} = yield* ctx.db.query({
+	} = yield* ctx.query({
 		products: { where: { id: { in: productIds } } },
 		pricing_floors: { where: { product: { in: productIds } } },
 		warehouses: {},
@@ -54,7 +55,7 @@ const priced = Effect.fnUntraced(function* (
 			fields: ['order']
 		}
 	});
-	const orders = yield* ctx.db.after('orders', { id: { in: lines.map((l) => l.order) } });
+	const orders = yield* ctx.query.after('orders', { id: { in: lines.map((l) => l.order) } });
 	const out: Pick<
 		StoredRow<'order_lines'>,
 		| 'source_entry_id'
@@ -207,9 +208,10 @@ const priced = Effect.fnUntraced(function* (
 	}
 	return out;
 });
-export default model('order_lines', {
+export default model({
 	description: 'order lines',
-	label: ['product_name', 'quantity'],
+	record_label:
+		"[record.product_name != null ? string(record.product_name) : '', record.quantity != null ? string(record.quantity) : ''].filter(part, part != '').join(' · ')",
 	fields: {
 		order: { kind: 'ref', to: 'orders', inverse: 'lines', owned: true },
 		line_key: { kind: 'text', optional: true, hidden: true },
@@ -285,37 +287,39 @@ export default model('order_lines', {
 			optional: true
 		}
 	},
-	check: {
-		unit_price_nonnegative: {
-			unit_price: {
-				gte: '0'
-			}
-		}
-	},
-	search: { text: ['product', 'product_code'] },
-	key: ['order', 'line_key'],
-	read: {
-		order_lines: { fields: 'all' },
-		'order_lines.product': { fields: ['name', 'external_code'] },
-		'order_lines.order': { fields: ['ledger', 'direction'] }
-	},
 	outputs: {
+		default: {
+			fields: 'all',
+			product: { fields: ['name', 'external_code'] },
+			order: { fields: ['ledger', 'direction'] }
+		},
 		logistics: {
-			order_lines: { fields: logisticsLine },
-			'order_lines.product': { fields: ['name', 'external_code'] },
-			'order_lines.order': { fields: ['ledger', 'direction'] }
+			fields: logisticsLine,
+			product: { fields: ['name', 'external_code'] },
+			order: { fields: ['ledger', 'direction'] }
 		}
 	},
+	constraints: {
+		unit_price_nonnegative: {
+			check: {
+				unit_price: {
+					gte: '0'
+				}
+			}
+		},
+		natural_key: { unique: ['order', 'line_key'], import_key: true }
+	},
+	indexes: { search: { text: ['product', 'product_code'] } },
 	// a line created through its order's `'orders.lines'` layer runs this after the order's own `create.transform`
 	create: {
 		columns: {
-			order_lines: ['order', 'line_key', 'product', ...cells, 'print_values', 'source_entry_id']
+			fields: ['order', 'line_key', 'product', ...cells, 'print_values', 'source_entry_id']
 		},
-		filled: { order_lines: ['unit_price', 'tax_rate'] },
-		transform: function* (rows, ctx) {
+		filled: { fields: ['unit_price', 'tax_rate'] },
+		transform: function* (changes, ctx) {
 			const derived = yield* priced(
 				ctx,
-				rows.map((row) => ({
+				changes.map(({ after: row }) => ({
 					order: row.order,
 					product: row.product,
 					cells: row,
@@ -323,15 +327,15 @@ export default model('order_lines', {
 					...(row.source_entry_id !== undefined ? { source_entry_id: row.source_entry_id } : {})
 				}))
 			);
-			return rows.map((row, i) => ({
-				...row,
-				line_key: row.line_key ?? crypto.randomUUID(),
+			return changes.map(({ set }, i) => ({
+				...set,
+				line_key: set.line_key ?? crypto.randomUUID(),
 				...derived[i]
 			}));
 		}
 	},
 	update: {
-		columns: { order_lines: [...cells, 'print_values', 'source_entry_id'] },
+		columns: { fields: [...cells, 'print_values', 'source_entry_id'] },
 		transform: function* (changes, ctx) {
 			const derived = yield* priced(
 				ctx,
@@ -346,38 +350,6 @@ export default model('order_lines', {
 			return changes.map(({ set }, i) => ({ ...set, ...derived[i] }));
 		}
 	},
-	delete: {
-		check: function* (rows, ctx) {
-			const orders = rows.map((row) => row.order);
-			const parents = yield* ctx.db.after('orders', { id: { in: orders } });
-			const { ext_sales_orders: salesOrders, ext_purchase_orders: purchaseOrders } =
-				yield* ctx.db.query({
-					ext_sales_orders: { where: { order: { in: orders } }, limit: 1 },
-					ext_purchase_orders: { where: { order: { in: orders } }, limit: 1 }
-				});
-			for (const row of rows) {
-				const parent = parents.find((order) => order.id === row.order);
-				if (!parent?.draft_setup) continue;
-				const current = agreement(parent, parent.draft_setup);
-				const target = current ? draftLineTarget(current, row) : undefined;
-				if (
-					!current ||
-					current.seal_hash !== parent.draft_setup ||
-					(target && target.product === row.product && target.unit === row.unit)
-				)
-					return yield* ctx.refuse('errors.contract_setup');
-			}
-			if (
-				parents.some((order) => order.archived || order.status !== 'draft') ||
-				parents.some(
-					(order) =>
-						!order.contract_versions?.length &&
-						[...salesOrders.rows, ...purchaseOrders.rows].some(
-							(source) => source.order === order.id
-						)
-				)
-			)
-				return yield* ctx.refuse('errors.order_sealed');
-		}
-	}
+	// a line delete is judged by its holders' policies (`lineDeletes` in `order-review.ts`)
+	delete: {}
 });

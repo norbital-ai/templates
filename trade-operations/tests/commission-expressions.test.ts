@@ -74,26 +74,28 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
-				const as = t.as(t.admin);
+				const as = yield* t.as(t.admin);
 				const { rule } = yield* commissionRule(t);
 				const { own } = yield* commissionSale(t, false);
 				committed(
 					'commission_rules',
-					yield* as.act('commission_rules.update', [
-						{
-							target: rule,
-							set: {
-								amount_expression: 'min(net * params.rate, params.cap)',
-								eligibility_expression: 'product.unit == "kg"',
-								parameters: [
-									{ name: 'rate', value: '0.15' },
-									{ name: 'cap', value: '250' }
-								]
+					yield* as.act({
+						'commission_rules.update': [
+							{
+								target: yield* t.at('commission_rules', rule),
+								set: {
+									amount_expression: 'min(net * params.rate, params.cap)',
+									eligibility_expression: 'product.unit == "kg"',
+									parameters: [
+										{ name: 'rate', value: '0.15' },
+										{ name: 'cap', value: '250' }
+									]
+								}
 							}
-						}
-					])
+						]
+					})
 				);
-				const configuration = t.as(t.member(['configuration']));
+				const configuration = yield* t.as(t.member(['configuration']));
 				expect(
 					yield* previewOf(configuration, {
 						rule,
@@ -114,7 +116,7 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 				).toMatchObject({ amount: decimalText('0.00'), reason: 'ineligible' });
 				// a preview is computed from the rule the caller already reads: no authority beyond `commission_rules.read`
 				expect(
-					yield* previewOf(t.as(t.member(['sales'])), {
+					yield* previewOf(yield* t.as(t.member(['sales'])), {
 						rule,
 						quantity: Decimal.of('1000'),
 						net: Decimal.of('2000'),
@@ -132,18 +134,20 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 						{ name: 'cap', value: '250' }
 					]
 				});
-				const f = t.as(t.member(['finance']));
+				const f = yield* t.as(t.member(['finance']));
 				expect(yield* commissionOf(f, {})).toMatchObject([
 					{ order: own.order, amount: decimalText('250.00') }
 				]);
 				committed(
 					'commission_rules',
-					yield* as.act('commission_rules.update', [
-						{
-							target: rule,
-							set: { amount_expression: 'net', parameters: [] }
-						}
-					])
+					yield* as.act({
+						'commission_rules.update': [
+							{
+								target: yield* t.at('commission_rules', rule),
+								set: { amount_expression: 'net', parameters: [] }
+							}
+						]
+					})
 				);
 				expect(yield* commissionOf(f, {})).toMatchObject([
 					{ order: own.order, amount: decimalText('250.00') }
@@ -154,24 +158,31 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 				).toEqual(sealed);
 				expect(
 					yield* Effect.flip(
-						as.act('commission_rules.update', [
-							{ target: rule, set: { amount_expression: 'net * (' } }
-						])
+						as.act({
+							'commission_rules.update': [
+								{
+									target: yield* t.at('commission_rules', rule),
+									set: { amount_expression: 'net * (' }
+								}
+							]
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 				expect(
 					yield* Effect.flip(
-						as.act('commission_rules.update', [
-							{
-								target: rule,
-								set: {
-									parameters: [
-										{ name: 'rate', value: '0.1' },
-										{ name: 'rate', value: '0.2' }
-									]
+						as.act({
+							'commission_rules.update': [
+								{
+									target: yield* t.at('commission_rules', rule),
+									set: {
+										parameters: [
+											{ name: 'rate', value: '0.1' },
+											{ name: 'rate', value: '0.2' }
+										]
+									}
 								}
-							}
-						])
+							]
+						})
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 			})
@@ -182,21 +193,23 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 			Effect.gen(function* () {
 				// runs after the configured rule: this later-effective rule applies to the new SO only
 				const t = yield* Trade;
-				const as = t.as(t.admin);
+				const as = yield* t.as(t.admin);
 				committed(
 					'commission_rules',
-					yield* as.act('commission_rules.create', [
-						{
-							currency: 'SGD',
-							effective_on: PlainDate('2026-10-10'),
-							eligibility_expression: 'true',
-							amount_expression: 'net * decimal("0.05")',
-							parameters: [],
-							fixed_rate: Decimal.of('0'),
-							spread_pct: Decimal.of('0'),
-							active: true
-						}
-					])
+					yield* as.act({
+						'commission_rules.create': [
+							{
+								currency: 'SGD',
+								effective_on: PlainDate('2026-10-10'),
+								eligibility_expression: 'true',
+								amount_expression: 'net * decimal("0.05")',
+								parameters: [],
+								fixed_rate: Decimal.of('0'),
+								spread_pct: Decimal.of('0'),
+								active: true
+							}
+						]
+					})
 				);
 				const own = yield* draft(t);
 				yield* confirm(t, own.order);

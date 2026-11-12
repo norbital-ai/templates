@@ -227,7 +227,7 @@ test('a linked red invoice reverses quantity and money without inventing a retur
 	expect(
 		invoiced
 			.reduce((total, fact) => total.plus(fact.net_amount ?? Decimal.of(0)), Decimal.of(0))
-			.isZero()
+			.is_zero()
 	).toBe(true);
 });
 

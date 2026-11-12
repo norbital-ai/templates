@@ -16,7 +16,7 @@ import {
 	type SqlRow
 } from './polling.js';
 
-export type OrderSourceContext = Pick<SyncCtx<'kingdee'>, 'db' | 'configuration' | 'request'>;
+export type OrderSourceContext = Pick<SyncCtx<'kingdee'>, 'query' | 'configuration' | 'request'>;
 type Agreement = ReturnType<typeof agreements>[number];
 type LocalLine = Agreement['snapshot']['lines'][number];
 type SalesLine = {
@@ -600,7 +600,7 @@ const graphOrders = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	ctx: OrderSourceContext
 ) {
-	const { orders } = yield* ctx.db.query({
+	const { orders } = yield* ctx.query({
 		orders: {
 			where: { ledger: { eq: instance }, direction: { eq: 'sales' } },
 			fields: [...agreementFields, 'direction']
@@ -777,7 +777,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					if (
 						exactId(entry, 'item_id') !== source.itemId ||
 						text(entry, 'unit') !== source.unit ||
-						quantity.isZero() ||
+						quantity.is_zero() ||
 						(!red && quantity.lt(0)) ||
 						(linkedReturn && (!source.quantity.gt(0) || quantity.abs().gt(source.quantity))) ||
 						!quantity.round(3).eq(quantity)
@@ -878,7 +878,7 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 ) {
 	const decoded = yield* observation(ctx, cursor);
 	const owned = yield* graphOrders(instance, ctx);
-	const { ext_sales_orders: parents, transactions: retained } = yield* ctx.db.query({
+	const { ext_sales_orders: parents, transactions: retained } = yield* ctx.query({
 		ext_sales_orders: {
 			where: { source: { eq: instance } },
 			fields: ['order', 'agreement_hash', 'external_id']
@@ -1012,7 +1012,7 @@ export const readSalesOrders = Effect.fnUntraced(function* (
 	const observed = yield* observation(ctx, cursor);
 	const owned = yield* graphOrders(instance, ctx);
 	const source = yield* ownershipSource(observed.scope, owned.ownership);
-	const { ext_sales_orders: existing } = yield* ctx.db.query({
+	const { ext_sales_orders: existing } = yield* ctx.query({
 		ext_sales_orders: {
 			where: { source: { eq: instance } },
 			fields: ['external_id', 'order', 'agreement_hash']
@@ -1053,7 +1053,7 @@ export const readTransactions = Effect.fnUntraced(function* (
 	ctx: OrderSourceContext
 ) {
 	const graph = yield* readSalesGraph(instance, cursor, ctx);
-	const { ext_sales_orders: parents, transactions: existing } = yield* ctx.db.query({
+	const { ext_sales_orders: parents, transactions: existing } = yield* ctx.query({
 		ext_sales_orders: {
 			where: { source: { eq: instance } },
 			fields: ['external_id', 'status', 'order', 'agreement_hash']

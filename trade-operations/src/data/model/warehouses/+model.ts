@@ -1,11 +1,11 @@
-import { model } from '@norbital-ai/bolt';
-import { columns, readSource } from '../../../integration/kingdee/polling.js';
+import { model } from '../../../../.norbital/models/warehouses.ts';
+import { columns, readSource, fromSource } from '../../../integration/kingdee/polling.js';
 import { projections } from '../../../integration/kingdee/projections.js';
 import { preserveSource } from '../../../integration/kingdee/reconciliation.js';
 import { warehouseWorkbook } from '../../../lib/workbook.js';
-export default model('warehouses', {
+export default model({
 	description: 'warehouses',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		external_code: {
 			kind: 'text'
@@ -27,30 +27,38 @@ export default model('warehouses', {
 		},
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } }
 	},
-	key: ['source', 'external_code'],
-	search: { text: ['name', 'external_code', 'group_code'] },
-	read: 'all',
+	outputs: { default: { fields: 'all' } },
+	constraints: { source_code: { unique: ['source', 'external_code'], import_key: true } },
+	indexes: { search: { text: ['name', 'external_code', 'group_code'] } },
 	syncs: {
 		kingdee: {
 			with: 'kingdee',
 			every: '1min',
 			read: function* ({ cursor, instance }, ctx) {
-				return yield* readSource(
-					projections.warehouses,
-					cursor,
-					ctx,
-					(row) => {
-						const r = columns(row);
-						return {
-							external_code: r.text('external_code'),
-							source_number: r.text('source_number', null),
-							name: r.text('name'),
-							group_code: r.text('group_code', null),
-							active: r.bool('active', true),
-							source_updated_at: r.instant('source_updated_at')
-						};
-					},
-					preserveSource({ model: 'warehouses', instance, projection: projections.warehouses, ctx })
+				return fromSource(
+					yield* readSource(
+						projections.warehouses,
+						cursor,
+						ctx,
+						(row) => {
+							const r = columns(row);
+							return {
+								external_code: r.text('external_code'),
+								source_number: r.text('source_number', null),
+								name: r.text('name'),
+								group_code: r.text('group_code', null),
+								active: r.bool('active', true),
+								source_updated_at: r.instant('source_updated_at')
+							};
+						},
+						preserveSource({
+							model: 'warehouses',
+							instance,
+							projection: projections.warehouses,
+							ctx
+						})
+					),
+					instance
 				);
 			}
 		},
@@ -59,10 +67,10 @@ export default model('warehouses', {
 			parser: ['xlsx', 'csv'],
 			schema: warehouseWorkbook,
 			write: function* (_input, ctx) {
-				const { warehouses } = yield* ctx.db.query({
+				const { warehouses } = yield* ctx.query({
 					warehouses: {
 						fields: ['source', 'external_code', 'source_number', 'name', 'group_code', 'active'],
-						orderBy: { external_code: 'asc' },
+						order_by: { external_code: 'asc' },
 						limit: 10000
 					}
 				});

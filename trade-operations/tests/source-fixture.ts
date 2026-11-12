@@ -143,7 +143,7 @@ export function sourceFixture(records: () => Record<string, Json[]>, identity = 
 						__key: key,
 						...(statement.includes(' AS __rowversion') ? { __rowversion: hex(value.version) } : {})
 					}));
-				return { rows: rows.slice(0, op.maxRows ?? 1000) };
+				return { rows: rows.slice(0, op.max_rows ?? 1000) };
 			},
 			catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
 		});

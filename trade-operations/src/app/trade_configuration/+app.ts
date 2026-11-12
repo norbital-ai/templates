@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('trade_configuration', {
+export default app({
 	title: 'app.trade_configuration.title',
 	description: 'app.trade_configuration.description',
 	icon: 'lucide:settings',

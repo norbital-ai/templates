@@ -1,26 +1,28 @@
-import { model, type Finding } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/pricing_floors.ts';
+import { type Finding } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
 
 const staleBook =
 	'This floor changed after the workbook was exported. Export the latest price book and reapply your changes.';
 
 const priceBook = {
-	ledger: { kind: 'text', label: 'Ledger ID' },
-	product_code: { kind: 'text', label: 'Product code' },
-	item_id: { kind: 'text', label: 'Kingdee item ID', optional: true },
-	import_revision: { kind: 'int', label: 'Book revision', min: 0, optional: true },
-	group_code: { kind: 'text', label: 'Warehouse group' },
-	effective_on: { kind: 'date', label: 'Effective date' },
-	currency: { kind: 'currency', label: 'Currency' },
-	unit: { kind: 'text', label: 'Unit' },
-	minimum_quantity: { kind: 'decimal', scale: 3, min: 0, label: 'Minimum quantity' },
-	floor_price: { kind: 'decimal', scale: 4, min: 0, label: 'Floor price' },
-	tax_inclusive: { kind: 'bool', label: 'Tax inclusive' },
-	tax_rate: { kind: 'decimal', scale: 2, min: 0, max: 100, label: 'Tax rate (%)' }
+	ledger: { kind: 'text' },
+	product_code: { kind: 'text' },
+	item_id: { kind: 'text', optional: true },
+	import_revision: { kind: 'int', min: 0, optional: true },
+	group_code: { kind: 'text' },
+	effective_on: { kind: 'date' },
+	currency: { kind: 'currency' },
+	unit: { kind: 'text' },
+	minimum_quantity: { kind: 'decimal', scale: 3, min: 0 },
+	floor_price: { kind: 'decimal', scale: 4, min: 0 },
+	tax_inclusive: { kind: 'bool' },
+	tax_rate: { kind: 'decimal', scale: 2, min: 0, max: 100 }
 } as const;
-export default model('pricing_floors', {
+export default model({
 	description: 'pricing floors',
-	label: ['effective_on', 'group_code'],
+	record_label:
+		"[record.effective_on != null ? string(record.effective_on) : '', record.group_code != null ? string(record.group_code) : ''].filter(part, part != '').join(' · ')",
 	fields: {
 		product: { kind: 'ref', to: 'products' },
 		// The native file import passes this through its write transform. It is never stored.
@@ -59,20 +61,27 @@ export default model('pricing_floors', {
 			min: 0
 		}
 	},
-	key: ['product', 'group_code', 'currency', 'effective_on', 'minimum_quantity'],
-	check: {
-		import_revision_ephemeral: { import_revision: { isNull: true } },
+	outputs: {
+		default: {
+			fields: 'all',
+			product: { fields: ['name', 'external_code', 'source_number', 'source'] }
+		}
+	},
+	constraints: {
+		natural_key: {
+			unique: ['product', 'group_code', 'currency', 'effective_on', 'minimum_quantity'],
+			import_key: true
+		},
+		import_revision_ephemeral: { check: { import_revision: { is_null: true } } },
 		floor_price_nonnegative: {
-			floor_price: {
-				gte: '0'
+			check: {
+				floor_price: {
+					gte: '0'
+				}
 			}
 		}
 	},
-	search: { text: ['product', 'group_code', 'unit'] },
-	read: {
-		pricing_floors: { fields: 'all' },
-		'pricing_floors.product': { fields: ['name', 'external_code', 'source_number', 'source'] }
-	},
+	indexes: { search: { text: ['product', 'group_code', 'unit'] } },
 	syncs: {
 		price_book: {
 			with: 'file',
@@ -83,7 +92,7 @@ export default model('pricing_floors', {
 				const ids = [
 					...new Set([...codes, ...records.flatMap((r) => (r.item_id ? [r.item_id] : []))])
 				];
-				const { products } = yield* ctx.db.query({
+				const { products } = yield* ctx.query({
 					products: {
 						where: {
 							active: { eq: true },
@@ -134,9 +143,8 @@ export default model('pricing_floors', {
 				return { rows, findings };
 			},
 			write: function* (_input, ctx) {
-				const { pricing_floors } = yield* ctx.db.query({
-					pricing_floors: {},
-					'pricing_floors.product': { fields: ['source', 'external_code', 'source_number'] }
+				const { pricing_floors } = yield* ctx.query({
+					pricing_floors: { product: { fields: ['source', 'external_code', 'source_number'] } }
 				});
 				return pricing_floors.rows.flatMap(
 					({
@@ -175,7 +183,7 @@ export default model('pricing_floors', {
 	},
 	create: {
 		columns: {
-			pricing_floors: [
+			fields: [
 				'product',
 				'currency',
 				'group_code',
@@ -188,16 +196,16 @@ export default model('pricing_floors', {
 				'import_revision'
 			]
 		},
-		transform: function* (rows, ctx) {
-			for (const [row, value] of rows.entries()) {
-				if (value.import_revision != null && value.import_revision !== 0)
+		transform: function* (changes, ctx) {
+			for (const [row, { after }] of changes.entries()) {
+				if (after.import_revision != null && after.import_revision !== 0)
 					yield* ctx.refuse(staleBook, { row });
 			}
-			return rows.map(({ import_revision: _, ...row }) => row);
+			return changes.map(({ set: { import_revision: _, ...set } }) => set);
 		}
 	},
 	update: {
-		columns: { pricing_floors: ['floor_price', 'tax_inclusive', 'tax_rate', 'import_revision'] },
+		columns: { fields: ['floor_price', 'tax_inclusive', 'tax_rate', 'import_revision'] },
 		transform: function* (changes, ctx) {
 			const rows = [];
 			for (const [

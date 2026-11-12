@@ -9,7 +9,7 @@ it.live(
 		Effect.gen(function* () {
 			const fixture = kingdeeFixture();
 			const t = yield* workspace({ source: fixture.request });
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const own = yield* kingdeeDraft(t, fixture);
 			yield* t.deliver();
 			expect(fixture.submissions.size).toBe(0);
@@ -20,7 +20,9 @@ it.live(
 			).toEqual([]);
 			committed(
 				'orders',
-				yield* as.act('orders.update', [{ target: own.order, set: { archived: true } }])
+				yield* as.act({
+					'orders.update': [{ target: yield* t.at('orders', own.order), set: { archived: true } }]
+				})
 			);
 			yield* t.deliver();
 			expect(fixture.submissions.size).toBe(1);

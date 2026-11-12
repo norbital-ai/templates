@@ -1,16 +1,17 @@
 import { Effect } from 'effect';
-import { bolt } from '$bolt';
+import type { PageContext } from '@norbital-ai/bolt/page';
 import type { Id } from '@norbital-ai/bolt';
 import type { FieldEditor, FormState } from '@norbital-ai/ui';
 /** Both line editors use the same catalogue defaults, preserving newer selections and edited values. */
 export const selectOrderProduct = Effect.fnUntraced(function* (
+	ctx: Pick<PageContext, 'query'>,
 	form: FormState,
 	field: FieldEditor,
 	id: Id<'products'> | null,
 	setCurrency: (currency: string) => void,
 	defaults: boolean = true
 ) {
-	field.onChange(id);
+	field.on_change(id);
 	if (!defaults) return;
 	form.set('unit_price', null);
 	form.set('tax_rate', null);
@@ -20,7 +21,7 @@ export const selectOrderProduct = Effect.fnUntraced(function* (
 	const oldPrice = form.get('unit_price'),
 		oldTax = form.get('tax_rate');
 	const current = () => form.id('product') === id && form.id('order') === order;
-	yield* bolt
+	yield* ctx
 		.query({
 			products: { where: { id: { eq: id } }, limit: 1 },
 			orders: { where: { id: { eq: order } }, limit: 1 }

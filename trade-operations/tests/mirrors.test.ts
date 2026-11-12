@@ -14,7 +14,7 @@ test.live(
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
-			const as = t.as(t.admin);
+			const as = yield* t.as(t.admin);
 			const customer = {
 				external_code: 'ERP-C',
 				name: 'ERP customer',
@@ -59,28 +59,32 @@ test.live(
 			);
 			const order = committed(
 				'orders',
-				yield* as.act('orders.create', [
-					{
-						title: 'Source-owned customer sale',
-						direction: 'sales',
-						party: first.id,
-						currency: 'SGD',
-						payment_terms: 'Net 30'
-					}
-				])
+				yield* as.act({
+					'orders.create': [
+						{
+							title: 'Source-owned customer sale',
+							direction: 'sales',
+							party: first.id,
+							currency: 'SGD',
+							payment_terms: 'Net 30'
+						}
+					]
+				})
 			);
 			committed(
 				'order_lines',
-				yield* as.act('order_lines.create', [
-					{
-						order,
-						product: product.id,
-						quantity: Decimal.of('10'),
-						unit_price: Decimal.of('2'),
-						tax_rate: Decimal.of('9'),
-						discount_pct: Decimal.of('0')
-					}
-				])
+				yield* as.act({
+					'order_lines.create': [
+						{
+							order,
+							product: product.id,
+							quantity: Decimal.of('10'),
+							unit_price: Decimal.of('2'),
+							tax_rate: Decimal.of('9'),
+							discount_pct: Decimal.of('0')
+						}
+					]
+				})
 			);
 			yield* confirm(t, order);
 			const sealed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
@@ -109,15 +113,17 @@ test.live(
 			).toMatchObject({ active: false });
 			expect(
 				yield* Effect.flip(
-					as.act('orders.create', [
-						{
-							title: 'Inactive',
-							direction: 'sales',
-							party: first.id,
-							currency: 'SGD',
-							payment_terms: 'Net 30'
-						}
-					])
+					as.act({
+						'orders.create': [
+							{
+								title: 'Inactive',
+								direction: 'sales',
+								party: first.id,
+								currency: 'SGD',
+								payment_terms: 'Net 30'
+							}
+						]
+					})
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			expect(
@@ -133,15 +139,17 @@ test.live(
 test.live('a manager edits SKU commission settings but not source-owned product fields', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
-		const manager = t.as(t.member(['manager']));
+		const manager = yield* t.as(t.member(['manager']));
 		committed(
 			'products',
-			yield* manager.act('products.update', [
-				{
-					target: PRODUCT,
-					set: { commission_factor: Decimal.of('0.002'), commission_basis_unit: 't' }
-				}
-			])
+			yield* manager.act({
+				'products.update': [
+					{
+						target: yield* t.at('products', PRODUCT),
+						set: { commission_factor: Decimal.of('0.002'), commission_basis_unit: 't' }
+					}
+				]
+			})
 		);
 		expect(
 			yield* direct(t, manager.authority, {

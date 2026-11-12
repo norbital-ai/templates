@@ -1,22 +1,23 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Decimal } from '@norbital-ai/std/decimal';
-	import { Chart, EmptyState, Show, useKinds, type RecordView } from '@norbital-ai/ui';
+	import { Chart, EmptyState, Show, type RecordView } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
 	let {
-		view
+		view,
+		ctx
 	}: {
 		view: RecordView<'products'>;
+		ctx: PageContext;
 	} = $props();
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
-	const kinds = useKinds();
 	const sales = $derived.by(() => {
-		if (!id || !kinds.catalog?.source_sales_lines) return null;
+		if (!id || !ctx.catalog?.source_sales_lines) return null;
 		const read =
-			kinds.catalog.source_sales_lines.output === 'commercial' ? commercialSalesRead : salesRead;
-		return bolt.query({
+			ctx.catalog.source_sales_lines.output === 'commercial' ? commercialSalesRead : salesRead;
+		return ctx.query({
 			...read,
 			products: { ...read.products, where: { id: { eq: id } }, limit: 1 },
 			sys_user: { ...read.sys_user, limit: 1 },
@@ -27,7 +28,7 @@
 					kind: { eq: 'shipment' },
 					order: { is: { lines: { some: { product: { eq: id } } } } }
 				},
-				orderBy: { business_on: 'desc' },
+				order_by: { business_on: 'desc' },
 				limit: 100
 			}
 		});
@@ -38,8 +39,8 @@
 			.sort((a, b) => a.business_on.localeCompare(b.business_on))
 	);
 	const floors = $derived(
-		id && kinds.catalog?.pricing_floors
-			? bolt.query({
+		id && ctx.catalog?.pricing_floors
+			? ctx.query({
 					pricing_floors: {
 						where: { product: { eq: id } },
 						fields: [
@@ -52,7 +53,7 @@
 							'tax_inclusive',
 							'tax_rate'
 						],
-						orderBy: { effective_on: 'desc' },
+						order_by: { effective_on: 'desc' },
 						limit: 100
 					}
 				})
@@ -79,10 +80,10 @@
 	{#if view.mode !== 'create'}
 		<Grid as="dl" gap="md">
 			{#each ['external_code', 'name', 'spec', 'unit', 'currency', 'unit_price', 'tax_rate', 'active'] as const as name}
-				{@const kind = kinds.catalog?.products?.fields[name]}
+				{@const kind = ctx.catalog?.products?.fields[name]}
 				{#if kind}<div data-field={name}>
 						<dt class="text-xs font-medium text-muted-foreground">
-							{bolt.t(`models.products.fields.${name}`)}
+							{ctx.t(`models.products.fields.${name}`)}
 						</dt>
 						<dd><Show {kind} value={view.record[name]} {name} row={view.record} /></dd>
 					</div>{/if}
@@ -99,20 +100,20 @@
 						.filter((r) => `${r.currency}/${r.unit}` === group)
 						.map((r) => ({
 							on: r.business_on,
-							[bolt.t('component.sold_price')]:
+							[ctx.t('component.sold_price')]:
 								r.sold_price == null ? null : Decimal.of(r.sold_price).toString(),
-							[bolt.t('models.pricing_floors.fields.floor_price')]:
+							[ctx.t('models.pricing_floors.fields.floor_price')]:
 								r.floor_net == null ? null : Decimal.of(r.floor_net).toString()
 						}))}
 					x="on"
 					y={[
-						bolt.t('component.sold_price'),
+						ctx.t('component.sold_price'),
 						...(rows.some((r) => `${r.currency}/${r.unit}` === group && r.floor_net !== null)
-							? [bolt.t('models.pricing_floors.fields.floor_price')]
+							? [ctx.t('models.pricing_floors.fields.floor_price')]
 							: [])
 					]}
 					kind="scatter"
-					title={`${bolt.t('component.pricing_history')} · ${group}`}
+					title={`${ctx.t('component.pricing_history')} · ${group}`}
 				/>
 			{/each}
 			{#if sales?.error}<EmptyState
@@ -126,7 +127,7 @@
 					title={floors.error.message}
 				/>{/if}
 			{#if sales?.current?.source_sales_lines.next || floors?.current?.pricing_floors.next}
-				<p class="text-sm text-muted-foreground">{bolt.t('reports.product.recent_prices')}</p>
+				<p class="text-sm text-muted-foreground">{ctx.t('reports.product.recent_prices')}</p>
 			{/if}
 			{#each [...new Set(rates.map((r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}`))] as group}
 				{@const points = rates.filter(
@@ -136,26 +137,27 @@
 				<Chart
 					of={points.map((r) => ({
 						on: r.on,
-						[bolt.t('models.pricing_floors.fields.floor_price')]: r.price.toString()
+						[ctx.t('models.pricing_floors.fields.floor_price')]: r.price.toString()
 					}))}
 					x="on"
-					y={bolt.t('models.pricing_floors.fields.floor_price')}
+					y={ctx.t('models.pricing_floors.fields.floor_price')}
 					kind="line"
 					interpolation="step"
-					title={`${bolt.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first?.threshold.gt(0) ? ` · ≥ ${first.threshold}` : ''}`}
+					title={`${ctx.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first?.threshold.gt(0) ? ` · ≥ ${first.threshold}` : ''}`}
 				/>
 			{/each}
 			{#if (sales?.loading || floors?.loading) && rows.length === 0 && rates.length === 0}
 				<p class="text-sm text-muted-foreground" role="status">
-					{bolt.t('component.pricing_history_loading')}
+					{ctx.t('component.pricing_history_loading')}
 				</p>
 			{:else if !sales?.error && !floors?.error && rows.length === 0 && rates.length === 0}
-				<EmptyState variant="inset" title={bolt.t('component.pricing_history_empty')} />
+				<EmptyState variant="inset" title={ctx.t('component.pricing_history_empty')} />
 			{/if}
 		{/if}
 	</Stack>
 {/snippet}
 <RecordForm
+	{ctx}
 	{view}
 	sections={[
 		{
@@ -166,11 +168,11 @@
 		{
 			name: 'commission',
 			icon: 'lucide:percent',
-			title: bolt.t('component.commission'),
+			title: ctx.t('component.commission'),
 			fields: ['commission_factor', 'commission_basis_unit']
 		}
 	]}
-	tabs={id && (kinds.catalog?.pricing_floors || kinds.catalog?.source_sales_lines)
-		? [{ name: 'pricing', title: bolt.t('component.pricing_history'), body: pricing }]
+	tabs={id && (ctx.catalog?.pricing_floors || ctx.catalog?.source_sales_lines)
+		? [{ name: 'pricing', title: ctx.t('component.pricing_history'), body: pricing }]
 		: []}
 />

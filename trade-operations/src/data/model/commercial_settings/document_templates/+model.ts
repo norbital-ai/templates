@@ -1,10 +1,10 @@
-import { model, type UpdateSet } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/document_templates.ts';
 import { Result } from 'effect';
 import { validateDocumentTemplate } from '../../../../lib/order-document.js';
 import { printFieldKind, validPrintFields } from '../../../../lib/print-details.js';
 const valid = (body: string) => Result.isSuccess(Result.try(() => validateDocumentTemplate(body)));
-export default model('document_templates', {
-	label: 'title',
+export default model({
+	record_label: 'record.title',
 	description: 'Versioned commercial document layouts.',
 	fields: {
 		locale: { kind: 'enum', values: ['en', 'zh'] },
@@ -20,14 +20,14 @@ export default model('document_templates', {
 		status: {
 			kind: 'state',
 			initial: 'draft',
-			states: { draft: { to: ['published'] }, published: { edit: 'none' } }
+			states: { draft: { to: ['published'] }, published: {} }
 		}
 	},
-	search: { text: ['title'] },
-	read: 'all',
+	outputs: { default: { fields: 'all' } },
+	indexes: { search: { text: ['title'] } },
 	create: {
 		columns: {
-			document_templates: [
+			fields: [
 				'locale',
 				'version',
 				'title',
@@ -39,17 +39,17 @@ export default model('document_templates', {
 				'contract_stamp'
 			]
 		},
-		transform: function* (rows, ctx) {
-			if (rows.some((row) => row.body !== undefined && !valid(row.body)))
+		transform: function* (changes, ctx) {
+			if (changes.some(({ after }) => after.body !== undefined && !valid(after.body)))
 				return yield* ctx.refuse('errors.document_template_invalid');
-			if (rows.some((row) => !validPrintFields(row.print_fields ?? [])))
+			if (changes.some(({ after }) => !validPrintFields(after.print_fields ?? [])))
 				return yield* ctx.refuse('errors.print_fields_invalid', { field: 'print_fields' });
-			return rows;
+			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
 		columns: {
-			document_templates: [
+			fields: [
 				'title',
 				'body',
 				'layout',
@@ -61,17 +61,17 @@ export default model('document_templates', {
 			]
 		},
 		transform: function* (changes, ctx) {
-			const out: UpdateSet<'document_templates'>[] = [];
 			for (const { before, set } of changes) {
 				if (!valid(set.body ?? before.body))
 					return yield* ctx.refuse('errors.document_template_invalid');
 				if (set.print_fields != null && !validPrintFields(set.print_fields))
 					return yield* ctx.refuse('errors.print_fields_invalid', { field: 'print_fields' });
-				out.push(set.status === 'published' ? { ...set, published_at: ctx.now } : set);
 			}
-			return out;
+			return changes.map(({ set }) =>
+				set.status === 'published' ? { ...set, published_at: ctx.now } : set
+			);
 		}
 	},
 	// a published layout is the evidence a sealed agreement was rendered from
-	locked: { status: { eq: 'published' } }
+	constraints: { published: { locked: { status: { eq: 'published' } } } }
 });

@@ -1,3 +1,5 @@
+import { model } from '../../../../.norbital/models/orders.ts';
+import { lineDeletes } from '../../../lib/order-review.js';
 import { Decimal } from '@norbital-ai/std/decimal';
 import {
 	logisticsDocument,
@@ -32,10 +34,8 @@ import {
 import { draftLineMatches, draftLineTarget } from '../../../lib/contract-draft.js';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import {
-	model,
-	type CreateRow,
+	type CreatedRow,
 	type Finding,
-	type UpdateSet,
 	type Row,
 	type StoredRow,
 	type WriteCtx
@@ -97,58 +97,56 @@ const snapshotShape = {
 			kind: 'text'
 		},
 		lines: {
-			kind: 'list',
-			of: {
-				kind: 'object',
-				fields: {
-					id: {
-						kind: 'text'
-					},
-					product: { kind: 'text', optional: true },
-					source_entry_id: { kind: 'text', optional: true },
-					product_code: {
-						kind: 'text'
-					},
-					product_name: {
-						kind: 'text'
-					},
-					product_spec: { kind: 'text', optional: true },
-					print_values: printValueKind,
-					unit: {
-						kind: 'text'
-					},
-					quantity: {
-						kind: 'text'
-					},
-					unit_price: {
-						kind: 'text'
-					},
-					discount_pct: {
-						kind: 'text'
-					},
-					tax_rate: {
-						kind: 'text'
-					},
-					net: {
-						kind: 'text'
-					},
-					tax: {
-						kind: 'text'
-					},
-					total: {
-						kind: 'text'
-					},
-					floor_net: {
-						kind: 'text'
-					},
-					commission_factor: {
-						kind: 'text'
-					},
-					commission_basis_unit: {
-						kind: 'text'
-					}
+			kind: 'object',
+			fields: {
+				id: {
+					kind: 'text'
+				},
+				product: { kind: 'text', optional: true },
+				source_entry_id: { kind: 'text', optional: true },
+				product_code: {
+					kind: 'text'
+				},
+				product_name: {
+					kind: 'text'
+				},
+				product_spec: { kind: 'text', optional: true },
+				print_values: printValueKind,
+				unit: {
+					kind: 'text'
+				},
+				quantity: {
+					kind: 'text'
+				},
+				unit_price: {
+					kind: 'text'
+				},
+				discount_pct: {
+					kind: 'text'
+				},
+				tax_rate: {
+					kind: 'text'
+				},
+				net: {
+					kind: 'text'
+				},
+				tax: {
+					kind: 'text'
+				},
+				total: {
+					kind: 'text'
+				},
+				floor_net: {
+					kind: 'text'
+				},
+				commission_factor: {
+					kind: 'text'
+				},
+				commission_basis_unit: {
+					kind: 'text'
 				}
-			}
+			},
+			many: true
 		},
 		net: {
 			kind: 'text'
@@ -171,9 +169,10 @@ const commissionShape = {
 		eligibility_expression: { kind: 'text', optional: true },
 		amount_expression: { kind: 'text', optional: true },
 		parameters: {
-			kind: 'list',
+			kind: 'object',
+			fields: { name: { kind: 'text' }, value: { kind: 'text' } },
 			optional: true,
-			of: { kind: 'object', fields: { name: { kind: 'text' }, value: { kind: 'text' } } }
+			many: true
 		},
 		rule_id: {
 			kind: 'text'
@@ -205,7 +204,7 @@ const supportingDocuments = {
 		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 	],
 	max: '20MiB',
-	multiple: true,
+	many: true,
 	optional: true
 } as const;
 const contractVersionShape = {
@@ -222,7 +221,7 @@ const contractVersionShape = {
 		snapshot: snapshotShape,
 		commission: { ...commissionShape, optional: true },
 		supporting_documents: supportingDocuments,
-		signature_version: { kind: 'id', of: 'salesperson_signatures', optional: true },
+		signature_version: { kind: 'ref', to: 'salesperson_signatures', optional: true },
 		origin: { kind: 'enum', values: ['local', 'kingdee'], optional: true },
 		lifecycle: { kind: 'enum', values: ['pending', 'current', 'superseded'], optional: true },
 		write_target: {
@@ -249,36 +248,32 @@ const contractVersionShape = {
 				status: { kind: 'enum', values: ['draft', 'issued', 'void'], optional: true },
 				closed: { kind: 'bool', optional: true },
 				entries: {
-					kind: 'list',
+					kind: 'object',
+					fields: {
+						local_line_id: { kind: 'text' },
+						entry_id: { kind: 'text' },
+						detail_id: { kind: 'text' }
+					},
 					optional: true,
-					of: {
-						kind: 'object',
-						fields: {
-							local_line_id: { kind: 'text' },
-							entry_id: { kind: 'text' },
-							detail_id: { kind: 'text' }
-						}
-					}
+					many: true
 				}
 			}
 		},
 		events: {
-			kind: 'list',
+			kind: 'object',
+			fields: {
+				key: { kind: 'text' },
+				at: { kind: 'instant' },
+				kind: { kind: 'text' },
+				actor: { kind: 'text', optional: true },
+				status: { kind: 'text' },
+				source_version: { kind: 'text' },
+				source_id: { kind: 'text' },
+				source_changed_at: { kind: 'text', optional: true },
+				source_changed_by: { kind: 'text', optional: true }
+			},
 			optional: true,
-			of: {
-				kind: 'object',
-				fields: {
-					key: { kind: 'text' },
-					at: { kind: 'instant' },
-					kind: { kind: 'text' },
-					actor: { kind: 'text', optional: true },
-					status: { kind: 'text' },
-					source_version: { kind: 'text' },
-					source_id: { kind: 'text' },
-					source_changed_at: { kind: 'text', optional: true },
-					source_changed_by: { kind: 'text', optional: true }
-				}
-			}
+			many: true
 		}
 	}
 } as const;
@@ -421,9 +416,9 @@ function orderPayload(
 	};
 }
 
-export default model('orders', {
+export default model({
 	description: 'orders',
-	label: 'number',
+	record_label: 'record.number',
 	fields: {
 		freight_treatment: { kind: 'enum', values: ['deduct', 'include'], default: 'deduct' },
 		number: {
@@ -457,53 +452,7 @@ export default model('orders', {
 			states: {
 				draft: { to: ['confirmed'] },
 				confirmed: {
-					to: ['draft'],
-					edit: [
-						'title',
-						'notes',
-						'archived',
-						'contract_versions',
-						'agreed_total',
-						'source_order_key',
-						'draft_setup',
-						'draft_basis',
-						'operational_contracts',
-						'check_hash',
-						'contract_version',
-						'sealed_at',
-						'sealed_by',
-						'sealed_snapshot',
-						'sealed_commission',
-						'sealed_contract',
-						'sealed_contract_version',
-						'seal_hash',
-						'freight_treatment',
-						'warehouse',
-						'ordered_on',
-						'document_template',
-						'print_values',
-						'currency',
-						'tax_inclusive',
-						'valid_from',
-						'valid_until',
-						'payment_terms',
-						'delivery_terms',
-						'shipping_terms',
-						'place_of_loading',
-						'place_of_delivery',
-						'packaging',
-						'shipping_mark',
-						'time_of_shipment',
-						'other_terms',
-						'payment_method',
-						'buyer_contact',
-						'buyer_mobile',
-						'delivery_address',
-						'delivery_date',
-						'logistics_handler',
-						'supporting_documents',
-						'draft_document_ids'
-					]
+					to: ['draft']
 				}
 			}
 		},
@@ -546,7 +495,7 @@ export default model('orders', {
 		},
 		print_values: printValueKind,
 		supporting_documents: supportingDocuments,
-		draft_document_ids: { kind: 'list', of: { kind: 'text' }, optional: true, hidden: true },
+		draft_document_ids: { kind: 'text', optional: true, hidden: true, many: true },
 		check_hash: {
 			kind: 'text',
 			optional: true,
@@ -558,26 +507,22 @@ export default model('orders', {
 			kind: 'json',
 			optional: true,
 			shape: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						seal_hash: { kind: 'text' },
-						current: { kind: 'bool', optional: true },
-						lines: {
-							kind: 'list',
-							of: {
-								kind: 'object',
-								fields: {
-									id: { kind: 'text' },
-									product: { kind: 'text', optional: true },
-									unit: { kind: 'text' },
-									quantity: { kind: 'text' }
-								}
-							}
-						}
+				kind: 'object',
+				fields: {
+					seal_hash: { kind: 'text' },
+					current: { kind: 'bool', optional: true },
+					lines: {
+						kind: 'object',
+						fields: {
+							id: { kind: 'text' },
+							product: { kind: 'text', optional: true },
+							unit: { kind: 'text' },
+							quantity: { kind: 'text' }
+						},
+						many: true
 					}
-				}
+				},
+				many: true
 			}
 		},
 		contract_version: { kind: 'int', default: 1, min: 1 },
@@ -585,7 +530,7 @@ export default model('orders', {
 			hidden: true,
 			kind: 'json',
 			optional: true,
-			shape: { kind: 'list', of: contractVersionShape }
+			shape: { ...contractVersionShape, many: true }
 		},
 		sealed_at: {
 			kind: 'instant',
@@ -617,18 +562,16 @@ export default model('orders', {
 			kind: 'json',
 			optional: true,
 			shape: {
-				kind: 'list',
-				of: {
-					kind: 'object',
-					fields: {
-						order_line: { kind: 'text' },
-						product_name: { kind: 'text' },
-						unit: { kind: 'text' },
-						ordered: { kind: 'text' },
-						fulfilled: { kind: 'text' },
-						released: { kind: 'text' }
-					}
-				}
+				kind: 'object',
+				fields: {
+					order_line: { kind: 'text' },
+					product_name: { kind: 'text' },
+					unit: { kind: 'text' },
+					ordered: { kind: 'text' },
+					fulfilled: { kind: 'text' },
+					released: { kind: 'text' }
+				},
+				many: true
 			}
 		},
 		seal_hash: {
@@ -665,50 +608,97 @@ export default model('orders', {
 			shape: commissionShape
 		}
 	},
-	search: {
-		text: ['number', 'title', 'party_name']
-	},
-	key: ['source_order_key'],
-	// the layers the document, confirmation and stock reads walk (their policies narrow them per team)
-	read: {
-		orders: { fields: 'all' },
-		'orders.party': { fields: 'all' },
-		'orders.ledger': { fields: ['active', 'status'] },
-		'orders.lines': { fields: 'all' },
-		'orders.transactions': { fields: 'all' },
-		'orders.ext_sales_orders': { fields: 'all' }
-	},
 	outputs: {
+		default: {
+			fields: 'all',
+			party: { fields: 'all' },
+			ledger: { fields: ['active', 'status'] },
+			lines: { fields: 'all' },
+			transactions: { fields: 'all' },
+			ext_sales_orders: { fields: 'all' }
+		},
 		logistics: {
-			orders: { fields: logisticsOrder },
-			'orders.party': { fields: 'all' },
-			'orders.lines': { fields: logisticsLine },
-			'orders.transactions': { fields: logisticsDocument },
-			'orders.ext_sales_orders': { fields: logisticsReceipt },
-			'orders.warehouse': { fields: ['name'] }
+			fields: logisticsOrder,
+			party: { fields: 'all' },
+			lines: { fields: logisticsLine },
+			transactions: { fields: logisticsDocument },
+			ext_sales_orders: { fields: logisticsReceipt },
+			warehouse: { fields: ['name'] }
 		}
 	},
+	constraints: {
+		natural_key: { unique: ['source_order_key'], import_key: true },
+		// a confirmed order keeps its sealed terms; these stay editable for metadata, sealing and a replacement draft
+		confirmed: {
+			locked: { status: { eq: 'confirmed' } },
+			except: [
+				'status',
+				'title',
+				'notes',
+				'archived',
+				'contract_versions',
+				'agreed_total',
+				'source_order_key',
+				'draft_setup',
+				'draft_basis',
+				'operational_contracts',
+				'check_hash',
+				'contract_version',
+				'sealed_at',
+				'sealed_by',
+				'sealed_snapshot',
+				'sealed_commission',
+				'sealed_contract',
+				'sealed_contract_version',
+				'seal_hash',
+				'freight_treatment',
+				'warehouse',
+				'ordered_on',
+				'document_template',
+				'print_values',
+				'currency',
+				'tax_inclusive',
+				'valid_from',
+				'valid_until',
+				'payment_terms',
+				'delivery_terms',
+				'shipping_terms',
+				'place_of_loading',
+				'place_of_delivery',
+				'packaging',
+				'shipping_mark',
+				'time_of_shipment',
+				'other_terms',
+				'payment_method',
+				'buyer_contact',
+				'buyer_mobile',
+				'delivery_address',
+				'delivery_date',
+				'logistics_handler',
+				'supporting_documents',
+				'draft_document_ids'
+			]
+		}
+	},
+	indexes: { search: { text: ['number', 'title', 'party_name'] } },
+	// the layers the document, confirmation and stock reads walk (their policies narrow them per team)
 	create: {
 		// each line prices itself in its own `create.transform`, after this one
 		columns: {
-			orders: [...terms, 'source_order_key'],
-			'orders.lines': [
-				'product',
-				'quantity',
-				'unit_price',
-				'discount_pct',
-				'tax_rate',
-				'print_values'
-			]
+			fields: [...terms, 'source_order_key'],
+			lines: {
+				fields: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate', 'print_values']
+			}
 		},
-		filled: { 'orders.lines': ['unit_price', 'tax_rate'] },
-		transform: function* (rows, ctx) {
+		filled: { fields: [], lines: { fields: ['unit_price', 'tax_rate'] } },
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ after }) => after);
 			const {
 				parties,
 				warehouses,
 				commercial_settings: settings,
 				document_templates: layouts
-			} = yield* ctx.db.query({
+			} = yield* ctx.query({
 				parties: { where: { id: { in: rows.map((r) => r.party) } } },
 				warehouses: { where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } } },
 				commercial_settings: {
@@ -719,7 +709,7 @@ export default model('orders', {
 				document_templates: { where: { status: { eq: 'published' } } }
 			});
 			const config = settings.rows[0];
-			const defaultLayout = (direction: CreateRow<'orders'>['direction']) => {
+			const defaultLayout = (direction: CreatedRow<'orders'>['direction']) => {
 				const preferred =
 					direction === 'purchasing'
 						? config?.default_purchase_document_layout
@@ -728,8 +718,8 @@ export default model('orders', {
 					(id) => id != null && layouts.rows.some((layout) => layout.id === id)
 				);
 			};
-			const out: CreateRow<'orders'>[] = [];
-			for (const row of rows) {
+			const out = [];
+			for (const { after: row, set } of changes) {
 				if (row.draft_setup !== undefined) return yield* ctx.refuse('errors.evidence_sealed');
 				if (
 					row.document_template &&
@@ -754,7 +744,7 @@ export default model('orders', {
 				if (selection.some((id) => !files.some((file) => file.id === id)))
 					return yield* ctx.refuse('errors.evidence_sealed');
 				out.push({
-					...row,
+					...set,
 					document_template: row.document_template ?? defaultLayout(row.direction) ?? null,
 					...(row.print_values ? { print_values: orderedPrintValues(row.print_values) } : {}),
 					source_order_key: row.source_order_key ?? crypto.randomUUID(),
@@ -768,7 +758,7 @@ export default model('orders', {
 	},
 	update: {
 		columns: {
-			orders: [
+			fields: [
 				...terms,
 				'status',
 				'check_hash',
@@ -777,14 +767,9 @@ export default model('orders', {
 				'source_order_key',
 				'contract_versions'
 			],
-			'orders.lines': [
-				'product',
-				'quantity',
-				'unit_price',
-				'discount_pct',
-				'tax_rate',
-				'print_values'
-			]
+			lines: {
+				fields: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate', 'print_values']
+			}
 		},
 		transform: function* (changes, ctx) {
 			const ids = changes.map((c) => c.before.id);
@@ -796,7 +781,7 @@ export default model('orders', {
 				commission_rules: rules,
 				warehouses,
 				orders: references
-			} = yield* ctx.db.query({
+			} = yield* ctx.query({
 				orders: { where: { id: { in: ids } }, fields: ['number'] },
 				commission_rules: { where: { active: { eq: true }, code: { eq: 'default' } } },
 				parties: {
@@ -816,12 +801,19 @@ export default model('orders', {
 				}
 			});
 			const productIds = [...new Set(lines.rows.map((l) => l.product))];
-			const { products, pricing_floors: floors } = yield* ctx.db.query({
+			const { products, pricing_floors: floors } = yield* ctx.query({
 				products: { where: { id: { in: productIds } } },
 				pricing_floors: { where: { product: { in: productIds } } }
 			});
 			const config = settings.rows[0];
-			const transformed: UpdateSet<'orders'>[] = [];
+			// a line removed through this layer meets the same rule as a direct line delete
+			const removed = changes.flatMap(({ set }) => set.lines?.delete ?? []).map(({ id }) => id);
+			if (removed.length)
+				yield* lineDeletes(
+					(yield* ctx.query({ order_lines: { where: { id: { in: removed } } } })).order_lines.rows,
+					ctx
+				);
+			const transformed = [];
 			for (const { before: old, set: input } of changes) {
 				if (
 					input.source_order_key !== undefined &&
@@ -1188,7 +1180,7 @@ export default model('orders', {
 					const writeTarget =
 						old.direction === 'sales' && old.ledger && !storedVersions.length
 							? kingdeeWriteTarget(
-									(yield* ctx.db.query({
+									(yield* ctx.query({
 										sys_integration: {
 											where: { id: { eq: old.ledger }, integration: { eq: 'kingdee' } },
 											fields: ['configuration'],
@@ -1258,7 +1250,9 @@ export default model('orders', {
 				transformed.push(yield* TRANSITIONS[`${old.status}->${next}`]());
 			}
 			return transformed.map((set) =>
-				set.contract_versions ? { ...set, agreed_total: agreedTotal(set.contract_versions) } : set
+				'contract_versions' in set && set.contract_versions
+					? { ...set, agreed_total: agreedTotal(set.contract_versions) }
+					: set
 			);
 		}
 	},
@@ -1270,13 +1264,13 @@ export default model('orders', {
 			schema: orderLineWorkbook,
 			read: function* ({ records }, ctx) {
 				const numbers = [...new Set(records.map((record) => record.order_number))];
-				const { orders } = yield* ctx.db.query({
+				const { orders } = yield* ctx.query({
 					orders: { where: { number: { in: numbers } }, fields: ['id', 'number', 'ledger'] }
 				});
 				const byNumber = new Map(orders.rows.map((order) => [order.number, order]));
 				const orderIds = orders.rows.map((order) => order.id);
 				const codes = [...new Set(records.map((record) => record.product_code))];
-				const { products, order_lines: lines } = yield* ctx.db.query({
+				const { products, order_lines: lines } = yield* ctx.query({
 					products: {
 						where: {
 							or: [{ external_code: { in: codes } }, { source_number: { in: codes } }]
@@ -1349,7 +1343,7 @@ export default model('orders', {
 				return { rows: [], related: { order_lines: rows }, findings };
 			},
 			write: function* (_input, ctx) {
-				const { order_lines: lines } = yield* ctx.db.query({
+				const { order_lines: lines } = yield* ctx.query({
 					order_lines: {
 						fields: [
 							'id',
@@ -1366,7 +1360,7 @@ export default model('orders', {
 				});
 				const orderIds = [...new Set(lines.rows.map((line) => line.order))];
 				const productIds = [...new Set(lines.rows.map((line) => line.product))];
-				const { orders, products } = yield* ctx.db.query({
+				const { orders, products } = yield* ctx.query({
 					orders: { where: { id: { in: orderIds } }, fields: ['id', 'number'] },
 					products: {
 						where: { id: { in: productIds } },
@@ -1407,7 +1401,7 @@ export default model('orders', {
 				const warehouseCodes = [
 					...new Set(records.flatMap((r) => (r.warehouse_code ? [r.warehouse_code] : [])))
 				];
-				const { orders, parties, warehouses } = yield* ctx.db.query({
+				const { orders, parties, warehouses } = yield* ctx.query({
 					orders: {
 						where: { number: { in: numbers } },
 						fields: [
@@ -1593,7 +1587,7 @@ export default model('orders', {
 				return { rows, findings };
 			},
 			write: function* (_input, ctx) {
-				const { orders } = yield* ctx.db.query({
+				const { orders } = yield* ctx.query({
 					orders: {
 						fields: [
 							'number',
@@ -1624,11 +1618,11 @@ export default model('orders', {
 							'logistics_handler',
 							'notes'
 						],
-						orderBy: { number: 'asc' },
+						order_by: { number: 'asc' },
 						limit: 10000
 					}
 				});
-				const { parties, warehouses } = yield* ctx.db.query({
+				const { parties, warehouses } = yield* ctx.query({
 					parties: {
 						where: {
 							id: { in: [...new Set(orders.rows.map((order) => order.party))] }
@@ -1691,8 +1685,9 @@ export default model('orders', {
 			read: function* ({ cursor, instance }, ctx) {
 				return yield* readContractVersions(instance, cursor, ctx);
 			},
-			write: function* ({ op, row, $id, $version }, ctx) {
-				if (op === 'delete' || row.direction !== 'sales') return null;
+			write: function* ({ op, row, $id, $version, instance }, ctx) {
+				// every kingdee account receives each change; an order is written only to its own ledger
+				if (op === 'delete' || row.direction !== 'sales' || row.ledger !== instance) return null;
 				const sealed = agreements(row);
 				const initial = sealed[0];
 				const contract =
@@ -1705,7 +1700,7 @@ export default model('orders', {
 
 				// Keep the queued terms frozen. A previous delivery can gain its source proof
 				// after these terms were approved, so take that proof from the current mirror.
-				const [latest] = (yield* ctx.db.query({
+				const [latest] = (yield* ctx.query({
 					orders: { where: { id: { eq: row.id } }, limit: 1 }
 				})).orders.rows;
 				if (!latest) return null;
