@@ -597,6 +597,7 @@ export default messages({
 	'errors.product_source_owned': '商品来自金蝶。请通过工作簿更新提成字段。',
 	'errors.floor_missing': '需要适用的底价。',
 	'errors.floor_below': '低于配置的最低价。',
+	'errors.price_book_stale': '导出工作簿后此底价已更改。请导出最新价格簿并重新应用更改。',
 	'component.quote_floor_minimum': '未税最低价',
 	'component.quote_floor_met': '达到最低价。',
 	'errors.currency_price': '请按此订单的币种填写价格。',

@@ -15,7 +15,7 @@
 </script>
 
 <Cluster gap="sm" align="center">
-	<Picker {of} value={id} readonly on_change={() => {}} />
+	<Picker {ctx} {of} value={id} readonly on_change={() => {}} />
 	<Button variant="link" onclick={() => open_record(of, id)}
 		>{ctx.t('component.open_record')}</Button
 	>

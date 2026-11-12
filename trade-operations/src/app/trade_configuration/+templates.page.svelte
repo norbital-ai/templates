@@ -20,6 +20,7 @@
 			/>
 		</div>
 		<Table
+			{ctx}
 			of="document_templates"
 			columns={['title', 'locale', 'version', 'status']}
 			toolbar={{ title: false }}

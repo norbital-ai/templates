@@ -716,6 +716,8 @@ export default messages({
 		'Products come from Kingdee. Use the workbook to update commission fields.',
 	'errors.floor_missing': 'A compatible pricing floor is required.',
 	'errors.floor_below': 'Below the configured minimum price.',
+	'errors.price_book_stale':
+		'This floor changed after the workbook was exported. Export the latest price book and reapply your changes.',
 	'component.quote_floor_minimum': 'Minimum before tax',
 	'component.quote_floor_met': 'Meets the minimum price.',
 	'errors.currency_price': 'Enter a price in this order’s currency.',

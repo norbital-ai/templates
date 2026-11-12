@@ -51,6 +51,7 @@
 						</dt>
 						<dd>
 							<Show
+								{ctx}
 								kind={field.kind}
 								value={shown.record[field.name]}
 								name={field.name}
@@ -60,6 +61,7 @@
 					</div>{/each}
 			</Grid>
 			{#if shown.record.items}<Table
+					{ctx}
 					of={shown.record.items}
 					columns={[
 						{ field: 'product_name', label: ctx.t('models.order_lines.fields.product_name') },
@@ -100,6 +102,7 @@
 	{/if}
 {/snippet}
 <RecordShell
+	{ctx}
 	of="transactions"
 	mode={view.mode}
 	{...view.mode !== 'create' ? { id: view.record.id } : { values: view.values }}

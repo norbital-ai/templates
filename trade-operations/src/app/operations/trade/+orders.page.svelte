@@ -65,12 +65,14 @@
 	row: RowIn<'orders'>;
 	value: ColumnsIn<'orders'>['agreed_total'] | undefined;
 })}<Show
+		{ctx}
 		kind={{ kind: 'money', currency: 'currency' }}
 		value={(row.status !== 'draft' || row.draft_setup) && value != null ? value : row.total}
 		{row}
 	/>{/snippet}
 {#snippet orders(direction: 'sales' | 'purchasing')}
 	<Table
+		{ctx}
 		of="orders"
 		where={{ direction: { eq: direction } }}
 		hidden_where={{ archived: { eq: false } }}

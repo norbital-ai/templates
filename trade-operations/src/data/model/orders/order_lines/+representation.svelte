@@ -36,6 +36,7 @@
 
 {#snippet product(form: FormState, field: FieldEditor)}
 	<Picker
+		{ctx}
 		of="products"
 		id={field.id}
 		value={form.id<'products'>('product')}
@@ -59,6 +60,7 @@
 {/snippet}
 {#snippet unitPrice(_form: FormState, field: FieldEditor)}
 	<MoneyInput
+		{ctx}
 		id={field.id}
 		value={field.value}
 		on_change={field.on_change}

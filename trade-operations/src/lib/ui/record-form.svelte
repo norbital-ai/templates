@@ -94,7 +94,7 @@
 		history
 	}: RecordFormProps = $props();
 	const controller = use_record_controller();
-	const words = use_enum_text();
+	const words = use_enum_text(() => ctx);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const cells: {
 		readonly [field: string]: unknown;
@@ -153,6 +153,7 @@
 					>{translated(ctx, `models.${view.model}.fields.${name}`)}</span
 				>
 				{#if viewers[name]}{@render viewers[name]!(form)}{:else}<Show
+						{ctx}
 						readonly
 						kind={stored.kind}
 						value={form.get(name)}
@@ -162,12 +163,12 @@
 			</Stack>
 		{/if}
 	{:else if editors[name]}
-		<Field {name} {...props} {...viewers[name] ? { view: readonlyValue } : {}}>
+		<Field {ctx} {name} {...props} {...viewers[name] ? { view: readonlyValue } : {}}>
 			{#snippet editor(field)}{@render editors[name]!(form, field)}{/snippet}
 		</Field>
 	{:else if name === 'status' && cells}
 		<!-- a state moves along its edges: the stored state and the moves out of it -->
-		<Field {name} {...props}>
+		<Field {ctx} {name} {...props}>
 			{#snippet editor(field)}
 				{@const from = String(cells.status)}
 				<Combobox
@@ -182,13 +183,14 @@
 			{/snippet}
 		</Field>
 	{:else}
-		<Field {name} {...props} {...viewers[name] ? { view: readonlyValue } : {}} />
+		<Field {ctx} {name} {...props} {...viewers[name] ? { view: readonlyValue } : {}} />
 	{/if}
 {/snippet}
 
 {#snippet general()}
 	<Stack gap="md">
 		{#key added}<Form
+				{ctx}
 				of={view.model}
 				mode={locked && view.mode !== 'create' ? 'view' : view.mode}
 				readonly={locked}
@@ -255,6 +257,7 @@
 	{/if}
 {/snippet}
 <RecordShell
+	{ctx}
 	of={view.model}
 	mode={view.mode}
 	{...record

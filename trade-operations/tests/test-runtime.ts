@@ -7,8 +7,8 @@ import {
 	type TestOptions,
 	type TestPorts
 } from '@norbital-ai/bolt-cli/test';
-import { layered, output_schema, type EngineManifest } from '@norbital-ai/bolt/engine';
-import { input_schema } from '@norbital-ai/std/kind';
+import type { EngineManifest } from '@norbital-ai/bolt/engine';
+import { input_schema, type Kind } from '@norbital-ai/std/kind';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { expect } from '@effect/vitest';
 expect.addEqualityTesters([
@@ -41,7 +41,6 @@ export const workspace = Effect.fnUntraced(function* <P extends TestPorts = neve
 	});
 	return {
 		...t,
-		services,
 		at,
 		as: (who: Parameters<Kit['as']>[0]) => Effect.map(t.as(who), typed),
 		visitor: (...args: Parameters<Kit['visitor']>) => Effect.map(t.visitor(...args), typed)
@@ -64,9 +63,9 @@ const OPTIONS = new Set([
  * codec (a ref's id, a system column), a ref layer in place of its key (the row or `null`) and a many-layer as its rows.
  * Only a value this schema admits takes the request's static answer type.
  */
-const answer = <R extends ReadRequestBase>(manifest: EngineManifest, request: R) => {
-	const m = layered(manifest);
-	const instant = Schema.toType(output_schema(m, { kind: 'instant' }));
+const answer = <R extends ReadRequestBase>(m: EngineManifest, request: R) => {
+	const value = (kind: Kind) => Schema.NullOr(Schema.toType(input_schema(kind)));
+	const instant = Schema.toType(input_schema({ kind: 'instant' }));
 	const system: Record<string, Schema.Top> = {
 		id: Schema.String,
 		revision: Schema.Int,
@@ -82,7 +81,7 @@ const answer = <R extends ReadRequestBase>(manifest: EngineManifest, request: R)
 		const own: [string, Schema.Top][] = [
 			...Object.entries(m.models[model]?.fields ?? {}).map(([name, kind]): [string, Schema.Top] => [
 				name,
-				Schema.toType(output_schema(m, kind))
+				value(kind)
 			]),
 			...Object.entries(m.relationships).flatMap(([key, spec]): [string, Schema.Top][] =>
 				key.startsWith(`${model}.`) && typeof spec.to === 'string'

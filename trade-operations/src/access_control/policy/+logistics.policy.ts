@@ -4,7 +4,7 @@ export default policy({
 	capabilities: { apps: ['operations'] },
 	grants: {
 		source_stock_commitments: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		ext_sales_orders: {
 			outputs: { logistics: { history: true } }
@@ -16,22 +16,22 @@ export default policy({
 			outputs: { logistics: { history: true } }
 		},
 		commercial_settings: {
-			outputs: { logistics: true }
+			outputs: { logistics: {} }
 		},
 		parties: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		warehouses: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		stock_snapshots: {
-			outputs: { logistics: true }
+			outputs: { logistics: {} }
 		},
 		contacts: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		products: {
-			outputs: { logistics: true }
+			outputs: { logistics: {} }
 		},
 		orders: {
 			outputs: { logistics: { history: true } }
@@ -41,8 +41,8 @@ export default policy({
 		},
 		activities: {
 			outputs: { default: { history: true } },
-			create: true,
-			update: true
+			create: {},
+			update: {}
 		}
 	}
 });

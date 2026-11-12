@@ -13,7 +13,7 @@
 </script>
 
 {#if row}
-	<Form of="commercial_settings" mode="update" id={row.id} record={row} {fields} />
+	<Form {ctx} of="commercial_settings" mode="update" id={row.id} record={row} {fields} />
 {:else if settings.error}
 	<p role="alert" class="text-sm text-destructive">{settings.error.message}</p>
 {:else if settings.loading}

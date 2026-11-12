@@ -18,6 +18,7 @@
 	/>{/snippet}
 {#snippet transactions()}{#if view.mode !== 'create'}
 		<Table
+			{ctx}
 			of="transactions"
 			where={{ ext_sales_order: { eq: view.record.id } }}
 			columns={['reference', 'kind', 'status', 'source_updated_at']}
@@ -25,6 +26,7 @@
 		/>
 	{/if}{/snippet}
 <RecordShell
+	{ctx}
 	of="ext_sales_orders"
 	mode={view.mode}
 	{...view.mode !== 'create' ? { id: view.record.id } : { values: view.values }}

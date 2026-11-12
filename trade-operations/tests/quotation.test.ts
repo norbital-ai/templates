@@ -94,7 +94,7 @@ test.live('contract validity rejects reversed dates including a partial edit', (
 					]
 				})
 			)
-		).toMatchObject({ _tag: 'ActRefused', message: 'errors.contract_validity' });
+		).toMatchObject({ _tag: 'ActRefused', key: 'errors.contract_validity' });
 	})
 );
 
@@ -151,7 +151,7 @@ test.live(
 						]
 					})
 				)
-			).toMatchObject({ message: 'errors.floor_below' });
+			).toMatchObject({ key: 'errors.floor_below' });
 			committed(
 				'order_lines',
 				yield* as.act({

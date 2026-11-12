@@ -123,7 +123,7 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 								]
 							})
 						)
-					).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
+					).toMatchObject({ _tag: 'ActRefused', key: 'errors.ledger_mismatch' });
 				})
 		);
 

@@ -39,7 +39,7 @@ it.live(
 			).not.toMatchObject({ kind: 'committed' });
 			const parent = writtenId('ext_sales_orders', yield* write(t, 'ext_sales_orders', source));
 			const relinked = yield* receipt(t, foreign.order, source.external_id);
-			expect(yield* write(t, 'ext_sales_orders', [relinked], 'upsert')).not.toMatchObject({
+			expect(yield* write(t, 'ext_sales_orders', [relinked])).not.toMatchObject({
 				kind: 'committed'
 			});
 			expect(
@@ -74,27 +74,25 @@ it.live(
 				documents: [],
 				source_updated_at: NOW
 			};
-			writtenId('transactions', yield* write(t, 'transactions', [row], 'upsert'));
+			writtenId('transactions', yield* write(t, 'transactions', [row]));
 			expect(
 				yield* write(
 					t,
 					'transactions',
-					[{ ...row, items: [{ ...firstRow(row.items), unit_price: '99' }] }],
-					'upsert'
-				)
+					[{ ...row, items: [{ ...firstRow(row.items), unit_price: '99' }] }])
 			).not.toMatchObject({ kind: 'committed' });
 			expect(
-				yield* write(t, 'transactions', [{ ...row, ext_sales_order: other }], 'upsert')
+				yield* write(t, 'transactions', [{ ...row, ext_sales_order: other }])
 			).not.toMatchObject({ kind: 'committed' });
 			writtenId(
 				'ext_sales_orders',
-				yield* write(t, 'ext_sales_orders', [{ ...source, status: 'void' }], 'upsert')
+				yield* write(t, 'ext_sales_orders', [{ ...source, status: 'void' }])
 			);
 			writtenId(
 				'transactions',
-				yield* write(t, 'transactions', [{ ...row, status: 'void' }], 'upsert')
+				yield* write(t, 'transactions', [{ ...row, status: 'void' }])
 			);
-			expect(yield* write(t, 'transactions', [row], 'upsert')).not.toMatchObject({
+			expect(yield* write(t, 'transactions', [row])).not.toMatchObject({
 				kind: 'committed'
 			});
 			expect(

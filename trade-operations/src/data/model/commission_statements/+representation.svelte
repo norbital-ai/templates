@@ -21,6 +21,7 @@
 
 {#snippet amount({ value }: { value: ShowProps['value'] })}
 	{#if view.mode !== 'create'}<Show
+			{ctx}
 			kind={{ kind: 'money', currency: 'currency', optional: true }}
 			{value}
 			row={view.record}
@@ -30,6 +31,7 @@
 	{#if view.mode !== 'create'}
 		<p>{ctx.t('component.monthly_commission_evidence')}</p>
 		<Table
+			{ctx}
 			of={view.record.snapshot}
 			key="commission_statement_items"
 			columns={[
@@ -43,6 +45,7 @@
 {/snippet}
 {#if view.mode !== 'create'}
 	<RecordShell
+		{ctx}
 		of="commission_statements"
 		mode={view.mode}
 		id={view.record.id}
@@ -50,6 +53,7 @@
 		tabs={[{ name: 'orders', title: ctx.t('component.monthly_commission_items'), body: evidence }]}
 	>
 		<Form
+			{ctx}
 			of="commission_statements"
 			mode={view.mode}
 			id={view.record.id}
@@ -67,9 +71,10 @@
 		/>
 	</RecordShell>
 {:else if view.values.owner && view.values.period && view.values.currency && view.values.calculation_hash}
-	<RecordShell of="commission_statements" mode="create" values={view.values}>
+	<RecordShell {ctx} of="commission_statements" mode="create" values={view.values}>
 		<p>{ctx.t('component.monthly_commission_evidence')}</p>
 		<Form
+			{ctx}
 			of="commission_statements"
 			mode="create"
 			values={view.values}

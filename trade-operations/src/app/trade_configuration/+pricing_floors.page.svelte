@@ -239,6 +239,7 @@
 
 {#snippet priceBook()}
 	<CustomView
+		{ctx}
 		model="pricing_floors"
 		key="monthly_price_book"
 		of={rows}
@@ -364,6 +365,7 @@
 {#snippet history()}
 	{#if catalog.current}
 		<Table
+			{ctx}
 			of="pricing_floors"
 			where={{
 				...(group === null ? {} : { group_code: { eq: group } }),
@@ -387,6 +389,7 @@
 
 {#snippet commissionRules()}
 	<Table
+		{ctx}
 		of="commission_rules"
 		columns={['effective_on', 'currency', 'basis_unit', 'fixed_rate', 'spread_pct', 'active']}
 		toolbar={{ title: false, description: ctx.t('component.commission_rules_hint') }}

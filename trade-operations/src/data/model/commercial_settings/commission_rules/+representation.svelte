@@ -174,6 +174,7 @@
 				{#if result}<p role="status">
 						{ctx.t(`reports.commission.${result.reason}`)} ·
 						<Show
+							{ctx}
 							kind={{ kind: 'money', currency: 'currency', optional: true }}
 							value={result.amount}
 							row={result}

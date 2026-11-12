@@ -53,7 +53,7 @@ it.live('sales can approve revised local terms without Kingdee or retroactive ex
 
 		const run = yield* as.run(
 			'orders_revise',
-			{ target: order, revision: before.revision },
+			{ orders: [order], revision: before.revision },
 			JobResult
 		);
 		expect(run.kind).toBe('committed');
@@ -124,11 +124,11 @@ it.live(
 						]
 					})
 					.pipe(Effect.flip)
-			).toMatchObject({ _tag: 'ActRefused', message: 'errors.contract_setup' });
+			).toMatchObject({ _tag: 'ActRefused', key: 'errors.contract_setup' });
 			// the run holds `order_revision`; a start names only an order its starter reads (not another seller's)
 			expect(
 				yield* (yield* t.as(t.member(['sales', 'logistics'])))
-					.run('orders_revise', { target: own.order }, JobResult)
+					.run('orders_revise', { orders: [own.order] }, JobResult)
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused' });
 			yield* revise(t, own.order);

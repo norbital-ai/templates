@@ -32,7 +32,7 @@
 		</div>
 		{#each fields as field (field.name)}<div>
 				<dt class="text-sm text-muted-foreground">{ctx.t(`models.${of}.fields.${field.name}`)}</dt>
-				<dd><Show kind={field.kind} value={view.record[field.name]} name={field.name} /></dd>
+				<dd><Show {ctx} kind={field.kind} value={view.record[field.name]} name={field.name} /></dd>
 			</div>{/each}
 	</Grid>
 {/if}

@@ -17,7 +17,7 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 				const parent = yield* sourceOrder(t, own.order),
 					invoice = yield* sourceTransaction(t, own, parent);
 				expect(
-					yield* sync(t, 'transactions', [{ ...invoice.input, documents: [] }], 'upsert')
+					yield* sync(t, 'transactions', [{ ...invoice.input, documents: [] }])
 				).toMatchObject({ kind: 'committed' });
 				for (const change of [
 					{
@@ -33,7 +33,7 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 					{ ext_sales_order: null }
 				])
 					expect(
-						yield* sync(t, 'transactions', [{ ...invoice.input, ...change }], 'upsert')
+						yield* sync(t, 'transactions', [{ ...invoice.input, ...change }])
 					).not.toMatchObject({ kind: 'committed' });
 				expect(
 					(yield* (yield* t.as(t.admin)).query({
@@ -59,7 +59,7 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 				const delivery = yield* sourceTransaction(t, own, parent, 'delivery', '10');
 				const item = delivery.input.items?.[0];
 				if (!item) throw new Error('Source item required');
-				const replay = () => sync(t, 'transactions', [delivery.input], 'upsert');
+				const replay = () => sync(t, 'transactions', [delivery.input]);
 				yield* Effect.all([replay(), replay()], { concurrency: 2, mode: 'result' });
 				for (const items of [
 					[{ ...item, order_line_id: foreign.line }],
@@ -67,7 +67,7 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 					[{ ...item, quantity: '-10' }]
 				])
 					expect(
-						yield* sync(t, 'transactions', [{ ...delivery.input, items }], 'upsert')
+						yield* sync(t, 'transactions', [{ ...delivery.input, items }])
 					).not.toMatchObject({ kind: 'committed' });
 				const result = yield* (yield* t.as(t.admin)).query({
 					transactions: { where: { order: { eq: own.order } } }
@@ -92,11 +92,11 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 					erp_id: `bulk:${i}`,
 					reference: `DO-${i}`
 				}));
-				expect(yield* sync(t, 'transactions', page, 'upsert')).toMatchObject({
+				expect(yield* sync(t, 'transactions', page)).toMatchObject({
 					kind: 'committed'
 				});
 				const corrected = page.map((row) => ({ ...row, reference: `${row.reference}-corrected` }));
-				expect(yield* sync(t, 'transactions', corrected, 'upsert')).toMatchObject({
+				expect(yield* sync(t, 'transactions', corrected)).toMatchObject({
 					kind: 'committed'
 				});
 				const { transactions } = yield* (yield* t.as(t.admin)).query({

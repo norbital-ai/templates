@@ -61,9 +61,8 @@ export default model({
 			]
 		},
 		transform: function* (changes, ctx) {
-			for (const { before, set } of changes) {
-				if (!valid(set.body ?? before.body))
-					return yield* ctx.refuse('errors.document_template_invalid');
+			for (const { set, after } of changes) {
+				if (!valid(after.body)) return yield* ctx.refuse('errors.document_template_invalid');
 				if (set.print_fields != null && !validPrintFields(set.print_fields))
 					return yield* ctx.refuse('errors.print_fields_invalid', { field: 'print_fields' });
 			}

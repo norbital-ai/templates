@@ -785,7 +785,7 @@ export default model({
 				orders: { where: { id: { in: ids } }, fields: ['number'] },
 				commission_rules: { where: { active: { eq: true }, code: { eq: 'default' } } },
 				parties: {
-					where: { id: { in: changes.map(({ before, set }) => set.party ?? before.party) } }
+					where: { id: { in: changes.map(({ after }) => after.party) } }
 				},
 				order_lines: { where: { order: { in: ids } } },
 				document_templates: { where: { status: { eq: 'published' } } },
@@ -814,7 +814,7 @@ export default model({
 					ctx
 				);
 			const transformed = [];
-			for (const { before: old, set: input } of changes) {
+			for (const { before: old, set: input, after } of changes) {
 				if (
 					input.source_order_key !== undefined &&
 					input.source_order_key !== old.source_order_key &&
@@ -833,15 +833,13 @@ export default model({
 				if (input.closure_snapshot !== undefined) return yield* ctx.refuse('errors.order_sealed');
 				if (input.direction !== undefined && input.direction !== old.direction)
 					return yield* ctx.refuse('errors.line_basis_locked', { field: 'direction' });
-				const validFrom = input.valid_from !== undefined ? input.valid_from : old.valid_from;
-				const validUntil = input.valid_until !== undefined ? input.valid_until : old.valid_until;
+				const validFrom = after.valid_from;
+				const validUntil = after.valid_until;
 				if (validFrom && validUntil && validUntil < validFrom)
 					return yield* ctx.refuse('errors.contract_validity', { field: 'valid_until' });
-				const party = parties.rows.find((p) => p.id === (input.party ?? old.party));
-				const warehouse = warehouses.rows.find(
-					(w) => w.id === (input.warehouse !== undefined ? input.warehouse : old.warehouse)
-				);
-				const next = input.status ?? old.status;
+				const party = parties.rows.find((p) => p.id === after.party);
+				const warehouse = warehouses.rows.find((w) => w.id === after.warehouse);
+				const next = after.status;
 				const storedVersions = agreements(old);
 				if (input.contract_versions !== undefined) {
 					if (ctx.actor.kind !== 'system' || !input.contract_versions)
@@ -1088,7 +1086,7 @@ export default model({
 						).some((k) => input[k] !== undefined && input[k] !== old[k])
 					)
 						return yield* ctx.refuse('errors.line_basis_locked');
-					const files = input.supporting_documents ?? old.supporting_documents ?? [];
+					const files = after.supporting_documents ?? [];
 					const selection =
 						input.draft_document_ids ??
 						(input.supporting_documents !== undefined

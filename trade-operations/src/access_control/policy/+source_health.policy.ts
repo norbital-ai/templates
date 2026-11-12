@@ -7,7 +7,7 @@ export default policy({
 			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
 		},
 		sys_user: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		}
 	}
 });

@@ -1,35 +1,32 @@
 import { automation, type Id } from '@norbital-ai/bolt';
 import { Effect, Schema } from 'effect';
-import { Refusal } from '@norbital-ai/bolt/errors';
 import { input_schema } from '@norbital-ai/std/kind';
 import { Decimal, currency } from '@norbital-ai/std/decimal';
 import { PlainDate } from '@norbital-ai/std/date';
 import { agreements, currentAgreement, resolvableKingdee } from '../lib/agreements.js';
 import { contractEntryId } from '../lib/contract-draft.js';
 
-const identity = <C extends string>(of: C, value: string) =>
-	Schema.decodeUnknownEffect(
-		Schema.declare<Id<C>>((input): input is Id<C> =>
-			Schema.is(input_schema({ kind: 'ref', to: of }))(input)
-		)
-	)(value).pipe(Effect.mapError(() => new Refusal({ message: 'errors.evidence_sealed' })));
+const isId = <C extends string>(of: C, value: string): value is Id<C> =>
+	Schema.is(input_schema({ kind: 'ref', to: of }))(value);
 
 export default automation({
 	description: 'Start or resume a replacement contract from the current accepted terms.',
 	policies: ['order_revision'],
 	input: {
-		target: { kind: 'ref', to: 'orders' },
+		orders: { kind: 'rows', of: 'orders' },
 		revision: { kind: 'int', optional: true },
 		source: { kind: 'text', optional: true },
 		resolution: { kind: 'enum', values: ['adopt', 'revise'], optional: true }
 	},
-	run: function* ({ target, revision, source, resolution }, ctx) {
-		const [order] = (yield* ctx.query({ orders: { where: { id: { eq: target } }, limit: 1 } }))
-			.orders.rows;
-		if (!order) return yield* new Refusal({ message: 'errors.agreement_access' });
+	run: function* ({ orders, revision, source, resolution }, ctx) {
+		const identity = <C extends string>(of: C, value: string) =>
+			isId(of, value) ? Effect.succeed(value) : ctx.refuse('errors.evidence_sealed');
+		const [order] = orders;
+		if (!order || orders.length !== 1) return yield* ctx.refuse('errors.agreement_access');
+		const target = order.id;
 		const starter = ctx.run.trigger;
 		if (starter.kind !== 'person' || starter.actor.kind !== 'member')
-			return yield* new Refusal({ message: 'errors.agreement_access' });
+			return yield* ctx.refuse('errors.agreement_access');
 		const { actor } = starter;
 		const inScope =
 			actor.admin ||
@@ -37,10 +34,10 @@ export default automation({
 			(order.direction === 'purchasing'
 				? actor.teams.includes('procurement')
 				: actor.teams.includes('sales') && order.owner === actor.id);
-		if (!inScope) return yield* new Refusal({ message: 'errors.agreement_access' });
-		if (order.archived) return yield* new Refusal({ message: 'errors.order_archived' });
+		if (!inScope) return yield* ctx.refuse('errors.agreement_access');
+		if (order.archived) return yield* ctx.refuse('errors.order_archived');
 		if (order.status !== 'confirmed' && !order.draft_setup)
-			return yield* new Refusal({ message: 'errors.transition' });
+			return yield* ctx.refuse('errors.transition');
 		const versions = agreements(order);
 		if (
 			Boolean(source) !== Boolean(resolution) ||
@@ -48,16 +45,16 @@ export default automation({
 				(!(actor.admin || actor.teams.includes('commercial_managers')) ||
 					source !== (order.draft_setup ?? resolvableKingdee(versions)?.seal_hash)))
 		)
-			return yield* new Refusal({ message: 'errors.contract_source_changed' });
+			return yield* ctx.refuse('errors.contract_source_changed');
 		const current = source
 			? versions.find((version) => version.seal_hash === source)
 			: order.draft_setup
 				? versions.find((version) => version.seal_hash === order.draft_setup)
 				: currentAgreement(order);
-		if (!current) return yield* new Refusal({ message: 'errors.order_not_confirmed' });
+		if (!current) return yield* ctx.refuse('errors.order_not_confirmed');
 		if (resolution === 'adopt') {
 			if (!current.kingdee || order.status !== 'confirmed')
-				return yield* new Refusal({ message: 'errors.contract_source_changed' });
+				return yield* ctx.refuse('errors.contract_source_changed');
 			const native = current.kingdee;
 			yield* ctx.act({
 				'orders.update': [
@@ -124,7 +121,7 @@ export default automation({
 			.order_lines;
 		const lines = yield* Effect.forEach(current.snapshot.lines, (line) =>
 			Effect.gen(function* () {
-				if (!line.product) return yield* new Refusal({ message: 'errors.product_inactive' });
+				if (!line.product) return yield* ctx.refuse('errors.product_inactive');
 				const source_entry_id = contractEntryId(current, line);
 				const existing = rows.find(
 					(row) =>
@@ -167,7 +164,7 @@ export default automation({
 		const [ready] = (yield* ctx.query({ orders: { where: { id: { eq: target } }, limit: 1 } }))
 			.orders.rows;
 		if (!ready || ready.draft_setup !== current.seal_hash)
-			return yield* new Refusal({ message: 'errors.contract_setup' });
+			return yield* ctx.refuse('errors.contract_setup');
 		// Clearing the marker validates the complete one-to-one copy before editing or sealing is enabled.
 		yield* ctx.act({
 			'orders.update': [

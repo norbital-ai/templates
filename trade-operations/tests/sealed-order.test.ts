@@ -251,7 +251,7 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 					]
 				})
 			)
-		).toMatchObject({ _tag: 'ActRefused', message: 'errors.check_changed' });
+		).toMatchObject({ _tag: 'ActRefused', key: 'errors.check_changed' });
 		committed(
 			'order_lines',
 			yield* as.act({
@@ -271,7 +271,7 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 					]
 				})
 			)
-		).toMatchObject({ _tag: 'ActRefused', message: 'errors.check_changed' });
+		).toMatchObject({ _tag: 'ActRefused', key: 'errors.check_changed' });
 		const refreshed = yield* confirmationOf(as, {
 			as_of: Instant(t.clock.now()),
 			order: first

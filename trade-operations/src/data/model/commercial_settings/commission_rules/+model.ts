@@ -216,11 +216,10 @@ export default model({
 			]
 		},
 		transform: function* (changes, ctx) {
-			const expressions = changes.map(({ before, set }) => ({
-				eligibility: set.eligibility_expression ?? before.eligibility_expression,
-				amount: set.amount_expression ?? before.amount_expression,
-				parameters:
-					set.parameters === undefined ? (before.parameters ?? []) : (set.parameters ?? [])
+			const expressions = changes.map(({ after }) => ({
+				eligibility: after.eligibility_expression,
+				amount: after.amount_expression,
+				parameters: after.parameters ?? []
 			}));
 			if (!expressions.every(valid)) yield* ctx.refuse('errors.commission_expression_invalid');
 			return changes.map((c) => c.set);

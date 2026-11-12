@@ -2,9 +2,6 @@ import { model } from '../../../../../.norbital/models/pricing_floors.ts';
 import { type Finding } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
 
-const staleBook =
-	'This floor changed after the workbook was exported. Export the latest price book and reapply your changes.';
-
 const priceBook = {
 	ledger: { kind: 'text' },
 	product_code: { kind: 'text' },
@@ -199,7 +196,7 @@ export default model({
 		transform: function* (changes, ctx) {
 			for (const [row, { after }] of changes.entries()) {
 				if (after.import_revision != null && after.import_revision !== 0)
-					yield* ctx.refuse(staleBook, { row });
+					yield* ctx.refuse('errors.price_book_stale', { row });
 			}
 			return changes.map(({ set: { import_revision: _, ...set } }) => set);
 		}
@@ -223,7 +220,7 @@ export default model({
 					import_revision != null &&
 					(unit !== before.unit || (!same && import_revision !== before.revision))
 				)
-					yield* ctx.refuse(staleBook, { row });
+					yield* ctx.refuse('errors.price_book_stale', { row });
 				rows.push(set);
 			}
 			return rows;

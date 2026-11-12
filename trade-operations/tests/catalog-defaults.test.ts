@@ -73,7 +73,7 @@ test.live(
 						]
 					})
 				)
-			).toMatchObject({ _tag: 'ActRefused', message: 'errors.price_required' });
+			).toMatchObject({ _tag: 'ActRefused', key: 'errors.price_required' });
 			const cost = committed(
 				'order_lines',
 				yield* as.act({
@@ -101,6 +101,6 @@ test.live(
 						'order_lines.create': [{ order: usd, product: PRODUCT, quantity: Decimal.of('1') }]
 					})
 				)
-			).toMatchObject({ _tag: 'ActRefused', message: 'errors.currency_price' });
+			).toMatchObject({ _tag: 'ActRefused', key: 'errors.currency_price' });
 		})
 );

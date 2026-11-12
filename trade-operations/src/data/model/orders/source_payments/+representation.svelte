@@ -44,6 +44,7 @@
 					</dt>
 					<dd>
 						<Show
+							{ctx}
 							kind={field.kind}
 							value={shown.record[field.name]}
 							row={shown.record}
@@ -54,6 +55,7 @@
 		</Grid>{/if}
 {/snippet}
 <RecordShell
+	{ctx}
 	of="source_payments"
 	mode={view.mode}
 	{...view.mode !== 'create' ? { id: view.record.id } : { values: view.values }}

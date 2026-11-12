@@ -382,7 +382,7 @@
 }: {
 	value: ShowProps['value'];
 	row: NonNullable<ShowProps['row']>;
-})}<Show kind={moneyKind} {value} {row} />{/snippet}
+})}<Show {ctx} kind={moneyKind} {value} {row} />{/snippet}
 {#snippet deliveryCost({
 	value,
 	row
@@ -390,13 +390,15 @@
 	value: ShowProps['value'];
 	row: NonNullable<ShowProps['row']>;
 })}
-	<Show kind={costKind} {value} {row} />
+	<Show {ctx} kind={costKind} {value} {row} />
 {/snippet}
 {#snippet decimal({ value }: { value: ShowProps['value'] })}<Show
+		{ctx}
 		kind={{ kind: 'decimal', scale: 8 }}
 		{value}
 	/>{/snippet}
 {#snippet date({ value }: { value: ShowProps['value'] })}<Show
+		{ctx}
 		kind={{ kind: 'date' }}
 		{value}
 	/>{/snippet}
@@ -431,6 +433,7 @@
 					{@const known = summary.filter((row) => row.margin !== null)}
 					{#each [...new Set(known.map((row) => row.currency))] as currency}
 						<Chart
+							{ctx}
 							of={known.filter((row) => row.currency === currency)}
 							x="salesperson"
 							y="margin"
@@ -516,6 +519,7 @@
 					}
 				]}
 			<Table
+				{ctx}
 				layout="grid"
 				of={rows}
 				controlled
@@ -671,7 +675,7 @@
 		{#each snapshots as snapshot (snapshot.id)}
 			<p class="text-sm text-muted-foreground">
 				{snapshot.source?.name} · {ctx.t('reports.aging.snapshot_at')}
-				<Show kind={{ kind: 'instant' }} value={snapshot.observed_at} />
+				<Show {ctx} kind={{ kind: 'instant' }} value={snapshot.observed_at} />
 			</p>
 		{/each}
 		{#if agingCustomer}<p class="text-sm font-medium">{agingCustomer.name}</p>{/if}
@@ -715,6 +719,7 @@
 					}))
 				]}
 			<Table
+				{ctx}
 				layout="grid"
 				of={visiblePage('customers', agingCustomers)}
 				controlled
@@ -782,6 +787,7 @@
 					}
 				]}
 			<Table
+				{ctx}
 				layout="grid"
 				of={visiblePage('entries', agingEntryRows)}
 				controlled
@@ -840,6 +846,7 @@
 					{ field: 'latest_number', label: ctx.t('component.monthly_commission_statement') }
 				]}
 				<Table
+					{ctx}
 					layout="grid"
 					of={visiblePage('commission', rows)}
 					controlled
@@ -897,12 +904,14 @@
 							><Dialog.Title>{ctx.t('component.monthly_commission_statement')}</Dialog.Title>
 							<p>
 								{monthSelection.owner_name} · {monthSelection.period.slice(0, 7)} · <Show
+									{ctx}
 									kind={{ kind: 'money', currency: 'currency' }}
 									value={monthSelection.amount}
 									row={monthSelection}
 								/>
 							</p>
 							<Form
+								{ctx}
 								of="commission_statements"
 								mode="create"
 								values={{

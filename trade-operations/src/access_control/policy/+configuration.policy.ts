@@ -4,31 +4,31 @@ export default policy({
 	capabilities: { apps: ['trade_configuration'] },
 	grants: {
 		source_lot_costs: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		source_stock_commitments: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		document_templates: {
 			outputs: { default: { history: true } },
-			create: true,
+			create: {},
 			update: { moves: { status: ['draft->published'] } }
 		},
 		parties: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		products: {
-			outputs: { default: true },
-			update: true
+			outputs: { default: {} },
+			update: {}
 		},
 		warehouses: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		stock_snapshots: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		credit_snapshots: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		commercial_settings: {
 			outputs: { default: { history: true } },
@@ -45,13 +45,13 @@ export default policy({
 		},
 		pricing_floors: {
 			outputs: { default: { history: true } },
-			create: true,
-			update: true
+			create: {},
+			update: {}
 		},
 		commission_rules: {
 			outputs: { default: { history: true } },
-			create: true,
-			update: true
+			create: {},
+			update: {}
 		}
 	}
 });

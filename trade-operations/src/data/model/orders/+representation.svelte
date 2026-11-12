@@ -445,7 +445,7 @@
 			const resolving = change !== 'revise';
 			if (resolving && (!canResolve || !sourceChoice)) return;
 			const started = ctx.run('orders_revise', {
-				target: id,
+				orders: [id],
 				revision: view.record.revision,
 				...(resolving && sourceChoice
 					? {
@@ -519,6 +519,7 @@
 {/snippet}
 {#snippet party(form: FormState, field: FieldEditor)}
 	<Picker
+		{ctx}
 		of="parties"
 		id={field.id}
 		value={form.id<'parties'>('party')}
@@ -562,6 +563,7 @@
 {#snippet documents(form: FormState, field: FieldEditor)}
 	{#if field.kind.kind === 'file'}
 		<FileInput
+			{ctx}
 			kind={field.kind}
 			value={draftDocuments(form)}
 			name="supporting_documents"
@@ -587,7 +589,7 @@
 {/snippet}
 {#snippet documentView(form: FormState)}
 	{@const kind = ctx.catalog?.orders?.fields?.supporting_documents}
-	{#if kind}<Show readonly {kind} value={draftDocuments(form)} />{/if}
+	{#if kind}<Show {ctx} readonly {kind} value={draftDocuments(form)} />{/if}
 {/snippet}
 {#snippet confirmationNotices(form: FormState)}
 	{#if checkRead && draftContract}
@@ -679,6 +681,7 @@
 						</dt>
 						<dd class="text-sm">
 							<Show
+								{ctx}
 								readonly
 								kind={warehouseKind}
 								value={selectedContract.snapshot.warehouse || null}
@@ -697,7 +700,7 @@
 						{ctx.t('models.orders.fields.ordered_on')}
 					</dt>
 					<dd class="text-sm">
-						<Show kind={{ kind: 'date' }} value={selectedContract.ordered_on} />
+						<Show {ctx} kind={{ kind: 'date' }} value={selectedContract.ordered_on} />
 					</dd>
 				</div>
 				<div>
@@ -705,7 +708,7 @@
 						{ctx.t('models.orders.fields.tax_inclusive')}
 					</dt>
 					<dd class="text-sm">
-						<Show kind={{ kind: 'bool' }} value={selectedContract.snapshot.tax_inclusive} />
+						<Show {ctx} kind={{ kind: 'bool' }} value={selectedContract.snapshot.tax_inclusive} />
 					</dd>
 				</div>
 				<div>
@@ -717,7 +720,7 @@
 						)}
 					</dt>
 					<dd class="text-sm">
-						<Show kind={{ kind: 'instant' }} value={selectedContract.approved_at} />
+						<Show {ctx} kind={{ kind: 'instant' }} value={selectedContract.approved_at} />
 					</dd>
 				</div>
 				<div>
@@ -738,6 +741,7 @@
 					</dt>
 					<dd class="text-sm">
 						<Show
+							{ctx}
 							kind={{ kind: 'period', of: 'date', precision: 'day' }}
 							value={selectedContract.snapshot.valid_from || selectedContract.snapshot.valid_until
 								? {
@@ -756,6 +760,7 @@
 						<dd class="text-sm">
 							<Cluster gap="xs">
 								{#if sealedDocuments.length}<Show
+										{ctx}
 										readonly
 										kind={documentKind}
 										value={sealedDocuments}
@@ -809,6 +814,7 @@
 											<dt class="inline">{ctx.t('models.order_lines.fields.unit_price')}</dt>
 											<dd class="inline">
 												<Show
+													{ctx}
 													kind={{ ...moneyKind, scale: 4 }}
 													value={line.unit_price}
 													row={currency}
@@ -848,6 +854,7 @@
 								</td>
 								<td class="hidden px-3 py-2 text-right @2xl:table-cell"
 									><Show
+										{ctx}
 										kind={{ ...moneyKind, scale: 4 }}
 										value={line.unit_price}
 										row={currency}
@@ -860,7 +867,7 @@
 									>{displayDecimal(line.tax_rate)}%</td
 								>
 								<td class="px-3 py-2 text-right"
-									><Show kind={moneyKind} value={line.total} row={currency} /></td
+									><Show {ctx} kind={moneyKind} value={line.total} row={currency} /></td
 								>
 							</tr>
 						{/each}
@@ -878,6 +885,7 @@
 								>
 								<td class="px-3 py-1.5 text-right"
 									><Show
+										{ctx}
 										kind={moneyKind}
 										value={selectedContract.snapshot[name]}
 										row={currency}
@@ -917,16 +925,17 @@
 					class:text-destructive={floor.below}
 					class:text-success={!floor.below}
 				>
-					<Show kind={moneyKind} {value} {row} />
+					<Show {ctx} kind={moneyKind} {value} {row} />
 					<Icon name={floor.below ? 'lucide:arrow-down' : 'lucide:check'} class="size-3 shrink-0" />
 				</button>
 			{/snippet}
 		</Tooltip>
 	{:else}
-		<Show kind={moneyKind} {value} {row} />
+		<Show {ctx} kind={moneyKind} {value} {row} />
 	{/if}
 {/snippet}
 {#snippet lines()}{#if id}<Table
+			{ctx}
 			of="order_lines"
 			where={{ order: { eq: id } }}
 			columns={[
@@ -952,6 +961,7 @@
 {#snippet fulfillment()}{#if id}<Stack gap="md">
 			{#if selectedContract}
 				<Table
+					{ctx}
 					of="transactions"
 					where={{
 						order: { eq: id },
@@ -966,6 +976,7 @@
 {#snippet activity()}{#if id}
 		<Stack gap="md">
 			<Table
+				{ctx}
 				of="activities"
 				where={{ order: { eq: id } }}
 				columns={['title', 'kind', 'owner', 'due_on', 'done']}
@@ -1062,7 +1073,7 @@
 					</div>
 					<div>
 						<dt class="text-muted-foreground">{ctx.t('component.kingdee_observed_at')}</dt>
-						<dd><Show kind={{ kind: 'instant' }} value={source.observed_at} /></dd>
+						<dd><Show {ctx} kind={{ kind: 'instant' }} value={source.observed_at} /></dd>
 					</div>
 					{#if source.source_changed_at}
 						<div>
@@ -1083,7 +1094,7 @@
 							<li class="py-2 text-sm">
 								<div>{event.kind} · {event.status}</div>
 								<div class="text-muted-foreground">
-									<Show kind={{ kind: 'instant' }} value={event.at} />
+									<Show {ctx} kind={{ kind: 'instant' }} value={event.at} />
 									{#if event.source_version}
 										· {event.source_version}{/if}
 								</div>
@@ -1208,7 +1219,7 @@
 		{#if purchase && (draftContract || view.mode === 'create')}
 			<p class="text-sm text-muted-foreground">{ctx.t('component.commitment_help')}</p>
 		{/if}
-		{#if revisionRun}<RunStatus automation="orders_revise" run={revisionRun} />{/if}
+		{#if revisionRun}<RunStatus {ctx} automation="orders_revise" run={revisionRun} />{/if}
 		{#if draftContract || view.mode === 'create'}{@render lines()}{:else}{@render agreement()}{/if}
 	</Stack>{/snippet}
 {#snippet orderState()}

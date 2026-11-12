@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import type {
+	AutomationCtx,
 	Clock,
 	Id,
 	PolicyCtx,
@@ -9,7 +10,6 @@ import type {
 	UpdateInput,
 	WorkspaceQuery
 } from '@norbital-ai/bolt';
-import { Refusal } from '@norbital-ai/bolt/errors';
 import { agreement } from './agreements.js';
 import { draftLineTarget } from './contract-draft.js';
 type Scope = Pick<Row<'orders'>, 'direction' | 'owner'>;
@@ -36,6 +36,7 @@ export const ordersIn = Effect.fnUntraced(function* (
 type OrderChange = {
 	readonly before: StoredTree<'orders', 'update'>;
 	readonly set: UpdateInput<'orders'>;
+	readonly after: Scope & Pick<Row<'orders'>, 'status'>;
 };
 const METADATA = ['title', 'notes', 'archived'];
 /** The root columns an update changes (its line changes are the lines' own). */
@@ -48,22 +49,14 @@ export const reviewOrders = Effect.fnUntraced(function* (
 	changes: readonly OrderChange[],
 	ctx: PolicyCtx<'orders', 'update'>,
 	scope: (order: Scope) => boolean,
-	outside: string,
+	outside: 'errors.purchasing_scope' | 'errors.sales_scope',
 	managerApproval = true
 ) {
-	const away = changes.findIndex(
-		({ before, set }) =>
-			!scope(before) ||
-			!scope({
-				direction: set.direction ?? before.direction,
-				owner: set.owner ?? before.owner
-			})
-	);
+	const away = changes.findIndex(({ before, after }) => !scope(before) || !scope(after));
 	if (away >= 0) return yield* ctx.refuse(outside, { row: away });
 	const sealed = changes.map(
-		({ before, set }) =>
-			(set.status ?? before.status) === 'confirmed' &&
-			!changed(set).every((field) => METADATA.includes(field))
+		({ after, set }) =>
+			after.status === 'confirmed' && !changed(set).every((field) => METADATA.includes(field))
 	);
 	const refused = changes.findIndex(({ set }, i) => sealed[i] && !changed(set).includes('status'));
 	if (refused >= 0) return yield* ctx.refuse('errors.order_sealed', { row: refused });
@@ -80,7 +73,9 @@ export const lineDeletes = Effect.fnUntraced(function* (
 		StoredRow<'order_lines'>,
 		'id' | 'order' | 'product' | 'unit' | 'source_entry_id'
 	>[],
-	ctx: { readonly query: WorkspaceQuery['query'] }
+	ctx: {
+		readonly query: WorkspaceQuery['query'];
+	} & Pick<AutomationCtx, 'refuse'>
 ) {
 	const ids = [...new Set(lines.map((line) => line.order))];
 	const {
@@ -102,7 +97,7 @@ export const lineDeletes = Effect.fnUntraced(function* (
 			current.seal_hash !== parent.draft_setup ||
 			(target && target.product === line.product && target.unit === line.unit)
 		)
-			return yield* new Refusal({ message: 'errors.contract_setup' });
+			return yield* ctx.refuse('errors.contract_setup');
 	}
 	if (
 		parents.rows.some((order) => order.archived || order.status !== 'draft') ||
@@ -112,5 +107,5 @@ export const lineDeletes = Effect.fnUntraced(function* (
 				[...salesOrders.rows, ...purchaseOrders.rows].some((source) => source.order === order.id)
 		)
 	)
-		return yield* new Refusal({ message: 'errors.order_sealed' });
+		return yield* ctx.refuse('errors.order_sealed');
 });

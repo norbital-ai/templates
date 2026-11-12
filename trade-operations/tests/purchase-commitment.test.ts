@@ -41,7 +41,7 @@ it.live('procurement can record and revise a local commitment without Kingdee', 
 		expect(original?.snapshot.lines[0]?.quantity).toMatch(/^10(?:\.0+)?$/);
 		const run = yield* as.run(
 			'orders_revise',
-			{ target: order, revision: before.revision },
+			{ orders: [order], revision: before.revision },
 			JobResult
 		);
 		if (run.kind !== 'committed') throw new Error('Revision must start');

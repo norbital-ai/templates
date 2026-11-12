@@ -17,6 +17,7 @@
 </script>
 
 {#snippet contacts()}{#if id}<Table
+			{ctx}
 			of="contacts"
 			where={{ party: { eq: id } }}
 			columns={['name', 'email', 'phone', 'job_title']}
@@ -25,6 +26,7 @@
 			}}
 		/>{/if}{/snippet}
 {#snippet orders()}{#if id}<Table
+			{ctx}
 			of="orders"
 			where={{ party: { eq: id } }}
 			columns={['number', 'status', 'ordered_on', 'total']}
@@ -42,6 +44,7 @@
 		/>{/if}{/snippet}
 
 {#snippet credit()}{#if id && !supplier}<Table
+			{ctx}
 			of="credit_snapshots"
 			where={{ party: { eq: id } }}
 			columns={['currency', 'credit_limit', 'credit_used', 'as_of']}

@@ -85,7 +85,7 @@
 						<dt class="text-xs font-medium text-muted-foreground">
 							{ctx.t(`models.products.fields.${name}`)}
 						</dt>
-						<dd><Show {kind} value={view.record[name]} {name} row={view.record} /></dd>
+						<dd><Show {ctx} {kind} value={view.record[name]} {name} row={view.record} /></dd>
 					</div>{/if}
 			{/each}
 		</Grid>
@@ -96,6 +96,7 @@
 		{#if id}
 			{#each groups as group}
 				<Chart
+					{ctx}
 					of={rows
 						.filter((r) => `${r.currency}/${r.unit}` === group)
 						.map((r) => ({
@@ -135,6 +136,7 @@
 				)}
 				{@const first = points[0]}
 				<Chart
+					{ctx}
 					of={points.map((r) => ({
 						on: r.on,
 						[ctx.t('models.pricing_floors.fields.floor_price')]: r.price.toString()

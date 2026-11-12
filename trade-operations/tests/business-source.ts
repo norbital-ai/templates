@@ -166,7 +166,7 @@ export const businessRows = Effect.fnUntraced(function* (
 				: new BusinessFixtureInvalid({ reason: String(cause) })
 	});
 	if (!prepared.length) return;
-	const outcome = yield* sync(t, model, prepared, 'upsert');
+	const outcome = yield* sync(t, model, prepared);
 	if (outcome.kind !== 'committed')
 		return yield* new BusinessFixtureInvalid({ reason: JSON.stringify(outcome) });
 });

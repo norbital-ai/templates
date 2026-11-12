@@ -5,13 +5,13 @@ export default policy({
 		'Reopens a confirmed order as a replacement draft; a start names only an order its starter reads.',
 	grants: {
 		orders: {
-			outputs: { default: true },
+			outputs: { default: {} },
 			update: { moves: { status: ['confirmed->draft'] } }
 		},
 		order_lines: {
-			outputs: { default: true },
-			create: true,
-			update: true,
+			outputs: { default: {} },
+			create: {},
+			update: {},
 			delete: {
 				verdict: function* (changes, ctx) {
 					yield* lineDeletes(
@@ -26,10 +26,10 @@ export default policy({
 			outputs: { default: { where: { status: { eq: 'published' } } } }
 		},
 		products: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		warehouses: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		}
 	}
 });

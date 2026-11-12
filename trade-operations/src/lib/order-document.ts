@@ -1,12 +1,14 @@
 import { printAmounts } from './print-amounts.js';
 import { printDetailFields } from './print-details.js';
 import { Effect, Result, Schema } from 'effect';
-import { type ConvertSource, type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
+import type { AutomationCtx, Id, ReadAnswer, Row } from '@norbital-ai/bolt';
 import * as Base64 from 'effect/encoding/Base64';
 import { contract, snapshot } from './commercial.js';
 import { agreements, currentAgreement, agreementFields } from './agreements.js';
 import { commercialDocument, escape, paragraphs } from './commercial-document.js';
 import { signatureUri } from './salesperson-signatures.js';
+
+type ConvertSource = Parameters<AutomationCtx['convert']['document']>[0];
 const variables = ['reference', 'title', 'agreement', 'version'];
 export function validateDocumentTemplate(body: string) {
 	if (!body.trim() || !body.includes('{agreement}')) throw new Error('Agreement required');

@@ -17,7 +17,7 @@ it.live(
 				invoice = yield* sourceTransaction(t, own, parent),
 				delivery = yield* sourceTransaction(t, own, parent, 'delivery');
 			const paid = yield* sourcePayment(t, parent, invoice.id, '10');
-			expect(yield* sync(t, 'source_payments', [paid.input], 'upsert')).toMatchObject({
+			expect(yield* sync(t, 'source_payments', [paid.input])).toMatchObject({
 				kind: 'committed'
 			});
 			const refund = yield* sourcePayment(t, parent, invoice.id, '-2');
@@ -32,36 +32,32 @@ it.live(
 			]);
 			// a receipt cannot apply to a delivery or go back to an older revision
 			expect(
-				yield* sync(t, 'source_payments', [{ ...deposit.input, invoice: delivery.id }], 'upsert')
+				yield* sync(t, 'source_payments', [{ ...deposit.input, invoice: delivery.id }])
 			).not.toMatchObject({ kind: 'committed' });
 			expect(
 				yield* sync(
 					t,
 					'source_payments',
-					[{ ...deposit.input, source_updated_at: '2026-10-09T00:00:00Z' }],
-					'upsert'
-				)
+					[{ ...deposit.input, source_updated_at: '2026-10-09T00:00:00Z' }])
 			).not.toMatchObject({ kind: 'committed' });
 			writtenId(
 				'source_payments',
-				yield* sync(t, 'source_payments', [{ ...refund.input, active: false }], 'upsert')
+				yield* sync(t, 'source_payments', [{ ...refund.input, active: false }])
 			);
 			expect(yield* aging()).toMatchObject([{ balance: decimalText('11.80') }]);
 			writtenId(
 				'transactions',
-				yield* sync(t, 'transactions', [{ ...invoice.input, status: 'void' }], 'upsert')
+				yield* sync(t, 'transactions', [{ ...invoice.input, status: 'void' }])
 			);
 			expect(
 				yield* sync(
 					t,
 					'source_payments',
-					[{ ...paid.input, external_code: 'new', reference: 'new' }],
-					'upsert'
-				)
+					[{ ...paid.input, external_code: 'new', reference: 'new' }])
 			).not.toMatchObject({ kind: 'committed' });
 			writtenId(
 				'source_payments',
-				yield* sync(t, 'source_payments', [{ ...paid.input, active: false }], 'upsert')
+				yield* sync(t, 'source_payments', [{ ...paid.input, active: false }])
 			);
 			expect(yield* ledgerOf(as, { order: own.order, include_withdrawn: true })).toEqual(
 				expect.arrayContaining([

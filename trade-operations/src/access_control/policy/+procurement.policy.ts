@@ -6,7 +6,7 @@ export default policy({
 	capabilities: { apps: ['operations'], automations: ['orders_revise'] },
 	grants: {
 		source_stock_commitments: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		ext_purchase_orders: {
 			outputs: { default: { where: own, history: true } }
@@ -18,33 +18,33 @@ export default policy({
 			outputs: { default: { where: own, history: true } }
 		},
 		parties: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		products: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		warehouses: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		stock_snapshots: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		credit_snapshots: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		commercial_settings: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		pricing_floors: {
 			outputs: { default: { history: true } }
 		},
 		commission_rules: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		contacts: {
-			outputs: { default: true },
-			create: true,
-			update: true
+			outputs: { default: {} },
+			create: {},
+			update: {}
 		},
 		orders: {
 			// the layers under a purchasing order (its party, lines and documents) are read with it

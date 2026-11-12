@@ -2,6 +2,7 @@ import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { priceBookRead, priceBookRows } from '../src/lib/price-book.js';
 import { PRODUCT, workspace } from './kit.js';
+import catalogue from '../src/i18n/+messages.js';
 
 it.live('imports atomically and refuses stale price book changes at the write boundary', () =>
 	Effect.gen(function* () {
@@ -67,7 +68,7 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 				state: 'succeeded',
 				output: {
 					applied: false,
-					findings: [{ at: 2, message: expect.stringContaining('Export the latest price book') }]
+					findings: [{ at: 2, message: catalogue['errors.price_book_stale'] }]
 				}
 			}
 		]);

@@ -137,6 +137,7 @@
 </script>
 
 {#snippet products()}<Table
+		{ctx}
 		of="products"
 		columns={['external_code', 'name', 'unit', 'unit_price', 'active']}
 		toolbar={{
@@ -151,6 +152,7 @@
 		}}
 	/>{/snippet}
 {#snippet stock()}<Table
+		{ctx}
 		layout="grid"
 		of="stock_snapshots"
 		columns={[
@@ -166,6 +168,7 @@
 		toolbar={{ new: false, export: true }}
 	/>{/snippet}
 {#snippet warehouses()}<Table
+		{ctx}
 		of="warehouses"
 		columns={['external_code', 'name', 'group_code', 'active']}
 	/>{/snippet}
@@ -185,6 +188,7 @@
 		<EmptyState title={ctx.t('stock.availability.incomplete')} tone="danger" />
 	{:else if rows?.length}
 		<Table
+			{ctx}
 			layout="grid"
 			of={rows}
 			key={view === 'warehouse' ? 'stock-by-warehouse' : 'stock-by-product'}

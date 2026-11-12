@@ -46,7 +46,7 @@ Your tools already carry each person's access:
   contract SKU, quota, price and quantity on the lines. Never put a line amount on the header.
 - **Sealing** is a state move. Sales submissions use native approval. Procurement can record a local
   commitment directly. A held sales confirmation is awaiting approval; report the committed outcome.
-- **A revision** starts `automation.orders_revise` with the order id; it opens a replacement contract
+- **A revision** starts `automation.orders_revise` with the order in `orders`; it opens a replacement contract
   from the accepted terms. Do not reprice, unlock or overwrite the confirmed order yourself.
 - **A source problem** is `automation.source_health`; report the named ledger instance and what it
   said. Source records are written only by their sync.

@@ -96,7 +96,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					const started = yield* as.run(
 						'orders_revise',
 						{
-							target: own.order,
+							orders: [own.order],
 							revision: before.revision,
 							source: sourceVersion.seal_hash,
 							resolution: 'adopt'
@@ -150,7 +150,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					yield* as.run(
 						'orders_revise',
 						{
-							target: own.order,
+							orders: [own.order],
 							source: sourceVersion.seal_hash,
 							resolution: 'adopt'
 						},
@@ -196,7 +196,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					const started = yield* as.run(
 						'orders_revise',
 						{
-							target: own.order,
+							orders: [own.order],
 							revision: before.revision,
 							source: native.seal_hash,
 							resolution: 'revise'
@@ -325,7 +325,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					yield* as.run(
 						'orders_revise',
 						{
-							target: own.order,
+							orders: [own.order],
 							source: basis.seal_hash,
 							resolution: 'revise'
 						},

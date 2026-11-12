@@ -146,7 +146,7 @@ export const revise = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
 	if (!before) throw new Error('Current contract required');
 	const started = yield* as.run(
 		'orders_revise',
-		{ target: order, revision: before.revision },
+		{ orders: [order], revision: before.revision },
 		JobResult
 	);
 	if (started.kind !== 'committed') throw new Error('Replacement must be admitted directly');

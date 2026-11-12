@@ -123,7 +123,7 @@ export default model({
 		columns: { fields: [] },
 		transform: function* (changes, ctx) {
 			yield* settle(
-				changes.map(({ before, set }) => ({ value: { ...before, ...set }, old: before })),
+				changes.map(({ before, after }) => ({ value: after, old: before })),
 				ctx
 			);
 			return changes.map(({ set }) => set);

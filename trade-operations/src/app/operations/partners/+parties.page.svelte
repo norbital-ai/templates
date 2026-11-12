@@ -11,5 +11,9 @@
 	title={ctx.t('component.partners')}
 	variant="full"
 >
-	<Table of="parties" columns={['name', 'kind', 'external_code', 'active', 'source_updated_at']} />
+	<Table
+		{ctx}
+		of="parties"
+		columns={['name', 'kind', 'external_code', 'active', 'source_updated_at']}
+	/>
 </AppShell>

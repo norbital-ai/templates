@@ -1,7 +1,6 @@
 import { fixtureId } from './test-runtime.js';
-import { Context, Effect, Exit } from 'effect';
+import { Effect, Exit } from 'effect';
 import { expect, it, layer } from '@effect/vitest';
-import { Syncs } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { direct } from './synced-kit.js';
 import { committed, SETTINGS, shared, Trade, workspace } from './kit.js';
@@ -100,7 +99,7 @@ it.effect(
 						: Effect.succeed({ rows: [] });
 				}
 			});
-			const testConnection = () => Context.get(t.services, Syncs).test('kingdee');
+			const testConnection = () => t.syncs.test('kingdee');
 			expect(Exit.isFailure(yield* Effect.exit(testConnection()))).toBe(true);
 			expect(reads).toHaveLength(4);
 			expect(reads.at(-1)).toContain('[dbo].[ICInventory]');

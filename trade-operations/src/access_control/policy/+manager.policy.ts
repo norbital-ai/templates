@@ -5,10 +5,10 @@ export default policy({
 	capabilities: { apps: ['operations'], automations: ['orders_revise'] },
 	grants: {
 		source_lot_costs: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		source_stock_commitments: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		ext_sales_orders: {
 			outputs: { default: { history: true } }
@@ -24,42 +24,42 @@ export default policy({
 		},
 		commission_statements: {
 			outputs: { default: { history: true } },
-			create: true
+			create: {}
 		},
 		parties: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		products: {
-			outputs: { default: true },
-			update: true
+			outputs: { default: {} },
+			update: {}
 		},
 		warehouses: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		stock_snapshots: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		credit_snapshots: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		commercial_settings: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		pricing_floors: {
 			outputs: { default: { history: true } }
 		},
 		commission_rules: {
-			outputs: { default: true }
+			outputs: { default: {} }
 		},
 		orders: {
 			outputs: { default: { history: true } },
-			create: true,
+			create: {},
 			update: { moves: 'all' }
 		},
 		order_lines: {
 			outputs: { default: { history: true } },
-			create: true,
-			update: true,
+			create: {},
+			update: {},
 			delete: {
 				verdict: function* (changes, ctx) {
 					yield* lineDeletes(
@@ -72,17 +72,17 @@ export default policy({
 		},
 		order_files: {
 			outputs: { default: { history: true } },
-			create: true
+			create: {}
 		},
 		activities: {
 			outputs: { default: { history: true } },
-			create: true,
-			update: true
+			create: {},
+			update: {}
 		},
 		contacts: {
 			outputs: { default: { history: true } },
-			create: true,
-			update: true
+			create: {},
+			update: {}
 		},
 		source_payments: {
 			outputs: { default: { history: true } }
