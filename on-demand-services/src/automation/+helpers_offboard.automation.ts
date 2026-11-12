@@ -21,7 +21,8 @@ export default automation({
 		let proposed = 0,
 			openCount = 0;
 		for (const helper of targets) {
-			if (helper.status !== 'active') return yield* ctx.refuse('errors.helper_already_left', { values: { name: helper.name } });
+			if (helper.status !== 'active')
+				return yield* ctx.refuse('errors.helper_already_left', { values: { name: helper.name } });
 			const after = instant(new Date(utc_of(add_days(last_day, 1), 0, ctx.tz)).toISOString());
 			const { rows: later } = (yield* ctx.query({
 				visits: {

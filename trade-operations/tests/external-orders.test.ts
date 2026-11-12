@@ -76,10 +76,9 @@ it.live(
 			};
 			writtenId('transactions', yield* write(t, 'transactions', [row]));
 			expect(
-				yield* write(
-					t,
-					'transactions',
-					[{ ...row, items: [{ ...firstRow(row.items), unit_price: '99' }] }])
+				yield* write(t, 'transactions', [
+					{ ...row, items: [{ ...firstRow(row.items), unit_price: '99' }] }
+				])
 			).not.toMatchObject({ kind: 'committed' });
 			expect(
 				yield* write(t, 'transactions', [{ ...row, ext_sales_order: other }])
@@ -88,10 +87,7 @@ it.live(
 				'ext_sales_orders',
 				yield* write(t, 'ext_sales_orders', [{ ...source, status: 'void' }])
 			);
-			writtenId(
-				'transactions',
-				yield* write(t, 'transactions', [{ ...row, status: 'void' }])
-			);
+			writtenId('transactions', yield* write(t, 'transactions', [{ ...row, status: 'void' }]));
 			expect(yield* write(t, 'transactions', [row])).not.toMatchObject({
 				kind: 'committed'
 			});

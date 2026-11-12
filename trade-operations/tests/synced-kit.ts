@@ -48,16 +48,14 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 ) {
 	const rows = (Array.isArray(row) ? row : [row]).map((value) => ({ ...value, source: 'kingdee' }));
 	const key = (value: Record<string, Json>) => String(value[remote[model]]);
-	const refused = yield* t.syncs
-		.write(`${model}.sync.kingdee`, rows)
-		.pipe(
-			Effect.as(null),
-			Effect.catchTags({
-				ActRefused: Effect.succeed,
-				ActConflict: Effect.succeed,
-				ActUnknown: Effect.succeed
-			})
-		);
+	const refused = yield* t.syncs.write(`${model}.sync.kingdee`, rows).pipe(
+		Effect.as(null),
+		Effect.catchTags({
+			ActRefused: Effect.succeed,
+			ActConflict: Effect.succeed,
+			ActUnknown: Effect.succeed
+		})
+	);
 	if (refused !== null) return { kind: 'refused', failure: refused } as const;
 	const stored = yield* t.db.rows(Schema.Struct({ id: Schema.String, remote: Schema.String }), {
 		text: `SELECT id, "${remote[model]}" AS remote FROM "${model}" WHERE source = 'kingdee' AND "${remote[model]}" IN (SELECT jsonb_array_elements_text($1::jsonb))`,

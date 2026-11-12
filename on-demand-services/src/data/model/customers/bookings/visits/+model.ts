@@ -275,7 +275,8 @@ export default model({
 						pool,
 						ctx.tz
 					);
-					if (no !== null) return yield* ctx.refuse(WHY[no], { field: 'helper', row, values: { name: h.name } });
+					if (no !== null)
+						return yield* ctx.refuse(WHY[no], { field: 'helper', row, values: { name: h.name } });
 				}
 				out.push(
 					stamped(

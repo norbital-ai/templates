@@ -16,9 +16,9 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 				yield* confirm(t, own.order);
 				const parent = yield* sourceOrder(t, own.order),
 					invoice = yield* sourceTransaction(t, own, parent);
-				expect(
-					yield* sync(t, 'transactions', [{ ...invoice.input, documents: [] }])
-				).toMatchObject({ kind: 'committed' });
+				expect(yield* sync(t, 'transactions', [{ ...invoice.input, documents: [] }])).toMatchObject(
+					{ kind: 'committed' }
+				);
 				for (const change of [
 					{
 						documents: [
@@ -66,9 +66,9 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 					[item, item],
 					[{ ...item, quantity: '-10' }]
 				])
-					expect(
-						yield* sync(t, 'transactions', [{ ...delivery.input, items }])
-					).not.toMatchObject({ kind: 'committed' });
+					expect(yield* sync(t, 'transactions', [{ ...delivery.input, items }])).not.toMatchObject({
+						kind: 'committed'
+					});
 				const result = yield* (yield* t.as(t.admin)).query({
 					transactions: { where: { order: { eq: own.order } } }
 				});

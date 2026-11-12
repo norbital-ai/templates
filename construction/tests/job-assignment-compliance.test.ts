@@ -31,7 +31,7 @@ it.live('refuses an uncertified worker and admits a covered one, on create and o
 			yield* Effect.flip(admin.act({ 'job_assignments.create': [assign(DAN)] }))
 		).toMatchObject({
 			_tag: 'ActRefused',
-			message: 'errors.worker_uncertified'
+			key: 'errors.worker_uncertified'
 		});
 		const created = yield* admin.act({ 'job_assignments.create': [assign(EVE)] });
 		const assignment =
@@ -54,6 +54,6 @@ it.live('refuses an uncertified worker and admits a covered one, on create and o
 					]
 				})
 			)
-		).toMatchObject({ _tag: 'ActRefused', message: 'errors.worker_uncertified' });
+		).toMatchObject({ _tag: 'ActRefused', key: 'errors.worker_uncertified' });
 	}).pipe(Effect.scoped)
 );
