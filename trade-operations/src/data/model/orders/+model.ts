@@ -7,6 +7,10 @@ import {
 } from '../../../lib/logistics.js';
 import {
 	agreements,
+	agreement,
+	agreementState,
+	locallyAccepted,
+	resolvableKingdee,
 	currentAgreement,
 	agreedTotal,
 	executableAgreement,
@@ -20,7 +24,6 @@ import { agreementText, agreementTemplate, sealDocument } from '../../../lib/ord
 import { COMMISSION_ENGINE } from '../../../lib/commission-expressions.js';
 import { submitOrder, type OrderPayload } from '../../../integration/kingdee/submission.js';
 import { kingdeeWriteTarget } from '../../../integration/kingdee/configuration.js';
-import { latestSignatureRead } from '../../../lib/salesperson-signatures.js';
 import { readContractVersions } from '../../../integration/kingdee/contract-versions.js';
 import {
 	retainedContractDocuments,
@@ -38,7 +41,7 @@ import {
 	type WriteCtx
 } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { currentFloors, hash, snapshot } from '../../../lib/commercial.js';
+import { currentFloors, hash, quoteBelowFloor, snapshot } from '../../../lib/commercial.js';
 import { orderLineWorkbook, orderWorkbook } from '../../../lib/workbook.js';
 import {
 	printValueKind,
@@ -210,6 +213,7 @@ const contractVersionShape = {
 	fields: {
 		version: { kind: 'int' },
 		seal_hash: { kind: 'text' },
+		basis_seal: { kind: 'text', optional: true },
 		contract: { kind: 'text' },
 		approved_at: { kind: 'instant' },
 		approved_by: { kind: 'text' },
@@ -267,6 +271,7 @@ const contractVersionShape = {
 					key: { kind: 'text' },
 					at: { kind: 'instant' },
 					kind: { kind: 'text' },
+					actor: { kind: 'text', optional: true },
 					status: { kind: 'text' },
 					source_version: { kind: 'text' },
 					source_id: { kind: 'text' },
@@ -312,6 +317,7 @@ const terms = [
 const contractProof = (version: ContractVersion) => ({
 	version: version.version,
 	seal_hash: version.seal_hash,
+	basis_seal: version.basis_seal ?? null,
 	snapshot: version.snapshot,
 	contract: version.contract,
 	commission: version.commission ?? null,
@@ -443,6 +449,7 @@ export default model('orders', {
 		ledger: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		source_order_key: { kind: 'text', optional: true, hidden: true },
 		draft_setup: { kind: 'text', optional: true, hidden: true },
+		draft_basis: { kind: 'text', optional: true, hidden: true },
 		archived: { kind: 'bool', default: false },
 		status: {
 			kind: 'state',
@@ -459,6 +466,7 @@ export default model('orders', {
 						'agreed_total',
 						'source_order_key',
 						'draft_setup',
+						'draft_basis',
 						'operational_contracts',
 						'check_hash',
 						'contract_version',
@@ -760,7 +768,15 @@ export default model('orders', {
 	},
 	update: {
 		columns: {
-			orders: [...terms, 'status', 'check_hash', 'archived', 'draft_setup', 'source_order_key'],
+			orders: [
+				...terms,
+				'status',
+				'check_hash',
+				'archived',
+				'draft_setup',
+				'source_order_key',
+				'contract_versions'
+			],
 			'orders.lines': [
 				'product',
 				'quantity',
@@ -893,9 +909,33 @@ export default model('orders', {
 						)
 							return yield* ctx.refuse('errors.evidence_sealed');
 					}
+					const adopted = imported.find(
+						(version) =>
+							version.lifecycle === 'current' &&
+							version.events?.at(-1)?.kind === 'adopted' &&
+							version.seal_hash !== currentAgreement(old)?.seal_hash
+					);
+					if (
+						adopted &&
+						(old.archived ||
+							old.status !== 'confirmed' ||
+							adopted.seal_hash !== resolvableKingdee(storedVersions)?.seal_hash ||
+							!('automation' in ctx.actor.by) ||
+							ctx.actor.by.automation !== 'orders_revise')
+					)
+						return yield* ctx.refuse('errors.contract_source_changed');
 					const current = executableAgreement({ ...old, contract_versions: imported });
 					transformed.push({
 						...input,
+						...(adopted
+							? {
+									...agreementState(adopted),
+									supporting_documents: retainedContractDocuments(
+										imported.map((version) => version.supporting_documents),
+										old.supporting_documents ?? []
+									)
+								}
+							: {}),
 						...(old.status === 'draft'
 							? {
 									contract_version: Math.max(
@@ -924,7 +964,19 @@ export default model('orders', {
 				}
 				if (old.archived) return yield* ctx.refuse('errors.order_archived');
 				const startContract = function* () {
-					const current = currentAgreement(old);
+					const current = input.draft_setup
+						? agreement(old, input.draft_setup)
+						: currentAgreement(old);
+					if (
+						current &&
+						current.seal_hash !== currentAgreement(old)?.seal_hash &&
+						!old.draft_setup &&
+						(current.seal_hash !== resolvableKingdee(storedVersions)?.seal_hash ||
+							ctx.actor.kind !== 'system' ||
+							!('automation' in ctx.actor.by) ||
+							ctx.actor.by.automation !== 'orders_revise')
+					)
+						return yield* ctx.refuse('errors.contract_source_changed');
 					if (!current || !storedVersions.length) return yield* ctx.refuse('errors.order_sealed');
 					const basis = {
 						status: 'draft',
@@ -955,6 +1007,7 @@ export default model('orders', {
 					return {
 						...input,
 						draft_setup: current.seal_hash,
+						draft_basis: current.seal_hash,
 						contract_versions: storedVersions.map((version) =>
 							version.lifecycle === 'pending'
 								? { ...version, lifecycle: 'superseded' as const }
@@ -975,11 +1028,10 @@ export default model('orders', {
 				const editOrder = function* () {
 					if (old.draft_setup) {
 						if (input.draft_setup !== null) {
-							if (input.draft_setup === currentAgreement(old)?.seal_hash)
-								return yield* startContract();
+							if (input.draft_setup === old.draft_setup) return yield* startContract();
 							return yield* ctx.refuse('errors.contract_setup');
 						}
-						const current = currentAgreement(old);
+						const current = agreement(old, old.draft_setup);
 						const own = lines.rows.filter((line) => line.order === old.id);
 						if (
 							Object.keys(input).some((key) => key !== 'draft_setup') ||
@@ -1107,6 +1159,8 @@ export default model('orders', {
 						basis.some((l) => l.floor_net === null)
 					)
 						return yield* ctx.refuse('errors.floor_missing');
+					if (config.require_floor && old.direction === 'sales' && basis.some(quoteBelowFloor))
+						return yield* ctx.refuse('errors.floor_below');
 					const rule = rules.rows
 						.filter((r) => r.currency === old.currency && r.effective_on <= old.ordered_on)
 						.sort((a, b) => b.effective_on.localeCompare(a.effective_on))[0];
@@ -1144,21 +1198,16 @@ export default model('orders', {
 								)
 							: null;
 					const sealed_contract = agreementText(template, sealed, reference, old.ordered_on);
-					const signature =
-						old.direction === 'sales'
-							? (yield* ctx.db.query(latestSignatureRead(old.owner))).salesperson_signatures.rows[0]
-							: undefined;
-					const signingArtwork = signature?.signature ? { signature_version: signature.id } : {};
 					const seal_hash = yield* hash({
 						sealed,
 						contract: sealed_contract,
 						version: contract_version,
-						documents,
-						...signingArtwork
+						documents
 					});
 					const contract: ContractVersion = {
 						version: contract_version,
 						seal_hash,
+						basis_seal: old.draft_basis ?? null,
 						snapshot: sealed,
 						contract: sealed_contract,
 						commission: sealed_commission,
@@ -1167,7 +1216,6 @@ export default model('orders', {
 						ordered_on: old.ordered_on,
 						freight_treatment: config.freight_treatment,
 						supporting_documents: documents,
-						...signingArtwork,
 						...(writeTarget ? { write_target: writeTarget } : {}),
 						origin: 'local',
 						lifecycle: 'current'
@@ -1670,9 +1718,12 @@ export default model('orders', {
 					const payload = orderPayload(row, version, writeTarget, previous);
 					return submitOrder(payload, `${payload.order_id}:${payload.agreement_hash}`, ctx).pipe(
 						Effect.mapError((cause) =>
-							defer(
-								`Kingdee SO sync needs attention. ${cause._tag === 'SourceRowInvalid' ? `${cause.column}: ${cause.reason}` : String(cause)}`
-							)
+							cause._tag === 'FacilityFailure'
+								? cause
+								: new FacilityFailure({
+										kind: 'invalid',
+										message: `Kingdee SO sync needs attention. ${cause._tag === 'SourceRowInvalid' ? cause.message : String(cause)}`
+									})
 						),
 						Effect.map(($id) => ({ $id, $version: version.seal_hash }))
 					);
@@ -1682,7 +1733,7 @@ export default model('orders', {
 						? { $id: delivered.kingdee.binding_id, $version: delivered.seal_hash }
 						: null;
 				}
-				if (accepted && accepted.origin !== 'kingdee' && accepted.version > contract.version)
+				if (accepted && locallyAccepted(accepted) && accepted.version > contract.version)
 					return null;
 				if (!accepted && !$id && !observed.some((version) => version.kingdee)) {
 					const result = yield* send(initial);
@@ -1696,10 +1747,14 @@ export default model('orders', {
 					return yield* defer(
 						'Waiting for the prior Kingdee write to appear in the source mirror.'
 					);
-				if (!accepted?.kingdee?.binding_id || accepted.origin === 'kingdee')
-					return yield* defer(
-						'The Kingdee SO has no verified local agreement basis for this revision.'
-					);
+				if (!accepted?.kingdee?.binding_id)
+					return yield* defer('Waiting for a verified Kingdee SO binding.');
+				if (accepted.origin === 'kingdee' && contract.basis_seal !== accepted.seal_hash)
+					return yield* new FacilityFailure({
+						kind: 'invalid',
+						message:
+							'Kingdee terms changed independently. Adopt those terms or revise from them, then retire this rejected write.'
+					});
 				if (!kingdeeTermsChanged(accepted, contract.snapshot)) return null;
 				if (accepted.kingdee.status !== 'issued' || accepted.kingdee.closed)
 					return yield* defer(

@@ -1,9 +1,14 @@
 import { model, type Finding } from '@norbital-ai/bolt';
+import { Decimal } from '@norbital-ai/std/decimal';
+
+const staleBook =
+	'This floor changed after the workbook was exported. Export the latest price book and reapply your changes.';
 
 const priceBook = {
 	ledger: { kind: 'text', label: 'Ledger ID' },
 	product_code: { kind: 'text', label: 'Product code' },
 	item_id: { kind: 'text', label: 'Kingdee item ID', optional: true },
+	import_revision: { kind: 'int', label: 'Book revision', min: 0, optional: true },
 	group_code: { kind: 'text', label: 'Warehouse group' },
 	effective_on: { kind: 'date', label: 'Effective date' },
 	currency: { kind: 'currency', label: 'Currency' },
@@ -18,6 +23,8 @@ export default model('pricing_floors', {
 	label: ['effective_on', 'group_code'],
 	fields: {
 		product: { kind: 'ref', to: 'products' },
+		// The native file import passes this through its write transform. It is never stored.
+		import_revision: { kind: 'int', min: 0, optional: true, hidden: true },
 		currency: {
 			kind: 'currency'
 		},
@@ -54,6 +61,7 @@ export default model('pricing_floors', {
 	},
 	key: ['product', 'group_code', 'currency', 'effective_on', 'minimum_quantity'],
 	check: {
+		import_revision_ephemeral: { import_revision: { isNull: true } },
 		floor_price_nonnegative: {
 			floor_price: {
 				gte: '0'
@@ -111,7 +119,10 @@ export default model('pricing_floors', {
 							: product.unit !== floor.unit
 								? 'Use the product’s base unit.'
 								: null;
-					if (!message && product) return [{ ...floor, product: product.id, $at }];
+					if (!message && product)
+						return [
+							{ ...floor, import_revision: floor.import_revision ?? 0, product: product.id, $at }
+						];
 					findings.push({
 						at: $at,
 						field: codeMatches && !ambiguous ? 'Unit' : 'Product code',
@@ -130,6 +141,7 @@ export default model('pricing_floors', {
 				return pricing_floors.rows.flatMap(
 					({
 						product,
+						revision,
 						group_code,
 						effective_on,
 						currency,
@@ -145,6 +157,7 @@ export default model('pricing_floors', {
 										ledger: product.source,
 										product_code: product.source_number || product.external_code,
 										item_id: product.external_code,
+										import_revision: revision,
 										group_code,
 										effective_on,
 										currency,
@@ -171,11 +184,41 @@ export default model('pricing_floors', {
 				'floor_price',
 				'tax_inclusive',
 				'tax_rate',
-				'minimum_quantity'
+				'minimum_quantity',
+				'import_revision'
 			]
+		},
+		transform: function* (rows, ctx) {
+			for (const [row, value] of rows.entries()) {
+				if (value.import_revision != null && value.import_revision !== 0)
+					yield* ctx.refuse(staleBook, { row });
+			}
+			return rows.map(({ import_revision: _, ...row }) => row);
 		}
 	},
 	update: {
-		columns: { pricing_floors: ['floor_price', 'tax_inclusive', 'tax_rate'] }
+		columns: { pricing_floors: ['floor_price', 'tax_inclusive', 'tax_rate', 'import_revision'] },
+		transform: function* (changes, ctx) {
+			const rows = [];
+			for (const [
+				row,
+				{
+					before,
+					set: { import_revision, unit, ...set }
+				}
+			] of changes.entries()) {
+				const same =
+					(set.floor_price == null || Decimal.of(set.floor_price).eq(before.floor_price)) &&
+					(set.tax_rate == null || Decimal.of(set.tax_rate).eq(before.tax_rate)) &&
+					(set.tax_inclusive === undefined || set.tax_inclusive === before.tax_inclusive);
+				if (
+					import_revision != null &&
+					(unit !== before.unit || (!same && import_revision !== before.revision))
+				)
+					yield* ctx.refuse(staleBook, { row });
+				rows.push(set);
+			}
+			return rows;
+		}
 	}
 });

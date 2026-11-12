@@ -928,6 +928,10 @@
 								"approved_by": {
 									"kind": "text"
 								},
+								"basis_seal": {
+									"kind": "text",
+									"optional": true
+								},
 								"commission": {
 									"fields": {
 										"amount_expression": {
@@ -986,6 +990,10 @@
 									"kind": "list",
 									"of": {
 										"fields": {
+											"actor": {
+												"kind": "text",
+												"optional": true
+											},
 											"at": {
 												"kind": "instant"
 											},
@@ -1402,6 +1410,11 @@
 							"eq": "published"
 						}
 					}
+				},
+				"draft_basis": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
 				},
 				"draft_document_ids": {
 					"hidden": true,
@@ -1874,6 +1887,7 @@
 								"agreed_total",
 								"source_order_key",
 								"draft_setup",
+								"draft_basis",
 								"operational_contracts",
 								"check_hash",
 								"contract_version",
@@ -2051,6 +2065,11 @@
 					"floor_price": {
 						"gte": "0"
 					}
+				},
+				"import_revision_ephemeral": {
+					"import_revision": {
+						"isNull": true
+					}
 				}
 			},
 			"fields": {
@@ -2067,6 +2086,12 @@
 				},
 				"group_code": {
 					"kind": "text"
+				},
+				"import_revision": {
+					"hidden": true,
+					"kind": "int",
+					"min": 0,
+					"optional": true
 				},
 				"minimum_quantity": {
 					"default": 0,

@@ -21,11 +21,7 @@ const settle = Effect.fnUntraced(function* (
 ) {
 	const { orders } = yield* ctx.db.query({
 		orders: {
-			where: {
-				id: {
-					in: rows.flatMap(({ value, old }) => [value.order, old?.order].flatMap((id) => id ?? []))
-				}
-			},
+			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.order ?? []))] } },
 			fields: [...agreementFields, 'direction', 'ledger']
 		}
 	});

@@ -21,7 +21,6 @@ import {
 	orderDocument,
 	sealedExport
 } from '../src/lib/order-document.js';
-import { progressOf, progressRead } from '../src/lib/partner-progress.js';
 import {
 	agingRead,
 	arAging,
@@ -112,12 +111,6 @@ export const boardOf = Effect.fnUntraced(function* (
 ) {
 	const period = monthOf(input.period);
 	return yield* commissionBoard(yield* as.query(boardRead(period, input.commercial)), period);
-});
-export const progressOfParty = Effect.fnUntraced(function* (
-	as: Reader,
-	input: { party: Id<'parties'>; as_of: string }
-) {
-	return progressOf(yield* as.query(progressRead(input.party)), input.as_of);
 });
 export const inventoryCostOf = Effect.fnUntraced(function* (
 	as: Reader,

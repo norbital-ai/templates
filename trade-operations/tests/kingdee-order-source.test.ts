@@ -122,11 +122,13 @@ function fixture(records: Readonly<Record<string, readonly SqlRow[]>>) {
 			const after = request.arguments.after;
 			if (typeof after !== 'string') throw new Error('Bound source key required');
 			return {
-				rows: (statement.includes('kingdee-document-ids')
-					? [...new Set(records[table]?.map((row) => Number(row.fid)))].map((fid) => ({
-							__key: key(fid),
-							fid: String(fid)
-						}))
+				rows: (statement.includes('kingdee-document-headers')
+					? [...new Set(records[table]?.map((row) => Number(row.fid)))].map((fid) => {
+							const head = records[table.replace(/Entry$/, '')]?.find(
+								(row) => row.fid === String(fid)
+							);
+							return { ...head, __key: key(fid), fid: String(fid), header_id: head?.fid ?? null };
+						})
 					: (records[table] ?? [])
 				)
 					.filter((row) => typeof row.__key === 'string' && row.__key > after)
@@ -339,16 +341,13 @@ test.effect(
 			};
 			const ctx = fixture({ ICStockBillEntry: [deliveryLine], ICStockBill: [deliveryHeader] });
 			const { documents: deliveries } = yield* readSalesDocuments(owned, ctx, 'delivery');
-			const [discovery] = ctx.calls;
-			if (discovery?.op !== 'call') throw new Error('Document discovery call required');
-			expect(discovery.arguments.stmt).toContain('SELECT DISTINCT');
-			expect(discovery.arguments.stmt).not.toContain('FQty');
+			expect(ctx.calls).toHaveLength(2);
 			const missing = fixture({ ICStockBillEntry: [deliveryLine], ICStockBill: [] });
 			expect(yield* Effect.flip(readSalesDocuments(owned, missing, 'delivery'))).toMatchObject({
 				_tag: 'SourceRowInvalid',
 				column: 'FInterID'
 			});
-			expect(missing.calls).toHaveLength(2);
+			expect(missing.calls).toHaveLength(1);
 			const unaudited = fixture({
 				ICStockBillEntry: [deliveryLine],
 				ICStockBill: [{ ...deliveryHeader, checked_on: null }]
@@ -357,7 +356,7 @@ test.effect(
 				documents: [],
 				pendingIds: ['64599']
 			});
-			expect(unaudited.calls).toHaveLength(2);
+			expect(unaudited.calls).toHaveLength(1);
 			expect(deliveries[0]?.lines[0]).toMatchObject({
 				localLine: { id: 'line-owned' },
 				upstream: { fid: '34135', entryId: '1' },
@@ -377,6 +376,36 @@ test.effect(
 			});
 			const { documents: redDocuments } = yield* readSalesDocuments(owned, red, 'delivery');
 			expect(redDocuments[0]?.lines[0]?.quantity.eq('-100')).toBe(true);
+			const returnFid = '64600';
+			const returned = fixture({
+				ICStockBillEntry: [
+					deliveryLine,
+					{
+						...deliveryLine,
+						__key: `${key(64600)}:${key(1)}`,
+						fid: returnFid,
+						source_type: '21',
+						source_fid: '64599',
+						quantity: '-25'
+					}
+				],
+				ICStockBill: [
+					deliveryHeader,
+					{
+						...deliveryHeader,
+						__key: key(64600),
+						fid: returnFid,
+						reference: 'RETURN1',
+						rob: -1
+					}
+				]
+			});
+			const { documents: withReturn } = yield* readSalesDocuments(owned, returned, 'delivery');
+			const returnDoc = withReturn.find((doc) => doc.fid === returnFid);
+			expect(returnDoc?.owner.seal).toBe(deliveries[0]?.owner.seal);
+			expect(returnDoc?.lines[0]?.quantity.eq(-25)).toBe(true);
+			expect(returnDoc?.lines[0]?.localLine.id).toBe('line-owned');
+
 			const invoiceHeader: SqlRow = {
 				__key: key(2001),
 				fid: '2001',
@@ -457,5 +486,39 @@ test.effect(
 			expect(page).toMatchObject({ more: true, rows: many.slice(0, 999) });
 			const end = yield* snapshotPage(many, page.cursor, 'account-a:scope-a');
 			expect(end).toMatchObject({ more: false, rows: many.slice(999) });
+		})
+);
+
+test.effect(
+	'reuses a complete transaction cursor and repairs corrections behind an interrupted page',
+	() =>
+		Effect.gen(function* () {
+			const scope = 'account-a:branch-a:scope-a';
+			const rows = Array.from({ length: 1001 }, (_, index) => ({
+				$id: key(index),
+				status: 'issued',
+				source_updated_at: 'first observation'
+			}));
+			const first = yield* snapshotPage(rows, null, scope, false);
+			const corrected = rows.map((row, index) => ({
+				...row,
+				status: index === 0 ? 'void' : row.status,
+				source_updated_at: 'second observation'
+			}));
+			const resumed = yield* snapshotPage(corrected, first.cursor, scope, false);
+			expect(resumed).toMatchObject({ rows: corrected.slice(999), more: false });
+			const repair = yield* snapshotPage(corrected, resumed.cursor, scope, true);
+			expect(repair).toMatchObject({ rows: corrected.slice(0, 999), more: true });
+			const complete = yield* snapshotPage(corrected, repair.cursor, scope, true);
+			const observed = corrected.map((row) => ({ ...row, source_updated_at: 'third observation' }));
+			expect(yield* snapshotPage(observed, complete.cursor, scope, true)).toEqual({
+				rows: [],
+				cursor: complete.cursor,
+				more: false
+			});
+			expect(yield* snapshotPage(observed, complete.cursor, scope, false)).toMatchObject({
+				rows: observed.slice(0, 999),
+				more: true
+			});
 		})
 );

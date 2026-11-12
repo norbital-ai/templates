@@ -34,10 +34,16 @@ SELECT 'ar' AS __key,
  CONVERT(varchar(100),COALESCE(SUM(c.FRemainAmount),0)) AS remaining,
  (SELECT COUNT_BIG(*) FROM dbo.t_RP_Contact c
   WHERE c.FRP=1 AND c.FRemainAmount<>0 AND (c.FType NOT IN (3,5) OR c.FType IS NULL) AND ${excluded}) AS unclassified,
- (SELECT COUNT_BIG(*) FROM dbo.t_RP_NewCheckInfo WHERE FRP=1) AS checks,
  (SELECT COUNT_BIG(*) FROM dbo.t_RP_NewCheckInfo WHERE FRP=1 AND FCheckDate IS NULL) AS undated,
- (SELECT COALESCE(MAX(FInterID),0) FROM dbo.t_RP_NewCheckInfo WHERE FRP=1) AS last_check,
- (SELECT CONVERT(varchar(100),COALESCE(SUM(FCheckAmount),0)) FROM dbo.t_RP_NewCheckInfo WHERE FRP=1) AS checked,
+ CONVERT(varchar(64),HASHBYTES('SHA2_256',(
+  SELECT k.FInterID,k.FContactID,CONVERT(varchar(10),k.FCheckDate,23) AS checked_on,k.FCheckAmount
+  FROM dbo.t_RP_NewCheckInfo k WHERE ${arCheck} ORDER BY k.FInterID FOR JSON PATH
+ )),2) AS settlements,
+ CONVERT(varchar(64),HASHBYTES('SHA2_256',(
+  SELECT p.FInterID,MIN(CASE WHEN p.FRemainAmount<>0 OR p.FRemainAmountFor<>0 THEN p.FDate END) AS open_due,
+   MAX(p.FDate) AS last_due
+  FROM dbo.t_RP_Plan_Ar p WHERE p.FRP=1 GROUP BY p.FInterID ORDER BY p.FInterID FOR JSON PATH
+ )),2) AS due_dates,
  (SELECT system_type_id FROM sys.columns WHERE object_id=OBJECT_ID('dbo.t_RP_Contact') AND name='FModifyTime') AS marker_type,
  CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at
 FROM dbo.t_RP_Contact c WHERE c.FRP=1`

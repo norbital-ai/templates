@@ -7,7 +7,7 @@ then record or approve the agreement. An approved revision keeps the published l
 its artwork. Change an approved layout by publishing another version and selecting it on a
 new order revision.
 
-Set the default in **Trade Configuration → Commercial settings → Document templates**. New orders
+Set the default in **Trade configuration → Documents → Defaults**. New orders
 start with that published record. Draft previews and sealed agreements use the order's selected
 layout, including its language. Changing the default affects new orders. Existing orders can
 select a different published layout while in draft. Fresh workspaces start with one commercial
@@ -26,15 +26,18 @@ of the dialog. Bolt creates no file record, and the converter creates no queued 
 result. Uploaded layouts, artwork and signed returns remain separately managed records.
 Turn on **Include company stamp** in the preview to see and download the stamped version.
 
-Save your PNG under **My sales profile**. A locally sealed sales agreement keeps a reference to
-the signature version available at sealing. Its owner can turn on **Include my signature** in
-the preview. Both artwork options start off. A replacement applies to future seals. **Remove
-from future contracts** clears the current profile selection while retaining artwork already
-referenced by older seals. Signed returns can still be filed against the relevant version.
+New agreements have no personal signature image. Use the company stamp for the seller's artwork,
+and file customer-signed or chopped copies on the appropriate agreement version. A historical seal
+that already captured artwork can still reproduce its prior output: its owner can choose
+**Include retained signature**. The `{{signature}}` placeholder is kept for those older layouts.
 
-Use `{{signature}}` as the image source to place the signature in an HTML layout. It is empty
-when the owner leaves the choice off. If a layout has no signature placeholder, an included
-signature appears below the printed terms.
+SalesBridge applied the supplier's company chop and printed the salesperson's name. For orders
+classified as sales contracts, SalesBridge required the live original customer return to be
+acknowledged before Kingdee export. The company stamp was not a substitute for that return.
+The export wrote the sales order header and lines to Kingdee as an unapproved order; it did
+not send the returned file. When Kingdee order writes are configured, Trade Operations queues
+the order when the agreement is sealed locally. Filing a returned copy is evidence on that
+agreement version and does not trigger sync.
 
 ## Fields
 

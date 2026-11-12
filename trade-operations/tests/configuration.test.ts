@@ -20,36 +20,54 @@ layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 						input: [{ code: 'unused' }]
 					})
 				).not.toMatchObject({ kind: 'committed' });
+				expect(
+					yield* Effect.flip(
+						as.act('commercial_settings.update', [
+							{ target: SETTINGS, set: { stock_fresh_minutes: 21 } }
+						])
+					)
+				).toMatchObject({ _tag: 'ActRefused' });
 				committed(
 					'commercial_settings',
 					yield* as.act('commercial_settings.update', [
-						{ target: SETTINGS, set: { stock_fresh_minutes: 21 } }
+						{ target: SETTINGS, set: { require_floor: true } }
 					])
+				);
+				committed(
+					'commercial_settings',
+					yield* t
+						.as(t.admin)
+						.act('commercial_settings.update', [
+							{ target: SETTINGS, set: { stock_fresh_minutes: 21 } }
+						])
 				);
 				expect(
 					(yield* as.query({ commercial_settings: {} })).commercial_settings.rows
-				).toMatchObject([{ id: SETTINGS, code: 'default', stock_fresh_minutes: 21 }]);
+				).toMatchObject([
+					{ id: SETTINGS, code: 'default', stock_fresh_minutes: 21, require_floor: true }
+				]);
 			})
 	);
-	test.effect('configuration owns the accounting instance settings; sales cannot change them', () =>
+	test.effect('only workspace administrators can change the accounting connection', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
 			const kingdee = fixtureId('sys_integration', 'kingdee');
 			committed(
 				'sys_integration',
 				yield* t
-					.as(t.member(['configuration']))
+					.as(t.admin)
 					.act('sys_integration.update', [
 						{ target: kingdee, set: { configuration: { maxWindowMinutes: 20 } } }
 					])
 			);
-			expect(
-				yield* Effect.flip(
-					t
-						.as(t.member(['sales']))
-						.act('sys_integration.update', [{ target: kingdee, set: { active: false } }])
-				)
-			).toMatchObject({ _tag: 'ActRefused' });
+			for (const team of ['configuration', 'sales'] as const)
+				expect(
+					yield* Effect.flip(
+						t
+							.as(t.member([team]))
+							.act('sys_integration.update', [{ target: kingdee, set: { active: false } }])
+					)
+				).toMatchObject({ _tag: 'ActRefused' });
 		})
 	);
 });

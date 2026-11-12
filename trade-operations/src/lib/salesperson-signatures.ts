@@ -36,16 +36,6 @@ export function signatureUri(signature: string) {
 	return null;
 }
 
-export const latestSignatureRead = (owner: Id<'sys_user'>) =>
-	({
-		salesperson_signatures: {
-			where: { owner: { eq: owner } },
-			fields: ['signature'],
-			orderBy: { created_at: 'desc' },
-			limit: 1
-		}
-	}) as const;
-
 export const contractSignatureRead = (signing: {
 	owner: Id<'sys_user'>;
 	version: Id<'salesperson_signatures'>;

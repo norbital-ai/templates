@@ -8,8 +8,6 @@
 		type RecordTab
 	} from '@norbital-ai/ui';
 	import type { ModelName } from '@norbital-ai/bolt';
-	// Remember the tab when opening a related record, as RecordShell does.
-	const lastTab = new Map<string, string>();
 	/** One titled group of fields. */
 	export type FormSection = {
 		/** The stable key the viewer's open state is remembered under. */
@@ -46,7 +44,6 @@
 		formActions?: Snippet<[FormState]>;
 		/** Tabs beside the form, on a stored record (a document's lines). */
 		tabs?: readonly RecordTab[];
-		mainTitle?: string;
 		readonly?: boolean;
 		readonlyReason?: string;
 		afterForm?: Snippet;
@@ -66,7 +63,6 @@
 		Show,
 		Form,
 		Section,
-		Tabs,
 		openRecord,
 		RecordShell,
 		useEnumText,
@@ -92,7 +88,6 @@
 		trailing,
 		formActions,
 		tabs,
-		mainTitle,
 		readonly = false,
 		readonlyReason,
 		afterForm,
@@ -237,14 +232,16 @@
 										...(typeof section.closed === 'string' ? { summary: section.closed } : {})
 									}}
 						>
-							<Grid gap="md" minimum="compact">
-								{#each section.fields as name (name)}{@render field(
-										name,
-										form,
-										section.readonlyFields?.includes(name) ? true : undefined,
-										section.wide?.includes(name)
-									)}{/each}
-							</Grid>
+							{#if section.fields.length}
+								<Grid gap="md" minimum="compact">
+									{#each section.fields as name (name)}{@render field(
+											name,
+											form,
+											section.readonlyFields?.includes(name) ? true : undefined,
+											section.wide?.includes(name)
+										)}{/each}
+								</Grid>
+							{/if}
 							{#if section.body}{@render section.body(form)}{/if}
 						</Section>
 					{/each}
@@ -280,19 +277,12 @@
 		? {
 				id: record.id,
 				...(subtitle ? { subtitle } : {}),
-				...(!mainTitle && tabs ? { tabs } : {})
+				...(tabs ? { tabs } : {})
 			}
 		: { values }}
 	actions={headerActions}
 	{...trailing ? { trailing } : {}}
 	{...history === undefined ? {} : { history }}
 >
-	{#if mainTitle && record}<Tabs
-			value={lastTab.get(`${view.model}/${record.id}`) ?? 'general'}
-			onValueChange={(value) => lastTab.set(`${view.model}/${record!.id}`, value)}
-			tabs={[
-				{ name: 'general', title: mainTitle, body: general, keepAlive: true },
-				...(tabs ?? [])
-			]}
-		/>{:else}{@render general()}{/if}
+	{@render general()}
 </RecordShell>

@@ -16,7 +16,7 @@
 			name: 'controls',
 			icon: 'lucide:sliders-horizontal',
 			title: bolt.t('section.general'),
-			fields: ['freight_treatment', 'require_floor', 'credit_fresh_minutes', 'stock_fresh_minutes']
+			fields: ['freight_treatment', 'require_floor']
 		}
 	]}
 />

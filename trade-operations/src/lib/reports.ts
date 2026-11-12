@@ -1,5 +1,5 @@
 import { PlainDate } from '@norbital-ai/std/date';
-import { Effect, Result, Schema } from 'effect';
+import { Effect, Option, Result, Schema, Stream } from 'effect';
 import {
 	agreement,
 	agreements,
@@ -14,7 +14,16 @@ import {
 	DEFAULT_COMMISSION_EXPRESSION,
 	COMMISSION_ENGINE
 } from './commission-expressions.js';
-import { type Id, type ReadAnswer, type Row, type Where } from '@norbital-ai/bolt';
+import type {
+	Cursor,
+	Id,
+	Page,
+	ReadAnswer,
+	ReadRequest,
+	ReadRequestBase,
+	Row,
+	Where
+} from '@norbital-ai/bolt';
 import { hash } from './commercial.js';
 import { commercialSalesFields } from './sales-fact-fields.js';
 import { minorDigits, Decimal, sum } from '@norbital-ai/std/decimal';
@@ -269,7 +278,8 @@ type FullSalesAnswer = ReadAnswer<typeof salesRead>;
 type FullSalesFact = FullSalesAnswer['source_sales_lines']['rows'][number];
 type CostFields = 'booked_cost' | 'booked_cost_currency';
 type ReportFact = Omit<FullSalesFact, CostFields> & Partial<Pick<FullSalesFact, CostFields>>;
-type SalesAnswer = Omit<FullSalesAnswer, 'source_sales_lines'> & {
+type SalesAnswer = Omit<FullSalesAnswer, 'source_sales_lines' | 'products'> & {
+	products?: FullSalesAnswer['products'];
 	source_sales_lines: { readonly rows: readonly ReportFact[] };
 };
 export type SalesBasis = 'invoice' | 'delivery';
@@ -284,23 +294,93 @@ const kindsOnBasis = {
 } as const satisfies Record<SalesBasis, readonly Row<'source_sales_lines'>['kind'][]>;
 export function salesReadDuring(
 	range: { from: PlainDate | null; to: PlainDate | null; basis: SalesBasis },
-	commercial = false
+	commercial = false,
+	limit = 10_000
 ) {
 	const where = {
 		active: { eq: true },
 		kind: { in: kindsOnBasis[range.basis] },
-		business_on: {
-			...(range.from ? { gte: range.from } : {}),
-			...(range.to ? { lte: range.to } : {})
+		...(range.from || range.to
+			? {
+					business_on: {
+						...(range.from ? { gte: range.from } : {}),
+						...(range.to ? { lte: range.to } : {})
+					}
+				}
+			: {})
+	};
+	const read = commercial ? commercialSalesRead : salesRead;
+	return {
+		...read,
+		source_sales_lines: {
+			...read.source_sales_lines,
+			where,
+			limit,
+			orderBy: [{ business_on: 'desc' }, { reference: 'asc' }] as const
 		}
 	};
-	return commercial
-		? {
-				...commercialSalesRead,
-				source_sales_lines: { ...commercialSalesRead.source_sales_lines, where }
-			}
-		: { ...salesRead, source_sales_lines: { ...salesRead.source_sales_lines, where } };
 }
+class ReportRowsChanged extends Schema.TaggedError<ReportRowsChanged>()('ReportRowsChanged', {}) {}
+
+export const reportPages = <A extends { readonly id: string }, E>(
+	first: Page<A> & { readonly total: number },
+	read: (after: Cursor) => Effect.Effect<Page<A>, E>
+) =>
+	Stream.paginate(null as Cursor | null, (after) =>
+		Effect.map(
+			after === null ? Effect.succeed(first) : read(after),
+			(page) => [page.rows, Option.fromNullOr(page.next)] as const
+		)
+	).pipe(
+		Stream.runCollect,
+		Effect.flatMap((rows) =>
+			rows.length === first.total && new Set(rows.map((row) => row.id)).size === rows.length
+				? Effect.succeed(rows)
+				: Effect.fail(new ReportRowsChanged())
+		)
+	);
+
+export type ReportReader<E> = {
+	query<const R extends ReadRequestBase>(request: ReadRequest<R>): Effect.Effect<ReadAnswer<R>, E>;
+};
+type SalesReportRead = ReturnType<typeof salesReadDuring>;
+export const readSalesReport = <E>(
+	reader: ReportReader<E>,
+	request: SalesReportRead,
+	first: ReadAnswer<SalesReportRead>,
+	basis: SalesBasis
+) => {
+	const { products, sys_user, ...facts } = request;
+	return Effect.all(
+		{
+			source_sales_lines: reportPages(first.source_sales_lines, (after) =>
+				Effect.map(
+					reader.query({ ...facts, source_sales_lines: { ...facts.source_sales_lines, after } }),
+					(page) => page.source_sales_lines
+				)
+			),
+			products: reportPages(first.products, (after) =>
+				Effect.map(reader.query({ products: { ...products, after } }), (page) => page.products)
+			),
+			sys_user: reportPages(first.sys_user, (after) =>
+				Effect.map(reader.query({ sys_user: { ...sys_user, after } }), (page) => page.sys_user)
+			)
+		},
+		{ concurrency: 3 }
+	).pipe(
+		Effect.map((rows) =>
+			salesDetail(
+				{
+					source_sales_lines: { rows: rows.source_sales_lines },
+					products: { ...first.products, rows: rows.products, next: null },
+					sys_user: { ...first.sys_user, rows: rows.sys_user, next: null }
+				},
+				{ basis }
+			)
+		)
+	);
+};
+
 const inRange = (on: string, range: SalesRange) =>
 	!(range.from && on < range.from) && !(range.to && on > range.to);
 const onSalesBasis = (kind: Row<'source_sales_lines'>['kind'], basis?: SalesBasis) =>
@@ -427,7 +507,7 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 }
 /** Sales and returns per source line for the selected dates, priced against the seal each line names. */
 export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
-	const byProduct = new Map(answer.products.rows.map((row) => [row.id, row.name]));
+	const byProduct = new Map((answer.products?.rows ?? []).map((row) => [row.id, row.name]));
 	const byUser = new Map(answer.sys_user.rows.map((row) => [row.id, row.name]));
 	return salesFacts(answer, range)
 		.flatMap((source) => {
@@ -460,7 +540,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 			return [
 				{
 					order: order?.id ?? null,
-					product: answer.products.rows.find((p) => p.id === sealed?.product)?.id ?? null,
+					product: answer.products?.rows.find((p) => p.id === sealed?.product)?.id ?? null,
 					party: order?.party?.id ?? null,
 					owner: order?.owner ?? null,
 					source_owner: dimensions ? sourceOwner(source) : null,
@@ -501,12 +581,18 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 		})
 		.sort(
 			(a, b) =>
-				b.business_on.localeCompare(a.business_on) || a.external_code.localeCompare(b.external_code)
+				b.business_on.localeCompare(a.business_on) ||
+				a.reference.localeCompare(b.reference) ||
+				a.external_code.localeCompare(b.external_code)
 		);
 }
 /** The aging read on `as_of`: issued invoices with their order, and the active payments settled by then. */
 const salesReceivable = { order: { is: { direction: { eq: 'sales' } } } } as const;
-export const agingRead = (as_of: PlainDate, covered: readonly Id<'sys_integration'>[] = []) =>
+export const agingRead = (
+	as_of: PlainDate,
+	covered: readonly Id<'sys_integration'>[] = [],
+	limit = 10_000
+) =>
 	({
 		transactions: {
 			where: {
@@ -516,7 +602,8 @@ export const agingRead = (as_of: PlainDate, covered: readonly Id<'sys_integratio
 				status: { eq: 'issued' },
 				issued_on: { lte: as_of }
 			},
-			fields: ['source', 'order', 'reference', 'currency', 'total', 'issued_on', 'due_on']
+			fields: ['source', 'order', 'reference', 'currency', 'total', 'issued_on', 'due_on'],
+			limit
 		},
 		'transactions.order': { fields: ['number', 'party', 'party_name', 'ledger'] },
 		'transactions.order.ledger': { fields: ['name'] },
@@ -527,7 +614,8 @@ export const agingRead = (as_of: PlainDate, covered: readonly Id<'sys_integratio
 				settled_on: { lte: as_of },
 				active: { eq: true }
 			},
-			fields: ['source', 'order', 'invoice', 'reference', 'currency', 'amount', 'settled_on']
+			fields: ['source', 'order', 'invoice', 'reference', 'currency', 'amount', 'settled_on'],
+			limit
 		},
 		'source_payments.order': { fields: ['number', 'party', 'party_name', 'ledger'] },
 		'source_payments.order.ledger': { fields: ['name'] }
@@ -538,6 +626,69 @@ export const receivablesRead = {
 	'source_receivables.source': { fields: ['name'] }
 } as const;
 type ReceivablesSnapshot = ReadAnswer<typeof receivablesRead>['source_receivables']['rows'][number];
+
+export const receivablesHeadRead = {
+	source_receivables: { fields: ['source', 'observed_at'] }
+} as const;
+export const readReceivablesReport = <E>(reader: ReportReader<E>) =>
+	Effect.gen(function* () {
+		const request = {
+			...receivablesRead,
+			source_receivables: { ...receivablesRead.source_receivables, limit: 1 }
+		};
+		const first = yield* reader.query(request);
+		return yield* reportPages(first.source_receivables, (after) =>
+			Effect.map(
+				reader.query({ ...request, source_receivables: { ...request.source_receivables, after } }),
+				(page) => page.source_receivables
+			)
+		);
+	});
+
+export const readAgingReport = <E>(
+	reader: ReportReader<E>,
+	request: ReturnType<typeof agingRead>,
+	first: AgingAnswer,
+	cutoff: PlainDate,
+	snapshots: readonly ReceivablesSnapshot[]
+) =>
+	Effect.all(
+		{
+			transactions: reportPages(first.transactions, (after) =>
+				Effect.map(
+					reader.query({
+						transactions: { ...request.transactions, after },
+						'transactions.order': request['transactions.order'],
+						'transactions.order.ledger': request['transactions.order.ledger']
+					}),
+					(page) => page.transactions
+				)
+			),
+			source_payments: reportPages(first.source_payments, (after) =>
+				Effect.map(
+					reader.query({
+						source_payments: { ...request.source_payments, after },
+						'source_payments.order': request['source_payments.order'],
+						'source_payments.order.ledger': request['source_payments.order.ledger']
+					}),
+					(page) => page.source_payments
+				)
+			)
+		},
+		{ concurrency: 2 }
+	).pipe(
+		Effect.map((rows) =>
+			agingDetails(
+				{
+					transactions: { ...first.transactions, rows: rows.transactions, next: null },
+					source_payments: { ...first.source_payments, rows: rows.source_payments, next: null }
+				},
+				cutoff,
+				snapshots
+			)
+		)
+	);
+
 const AGING = [
 	[0, 'not_due'],
 	[30, '1_30'],
@@ -585,10 +736,12 @@ export function arAging(answer: AgingAnswer, as_of: PlainDate) {
 	return answer.transactions.rows.flatMap((invoice) => {
 		const order = invoice.order;
 		if (!order || invoice.total === null) return [];
-		const raw = Decimal.of(invoice.total).minus(paidByInvoice.get(invoice.id) ?? zero);
+		const total = Decimal.of(invoice.total);
+		const raw = total.minus(paidByInvoice.get(invoice.id) ?? zero);
+		if (raw.isZero()) return [];
 		const balance = raw.lt(0) ? zero : raw;
-		const overpaid = raw.lt(0) ? raw.neg() : zero;
-		if (balance.eq(0) && overpaid.eq(0)) return [];
+		const credit = total.lt(0) && raw.lt(0) ? raw.neg() : zero;
+		const overpaid = !total.lt(0) && raw.lt(0) ? raw.neg() : zero;
 		return [
 			{
 				...agingAccount(order, invoice.source),
@@ -602,7 +755,7 @@ export function arAging(answer: AgingAnswer, as_of: PlainDate) {
 				as_of,
 				balance,
 				overpaid,
-				credit: zero,
+				credit,
 				unapplied: zero,
 				bucket: agingBucket(invoice.due_on, as_of)
 			}

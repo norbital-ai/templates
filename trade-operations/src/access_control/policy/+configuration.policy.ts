@@ -7,18 +7,6 @@ export default policy({
 	grants: {
 		source_lot_costs: { read: true },
 		source_stock_commitments: { read: true },
-		sys_integration: {
-			read: { sys_integration: { where: { integration: { eq: 'kingdee' } } } },
-			update: {
-				columns: { sys_integration: ['name', 'active', 'configuration'] },
-				// the definition never changes on update, so the stored row decides
-				check: function* (changes, ctx) {
-					const other = changes.findIndex((change) => change.before.integration !== 'kingdee');
-					return other >= 0 ? ctx.deny('errors.integration_scope', { row: other }) : ctx.allow();
-				}
-			},
-			history: true
-		},
 		document_templates: {
 			read: true,
 			history: true,
@@ -44,7 +32,16 @@ export default policy({
 		},
 		commercial_settings: {
 			read: true,
-			update: true,
+			update: {
+				columns: {
+					commercial_settings: [
+						'default_document_layout',
+						'default_purchase_document_layout',
+						'freight_treatment',
+						'require_floor'
+					]
+				}
+			},
 			history: true
 		},
 		pricing_floors: {

@@ -112,14 +112,14 @@ configuration; the named `kingdee` connection is the first, and more can be adde
 Every source record carries its ledger (`source`), and an order belongs to its party's ledger
 (`ledger`), which is where its sealed agreement is submitted.
 
-Trade Configuration → Commercial settings shows whether the ledger is off, connected, or needs
-attention. Manage connection opens Bolt’s native pairing and test controls plus sync options.
+Workspace administrators open Settings → Integrations → Connections → Kingdee for native
+pairing, testing, sync options and data freshness. The Connections list shows the ledger state.
 Saving a SQL credential checks the master and stock projections and their SQL read permissions
 before activating SQL sync. Unpaired or paused
 instances leave queued sales work waiting.
-Configurators are notified when a ledger needs attention. Commercial Settings holds business
-controls. A matching issued `ext_*` confirmation confirms business receipt; source documents remain
-read-only.
+Administrators are notified when a ledger needs attention. Trade configuration groups document and
+pricing defaults with their respective tools. An issued `ext_*` confirmation confirms business
+receipt. Source documents are read-only.
 
 The Kingdee bindings use actual `dbo` masters, sales orders and verified source-document relationships.
 Focused local probes use synthetic physical tables with CDC disabled. Trade Operations connects directly

@@ -27,7 +27,7 @@ import {
 	validateDocumentTemplate
 } from '../src/lib/order-document.js';
 import { documentOf } from './reads.js';
-import { contractSignatureRead, latestSignatureRead } from '../src/lib/salesperson-signatures.js';
+import { contractSignatureRead } from '../src/lib/salesperson-signatures.js';
 it('document templates keep agreement content and escape all substituted text', () => {
 	expect(() => validateDocumentTemplate('{title}')).toThrow();
 	expect(() => validateDocumentTemplate('{agreement} {unknown}')).toThrow();
@@ -130,60 +130,53 @@ const renderPreview = Effect.fnUntraced(function* (
 });
 
 layer(workspace, { excludeTestServices: true })('order documents', (test) => {
-	test.effect('a salesperson alone can use the image version retained by a sealed contract', () =>
+	test.effect('new contracts omit personal artwork and historical exports retain their original image', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
 			const signer = t.member(['sales', 'own_signature']);
 			const owner = fixtureId('sys_user', signer.id);
 			const self = t.as(signer);
 			const manager = t.as(t.member(['manager', 'own_signature']));
-			const blue =
+			const image =
 				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGMQ0Er5DwACigGewaDUQwAAAABJRU5ErkJggg==';
-			const red =
-				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGOYoqb3HwAEIgHoJte4AAAAAABJRU5ErkJggg==';
-			const save = (png: string) =>
-				self.act('salesperson_signatures.create', [{ signature: { png } }]);
-			expect(yield* Effect.flip(save('not a PNG'))).toMatchObject({
-				_tag: 'ActRefused',
-				message: 'errors.signature_png'
+			const retained = fixtureId('salesperson_signatures', randomUUID());
+			yield* t.db.write({
+				text: `INSERT INTO salesperson_signatures (id,owner,signature) VALUES ($1,$2,jsonb_build_object('png',$3::text))`,
+				params: [retained, owner, image]
 			});
-			const first = committed('salesperson_signatures', yield* save(blue));
 			const { order } = yield* draft(t, 'sales', owner);
-			expect((yield* documentOf(self, { order })).signing).toBeNull();
 			yield* confirm(t, order);
-			const original = yield* documentOf(self, { order });
-			expect(original.signing).toEqual({ owner, version: first });
-			if (!original.signing) throw new Error('Expected the sealed signature pointer');
-			const read = contractSignatureRead(original.signing);
+			expect((yield* documentOf(self, { order })).signing).toBeNull();
+
+			// Represent a version sealed by the prior release, which captured the image pointer.
+			yield* t.db.write({
+				text: `UPDATE orders SET contract_versions=jsonb_set(contract_versions,'{0,signature_version}',to_jsonb($2::text),true) WHERE id=$1`,
+				params: [order, retained]
+			});
+			const historical = yield* documentOf(self, { order });
+			expect(historical.signing).toEqual({ owner, version: retained });
+			const read = contractSignatureRead({ owner, version: retained });
 			expect((yield* manager.query(read)).salesperson_signatures.rows).toEqual([]);
-			expect((yield* documentOf(manager, { order })).reference).toBe(original.reference);
-			const plain = yield* renderPreview(t, original);
-			expect(plain).not.toContain('alt="Salesperson signature"');
 			const artwork = firstRow((yield* self.query(read)).salesperson_signatures.rows).signature;
-			expect(artwork?.png).toBe(blue);
-			const signed = yield* renderPreview(t, { ...original, signature: artwork?.png ?? null });
-			expect(signed).toContain(`src="data:image/png;base64,${blue}"`);
+			const rendered = yield* renderPreview(t, { ...historical, signature: artwork?.png ?? null });
+			expect(rendered).toContain(`src="data:image/png;base64,${image}"`);
+		})
+	);
 
-			t.clock.advance('1s');
-			const replacement = committed('salesperson_signatures', yield* save(red));
-			expect(
-				firstRow((yield* self.query(latestSignatureRead(owner))).salesperson_signatures.rows).id
-			).toBe(replacement);
-			expect((yield* documentOf(self, { order })).signing?.version).toBe(first);
-			expect(firstRow((yield* self.query(read)).salesperson_signatures.rows).signature?.png).toBe(
-				blue
-			);
-
-			t.clock.advance('1s');
-			yield* self.act('salesperson_signatures.create', [{}]);
-			expect(
-				firstRow((yield* self.query(latestSignatureRead(owner))).salesperson_signatures.rows)
-					.signature
-			).toBeNull();
-			const next = yield* draft(t, 'sales', owner);
-			yield* confirm(t, next.order);
-			expect((yield* documentOf(self, { order: next.order })).signing).toBeNull();
-			expect((yield* documentOf(self, { order })).signing?.version).toBe(first);
+	test.effect('Sales has a direct full record only for the signed-in system user', () =>
+		Effect.gen(function* () {
+			const t = yield* Trade;
+			const seller = t.member(['sales']);
+			const other = t.member(['sales']);
+			const { sys_user } = yield* t.as(seller).query({
+				sys_user: {
+					where: {
+						id: { in: [fixtureId('sys_user', seller.id), fixtureId('sys_user', other.id)] }
+					},
+					fields: ['name']
+				}
+			});
+			expect(sys_user.rows.map((row) => row.id)).toEqual([seller.id]);
 		})
 	);
 

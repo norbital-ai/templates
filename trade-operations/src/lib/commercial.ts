@@ -234,3 +234,8 @@ export function currentFloors(
 		};
 	});
 }
+
+export const quoteBelowFloor = (line: Pick<Row<'order_lines'>, 'net' | 'quantity' | 'floor_net'>) =>
+	line.floor_net !== null &&
+	line.quantity.gt(0) &&
+	line.net.div(line.quantity, 8).lt(line.floor_net);

@@ -3,17 +3,7 @@
 	import type { CurrencyCode } from '@norbital-ai/bolt';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { PlainDate } from '@norbital-ai/std/date';
-	import {
-		Button,
-		Combobox,
-		Icon,
-		Input,
-		Table,
-		Tabs,
-		TimeInput,
-		useKinds,
-		useBolt
-	} from '@norbital-ai/ui';
+	import { Combobox, CustomView, Table, Tabs, TimeInput, useKinds, useBolt } from '@norbital-ai/ui';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
@@ -42,10 +32,9 @@
 			list.push(warehouse.name);
 			names.set(warehouse.group_code, list);
 		}
-		const counts = new Map<string, number>();
-		for (const row of catalog.current?.pricing_floors.rows ?? [])
-			counts.set(row.group_code, (counts.get(row.group_code) ?? 0) + 1);
-		return [...counts.keys()].sort().map((code) => ({
+		const codes = new Set(names.keys());
+		for (const row of catalog.current?.pricing_floors.rows ?? []) codes.add(row.group_code);
+		return [...codes].sort().map((code) => ({
 			value: code,
 			label: names.has(code) ? `${code} · ${names.get(code)!.join(', ')}` : code
 		}));
@@ -71,8 +60,7 @@
 	let chosenGroup = $state<string | null>(null);
 	let chosenCurrency = $state<CurrencyCode | null>(null);
 	let chosenMonth = $state<string | null>(null);
-	let search = $state('');
-	const group = $derived(chosenGroup ?? defaultPair?.group ?? null);
+	const group = $derived(chosenGroup ?? defaultPair?.group ?? groups[0]?.value ?? null);
 	const currencies = $derived(
 		[
 			...new Set(
@@ -95,9 +83,7 @@
 		chosenMonth ?? (months.includes(currentMonth) ? currentMonth : (months[0] ?? currentMonth))
 	);
 	const days = $derived(monthDays(month));
-	const rows = $derived(
-		book?.current ? priceBookRows(book.current, month, search) : ([] as readonly PriceRow[])
-	);
+	const rows = $derived(book?.current ? priceBookRows(book.current, month) : []);
 	const weekday = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 	const weekdayOf = (day: string) => weekday[new Date(`${day}T00:00:00Z`).getUTCDay()];
 
@@ -110,7 +96,8 @@
 		if (writing !== null) return;
 		error = null;
 		editing = keyOf(row, day);
-		draft = row.cells.has(day) ? priceText(row.cells.get(day)!.floor_price) : '';
+		const cell = row.cells[day];
+		draft = cell ? priceText(cell.floor_price) : '';
 	}
 	function cancel() {
 		editing = null;
@@ -123,7 +110,7 @@
 		const value = draft.trim();
 		if (value === '') return;
 		if (group === null || currency === null) return;
-		const existing = row.cells.get(day);
+		const existing = row.cells[day];
 		if (existing && Decimal.of(existing.floor_price).eq(value)) return;
 		let price: Decimal;
 		try {
@@ -177,10 +164,9 @@
 		}
 	}
 	function create() {
-		if (group === null || currency === null) return;
 		openCreate('pricing_floors', {
-			group_code: group,
-			currency,
+			...(group === null ? {} : { group_code: group }),
+			...(currency === null ? {} : { currency }),
 			effective_on: PlainDate(`${month}-01`)
 		});
 	}
@@ -190,75 +176,80 @@
 	}
 </script>
 
-{#snippet controls()}
-	<div class="flex min-w-0 flex-wrap items-center gap-2">
-		<div class="w-48">
-			<Combobox
-				options={groups}
-				value={group}
-				onChange={(value) => (chosenGroup = value)}
-				placeholder={bolt.t('models.pricing_floors.fields.group_code')}
-				aria-label={bolt.t('models.pricing_floors.fields.group_code')}
-			/>
-		</div>
-		<div class="w-28">
-			<Combobox
-				options={currencies.map((value) => ({ value, label: value }))}
-				value={currency}
-				onChange={(value) => (chosenCurrency = value)}
-				placeholder={bolt.t('models.pricing_floors.fields.currency')}
-				aria-label={bolt.t('models.pricing_floors.fields.currency')}
-			/>
-		</div>
-		<label class="sr-only" for="price-book-month">{bolt.t('component.price_book_month')}</label>
-		<div class="w-40">
-			<TimeInput
-				id="price-book-month"
-				of="date"
-				precision="month"
-				value={`${month}-01`}
-				onChange={(date: string | null) => {
-					if (date !== null) chosenMonth = date.slice(0, 7);
-				}}
-			/>
-		</div>
-		<div class="w-56">
-			<Input
-				type="search"
-				bind:value={search}
-				placeholder={bolt.t('component.price_book_search')}
-				aria-label={bolt.t('component.price_book_search')}
-			/>
-		</div>
-		{#if kinds.catalog?.pricing_floors?.create}
-			<Button variant="outline" onclick={create}>
-				<Icon name="lucide:plus" class="size-4" />
-				{bolt.t('component.price_book_new')}
-			</Button>
-		{/if}
+{#snippet scope()}
+	<div class="w-44">
+		<Combobox
+			options={groups}
+			value={group}
+			onChange={(value) => (chosenGroup = value)}
+			placeholder={bolt.t('models.pricing_floors.fields.group_code')}
+			aria-label={bolt.t('models.pricing_floors.fields.group_code')}
+		/>
 	</div>
-	<p class="text-sm text-muted-foreground">{bolt.t('component.price_book_help')}</p>
+	<div class="w-18">
+		<Combobox
+			options={currencies.map((value) => ({ value, label: value }))}
+			value={currency}
+			onChange={(value) => (chosenCurrency = value)}
+			placeholder={bolt.t('models.pricing_floors.fields.currency')}
+			aria-label={bolt.t('models.pricing_floors.fields.currency')}
+		/>
+	</div>
+{/snippet}
+
+{#snippet bookScope()}
+	{@render scope()}
+	<label class="sr-only" for="price-book-month">{bolt.t('component.price_book_month')}</label>
+	<div class="w-36">
+		<TimeInput
+			id="price-book-month"
+			of="date"
+			precision="month"
+			value={`${month}-01`}
+			onChange={(date: string | null) => {
+				if (date !== null) chosenMonth = date.slice(0, 7);
+			}}
+		/>
+	</div>
+{/snippet}
+
+{#snippet bookState()}
+	{#if catalog.error || book?.error}
+		<p role="alert" class="text-sm text-destructive">
+			{catalog.error?.message ?? book?.error?.message}
+		</p>
+	{:else if catalog.loading || book?.loading}
+		<p role="status" class="text-sm text-muted-foreground">
+			{bolt.t('component.price_book_loading')}
+		</p>
+	{:else}
+		<p class="p-10 text-center text-sm text-muted-foreground">
+			{bolt.t('component.price_book_empty')}
+		</p>
+	{/if}
 {/snippet}
 
 {#snippet priceBook()}
-	<Stack gap="sm" size="fill" class="h-full min-h-0">
-		{@render controls()}
-		{#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
-		{#if book === null}
-			<p class="p-10 text-center text-sm text-muted-foreground">
-				{bolt.t('component.price_book_empty')}
-			</p>
-		{:else if book.error}
-			<p role="alert" class="text-sm text-destructive">{book.error.message}</p>
-		{:else if book?.current === undefined}
-			<p class="text-sm text-muted-foreground">{bolt.t('component.price_book_loading')}</p>
-		{:else}
-			<Scroll name="price-book" axis="both" size="fill" class="rounded-md border border-border">
-				{#if rows.length === 0}
-					<p class="p-10 text-center text-sm text-muted-foreground">
-						{bolt.t('component.price_book_empty')}
-					</p>
-				{:else}
+	<CustomView
+		model="pricing_floors"
+		key="monthly_price_book"
+		of={rows}
+		fields={[
+			{ field: 'name', label: bolt.t('models.pricing_floors.fields.product') },
+			{ field: 'code', label: bolt.t('models.products.fields.external_code') }
+		]}
+		empty={rows.length === 0 ? bookState : undefined}
+		toolbar={{
+			title: false,
+			description: bolt.t('component.price_book_help'),
+			controls: bookScope,
+			new: kinds.catalog?.pricing_floors?.create ? create : false
+		}}
+	>
+		{#snippet children(shown)}
+			<Stack gap="sm" size="fill" class="h-full min-h-0">
+				{#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
+				<Scroll name="price-book" axis="both" size="fill" class="rounded-md border border-border">
 					<table class="w-max min-w-full border-separate border-spacing-0 text-sm">
 						<thead>
 							<tr>
@@ -290,7 +281,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each rows as row (row.key)}
+							{#each shown as row (row.key)}
 								<tr>
 									<td
 										class="bg-card sticky left-0 z-10 min-w-56 border-b border-border px-3 py-1.5"
@@ -308,7 +299,7 @@
 									>
 									{#each days as day (day)}
 										{@const key = keyOf(row, day)}
-										{@const cell = row.cells.get(day)}
+										{@const cell = row.cells[day]}
 										<td
 											class={[
 												'border-b border-border p-0 text-right',
@@ -356,17 +347,21 @@
 							{/each}
 						</tbody>
 					</table>
-				{/if}
-			</Scroll>
-		{/if}
-	</Stack>
+				</Scroll>
+			</Stack>
+		{/snippet}
+	</CustomView>
 {/snippet}
 
 {#snippet history()}
-	{#if group !== null && currency !== null}
+	{#if catalog.current}
 		<Table
 			of="pricing_floors"
-			where={{ group_code: { eq: group }, currency: { eq: currency } }}
+			where={{
+				...(group === null ? {} : { group_code: { eq: group } }),
+				...(currency === null ? {} : { currency: { eq: currency } })
+			}}
+			toolbar={{ controls: scope }}
 			columns={[
 				'product',
 				'group_code',
@@ -377,16 +372,24 @@
 				'minimum_quantity'
 			]}
 		/>
+	{:else}
+		{@render bookState()}
 	{/if}
 {/snippet}
 
-<AppShell
-	icon="lucide:settings"
-	title={bolt.t('models.pricing_floors.label')}
-	description={bolt.t('app.trade_configuration.description')}
-	variant="full"
->
+{#snippet commissionRules()}
+	<Table
+		of="commission_rules"
+		columns={['effective_on', 'currency', 'basis_unit', 'fixed_rate', 'spread_pct', 'active']}
+		toolbar={{ title: false, description: bolt.t('component.commission_rules_hint') }}
+	/>
+{/snippet}
+
+<AppShell icon="lucide:chart-no-axes-combined" title={bolt.t('section.pricing')} variant="full">
 	<Tabs
+		orientation="vertical"
+		side="end"
+		class="[&_[data-view-controls]]:contents"
 		tabs={[
 			{
 				name: 'book',
@@ -399,6 +402,12 @@
 				title: bolt.t('component.pricing_history'),
 				icon: 'lucide:list',
 				body: history
+			},
+			{
+				name: 'commission',
+				title: bolt.t('models.commission_rules.label'),
+				icon: 'lucide:percent',
+				body: commissionRules
 			}
 		]}
 	/>

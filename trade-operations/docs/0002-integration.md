@@ -163,7 +163,7 @@ The platform tables beside them carry the sync machinery, not business rows:
 | ----------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `attention` / `parentPending` | A child feed arrived before its issued source order or invoice       | Wait for the parent sync; no local row is written              |
 | `attention` / `windowLag`     | A source window is older than `maxWindowMinutes`                     | Check the SQL route, locks and source load; the cursor is kept |
-| Connection error              | The SQL login, route or account set failed                           | Fix the connection in Commercial settings; queued writes wait  |
+| Connection error              | The SQL login, route or account set failed                           | Fix the connection in Settings → Integrations. Queued writes wait. |
 | `dead` outbox row             | A write-back exhausted retries or was refused by source verification | Read the dead letter, correct the cause, retry deliberately    |
 | Stale cursor/account          | The verified account or source identity changed                      | Review the snapshot before resetting; do not guess             |
 

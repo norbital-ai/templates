@@ -1,11 +1,12 @@
 import { Effect } from 'effect';
 import type { StoredRow, Id } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Decimal, currency, sum } from '@norbital-ai/std/decimal';
+import { Decimal, currency, minorDigits, sum } from '@norbital-ai/std/decimal';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import {
-	readNativeRows,
 	readSalesGraph,
+	reviewedPage,
+	selectByIds,
 	snapshotPage,
 	type NativeProjection,
 	type OrderSourceContext
@@ -112,7 +113,7 @@ export function mapSalesFacts(
 	const invoiceFacts = invoices
 		.filter((invoice) => invoice.status === 'issued')
 		.flatMap((invoice) =>
-			invoice.lines.map((line): SalesFact & { $id: string } => {
+			invoice.lines.map((line) => {
 				const key = line.upstream ? `${line.upstream.fid}:${line.upstream.entryId}` : '';
 				const source = deliveryLines.get(key);
 				if (
@@ -138,12 +139,7 @@ export function mapSalesFacts(
 				billed.push(line);
 				billedByDelivery.set(key, billed);
 				const external = `invoice:${invoice.fid}:${line.detailId}`;
-				// An invoice may bill only part of its delivery line, so it carries that line's cost by quantity.
-				const booked =
-					costCurrency && source.line.costAmount != null && source.line.quantity.gt(0)
-						? source.line.costAmount.times(line.quantity).div(source.line.quantity, 10)
-						: null;
-				return {
+				const fact: SalesFact & { $id: string } = {
 					$id: external,
 					external_code: external,
 					order: invoice.owner.order,
@@ -158,15 +154,39 @@ export function mapSalesFacts(
 					currency: currency(invoice.currency),
 					lot_number: source.line.lotNumber,
 					unit_cost: null,
-					booked_cost: booked,
-					booked_cost_currency: booked === null ? null : (costCurrency ?? null),
+					booked_cost: null,
+					booked_cost_currency: null,
 					net_amount: net,
 					tax_amount: net !== null && gross !== null ? gross.minus(net) : null,
 					freight: null,
 					active: true
 				};
+				return { key, fact, deliveryLine: source.line };
 			})
 		);
+	const billedQuantities = new Map(
+		[...billedByDelivery].map(([key, lines]) => [key, sum(lines.map((line) => line.quantity))])
+	);
+	const invoiced = invoiceFacts.map(({ key, fact, deliveryLine }) => {
+		const quantity = billedQuantities.get(key);
+		if (
+			!costCurrency ||
+			deliveryLine.costAmount == null ||
+			!quantity ||
+			deliveryLine.quantity.isZero()
+		)
+			return fact;
+		if (
+			quantity.abs().gt(deliveryLine.quantity.abs()) ||
+			(!quantity.isZero() && quantity.lt(0) !== deliveryLine.quantity.lt(0))
+		)
+			return fact;
+		return {
+			...fact,
+			booked_cost: deliveryLine.costAmount.times(fact.quantity).div(deliveryLine.quantity, 10),
+			booked_cost_currency: costCurrency
+		};
+	});
 	const shipmentFacts = deliveries.flatMap((delivery) =>
 		delivery.lines.map((line): SalesFact & { $id: string } => {
 			if (delivery.currency !== delivery.owner.currency || line.quantity.isZero())
@@ -216,20 +236,13 @@ export function mapSalesFacts(
 			};
 		})
 	);
-	return [...shipmentFacts, ...invoiceFacts];
+	return [...shipmentFacts, ...invoiced];
 }
 
 const idsSql = "(SELECT n.value('.', 'nvarchar(100)') FROM @ids.nodes('/ids/id') AS keys(n))";
-const paymentDiscovery: NativeProjection = {
-	sql: `/* kingdee-settlement-ids */
-SELECT DISTINCT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),ce.FInterID),20) AS __key,
- CONVERT(varchar(30),ce.FInterID) AS check_id
-FROM dbo.t_rp_CheckEntry ce
-WHERE ce.FType=3 AND ce.FInvoiceID IN ${idsSql}`
-};
 /** All header entries are read before using its amount; the amount is not a per-line allocation. */
 const paymentProjection: NativeProjection = {
-	sql: `
+	sql: `/* kingdee-settlement-entries */
 SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),ce.FDetailID),20) AS __key,
  CONVERT(varchar(30),ce.FDetailID) AS detail_id,CONVERT(varchar(30),ce.FInterID) AS check_id,
  CONVERT(varchar(30),ce.FType) AS type,CONVERT(varchar(30),ce.FType_SRC) AS source_type,
@@ -247,31 +260,9 @@ LEFT JOIN dbo.t_RP_NewCheckInfo checkhead ON checkhead.FInterID=ce.FInterID
 LEFT JOIN dbo.t_RP_Contact contact ON contact.FID=checkhead.FContactID
 LEFT JOIN dbo.t_RP_NewReceiveBill receipt ON ce.FType_SRC=5 AND receipt.FBillID=ce.FBillID_SRC
 LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=receipt.FCurrencyID
-WHERE ce.FInterID IN ${idsSql}`
+WHERE EXISTS (SELECT 1 FROM dbo.t_rp_CheckEntry anchor
+ WHERE anchor.FInterID=ce.FInterID AND anchor.FType=3 AND anchor.FInvoiceID IN ${idsSql})`
 };
-const readPayments = Effect.fnUntraced(function* (
-	ctx: OrderSourceContext,
-	projection: NativeProjection,
-	identifiers: readonly string[]
-) {
-	const result: SqlRow[] = [];
-	const unique = [...new Set(identifiers)];
-	for (let start = 0; start < unique.length; start += 200) {
-		const xml = yield* checked(
-			() =>
-				`<ids>${unique
-					.slice(start, start + 200)
-					.map((value) => {
-						if (!/^\d+$/.test(value))
-							return invalid('$id', 'Expected a verified native invoice or settlement identifier');
-						return `<id>${value}</id>`;
-					})
-					.join('')}</ids>`
-		);
-		result.push(...(yield* readNativeRows(ctx, projection, { ids: xml })));
-	}
-	return result;
-});
 type PaymentFact = Pick<
 	StoredRow<'source_payments'>,
 	| 'external_code'
@@ -328,6 +319,8 @@ export function mapPayments(
 				'FCheckAmount',
 				'The verified settlement amount is in base currency; foreign allocation requires a verified original-currency binding'
 			);
+		if (!amount.round(minorDigits(base)).eq(amount))
+			return invalid('FCheckAmount', 'The settlement amount exceeds its currency precision');
 		const seen = new Set<string>();
 		for (const row of entries) {
 			const detail = id(row, 'detail_id');
@@ -409,21 +402,34 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 			reason: 'Purchase payments have no verified original-order and invoice allocation binding'
 		});
 	const graph = yield* readSalesGraph(instance, cursor, ctx);
-	const found = yield* readPayments(
+	const complete = yield* selectByIds(
 		ctx,
-		paymentDiscovery,
+		paymentProjection,
 		graph.invoices.map((invoice) => invoice.fid)
 	);
-	const headers = yield* checked(() => found.map((row) => id(row, 'check_id')));
-	const complete = yield* readPayments(ctx, paymentProjection, headers);
 	const facts = yield* checked(() => {
-		const returned = new Set(complete.map((row) => id(row, 'check_id')));
-		if (headers.some((header) => !returned.has(header)))
-			return invalid(
-				'FInterID',
-				'A discovered settlement disappeared during the complete source read'
-			);
-		return mapPayments(complete, graph.invoices, graph.observedAt, ctx.configuration.baseCurrency);
+		const invoices = new Map(graph.invoices.map((invoice) => [invoice.fid, invoice]));
+		return [...Map.groupBy(complete, (row) => id(row, 'check_id'))].flatMap(
+			([checkId, entries]) => {
+				try {
+					return mapPayments(
+						entries,
+						graph.invoices,
+						graph.observedAt,
+						ctx.configuration.baseCurrency
+					);
+				} catch (cause) {
+					if (!(cause instanceof SourceRowInvalid)) throw cause;
+					const owners = entries.flatMap(
+						(row) => invoices.get(String(row['invoice_id']))?.owner.order ?? []
+					);
+					if (!owners.length) throw cause;
+					for (const owner of owners) graph.held.add(owner);
+					graph.issues.push({ document: `settlement ${checkId}`, column: cause.column });
+					return [];
+				}
+			}
+		);
 	});
 	const { transactions: invoices } = yield* ctx.db.query({
 		transactions: {
@@ -432,27 +438,43 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 		}
 	});
 	const current = yield* checked(() =>
-		facts.map(({ invoiceExternalId, ...fact }) => {
-			const invoice = invoices.rows.find((candidate) => candidate.erp_id === invoiceExternalId);
-			if (!invoice || invoice.order !== fact.order || invoice.seal_hash !== fact.seal_hash)
-				return invalid(
-					'invoice',
-					'The verified owned invoice must synchronize before its settlement'
-				);
-			return { ...fact, invoice: invoice.id };
-		})
+		facts
+			.flatMap(({ invoiceExternalId, ...fact }) => {
+				const invoice = invoices.rows.find((candidate) => candidate.erp_id === invoiceExternalId);
+				if (!invoice || invoice.order !== fact.order || invoice.seal_hash !== fact.seal_hash) {
+					graph.held.add(fact.order);
+					graph.issues.push({
+						document: `settlement ${fact.external_code}`,
+						column: 'invoice counterpart'
+					});
+					return [];
+				}
+				return [{ ...fact, invoice: invoice.id }];
+			})
+			.filter((fact) => !graph.held.has(fact.order))
 	);
 	const { source_payments: previous } = yield* ctx.db.query({
-		source_payments: { where: { source: { eq: instance } }, fields: ['external_code', 'active'] }
+		source_payments: {
+			where: { source: { eq: instance } },
+			fields: ['external_code', 'active', 'order']
+		}
 	});
 	const present = new Set(current.map((fact) => fact.external_code));
 	const rows = [
 		...current,
 		...previous.rows
-			.filter((row) => row.active && !present.has(row.external_code))
+			.filter(
+				(row) =>
+					row.active &&
+					!present.has(row.external_code) &&
+					(row.order === null || !graph.held.has(row.order))
+			)
 			.map((row) => ({ $id: row.external_code, external_code: row.external_code, active: false }))
 	];
-	return yield* snapshotPage<(typeof rows)[number]>(rows, cursor, graph.source);
+	return reviewedPage(
+		yield* snapshotPage<(typeof rows)[number]>(rows, cursor, graph.source),
+		graph
+	);
 });
 
 export const readSalesFactSource = Effect.fnUntraced(function* (
@@ -515,10 +537,18 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 	const rows = [
 		...facts,
 		...previous.rows
-			.filter((row) => row.active && !present.has(row.external_code))
+			.filter(
+				(row) =>
+					row.active &&
+					!present.has(row.external_code) &&
+					(row.order === null || !graph.held.has(row.order))
+			)
 			.map((row) => ({ $id: row.external_code, external_code: row.external_code, active: false }))
 	];
-	return yield* snapshotPage<(typeof rows)[number]>(rows, cursor, graph.source);
+	return reviewedPage(
+		yield* snapshotPage<(typeof rows)[number]>(rows, cursor, graph.source),
+		graph
+	);
 });
 
 /** FIsCreditMgr is an enable switch, not a hold decision; no verified account policy supplies credit_hold yet. */

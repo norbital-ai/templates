@@ -33,6 +33,21 @@ must verify the chosen endpoint from the deployed runtime. Bolt verifies the SQL
 name and certificate. The local Docker probe uses a loopback adapter and does not verify either
 the Alibaba path or the deployed TLS handshake.
 
+## What moves between the systems
+
+The SalesBridge reference is source revision `60e5d253`. Its README describes the earlier
+Kingdee gateway API route. The later EPG runbook and shipped Windows writer also implement
+direct SQL on the local network; the reader and writer use separate credentials.
+
+| Direction | SalesBridge | Trade Operations |
+| --- | --- | --- |
+| Kingdee → app | An on-premises read-only job queries KIS and posts results to SalesBridge over HTTPS. It publishes master changes, order audit/status, sales-order history, shipment and return evidence, stock by warehouse and lot, open commitments and enabled finance feeds. Receivables aging and sales analysis are published as completed snapshots. | Bolt connects to SQL Server through the private route and reads masters, stock and commitments, its owned SO lineage, deliveries, invoices, returns and attributable receipts. Verified optional account bindings enable inventory cost, booked delivery cost, invoice-only facts and receivables. Reports and user actions read the local copy. |
+| App → Kingdee | The SQL writer leases approved work from SalesBridge, inserts the SO header and lines as unapproved, and reports the Kingdee ID or a refusal. Optional guarded write lanes apply approved amendments and void/close requests. Customer returns gate initial export of orders classified as sales contracts; the company chop is supplier artwork. | A locally sealed sales agreement queues an idempotent SO write. It creates an unapproved SO and stores the source ID. Supported amendments keep that live ID and archive the previous source version. The application keeps its own approved revision and holds conflicts for review. |
+| Boundaries | The original SQL reader never writes. Third-document export is listed as blocked in the README; it is not evidence of a native DO or invoice write. | No SalesBridge Windows process or gateway is used. Trade Operations does not create Kingdee DOs or invoices, silently adopt a Kingdee-first order, or remotely delete an SO when it is archived locally. Native Kingdee audit remains distinct from local approval. |
+
+Source: SalesBridge `scripts/epg-connector.ts`, `scripts/epg-so-write.ts`,
+`docs/reference/epg-connector-runbook.md` and `lib/services/export.ts`.
+
 ## Credentials and repeat deployment
 
 Pair each Kingdee integration instance with its own SQL connection string in the native credential
@@ -41,8 +56,8 @@ Bolt tests the account-set bindings before displaying Connected. For parties, pr
 and stock it checks the required tables and markers, then executes the sync projection with
 `TOP 0`. SQL Server validates the columns and SELECT permissions without returning business rows.
 Unpaired, paused and failed-test
-instances do not run source reads or deliver queued changes. Trade Configuration → Commercial settings
-shows the ledger state without exposing setup fields. Use Test connection on previously paired
+instances do not run source reads or deliver queued changes. Administrators see the ledger state in
+Settings → Integrations → Connections. Use Test connection on previously paired
 instances to run the stronger check. The order, finance and source-write probes have their own
 acceptance criteria.
 Bolt seals the credentials on the host. The SalesBridge connector used `salesbridge_ro`, a
@@ -265,6 +280,13 @@ took about 21 seconds, including fixture setup, page failure, replay and reconci
 five pooled test connections. The route itself, production connection overhead, loss, bulk stock
 and order/finance volume are separate deployment measurements. The stock feed still reads a full
 lot aggregate. The order and finance feeds still read verified families and their linked evidence.
+The 20–50 Mbps SQL Server 2017 lab also converged after interrupted reads and a lost write
+acknowledgement. Discovery now joins each document's header in SQL, and payment discovery reads
+the full settlement in the same request. The small linked inbound fixture dropped from 40 to 33
+requests. The SQL still reads all lines, including unrelated lines on a matched document, so a
+mixed document cannot look complete. Parent lookups deduplicate IDs before committing a replay page.
+See [the WAN probes](0008-manual-probe-matrix.md#kingdee-wan-probe).
+
 [Alibaba VPN traffic monitoring](https://www.alibabacloud.com/help/en/vpn/sub-product-ipsec-vpn/monitor-an-ipsec-vpn-connection)
 
 ## Writes
@@ -333,10 +355,31 @@ its own attachments while every sealed version retains its exact file list. The 
 current limit is 20 retained supporting files across an order; history is never trimmed to make
 room for a later upload.
 
-A failed delivery preserves the sealed local SO and its lines, including mapping errors and
-source conflicts. The native queue retries, then retains an actionable dead letter after eight
-failed attempts. Correct the connection, mappings or source conflict and use **Replay dead letters**
-in the integration settings; replay uses the same frozen submission and the current configuration.
+A failed delivery preserves the sealed local SO and its lines. Bolt keeps the frozen payload and
+idempotency key queued across a temporary SQL failure and retries roughly every minute while the
+verified connection is active. Inbound SQL reads retry on their usual schedule after a temporary
+failure. Restoring the network is sufficient for these failures. A rejected SQL write or invalid
+source mapping needs review. After fixing a source prerequisite for the same approved payload,
+use **Replay dead letters** in Settings → Integrations → Kingdee → Sync. Replay sends the
+original frozen payload again. For an invalid payload, approve corrected terms, then **Retire
+write** for the rejected entry. This retains its original payload, error, operator and retirement
+time, marks it skipped and releases later writes. It neither cancels an in-flight SQL request nor
+undoes an accepted remote write.
+
+An independent Kingdee amendment is a permanent conflict, not an endlessly retried prerequisite.
+Managers can **Adopt Kingdee terms**, making the observed open, audited source version Current
+without duplicating it or exporting a replacement; or **Revise from Kingdee**, copying those terms
+and stable entry IDs into a draft. The existing contract stays Current until the replacement is
+approved. The replacement retains its exact source basis. A stale selection is refused; a later
+native edit is checked again under the SQL writer's source-version guard. Retire the old rejected
+write after resolving it. Original seals, filed documents and transaction links remain intact.
+See the [manual probe matrix](0008-manual-probe-matrix.md) for both cases.
+
+Bolt persists each inbound cursor in the workspace database. It commits the page, identity map and
+cursor in one transaction. The sales transaction feed records a fingerprint after a consistent
+sweep and skips reapplying an unchanged listing when the rows are still present locally. A changed
+listing during a paginated sweep forces another complete check. The feed keeps reading the scoped
+Kingdee tables because these documents have no single verified change marker across their joins.
 
 If a document poll runs before the SO approval mirror catches up, it reports `parentPending`
 and preserves the cursor and existing evidence. The next poll resumes after that counterpart is
@@ -371,7 +414,7 @@ docker exec -i trade-kingdee-2017 sh -c \
 The fixture creates `TradeOperationsProbe` at compatibility level 140, with CDC disabled. Create a
 separate probe login mapped to this database with `SELECT ON SCHEMA::dbo`. Use the disposable
 host's loopback-only SQL transport for the local self-signed server. Keep normal TLS verification and
-public destination checks on the deployed host. Pair in Trade Configuration → Commercial settings → Manage connection using the test login,
+public destination checks on the deployed host. Pair in Settings → Integrations → Connections → Kingdee using the test login,
 then run probes K1–K4 from the [manual probe matrix](0008-manual-probe-matrix.md).
 For K4, set `TRADE_SQL2017_PROBE_PASSWORD` to the disposable container’s SQL administrator
 password and run `bunx --no-install bolt test . tests/kingdee-live-polling.test.ts` from the

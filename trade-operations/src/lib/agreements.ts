@@ -1,3 +1,4 @@
+import { PlainDate } from '@norbital-ai/std/date';
 import type { snapshot } from './commercial.js';
 import { type Row, type StoredRow } from '@norbital-ai/bolt';
 import { currency, Decimal } from '@norbital-ai/std/decimal';
@@ -45,6 +46,21 @@ export function kingdeeAgreement(versions: readonly ContractVersion[]) {
 	}
 	return latest;
 }
+
+/** A source version explicitly adopted by a manager remains the accepted local basis. */
+export const locallyAccepted = (version: ContractVersion) =>
+	version.origin !== 'kingdee' ||
+	Boolean(version.events?.some((event) => event.kind === 'adopted'));
+/** Only a verified, open source snapshot can resolve a commercial conflict. */
+export const resolvableKingdee = (versions: readonly ContractVersion[]) => {
+	const source = kingdeeAgreement(versions);
+	return source?.origin === 'kingdee' &&
+		source.kingdee?.status === 'issued' &&
+		!source.kingdee.closed &&
+		!source.events?.some((event) => event.kind === 'unversionedChange')
+		? source
+		: undefined;
+};
 
 /** Compare the terms represented on the Kingdee SO. */
 export function kingdeeTermsChanged(previous: ContractVersion, next: ContractVersion['snapshot']) {
@@ -136,12 +152,8 @@ export const executableAgreement = (order: AgreementOrder) => {
 };
 export const agreement = (order: AgreementOrder, seal: string | null | undefined) =>
 	agreements(order).find((v) => v.seal_hash === seal);
-export function withAgreement<T extends AgreementOrder>(
-	order: T,
-	version: ReturnType<typeof agreements>[number]
-) {
+export function agreementState(version: ContractVersion) {
 	return {
-		...order,
 		currency: currency(version.snapshot.currency),
 		tax_inclusive: version.snapshot.tax_inclusive,
 		payment_terms: version.snapshot.payment_terms,
@@ -155,9 +167,11 @@ export function withAgreement<T extends AgreementOrder>(
 		other_terms: version.snapshot.other_terms ?? '',
 		payment_method: version.snapshot.payment_method ?? '',
 		buyer_contact: version.snapshot.buyer_contact ?? '',
-		buyer_mobile: version.snapshot.buyer_mobile ?? '',
+		buyer_mobile: version.snapshot.buyer_mobile || null,
 		delivery_address: version.snapshot.delivery_address ?? '',
-		delivery_date: version.snapshot.delivery_date ?? '',
+		delivery_date: version.snapshot.delivery_date
+			? PlainDate(version.snapshot.delivery_date)
+			: null,
 		party_name: version.snapshot.party_name,
 		supporting_documents: version.supporting_documents ?? [],
 		seal_hash: version.seal_hash,
@@ -171,6 +185,9 @@ export function withAgreement<T extends AgreementOrder>(
 		freight_treatment: version.freight_treatment,
 		status: 'confirmed' as const
 	};
+}
+export function withAgreement<T extends AgreementOrder>(order: T, version: ContractVersion) {
+	return { ...order, ...agreementState(version) };
 }
 /** The exact approval acknowledgement shared by the transform and confirmation query. */
 export function confirmationBasis(

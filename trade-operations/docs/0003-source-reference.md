@@ -13,7 +13,7 @@ This is a local source inventory, not a declaration that a deployed tenant runs 
 | [operations/partners](../src/app/operations/partners/+app.ts)   | Partners            | parties: Partners                                                                                                     | Customers, suppliers and their agreements.             |
 | [operations/trade](../src/app/operations/trade/+app.ts)         | Orders              | orders: Orders                                                                                                        | Commercial work within each order.                     |
 | [operations/warehouse](../src/app/operations/warehouse/+app.ts) | Warehouse           | stock: Warehouse                                                                                                      | Products, lots and stock.                              |
-| [trade_configuration](../src/app/trade_configuration/+app.ts)   | Trade configuration | templates: Document templates; settings: Commercial settings; pricing_floors: Pricing floors; rules: Commission rules | Dated pricing, commission and commercial requirements. |
+| [trade_configuration](../src/app/trade_configuration/+app.ts)   | Trade configuration | `templates` (Documents), `pricing_floors` (Pricing) | Document templates and defaults, the dated price book, pricing defaults and commission rules. |
 
 ## Models and exposed operations
 
@@ -36,7 +36,7 @@ Outputs fix field visibility. Policies select outputs and scope rows; write colu
 | [parties](../src/data/model/parties/+model.ts)                                           | 9      | default             | none                   | kingdee, sheet        |
 | [pricing_floors](../src/data/model/products/pricing_floors/+model.ts)                    | 8      | default             | create, update         | price_book            |
 | [products](../src/data/model/products/+model.ts)                                         | 15     | default, logistics  | update                 | kingdee               |
-| [salesperson_signatures](../src/data/model/salesperson_signatures/+model.ts)             | 1      | default             | create                 | none                  |
+| [salesperson_signatures](../src/data/model/salesperson_signatures/+model.ts)             | 1      | default             | none                   | none                  |
 | [source_lot_costs](../src/data/model/source_lot_costs/+model.ts)                         | 3      | default             | none                   | kingdee               |
 | [source_payments](../src/data/model/orders/source_payments/+model.ts)                    | 9      | default             | create, update         | kingdee               |
 | [source_receivables](../src/data/model/source_receivables/+model.ts)                     | 3      | default             | none                   | kingdee               |

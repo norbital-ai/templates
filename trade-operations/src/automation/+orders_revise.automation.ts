@@ -4,7 +4,7 @@ import { Refusal } from '@norbital-ai/bolt/errors';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { Decimal, currency } from '@norbital-ai/std/decimal';
 import { PlainDate } from '@norbital-ai/std/date';
-import { currentAgreement } from '../lib/agreements.js';
+import { agreements, currentAgreement, resolvableKingdee } from '../lib/agreements.js';
 import { contractEntryId } from '../lib/contract-draft.js';
 
 const identity = <C extends string>(of: C, value: string) =>
@@ -19,9 +19,11 @@ export default automation('orders_revise', {
 	policies: ['order_revision'],
 	input: {
 		target: { kind: 'id', of: 'orders' },
-		revision: { kind: 'int', optional: true }
+		revision: { kind: 'int', optional: true },
+		source: { kind: 'text', optional: true },
+		resolution: { kind: 'enum', values: ['adopt', 'revise'], optional: true }
 	},
-	run: function* ({ target, revision }, ctx) {
+	run: function* ({ target, revision, source, resolution }, ctx) {
 		const [order] = (yield* ctx.query({ orders: { where: { id: { eq: target } }, limit: 1 } }))
 			.orders.rows;
 		if (!order) return yield* new Refusal({ message: 'errors.agreement_access' });
@@ -39,8 +41,57 @@ export default automation('orders_revise', {
 		if (order.archived) return yield* new Refusal({ message: 'errors.order_archived' });
 		if (order.status !== 'confirmed' && !order.draft_setup)
 			return yield* new Refusal({ message: 'errors.transition' });
-		const current = currentAgreement(order);
+		const versions = agreements(order);
+		if (
+			Boolean(source) !== Boolean(resolution) ||
+			(source &&
+				(!(actor.admin || actor.teams.includes('commercial_managers')) ||
+					source !== (order.draft_setup ?? resolvableKingdee(versions)?.seal_hash)))
+		)
+			return yield* new Refusal({ message: 'errors.contract_source_changed' });
+		const current = source
+			? versions.find((version) => version.seal_hash === source)
+			: order.draft_setup
+				? versions.find((version) => version.seal_hash === order.draft_setup)
+				: currentAgreement(order);
 		if (!current) return yield* new Refusal({ message: 'errors.order_not_confirmed' });
+		if (resolution === 'adopt') {
+			if (!current.kingdee || order.status !== 'confirmed')
+				return yield* new Refusal({ message: 'errors.contract_source_changed' });
+			const native = current.kingdee;
+			yield* ctx.act(
+				'orders.update',
+				[
+					{
+						target,
+						set: {
+							contract_versions: versions.map((version) =>
+								version.seal_hash === current.seal_hash
+									? {
+											...version,
+											lifecycle: 'current' as const,
+											events: [
+												...(version.events ?? []),
+												{
+													key: `adopted:${current.seal_hash}:${order.revision}`,
+													at: ctx.now,
+													kind: 'adopted',
+													actor: actor.id,
+													status: native.status ?? 'issued',
+													source_version: native.source_version,
+													source_id: native.source_id
+												}
+											]
+										}
+									: { ...version, lifecycle: 'superseded' as const }
+							)
+						}
+					}
+				],
+				{ observed: { [target]: revision ?? order.revision } }
+			);
+			return;
+		}
 		// Parent aggregates cannot be read prospectively inside a combined parent/line write.
 		const opened = yield* ctx.act(
 			'orders.update',

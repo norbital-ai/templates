@@ -3,19 +3,21 @@
 	import { marginSeries } from '../../../lib/financial-series.js';
 	import {
 		agingBuckets,
-		agingDetails,
+		readAgingReport,
+		readReceivablesReport,
 		agingGroup,
 		agingRead,
 		agingSummary,
 		estimateAging,
-		receivablesRead,
+		receivablesHeadRead,
+		readSalesReport,
 		salesDetail,
 		salesReadDuring,
 		type SalesBasis
 	} from '../../../lib/reports.js';
 	import { earliestReceivablesCutoff } from '../../../lib/receivables.js';
 	import { xlsxWorkbook, type XlsxColumn } from '../../../lib/xlsx.js';
-	import { boardRead, commissionBoard, monthOf } from '../../../lib/monthly-commission.js';
+	import { boardRead, completeCommissionBoard, monthOf } from '../../../lib/monthly-commission.js';
 	import { PlainDate, addDays, addMonths } from '@norbital-ai/std/date';
 	import {
 		Dialog,
@@ -37,6 +39,7 @@
 		type ShowProps
 	} from '@norbital-ai/ui';
 	import { Effect, Schema } from 'effect';
+	import type { Cursor } from '@norbital-ai/bolt';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	const DateBounds = Schema.Struct({
 		from: Schema.NullOr(Schema.String),
@@ -49,7 +52,7 @@
 	const day = bolt.clock('day');
 	const currentMonth = day.today.slice(0, 7) + '-01';
 	let commissionPeriod = $state<string | null>(currentMonth);
-	type MonthlyCommission = Effect.Success<ReturnType<typeof commissionBoard>>[number];
+	type MonthlyCommission = Effect.Success<ReturnType<typeof completeCommissionBoard>>[number];
 	let monthSelection = $state<MonthlyCommission | null>(null);
 	const monthEnd = (value: string) =>
 		addDays(addMonths(PlainDate(value.slice(0, 7) + '-01'), 1), -1);
@@ -57,6 +60,7 @@
 	let agingView = $state<'customers' | 'entries'>('customers');
 	let agingBasis = $state<'estimated' | 'gross'>('estimated');
 	let agingCustomer = $state<{ key: string; name: string } | null>(null);
+	const pageSize = 50;
 	let salesBasis = $state<SalesBasis>('invoice');
 	let salesFrom = $state<string | null>(currentMonth);
 	let salesTo = $state<string | null>(currentMonth);
@@ -74,35 +78,139 @@
 	const invalidSalesRange = $derived(Boolean(salesFrom && salesTo && salesFrom > salesTo));
 	const agingDay = $derived(asOf ? PlainDate(asOf) : day.today);
 	const futureAging = $derived(agingDay > day.today);
-	const sales = $derived(
-		salesShown && !invalidSalesRange
-			? bolt.query(
-					salesReadDuring(
-						{
-							basis: salesBasis,
-							from: salesFrom ? PlainDate(salesFrom) : null,
-							to: salesTo ? PlainDate(monthEnd(salesTo)) : null
-						},
-						kinds.catalog?.source_sales_lines?.output === 'commercial'
-					)
+	const salesRequest = $derived(
+		salesShown && tab === 'sales' && !invalidSalesRange
+			? salesReadDuring(
+					{
+						basis: salesBasis,
+						from: salesFrom ? PlainDate(salesFrom) : null,
+						to: salesTo ? PlainDate(monthEnd(salesTo)) : null
+					},
+					kinds.catalog?.source_sales_lines?.output === 'commercial',
+					pageSize
 				)
 			: null
 	);
+	let salesNavigation = $state.raw<{
+		request: NonNullable<typeof salesRequest>;
+		cursors: Cursor[];
+	} | null>(null);
+	const salesCursors = $derived(
+		salesNavigation && salesNavigation.request === salesRequest ? salesNavigation.cursors : []
+	);
+	const salesAfter = $derived(salesCursors.at(-1));
+	const salesPageRequest = $derived.by(() => {
+		if (!salesRequest) return null;
+		const { products: _, ...request } = salesRequest;
+		return request;
+	});
+	const liveSales = $derived(salesPageRequest && !salesAfter ? bolt.query(salesPageRequest) : null);
+	type SalesPage = NonNullable<NonNullable<typeof liveSales>['current']>;
+	let laterSales = $state.raw<SalesPage | null>(null);
+	let salesPageError = $state(false);
+	$effect(() => {
+		const request = salesPageRequest;
+		const after = salesAfter;
+		laterSales = null;
+		salesPageError = false;
+		if (!request || !after) return;
+		let current = true;
+		// Cursor pages are one-shot reads. The first page can stay subscribed to source changes.
+		void run(
+			bolt.query({ ...request, source_sales_lines: { ...request.source_sales_lines, after } })
+		).then(
+			(page) => {
+				if (current) laterSales = page;
+			},
+			() => {
+				if (current) salesPageError = true;
+			}
+		);
+		return () => {
+			current = false;
+		};
+	});
+	const salesPageAnswer = $derived(salesAfter ? laterSales : (liveSales?.current ?? null));
 	const detailRows = $derived(
-		sales?.current ? salesDetail(sales.current, { basis: salesBasis }) : null
+		salesPageAnswer ? salesDetail(salesPageAnswer, { basis: salesBasis }) : null
 	);
+	function salesPage(next: Cursor | null) {
+		if (salesRequest)
+			salesNavigation = {
+				request: salesRequest,
+				cursors: next ? [...salesCursors, next] : salesCursors.slice(0, -1)
+			};
+	}
+	const fullSales = Effect.fnUntraced(function* (
+		request: NonNullable<typeof salesRequest>,
+		basis: SalesBasis
+	) {
+		const batch = { ...request, source_sales_lines: { ...request.source_sales_lines, limit: 500 } };
+		return yield* readSalesReport(bolt, batch, yield* bolt.query(batch), basis);
+	});
+	let marginRequest = $state.raw<{
+		request: NonNullable<typeof salesRequest>;
+		result: Promise<ReturnType<typeof marginSeries>>;
+	} | null>(null);
+	const margins = $derived(
+		marginRequest && marginRequest.request === salesRequest ? marginRequest.result : null
+	);
+	function toggleMargins() {
+		if (!salesRequest) return;
+		marginRequest = margins
+			? null
+			: {
+					request: salesRequest,
+					result: run(fullSales(salesRequest, salesBasis).pipe(Effect.map(marginSeries)))
+				};
+	}
+	let exporting = $state(false);
+	let salesExportError = $state(false);
 	const agingSources = $derived(
-		agingShown && kinds.catalog?.source_receivables ? bolt.query(receivablesRead) : null
+		tab === 'aging' && agingShown && kinds.catalog?.source_receivables
+			? bolt.query(receivablesHeadRead)
+			: null
 	);
-	const snapshots = $derived(agingSources?.current?.source_receivables.rows ?? []);
+	let snapshotTail = $state.raw<Effect.Success<ReturnType<typeof readReceivablesReport>> | null>(
+		null
+	);
+	let snapshotError = $state(false);
+	$effect(() => {
+		const first = agingSources?.current;
+		snapshotTail = null;
+		snapshotError = false;
+		if (!first) return;
+		if (first.source_receivables.total === 0) {
+			snapshotTail = [];
+			return;
+		}
+		let current = true;
+		void run(readReceivablesReport(bolt)).then(
+			(rows) => {
+				if (current) snapshotTail = rows;
+			},
+			() => {
+				if (current) snapshotError = true;
+			}
+		);
+		return () => {
+			current = false;
+		};
+	});
+	const snapshots = $derived(snapshotTail ?? []);
 	const showAgingEstimate = $derived(snapshots.length > 0 && agingBasis === 'estimated');
 	const coveredLedgers = $derived(snapshots.flatMap((snapshot) => snapshot.source?.id ?? []));
 	const earlyAging = $derived(snapshots.length > 0 && agingDay < earliestReceivablesCutoff);
-	const agingAnswer = $derived(
-		agingShown && !futureAging && !earlyAging && (!agingSources || agingSources.current)
-			? bolt.query(agingRead(agingDay, coveredLedgers))
+	const agingRequest = $derived(
+		tab === 'aging' &&
+			agingShown &&
+			!futureAging &&
+			!earlyAging &&
+			(!agingSources || snapshotTail !== null)
+			? agingRead(agingDay, coveredLedgers, 500)
 			: null
 	);
+	const agingAnswer = $derived(agingRequest ? bolt.query(agingRequest) : null);
 	const agingScope = $derived(
 		bolt.t(
 			showAgingEstimate
@@ -112,18 +220,27 @@
 					: 'reports.aging.cutoff_scope'
 		)
 	);
-	const agingIncomplete = $derived(
-		Boolean(
-			agingAnswer?.current?.transactions.next ||
-			agingAnswer?.current?.source_payments.next ||
-			agingSources?.current?.source_receivables.next
-		)
-	);
-	const agingFacts = $derived(
-		agingAnswer?.current && !agingIncomplete
-			? agingDetails(agingAnswer.current, agingDay, snapshots)
-			: null
-	);
+	let agingFacts = $state.raw<Effect.Success<ReturnType<typeof readAgingReport>> | null>(null);
+	let agingIncomplete = $state(false);
+	$effect(() => {
+		const first = agingAnswer?.current;
+		const request = agingRequest;
+		agingFacts = null;
+		agingIncomplete = false;
+		if (!request || !first) return;
+		let current = true;
+		void run(readAgingReport(bolt, request, first, agingDay, snapshots)).then(
+			(rows) => {
+				if (current) agingFacts = rows;
+			},
+			() => {
+				if (current) agingIncomplete = true;
+			}
+		);
+		return () => {
+			current = false;
+		};
+	});
 	const agingRows = $derived(
 		agingFacts && showAgingEstimate ? estimateAging(agingFacts) : agingFacts
 	);
@@ -132,15 +249,44 @@
 		agingRows?.filter((row) => !agingCustomer || agingGroup(row) === agingCustomer.key)
 	);
 	const period = $derived(commissionPeriod ? monthOf(commissionPeriod) : null);
-	const boardAnswer = $derived(
-		boardShown && period
-			? bolt.query(boardRead(period, kinds.catalog?.source_sales_lines?.output === 'commercial'))
+	const boardRequest = $derived(
+		tab === 'commission' && boardShown && period
+			? boardRead(period, kinds.catalog?.source_sales_lines?.output === 'commercial')
 			: null
 	);
-	// the board hashes each calculation, so it resolves once the read has answered
+	const boardAnswer = $derived(boardRequest ? bolt.query(boardRequest) : null);
 	const monthlyRows = $derived(
-		boardAnswer?.current && period ? run(commissionBoard(boardAnswer.current, period)) : null
+		boardRequest && boardAnswer?.current && period
+			? run(completeCommissionBoard(bolt, boardRequest, boardAnswer.current, period))
+			: null
 	);
+	const shapeSalesRows = (rows: ReturnType<typeof salesDetail>) =>
+		rows.map((row) => ({
+			...row,
+			freight_treatment_label: row.freight_treatment
+				? bolt.t(`reports.freight.${row.freight_treatment}`)
+				: '',
+			kind_label: bolt.t(`reports.sales.kind.${row.kind}`)
+		}));
+	let reportPages = $state({ customers: 0, entries: 0, commission: 0 });
+	const pageIndex = (kind: keyof typeof reportPages, total: number) =>
+		Math.min(reportPages[kind], Math.max(0, Math.ceil(total / pageSize) - 1));
+	$effect.pre(() => {
+		void asOf;
+		void agingView;
+		void agingBasis;
+		void agingCustomer;
+		reportPages.customers = 0;
+		reportPages.entries = 0;
+	});
+	$effect.pre(() => {
+		void commissionPeriod;
+		reportPages.commission = 0;
+	});
+	const visiblePage = <A,>(kind: keyof typeof reportPages, rows: readonly A[]) => {
+		const start = pageIndex(kind, rows.length) * pageSize;
+		return rows.slice(start, start + pageSize);
+	};
 	const downloadWorkbook = (
 		name: string,
 		columns: readonly (
@@ -268,31 +414,46 @@
 		</button>
 	{/if}
 {/snippet}
-{#snippet salesTab()}<Stack gap="md">
+{#snippet salesTab()}<Stack size="fill" minHeight="18rem" gap="sm">
 		{#if invalidSalesRange}<EmptyState tone="danger" title={bolt.t('errors.report_range')} />
-		{:else if detailRows?.length}
-			{@const rows = detailRows.map((row) => ({
-				...row,
-				freight_treatment_label: row.freight_treatment
-					? bolt.t(`reports.freight.${row.freight_treatment}`)
-					: '',
-				kind_label: bolt.t(`reports.sales.kind.${row.kind}`)
-			}))}
-			{@const margins = marginSeries(detailRows)}
-			{@const hasCost = rows.some((row) => row.cost !== null)}
-			{@const separateCostCurrency = rows.some(
-				(row) => row.cost_currency && row.cost_currency !== row.currency
-			)}
-			{@const knownMargins = margins.filter((row) => row.margin !== null)}
-			{#each [...new Set(knownMargins.map((r) => r.currency))] as currency}
-				<Chart
-					of={knownMargins.filter((r) => r.currency === currency)}
-					x="salesperson"
-					y="margin"
-					orientation="horizontal"
-					title={`${bolt.t('component.actual_margins')} · ${currency}`}
-				/>
-			{/each}
+		{:else if salesPageError || liveSales?.error}<EmptyState
+				tone="danger"
+				title={bolt.t('reports.sales.incomplete')}
+			/>
+			{#if salesAfter}<Button variant="outline" onclick={() => (salesNavigation = null)}
+					>{bolt.t('reports.first_page')}</Button
+				>{/if}
+		{:else if detailRows}
+			{@const rows = shapeSalesRows(detailRows)}
+			{#if margins}
+				{#await margins}<p class="text-sm text-muted-foreground" role="status">
+						{bolt.t('component.reports_loading')}
+					</p>
+				{:then summary}
+					{@const known = summary.filter((row) => row.margin !== null)}
+					{#each [...new Set(known.map((row) => row.currency))] as currency}
+						<Chart
+							of={known.filter((row) => row.currency === currency)}
+							x="salesperson"
+							y="margin"
+							orientation="horizontal"
+							title={`${bolt.t('component.actual_margins')} · ${currency}`}
+						/>
+					{:else}<p class="text-sm text-muted-foreground">
+							{bolt.t('component.unpriced_margin')}
+						</p>{/each}
+				{:catch}<p class="text-sm text-destructive" role="alert">
+						{bolt.t('reports.sales.incomplete')}
+					</p>{/await}
+			{/if}
+			{#if salesExportError}<p class="text-sm text-destructive" role="alert">
+					{bolt.t('reports.sales.incomplete')}
+				</p>{/if}
+			{#if exporting}<p class="text-sm text-muted-foreground" role="status">
+					{bolt.t('reports.exporting')}
+				</p>{/if}
+			{@const hasCost = kinds.catalog?.source_sales_lines?.output !== 'commercial'}
+			{@const separateCostCurrency = hasCost}
 			{@const salesColumns: readonly Col<(typeof rows)[number]>[] = [
 					{ field: 'order_number', label: bolt.t('models.orders.singular'), cell: salesOrderCell },
 					{ field: 'reference', label: bolt.t('reports.sales.reference') },
@@ -359,30 +520,97 @@
 			<Table
 				layout="grid"
 				of={rows}
+				controlled
 				key="sales_detail"
-				columns={salesColumns}
+				columns={salesColumns.filter(
+					(column) =>
+						typeof column === 'string' ||
+						![
+							'kind_label',
+							'freight_treatment_label',
+							'floor_net',
+							'freight',
+							'cost_currency'
+						].includes(column.field)
+				)}
 				toolbar={{
 					new: false,
-					export: true,
+					search: false,
+					filter: false,
 					description: bolt.t('component.unpriced_margin'),
 					actions: [
 						{
+							icon: 'lucide:chart-column',
+							name: bolt.t('component.actual_margins'),
+							run: toggleMargins
+						},
+						{
 							icon: 'lucide:file-spreadsheet',
 							name: bolt.t('component.export_xlsx'),
-							run: () => downloadWorkbook('sales-analysis', salesColumns, rows)
+							run: () => {
+								if (!salesRequest || exporting) return;
+								exporting = true;
+								salesExportError = false;
+								void run(fullSales(salesRequest, salesBasis))
+									.then(
+										(all) => downloadWorkbook('sales-analysis', salesColumns, shapeSalesRows(all)),
+										() => {
+											salesExportError = true;
+										}
+									)
+									.finally(() => {
+										exporting = false;
+									});
+							}
 						}
 					]
 				}}
-			/>
-		{:else if detailRows}<EmptyState
-				title={bolt.t(
-					salesBasis === 'invoice' ? 'reports.sales.no_invoices' : 'reports.sales.no_deliveries'
-				)}
-			/>
-		{:else if sales?.error}<EmptyState tone="danger" title={sales.error.message} />
+			>
+				{#snippet footer()}
+					{@render pager(
+						salesCursors.length,
+						salesPageAnswer?.source_sales_lines.next != null,
+						(direction) =>
+							salesPage(direction < 0 ? null : (salesPageAnswer?.source_sales_lines.next ?? null))
+					)}
+				{/snippet}
+				{#snippet empty()}<EmptyState
+						title={bolt.t(
+							salesBasis === 'invoice' ? 'reports.sales.no_invoices' : 'reports.sales.no_deliveries'
+						)}
+					/>{/snippet}
+			</Table>
 		{:else}<EmptyState title={bolt.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
-{#snippet agingReference({ row }: { row: ReturnType<typeof agingDetails>[number] })}
+{#snippet pager(index: number, next: boolean, move: (direction: number) => void)}
+	<div
+		class="flex flex-wrap items-center justify-end gap-2"
+		aria-label={bolt.t('reports.page_navigation')}
+	>
+		<span class="text-sm tabular-nums text-muted-foreground"
+			>{bolt.t('reports.page_number', { page: index + 1 })}</span
+		>
+		<Button variant="outline" disabled={index === 0} onclick={() => move(-1)}
+			>{bolt.t('reports.previous')}</Button
+		>
+		<Button variant="outline" disabled={!next} onclick={() => move(1)}
+			>{bolt.t('reports.next')}</Button
+		>
+	</div>
+{/snippet}
+{#snippet localPager(kind: keyof typeof reportPages, total: number)}
+	{@const index = pageIndex(kind, total)}
+	{@render pager(
+		index,
+		(index + 1) * pageSize < total,
+		(direction) => (reportPages[kind] = index + direction)
+	)}
+{/snippet}
+{#snippet agingReference({
+	row
+}: {
+	row: Effect.Success<ReturnType<typeof readAgingReport>>[number];
+})}
 	{#if row.invoice || row.order}
 		<button
 			type="button"
@@ -439,7 +667,9 @@
 		{/if}
 	</div>
 {/snippet}
-{#snippet aging()}<Stack gap="md">
+{#snippet customersPager()}{@render localPager('customers', agingCustomers?.length ?? 0)}{/snippet}
+{#snippet entriesPager()}{@render localPager('entries', visibleAgingRows?.length ?? 0)}{/snippet}
+{#snippet aging()}<Stack size="fill" minHeight="18rem" gap="sm">
 		{#each snapshots as snapshot (snapshot.id)}
 			<p class="text-sm text-muted-foreground">
 				{snapshot.source?.name} · {bolt.t('reports.aging.snapshot_at')}
@@ -450,7 +680,7 @@
 		{#if futureAging}<EmptyState tone="danger" title={bolt.t('errors.report_future')} />
 		{:else if earlyAging}<EmptyState tone="danger" title={bolt.t('reports.aging.early_cutoff')} />
 		{:else if agingSources?.error}<EmptyState tone="danger" title={agingSources.error.message} />
-		{:else if agingIncomplete}<EmptyState
+		{:else if agingIncomplete || snapshotError}<EmptyState
 				tone="danger"
 				title={bolt.t('reports.aging.incomplete')}
 			/>
@@ -488,7 +718,9 @@
 				]}
 			<Table
 				layout="grid"
-				of={agingCustomers}
+				of={visiblePage('customers', agingCustomers)}
+				controlled
+				footer={customersPager}
 				key="ar_customers"
 				onOpen={(row) => {
 					agingCustomer = {
@@ -553,7 +785,9 @@
 				]}
 			<Table
 				layout="grid"
-				of={agingEntryRows}
+				of={visiblePage('entries', agingEntryRows)}
+				controlled
+				footer={entriesPager}
 				key="ar_aging"
 				columns={agingEntryColumns}
 				toolbar={{
@@ -579,13 +813,14 @@
 			onclick={() => (monthSelection = row)}>{bolt.t('component.commission_acknowledge')}</Button
 		>{/if}
 {/snippet}
-{#snippet monthlyCommission()}<Stack gap="md">
+{#snippet monthlyCommission()}<Stack size="fill" minHeight="18rem" gap="sm">
 		{#if monthlyRows}{#await monthlyRows}<EmptyState title={bolt.t('component.reports_loading')} />
 			{:then monthly}
 				{@const rows = monthly.map((row) => ({
 					...row,
 					state_label: bolt.t(`reports.commission_ack.${row.state}`)
 				}))}
+				{#snippet commissionPager()}{@render localPager('commission', rows.length)}{/snippet}
 				{@const commissionExport = [
 					{ field: 'owner_name', label: label(bolt, 'orders', 'owner_name') },
 					{ field: 'currency', label: label(bolt, 'orders', 'currency') },
@@ -608,7 +843,9 @@
 				]}
 				<Table
 					layout="grid"
-					of={rows}
+					of={visiblePage('commission', rows)}
+					controlled
+					footer={commissionPager}
 					key="monthly_commission"
 					onOpen={(row) => {
 						if (row.latest_statement) openRecord('commission_statements', row.latest_statement);

@@ -6,7 +6,13 @@ import { sourceOrder, sourceTransaction, sourcePayment } from './synced-kit.js';
 import { expect, it as test } from '@effect/vitest';
 import { committed, workspace, draft, confirm } from './kit.js';
 import { agingOf } from './reads.js';
-import { agingDetails, agingRead, agingSummary, estimateAging } from '../src/lib/reports.js';
+import {
+	agingDetails,
+	agingRead,
+	agingSummary,
+	estimateAging,
+	readAgingReport
+} from '../src/lib/reports.js';
 test.live(
 	'AR separates applied payments, unapplied deposits, overdue buckets and overpayments',
 	() =>
@@ -19,6 +25,15 @@ test.live(
 			const invoice = yield* sourceTransaction(t, { order, line }, parent);
 			yield* sourcePayment(t, parent, invoice.id, '5');
 			yield* sourcePayment(t, parent, null, '3');
+			const cutoff = PlainDate('2026-10-10');
+			const paged = agingRead(cutoff, [], 1);
+			const first = yield* as.query(paged);
+			expect(first.source_payments.next).not.toBeNull();
+			const full = yield* as.query(agingRead(cutoff));
+			expect(yield* readAgingReport(as, paged, first, cutoff, [])).toEqual(
+				agingDetails(full, cutoff)
+			);
+
 			expect(yield* agingOf(as, { as_of: PlainDate('2026-10-10') })).toMatchObject([
 				{ balance: decimalText('16.80'), bucket: '61_90', overpaid: decimalText('0') }
 			]);

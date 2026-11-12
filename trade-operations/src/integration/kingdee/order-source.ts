@@ -4,7 +4,7 @@ import type { Json } from '@norbital-ai/bolt/engine';
 import { Decimal, currency, sum } from '@norbital-ai/std/decimal';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { agreements, agreementFields } from '../../lib/agreements.js';
-import { sha256Hex } from '../../lib/commercial.js';
+import { hash, sha256Hex } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
 import {
@@ -56,8 +56,12 @@ type SalesDocument = {
 	readonly lines: readonly SalesLine[];
 	readonly total: Decimal | null;
 };
-type SalesGraph = {
-	readonly orders: readonly OwnedSales[];
+type DocumentIssue = { readonly document: string; readonly column: string };
+type DocumentReview = {
+	readonly held: Set<Id<'orders'>>;
+	readonly issues: DocumentIssue[];
+};
+type SalesGraph = DocumentReview & {
 	readonly deliveries: readonly SalesDocument[];
 	readonly invoices: readonly SalesDocument[];
 	readonly observedAt: ReturnType<typeof Instant>;
@@ -169,14 +173,14 @@ const batches = <A>(values: readonly A[]) =>
 	Array.from({ length: Math.ceil(values.length / 200) }, (_, i) =>
 		values.slice(i * 200, (i + 1) * 200)
 	);
-const selectByIds = Effect.fnUntraced(function* (
+export const selectByIds = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	projection: NativeProjection,
 	values: readonly string[],
 	branch = '',
 	account?: string
 ) {
-	const rows: SqlRow[] = [];
+	const rows = new Map<string, SqlRow>();
 	for (const batch of batches([...new Set(values)])) {
 		const xml = yield* checked(
 			() =>
@@ -188,15 +192,23 @@ const selectByIds = Effect.fnUntraced(function* (
 					})
 					.join('')}</ids>`
 		);
-		rows.push(
-			...(yield* readNativeRows(ctx, projection, {
-				ids: xml,
-				branch,
-				...(account === undefined ? {} : { account })
-			}))
-		);
+		const page = yield* readNativeRows(ctx, projection, {
+			ids: xml,
+			branch,
+			...(account === undefined ? {} : { account })
+		});
+		yield* checked(() => {
+			for (const row of page) {
+				const key = text(row, '__key');
+				const prior = rows.get(key);
+				// One physical record can be found through several input batches.
+				if (prior && JSON.stringify(prior) !== JSON.stringify(row))
+					invalid('__key', 'Kingdee returned conflicting observations for the same key');
+				rows.set(key, row);
+			}
+		});
 	}
-	return rows;
+	return [...rows.values()];
 });
 
 const salesLineProjection: NativeProjection = {
@@ -235,21 +247,30 @@ SELECT ${padded('line.FDetailID')} AS __key,${textId('line.FInterID')} AS fid,
 FROM dbo.ICSaleEntry line LEFT JOIN dbo.t_Item unit ON unit.FItemID=line.FUnitID AND unit.FItemClassID=7
 WHERE line.FInterID IN ${ids}`
 };
-const documentDiscovery = (kind: 'delivery' | 'invoice'): NativeProjection => ({
-	sql: `/* kingdee-document-ids */
-SELECT DISTINCT ${padded('line.FInterID')} AS __key,${textId('line.FInterID')} AS fid
+const documentIds = (kind: 'delivery' | 'invoice') => `
+SELECT DISTINCT line.FInterID AS fid
 FROM dbo.${kind === 'delivery' ? 'ICStockBillEntry' : 'ICSaleEntry'} line
-WHERE line.FSourceTranType=${kind === 'delivery' ? 81 : 21} AND line.FSourceInterId IN ${ids}`
-});
+WHERE line.FSourceTranType=${kind === 'delivery' ? 81 : 21} AND line.FSourceInterId IN ${ids}
+${
+	kind === 'delivery'
+		? `UNION
+SELECT red.FInterID AS fid
+FROM dbo.ICStockBillEntry red
+JOIN dbo.ICStockBillEntry original ON original.FInterID=red.FSourceInterId
+ AND original.FEntryID=red.FSourceEntryID
+WHERE red.FSourceTranType=21 AND original.FSourceTranType=81 AND original.FSourceInterId IN ${ids}`
+		: ''
+}`;
 const documentHeaderProjection = (kind: 'delivery' | 'invoice'): NativeProjection => ({
-	sql: `
-SELECT ${padded('head.FInterID')} AS __key,${textId('head.FInterID')} AS fid,head.FBillNo AS reference,
+	sql: `/* kingdee-document-headers */
+SELECT ${padded('candidate.fid')} AS __key,${textId('candidate.fid')} AS fid,
+ ${textId('head.FInterID')} AS header_id,head.FBillNo AS reference,
  ${textId('head.FTranType')} AS type,CONVERT(varchar(10),head.FDate,23) AS date,
  CONVERT(varchar(10),head.FCheckDate,23) AS checked_on,head.FCancellation AS cancelled,head.FROB AS rob
  ${kind === 'invoice' ? ',cur.FNumber AS currency,CONVERT(varchar(10),head.FSettleDate,23) AS due_on' : ''}
-FROM dbo.${kind === 'delivery' ? 'ICStockBill' : 'ICSale'} head
- ${kind === 'invoice' ? 'LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID' : ''}
-WHERE head.FInterID IN ${ids}`
+FROM (${documentIds(kind)}) candidate
+ LEFT JOIN dbo.${kind === 'delivery' ? 'ICStockBill' : 'ICSale'} head ON head.FInterID=candidate.fid
+ ${kind === 'invoice' ? 'LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID' : ''}`
 });
 
 export type SealedSalesOwner = {
@@ -599,7 +620,8 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	kind: 'delivery' | 'invoice',
 	deliveries: readonly SalesDocument[] = [],
 	retained: readonly { readonly kind: string; readonly fid: string; readonly seal: string }[] = [],
-	costAccount?: string
+	costAccount?: string,
+	review?: DocumentReview
 ) {
 	const lineProjection =
 		kind === 'delivery' ? deliveryLineProjection(costAccount !== undefined) : invoiceLineProjection;
@@ -608,12 +630,14 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 		kind === 'delivery'
 			? orders.flatMap((order) => [order.fid, order.liveFid])
 			: deliveries.map((delivery) => delivery.fid);
-	const candidates = yield* selectByIds(ctx, documentDiscovery(kind), sources);
-	const fids = yield* checked(() => [...new Set(candidates.map((row) => exactId(row, 'fid')))]);
-	const headers = yield* selectByIds(ctx, documentHeaderProjection(kind), fids);
+	const headers = yield* selectByIds(ctx, documentHeaderProjection(kind), sources);
 	const pendingIds = yield* checked(() => {
-		const present = new Set(headers.map((header) => exactId(header, 'fid')));
-		if (fids.some((fid) => !present.has(fid)))
+		if (
+			headers.some(
+				(header) =>
+					header.header_id === null || exactId(header, 'header_id') !== exactId(header, 'fid')
+			)
+		)
 			return invalid(
 				'FInterID',
 				'A discovered Kingdee document is missing its header; retry the observation'
@@ -627,67 +651,117 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	const entries = yield* selectByIds(
 		ctx,
 		lineProjection,
-		fids.filter((fid) => !pending.has(fid)),
+		headers.map((header) => exactId(header, 'fid')).filter((fid) => !pending.has(fid)),
 		'',
 		costAccount
 	);
-	const documents = yield* checked(() =>
-		headers
-			.filter((header) => !pending.has(exactId(header, 'fid')))
-			.map((header): SalesDocument => {
-				const fid = exactId(header, 'fid');
-				if (exactId(header, 'type') !== (kind === 'delivery' ? '21' : '80'))
-					return invalid(
-						'FTranType',
-						'This source document type has no verified transaction mapping'
-					);
+	const documents = yield* checked(() => {
+		const resolved = new Map<string, SalesDocument>();
+		const byFid = new Map(deliveries.map((delivery) => [delivery.fid, delivery]));
+		const rowsByFid = Map.groupBy(entries, (entry) => exactId(entry, 'fid'));
+		const pins = new Map(
+			retained.filter((pin) => pin.kind === kind).map((pin) => [pin.fid, pin.seal])
+		);
+		const byOrderFid = new Map<string, OwnedSales[]>();
+		for (const order of orders)
+			for (const fid of new Set([order.fid, order.liveFid])) {
+				const list = byOrderFid.get(fid) ?? [];
+				list.push(order);
+				byOrderFid.set(fid, list);
+			}
+		const related = new Map<string, Set<Id<'orders'>>>();
+		const pinOrders = new Map(orders.map((order) => [order.seal, order.order]));
+		const issue = (fid: string, column: string, affected: ReadonlySet<Id<'orders'>>) => {
+			if (!review || !affected.size) return false;
+			for (const order of affected) review.held.add(order);
+			review.issues.push({ document: `${kind} ${fid}`, column });
+			return true;
+		};
+		for (const fid of pending) {
+			const pinned = pins.get(fid);
+			const owner = pinOrders.get(pinned ?? '');
+			if (pinned && !owner)
+				return invalid('contractVersion', 'A retained document has no owned agreement');
+			if (owner) issue(fid, 'FCheckDate', new Set([owner]));
+		}
+		const issued = headers.filter((header) => !pending.has(exactId(header, 'fid')));
+		// Delivery reversals can refer to an original delivery regardless of their physical ID order.
+		issued.sort((a, b) => Number(b['rob']) - Number(a['rob']));
+		for (const header of issued) {
+			const fid = exactId(header, 'fid');
+			const rows = rowsByFid.get(fid) ?? [];
+			const pinned = pins.get(fid);
+			const affected = new Set<Id<'orders'>>();
+			const priorOrder = pinOrders.get(pinned ?? '');
+			if (priorOrder) affected.add(priorOrder);
+			if (review) {
+				for (const entry of rows) {
+					const sourceType = String(entry['source_type']);
+					const sourceFid = String(entry['source_fid']);
+					if (kind === 'delivery' && sourceType === '81')
+						for (const order of byOrderFid.get(sourceFid) ?? []) affected.add(order.order);
+					if (sourceType === '21') {
+						const parent = kind === 'delivery' ? resolved.get(sourceFid) : byFid.get(sourceFid);
+						if (parent) affected.add(parent.owner.order);
+						if (kind === 'delivery')
+							for (const order of related.get(sourceFid) ?? []) affected.add(order);
+					}
+				}
+				related.set(fid, affected);
+			}
+			try {
 				const rob = String(header['rob']);
 				if (rob !== '1' && rob !== '-1')
 					return invalid('FROB', 'Owned documents must be blue or red');
 				const red = rob === '-1';
-				const rows = entries.filter((entry) => exactId(entry, 'fid') === fid);
+				const type = exactId(header, 'type');
+				if (kind === 'delivery' ? type !== '21' : type !== '80' && !(red && type === '86'))
+					return invalid(
+						'FTranType',
+						'This source document type has no verified transaction mapping'
+					);
 				if (!rows.length) return invalid('FInterID', 'Owned source document has no lines');
 				let owner: OwnedSales | undefined;
 				const lines = rows.map((entry): SalesLine => {
-					if (exactId(entry, 'source_type') !== String(sourceType))
+					const type = exactId(entry, 'source_type');
+					const linkedReturn = kind === 'delivery' && red && type === '21';
+					if (type !== String(sourceType) && !linkedReturn)
 						return invalid(
 							'FSourceTranType',
 							'Owned document contains a line without verified order lineage'
 						);
 					const sourceFid = exactId(entry, 'source_fid');
 					const sourceEntry = exactId(entry, 'source_entry');
-					const pinned = retained.find(
-						(document) => document.kind === kind && document.fid === fid
-					);
-					const candidates =
-						kind === 'delivery'
-							? orders.filter(
-									(candidate) =>
-										(candidate.fid === sourceFid || candidate.liveFid === sourceFid) &&
-										(!pinned || candidate.seal === pinned.seal) &&
-										candidate.lines.some(
-											(line) =>
-												line.entryId === sourceEntry && line.itemId === exactId(entry, 'item_id')
-										)
-								)
-							: deliveries
-									.filter((candidate) => candidate.fid === sourceFid)
-									.map((candidate) => candidate.owner);
+					const parent = linkedReturn
+						? resolved.get(sourceFid)
+						: kind === 'invoice'
+							? byFid.get(sourceFid)
+							: undefined;
+					const direct = kind === 'delivery' && !linkedReturn;
+					const candidates = direct
+						? (byOrderFid.get(sourceFid) ?? []).filter(
+								(candidate) =>
+									(!pinned || candidate.seal === pinned) &&
+									candidate.lines.some(
+										(line) =>
+											line.entryId === sourceEntry && line.itemId === exactId(entry, 'item_id')
+									)
+							)
+						: parent
+							? [parent.owner]
+							: [];
 					if (candidates.length !== 1)
 						return invalid(
 							'contractVersion',
 							'This source document has no unique contract-version lineage; retain the existing evidence and reconcile its version explicitly'
 						);
 					const order = candidates[0];
-					if (pinned && order?.seal !== pinned.seal)
+					if (pinned && order?.seal !== pinned)
 						return invalid(
 							'contractVersion',
 							'A retained physical document cannot move to another contract version'
 						);
-					const sourceLines =
-						kind === 'delivery'
-							? order?.lines
-							: deliveries.find((candidate) => candidate.fid === sourceFid)?.lines;
+					const sourceLines = direct ? order?.lines : parent?.lines;
 					const matches = sourceLines?.filter((line) => line.entryId === sourceEntry) ?? [];
 					const source = matches[0];
 					if (!order || matches.length !== 1 || !source)
@@ -703,7 +777,9 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					if (
 						exactId(entry, 'item_id') !== source.itemId ||
 						text(entry, 'unit') !== source.unit ||
-						quantity.lte(0) ||
+						quantity.isZero() ||
+						(!red && quantity.lt(0)) ||
+						(linkedReturn && (!source.quantity.gt(0) || quantity.abs().gt(source.quantity))) ||
 						!quantity.round(3).eq(quantity)
 					)
 						return invalid(
@@ -720,6 +796,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 							'A blue invoice line has a negative amount requiring an explicit reversal mapping'
 						);
 					const costAmount = r.decimal('cost_amount', null);
+					const signed = (value: Decimal) => (red ? value.abs().neg() : value);
 					return {
 						entryId: exactId(entry, 'entry_id'),
 						detailId:
@@ -728,25 +805,11 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 								: `${fid}:${exactId(entry, 'entry_id')}`,
 						itemId: source.itemId,
 						unit: source.unit,
-						quantity: red ? r.decimal('quantity').neg() : r.decimal('quantity'),
+						quantity: signed(quantity),
 						lotNumber: kind === 'delivery' ? nullableText(entry, 'lot') : source.lotNumber,
-						netAmount:
-							kind === 'invoice'
-								? red
-									? r.decimal('net_amount').neg()
-									: r.decimal('net_amount')
-								: null,
-						grossAmount:
-							kind === 'invoice'
-								? red
-									? r.decimal('gross_amount').neg()
-									: r.decimal('gross_amount')
-								: null,
-						...(costAccount
-							? {
-									costAmount: costAmount === null ? null : red ? costAmount.neg() : costAmount
-								}
-							: {}),
+						netAmount: kind === 'invoice' ? signed(r.decimal('net_amount')) : null,
+						grossAmount: kind === 'invoice' ? signed(r.decimal('gross_amount')) : null,
+						...(costAccount ? { costAmount: costAmount === null ? null : signed(costAmount) } : {}),
 						localLine: source.localLine,
 						upstream: { fid: sourceFid, entryId: sourceEntry }
 					};
@@ -758,7 +821,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 				const issuedOn = sourceDate(header, 'date');
 				if (!issuedOn || !sourceDate(header, 'checked_on'))
 					return invalid('FCheckDate', 'Owned document is not an issued, dated transaction');
-				return {
+				resolved.set(fid, {
 					fid,
 					reference: text(header, 'reference'),
 					issuedOn,
@@ -768,9 +831,14 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					owner,
 					lines,
 					total: kind === 'invoice' ? sum(lines.flatMap((line) => line.grossAmount ?? [])) : null
-				};
-			})
-	);
+				});
+			} catch (cause) {
+				if (!(cause instanceof SourceRowInvalid) || !issue(fid, cause.column, affected))
+					throw cause;
+			}
+		}
+		return [...resolved.values()];
+	});
 	return { documents, pendingIds };
 });
 
@@ -828,27 +896,29 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 		const match = /^(delivery|invoice):(\d+):/.exec(row.erp_id);
 		return match?.[1] && match[2] ? [{ kind: match[1], fid: match[2], seal: row.seal_hash }] : [];
 	});
-	const delivery = yield* readSalesDocuments(orders, ctx, 'delivery', [], pins, costAccount);
-	const invoice = yield* readSalesDocuments(orders, ctx, 'invoice', delivery.documents, pins);
-	const pending = [
-		...delivery.pendingIds.map((id) => `delivery:${id}:`),
-		...invoice.pendingIds.map((id) => `invoice:${id}:`)
-	];
-	if (pending.length > 0) {
-		const { transactions: retained } = yield* ctx.db.query({
-			transactions: { where: { source: { eq: instance } }, fields: ['erp_id'] }
-		});
-		if (retained.rows.some((row) => pending.some((prefix) => row.erp_id.startsWith(prefix))))
-			return yield* new SourceRowInvalid({
-				column: 'FCheckDate',
-				reason:
-					'A previously synchronized Kingdee document is no longer issued; review its unaudit or reversal before replacing the retained evidence'
-			});
-	}
-	return {
+	const review: DocumentReview = { held: new Set(), issues: [] };
+	const delivery = yield* readSalesDocuments(
 		orders,
-		deliveries: delivery.documents,
-		invoices: invoice.documents,
+		ctx,
+		'delivery',
+		[],
+		pins,
+		costAccount,
+		review
+	);
+	const invoice = yield* readSalesDocuments(
+		orders,
+		ctx,
+		'invoice',
+		delivery.documents,
+		pins,
+		undefined,
+		review
+	);
+	return {
+		...review,
+		deliveries: delivery.documents.filter((doc) => !review.held.has(doc.owner.order)),
+		invoices: invoice.documents.filter((doc) => !review.held.has(doc.owner.order)),
 		observedAt: decoded.observedAt,
 		source: yield* ownershipSource(decoded.scope, owned.ownership)
 	} satisfies SalesGraph;
@@ -857,7 +927,8 @@ const Cursor = Schema.Struct({
 	protocol: Schema.Literal('kingdee-owned-v1'),
 	source: Schema.String,
 	after: Schema.String.check(Schema.isPattern(/^(?:[\x21-\x7e]{1,512})?$/)),
-	finish: Schema.Boolean
+	finish: Schema.Boolean,
+	fingerprint: Schema.optionalKey(Schema.String)
 });
 const verifyOwnedCursor = Effect.fnUntraced(function* (cursor: Json | null, source: string) {
 	const previous =
@@ -887,7 +958,8 @@ const verifyOwnedCursor = Effect.fnUntraced(function* (cursor: Json | null, sour
 export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
 	rows: readonly (R & { readonly $id: string })[],
 	cursor: Json | null,
-	source: string
+	source: string,
+	reuseCompleted?: boolean
 ): Effect.fn.Return<SourcePage<R>, SourceRowInvalid> {
 	const previous = yield* verifyOwnedCursor(cursor, source);
 	// A newly approved local agreement starts a new authoritative listing, never finishes the previous scope.
@@ -898,6 +970,25 @@ export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
 			invalid('$id', 'Mapped Kingdee identities are not unique');
 		return result;
 	});
+	const fingerprint =
+		reuseCompleted === undefined
+			? undefined
+			: yield* hash(sorted.map((row) => ({ ...row, source_updated_at: undefined }))).pipe(
+					Effect.mapError(
+						(cause) => new SourceRowInvalid({ column: '$cursor', reason: cause.message })
+					)
+				);
+	if (
+		reuseCompleted &&
+		fingerprint !== undefined &&
+		previous?.source === source &&
+		previous.finish &&
+		previous.fingerprint === fingerprint
+	)
+		return { rows: [], cursor: previous, more: false };
+	// A page can see a newer source image than the previous page. Only an intact sweep can be reused.
+	const completeFingerprint =
+		current === null || current.fingerprint === fingerprint ? fingerprint : undefined;
 	const pending = sorted.filter((row) => row.$id > (current?.after ?? ''));
 	const page = pending.slice(0, 999);
 	const more = pending.length > page.length;
@@ -908,7 +999,8 @@ export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
 			protocol: 'kingdee-owned-v1',
 			source,
 			after: more ? (page.at(-1)?.$id ?? '') : '',
-			finish: !more
+			finish: !more,
+			...(completeFingerprint === undefined ? {} : { fingerprint: completeFingerprint })
 		}
 	};
 });
@@ -966,7 +1058,7 @@ export const readTransactions = Effect.fnUntraced(function* (
 			where: { source: { eq: instance } },
 			fields: ['external_id', 'status', 'order', 'agreement_hash']
 		},
-		transactions: { where: { source: { eq: instance } }, fields: ['erp_id'] }
+		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] }
 	});
 	const documents = [
 		...graph.deliveries.map((document) => ({ kind: 'delivery' as const, document })),
@@ -974,19 +1066,9 @@ export const readTransactions = Effect.fnUntraced(function* (
 	];
 	for (const { kind, document } of documents) {
 		const parent = parents.rows.find((row) => row.external_id === document.owner.externalId);
-		// A document poll can precede the SO poll; wait without writing or reconciling any evidence.
-		if (!parent || parent.status === 'draft')
-			return {
-				rows: [],
-				cursor,
-				more: false,
-				health: {
-					state: 'attention' as const,
-					code: 'parentPending',
-					message: 'Waiting for the issued Kingdee SO counterpart before importing its documents.'
-				}
-			};
 		if (
+			!parent ||
+			parent.status === 'draft' ||
 			parent.order !== document.owner.order ||
 			parent.agreement_hash !== document.owner.seal ||
 			(parent.status === 'void' &&
@@ -994,80 +1076,105 @@ export const readTransactions = Effect.fnUntraced(function* (
 					!existing.rows.some(
 						(row) => row.erp_id === `${kind}:${document.fid}:${document.owner.seal}`
 					)))
-		)
-			return yield* new SourceRowInvalid({
-				column: 'ext_sales_order',
-				reason: 'Source documents must retain their issued SO counterpart and sealed agreement'
-			});
+		) {
+			graph.held.add(document.owner.order);
+			graph.issues.push({ document: `${kind} ${document.fid}`, column: 'SO counterpart' });
+		}
 	}
 	const rows = yield* checked(() =>
-		documents.map(({ kind, document }) => {
-			const parent = parents.rows.find((row) => row.external_id === document.owner.externalId);
-			if (!parent)
-				return invalid(
-					'ext_sales_order',
-					'The owned order confirmation must sync before its documents'
-				);
-			const items = new Map<
-				string,
-				{
-					order_line_id: string;
-					product_name: string;
-					unit: string;
-					quantity: Decimal;
-					lot_number: string | null;
-					net_amount: Decimal | null;
-				}
-			>();
-			for (const line of document.lines) {
-				const identity = `${line.localLine.id}/${line.lotNumber ?? ''}`;
-				const previous = items.get(identity);
-				if (
-					previous &&
-					(previous.unit !== line.unit || previous.product_name !== line.localLine.product_name)
-				)
+		documents
+			.filter(({ document }) => !graph.held.has(document.owner.order))
+			.map(({ kind, document }) => {
+				const parent = parents.rows.find((row) => row.external_id === document.owner.externalId);
+				if (!parent)
 					return invalid(
-						'FEntryID',
-						'Grouped source document rows disagree on their sealed line or unit'
+						'ext_sales_order',
+						'The owned order confirmation must sync before its documents'
 					);
-				// A merged invoice can contain several deliveries of the same sealed line and lot.
-				items.set(identity, {
-					order_line_id: line.localLine.id,
-					product_name: line.localLine.product_name,
-					unit: line.unit,
-					quantity: previous ? previous.quantity.plus(line.quantity) : line.quantity,
-					lot_number: line.lotNumber,
-					net_amount: previous
-						? previous.net_amount === null || line.netAmount === null
-							? null
-							: previous.net_amount.plus(line.netAmount)
-						: line.netAmount
-				});
-			}
-			const erp_id = `${kind}:${document.fid}:${document.owner.seal}`;
-			return {
-				$id: erp_id,
-				erp_id,
-				kind,
-				order: document.owner.order,
-				ext_sales_order: parent.id,
-				ext_purchase_order: null,
-				reference: document.reference,
-				seal_hash: document.owner.seal,
-				currency: currency(document.currency),
-				status: document.status,
-				issued_on: document.issuedOn,
-				due_on: document.dueOn,
-				total: document.total,
-				items: [...items.values()],
-				documents: [],
-				source_updated_at: graph.observedAt
-			};
-		})
+				const items = new Map<
+					string,
+					{
+						order_line_id: string;
+						product_name: string;
+						unit: string;
+						quantity: Decimal;
+						lot_number: string | null;
+						net_amount: Decimal | null;
+					}
+				>();
+				for (const line of document.lines) {
+					const identity = `${line.localLine.id}/${line.lotNumber ?? ''}`;
+					const previous = items.get(identity);
+					if (
+						previous &&
+						(previous.unit !== line.unit || previous.product_name !== line.localLine.product_name)
+					)
+						return invalid(
+							'FEntryID',
+							'Grouped source document rows disagree on their sealed line or unit'
+						);
+					// A merged invoice can contain several deliveries of the same sealed line and lot.
+					items.set(identity, {
+						order_line_id: line.localLine.id,
+						product_name: line.localLine.product_name,
+						unit: line.unit,
+						quantity: previous ? previous.quantity.plus(line.quantity) : line.quantity,
+						lot_number: line.lotNumber,
+						net_amount: previous
+							? previous.net_amount === null || line.netAmount === null
+								? null
+								: previous.net_amount.plus(line.netAmount)
+							: line.netAmount
+					});
+				}
+				const erp_id = `${kind}:${document.fid}:${document.owner.seal}`;
+				return {
+					$id: erp_id,
+					erp_id,
+					kind,
+					order: document.owner.order,
+					ext_sales_order: parent.id,
+					ext_purchase_order: null,
+					reference: document.reference,
+					seal_hash: document.owner.seal,
+					currency: currency(document.currency),
+					status: document.status,
+					issued_on: document.issuedOn,
+					due_on: document.dueOn,
+					total: document.total,
+					items: [...items.values()],
+					documents: [],
+					source_updated_at: graph.observedAt
+				};
+			})
 	);
 	const present = new Set(rows.map((row) => row.erp_id));
 	const missing = existing.rows
-		.filter((row) => !present.has(row.erp_id))
+		.filter((row) => !present.has(row.erp_id) && !graph.held.has(row.order))
 		.map((row) => ({ $id: row.erp_id, erp_id: row.erp_id, status: 'void' as const }));
-	return yield* snapshotPage([...rows, ...missing], cursor, graph.source);
+	const retained = new Set(existing.rows.map((row) => row.erp_id));
+	return reviewedPage(
+		yield* snapshotPage(
+			[...rows, ...missing],
+			cursor,
+			graph.source,
+			rows.every((row) => retained.has(row.erp_id))
+		),
+		graph
+	);
 });
+
+export const reviewedPage = <R>(page: SourcePage<R>, review: DocumentReview): SourcePage<R> =>
+	review.issues.length === 0
+		? page
+		: {
+				...page,
+				health: {
+					state: 'attention',
+					code: 'documentReview',
+					message: `Review Kingdee ${review.issues
+						.slice(0, 3)
+						.map(({ document, column }) => `${document} (${column})`)
+						.join(', ')}. Existing evidence is retained for ${review.held.size} affected order(s).`
+				}
+			};

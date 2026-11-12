@@ -9,9 +9,7 @@ import type { SqlRow } from '../src/integration/kingdee/polling.js';
 
 const padded = (id: string) => id.padStart(20, '0');
 const instance = fixtureId('sys_integration', 'kingdee');
-const source = kingdeeFixture();
-const clock = { at: '2026-10-26T00:00:00.000Z' };
-const acquire = () =>
+const acquire = (source: ReturnType<typeof kingdeeFixture>, clock: { at: string }) =>
 	workspace({
 		source: (operation) =>
 			source.request(operation).pipe(
@@ -25,7 +23,9 @@ const acquire = () =>
 	});
 /** A sealed sale the writer submitted, its source mirror pulled before the SO approval. */
 const ownedSale = Effect.fnUntraced(function* () {
-	const t = yield* acquire();
+	const source = kingdeeFixture();
+	const clock = { at: '2026-10-26T00:00:00.000Z' };
+	const t = yield* acquire(source, clock);
 	const as = t.as(t.admin);
 	const { order, line } = yield* kingdeeSale(t, source);
 	yield* t.deliver();
@@ -36,7 +36,7 @@ const ownedSale = Effect.fnUntraced(function* () {
 	const sealed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 		.rows[0];
 	if (!sealed?.seal_hash || !sealed.sealed_contract) throw new Error('Sealed agreement missing');
-	return { t, as, order, line, fid: submission.remote, sealed };
+	return { t, as, order, line, fid: submission.remote, sealed, source, clock };
 });
 function addDelivery(
 	source: ReturnType<typeof kingdeeFixture>,
@@ -118,7 +118,7 @@ it.live(
 	'issued documents wait for the SO approval mirror, then synchronize read-only evidence without changing the sealed SO',
 	() =>
 		Effect.gen(function* () {
-			const { t, as, order, line, fid, sealed } = yield* ownedSale();
+			const { t, as, order, line, fid, sealed, source, clock } = yield* ownedSale();
 			addDelivery(source, '20001', fid);
 			addDelivery(source, '20002', fid);
 			addDelivery(source, '20003', fid, '');
@@ -131,7 +131,7 @@ it.live(
 			expect(
 				(yield* as.query({ sys_integration: { where: { id: { eq: instance } }, limit: 1 } }))
 					.sys_integration.rows[0]
-			).toMatchObject({ status: { health: { state: 'attention', code: 'parentPending' } } });
+			).toMatchObject({ status: { health: { state: 'attention', code: 'documentReview' } } });
 			clock.at = '2026-11-03T00:00:00.000Z';
 			yield* t.pull('ext_sales_orders');
 			yield* t.pull('transactions');
@@ -206,4 +206,64 @@ it.live(
 				contract_version: sealed.contract_version
 			});
 		})
+);
+
+it.live('holds a mixed invoice and its prior evidence while an unrelated order advances', () =>
+	Effect.gen(function* () {
+		const { t, as, order, fid, source } = yield* ownedSale();
+		const other = yield* kingdeeSale(t, source);
+		yield* t.deliver();
+		const remote = [...source.submissions.values()].at(-1)?.remote;
+		if (!remote || remote === fid) throw new Error('Second native sale required');
+		replaceHeader(source, 'SEOrder', remote, { checker: '701', checked_on: '2026-10-26' });
+		addDelivery(source, '21001', fid);
+		addInvoice(source, '31001', ['21001']);
+		yield* t.pull('ext_sales_orders');
+		const pull = () =>
+			Effect.gen(function* () {
+				yield* t.pull('transactions');
+				yield* t.pull('source_sales_lines');
+				yield* t.pull('source_payments');
+			});
+		yield* pull();
+		const read = (owner: typeof order) =>
+			as.query({
+				transactions: { where: { order: { eq: owner } } },
+				source_sales_lines: { where: { order: { eq: owner } } }
+			});
+		const retained = yield* read(order);
+		expect(retained.transactions.rows).toHaveLength(2);
+		const first = source.tables.ICSaleEntry?.find((row) => row.fid === '31001');
+		if (!first) throw new Error('First invoice line missing');
+		(source.tables.ICSaleEntry ??= []).push({
+			...first,
+			__key: padded('3100102'),
+			detail_id: '3100102',
+			entry_id: '2',
+			source_type: '0',
+			source_fid: '0'
+		});
+		addDelivery(source, '21002', remote);
+		addInvoice(source, '31002', ['21002']);
+		yield* pull();
+		expect(yield* read(order)).toEqual(retained);
+		const healthy = yield* read(other.order);
+		expect(healthy.transactions.rows.map((row) => row.reference).sort()).toEqual([
+			'DO-21002',
+			'INV-31002'
+		]);
+		expect(healthy.source_sales_lines.rows).toHaveLength(2);
+		const health = yield* as.query({
+			sys_integration: { where: { id: { eq: instance } }, limit: 1 }
+		});
+		expect(health.sys_integration.rows[0]).toMatchObject({
+			status: { health: { state: 'attention', code: 'documentReview' } }
+		});
+		source.tables.ICSaleEntry = (source.tables.ICSaleEntry ?? []).filter(
+			(row) => row.detail_id !== '3100102'
+		);
+		yield* pull();
+		expect(yield* read(order)).toEqual(retained);
+		expect(yield* read(other.order)).toEqual(healthy);
+	})
 );

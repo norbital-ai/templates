@@ -2,7 +2,7 @@ import { Decimal } from '@norbital-ai/std/decimal';
 import { logisticsLine } from '../../../../lib/logistics.js';
 import { model, type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { currentAgreement } from '../../../../lib/agreements.js';
+import { agreement } from '../../../../lib/agreements.js';
 import {
 	contractEntryId,
 	draftLineMatches,
@@ -137,7 +137,7 @@ const priced = Effect.fnUntraced(function* (
 		const print_values = details ? orderedPrintValues(details) : null;
 		let setupTarget;
 		if (order.draft_setup) {
-			const current = currentAgreement(order);
+			const current = agreement(order, order.draft_setup);
 			setupTarget = current?.snapshot.lines.find((line) =>
 				source_entry_id ? contractEntryId(current, line) === source_entry_id : line.id === old?.id
 			);
@@ -358,7 +358,7 @@ export default model('order_lines', {
 			for (const row of rows) {
 				const parent = parents.find((order) => order.id === row.order);
 				if (!parent?.draft_setup) continue;
-				const current = currentAgreement(parent);
+				const current = agreement(parent, parent.draft_setup);
 				const target = current ? draftLineTarget(current, row) : undefined;
 				if (
 					!current ||

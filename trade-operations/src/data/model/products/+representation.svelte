@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { run, bolt } from '$bolt';
-	import { Effect } from 'effect';
-	import { PlainDate } from '@norbital-ai/std/date';
+	import { bolt } from '$bolt';
 	import { Decimal } from '@norbital-ai/std/decimal';
-	import { Chart, EmptyState, Table, Show, useKinds, type RecordView } from '@norbital-ai/ui';
+	import { Chart, EmptyState, Show, useKinds, type RecordView } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
@@ -14,70 +12,66 @@
 	} = $props();
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
 	const kinds = useKinds();
-	const sales = $derived(
-		id && kinds.catalog?.source_sales_lines
-			? kinds.catalog.source_sales_lines.output === 'commercial'
-				? bolt.query(commercialSalesRead)
-				: bolt.query(salesRead)
-			: null
-	);
+	const sales = $derived.by(() => {
+		if (!id || !kinds.catalog?.source_sales_lines) return null;
+		const read =
+			kinds.catalog.source_sales_lines.output === 'commercial' ? commercialSalesRead : salesRead;
+		return bolt.query({
+			...read,
+			products: { ...read.products, where: { id: { eq: id } }, limit: 1 },
+			sys_user: { ...read.sys_user, limit: 1 },
+			source_sales_lines: {
+				...read.source_sales_lines,
+				where: {
+					active: { eq: true },
+					kind: { eq: 'shipment' },
+					order: { is: { lines: { some: { product: { eq: id } } } } }
+				},
+				orderBy: { business_on: 'desc' },
+				limit: 100
+			}
+		});
+	});
 	const rows = $derived(
 		(sales?.current ? salesDetail(sales.current) : [])
-			.filter((r) => r.product === id && r.kind !== 'return')
+			.filter((row) => row.product === id)
 			.sort((a, b) => a.business_on.localeCompare(b.business_on))
 	);
 	const floors = $derived(
-		id ? bolt.query({ pricing_floors: { where: { product: { eq: id } } } }) : null
+		id && kinds.catalog?.pricing_floors
+			? bolt.query({
+					pricing_floors: {
+						where: { product: { eq: id } },
+						fields: [
+							'effective_on',
+							'currency',
+							'unit',
+							'group_code',
+							'minimum_quantity',
+							'floor_price',
+							'tax_inclusive',
+							'tax_rate'
+						],
+						orderBy: { effective_on: 'desc' },
+						limit: 100
+					}
+				})
+			: null
 	);
-	const floorPage = $derived(floors?.current?.pricing_floors);
-	const loadFloorHistory = Effect.fnUntraced(function* (current: NonNullable<typeof floorPage>) {
-		const rows = yield* Effect.forEach(
-			current.rows,
-			(floor) =>
-				Effect.gen(function* () {
-					const revisions = yield* bolt.history('pricing_floors', floor.id);
-					return yield* Effect.forEach(
-						revisions,
-						(revision) =>
-							Effect.gen(function* () {
-								// the floor as this revision left it
-								const [rate] = (yield* bolt.query({
-									pricing_floors: { where: { id: { eq: floor.id } }, limit: 1, asOf: revision.at }
-								})).pricing_floors.rows;
-								if (!rate) return null;
-								const value = Decimal.of(String(rate.floor_price)).div(
-									rate.tax_inclusive
-										? Decimal.of(1).plus(Decimal.of(String(rate.tax_rate)).div(100, 8))
-										: Decimal.of(1),
-									8
-								);
-								const date =
-									revision.revision === 1
-										? PlainDate(rate.effective_on).toString()
-										: [
-												PlainDate(rate.effective_on).toString(),
-												revision.at?.slice(0, 10) ?? PlainDate(rate.effective_on).toString()
-											]
-												.sort()
-												.at(-1)!;
-								return {
-									on: date,
-									currency: rate.currency,
-									unit: rate.unit,
-									group: rate.group_code,
-									threshold: Decimal.of(String(rate.minimum_quantity)).toString(),
-									price: value.toString()
-								};
-							}),
-						{ concurrency: 'unbounded' }
-					);
-				}),
-			{ concurrency: 'unbounded' }
-		);
-		return rows.flat().filter((row) => row !== null);
-	});
-	// the revisions behind the current floors: re-read whenever the floors page changes
-	const floorHistory = $derived(floorPage == null ? null : run(loadFloorHistory(floorPage)));
+	const rates = $derived(
+		floors?.current?.pricing_floors.rows
+			.map((floor) => ({
+				on: floor.effective_on,
+				currency: floor.currency,
+				unit: floor.unit,
+				group: floor.group_code,
+				threshold: floor.minimum_quantity,
+				price: floor.tax_inclusive
+					? floor.floor_price.div(Decimal.of(1).plus(floor.tax_rate.div(100, 8)), 8)
+					: floor.floor_price
+			}))
+			.reverse() ?? []
+	);
 	const groups = $derived([...new Set(rows.map((r) => `${r.currency}/${r.unit}`))]);
 </script>
 
@@ -131,64 +125,38 @@
 					tone="danger"
 					title={floors.error.message}
 				/>{/if}
-			{#if floorHistory}
-				{#await floorHistory}<EmptyState
-						variant="inset"
-						title={bolt.t('component.pricing_history_loading')}
-					/>{:then rates}
-					{#each [...new Set(rates.map((r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}`))] as group}
-						{@const first = rates.find(
-							(r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}` === group
-						)!}
-						<Chart
-							of={rates
-								.filter((r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}` === group)
-								.map((r) => ({
-									on: r.on,
-									[bolt.t('models.pricing_floors.fields.floor_price')]: r.price
-								}))}
-							x="on"
-							y={bolt.t('models.pricing_floors.fields.floor_price')}
-							kind="line"
-							interpolation="step"
-							title={[
-								bolt.t('models.pricing_floors.label'),
-								`${first.currency}/${first.unit}`,
-								first.group,
-								Decimal.of(first.threshold).gt(0)
-									? `${bolt.t('models.pricing_floors.fields.minimum_quantity')}: ${first.threshold} ${first.unit}`
-									: ''
-							]
-								.filter(Boolean)
-								.join(' · ')}
-						/>
-					{/each}
-				{:catch}<EmptyState
-						variant="inset"
-						tone="danger"
-						title={bolt.t('component.confirmation_error')}
-					/>{/await}
+			{#if sales?.current?.source_sales_lines.next || floors?.current?.pricing_floors.next}
+				<p class="text-sm text-muted-foreground">{bolt.t('reports.product.recent_prices')}</p>
 			{/if}
-
-			<Table
-				of="pricing_floors"
-				where={{ product: { eq: id } }}
-				columns={[
-					'effective_on',
-					'group_code',
-					'unit',
-					'currency',
-					'floor_price',
-					'minimum_quantity'
-				]}
-				toolbar={{ new: false }}
-			/>
+			{#each [...new Set(rates.map((r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}`))] as group}
+				{@const points = rates.filter(
+					(r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}` === group
+				)}
+				{@const first = points[0]}
+				<Chart
+					of={points.map((r) => ({
+						on: r.on,
+						[bolt.t('models.pricing_floors.fields.floor_price')]: r.price.toString()
+					}))}
+					x="on"
+					y={bolt.t('models.pricing_floors.fields.floor_price')}
+					kind="line"
+					interpolation="step"
+					title={`${bolt.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first?.threshold.gt(0) ? ` · ≥ ${first.threshold}` : ''}`}
+				/>
+			{/each}
+			{#if (sales?.loading || floors?.loading) && rows.length === 0 && rates.length === 0}
+				<p class="text-sm text-muted-foreground" role="status">
+					{bolt.t('component.pricing_history_loading')}
+				</p>
+			{:else if !sales?.error && !floors?.error && rows.length === 0 && rates.length === 0}
+				<EmptyState variant="inset" title={bolt.t('component.pricing_history_empty')} />
+			{/if}
 		{/if}
 	</Stack>
 {/snippet}
 <RecordForm
 	{view}
-	mainTitle={bolt.t('section.general')}
 	sections={[
 		{
 			name: 'product',
@@ -202,7 +170,7 @@
 			fields: ['commission_factor', 'commission_basis_unit']
 		}
 	]}
-	tabs={id && kinds.catalog?.pricing_floors
+	tabs={id && (kinds.catalog?.pricing_floors || kinds.catalog?.source_sales_lines)
 		? [{ name: 'pricing', title: bolt.t('component.pricing_history'), body: pricing }]
 		: []}
 />

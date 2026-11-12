@@ -279,9 +279,10 @@ it.live(
 					params: [own.order]
 				})
 			);
-			// the previous test in this file already ran the 03:05 source-health slot; start this
-			// delivery one minute later so the shared cron registry sees a fresh slot
-			t.clock.set(new Date(new Date(retry.at).getTime() + 60_000).toISOString());
+			// Retry jitter can end inside the cron scheduler's one-second lookahead. Land on a whole minute.
+			const nextMinute = Math.floor(Date.parse(t.clock.now()) / 60_000) * 60_000 + 60_000;
+			const retryMinute = Math.ceil(Date.parse(retry.at) / 60_000) * 60_000;
+			t.clock.set(new Date(Math.max(nextMinute, retryMinute)).toISOString());
 			yield* t.deliver();
 			t.clock.advance('2min');
 			yield* t.pull('orders');

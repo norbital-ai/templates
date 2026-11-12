@@ -34,8 +34,7 @@ at the read mirrors, the observed contract versions, and the verified sales-orde
 | Operations → Partners  | Customers and suppliers                               | Parties, contacts, credit evidence, orders and agreement fulfilment        |
 | Operations → Warehouse | Products; Stock; Warehouses; Availability             | Product master, lots, stock, warehouse groups and sellable quantities      |
 | Operations → Analysis  | Reports                                               | Sales, AR aging, credit, commission board and statements                   |
-| Trade configuration    | Templates; Settings; Pricing floors; Commission rules | Commercial policy, document layouts, dated floors and CEL commission rules |
-| My sales profile       | Signature                                             | The signed PNG a salesperson may include on sealed contracts               |
+| Trade configuration    | Documents, Pricing | Templates with document and pricing defaults; dated price book, price history and CEL commission rules |
 
 The navigation is one shell; apps are capability-scoped. `operations` is the commercial application family;
 `trade_configuration` is separate and grants no commercial records.
@@ -118,7 +117,7 @@ per-order acknowledgment table. The commission board and statement retain their 
 
 - title, locale, version and status;
 - the Markdown/HTML body and optional print CSS/HTML;
-- optional letterhead, signature and company-stamp artwork.
+- optional letterhead and company-stamp artwork, with read-only support for historical personal artwork.
 
 A draft selects a published layout; a confirmed version retains the layout it used. Preview and download render
 the same PDF through `bolt.convert`. Supporting documents are attached to a draft or filed against a recorded
@@ -136,7 +135,7 @@ Teams map to one policy each:
 | Commercial Managers | `manager`       | Both directions, approvals, commission statements              |
 | Finance             | `finance`       | Payments, invoices, credit, receivables and reports            |
 | Logistics           | `logistics`     | Operational quantities; commercial fields masked via an output |
-| Configurators       | `configuration` | Settings, floors, rules, layouts and ledger connection         |
+| Configurators       | `configuration` | Business defaults, floors, rules and layouts         |
 
 Policies filter rows and choose read outputs; they never reshape a model. The `logistics` output removes
 commercial prices and totals while preserving quantities, dates and references. Direct permission executes; a

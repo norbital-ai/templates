@@ -7,6 +7,7 @@ import { direct } from './synced-kit.js';
 import { businessRows } from './business-source.js';
 import { committed, workspace } from './kit.js';
 import { boardOf } from './reads.js';
+import { boardRead, completeCommissionBoard } from '../src/lib/monthly-commission.js';
 it.live(
 	"monthly statement freezes the calculation, is the owner's alone, and refuses stale or duplicate sign-offs",
 	() =>
@@ -20,31 +21,39 @@ it.live(
 					?.seal_hash
 			);
 			const fact = (active: boolean, source_updated_at: string) =>
-				businessRows(t, 'source_sales_lines', [
-					{
-						external_code: 'SHIP',
+				businessRows(
+					t,
+					'source_sales_lines',
+					['SHIP-1', 'SHIP-2'].map((reference) => ({
+						external_code: reference,
 						order_id: own.order,
 						order_line_id: own.line,
 						kind: 'shipment',
-						reference: 'SHIP',
+						reference,
 						business_on: '2026-10-10',
 						source_updated_at,
 						seal_hash,
 						unit: 'kg',
-						quantity: '1000',
+						quantity: '500',
 						currency: 'SGD',
-						net_amount: '2000',
+						net_amount: '1000',
 						tax_amount: '0',
 						freight: '0',
 						active
-					}
-				]);
+					}))
+				);
 			yield* fact(true, '2026-10-10T00:00:00Z');
 			const finance = t.member(['finance']);
 			const f = t.as(finance);
 			const manager = t.as(t.member(['manager']));
 			const board = () => boardOf(f, { period: PlainDate('2026-10-10') });
 			const current = firstRow(yield* board());
+			const period = PlainDate('2026-10-01');
+			const paged = boardRead(period, false, undefined, 1);
+			const first = yield* f.query(paged);
+			expect(first.source_sales_lines.next).not.toBeNull();
+			expect(yield* completeCommissionBoard(f, paged, first, period)).toEqual([current]);
+
 			expect(current).toMatchObject({
 				owner: fixtureId('sys_user', sales.id),
 				period: '2026-10-01',

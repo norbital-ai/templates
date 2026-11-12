@@ -60,17 +60,15 @@ const settle = Effect.fnUntraced(function* (
 		ext_purchase_orders: purchases
 	} = yield* ctx.db.query({
 		orders: {
-			where: {
-				id: {
-					in: rows.flatMap(({ value, old }) => [value.order, old?.order].flatMap((id) => id ?? []))
-				}
-			}
+			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.order ?? []))] } }
 		},
 		ext_sales_orders: {
-			where: { id: { in: rows.flatMap(({ value }) => value.ext_sales_order ?? []) } }
+			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.ext_sales_order ?? []))] } }
 		},
 		ext_purchase_orders: {
-			where: { id: { in: rows.flatMap(({ value }) => value.ext_purchase_order ?? []) } }
+			where: {
+				id: { in: [...new Set(rows.flatMap(({ value }) => value.ext_purchase_order ?? []))] }
+			}
 		}
 	});
 	for (const [i, { value, old }] of rows.entries()) {
@@ -102,10 +100,17 @@ const settle = Effect.fnUntraced(function* (
 			(value.ext_sales_order ? order?.direction !== 'sales' : order?.direction !== 'purchasing')
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
+		const first = value.items?.[0];
+		const reversal = first !== undefined && Decimal.of(first.quantity).lt(0);
+		const factor = reversal ? -1 : 1;
+		const priorQuantity = old?.items?.[0]?.quantity;
+		if (first && priorQuantity != null && reversal !== Decimal.of(priorQuantity).lt(0))
+			yield* ctx.refuse('errors.evidence_sealed', { row: i });
+		if (reversal && !value.ext_sales_order) yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
 			value.kind === 'invoice' &&
 			value.status === 'issued' &&
-			(!value.issued_on || value.total == null || Decimal.of(value.total).lt(0))
+			(!value.issued_on || value.total == null || Decimal.of(value.total).times(factor).lt(0))
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
@@ -130,8 +135,8 @@ const settle = Effect.fnUntraced(function* (
 				seen.has(`${item.order_line_id}/${item.lot_number ?? ''}`) ||
 				!line ||
 				line.unit !== item.unit ||
-				Decimal.of(item.quantity).lte(0) ||
-				(item.net_amount != null && Decimal.of(item.net_amount).lt(0)) ||
+				Decimal.of(item.quantity).times(factor).lte(0) ||
+				(item.net_amount != null && Decimal.of(item.net_amount).times(factor).lt(0)) ||
 				(item.unit_price != null && !Decimal.of(item.unit_price).eq(line.unit_price))
 			)
 				yield* ctx.refuse('errors.evidence_sealed', { row: i });

@@ -5,9 +5,7 @@ export default app('trade_configuration', {
 	icon: 'lucide:settings',
 	banner: 'app-media/configuration-resin-banner.webp',
 	pages: {
-		templates: { title: 'models.document_templates.label', icon: 'lucide:file-text' },
-		settings: { title: 'models.commercial_settings.label', icon: 'lucide:settings' },
-		pricing_floors: { title: 'models.pricing_floors.label', icon: 'lucide:chart-no-axes-combined' },
-		rules: { title: 'models.commission_rules.label', icon: 'lucide:percent' }
+		templates: { title: 'section.documents', icon: 'lucide:file-text' },
+		pricing_floors: { title: 'section.pricing', icon: 'lucide:chart-no-axes-combined' }
 	}
 });

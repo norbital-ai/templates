@@ -10,6 +10,9 @@ export default policy({
 	},
 	automations: ['orders_revise'],
 	grants: {
+		sys_user: {
+			read: { id: { eq: { var: 'requestor.id' } } }
+		},
 		source_stock_commitments: { read: true },
 		ext_sales_orders: {
 			read: { ext_sales_orders: { where: own } },

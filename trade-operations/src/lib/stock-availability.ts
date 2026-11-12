@@ -2,6 +2,11 @@ import type { ReadAnswer } from '@norbital-ai/bolt';
 import { Decimal, sum } from '@norbital-ai/std/decimal';
 
 export const stockAvailabilityRead = {
+	commercial_settings: {
+		where: { code: { eq: 'default' } },
+		fields: ['stock_fresh_minutes'],
+		limit: 1
+	},
 	products: { fields: ['source', 'external_code', 'source_number', 'name', 'unit'], limit: 10000 },
 	warehouses: { fields: ['name', 'group_code'], limit: 10000 },
 	stock_snapshots: {
@@ -13,6 +18,7 @@ export const stockAvailabilityRead = {
 } as const;
 export const logisticsStockAvailabilityRead = {
 	...stockAvailabilityRead,
+	commercial_settings: { ...stockAvailabilityRead.commercial_settings, output: 'logistics' },
 	products: { ...stockAvailabilityRead.products, output: 'logistics' },
 	stock_snapshots: { ...stockAvailabilityRead.stock_snapshots, output: 'logistics' }
 } as const;
@@ -23,9 +29,9 @@ type Lot = Answer['stock_snapshots']['rows'][number];
 type Snapshot = Answer['source_stock_commitments']['rows'][number];
 type Commitment = Snapshot['entries'][number];
 const normalizeUnit = (unit: string | null) => unit?.normalize('NFKC').trim().toLowerCase() || null;
-const freshness = 30 * 60_000;
 
 export function stockAvailability(answer: Answer, now: number, byWarehouse: boolean) {
+	const freshness = (answer.commercial_settings.rows[0]?.stock_fresh_minutes ?? 30) * 60_000;
 	const warehouses = new Map<string, Answer['warehouses']['rows'][number]>(
 		answer.warehouses.rows.map((row) => [row.id, row])
 	);

@@ -8,7 +8,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { validateDatabaseRequest, type DatabaseRequest } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compileSqlServer } from '@norbital-ai/store/sqlserver';
-import { committed, confirm, revise, workspace } from './kit.js';
+import { committed, confirm, revise, SETTINGS, workspace } from './kit.js';
 import { firstRow, fixtureId } from './test-runtime.js';
 import { agreements, currentAgreement } from '../src/lib/agreements.js';
 import { confirmationRead, quotationFifoCosts } from '../src/lib/confirmation.js';
@@ -25,6 +25,7 @@ import {
 	arAging,
 	estimateAging,
 	receivablesRead,
+	readSalesReport,
 	salesAnalysis,
 	salesDetail,
 	salesReadDuring
@@ -205,6 +206,18 @@ it.effect.skipIf(!password)(
 			const stale = firstRow(stockAvailability(observed, Date.now() + 31 * 60_000, false));
 			expect(stale.available).toBeNull();
 			expect(stale.on_hand?.eq('10.500')).toBe(true);
+			committed(
+				'commercial_settings',
+				yield* admin.act('commercial_settings.update', [
+					{ target: SETTINGS, set: { stock_fresh_minutes: 45 } }
+				])
+			);
+			const configured = yield* logistics.query(logisticsStockAvailabilityRead);
+			expect(
+				firstRow(stockAvailability(configured, Date.now() + 31 * 60_000, false)).available?.eq(
+					'3.500'
+				)
+			).toBe(true);
 			yield* pull();
 			expect(payloads).toHaveLength(2);
 			expect(payloads[1]).toBeNull();
@@ -508,6 +521,7 @@ it.effect.skipIf(!password)(
 			if (!orders?.includes('CREATE TABLE dbo.SEOrder')) throw new Error('Expected order fixture');
 			yield* sql(orders);
 			let moveReceivablesDuringRead = false;
+			let requests = 0;
 			let deliveryCostReads = 0;
 			const t = yield* workspace({
 				now: '2026-11-06T00:00:00.000Z',
@@ -515,6 +529,7 @@ it.effect.skipIf(!password)(
 					Effect.tryPromise({
 						try: async () => {
 							const compiled = compileSqlServer(validateDatabaseRequest(operation));
+							requests++;
 							if (String(compiled.parameters.stmt).includes('AS cost_amount')) deliveryCostReads++;
 							const tx = source.transaction();
 							await tx.begin(
@@ -700,7 +715,9 @@ it.effect.skipIf(!password)(
 						fields: ['reference', 'invoice', 'seal_hash', 'amount', 'settled_on']
 					}
 				});
+			const beforeFirstInbound = requests;
 			yield* synchronize();
+			expect(requests - beforeFirstInbound).toBeLessThanOrEqual(33);
 			expect(deliveryCostReads).toBe(0);
 			expect(
 				(yield* evidence()).source_sales_lines.rows.every((row) => row.booked_cost === null)
@@ -854,9 +871,9 @@ it.effect.skipIf(!password)(
 			}
 
 			yield* sql('UPDATE dbo.ICSale SET FCheckDate=NULL WHERE FInterID=30001');
-			expect(Exit.isFailure(yield* Effect.exit(t.pull('transactions')))).toBe(true);
-			expect(Exit.isFailure(yield* Effect.exit(t.pull('source_sales_lines')))).toBe(true);
-			expect(Exit.isFailure(yield* Effect.exit(t.pull('source_payments')))).toBe(true);
+			yield* t.pull('transactions');
+			yield* t.pull('source_sales_lines');
+			yield* t.pull('source_payments');
 			const afterUnaudit = yield* evidence();
 			expect(afterUnaudit.transactions.rows).toEqual(before.transactions.rows);
 			expect(afterUnaudit.source_sales_lines.rows).toEqual(before.source_sales_lines.rows);
@@ -864,6 +881,40 @@ it.effect.skipIf(!password)(
 			yield* sql("UPDATE dbo.ICSale SET FCheckDate='20261103' WHERE FInterID=30001");
 			yield* synchronize();
 			expect((yield* evidence()).transactions.rows).toEqual(before.transactions.rows);
+			yield* sql(`
+				INSERT dbo.ICStockBill (FInterID,FBillNo,FDate,FTranType,FCheckDate,FCancellation,FROB)
+				VALUES (20002,'RETURN-PROBE','20261104',21,'20261104',0,-1);
+				INSERT dbo.ICStockBillEntry (FInterID,FEntryID,FSourceTranType,FSourceInterID,FSourceEntryID,FOrderInterID,FItemID,FUnitID,FQty,FBatchNo,FAmount)
+				VALUES (20002,1,21,20001,1,0,210,710,-1,'LOT-01',-1.25);
+				INSERT dbo.ICSale (FInterID,FBillNo,FDate,FTranType,FCheckDate,FCancellation,FROB,FCurrencyID)
+				VALUES (30005,'CREDIT-PROBE','20261105',86,'20261105',0,-1,1);
+				INSERT dbo.ICSaleEntry (FInterID,FEntryID,FSourceTranType,FSourceInterID,FSourceEntryID,FItemID,FUnitID,FQty,FAmount,FAllAmount)
+				VALUES (30005,1,21,20002,1,210,710,-1,-2,-2.26);
+			`);
+			yield* synchronize();
+			const withReturn = yield* evidence();
+			const returned = withReturn.transactions.rows.find((row) => row.reference === 'RETURN-PROBE');
+			expect(returned?.seal_hash).toBe(invoice?.seal_hash);
+			expect(returned?.items?.[0]?.quantity.eq(-1)).toBe(true);
+			for (const basis of ['delivery', 'invoice'] as const) {
+				const request = salesReadDuring({ from: null, to: null, basis }, false, 1);
+				const first = yield* finance.query(request);
+				expect(first.source_sales_lines.next).not.toBeNull();
+				const rows = yield* readSalesReport(finance, request, first, basis);
+				expect(rows).toHaveLength(2);
+				const reversal = rows.find((row) => row.quantity.lt(0));
+				expect(reversal?.source_net?.eq(-2)).toBe(true);
+				expect(reversal?.cost?.eq('-1.25')).toBe(true);
+				expect(rows.reduce((net, row) => net.plus(row.source_net ?? 0), Decimal.of(0)).eq(6)).toBe(
+					true
+				);
+			}
+			const creditDay = PlainDate('2026-11-05');
+			const credit = arAging(yield* finance.query(agingRead(creditDay)), creditDay).find(
+				(row) => row.reference === 'CREDIT-PROBE'
+			);
+			expect(credit?.credit.eq('2.26')).toBe(true);
+			expect(credit?.overpaid.isZero()).toBe(true);
 
 			yield* sql(`
 				INSERT dbo.ICSale (FInterID,FBillNo,FDate,FTranType,FCheckDate,FCancellation,FROB,FCurrencyID,FCustID,FEmpID)
@@ -908,6 +959,22 @@ it.effect.skipIf(!password)(
 			const captured = yield* independent();
 			expect(captured).toHaveLength(3);
 			expect(captured.filter((row) => row.active)).toHaveLength(2);
+			const retainedMixed = yield* evidence();
+			yield* sql(`
+				INSERT dbo.ICSaleEntry (FInterID,FEntryID,FSourceTranType,FSourceInterID,FSourceEntryID,FItemID,FUnitID,FQty,FAmount,FAllAmount,FTaxAmount)
+				VALUES (30001,2,0,0,0,210,710,1,10,11.30,1.30);
+				UPDATE dbo.ICSale SET FBillNo=FBillNo WHERE FInterID=30001;
+			`);
+			yield* t.pull('transactions');
+			yield* t.pull('source_payments');
+			yield* t.pull('source_sales_lines');
+			yield* pullInvoices();
+			expect(yield* evidence()).toEqual(retainedMixed);
+			expect(yield* independent()).toEqual(captured);
+			yield* sql('DELETE dbo.ICSaleEntry WHERE FInterID=30001 AND FEntryID=2');
+			yield* synchronize();
+			expect(yield* evidence()).toEqual(retainedMixed);
+
 			yield* pullInvoices();
 			expect(yield* independent()).toEqual(captured);
 			yield* t.pull('source_sales_lines');
@@ -1074,12 +1141,21 @@ it.effect.skipIf(!password)(
 				(entry) => entry.contact_id === '10002'
 			)?.remaining;
 			expect(revisedBalance != null && Decimal.of(revisedBalance).eq(67)).toBe(true);
+			yield* sql("UPDATE dbo.t_RP_NewCheckInfo SET FCheckDate='20261105' WHERE FInterID=50002");
+			yield* pullReceivables();
+			const correctedAr = firstRow((yield* finance.query(receivablesRead)).source_receivables.rows);
+			expect(
+				correctedAr.entries.find((entry) => entry.contact_id === '10002')?.settlements
+			).toEqual([{ on: '2026-11-05', amount: '30.0000000000' }]);
+
 			yield* sql(`
 				INSERT dbo.t_RP_Contact (FID,FRP,FType,FInvoiceID,FCustomer,FNumber,FDate,FRemainAmount)
 				VALUES (10008,1,99,0,110,'AR-UNKNOWN','20261106',1);
 			`);
 			expect(Exit.isFailure(yield* Effect.exit(pullReceivables()))).toBe(true);
-			expect((yield* finance.query(receivablesRead)).source_receivables.rows).toEqual([revisedAr]);
+			expect((yield* finance.query(receivablesRead)).source_receivables.rows).toEqual([
+				correctedAr
+			]);
 		}),
 	120_000
 );

@@ -24,8 +24,10 @@ const settle = Effect.fnUntraced(function* (
 	ctx: WriteCtx<'source_payments'>
 ) {
 	const { orders, transactions: invoices } = yield* ctx.db.query({
-		orders: { where: { id: { in: rows.flatMap(({ value }) => value.order ?? []) } } },
-		transactions: { where: { id: { in: rows.flatMap(({ value }) => value.invoice ?? []) } } }
+		orders: { where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.order ?? []))] } } },
+		transactions: {
+			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.invoice ?? []))] } }
+		}
 	});
 	for (const [i, { value, old }] of rows.entries()) {
 		if (

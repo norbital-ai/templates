@@ -50,7 +50,7 @@ export type PriceRow = {
 	minimum_quantity: string;
 	/** The band's lower bound, empty for the base row. */
 	band: string;
-	cells: Map<string, PriceCell>;
+	cells: Record<string, PriceCell>;
 	/** The newest cell across the whole book, the metadata a new cell in this row inherits. */
 	latest: PriceCell;
 };
@@ -73,8 +73,7 @@ export const priceBookMonths = (answer: Answer): readonly string[] =>
 	);
 
 /** The chosen month's rows, one per product and quantity band, with the cells stored on their exact days. */
-export function priceBookRows(answer: Answer, month: string, search = ''): readonly PriceRow[] {
-	const term = search.trim().toLowerCase();
+export function priceBookRows(answer: Answer, month: string): readonly PriceRow[] {
 	const rows = new Map<string, PriceRow & { inMonth: boolean }>();
 	for (const row of answer.pricing_floors.rows) {
 		const product = row.product;
@@ -90,25 +89,19 @@ export function priceBookRows(answer: Answer, month: string, search = ''): reado
 			unit: cell.unit,
 			minimum_quantity: cell.minimum_quantity,
 			band: Decimal.of(cell.minimum_quantity).gt(0) ? `≥ ${cell.minimum_quantity}` : '',
-			cells: new Map<string, PriceCell>(),
+			cells: {},
 			latest: cell,
 			inMonth: false
 		};
 		if (row.effective_on.startsWith(month)) {
-			target.cells.set(row.effective_on, cell);
+			target.cells[row.effective_on] = cell;
 			target.inMonth = true;
 		}
 		if (row.effective_on > target.latest.effective_on) target.latest = cell;
 		rows.set(key, target);
 	}
 	return [...rows.values()]
-		.filter(
-			(row) =>
-				row.inMonth &&
-				(term === '' ||
-					row.code.toLowerCase().includes(term) ||
-					row.name.toLowerCase().includes(term))
-		)
+		.filter((row) => row.inMonth)
 		.sort(
 			(a, b) =>
 				a.code.localeCompare(b.code) ||

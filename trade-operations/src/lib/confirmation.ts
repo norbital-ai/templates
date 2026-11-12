@@ -2,7 +2,14 @@ import { Result } from 'effect';
 import { Decimal, sum } from '@norbital-ai/std/decimal';
 import { type Id, type ReadAnswer } from '@norbital-ai/bolt';
 import { confirmationBasis } from './agreements.js';
-import { creditWarning, currentFloors, hash, price, snapshot } from './commercial.js';
+import {
+	creditWarning,
+	currentFloors,
+	hash,
+	price,
+	quoteBelowFloor,
+	snapshot
+} from './commercial.js';
 import {
 	averageLotCost,
 	estimateFifoCost,
@@ -77,13 +84,9 @@ export function confirmationCheck(
 		.filter((v) => v.currency === doc.currency)
 		.sort((a, b) => b.as_of.localeCompare(a.as_of))[0];
 	const group = answer.warehouses.rows.find((w) => w.id === doc.warehouse)?.group_code;
+	const withFloors = currentFloors(doc, lines, answer.pricing_floors.rows, group);
 	const sealed = {
-		...snapshot(
-			doc,
-			party,
-			currentFloors(doc, lines, answer.pricing_floors.rows, group),
-			template.version
-		),
+		...snapshot(doc, party, withFloors, template.version),
 		...sealDocument(template)
 	};
 	return Result.succeed({
@@ -97,6 +100,16 @@ export function confirmationCheck(
 		),
 		gross: sealed.total,
 		credit_as_of: credit?.as_of ?? null,
+		floors:
+			doc.direction === 'sales'
+				? withFloors.map((line) => ({
+						id: line.id,
+						unit: line.unit,
+						net: line.floor_net,
+						effective_on: line.floor_on,
+						below: quoteBelowFloor(line)
+					}))
+				: [],
 		below_inventory_cost:
 			doc.direction === 'sales'
 				? lines

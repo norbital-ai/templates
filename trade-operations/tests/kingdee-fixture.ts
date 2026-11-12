@@ -108,6 +108,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		ICOrderAlter: [],
 		ICStockBill: [],
 		ICStockBillEntry: [],
+		t_rp_CheckEntry: [],
 		ICSale: [],
 		ICSaleEntry: []
 	};
@@ -363,7 +364,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 						)
 					);
 					const after = string(args.after, 'native continuation');
-					if (statement.includes('kingdee-document-ids')) {
+					if (statement.includes('kingdee-document-headers')) {
 						const sourceType = table === 'ICStockBillEntry' ? '81' : '21';
 						const fids = new Set(
 							tables[table]
@@ -372,7 +373,10 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 						);
 						return {
 							rows: [...fids]
-								.map((fid) => ({ __key: padded(fid), fid }))
+								.map((fid) => {
+									const head = tables[table.replace(/Entry$/, '')]?.find((row) => row.fid === fid);
+									return { ...head, __key: padded(fid), fid, header_id: head?.fid ?? null };
+								})
 								.filter((row) => row.__key > after)
 								.sort((a, b) => a.__key.localeCompare(b.__key))
 								.slice(0, 1000)

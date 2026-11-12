@@ -7,6 +7,7 @@ import { exactId, flag, isoCurrency, nullableText, sourceDate, text } from './or
 import {
 	columns,
 	readSource,
+	sourceState,
 	SourceRowInvalid,
 	SourceUnavailable,
 	type SqlRow
@@ -45,7 +46,7 @@ const fields = {
 };
 
 /** ICSale has no branch column. Only verified non-delivery line types feed the account-set report. */
-export const invoiceAnalysisProjection: SourceProjection = {
+const legacyInvoiceAnalysisProjection: SourceProjection = {
 	table: { schema: 'dbo', name: 'ICSale' },
 	alias: 'invoice',
 	key: 'detail_id',
@@ -68,6 +69,21 @@ export const invoiceAnalysisProjection: SourceProjection = {
 	dates: ['invoiced_on', 'checked_on'],
 	decimals: ['quantity', 'net', 'gross', 'tax'],
 	texts: ['detail_id', 'entry_id', 'employee_id', 'sign']
+};
+
+export const invoiceAnalysisProjection: SourceProjection = {
+	...legacyInvoiceAnalysisProjection,
+	joins: [
+		...(legacyInvoiceAnalysisProjection.joins ?? []),
+		{
+			...join('left', 'ICSaleEntry', 'delivery_line', ref('invoice', 'FInterID'), 'FInterID'),
+			where: { FSourceTranType: 21 }
+		}
+	],
+	filters: [
+		...(legacyInvoiceAnalysisProjection.filters ?? []),
+		{ field: ref('delivery_line', 'FInterID'), op: 'eq', value: null }
+	]
 };
 
 function invoiceFact(row: SqlRow, observedAt: string) {
@@ -130,18 +146,30 @@ export const readInvoiceAnalysis = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'Enable account-wide invoice-only analysis on just one Kingdee ledger per account set'
 		});
-	return yield* readSource(
-		invoiceAnalysisProjection,
-		cursor,
-		ctx,
-		invoiceFact,
-		preserveSource({
-			model: 'source_sales_lines',
-			instance,
-			projection: invoiceAnalysisProjection,
+	const read = (position: Json | null) =>
+		readSource(
+			invoiceAnalysisProjection,
+			position,
 			ctx,
+			invoiceFact,
+			preserveSource({
+				model: 'source_sales_lines',
+				instance,
+				projection: invoiceAnalysisProjection,
+				ctx,
+				account
+			}),
 			account
-		}),
-		account
+		);
+	return yield* read(cursor).pipe(
+		Effect.catchTag('CheckpointInvalid', (failure) =>
+			Effect.gen(function* () {
+				if (cursor === null || typeof cursor !== 'object' || !('source' in cursor))
+					return yield* failure;
+				const legacy = yield* sourceState(ctx, legacyInvoiceAnalysisProjection);
+				if (legacy.account !== account || cursor.source !== legacy.source) return yield* failure;
+				return yield* read(null);
+			})
+		)
 	);
 });

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { type RowIn, type ColumnsIn, Table, Tabs, useKinds, Show } from '@norbital-ai/ui';
+	import { type RowIn, type ColumnsIn, Button, Table, Tabs, useKinds, Show } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
@@ -121,6 +121,14 @@
 	title={bolt.t('component.orders')}
 	variant="full"
 >
+	{#snippet actions()}
+		{#if actor?.teams.includes('sales')}
+			<Button
+				variant="ghost"
+				href={bolt.href('operations/trade', 'orders', { model: 'sys_user', id: actor.id })}
+			>{bolt.t('component.my_user_record')}</Button>
+		{/if}
+	{/snippet}
 	{#if purchaseOnly}{@render purchases()}
 	{:else if showPurchase}
 		<Tabs

@@ -6,6 +6,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import {
 	agreedTotal,
 	agreements,
+	locallyAccepted,
 	agreementFields,
 	awaitingKingdee,
 	currentAgreement,
@@ -229,7 +230,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 		const active = order.draft_setup
 			? current
 			: (previous.findLast(
-					(version) => version.origin !== 'kingdee' && version.lifecycle !== 'pending'
+					(version) => locallyAccepted(version) && version.lifecycle !== 'pending'
 				) ?? current);
 		let liveSeal: string | null = null;
 		const headers = [...family.headers].sort((a, b) =>
@@ -510,7 +511,14 @@ export const readContractVersions = Effect.fnUntraced(function* (
 			if (!archived) liveSeal = known.seal_hash;
 		}
 		const live = versions.find((version) => version.seal_hash === liveSeal);
-		if (active && active.origin !== 'kingdee' && live?.origin === 'kingdee' && live.kingdee) {
+		if (
+			active &&
+			locallyAccepted(active) &&
+			live?.origin === 'kingdee' &&
+			live.kingdee &&
+			active.seal_hash !== live.seal_hash &&
+			active.basis_seal !== live.seal_hash
+		) {
 			const source = live.kingdee;
 			versions = versions.map((version) =>
 				version.seal_hash === active.seal_hash
@@ -530,7 +538,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 		}
 		const commercial = order.draft_setup
 			? active
-			: active?.origin !== 'kingdee'
+			: active && locallyAccepted(active)
 				? (active ?? live)
 				: (live ?? active);
 		if (commercial)

@@ -2,10 +2,15 @@
 	import { attach, fork, bolt } from '$bolt';
 	import { Effect, Result, Schema, Scope } from 'effect';
 	import { Decimal } from '@norbital-ai/std/decimal';
+	import { observeOnce } from '@norbital-ai/ui/effect';
+	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
+	import { reportPages } from '../../../lib/reports.js';
 	import {
 		agreements,
 		awaitingKingdee,
 		currentAgreement,
+		resolvableKingdee,
+		kingdeeAgreement,
 		type ContractVersion
 	} from '../../../lib/agreements.js';
 	import {
@@ -21,7 +26,6 @@
 	} from '../../../lib/contract-files.js';
 	import {
 		Table,
-		Section,
 		Button,
 		Show,
 		Picker,
@@ -29,6 +33,7 @@
 		Combobox,
 		Badge,
 		Popover,
+		Progress,
 		EmptyState,
 		Tooltip,
 		Icon,
@@ -41,9 +46,10 @@
 		type FieldEditor,
 		type FormState,
 		type RecordView,
+		type RowOf,
 		openRecord
 	} from '@norbital-ai/ui';
-	import { Stack, Grid, Cluster, Scroll } from '@norbital-ai/ui/layout';
+	import { Stack, Grid, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
 	import OrderDocumentDialog from './order-document-dialog.svelte';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
@@ -123,6 +129,11 @@
 			: null
 	);
 	const quote = $derived(checkRead?.current?.orders.rows[0]);
+	const quoteFloors = $derived(
+		new Map(
+			check && Result.isSuccess(check) ? check.success.floors.map((line) => [line.id, line]) : []
+		)
+	);
 	const purchaseCostRead = $derived(
 		quote?.direction === 'sales' && quote.ledger && kinds.catalog?.source_lot_costs
 			? bolt.query(purchaseLotCostRead(quote.ledger))
@@ -138,6 +149,14 @@
 	const currentContract = $derived(
 		view.mode !== 'create' ? currentAgreement(view.record) : undefined
 	);
+	const sourceChoice = $derived(resolvableKingdee(versions));
+	const canResolve = $derived(
+		bolt.actor?.kind === 'member' &&
+			(bolt.actor.admin || bolt.actor.teams.includes('commercial_managers')) &&
+			sourceChoice &&
+			sourceChoice.seal_hash !== currentContract?.seal_hash &&
+			sourceChoice.seal_hash !== currentContract?.basis_seal
+	);
 	const archived = $derived(view.mode !== 'create' && view.record.archived);
 	let documentRequest = $state<{ version: number | null } | null>(null);
 	let selectedVersion = $state<string | null>(null);
@@ -151,6 +170,78 @@
 			? undefined
 			: (versions.find((v) => String(v.version) === selectedVersion) ?? currentContract)
 	);
+	const filedRequest = $derived(
+		id && selectedContract && commercial && kinds.catalog?.order_files
+			? ({
+					where: { order: { eq: id }, seal_hash: { eq: selectedContract.seal_hash } },
+					fields: ['file'],
+					orderBy: { created_at: 'desc' },
+					limit: 100
+				} as const)
+			: null
+	);
+	const filedRead = $derived(filedRequest ? bolt.query({ order_files: filedRequest }) : null);
+	const filedPage = $derived(filedRead?.current?.order_files);
+	const remainingFiles = observeOnce(() => {
+		const request = filedRequest;
+		const first = filedPage;
+		return request && first?.next
+			? reportPages(first, (after) =>
+					bolt
+						.query({ order_files: { ...request, after } })
+						.pipe(Effect.map((answer) => answer.order_files))
+				).pipe(Effect.map((rows) => ({ request, rows })))
+			: null;
+	});
+	const documentKind = { kind: 'file', multiple: true, accept: ['*/*'], max: '20MiB' } as const;
+	const sealedDocuments = $derived.by(() => {
+		const remaining = remainingFiles.current;
+		const rows =
+			remaining && remaining.request === filedRequest ? remaining.rows : (filedPage?.rows ?? []);
+		return retainedContractDocuments(
+			[
+				kinds.catalog?.orders?.fields?.supporting_documents
+					? selectedContract?.supporting_documents
+					: undefined
+			],
+			rows.map((row) => row.file)
+		);
+	});
+	const deliveryRequest = $derived(
+		id &&
+			selectedContract &&
+			selectedContract.lifecycle !== 'pending' &&
+			commercial &&
+			kinds.catalog?.transactions &&
+			kinds.catalog.transactions.output === undefined
+			? orderDeliveries(id)
+			: null
+	);
+	const deliveryRead = $derived(deliveryRequest ? bolt.query(deliveryRequest) : null);
+	const deliveryPage = $derived(deliveryRead?.current?.transactions);
+	const remainingDeliveries = observeOnce(() => {
+		const request = deliveryRequest;
+		const first = deliveryPage;
+		return request && first?.next
+			? reportPages(first, (after) =>
+					bolt
+						.query({
+							transactions: { ...request.transactions, after }
+						})
+						.pipe(Effect.map((answer) => answer.transactions))
+				)
+			: null;
+	});
+	const deliveryTotals = $derived.by(() => {
+		const rows = deliveryPage?.next === null ? deliveryPage.rows : remainingDeliveries.current;
+		return selectedContract && rows
+			? deliveredByLine(
+					selectedContract,
+					selectedContract.seal_hash === currentContract?.seal_hash ? versions : [selectedContract],
+					rows
+				)
+			: undefined;
+	});
 	const confirmationModel = $derived(
 		view.mode !== 'create' && view.record.direction === 'purchasing'
 			? 'ext_purchase_orders'
@@ -213,9 +304,13 @@
 			kind: translate(`component.kingdee_event_${event.kind}`)
 		}))
 	);
+	const liveSource = $derived(kingdeeAgreement(versions));
 	const needsReconciliation = $derived(
-		selectedContract?.events?.at(-1)?.kind === 'unversionedChange' ||
-			selectedContract?.events?.at(-1)?.kind === 'sourceConflict'
+		selectedContract?.events?.some((event) => event.kind === 'unversionedChange') ||
+			(selectedContract?.seal_hash === currentContract?.seal_hash &&
+				liveSource?.origin === 'kingdee' &&
+				liveSource.seal_hash !== selectedContract?.seal_hash &&
+				liveSource.seal_hash !== selectedContract?.basis_seal)
 	);
 	function contractLabel(version: ContractVersion) {
 		return bolt.t(
@@ -321,17 +416,30 @@
 		);
 	}
 	const changeOrder = Effect.fn('Trading.changeOrder')(function* (
-		change: 'archive' | 'unarchive' | 'revise'
+		change: 'archive' | 'unarchive' | 'revise' | 'adopt' | 'rebase'
 	) {
 		if (!id || view.mode === 'create' || pending) return;
 		pending = true;
 		feedback = '';
-		if (change === 'revise') {
-			const started = bolt.start('orders_revise', { target: id, revision: view.record.revision });
+		if (change === 'revise' || change === 'adopt' || change === 'rebase') {
+			const resolving = change !== 'revise';
+			if (resolving && (!canResolve || !sourceChoice)) return;
+			const started = bolt.start('orders_revise', {
+				target: id,
+				revision: view.record.revision,
+				...(resolving && sourceChoice
+					? {
+							source: sourceChoice.seal_hash,
+							resolution: change === 'adopt' ? ('adopt' as const) : ('revise' as const)
+						}
+					: {})
+			});
 			revisionRun = started.id;
 			const outcome = yield* started;
 			if (outcome.kind === 'pendingApproval') feedback = bolt.t('component.awaiting_approval');
-			else if (outcome.kind === 'committed') selectedVersion = 'draft';
+			else if (outcome.kind === 'committed')
+				selectedVersion =
+					change === 'adopt' && sourceChoice ? String(sourceChoice.version) : 'draft';
 			else if (outcome.kind === 'refused') feedback = translate(outcome.message);
 			else feedback = bolt.t('component.seal_uncertain');
 			return;
@@ -344,7 +452,7 @@
 		if (result.kind === 'pendingApproval') feedback = bolt.t('component.awaiting_approval');
 		else if (result.kind !== 'committed') feedback = bolt.t('component.seal_uncertain');
 	});
-	function change(change: 'archive' | 'unarchive' | 'revise') {
+	function change(change: 'archive' | 'unarchive' | 'revise' | 'adopt' | 'rebase') {
 		const owner = actionScope;
 		if (owner === undefined) return;
 		fork(
@@ -525,6 +633,14 @@
 {/snippet}
 {#snippet agreement()}
 	{#if versions.length && selectedContract}
+		{@const seal = selectedContract.seal_hash}
+		{@const canFile =
+			view.mode === 'edit' &&
+			filedRequest &&
+			kinds.catalog?.order_files?.create &&
+			!archived &&
+			selectedContract.lifecycle !== 'pending' &&
+			!recordController?.historical}
 		<Stack gap="md">
 			<Grid as="dl" gap="md" minimum="compact">
 				<div>
@@ -609,81 +725,117 @@
 						/>
 					</dd>
 				</div>
+				{#if sealedDocuments.length || canFile || filedRead?.error || remainingFiles.error}
+					<div class="min-w-0">
+						<dt class="text-xs font-medium text-muted-foreground">
+							{bolt.t('models.orders.fields.supporting_documents')}
+						</dt>
+						<dd class="text-sm">
+							<Cluster gap="xs">
+								{#if sealedDocuments.length}<Show
+										readonly
+										kind={documentKind}
+										value={sealedDocuments}
+									/>{/if}
+								{#if canFile && id}
+									<Button
+										variant="ghost"
+										size="icon"
+										aria-label={bolt.t('component.file_order_document')}
+										title={bolt.t('component.file_order_document')}
+										onclick={() => openCreate('order_files', { order: id, seal_hash: seal })}
+									>
+										<Icon name="lucide:plus" class="size-4" />
+									</Button>
+								{/if}
+								{#if filedRead?.error || remainingFiles.error}
+									<span role="status" class="text-sm text-muted-foreground"
+										>{bolt.t('component.order_documents_unavailable')}</span
+									>
+								{/if}
+							</Cluster>
+						</dd>
+					</div>
+				{/if}
 			</Grid>
-			{@const documents = kinds.catalog?.orders?.fields?.supporting_documents}
-			{#if documents}
-				<Stack gap="xs">
-					<span class="text-xs font-medium text-muted-foreground"
-						>{bolt.t('models.orders.fields.supporting_documents')}</span
-					>
-					<Show readonly kind={documents} value={selectedContract.supporting_documents ?? []} />
-				</Stack>
-			{/if}
-			{#if id && commercial && kinds.catalog?.order_files}
-				{@const seal = selectedContract.seal_hash}
-				<Section
-					name="filed-documents"
-					icon="lucide:paperclip"
-					title={bolt.t('models.order_files.label')}
-					collapsible={false}
-				>
-					{#snippet actions()}
-						{#if kinds.catalog?.order_files?.create && !archived && selectedContract?.lifecycle !== 'pending' && !recordController?.historical}
-							<Button
-								variant="outline"
-								aria-label={bolt.t('component.file_order_document')}
-								onclick={() => openCreate('order_files', { order: id, seal_hash: seal })}
-							>
-								<Icon name="lucide:file-plus" class="size-4 md:hidden" />
-								<span class="hidden md:inline">{bolt.t('component.file_order_document')}</span>
-							</Button>
-						{/if}
-					{/snippet}
-					<p class="mb-2 text-sm text-muted-foreground">
-						{bolt.t('component.filed_order_documents_help')}
-					</p>
-					<Table
-						of="order_files"
-						where={{ order: { eq: id }, seal_hash: { eq: seal } }}
-						columns={['title', 'file', 'created_at']}
-						orderBy={{ created_at: 'desc' }}
-						toolbar={false}
-					/>
-				</Section>
-			{/if}
 			{@const currency = { currency: selectedContract.snapshot.currency }}
-			<Scroll name="agreement-lines" axis="x" class="rounded-md border border-border">
-				<table class="w-max min-w-full text-sm">
+			<div class="@container rounded-md border border-border">
+				<table class="w-full table-fixed text-sm @2xl:table-auto">
 					<thead class="bg-muted/50 text-left text-muted-foreground">
 						<tr>
-							<th class="px-3 py-2 font-medium">{bolt.t('models.order_lines.fields.product')}</th>
+							<th class="w-2/5 px-3 py-2 font-medium @2xl:w-auto"
+								>{bolt.t('models.order_lines.fields.product')}</th
+							>
 							{#each ['quantity', 'unit_price', 'discount_pct', 'tax_rate', 'total'] as const as name (name)}<th
-									class="px-3 py-2 text-right font-medium whitespace-nowrap"
-									>{bolt.t(`models.order_lines.fields.${name}`)}</th
+									class={[
+										'px-3 py-2 text-right font-medium',
+										name !== 'quantity' && name !== 'total' && 'hidden @2xl:table-cell'
+									]}>{bolt.t(`models.order_lines.fields.${name}`)}</th
 								>{/each}
 						</tr>
 					</thead>
 					<tbody>
 						{#each selectedContract.snapshot.lines as line (line.id)}
+							{@const delivered = deliveryTotals?.get(line.id)}
 							<tr class="border-t border-border align-top">
 								<td class="px-3 py-2"
 									>{line.product_name}
-									<span class="block text-xs text-muted-foreground">{line.product_code}</span></td
+									<span class="block text-xs text-muted-foreground">{line.product_code}</span>
+									<dl class="mt-1 text-xs text-muted-foreground @2xl:hidden">
+										<div>
+											<dt class="inline">{bolt.t('models.order_lines.fields.unit_price')}</dt>
+											<dd class="inline">
+												<Show
+													kind={{ ...moneyKind, scale: 4 }}
+													value={line.unit_price}
+													row={currency}
+												/>
+											</dd>
+										</div>
+										{#if Decimal.of(line.discount_pct).gt(0)}
+											<div>
+												<dt class="inline">{bolt.t('models.order_lines.fields.discount_pct')}</dt>
+												<dd class="inline">{displayDecimal(line.discount_pct)}%</dd>
+											</div>
+										{/if}
+										<div>
+											<dt class="inline">{bolt.t('models.order_lines.fields.tax_rate')}</dt>
+											<dd class="inline">{displayDecimal(line.tax_rate)}%</dd>
+										</div>
+									</dl></td
 								>
-								<td class="px-3 py-2 text-right whitespace-nowrap tabular-nums"
-									>{displayDecimal(line.quantity)} {line.unit}</td
-								>
-								<td class="px-3 py-2 text-right"
+								<td class="px-3 py-2 text-right tabular-nums">
+									{displayDecimal(line.quantity)}
+									{line.unit}
+									{#if delivered && Decimal.of(line.quantity).gt(0)}
+										{@const label = bolt.t('component.line_delivery_progress', {
+											quantity: displayDecimal(delivered.toString()),
+											unit: line.unit
+										})}
+										<Progress
+											class="mt-1 h-1"
+											value={Math.max(
+												0,
+												Math.min(100, delivered.times(100).div(line.quantity, 2).toNumber())
+											)}
+											aria-label={label}
+										/>
+										<span class="mt-1 block text-xs text-muted-foreground">{label}</span>
+									{/if}
+								</td>
+								<td class="hidden px-3 py-2 text-right @2xl:table-cell"
 									><Show
 										kind={{ ...moneyKind, scale: 4 }}
 										value={line.unit_price}
 										row={currency}
 									/></td
 								>
-								<td class="px-3 py-2 text-right tabular-nums"
+								<td class="hidden px-3 py-2 text-right tabular-nums @2xl:table-cell"
 									>{displayDecimal(line.discount_pct)}%</td
 								>
-								<td class="px-3 py-2 text-right tabular-nums">{displayDecimal(line.tax_rate)}%</td>
+								<td class="hidden px-3 py-2 text-right tabular-nums @2xl:table-cell"
+									>{displayDecimal(line.tax_rate)}%</td
+								>
 								<td class="px-3 py-2 text-right"
 									><Show kind={moneyKind} value={line.total} row={currency} /></td
 								>
@@ -695,7 +847,10 @@
 						{#each ['net', 'tax', 'total'] as const as name (name)}<tr
 								class={name === 'total' ? 'font-medium' : 'text-muted-foreground'}
 							>
-								<td colspan="5" class="px-3 py-1.5 text-right"
+								<td colspan="2" class="px-3 py-1.5 text-right @2xl:hidden"
+									>{bolt.t(`models.orders.fields.${name}`)}</td
+								>
+								<td colspan="5" class="hidden px-3 py-1.5 text-right @2xl:table-cell"
 									>{bolt.t(`models.orders.fields.${name}`)}</td
 								>
 								<td class="px-3 py-1.5 text-right"
@@ -708,77 +863,7 @@
 							</tr>{/each}
 					</tfoot>
 				</table>
-			</Scroll>
-			{#if selectedContract.kingdee}
-				{@const source = selectedContract.kingdee}
-				<Section
-					icon="lucide:truck"
-					name="kingdee-tracking"
-					title={bolt.t('component.kingdee_tracking')}
-					defaultOpen={false}
-				>
-					<Grid as="dl" gap="md" minimum="compact">
-						<div>
-							<dt class="text-xs font-medium text-muted-foreground">
-								{bolt.t('models.ext_sales_orders.fields.status')}
-							</dt>
-							<dd class="text-sm">
-								{source.closed
-									? bolt.t('component.kingdee_status_closed')
-									: source.status
-										? statusText(source.status)
-										: bolt.t('component.not_set')}
-							</dd>
-						</div>
-						<div>
-							<dt class="text-xs font-medium text-muted-foreground">
-								{bolt.t('component.kingdee_version')}
-							</dt>
-							<dd class="text-sm">
-								{source.source_version}
-							</dd>
-						</div>
-						<div>
-							<dt class="text-xs font-medium text-muted-foreground">
-								{bolt.t('component.kingdee_observed_at')}
-							</dt>
-							<dd class="text-sm">
-								<Show kind={{ kind: 'instant' }} value={source.observed_at} />
-							</dd>
-						</div>
-						{#if source.source_changed_at}<div>
-								<dt class="text-xs font-medium text-muted-foreground">
-									{bolt.t('component.kingdee_changed_at')}
-								</dt>
-								<dd class="text-sm">
-									{source.source_changed_at}
-								</dd>
-							</div>{/if}
-						{#if source.source_changed_by}<div>
-								<dt class="text-xs font-medium text-muted-foreground">
-									{bolt.t('component.kingdee_changed_by')}
-								</dt>
-								<dd class="text-sm">{source.source_changed_by}</dd>
-							</div>{/if}
-					</Grid>
-					{#if selectedContract.events?.length}
-						<Table
-							of={selectedEvents}
-							embedded
-							columns={[
-								{
-									field: 'at',
-									label: bolt.t('component.kingdee_observed_at'),
-									kind: { kind: 'instant' }
-								},
-								{ field: 'status', label: bolt.t('models.ext_sales_orders.fields.status') },
-								{ field: 'source_version', label: bolt.t('component.kingdee_version') },
-								{ field: 'kind', label: bolt.t('component.kingdee_event') }
-							]}
-						/>
-					{/if}
-				</Section>
-			{/if}
+			</div>
 		</Stack>
 	{:else if view.mode !== 'create' && view.record.status === 'draft'}
 		<EmptyState
@@ -787,6 +872,37 @@
 		/>
 	{:else}<EmptyState variant="inset" title={bolt.t('errors.agreement_access')} />{/if}
 {/snippet}
+{#snippet lineUnitPrice({
+	row,
+	value
+}: {
+	row: RowOf<'order_lines'>;
+	value: RowOf<'order_lines'>['unit_price'] | undefined;
+})}
+	{@const floor = draftContract ? quoteFloors.get(row.id) : undefined}
+	{#if floor?.net != null && quote && value != null}
+		{@const status = bolt.t(floor.below ? 'errors.floor_below' : 'component.quote_floor_met')}
+		{@const minimum = `${quote.currency} ${displayDecimal(floor.net.toString())}/${floor.unit}`}
+		{@const hint = `${status} ${bolt.t('component.quote_floor_minimum')}: ${minimum} · ${floor.effective_on}`}
+		<Tooltip text={hint}>
+			{#snippet trigger({ props })}
+				<button
+					{...props}
+					type="button"
+					aria-label={`${quote.currency} ${displayDecimal(value.toString())}. ${hint}`}
+					class="inline-flex items-center gap-1 rounded-sm font-medium focus-visible:outline-2 focus-visible:outline-ring"
+					class:text-destructive={floor.below}
+					class:text-success={!floor.below}
+				>
+					<Show kind={moneyKind} {value} {row} />
+					<Icon name={floor.below ? 'lucide:arrow-down' : 'lucide:check'} class="size-3 shrink-0" />
+				</button>
+			{/snippet}
+		</Tooltip>
+	{:else}
+		<Show kind={moneyKind} {value} {row} />
+	{/if}
+{/snippet}
 {#snippet lines()}{#if id}<Table
 			of="order_lines"
 			where={{ order: { eq: id } }}
@@ -794,7 +910,7 @@
 				'product_name',
 				'quantity',
 				'unit',
-				'unit_price',
+				{ field: 'unit_price', cell: lineUnitPrice },
 				'discount_pct',
 				'tax_rate',
 				'total'
@@ -891,8 +1007,87 @@
 		</Tooltip>
 	{/if}
 {/snippet}
+{#snippet kingdeeConfirmation(source: NonNullable<ContractVersion['kingdee']>)}
+	{@const status = source.closed ? 'closed' : source.status}
+	{@const presentation = confirmationPresentation(status)}
+	{@const disconnected = sourceState && sourceState !== 'connected' ? sourceState : null}
+	<Popover.Root>
+		<Popover.Trigger
+			class="inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+		>
+			<Badge variant={disconnected ? 'outline' : presentation.variant}>
+				{disconnected ? bolt.t(`component.kingdee_${disconnected}`) : presentation.label}
+			</Badge>
+		</Popover.Trigger>
+		<Popover.Content
+			align="start"
+			class="w-96 max-w-[calc(100vw-2rem)] p-3"
+			aria-label={bolt.t('component.kingdee_tracking')}
+		>
+			<Stack gap="sm">
+				<dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+					<div>
+						<dt class="text-muted-foreground">{bolt.t('models.ext_sales_orders.fields.status')}</dt>
+						<dd>
+							{status === 'closed'
+								? bolt.t('component.kingdee_status_closed')
+								: status
+									? statusText(status)
+									: bolt.t('component.not_set')}
+						</dd>
+					</div>
+					<div>
+						<dt class="text-muted-foreground">{bolt.t('component.kingdee_version')}</dt>
+						<dd>{source.source_version}</dd>
+					</div>
+					<div>
+						<dt class="text-muted-foreground">{bolt.t('component.kingdee_observed_at')}</dt>
+						<dd><Show kind={{ kind: 'instant' }} value={source.observed_at} /></dd>
+					</div>
+					{#if source.source_changed_at}
+						<div>
+							<dt class="text-muted-foreground">{bolt.t('component.kingdee_changed_at')}</dt>
+							<dd>{source.source_changed_at}</dd>
+						</div>
+					{/if}
+					{#if source.source_changed_by}
+						<div>
+							<dt class="text-muted-foreground">{bolt.t('component.kingdee_changed_by')}</dt>
+							<dd>{source.source_changed_by}</dd>
+						</div>
+					{/if}
+				</dl>
+				{#if selectedEvents.length}
+					<ul class="max-h-40 divide-y divide-border overflow-y-auto border-t border-border">
+						{#each selectedEvents.toReversed() as event (event.key)}
+							<li class="py-2 text-sm">
+								<div>{event.kind} · {event.status}</div>
+								<div class="text-muted-foreground">
+									<Show kind={{ kind: 'instant' }} value={event.at} />
+									{#if event.source_version}
+										· {event.source_version}{/if}
+								</div>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+				{#each confirmationRows?.current?.rows ?? [] as receipt (receipt.id)}
+					<Popover.Close
+						class="flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
+						onclick={() => openRecord('ext_sales_orders', receipt.id)}
+					>
+						<Icon name="lucide:arrow-up-right" class="size-4" />
+						{receipt.reference}
+					</Popover.Close>
+				{/each}
+			</Stack>
+		</Popover.Content>
+	</Popover.Root>
+{/snippet}
 {#snippet confirmationLink()}{#if id && view.mode !== 'create' && selectedContract}
-		{#if !purchase && sourceState && sourceState !== 'connected'}
+		{#if !purchase && selectedContract.kingdee}
+			{@render kingdeeConfirmation(selectedContract.kingdee)}
+		{:else if !purchase && sourceState && sourceState !== 'connected'}
 			{@render sourceConfirmation()}
 		{:else if confirmationRows?.current}
 			{#each confirmationRows.current.rows as receipt (receipt.id)}
@@ -921,36 +1116,7 @@
 	{@const lockedLabel = selectedContract
 		? bolt.t(purchase ? 'component.commitment_recorded' : 'component.sealed')
 		: null}
-	<div class="flex items-center gap-1.5 md:hidden">
-		{@render versionPicker()}
-		{@render sealButton(form)}
-		<Popover.Root>
-			<Popover.Trigger
-				class="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring/40 grid size-9 shrink-0 place-items-center rounded-md outline-none focus-visible:ring-2"
-				aria-label={bolt.t('component.more_actions')}
-			>
-				<Icon name="lucide:ellipsis" class="size-4" />
-			</Popover.Trigger>
-			<Popover.Content align="end" class="w-56 p-1">
-				{#if id && commercial && !recordController?.historical && (selectedContract || (draftContract && !draftSetup))}
-					<Popover.Close
-						class="hover:bg-muted flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm"
-						onclick={() => (documentRequest = { version: selectedContract?.version ?? null })}
-					>
-						<Icon name="lucide:file-text" class="size-4" />
-						{bolt.t('component.preview_document')}
-					</Popover.Close>
-				{/if}
-				{#if lockedLabel}
-					<div class="text-muted-foreground flex items-center gap-2 px-2 py-2 text-sm">
-						<Icon name="lucide:lock-keyhole" class="size-4" />
-						{lockedLabel}
-					</div>
-				{/if}
-			</Popover.Content>
-		</Popover.Root>
-	</div>
-	<Cluster gap="sm" align="center" class="hidden md:flex">
+	<Cluster gap="sm" class="max-w-full">
 		{@render versionPicker()}
 		{#if id && commercial && !recordController?.historical && (selectedContract || (draftContract && !draftSetup))}
 			<Button
@@ -958,6 +1124,25 @@
 				variant="outline"
 				onclick={() => (documentRequest = { version: selectedContract?.version ?? null })}
 				>{bolt.t('component.preview_document')}</Button
+			>
+		{/if}
+		{#if view.mode !== 'create' && !archived && !recordController?.historical && kinds.automations?.orders_revise && (draftSetup || (view.record.status === 'confirmed' && selectedContract && selectedContract.seal_hash === currentContract?.seal_hash))}
+			<Button variant="outline" {disabled} onclick={() => change('revise')}
+				>{bolt.t(
+					draftSetup
+						? 'component.resume_contract_setup'
+						: purchase
+							? 'component.revise_commitment'
+							: 'component.new_contract'
+				)}</Button
+			>
+		{/if}
+		{#if view.mode === 'view' && !archived && !recordController?.historical && view.record.status === 'confirmed' && canResolve}
+			<Button variant="outline" {disabled} onclick={() => change('adopt')}
+				>{bolt.t('component.adopt_kingdee')}</Button
+			>
+			<Button variant="outline" {disabled} onclick={() => change('rebase')}
+				>{bolt.t('component.revise_kingdee')}</Button
 			>
 		{/if}
 		{@render sealButton(form)}
@@ -992,24 +1177,13 @@
 			</Badge>
 			{#if selectedContract.lifecycle !== 'pending'}{@render confirmationLink()}{/if}
 		{/if}
-		{#if view.mode !== 'create' && !archived && kinds.automations?.orders_revise && (draftSetup || view.record.status === 'confirmed')}
-			<Button variant="ghost" {disabled} onclick={() => change('revise')}
-				>{bolt.t(
-					draftSetup
-						? 'component.resume_contract_setup'
-						: purchase
-							? 'component.revise_commitment'
-							: 'component.new_contract'
-				)}</Button
-			>
-		{/if}
 	</Cluster>
 {/snippet}
 {#snippet generalDetails()}{#if feedback}<p role="status" class="text-sm">
 			{feedback}
 		</p>{/if}{/snippet}
 {#snippet contractBody(form: FormState)}<Stack gap="md">
-		{#if selectedContract || draftSetup}{@render contractControls()}{/if}
+		{#if selectedContract}{@render contractControls()}{/if}
 		{@render confirmationNotices(form)}
 		{#if purchase && (draftContract || view.mode === 'create')}
 			<p class="text-sm text-muted-foreground">{bolt.t('component.commitment_help')}</p>
@@ -1092,7 +1266,6 @@
 				]
 			: []
 	}}
-	mainTitle={bolt.t('section.general')}
 	afterForm={generalDetails}
 	editors={{
 		party,
@@ -1106,8 +1279,7 @@
 		{
 			name: 'order',
 			readonlyFields: versions.length ? ['party', 'owner'] : [],
-			fields: ['title', 'party', 'owner', 'notes'],
-			wide: ['notes']
+			fields: ['title', 'party', 'owner', 'notes']
 		},
 		{
 			name: 'contract',
@@ -1139,8 +1311,8 @@
 							'delivery_date',
 							'logistics_handler',
 							'document_template',
-							'print_values',
-							'supporting_documents'
+							'supporting_documents',
+							'print_values'
 						]
 					: [],
 			readonlyFields:
@@ -1177,13 +1349,7 @@
 								: [])
 						]
 					: [],
-			wide: [
-				'shipping_mark',
-				'other_terms',
-				'delivery_address',
-				'print_values',
-				'supporting_documents'
-			]
+			wide: ['print_values']
 		}
 	]}
 	tabs={id

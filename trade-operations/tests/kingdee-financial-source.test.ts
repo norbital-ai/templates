@@ -123,6 +123,7 @@ test('unknown source lineage, missing joins and changing header data fail before
 		{ receipt_direction: '0' },
 		{ invoice_entry: '999' },
 		{ amount: 1.23 },
+		{ amount: '1.005' },
 		{ settled_on: null },
 		{ receipt_reference: '' }
 	];
@@ -337,3 +338,22 @@ test.effect(
 			expect(yield* Effect.flip(readCreditSource())).toMatchObject({ _tag: 'SourceUnavailable' });
 		})
 );
+
+test('withholds overallocated invoice cost without dropping either invoice revenue', () => {
+	const costed = document({ lines: [line({ costAmount: Decimal.of('30') })] });
+	const facts = mapSalesFacts(
+		[costed],
+		[invoice(), invoice('10', { fid: '21' })],
+		observed,
+		currency('CNY')
+	);
+	expect(
+		facts
+			.filter((fact) => fact.kind === 'invoice')
+			.map((fact) => [fact.net_amount?.eq(100), fact.booked_cost])
+	).toEqual([
+		[true, null],
+		[true, null]
+	]);
+	expect(facts.find((fact) => fact.kind === 'shipment')?.booked_cost?.eq(30)).toBe(true);
+});
