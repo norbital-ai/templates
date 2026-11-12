@@ -22,7 +22,7 @@ export default model({
 	record_label: 'record.title',
 	fields: {
 		title: { kind: 'text' },
-		rfi_number: { kind: 'text', optional: true, unique: true },
+		rfi_number: { kind: 'text', optional: true },
 		asked_by: { kind: 'text', optional: true },
 		assigned_to: { kind: 'text', optional: true },
 		subject: { kind: 'text', optional: true },
@@ -43,6 +43,7 @@ export default model({
 			on_delete: 'set_null'
 		}
 	},
+	constraints: { rfi_number: { unique: ['rfi_number'] } },
 	indexes: { find: { text: ['title'] } },
 	outputs: { default: { fields: 'all', related_defect_id: { fields: ['title'] } } },
 	create: { columns: { fields: columns } },

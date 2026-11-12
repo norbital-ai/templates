@@ -3,18 +3,18 @@ import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description: 'Read access shared by every construction surface.',
 	grants: {
-		projects: { outputs: { default: true } },
-		site_locations: { outputs: { default: true } },
-		rfis: { outputs: { default: true } },
-		defects: { outputs: { default: true } },
-		workers: { outputs: { default: true } },
-		certification_types: { outputs: { default: true } },
-		permits_to_work: { outputs: { default: true } },
-		jobs: { outputs: { default: true } },
-		job_assignments: { outputs: { default: true } },
-		payment_claims: { outputs: { default: true } },
-		bim_reference_matrix: { outputs: { default: true } },
-		asset_documents: { outputs: { default: true } }
+		projects: { outputs: { default: {} } },
+		site_locations: { outputs: { default: {} } },
+		rfis: { outputs: { default: {} } },
+		defects: { outputs: { default: {} } },
+		workers: { outputs: { default: {} } },
+		certification_types: { outputs: { default: {} } },
+		permits_to_work: { outputs: { default: {} } },
+		jobs: { outputs: { default: {} } },
+		job_assignments: { outputs: { default: {} } },
+		payment_claims: { outputs: { default: {} } },
+		bim_reference_matrix: { outputs: { default: {} } },
+		asset_documents: { outputs: { default: {} } }
 	},
 	limits: { act: '600/min', read: '600/min', agent: '100/h' }
 });

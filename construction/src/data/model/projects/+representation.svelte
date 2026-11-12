@@ -99,6 +99,7 @@
 				<p class="text-meta">{ctx.t('component.programme')}</p>
 				<p class="font-medium">
 					{#if record['schedule_range']}<Show
+							{ctx}
 							kind={{ kind: 'period', of: 'date' }}
 							value={record['schedule_range']}
 						/>{:else}{ctx.t('component.not_set')}{/if}
@@ -108,6 +109,7 @@
 				<p class="text-meta">{ctx.t('component.contract_value')}</p>
 				<p class="font-medium">
 					{#if record['contract_value'] != null}<Show
+							{ctx}
 							kind={money}
 							value={record['contract_value']}
 							row={record}
@@ -186,6 +188,7 @@
 			<Split ratio="wide" collapse="stack" start={model} end={pulse} />
 			<Stack gap="lg">
 				<Table
+					{ctx}
 					of="rfis"
 					toolbar={{ title: ctx.t('component.rfis') }}
 					where={{ project_id: { eq: id } }}
@@ -199,6 +202,7 @@
 					]}
 				/>
 				<Table
+					{ctx}
 					of="defects"
 					toolbar={{ title: ctx.t('component.defects') }}
 					where={{ project_id: { eq: id } }}
@@ -218,6 +222,7 @@
 {#snippet manpower()}
 	{#if id}
 		<Table
+			{ctx}
 			of="job_assignments"
 			key={`construction_project:manpower:${id}`}
 			toolbar={{ title: ctx.t('component.manpower_allocation') }}
@@ -242,6 +247,7 @@
 					<p class="text-meta">{ctx.t('component.contract_value')}</p>
 					<p class="text-heading">
 						{#if record?.['contract_value'] != null}<Show
+								{ctx}
 								kind={money}
 								value={record['contract_value']}
 								row={record}
@@ -257,6 +263,7 @@
 								{#if i > 0}
 									·
 								{/if}<Show
+									{ctx}
 									kind={money}
 									value={total.sum?.[field] ?? null}
 									row={{ currency: claimCurrency(key?.['currency'] ?? null) }}
@@ -274,6 +281,7 @@
 			</Grid>
 			<Stack gap="lg">
 				<Table
+					{ctx}
 					of="payment_claims"
 					toolbar={{ title: ctx.t('component.payment_claims') }}
 					where={{ project_id: { eq: id } }}
@@ -281,6 +289,7 @@
 					columns={['claim_number', 'claim_type', 'status', 'claimed_amount']}
 				/>
 				<Table
+					{ctx}
 					of="asset_documents"
 					toolbar={{ title: ctx.t('component.project_documents') }}
 					where={{ project_id: { eq: id }, status: { in: ['draft', 'in_review', 'issued'] } }}
@@ -289,6 +298,7 @@
 				/>
 			</Stack>
 			<Table
+				{ctx}
 				of="permits_to_work"
 				toolbar={{ title: ctx.t('component.permits_to_work') }}
 				where={{ project_id: { eq: id }, validity_range: { contains: day.today } }}
@@ -308,9 +318,9 @@
 	<Section icon="lucide:folder-kanban" first name="project" title={ctx.t('section.project')}>
 		<Grid minimum="compact">
 			{#each ['project_name', 'project_number', 'client', 'main_contractor', 'status', 'project_type', 'project_manager'] as name (name)}
-				<Field {name} />
+				<Field {ctx} {name} />
 			{/each}
-			<Column span="all"><Field name="description" /></Column>
+			<Column span="all"><Field {ctx} name="description" /></Column>
 		</Grid>
 	</Section>
 	<Section
@@ -319,9 +329,9 @@
 		title={ctx.t('section.schedule_and_value')}
 	>
 		<Grid minimum="compact">
-			<Field name="schedule_range" />
-			<Field name="currency" />
-			<Field name="contract_value" />
+			<Field {ctx} name="schedule_range" />
+			<Field {ctx} name="currency" />
+			<Field {ctx} name="contract_value" />
 		</Grid>
 	</Section>
 	<Section
@@ -331,12 +341,13 @@
 		default_open={false}
 		summary={addressLine || ctx.t('component.not_set')}
 	>
-		<Field name="address" />
+		<Field {ctx} name="address" />
 	</Section>
 {/snippet}
 
 {#if record}
 	<RecordShell
+		{ctx}
 		of="projects"
 		id={record.id}
 		subtitle={['project_number', 'client', 'status']}
@@ -365,14 +376,14 @@
 			{#if shown.mode === 'view'}
 				{@render summary()}
 			{:else}
-				<Form of="projects" mode="update" id={record.id} {record}>
+				<Form {ctx} of="projects" mode="update" id={record.id} {record}>
 					{@render projectFields()}
 				</Form>
 			{/if}
 		{/snippet}
 	</RecordShell>
 {:else}
-	<RecordForm {view}>
+	<RecordForm {ctx} {view}>
 		{@render projectFields()}
 	</RecordForm>
 {/if}

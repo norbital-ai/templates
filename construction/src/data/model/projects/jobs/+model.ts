@@ -19,7 +19,7 @@ export default model({
 	record_label: 'record.job_title',
 	fields: {
 		job_title: { kind: 'text' },
-		job_number: { kind: 'text', optional: true, unique: true },
+		job_number: { kind: 'text', optional: true },
 		job_type: { kind: 'text', optional: true },
 		status: {
 			kind: 'enum',
@@ -47,6 +47,7 @@ export default model({
 			on_delete: 'set_null'
 		}
 	},
+	constraints: { job_number: { unique: ['job_number'] } },
 	indexes: { find: { text: ['job_title', 'job_number', 'project_id'] } },
 	outputs: {
 		default: {

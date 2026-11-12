@@ -159,5 +159,6 @@ export default messages({
 	'section.validity': '有效期',
 	'section.worker': '工人',
 	'section.signoff': '签署',
-	'component.not_signed': '未签署'
+	'component.not_signed': '未签署',
+	'errors.worker_uncertified': '工人必须持有至少一项该地点工作要求的全部有效资质，才能被指派。'
 });

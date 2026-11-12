@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import { expect, it } from '@effect/vitest';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import type { CreateInput } from '@norbital-ai/bolt';
-const UNCERTIFIED = /Worker must satisfy at least one site-location job requirement/;
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 // seed/test: a job at the Tower needs certifications A and B; Dan's active permit covers only A, Eve's both
 const SITE = uuid(3),
@@ -32,7 +31,7 @@ it.live('refuses an uncertified worker and admits a covered one, on create and o
 			yield* Effect.flip(admin.act({ 'job_assignments.create': [assign(DAN)] }))
 		).toMatchObject({
 			_tag: 'ActRefused',
-			message: expect.stringMatching(UNCERTIFIED)
+			message: 'errors.worker_uncertified'
 		});
 		const created = yield* admin.act({ 'job_assignments.create': [assign(EVE)] });
 		const assignment =
@@ -55,6 +54,6 @@ it.live('refuses an uncertified worker and admits a covered one, on create and o
 					]
 				})
 			)
-		).toMatchObject({ _tag: 'ActRefused', message: expect.stringMatching(UNCERTIFIED) });
+		).toMatchObject({ _tag: 'ActRefused', message: 'errors.worker_uncertified' });
 	}).pipe(Effect.scoped)
 );

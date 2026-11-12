@@ -12,6 +12,7 @@
 	banner="app-media/construction_settings_reference_matrix-banner.webp"
 >
 	<Table
+		{ctx}
 		of="bim_reference_matrix"
 		key="construction_reference_matrix"
 		columns={[

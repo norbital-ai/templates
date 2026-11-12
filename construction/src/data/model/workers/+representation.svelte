@@ -7,20 +7,20 @@
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 
-<RecordForm {view} subtitle={['worker_number', 'trade', 'status']}>
+<RecordForm {ctx} {view} subtitle={['worker_number', 'trade', 'status']}>
 	<Section icon="lucide:hard-hat" first name="worker" title={ctx.t('section.worker')}>
 		<Grid minimum="compact">
-			<Field name="worker_name" />
-			<Field name="worker_number" />
-			<Field name="trade" />
-			<Field name="status" />
+			<Field {ctx} name="worker_name" />
+			<Field {ctx} name="worker_number" />
+			<Field {ctx} name="trade" />
+			<Field {ctx} name="status" />
 		</Grid>
 	</Section>
 	<Section icon="lucide:shield-check" name="compliance" title={ctx.t('section.compliance')}>
 		<Grid minimum="compact">
-			<Field name="work_permit_expiry" />
-			<Field name="medical_check_date" />
-			<Field name="safety_induction_date" />
+			<Field {ctx} name="work_permit_expiry" />
+			<Field {ctx} name="medical_check_date" />
+			<Field {ctx} name="safety_induction_date" />
 		</Grid>
 	</Section>
 	<Section
@@ -31,9 +31,9 @@
 		summary={record?.['phone'] || record?.['email'] || ctx.t('component.not_set')}
 	>
 		<Grid minimum="compact">
-			<Field name="phone" />
-			<Field name="email" />
-			<Field name="emergency_contact" />
+			<Field {ctx} name="phone" />
+			<Field {ctx} name="email" />
+			<Field {ctx} name="emergency_contact" />
 		</Grid>
 	</Section>
 	<Section
@@ -44,8 +44,8 @@
 		summary={record?.['nationality'] || ctx.t('component.not_set')}
 	>
 		<Grid minimum="compact">
-			<Field name="date_of_birth" />
-			<Field name="nationality" />
+			<Field {ctx} name="date_of_birth" />
+			<Field {ctx} name="nationality" />
 		</Grid>
 	</Section>
 </RecordForm>

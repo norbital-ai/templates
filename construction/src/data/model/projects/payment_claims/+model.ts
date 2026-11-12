@@ -19,7 +19,7 @@ export default model({
 	icon: 'lucide:banknote',
 	record_label: 'record.claim_number',
 	fields: {
-		claim_number: { kind: 'text', unique: true },
+		claim_number: { kind: 'text' },
 		claim_type: { kind: 'enum', values: ['progress', 'variation', 'final'], optional: true },
 		status: {
 			kind: 'enum',
@@ -50,6 +50,7 @@ export default model({
 			on_delete: 'set_null'
 		}
 	},
+	constraints: { claim_number: { unique: ['claim_number'] } },
 	indexes: { find: { text: ['claim_number'] } },
 	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
 	create: { columns: { fields: columns } },

@@ -17,7 +17,7 @@ export default model({
 		"[record.location_code != null ? string(record.location_code) : '', record.location_name != null ? string(record.location_name) : ''].filter(part, part != '').join(' · ')",
 	fields: {
 		location_name: { kind: 'text' },
-		location_code: { kind: 'text', optional: true, unique: true },
+		location_code: { kind: 'text', optional: true },
 		location_type: { kind: 'text', optional: true },
 		grid_reference: { kind: 'text', optional: true },
 		description: { kind: 'text', optional: true },
@@ -33,6 +33,7 @@ export default model({
 			on_delete: 'set_null'
 		}
 	},
+	constraints: { location_code: { unique: ['location_code'] } },
 	indexes: { find: { text: ['location_code', 'location_name'] } },
 	outputs: { default: { fields: 'all' } },
 	create: { columns: { fields: columns } },

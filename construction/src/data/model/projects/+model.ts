@@ -20,7 +20,7 @@ export default model({
 		"[record.project_number != null ? string(record.project_number) : '', record.project_name != null ? string(record.project_name) : ''].filter(part, part != '').join(' · ')",
 	fields: {
 		project_name: { kind: 'text' },
-		project_number: { kind: 'text', optional: true, unique: true },
+		project_number: { kind: 'text', optional: true },
 		client: { kind: 'text', optional: true },
 		main_contractor: { kind: 'text', optional: true },
 		status: {
@@ -36,6 +36,7 @@ export default model({
 		project_manager: { kind: 'text', optional: true },
 		description: { kind: 'text', optional: true }
 	},
+	constraints: { project_number: { unique: ['project_number'] } },
 	indexes: { find: { text: ['project_name', 'project_number'] } },
 	outputs: { default: { fields: 'all' } },
 	create: { columns: { fields: columns } },

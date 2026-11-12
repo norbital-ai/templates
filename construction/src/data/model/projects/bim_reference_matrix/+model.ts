@@ -21,7 +21,7 @@ export default model({
 	record_label: 'record.reference_name',
 	fields: {
 		reference_name: { kind: 'text' },
-		reference_code: { kind: 'text', optional: true, unique: true },
+		reference_code: { kind: 'text', optional: true },
 		category: { kind: 'text', optional: true },
 		subcategory: { kind: 'text', optional: true },
 		unit_of_measure: { kind: 'text', optional: true },
@@ -40,6 +40,7 @@ export default model({
 			on_delete: 'set_null'
 		}
 	},
+	constraints: { reference_code: { unique: ['reference_code'] } },
 	indexes: { find: { text: ['reference_name'] } },
 	outputs: { default: { fields: 'all' } },
 	create: { columns: { fields: columns } },

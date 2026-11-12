@@ -5,12 +5,14 @@
 	 */
 	import type { Snippet } from 'svelte';
 	import type { ModelName } from '@norbital-ai/bolt';
-	import { Form, RecordShell, open_record, type RecordView } from '@norbital-ai/ui';
+	import { Form, RecordShell, open_record, type RecordView, type UiContext } from '@norbital-ai/ui';
 	let {
+		ctx,
 		view,
 		subtitle,
 		children
 	}: {
+		ctx: UiContext;
 		view: RecordView<ModelName>;
 		/** The fields under the heading, each shown by its kind. */
 		subtitle?: readonly string[];
@@ -21,12 +23,14 @@
 </script>
 
 <RecordShell
+	{ctx}
 	{of}
 	mode={view.mode}
 	{...record == null ? {} : { id: record.id }}
 	{...subtitle === undefined ? {} : { subtitle }}
 >
 	<Form
+		{ctx}
 		{of}
 		mode={view.mode}
 		{...record == null

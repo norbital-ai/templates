@@ -12,8 +12,6 @@ const columns = [
 	'hours_per_day',
 	'required_certifications'
 ] as const;
-const UNCERTIFIED =
-	'Worker must satisfy at least one site-location job requirement with all required active certifications before assignment.';
 /**
  * L-TPL-construction-008: each worker must hold active, in-force permits to work covering every certification some job
  * at the site location requires. Two reads for the whole batch.
@@ -77,7 +75,7 @@ const certified = Effect.fnUntraced(function* (
 				const required = requiredByJob.get(l.job_id) ?? [];
 				return required.length > 0 && required.every((r) => covered.has(r.certification_type_id));
 			});
-		if (!qualified) return yield* ctx.refuse(UNCERTIFIED);
+		if (!qualified) return yield* ctx.refuse('errors.worker_uncertified');
 	}
 });
 /**
@@ -125,10 +123,10 @@ export default model({
 		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			yield* certified(
-				changes.flatMap(({ before, after }) =>
-					after.worker_id === before.worker_id && after.site_location_id === before.site_location_id
-						? []
-						: [{ worker: after.worker_id, site: after.site_location_id }]
+				changes.flatMap((c) =>
+					c.changed('worker_id') || c.changed('site_location_id')
+						? [{ worker: c.after.worker_id, site: c.after.site_location_id }]
+						: []
 				),
 				ctx
 			);

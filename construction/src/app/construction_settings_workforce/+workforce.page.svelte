@@ -7,6 +7,7 @@
 
 {#snippet workers()}
 	<Table
+		{ctx}
 		of="workers"
 		columns={['worker_name', 'worker_number', 'trade', 'status', 'phone', 'email']}
 	/>
@@ -14,6 +15,7 @@
 
 {#snippet certifications()}
 	<Table
+		{ctx}
 		of="certification_types"
 		columns={[
 			'certification_name',
@@ -28,6 +30,7 @@
 
 {#snippet jobs()}
 	<Table
+		{ctx}
 		of="jobs"
 		key="construction_workforce:jobs"
 		columns={[

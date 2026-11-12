@@ -12,6 +12,7 @@
 	banner="app-media/construction_project_workspace-banner.webp"
 >
 	<Table
+		{ctx}
 		of="projects"
 		page_size={50}
 		columns={['project_name', 'project_number', 'client', 'status', 'schedule_range']}

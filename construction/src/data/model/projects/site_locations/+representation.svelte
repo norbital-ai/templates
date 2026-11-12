@@ -8,19 +8,19 @@
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 
-<RecordForm {view} subtitle={['location_code', 'location_type']}>
+<RecordForm {ctx} {view} subtitle={['location_code', 'location_type']}>
 	<Section icon="lucide:map-pin" first name="location" title={ctx.t('section.location')}>
 		<Grid minimum="compact">
-			<Field name="location_name" />
-			<Field name="location_code" />
+			<Field {ctx} name="location_name" />
+			<Field {ctx} name="location_code" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<Field name="project_id" />
+				<Field {ctx} name="project_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.parent_location_id == null}
-				<Field name="parent_location_id" />
+				<Field {ctx} name="parent_location_id" />
 			{/if}
-			<Field name="location_type" />
-			<Column span="all"><Field name="description" /></Column>
+			<Field {ctx} name="location_type" />
+			<Column span="all"><Field {ctx} name="description" /></Column>
 		</Grid>
 	</Section>
 	<Section
@@ -31,9 +31,9 @@
 		summary={record?.['grid_reference'] || ctx.t('component.not_set')}
 	>
 		<Grid minimum="compact">
-			<Field name="grid_reference" />
-			<Field name="bim_model_element_id" />
-			<Column span="all"><Field name="coordinates" /></Column>
+			<Field {ctx} name="grid_reference" />
+			<Field {ctx} name="bim_model_element_id" />
+			<Column span="all"><Field {ctx} name="coordinates" /></Column>
 		</Grid>
 	</Section>
 </RecordForm>

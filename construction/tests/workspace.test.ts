@@ -1,6 +1,4 @@
-import { Option, Context, Effect } from 'effect';
-import { Runs, Identity } from '@norbital-ai/bolt/engine';
-import type { AutomationName } from '@norbital-ai/bolt';
+import { Effect, Schema } from 'effect';
 /**
  * Each 06:00 digest is a cron automation whose run output is its JSON extract (L-TPL-construction-009..012).
  */
@@ -9,6 +7,7 @@ import { expect, it } from '@effect/vitest';
 import { JobResult } from '@norbital-ai/bolt-cli/test';
 import { workspace as acquireWorkspace } from './test-runtime.js';
 const root = fileURLToPath(new URL('..', import.meta.url));
+const RunRow = Schema.Struct({ state: Schema.String, output: Schema.Json });
 it.live('runs all four daily digests', () =>
 	Effect.gen(function* () {
 		const t = yield* acquireWorkspace({ root });
@@ -18,22 +17,21 @@ it.live('runs all four daily digests', () =>
 			'payment_claim_readiness_watch',
 			'permit_expiry_watch',
 			'rfi_followup_watch'
-		] as const satisfies readonly AutomationName[];
+		] as const;
 		// seed/test holds two active permits, PTW-1 and PTW-2
-		const runs = Context.get(t.services, Runs);
-		if (runs === undefined) throw new Error('Test workspace has no runs driver.');
 		for (const digest of digests) {
 			const started = yield* admin.run(digest, {}, JobResult);
 			expect(started).toMatchObject({ kind: 'committed' });
 			if (started.kind !== 'committed') throw new Error('The digest did not start.');
 			const { id } = started.output;
 			yield* t.run_due();
-			const run = Option.getOrNull(
-				yield* runs.view(yield* Context.get(t.services, Identity).authority(t.admin), id)
-			);
+			const [run] = yield* t.db.rows(RunRow, {
+				text: 'select state, output from sys_run where id = $1',
+				params: [id]
+			});
 			expect(run).toMatchObject({
-				status: 'succeeded',
-				result:
+				state: 'succeeded',
+				output:
 					digest === 'permit_expiry_watch'
 						? {
 								count: 2,

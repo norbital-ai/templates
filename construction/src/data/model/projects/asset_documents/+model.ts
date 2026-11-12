@@ -19,7 +19,7 @@ export default model({
 	record_label: 'record.title',
 	fields: {
 		title: { kind: 'text' },
-		document_number: { kind: 'text', optional: true, unique: true },
+		document_number: { kind: 'text', optional: true },
 		document_type: {
 			kind: 'enum',
 			values: ['ifc_model', 'handover_pack', 'o_and_m', 'drawing', 'specification', 'certificate'],
@@ -49,6 +49,7 @@ export default model({
 			on_delete: 'set_null'
 		}
 	},
+	constraints: { document_number: { unique: ['document_number'] } },
 	indexes: { find: { text: ['title'] } },
 	outputs: { default: { fields: 'all' } },
 	create: { columns: { fields: columns } },

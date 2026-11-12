@@ -1,4 +1,4 @@
--- 0001_initial.sql: 309 step(s), from an empty database to ca293ca1d4aa0832694e831d491e0389c308981e84d2cb0e5f2e9f98fcdc7134.
+-- 0001_initial.sql: 309 step(s), from an empty database to 88f2de9850c166bf0d699f656df6f1119402f17cb206fae867d0eed6786a107a.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -874,10 +874,10 @@ create table "sys_api_key" ("id" text primary key,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_api_key_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_api_key_93340fdd"("name"), ''))) stored,
 	"created_by" text,
-	constraint "sys_api_key__uq__410283f1" unique ("prefix"),
 	constraint "sys_api_key__ck__3ec0653c" check (isfinite("revoked_at")),
 	constraint "sys_api_key__ck__21d4c9ff" check (isfinite("last_used_at")),
-	constraint "sys_api_key__ck__367d8eb4" check (isfinite("created_at"))
+	constraint "sys_api_key__ck__367d8eb4" check (isfinite("created_at")),
+	constraint "sys_api_key__uq__410283f1" unique ("prefix")
 );
 
 -- step create:table:sys_challenge (additive)
@@ -1119,9 +1119,9 @@ create table "sys_notification" ("id" text primary key,
 	constraint "sys_notification__ck__8e13ac8a" check (("recipient" is null or store_json_valid("recipient", '{"kind":"json"}'::jsonb) is true)),
 	constraint "sys_notification__ck__af8b3b10" check (("link" is null or store_json_valid("link", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_notification__ck__c9a52988" check (("attachments" is null or store_json_valid("attachments", '{"default":[],"kind":"json"}'::jsonb) is true)),
-	constraint "sys_notification__uq__544dc786" unique ("once"),
 	constraint "sys_notification__ck__2298f760" check (isfinite("at")),
-	constraint "sys_notification__ck__db820902" check (isfinite("read_at"))
+	constraint "sys_notification__ck__db820902" check (isfinite("read_at")),
+	constraint "sys_notification__uq__544dc786" unique ("once")
 );
 
 -- step create:table:sys_outbox (additive)
@@ -1154,14 +1154,14 @@ create table "sys_outbox" ("id" uuid primary key,
 	constraint "sys_outbox__ck__0e6efdd2" check ("delivery_op" in ('create', 'update', 'delete')),
 	constraint "sys_outbox__ck__cb287458" check (("image" is null or store_json_valid("image", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_outbox__ck__8ad02efa" check (("changed" is null or store_json_valid("changed", '{"default":[],"kind":"json","shape":{"kind":"text","many":true}}'::jsonb) is true)),
-	constraint "sys_outbox__uq__f1a22a1c" unique ("key"),
 	constraint "sys_outbox__ck__fb29df7c" check ("status" in ('queued', 'sending', 'acked', 'failed', 'dead', 'skipped')),
 	constraint "sys_outbox__ck__f6ff471a" check (isfinite("next_attempt_at")),
 	constraint "sys_outbox__ck__a7d38bd9" check (isfinite("claimed_at")),
 	constraint "sys_outbox__ck__b77b5c87" check (("error" is null or store_json_valid("error", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_outbox__ck__c8a3b1f1" check (isfinite("acked_at")),
 	constraint "sys_outbox__ck__0bde5ff1" check (("result" is null or store_json_valid("result", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_outbox__ck__2298f760" check (isfinite("at"))
+	constraint "sys_outbox__ck__2298f760" check (isfinite("at")),
+	constraint "sys_outbox__uq__f1a22a1c" unique ("key")
 );
 
 -- step create:table:sys_run (additive)
@@ -1189,7 +1189,6 @@ create table "sys_run" ("id" text primary key,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_run_09f15580"("automation"), ''))) stored,
 	constraint "sys_run__ck__fcb01943" check (("input" is null or store_json_valid("input", '{"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__9f882481" check (isfinite("due_at")),
-	constraint "sys_run__uq__f1a22a1c" unique ("key"),
 	constraint "sys_run__ck__df253602" check (isfinite("started_at")),
 	constraint "sys_run__ck__a6d9a98d" check (isfinite("finished_at")),
 	constraint "sys_run__ck__ca03cc42" check (("progress" is null or store_json_valid("progress", '{"kind":"json","optional":true}'::jsonb) is true)),
@@ -1197,7 +1196,8 @@ create table "sys_run" ("id" text primary key,
 	constraint "sys_run__ck__b77b5c87" check (("error" is null or store_json_valid("error", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__ck__f38716e4" check (("results" is null or store_json_valid("results", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__20970459" check (("starter" is null or store_json_valid("starter", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true))
+	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_run__uq__f1a22a1c" unique ("key")
 );
 
 -- step create:table:sys_session (additive)
@@ -1212,11 +1212,11 @@ create table "sys_session" ("id" text primary key,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_session_6a2ce92f"("via"), ''))) stored,
 	"user" text not null,
 	"impersonated_by" text,
-	constraint "sys_session__uq__ba86567f" unique ("token_hash"),
 	constraint "sys_session__ck__30a5a136" check ("via" in ('code', 'invitation', 'signup', 'host', 'anonymous')),
 	constraint "sys_session__ck__367d8eb4" check (isfinite("created_at")),
 	constraint "sys_session__ck__58adc270" check (isfinite("expires_at")),
-	constraint "sys_session__ck__e61a07a4" check (isfinite("refreshed_at"))
+	constraint "sys_session__ck__e61a07a4" check (isfinite("refreshed_at")),
+	constraint "sys_session__uq__ba86567f" unique ("token_hash")
 );
 
 -- step create:table:sys_sync (additive)
@@ -1300,9 +1300,9 @@ create table "certification_types" ("id" uuid primary key, revision int not null
 	"requirements" text[],
 	"bolt_record_label" text generated always as ("bolt_record_label_certification_types_55a9d530"("certification_name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_certification_types_55a9d530"("certification_name"), '') || ' ' || coalesce("certification_name"::text, ''))) stored,
-	constraint "certification_types__uq__1e107a39" unique ("certification_code") deferrable initially immediate,
 	constraint "certification_types__ck__27fd4f2f" check ("validity_period_months" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("validity_period_months", 2) = "validity_period_months"),
-	constraint "certification_types__ck__37e18a1e" check (not jsonb_path_exists(to_jsonb("requirements"), 'strict $[*] ? (@.type() != "string")'))
+	constraint "certification_types__ck__37e18a1e" check (not jsonb_path_exists(to_jsonb("requirements"), 'strict $[*] ? (@.type() != "string")')),
+	constraint "certification_types__uq__1e107a39" unique ("certification_code") deferrable initially immediate
 );
 
 -- step create:table:projects (additive)
@@ -1321,12 +1321,12 @@ create table "projects" ("id" uuid primary key, revision int not null default 1,
 	"description" text,
 	"bolt_record_label" text generated always as ("bolt_record_label_projects_ad9256b5"("project_name", "project_number")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_projects_ad9256b5"("project_name", "project_number"), '') || ' ' || coalesce("project_name"::text, '') || ' ' || coalesce("project_number"::text, ''))) stored,
-	constraint "projects__uq__0a1dc313" unique ("project_number") deferrable initially immediate,
 	constraint "projects__ck__158c37ce" check ("status" in ('planned', 'active', 'on_hold', 'complete', 'cancelled')),
 	constraint "projects__ck__b6684727" check (not isempty("schedule_range") and not lower_inf("schedule_range")),
 	constraint "projects__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
 	constraint "projects__ck__f966f864" check ("contract_value" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("contract_value", bolt_minor_units("currency")) = "contract_value"),
-	constraint "projects__ck__3b89045a" check (("address" is null or store_json_valid("address", '{"kind":"custom","of":"project_address","optional":true}'::jsonb) is true))
+	constraint "projects__ck__3b89045a" check (("address" is null or store_json_valid("address", '{"kind":"custom","of":"project_address","optional":true}'::jsonb) is true)),
+	constraint "projects__uq__0a1dc313" unique ("project_number") deferrable initially immediate
 );
 
 -- step create:table:asset_documents (additive)
@@ -1345,12 +1345,12 @@ create table "asset_documents" ("id" uuid primary key, revision int not null def
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_asset_documents_06f5fc13"("title"), '') || ' ' || coalesce("title"::text, ''))) stored,
 	"project_id" uuid,
 	"site_location_id" uuid,
-	constraint "asset_documents__uq__d3c8108e" unique ("document_number") deferrable initially immediate,
 	constraint "asset_documents__ck__4b351076" check ("document_type" in ('ifc_model', 'handover_pack', 'o_and_m', 'drawing', 'specification', 'certificate')),
 	constraint "asset_documents__ck__56cbf9f7" check ("asset_category" in ('bim_model', 'handover', 'operations')),
 	constraint "asset_documents__ck__08fbede8" check ("status" in ('draft', 'in_review', 'issued', 'superseded', 'archived')),
 	constraint "asset_documents__ck__ee5ea8e4" check (not isempty("validity_range") and not lower_inf("validity_range")),
-	constraint "asset_documents__ck__fa91f7e0" check (not jsonb_path_exists(to_jsonb("tags"), 'strict $[*] ? (@.type() != "string")'))
+	constraint "asset_documents__ck__fa91f7e0" check (not jsonb_path_exists(to_jsonb("tags"), 'strict $[*] ? (@.type() != "string")')),
+	constraint "asset_documents__uq__d3c8108e" unique ("document_number") deferrable initially immediate
 );
 
 -- step create:table:bim_reference_matrix (additive)
@@ -1370,10 +1370,10 @@ create table "bim_reference_matrix" ("id" uuid primary key, revision int not nul
 	"bolt_record_label" text generated always as ("bolt_record_label_bim_reference_matrix_c647799b"("reference_name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_bim_reference_matrix_c647799b"("reference_name"), '') || ' ' || coalesce("reference_name"::text, ''))) stored,
 	"project_id" uuid,
-	constraint "bim_reference_matrix__uq__5a6b54c9" unique ("reference_code") deferrable initially immediate,
 	constraint "bim_reference_matrix__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
 	constraint "bim_reference_matrix__ck__a991b9d6" check ("rate" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("rate", bolt_minor_units("currency")) = "rate"),
-	constraint "bim_reference_matrix__ck__ca8e2885" check ("embodied_carbon_per_unit" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("embodied_carbon_per_unit", 4) = "embodied_carbon_per_unit")
+	constraint "bim_reference_matrix__ck__ca8e2885" check ("embodied_carbon_per_unit" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("embodied_carbon_per_unit", 4) = "embodied_carbon_per_unit"),
+	constraint "bim_reference_matrix__uq__5a6b54c9" unique ("reference_code") deferrable initially immediate
 );
 
 -- step create:table:jobs (additive)
@@ -1392,12 +1392,12 @@ create table "jobs" ("id" uuid primary key, revision int not null default 1, cre
 	"project_id" uuid,
 	"site_location_id" uuid,
 	"bim_reference_id" uuid,
-	constraint "jobs__uq__024a7367" unique ("job_number") deferrable initially immediate,
 	constraint "jobs__ck__cec68998" check ("status" in ('planned', 'ready', 'in_progress', 'completed', 'blocked', 'cancelled')),
 	constraint "jobs__ck__b6684727" check (not isempty("schedule_range") and not lower_inf("schedule_range")),
 	constraint "jobs__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
 	constraint "jobs__ck__606a17b6" check ("budget" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("budget", bolt_minor_units("currency")) = "budget"),
-	constraint "jobs__ck__79de87cb" check ("priority" in ('low', 'medium', 'high', 'critical'))
+	constraint "jobs__ck__79de87cb" check ("priority" in ('low', 'medium', 'high', 'critical')),
+	constraint "jobs__uq__024a7367" unique ("job_number") deferrable initially immediate
 );
 
 -- step create:table:defects (additive)
@@ -1420,13 +1420,13 @@ create table "defects" ("id" uuid primary key, revision int not null default 1, 
 	"project_id" uuid,
 	"site_location_id" uuid,
 	"job_id" uuid,
-	constraint "defects__uq__159b63a6" unique ("defect_number") deferrable initially immediate,
 	constraint "defects__ck__827dafc6" check ("severity" in ('low', 'medium', 'high', 'critical')),
 	constraint "defects__ck__1a6654c5" check ("status" in ('open', 'in_review', 'ready_for_closeout', 'closed')),
 	constraint "defects__ck__89b101e9" check (isfinite("reported_date")),
 	constraint "defects__ck__fcf7f1c2" check (isfinite("due_date")),
 	constraint "defects__ck__4106cf4b" check (isfinite("closed_date")),
-	constraint "defects__ck__34872aca" check (("photos" is null or store_json_valid("photos", '{"accept":["image/jpeg","image/png"],"kind":"file","many":true,"max":"20MiB","optional":true}'::jsonb) is true))
+	constraint "defects__ck__34872aca" check (("photos" is null or store_json_valid("photos", '{"accept":["image/jpeg","image/png"],"kind":"file","many":true,"max":"20MiB","optional":true}'::jsonb) is true)),
+	constraint "defects__uq__159b63a6" unique ("defect_number") deferrable initially immediate
 );
 
 -- step create:table:job_assignments (additive)
@@ -1483,7 +1483,6 @@ create table "payment_claims" ("id" uuid primary key, revision int not null defa
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_payment_claims_3ecd7377"("claim_number"), '') || ' ' || coalesce("claim_number"::text, ''))) stored,
 	"project_id" uuid,
 	"job_id" uuid,
-	constraint "payment_claims__uq__daf8e711" unique ("claim_number") deferrable initially immediate,
 	constraint "payment_claims__ck__5aa8154c" check ("claim_type" in ('progress', 'variation', 'final')),
 	constraint "payment_claims__ck__0721bd15" check ("status" in ('draft', 'submitted', 'certified', 'paid', 'rejected')),
 	constraint "payment_claims__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
@@ -1492,7 +1491,8 @@ create table "payment_claims" ("id" uuid primary key, revision int not null defa
 	constraint "payment_claims__ck__5752f7cf" check (not isempty("claim_period") and not lower_inf("claim_period")),
 	constraint "payment_claims__ck__09635006" check (isfinite("submitted_date")),
 	constraint "payment_claims__ck__7207107d" check (isfinite("paid_date")),
-	constraint "payment_claims__ck__838d10a0" check (("supporting_documents" is null or store_json_valid("supporting_documents", '{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true}'::jsonb) is true))
+	constraint "payment_claims__ck__838d10a0" check (("supporting_documents" is null or store_json_valid("supporting_documents", '{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true}'::jsonb) is true)),
+	constraint "payment_claims__uq__daf8e711" unique ("claim_number") deferrable initially immediate
 );
 
 -- step create:table:permits_to_work (additive)
@@ -1512,14 +1512,14 @@ create table "permits_to_work" ("id" uuid primary key, revision int not null def
 	"site_location_id" uuid,
 	"job_id" uuid,
 	"worker_id" uuid,
-	constraint "permits_to_work__uq__6659c462" unique ("permit_number") deferrable initially immediate,
 	constraint "permits_to_work__ck__9d786d7c" check ("permit_type" in ('work_at_height', 'site_supervision', 'electrical', 'confined_space', 'hot_work', 'lifting', 'excavation')),
 	constraint "permits_to_work__ck__280f55cb" check ("status" in ('draft', 'pending', 'active', 'expiring_soon', 'expired', 'suspended', 'closed')),
 	constraint "permits_to_work__ck__31bfa415" check (isfinite("requested_date")),
 	constraint "permits_to_work__ck__ee5ea8e4" check (not isempty("validity_range") and not lower_inf("validity_range")),
 	constraint "permits_to_work__ck__062d089d" check (not jsonb_path_exists(to_jsonb("hazards_identified"), 'strict $[*] ? (@.type() != "string")')),
 	constraint "permits_to_work__ck__2cce62e2" check (not jsonb_path_exists(to_jsonb("control_measures"), 'strict $[*] ? (@.type() != "string")')),
-	constraint "permits_to_work__ck__0d42cb32" check (("signatures" is null or store_json_valid("signatures", '{"kind":"custom","of":"permit_signatures","optional":true}'::jsonb) is true))
+	constraint "permits_to_work__ck__0d42cb32" check (("signatures" is null or store_json_valid("signatures", '{"kind":"custom","of":"permit_signatures","optional":true}'::jsonb) is true)),
+	constraint "permits_to_work__uq__6659c462" unique ("permit_number") deferrable initially immediate
 );
 
 -- step create:table:permits_to_work_certification_types (additive)
@@ -1559,13 +1559,13 @@ create table "rfis" ("id" uuid primary key, revision int not null default 1, cre
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_rfis_06f5fc13"("title"), '') || ' ' || coalesce("title"::text, ''))) stored,
 	"project_id" uuid,
 	"related_defect_id" uuid,
-	constraint "rfis__uq__b7dec52c" unique ("rfi_number") deferrable initially immediate,
 	constraint "rfis__ck__f03d0c38" check ("status" in ('open', 'answered', 'closed')),
 	constraint "rfis__ck__79de87cb" check ("priority" in ('low', 'medium', 'high', 'critical')),
 	constraint "rfis__ck__09635006" check (isfinite("submitted_date")),
 	constraint "rfis__ck__fcf7f1c2" check (isfinite("due_date")),
 	constraint "rfis__ck__ff873860" check (isfinite("resolved_date")),
-	constraint "rfis__ck__50e98387" check (("attachments" is null or store_json_valid("attachments", '{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true}'::jsonb) is true))
+	constraint "rfis__ck__50e98387" check (("attachments" is null or store_json_valid("attachments", '{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true}'::jsonb) is true)),
+	constraint "rfis__uq__b7dec52c" unique ("rfi_number") deferrable initially immediate
 );
 
 -- step create:table:site_locations (additive)
@@ -1581,8 +1581,8 @@ create table "site_locations" ("id" uuid primary key, revision int not null defa
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_site_locations_604354fe"("location_code", "location_name"), '') || ' ' || coalesce("location_code"::text, '') || ' ' || coalesce("location_name"::text, ''))) stored,
 	"project_id" uuid,
 	"parent_location_id" uuid,
-	constraint "site_locations__uq__dc8fe265" unique ("location_code") deferrable initially immediate,
-	constraint "site_locations__ck__c5efa9b8" check (("coordinates" is null or store_json_valid("coordinates", '{"kind":"custom","of":"site_coordinates","optional":true}'::jsonb) is true))
+	constraint "site_locations__ck__c5efa9b8" check (("coordinates" is null or store_json_valid("coordinates", '{"kind":"custom","of":"site_coordinates","optional":true}'::jsonb) is true)),
+	constraint "site_locations__uq__dc8fe265" unique ("location_code") deferrable initially immediate
 );
 
 -- step create:table:workers (additive)
@@ -1601,13 +1601,13 @@ create table "workers" ("id" uuid primary key, revision int not null default 1, 
 	"safety_induction_date" date,
 	"bolt_record_label" text generated always as ("bolt_record_label_workers_9880e3e2"("worker_name", "worker_number")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_workers_9880e3e2"("worker_name", "worker_number"), '') || ' ' || coalesce("worker_name"::text, '') || ' ' || coalesce("worker_number"::text, ''))) stored,
-	constraint "workers__uq__50ee83d0" unique ("worker_number") deferrable initially immediate,
 	constraint "workers__ck__27bee027" check ("status" in ('active', 'inactive', 'suspended')),
 	constraint "workers__ck__5d4c81c7" check (("emergency_contact" is null or store_json_valid("emergency_contact", '{"kind":"custom","of":"emergency_contact","optional":true}'::jsonb) is true)),
 	constraint "workers__ck__01e02f9e" check (isfinite("date_of_birth")),
 	constraint "workers__ck__844a7586" check (isfinite("work_permit_expiry")),
 	constraint "workers__ck__98e5fe0a" check (isfinite("medical_check_date")),
-	constraint "workers__ck__889063d0" check (isfinite("safety_induction_date"))
+	constraint "workers__ck__889063d0" check (isfinite("safety_induction_date")),
+	constraint "workers__uq__50ee83d0" unique ("worker_number") deferrable initially immediate
 );
 
 -- step create:engine:bolt_history (additive)
@@ -1641,7 +1641,7 @@ create table if not exists bolt_approval_effect (
 select bolt_history_register('approval_request','{"fields":{"action":{"kind":"enum","values":["create","update","delete"]},"approver_teams":{"kind":"json","shape":{"kind":"text","many":true}},"approver_users":{"kind":"json","shape":{"kind":"text","many":true}},"closed_at":{"kind":"instant","optional":true},"closed_by":{"kind":"text","optional":true},"collection_name":{"kind":"text"},"created_at":{"kind":"instant"},"record_id":{"kind":"text"},"revision":{"default":1,"kind":"int"},"status":{"kind":"enum","values":["ONGOING","CHANGES_REQUESTED","APPROVED","REJECTED","SUPERSEDED","WITHDRAWN"]},"step":{"kind":"int"},"step_names":{"kind":"json","shape":{"kind":"text","many":true}},"steps":{"kind":"int"},"superseder_teams":{"kind":"json","shape":{"kind":"text","many":true}}},"key":"uuid","search":{"text":["collection_name"]},"unique":[{"fields":["collection_name","record_id"],"name":"one_ongoing_request","where":{"status":{"eq":"ONGOING"}}}]}'::jsonb);
 
 -- step create:history:schema:sys_api_key (additive)
-select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text","unique":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
+select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text"},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name","unique":[{"fields":["prefix"],"name":"prefix"}]}'::jsonb);
 
 -- step create:history:schema:sys_conversation (additive)
 select bolt_history_register('sys_conversation','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"goals":{"kind":"json","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
@@ -1662,22 +1662,22 @@ select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"em
 select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:certification_types (additive)
-select bolt_history_register('certification_types','{"audit":true,"fields":{"category":{"kind":"text","optional":true},"certification_code":{"kind":"text","optional":true,"unique":true},"certification_name":{"kind":"text"},"description":{"kind":"text","optional":true},"issuing_body":{"kind":"text","optional":true},"requirements":{"kind":"text","many":true,"optional":true},"requires_refresher":{"kind":"bool","optional":true},"validity_period_months":{"kind":"decimal","optional":true,"scale":2}},"record_label":"record.certification_name","search":{"text":["certification_name"]}}'::jsonb);
+select bolt_history_register('certification_types','{"audit":true,"fields":{"category":{"kind":"text","optional":true},"certification_code":{"kind":"text","optional":true},"certification_name":{"kind":"text"},"description":{"kind":"text","optional":true},"issuing_body":{"kind":"text","optional":true},"requirements":{"kind":"text","many":true,"optional":true},"requires_refresher":{"kind":"bool","optional":true},"validity_period_months":{"kind":"decimal","optional":true,"scale":2}},"record_label":"record.certification_name","search":{"text":["certification_name"]},"unique":[{"fields":["certification_code"],"name":"certification_code"}]}'::jsonb);
 
 -- step create:history:schema:projects (additive)
-select bolt_history_register('projects','{"audit":true,"fields":{"address":{"kind":"custom","of":"project_address","optional":true},"client":{"kind":"text","optional":true},"contract_value":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"main_contractor":{"kind":"text","optional":true},"project_manager":{"kind":"text","optional":true},"project_name":{"kind":"text"},"project_number":{"kind":"text","optional":true,"unique":true},"project_type":{"kind":"text","optional":true},"schedule_range":{"kind":"period","of":"date","optional":true},"status":{"kind":"enum","optional":true,"values":["planned","active","on_hold","complete","cancelled"]}},"record_label":"[record.project_number != null ? string(record.project_number) : '''', record.project_name != null ? string(record.project_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["project_name","project_number"]}}'::jsonb);
+select bolt_history_register('projects','{"audit":true,"fields":{"address":{"kind":"custom","of":"project_address","optional":true},"client":{"kind":"text","optional":true},"contract_value":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"main_contractor":{"kind":"text","optional":true},"project_manager":{"kind":"text","optional":true},"project_name":{"kind":"text"},"project_number":{"kind":"text","optional":true},"project_type":{"kind":"text","optional":true},"schedule_range":{"kind":"period","of":"date","optional":true},"status":{"kind":"enum","optional":true,"values":["planned","active","on_hold","complete","cancelled"]}},"record_label":"[record.project_number != null ? string(record.project_number) : '''', record.project_name != null ? string(record.project_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["project_name","project_number"]},"unique":[{"fields":["project_number"],"name":"project_number"}]}'::jsonb);
 
 -- step create:history:schema:asset_documents (additive)
-select bolt_history_register('asset_documents','{"audit":true,"fields":{"asset_category":{"kind":"enum","optional":true,"values":["bim_model","handover","operations"]},"asset_tag":{"kind":"text","optional":true},"document_number":{"kind":"text","optional":true,"unique":true},"document_type":{"kind":"enum","optional":true,"values":["ifc_model","handover_pack","o_and_m","drawing","specification","certificate"]},"document_url":{"kind":"text","optional":true},"project_id":{"inverse":"asset_documents","kind":"ref","optional":true,"to":"projects"},"site_location_id":{"inverse":"asset_documents","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["draft","in_review","issued","superseded","archived"]},"tags":{"kind":"text","many":true,"optional":true},"title":{"kind":"text"},"validity_range":{"kind":"period","of":"date","optional":true},"version":{"kind":"text","optional":true}},"record_label":"record.title","search":{"text":["title"]}}'::jsonb);
+select bolt_history_register('asset_documents','{"audit":true,"fields":{"asset_category":{"kind":"enum","optional":true,"values":["bim_model","handover","operations"]},"asset_tag":{"kind":"text","optional":true},"document_number":{"kind":"text","optional":true},"document_type":{"kind":"enum","optional":true,"values":["ifc_model","handover_pack","o_and_m","drawing","specification","certificate"]},"document_url":{"kind":"text","optional":true},"project_id":{"inverse":"asset_documents","kind":"ref","optional":true,"to":"projects"},"site_location_id":{"inverse":"asset_documents","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["draft","in_review","issued","superseded","archived"]},"tags":{"kind":"text","many":true,"optional":true},"title":{"kind":"text"},"validity_range":{"kind":"period","of":"date","optional":true},"version":{"kind":"text","optional":true}},"record_label":"record.title","search":{"text":["title"]},"unique":[{"fields":["document_number"],"name":"document_number"}]}'::jsonb);
 
 -- step create:history:schema:bim_reference_matrix (additive)
-select bolt_history_register('bim_reference_matrix','{"audit":true,"fields":{"bim_guid":{"kind":"text","optional":true},"carbon_unit":{"kind":"text","optional":true},"category":{"kind":"text","optional":true},"currency":{"kind":"currency","optional":true},"data_source":{"kind":"text","optional":true},"embodied_carbon_per_unit":{"kind":"decimal","optional":true,"scale":4},"project_id":{"inverse":"bim_references","kind":"ref","on_delete":"set_null","optional":true,"to":"projects"},"rate":{"currency":"currency","kind":"money","optional":true},"reference_code":{"kind":"text","optional":true,"unique":true},"reference_name":{"kind":"text"},"specification":{"kind":"text","optional":true},"subcategory":{"kind":"text","optional":true},"unit_of_measure":{"kind":"text","optional":true}},"record_label":"record.reference_name","search":{"text":["reference_name"]}}'::jsonb);
+select bolt_history_register('bim_reference_matrix','{"audit":true,"fields":{"bim_guid":{"kind":"text","optional":true},"carbon_unit":{"kind":"text","optional":true},"category":{"kind":"text","optional":true},"currency":{"kind":"currency","optional":true},"data_source":{"kind":"text","optional":true},"embodied_carbon_per_unit":{"kind":"decimal","optional":true,"scale":4},"project_id":{"inverse":"bim_references","kind":"ref","on_delete":"set_null","optional":true,"to":"projects"},"rate":{"currency":"currency","kind":"money","optional":true},"reference_code":{"kind":"text","optional":true},"reference_name":{"kind":"text"},"specification":{"kind":"text","optional":true},"subcategory":{"kind":"text","optional":true},"unit_of_measure":{"kind":"text","optional":true}},"record_label":"record.reference_name","search":{"text":["reference_name"]},"unique":[{"fields":["reference_code"],"name":"reference_code"}]}'::jsonb);
 
 -- step create:history:schema:jobs (additive)
-select bolt_history_register('jobs','{"audit":true,"fields":{"bim_reference_id":{"inverse":"jobs","kind":"ref","on_delete":"set_null","optional":true,"to":"bim_reference_matrix"},"budget":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"job_number":{"kind":"text","optional":true,"unique":true},"job_title":{"kind":"text"},"job_type":{"kind":"text","optional":true},"priority":{"kind":"enum","optional":true,"values":["low","medium","high","critical"]},"project_id":{"inverse":"jobs","kind":"ref","optional":true,"to":"projects"},"schedule_range":{"kind":"period","of":"date","optional":true},"site_location_id":{"inverse":"jobs","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["planned","ready","in_progress","completed","blocked","cancelled"]}},"record_label":"record.job_title","search":{"text":["job_title","job_number","project_id"]}}'::jsonb);
+select bolt_history_register('jobs','{"audit":true,"fields":{"bim_reference_id":{"inverse":"jobs","kind":"ref","on_delete":"set_null","optional":true,"to":"bim_reference_matrix"},"budget":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"job_number":{"kind":"text","optional":true},"job_title":{"kind":"text"},"job_type":{"kind":"text","optional":true},"priority":{"kind":"enum","optional":true,"values":["low","medium","high","critical"]},"project_id":{"inverse":"jobs","kind":"ref","optional":true,"to":"projects"},"schedule_range":{"kind":"period","of":"date","optional":true},"site_location_id":{"inverse":"jobs","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["planned","ready","in_progress","completed","blocked","cancelled"]}},"record_label":"record.job_title","search":{"text":["job_title","job_number","project_id"]},"unique":[{"fields":["job_number"],"name":"job_number"}]}'::jsonb);
 
 -- step create:history:schema:defects (additive)
-select bolt_history_register('defects','{"audit":true,"fields":{"assigned_to":{"kind":"text","optional":true},"category":{"kind":"text","optional":true},"closed_date":{"kind":"date","optional":true},"defect_number":{"kind":"text","optional":true,"unique":true},"description":{"kind":"text","optional":true},"due_date":{"kind":"date","optional":true},"job_id":{"inverse":"defects","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"photos":{"accept":["image/jpeg","image/png"],"kind":"file","many":true,"max":"20MiB","optional":true},"project_id":{"inverse":"defects","kind":"ref","optional":true,"to":"projects"},"reported_by":{"kind":"text","optional":true},"reported_date":{"kind":"date","optional":true},"resolution_notes":{"kind":"text","optional":true},"severity":{"kind":"enum","optional":true,"values":["low","medium","high","critical"]},"site_location_id":{"inverse":"defects","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["open","in_review","ready_for_closeout","closed"]},"title":{"kind":"text"}},"record_label":"record.title","search":{"text":["title"]}}'::jsonb);
+select bolt_history_register('defects','{"audit":true,"fields":{"assigned_to":{"kind":"text","optional":true},"category":{"kind":"text","optional":true},"closed_date":{"kind":"date","optional":true},"defect_number":{"kind":"text","optional":true},"description":{"kind":"text","optional":true},"due_date":{"kind":"date","optional":true},"job_id":{"inverse":"defects","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"photos":{"accept":["image/jpeg","image/png"],"kind":"file","many":true,"max":"20MiB","optional":true},"project_id":{"inverse":"defects","kind":"ref","optional":true,"to":"projects"},"reported_by":{"kind":"text","optional":true},"reported_date":{"kind":"date","optional":true},"resolution_notes":{"kind":"text","optional":true},"severity":{"kind":"enum","optional":true,"values":["low","medium","high","critical"]},"site_location_id":{"inverse":"defects","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["open","in_review","ready_for_closeout","closed"]},"title":{"kind":"text"}},"record_label":"record.title","search":{"text":["title"]},"unique":[{"fields":["defect_number"],"name":"defect_number"}]}'::jsonb);
 
 -- step create:history:schema:job_assignments (additive)
 select bolt_history_register('job_assignments','{"audit":true,"fields":{"assignment_code":{"kind":"text","optional":true},"assignment_range":{"kind":"period","of":"date","optional":true},"hours_per_day":{"kind":"decimal","optional":true,"scale":2},"job_id":{"inverse":"job_assignments","kind":"ref","optional":true,"to":"jobs"},"required_certifications":{"kind":"text","many":true,"optional":true},"role":{"kind":"text","optional":true},"site_location_id":{"inverse":"job_assignments","kind":"ref","to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["assigned","in_progress","completed","cancelled"]},"worker_id":{"inverse":"job_assignments","kind":"ref","to":"workers"}},"record_label":"record.assignment_code","search":{"text":["assignment_code"]}}'::jsonb);
@@ -1689,10 +1689,10 @@ select bolt_history_register('jobs_certification_types','{"audit":true,"fields":
 select bolt_history_register('jobs_site_locations','{"audit":true,"fields":{"job_id":{"inverse":"jobs_site_locations","kind":"ref","to":"jobs"},"name":{"kind":"text","optional":true},"site_location_id":{"inverse":"jobs_site_locations","kind":"ref","to":"site_locations"}},"record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:payment_claims (additive)
-select bolt_history_register('payment_claims','{"audit":true,"fields":{"certified_amount":{"currency":"currency","kind":"money","optional":true},"claim_number":{"kind":"text","unique":true},"claim_period":{"kind":"period","of":"date","optional":true},"claim_type":{"kind":"enum","optional":true,"values":["progress","variation","final"]},"claimed_amount":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"job_id":{"inverse":"payment_claims","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"paid_date":{"kind":"date","optional":true},"project_id":{"inverse":"payment_claims","kind":"ref","optional":true,"to":"projects"},"status":{"kind":"enum","optional":true,"values":["draft","submitted","certified","paid","rejected"]},"submitted_date":{"kind":"date","optional":true},"supporting_documents":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true}},"record_label":"record.claim_number","search":{"text":["claim_number"]}}'::jsonb);
+select bolt_history_register('payment_claims','{"audit":true,"fields":{"certified_amount":{"currency":"currency","kind":"money","optional":true},"claim_number":{"kind":"text"},"claim_period":{"kind":"period","of":"date","optional":true},"claim_type":{"kind":"enum","optional":true,"values":["progress","variation","final"]},"claimed_amount":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"job_id":{"inverse":"payment_claims","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"paid_date":{"kind":"date","optional":true},"project_id":{"inverse":"payment_claims","kind":"ref","optional":true,"to":"projects"},"status":{"kind":"enum","optional":true,"values":["draft","submitted","certified","paid","rejected"]},"submitted_date":{"kind":"date","optional":true},"supporting_documents":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true}},"record_label":"record.claim_number","search":{"text":["claim_number"]},"unique":[{"fields":["claim_number"],"name":"claim_number"}]}'::jsonb);
 
 -- step create:history:schema:permits_to_work (additive)
-select bolt_history_register('permits_to_work','{"audit":true,"fields":{"approved_by":{"kind":"text","optional":true},"control_measures":{"kind":"text","many":true,"optional":true},"hazards_identified":{"kind":"text","many":true,"optional":true},"job_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"permit_number":{"kind":"text","unique":true},"permit_type":{"kind":"enum","optional":true,"values":["work_at_height","site_supervision","electrical","confined_space","hot_work","lifting","excavation"]},"project_id":{"inverse":"permits_to_work","kind":"ref","optional":true,"to":"projects"},"requested_date":{"kind":"date","optional":true},"signatures":{"kind":"custom","of":"permit_signatures","optional":true},"site_location_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["draft","pending","active","expiring_soon","expired","suspended","closed"]},"validity_range":{"kind":"period","of":"date","optional":true},"worker_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"workers"}},"record_label":"record.permit_number","search":{"text":["permit_number"]}}'::jsonb);
+select bolt_history_register('permits_to_work','{"audit":true,"fields":{"approved_by":{"kind":"text","optional":true},"control_measures":{"kind":"text","many":true,"optional":true},"hazards_identified":{"kind":"text","many":true,"optional":true},"job_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"permit_number":{"kind":"text"},"permit_type":{"kind":"enum","optional":true,"values":["work_at_height","site_supervision","electrical","confined_space","hot_work","lifting","excavation"]},"project_id":{"inverse":"permits_to_work","kind":"ref","optional":true,"to":"projects"},"requested_date":{"kind":"date","optional":true},"signatures":{"kind":"custom","of":"permit_signatures","optional":true},"site_location_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["draft","pending","active","expiring_soon","expired","suspended","closed"]},"validity_range":{"kind":"period","of":"date","optional":true},"worker_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"workers"}},"record_label":"record.permit_number","search":{"text":["permit_number"]},"unique":[{"fields":["permit_number"],"name":"permit_number"}]}'::jsonb);
 
 -- step create:history:schema:permits_to_work_certification_types (additive)
 select bolt_history_register('permits_to_work_certification_types','{"audit":true,"fields":{"certification_type_id":{"inverse":"permits_to_work_certification_types","kind":"ref","to":"certification_types"},"name":{"kind":"text","optional":true},"permits_to_work_id":{"inverse":"permits_to_work_certification_types","kind":"ref","to":"permits_to_work"}},"record_label":"record.name"}'::jsonb);
@@ -1701,13 +1701,13 @@ select bolt_history_register('permits_to_work_certification_types','{"audit":tru
 select bolt_history_register('permits_to_work_workers','{"audit":true,"fields":{"name":{"kind":"text","optional":true},"permits_to_work_id":{"inverse":"permits_to_work_workers","kind":"ref","to":"permits_to_work"},"worker_id":{"inverse":"permits_to_work_workers","kind":"ref","to":"workers"}},"record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:rfis (additive)
-select bolt_history_register('rfis','{"audit":true,"fields":{"answer":{"kind":"text","optional":true},"asked_by":{"kind":"text","optional":true},"assigned_to":{"kind":"text","optional":true},"attachments":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"due_date":{"kind":"date","optional":true},"priority":{"kind":"enum","optional":true,"values":["low","medium","high","critical"]},"project_id":{"inverse":"rfis","kind":"ref","optional":true,"to":"projects"},"question":{"kind":"text","optional":true},"related_defect_id":{"inverse":"related_rfis","kind":"ref","on_delete":"set_null","optional":true,"to":"defects"},"resolved_date":{"kind":"date","optional":true},"rfi_number":{"kind":"text","optional":true,"unique":true},"status":{"kind":"enum","optional":true,"values":["open","answered","closed"]},"subject":{"kind":"text","optional":true},"submitted_date":{"kind":"date","optional":true},"title":{"kind":"text"}},"record_label":"record.title","search":{"text":["title"]}}'::jsonb);
+select bolt_history_register('rfis','{"audit":true,"fields":{"answer":{"kind":"text","optional":true},"asked_by":{"kind":"text","optional":true},"assigned_to":{"kind":"text","optional":true},"attachments":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"due_date":{"kind":"date","optional":true},"priority":{"kind":"enum","optional":true,"values":["low","medium","high","critical"]},"project_id":{"inverse":"rfis","kind":"ref","optional":true,"to":"projects"},"question":{"kind":"text","optional":true},"related_defect_id":{"inverse":"related_rfis","kind":"ref","on_delete":"set_null","optional":true,"to":"defects"},"resolved_date":{"kind":"date","optional":true},"rfi_number":{"kind":"text","optional":true},"status":{"kind":"enum","optional":true,"values":["open","answered","closed"]},"subject":{"kind":"text","optional":true},"submitted_date":{"kind":"date","optional":true},"title":{"kind":"text"}},"record_label":"record.title","search":{"text":["title"]},"unique":[{"fields":["rfi_number"],"name":"rfi_number"}]}'::jsonb);
 
 -- step create:history:schema:site_locations (additive)
-select bolt_history_register('site_locations','{"audit":true,"fields":{"bim_model_element_id":{"kind":"text","optional":true},"coordinates":{"kind":"custom","of":"site_coordinates","optional":true},"description":{"kind":"text","optional":true},"grid_reference":{"kind":"text","optional":true},"location_code":{"kind":"text","optional":true,"unique":true},"location_name":{"kind":"text"},"location_type":{"kind":"text","optional":true},"parent_location_id":{"inverse":"child_locations","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"project_id":{"inverse":"site_locations","kind":"ref","optional":true,"to":"projects"}},"record_label":"[record.location_code != null ? string(record.location_code) : '''', record.location_name != null ? string(record.location_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["location_code","location_name"]}}'::jsonb);
+select bolt_history_register('site_locations','{"audit":true,"fields":{"bim_model_element_id":{"kind":"text","optional":true},"coordinates":{"kind":"custom","of":"site_coordinates","optional":true},"description":{"kind":"text","optional":true},"grid_reference":{"kind":"text","optional":true},"location_code":{"kind":"text","optional":true},"location_name":{"kind":"text"},"location_type":{"kind":"text","optional":true},"parent_location_id":{"inverse":"child_locations","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"project_id":{"inverse":"site_locations","kind":"ref","optional":true,"to":"projects"}},"record_label":"[record.location_code != null ? string(record.location_code) : '''', record.location_name != null ? string(record.location_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["location_code","location_name"]},"unique":[{"fields":["location_code"],"name":"location_code"}]}'::jsonb);
 
 -- step create:history:schema:workers (additive)
-select bolt_history_register('workers','{"audit":true,"fields":{"date_of_birth":{"kind":"date","optional":true},"email":{"kind":"text","optional":true},"emergency_contact":{"kind":"custom","of":"emergency_contact","optional":true},"medical_check_date":{"kind":"date","optional":true},"nationality":{"kind":"text","optional":true},"phone":{"kind":"text","optional":true},"safety_induction_date":{"kind":"date","optional":true},"status":{"kind":"enum","optional":true,"values":["active","inactive","suspended"]},"trade":{"kind":"text","optional":true},"work_permit_expiry":{"kind":"date","optional":true},"worker_name":{"kind":"text"},"worker_number":{"kind":"text","optional":true,"unique":true}},"record_label":"[record.worker_number != null ? string(record.worker_number) : '''', record.worker_name != null ? string(record.worker_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["worker_name","worker_number"]}}'::jsonb);
+select bolt_history_register('workers','{"audit":true,"fields":{"date_of_birth":{"kind":"date","optional":true},"email":{"kind":"text","optional":true},"emergency_contact":{"kind":"custom","of":"emergency_contact","optional":true},"medical_check_date":{"kind":"date","optional":true},"nationality":{"kind":"text","optional":true},"phone":{"kind":"text","optional":true},"safety_induction_date":{"kind":"date","optional":true},"status":{"kind":"enum","optional":true,"values":["active","inactive","suspended"]},"trade":{"kind":"text","optional":true},"work_permit_expiry":{"kind":"date","optional":true},"worker_name":{"kind":"text"},"worker_number":{"kind":"text","optional":true}},"record_label":"[record.worker_number != null ? string(record.worker_number) : '''', record.worker_name != null ? string(record.worker_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["worker_name","worker_number"]},"unique":[{"fields":["worker_number"],"name":"worker_number"}]}'::jsonb);
 
 -- step create:fk:requestor.requestor__fk__5c80de5d (additive)
 alter table "requestor" add constraint "requestor__fk__5c80de5d" foreign key ("approval_request_id") references "approval_request" ("id") on delete restrict on update restrict;

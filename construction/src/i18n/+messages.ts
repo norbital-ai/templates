@@ -163,5 +163,7 @@ export default messages({
 	'section.validity': 'Validity',
 	'section.worker': 'Worker',
 	'section.signoff': 'Sign-off',
-	'component.not_signed': 'Not signed'
+	'component.not_signed': 'Not signed',
+	'errors.worker_uncertified':
+		'Worker must satisfy at least one site-location job requirement with all required active certifications before assignment.'
 });

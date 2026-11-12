@@ -6,24 +6,24 @@
 	let { view, ctx }: { view: RecordView<'jobs'>; ctx: PageContext } = $props();
 </script>
 
-<RecordForm {view} subtitle={['job_number', 'status']}>
+<RecordForm {ctx} {view} subtitle={['job_number', 'status']}>
 	<Section icon="lucide:briefcase" first name="job" title={ctx.t('section.job')}>
 		<Grid minimum="compact">
-			<Field name="job_title" />
-			<Field name="job_number" />
+			<Field {ctx} name="job_title" />
+			<Field {ctx} name="job_number" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<Field name="project_id" />
+				<Field {ctx} name="project_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.site_location_id == null}
-				<Field name="site_location_id" />
+				<Field {ctx} name="site_location_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.bim_reference_id == null}
-				<Field name="bim_reference_id" />
+				<Field {ctx} name="bim_reference_id" />
 			{/if}
-			<Field name="job_type" />
-			<Field name="status" />
-			<Field name="priority" />
-			<Column span="all"><Field name="description" /></Column>
+			<Field {ctx} name="job_type" />
+			<Field {ctx} name="status" />
+			<Field {ctx} name="priority" />
+			<Column span="all"><Field {ctx} name="description" /></Column>
 		</Grid>
 	</Section>
 	<Section
@@ -32,9 +32,9 @@
 		title={ctx.t('section.schedule_and_budget')}
 	>
 		<Grid minimum="compact">
-			<Field name="schedule_range" />
-			<Field name="currency" />
-			<Field name="budget" />
+			<Field {ctx} name="schedule_range" />
+			<Field {ctx} name="currency" />
+			<Field {ctx} name="budget" />
 		</Grid>
 	</Section>
 </RecordForm>

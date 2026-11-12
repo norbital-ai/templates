@@ -2,15 +2,20 @@
 	/** Applicant, issuer and acceptor: each a name and a date, or null until that party signs. */
 	import type { CustomFieldView } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Show } from '@norbital-ai/ui';
+	import { Show, type UiContext } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordEditor, { text, type Value } from '../../../lib/record-editor.svelte';
 	type Signatures = NonNullable<CustomFieldView<'permit_signatures'>['value']>;
 	type Role = keyof Signatures;
-	let { view, ctx }: { view: CustomFieldView<'permit_signatures'>; ctx: PageContext | undefined } =
-		$props();
-	/** Outside a page (no context) a part is named by its message key. */
-	const t = (key: Parameters<PageContext['t']>[0]) => ctx?.t(key) ?? key;
+	let {
+		view,
+		ctx
+	}: {
+		view: CustomFieldView<'permit_signatures'>;
+		ctx: UiContext & Partial<Pick<PageContext, 't'>>;
+	} = $props();
+	/** Outside a page (no translator) a part is named by its message key. */
+	const t = (key: Parameters<PageContext['t']>[0]) => ctx.t?.(key) ?? key;
 	const roles = ['applicant', 'issuer', 'acceptor'] as const satisfies readonly Role[];
 	const current = $derived<Signatures>(
 		view.value ?? { applicant: null, issuer: null, acceptor: null }
@@ -33,6 +38,7 @@
 			<li>
 				<span class="text-muted-foreground">{t(`component.${role}`)}</span> ·
 				{#if signature}{signature.name} · <Show
+						{ctx}
 						kind={{ kind: 'date' }}
 						value={signature.date}
 					/>{:else}<span class="text-muted-foreground">{t('component.not_signed')}</span>{/if}

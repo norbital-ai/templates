@@ -8,22 +8,22 @@
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 
-<RecordForm {view} subtitle={['document_number', 'status']}>
+<RecordForm {ctx} {view} subtitle={['document_number', 'status']}>
 	<Section icon="lucide:file-text" first name="document" title={ctx.t('section.document')}>
 		<Grid minimum="compact">
-			<Field name="title" />
-			<Field name="document_number" />
+			<Field {ctx} name="title" />
+			<Field {ctx} name="document_number" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<Field name="project_id" />
+				<Field {ctx} name="project_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.site_location_id == null}
-				<Field name="site_location_id" />
+				<Field {ctx} name="site_location_id" />
 			{/if}
-			<Field name="document_type" />
-			<Field name="status" />
-			<Field name="version" />
-			<Field name="document_url" />
-			<Column span="all"><Field name="validity_range" /></Column>
+			<Field {ctx} name="document_type" />
+			<Field {ctx} name="status" />
+			<Field {ctx} name="version" />
+			<Field {ctx} name="document_url" />
+			<Column span="all"><Field {ctx} name="validity_range" /></Column>
 		</Grid>
 	</Section>
 	<Section
@@ -34,9 +34,9 @@
 		summary={record?.['asset_tag'] || ctx.t('component.not_set')}
 	>
 		<Grid minimum="compact">
-			<Field name="asset_category" />
-			<Field name="asset_tag" />
-			<Column span="all"><Field name="tags" /></Column>
+			<Field {ctx} name="asset_category" />
+			<Field {ctx} name="asset_tag" />
+			<Column span="all"><Field {ctx} name="tags" /></Column>
 		</Grid>
 	</Section>
 </RecordForm>

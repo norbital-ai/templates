@@ -6,29 +6,29 @@
 	let { view, ctx }: { view: RecordView<'defects'>; ctx: PageContext } = $props();
 </script>
 
-<RecordForm {view} subtitle={['defect_number', 'status']}>
+<RecordForm {ctx} {view} subtitle={['defect_number', 'status']}>
 	<Section icon="lucide:triangle-alert" first name="defect" title={ctx.t('section.defect')}>
 		<Grid minimum="compact">
-			<Field name="defect_number" />
-			<Field name="title" />
+			<Field {ctx} name="defect_number" />
+			<Field {ctx} name="title" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<Field name="project_id" />
+				<Field {ctx} name="project_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.site_location_id == null}
-				<Field name="site_location_id" />
+				<Field {ctx} name="site_location_id" />
 			{/if}
-			<Field name="category" />
-			<Field name="severity" />
-			<Field name="status" />
-			<Column span="all"><Field name="description" /></Column>
+			<Field {ctx} name="category" />
+			<Field {ctx} name="severity" />
+			<Field {ctx} name="status" />
+			<Column span="all"><Field {ctx} name="description" /></Column>
 		</Grid>
 	</Section>
 	<Section icon="lucide:calendar-check" name="follow_up" title={ctx.t('section.follow_up')}>
 		<Grid minimum="compact">
-			<Field name="assigned_to" />
-			<Field name="due_date" />
-			<Field name="closed_date" />
-			<Column span="all"><Field name="resolution_notes" /></Column>
+			<Field {ctx} name="assigned_to" />
+			<Field {ctx} name="due_date" />
+			<Field {ctx} name="closed_date" />
+			<Column span="all"><Field {ctx} name="resolution_notes" /></Column>
 		</Grid>
 	</Section>
 </RecordForm>

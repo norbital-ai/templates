@@ -23,7 +23,7 @@ export default model({
 	record_label: 'record.title',
 	fields: {
 		title: { kind: 'text' },
-		defect_number: { kind: 'text', optional: true, unique: true },
+		defect_number: { kind: 'text', optional: true },
 		reported_by: { kind: 'text', optional: true },
 		assigned_to: { kind: 'text', optional: true },
 		category: { kind: 'text', optional: true },
@@ -55,6 +55,7 @@ export default model({
 		},
 		job_id: { kind: 'ref', to: 'jobs', inverse: 'defects', optional: true, on_delete: 'set_null' }
 	},
+	constraints: { defect_number: { unique: ['defect_number'] } },
 	indexes: { find: { text: ['title'] } },
 	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
 	create: { columns: { fields: columns } },

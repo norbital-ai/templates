@@ -15,7 +15,7 @@ export default model({
 	record_label: 'record.certification_name',
 	fields: {
 		certification_name: { kind: 'text' },
-		certification_code: { kind: 'text', optional: true, unique: true },
+		certification_code: { kind: 'text', optional: true },
 		category: { kind: 'text', optional: true },
 		issuing_body: { kind: 'text', optional: true },
 		validity_period_months: { kind: 'decimal', scale: 2, optional: true },
@@ -23,6 +23,7 @@ export default model({
 		description: { kind: 'text', optional: true },
 		requirements: { kind: 'text', many: true, optional: true }
 	},
+	constraints: { certification_code: { unique: ['certification_code'] } },
 	indexes: { find: { text: ['certification_name'] } },
 	outputs: { default: { fields: 'all' } },
 	create: { columns: { fields: columns } },

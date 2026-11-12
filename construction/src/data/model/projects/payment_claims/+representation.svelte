@@ -7,27 +7,27 @@
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 
-<RecordForm {view} subtitle={['claim_type', 'status']}>
+<RecordForm {ctx} {view} subtitle={['claim_type', 'status']}>
 	<Section icon="lucide:receipt" first name="claim" title={ctx.t('section.claim')}>
 		<Grid minimum="compact">
-			<Field name="claim_number" />
+			<Field {ctx} name="claim_number" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<Field name="project_id" />
+				<Field {ctx} name="project_id" />
 			{/if}
 			{#if view.mode !== 'create' || view.values.job_id == null}
-				<Field name="job_id" />
+				<Field {ctx} name="job_id" />
 			{/if}
-			<Field name="claim_type" />
-			<Field name="status" />
-			<Column span="all"><Field name="description" /></Column>
+			<Field {ctx} name="claim_type" />
+			<Field {ctx} name="status" />
+			<Column span="all"><Field {ctx} name="description" /></Column>
 		</Grid>
 	</Section>
 	<Section icon="lucide:banknote" name="amounts" title={ctx.t('section.amounts')}>
 		<Grid minimum="compact">
-			<Field name="currency" />
-			<Field name="claimed_amount" />
-			<Field name="certified_amount" />
-			<Field name="claim_period" />
+			<Field {ctx} name="currency" />
+			<Field {ctx} name="claimed_amount" />
+			<Field {ctx} name="certified_amount" />
+			<Field {ctx} name="claim_period" />
 		</Grid>
 	</Section>
 	<Section
@@ -38,8 +38,8 @@
 		summary={record?.['submitted_date'] ?? ctx.t('section.not_submitted')}
 	>
 		<Grid minimum="compact">
-			<Field name="submitted_date" />
-			<Field name="paid_date" />
+			<Field {ctx} name="submitted_date" />
+			<Field {ctx} name="paid_date" />
 		</Grid>
 	</Section>
 </RecordForm>

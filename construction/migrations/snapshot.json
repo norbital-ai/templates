@@ -117,8 +117,7 @@
 				},
 				"document_number": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"document_type": {
 					"kind": "enum",
@@ -183,7 +182,15 @@
 				"text": [
 					"title"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"document_number"
+					],
+					"name": "document_number"
+				}
+			]
 		},
 		"bim_reference_matrix": {
 			"audit": true,
@@ -227,8 +234,7 @@
 				},
 				"reference_code": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"reference_name": {
 					"kind": "text"
@@ -251,7 +257,15 @@
 				"text": [
 					"reference_name"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"reference_code"
+					],
+					"name": "reference_code"
+				}
+			]
 		},
 		"certification_types": {
 			"audit": true,
@@ -262,8 +276,7 @@
 				},
 				"certification_code": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"certification_name": {
 					"kind": "text"
@@ -296,7 +309,15 @@
 				"text": [
 					"certification_name"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"certification_code"
+					],
+					"name": "certification_code"
+				}
+			]
 		},
 		"defects": {
 			"audit": true,
@@ -315,8 +336,7 @@
 				},
 				"defect_number": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"description": {
 					"kind": "text",
@@ -397,7 +417,15 @@
 				"text": [
 					"title"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"defect_number"
+					],
+					"name": "defect_number"
+				}
+			]
 		},
 		"job_assignments": {
 			"audit": true,
@@ -484,8 +512,7 @@
 				},
 				"job_number": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"job_title": {
 					"kind": "text"
@@ -542,7 +569,15 @@
 					"job_number",
 					"project_id"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"job_number"
+					],
+					"name": "job_number"
+				}
+			]
 		},
 		"jobs_certification_types": {
 			"audit": true,
@@ -593,8 +628,7 @@
 					"optional": true
 				},
 				"claim_number": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"claim_period": {
 					"kind": "period",
@@ -670,7 +704,15 @@
 				"text": [
 					"claim_number"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"claim_number"
+					],
+					"name": "claim_number"
+				}
+			]
 		},
 		"permits_to_work": {
 			"audit": true,
@@ -697,8 +739,7 @@
 					"to": "jobs"
 				},
 				"permit_number": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"permit_type": {
 					"kind": "enum",
@@ -766,7 +807,15 @@
 				"text": [
 					"permit_number"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"permit_number"
+					],
+					"name": "permit_number"
+				}
+			]
 		},
 		"permits_to_work_certification_types": {
 			"audit": true,
@@ -846,8 +895,7 @@
 				},
 				"project_number": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"project_type": {
 					"kind": "text",
@@ -876,7 +924,15 @@
 					"project_name",
 					"project_number"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"project_number"
+					],
+					"name": "project_number"
+				}
+			]
 		},
 		"requestor": {
 			"fields": {
@@ -952,8 +1008,7 @@
 				},
 				"rfi_number": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"status": {
 					"kind": "enum",
@@ -981,7 +1036,15 @@
 				"text": [
 					"title"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"rfi_number"
+					],
+					"name": "rfi_number"
+				}
+			]
 		},
 		"site_locations": {
 			"audit": true,
@@ -1005,8 +1068,7 @@
 				},
 				"location_code": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"location_name": {
 					"kind": "text"
@@ -1035,7 +1097,15 @@
 					"location_code",
 					"location_name"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"location_code"
+					],
+					"name": "location_code"
+				}
+			]
 		},
 		"sys_api_key": {
 			"fields": {
@@ -1061,8 +1131,7 @@
 					"kind": "text"
 				},
 				"prefix": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"revision": {
 					"default": 1,
@@ -1079,7 +1148,15 @@
 				}
 			},
 			"key": "text",
-			"record_label": "record.name"
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"prefix"
+					],
+					"name": "prefix"
+				}
+			]
 		},
 		"sys_challenge": {
 			"fields": {
@@ -1793,8 +1870,7 @@
 				},
 				"once": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"read_at": {
 					"kind": "instant",
@@ -1821,7 +1897,15 @@
 				}
 			],
 			"key": "text",
-			"record_label": "record.title"
+			"record_label": "record.title",
+			"unique": [
+				{
+					"fields": [
+						"once"
+					],
+					"name": "once"
+				}
+			]
 		},
 		"sys_outbox": {
 			"fields": {
@@ -1875,8 +1959,7 @@
 					"to": "sys_integration"
 				},
 				"key": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"model": {
 					"kind": "text"
@@ -1982,6 +2065,12 @@
 			"unique": [
 				{
 					"fields": [
+						"key"
+					],
+					"name": "key"
+				},
+				{
+					"fields": [
 						"sync",
 						"instance",
 						"record"
@@ -2033,8 +2122,7 @@
 				},
 				"key": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"leases": {
 					"default": 0,
@@ -2092,7 +2180,15 @@
 				}
 			],
 			"key": "text",
-			"record_label": "record.automation"
+			"record_label": "record.automation",
+			"unique": [
+				{
+					"fields": [
+						"key"
+					],
+					"name": "key"
+				}
+			]
 		},
 		"sys_session": {
 			"fields": {
@@ -2115,8 +2211,7 @@
 					"kind": "instant"
 				},
 				"token_hash": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"user": {
 					"kind": "ref",
@@ -2135,7 +2230,15 @@
 				}
 			},
 			"key": "text",
-			"record_label": "record.via"
+			"record_label": "record.via",
+			"unique": [
+				{
+					"fields": [
+						"token_hash"
+					],
+					"name": "token_hash"
+				}
+			]
 		},
 		"sys_sync": {
 			"fields": {
@@ -2462,8 +2565,7 @@
 				},
 				"worker_number": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				}
 			},
 			"record_label": "[record.worker_number != null ? string(record.worker_number) : '', record.worker_name != null ? string(record.worker_name) : ''].filter(part, part != '').join(' · ')",
@@ -2472,7 +2574,15 @@
 					"worker_name",
 					"worker_number"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"worker_number"
+					],
+					"name": "worker_number"
+				}
+			]
 		}
 	},
 	"tz": "Asia/Singapore"

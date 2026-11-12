@@ -6,16 +6,16 @@
 	let { view, ctx }: { view: RecordView<'certification_types'>; ctx: PageContext } = $props();
 </script>
 
-<RecordForm {view} subtitle={['certification_code', 'issuing_body']}>
+<RecordForm {ctx} {view} subtitle={['certification_code', 'issuing_body']}>
 	<Section first>
 		<Grid minimum="compact">
-			<Field name="certification_name" />
-			<Field name="certification_code" />
-			<Field name="category" />
-			<Field name="issuing_body" />
-			<Field name="validity_period_months" />
-			<Field name="requires_refresher" />
-			<Column span="all"><Field name="description" /></Column>
+			<Field {ctx} name="certification_name" />
+			<Field {ctx} name="certification_code" />
+			<Field {ctx} name="category" />
+			<Field {ctx} name="issuing_body" />
+			<Field {ctx} name="validity_period_months" />
+			<Field {ctx} name="requires_refresher" />
+			<Column span="all"><Field {ctx} name="description" /></Column>
 		</Grid>
 	</Section>
 </RecordForm>

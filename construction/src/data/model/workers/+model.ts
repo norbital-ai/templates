@@ -20,7 +20,7 @@ export default model({
 		"[record.worker_number != null ? string(record.worker_number) : '', record.worker_name != null ? string(record.worker_name) : ''].filter(part, part != '').join(' · ')",
 	fields: {
 		worker_name: { kind: 'text' },
-		worker_number: { kind: 'text', optional: true, unique: true },
+		worker_number: { kind: 'text', optional: true },
 		trade: { kind: 'text', optional: true },
 		status: { kind: 'enum', values: ['active', 'inactive', 'suspended'], optional: true },
 		phone: { kind: 'text', optional: true },
@@ -32,6 +32,7 @@ export default model({
 		medical_check_date: { kind: 'date', optional: true },
 		safety_induction_date: { kind: 'date', optional: true }
 	},
+	constraints: { worker_number: { unique: ['worker_number'] } },
 	indexes: { find: { text: ['worker_name', 'worker_number'] } },
 	outputs: { default: { fields: 'all' } },
 	create: { columns: { fields: columns } },

@@ -19,7 +19,7 @@ export default model({
 	icon: 'lucide:shield-check',
 	record_label: 'record.permit_number',
 	fields: {
-		permit_number: { kind: 'text', unique: true },
+		permit_number: { kind: 'text' },
 		permit_type: {
 			kind: 'enum',
 			values: [
@@ -67,6 +67,7 @@ export default model({
 			on_delete: 'set_null'
 		}
 	},
+	constraints: { permit_number: { unique: ['permit_number'] } },
 	indexes: { find: { text: ['permit_number'] } },
 	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
 	create: { columns: { fields: columns } },
