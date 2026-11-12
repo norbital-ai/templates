@@ -1,5 +1,5 @@
 import { present } from './test-runtime.js';
-import { Schema, Effect, Layer, Stream } from 'effect';
+import { Effect, Layer, Stream } from 'effect';
 /**
  * The suspicion review (L-TPL-field-operations-004/011/016) over the host's image facts and a scripted `sys_2` model:
  * filed photos are inspected (one the host cannot read is marked failed without blocking the review), an unchecked job is judged once and stamped, a suspicious judgement writes one finding
@@ -7,136 +7,87 @@ import { Schema, Effect, Layer, Stream } from 'effect';
  * A failed review re-queueing itself is `read-failure.test.ts`.
  */
 import { readFileSync } from 'node:fs';
-import { expect, layer, vi } from '@effect/vitest';
-import { Ai, Facilities, type FacilitiesShape, type Json } from '@norbital-ai/bolt/engine';
+import { createHash } from 'node:crypto';
+import { expect, layer } from '@effect/vitest';
+import { Ai, Files, Port, type Json } from '@norbital-ai/bolt/engine';
 import { Unavailable } from '@norbital-ai/bolt/errors';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import type { Id } from '@norbital-ai/bolt';
 import { committed, CONTROLLER, rows, shared, siteWithJob, target, type T } from './kit.ts';
 import { fixtureId } from './test-runtime.js';
-type FacilityCall = Parameters<FacilitiesShape['dispatch']>[0];
-type CrossAnswer = Effect.Success<ReturnType<FacilitiesShape['dispatch']>>;
-/** A scripted host call: a facility crossing, or the model route's `sys_2` request as the port receives it. */
-type ScriptedCall =
-	| FacilityCall
-	| {
-			readonly _tag: 'ai.sys_2.infer';
-			readonly args: readonly [Parameters<Ai['Service']['infer']>[0]];
-	  };
-type Script = (call: ScriptedCall) => Effect.Effect<CrossAnswer>;
-const File = Schema.Struct({ id: Schema.String, name: Schema.String, mime: Schema.String });
-const unavailable = (call: ScriptedCall): CrossAnswer => ({
-	ok: false,
-	error: { kind: 'unavailable', facility: call._tag, reason: 'fixture' }
+const JPEG = readFileSync('tests/fixtures/photo-evidence.jpg');
+/** Bytes the host's image decoder cannot read. */
+const UNREADABLE = Buffer.from('not an image');
+/** The current test's `sys_2` verdict, and the host calls it observed. */
+let verdict: () => Json | Error = () => new Error('no verdict scripted');
+const calls = { infer: 0, unreadable_reads: 0 };
+const blobs = new Map<string, Uint8Array>();
+/** The host's file store in memory: it counts the reads of the unreadable photo's bytes. */
+const MemoryFiles = Layer.succeed(Files, {
+	put: (bytes, meta) =>
+		Effect.sync(() => {
+			const key = crypto.randomUUID();
+			blobs.set(key, bytes);
+			return {
+				key,
+				bytes: bytes.byteLength,
+				mime: meta.mime,
+				sha256: createHash('sha256').update(bytes).digest('hex')
+			};
+		}),
+	get: (key) =>
+		Effect.suspend(() => {
+			const bytes = blobs.get(key);
+			if (bytes === undefined) return Port.unavailable('files', `Missing fixture blob ${key}`);
+			if (UNREADABLE.equals(bytes)) calls.unreadable_reads += 1;
+			return Effect.succeed(bytes);
+		}),
+	url: (key) => Effect.succeed(`memory://${key}`),
+	remove: (key) =>
+		Effect.sync(() => {
+			blobs.delete(key);
+		}),
+	download: () => Port.unavailable('files', 'the review downloads nothing')
 });
-/** The current test's host answers; an `unavailable` answer falls through to the native port. */
-let script: Script = (call) => Effect.succeed(unavailable(call));
-const scripted = Layer.effectDiscard(
-	Effect.gen(function* () {
-		const facilities = yield* Facilities;
-		const native = facilities.dispatch;
-		const spy = vi
-			.spyOn(facilities, 'dispatch')
-			.mockImplementation((call) =>
-				script(call).pipe(
-					Effect.flatMap((answer) =>
-						!answer.ok && answer.error.kind === 'unavailable'
-							? native(call)
-							: Effect.succeed(answer)
-					)
-				)
-			);
-		// `ai.sys_2.infer` reaches automations through the host's model route, not facility dispatch; script it here so a
-		// fixture keeps one verdict source.
-		const ai = yield* Ai;
-		const nativeInfer = ai.infer;
-		const inferSpy = vi.spyOn(ai, 'infer').mockImplementation((request) =>
-			Stream.unwrap(
-				script({ _tag: 'ai.sys_2.infer', args: [request] }).pipe(
-					Effect.map((answer): ReturnType<typeof nativeInfer> => {
-						if (!answer.ok)
-							return answer.error.kind === 'unavailable'
-								? nativeInfer(request)
-								: Stream.fail(new Unavailable({ facility: 'ai', reason: answer.error.message }));
-						return Stream.make({
-							_tag: 'Response' as const,
-							response: {
-								content: answer.value,
-								tool_calls: [],
-								finish: 'stop' as const,
-								usage: { input: 0, output: 0, cost: 0 }
-							}
-						});
-					})
-				)
-			)
-		);
-		yield* Effect.addFinalizer(() =>
-			Effect.sync(() => {
-				spy.mockRestore();
-				inferSpy.mockRestore();
-			})
-		);
-	})
-).pipe(Layer.provideMerge(shared({ now: '2026-09-25T10:07:00.000Z' })));
-const vector = () => Array.from({ length: 256 }, (_, i) => (i === 0 ? 1 : 0));
-/** The host's facilities, faked: image facts from the file's id, sizes, and one scripted verdict; installed as `script`. */
-function facilities(
-	verdict: () => Json | Error,
-	unreadable: (ref: { id: string; name: string }) => boolean = () => false
-) {
-	const calls: ScriptedCall[] = [];
-	script = (call) =>
-		Effect.sync((): CrossAnswer => {
-			calls.push(call);
-			if (call._tag === 'files.image') {
-				const ref = Schema.decodeUnknownSync(File)(call.args[0]);
-				if (unreadable(ref))
-					return {
-						ok: false as const,
-						error: { kind: 'invalid' as const, message: 'The image could not be read.' }
-					};
-				return {
-					ok: true as const,
-					value: {
-						format: 'jpeg',
-						width: 1440,
-						height: 1920,
-						sha256: `sha-${ref.id}`,
-						pdq: '0'.repeat(63) + '1',
-						exif: {}
-					}
-				};
-			}
-			if (call._tag === 'files.meta')
-				return {
-					ok: true,
-					value: { ...Schema.decodeUnknownSync(File)(call.args[0]), bytes: 1000, sha256: 'x' }
-				};
-			if (call._tag === 'ai.embed')
-				return {
-					ok: true,
-					value: Schema.decodeUnknownSync(Schema.Array(Schema.Unknown))(call.args[0]).map(vector)
-				};
-			if (call._tag === 'ai.sys_2.infer') {
-				const v = verdict();
-				return v instanceof Error
-					? { ok: false as const, error: { kind: 'upstream' as const, message: v.message } }
-					: { ok: true as const, value: v };
-			}
-			return unavailable(call);
-		});
-	return calls;
-}
+/** One model class, a deterministic scene vector per input, and the scripted `sys_2` verdict. */
+const ScriptedAi = Layer.succeed(Ai, {
+	ask: () => Port.unavailable('ai'),
+	maxChoices: undefined,
+	models: ['default'],
+	catalog: Port.unavailable('ai'),
+	infer: () =>
+		Stream.suspend(() => {
+			calls.infer += 1;
+			const v = verdict();
+			return v instanceof Error
+				? Stream.fail(new Unavailable({ facility: 'ai', reason: v.message }))
+				: Stream.make({
+						_tag: 'Response' as const,
+						response: {
+							content: v,
+							tool_calls: [],
+							finish: 'stop' as const,
+							usage: { input: 0, output: 0, cost: 0 }
+						}
+					});
+		}),
+	embed: (inputs, _model, dimensions = 256) =>
+		Effect.succeed(
+			inputs.map(() => Array.from({ length: dimensions }, (_, index) => (index === 0 ? 1 : 0)))
+		)
+});
+const scripted = shared({
+	now: '2026-09-25T10:07:00.000Z',
+	ports: Layer.mergeAll(MemoryFiles, ScriptedAi)
+});
 /** Photos filed under `job` in one act, as an upload each. */
 const filedPhotos = Effect.fnUntraced(function* (
 	t: T,
 	job: Id<'job_assignments'>,
-	names: string[]
+	files: readonly { readonly name: string; readonly bytes: Uint8Array }[]
 ) {
 	const as = yield* t.as(t.admin);
-	const bytes = readFileSync('tests/fixtures/photo-evidence.jpg');
-	const photos = yield* Effect.forEach(names, (name) =>
+	const photos = yield* Effect.forEach(files, ({ name, bytes }) =>
 		as.upload('photo_evidence.photo', { name, mime: 'image/jpeg', bytes }).pipe(
 			Effect.map((up) => {
 				if (up.kind !== 'committed') throw new Error(JSON.stringify(up));
@@ -166,21 +117,13 @@ layer(scripted)('suspicion review', (it) => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const unreadable = new Set<string>();
-				const calls = facilities(
-					() => suspicious,
-					(ref) => unreadable.has(ref.id)
-				);
+				verdict = () => suspicious;
 				const { job } = yield* siteWithJob(t);
-				const [photo, failed] = yield* filedPhotos(t, job, ['IMG_0001.jpg', 'IMG_0002.jpg']);
+				const [photo, failed] = yield* filedPhotos(t, job, [
+					{ name: 'IMG_0001.jpg', bytes: JPEG },
+					{ name: 'IMG_0002.jpg', bytes: UNREADABLE }
+				]);
 				if (photo === undefined || failed === undefined) throw new Error('Two photos filed');
-				const [file] = yield* rows(
-					t,
-					`SELECT photo->>'id' AS id FROM photo_evidence WHERE id = $1`,
-					[failed]
-				);
-				const id = String(present(file).id);
-				unreadable.add(id);
 				yield* t.run_due();
 				const [facts] = yield* rows(
 					t,
@@ -191,7 +134,7 @@ layer(scripted)('suspicion review', (it) => {
 				expect(facts).toMatchObject({
 					source: { kind: 'workspace_upload' },
 					source_key: `workspace:${present(facts).file}`,
-					sha256: `sha-${present(facts).file}`,
+					sha256: createHash('sha256').update(JPEG).digest('hex'),
 					flags: ['missing_geolocation']
 				});
 				// the unreadable photo does not block the review and stays visibly failed after one attempt
@@ -201,13 +144,8 @@ layer(scripted)('suspicion review', (it) => {
 					[failed]
 				);
 				expect(present(failure).inspection_failed_at).not.toBeNull();
-				expect(String(present(failure).inspection_failure_reason)).toContain('could not be read');
-				expect(
-					calls.filter(
-						(call) =>
-							call._tag === 'files.image' && Schema.decodeUnknownSync(File)(call.args[0]).id === id
-					)
-				).toHaveLength(1);
+				expect(String(present(failure).inspection_failure_reason)).toContain('JPEG, PNG and HEIC');
+				expect(calls.unreadable_reads).toBe(1);
 				expect(yield* checkedAt(t, job)).not.toBeNull();
 				const logs = () =>
 					rows(
@@ -218,8 +156,7 @@ layer(scripted)('suspicion review', (it) => {
 				expect(yield* logs()).toEqual([
 					{ origin: 'automation', evidence_id: photo, reason: 'Two different door plates.' }
 				]);
-				const infers = () => calls.filter((c) => c._tag === 'ai.sys_2.infer').length;
-				expect(infers()).toBe(1);
+				expect(calls.infer).toBe(1);
 				committed(
 					yield* (yield* t.as(t.member(CONTROLLER))).act({
 						'job_assignments.update': [
@@ -233,7 +170,7 @@ layer(scripted)('suspicion review', (it) => {
 				expect(yield* checkedAt(t, job)).toBeNull();
 				yield* t.run_due();
 				expect(yield* checkedAt(t, job)).not.toBeNull();
-				expect(infers()).toBe(2);
+				expect(calls.infer).toBe(2);
 				expect(yield* logs()).toHaveLength(1); // the open finding stands; no second one
 			})
 	);

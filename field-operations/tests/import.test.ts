@@ -122,44 +122,40 @@ layer(shared())('work-order sheet import', (it) => {
 				expect(present(linked).site_id).toBe(present(survey).site_id);
 			})
 	);
-	it.effect('refuses every unresolved site without valid coordinates before writing any row', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const as = yield* t.as(t.member(CONTROLLER));
-			const decoded = yield* decodeWorkOrders(
-				csvRecords(
-					'site,scheduled_for,title,latitude,longitude\n' +
-						'10 First Road,2026-10-01,Valid work,1.3,103.8\n' +
-						'20 Second Road,2026-10-01,Missing location,,\n' +
-						'30 Third Road,2026-10-01,Out of range,91,181\n' +
-						'40 Fourth Road,2026-10-01,Incomplete location,1.3,'
-				)
-			);
-			const started = yield* as.run(
-				'job_assignments_import_work_orders',
-				{ rows: decoded },
-				JobResult
-			);
-			if (started.kind !== 'committed')
-				throw new Error('The invalid-location sheet did not start.');
-			const refused = yield* completedRun(t, started.output.id);
-			expect(refused).toMatchObject({
-				state: 'failed',
-				error: {
-					code: 'refused',
-					message: expect.stringContaining('Row 2: Missing location at 20 Second Road')
-				}
-			});
-			expect(refused.error).toMatchObject({
-				message: expect.stringContaining('Row 3: Out of range at 30 Third Road')
-			});
-			expect(refused.error).toMatchObject({
-				message: expect.stringContaining('Row 4: Incomplete location at 40 Fourth Road')
-			});
-			expect(
-				yield* rows(t, `SELECT count(*)::int AS n FROM job_assignments WHERE title = 'Valid work'`)
-			).toEqual([{ n: 0 }]);
-		})
+	it.effect(
+		'refuses a sheet with a new site lacking valid coordinates before writing any row',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const as = yield* t.as(t.member(CONTROLLER));
+				const decoded = yield* decodeWorkOrders(
+					csvRecords(
+						'site,scheduled_for,title,latitude,longitude\n' +
+							'10 First Road,2026-10-01,Valid work,1.3,103.8\n' +
+							'20 Second Road,2026-10-01,Missing location,,\n' +
+							'30 Third Road,2026-10-01,Out of range,91,181\n' +
+							'40 Fourth Road,2026-10-01,Incomplete location,1.3,'
+					)
+				);
+				const started = yield* as.run(
+					'job_assignments_import_work_orders',
+					{ rows: decoded },
+					JobResult
+				);
+				if (started.kind !== 'committed')
+					throw new Error('The invalid-location sheet did not start.');
+				const refused = yield* completedRun(t, started.output.id);
+				expect(refused).toMatchObject({
+					state: 'failed',
+					error: { code: 'refused', message: 'errors.sheet_site_unlocated' }
+				});
+				expect(
+					yield* rows(
+						t,
+						`SELECT count(*)::int AS n FROM job_assignments WHERE title = 'Valid work'`
+					)
+				).toEqual([{ n: 0 }]);
+			})
 	);
 	it.effect(
 		"links each row's contractor by its email or phone, fresh nested work included, and files the rest without one",

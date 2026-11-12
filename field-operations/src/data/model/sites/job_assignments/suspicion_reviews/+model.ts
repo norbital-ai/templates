@@ -19,9 +19,12 @@ export default model({
 		model: { kind: 'text' },
 		reviewed_at: { kind: 'instant' },
 		/** One review per assignment and evidence basis, even when a run is retried. */
-		source_key: { kind: 'text', unique: true, hidden: true }
+		source_key: { kind: 'text', hidden: true }
 	},
-	constraints: { one_review_per_basis: { unique: ['job_assignment_id', 'basis_hash'] } },
+	constraints: {
+		source_key: { unique: ['source_key'] },
+		one_review_per_basis: { unique: ['job_assignment_id', 'basis_hash'] }
+	},
 	indexes: {
 		reviewed_at: { on: ['reviewed_at'] },
 		search: { text: ['reason'] }

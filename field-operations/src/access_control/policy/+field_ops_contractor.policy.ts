@@ -39,7 +39,7 @@ export default policy({
 					const other = changes.findIndex(({ before }) => before.assignee_user_id !== me);
 					return other < 0
 						? ctx.allow()
-						: yield* ctx.refuse('Only the jobs assigned to you can be updated.', { row: other });
+						: yield* ctx.refuse('errors.job_not_yours', { row: other });
 				}
 			}
 		},
@@ -51,7 +51,7 @@ export default policy({
 		},
 		communication_logs: {
 			outputs: { contractor: { where: OWN_JOB } },
-			create: true
+			create: {}
 		}
 	},
 	limits: { act: '600/min', read: '600/min', agent: '100/h' }

@@ -18,6 +18,7 @@
 
 {#snippet upcoming()}
 	{#if record}<Table
+			{ctx}
 			of="job_assignments"
 			key="site-upcoming"
 			toolbar={{ title: t('component.upcoming_scheduled_jobs') }}
@@ -37,6 +38,7 @@
 {/snippet}
 {#snippet history()}
 	{#if record}<Table
+			{ctx}
 			of="job_assignments"
 			key="site-history"
 			toolbar={{ title: t('component.activity_history') }}
@@ -55,20 +57,21 @@
 {/snippet}
 
 {#if record == null}
-	<RecordShell of="sites" mode="create" values={view.mode === 'create' ? view.values : {}}>
-		<Form of="sites" mode="create" values={view.mode === 'create' ? view.values : {}}>
+	<RecordShell {ctx} of="sites" mode="create" values={view.mode === 'create' ? view.values : {}}>
+		<Form {ctx} of="sites" mode="create" values={view.mode === 'create' ? view.values : {}}>
 			<Grid minimum="card">
-				<Field name="location" address="address" />
-				<Field name="unit_number" />
-				<Field name="site_code" />
-				<Field name="client_name" />
-				<Field name="house_type" />
-				<Field name="floor_area_sqm" />
+				<Field {ctx} name="location" address="address" />
+				<Field {ctx} name="unit_number" />
+				<Field {ctx} name="site_code" />
+				<Field {ctx} name="client_name" />
+				<Field {ctx} name="house_type" />
+				<Field {ctx} name="floor_area_sqm" />
 			</Grid>
 		</Form>
 	</RecordShell>
 {:else}
 	<RecordShell
+		{ctx}
 		of="sites"
 		id={record.id}
 		subtitle={['client_name', 'house_type']}
@@ -77,14 +80,14 @@
 			{ name: 'activity', title: t('component.activity_history'), body: history }
 		]}
 	>
-		<Form of="sites" mode="update" id={record.id} {record}>
+		<Form {ctx} of="sites" mode="update" id={record.id} {record}>
 			<Grid minimum="card">
-				<Field name="location" address="address" />
-				<Field name="unit_number" />
-				<Field name="site_code" />
-				<Field name="client_name" />
-				<Field name="house_type" />
-				<Field name="floor_area_sqm" />
+				<Field {ctx} name="location" address="address" />
+				<Field {ctx} name="unit_number" />
+				<Field {ctx} name="site_code" />
+				<Field {ctx} name="client_name" />
+				<Field {ctx} name="house_type" />
+				<Field {ctx} name="floor_area_sqm" />
 			</Grid>
 		</Form>
 	</RecordShell>

@@ -1,5 +1,4 @@
 import { automation, type Id, type StartInput } from '@norbital-ai/bolt';
-import { Refusal } from '@norbital-ai/bolt/errors';
 import { siteKey } from '../lib/site-key.js';
 
 type Row = StartInput<'job_assignments_import_work_orders'>['rows'][number];
@@ -53,16 +52,26 @@ export default automation({
 		fields: { created: { kind: 'int' }, sites: { kind: 'int' }, skipped: { kind: 'int' } }
 	},
 	run: function* ({ rows }, ctx) {
-		const problems: string[] = [];
+		// the sheet's first problem refuses the whole import, naming its row and column
+		const problems: {
+			row: number;
+			field: keyof Row;
+			key:
+				| 'errors.sheet_title_empty'
+				| 'errors.sheet_site_unaddressed'
+				| 'errors.sheet_ref_repeated'
+				| 'errors.sheet_site_unlocated';
+		}[] = [];
 		const refs = new Set<string>();
 		for (const [index, row] of rows.entries()) {
-			const where = `Row ${index + 1}: ${row.title} at ${row.site} on ${row.scheduled_for}`;
-			if ((row.title?.trim() ?? '') === '') problems.push(`${where}: title is empty.`);
+			if ((row.title?.trim() ?? '') === '')
+				problems.push({ row: index, field: 'title', key: 'errors.sheet_title_empty' });
 			if (addressOf(row) === '' || siteKey(addressOf(row), unitOf(row)) === '')
-				problems.push(`${where}: site has no address.`);
+				problems.push({ row: index, field: 'site', key: 'errors.sheet_site_unaddressed' });
 			const ref = row.external_ref?.trim() ?? '';
 			if (ref !== '') {
-				if (refs.has(ref)) problems.push(`${where}: external_ref ${ref} is repeated.`);
+				if (refs.has(ref))
+					problems.push({ row: index, field: 'external_ref', key: 'errors.sheet_ref_repeated' });
 				refs.add(ref);
 			}
 		}
@@ -137,9 +146,7 @@ export default automation({
 					longitude < -180 ||
 					longitude > 180
 				) {
-					problems.push(
-						`Row ${index + 1}: ${row.title} at ${row.site} on ${row.scheduled_for}: a new site needs latitude (-90 to 90) and longitude (-180 to 180).`
-					);
+					problems.push({ row: index, field: 'latitude', key: 'errors.sheet_site_unlocated' });
 					continue;
 				}
 				// one new site per location and unit, labelled as the sheet first did
@@ -153,10 +160,9 @@ export default automation({
 				fresh.set(key, site);
 			}
 		}
-		if (problems.length > 0)
-			yield* new Refusal({
-				message: `The sheet could not be imported:\n${problems.map((p) => `• ${p}`).join('\n')}`
-			});
+		const [first] = problems.toSorted((a, b) => a.row - b.row);
+		if (first !== undefined)
+			return yield* ctx.refuse(first.key, { row: first.row, field: first.field });
 		const newSites = [...fresh.values()].map((site) => ({
 			address: site.address,
 			unit_number: site.unit_number,

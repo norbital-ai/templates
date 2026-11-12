@@ -28,7 +28,7 @@ export default model({
 		evidence_id: { kind: 'ref', to: 'photo_evidence', optional: true, on_delete: 'set_null' },
 		resolved_by: { kind: 'ref', to: 'sys_user', optional: true, on_delete: 'set_null' },
 		/** `<origin>:<assignment>:<sha256(basis)>`, derived: one log per judged basis. */
-		source_key: { kind: 'text', unique: true, hidden: true },
+		source_key: { kind: 'text', hidden: true },
 		origin: { kind: 'enum', values: ['automation', 'human'], default: 'human' },
 		/** The facts the judgement was made on; a human judgement's is composed from its reason. */
 		basis: { kind: 'json', shape: SUSPICION_BASIS, optional: true },
@@ -36,6 +36,7 @@ export default model({
 		resolution: { kind: 'text', optional: true },
 		resolved_at: { kind: 'instant', optional: true }
 	},
+	constraints: { source_key: { unique: ['source_key'] } },
 	indexes: {
 		resolved_at: { on: ['resolved_at'] },
 		search: { text: ['reason', 'resolution'] }
@@ -78,7 +79,7 @@ export default model({
 			for (const [row, input] of rows.entries()) {
 				const reason = input.reason;
 				if (reason.trim() === '')
-					return yield* ctx.refuse('Suspicion judgement reason cannot be empty.', {
+					return yield* ctx.refuse('errors.finding_reason_empty', {
 						field: 'reason',
 						row
 					});
@@ -86,24 +87,15 @@ export default model({
 				const job = String(input.job_assignment_id);
 				const given = input.basis;
 				if (origin === 'automation' && given?.kind !== 'review')
-					return yield* ctx.refuse(
-						'An automated suspicion judgement must supply its reviewed evidence basis.',
-						{ row }
-					);
+					return yield* ctx.refuse('errors.finding_basis_required', { row });
 				if (origin === 'automation' && input.review_id == null)
-					return yield* ctx.refuse(
-						'An automated suspicion judgement must reference its inference review.',
-						{ row }
-					);
+					return yield* ctx.refuse('errors.finding_review_required', { row });
 				if (origin === 'human' && input.review_id != null)
-					return yield* ctx.refuse(
-						'A human suspicion judgement cannot claim an automated inference review.',
-						{ row }
-					);
+					return yield* ctx.refuse('errors.finding_human_review', { row });
 				if (input.review_id != null && reviewJob.get(String(input.review_id)) !== job)
-					return yield* ctx.refuse('Suspicion review belongs to another job assignment.', { row });
+					return yield* ctx.refuse('errors.finding_review_elsewhere', { row });
 				if (input.evidence_id != null && evidenceJob.get(String(input.evidence_id)) !== job)
-					return yield* ctx.refuse('Suspicion evidence belongs to another job assignment.', {
+					return yield* ctx.refuse('errors.finding_evidence_elsewhere', {
 						row
 					});
 				const basis = given ?? {
@@ -140,19 +132,13 @@ export default model({
 		transform: function* (changes, ctx) {
 			for (const [row, { before, set }] of changes.entries()) {
 				if (before.resolved_at != null)
-					return yield* ctx.refuse(
-						'A resolved suspicion judgement cannot be reopened or rewritten.',
-						{ row }
-					);
+					return yield* ctx.refuse('errors.finding_resolved', { row });
 				if (
 					(set.resolution ?? '').trim() === '' ||
 					set.resolved_at == null ||
 					set.resolved_by == null
 				)
-					return yield* ctx.refuse(
-						'Resolution, resolved_at, and resolved_by must be written together.',
-						{ row }
-					);
+					return yield* ctx.refuse('errors.finding_resolution_incomplete', { row });
 			}
 			return changes.map(({ set }) => set);
 		}

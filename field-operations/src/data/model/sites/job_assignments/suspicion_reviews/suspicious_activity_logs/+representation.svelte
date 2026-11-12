@@ -21,18 +21,19 @@
 </script>
 
 {#if record == null}
-	<RecordShell of="suspicious_activity_logs" mode="create">
-		<Form of="suspicious_activity_logs" mode="create">
+	<RecordShell {ctx} of="suspicious_activity_logs" mode="create">
+		<Form {ctx} of="suspicious_activity_logs" mode="create">
 			{#snippet children()}
 				<Grid minimum="card">
-					<Field name="job_assignment_id" label={t('component.job_assignment')} />
-					<Field name="reason" label={t('component.suspicion_judgement')} />
+					<Field {ctx} name="job_assignment_id" label={t('component.job_assignment')} />
+					<Field {ctx} name="reason" label={t('component.suspicion_judgement')} />
 				</Grid>
 			{/snippet}
 		</Form>
 	</RecordShell>
 {:else}
 	<RecordShell
+		{ctx}
 		of="suspicious_activity_logs"
 		id={record.id}
 		subtitle={open ? t('component.suspicion_open') : t('component.suspicion_resolved')}
@@ -97,8 +98,9 @@
 					title={t('component.suspicion_resolution')}
 				>
 					<Form
+						{ctx}
 						of={{ automation: 'suspicious_activity_logs_resolve' }}
-						values={{ finding: record.id }}
+						values={{ finding: [record.id] }}
 						fields={['resolution']}
 						submit={t('component.suspicion_resolve')}
 					/>

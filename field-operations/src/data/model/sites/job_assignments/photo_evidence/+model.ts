@@ -33,7 +33,7 @@ export default model({
 			max: '20MiB'
 		},
 		/** A message attachment is the same photo however often it is redelivered; an upload is its file. */
-		source_key: { kind: 'text', unique: true, hidden: true },
+		source_key: { kind: 'text', hidden: true },
 		source: { kind: 'custom', of: 'photo_source' },
 		sha256: { kind: 'text', hidden: true },
 		/** Set when the host refuses to read the photo: a failed photo is never re-inspected or waited for. */
@@ -64,6 +64,7 @@ export default model({
 		/** The photo's title: where it came from. */
 		summary: { kind: 'text' }
 	},
+	constraints: { source_key: { unique: ['source_key'] } },
 	indexes: {
 		pdq: {
 			description: 'Photos nearest a PDQ vector: near-duplicates of the same pixels.',
@@ -101,7 +102,7 @@ export default model({
 			const rows = changes.map(({ set }) => set);
 			const orphan = rows.findIndex((row) => row.job_assignment_id == null);
 			if (orphan >= 0)
-				return yield* ctx.refuse('Photo evidence must reference a job assignment.', {
+				return yield* ctx.refuse('errors.photo_needs_assignment', {
 					row: orphan
 				});
 			return rows.map((row) => {

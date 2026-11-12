@@ -13,6 +13,7 @@
 	description={t('app.field_ops_controller.sites_description')}
 >
 	<Table
+		{ctx}
 		of="sites"
 		toolbar={{
 			title: t('app.field_ops_controller.tab_sites'),

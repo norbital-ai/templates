@@ -211,8 +211,9 @@
 							</p>
 						{:else}
 							<Form
+								{ctx}
 								of={{ automation: 'suspicious_activity_logs_resolve' }}
-								values={{ finding: log.id }}
+								values={{ finding: [log.id] }}
 								fields={['resolution']}
 								submit={t('component.suspicion_resolve')}
 							/>

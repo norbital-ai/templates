@@ -156,5 +156,38 @@ export default messages({
 	'component.closest_matches': 'Closest photo matches',
 	'component.match_distance': 'Similarity distance',
 	'component.match_flags': 'Flags',
-	'component.match_photos': 'Matched photos'
+	'component.match_photos': 'Matched photos',
+	'errors.job_not_yours': 'Only the jobs assigned to you can be updated.',
+	'errors.assignment_stamped_once': 'Only an unchecked assignment is stamped checked, once.',
+	'errors.photo_already_inspected': 'Only a photo awaiting its facts or its scene is inspected.',
+	'errors.review_automated_only': 'The review records automated judgements only.',
+	'errors.assignment_already_judged': 'Only an unchecked assignment is judged.',
+	'errors.assignment_already_reviewed': 'Only an unchecked assignment is reviewed.',
+	'errors.site_location_required': 'Choose a location for the site.',
+	'errors.sites_share_address': 'Two sites in this batch have one address.',
+	'errors.site_address_exists': 'A site at this address already exists.',
+	'errors.site_address_taken': 'Another site already has this address.',
+	'errors.site_files_jobs_only': 'A site files or moves jobs; change a job on the job itself.',
+	'errors.assignment_files_only':
+		'An assignment files new photos and messages; it never changes or removes filed ones.',
+	'errors.message_field_empty': 'A message needs its text, sender and source message.',
+	'errors.photo_needs_assignment': 'Photo evidence must reference a job assignment.',
+	'errors.finding_reason_empty': 'Suspicion judgement reason cannot be empty.',
+	'errors.finding_basis_required':
+		'An automated suspicion judgement must supply its reviewed evidence basis.',
+	'errors.finding_review_required':
+		'An automated suspicion judgement must reference its inference review.',
+	'errors.finding_human_review':
+		'A human suspicion judgement cannot claim an automated inference review.',
+	'errors.finding_review_elsewhere': 'Suspicion review belongs to another job assignment.',
+	'errors.finding_evidence_elsewhere': 'Suspicion evidence belongs to another job assignment.',
+	'errors.finding_resolved': 'A resolved suspicion judgement cannot be reopened or rewritten.',
+	'errors.finding_resolution_incomplete':
+		'Resolution, resolved_at, and resolved_by must be written together.',
+	'errors.sheet_title_empty': 'The sheet could not be imported: a row has no title.',
+	'errors.sheet_site_unaddressed': 'The sheet could not be imported: a row’s site has no address.',
+	'errors.sheet_ref_repeated':
+		'The sheet could not be imported: an external reference is repeated.',
+	'errors.sheet_site_unlocated':
+		'The sheet could not be imported: a new site needs latitude (-90 to 90) and longitude (-180 to 180).'
 });

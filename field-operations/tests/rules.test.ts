@@ -38,7 +38,7 @@ it('a Singapore address is its postal code plus its unit, spelled one way', () =
 	expect(siteKey('3 RIDGEWOOD CLOSE SINGAPORE 276694', '16-03')).toBe('276694#16-03');
 });
 layer(shared())('field-operations rules', (it) => {
-	it.effect('an address already filed is refused with the site that carries it', () =>
+	it.effect('an address already filed is refused at its location', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const as = yield* t.as(t.member(CONTROLLER));
@@ -62,7 +62,8 @@ layer(shared())('field-operations rules', (it) => {
 				)
 			).toMatchObject({
 				_tag: 'ActRefused',
-				message: 'A site at this address already exists: 58 Kismis Ave, S598235.'
+				message: 'errors.site_address_exists',
+				field: 'location'
 			});
 		})
 	);
@@ -72,7 +73,11 @@ layer(shared())('field-operations rules', (it) => {
 			const as = yield* t.as(t.member(CONTROLLER));
 			expect(
 				yield* Effect.flip(as.act({ 'sites.create': [{ address: 'Unresolved address' }] }))
-			).toMatchObject({ _tag: 'ActRefused', message: 'Choose a location for the site.' });
+			).toMatchObject({
+				_tag: 'ActRefused',
+				message: 'errors.site_location_required',
+				field: 'location'
+			});
 			const [created] = committed(
 				yield* as.act({
 					'sites.create': [{ location: { lat: 1.34, lng: 103.77 }, unit_number: '05-12' }]
@@ -184,7 +189,7 @@ layer(shared())('field-operations rules', (it) => {
 			const resolve = Effect.fnUntraced(function* (resolution: string) {
 				const started = yield* as.run(
 					'suspicious_activity_logs_resolve',
-					{ finding, resolution },
+					{ finding: [finding], resolution },
 					JobResult
 				);
 				if (started.kind !== 'committed') throw new Error('The finding resolution did not start.');
@@ -214,7 +219,7 @@ layer(shared())('field-operations rules', (it) => {
 				)
 			).toMatchObject({
 				_tag: 'ActRefused',
-				message: 'An automated suspicion judgement must supply its reviewed evidence basis.'
+				message: 'errors.finding_basis_required'
 			});
 		})
 	);

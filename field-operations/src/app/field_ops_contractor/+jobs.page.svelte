@@ -18,6 +18,7 @@
 	description={t('app.field_ops_contractor.header_description')}
 >
 	<Table
+		{ctx}
 		of="job_assignments"
 		key="jobs"
 		toolbar={{

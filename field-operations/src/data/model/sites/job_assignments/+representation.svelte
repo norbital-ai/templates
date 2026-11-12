@@ -59,6 +59,7 @@
 		</div>
 		{#if addingSite}
 			<Form
+				{ctx}
 				of="sites"
 				mode="create"
 				submit={t('component.add_site')}
@@ -66,18 +67,20 @@
 			>
 				{#snippet children()}
 					<Grid minimum="card">
-						<Field name="location" address="address" />
-						<Field name="unit_number" />
+						<Field {ctx} name="location" address="address" />
+						<Field {ctx} name="unit_number" />
 					</Grid>
 				{/snippet}
 			</Form>
 		{/if}
 		<RecordShell
+			{ctx}
 			of="job_assignments"
 			mode="create"
 			values={view.mode === 'create' ? view.values : {}}
 		>
 			<Form
+				{ctx}
 				of="job_assignments"
 				mode="create"
 				values={view.mode === 'create' ? view.values : {}}
@@ -87,14 +90,18 @@
 					<Section icon="lucide:briefcase" first name="job" title={t('section.job')}>
 						<Grid minimum="card">
 							{#if view.mode !== 'create' || view.values.site_id == null}
-								<Field name="site_id" label={t('component.site')} />
+								<Field {ctx} name="site_id" label={t('component.site')} />
 							{/if}
-							<Field name="title" label={t('component.job_title')} />
-							<Field name="nature" label={t('component.job_nature')} />
-							<Field name="scheduled_for" label={t('component.scheduled_date')} />
-							<Field name="assignee_contact" label={t('component.contractor_contact')} />
+							<Field {ctx} name="title" label={t('component.job_title')} />
+							<Field {ctx} name="nature" label={t('component.job_nature')} />
+							<Field {ctx} name="scheduled_for" label={t('component.scheduled_date')} />
+							<Field {ctx} name="assignee_contact" label={t('component.contractor_contact')} />
 							<Column span="all"
-								><Field name="description" label={t('component.job_description_scope')} /></Column
+								><Field
+									{ctx}
+									name="description"
+									label={t('component.job_description_scope')}
+								/></Column
 							>
 						</Grid>
 					</Section>
@@ -104,6 +111,7 @@
 	</Stack>
 {:else}
 	<RecordShell
+		{ctx}
 		of="job_assignments"
 		id={record.id}
 		subtitle={['status', 'dispatched_at']}
@@ -119,33 +127,37 @@
 				: [])
 		]}
 	>
-		<Form of="job_assignments" mode="update" id={record.id} {record}>
+		<Form {ctx} of="job_assignments" mode="update" id={record.id} {record}>
 			{#snippet children()}
 				<Section icon="lucide:briefcase" first name="job" title={t('component.job_scope')}>
 					<Grid minimum="card">
-						<Field name="site_id" label={t('component.site')} />
-						<Field name="title" label={t('component.job_title')} />
-						<Field name="nature" label={t('component.job_nature')} />
-						<Field name="scheduled_for" label={t('component.scheduled_date')} />
+						<Field {ctx} name="site_id" label={t('component.site')} />
+						<Field {ctx} name="title" label={t('component.job_title')} />
+						<Field {ctx} name="nature" label={t('component.job_nature')} />
+						<Field {ctx} name="scheduled_for" label={t('component.scheduled_date')} />
 						<Column span="all"
-							><Field name="description" label={t('component.job_description_scope')} /></Column
+							><Field
+								{ctx}
+								name="description"
+								label={t('component.job_description_scope')}
+							/></Column
 						>
 					</Grid>
 				</Section>
 				<Section icon="lucide:trending-up" name="progress" title={t('section.progress')}>
 					<Grid minimum="card">
-						<Field name="status" />
-						<Field name="assignee_contact" label={t('component.contractor_contact')} />
-						<Field name="assignee_user_id" label={t('component.contractor')} />
-						<Field name="dispatched_at" label={t('component.dispatched_at')} readonly />
-						<Field name="completed_at" label={t('component.completed_at')} readonly />
+						<Field {ctx} name="status" />
+						<Field {ctx} name="assignee_contact" label={t('component.contractor_contact')} />
+						<Field {ctx} name="assignee_user_id" label={t('component.contractor')} />
+						<Field {ctx} name="dispatched_at" label={t('component.dispatched_at')} readonly />
+						<Field {ctx} name="completed_at" label={t('component.completed_at')} readonly />
 					</Grid>
 				</Section>
 				<Section icon="lucide:circle-check" name="completion" title={t('section.completion')}>
 					<Grid minimum="card">
-						<Field name="amount_charged" label={t('component.value_charged')} />
+						<Field {ctx} name="amount_charged" label={t('component.value_charged')} />
 						<Column span="all"
-							><Field name="summary" label={t('component.completion_summary')} /></Column
+							><Field {ctx} name="summary" label={t('component.completion_summary')} /></Column
 						>
 					</Grid>
 				</Section>
@@ -157,6 +169,7 @@
 					summary={record.location_address || t('component.not_recorded')}
 				>
 					<Field
+						{ctx}
 						name="location"
 						address="location_address"
 						label={t('component.reported_location')}

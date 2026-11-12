@@ -53,7 +53,7 @@ export default model({
 		/** The contractor's email or phone number as entered; the write callbacks link the member it names. */
 		assignee_contact: { kind: 'text', optional: true },
 		/** The dispatch system's reference, when an imported sheet carries one; a sheet imported twice files once. */
-		external_ref: { kind: 'text', optional: true, unique: true },
+		external_ref: { kind: 'text', optional: true },
 		title: { kind: 'text' },
 		nature: { kind: 'text', optional: true },
 		scheduled_for: { kind: 'date' },
@@ -71,9 +71,13 @@ export default model({
 		location_address: { kind: 'text', optional: true },
 		summary: { kind: 'text', optional: true },
 		/** The WhatsApp message a job came from; retries of one delivery file it once. */
-		source_message_id: { kind: 'text', optional: true, unique: true, hidden: true },
+		source_message_id: { kind: 'text', optional: true, hidden: true },
 		/** Written by the suspicion review only; any other change clears it. */
 		suspicion_checked_at: { kind: 'instant', optional: true, hidden: true }
+	},
+	constraints: {
+		external_ref: { unique: ['external_ref'] },
+		source_message_id: { unique: ['source_message_id'] }
 	},
 	indexes: {
 		scheduled_for: { on: ['scheduled_for'] },
@@ -146,23 +150,18 @@ export default model({
 					(filed) => filed !== undefined && Object.keys(filed).some((verb) => verb !== 'create')
 				)
 			);
-			if (rewrite >= 0)
-				return yield* ctx.refuse(
-					'An assignment files new photos and messages; it never changes or removes filed ones.',
-					{ row: rewrite }
-				);
+			if (rewrite >= 0) return yield* ctx.refuse('errors.assignment_files_only', { row: rewrite });
 			const members = yield* membersFor(
 				ctx,
 				changes.map(({ set }) => set.assignee_contact)
 			);
-			return changes.map(({ before, set: given }) => {
+			return changes.map(({ before, after, set: given }) => {
 				// a new contact relinks the job: to the member it names, or to nobody
 				const set = contacted(given.assignee_contact)
 					? { ...given, assignee_user_id: memberByContact(members, given.assignee_contact) }
 					: given;
 				// only the review's own stamp leaves the job read; any other change is new evidence
 				const reviewStamp = Object.keys(set).every((key) => key === 'suspicion_checked_at');
-				const status = set.status ?? before.status;
 				return {
 					...set,
 					...(set.assignee_user_id != null &&
@@ -170,7 +169,7 @@ export default model({
 					set.dispatched_at === undefined
 						? { dispatched_at: ctx.now }
 						: {}),
-					...(status === 'completed' && (set.completed_at ?? before.completed_at) == null
+					...(after.status === 'completed' && after.completed_at == null
 						? { completed_at: ctx.now }
 						: {}),
 					...(reviewStamp ? {} : { suspicion_checked_at: null })

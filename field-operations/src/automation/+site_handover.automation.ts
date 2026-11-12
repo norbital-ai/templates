@@ -1,4 +1,5 @@
-import { automation, type StartOutput } from '@norbital-ai/bolt';
+import { automation } from '@norbital-ai/bolt';
+import type * as Effect from 'effect/Effect';
 import * as Predicate from 'effect/Predicate';
 import { Decimal } from '@norbital-ai/std/decimal';
 const SCHEMA = 'norbital.field_operations.interoperability.v2';
@@ -70,7 +71,7 @@ export default automation({
 				fields: ['job_assignment_id', 'photo', 'sha256', 'flags', 'matched_evidence_ids']
 			}
 		});
-		const files: StartOutput<'site_handover'>['files'][number][] = [];
+		const files: Effect.Success<ReturnType<typeof put>>[] = [];
 		for (const site of sites) {
 			const siteJobs = jobs.filter((job) => job.site_id === site.id);
 			const jobSet = new Set<string>(siteJobs.map((job) => job.id));

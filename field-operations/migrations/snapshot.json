@@ -119,8 +119,7 @@
 				},
 				"source_message_id": {
 					"hidden": true,
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				}
 			},
 			"indexes": [
@@ -136,7 +135,15 @@
 					"message",
 					"sender"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"source_message_id"
+					],
+					"name": "source_message_id"
+				}
+			]
 		},
 		"job_assignments": {
 			"audit": true,
@@ -167,8 +174,7 @@
 				},
 				"external_ref": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"location": {
 					"kind": "point",
@@ -193,8 +199,7 @@
 				"source_message_id": {
 					"hidden": true,
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"status": {
 					"default": "pending",
@@ -246,7 +251,21 @@
 					"summary",
 					"site_id"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"external_ref"
+					],
+					"name": "external_ref"
+				},
+				{
+					"fields": [
+						"source_message_id"
+					],
+					"name": "source_message_id"
+				}
+			]
 		},
 		"photo_evidence": {
 			"audit": true,
@@ -324,8 +343,7 @@
 				},
 				"source_key": {
 					"hidden": true,
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"summary": {
 					"kind": "text"
@@ -360,7 +378,15 @@
 					}
 				},
 				"text": []
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"source_key"
+					],
+					"name": "source_key"
+				}
+			]
 		},
 		"requestor": {
 			"fields": {
@@ -412,13 +438,11 @@
 				},
 				"site_code": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"site_key": {
 					"hidden": true,
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"unit_number": {
 					"kind": "text",
@@ -434,7 +458,21 @@
 					"site_code",
 					"client_name"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"site_code"
+					],
+					"name": "site_code"
+				},
+				{
+					"fields": [
+						"site_key"
+					],
+					"name": "site_key"
+				}
+			]
 		},
 		"suspicion_reviews": {
 			"audit": true,
@@ -667,8 +705,7 @@
 				},
 				"source_key": {
 					"hidden": true,
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"suspicious": {
 					"kind": "bool"
@@ -688,6 +725,12 @@
 				]
 			},
 			"unique": [
+				{
+					"fields": [
+						"source_key"
+					],
+					"name": "source_key"
+				},
 				{
 					"fields": [
 						"job_assignment_id",
@@ -956,8 +999,7 @@
 				},
 				"source_key": {
 					"hidden": true,
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				}
 			},
 			"indexes": [
@@ -973,7 +1015,15 @@
 					"reason",
 					"resolution"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"source_key"
+					],
+					"name": "source_key"
+				}
+			]
 		},
 		"sys_api_key": {
 			"fields": {
@@ -999,8 +1049,7 @@
 					"kind": "text"
 				},
 				"prefix": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"revision": {
 					"default": 1,
@@ -1017,7 +1066,15 @@
 				}
 			},
 			"key": "text",
-			"record_label": "record.name"
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"prefix"
+					],
+					"name": "prefix"
+				}
+			]
 		},
 		"sys_challenge": {
 			"fields": {
@@ -1731,8 +1788,7 @@
 				},
 				"once": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"read_at": {
 					"kind": "instant",
@@ -1759,7 +1815,15 @@
 				}
 			],
 			"key": "text",
-			"record_label": "record.title"
+			"record_label": "record.title",
+			"unique": [
+				{
+					"fields": [
+						"once"
+					],
+					"name": "once"
+				}
+			]
 		},
 		"sys_outbox": {
 			"fields": {
@@ -1813,8 +1877,7 @@
 					"to": "sys_integration"
 				},
 				"key": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"model": {
 					"kind": "text"
@@ -1920,6 +1983,12 @@
 			"unique": [
 				{
 					"fields": [
+						"key"
+					],
+					"name": "key"
+				},
+				{
+					"fields": [
 						"sync",
 						"instance",
 						"record"
@@ -1971,8 +2040,7 @@
 				},
 				"key": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"leases": {
 					"default": 0,
@@ -2030,7 +2098,15 @@
 				}
 			],
 			"key": "text",
-			"record_label": "record.automation"
+			"record_label": "record.automation",
+			"unique": [
+				{
+					"fields": [
+						"key"
+					],
+					"name": "key"
+				}
+			]
 		},
 		"sys_session": {
 			"fields": {
@@ -2053,8 +2129,7 @@
 					"kind": "instant"
 				},
 				"token_hash": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"user": {
 					"kind": "ref",
@@ -2073,7 +2148,15 @@
 				}
 			},
 			"key": "text",
-			"record_label": "record.via"
+			"record_label": "record.via",
+			"unique": [
+				{
+					"fields": [
+						"token_hash"
+					],
+					"name": "token_hash"
+				}
+			]
 		},
 		"sys_sync": {
 			"fields": {

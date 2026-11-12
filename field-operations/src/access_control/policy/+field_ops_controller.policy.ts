@@ -34,10 +34,10 @@ export default policy({
 		]
 	},
 	grants: {
-		sites: { outputs: { default: true }, create: true, update: true, delete: true },
+		sites: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		job_assignments: {
-			outputs: { default: true },
-			create: true,
+			outputs: { default: {} },
+			create: {},
 			update: {
 				columns: {
 					fields: JOB_FIELDS,
@@ -45,17 +45,17 @@ export default policy({
 					communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
 				}
 			},
-			delete: true
+			delete: {}
 		},
 		suspicious_activity_logs: {
-			outputs: { default: true },
-			create: true,
-			update: true
+			outputs: { default: {} },
+			create: {},
+			update: {}
 		},
-		photo_evidence: { outputs: { default: true }, create: true, update: true, delete: true },
-		communication_logs: { outputs: { default: true }, create: true },
-		suspicion_reviews: { outputs: { default: true }, create: true },
-		sys_user: { outputs: { default: true } }
+		photo_evidence: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
+		communication_logs: { outputs: { default: {} }, create: {} },
+		suspicion_reviews: { outputs: { default: {} }, create: {} },
+		sys_user: { outputs: { default: {} } }
 	},
 	limits: { act: '600/min', read: '600/min', agent: '100/h' }
 });

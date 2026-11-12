@@ -63,15 +63,14 @@ const placed = Effect.fnUntraced(function* (
 	});
 	const unlocated = places.findIndex((place) => place.location == null);
 	if (unlocated >= 0)
-		return yield* ctx.refuse('Choose a location for the site.', {
+		return yield* ctx.refuse('errors.site_location_required', {
 			field: 'location',
 			row: unlocated
 		});
 	const keys = places.map((place) => siteKey(place.name, place.unit_number));
-	if (new Set(keys).size < keys.length)
-		return yield* ctx.refuse('Two sites in this batch have one address.');
+	if (new Set(keys).size < keys.length) return yield* ctx.refuse('errors.sites_share_address');
 	const { sites: holders } = yield* ctx.query({
-		sites: { where: { site_key: { in: keys } }, fields: ['site_key', 'name'] }
+		sites: { where: { site_key: { in: keys } }, fields: ['site_key'] }
 	});
 	const holderOf = new Map(holders.rows.map((site) => [site.site_key, site]));
 	for (const [row, key] of keys.entries()) {
@@ -79,9 +78,7 @@ const placed = Effect.fnUntraced(function* (
 		const holder = holderOf.get(key);
 		if (holder !== undefined && holder.id !== before?.id)
 			return yield* ctx.refuse(
-				before === undefined
-					? `A site at this address already exists: ${holder.name}.`
-					: `Another site already has this address: ${holder.name}.`,
+				before === undefined ? 'errors.site_address_exists' : 'errors.site_address_taken',
 				{ field: 'location', row }
 			);
 	}
@@ -104,11 +101,11 @@ export default model({
 	record_label: 'record.name',
 	fields: {
 		/** The dispatch system's own code for this site; absent for a site entered here. */
-		site_code: { kind: 'text', optional: true, unique: true },
+		site_code: { kind: 'text', optional: true },
 		/** Derived from the location's formatted address, or its coordinates when geocoding is unavailable. */
 		name: { kind: 'text' },
 		/** Which site this is, derived from its address (`lib/site-key.ts`). */
-		site_key: { kind: 'text', unique: true, hidden: true },
+		site_key: { kind: 'text', hidden: true },
 		location: { kind: 'point', optional: true },
 		/** The geocoder's formatted address for `location`, when the site was picked on a map. */
 		address: { kind: 'text', optional: true },
@@ -121,6 +118,7 @@ export default model({
 		},
 		floor_area_sqm: { kind: 'decimal', scale: 2, optional: true }
 	},
+	constraints: { site_code: { unique: ['site_code'] }, site_key: { unique: ['site_key'] } },
 	indexes: { search: { text: ['name', 'address', 'unit_number', 'site_code', 'client_name'] } },
 	outputs: {
 		default: {
@@ -163,7 +161,7 @@ export default model({
 					Object.keys(set.job_assignments).some((verb) => verb !== 'create' && verb !== 'link')
 			);
 			if (rewrite >= 0)
-				return yield* ctx.refuse('A site files or moves jobs; change a job on the job itself.', {
+				return yield* ctx.refuse('errors.site_files_jobs_only', {
 					row: rewrite
 				});
 			const derived = yield* placed(changes, ctx);

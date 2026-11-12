@@ -245,6 +245,7 @@
 			</p>{/if}
 		{#if importRun}
 			<RunStatus
+				{ctx}
 				automation="job_assignments_import_work_orders"
 				run={recordedImport ?? importRun.id}
 			/>
@@ -258,6 +259,7 @@
 		>
 			{#snippet start()}
 				<Board
+					{ctx}
 					of="job_assignments"
 					by="status"
 					key="dispatch"
@@ -291,6 +293,7 @@
 						<!-- `isolate`: Leaflet's pane z-indexes stay below the record sheet -->
 						<div class="isolate">
 							<Map
+								{ctx}
 								of="sites"
 								at="location"
 								label="name"

@@ -13,8 +13,9 @@ export default model({
 		/** Provider-normalised sender identity (a WhatsApp JID, a member id); pages show the member's name (`senderName`). */
 		sender: { kind: 'text', hidden: true },
 		/** Provider message id: retries of one delivery resolve to one row. */
-		source_message_id: { kind: 'text', unique: true, hidden: true }
+		source_message_id: { kind: 'text', hidden: true }
 	},
+	constraints: { source_message_id: { unique: ['source_message_id'] } },
 	indexes: {
 		sent_at: { on: ['sent_at'] },
 		search: { text: ['message', 'sender'] }
@@ -33,7 +34,7 @@ export default model({
 			for (const [row, message] of rows.entries())
 				for (const field of ['message', 'sender', 'source_message_id'] as const)
 					if (message[field].trim() === '')
-						return yield* ctx.refuse(`Communication log ${field} cannot be empty.`, { field, row });
+						return yield* ctx.refuse('errors.message_field_empty', { field, row });
 			return rows;
 		}
 	}

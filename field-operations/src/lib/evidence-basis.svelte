@@ -49,7 +49,9 @@
 		{@render fact(t('component.job_nature'), basis.job.nature)}
 		<div>
 			<dt class="text-xs text-muted-foreground">{t('component.scheduled_date')}</dt>
-			<dd class="text-sm"><Show kind={{ kind: 'date' }} value={basis.job.scheduled_for} /></dd>
+			<dd class="text-sm">
+				<Show {ctx} kind={{ kind: 'date' }} value={basis.job.scheduled_for} />
+			</dd>
 		</div>
 		{@render fact(t('component.site'), basis.site?.name)}
 		{@render fact(
@@ -66,6 +68,7 @@
 			)}{/if}
 	</Grid>
 	{#if matches.length > 0}<Table
+			{ctx}
 			of={matches}
 			key="closest-matches"
 			columns={[

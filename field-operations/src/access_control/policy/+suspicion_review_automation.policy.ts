@@ -24,7 +24,7 @@ export default policy({
 		'Inspects filed photos awaiting facts, reviews unchecked assignments, appends immutable suspicion evidence, and marks a completed review checked.',
 	grants: {
 		job_assignments: {
-			outputs: { default: true },
+			outputs: { default: {} },
 			update: {
 				columns: { fields: ['suspicion_checked_at'] },
 				verdict: function* (changes, ctx) {
@@ -34,15 +34,15 @@ export default policy({
 					);
 					return twice < 0
 						? ctx.allow()
-						: yield* ctx.refuse('Only an unchecked assignment is stamped checked, once.', {
+						: yield* ctx.refuse('errors.assignment_stamped_once', {
 								row: twice
 							});
 				}
 			}
 		},
-		sites: { outputs: { default: true } },
+		sites: { outputs: { default: {} } },
 		photo_evidence: {
-			outputs: { default: true },
+			outputs: { default: {} },
 			update: {
 				// a photo awaiting inspection, or a hashed one (seeded, bank-loaded) still without a scene
 				verdict: function* (changes, ctx) {
@@ -51,7 +51,7 @@ export default policy({
 					);
 					return settled < 0
 						? ctx.allow()
-						: yield* ctx.refuse('Only a photo awaiting its facts or its scene is inspected.', {
+						: yield* ctx.refuse('errors.photo_already_inspected', {
 								row: settled
 							});
 				}
@@ -65,7 +65,7 @@ export default policy({
 					const rows = changes.map(({ set }) => set);
 					const human = rows.findIndex((row) => row.origin !== 'automation');
 					if (human >= 0)
-						return yield* ctx.refuse('The review records automated judgements only.', {
+						return yield* ctx.refuse('errors.review_automated_only', {
 							row: human,
 							field: 'origin'
 						});
@@ -74,7 +74,7 @@ export default policy({
 						rows.map((row) => row.job_assignment_id)
 					))
 						? ctx.allow()
-						: yield* ctx.refuse('Only an unchecked assignment is judged.', {
+						: yield* ctx.refuse('errors.assignment_already_judged', {
 								field: 'job_assignment_id'
 							});
 				}
@@ -89,7 +89,7 @@ export default policy({
 						changes.map(({ set }) => set.job_assignment_id)
 					))
 						? ctx.allow()
-						: yield* ctx.refuse('Only an unchecked assignment is reviewed.', {
+						: yield* ctx.refuse('errors.assignment_already_reviewed', {
 								field: 'job_assignment_id'
 							});
 				}

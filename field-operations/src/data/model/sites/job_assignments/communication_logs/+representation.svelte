@@ -22,6 +22,7 @@
 	<EmptyState title={ctx.t('component.communication_recorded_automatically')} />
 {:else}
 	<RecordShell
+		{ctx}
 		of="communication_logs"
 		id={record.id}
 		subtitle={`${from} · ${format({ kind: 'instant' }, record.sent_at, {
