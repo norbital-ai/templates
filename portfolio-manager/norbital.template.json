@@ -1,0 +1,16 @@
+{
+	"schema_version": 1,
+	"key": "norbital_portfolio_manager",
+	"name": "Portfolio Manager",
+	"industry": "Finance",
+	"description": "A family office's book: every holding with its research, and a daily report with totals, allocation and one call per position, written by one agent.",
+	"visibility": "public",
+	"counts": {
+		"models": 2,
+		"apps": 1,
+		"automations": 1
+	},
+	"tags": ["Finance", "Portfolio", "Family office"],
+	"name_zh": "投资组合管理",
+	"description_zh": "面向家族办公室的投资组合：每个持仓及其研究，以及由智能体每日撰写的报告，包含总额、配置和逐仓建议。"
+}

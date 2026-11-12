@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Portfolio Manager workspace">
+	<rect width="1600" height="900" fill="#f2f1ed" />
+	<rect x="80" y="80" width="1440" height="740" rx="24" fill="#ffffff" stroke="#d8d5cc" stroke-width="4" />
+	<polyline points="200,560 400,500 600,530 800,420 1000,450 1200,330 1400,360" fill="none" stroke="#e0552b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+	<g fill="#1a1a1a" opacity="0.12">
+		<rect x="200" y="620" width="160" height="120" rx="8" />
+		<rect x="420" y="660" width="160" height="80" rx="8" />
+		<rect x="640" y="600" width="160" height="140" rx="8" />
+		<rect x="860" y="640" width="160" height="100" rx="8" />
+	</g>
+	<text x="200" y="230" font-family="ui-sans-serif, system-ui, sans-serif" font-size="64" font-weight="600" fill="#1a1a1a">Portfolio Manager</text>
+</svg>
