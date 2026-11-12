@@ -149,8 +149,7 @@
 					"kind": "text"
 				},
 				"prefix": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"revision": {
 					"default": 1,
@@ -167,7 +166,15 @@
 				}
 			},
 			"key": "text",
-			"record_label": "record.name"
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"prefix"
+					],
+					"name": "prefix"
+				}
+			]
 		},
 		"sys_challenge": {
 			"fields": {
@@ -881,8 +888,7 @@
 				},
 				"once": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"read_at": {
 					"kind": "instant",
@@ -909,7 +915,15 @@
 				}
 			],
 			"key": "text",
-			"record_label": "record.title"
+			"record_label": "record.title",
+			"unique": [
+				{
+					"fields": [
+						"once"
+					],
+					"name": "once"
+				}
+			]
 		},
 		"sys_outbox": {
 			"fields": {
@@ -963,8 +977,7 @@
 					"to": "sys_integration"
 				},
 				"key": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"model": {
 					"kind": "text"
@@ -1070,6 +1083,12 @@
 			"unique": [
 				{
 					"fields": [
+						"key"
+					],
+					"name": "key"
+				},
+				{
+					"fields": [
 						"sync",
 						"instance",
 						"record"
@@ -1121,8 +1140,7 @@
 				},
 				"key": {
 					"kind": "text",
-					"optional": true,
-					"unique": true
+					"optional": true
 				},
 				"leases": {
 					"default": 0,
@@ -1180,7 +1198,15 @@
 				}
 			],
 			"key": "text",
-			"record_label": "record.automation"
+			"record_label": "record.automation",
+			"unique": [
+				{
+					"fields": [
+						"key"
+					],
+					"name": "key"
+				}
+			]
 		},
 		"sys_session": {
 			"fields": {
@@ -1203,8 +1229,7 @@
 					"kind": "instant"
 				},
 				"token_hash": {
-					"kind": "text",
-					"unique": true
+					"kind": "text"
 				},
 				"user": {
 					"kind": "ref",
@@ -1223,7 +1248,15 @@
 				}
 			},
 			"key": "text",
-			"record_label": "record.via"
+			"record_label": "record.via",
+			"unique": [
+				{
+					"fields": [
+						"token_hash"
+					],
+					"name": "token_hash"
+				}
+			]
 		},
 		"sys_sync": {
 			"fields": {

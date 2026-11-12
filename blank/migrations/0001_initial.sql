@@ -1,4 +1,4 @@
--- 0001_initial.sql: 153 step(s), from an empty database to b1573c52a9a111bbc8eb20ef88986e74f0209c8f14441ca92c35548a5b3ccb57.
+-- 0001_initial.sql: 153 step(s), from an empty database to bbe2e50f3ab6caeced44acf90b973a33d85399b68331672456441f72a53433e0.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -721,10 +721,10 @@ create table "sys_api_key" ("id" text primary key,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_api_key_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_api_key_93340fdd"("name"), ''))) stored,
 	"created_by" text,
-	constraint "sys_api_key__uq__410283f1" unique ("prefix"),
 	constraint "sys_api_key__ck__3ec0653c" check (isfinite("revoked_at")),
 	constraint "sys_api_key__ck__21d4c9ff" check (isfinite("last_used_at")),
-	constraint "sys_api_key__ck__367d8eb4" check (isfinite("created_at"))
+	constraint "sys_api_key__ck__367d8eb4" check (isfinite("created_at")),
+	constraint "sys_api_key__uq__410283f1" unique ("prefix")
 );
 
 -- step create:table:sys_challenge (additive)
@@ -966,9 +966,9 @@ create table "sys_notification" ("id" text primary key,
 	constraint "sys_notification__ck__8e13ac8a" check (("recipient" is null or store_json_valid("recipient", '{"kind":"json"}'::jsonb) is true)),
 	constraint "sys_notification__ck__af8b3b10" check (("link" is null or store_json_valid("link", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_notification__ck__c9a52988" check (("attachments" is null or store_json_valid("attachments", '{"default":[],"kind":"json"}'::jsonb) is true)),
-	constraint "sys_notification__uq__544dc786" unique ("once"),
 	constraint "sys_notification__ck__2298f760" check (isfinite("at")),
-	constraint "sys_notification__ck__db820902" check (isfinite("read_at"))
+	constraint "sys_notification__ck__db820902" check (isfinite("read_at")),
+	constraint "sys_notification__uq__544dc786" unique ("once")
 );
 
 -- step create:table:sys_outbox (additive)
@@ -1001,14 +1001,14 @@ create table "sys_outbox" ("id" uuid primary key,
 	constraint "sys_outbox__ck__0e6efdd2" check ("delivery_op" in ('create', 'update', 'delete')),
 	constraint "sys_outbox__ck__cb287458" check (("image" is null or store_json_valid("image", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_outbox__ck__8ad02efa" check (("changed" is null or store_json_valid("changed", '{"default":[],"kind":"json","shape":{"kind":"text","many":true}}'::jsonb) is true)),
-	constraint "sys_outbox__uq__f1a22a1c" unique ("key"),
 	constraint "sys_outbox__ck__fb29df7c" check ("status" in ('queued', 'sending', 'acked', 'failed', 'dead', 'skipped')),
 	constraint "sys_outbox__ck__f6ff471a" check (isfinite("next_attempt_at")),
 	constraint "sys_outbox__ck__a7d38bd9" check (isfinite("claimed_at")),
 	constraint "sys_outbox__ck__b77b5c87" check (("error" is null or store_json_valid("error", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_outbox__ck__c8a3b1f1" check (isfinite("acked_at")),
 	constraint "sys_outbox__ck__0bde5ff1" check (("result" is null or store_json_valid("result", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_outbox__ck__2298f760" check (isfinite("at"))
+	constraint "sys_outbox__ck__2298f760" check (isfinite("at")),
+	constraint "sys_outbox__uq__f1a22a1c" unique ("key")
 );
 
 -- step create:table:sys_run (additive)
@@ -1036,7 +1036,6 @@ create table "sys_run" ("id" text primary key,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_run_09f15580"("automation"), ''))) stored,
 	constraint "sys_run__ck__fcb01943" check (("input" is null or store_json_valid("input", '{"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__9f882481" check (isfinite("due_at")),
-	constraint "sys_run__uq__f1a22a1c" unique ("key"),
 	constraint "sys_run__ck__df253602" check (isfinite("started_at")),
 	constraint "sys_run__ck__a6d9a98d" check (isfinite("finished_at")),
 	constraint "sys_run__ck__ca03cc42" check (("progress" is null or store_json_valid("progress", '{"kind":"json","optional":true}'::jsonb) is true)),
@@ -1044,7 +1043,8 @@ create table "sys_run" ("id" text primary key,
 	constraint "sys_run__ck__b77b5c87" check (("error" is null or store_json_valid("error", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__ck__f38716e4" check (("results" is null or store_json_valid("results", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__20970459" check (("starter" is null or store_json_valid("starter", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true))
+	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_run__uq__f1a22a1c" unique ("key")
 );
 
 -- step create:table:sys_session (additive)
@@ -1059,11 +1059,11 @@ create table "sys_session" ("id" text primary key,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_session_6a2ce92f"("via"), ''))) stored,
 	"user" text not null,
 	"impersonated_by" text,
-	constraint "sys_session__uq__ba86567f" unique ("token_hash"),
 	constraint "sys_session__ck__30a5a136" check ("via" in ('code', 'invitation', 'signup', 'host', 'anonymous')),
 	constraint "sys_session__ck__367d8eb4" check (isfinite("created_at")),
 	constraint "sys_session__ck__58adc270" check (isfinite("expires_at")),
-	constraint "sys_session__ck__e61a07a4" check (isfinite("refreshed_at"))
+	constraint "sys_session__ck__e61a07a4" check (isfinite("refreshed_at")),
+	constraint "sys_session__uq__ba86567f" unique ("token_hash")
 );
 
 -- step create:table:sys_sync (additive)
@@ -1174,7 +1174,7 @@ create table if not exists bolt_approval_effect (
 select bolt_history_register('approval_request','{"fields":{"action":{"kind":"enum","values":["create","update","delete"]},"approver_teams":{"kind":"json","shape":{"kind":"text","many":true}},"approver_users":{"kind":"json","shape":{"kind":"text","many":true}},"closed_at":{"kind":"instant","optional":true},"closed_by":{"kind":"text","optional":true},"collection_name":{"kind":"text"},"created_at":{"kind":"instant"},"record_id":{"kind":"text"},"revision":{"default":1,"kind":"int"},"status":{"kind":"enum","values":["ONGOING","CHANGES_REQUESTED","APPROVED","REJECTED","SUPERSEDED","WITHDRAWN"]},"step":{"kind":"int"},"step_names":{"kind":"json","shape":{"kind":"text","many":true}},"steps":{"kind":"int"},"superseder_teams":{"kind":"json","shape":{"kind":"text","many":true}}},"key":"uuid","search":{"text":["collection_name"]},"unique":[{"fields":["collection_name","record_id"],"name":"one_ongoing_request","where":{"status":{"eq":"ONGOING"}}}]}'::jsonb);
 
 -- step create:history:schema:sys_api_key (additive)
-select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text","unique":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
+select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text"},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name","unique":[{"fields":["prefix"],"name":"prefix"}]}'::jsonb);
 
 -- step create:history:schema:sys_conversation (additive)
 select bolt_history_register('sys_conversation','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"goals":{"kind":"json","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
