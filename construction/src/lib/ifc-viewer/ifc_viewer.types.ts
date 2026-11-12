@@ -1,4 +1,4 @@
-import type { bolt } from '$bolt';
+import type { PageContext } from '@norbital-ai/bolt/page';
 import { Effect, Schema } from 'effect';
 import * as Predicate from 'effect/Predicate';
 /** A failure's message, whatever was thrown; a wrapped cause (Effect's generic `tryPromise` failure) names itself. */
@@ -16,14 +16,16 @@ export const fetchEffect = (url: string, step: string): Effect.Effect<Response, 
 		try: (signal) => fetch(url, { signal }),
 		catch: (cause) => new Error(`${step}: ${messageOf(cause)}`)
 	});
-/** Translates a message key (`bolt.t`). */
-export type Translator = typeof bolt.t;
+/** Translates a message key (`ctx.t`). */
+export type Translator = PageContext['t'];
 export type IFCViewerMarkerGroup = {
 	label: string;
 	color: string;
 	expressIds: number[];
 };
 export type IFCViewerProps = {
+	/** The page context's translator. */
+	t: Translator;
 	src: string;
 	alt?: string;
 	markers?: number[];

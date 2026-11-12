@@ -1,19 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/record-form.svelte';
-	let {
-		view
-	}: {
-		view: RecordView<'workers'>;
-	} = $props();
-	const t = bolt.t;
+	let { view, ctx }: { view: RecordView<'workers'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 
 <RecordForm {view} subtitle={['worker_number', 'trade', 'status']}>
-	<Section icon="lucide:hard-hat" first name="worker" title={t('section.worker')}>
+	<Section icon="lucide:hard-hat" first name="worker" title={ctx.t('section.worker')}>
 		<Grid minimum="compact">
 			<Field name="worker_name" />
 			<Field name="worker_number" />
@@ -21,7 +16,7 @@
 			<Field name="status" />
 		</Grid>
 	</Section>
-	<Section icon="lucide:shield-check" name="compliance" title={t('section.compliance')}>
+	<Section icon="lucide:shield-check" name="compliance" title={ctx.t('section.compliance')}>
 		<Grid minimum="compact">
 			<Field name="work_permit_expiry" />
 			<Field name="medical_check_date" />
@@ -31,9 +26,9 @@
 	<Section
 		icon="lucide:contact"
 		name="contact"
-		title={t('section.contact')}
-		defaultOpen={false}
-		summary={record?.['phone'] || record?.['email'] || t('component.not_set')}
+		title={ctx.t('section.contact')}
+		default_open={false}
+		summary={record?.['phone'] || record?.['email'] || ctx.t('component.not_set')}
 	>
 		<Grid minimum="compact">
 			<Field name="phone" />
@@ -44,9 +39,9 @@
 	<Section
 		icon="lucide:user-round"
 		name="personal"
-		title={t('section.personal')}
-		defaultOpen={false}
-		summary={record?.['nationality'] || t('component.not_set')}
+		title={ctx.t('section.personal')}
+		default_open={false}
+		summary={record?.['nationality'] || ctx.t('component.not_set')}
 	>
 		<Grid minimum="compact">
 			<Field name="date_of_birth" />

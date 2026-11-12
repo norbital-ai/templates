@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Tabs, Table } from '@norbital-ai/ui';
-	const t = bolt.t;
+	let { ctx }: { ctx: PageContext } = $props();
 </script>
 
 {#snippet workers()}
@@ -44,8 +44,8 @@
 
 <AppShell
 	icon="lucide:users"
-	title={t('app.construction_settings_workforce.title')}
-	description={t('app.construction_settings_workforce.description')}
+	title={ctx.t('app.construction_settings_workforce.title')}
+	description={ctx.t('app.construction_settings_workforce.description')}
 	banner="app-media/construction_settings_workforce-banner.webp"
 	variant="full"
 >
@@ -53,19 +53,19 @@
 		tabs={[
 			{
 				name: 'workers',
-				title: t('app.construction_settings_workforce.tab_workers'),
+				title: ctx.t('app.construction_settings_workforce.tab_workers'),
 				icon: 'lucide:users',
 				body: workers
 			},
 			{
 				name: 'certifications',
-				title: t('app.construction_settings_workforce.tab_certifications'),
+				title: ctx.t('app.construction_settings_workforce.tab_certifications'),
 				icon: 'lucide:badge-check',
 				body: certifications
 			},
 			{
 				name: 'jobs',
-				title: t('app.construction_settings_workforce.tab_jobs'),
+				title: ctx.t('app.construction_settings_workforce.tab_jobs'),
 				icon: 'lucide:briefcase',
 				body: jobs
 			}

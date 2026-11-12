@@ -1,18 +1,19 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
+	let { ctx }: { ctx: PageContext } = $props();
 </script>
 
 <AppShell
 	icon="lucide:building-2"
-	title={bolt.t('app.construction_project_workspace.title')}
-	description={bolt.t('app.construction_project_workspace.description')}
+	title={ctx.t('app.construction_project_workspace.title')}
+	description={ctx.t('app.construction_project_workspace.description')}
 	banner="app-media/construction_project_workspace-banner.webp"
 >
 	<Table
 		of="projects"
-		pageSize={50}
+		page_size={50}
 		columns={['project_name', 'project_number', 'client', 'status', 'schedule_range']}
 	/>
 </AppShell>

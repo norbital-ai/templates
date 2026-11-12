@@ -1,18 +1,13 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../../../lib/record-form.svelte';
-	let {
-		view
-	}: {
-		view: RecordView<'defects'>;
-	} = $props();
-	const t = bolt.t;
+	let { view, ctx }: { view: RecordView<'defects'>; ctx: PageContext } = $props();
 </script>
 
 <RecordForm {view} subtitle={['defect_number', 'status']}>
-	<Section icon="lucide:triangle-alert" first name="defect" title={t('section.defect')}>
+	<Section icon="lucide:triangle-alert" first name="defect" title={ctx.t('section.defect')}>
 		<Grid minimum="compact">
 			<Field name="defect_number" />
 			<Field name="title" />
@@ -28,7 +23,7 @@
 			<Column span="all"><Field name="description" /></Column>
 		</Grid>
 	</Section>
-	<Section icon="lucide:calendar-check" name="follow_up" title={t('section.follow_up')}>
+	<Section icon="lucide:calendar-check" name="follow_up" title={ctx.t('section.follow_up')}>
 		<Grid minimum="compact">
 			<Field name="assigned_to" />
 			<Field name="due_date" />

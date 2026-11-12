@@ -1,19 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../../lib/record-form.svelte';
-	let {
-		view
-	}: {
-		view: RecordView<'bim_reference_matrix'>;
-	} = $props();
-	const t = bolt.t;
+	let { view, ctx }: { view: RecordView<'bim_reference_matrix'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 
 <RecordForm {view} subtitle={['reference_code', 'category']}>
-	<Section icon="lucide:book-marked" first name="reference" title={t('section.reference')}>
+	<Section icon="lucide:book-marked" first name="reference" title={ctx.t('section.reference')}>
 		<Grid minimum="compact">
 			<Field name="reference_name" />
 			<Field name="reference_code" />
@@ -25,7 +20,7 @@
 			<Field name="unit_of_measure" />
 		</Grid>
 	</Section>
-	<Section icon="lucide:leaf" name="rate_and_carbon" title={t('section.rate_and_carbon')}>
+	<Section icon="lucide:leaf" name="rate_and_carbon" title={ctx.t('section.rate_and_carbon')}>
 		<Grid minimum="compact">
 			<Field name="currency" />
 			<Field name="rate" />
@@ -36,9 +31,9 @@
 	<Section
 		icon="lucide:file-text"
 		name="specification"
-		title={t('section.specification')}
-		defaultOpen={false}
-		summary={record?.['specification'] || record?.['data_source'] || t('component.not_set')}
+		title={ctx.t('section.specification')}
+		default_open={false}
+		summary={record?.['specification'] || record?.['data_source'] || ctx.t('component.not_set')}
 	>
 		<Grid minimum="compact">
 			<Column span="all"><Field name="specification" /></Column>

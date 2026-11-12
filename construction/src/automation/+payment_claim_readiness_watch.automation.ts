@@ -2,10 +2,10 @@ import { automation } from '@norbital-ai/bolt';
 import payment_claims from '../data/model/projects/payment_claims/+model.js';
 import { DAILY_0600, digestOutput } from '../lib/digest.js';
 const { project_id, job_id, ...fields } = payment_claims.spec.fields;
-export default automation('payment_claim_readiness_watch', {
+export default automation({
 	description:
 		'Counts the draft and submitted payment claims every morning at 6am and publishes the 25 most recently changed as a JSON extract so the commercial team can check progress-claim readiness.',
-	on: DAILY_0600,
+	on: [DAILY_0600],
 	policies: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
@@ -14,7 +14,7 @@ export default automation('payment_claim_readiness_watch', {
 		} = yield* ctx.query({
 			payment_claims: {
 				where: { status: { in: ['draft', 'submitted'] } },
-				orderBy: { updated_at: 'desc' },
+				order_by: { updated_at: 'desc' },
 				limit: 25
 			}
 		});

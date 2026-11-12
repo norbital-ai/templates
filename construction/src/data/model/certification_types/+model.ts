@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/certification_types.ts';
 const columns = [
 	'certification_name',
 	'certification_code',
@@ -9,10 +9,10 @@ const columns = [
 	'description',
 	'requirements'
 ] as const;
-export default model('certification_types', {
+export default model({
 	description: 'Certification library used to define workforce requirements.',
 	icon: 'lucide:badge-check',
-	label: 'certification_name',
+	record_label: 'record.certification_name',
 	fields: {
 		certification_name: { kind: 'text' },
 		certification_code: { kind: 'text', optional: true, unique: true },
@@ -23,8 +23,8 @@ export default model('certification_types', {
 		description: { kind: 'text', optional: true },
 		requirements: { kind: 'text', many: true, optional: true }
 	},
-	search: { text: ['certification_name'] },
-	read: 'all',
-	create: { columns: { certification_types: columns } },
-	update: { columns: { certification_types: columns } }
+	indexes: { find: { text: ['certification_name'] } },
+	outputs: { default: { fields: 'all' } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } }
 });

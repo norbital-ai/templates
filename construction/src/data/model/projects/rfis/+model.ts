@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/rfis.ts';
 const columns = [
 	'title',
 	'rfi_number',
@@ -16,10 +16,10 @@ const columns = [
 	'attachments',
 	'related_defect_id'
 ] as const;
-export default model('rfis', {
+export default model({
 	description: 'Design and coordination questions raised during delivery.',
 	icon: 'lucide:messages-square',
-	label: 'title',
+	record_label: 'record.title',
 	fields: {
 		title: { kind: 'text' },
 		rfi_number: { kind: 'text', optional: true, unique: true },
@@ -33,18 +33,18 @@ export default model('rfis', {
 		submitted_date: { kind: 'date', optional: true },
 		due_date: { kind: 'date', optional: true },
 		resolved_date: { kind: 'date', optional: true },
-		attachments: { kind: 'file', accept: ['*/*'], max: '20MiB', multiple: true, optional: true },
+		attachments: { kind: 'file', accept: ['*/*'], max: '20MiB', many: true, optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'rfis', optional: true },
 		related_defect_id: {
 			kind: 'ref',
 			to: 'defects',
 			inverse: 'related_rfis',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		}
 	},
-	search: { text: ['title'] },
-	read: { rfis: { fields: 'all' }, 'rfis.related_defect_id': { fields: ['title'] } },
-	create: { columns: { rfis: columns } },
-	update: { columns: { rfis: columns } }
+	indexes: { find: { text: ['title'] } },
+	outputs: { default: { fields: 'all', related_defect_id: { fields: ['title'] } } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } }
 });

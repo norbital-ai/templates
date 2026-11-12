@@ -6,12 +6,13 @@ import type { AutomationName } from '@norbital-ai/bolt';
  */
 import { fileURLToPath } from 'node:url';
 import { expect, it } from '@effect/vitest';
+import { JobResult } from '@norbital-ai/bolt-cli/test';
 import { workspace as acquireWorkspace } from './test-runtime.js';
 const root = fileURLToPath(new URL('..', import.meta.url));
 it.live('runs all four daily digests', () =>
 	Effect.gen(function* () {
 		const t = yield* acquireWorkspace({ root });
-		const admin = t.as(t.admin);
+		const admin = yield* t.as(t.admin);
 		const digests = [
 			'defect_closeout_digest',
 			'payment_claim_readiness_watch',
@@ -22,11 +23,11 @@ it.live('runs all four daily digests', () =>
 		const runs = Context.get(t.services, Runs);
 		if (runs === undefined) throw new Error('Test workspace has no runs driver.');
 		for (const digest of digests) {
-			const started = yield* admin.start(digest, {});
+			const started = yield* admin.run(digest, {}, JobResult);
 			expect(started).toMatchObject({ kind: 'committed' });
 			if (started.kind !== 'committed') throw new Error('The digest did not start.');
 			const { id } = started.output;
-			yield* t.runDue();
+			yield* t.run_due();
 			const run = Option.getOrNull(
 				yield* runs.view(yield* Context.get(t.services, Identity).authority(t.admin), id)
 			);

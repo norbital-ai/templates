@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/permits_to_work.ts';
 const columns = [
 	'permit_number',
 	'permit_type',
@@ -14,10 +14,10 @@ const columns = [
 	'control_measures',
 	'signatures'
 ] as const;
-export default model('permits_to_work', {
+export default model({
 	description: 'Evidence-backed permit and competency validity records.',
 	icon: 'lucide:shield-check',
-	label: 'permit_number',
+	record_label: 'record.permit_number',
 	fields: {
 		permit_number: { kind: 'text', unique: true },
 		permit_type: {
@@ -50,25 +50,25 @@ export default model('permits_to_work', {
 			to: 'site_locations',
 			inverse: 'permits_to_work',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		},
 		job_id: {
 			kind: 'ref',
 			to: 'jobs',
 			inverse: 'permits_to_work',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		},
 		worker_id: {
 			kind: 'ref',
 			to: 'workers',
 			inverse: 'permits_to_work',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		}
 	},
-	search: { text: ['permit_number'] },
-	read: { permits_to_work: { fields: 'all' }, 'permits_to_work.job_id': { fields: ['job_title'] } },
-	create: { columns: { permits_to_work: columns } },
-	update: { columns: { permits_to_work: columns } }
+	indexes: { find: { text: ['permit_number'] } },
+	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } }
 });

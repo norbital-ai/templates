@@ -5,7 +5,7 @@
 	 */
 	import type { Snippet } from 'svelte';
 	import type { ModelName } from '@norbital-ai/bolt';
-	import { Form, RecordShell, openRecord, type RecordView } from '@norbital-ai/ui';
+	import { Form, RecordShell, open_record, type RecordView } from '@norbital-ai/ui';
 	let {
 		view,
 		subtitle,
@@ -32,9 +32,9 @@
 		{...record == null
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}
-		onOutcome={(outcome) => {
+		on_outcome={(outcome) => {
 			const created = outcome.kind === 'committed' ? outcome.records[0] : undefined;
-			if (view.mode === 'create' && created !== undefined) openRecord(of, created.id);
+			if (view.mode === 'create' && created !== undefined) open_record(of, created.id);
 		}}
 	>
 		{@render children()}

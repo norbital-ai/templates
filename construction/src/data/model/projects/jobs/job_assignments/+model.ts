@@ -1,4 +1,5 @@
-import { model, type Id, type WriteCtx } from '@norbital-ai/bolt';
+import type { Id, WriteCtx } from '@norbital-ai/bolt';
+import { model } from '../../../../../../.norbital/models/job_assignments.ts';
 import { Effect } from 'effect';
 const columns = [
 	'assignment_code',
@@ -22,23 +23,22 @@ const certified = Effect.fnUntraced(function* (
 	ctx: WriteCtx<'job_assignments'>
 ) {
 	if (targets.length === 0) return;
-	const { permits_to_work_workers: permitLinks, jobs_site_locations: siteJobs } =
-		yield* ctx.db.query({
-			permits_to_work_workers: {
-				where: { worker_id: { in: [...new Set(targets.map((t) => t.worker))] } },
-				fields: ['worker_id', 'permits_to_work_id']
-			},
-			jobs_site_locations: {
-				where: { site_location_id: { in: [...new Set(targets.map((t) => t.site))] } },
-				fields: ['site_location_id', 'job_id']
-			}
-		});
+	const { permits_to_work_workers: permitLinks, jobs_site_locations: siteJobs } = yield* ctx.query({
+		permits_to_work_workers: {
+			where: { worker_id: { in: [...new Set(targets.map((t) => t.worker))] } },
+			fields: ['worker_id', 'permits_to_work_id']
+		},
+		jobs_site_locations: {
+			where: { site_location_id: { in: [...new Set(targets.map((t) => t.site))] } },
+			fields: ['site_location_id', 'job_id']
+		}
+	});
 	const permitIds = [...new Set(permitLinks.rows.map((l) => l.permits_to_work_id))];
 	const {
 		permits_to_work: permits,
 		permits_to_work_certification_types: permitCerts,
 		jobs_certification_types: jobCerts
-	} = yield* ctx.db.query({
+	} = yield* ctx.query({
 		permits_to_work: {
 			where: { id: { in: permitIds }, status: { eq: 'active' } },
 			fields: ['validity_range']
@@ -84,10 +84,10 @@ const certified = Effect.fnUntraced(function* (
  * An assignment is refused unless the worker is certified for the site location: checked on create and whenever the
  * worker or the site location changes, so an assignment cannot be moved onto work the worker is not certified for.
  */
-export default model('job_assignments', {
+export default model({
 	description: 'Worker assignments tied to project jobs and site locations.',
 	icon: 'lucide:hard-hat',
-	label: 'assignment_code',
+	record_label: 'record.assignment_code',
 	fields: {
 		assignment_code: { kind: 'text', optional: true },
 		role: { kind: 'text', optional: true },
@@ -103,33 +103,33 @@ export default model('job_assignments', {
 		job_id: { kind: 'ref', to: 'jobs', inverse: 'job_assignments', optional: true },
 		site_location_id: { kind: 'ref', to: 'site_locations', inverse: 'job_assignments' }
 	},
-	search: { text: ['assignment_code'] },
-	read: {
-		job_assignments: { fields: 'all' },
-		'job_assignments.site_location_id': { fields: ['project_id'] },
-		'job_assignments.job_id': { fields: ['job_title'] }
+	indexes: { find: { text: ['assignment_code'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			site_location_id: { fields: ['project_id'] },
+			job_id: { fields: ['job_title'] }
+		}
 	},
 	create: {
-		columns: { job_assignments: columns },
-		transform: function* (rows, ctx) {
+		columns: { fields: columns },
+		transform: function* (changes, ctx) {
 			yield* certified(
-				rows.map((r) => ({ worker: r.worker_id, site: r.site_location_id })),
+				changes.map(({ after }) => ({ worker: after.worker_id, site: after.site_location_id })),
 				ctx
 			);
-			return rows;
+			return changes.map((c) => c.set);
 		}
 	},
 	update: {
-		columns: { job_assignments: columns },
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			yield* certified(
-				changes.flatMap(({ before, set }) => {
-					const worker = set.worker_id ?? before.worker_id;
-					const site = set.site_location_id ?? before.site_location_id;
-					return worker === before.worker_id && site === before.site_location_id
+				changes.flatMap(({ before, after }) =>
+					after.worker_id === before.worker_id && after.site_location_id === before.site_location_id
 						? []
-						: [{ worker, site }];
-				}),
+						: [{ worker: after.worker_id, site: after.site_location_id }]
+				),
 				ctx
 			);
 			return changes.map((c) => c.set);

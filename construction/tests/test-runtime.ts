@@ -1,5 +1,5 @@
 import type { Id } from '@norbital-ai/bolt';
-import { inputSchema } from '@norbital-ai/std/kind';
+import { input_schema } from '@norbital-ai/std/kind';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { TestWorkspace, type TestOptions } from '@norbital-ai/bolt-cli/test';
 /** Each caller owns this workspace's scope and every engine service it acquired. */
@@ -10,7 +10,7 @@ export const workspace = Effect.fnUntraced(function* (options: TestOptions) {
 export type T = Effect.Success<ReturnType<typeof workspace>>;
 /** A declared fixture ID passes the same UUID boundary as a host record reference. */
 export function fixtureId<const C extends string>(model: C, value: string): Id<C> {
-	const codec = inputSchema({ kind: 'id', of: model });
+	const codec = input_schema({ kind: 'ref', to: model });
 	const decoded = Schema.decodeUnknownSync(codec)(value);
 	const branded = Schema.declare<Id<C>>(
 		(input): input is Id<C> => typeof input === 'string' && Schema.is(Schema.toType(codec))(input)

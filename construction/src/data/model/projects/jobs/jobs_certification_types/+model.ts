@@ -1,4 +1,5 @@
-import { model, type Id, type WriteCtx } from '@norbital-ai/bolt';
+import type { Id, WriteCtx } from '@norbital-ai/bolt';
+import { model } from '../../../../../../.norbital/models/jobs_certification_types.ts';
 import { Effect } from 'effect';
 import { joinName } from '../../../../../lib/join-name.js';
 const columns = ['job_id', 'certification_type_id'] as const;
@@ -7,7 +8,7 @@ const names = Effect.fnUntraced(function* (
 	sides: readonly { readonly a: Id<'jobs'>; readonly b: Id<'certification_types'> }[],
 	ctx: WriteCtx<'jobs_certification_types'>
 ) {
-	const { jobs, certification_types } = yield* ctx.db.query({
+	const { jobs, certification_types } = yield* ctx.query({
 		jobs: {
 			where: { id: { in: sides.map((s) => s.a) } },
 			fields: ['job_title']
@@ -22,9 +23,9 @@ const names = Effect.fnUntraced(function* (
 	return sides.map((s) => joinName(aName.get(s.a), bName.get(s.b)));
 });
 /** A join row: both sides are `ref` fields; its name is theirs, derived on every create and update. */
-export default model('jobs_certification_types', {
+export default model({
 	description: 'Join table linking jobs to required certification types.',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		/** `<job> · <certification>`, derived on every write (and by `seed/+seeder.ts`): a label is never a foreign key. */
 		name: { kind: 'text', optional: true },
@@ -35,25 +36,22 @@ export default model('jobs_certification_types', {
 			inverse: 'jobs_certification_types'
 		}
 	},
-	read: 'all',
+	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: { jobs_certification_types: columns },
-		transform: function* (rows, ctx) {
+		columns: { fields: columns },
+		transform: function* (changes, ctx) {
 			const name = yield* names(
-				rows.map((r) => ({ a: r.job_id, b: r.certification_type_id })),
+				changes.map(({ after }) => ({ a: after.job_id, b: after.certification_type_id })),
 				ctx
 			);
-			return rows.map((r, i) => ({ ...r, name: name[i] ?? null }));
+			return changes.map(({ set }, i) => ({ ...set, name: name[i] ?? null }));
 		}
 	},
 	update: {
-		columns: { jobs_certification_types: columns },
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			const name = yield* names(
-				changes.map(({ before, set }) => ({
-					a: set.job_id ?? before.job_id,
-					b: set.certification_type_id ?? before.certification_type_id
-				})),
+				changes.map(({ after }) => ({ a: after.job_id, b: after.certification_type_id })),
 				ctx
 			);
 			return changes.map(({ set }, i) => ({ ...set, name: name[i] ?? null }));

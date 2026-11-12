@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { run, fork, attach, bolt } from '$bolt';
 	import Icon from '@iconify/svelte';
 	import { Effect, Schema } from 'effect';
 	import { Button, cn } from '@norbital-ai/ui';
+	import { attach, fork, run } from '@norbital-ai/ui/effect';
 	import { Bound, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { watch } from 'runed';
 	import { convertIfcToFragments } from './ifc_viewer.converter.js';
@@ -119,8 +119,7 @@
 		return value || '#f2f1ed';
 	}
 	interface Props extends IFCViewerProps {}
-	let { src, alt, markers = [], markerGroups }: Props = $props();
-	const t = bolt.t;
+	let { t, src, alt, markers = [], markerGroups }: Props = $props();
 	const trimmedSrc = $derived(src?.trim() ?? '');
 	const markerKey = $derived(markers.join(','));
 	const normalizedMarkerGroups = $derived.by(() => {
@@ -600,7 +599,7 @@
 
 <Bound
 	size="fill"
-	minHeight="28rem"
+	min_height="28rem"
 	clip
 	class="relative rounded-lg border border-border/80 bg-muted/20"
 >
@@ -699,7 +698,7 @@
 									name="Selected element properties"
 									class="max-h-80 rounded-md bg-muted/50 p-3 text-micro wrap-break-word text-muted-foreground"
 								>
-									<Grid as="dl" tracks="minmax(6rem, 12rem) 1fr" gap="sm" rowGap="xs">
+									<Grid as="dl" tracks="minmax(6rem, 12rem) 1fr" gap="sm" row_gap="xs">
 										{#each item.properties as property (property.name)}
 											<dt>{property.name}</dt>
 											<dd class="text-foreground">{property.value}</dd>

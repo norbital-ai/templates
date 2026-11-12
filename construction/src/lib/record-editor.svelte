@@ -33,12 +33,12 @@
 		value,
 		parts,
 		disabled,
-		onChange
+		on_change
 	}: {
 		value: Value | null;
 		parts: readonly Part[];
 		disabled: boolean;
-		onChange: (next: Value | null) => void;
+		on_change: (next: Value | null) => void;
 	} = $props();
 	function update(part: Part, raw: string): void {
 		const empty = Object.fromEntries(parts.map((p) => [p.key, p.optional ? null : '']));
@@ -50,7 +50,7 @@
 				: raw || (part.optional ? null : '');
 		if (Predicate.isNumber(parsed) && !Number.isFinite(parsed)) return;
 		const next = { ...empty, ...value, [part.key]: parsed };
-		onChange(Object.values(next).some((entry) => entry != null && entry !== '') ? next : null);
+		on_change(Object.values(next).some((entry) => entry != null && entry !== '') ? next : null);
 	}
 </script>
 

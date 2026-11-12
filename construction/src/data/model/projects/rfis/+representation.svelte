@@ -1,18 +1,13 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../../lib/record-form.svelte';
-	let {
-		view
-	}: {
-		view: RecordView<'rfis'>;
-	} = $props();
-	const t = bolt.t;
+	let { view, ctx }: { view: RecordView<'rfis'>; ctx: PageContext } = $props();
 </script>
 
 <RecordForm {view} subtitle={['rfi_number', 'status']}>
-	<Section icon="lucide:file-question" first name="rfi" title={t('section.rfi')}>
+	<Section icon="lucide:file-question" first name="rfi" title={ctx.t('section.rfi')}>
 		<Grid minimum="compact">
 			<Field name="rfi_number" />
 			<Field name="title" />
@@ -29,7 +24,7 @@
 	<Section
 		icon="lucide:message-circle-question"
 		name="question_and_answer"
-		title={t('section.question_and_answer')}
+		title={ctx.t('section.question_and_answer')}
 	>
 		<Grid minimum="compact">
 			<Column span="all"><Field name="question" /></Column>

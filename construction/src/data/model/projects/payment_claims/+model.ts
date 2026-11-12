@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/payment_claims.ts';
 const columns = [
 	'claim_number',
 	'project_id',
@@ -14,10 +14,10 @@ const columns = [
 	'description',
 	'supporting_documents'
 ] as const;
-export default model('payment_claims', {
+export default model({
 	description: 'Commercial claim records with readiness and submission state.',
 	icon: 'lucide:banknote',
-	label: 'claim_number',
+	record_label: 'record.claim_number',
 	fields: {
 		claim_number: { kind: 'text', unique: true },
 		claim_type: { kind: 'enum', values: ['progress', 'variation', 'final'], optional: true },
@@ -38,7 +38,7 @@ export default model('payment_claims', {
 			kind: 'file',
 			accept: ['*/*'],
 			max: '20MiB',
-			multiple: true,
+			many: true,
 			optional: true
 		},
 		project_id: { kind: 'ref', to: 'projects', inverse: 'payment_claims', optional: true },
@@ -47,11 +47,11 @@ export default model('payment_claims', {
 			to: 'jobs',
 			inverse: 'payment_claims',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		}
 	},
-	search: { text: ['claim_number'] },
-	read: { payment_claims: { fields: 'all' }, 'payment_claims.job_id': { fields: ['job_title'] } },
-	create: { columns: { payment_claims: columns } },
-	update: { columns: { payment_claims: columns } }
+	indexes: { find: { text: ['claim_number'] } },
+	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } }
 });

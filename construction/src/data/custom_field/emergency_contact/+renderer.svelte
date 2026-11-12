@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
 	import type { CustomFieldView } from '@norbital-ai/bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import RecordEditor, { optionalText, text, type Value } from '../../../lib/record-editor.svelte';
-	let { view }: { view: CustomFieldView<'emergency_contact'> } = $props();
+	let { view, ctx }: { view: CustomFieldView<'emergency_contact'>; ctx: PageContext | undefined } =
+		$props();
+	/** Outside a page (no context) a part is named by its message key. */
+	const t = (key: Parameters<PageContext['t']>[0]) => ctx?.t(key) ?? key;
 	function change(next: Value | null): void {
 		if (view.mode === 'edit')
-			view.onChange(
+			view.on_change(
 				next && {
 					name: text(next['name']),
 					phone: text(next['phone']),
@@ -28,11 +31,11 @@
 	<RecordEditor
 		value={view.value}
 		disabled={view.disabled}
-		onChange={change}
+		on_change={change}
 		parts={[
-			{ key: 'name', label: bolt.t('component.name'), autocomplete: 'name' },
-			{ key: 'phone', label: bolt.t('component.phone'), type: 'tel', autocomplete: 'tel' },
-			{ key: 'relationship', label: bolt.t('component.relationship'), optional: true }
+			{ key: 'name', label: t('component.name'), autocomplete: 'name' },
+			{ key: 'phone', label: t('component.phone'), type: 'tel', autocomplete: 'tel' },
+			{ key: 'relationship', label: t('component.relationship'), optional: true }
 		]}
 	/>
 {/if}

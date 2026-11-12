@@ -1,18 +1,13 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../../../lib/record-form.svelte';
-	let {
-		view
-	}: {
-		view: RecordView<'job_assignments'>;
-	} = $props();
-	const t = bolt.t;
+	let { view, ctx }: { view: RecordView<'job_assignments'>; ctx: PageContext } = $props();
 </script>
 
 <RecordForm {view} subtitle={['role', 'status']}>
-	<Section icon="lucide:hard-hat" first name="assignment" title={t('section.assignment')}>
+	<Section icon="lucide:hard-hat" first name="assignment" title={ctx.t('section.assignment')}>
 		<Grid minimum="compact">
 			<Field name="assignment_code" />
 			<Field name="status" />
@@ -28,7 +23,7 @@
 			<Field name="role" />
 		</Grid>
 	</Section>
-	<Section icon="lucide:calendar-days" name="schedule" title={t('section.schedule')}>
+	<Section icon="lucide:calendar-days" name="schedule" title={ctx.t('section.schedule')}>
 		<Grid minimum="compact">
 			<Field name="assignment_range" />
 			<Field name="hours_per_day" />

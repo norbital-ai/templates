@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/site_locations.ts';
 const columns = [
 	'location_name',
 	'location_code',
@@ -10,10 +10,11 @@ const columns = [
 	'coordinates',
 	'bim_model_element_id'
 ] as const;
-export default model('site_locations', {
+export default model({
 	description: 'Work fronts and delivery zones within a project.',
 	icon: 'lucide:map-pin',
-	label: ['location_code', 'location_name'],
+	record_label:
+		"[record.location_code != null ? string(record.location_code) : '', record.location_name != null ? string(record.location_name) : ''].filter(part, part != '').join(' · ')",
 	fields: {
 		location_name: { kind: 'text' },
 		location_code: { kind: 'text', optional: true, unique: true },
@@ -29,11 +30,11 @@ export default model('site_locations', {
 			to: 'site_locations',
 			inverse: 'child_locations',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		}
 	},
-	search: { text: ['location_code', 'location_name'] },
-	read: 'all',
-	create: { columns: { site_locations: columns } },
-	update: { columns: { site_locations: columns } }
+	indexes: { find: { text: ['location_code', 'location_name'] } },
+	outputs: { default: { fields: 'all' } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } }
 });

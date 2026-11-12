@@ -6,7 +6,7 @@ export const digestOutput = <const F extends InputFields>(fields: F) =>
 		fields: {
 			generated_at: { kind: 'instant' },
 			count: { kind: 'int' },
-			rows: { kind: 'list', of: { kind: 'object', fields, rest: { kind: 'json' } } }
+			rows: { kind: 'object', fields, rest: { kind: 'json' }, many: true }
 		}
 	}) as const;
 export const DAILY_0600 = { cron: '0 6 * * *' } as const;

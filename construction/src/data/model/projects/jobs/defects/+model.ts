@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../../.norbital/models/defects.ts';
 const columns = [
 	'title',
 	'defect_number',
@@ -17,10 +17,10 @@ const columns = [
 	'photos',
 	'resolution_notes'
 ] as const;
-export default model('defects', {
+export default model({
 	description: 'Quality issues and closeout items tracked in project context.',
 	icon: 'lucide:triangle-alert',
-	label: 'title',
+	record_label: 'record.title',
 	fields: {
 		title: { kind: 'text' },
 		defect_number: { kind: 'text', optional: true, unique: true },
@@ -41,7 +41,7 @@ export default model('defects', {
 			kind: 'file',
 			accept: ['image/jpeg', 'image/png'],
 			max: '20MiB',
-			multiple: true,
+			many: true,
 			optional: true
 		},
 		resolution_notes: { kind: 'text', optional: true },
@@ -51,12 +51,12 @@ export default model('defects', {
 			to: 'site_locations',
 			inverse: 'defects',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		},
-		job_id: { kind: 'ref', to: 'jobs', inverse: 'defects', optional: true, onDelete: 'setNull' }
+		job_id: { kind: 'ref', to: 'jobs', inverse: 'defects', optional: true, on_delete: 'set_null' }
 	},
-	search: { text: ['title'] },
-	read: { defects: { fields: 'all' }, 'defects.job_id': { fields: ['job_title'] } },
-	create: { columns: { defects: columns } },
-	update: { columns: { defects: columns } }
+	indexes: { find: { text: ['title'] } },
+	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } }
 });

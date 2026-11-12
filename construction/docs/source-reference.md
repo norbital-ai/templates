@@ -17,26 +17,26 @@ This is a local source inventory, not a declaration that a deployed tenant runs 
 
 Outputs fix field visibility. Policies select outputs and scope rows; write columns and checks constrain mutations. Each row links to its owning declaration.
 
-| Model                                                                                                                           | Fields | Read outputs | Writes                 | Post-commit effects | Syncs |
-| ------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------ | ---------------------- | ------------------- | ----- |
-| [asset_documents](../src/data/model/projects/asset_documents/+model.ts)                                                         | 10     | default      | create, update, upsert | none                | none  |
-| [bim_reference_matrix](../src/data/model/projects/bim_reference_matrix/+model.ts)                                               | 12     | default      | create, update, upsert | none                | none  |
-| [certification_types](../src/data/model/certification_types/+model.ts)                                                          | 8      | default      | create, update, upsert | none                | none  |
-| [defects](../src/data/model/projects/jobs/defects/+model.ts)                                                                    | 13     | default      | create, update, upsert | none                | none  |
-| [job_assignments](../src/data/model/projects/jobs/job_assignments/+model.ts)                                                    | 6      | default      | create, update, upsert | none                | none  |
-| [jobs](../src/data/model/projects/jobs/+model.ts)                                                                               | 9      | default      | create, update, upsert | none                | none  |
-| [jobs_certification_types](../src/data/model/projects/jobs/jobs_certification_types/+model.ts)                                  | 1      | default      | create, update, upsert | none                | none  |
-| [jobs_site_locations](../src/data/model/projects/jobs/jobs_site_locations/+model.ts)                                            | 1      | default      | create, update, upsert | none                | none  |
-| [payment_claims](../src/data/model/projects/payment_claims/+model.ts)                                                           | 11     | default      | create, update, upsert | none                | none  |
-| [permits_to_work](../src/data/model/projects/permits_to_work/+model.ts)                                                         | 9      | default      | create, update, upsert | none                | none  |
-| [permits_to_work_certification_types](../src/data/model/projects/permits_to_work/permits_to_work_certification_types/+model.ts) | 1      | default      | create, update, upsert | none                | none  |
-| [permits_to_work_workers](../src/data/model/projects/permits_to_work/permits_to_work_workers/+model.ts)                         | 1      | default      | create, update, upsert | none                | none  |
-| [projects](../src/data/model/projects/+model.ts)                                                                                | 12     | default      | create, update, upsert | none                | none  |
-| [rfis](../src/data/model/projects/rfis/+model.ts)                                                                               | 13     | default      | create, update, upsert | none                | none  |
-| [site_locations](../src/data/model/projects/site_locations/+model.ts)                                                           | 7      | default      | create, update, upsert | none                | none  |
-| [workers](../src/data/model/workers/+model.ts)                                                                                  | 12     | default      | create, update, upsert | none                | none  |
+| Model                                                                                                                           | Fields | Read outputs | Writes         | Post-commit effects | Syncs |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------ | -------------- | ------------------- | ----- |
+| [asset_documents](../src/data/model/projects/asset_documents/+model.ts)                                                         | 10     | default      | create, update | none                | none  |
+| [bim_reference_matrix](../src/data/model/projects/bim_reference_matrix/+model.ts)                                               | 12     | default      | create, update | none                | none  |
+| [certification_types](../src/data/model/certification_types/+model.ts)                                                          | 8      | default      | create, update | none                | none  |
+| [defects](../src/data/model/projects/jobs/defects/+model.ts)                                                                    | 13     | default      | create, update | none                | none  |
+| [job_assignments](../src/data/model/projects/jobs/job_assignments/+model.ts)                                                    | 6      | default      | create, update | none                | none  |
+| [jobs](../src/data/model/projects/jobs/+model.ts)                                                                               | 9      | default      | create, update | none                | none  |
+| [jobs_certification_types](../src/data/model/projects/jobs/jobs_certification_types/+model.ts)                                  | 1      | default      | create, update | none                | none  |
+| [jobs_site_locations](../src/data/model/projects/jobs/jobs_site_locations/+model.ts)                                            | 1      | default      | create, update | none                | none  |
+| [payment_claims](../src/data/model/projects/payment_claims/+model.ts)                                                           | 11     | default      | create, update | none                | none  |
+| [permits_to_work](../src/data/model/projects/permits_to_work/+model.ts)                                                         | 9      | default      | create, update | none                | none  |
+| [permits_to_work_certification_types](../src/data/model/projects/permits_to_work/permits_to_work_certification_types/+model.ts) | 1      | default      | create, update | none                | none  |
+| [permits_to_work_workers](../src/data/model/projects/permits_to_work/permits_to_work_workers/+model.ts)                         | 1      | default      | create, update | none                | none  |
+| [projects](../src/data/model/projects/+model.ts)                                                                                | 12     | default      | create, update | none                | none  |
+| [rfis](../src/data/model/projects/rfis/+model.ts)                                                                               | 13     | default      | create, update | none                | none  |
+| [site_locations](../src/data/model/projects/site_locations/+model.ts)                                                           | 7      | default      | create, update | none                | none  |
+| [workers](../src/data/model/workers/+model.ts)                                                                                  | 12     | default      | create, update | none                | none  |
 
-Upsert is available when both create and update are exposed; it resolves an explicit ID or the model’s natural key and requires an explicit conflict rule.
+Import is available on a model whose unique constraint is marked `import_key: true`; it matches rows on that key and requires an explicit conflict rule. No model here declares one.
 
 ## Automations
 

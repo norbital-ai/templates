@@ -1,14 +1,9 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/record-form.svelte';
-	let {
-		view
-	}: {
-		view: RecordView<'certification_types'>;
-	} = $props();
-	const t = bolt.t;
+	let { view, ctx }: { view: RecordView<'certification_types'>; ctx: PageContext } = $props();
 </script>
 
 <RecordForm {view} subtitle={['certification_code', 'issuing_body']}>

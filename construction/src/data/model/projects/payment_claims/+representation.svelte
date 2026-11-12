@@ -1,19 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../../lib/record-form.svelte';
-	let {
-		view
-	}: {
-		view: RecordView<'payment_claims'>;
-	} = $props();
-	const t = bolt.t;
+	let { view, ctx }: { view: RecordView<'payment_claims'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 </script>
 
 <RecordForm {view} subtitle={['claim_type', 'status']}>
-	<Section icon="lucide:receipt" first name="claim" title={t('section.claim')}>
+	<Section icon="lucide:receipt" first name="claim" title={ctx.t('section.claim')}>
 		<Grid minimum="compact">
 			<Field name="claim_number" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
@@ -27,7 +22,7 @@
 			<Column span="all"><Field name="description" /></Column>
 		</Grid>
 	</Section>
-	<Section icon="lucide:banknote" name="amounts" title={t('section.amounts')}>
+	<Section icon="lucide:banknote" name="amounts" title={ctx.t('section.amounts')}>
 		<Grid minimum="compact">
 			<Field name="currency" />
 			<Field name="claimed_amount" />
@@ -38,9 +33,9 @@
 	<Section
 		icon="lucide:send"
 		name="submission"
-		title={t('section.submission')}
-		defaultOpen={false}
-		summary={record?.['submitted_date'] ?? t('section.not_submitted')}
+		title={ctx.t('section.submission')}
+		default_open={false}
+		summary={record?.['submitted_date'] ?? ctx.t('section.not_submitted')}
 	>
 		<Grid minimum="compact">
 			<Field name="submitted_date" />

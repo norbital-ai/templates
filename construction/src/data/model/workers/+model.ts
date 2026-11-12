@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/workers.ts';
 const columns = [
 	'worker_name',
 	'worker_number',
@@ -13,10 +13,11 @@ const columns = [
 	'medical_check_date',
 	'safety_induction_date'
 ] as const;
-export default model('workers', {
+export default model({
 	description: 'Worker roster used for job assignment and compliance checks.',
 	icon: 'lucide:users',
-	label: ['worker_number', 'worker_name'],
+	record_label:
+		"[record.worker_number != null ? string(record.worker_number) : '', record.worker_name != null ? string(record.worker_name) : ''].filter(part, part != '').join(' · ')",
 	fields: {
 		worker_name: { kind: 'text' },
 		worker_number: { kind: 'text', optional: true, unique: true },
@@ -31,8 +32,8 @@ export default model('workers', {
 		medical_check_date: { kind: 'date', optional: true },
 		safety_induction_date: { kind: 'date', optional: true }
 	},
-	search: { text: ['worker_name', 'worker_number'] },
-	read: 'all',
-	create: { columns: { workers: columns } },
-	update: { columns: { workers: columns } }
+	indexes: { find: { text: ['worker_name', 'worker_number'] } },
+	outputs: { default: { fields: 'all' } },
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } }
 });

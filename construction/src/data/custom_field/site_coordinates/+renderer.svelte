@@ -4,7 +4,7 @@
 	let { view }: { view: CustomFieldView<'site_coordinates'> } = $props();
 	function change(next: Value | null): void {
 		if (view.mode === 'edit')
-			view.onChange(next && { x: number(next['x']), y: number(next['y']), z: number(next['z']) });
+			view.on_change(next && { x: number(next['x']), y: number(next['y']), z: number(next['z']) });
 	}
 	const axes = ['x', 'y', 'z'] as const;
 </script>
@@ -22,7 +22,7 @@
 	<RecordEditor
 		value={view.value}
 		disabled={view.disabled}
-		onChange={change}
+		on_change={change}
 		parts={axes.map((key) => ({
 			key,
 			label: key.toUpperCase(),

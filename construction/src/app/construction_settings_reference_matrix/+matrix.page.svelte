@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
+	let { ctx }: { ctx: PageContext } = $props();
 </script>
 
 <AppShell
 	icon="lucide:table-properties"
-	title={bolt.t('app.construction_settings_reference_matrix.title')}
-	description={bolt.t('app.construction_settings_reference_matrix.description')}
+	title={ctx.t('app.construction_settings_reference_matrix.title')}
+	description={ctx.t('app.construction_settings_reference_matrix.description')}
 	banner="app-media/construction_settings_reference_matrix-banner.webp"
 >
 	<Table

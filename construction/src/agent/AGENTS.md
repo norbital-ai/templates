@@ -30,7 +30,6 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 ## Surfaces
 
 - Apps: `construction_project_workspace`, `construction_settings_reference_matrix`, `construction_settings_workforce`
-- Kiosks: none
 - Automations: `defect_closeout_digest`, `payment_claim_readiness_watch`, `permit_expiry_watch`, `rfi_followup_watch`
 - Policies: `construction_project_workspace`, `construction_read`, `construction_settings_reference_matrix`, `construction_settings_workforce`
 - Custom fields: `emergency_contact`, `permit_signatures`, `project_address`, `site_coordinates`

@@ -1,4 +1,4 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/jobs.ts';
 const columns = [
 	'job_title',
 	'job_number',
@@ -13,10 +13,10 @@ const columns = [
 	'description',
 	'priority'
 ] as const;
-export default model('jobs', {
+export default model({
 	description: 'Project work packages configured by site location and BIM reference context.',
 	icon: 'lucide:briefcase-business',
-	label: 'job_title',
+	record_label: 'record.job_title',
 	fields: {
 		job_title: { kind: 'text' },
 		job_number: { kind: 'text', optional: true, unique: true },
@@ -37,22 +37,24 @@ export default model('jobs', {
 			to: 'site_locations',
 			inverse: 'jobs',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		},
 		bim_reference_id: {
 			kind: 'ref',
 			to: 'bim_reference_matrix',
 			inverse: 'jobs',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		}
 	},
-	search: { text: ['job_title', 'job_number', 'project_id'] },
-	read: {
-		jobs: { fields: 'all' },
-		'jobs.project_id': { fields: ['project_name', 'project_number'] },
-		'jobs.bim_reference_id': { fields: ['reference_name'] }
+	indexes: { find: { text: ['job_title', 'job_number', 'project_id'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			project_id: { fields: ['project_name', 'project_number'] },
+			bim_reference_id: { fields: ['reference_name'] }
+		}
 	},
-	create: { columns: { jobs: columns } },
-	update: { columns: { jobs: columns } }
+	create: { columns: { fields: columns } },
+	update: { columns: { fields: columns } }
 });

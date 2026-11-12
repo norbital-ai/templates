@@ -2,10 +2,10 @@ import { automation } from '@norbital-ai/bolt';
 import defects from '../data/model/projects/jobs/defects/+model.js';
 import { DAILY_0600, digestOutput } from '../lib/digest.js';
 const { project_id, site_location_id, job_id, ...fields } = defects.spec.fields;
-export default automation('defect_closeout_digest', {
+export default automation({
 	description:
 		'Counts the defect register every morning at 6am and publishes the first 25 open defects as a JSON extract for the closeout meeting.',
-	on: DAILY_0600,
+	on: [DAILY_0600],
 	policies: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
@@ -14,7 +14,7 @@ export default automation('defect_closeout_digest', {
 		} = yield* ctx.query({
 			defects: {
 				where: { status: { in: ['open', 'in_review', 'ready_for_closeout'] } },
-				orderBy: { due_date: 'asc' },
+				order_by: { due_date: 'asc' },
 				limit: 25
 			}
 		});

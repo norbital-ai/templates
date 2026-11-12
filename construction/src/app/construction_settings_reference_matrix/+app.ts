@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('construction_settings_reference_matrix', {
+export default app({
 	title: 'app.construction_settings_reference_matrix.title',
 	description: 'app.construction_settings_reference_matrix.description',
 	icon: 'lucide:table-properties',

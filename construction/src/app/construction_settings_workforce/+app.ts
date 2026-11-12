@@ -1,5 +1,5 @@
 import { app } from '@norbital-ai/bolt';
-export default app('construction_settings_workforce', {
+export default app({
 	title: 'app.construction_settings_workforce.title',
 	description: 'app.construction_settings_workforce.description',
 	icon: 'lucide:users',
