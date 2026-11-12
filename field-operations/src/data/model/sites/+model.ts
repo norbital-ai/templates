@@ -70,7 +70,7 @@ const placed = Effect.fnUntraced(function* (
 	const keys = places.map((place) => siteKey(place.name, place.unit_number));
 	if (new Set(keys).size < keys.length) return yield* ctx.refuse('errors.sites_share_address');
 	const { sites: holders } = yield* ctx.query({
-		sites: { where: { site_key: { in: keys } }, fields: ['site_key'] }
+		sites: { where: { site_key: { in: keys } }, fields: ['site_key', 'name'] }
 	});
 	const holderOf = new Map(holders.rows.map((site) => [site.site_key, site]));
 	for (const [row, key] of keys.entries()) {
@@ -79,7 +79,7 @@ const placed = Effect.fnUntraced(function* (
 		if (holder !== undefined && holder.id !== before?.id)
 			return yield* ctx.refuse(
 				before === undefined ? 'errors.site_address_exists' : 'errors.site_address_taken',
-				{ field: 'location', row }
+				{ field: 'location', row, values: { name: holder.name } }
 			);
 	}
 	return places.map((place, i) => ({

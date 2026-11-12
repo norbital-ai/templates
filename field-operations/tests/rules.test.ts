@@ -62,7 +62,8 @@ layer(shared())('field-operations rules', (it) => {
 				)
 			).toMatchObject({
 				_tag: 'ActRefused',
-				message: 'errors.site_address_exists',
+				key: 'errors.site_address_exists',
+				message: expect.stringMatching(/^A site at this address already exists: .+\.$/),
 				field: 'location'
 			});
 		})
@@ -75,7 +76,7 @@ layer(shared())('field-operations rules', (it) => {
 				yield* Effect.flip(as.act({ 'sites.create': [{ address: 'Unresolved address' }] }))
 			).toMatchObject({
 				_tag: 'ActRefused',
-				message: 'errors.site_location_required',
+				key: 'errors.site_location_required',
 				field: 'location'
 			});
 			const [created] = committed(
@@ -219,7 +220,7 @@ layer(shared())('field-operations rules', (it) => {
 				)
 			).toMatchObject({
 				_tag: 'ActRefused',
-				message: 'errors.finding_basis_required'
+				key: 'errors.finding_basis_required'
 			});
 		})
 	);

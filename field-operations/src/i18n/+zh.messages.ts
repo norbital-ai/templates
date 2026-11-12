@@ -154,8 +154,8 @@ export default messages({
 	'errors.assignment_already_reviewed': '只审查未审查的工作。',
 	'errors.site_location_required': '请为工地选择位置。',
 	'errors.sites_share_address': '本批次中有两个工地地址相同。',
-	'errors.site_address_exists': '该地址的工地已存在。',
-	'errors.site_address_taken': '另一个工地已使用该地址。',
+	'errors.site_address_exists': '该地址的工地已存在：{name}。',
+	'errors.site_address_taken': '另一个工地已使用该地址：{name}。',
 	'errors.site_files_jobs_only': '工地只能新建或移入工作；请在工作本身上修改工作。',
 	'errors.assignment_files_only': '工作只能新增照片和消息，不能修改或删除已提交的内容。',
 	'errors.message_field_empty': '消息需要内容、发送人和来源消息。',
@@ -168,8 +168,8 @@ export default messages({
 	'errors.finding_evidence_elsewhere': '该可疑证据属于另一项工作。',
 	'errors.finding_resolved': '已处理的可疑判断不能重新打开或改写。',
 	'errors.finding_resolution_incomplete': '处理结论、处理时间和处理人必须一起填写。',
-	'errors.sheet_title_empty': '无法导入表格：有一行没有标题。',
-	'errors.sheet_site_unaddressed': '无法导入表格：有一行的工地没有地址。',
-	'errors.sheet_ref_repeated': '无法导入表格：外部编号重复。',
-	'errors.sheet_site_unlocated': '无法导入表格：新工地需要纬度（-90 至 90）和经度（-180 至 180）。'
+	'errors.sheet_title_empty': '无法导入表格：第 {row} 行（{title}，{site}，{date}）没有标题。',
+	'errors.sheet_site_unaddressed': '无法导入表格：第 {row} 行（{title}，{site}，{date}）的工地没有地址。',
+	'errors.sheet_ref_repeated': '无法导入表格：第 {row} 行（{title}，{site}，{date}）的外部编号 {ref} 重复。',
+	'errors.sheet_site_unlocated': '无法导入表格：第 {row} 行（{title}，{site}，{date}）：新工地需要纬度（-90 至 90）和经度（-180 至 180）。'
 });

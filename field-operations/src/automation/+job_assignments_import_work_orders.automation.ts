@@ -53,25 +53,42 @@ export default automation({
 	},
 	run: function* ({ rows }, ctx) {
 		// the sheet's first problem refuses the whole import, naming its row and column
-		const problems: {
-			row: number;
-			field: keyof Row;
-			key:
-				| 'errors.sheet_title_empty'
-				| 'errors.sheet_site_unaddressed'
-				| 'errors.sheet_ref_repeated'
-				| 'errors.sheet_site_unlocated';
-		}[] = [];
+		const problems: { row: number; refusal: ReturnType<typeof ctx.refuse> }[] = [];
+		/** The sheet row as a person finds it: its number, title, site and day. */
+		const where = (index: number, row: Row) => ({
+			row: index + 1,
+			title: row.title?.trim() ?? '',
+			site: row.site.trim(),
+			date: String(row.scheduled_for)
+		});
 		const refs = new Set<string>();
 		for (const [index, row] of rows.entries()) {
+			const values = where(index, row);
 			if ((row.title?.trim() ?? '') === '')
-				problems.push({ row: index, field: 'title', key: 'errors.sheet_title_empty' });
+				problems.push({
+					row: index,
+					refusal: ctx.refuse('errors.sheet_title_empty', { row: index, field: 'title', values })
+				});
 			if (addressOf(row) === '' || siteKey(addressOf(row), unitOf(row)) === '')
-				problems.push({ row: index, field: 'site', key: 'errors.sheet_site_unaddressed' });
+				problems.push({
+					row: index,
+					refusal: ctx.refuse('errors.sheet_site_unaddressed', {
+						row: index,
+						field: 'site',
+						values
+					})
+				});
 			const ref = row.external_ref?.trim() ?? '';
 			if (ref !== '') {
 				if (refs.has(ref))
-					problems.push({ row: index, field: 'external_ref', key: 'errors.sheet_ref_repeated' });
+					problems.push({
+						row: index,
+						refusal: ctx.refuse('errors.sheet_ref_repeated', {
+							row: index,
+							field: 'external_ref',
+							values: { ...values, ref }
+						})
+					});
 				refs.add(ref);
 			}
 		}
@@ -146,7 +163,14 @@ export default automation({
 					longitude < -180 ||
 					longitude > 180
 				) {
-					problems.push({ row: index, field: 'latitude', key: 'errors.sheet_site_unlocated' });
+					problems.push({
+						row: index,
+						refusal: ctx.refuse('errors.sheet_site_unlocated', {
+							row: index,
+							field: 'latitude',
+							values: where(index, row)
+						})
+					});
 					continue;
 				}
 				// one new site per location and unit, labelled as the sheet first did
@@ -161,8 +185,7 @@ export default automation({
 			}
 		}
 		const [first] = problems.toSorted((a, b) => a.row - b.row);
-		if (first !== undefined)
-			return yield* ctx.refuse(first.key, { row: first.row, field: first.field });
+		if (first !== undefined) return yield* first.refusal;
 		const newSites = [...fresh.values()].map((site) => ({
 			address: site.address,
 			unit_number: site.unit_number,

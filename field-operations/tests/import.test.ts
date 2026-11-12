@@ -147,7 +147,11 @@ layer(shared())('work-order sheet import', (it) => {
 				const refused = yield* completedRun(t, started.output.id);
 				expect(refused).toMatchObject({
 					state: 'failed',
-					error: { code: 'refused', message: 'errors.sheet_site_unlocated' }
+					error: {
+						code: 'refused',
+						message:
+							'The sheet could not be imported: row 2 (Missing location at 20 Second Road on 2026-10-01): a new site needs latitude (-90 to 90) and longitude (-180 to 180).'
+					}
 				});
 				expect(
 					yield* rows(

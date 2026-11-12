@@ -165,8 +165,8 @@ export default messages({
 	'errors.assignment_already_reviewed': 'Only an unchecked assignment is reviewed.',
 	'errors.site_location_required': 'Choose a location for the site.',
 	'errors.sites_share_address': 'Two sites in this batch have one address.',
-	'errors.site_address_exists': 'A site at this address already exists.',
-	'errors.site_address_taken': 'Another site already has this address.',
+	'errors.site_address_exists': 'A site at this address already exists: {name}.',
+	'errors.site_address_taken': 'Another site already has this address: {name}.',
 	'errors.site_files_jobs_only': 'A site files or moves jobs; change a job on the job itself.',
 	'errors.assignment_files_only':
 		'An assignment files new photos and messages; it never changes or removes filed ones.',
@@ -184,10 +184,9 @@ export default messages({
 	'errors.finding_resolved': 'A resolved suspicion judgement cannot be reopened or rewritten.',
 	'errors.finding_resolution_incomplete':
 		'Resolution, resolved_at, and resolved_by must be written together.',
-	'errors.sheet_title_empty': 'The sheet could not be imported: a row has no title.',
-	'errors.sheet_site_unaddressed': 'The sheet could not be imported: a row’s site has no address.',
-	'errors.sheet_ref_repeated':
-		'The sheet could not be imported: an external reference is repeated.',
+	'errors.sheet_title_empty': 'The sheet could not be imported: row {row} ({title} at {site} on {date}): title is empty.',
+	'errors.sheet_site_unaddressed': 'The sheet could not be imported: row {row} ({title} at {site} on {date}): site has no address.',
+	'errors.sheet_ref_repeated': 'The sheet could not be imported: row {row} ({title} at {site} on {date}): external_ref {ref} is repeated.',
 	'errors.sheet_site_unlocated':
-		'The sheet could not be imported: a new site needs latitude (-90 to 90) and longitude (-180 to 180).'
+		'The sheet could not be imported: row {row} ({title} at {site} on {date}): a new site needs latitude (-90 to 90) and longitude (-180 to 180).'
 });
