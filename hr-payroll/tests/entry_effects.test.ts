@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
+import type { CreateInput } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Option, Schema } from 'effect';
 import { periodKey, windowOf } from '../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, read, uuid, workspace, leaveCreate } from './kit.ts';
+import { ENTITY, pack, read, uuid, workspace, leaveCreate, storedQuery } from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -97,7 +98,7 @@ const failures = (due: unknown) =>
 /** A rule may refuse a bare entry. What must never fail is an effect's own expression. */
 const attempt = (t: Kit, code: unknown, write: Effect.Effect<unknown, unknown>, failed: string[]) =>
 	write.pipe(
-		Effect.andThen(t.runDue()),
+		Effect.andThen(t.run_due()),
 		Effect.map((due) => failed.push(...failures(due).map((run) => `${String(code)}: ${run}`))),
 		Effect.catch((error) =>
 			Effect.sync(() => {
@@ -113,55 +114,61 @@ describe('an entry raises what its effects declare', () => {
 			const seed = seedOf(code, zone);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const admin = t.as(t.admin);
+				const admin = yield* t.as(t.admin);
 				const failed: string[] = [];
 				for (const row of rowsOf(seed, 'workplace_case_catalog'))
 					yield* attempt(
 						t,
 						row.code,
-						admin.act('workplace_case_catalog_entry.create', [
-							{
-								catalog_id: idOf('workplace_case_catalog', String(row.id)),
-								entity_id: ENTITY,
-								employment_id: CONTRACT,
-								kind: String(row.code),
-								opened_on: ON,
-								inputs: {}
-							}
-						]),
+						admin.act({
+							'workplace_case_catalog_entry.create': [
+								{
+									catalog_id: idOf('workplace_case_catalog', String(row.id)),
+									entity_id: ENTITY,
+									employment_id: CONTRACT,
+									kind: String(row.code),
+									opened_on: ON,
+									inputs: {}
+								}
+							]
+						}),
 						failed
 					);
 				for (const row of rowsOf(seed, 'leave_catalog'))
 					yield* attempt(
 						t,
 						row.code,
-						admin.act('leave_catalog_entry.create', [
-							leaveCreate({
-								entity_id: ENTITY,
-								employment_id: CONTRACT,
-								catalog_id: idOf('leave_catalog', String(row.id)),
-								days: [
-									{ date: ON, part: 'AM' },
-									{ date: ON, part: 'PM' }
-								]
-							})
-						]),
+						admin.act({
+							'leave_catalog_entry.create': [
+								leaveCreate({
+									entity_id: ENTITY,
+									employment_id: CONTRACT,
+									catalog_id: idOf('leave_catalog', String(row.id)),
+									days: [
+										{ date: ON, part: 'AM' },
+										{ date: ON, part: 'PM' }
+									]
+								})
+							]
+						}),
 						failed
 					);
 				for (const row of rowsOf(seed, 'adhoc_catalog'))
 					yield* attempt(
 						t,
 						row.code,
-						admin.act('adhoc_catalog_entry.create', [
-							{
-								entity_id: ENTITY,
-								employment_id: CONTRACT,
-								catalog_id: idOf('adhoc_catalog', String(row.id)),
-								description: 'Sweep',
-								quantity: 100,
-								incurred_on: ON
-							}
-						]),
+						admin.act({
+							'adhoc_catalog_entry.create': [
+								{
+									entity_id: ENTITY,
+									employment_id: CONTRACT,
+									catalog_id: idOf('adhoc_catalog', String(row.id)),
+									description: 'Sweep',
+									quantity: 100,
+									incurred_on: ON
+								}
+							]
+						}),
 						failed
 					);
 				assert.deepEqual(failed, []);
@@ -170,7 +177,7 @@ describe('an entry raises what its effects declare', () => {
 						row.settings_id === seed.entity_profile_version?.[0]?.input_schema_version_id &&
 						row.source_collection === 'workplace_case_catalog_entry'
 				);
-				const raised = (yield* t.storedQuery({ obligation: { limit: 1000 } })).obligation.rows;
+				const raised = (yield* storedQuery(t, { obligation: { limit: 1000 } })).obligation.rows;
 				if (declared) assert.ok(raised.length > 0, 'nothing raised');
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 		});
@@ -184,37 +191,42 @@ describe('a month’s runs run every effect they declare', () => {
 			assert.ok(refund !== undefined);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const admin = t.as(t.admin);
+				const admin = yield* t.as(t.admin);
 				const failed: string[] = [];
-				const settle = t.runDue().pipe(Effect.map((due) => failed.push(...failures(due))));
-				const run = (kind: 'ON_CYCLE' | 'OFF_CYCLE', attaches: object) =>
+				const settle = t.run_due().pipe(Effect.map((due) => failed.push(...failures(due))));
+				const run = (
+					kind: 'ON_CYCLE' | 'OFF_CYCLE',
+					links: Pick<CreateInput<'payroll_run'>, 'adhoc'>
+				) =>
 					Effect.gen(function* () {
-						yield* admin.act('payroll_run.create', [
-							{ entity_id: ENTITY, period: '2026-11', kind, ...attaches }
-						]);
+						yield* admin.act({
+							'payroll_run.create': [{ entity_id: ENTITY, period: '2026-11', kind, ...links }]
+						});
 						yield* settle;
-						const rows = (yield* t.storedQuery({ payroll_run: { limit: 10 } })).payroll_run.rows;
+						const rows = (yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows;
 						const open = rows.find((row) => row.kind === kind);
 						assert.ok(open !== undefined);
-						yield* admin.act('payroll_run.update', [{ target: open.id, set: { state: 'PAID' } }]);
+						yield* admin.act({ 'payroll_run.update': [{ target: open, set: { state: 'PAID' } }] });
 						yield* settle;
 					});
 				yield* run('ON_CYCLE', {});
-				yield* admin.act('adhoc_catalog_entry.create', [
-					{
-						entity_id: ENTITY,
-						employment_id: CONTRACT,
-						catalog_id: idOf('adhoc_catalog', String(refund.id)),
-						description: 'Sweep',
-						quantity: 100,
-						incurred_on: ON
-					}
-				]);
+				yield* admin.act({
+					'adhoc_catalog_entry.create': [
+						{
+							entity_id: ENTITY,
+							employment_id: CONTRACT,
+							catalog_id: idOf('adhoc_catalog', String(refund.id)),
+							description: 'Sweep',
+							quantity: 100,
+							incurred_on: ON
+						}
+					]
+				});
 				yield* settle;
-				const entry = (yield* t.storedQuery({ adhoc_catalog_entry: { limit: 1 } }))
+				const entry = (yield* storedQuery(t, { adhoc_catalog_entry: { limit: 1 } }))
 					.adhoc_catalog_entry.rows[0];
 				assert.ok(entry !== undefined);
-				yield* run('OFF_CYCLE', { attaches: { adhoc: [idOf('adhoc_catalog_entry', entry.id)] } });
+				yield* run('OFF_CYCLE', { adhoc: [{ id: entry.id, revision: entry.revision }] });
 				assert.deepEqual(failed, []);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 		});
@@ -225,11 +237,11 @@ describe('a run effect', () => {
 		const seed = seedOf('ID', 'Asia/Jakarta');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]);
-			yield* t.runDue();
-			const raised = (yield* t.storedQuery({ obligation: { limit: 1000 } })).obligation.rows;
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]
+			});
+			yield* t.run_due();
+			const raised = (yield* storedQuery(t, { obligation: { limit: 1000 } })).obligation.rows;
 			assert.ok(raised.some((row) => row.title === 'BPJS Kesehatan contribution'));
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});

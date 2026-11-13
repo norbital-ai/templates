@@ -1,31 +1,5 @@
 [
 	{
-		"code": "encash-leave-on-exit",
-		"description": "Raise the untaken annual leave encashment task on exit, except for a misconduct dismissal.",
-		"name": "Encash Leave On Exit",
-		"lookup": {
-			"title": "Encash Leave On Exit"
-		},
-		"references": [],
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"employee_id": {
-						"isNull": false
-					}
-				}
-			}
-		},
-		"condition": "const row = ctx.entry;\nif (ctx.after == null) return false;\nif (get(row, 'employee_extension_data.dismissed_for_misconduct', false) === true) return false;\nconst key = 'SG:encash-leave-on-exit:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: get(row, 'final_pay_due_on', null) ?? row.effective_range.to,\n\toccurrence_key: 'SG:encash-leave-on-exit:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "a2a0c60b-e5ff-5228-be9a-4fa079df9219",
-		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
-	},
-	{
 		"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
 		"description": "Raise the CPF monthly submission and payment task, due on the 14th of the following month.",
 		"name": "CPF monthly submission and payment",
@@ -44,7 +18,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -86,7 +60,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -129,7 +103,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -166,7 +140,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -208,7 +182,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -226,33 +200,6 @@
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst withheld = sum(\n\tget(ctx, 'reads.payslip', [])\n\t\t.flatMap((slip) => get(slip, 'breakdown.statutory', []))\n\t\t.filter((scheme) => scheme.code === ctx.lookup.scheme)\n\t\t.map((scheme) => scheme.employee)\n);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title + ': $' + withheld.toFixed(2),\n\tdue_on: add_days(month_end(add_months(get(run, 'pay_date', null) ?? run.salary_coverage.to, ctx.lookup.month_offset)), ctx.lookup.offset_days),\n\toccurrence_key: 'SG:NR_ENTERTAINER_WITHHOLDING:' + run.id\n}];",
 		"id": "a6b37b54-6a76-512d-bb8b-04d9299b803c",
-		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
-	},
-	{
-		"code": "encash-leave-at-window-end",
-		"description": "Raise the task to encash annual leave at the end of its one-year carry window.",
-		"name": "Encash Leave At Window End",
-		"lookup": {
-			"title": "Encash Leave At Window End",
-			"years": 1
-		},
-		"references": [],
-		"source_collection": "employee_contract",
-		"events": ["create"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"employee_id": {
-						"isNull": false
-					}
-				}
-			}
-		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'SG:encash-leave-at-window-end:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_years(row.effective_range.from, ctx.lookup.years),\n\toccurrence_key: 'SG:encash-leave-at-window-end:' + row.id\n}];",
-		"id": "c73786ca-f9f4-5431-8db2-3c7107a402e6",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	},
 	{
@@ -275,7 +222,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -314,7 +261,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -347,7 +294,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -378,7 +325,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			},
@@ -428,7 +375,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -461,7 +408,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -496,7 +443,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -528,7 +475,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -558,7 +505,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -591,7 +538,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			},
@@ -625,7 +572,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -656,7 +603,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -688,7 +635,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -732,7 +679,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -751,7 +698,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.reverses != null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nconst last = ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted().at(-1);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(last, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id\n}];",
@@ -778,7 +725,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -810,7 +757,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -829,7 +776,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.reverses != null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:WORK_ACCIDENT_REPORT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:WORK_ACCIDENT_REPORT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nconst opening = ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(opening, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:WORK_ACCIDENT_REPORT:' + row.id\n}];",
@@ -856,7 +803,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -906,7 +853,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -950,7 +897,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -981,7 +928,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1012,7 +959,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1046,7 +993,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			},
@@ -1080,7 +1027,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1112,7 +1059,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1145,7 +1092,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1180,7 +1127,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1212,7 +1159,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1243,7 +1190,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1274,7 +1221,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1305,7 +1252,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1337,7 +1284,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1356,7 +1303,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.reverses != null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || catalog.code !== 'NS_LEAVE') return false;\nconst key = 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst days = get(ctx, 'reads.leave_catalog_entry_day', []);\nif (days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || catalog.code !== 'NS_LEAVE') return false;\nconst key = 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nconst opening = ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(opening, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id\n}];",
@@ -1389,7 +1336,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1426,7 +1373,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1457,7 +1404,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1489,7 +1436,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1798,12 +1745,73 @@
 		},
 		"references": [
 			{
-				"title": "Employment of Foreign Manpower Act work-pass conditions (Progressive Wage Mark / PWM); Environmental",
-				"quote": "Employment of Foreign Manpower Act work-pass conditions (Progressive Wage Mark / PWM); Environmental Public Health Act (cleaning), Private Security Industry Act (security); MOM PWM pages. Reads PAYROLL pwm_wages. Customer input: terms.pwm_role. A role’s optional steps ([{ from, monthly_floor }], newest first) replace its floor from each step’s day within the version (the July cleaning and landscape steps, the January security step)."
+				"title": "MOM, Factsheet on lower-wage workers (3 March 2026) para.8 (read 2026-11-13)",
+				"locator": "para.8(a)",
+				"url": "https://www.mom.gov.sg/-/media/mom/documents/press-releases/2026/factsheet-on-lower-wage-workers-03032026.pdf",
+				"quote": "Firms must pay Progressive Wage Model (PWM) wages to local employees covered by the relevant Sectoral or Occupational PWMs",
+				"effective_from": "2025-12-01"
 			},
 			{
-				"title": "MOM Progressive Wage pages: the requirements cover citizens and permanent residents; gross wage is basic wage, allowances and productivity pay, without overtime or bonuses; part-time requirements are pro-rated on a 44-hour basis",
+				"title": "MOM, Progressive Wage Model — administrator opw wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+				"quote": "ADMIN_ASSISTANT $1,980; ADMIN_EXECUTIVE $2,580; ADMIN_SUPERVISOR $3,160",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Progressive Wage Model — cleaning wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector",
+				"quote": "CLEAN_CONSERVANCY_GENERAL $2,325; CLEAN_CONSERVANCY_MULTI_SKILLED $2,530; CLEAN_CONSERVANCY_SUPERVISOR $2,700; CLEAN_CONSERVANCY_TRUCK_DRIVER $2,830; CLEAN_FNB_DISHWASHER $2,325; CLEAN_FNB_GENERAL $1,910; CLEAN_FNB_MULTI_SKILLED $2,530; CLEAN_FNB_SUPERVISOR $2,700; CLEAN_FNB_TABLE_TOP $2,010; CLEAN_OFFICE_GENERAL $1,910; CLEAN_OFFICE_MULTI_SKILLED $2,530; CLEAN_OFFICE_OUTDOOR $2,325; CLEAN_OFFICE_SUPERVISOR $2,700",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Progressive Wage Model — driver opw wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers",
+				"quote": "DRIVER_GENERAL $2,190; DRIVER_SPECIALISED $2,320",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Progressive Wage Model — food services wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector",
+				"quote": "FOOD_FS_COOK $2,380; FOOD_FS_KITCHEN_ASSISTANT $2,180; FOOD_FS_WAITER $2,180; FOOD_FS_WAITER_SUPERVISOR $2,730; FOOD_QS_COOK $2,330; FOOD_QS_KITCHEN_ASSISTANT $2,155; FOOD_QS_STALL_ASSISTANT $2,080",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Progressive Wage Model — landscape wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector",
+				"quote": "LANDSCAPE_ASSISTANT_SUPERVISOR $2,545; LANDSCAPE_SUPERVISOR $2,900; LANDSCAPE_TECHNICIAN $2,330; LANDSCAPE_WORKER $1,950",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Progressive Wage Model — lift escalator wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector",
+				"quote": "LIFT_ASSISTANT_SPECIALIST $2,525; LIFT_PRINCIPAL_SPECIALIST $3,590; LIFT_SENIOR_SPECIALIST $3,215; LIFT_SPECIALIST $2,880; LIFT_SUPERVISOR $3,445",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Progressive Wage Model — retail wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
 				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector",
+				"quote": "RETAIL_ASSISTANT $2,305; RETAIL_ASSISTANT_SUPERVISOR $2,790; RETAIL_SENIOR_ASSISTANT $2,535",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Progressive Wage Model — security wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector",
+				"quote": "SECURITY_INHOUSE_OFFICER $2,315; SECURITY_INHOUSE_SENIOR_OFFICER $2,515; SECURITY_INHOUSE_SUPERVISOR $2,745; SECURITY_OUTSOURCED_OFFICER $2,870; SECURITY_OUTSOURCED_SENIOR_OFFICER $3,170; SECURITY_OUTSOURCED_SENIOR_SUPERVISOR $3,770; SECURITY_OUTSOURCED_SUPERVISOR $3,470",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Progressive Wage Model — waste management wage table in force from 2025-12-01 (read 2026-11-13)",
+				"locator": "full-time monthly wage table",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+				"quote": "WASTE_COLLECTION_CREW $2,630; WASTE_COLLECTION_DRIVER $3,030; WASTE_COLLECTION_HOOKLIFT_DRIVER $3,130; WASTE_COLLECTION_SENIOR_CREW $2,830; WASTE_COLLECTION_SENIOR_DRIVER $3,330; WASTE_COLLECTION_SUPERVISOR $3,280; WASTE_COLLECTION_TEAM_LEAD $3,030; WASTE_MRF_PLANT_SUPERVISOR $3,130; WASTE_MRF_SENIOR_SORTER $2,730; WASTE_MRF_SORTER $2,530; WASTE_MRF_TEAM_LEAD $2,930",
 				"effective_from": "2025-12-01"
 			}
 		],
@@ -2442,9 +2450,11 @@
 		},
 		"references": [
 			{
-				"title": "MOM, Local Qualifying Salary; Factsheet on lower-wage workers, COS 2026 para.10",
-				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary",
-				"quote": "From 1 July 2026 the LQS rises from $1,600 to $1,800 for full-time local workers; part-time locals (under 35 hours a week) at least $10.50 an hour, total monthly gross over total hours worked."
+				"title": "MOM, Factsheet on lower-wage workers (3 March 2026) para.10 (read 2026-11-13)",
+				"locator": "para.10",
+				"url": "https://www.mom.gov.sg/-/media/mom/documents/press-releases/2026/factsheet-on-lower-wage-workers-03032026.pdf",
+				"quote": "From 1 July 2026, the Government will raise the LQS from $1,600 to $1,800 for full-time employed local workers. … Part-time local workers must be paid at least $10.50 per hour.",
+				"effective_from": "2025-12-01"
 			}
 		],
 		"source_collection": "payroll_run",
@@ -2542,49 +2552,6 @@
 		"target_action": "create",
 		"effects": "// CPF Board Step 2: in December or the last month of employment, re-calculate the AW ceiling on the actual OW. The balance holds AW paid, not AW charged, so the difference is raised rather than charged\nconst run = ctx.entry;\nconst to = run.salary_coverage.to;\nconst month = Number(to.slice(5, 7));\nconst contracts = get(ctx, 'reads.employee_contract', []);\nconst balances = get(ctx, 'reads.employee_balance', []);\nreturn get(ctx, 'reads.payslip', []).flatMap((slip) => {\n\tif (!get(slip, 'breakdown.statutory', []).some((scheme) => scheme.code === 'CPF')) return [];\n\tconst contract = contracts.find((row) => row.id === slip.employment_id);\n\tconst leaving = String(get(contract, 'effective_range.to', ''));\n\tif (month !== 12 && (leaving === '' || leaving > month_end(to))) return [];\n\tconst account = get(balances.find((row) => row.employee_id === slip.employee_id), 'account', {});\n\tconst yearly = (code) => {\n\t\tconst periods = get(account, 'pay.' + code, {});\n\t\tconst key = 'SG.Y.' + to.slice(0, 4) + '-01-01';\n\t\treturn Object.hasOwn(periods, key) ? Number(periods[key].total) : 0;\n\t};\n\tconst ordinary = yearly('ORDINARY_WAGES');\n\tconst additional = yearly('ADDITIONAL_WAGES') - ordinary;\n\t// no estimate can fall under the ceiling less twelve capped months: AW within it was charged in full\n\tif (additional <= ctx.lookup.annual_ceiling - 12 * ctx.lookup.ordinary_ceiling) return [];\n\tconst started = String(get(contract, 'effective_range.from', ''));\n\tconst opening = started.slice(0, 4) === to.slice(0, 4) ? Number(started.slice(5, 7)) : 1;\n\tconst months = month - opening + 1;\n\t// a steady year to December: Step 1's estimate was the actual\n\tif (month === 12 && ordinary === Number(slip.ordinary_wages) * months) return [];\n\tconst ceiling = ctx.lookup.annual_ceiling - Math.min(ordinary, ctx.lookup.ordinary_ceiling * months);\n\treturn [{\n\t\tentity_id: run.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title + ': ceiling $' + ceiling.toFixed(2) + ', AW paid $' + additional.toFixed(2),\n\t\tdue_on: add_days(month_end(to), ctx.lookup.offset_days),\n\t\toccurrence_key: 'SG:CPF_AW_YEAR_END_RECALCULATION:' + run.id + ':' + slip.employment_id\n\t}];\n});",
 		"id": "5b75b0e1-bb5d-517e-aba6-3774a762b159",
-		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"description": "Raise the task to settle a CPF or self-help group correction with the fund.",
-		"name": "Follow up a contribution corrected for a closed month",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['SG', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['SG', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "80566671-cb69-5b04-aacf-e52b34d7f434",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	}
 ]

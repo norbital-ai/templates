@@ -130,12 +130,17 @@
 						"reference": {
 							"type": "string",
 							"minLength": 1,
-							"description": "Previous-month contract/allowance evidence; required because earned.previous_month has no historical allowance list."
+							"description": "Previous-month contract/allowance evidence and the six-month contractual wage history; required because earned.previous_month has no historical allowance list."
 						},
 						"daily_wage_vnd": {
 							"type": "number",
 							"minimum": 0,
 							"description": "Contractual daily wage for the month before the exit month (Decree 145/2020 art.67(3)). The exit encashment conversion reads it; zero is refused."
+						},
+						"average_contract_wage_vnd": {
+							"type": "number",
+							"minimum": 0,
+							"description": "Average contractual monthly wage of the six months before the contract ends (Decree 145/2020 art.8(5)); the severance and job-loss allowances read it, and zero is refused."
 						}
 					},
 					"required": ["month", "reference"]
@@ -375,6 +380,12 @@
 					"minimum": 0,
 					"title": "Probation job wage (VND)",
 					"description": "The wage the same job pays at the end of probation, used for the 85% probation floor."
+				},
+				"separate_probation_contract": {
+					"type": "boolean",
+					"default": false,
+					"title": "Probation under a separate probation contract",
+					"description": "Labour Code 45/2019/QH14 art.24(1): probation is agreed in the labour contract or in a separate probation contract. Law 41/2024/QH15 art.2(1)(a) insures a labour contract of one month or more, its probation clause included; only a separate probation contract is outside compulsory SI, HI, UI and the union fee. Unrecorded is a probation clause in the labour contract: insured from the first day."
 				}
 			},
 			"description": "Additional local compliance facts on the sealed contract. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
@@ -450,7 +461,7 @@
 					"type": "string",
 					"enum": ["I", "II", "III", "IV"],
 					"title": "Worksite minimum-wage region",
-					"description": "The regional minimum wage that applies to the worksite (Decree 399/2026/NĐ-CP art.3). Drives the wage floors, the unemployment-insurance cap and the union dues cap."
+					"description": "The regional minimum wage that applies to the worksite (Decree 399/2026/NĐ-CP art.3 and Annex). Drives the wage floors, the unemployment-insurance cap and the union dues cap."
 				},
 				"first_employed_on": {
 					"type": "string",
@@ -468,7 +479,7 @@
 					"type": "boolean",
 					"default": false,
 					"title": "Quarterly PIT filer",
-					"description": "The entity files PIT withholding declarations quarterly instead of monthly."
+					"description": "Before 15 April 2026 only: the entity files PIT withholding declarations quarterly instead of monthly. From then on Resolution 66.16/2026/NQ-CP makes every salary return quarterly and this is not read."
 				}
 			}
 		},
@@ -499,7 +510,10 @@
 				"minimum_contract_months": 1,
 				"half_month_share": 0.5,
 				"half_year_remainder_months": 6,
-				"half_year_share": 0.5
+				"half_year_share": 0.5,
+				"night_from": "22:00",
+				"night_to": "06:00",
+				"rest_day_multiple": 2
 			}
 		},
 		"work_regions": {

@@ -778,6 +778,7 @@
 					"type": "string",
 					"enum": [
 						"MERGER_CONSOLIDATION_SEPARATION",
+						"MERGER_EMPLOYER_UNWILLING",
 						"ACQUISITION",
 						"ACQUISITION_TERMS_CHANGE_REJECTED",
 						"EFFICIENCY_ACTUAL_LOSS",
@@ -801,8 +802,8 @@
 						"RETIREMENT",
 						"DEATH"
 					],
-					"title": "PP 35/2021 termination cause",
-					"description": "The statutory ground (PP 35/2021 arts.41–57); it chooses the pesangon multiplier and whether UPMK or uang pisah is owed. Required for a PKWTT exit."
+					"title": "Statutory termination cause",
+					"description": "The statutory ground (PP 35/2021 arts.41–57; from 28 October 2026 UU 27/2026 arts.236–249); it chooses the pesangon and UPMK multipliers and whether UPMK or uang pisah is owed. MERGER_CONSOLIDATION_SEPARATION: the worker will not continue after a merger, consolidation or separation; MERGER_EMPLOYER_UNWILLING: the employer will not take the worker on. Required for a PKWTT exit."
 				},
 				"micro_small_enterprise": {
 					"type": "boolean",
@@ -1061,6 +1062,19 @@
 					"format": "date",
 					"title": "Date the business first employed a worker",
 					"description": "The actual date the business first employed a worker, including employment before this workspace."
+				},
+				"jkk_labour_intensive_industry": {
+					"type": "string",
+					"enum": [
+						"FOOD_BEVERAGE_TOBACCO",
+						"TEXTILE_GARMENT",
+						"LEATHER_GOODS",
+						"FOOTWEAR",
+						"CHILDREN_TOYS",
+						"FURNITURE"
+					],
+					"title": "Labour-intensive industry under the 2025 JKK relief",
+					"description": "Set only where the company qualifies under PP 7/2025 as extended by PP 36/2025: the JKK rate is halved for the contribution months February 2025 to January 2026."
 				}
 			}
 		}
@@ -2659,7 +2673,7 @@
 					"type": "boolean",
 					"default": false,
 					"title": "Dismissed for misconduct after due inquiry",
-					"description": "Employment Act 1968 s.14(1) (due inquiry) with s.88A: untaken annual leave is paid on every exit except a DISMISSAL for misconduct; the encash-leave-on-exit rule withholds it when this is true on a DISMISSAL."
+					"description": "Employment Act 1968 s.14(1) (due inquiry) with s.88A: untaken annual leave is paid on every exit except a DISMISSAL for misconduct; HR switches the pay-out off on the contract when this is true on a DISMISSAL."
 				},
 				"final_pay_not_possible": {
 					"type": "boolean",
@@ -3372,7 +3386,7 @@
 								"continued_after_65": {
 									"type": "boolean",
 									"default": false,
-									"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged at 12%, the ordinary-risk rate cut by 1% (no employment insurance after 65)."
+									"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged the 12% ordinary-risk premium (13% from 2027 less 1%), with no employment insurance after 65."
 								},
 								"disability_subsidy": {
 									"type": "number",
@@ -3782,12 +3796,17 @@
 						"reference": {
 							"type": "string",
 							"minLength": 1,
-							"description": "Previous-month contract/allowance evidence; required because earned.previous_month has no historical allowance list."
+							"description": "Previous-month contract/allowance evidence and the six-month contractual wage history; required because earned.previous_month has no historical allowance list."
 						},
 						"daily_wage_vnd": {
 							"type": "number",
 							"minimum": 0,
 							"description": "Contractual daily wage for the month before the exit month (Decree 145/2020 art.67(3)). The exit encashment conversion reads it; zero is refused."
+						},
+						"average_contract_wage_vnd": {
+							"type": "number",
+							"minimum": 0,
+							"description": "Average contractual monthly wage of the six months before the contract ends (Decree 145/2020 art.8(5)); the severance and job-loss allowances read it, and zero is refused."
 						}
 					},
 					"required": ["month", "reference"]
@@ -4027,6 +4046,12 @@
 					"minimum": 0,
 					"title": "Probation job wage (VND)",
 					"description": "The wage the same job pays at the end of probation, used for the 85% probation floor."
+				},
+				"separate_probation_contract": {
+					"type": "boolean",
+					"default": false,
+					"title": "Probation under a separate probation contract",
+					"description": "Labour Code 45/2019/QH14 art.24(1): probation is agreed in the labour contract or in a separate probation contract. Law 41/2024/QH15 art.2(1)(a) insures a labour contract of one month or more, its probation clause included; only a separate probation contract is outside compulsory SI, HI, UI and the union fee. Unrecorded is a probation clause in the labour contract: insured from the first day."
 				}
 			},
 			"description": "Additional local compliance facts on the sealed contract. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
@@ -4102,7 +4127,7 @@
 					"type": "string",
 					"enum": ["I", "II", "III", "IV"],
 					"title": "Worksite minimum-wage region",
-					"description": "The regional minimum wage that applies to the worksite (Decree 399/2026/NĐ-CP art.3). Drives the wage floors, the unemployment-insurance cap and the union dues cap."
+					"description": "The regional minimum wage that applies to the worksite (Decree 399/2026/NĐ-CP art.3 and Annex). Drives the wage floors, the unemployment-insurance cap and the union dues cap."
 				},
 				"first_employed_on": {
 					"type": "string",
@@ -4120,7 +4145,7 @@
 					"type": "boolean",
 					"default": false,
 					"title": "Quarterly PIT filer",
-					"description": "The entity files PIT withholding declarations quarterly instead of monthly."
+					"description": "Before 15 April 2026 only: the entity files PIT withholding declarations quarterly instead of monthly. From then on Resolution 66.16/2026/NQ-CP makes every salary return quarterly and this is not read."
 				}
 			}
 		}

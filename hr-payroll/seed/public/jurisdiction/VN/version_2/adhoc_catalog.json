@@ -7,17 +7,23 @@
 		"references": [
 			{
 				"title": "Labour Code 2019 art.46: an employee of twelve months’ regular service whose contract ends other than by dismissal or retirement is paid half a month’s salary for every year of service, the years covered by unemployment insurance excluded (Decree 145/2020 art.8: the average of the last six months’ contractual salary, a fraction of at least six months counting as a year). Labour Code 2019 art.46: half a month’s salary for each year of service to an employee of twelve months’ service whose contract ends under art.34(1)–(4), (6), (7), (9), (10) — expiry, resignation, agreement, death; not a disciplinary dismissal or redundancy — over the service not covered by unemployment insurance, whatever its length; Decree 145/2020 art.8(3): a leftover of up to six months counts a half year, over six a whole year; art.8(5): the salary is the average contractual salary of the last six months (the monthly wage of the contract). Decree 145/2020 art.8(5): the salary the allowance is computed on is the average contractual salary of the six months before the contract ends. art.46(1) excepts an employee who qualifies for a pension under the social insurance law and one dismissed under art.36(1)(e) (five consecutive working days absent without good reason) — the departure facts `pension_eligible` and `absent_five_days`. outside taxable salary income — Decree 253/2026/NĐ-CP art.8(3)(h) (signed text p.6), applied to resident salary from tax period 2026 (art.69(1)(a)), excludes the severance and job-loss allowances paid under the law and any higher amount the employer’s financial or internal regulation, labour contract or collective agreement sets; the class counts toward nothing. Engine (round 7): paid on the art.34(1)–(3), (6), (9)–(10) grounds (END_OF_CONTRACT, MUTUAL, DEATH, RESIGNATION, UNILATERAL), never to one who qualifies for a pension, one dismissed after five days' unexcused absence (art.36(1)(e)) or one who left unlawfully (art.40); a remainder of up to six months counts half a year and more than six a full year (Decree 145/2020/NĐ-CP art.8(3)). HR enters the qualifying months as the entry's quantity (unit COUNT), counted under art.46(2) and Decree 145/2020 art.8(3); the wage is the contract's monthly wage and standing allowances. Where the wage changed in the last six months, HR corrects it to the art.46(3) average by a separate entry. https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf Art.46(1) covers the art.34(1), (2), (3), (4), (6), (7), (9) and (10) endings: imprisonment or a court ban (art.34(4), IMPRISONMENT) and the employer’s closure or the individual employer’s death (art.34(7), EMPLOYER_CLOSURE) qualify as well. https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.8(5)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
+				"quote": "The allowance is computed on the average contractual wage of the six months before the contract ends."
 			}
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "aad0309e-ab46-5104-85f8-47b165db9ede",
 		"eligibility": "const start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nif (get(facts, 'pension_eligible', false) === true) return false;\nif (get(facts, 'absent_five_days', false) === true) return false;\nif (get(facts, 'unlawful_resignation', false) === true) return false;\nreturn true;",
-		"conversion": "// quantity: the months HR counted under art.46(2), service less unemployment-insured time and time already paid.\nconst wage = ctx.month_wage;\nconst full_years = Math.trunc(ctx.entry.quantity / 12);\nconst remainder = ctx.entry.quantity % 12;\nconst half_month = wage * ctx.lookup.half_month_share;\nif (remainder > ctx.lookup.half_year_remainder_months) return half_month * (full_years + 1);\nif (remainder > 0) return half_month * (full_years + ctx.lookup.half_year_share);\nreturn half_month * full_years;",
+		"conversion": "// quantity: the months HR counted under art.46(2), service less unemployment-insured time and time already paid.\n// Decree 145/2020/NĐ-CP art.8(5): the average contractual monthly wage of the six months before the contract ends, recorded on the exit review.\nconst wage = Number(get(ctx.subject.employment, 'employee_extension_data.encashment_review.average_contract_wage_vnd', 0));\nif (!(wage > 0))\n\tthrow 'Record the six-month average contractual wage on the exit review (encashment_review.average_contract_wage_vnd).';\nconst full_years = Math.trunc(ctx.entry.quantity / 12);\nconst remainder = ctx.entry.quantity % 12;\nconst half_month = wage * ctx.lookup.half_month_share;\nif (remainder > ctx.lookup.half_year_remainder_months) return half_month * (full_years + 1);\nif (remainder > 0) return half_month * (full_years + ctx.lookup.half_year_share);\nreturn half_month * full_years;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "b445615f-c8a0-55a3-8af3-d7d09aa762aa",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "Severance allowance."
+		"description": "Severance allowance: half the six-month average contractual wage for each year of service not covered by unemployment insurance; a remainder up to six months counts half a year, over six a full year (Labour Code art.46; Decree 145/2020 art.8). The quantity is the months HR counted."
 	},
 	{
 		"code": "JOB_LOSS_ALLOWANCE",
@@ -33,17 +39,23 @@
 			{
 				"title": "Labour Code 2019 art.47: an employee of twelve months’ regular service who loses the job through restructuring, technological change or an economic reason is paid one month’s salary for every year of service, at least two months, the years covered by unemployment insurance excluded. Labour Code 2019 art.47: one month’s salary per year of uncovered service, at least two months; Decree 145/2020 art.8(3) rounds the leftover as for severance. Decree 145/2020 art.8(5): the salary the allowance is computed on is the average contractual salary of the six months before the contract ends. art.34(11) job loss under art.42 (restructuring, technology, economic reasons) or art.43 (merger, division, sale) is recorded as REDUNDANCY or RETRENCHMENT; both are the art.47 class. outside taxable salary income — Decree 253/2026/NĐ-CP art.8(3)(h) (signed text p.6), applied to resident salary from tax period 2026 (art.69(1)(a)), excludes the severance and job-loss allowances paid under the law and any higher amount the employer’s financial or internal regulation, labour contract or collective agreement sets; the class counts toward nothing. Engine (round 7): paid on the art.42–43 grounds only (REDUNDANCY, RETRENCHMENT), with the Decree 145/2020 art.8(3) half-year rounding. HR enters the qualifying months as the entry's quantity (unit COUNT), counted under art.47(2) and Decree 145/2020 art.8(3); the wage is the contract's monthly wage and standing allowances. Where the wage changed in the last six months, HR corrects it to the art.47(3) average by a separate entry.",
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.8(5)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf",
+				"quote": "The allowance is computed on the average contractual wage of the six months before the contract ends."
 			}
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "aad0309e-ab46-5104-85f8-47b165db9ede",
 		"eligibility": "const start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nreturn get(facts, 'unlawful_resignation', false) !== true;",
-		"conversion": "// quantity: the months HR counted under art.47(2); zero still pays the two-month minimum (Decree 145/2020 art.8(2)).\nconst wage = ctx.month_wage;\nconst full_years = Math.trunc(ctx.entry.quantity / 12);\nconst remainder = ctx.entry.quantity % 12;\nconst pay = (years) => wage * Math.max(years, ctx.lookup.minimum_months);\nif (remainder > ctx.lookup.half_year_remainder_months) return pay(full_years + 1);\nif (remainder > 0) return pay(full_years + ctx.lookup.half_year_share);\nreturn pay(full_years);",
+		"conversion": "// quantity: the months HR counted under art.47(2); zero still pays the two-month minimum (Decree 145/2020 art.8(2)).\n// Decree 145/2020/NĐ-CP art.8(5): the average contractual monthly wage of the six months before the contract ends, recorded on the exit review.\nconst wage = Number(get(ctx.subject.employment, 'employee_extension_data.encashment_review.average_contract_wage_vnd', 0));\nif (!(wage > 0))\n\tthrow 'Record the six-month average contractual wage on the exit review (encashment_review.average_contract_wage_vnd).';\nconst full_years = Math.trunc(ctx.entry.quantity / 12);\nconst remainder = ctx.entry.quantity % 12;\nconst pay = (years) => wage * Math.max(years, ctx.lookup.minimum_months);\nif (remainder > ctx.lookup.half_year_remainder_months) return pay(full_years + 1);\nif (remainder > 0) return pay(full_years + ctx.lookup.half_year_share);\nreturn pay(full_years);",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "ebc92f5f-d68c-5ed2-a06f-51a6c5afaad9",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "Job-loss allowance."
+		"description": "Job-loss allowance: one six-month average contractual wage for each year of service not covered by unemployment insurance, at least two (Labour Code art.47; Decree 145/2020 art.8). The quantity is the months HR counted."
 	},
 	{
 		"code": "LATE_WAGE_COMPENSATION",
@@ -100,7 +112,7 @@
 		"party": "EMPLOYEE",
 		"id": "7ff34066-ca32-5d67-a379-5411ee6bff76",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "Property-damage compensation."
+		"description": "Property-damage compensation deducted from pay: the amount entered, at most 30% of the monthly contract wage. Labour Code art.102(2) caps the month’s deduction at 30% of the wage actually paid after insurance and PIT; HR keys at most that."
 	},
 	{
 		"code": "UNLAWFUL_TERMINATION_COMPENSATION",
@@ -121,7 +133,7 @@
 		"party": "EMPLOYEE",
 		"id": "3de45f63-4ae4-5cab-bead-f11a55d65367",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "UNLAWFUL_TERMINATION_COMPENSATION: Paid or deducted as an ad-hoc line."
+		"description": "Employer’s unlawful termination: the quantity is the monthly contract wage; pays two months of it (Labour Code art.41(1)). The wage for the days not worked and the unserved notice are separate entries."
 	},
 	{
 		"code": "EMPLOYEE_UNLAWFUL_TERMINATION",
@@ -140,7 +152,7 @@
 		"party": "EMPLOYEE",
 		"id": "cfe44dde-92f0-55b4-b256-67498b2eddfe",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "EMPLOYEE_UNLAWFUL_TERMINATION: Paid or deducted as an ad-hoc line."
+		"description": "Employee’s unlawful termination: the quantity is the monthly contract wage; deducts half of it (Labour Code art.40(2)). The unserved notice is a separate entry."
 	},
 	{
 		"code": "TRAINING_COST_REFUND",
@@ -159,7 +171,7 @@
 		"party": "EMPLOYEE",
 		"id": "445fb695-559c-571d-8ed1-4dff7975d1fb",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "TRAINING_COST_REFUND: Paid or deducted as an ad-hoc line."
+		"description": "Training cost the employee repays under the training agreement (Labour Code art.40(3)); deducted as entered."
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT_COMPENSATION",
@@ -177,7 +189,7 @@
 		"party": "EMPLOYEE",
 		"id": "b8584323-99f4-5cbf-b595-366fb2b2255e",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "OCCUPATIONAL_ACCIDENT_COMPENSATION: Paid or deducted as an ad-hoc line."
+		"description": "Employer compensation or allowance for an occupational accident or disease (OSH Law 84/2015/QH13 art.38); paid as entered."
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT_MEDICAL",
@@ -195,7 +207,7 @@
 		"party": "EMPLOYEE",
 		"id": "929c145f-96d5-5afe-ad6a-a78bca348290",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "OCCUPATIONAL_ACCIDENT_MEDICAL: Paid or deducted as an ad-hoc line."
+		"description": "Medical costs of an occupational accident or disease the employer pays (OSH Law 84/2015/QH13 art.38(1)); paid as entered."
 	},
 	{
 		"code": "SUSPENSION_SETTLEMENT",
@@ -214,7 +226,7 @@
 		"party": "EMPLOYEE",
 		"id": "3bddc232-b92d-5376-83bf-7ac29a5ec887",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "SUSPENSION_SETTLEMENT: Paid or deducted as an ad-hoc line."
+		"description": "Wages withheld during a suspension, paid back when no discipline follows (Labour Code art.128(3)); paid as entered."
 	},
 	{
 		"code": "EMPLOYER_PENSION_CONTRIBUTION",
@@ -232,7 +244,7 @@
 		"party": "EMPLOYER",
 		"id": "5e54fb6c-9dbe-51bb-a13b-2bd7e47d12a5",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "EMPLOYER_PENSION_CONTRIBUTION: Paid or deducted as an ad-hoc line."
+		"description": "Employer contribution to a voluntary pension or life insurance for the employee; an employer cost counted toward the PIT pension deduction."
 	},
 	{
 		"code": "NON_ACCUMULATING_INSURANCE",
@@ -250,7 +262,7 @@
 		"party": "EMPLOYER",
 		"id": "0d2b838e-8cdd-5950-a581-142538f83498",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "NON_ACCUMULATING_INSURANCE: Paid or deducted as an ad-hoc line."
+		"description": "Employer premium for health or term insurance without accumulation; an employer cost outside taxable income."
 	},
 	{
 		"code": "TRAINING_SUPPORT",
@@ -268,7 +280,7 @@
 		"party": "EMPLOYER",
 		"id": "f3de65a1-029b-5e44-b292-fb5654cda687",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"description": "TRAINING_SUPPORT: Paid or deducted as an ad-hoc line."
+		"description": "Training the employer pays for the employee’s work; an employer cost outside taxable income."
 	},
 	{
 		"code": "STATUTORY_ADJUSTMENT",
@@ -292,7 +304,7 @@
 		"code": "STATUTORY_REFUND",
 		"references": [
 			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
 			}
 		],
 		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
@@ -304,278 +316,6 @@
 		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "eff6d689-bf27-56be-bad1-2247aab151c6",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "SI_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SI.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "SI.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "8bd9a8e2-09bd-5e81-8adf-bb658d4a14a2",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "SI_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SI.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "SI.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "035df28a-ba08-5357-a6bf-ddd55d6ac753",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "HI_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects HI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "HI.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "HI.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "2ec28831-9617-5985-b154-098b6d27b79b",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "HI_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects HI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "HI.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "HI.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "aa87caca-1f55-5395-9811-6f51ecc3e80e",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "UI_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects UI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "UI.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "UI.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "6bd8cec2-6e58-5fc0-8469-1348fc3a9c78",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "UI_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects UI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "UI.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "UI.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "5c138af0-f451-517a-8d5b-e3e82bb682d1",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "UNION_DUES_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects UNION_DUES for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "UNION_DUES.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "UNION_DUES.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "d3ba2f52-dd56-5d71-940f-4f743b877b58",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "UNION_DUES_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects UNION_DUES for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "UNION_DUES.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "UNION_DUES.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "433b65c5-1975-50df-a58c-72ade0a0e242",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	}
 ]

@@ -57,7 +57,7 @@ describe('diff', () => {
 		);
 		assert.deepEqual(diff('s', [], [...first, ...edited, ...gone]), []);
 	});
-	it('takes a reversal below zero as a DEDUCT, never a negative amount', () => {
+	it('takes a wanted amount below zero as a DEDUCT, never a negative amount', () => {
 		const rows = diff('s', [want(-2)], []);
 		assert.deepEqual(
 			rows.map((row) => [row.operation, row.amount]),

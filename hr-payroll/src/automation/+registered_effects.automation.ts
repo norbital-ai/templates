@@ -8,13 +8,13 @@ import { applyRegisteredEffects } from '../lib/payroll_engine/registrations.js';
  * writer cannot read the law. An entry still waiting for approval raises nothing; its posting on
  * approval starts this again. The effects find what they already raised, so running it again changes nothing.
  */
-export default automation('registered_effects', {
+export default automation({
 	description:
 		'Apply the law’s registered effects of leave entries, claim entries and new profiles; safe to run again.',
 	input: {
 		collection: { kind: 'text' },
 		operation: { kind: 'text' },
-		ids: { kind: 'list', of: { kind: 'text' } }
+		ids: { kind: 'text', many: true }
 	},
 	policies: ['payroll_execution'],
 	run: function* ({ collection, operation, ids }, ctx) {

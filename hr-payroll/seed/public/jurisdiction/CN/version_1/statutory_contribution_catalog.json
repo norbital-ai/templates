@@ -8,18 +8,23 @@
 		"references": [
 			{
 				"title": "社会保险法 第十二条、第六十条; 国办发〔2019〕13号 (单位16%, 个人8%); 上海2025年度基数7460–37302 (2025-07-01起); 云南2025年度基数4357–21789 (社平7263). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+			},
+			{
+				"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
+				"locator": "实施条例 第二十一条; 办法 第二条",
+				"url": "https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm"
 			}
 		],
 		"kind": "CONTRIBUTION",
 		"subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
 		"employer_cost_subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
-		"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\n\tconst exempt = get(ctx.subject.employment, 'employee_extension_data.si_exempt_schemes', []);\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (!Array.isArray(exempt)) return true;\n\treturn !exempt.includes('PENSION');",
+		"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\n\tconst exempt = get(ctx.subject.employment, 'employee_extension_data.si_exempt_schemes', []);\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (Array.isArray(exempt) && exempt.includes('PENSION')) return false;\n\tconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\n\tif (born == null || born === '') return true;\n\t// 劳动合同法 第四十四条第二项; 劳动合同法实施条例 第二十一条: the labour contract ends at the statutory retirement age, and the scheme stops\n\tconst category =\n\t\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE'\n\t\t\t? get(ctx.subject.employment, 'employee_extension_data.retirement_category', 'FEMALE_50')\n\t\t\t: 'MALE';\n\tconst retirement = ctx.lookup.retirement.find((row) => row.category === category);\n\tconst deferred =\n\t\tborn < retirement.cutoff\n\t\t\t? 0\n\t\t\t: Math.min(\n\t\t\t\t\tretirement.max_deferral_months,\n\t\t\t\t\tMath.trunc(calendar_completed_months(retirement.cutoff, month_start(born)) / retirement.birth_months_per_step) + 1\n\t\t\t\t);\n\tconst retires = add_months(born, retirement.base_years * 12 + deferred);\n\treturn ctx.run.salary_coverage.from < retires;",
 		"employee_amount": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst limit = first(ctx.lookup.si_base.filter((row) => row.code === code));\nconst term = get(ctx.subject.employment, 'employee_extension_data', {});\n\tconst declared = get(term, 'si_contribution_base', null);\n\tconst basic = Number(get(ctx.subtotals, 'BASIC', 0));\n\tconst fixed = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\n\tif (declared == null && basic <= 0 && fixed <= 0) return 0;\n\tconst wage = declared != null ? Number(declared) : basic;\n\tconst base = clamp(Math.max(0, wage), limit.floor, limit.ceiling);\n\treturn base * ctx.lookup.employee_rate;",
 		"employer_amount": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst limit = first(ctx.lookup.si_base.filter((row) => row.code === code));\nconst term = get(ctx.subject.employment, 'employee_extension_data', {});\n\tconst declared = get(term, 'si_contribution_base', null);\n\tconst basic = Number(get(ctx.subtotals, 'BASIC', 0));\n\tconst fixed = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\n\tif (declared == null && basic <= 0 && fixed <= 0) return 0;\n\tconst wage = declared != null ? Number(declared) : basic;\n\tconst base = clamp(Math.max(0, wage), limit.floor, limit.ceiling);\n\treturn base * ctx.lookup.employer_rate;",
 		"id": "5f8dbfba-791f-5732-bdbe-c40ac6edd6eb",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c",
 		"balance_window": "YEAR",
-		"description": "Pension contribution shared by employee and employer."
+		"description": "Pension: employee 8%, employer 16% of the declared base (si_contribution_base), or of this month's basic salary when none is declared, held within the region's floor and ceiling."
 	},
 	{
 		"code": "MEDICAL",
@@ -44,18 +49,23 @@
 		"references": [
 			{
 				"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (2025-03-01起, 单位9%含生育, 个人2%); 上海2025年度基数7460–37302; 昆明市医保局 2023-02-08 通知 https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml 与 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml (单位7%+生育0.9%=7.9%, 个人2%); 2025-10起医疗基数4357–21789. 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+			},
+			{
+				"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
+				"locator": "实施条例 第二十一条; 办法 第二条",
+				"url": "https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm"
 			}
 		],
 		"kind": "CONTRIBUTION",
 		"subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
 		"employer_cost_subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
-		"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\n\tconst exempt = get(ctx.subject.employment, 'employee_extension_data.si_exempt_schemes', []);\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (!Array.isArray(exempt)) return true;\n\treturn !exempt.includes('MEDICAL');",
+		"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\n\tconst exempt = get(ctx.subject.employment, 'employee_extension_data.si_exempt_schemes', []);\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (Array.isArray(exempt) && exempt.includes('MEDICAL')) return false;\n\tconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\n\tif (born == null || born === '') return true;\n\t// 劳动合同法 第四十四条第二项; 劳动合同法实施条例 第二十一条: the labour contract ends at the statutory retirement age, and the scheme stops\n\tconst category =\n\t\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE'\n\t\t\t? get(ctx.subject.employment, 'employee_extension_data.retirement_category', 'FEMALE_50')\n\t\t\t: 'MALE';\n\tconst retirement = ctx.lookup.retirement.find((row) => row.category === category);\n\tconst deferred =\n\t\tborn < retirement.cutoff\n\t\t\t? 0\n\t\t\t: Math.min(\n\t\t\t\t\tretirement.max_deferral_months,\n\t\t\t\t\tMath.trunc(calendar_completed_months(retirement.cutoff, month_start(born)) / retirement.birth_months_per_step) + 1\n\t\t\t\t);\n\tconst retires = add_months(born, retirement.base_years * 12 + deferred);\n\treturn ctx.run.salary_coverage.from < retires;",
 		"employee_amount": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\nconst term = get(ctx.subject.employment, 'employee_extension_data', {});\n\tconst declared = get(term, 'si_contribution_base', null);\n\tconst basic = Number(get(ctx.subtotals, 'BASIC', 0));\n\tconst fixed = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\n\tif (declared == null && basic <= 0 && fixed <= 0) return 0;\n\tconst wage = declared != null ? Number(declared) : basic;\n\tconst base = clamp(Math.max(0, wage), region.floor, region.ceiling);\n\treturn base * region.employee_rate;",
 		"employer_amount": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\nconst term = get(ctx.subject.employment, 'employee_extension_data', {});\n\tconst declared = get(term, 'si_contribution_base', null);\n\tconst basic = Number(get(ctx.subtotals, 'BASIC', 0));\n\tconst fixed = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\n\tif (declared == null && basic <= 0 && fixed <= 0) return 0;\n\tconst wage = declared != null ? Number(declared) : basic;\n\tconst base = clamp(Math.max(0, wage), region.floor, region.ceiling);\n\treturn base * region.employer_rate;",
 		"id": "57a251bd-d288-5c33-adf5-7c4b6121b0d0",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c",
 		"balance_window": "YEAR",
-		"description": "Medical insurance contribution shared by employee and employer."
+		"description": "Medical insurance, maternity included: Shanghai employer 9%, Kunming employer 7.9%, employee 2%, on the same base held within the region's floor and ceiling."
 	},
 	{
 		"code": "MAJOR_MEDICAL",
@@ -71,12 +81,17 @@
 		"references": [
 			{
 				"title": "昆明市医疗保障局2025-09-29通知: 2025-10起大额医疗费用补助单位43.57元/人/月, 个人1元/人/月 (基数4357–21789). 公式: 上年度全省全口径城镇单位就业人员月平均工资×0.6% (2024年官方通知: 43.06) https://jkq.km.gov.cn/c/2024-08-16/6890397.shtml."
+			},
+			{
+				"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
+				"locator": "实施条例 第二十一条; 办法 第二条",
+				"url": "https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm"
 			}
 		],
 		"kind": "CONTRIBUTION",
 		"subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
 		"employer_cost_subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
-		"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\nconst code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\n\tconst exempt = get(ctx.subject.employment, 'employee_extension_data.si_exempt_schemes', []);\n\tif (region == null) return false;\n\tif (region.employee == null) return false;\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (!Array.isArray(exempt)) return true;\n\treturn !exempt.includes('MEDICAL');",
+		"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\nconst code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\n\tconst exempt = get(ctx.subject.employment, 'employee_extension_data.si_exempt_schemes', []);\n\tif (region == null) return false;\n\tif (region.employee == null) return false;\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (Array.isArray(exempt) && exempt.includes('MEDICAL')) return false;\n\tconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\n\tif (born == null || born === '') return true;\n\t// 劳动合同法 第四十四条第二项; 劳动合同法实施条例 第二十一条: the labour contract ends at the statutory retirement age, and the scheme stops\n\tconst category =\n\t\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE'\n\t\t\t? get(ctx.subject.employment, 'employee_extension_data.retirement_category', 'FEMALE_50')\n\t\t\t: 'MALE';\n\tconst retirement = ctx.lookup.retirement.find((row) => row.category === category);\n\tconst deferred =\n\t\tborn < retirement.cutoff\n\t\t\t? 0\n\t\t\t: Math.min(\n\t\t\t\t\tretirement.max_deferral_months,\n\t\t\t\t\tMath.trunc(calendar_completed_months(retirement.cutoff, month_start(born)) / retirement.birth_months_per_step) + 1\n\t\t\t\t);\n\tconst retires = add_months(born, retirement.base_years * 12 + deferred);\n\treturn ctx.run.salary_coverage.from < retires;",
 		"employee_amount": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\n\treturn region == null || region.employee == null ? 0 : Number(region.employee);",
 		"employer_amount": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\n\treturn region == null || region.employer == null ? 0 : Number(region.employer);",
 		"id": "dace5543-705d-502f-8aa5-9a8680ff8836",
@@ -103,18 +118,28 @@
 		"references": [
 			{
 				"title": "社会保险法 第四十四条; 失业保险条例; 沪人社规〔2024〕25号 (至2025-12-31: 0.5%/0.5%); 云人社规〔2022〕1号 (昆明单位0.7%, 个人0.3%); 人社部发〔2025〕18号 (1%费率至2025-12-31). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 人社部发〔2026〕39号 (2026-06-18, 2026-01-01至12-31) 不涉及费率 https://fgk.chinatax.gov.cn/zcfgk/c100013/c5250797/content.html; 上海2026年7月后的第三方表仍列0.5%/0.5%."
+			},
+			{
+				"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
+				"locator": "实施条例 第二十一条; 办法 第二条",
+				"url": "https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm"
+			},
+			{
+				"title": "人社部发〔2024〕40号: 阶段性降低失业保险费率至1%执行至2025-12-31; 人社部发〔2026〕39号 (2026-06-18) 未涉及费率. 2026年费率续延未见官方原文; 二手来源称上海等多数省份延续1%至2026年底, 本包沿用.",
+				"locator": "人社部发〔2026〕39号",
+				"url": "https://fgk.chinatax.gov.cn/zcfgk/c100013/c5250797/content.html"
 			}
 		],
 		"kind": "CONTRIBUTION",
 		"subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
 		"employer_cost_subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
-		"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\n\tconst exempt = get(ctx.subject.employment, 'employee_extension_data.si_exempt_schemes', []);\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (!Array.isArray(exempt)) return true;\n\treturn !exempt.includes('UNEMPLOYMENT');",
+		"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\n\tconst exempt = get(ctx.subject.employment, 'employee_extension_data.si_exempt_schemes', []);\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (Array.isArray(exempt) && exempt.includes('UNEMPLOYMENT')) return false;\n\tconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\n\tif (born == null || born === '') return true;\n\t// 劳动合同法 第四十四条第二项; 劳动合同法实施条例 第二十一条: the labour contract ends at the statutory retirement age, and the scheme stops\n\tconst category =\n\t\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE'\n\t\t\t? get(ctx.subject.employment, 'employee_extension_data.retirement_category', 'FEMALE_50')\n\t\t\t: 'MALE';\n\tconst retirement = ctx.lookup.retirement.find((row) => row.category === category);\n\tconst deferred =\n\t\tborn < retirement.cutoff\n\t\t\t? 0\n\t\t\t: Math.min(\n\t\t\t\t\tretirement.max_deferral_months,\n\t\t\t\t\tMath.trunc(calendar_completed_months(retirement.cutoff, month_start(born)) / retirement.birth_months_per_step) + 1\n\t\t\t\t);\n\tconst retires = add_months(born, retirement.base_years * 12 + deferred);\n\treturn ctx.run.salary_coverage.from < retires;",
 		"employee_amount": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\n\tconst limit = first(ctx.lookup.si_base.filter((row) => row.code === code));\nconst term = get(ctx.subject.employment, 'employee_extension_data', {});\n\tconst declared = get(term, 'si_contribution_base', null);\n\tconst basic = Number(get(ctx.subtotals, 'BASIC', 0));\n\tconst fixed = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\n\tif (declared == null && basic <= 0 && fixed <= 0) return 0;\n\tconst wage = declared != null ? Number(declared) : basic;\n\tconst base = clamp(Math.max(0, wage), limit.floor, limit.ceiling);\n\treturn base * region.employee_rate;",
 		"employer_amount": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\n\tconst limit = first(ctx.lookup.si_base.filter((row) => row.code === code));\nconst term = get(ctx.subject.employment, 'employee_extension_data', {});\n\tconst declared = get(term, 'si_contribution_base', null);\n\tconst basic = Number(get(ctx.subtotals, 'BASIC', 0));\n\tconst fixed = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\n\tif (declared == null && basic <= 0 && fixed <= 0) return 0;\n\tconst wage = declared != null ? Number(declared) : basic;\n\tconst base = clamp(Math.max(0, wage), limit.floor, limit.ceiling);\n\treturn base * region.employer_rate;",
 		"id": "7e961a9b-da11-5d92-8068-88efc2246d31",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c",
 		"balance_window": "YEAR",
-		"description": "Unemployment insurance contribution shared by employee and employer."
+		"description": "Unemployment insurance: Shanghai 0.5% employer and 0.5% employee, Kunming 0.7% employer and 0.3% employee, on the same base held within the floor and ceiling."
 	},
 	{
 		"code": "WORK_INJURY",
@@ -167,6 +192,11 @@
 		"references": [
 			{
 				"title": "社会保险法 第三十三条; 工伤保险条例 第八条; 人社部发〔2015〕71号 行业基准费率0.2%–1.9%; 上海实习生及超龄人员单险种参保见沪人社规〔2025〕22号 (2025-12-01起). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+			},
+			{
+				"title": "沪人社规〔2024〕25号 (2025-01-01起): 工伤保险一至八类基准费率按全国规定 0.2%、0.4%、0.7%、0.9%、1.1%、1.3%、1.6%、1.9%; 沪人社规〔2026〕2号 (2026-01-01至2030-12-31) 行业基准费率表 一类0.2%",
+				"locator": "沪人社规〔2026〕2号 附件",
+				"url": "https://rsj.sh.gov.cn/cmsres/7d/7da0dbfc4dcc46f5b54fe55e16284d4a/79267e08630e9eefa589bcfb67de68de.pdf"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -186,6 +216,12 @@
 		"references": [
 			{
 				"title": "住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2025〕8号 (2025-07-01起 2690–37302, 5%–7%); 昆明2025年度上限32470, 下限为当地最低工资2170/2020/1870, 5%–12%. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+			},
+			{
+				"title": "沪公积金管委会〔2025〕8号 (2025-09-18): 2025年度住房公积金缴存基数 (2025-07-01至2026-06-30)",
+				"url": "https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
+				"quote": "最高不超过37302元，最低不低于2690元",
+				"effective_from": "2025-07-01"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -205,6 +241,12 @@
 		"references": [
 			{
 				"title": "沪公积金管委会〔2025〕8号: 补充住房公积金比例1%–5%, 基数2690–37302. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+			},
+			{
+				"title": "沪公积金管委会〔2025〕8号 (2025-09-18): 2025年度住房公积金缴存基数 (2025-07-01至2026-06-30)",
+				"url": "https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
+				"quote": "最高不超过37302元，最低不低于2690元",
+				"effective_from": "2025-07-01"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -237,7 +279,7 @@
 		"employer_cost_subtotal_id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
 		"eligibility": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst rule = get(ctx.lookup.preparatory, code, null);\n\tif (rule == null) return false;\n\tif (!(Number(get(ctx.subtotals, 'FOREIGN_ALLOWANCES', 0)) > 0)) return false;\n\tif (get(ctx.subject.employer, 'entity_extension_data.union_established', false) === true) return true;\n\tif (rule === 'ORGANISATION') return get(ctx.subject.employer, 'entity_extension_data.union_preparatory', false) === true;\n\treturn rule === 'NO_UNION';",
 		"employee_amount": "\treturn 0;",
-		"employer_amount": "\treturn Math.max(0, Number(get(ctx.subtotals, 'FOREIGN_ALLOWANCES', 0))) * ctx.lookup.employer_rate;",
+		"employer_amount": "// FOREIGN_ALLOWANCES is the checkpoint of all taxable wages: salary, allowances, bonuses and expatriate allowances (工资总额)\n\treturn Math.max(0, Number(get(ctx.subtotals, 'FOREIGN_ALLOWANCES', 0))) * ctx.lookup.employer_rate;",
 		"id": "f588d429-9dcd-57cb-afda-8578281f9015",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c",
 		"balance_window": "YEAR",

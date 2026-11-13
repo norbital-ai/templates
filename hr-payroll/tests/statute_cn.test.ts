@@ -214,14 +214,18 @@ const seedOf = ({
 };
 type Seed = ReturnType<typeof seedOf>;
 const take = (t: Kit, seed: Seed, code: string, ...dates: readonly string[]) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		leaveCreate({
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
-			days: wholeDays(...dates)
+	Effect.flatMap(t.as(t.admin), (caller) =>
+		caller.act({
+			'leave_catalog_entry.create': [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+					days: wholeDays(...dates)
+				})
+			]
 		})
-	]);
+	);
 const refused = (t: Kit, seed: Seed, code: string, ...dates: readonly string[]) =>
 	Effect.flip(take(t, seed, code, ...dates)).pipe(Effect.map(String));
 /** Consecutive days from a date. */
@@ -245,7 +249,7 @@ describe('on the ledger', () => {
 			yield* syncAll(t);
 			yield* take(t, mother, 'MATERNITY_LEAVE', '2026-05-28', '2026-05-29');
 			yield* take(t, mother, 'MATERNITY_LEAVE', '2026-06-01');
-			yield* t.runDue();
+			yield* t.run_due();
 			const accounts = yield* accountsIn(t);
 			assert.equal(measureOf(accounts, 'leave', 'MATERNITY_LEAVE', 'used'), 3);
 			assert.equal(accounts.leave?.MATERNITY_LEAVE?.['CN.E.2026-05-28']?.used, 2);

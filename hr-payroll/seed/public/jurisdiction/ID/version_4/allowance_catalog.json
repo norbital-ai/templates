@@ -1,0 +1,62 @@
+[
+	{
+		"code": "CAR_ALLOWANCE",
+		"description": "Contractual car allowance at the amount the employment agreement sets, prorated by the paid share of the month (unpaid days and part months reduce it); a fixed allowance, part of wages.",
+		"lookup": {},
+		"subtotal_id": "e52fe56f-1c3c-5b50-a989-6560f87546ca",
+		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE', null);\nreturn agreed != null;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE.amount', 0) * ctx.paid_share;",
+		"id": "e1bf09f7-1672-5222-a23c-9ec599247a34",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.7(4)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+				"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
+				"effective_from": "2021-02-02"
+			}
+		],
+		"include_in_rate": true
+	},
+	{
+		"code": "HOUSE_ALLOWANCE",
+		"description": "Contractual housing allowance at the amount the employment agreement sets, prorated by the paid share of the month (unpaid days and part months reduce it); a fixed allowance, part of wages.",
+		"lookup": {},
+		"subtotal_id": "e52fe56f-1c3c-5b50-a989-6560f87546ca",
+		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE', null);\nreturn agreed != null;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE.amount', 0) * ctx.paid_share;",
+		"id": "11c0be06-9485-58f0-9a79-affca28d8773",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.7(4)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+				"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
+				"effective_from": "2021-02-02"
+			}
+		],
+		"include_in_rate": true
+	},
+	{
+		"code": "SPECIAL_ALLOWANCE",
+		"description": "Contractual special allowance at the amount the employment agreement sets, prorated by the paid share of the month (unpaid days and part months reduce it); a fixed allowance, part of wages.",
+		"lookup": {},
+		"subtotal_id": "e52fe56f-1c3c-5b50-a989-6560f87546ca",
+		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE', null);\nreturn agreed != null;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE.amount', 0) * ctx.paid_share;",
+		"id": "45360daa-59b4-55fc-8d00-d3ff6d7e2529",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.7(4)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+				"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
+				"effective_from": "2021-02-02"
+			}
+		],
+		"include_in_rate": true
+	}
+]

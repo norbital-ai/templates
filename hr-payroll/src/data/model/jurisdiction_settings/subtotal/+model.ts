@@ -1,7 +1,6 @@
 import { Effect } from 'effect';
-import type { WriteCtx } from '@norbital-ai/bolt';
-import { model } from '@norbital-ai/bolt';
-import type { Id } from '@norbital-ai/bolt';
+import type { Id, WriteCtx } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/subtotal.ts';
 import {
 	guardConfigurationRows,
 	requireDraftSettings
@@ -17,7 +16,7 @@ const requireLinearChain = Effect.fnUntraced(function* (
 		readonly previous_id?: string | null;
 	}[]
 ) {
-	const got = yield* ctx.db.query({
+	const got = yield* ctx.query({
 		subtotal: {
 			where: { settings_id: { in: [...new Set(settingsIds)] } },
 			fields: ['id', 'settings_id', 'previous_id'],
@@ -36,22 +35,17 @@ const requireLinearChain = Effect.fnUntraced(function* (
 		const used = new Map<string, string>();
 		for (const [id, before] of previous) {
 			if (before == null) continue;
-			if (!previous.has(before))
-				return yield* ctx.refuse(
-					'A subtotal can only follow another subtotal of the same version.'
-				);
+			if (!previous.has(before)) return yield* ctx.refuse('errors.subtotal_previous_other_version');
 			const existing = used.get(before);
 			if (existing !== undefined && existing !== id)
-				return yield* ctx.refuse(
-					'Subtotals must form one linear chain: two subtotals cannot follow the same one.'
-				);
+				return yield* ctx.refuse('errors.subtotal_chain_branch');
 			used.set(before, id);
 		}
 		for (const start of previous.keys()) {
 			const seen = new Set<string>();
 			let current: string | null | undefined = start;
 			while (current != null) {
-				if (seen.has(current)) return yield* ctx.refuse('Subtotal order cannot contain a cycle.');
+				if (seen.has(current)) return yield* ctx.refuse('errors.subtotal_chain_cycle');
 				seen.add(current);
 				current = previous.get(current);
 			}
@@ -59,28 +53,29 @@ const requireLinearChain = Effect.fnUntraced(function* (
 	}
 });
 
-export default model('subtotal', {
+export default model({
 	description:
 		'A jurisdiction-owned calculation step. Producers hold their own subtotal foreign keys.',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'subtotals', owned: true },
 		code: { kind: 'text' },
 		name: { kind: 'text' },
-		previous_id: { kind: 'ref', to: 'subtotal', optional: true, onDelete: 'restrict' },
+		previous_id: { kind: 'ref', to: 'subtotal', optional: true, on_delete: 'restrict' },
 		/** The posting window this checkpoint holds in the ledger. */
 		balance_window: { kind: 'enum', values: ['MONTH', 'YEAR'], default: 'YEAR' },
 		calculation: { kind: 'text', max: 65536, optional: true }
 	},
-	unique: [{ fields: ['settings_id', 'code'] }],
-	read: { subtotal: { fields: 'all' } },
+	constraints: { code_per_settings: { unique: ['settings_id', 'code'] } },
+	outputs: { default: { fields: 'all' } },
 	create: {
 		columns: {
-			subtotal: ['settings_id', 'code', 'name', 'previous_id', 'balance_window', 'calculation']
+			fields: ['settings_id', 'code', 'name', 'previous_id', 'balance_window', 'calculation']
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map((c) => c.after);
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'subtotal',
 				rows,
 				rows.map((row) => row.settings_id)
@@ -90,35 +85,39 @@ export default model('subtotal', {
 				rows.map((row) => row.settings_id),
 				rows
 			);
-			return rows;
+			return changes.map((c) => c.set);
 		}
 	},
 	update: {
-		columns: { subtotal: ['code', 'name', 'previous_id', 'balance_window', 'calculation'] },
+		columns: { fields: ['code', 'name', 'previous_id', 'balance_window', 'calculation'] },
 		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'subtotal',
-				changes.map(({ before, set }) => ({ ...before, ...set })),
-				changes.map(({ before }) => before.settings_id)
+				changes.map((c) => c.after),
+				changes.map((c) => c.before.settings_id)
 			);
 			yield* requireLinearChain(
 				ctx,
-				changes.map(({ before }) => before.settings_id),
-				changes.map(({ before, set }) => ({
-					id: before.id,
-					settings_id: before.settings_id,
-					previous_id: set.previous_id ?? before.previous_id
+				changes.map((c) => c.before.settings_id),
+				changes.map((c) => ({
+					id: c.before.id,
+					settings_id: c.before.settings_id,
+					previous_id: c.after.previous_id
 				}))
 			);
-			return changes.map(({ set }) => set);
+			return changes.map((c) => c.set);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* requireDraftSettings(
-				ctx.db.query,
-				rows.map((row) => row.settings_id)
+				ctx.query,
+				changes.map((c) => c.before.settings_id)
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
 		}
 	}

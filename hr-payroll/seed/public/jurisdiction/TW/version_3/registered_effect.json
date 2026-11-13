@@ -1605,7 +1605,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1730,7 +1730,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 1000
@@ -2199,51 +2199,9 @@
 		"description": "Gives the worker the personal-data collection notice when the employment is sealed."
 	},
 	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"name": "Follow up a contribution corrected for a closed month",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['TW', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['TW', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "4ece4dc8-f2ff-57e4-b961-540b3ffb9f59",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"description": "Raises the follow-up when an adhoc contribution correction moves a statutory account for a closed month."
-	},
-	{
 		"code": "MASS_LAYOFF_PLAN_ENTITY",
 		"name": "Mass layoff plan for the entity-wide threshold",
+		"description": "Raises the mass-layoff plan when an entity’s §11/§20 layoffs in sixty days reach the entity-wide thresholds (200 in the window, or 100 in a day) (大量解僱勞工保護法 §2).",
 		"lookup": {
 			"grounds": ["ARTICLE_11", "ARTICLE_20"],
 			"window_days": 59,
@@ -2286,7 +2244,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}

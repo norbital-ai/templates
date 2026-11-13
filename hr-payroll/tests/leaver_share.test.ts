@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { ENTITY, OFF, REST, WORK, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, OFF, REST, WORK, pack, storedQuery, uuid, workspace } from './kit.ts';
 
 const PATTERN = uuid(950);
 const terms = {
@@ -54,12 +54,13 @@ describe('a leaver on a shift pattern', () => {
 	it.live('is paid the working days employed, not the whole period', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]);
-			const [slip] = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows;
+			const admin = yield* t.as(t.admin);
+			yield* admin.act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]
+			});
+			const [slip] = (yield* storedQuery(t, { payslip: { limit: 1 } })).payslip.rows;
 			// BASIC is the contract salary; PRORATED is what the days employed leave of it
-			assert.equal(slip?.basic_earnings?.toNumber(), terms.rate.amount);
+			assert.equal(slip?.basic_earnings?.to_number(), terms.rate.amount);
 			const { checkpoints } = Schema.decodeUnknownSync(PayslipBreakdown)(slip?.breakdown);
 			// June 2026 has 22 weekdays; the 1st to the 15th hold 11 of them
 			assert.equal(

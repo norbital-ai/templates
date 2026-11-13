@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
 	import {
@@ -14,8 +14,8 @@
 		Button,
 		Sheet,
 		toast,
-		notifyOutcome,
-		openRecord,
+		notify_outcome,
+		open_record,
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Stack, Cluster } from '@norbital-ai/ui/layout';
@@ -23,30 +23,30 @@
 	import BalanceLedger from '../../../lib/ui/person/balance_ledger.svelte';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
-	import { addDays, PlainDate } from '@norbital-ai/std/date';
+	import { add_days, PlainDate } from '@norbital-ai/std/date';
 	import { formatTermsDates } from '../../../lib/ui/format/display_formatters.js';
 	import { employeeReference } from '../../../lib/export_format_configuration/export_format.js';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 
-	let { view }: { view: RecordView<'employee_profile'> } = $props();
+	let { view, ctx }: { view: RecordView<'employee_profile'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
-	const t = bolt.t;
-	const caseName = listedKindNames('case_kinds');
+	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
+	const caseName = listedKindNames(ctx, 'case_kinds');
 	let enrolling = $state(false),
 		adjusting = $state(false),
 		saving = $state(false);
 	function status(value: 'APPROVED' | 'NONE' | 'SUSPENDED') {
 		if (record === null || saving) return;
-		const id = record.id;
+		const target = { id: record.id, revision: record.revision };
 		saving = true;
 		fork(
-			bolt
-				.act('employee_profile.update', [{ target: id, set: { face_enrollment_status: value } }])
+			ctx
+				.act({ 'employee_profile.update': [{ target, set: { face_enrollment_status: value } }] })
 				.pipe(
-					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+					Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
 					Effect.catch((error) =>
 						Effect.sync(() =>
-							toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+							toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
 						)
 					),
 					Effect.ensuring(Effect.sync(() => (saving = false)))
@@ -56,7 +56,7 @@
 	const contracts = $derived.by(() =>
 		record == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_contract: {
 						where: { employee_id: { eq: record.id } },
 						fields: [
@@ -66,15 +66,15 @@
 							'terms',
 							'engagement',
 							'status'
-						]
-					},
-					'employee_contract.entity_id': { fields: ['name'] }
+						],
+						entity_id: { fields: ['name'] }
+					}
 				})
 	);
 	const balance = $derived(
 		record == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_balance: {
 						where: { employee_id: { eq: record.id } },
 						fields: ['account'],
@@ -128,8 +128,8 @@
 			};
 			const earlier = ordered.slice(index + 1).find((other) => other.sealed);
 			if (!row.sealed || earlier === undefined || earlier.to === null) return [item];
-			const from = addDays(PlainDate(earlier.to), 1);
-			const to = addDays(PlainDate(row.from), -1);
+			const from = add_days(PlainDate(earlier.to), 1);
+			const to = add_days(PlainDate(row.from), -1);
 			if (String(from) > String(to)) return [item];
 			const days = Math.round((Date.parse(String(to)) - Date.parse(String(from))) / 86_400_000) + 1;
 			return [
@@ -148,15 +148,16 @@
 
 {#snippet general()}<div class="grid max-w-4xl gap-6">
 		<Form
+			{ctx}
 			of="employee_profile"
 			mode={view.mode === 'create' ? 'create' : 'update'}
 			{...record === null
 				? { values: view.mode === 'create' ? view.values : {} }
 				: { id: record.id, record }}
-			onOutcome={(outcome) => {
+			on_outcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
 				const created = outcome.records.find((row) => row.model === 'employee_profile');
-				if (created) openRecord('employee_profile', created.id);
+				if (created) open_record('employee_profile', created.id);
 			}}
 			>{#snippet children()}
 				<div class="grid gap-6">
@@ -165,26 +166,29 @@
 							Identity and contact
 						</h3>
 						<div class="grid gap-x-6 gap-y-4 @md:grid-cols-2">
-							{#each ['name', 'email', 'phone', 'location'] as name (name)}<Field {name} />{/each}
+							{#each ['name', 'email', 'phone', 'location'] as name (name)}<Field
+									{ctx}
+									{name}
+								/>{/each}
 						</div>
 					</section>
 					<section class="grid gap-3">
 						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 							Address
 						</h3>
-						<Field name="address" />
+						<Field {ctx} name="address" />
 					</section>
 					<section class="grid gap-3">
 						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 							Documents
 						</h3>
-						<Field name="documents" />
+						<Field {ctx} name="documents" />
 					</section>
 					<section class="grid gap-3">
 						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 							Service
 						</h3>
-						<Field name="cumulative_service" />
+						<Field {ctx} name="cumulative_service" />
 					</section>
 					{#if record}{@render face()}{/if}
 				</div>
@@ -198,7 +202,7 @@
 				variant="outline"
 				aria-label={t('contract.new')}
 				title={t('contract.new')}
-				onclick={() => openRecord('employee_contract', 'new')}
+				onclick={() => open_record('employee_contract', 'new')}
 				><Icon name="lucide:plus" class="size-4" /></Button
 			></Cluster
 		>{#if contracts?.loading}<p class="text-meta">
@@ -208,13 +212,14 @@
 			/>{:else}<VersionTimeline
 				label={t('section.employment_history')}
 				items={timeline}
-				onOpen={(id) => openRecord('employee_contract', id)}
+				onOpen={(id) => open_record('employee_contract', id)}
 			/>{/if}{/if}{/snippet}
 {#snippet changesTab()}{#if record}<Table
+			{ctx}
 			of="contract_change"
 			key="person-contract-changes"
-			where={{ employee_id: { eq: record.id }, applied_version_id: { isNull: true } }}
-			toolbar={{ new: false, title: bolt.t('section.scheduled_changes') }}
+			where={{ employee_id: { eq: record.id }, applied_version_id: { is_null: true } }}
+			toolbar={{ new: false, title: ctx.t('section.scheduled_changes') }}
 			columns={['effective_from', 'field_path', 'old_value', 'new_value', 'notes']}
 		/>{/if}{/snippet}
 {#snippet contractsTab()}{#if record}<Tabs
@@ -236,6 +241,7 @@
 {#snippet loansTab()}{#if record}{#if contractIds.length === 0}<EmptyState
 				title={t('models.loan_catalog_entry.label')}
 			/>{:else}<Table
+				{ctx}
 				of="loan_catalog_entry"
 				key="person-loans"
 				where={{ employment_id: { in: contractIds } }}
@@ -248,10 +254,11 @@
 				title={t('app.cases.title')}
 			/>{:else}<Stack gap="sm"
 				><DescriptionHint text={t('v2.cases_entity_scope')} /><Table
+					{ctx}
 					of="workplace_case_catalog_entry"
 					key="person-workplace-cases"
 					where={{ entity_id: { in: entityIds } }}
-					orderBy={{ opened_on: 'desc' }}
+					order_by={{ opened_on: 'desc' }}
 					toolbar={{ new: false, title: t('app.cases.title') }}
 					columns={[{ field: 'kind', cell: caseCell }, 'entity_id', 'opened_on', 'closed_on']}
 				/></Stack
@@ -277,8 +284,8 @@
 				<Icon name="lucide:scan-face" class="size-4 text-muted-foreground" />
 				<span class="text-sm"
 					>{faceStatus === 'NONE'
-						? bolt.t('face.empty_title')
-						: `${bolt.t('v2.face_status')}: ${faceStatus}`}</span
+						? ctx.t('face.empty_title')
+						: `${ctx.t('v2.face_status')}: ${faceStatus}`}</span
 				>
 			</Cluster>
 			<Cluster gap="xs">
@@ -286,23 +293,24 @@
 					variant="secondary"
 					disabled={saving || faceStatus === 'PENDING' || faceStatus === 'SUSPENDED'}
 					onclick={() => (enrolling = true)}
-					>{faceStatus === 'NONE' ? bolt.t('face.enroll') : bolt.t('v2.update_face')}</Button
+					>{faceStatus === 'NONE' ? ctx.t('face.enroll') : ctx.t('v2.update_face')}</Button
 				>
 				{#if faceStatus === 'PENDING'}<Button disabled={saving} onclick={() => status('APPROVED')}
-						>{bolt.t('v2.approve_face')}</Button
+						>{ctx.t('v2.approve_face')}</Button
 					><Button variant="secondary" disabled={saving} onclick={() => status('NONE')}
-						>{bolt.t('v2.reject_face')}</Button
+						>{ctx.t('v2.reject_face')}</Button
 					>{:else if faceStatus === 'APPROVED'}<Button
 						variant="secondary"
 						disabled={saving}
-						onclick={() => status('SUSPENDED')}>{bolt.t('v2.suspend_face')}</Button
+						onclick={() => status('SUSPENDED')}>{ctx.t('v2.suspend_face')}</Button
 					>{:else if faceStatus === 'SUSPENDED'}<Button
 						disabled={saving}
-						onclick={() => status('APPROVED')}>{bolt.t('v2.reinstate_face')}</Button
+						onclick={() => status('APPROVED')}>{ctx.t('v2.reinstate_face')}</Button
 					>{/if}
 			</Cluster>
 		</Cluster>{/if}{/snippet}
 <RecordShell
+	{ctx}
 	of="employee_profile"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
@@ -310,26 +318,26 @@
 	{#if record === null}{@render general()}{:else}<Tabs
 			value="general"
 			tabs={[
-				{ name: 'general', title: bolt.t('v2.profile'), icon: 'lucide:user-round', body: general },
+				{ name: 'general', title: ctx.t('v2.profile'), icon: 'lucide:user-round', body: general },
 				{
 					name: 'contracts',
-					title: bolt.t('section.employment_history'),
+					title: ctx.t('section.employment_history'),
 					icon: 'lucide:file-signature',
 					body: contractsTab
 				},
 				{
 					name: 'loans',
-					title: bolt.t('models.loan_catalog_entry.label'),
+					title: ctx.t('models.loan_catalog_entry.label'),
 					icon: 'lucide:banknote',
 					body: loansTab
 				},
 				{
 					name: 'cases',
-					title: bolt.t('app.cases.title'),
+					title: ctx.t('app.cases.title'),
 					icon: 'lucide:briefcase-medical',
 					body: casesTab
 				},
-				{ name: 'finances', title: bolt.t('v2.balances'), icon: 'lucide:scale', body: finances }
+				{ name: 'finances', title: ctx.t('v2.balances'), icon: 'lucide:scale', body: finances }
 			]}
 		/>{/if}
 </RecordShell>
@@ -340,8 +348,8 @@
 	/>{/if}
 {#if enrolling && record}<Sheet
 		open
-		onOpenChange={(open) => !open && (enrolling = false)}
-		title={bolt.t('face.enroll')}
+		on_open_change={(open) => !open && (enrolling = false)}
+		title={ctx.t('face.enroll')}
 		><FaceEnrollFlow
 			{record}
 			onsaved={() => (enrolling = false)}

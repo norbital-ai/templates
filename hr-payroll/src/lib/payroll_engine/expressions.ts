@@ -9,8 +9,15 @@ import {
 import { parse, type AnyNode, type Pattern, type Program } from 'acorn';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Schema } from 'effect';
-import { sha256Hex } from '@norbital-ai/std/hash';
-import { addDays, addMonths, datePeriod, days, isPlainDate, monthOf } from '@norbital-ai/std/date';
+import { sha256_hex } from '@norbital-ai/std/hash';
+import {
+	add_days,
+	add_months,
+	date_period,
+	days,
+	is_plain_date,
+	month_of
+} from '@norbital-ai/std/date';
 import { PHASE_ROOTS, type Phase } from './contracts.js';
 import {
 	completedMonths,
@@ -33,7 +40,7 @@ const bad = (message: string): never => {
 };
 const numeric = (v: unknown): number =>
 	v instanceof Decimal
-		? v.toNumber()
+		? v.to_number()
 		: typeof v === 'number' && Number.isFinite(v)
 			? v
 			: bad('Expected an actual finite number.');
@@ -51,10 +58,10 @@ const compare = (a: unknown, b: unknown): number =>
 					? 1
 					: -1
 			: bad('Expected comparable numeric bounds.');
-const truth = (v: unknown): boolean => (v instanceof Decimal ? !v.isZero() : Boolean(v));
+const truth = (v: unknown): boolean => (v instanceof Decimal ? !v.is_zero() : Boolean(v));
 const materialise = (v: unknown): unknown =>
 	v instanceof Decimal
-		? v.toNumber()
+		? v.to_number()
 		: Array.isArray(v)
 			? v.map(materialise)
 			: isDynObject(v) && !isFunction(v)
@@ -78,7 +85,7 @@ const periodEnd = (value: unknown): string | null => {
 
 const date = (v: unknown): string => {
 	const value = text(v);
-	return isPlainDate(value) ? value : bad('Expected an actual ISO calendar date.');
+	return is_plain_date(value) ? value : bad('Expected an actual ISO calendar date.');
 };
 const blocked = new Set(['__proto__', 'prototype', 'constructor', 'caller', 'callee', 'arguments']);
 const property = (v: unknown, key: string): unknown => {
@@ -274,7 +281,7 @@ class Interpreter {
 				const scale = args[0] === undefined ? 0 : numeric(args[0]);
 				if (!Number.isInteger(scale) || scale < 0 || scale > 12)
 					bad('Fixed decimal formatting supports 0–12 places.');
-				const [whole, fraction = ''] = exact(value).round(scale, 'halfUp').toString().split('.');
+				const [whole, fraction = ''] = exact(value).round(scale, 'half_up').toString().split('.');
 				return scale === 0 ? whole : `${whole}.${fraction.padEnd(scale, '0')}`;
 			}
 		}
@@ -687,7 +694,7 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 		)
 	),
 	occurrence_key: fn((a) =>
-		sha256Hex(stableJson(Schema.decodeUnknownSync(Schema.Array(Schema.Json))(a[0])))
+		sha256_hex(stableJson(Schema.decodeUnknownSync(Schema.Array(Schema.Json))(a[0])))
 	),
 	divide_round: fn((a) => {
 		const scale = numeric(a[2]);
@@ -695,8 +702,8 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 			bad('Division rounding requires an explicit scale from 0 to 12.');
 		const mode = roundMode(a[3]),
 			modes = {
-				HALF_UP: 'halfUp',
-				HALF_EVEN: 'halfEven',
+				HALF_UP: 'half_up',
+				HALF_EVEN: 'half_even',
 				UP: 'up',
 				DOWN: 'down',
 				TRUNCATE: 'down'
@@ -709,8 +716,8 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 		if (step.cmp(0) <= 0) bad('Rounding step must be positive.');
 		const mode = a[2] === undefined ? 'HALF_UP' : roundMode(a[2]),
 			modes = {
-				HALF_UP: 'halfUp',
-				HALF_EVEN: 'halfEven',
+				HALF_UP: 'half_up',
+				HALF_EVEN: 'half_even',
 				UP: 'up',
 				DOWN: 'down',
 				TRUNCATE: 'down'
@@ -747,17 +754,17 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 	flatten: fn((a) => list(a[0]).flat()),
 	overlay: fn((a) => ({ ...object(a[0]), ...object(a[1]) })),
 	first: fn((a) => list(a[0])[0] ?? null),
-	add_days: fn((a) => String(addDays(date(a[0]), numeric(a[1])))),
-	add_months: fn((a) => String(addMonths(date(a[0]), numeric(a[1])))),
-	add_years: fn((a) => String(addMonths(date(a[0]), 12 * numeric(a[1])))),
-	month_start: fn((a) => String(monthOf(date(a[0])).from)),
-	month_end: fn((a) => String(monthOf(date(a[0])).to)),
+	add_days: fn((a) => String(add_days(date(a[0]), numeric(a[1])))),
+	add_months: fn((a) => String(add_months(date(a[0]), numeric(a[1])))),
+	add_years: fn((a) => String(add_months(date(a[0]), 12 * numeric(a[1])))),
+	month_start: fn((a) => String(month_of(date(a[0])).from)),
+	month_end: fn((a) => String(month_of(date(a[0])).to)),
 	age_on: fn((a) => Math.floor(completedMonths(date(a[0]), date(a[1])) / 12)),
 	calendar_completed_months: fn((a) => completedMonths(date(a[0]), date(a[1]))),
 	calendar_distance_days: fn((a) => {
 		const from = date(a[0]),
 			to = date(a[1]);
-		return from <= to ? days(datePeriod(from, to)) - 1 : 1 - days(datePeriod(to, from));
+		return from <= to ? days(date_period(from, to)) - 1 : 1 - days(date_period(to, from));
 	}),
 	bracket: fn((a) => {
 		const value = exact(a[0]),
@@ -794,6 +801,84 @@ const roundMode = (v: unknown): 'HALF_UP' | 'HALF_EVEN' | 'UP' | 'DOWN' | 'TRUNC
 	v === 'HALF_UP' || v === 'HALF_EVEN' || v === 'UP' || v === 'DOWN' || v === 'TRUNCATE'
 		? v
 		: bad('Unknown rounding mode.');
+// the built-ins every rule sees, made once: a rule's own bindings live in a scope of its own above them
+let globals: Environment | undefined;
+const builtins = (): Environment => {
+	if (globals !== undefined) return globals;
+	const env = new Environment();
+	for (const [name, value] of Object.entries(pure)) env.declare(name, value, true);
+	env.declare('Infinity', Infinity, true);
+	env.declare('undefined', undefined, true);
+	env.declare('NaN', NaN, true);
+	env.declare(
+		'Math',
+		Object.fromEntries(
+			['min', 'max', 'abs', 'floor', 'ceil', 'trunc', 'round', 'pow', 'sqrt'].map((name) => [
+				name,
+				fn((a) => {
+					if (a.length > 0 && ['min', 'max'].includes(name))
+						return a.reduce((best, value) =>
+							name === 'min'
+								? compare(best, value) <= 0
+									? best
+									: value
+								: compare(best, value) >= 0
+									? best
+									: value
+						);
+					const values = a.map(numeric);
+					if (name === 'abs') return exact(a[0]).abs();
+					if (name === 'floor' || name === 'ceil' || name === 'trunc')
+						return exact(a[0]).round(0, name === 'trunc' ? 'down' : name);
+					switch (name) {
+						case 'min':
+							return Math.min(...values);
+						case 'max':
+							return Math.max(...values);
+						case 'abs':
+							return Math.abs(numeric(values[0]));
+						case 'floor':
+							return Math.floor(numeric(values[0]));
+						case 'ceil':
+							return Math.ceil(numeric(values[0]));
+						case 'trunc':
+							return Math.trunc(numeric(values[0]));
+						case 'round':
+							return Math.round(numeric(values[0]));
+						case 'pow':
+							return Math.pow(numeric(values[0]), numeric(values[1]));
+						default:
+							return Math.sqrt(numeric(values[0]));
+					}
+				})
+			])
+		),
+		true
+	);
+	env.declare(
+		'Object',
+		{
+			entries: fn((a) => Object.entries(object(a[0]))),
+			values: fn((a) => Object.values(object(a[0]))),
+			keys: fn((a) => Object.keys(object(a[0]))),
+			fromEntries: fn((a) =>
+				Object.fromEntries(
+					list(a[0]).map((v) => {
+						const pair = list(v);
+						const key = text(pair[0]);
+						if (blocked.has(key)) bad('Unsafe object key.');
+						return [key, pair[1]];
+					})
+				)
+			),
+			hasOwn: fn((a) => Object.hasOwn(object(a[0]), text(a[1])))
+		},
+		true
+	);
+	env.declare('Array', { isArray: fn((a) => Array.isArray(a[0])) }, true);
+	globals = env;
+	return env;
+};
 // the same check repeats for every person of a run, at the same place in the chain
 const checked = new Map<string, Set<string>>();
 const checkOnce = (
@@ -824,77 +909,7 @@ export function evaluateExact(
 				: [],
 			roots
 		);
-		const env = new Environment();
-		for (const [name, value] of Object.entries(pure)) env.declare(name, value, true);
-		env.declare('Infinity', Infinity, true);
-		env.declare('undefined', undefined, true);
-		env.declare('NaN', NaN, true);
-		env.declare(
-			'Math',
-			Object.fromEntries(
-				['min', 'max', 'abs', 'floor', 'ceil', 'trunc', 'round', 'pow', 'sqrt'].map((name) => [
-					name,
-					fn((a) => {
-						if (a.length > 0 && ['min', 'max'].includes(name))
-							return a.reduce((best, value) =>
-								name === 'min'
-									? compare(best, value) <= 0
-										? best
-										: value
-									: compare(best, value) >= 0
-										? best
-										: value
-							);
-						const values = a.map(numeric);
-						if (name === 'abs') return exact(a[0]).abs();
-						if (name === 'floor' || name === 'ceil' || name === 'trunc')
-							return exact(a[0]).round(0, name === 'trunc' ? 'down' : name);
-						switch (name) {
-							case 'min':
-								return Math.min(...values);
-							case 'max':
-								return Math.max(...values);
-							case 'abs':
-								return Math.abs(numeric(values[0]));
-							case 'floor':
-								return Math.floor(numeric(values[0]));
-							case 'ceil':
-								return Math.ceil(numeric(values[0]));
-							case 'trunc':
-								return Math.trunc(numeric(values[0]));
-							case 'round':
-								return Math.round(numeric(values[0]));
-							case 'pow':
-								return Math.pow(numeric(values[0]), numeric(values[1]));
-							default:
-								return Math.sqrt(numeric(values[0]));
-						}
-					})
-				])
-			),
-			true
-		);
-		env.declare(
-			'Object',
-			{
-				entries: fn((a) => Object.entries(object(a[0]))),
-				values: fn((a) => Object.values(object(a[0]))),
-				keys: fn((a) => Object.keys(object(a[0]))),
-				fromEntries: fn((a) =>
-					Object.fromEntries(
-						list(a[0]).map((v) => {
-							const pair = list(v);
-							const key = text(pair[0]);
-							if (blocked.has(key)) bad('Unsafe object key.');
-							return [key, pair[1]];
-						})
-					)
-				),
-				hasOwn: fn((a) => Object.hasOwn(object(a[0]), text(a[1])))
-			},
-			true
-		);
-		env.declare('Array', { isArray: fn((a) => Array.isArray(a[0])) }, true);
+		const env = new Environment(builtins());
 		env.declare(
 			'ctx',
 			Object.fromEntries(

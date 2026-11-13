@@ -1,43 +1,5 @@
 [
 	{
-		"code": "encash-leave-on-exit",
-		"name": "Pay untaken leave with the final settlement",
-		"description": "Raises a task to pay untaken annual leave with the final settlement.",
-		"lookup": {
-			"title": "Pay the untaken leave with the final settlement"
-		},
-		"references": [
-			{
-				"title": "Labour Code 45/2019/QH14 art.113(3): an employee who leaves or loses the job without having taken, or without having taken all, annual leave is paid the wages for the untaken days.",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			},
-			{
-				"title": "Decree 145/2020/ND-CP art.67(3): the wage basis for the untaken days is the contractual wage of the month immediately preceding the month of termination or job loss.",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf"
-			}
-		],
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "'encash-leave-on-exit:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
-						}
-					}
-				},
-				"limit": 1
-			}
-		},
-		"condition": "return ctx.after != null;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const key = 'encash-leave-on-exit:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? ctx.entry.effective_range.to,\n\t\toccurrence_key: key\n\t}\n];",
-		"id": "173816d1-388f-5b4d-952c-d85d049377a7",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
 		"code": "SI_HI_UI_MONTHLY_REMITTANCE",
 		"name": "Remit the employee and employer SI, HI and UI shares",
 		"description": "Raises the monthly task to remit the employee and employer SI, HI and UI shares.",
@@ -2581,66 +2543,6 @@
 		"target_action": "create",
 		"effects": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst key = 'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.employment_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: today,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "430d0862-5448-56d2-803e-f66882efd154",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"name": "Follow up a contribution corrected for a closed month",
-		"description": "Raises a fund follow-up when a statutory contribution is corrected for a month a paid run has already closed.",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['VN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			},
-			"payroll_run": {
-				"where": {
-					"entity_id": {
-						"eq": {
-							"var": "ctx.entry.entity_id"
-						}
-					},
-					"kind": {
-						"eq": "ON_CYCLE"
-					},
-					"state": {
-						"eq": "PAID"
-					}
-				},
-				"fields": ["period"],
-				"limit": 10000
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nif (row == null) return false;\nif (get(ctx.entry, 'reverses', null) != null) return false;\nif (!(get(row, 'lookup.accounts', []).length > 0)) return false;\nconst month = String(ctx.entry.incurred_on).slice(0, 7);\nreturn ctx.reads.payroll_run.some((run) => String(run.period).startsWith(month));",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['VN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "b168ee94-a813-5984-add5-01e918fa6977",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	}
 ]

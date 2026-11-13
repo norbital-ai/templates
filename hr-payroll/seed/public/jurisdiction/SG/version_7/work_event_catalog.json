@@ -1,0 +1,82 @@
+[
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "EMPLOYER_SHUTDOWN",
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a shutdown or closure by the employer is not the employee’s absence, so salary is paid whole",
+				"locator": "ss.27(1)(a),28(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-09-01"
+			}
+		],
+		"id": "8c000840-5069-5a50-a9e2-8eac0fdcbafd",
+		"settings_id": "bbe95055-70a7-5906-bc41-a47ff233c6f4",
+		"description": "An employer shutdown that stops work."
+	},
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "LOCKOUT",
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a lockout by the employer is not the employee’s absence, so salary is paid whole",
+				"locator": "ss.27(1)(a),28(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-09-01"
+			}
+		],
+		"id": "e29d4573-697e-58d7-aecf-adc3625ab108",
+		"settings_id": "bbe95055-70a7-5906-bc41-a47ff233c6f4",
+		"description": "An employer lockout stops work; pay follows the agreed terms."
+	},
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "GOVERNMENT_ORDER",
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a government closure is not the employee’s absence, so salary is paid whole",
+				"locator": "ss.27(1)(a),28(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-09-01"
+			}
+		],
+		"id": "b8f662d9-c32e-5d39-b04f-e963566adfaa",
+		"settings_id": "bbe95055-70a7-5906-bc41-a47ff233c6f4",
+		"description": "A government order stops work; the day stays scheduled and attended."
+	},
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "NATURAL_DISASTER",
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a force-majeure closure is not the employee’s absence, so salary is paid whole",
+				"locator": "ss.27(1)(a),28(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-09-01"
+			}
+		],
+		"id": "c5c49552-b839-5ab1-9c6f-bb5844c6ebab",
+		"settings_id": "bbe95055-70a7-5906-bc41-a47ff233c6f4",
+		"description": "A natural disaster that interrupts work."
+	},
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "STRIKE",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.27(1)(a) — a deduction requires the employee’s own absence; a strike is not attendance",
+				"locator": "s.27(1)(a)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-09-01"
+			}
+		],
+		"id": "3c76b259-f0a7-5abe-82e6-389b6282188b",
+		"settings_id": "bbe95055-70a7-5906-bc41-a47ff233c6f4",
+		"description": "A strike stops work; participant pay follows the agreement."
+	}
+]

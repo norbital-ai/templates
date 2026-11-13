@@ -12,7 +12,7 @@
 		"subtotal_id": null,
 		"id": "6ca02f91-94d5-5025-b72a-e8123e100919",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "A paid day in lieu of a public holiday worked."
+		"description": "Days off in place of a holiday. The law grants none (grant 0 days); only HR's manual adjustments add days, each paid as a normal day and not paid out in cash."
 	},
 	{
 		"code": "VAWC_LEAVE",
@@ -117,18 +117,29 @@
 			"grant_days": 5,
 			"per_months": 12,
 			"service_months": 12,
-			"window": "LIFETIME"
+			"window": "LIFETIME",
+			"entitlement": "// Labor Code art.95; Omnibus Rules Book III Rule V s.1: five days a year after one year of service. Outside it: an establishment\n// regularly employing fewer than ten, managerial staff, field personnel and task or contract workers; a kasambahay has ANNUAL_LEAVE_DOMESTIC.\nconst contract = ctx.subject.employment;\nif (get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) === true) return 0;\nif (['MANAGERIAL', 'FIELD_PERSONNEL', 'TASK_BASIS', 'DOMESTIC'].includes(get(contract, 'terms.statutory_work_category', ''))) return 0;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from', ctx.as_of));\nreturn calendar_completed_months(started, ctx.as_of) >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;"
 		},
-		"subtotal_id": "86f31485-ff37-54bc-bfbc-130becca8477",
+		"subtotal_id": "492ef9d5-84f8-5381-9984-b29db0b575ed",
 		"references": [
 			{
 				"title": "Labor Code, article 95, and DOLE Handbook on Workers' Statutory Monetary Benefits 2024, chapter 7 C-D: five paid days of service incentive leave per year after one year of service, accrued pro rata at five-twelfths of a day per completed month; unused days may be carried and commuted on separation at the then-current daily rate. Supreme Court, Rodriguez v. Park N Ride, G.R. No. 222980, 20 March 2017. Managerial employees, field personnel, task-basis workers and establishments regularly employing fewer than ten are excluded.",
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
+			},
+			{
+				"title": "Labor Code art.95(b); Omnibus Rules Book III Rule V s.1; DOLE Handbook 2024 ch.7 §B",
+				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf",
+				"quote": "Read 2026-11-13. Service incentive leave excludes establishments \"regularly employing less than ten (10) employees\", managerial employees, field personnel and those engaged on task or contract basis, and kasambahays (covered by RA 10361 s.29)."
+			},
+			{
+				"title": "Revenue Regulations 11-2018 s.2.78.1(A)(3)(a)",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+				"quote": "Read 2026-11-13. De minimis: \"Monetized unused vacation leave credits of private employees not exceeding ten (10) days during the year\"."
 			}
 		],
 		"id": "fb1202b4-41e7-5418-8926-49a1b3a2ebd5",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Paid annual leave accrued by service.",
+		"description": "Service incentive leave: five paid days a year once a year of service is complete, carried over while unused, and paid out at the daily rate. None in an establishment regularly employing fewer than ten, nor for managerial staff, field personnel or task-basis workers (Labor Code art.95). A cash-out is tax-free up to 10 days a year.",
 		"payout": "// Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commuted to its money equivalent at the daily rate.\nreturn ctx.day_rate * ctx.entry.quantity;"
 	},
 	{

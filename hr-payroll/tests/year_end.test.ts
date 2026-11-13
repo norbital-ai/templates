@@ -7,7 +7,7 @@ import { Effect, Schema } from 'effect';
 import { viewOf } from '../src/lib/ledger/core.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, accountsIn, pack, uuid, workspace, storedQuery } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 
@@ -32,21 +32,31 @@ const itemId = (seed: Seed, family: string, code: string) => {
 const run = (t: Kit, period: string) =>
 	t
 		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-		.pipe(Effect.andThen(t.runDue()));
+		.pipe(
+			Effect.flatMap((caller) =>
+				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+			)
+		)
+		.pipe(Effect.andThen(t.run_due()));
 const pay = (t: Kit, seed: Seed, code: string, amount: number, on: string) =>
-	t.as(t.admin).act('adhoc_catalog_entry.create', [
-		{
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: idOf('adhoc_catalog', itemId(seed, 'adhoc_catalog', code)),
-			description: code,
-			quantity: amount,
-			incurred_on: PlainDate(on)
-		}
-	]);
+	t.as(t.admin).pipe(
+		Effect.flatMap((caller) =>
+			caller.act({
+				'adhoc_catalog_entry.create': [
+					{
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: idOf('adhoc_catalog', itemId(seed, 'adhoc_catalog', code)),
+						description: code,
+						quantity: amount,
+						incurred_on: PlainDate(on)
+					}
+				]
+			})
+		)
+	);
 const slips = (t: Kit) =>
-	t.storedQuery({ payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
+	storedQuery(t, { payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
 		Effect.map((got) =>
 			got.payslip.rows
 				.map((slip) => ({
@@ -125,12 +135,12 @@ describe('a December refund', () => {
 					) < 0.01
 				);
 			}
-			// HR has no step: no entry and no task to enter one
-			const { adhoc_catalog_entry: entries } = yield* t.storedQuery({
-				adhoc_catalog_entry: { where: { reverses: { isNull: false } }, limit: 10 }
+			// HR has no step: no entry beside the bonus and no task to enter one
+			const { adhoc_catalog_entry: entries } = yield* storedQuery(t, {
+				adhoc_catalog_entry: { limit: 10 }
 			});
-			assert.deepEqual(entries.rows, []);
-			const { obligation } = yield* t.storedQuery({ obligation: { limit: 10000 } });
+			assert.equal(entries.rows.length, 1);
+			const { obligation } = yield* storedQuery(t, { obligation: { limit: 10000 } });
 			assert.equal(
 				obligation.rows.some((row) => row.title.startsWith('Tax overpaid')),
 				false
@@ -172,7 +182,8 @@ describe('figures a month holds, across runs', () => {
 		const seed = japan(500_000);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			for (const period of [...months(2026), '2027-01', '2027-02']) yield* run(t, period);
+			// a month thirteen back, one twelve back, and the month that reads them
+			for (const period of ['2026-01', '2026-02', '2027-02']) yield* run(t, period);
 			const { month } = yield* view(t, 'JP', '2027-02-25');
 			assert.equal(
 				Object.keys(month).some((key) => key.startsWith('2026-01.')),
@@ -206,7 +217,7 @@ describe('figures a month holds, across runs', () => {
 	it.live('Malaysia: float dust crosses the year, and that run can still go', () => {
 		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(8000, 'CITIZEN'), {}, [], [], '2026-06-15');
 		const january = (t: Kit) =>
-			t.storedQuery({ payroll_run: { where: { period: { eq: '2027-01' } }, limit: 1 } });
+			storedQuery(t, { payroll_run: { where: { period: { eq: '2027-01' } }, limit: 1 } });
 		const basic = (t: Kit) =>
 			view(t, 'MY', '2027-01-25').pipe(Effect.map(({ ytd }) => ytd['BASIC']));
 		const year2026 = (t: Kit) =>
@@ -217,10 +228,10 @@ describe('figures a month holds, across runs', () => {
 			const t = yield* TestWorkspace;
 			for (const period of [...months(2026), '2027-01']) yield* run(t, period);
 			assert.equal(yield* basic(t), 8000);
-			const target = (yield* january(t)).payroll_run.rows[0]?.id;
+			const target = (yield* january(t)).payroll_run.rows[0];
 			assert.ok(target !== undefined);
-			yield* t.as(t.admin).act('payroll_run.delete', [{ target: idOf('payroll_run', target) }]);
-			yield* t.runDue();
+			yield* (yield* t.as(t.admin)).act({ 'payroll_run.delete': [{ target }] });
+			yield* t.run_due();
 			assert.equal(yield* year2026(t), 12 * 8000);
 			assert.equal((yield* basic(t)) ?? 0, 0);
 			yield* run(t, '2027-01');

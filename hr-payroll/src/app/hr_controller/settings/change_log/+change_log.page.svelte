@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
+	let { ctx }: { ctx: PageContext } = $props();
 
 	const valueCell = ({ value }: { value: unknown }) =>
 		typeof value === 'string' ? value : JSON.stringify(value ?? null, null, 2);
@@ -15,15 +16,16 @@
 {/snippet}
 
 <AppShell
-	title={bolt.t('app.settings.change_log')}
-	description={bolt.t('app.settings.change_log_description')}
+	title={ctx.t('app.settings.change_log')}
+	description={ctx.t('app.settings.change_log_description')}
 	icon="lucide:history"
 >
 	<Stack gap="lg">
 		<Table
+			{ctx}
 			of="statutory_change"
 			key="statutory_change_log"
-			toolbar={{ new: false, title: bolt.t('app.settings.change_log') }}
+			toolbar={{ new: false, title: ctx.t('app.settings.change_log') }}
 			columns={[
 				'jurisdiction_code',
 				'family',

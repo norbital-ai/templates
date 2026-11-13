@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Row } from '@norbital-ai/bolt';
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		DescriptionHint,
 		EventCalendar,
@@ -8,17 +8,19 @@
 		type CalendarView
 	} from '@norbital-ai/ui';
 	import { Cover } from '@norbital-ai/ui/layout';
-	import { addDays, monthOf, eachDay, datePeriod } from '@norbital-ai/std/date';
+	import { add_days, month_of, each_day, date_period } from '@norbital-ai/std/date';
 	import { Schema } from 'effect';
 	import { JsonObject } from '../../payroll_engine/contracts.js';
 	import { scheduled, holidaysForDay } from '../../payroll_engine/attendance.js';
 	import { cycleShiftId } from '../roster/month_board.js';
 	import { getErrorMessage, jsonValues } from '../../payroll_engine/foundation.js';
 	let {
+		ctx,
 		contract,
 		company,
 		employerVersions
 	}: {
+		ctx: PageContext;
 		contract: Row<'employee_contract'>;
 		company: Pick<Row<'entity'>, 'id' | 'name' | 'settings_code'>;
 		employerVersions: readonly Pick<
@@ -26,20 +28,20 @@
 			'id' | 'entity_id' | 'effective_range' | 'status' | 'time_zone'
 		>[];
 	} = $props();
-	const clock = bolt.clock('minute');
+	const clock = ctx.clock('minute');
 	const initialDay = clock.today || new Date().toISOString().slice(0, 10);
 	let at = $state(new Date(`${initialDay}T12:00:00`));
 	let view = $state<CalendarView>('month');
 	const month = $derived(`${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}`);
 	const monthEnd = $derived.by(() => {
-		const end = monthOf(`${month}-01`).to;
+		const end = month_of(`${month}-01`).to;
 		if (end == null) throw new Error('A calendar month requires its closing date.');
 		return end;
 	});
-	const from = $derived(addDays(`${month}-01`, -7));
-	const to = $derived(addDays(monthEnd, 7));
+	const from = $derived(add_days(`${month}-01`, -7));
+	const to = $derived(add_days(monthEnd, 7));
 	const versions = $derived(
-		bolt.query({
+		ctx.query({
 			employee_contract: {
 				where: {
 					employee_id: { eq: contract.employee_id },
@@ -52,13 +54,13 @@
 	);
 	const ids = $derived((versions.current?.employee_contract.rows ?? []).map((r) => r.id));
 	const holidays = $derived(
-		bolt.query({
+		ctx.query({
 			holiday: {
 				where: {
 					entity_id: { eq: company.id },
 					date: { gte: from, lte: to },
-					published_at: { isNull: false },
-					employee_id: { isNull: true }
+					published_at: { is_null: false },
+					employee_id: { is_null: true }
 				},
 				fields: ['date', 'name', 'published_at', 'replaces', 'given_to', 'entity_id'],
 				limit: 10000
@@ -69,7 +71,7 @@
 		(holidays.current?.holiday.rows ?? []).flatMap((h) => (h.replaces == null ? [] : [h.replaces]))
 	);
 	const data = $derived(
-		bolt.query({
+		ctx.query({
 			roster_entry: {
 				where: {
 					employment_id: { in: ids },
@@ -85,11 +87,11 @@
 			},
 			leave_catalog_entry: {
 				where: { employment_id: { in: ids } },
-				limit: 10000
-			},
-			'leave_catalog_entry.leave_catalog_entry_day': {
-				fields: ['incurred_on', 'part'],
-				limit: 10000
+				limit: 10000,
+				leave_catalog_entry_day: {
+					fields: ['incurred_on', 'part'],
+					limit: 10000
+				}
 			},
 			jurisdiction_settings: {
 				where: { code: { eq: company.settings_code }, status: { eq: 'SEALED' } },
@@ -159,7 +161,7 @@
 			const plans = selected.map((row) => {
 				const date = String(row.work_date),
 					zone = zoneOn(date);
-				if (zone == null) throw new Error(bolt.t('app.hr_employee.calendar_zone_missing'));
+				if (zone == null) throw new Error(ctx.t('app.hr_employee.calendar_zone_missing'));
 				const shift = native.shift_definition?.find((s) => s.id === row.shift_definition_id);
 				return {
 					row,
@@ -169,16 +171,14 @@
 				};
 			});
 			const dayTypes = Object.fromEntries(plans.map((p) => [p.date, p.plan.day_type]));
-			const leave = data.current.leave_catalog_entry.rows
-				.filter((row) => row.reverses == null)
-				.map((row) => ({
-					...row,
-					days: (row.leave_catalog_entry_day ?? []).map((child) => ({
-						date: String(child.incurred_on),
-						part: String(child.part)
-					}))
-				}));
-			for (const date of eachDay(datePeriod(from, to)).map(String)) {
+			const leave = data.current.leave_catalog_entry.rows.map((row) => ({
+				...row,
+				days: (row.leave_catalog_entry_day ?? []).map((child) => ({
+					date: String(child.incurred_on),
+					part: String(child.part)
+				}))
+			}));
+			for (const date of each_day(date_period(from, to)).map(String)) {
 				if (
 					!(versions.current?.employee_contract.rows ?? []).some((c) =>
 						covers(c.effective_range, date)
@@ -193,10 +193,10 @@
 				for (const holiday of observed)
 					events.push({
 						id: `ph:${holiday.id}`,
-						title: `${bolt.t('roster.public_holiday')}: ${holiday.name}`,
+						title: `${ctx.t('roster.public_holiday')}: ${holiday.name}`,
 						start: stamp(date),
-						end: stamp(String(addDays(date, 1))),
-						allDay: true,
+						end: stamp(String(add_days(date, 1))),
+						all_day: true,
 						color: 'var(--chart-4)'
 					});
 				const work = plans.find((p) => p.date === date);
@@ -222,10 +222,10 @@
 					if (plan.day_type === 'WORK')
 						events.push({
 							id: `projected:${date}`,
-							title: bolt.t('roster.plan_projected'),
+							title: ctx.t('roster.plan_projected'),
 							start: first == null ? stamp(date) : local(first.start, projectedZone),
-							end: last == null ? stamp(String(addDays(date, 1))) : local(last.end, projectedZone),
-							allDay: first == null,
+							end: last == null ? stamp(String(add_days(date, 1))) : local(last.end, projectedZone),
+							all_day: first == null,
 							color: 'var(--muted-foreground)'
 						});
 				}
@@ -236,11 +236,11 @@
 						id: `plan:${work.row.id}`,
 						title:
 							work.plan.day_type === 'WORK'
-								? bolt.t('app.hr_employee.calendar_work')
+								? ctx.t('app.hr_employee.calendar_work')
 								: work.plan.day_type,
 						start: first == null ? stamp(date) : local(first.start, work.zone),
-						end: last == null ? stamp(String(addDays(date, 1))) : local(last.end, work.zone),
-						allDay: first == null,
+						end: last == null ? stamp(String(add_days(date, 1))) : local(last.end, work.zone),
+						all_day: first == null,
 						color: work.plan.day_type === 'WORK' ? 'var(--chart-1)' : 'var(--muted-foreground)'
 					});
 				}
@@ -250,7 +250,7 @@
 					if (interval.end == null || work == null) continue;
 					events.push({
 						id: `clock:${work.row.id}:${index}`,
-						title: bolt.t('app.hr_employee.calendar_attendance'),
+						title: ctx.t('app.hr_employee.calendar_attendance'),
 						start: local(interval.start, work.zone),
 						end: local(interval.end, work.zone),
 						color: 'var(--chart-2)'
@@ -268,8 +268,8 @@
 						id: `leave:${id}:${index}`,
 						title: `${title} · ${day.part}`,
 						start: stamp(day.date),
-						end: stamp(String(addDays(day.date, 1))),
-						allDay: true,
+						end: stamp(String(add_days(day.date, 1))),
+						all_day: true,
 						color: 'var(--chart-3)'
 					});
 				}
@@ -287,10 +287,10 @@
 			{error ?? presentation.error}
 		</p>
 	{:else if incomplete}<p role="alert" class="text-sm text-destructive">
-			{bolt.t('app.hr_employee.calendar_incomplete')}
+			{ctx.t('app.hr_employee.calendar_incomplete')}
 		</p>
 	{:else if !loading && timeZone == null}<p role="alert" class="text-sm text-destructive">
-			{bolt.t('app.hr_employee.calendar_zone_missing')}
+			{ctx.t('app.hr_employee.calendar_zone_missing')}
 		</p>
 	{:else}{@const warnings = rosterDays.flatMap((row) =>
 			Array.isArray(row.findings) ? row.findings : []
@@ -301,15 +301,16 @@
 			>
 				{#each warnings as warning}<li>{warning.message}</li>{/each}
 			</ul>{/if}<EventCalendar
+			{ctx}
 			events={presentation.events}
 			{view}
 			date={at}
 			readonly
-			onDateChange={(next) => (at = next)}
-			onViewChange={(next) => (view = next)}
+			on_date_change={(next) => (at = next)}
+			on_view_change={(next) => (view = next)}
 		>
 			{#snippet actions()}<DescriptionHint
-					text={bolt.t('app.hr_employee.calendar_readonly', { zone: timeZone ?? 'UTC' })}
+					text={ctx.t('app.hr_employee.calendar_readonly', { zone: timeZone ?? 'UTC' })}
 				/>{/snippet}
 		</EventCalendar>{/if}
 </Cover>

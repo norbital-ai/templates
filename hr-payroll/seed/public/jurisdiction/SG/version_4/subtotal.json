@@ -1,0 +1,73 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic pay",
+		"previous_id": null,
+		"id": "471f2b2c-2938-58c7-9057-0c4b457fa0f7",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "2eb36f76-e791-5374-b01f-eb6672ebb25a",
+		"previous_id": "471f2b2c-2938-58c7-9057-0c4b457fa0f7",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "0e3b0c25-08f9-5e23-958c-5353a3fb79ef",
+		"previous_id": "2eb36f76-e791-5374-b01f-eb6672ebb25a",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages",
+		"previous_id": "0e3b0c25-08f9-5e23-958c-5353a3fb79ef",
+		"id": "dc4f87dd-71ae-566a-9b2c-fe24032227b2",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Additional wages (ordinary plus additional)",
+		"previous_id": "dc4f87dd-71ae-566a-9b2c-fe24032227b2",
+		"id": "b240451b-7613-5e6f-bb88-80aeaed4abf2",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings",
+		"previous_id": "b240451b-7613-5e6f-bb88-80aeaed4abf2",
+		"id": "b7b345a3-75e1-55c9-a2f6-dcd849a1d720",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay",
+		"previous_id": "13b6ba3d-7a5f-5a2c-a25a-5f957f30d35f",
+		"id": "bbc1c84e-a560-5945-892c-ee38b32133ec",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "DIRECTOR_FEES",
+		"name": "Director's fees",
+		"previous_id": "b7b345a3-75e1-55c9-a2f6-dcd849a1d720",
+		"id": "20e33e25-06c7-52b6-acd5-4c53ba53edb3",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "ENTERTAINER_FEES",
+		"name": "Public entertainer income",
+		"previous_id": "20e33e25-06c7-52b6-acd5-4c53ba53edb3",
+		"id": "13b6ba3d-7a5f-5a2c-a25a-5f957f30d35f",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"balance_window": "YEAR"
+	}
+]

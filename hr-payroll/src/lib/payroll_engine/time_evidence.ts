@@ -1,14 +1,14 @@
-import { Schema } from 'effect';
-import { addDays, parseInstant, isPlainDate } from '@norbital-ai/std/date';
-import { Refusal } from './foundation.js';
-import { JsonObject } from './contracts.js';
+import { add_days, parse_instant, is_plain_date } from '@norbital-ai/std/date';
+import { isJsonObject, Refusal, type JsonObject } from './foundation.js';
 import { objectValue, valueText } from './reads.js';
 import { sum } from './money.js';
 export interface TimeSpan {
 	readonly start: number;
 	readonly end: number;
 }
+// an instant is a stored ISO text with its offset, or the epoch milliseconds a run already worked out
 const instant = (value: unknown): number => {
+	if (typeof value === 'number' && Number.isFinite(value)) return value;
 	if (
 		typeof value !== 'string' ||
 		!/(Z|[+-]\d{2}:\d{2})$/.test(value) ||
@@ -25,9 +25,16 @@ export const elapsedMinutes = (start: unknown, end: unknown): number => {
 	if (b < a) throw new Refusal({ message: 'An interval ends before it starts.' });
 	return (b - a) / 60000;
 };
+// rows are decoded once where they are read: here only their shape is checked
+const rowsOf = (value: unknown): readonly JsonObject[] => {
+	if (value == null) return [];
+	if (!Array.isArray(value) || !value.every(isJsonObject))
+		throw new Refusal({ message: 'Work intervals must be a list of intervals.' });
+	return value;
+};
 export function intervalSpans(value: unknown, as_of?: unknown): readonly TimeSpan[] {
 	let previousEnd = -Infinity;
-	return Schema.decodeUnknownSync(Schema.Array(JsonObject))(value ?? [])
+	return rowsOf(value)
 		.toSorted((a, b) => instant(a.start) - instant(b.start))
 		.flatMap((row) => {
 			const start = instant(row.start),
@@ -35,7 +42,7 @@ export function intervalSpans(value: unknown, as_of?: unknown): readonly TimeSpa
 			if (end < start || (end === start && row.end != null) || start < previousEnd)
 				throw new Refusal({ message: 'Work intervals must be positive and nonoverlapping.' });
 			previousEnd = end;
-			const breaks = Schema.decodeUnknownSync(Schema.Array(JsonObject))(row.breaks ?? [])
+			const breaks = rowsOf(row.breaks)
 				.map((b) => ({ start: instant(b.start), end: instant(b.end) }))
 				.toSorted((a, b) => a.start - b.start);
 			if (
@@ -62,20 +69,36 @@ export function intervalSpans(value: unknown, as_of?: unknown): readonly TimeSpa
 }
 export const intervalMinutes = (value: unknown, as_of?: unknown): number =>
 	sum(intervalSpans(value, as_of).map((s) => (s.end - s.start) / 60000));
-const dayAt = (value: number, zone: string) =>
-	new Intl.DateTimeFormat('en-CA', {
-		timeZone: zone,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit'
-	}).format(new Date(value));
+// a formatter is the costly part: one a zone, not one a call
+const dayFormats = new Map<string, Intl.DateTimeFormat>();
+const dayAt = (value: number, zone: string) => {
+	let format = dayFormats.get(zone);
+	if (format === undefined) {
+		format = new Intl.DateTimeFormat('en-CA', {
+			timeZone: zone,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit'
+		});
+		dayFormats.set(zone, format);
+	}
+	return format.format(value);
+};
+// a night window's edges are the same for everyone who worked that date
+const clocks = new Map<string, number>();
 const clockAt = (date: string, time: string, zone: string) => {
+	const key = `${zone} ${date} ${time}`;
+	const held = clocks.get(key);
+	if (held !== undefined) return held;
 	if (!/^\d{2}:\d{2}$/.test(time))
 		throw new Refusal({ message: 'A local clock window requires HH:mm.' });
-	const parsed = parseInstant(`${date} ${time}`, zone);
+	const parsed = parse_instant(`${date} ${time}`, zone);
 	if (parsed === null)
 		throw new Refusal({ message: 'The local clock window cannot resolve its time zone.' });
-	return Date.parse(parsed);
+	const found = Date.parse(parsed);
+	if (clocks.size >= 20_000) clocks.clear();
+	clocks.set(key, found);
+	return found;
 };
 export function clockWindowMinutes(
 	value: unknown,
@@ -86,18 +109,18 @@ export function clockWindowMinutes(
 ): number {
 	let total = 0;
 	for (const span of intervalSpans(value, as_of)) {
-		let date = String(addDays(dayAt(span.start, zone), -1));
-		for (let count = 0; date <= dayAt(span.end, zone); date = String(addDays(date, 1)), count++) {
+		let date = String(add_days(dayAt(span.start, zone), -1));
+		for (let count = 0; date <= dayAt(span.end, zone); date = String(add_days(date, 1)), count++) {
 			if (count > 370) throw new Refusal({ message: 'Split intervals spanning more than a year.' });
 			const start = clockAt(date, start_time, zone),
-				end = clockAt(start_time < end_time ? date : String(addDays(date, 1)), end_time, zone);
+				end = clockAt(start_time < end_time ? date : String(add_days(date, 1)), end_time, zone);
 			total += Math.max(0, Math.min(span.end, end) - Math.max(span.start, start)) / 60000;
 		}
 	}
 	return total;
 }
 export function dateWeekday(value: string): number {
-	if (!isPlainDate(value))
+	if (!is_plain_date(value))
 		throw new Refusal({ message: 'A weekday requires an actual calendar date.' });
 	return new Date(`${value}T00:00:00Z`).getUTCDay();
 }
@@ -109,7 +132,7 @@ export function addWorkingDays(
 	working_dates: readonly string[] = []
 ): string {
 	if (
-		!isPlainDate(value) ||
+		!is_plain_date(value) ||
 		!Number.isInteger(count) ||
 		Math.abs(count) > 1000 ||
 		(new Set(rest).size === 7 && working_dates.length === 0) ||
@@ -123,14 +146,14 @@ export function addWorkingDays(
 		holidays.map((h) => (typeof h === 'string' ? h : valueText(objectValue(h), 'date')))
 	);
 	const working = new Set(working_dates);
-	if (working_dates.some((d) => !isPlainDate(d)))
+	if (working_dates.some((d) => !is_plain_date(d)))
 		throw new Refusal({ message: 'Working-date exceptions require actual dates.' });
 	let day: string = value,
 		remaining = Math.abs(count);
 	for (let seen = 0; remaining > 0; seen++) {
 		if (seen > 10000)
 			throw new Refusal({ message: 'The business calendar cannot reach its deadline.' });
-		day = String(addDays(day, count < 0 ? -1 : 1));
+		day = String(add_days(day, count < 0 ? -1 : 1));
 		if (working.has(day) || (!rest.includes(dateWeekday(day)) && !dates.has(day))) remaining--;
 	}
 	return day;

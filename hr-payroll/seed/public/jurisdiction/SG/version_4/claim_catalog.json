@@ -1,0 +1,56 @@
+[
+	{
+		"code": "MEDICAL_TREATMENT_REIMBURSEMENT",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Act 1953 s.2(1); CPF (Wages — Excluded Payments) Notification 2019 paras.2–3 — medical expense reimbursement is not wages",
+				"locator": "s.2(1); Notification paras.2–3",
+				"url": "https://sso.agc.gov.sg/Act/CPFA1953",
+				"effective_from": "2026-09-01"
+			}
+		],
+		"subtotal_id": "bbc1c84e-a560-5945-892c-ee38b32133ec",
+		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "0d9c420f-ecd4-54f9-8c93-95a4e27dfc7b",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"description": "Medical treatment reimbursement."
+	},
+	{
+		"code": "MEDICAL_CONSULTATION_FEE",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(7A) — the employer bears or reimburses the medical examination fee for certified sick leave",
+				"locator": "s.89(7A)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2026-09-01"
+			}
+		],
+		"subtotal_id": "bbc1c84e-a560-5945-892c-ee38b32133ec",
+		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "99cf22a6-5b6a-52a6-a3f5-804ad7102f48",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"description": "Medical consultation fee."
+	},
+	{
+		"code": "PER_DIEM_OFFICIAL_REIMBURSEMENT",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Board, Per-diem payments — an official expense reimbursement up to actual expenditure is not wages",
+				"locator": "Per-diem",
+				"url": "https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-per-diem-payments",
+				"effective_from": "2026-09-01"
+			}
+		],
+		"subtotal_id": "bbc1c84e-a560-5945-892c-ee38b32133ec",
+		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "16dcbfa1-8ec1-50f4-b0d9-045f972e2ca1",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"description": "Official per-diem reimbursement."
+	}
+]

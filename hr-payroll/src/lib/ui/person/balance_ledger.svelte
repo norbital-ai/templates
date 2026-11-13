@@ -3,14 +3,18 @@
 	 * A person's balance as HR reads it: one line per item and window with what is entitled, carried, used and left,
 	 * and under it every ledger row of the chosen line, newest first. Read-only: the manual adjustment is the one write.
 	 */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Table } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { accountsOf, leftIn } from '../../ledger/core.js';
 
-	let { balanceId, account }: { balanceId: Id<'employee_balance'>; account: unknown } = $props();
-	const t = bolt.t;
+	let {
+		ctx,
+		balanceId,
+		account
+	}: { ctx: PageContext; balanceId: Id<'employee_balance'>; account: unknown } = $props();
+	const t = ctx.t;
 	let chosen = $state<string | null>(null);
 
 	const FAMILIES = ['leave', 'claim', 'statutory', 'pay'] as const;
@@ -59,19 +63,19 @@
 		)
 	]);
 	const law = $derived(
-		bolt.query({
+		ctx.query({
 			jurisdiction_settings: {
 				where: { code: { in: scopes }, status: { eq: 'SEALED' } },
 				fields: ['id'],
-				limit: 1000
-			},
-			'jurisdiction_settings.leave_catalog': { fields: ['code', 'description'], limit: 1000 },
-			'jurisdiction_settings.claim_catalog': { fields: ['code', 'description'], limit: 1000 },
-			'jurisdiction_settings.statutory_contribution_catalog': {
-				fields: ['code', 'description'],
-				limit: 1000
-			},
-			'jurisdiction_settings.subtotals': { fields: ['code', 'name'], limit: 1000 }
+				limit: 1000,
+				leave_catalog: { fields: ['code', 'description'], limit: 1000 },
+				claim_catalog: { fields: ['code', 'description'], limit: 1000 },
+				statutory_contribution_catalog: {
+					fields: ['code', 'description'],
+					limit: 1000
+				},
+				subtotals: { fields: ['code', 'name'], limit: 1000 }
+			}
 		})
 	);
 	// ponytail: a code keeps one description across versions here; read the window's own version if they ever differ
@@ -136,11 +140,12 @@
 
 <Stack gap="lg">
 	<Table
+		{ctx}
 		of={lines}
 		key="person-balance"
 		toolbar={{ new: false, title: t('v2.balances'), description: t('balance.lines_help') }}
-		rowClass={(row) => (row.id === chosen ? 'bg-muted/50' : undefined)}
-		onOpen={(row) => (chosen = row.id === chosen ? null : row.id)}
+		row_class={(row) => (row.id === chosen ? 'bg-muted/50' : undefined)}
+		on_open={(row) => (chosen = row.id === chosen ? null : row.id)}
 		columns={[
 			{ field: 'account', label: t('balance.account') },
 			{ field: 'item', label: t('balance.item'), cell: itemCell },
@@ -152,6 +157,7 @@
 		]}
 	/>
 	<Table
+		{ctx}
 		of="ledger_entry"
 		key="person-ledger"
 		where={{
@@ -164,7 +170,7 @@
 						period: { eq: line.period }
 					})
 		}}
-		orderBy={{ effective_on: 'desc' }}
+		order_by={{ effective_on: 'desc' }}
 		toolbar={{
 			new: false,
 			title:

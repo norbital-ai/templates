@@ -6,7 +6,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { ENTITY, REST, WORK, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, REST, WORK, pack, uuid, workspace, storedQuery } from './kit.ts';
 
 const HOLIDAY = '2026-02-08';
 const SALARY = 3120;
@@ -34,11 +34,11 @@ const seed = (shift: string, hours: number) =>
 const NOW = '2026-02-20T02:00:00.000Z';
 /** February's payslip lines of the one person, by code. */
 const lines = Effect.fnUntraced(function* (t: Kit) {
-	yield* t
-		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
-	yield* t.runDue();
-	const payslip = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows[0];
+	yield* (yield* t.as(t.admin)).act({
+		'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+	});
+	yield* t.run_due();
+	const payslip = (yield* storedQuery(t, { payslip: { limit: 1 } })).payslip.rows[0];
 	const breakdown = Schema.decodeUnknownSync(PayslipBreakdown)(payslip?.breakdown);
 	return Object.fromEntries(breakdown.lines.map((line) => [line.code, line.amount]));
 });
@@ -50,6 +50,34 @@ const paid = (shift: string, hours: number) =>
 /** The day was paid on the holiday line. */
 const holidayPaid = (paid: { readonly [code: string]: number }) =>
 	assert.ok((paid.HOLIDAY_WORK ?? 0) > 0, JSON.stringify(paid));
+
+describe('a holiday worked under the company’s own hour', () => {
+	it.live('pays the clocked hours at twice the company’s hour, as the company computes it', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const paid = yield* lines(t);
+			// 3,120 × 12 ÷ (52 × 40) = 18.00 an hour; a 5-hour shift at twice that, below two days at 3,120 ÷ 26
+			assert.equal(paid.HOLIDAY_WORK, 5 * 2 * 18);
+			assert.ok((paid.HOLIDAY_WORK ?? 0) < (2 * SALARY) / 26);
+		}).pipe(
+			Effect.provide(
+				workspace({
+					seed: (() => {
+						const base = seed(WORK, 5);
+						return {
+							...base,
+							entity_profile_version: (base.entity_profile_version ?? []).map((row) => ({
+								...row,
+								pay_methods: { overtime_hour_basis: 'CONTRACT_WEEKLY' }
+							}))
+						};
+					})(),
+					now: NOW
+				})
+			)
+		)
+	);
+});
 
 describe('a holiday on the roster', () => {
 	it.live('rest day, worked: holiday bands replace the rest-day bands', () =>
@@ -114,11 +142,11 @@ describe('a holiday on the roster', () => {
 		};
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
-			yield* t.runDue();
-			const { payslip } = yield* t.storedQuery({ payslip: { limit: 10 } });
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+			});
+			yield* t.run_due();
+			const { payslip } = yield* storedQuery(t, { payslip: { limit: 10 } });
 			const linesOf = (employment: string) =>
 				Object.fromEntries(
 					Schema.decodeUnknownSync(PayslipBreakdown)(

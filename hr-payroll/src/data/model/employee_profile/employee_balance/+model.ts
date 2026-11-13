@@ -1,10 +1,7 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/employee_balance.ts';
 import { writesLedger } from '../../../../lib/ledger/service.js';
 
-const SYSTEM_ONLY =
-	'Only the ledger moves a balance, an admin included. Key an entry, or a manual adjustment on the employee profile.';
-
-export default model('employee_balance', {
+export default model({
 	description:
 		'One balance row per employee profile. Accounts are keyed by catalogue family (leave, claim, statutory contribution, …), then by account code, so the map is data rather than fixed columns.',
 	record_label: "'Balance'",
@@ -16,26 +13,23 @@ export default model('employee_balance', {
 			default: {}
 		}
 	},
-	unique: [{ fields: ['employee_id'] }],
-	read: {
-		employee_balance: { fields: 'all' },
-		'employee_balance.employee_id': { fields: ['name'] }
-	},
+	constraints: { one_balance: { unique: ['employee_id'] } },
+	outputs: { default: { fields: 'all', employee_id: { fields: ['name'] } } },
 	create: {
 		columns: {
-			employee_balance: ['employee_id', 'account']
+			fields: ['employee_id', 'account']
 		},
-		transform: function* (rows, ctx) {
-			if (!writesLedger(ctx)) return yield* ctx.refuse(SYSTEM_ONLY);
-			return rows;
+		transform: function* (changes, ctx) {
+			if (!writesLedger(ctx)) return yield* ctx.refuse('errors.employee_balance_ledger_only');
+			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
 		columns: {
-			employee_balance: ['account']
+			fields: ['account']
 		},
 		transform: function* (changes, ctx) {
-			if (!writesLedger(ctx)) return yield* ctx.refuse(SYSTEM_ONLY);
+			if (!writesLedger(ctx)) return yield* ctx.refuse('errors.employee_balance_ledger_only');
 			return changes.map(({ set }) => set);
 		}
 	}

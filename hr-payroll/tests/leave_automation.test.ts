@@ -1,7 +1,7 @@
 // The service reaches everyone: on a schedule, by hand, and from the events that change what someone is owed.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { leftOn, type Accounts } from '../src/lib/ledger/core.ts';
@@ -14,13 +14,12 @@ import {
 	ledgerRows as allLedgerRows,
 	measureOf,
 	pack,
-	reversalSlots,
-	sealedLeave,
 	syncAll as compute,
 	uuid,
 	wholeDays,
 	workspace,
-	leaveCreate
+	leaveCreate,
+	storedQuery
 } from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
@@ -71,14 +70,20 @@ const entitled = (t: Kit, code: string, employee?: string) =>
 const ledgerRows = (t: Kit) =>
 	allLedgerRows(t).pipe(Effect.map((rows) => rows.filter((row) => row.account === 'leave')));
 const take = (t: Kit, seed: Seed, code: string, date: string, as = t.admin) =>
-	t.as(as).act('leave_catalog_entry.create', [
-		leaveCreate({
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
-			days: wholeDays(date)
-		})
-	]);
+	t.as(as).pipe(
+		Effect.andThen((caller) =>
+			caller.act({
+				'leave_catalog_entry.create': [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+						days: wholeDays(date)
+					})
+				]
+			})
+		)
+	);
 
 describe('run by hand', () => {
 	it.live(
@@ -108,13 +113,13 @@ describe('run by hand', () => {
 			yield* compute(t);
 			const first = yield* ledgerRows(t);
 			const held = yield* accountsIn(t);
-			const [before] = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance
+			const [before] = (yield* storedQuery(t, { employee_balance: { limit: 1 } })).employee_balance
 				.rows;
 			yield* compute(t);
 			yield* compute(t);
 			assert.equal((yield* ledgerRows(t)).length, first.length);
 			assert.deepEqual(yield* accountsIn(t), held);
-			const [after] = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance
+			const [after] = (yield* storedQuery(t, { employee_balance: { limit: 1 } })).employee_balance
 				.rows;
 			assert.equal(after?.revision, before?.revision);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
@@ -126,7 +131,7 @@ describe('run by hand', () => {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
 			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03');
-			yield* t.runDue();
+			yield* t.run_due();
 			yield* compute(t);
 			const accounts = yield* accountsIn(t);
 			const owed = band(seed, 'MEDICAL_LEAVE', SERVED);
@@ -227,10 +232,10 @@ describe('run for one person', () => {
 		const person = idOf('employee_profile', uuid(4));
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const start = t
-				.as(t.admin)
-				.start('ledger', { employees: [person] })
-				.pipe(Effect.andThen(t.runDue()));
+			const admin = yield* t.as(t.admin);
+			const start = admin
+				.run('ledger', { employees: [person] }, JobResult)
+				.pipe(Effect.andThen(t.run_due()));
 			yield* start;
 			const owed = band(seed, 'MEDICAL_LEAVE', SERVED);
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', uuid(4)), owed);
@@ -257,10 +262,15 @@ describe('a contract change', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			assert.equal((yield* ledgerRows(t)).length, 0);
-			yield* t
-				.as(t.admin)
-				.act('employee_contract.update', [{ target: CONTRACT, set: { reason: 'Terms reviewed' } }]);
-			yield* t.runDue();
+			const [contract] = (yield* storedQuery(t, {
+				employee_contract: { where: { id: { eq: CONTRACT } }, limit: 1 }
+			})).employee_contract.rows;
+			assert.ok(contract !== undefined);
+			const admin = yield* t.as(t.admin);
+			yield* admin.act({
+				'employee_contract.update': [{ target: contract, set: { reason: 'Terms reviewed' } }]
+			});
+			yield* t.run_due();
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band(seed, 'MEDICAL_LEAVE', SERVED));
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
@@ -271,39 +281,41 @@ describe('the events that call it', () => {
 		const seed = seedOf('2023-01-01');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const admin = t.as(t.admin);
-			yield* admin.act('employee_profile.create', [{ name: 'New', email: 'new@example.test' }]);
-			const person = (yield* t.storedQuery({
+			const admin = yield* t.as(t.admin);
+			yield* admin.act({ 'employee_profile.create': [{ name: 'New', email: 'new@example.test' }] });
+			const person = (yield* storedQuery(t, {
 				employee_profile: { where: { name: { eq: 'New' } }, limit: 1 }
 			})).employee_profile.rows[0];
-			const [held] = (yield* t.storedQuery({ employee_contract: { limit: 1 } })).employee_contract
+			const [held] = (yield* storedQuery(t, { employee_contract: { limit: 1 } })).employee_contract
 				.rows;
 			assert.ok(person !== undefined && held !== undefined);
-			yield* admin.act('employee_contract.create', [
-				{
-					employee_id: person.id,
-					entity_id: held.entity_id,
-					engagement: held.engagement,
-					employee_number: 'W2',
-					terms: held.terms,
-					payroll: held.payroll,
-					bank: held.bank,
-					employee_extension_data: held.employee_extension_data,
-					service_started_on: PlainDate('2026-11-02'),
-					effective_range: { from: PlainDate('2026-11-02'), to: null },
-					signed_contract_period: held.signed_contract_period,
-					status: 'DRAFT',
-					reason: 'Joined'
-				}
-			]);
-			const contract = (yield* t.storedQuery({
+			yield* admin.act({
+				'employee_contract.create': [
+					{
+						employee_id: person.id,
+						entity_id: held.entity_id,
+						engagement: held.engagement,
+						employee_number: 'W2',
+						terms: held.terms,
+						payroll: held.payroll,
+						bank: held.bank,
+						employee_extension_data: held.employee_extension_data,
+						service_started_on: PlainDate('2026-11-02'),
+						effective_range: { from: PlainDate('2026-11-02'), to: null },
+						signed_contract_period: held.signed_contract_period,
+						status: 'DRAFT',
+						reason: 'Joined'
+					}
+				]
+			});
+			const contract = (yield* storedQuery(t, {
 				employee_contract: { where: { employee_id: { eq: person.id } }, limit: 1 }
 			})).employee_contract.rows[0];
 			assert.ok(contract !== undefined);
-			yield* admin.act('employee_contract.update', [
-				{ target: contract.id, set: { status: 'SEALED' } }
-			]);
-			yield* t.runDue();
+			yield* admin.act({
+				'employee_contract.update': [{ target: contract, set: { status: 'SEALED' } }]
+			});
+			yield* t.run_due();
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', person.id), band(seed, 'MEDICAL_LEAVE', 0));
 			assert.equal(yield* entitled(t, 'UNPAID_LEAVE', person.id), 0);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
@@ -317,19 +329,19 @@ describe('the events that call it', () => {
 		assert.notEqual(before, after);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			t.clock.set('2026-10-01T02:00:00.000Z');
 			yield* compute(t);
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), before);
 			t.clock.set(NOW);
-			yield* admin.act('payroll_run.create', [
-				{ entity_id: ENTITY, period: '2026-10', kind: 'ON_CYCLE' }
-			]);
-			yield* t.runDue();
-			const run = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
+			yield* admin.act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-10', kind: 'ON_CYCLE' }]
+			});
+			yield* t.run_due();
+			const run = (yield* storedQuery(t, { payroll_run: { limit: 1 } })).payroll_run.rows[0];
 			assert.ok(run !== undefined);
-			yield* admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
-			yield* t.runDue();
+			yield* admin.act({ 'payroll_run.update': [{ target: run, set: { state: 'PAID' } }] });
+			yield* t.run_due();
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), after);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-10-01T02:00:00.000Z' })));
 	});
@@ -343,7 +355,7 @@ describe('the events that call it', () => {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
 			yield* take(t, seed, 'MEDICAL_LEAVE', '2025-12-03');
-			yield* t.runDue();
+			yield* t.run_due();
 			t.clock.set('2026-01-01T02:00:00.000Z');
 			yield* compute(t);
 			const held = (yield* accountsIn(t)).leave?.['MEDICAL_LEAVE'];
@@ -356,7 +368,7 @@ describe('the events that call it', () => {
 			);
 			assert.equal(movement?.operation, 'ADD');
 			assert.equal(movement?.measure, 'entitled');
-			assert.equal(movement?.amount?.toNumber(), next);
+			assert.equal(movement?.amount?.to_number(), next);
 		}).pipe(Effect.provide(workspace({ seed, now: '2025-12-06T02:00:00.000Z' })));
 	});
 });
@@ -368,38 +380,11 @@ describe('posting', () => {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
 			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', t.member(['hr_controller']));
-			yield* t.runDue();
+			yield* t.run_due();
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MEDICAL_LEAVE', 'used'), 1);
 			const [row] = (yield* ledgerRows(t)).filter((item) => item.measure === 'used');
 			assert.equal(row?.operation, 'ADD');
 			assert.match(String(row?.source), /^leave_catalog_entry:/);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
-	);
-
-	it.live('leaves a reversal to the HR controller', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* compute(t);
-			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03');
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]);
-			yield* t.runDue();
-			const sealed = yield* sealedLeave(t);
-			const reversal = {
-				entity_id: ENTITY,
-				employment_id: CONTRACT,
-				catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
-				days: yield* reversalSlots(t, sealed),
-				reverses: sealed
-			};
-			const refused = yield* Effect.flip(
-				t.as(t.member(['hr_manager'])).act('leave_catalog_entry.create', [leaveCreate(reversal)])
-			);
-			assert.match(String(refused), /Only the HR controller makes a reversal/);
-			yield* t
-				.as(t.member(['hr_controller']))
-				.act('leave_catalog_entry.create', [leaveCreate(reversal)]);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
@@ -409,14 +394,14 @@ describe('posting', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const member = t.member(['hr_controller']);
-				const hr = t.as(member);
+				const hr = yield* t.as(member);
 				yield* compute(t);
 				yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', member);
-				yield* t.runDue();
-				const [entry] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
+				yield* t.run_due();
+				const [entry] = (yield* storedQuery(t, { leave_catalog_entry: { limit: 1 } }))
 					.leave_catalog_entry.rows;
 				const [posted] = (yield* ledgerRows(t)).filter((row) => row.measure === 'used');
-				const [balance] = (yield* t.storedQuery({ employee_balance: { limit: 1 } }))
+				const [balance] = (yield* storedQuery(t, { employee_balance: { limit: 1 } }))
 					.employee_balance.rows;
 				assert.ok(entry !== undefined && posted !== undefined && balance !== undefined);
 				assert.equal(entry.created_by, member.id);
@@ -426,7 +411,7 @@ describe('posting', () => {
 				assert.match(
 					String(
 						yield* Effect.flip(
-							hr.act('employee_balance.update', [{ target: balance.id, set: { account: {} } }])
+							hr.act({ 'employee_balance.update': [{ target: balance, set: { account: {} } }] })
 						)
 					),
 					/You may not update/
@@ -434,20 +419,22 @@ describe('posting', () => {
 				assert.match(
 					String(
 						yield* Effect.flip(
-							hr.act('ledger_entry.create', [
-								{
-									balance_id: balance.id,
-									operation: 'ADD',
-									account: 'leave',
-									code: 'MEDICAL_LEAVE',
-									period: posted.period,
-									measure: 'used',
-									amount: decimal(1),
-									unit: 'DAY',
-									effective_on: PlainDate('2026-11-03'),
-									source: 'by hand'
-								}
-							])
+							hr.act({
+								'ledger_entry.create': [
+									{
+										balance_id: balance.id,
+										operation: 'ADD',
+										account: 'leave',
+										code: 'MEDICAL_LEAVE',
+										period: posted.period,
+										measure: 'used',
+										amount: decimal(1),
+										unit: 'DAY',
+										effective_on: PlainDate('2026-11-03'),
+										source: 'by hand'
+									}
+								]
+							})
 						)
 					),
 					/Its period and source are worked out, never typed/

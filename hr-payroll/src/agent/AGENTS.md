@@ -10,21 +10,16 @@ Read [section 0 of the architecture](../../docs/0001-hrms-calculation-architectu
 
 ## Documents
 
-- [Architecture](../../docs/0001-hrms-calculation-architecture.md): owners, the data model, law versions, catalogues, the engine, the ledger, automations, roles.
-- [Core mechanisms, run through](../../docs/0008-mechanisms-walkthrough.md): one example from company setup to an exit.
-- [Reversals and corrections](../../docs/0007-corrections-and-integrity.md): how each act is undone, the invariants, the integrity check.
-- [Statutory coverage in the seed](../../docs/0009-statutory-coverage.md): what each jurisdiction carries and how it is verified.
-- Reference: [model specification](../../docs/0002-model-specification.md) (the model tree and fields), [seed specification](../../docs/0003-jurisdiction-seed-specification.md), [transfer semantics](../../docs/transfer-semantics.md), [manual probe matrix](../../docs/manual-probe-matrix.md), [docs index](../../docs/README.md).
+- [The documentation index](../../docs/README.md): one line per document.
 - [self_service_design.md](./self_service_design.md): the employee self-service interface design.
 
 ## Surfaces
 
 - Models: `src/data/model/` mirrors ownership. A child model sits inside its owner's folder; only the leaf folder names the model.
-- Apps: `hr_controller/{entities,events,formats,obligations,payroll,people,settings/{change_log,lineage}}`, `hr_employee`
-- Kiosk: `attendance`
+- Apps: `hr_controller/{entities,events,formats,obligations,payroll,people,settings/{change_log,lineage}}`, `hr_employee`, `attendance` (kiosk shell)
 - Automations: `contract_materialize`, `encashment`, `entity_materialize`, `invitation_profile`, `ledger`, `registered_effects`, `statutory_research`, `statutory_materialize`
 - Policies: `configuration_execution`, `employee`, `hr_controller`, `hr_manager`, `invitation_profile_automation`, `kiosk`, `manager`, `payroll_execution`, `senior_management`, `supervisor`
-- Shared code: `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/dependants.ts` (what a raised, moved or cancelled exit leaves behind), `src/lib/integrity.ts` (the ledger check), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
+- Shared code: `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/amendments.ts` (the amendment rows a write to a paid period carries), `src/lib/dependants.ts` (an exit's tasks and loan when it is raised, moved or cancelled; the last payslip settles the leave), `src/lib/integrity.ts` (the ledger check), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
 
 ## Gates
 

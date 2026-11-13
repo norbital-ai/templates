@@ -3,7 +3,7 @@ import { queryRows, type Reader } from './reads.js';
 import { lawOn, startOf } from './registrations.js';
 import { isJsonObject, type Json } from './foundation.js';
 import type { JsonObject } from './contracts.js';
-import { addDays, monthOf } from '@norbital-ai/std/date';
+import { add_days, month_of } from '@norbital-ai/std/date';
 
 const minutes = (value: unknown): number => {
 	if (!Array.isArray(value)) return 0;
@@ -222,11 +222,11 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	// the whole months and weeks the batch touches: what its monthly and weekly counts read
 	const bounds = dates
 		.flatMap((date) => [
-			monthOf(date).from,
-			monthOf(date).to ?? date,
+			month_of(date).from,
+			month_of(date).to ?? date,
 			week(date),
-			addDays(week(date), 6),
-			addDays(date, -streak)
+			add_days(week(date), 6),
+			add_days(date, -streak)
 		])
 		.map(String)
 		.sort();
@@ -251,9 +251,9 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 				'actual_worked_intervals',
 				'planned_overtime_intervals'
 			],
-			limit: 10000
+			limit: 10000,
+			shift_definition_id: { fields: ['variant'] }
 		},
-		'roster_entry.shift_definition_id': { fields: ['variant'] },
 		...(named.length === 0
 			? {}
 			: {

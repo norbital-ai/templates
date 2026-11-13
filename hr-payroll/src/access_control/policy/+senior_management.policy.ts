@@ -3,8 +3,7 @@ import { READ_ALL, HR_OPERATIONS, CONFIGURATION, PAYROLL_STARTS, MEMBER_LIMITS }
 export default policy({
 	description:
 		'Authorised HR source, configuration and payroll operations through guarded native workflows.',
-	capabilities: { apps: ['hr_controller', 'hr_employee'] },
+	capabilities: { apps: ['hr_controller', 'hr_employee'], automations: PAYROLL_STARTS },
 	grants: { ...READ_ALL, ...HR_OPERATIONS, ...CONFIGURATION },
-	automations: PAYROLL_STARTS,
 	limits: MEMBER_LIMITS
 });

@@ -108,7 +108,7 @@
 				}
 			}
 		},
-		"condition": "const catalog = ctx.reads.adhoc_catalog[0];\nif (get(catalog, 'code', '') !== 'PROPERTY_DAMAGE_COMPENSATION') return false;\nreturn get(ctx.entry, 'reverses', null) == null;",
+		"condition": "const catalog = ctx.reads.adhoc_catalog[0];\nif (get(catalog, 'code', '') !== 'PROPERTY_DAMAGE_COMPENSATION') return false;\nreturn true;",
 		"validate": "const slip = ctx.reads.payslip.reduce(\n\t(last, row) => (last === null || String(row.period) > String(last.period) ? row : last),\n\tnull\n);\nif (slip === null) return true;\nconst paid =\n\tget(slip, 'gross_earnings', 0) - get(slip, 'employee_statutory', 0) - get(slip, 'tax_withheld', 0);\nreturn ctx.entry.quantity <= ctx.lookup.deduction_share * paid;",
 		"order": 4,
 		"lookup": {
@@ -568,7 +568,7 @@
 				}
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nconst contract = ctx.subject.employment;\nif (get(catalog, 'code', null) !== 'ANNUAL_LEAVE') return false;\nif (get(ctx.entry, 'encashment', false) !== true) return false;\nif (get(ctx.entry, 'reverses', null) != null) return false;\nreturn get(contract, 'effective_range.to', null) !== null;",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nconst contract = ctx.subject.employment;\nif (get(catalog, 'code', null) !== 'ANNUAL_LEAVE') return false;\nif (get(ctx.entry, 'encashment', false) !== true) return false;\nreturn get(contract, 'effective_range.to', null) !== null;",
 		"validate": "const contract = ctx.subject.employment;\nconst exit = contract.effective_range.to;\nconst review = get(contract, 'employee_extension_data.encashment_review', null);\nreturn (\n\treview !== null &&\n\tget(review, 'month', '') === add_months(month_start(exit), -1).substring(0, 7) &&\n\tNumber(get(review, 'daily_wage_vnd', 0)) > 0\n);",
 		"order": 23,
 		"lookup": {},

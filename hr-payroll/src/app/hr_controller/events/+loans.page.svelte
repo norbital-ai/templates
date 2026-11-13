@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput } from '@norbital-ai/bolt';
@@ -18,7 +18,8 @@
 		runWorkbookImport,
 		type WorkbookGrids
 	} from '../../../lib/ui/workbook/workbook_import.js';
-	const scope = companyScope();
+	let { ctx }: { ctx: PageContext } = $props();
+	const scope = companyScope(ctx);
 	let creating = $state(false);
 	let importingLoans = $state(false);
 	let importingRepayments = $state(false);
@@ -28,7 +29,7 @@
 	const held = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_contract: {
 						where: { entity_id: { eq: scope.id }, status: { eq: 'SEALED' } },
 						fields: ['employee_number', 'entity_id', 'effective_range'],
@@ -147,9 +148,9 @@
 	function importLoans() {
 		importingLoans = true;
 		fork(
-			runWorkbookImport({
+			runWorkbookImport(ctx, {
 				action: 'loan_catalog_entry.create',
-				recordLabel: bolt.t('app.loans.title').toLowerCase(),
+				recordLabel: ctx.t('app.loans.title').toLowerCase(),
 				buildPayload: loanRows,
 				importedCount: (payload) => payload.length,
 				warnings: () => loanWarnings
@@ -166,9 +167,9 @@
 	function importRepayments() {
 		importingRepayments = true;
 		fork(
-			runWorkbookImport({
+			runWorkbookImport(ctx, {
 				action: 'loan_catalog_entry_repayment.create',
-				recordLabel: bolt.t('v2.repayments').toLowerCase(),
+				recordLabel: ctx.t('v2.repayments').toLowerCase(),
 				buildPayload: repaymentRows,
 				importedCount: (payload) => payload.length,
 				warnings: () => repaymentWarnings
@@ -186,35 +187,36 @@
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 
 <AppShell
-	title={bolt.t('app.loans.title')}
-	description={bolt.t('v2.loans_help')}
+	title={ctx.t('app.loans.title')}
+	description={ctx.t('v2.loans_help')}
 	icon="lucide:landmark"
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
-	{#if scope.id === null}<EmptyState title={bolt.t('app.events.empty_scope')} />{:else}<Stack
+	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
+	{#if scope.id === null}<EmptyState title={ctx.t('app.events.empty_scope')} />{:else}<Stack
 			gap="lg"
 		>
 			<Table
+				{ctx}
 				of="loan_catalog_entry"
 				key="loans"
 				where={{ entity_id: { eq: scope.id } }}
 				toolbar={{
 					new: () => (creating = true),
-					title: bolt.t('app.loans.title'),
+					title: ctx.t('app.loans.title'),
 					actions: [
 						{
 							run: importLoans,
 							icon: 'lucide:file-spreadsheet',
-							name: bolt.t('holiday_calendar.import_spreadsheet'),
+							name: ctx.t('holiday_calendar.import_spreadsheet'),
 							disabled: () =>
-								importingLoans || held?.current == null ? bolt.t('component.loading') : null
+								importingLoans || held?.current == null ? ctx.t('component.loading') : null
 						},
 						{
 							run: importRepayments,
 							icon: 'lucide:file-spreadsheet',
-							name: bolt.t('v2.import_repayments'),
+							name: ctx.t('v2.import_repayments'),
 							disabled: () =>
-								importingRepayments || held?.current == null ? bolt.t('component.loading') : null
+								importingRepayments || held?.current == null ? ctx.t('component.loading') : null
 						}
 					]
 				}}
@@ -230,12 +232,13 @@
 </AppShell>
 {#if creating && scope.id !== null}<Sheet
 		open
-		onOpenChange={(open) => !open && (creating = false)}
-		title={bolt.t('app.loans.title')}
+		on_open_change={(open) => !open && (creating = false)}
+		title={ctx.t('app.loans.title')}
 		><RecordShell
+			{ctx}
 			of="loan_catalog_entry"
 			mode="create"
 			values={{ entity_id: scope.id }}
-			onDone={() => (creating = false)}
+			on_done={() => (creating = false)}
 		/></Sheet
 	>{/if}

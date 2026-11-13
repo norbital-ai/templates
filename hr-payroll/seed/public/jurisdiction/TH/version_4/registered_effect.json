@@ -27,7 +27,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -69,7 +69,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -118,7 +118,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -169,7 +169,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -230,7 +230,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -290,7 +290,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -338,7 +338,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -372,7 +372,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -418,7 +418,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -454,7 +454,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -502,7 +502,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -550,7 +550,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -587,7 +587,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			},
@@ -635,7 +635,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -678,7 +678,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -714,7 +714,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -750,7 +750,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -786,7 +786,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -820,7 +820,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -856,7 +856,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -904,7 +904,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -953,7 +953,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1003,7 +1003,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1052,7 +1052,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1089,7 +1089,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1126,7 +1126,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1173,7 +1173,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1207,7 +1207,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1244,7 +1244,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			},
@@ -1285,7 +1285,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			},
@@ -1328,7 +1328,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1364,7 +1364,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1424,7 +1424,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1485,7 +1485,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1519,7 +1519,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1565,7 +1565,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1611,7 +1611,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1645,7 +1645,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1681,7 +1681,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1715,7 +1715,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1749,7 +1749,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			},
@@ -1798,7 +1798,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			}
@@ -1834,7 +1834,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1870,7 +1870,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1906,7 +1906,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1942,7 +1942,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1960,11 +1960,11 @@
 		"name": "Disclose the equivalent-welfare bank account",
 		"lookup": {
 			"date_offset_days": 7,
-			"ewf_welfare_effective_from": "2026-10-01"
+			"ewf_welfare_effective_from": "2027-01-01"
 		},
 		"references": [
 			{
-				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 5; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 5; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568 (Royal Gazette vol.142 part 60 Kor, 15 September 2025), then to 1 January 2027 with the start of Employee Welfare Fund collection (amending regulation approved by the Cabinet on 14 October 2026 together with the collection Royal Decree gazetted 22 October 2026; InfoQuest, https://www.infoquest.co.th/?p=663697, read 2026-11-13).",
 				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
 			}
 		],
@@ -1979,7 +1979,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -1997,11 +1997,11 @@
 		"name": "Respond to an equivalent-welfare account inspection request",
 		"lookup": {
 			"date_offset_days": 15,
-			"ewf_welfare_effective_from": "2026-10-01"
+			"ewf_welfare_effective_from": "2027-01-01"
 		},
 		"references": [
 			{
-				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 6; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 6; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568 (Royal Gazette vol.142 part 60 Kor, 15 September 2025), then to 1 January 2027 with the start of Employee Welfare Fund collection (amending regulation approved by the Cabinet on 14 October 2026 together with the collection Royal Decree gazetted 22 October 2026; InfoQuest, https://www.infoquest.co.th/?p=663697, read 2026-11-13).",
 				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
 			}
 		],
@@ -2016,7 +2016,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -2034,11 +2034,11 @@
 		"name": "Return the equivalent-welfare account and exit certificate",
 		"lookup": {
 			"date_offset_days": 30,
-			"ewf_welfare_effective_from": "2026-10-01"
+			"ewf_welfare_effective_from": "2027-01-01"
 		},
 		"references": [
 			{
-				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 7; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 7; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568 (Royal Gazette vol.142 part 60 Kor, 15 September 2025), then to 1 January 2027 with the start of Employee Welfare Fund collection (amending regulation approved by the Cabinet on 14 October 2026 together with the collection Royal Decree gazetted 22 October 2026; InfoQuest, https://www.infoquest.co.th/?p=663697, read 2026-11-13).",
 				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
 			}
 		],
@@ -2053,7 +2053,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -2070,11 +2070,11 @@
 		"code": "EWF_WELFARE_SETUP_VERIFICATION",
 		"name": "Verify the equivalent-welfare arrangement",
 		"lookup": {
-			"ewf_welfare_effective_from": "2026-10-01"
+			"ewf_welfare_effective_from": "2027-01-01"
 		},
 		"references": [
 			{
-				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clauses 2–4; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clauses 2–4; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568 (Royal Gazette vol.142 part 60 Kor, 15 September 2025), then to 1 January 2027 with the start of Employee Welfare Fund collection (amending regulation approved by the Cabinet on 14 October 2026 together with the collection Royal Decree gazetted 22 October 2026; InfoQuest, https://www.infoquest.co.th/?p=663697, read 2026-11-13).",
 				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
 			}
 		],
@@ -2089,7 +2089,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -2106,11 +2106,11 @@
 		"code": "EWF_WELFARE_BENEFICIARY_WITHDRAWAL",
 		"name": "Facilitate an equivalent-welfare beneficiary withdrawal",
 		"lookup": {
-			"ewf_welfare_effective_from": "2026-10-01"
+			"ewf_welfare_effective_from": "2027-01-01"
 		},
 		"references": [
 			{
-				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clauses 8; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clauses 8; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568 (Royal Gazette vol.142 part 60 Kor, 15 September 2025), then to 1 January 2027 with the start of Employee Welfare Fund collection (amending regulation approved by the Cabinet on 14 October 2026 together with the collection Royal Decree gazetted 22 October 2026; InfoQuest, https://www.infoquest.co.th/?p=663697, read 2026-11-13).",
 				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
 			}
 		],
@@ -2125,7 +2125,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				}
 			}
@@ -2157,7 +2157,7 @@
 			"obligation": {
 				"where": {
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				}
 			},
@@ -2181,48 +2181,5 @@
 		"id": "3014a623-3207-5253-b208-91779d84198a",
 		"settings_id": "84c29e3a-8ac4-5674-b16d-f6ae2f938464",
 		"description": "Raises amendment of the employee register after a contract change within 15 days (LPA s.113)."
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"name": "Follow up a contribution corrected for a closed month",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['TH', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['TH', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "1411d14d-552f-5aee-9937-cd268d295d04",
-		"settings_id": "84c29e3a-8ac4-5674-b16d-f6ae2f938464",
-		"description": "Raises follow-up with the fund when a contribution for a closed month is corrected."
 	}
 ]

@@ -29,7 +29,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -69,7 +69,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -125,7 +125,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -172,7 +172,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -219,7 +219,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -260,7 +260,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -301,7 +301,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -341,7 +341,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -381,7 +381,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -420,7 +420,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -459,7 +459,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -499,7 +499,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -539,7 +539,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -583,7 +583,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -634,7 +634,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -676,7 +676,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -725,7 +725,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -766,7 +766,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -806,7 +806,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -834,20 +834,17 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"state": {
-						"eq": "OPEN"
-					},
 					"employment_id": {
 						"eq": {
 							"var": "entry.employment_id"
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 1000
@@ -909,7 +906,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -961,7 +958,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1012,7 +1009,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1062,7 +1059,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1102,7 +1099,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1141,7 +1138,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1183,7 +1180,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1227,7 +1224,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1268,7 +1265,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1309,7 +1306,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1353,7 +1350,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1393,7 +1390,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1433,7 +1430,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1473,7 +1470,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1502,20 +1499,17 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"state": {
-						"eq": "OPEN"
-					},
 					"employment_id": {
 						"eq": {
 							"var": "entry.employment_id"
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 1000
@@ -1581,7 +1575,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1632,7 +1626,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1678,7 +1672,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1720,7 +1714,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1761,7 +1755,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1801,7 +1795,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1843,7 +1837,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1866,6 +1860,11 @@
 		"references": [
 			{
 				"title": "最低工资规定 第十二条; 上海市企业工资支付办法; 昆明市工资支付条例. A full month at the contract monthly rate; Shanghai excludes the employee's social insurance and housing fund from the comparison. A warning, never a stop."
+			},
+			{
+				"title": "上海 最低工资标准 2025-07-01起 月2740元, 小时25元; 2026年未调整",
+				"url": "https://wageindicator.org/zh-cn/ai/work-in-china/minimum-wage/6930-/",
+				"effective_from": "2025-07-01"
 			}
 		],
 		"source_collection": "payslip",
@@ -1892,7 +1891,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "const key = 'MINIMUM_WAGE:' + ctx.entry.id;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nif (rate == null) return false;\nif (rate.unit !== 'MONTHLY') return false;\nif (['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(employment.engagement)) return false;\nconst salary = run.salary_coverage;\nif (month_start(salary.from) !== salary.from) return false;\nif (month_end(salary.to) !== salary.to) return false;\nif (employment.effective_range.from > salary.from) return false;\nconst end = get(employment.effective_range, 'to', null);\nif (end != null && end !== '' && end < salary.to) return false;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst zones = ctx.lookup.minimum_wage_by_zone.filter((row) => row.region === region);\nif (zones.length === 0) return false;\nconst zone = String(get(ext, 'wage_zone', zones[0].default_zone));\nconst table = zones.find((row) => row.zone === zone);\nif (table == null) return false;\nconst contributions = table.excludes_employee_contributions ? Number(ctx.entry.employee_statutory) : 0;\nreturn Number(rate.amount) - contributions < table.monthly;",
+		"condition": "const key = 'MINIMUM_WAGE:' + ctx.entry.id;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nif (rate == null) return false;\nif (rate.unit !== 'MONTHLY') return false;\nif (['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(employment.engagement)) return false;\nconst salary = run.salary_coverage;\nif (month_start(salary.from) !== salary.from) return false;\nif (month_end(salary.to) !== salary.to) return false;\nif (employment.effective_range.from > salary.from) return false;\nconst end = get(employment.effective_range, 'to', null);\nif (end != null && end !== '' && end < salary.to) return false;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst employerRegion = String(get(ext, 'region', ''));\nconst worksite = String(get(employment.terms, 'work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst zones = ctx.lookup.minimum_wage_by_zone.filter((row) => row.region === region);\nif (zones.length === 0) return false;\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(zones[0].default_zone)\n  : String(get(ext, 'wage_zone', zones[0].default_zone));\nconst table = zones.find((row) => row.zone === zone);\nif (table == null) return false;\nconst contributions = table.excludes_employee_contributions ? Number(ctx.entry.employee_statutory) : 0;\nreturn Number(rate.amount) - contributions < table.monthly;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'MINIMUM_WAGE:' + ctx.entry.id\n}];",
@@ -2054,7 +2053,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -2086,49 +2085,6 @@
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + first(ctx.reads.payroll_run).salary_coverage.from.slice(0, 4)\n}];",
 		"id": "de87ca8b-5372-4f8c-b0ec-3babe993ad9d",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"name": "Follow up a contribution corrected for a closed month",
-		"description": "Raises a follow-up task when a contribution correction for a closed month posts to a fund account.",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['CN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['CN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "5b69ed4e-64b2-57a0-816e-9f2f710997ca",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	}
 ]

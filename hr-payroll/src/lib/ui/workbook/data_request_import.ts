@@ -1,7 +1,8 @@
 import { Effect } from 'effect';
 import type { ActInput, Callable } from '@norbital-ai/bolt';
-import { bolt } from '$bolt';
-import { notifyOutcome } from '@norbital-ai/ui';
+import type { PageContext } from '@norbital-ai/bolt/page';
+import { notify_outcome } from '@norbital-ai/ui';
+import { idOf } from '../../payroll_engine/reads.js';
 import {
 	jurisdictionOf,
 	planDataRequest,
@@ -9,11 +10,15 @@ import {
 	type DataRequestPlan
 } from './data_request.js';
 import {
+	only,
 	runWorkbookImportSteps,
 	workbookImportError,
 	WorkbookImportError,
 	type WorkbookGrids
 } from './workbook_import.js';
+
+type Ctx = Pick<PageContext, 't' | 'act' | 'query' | 'clock'>;
+type Target = { readonly id: string; readonly revision: number };
 
 /** Writes small enough for one guest budget; registered effects run once per written batch. */
 const BATCH = 25;
@@ -22,10 +27,10 @@ const batches = <T>(rows: readonly T[]): readonly (readonly T[])[] =>
 		rows.slice(index * BATCH, (index + 1) * BATCH)
 	);
 
-const readKnown = Effect.fnUntraced(function* (grids: WorkbookGrids) {
+const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 	const code = jurisdictionOf(grids);
-	const today = bolt.clock('day').today;
-	const held = yield* bolt.query({
+	const today = ctx.clock('day').today;
+	const held = yield* ctx.query({
 		jurisdiction_settings: {
 			where: { code: { eq: code }, status: { eq: 'SEALED' } },
 			fields: [
@@ -63,7 +68,7 @@ const readKnown = Effect.fnUntraced(function* (grids: WorkbookGrids) {
 				detail: []
 			})
 		);
-	const facts = yield* bolt.query({
+	const facts = yield* ctx.query({
 		registered_rule: {
 			where: { settings_id: { eq: settings.id }, code: { eq: 'CONTRACT_CATEGORIES' } },
 			fields: ['lookup'],
@@ -129,13 +134,14 @@ const hostChecked = <N extends string>(rows: unknown): rows is ActInput<N> => Ar
 
 /** One write of the import. A held batch stops it; re-uploading the file resumes after what landed. */
 const write = Effect.fnUntraced(function* <const N extends string>(
+	ctx: Ctx,
 	callable: N extends Callable ? N : Callable,
 	input: readonly unknown[]
 ) {
 	if (!hostChecked<N>(input)) return [];
-	const outcome = yield* bolt.act<N>(callable, input);
+	const outcome = yield* ctx.act(only(callable, input));
 	if (outcome.kind !== 'committed') {
-		notifyOutcome(bolt, outcome);
+		notify_outcome(ctx, outcome);
 		return yield* Effect.fail(
 			new WorkbookImportError({
 				message: `${callable} is waiting. Upload the file again once it is resolved: rows already written are skipped.`,
@@ -146,23 +152,27 @@ const write = Effect.fnUntraced(function* <const N extends string>(
 	return outcome.records;
 });
 const seal = Effect.fnUntraced(function* <const N extends string>(
+	ctx: Ctx,
 	callable: N extends Callable ? N : Callable,
-	ids: readonly string[]
+	targets: readonly Target[]
 ) {
-	for (const group of batches(ids))
+	for (const group of batches(targets))
 		yield* write<N>(
+			ctx,
 			callable,
 			group.map((target) => ({ target, set: { status: 'SEALED' } }))
 		);
 });
 const created = (
-	records: readonly { readonly model: string; readonly id: string }[],
+	records: readonly { readonly model: string; readonly id: string; readonly revision: number }[],
 	model: string
-) => records.filter((row) => row.model === model).map((row) => row.id);
+): Target[] =>
+	records.filter((row) => row.model === model).map(({ id, revision }) => ({ id, revision }));
 
-const submit = Effect.fnUntraced(function* (plan: DataRequestPlan) {
+const submit = Effect.fnUntraced(function* (ctx: Ctx, plan: DataRequestPlan) {
 	for (const group of batches(plan.entities))
 		yield* write(
+			ctx,
 			'entity.create',
 			group.map((row) => ({
 				name: row.name,
@@ -170,11 +180,13 @@ const submit = Effect.fnUntraced(function* (plan: DataRequestPlan) {
 				settings_code: plan.settingsCode
 			}))
 		);
-	const { entity } = yield* bolt.query({ entity: { fields: ['name'], limit: 10000 } });
+	const { entity } = yield* ctx.query({ entity: { fields: ['name'], limit: 10000 } });
 	const entityIds = new Map(entity.rows.map((row) => [row.name.trim().toLowerCase(), row.id]));
 	// the sheet states one pay schedule a company: its only pay group, made here when it has none. A company with
 	// several groups keeps them; HR edits those in the app
-	const { pay_group } = yield* bolt.query({ pay_group: { fields: ['entity_id'], limit: 10000 } });
+	const { pay_group } = yield* ctx.query({
+		pay_group: { fields: ['entity_id', 'revision'], limit: 10000 }
+	});
 	for (const row of plan.entitySchedules) {
 		const target = entityIds.get(row.name.trim().toLowerCase());
 		if (target === undefined) continue;
@@ -182,23 +194,53 @@ const submit = Effect.fnUntraced(function* (plan: DataRequestPlan) {
 		const groups = pay_group.rows.filter((group) => group.entity_id === target);
 		const [only] = groups;
 		if (only === undefined)
-			yield* write('pay_group.create', [{ name: 'Payroll', payment_schedule, entity_id: target }]);
+			yield* write(ctx, 'pay_group.create', [
+				{ name: 'Payroll', payment_schedule, entity_id: target }
+			]);
 		else if (groups.length === 1)
-			yield* write('pay_group.update', [{ target: only.id, set: { payment_schedule } }]);
+			yield* write(ctx, 'pay_group.update', [
+				{ target: { id: only.id, revision: only.revision }, set: { payment_schedule } }
+			]);
 	}
-	const sealVersions = [...plan.sealVersions];
+	const { entity_profile_version: drafts } = yield* ctx.query({
+		entity_profile_version: {
+			where: { id: { in: plan.sealVersions.map((id) => idOf('entity_profile_version', id)) } },
+			fields: ['revision'],
+			limit: 10000
+		}
+	});
+	const sealVersions: Target[] = [...drafts.rows];
 	for (const group of batches(plan.versions)) {
 		const records = yield* write(
+			ctx,
 			'entity_profile_version.create',
 			group.map(({ company, row }) => ({ ...row, entity_id: entityIds.get(company) ?? '' }))
 		);
 		sealVersions.push(...created(records, 'entity_profile_version'));
 	}
-	yield* seal('entity_profile_version.update', sealVersions);
+	yield* seal(ctx, 'entity_profile_version.update', sealVersions);
 
-	for (const group of batches(plan.profiles)) yield* write('employee_profile.create', group);
-	for (const group of batches(plan.profileUpdates)) yield* write('employee_profile.update', group);
-	const { employee_profile, employee_contract } = yield* bolt.query({
+	for (const group of batches(plan.profiles)) yield* write(ctx, 'employee_profile.create', group);
+	const { employee_profile: updated } = yield* ctx.query({
+		employee_profile: {
+			where: {
+				id: { in: plan.profileUpdates.map((row) => idOf('employee_profile', row.target)) }
+			},
+			fields: ['revision'],
+			limit: 10000
+		}
+	});
+	const profileRevisions = new Map(updated.rows.map((row) => [String(row.id), row.revision]));
+	for (const group of batches(plan.profileUpdates))
+		yield* write(
+			ctx,
+			'employee_profile.update',
+			group.map(({ target, set }) => ({
+				target: { id: target, revision: profileRevisions.get(target) ?? null },
+				set
+			}))
+		);
+	const { employee_profile, employee_contract } = yield* ctx.query({
 		employee_profile: { fields: ['source_reference'], limit: 10000 },
 		employee_contract: { fields: ['employee_id', 'employee_number'], limit: 10000 }
 	});
@@ -208,9 +250,17 @@ const submit = Effect.fnUntraced(function* (plan: DataRequestPlan) {
 		)
 	);
 	for (const row of employee_contract.rows) people.set(row.employee_number, row.employee_id);
-	const sealContracts = [...plan.sealContracts];
+	const { employee_contract: draftContracts } = yield* ctx.query({
+		employee_contract: {
+			where: { id: { in: plan.sealContracts.map((id) => idOf('employee_contract', id)) } },
+			fields: ['revision'],
+			limit: 10000
+		}
+	});
+	const sealContracts: Target[] = [...draftContracts.rows];
 	for (const group of batches(plan.contracts)) {
 		const records = yield* write(
+			ctx,
 			'employee_contract.create',
 			group.map(({ company, number, row }) => ({
 				...row,
@@ -220,21 +270,21 @@ const submit = Effect.fnUntraced(function* (plan: DataRequestPlan) {
 		);
 		sealContracts.push(...created(records, 'employee_contract'));
 	}
-	yield* seal('employee_contract.update', sealContracts);
+	yield* seal(ctx, 'employee_contract.update', sealContracts);
 	return { imported: plan.count, overwritten: [], warnings: plan.warnings };
 });
 
 /** One file, one click: the workbook's Entity, Employment Profile and Employment Contract sheets, in that order. */
-export const importDataRequest = () =>
-	runWorkbookImportSteps<DataRequestPlan>({
-		recordLabel: bolt.t('data_request.records'),
+export const importDataRequest = (ctx: Ctx) =>
+	runWorkbookImportSteps<DataRequestPlan>(ctx, {
+		recordLabel: ctx.t('data_request.records'),
 		buildPayload: (grids) =>
 			Effect.gen(function* () {
-				const known = yield* readKnown(grids);
+				const known = yield* readKnown(ctx, grids);
 				return yield* Effect.try({
 					try: () => planDataRequest(grids, known),
 					catch: workbookImportError
 				});
 			}).pipe(Effect.mapError(workbookImportError)),
-		submit: (plan) => submit(plan).pipe(Effect.mapError(workbookImportError))
+		submit: (plan) => submit(ctx, plan).pipe(Effect.mapError(workbookImportError))
 	});

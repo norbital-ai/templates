@@ -1,10 +1,10 @@
 [
 	{
 		"code": "CN",
-		"name": "China — 1 September 2026",
+		"name": "China — 15 August 2026",
 		"effective_range": {
-			"from": "2026-09-01",
-			"to": null
+			"from": "2026-08-15",
+			"to": "2026-08-31"
 		},
 		"currency": "CNY",
 		"timezone": "Asia/Shanghai",
@@ -742,24 +742,24 @@
 				{
 					"region": "KM",
 					"zone": "1",
-					"monthly": 2270,
-					"hourly": 22,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "2",
-					"monthly": 2120,
+					"monthly": 2170,
 					"hourly": 21,
 					"default_zone": "1",
 					"excludes_employee_contributions": false
 				},
 				{
 					"region": "KM",
-					"zone": "3",
-					"monthly": 1970,
+					"zone": "2",
+					"monthly": 2020,
 					"hourly": 20,
+					"default_zone": "1",
+					"excludes_employee_contributions": false
+				},
+				{
+					"region": "KM",
+					"zone": "3",
+					"monthly": 1870,
+					"hourly": 19,
 					"default_zone": "1",
 					"excludes_employee_contributions": false
 				}
@@ -768,7 +768,7 @@
 				"hpf_regions": [
 					{
 						"code": "SH",
-						"floor": null,
+						"floor": 2740,
 						"rate_max": 7,
 						"rate_min": 5,
 						"supp_max": 5,
@@ -790,7 +790,7 @@
 			"KM": "KM"
 		},
 		"status": "SEALED",
-		"id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"conversions": {
 			"day": {
 				"basis": "FIXED",

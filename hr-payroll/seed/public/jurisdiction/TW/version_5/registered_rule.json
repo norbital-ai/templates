@@ -1,0 +1,415 @@
+[
+	{
+		"code": "MINIMUM_WAGE_FLOOR",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {},
+		"references": [
+			{
+				"title": "最低工資法 §5",
+				"locator": "勞工與雇主雙方議定之工資，不得低於最低工資",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030062&flno=5"
+			},
+			{
+				"title": "勞動部 新聞 99195 (2026-09-24): 116年最低工資",
+				"url": "https://www.mol.gov.tw/1607/1632/1633/99195/",
+				"locator": "審議結果: monthly 29,500 → 30,900, hourly 196 → 205; read 2026-11-13",
+				"quote": "自116年1月1日起"
+			},
+			{
+				"title": "行政院 院會 2026-10-01: 最低工資調整報告 (月薪30,900元、時薪205元)",
+				"url": "https://www.ey.gov.tw/Page/9277F759E41CCD91/59848ab4-676b-41b7-898e-9f5207325f0a",
+				"locator": "院長提示; read 2026-11-13",
+				"quote": "月薪30,900元、時薪205元"
+			}
+		],
+		"validate": "// 最低工資法 §5: an agreed monthly wage may not fall below the minimum wage.\n// A part-time worker is held to the hourly floor; sheltered employment to its assessed wage.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'MONTHLY') return true;\nif (get(ctx.entry, 'engagement', null) === 'PART_TIME') return true;\nconst worker = get(ctx.entry, 'employee_extension_data.worker_category', null);\nif (worker === 'SHELTERED_EMPLOYMENT') return true;\n// LSA §3 excludes household domestic workers from the general floor; their own rule decides\nif (['DOMESTIC_CAREGIVER', 'DOMESTIC_HELPER'].includes(worker)) return true;\nconst allowances = Object.values(get(ctx.entry, 'terms.allowances', {})).reduce((total, allowance) => total + Number(get(allowance, 'amount', 0)), 0);\nreturn Number(get(rate, 'amount', 0)) + allowances >= ctx.lookup.monthly_wage;",
+		"order": 0,
+		"id": "a73fac0c-d5cc-5ca4-bc7a-08945bc3beff",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Holds a monthly agreed wage, including fixed allowances, to the minimum monthly wage; part-time, sheltered and household domestic workers are judged by their own rules."
+	},
+	{
+		"code": "OVERTIME_DAILY_CAP",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"daily_limit_minutes": 720
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §32(2)",
+				"locator": "延長之工作時間連同正常工作時間，一日不得超過十二小時",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32"
+			}
+		],
+		"validate": "// 勞動基準法 §32(2): the day's work, overtime included, may not exceed twelve hours.\nconst lifted = get(ctx.subject.employer, 'entity_extension_data.responsibility_system', false) === true\n  && get(ctx.subject.employment, 'employee_extension_data.responsibility_system_agreement', '') !== '';\nif (lifted) return true;\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', [])) <= ctx.lookup.daily_limit_minutes;",
+		"order": 1,
+		"id": "3e431f13-385d-5436-b12c-16a9199f3bc9",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Refuses a roster day whose actual work, overtime included, exceeds twelve hours, unless a filed responsibility-system agreement applies."
+	},
+	{
+		"code": "MINIMUM_WAGE_HOURLY",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"hourly_wage": 205
+		},
+		"references": [
+			{
+				"title": "最低工資法 §5",
+				"locator": "勞工與雇主雙方議定之工資，不得低於最低工資",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030062&flno=5"
+			},
+			{
+				"title": "勞動部 新聞 99195 (2026-09-24): 116年最低工資",
+				"url": "https://www.mol.gov.tw/1607/1632/1633/99195/",
+				"locator": "審議結果: monthly 29,500 → 30,900, hourly 196 → 205; read 2026-11-13",
+				"quote": "自116年1月1日起"
+			},
+			{
+				"title": "行政院 院會 2026-10-01: 最低工資調整報告 (月薪30,900元、時薪205元)",
+				"url": "https://www.ey.gov.tw/Page/9277F759E41CCD91/59848ab4-676b-41b7-898e-9f5207325f0a",
+				"locator": "院長提示; read 2026-11-13",
+				"quote": "月薪30,900元、時薪205元"
+			}
+		],
+		"validate": "// 最低工資法 §5: an agreed hourly wage may not fall below the hourly minimum wage.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return true;\nconst unit = get(rate, 'unit', null);\nif (unit !== 'HOURLY' && unit !== 'DAILY') return true;\nconst worker = get(ctx.entry, 'employee_extension_data.worker_category', null);\nif (worker === 'SHELTERED_EMPLOYMENT') return true;\nif (['DOMESTIC_CAREGIVER', 'DOMESTIC_HELPER'].includes(worker)) return true;\nconst hours = unit === 'DAILY' ? Number(get(ctx.entry, 'terms.normal_hours_per_day', 8)) : 1;\nreturn get(rate, 'amount', 0) >= ctx.lookup.hourly_wage * hours;",
+		"order": 6,
+		"id": "4c4ce56e-6bba-5d38-a58f-9aef734e9353",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Holds an hourly rate, and a daily rate converted at the contract’s normal hours, to the minimum hourly wage; sheltered and household domestic workers are excluded."
+	},
+	{
+		"code": "UNDER_FIFTEEN_EMPLOYMENT",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"minimum_age": 15
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §45",
+				"locator": "雇主不得僱用未滿十五歲之人從事工作",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=45"
+			}
+		],
+		"validate": "// 勞動基準法 §45(1): a worker under fifteen needs the recorded exception.\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nconst from = get(ctx.entry, 'effective_range.from', null);\nif (born == null || from == null) return true;\nif (age_on(born, from) >= ctx.lookup.minimum_age) return true;\nconst reference = get(ctx.entry, 'employee_extension_data.under_15_exception_reference', null);\nreturn typeof reference === 'string' && reference !== '';",
+		"order": 7,
+		"id": "6ee3b863-236c-54ac-b6c9-7021385c204d",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Refuses employment of a worker under fifteen unless the contract records the graduation certificate or authority permit required by 勞動基準法 §45."
+	},
+	{
+		"code": "CHILD_WORKER_LIMITS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"maximum_age": 16,
+			"weekly_hours": 40
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §44, §47, §48",
+				"locator": "童工每日之工作時間不得超過八小時，每週之工作時間不得超過四十小時",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=47"
+			}
+		],
+		"validate": "// 勞動基準法 §44(1), §47–48: a child worker's normal hours are eight a day, forty a week.\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nconst from = get(ctx.entry, 'effective_range.from', null);\nif (born == null || from == null) return true;\nif (age_on(born, from) >= ctx.lookup.maximum_age) return true;\nconst day = get(ctx.entry, 'terms.normal_hours_per_day', 0);\nconst week = get(ctx.entry, 'terms.normal_hours_per_week', 0);\nreturn !(day > 8 || week > ctx.lookup.weekly_hours);",
+		"order": 8,
+		"id": "69ed06c0-ba94-5da8-a7b4-02c5e0987d9e",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Holds a worker under sixteen to eight normal hours a day and forty normal hours a week."
+	},
+	{
+		"code": "BREAK_AFTER_FOUR_HOURS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"break_after_minutes": 240,
+			"break_minutes": 30
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §35; Ministry of Labour rest-time guidance (2025-09-05)",
+				"locator": "four hours of continuous work require thirty continuous minutes of rest",
+				"url": "https://www.mol.gov.tw/1607/28162/28166/28218/28226/81476/"
+			}
+		],
+		"validate": "// 勞動基準法 §35: four hours of continuous work need thirty continuous minutes of rest.\n// A day of one work span is checked; split shifts are the run's aggregate.\nif (get(ctx.subject.employer, 'entity_extension_data.shift_or_continuous_work', false) === true) return true;\nconst worked = get(ctx.entry, 'actual_worked_intervals', []);\nif (worked.length !== 1) return true;\nconst row = first(worked);\nconst end = get(row, 'end', null);\nif (end == null) return true;\nif (elapsed_minutes(get(row, 'start', null), end) <= ctx.lookup.break_after_minutes) return true;\nreturn interval_minutes(get(row, 'breaks', [])) >= ctx.lookup.break_minutes;",
+		"order": 11,
+		"id": "c21b107f-6747-53e8-9b2a-9f3342845a5a",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Requires thirty continuous minutes of rest after more than four continuous hours of actual work."
+	},
+	{
+		"code": "NORMAL_HOURS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"normal_minutes_per_day": 480
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §30(1)",
+				"locator": "勞工正常工作時間，每日不得超過八小時，每週不得超過四十小時",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30"
+			}
+		],
+		"validate": "// 勞動基準法 §30(1): normal time is eight hours a day; the weekly forty is the run's aggregate.\nconst lifted = get(ctx.subject.employer, 'entity_extension_data.responsibility_system', false) === true\n  && get(ctx.subject.employment, 'employee_extension_data.responsibility_system_agreement', '') !== '';\nif (lifted) return true;\nif (get(ctx.subject.employer, 'entity_extension_data.flexible_working_time', false) === true) return true;\nconst worked = interval_minutes(get(ctx.entry, 'actual_worked_intervals', []));\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []));\nreturn worked - overtime <= ctx.lookup.normal_minutes_per_day;",
+		"order": 13,
+		"id": "95a6c39c-8c9c-5f7d-9a43-42ac8ea6f121",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Holds actual work without planned overtime to eight hours a day, unless responsibility-system or flexible-working-time rules apply."
+	},
+	{
+		"code": "DOMESTIC_MIGRANT_WAGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"monthly_wage": 20000,
+			"regime_from": "2022-08-10"
+		},
+		"references": [
+			{
+				"title": "勞動部 111年8月 公告",
+				"locator": "自8月10日起新聘及續轉聘家事移工月薪調為2萬元",
+				"url": "https://www.mol.gov.tw/1607/1632/1633/54530/post"
+			}
+		],
+		"validate": "// 勞動基準法 §3 excludes household domestic workers from the Act; the Ministry of Labour\n// set NT$20,000 for new and renewed contracts from 2022-08-10.\nconst worker = get(ctx.entry, 'employee_extension_data.worker_category', null);\nif (!['DOMESTIC_CAREGIVER', 'DOMESTIC_HELPER'].includes(worker)) return true;\nif (get(ctx.entry, 'engagement', 'EMPLOYEE') !== 'EMPLOYEE') return true;\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nif (get(rate, 'unit', null) !== 'MONTHLY') return true;\nif (String(ctx.entry.effective_range.from) < ctx.lookup.regime_from) return true;\nconst amount = get(rate, 'amount', null);\nreturn amount != null && amount >= ctx.lookup.monthly_wage;",
+		"order": 18,
+		"id": "cfb1063a-8840-5cd3-ae49-0560f192409a",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Holds a full-time household domestic caregiver’s or helper’s monthly wage on a contract starting on or after 2022-08-10 to the Ministry of Labour’s NT$20,000 standard."
+	},
+	{
+		"code": "ROSTER_DAILY_HOURS_CAP",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"roster_warnings": {
+				"daily_hours": 12,
+				"daily_overtime_hours": 4,
+				"monthly_overtime_hours": 46,
+				"consecutive_days": 6,
+				"weekly_rest_days": 2
+			},
+			"daily_limit_minutes": 720,
+			"normal_minutes_per_day": 480
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §32(2)",
+				"locator": "延長之工作時間連同正常工作時間，一日不得超過十二小時",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32"
+			}
+		],
+		"validate": "// 勞動基準法 §32(2): planned overtime may not push the day past twelve hours.\nconst lifted = get(ctx.subject.employer, 'entity_extension_data.responsibility_system', false) === true\n  && get(ctx.subject.employment, 'employee_extension_data.responsibility_system_agreement', '') !== '';\nif (lifted) return true;\nconst limit = ctx.lookup.daily_limit_minutes - ctx.lookup.normal_minutes_per_day;\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', [])) <= limit;",
+		"order": 20,
+		"id": "0fd62692-3376-5865-93bf-bf50091f4781",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Limits planned overtime to four hours a day so planned work stays within the twelve-hour daily cap."
+	},
+	{
+		"code": "ROSTER_BREAK_AFTER_FOUR_HOURS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"break_after_minutes": 240,
+			"break_minutes": 30
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §35; Ministry of Labour rest-time guidance (2025-09-05)",
+				"locator": "four hours of continuous work require thirty continuous minutes of rest",
+				"url": "https://www.mol.gov.tw/1607/28162/28166/28218/28226/81476/"
+			}
+		],
+		"validate": "// 勞動基準法 §35: planned overtime beyond four continuous hours needs its thirty-minute break.\nif (get(ctx.subject.employer, 'entity_extension_data.shift_or_continuous_work', false) === true) return true;\nconst planned = get(ctx.entry, 'planned_overtime_intervals', []);\nif (planned.length !== 1) return true;\nconst row = first(planned);\nconst end = get(row, 'end', null);\nif (end == null) return true;\nif (elapsed_minutes(get(row, 'start', null), end) <= ctx.lookup.break_after_minutes) return true;\nreturn interval_minutes(get(row, 'breaks', [])) >= ctx.lookup.break_minutes;",
+		"order": 23,
+		"id": "d986104d-7fb0-5796-b4a4-426a4a18f78c",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Requires thirty continuous minutes of rest when planned overtime runs beyond four continuous hours."
+	},
+	{
+		"code": "ROSTER_ATTENDANCE_TO_THE_MINUTE",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"references": [
+			{
+				"title": "勞動基準法 §30(5)–(6)",
+				"locator": "出勤紀錄，應逐日記載勞工出勤情形至分鐘為止",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=30"
+			}
+		],
+		"validate": "// 勞動基準法 §30(5)–(6): the attendance record shows the day to the minute.\n// Planned overtime on a day with no recorded clock intervals is not a record.\nif (get(ctx.entry, 'planned_overtime_intervals', []).length === 0) return true;\nreturn get(ctx.entry, 'actual_worked_intervals', []).length > 0;",
+		"order": 29,
+		"id": "9a0656b9-a343-52e4-ba70-145b2c35c78a",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Refuses planned overtime on a day without a minute-level actual attendance record."
+	},
+	{
+		"code": "SHELTERED_EMPLOYMENT_EVIDENCE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"references": [
+			{
+				"title": "Disability Rights Act §40, §41, §42",
+				"locator": "agreed productivity wage only for legally sheltered employment",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=D0050046&flno=40"
+			}
+		],
+		"validate": "// Disability Rights Act §40(2), §41(1), §42: a sheltered wage needs its assessment,\n// signed agreement and local-authority filing on or before the governed day.\nif (get(ctx.entry, 'employee_extension_data.worker_category', null) !== 'SHELTERED_EMPLOYMENT') return true;\nconst value = (key) => get(ctx.entry, 'employee_extension_data.' + key, null);\nreturn ['sheltered_assessment_reference', 'sheltered_wage_agreement_reference', 'sheltered_wage_filing_reference', 'sheltered_wage_filed_on'].every((key) => typeof value(key) === 'string' && value(key) !== '');",
+		"order": 34,
+		"id": "cf5c3f7b-9c2a-5533-aee3-6784df960c1b",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Requires the vocational assessment, signed productivity-wage agreement and local-authority filing before a sheltered employment wage is accepted."
+	},
+	{
+		"code": "CONTRACT_CATEGORIES",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"categories": {
+				"statutory_work_category": ["NON_MANUAL"],
+				"residency_status": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"]
+			}
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §9",
+				"locator": "the contract term and its category",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9"
+			}
+		],
+		"validate": "// The jurisdiction admits only these contract categories.\nconst categories = ctx.lookup.categories;\nconst category = get(ctx.entry, 'terms.statutory_work_category', null);\nif (category != null && !categories.statutory_work_category.includes(category)) return false;\nconst residency = get(ctx.entry, 'terms.residency_status', null);\nif (residency != null && !categories.residency_status.includes(residency)) return false;\nreturn true;",
+		"order": 35,
+		"id": "d5e48fd5-148e-54fd-94e7-293b17cb6679",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Admits only the statutory work categories and residency statuses this jurisdiction recognises."
+	},
+	{
+		"code": "SICK_LEAVE_PAY_POOL",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"code": {
+						"in": [
+							"SICK_LEAVE",
+							"HOSPITALISED_SICK_LEAVE",
+							"MENSTRUAL_LEAVE",
+							"MENSTRUAL_LEAVE_UNPAID",
+							"SICK_LEAVE_UNPAID"
+						]
+					}
+				},
+				"fields": ["id", "code"]
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.subject.employment.employee_id"
+								}
+							}
+						}
+					}
+				},
+				"fields": ["id", "catalog_id"]
+			},
+			"leave_catalog_entry_day": {
+				"where": {
+					"leave_entry_id": {
+						"is": {
+							"employment_id": {
+								"is": {
+									"employee_id": {
+										"eq": {
+											"var": "ctx.subject.employment.employee_id"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"fields": ["id", "leave_entry_id", "incurred_on", "part", "payroll_run_id"],
+				"limit": 10000
+			}
+		},
+		"lookup": {
+			"sick_pool_days": 30,
+			"menstrual_free_days": 3,
+			"menstrual_days_per_month": 1,
+			"hospital_codes": ["HOSPITALISED_SICK_LEAVE", "SICK_LEAVE_UNPAID"],
+			"hospital_pool_days": 365
+		},
+		"condition": "return ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
+		"validate": "// 勞工請假規則 §4(1), (3): half wages for thirty sick days a calendar year, hospitalised days and menstrual days past three included.\n// 性別平等工作法 §14: one menstrual day a calendar month. The days beyond are SICK_LEAVE_UNPAID and MENSTRUAL_LEAVE_UNPAID.\nconst codes = Object.fromEntries(ctx.reads.leave_catalog.map((row) => [row.id, row.code]));\nconst self = get(ctx.entry, 'id', null);\nconst written = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst own = (Array.isArray(written) ? written : []).map((slot) => ({ incurred_on: String(slot.incurred_on), part: slot.part }));\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst slotsOf = (row) => row === ctx.entry && own.length > 0 ? own : (get(grouped, String(row.id), []) ?? []);\nconst rows = ctx.reads.leave_catalog_entry\n  .filter((row) => row.id !== self)\n  .concat([ctx.entry]);\nconst taken = (names, prefix) => sum(\n  rows\n    .filter((row) => names.includes(get(codes, row.catalog_id, '')))\n    .map((row) => {\n      const held = slotsOf(row).filter((slot) => String(slot.incurred_on).startsWith(prefix)).length / 2;\n      return held;\n    })\n);\n// 勞工請假規則 §4(2): hospitalised sick leave totals at most one year within any two years, its unpaid days included.\nif (own.length > 0 && ctx.lookup.hospital_codes.includes(get(codes, ctx.entry.catalog_id, ''))) {\n  const last = own.map((slot) => String(slot.incurred_on)).toSorted().at(-1);\n  const since = String(add_months(last, -24));\n  const spell = sum(\n    rows\n      .filter((row) => ctx.lookup.hospital_codes.includes(get(codes, row.catalog_id, '')))\n      .map((row) => {\n        const held = slotsOf(row).filter((slot) => String(slot.incurred_on) > since && String(slot.incurred_on) <= last).length / 2;\n        return held;\n      })\n  );\n  if (spell > ctx.lookup.hospital_pool_days)\n    throw 'Hospitalised sick leave would pass the ' + ctx.lookup.hospital_pool_days + ' days allowed within two years.';\n}\nconst months = own\n  .map((slot) => String(slot.incurred_on).substring(0, 7))\n  .filter((month, index, all) => all.indexOf(month) === index);\nreturn months.every((month) => {\n  if (taken(['MENSTRUAL_LEAVE', 'MENSTRUAL_LEAVE_UNPAID'], month) > ctx.lookup.menstrual_days_per_month) return false;\n  const year = month.substring(0, 4);\n  const menstrual = Math.max(0, taken(['MENSTRUAL_LEAVE'], year) - ctx.lookup.menstrual_free_days);\n  return taken(['SICK_LEAVE', 'HOSPITALISED_SICK_LEAVE'], year) + menstrual <= ctx.lookup.sick_pool_days;\n});",
+		"references": [
+			{
+				"title": "勞工請假規則 §4; 性別平等工作法 §14",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=4",
+				"quote": "普通傷病假一年內未超過三十日部分，工資折半發給 — shared by the outpatient, hospitalised and menstrual rows; a single entry straddling the limit is split onto the unpaid row."
+			}
+		],
+		"order": 37,
+		"id": "c6bd9008-50d0-5362-9575-628789c0c170",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Meters ordinary and hospitalised sick leave and menstrual leave against the annual half-pay pool, the two-year hospitalised limit and the monthly menstrual day."
+	},
+	{
+		"code": "MARRIAGE_LEAVE_DAYS",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"code": {
+						"eq": "MARRIAGE_LEAVE"
+					}
+				},
+				"fields": ["id"]
+			}
+		},
+		"lookup": {
+			"days": 14
+		},
+		"condition": "return ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
+		"validate": "// 勞工請假規則 §2: 結婚者給予婚假; the days of the version the leave falls in.\nconst slots = get(ctx.entry, 'leave_catalog_entry_day', []);\nreturn (Array.isArray(slots) ? slots.length : 0) / 2 <= ctx.lookup.days;",
+		"references": [
+			{
+				"title": "勞工請假規則 §2",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=2",
+				"quote": "結婚者給予婚假 — eight days to 2026-09-30, fourteen from 2026-10-01."
+			}
+		],
+		"order": 38,
+		"id": "d67d48c5-0f33-5cf7-a0b0-f9ec3dadacd0",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Limits marriage leave to the days of the version in force: eight before 2026-10-01 and fourteen after."
+	},
+	{
+		"code": "MASS_LAYOFF_WORKSITE_REQUIRED",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {},
+		"references": [
+			{
+				"title": "大量解僱勞工保護法 §2(1): the first four thresholds count the workforce of the same 廠場",
+				"url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0020012"
+			}
+		],
+		"validate": "// 大量解僱勞工保護法 §2: the first four thresholds are per 廠場. Every employment contract in a\n// site-counted engagement must name its establishment; a contractor, consultant or payee is not counted.\nconst engagement = get(ctx.entry, 'engagement', 'EMPLOYEE');\nif (!['EMPLOYEE', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(engagement)) return true;\nreturn String(get(ctx.entry, 'terms.worksite', '')).trim() !== '';",
+		"order": 902,
+		"id": "7cf81e74-d7f1-510a-9c50-eb20044a1c36",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"description": "Requires a native terms.worksite on every site-counted employment so the mass-layoff thresholds can be applied per 廠場."
+	}
+]

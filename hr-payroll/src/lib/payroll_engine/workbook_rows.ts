@@ -1,5 +1,5 @@
 import type { Cell } from '@norbital-ai/std/sheet';
-import { isPlainDate } from '@norbital-ai/std/date';
+import { is_plain_date } from '@norbital-ai/std/date';
 
 /** A workbook exactly as the page picker reads it: sheet name to cells, header first. */
 export type WorkbookSheetGrids = ReadonlyMap<string, readonly (readonly Cell[])[]>;
@@ -96,7 +96,7 @@ export const cellNumber = (value: Cell | undefined): number | null => {
 /** A date cell: the native `YYYY-MM-DD` text, or the first day of a datetime cell. */
 export const cellDay = (value: Cell | undefined): string | null => {
 	const text = cellText(value).slice(0, 10);
-	return isPlainDate(text) ? text : null;
+	return is_plain_date(text) ? text : null;
 };
 
 export const inRange = (

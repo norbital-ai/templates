@@ -1,36 +1,39 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState, RecordShell, Sheet } from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
-	const scope = companyScope();
+	let { ctx }: { ctx: PageContext } = $props();
+	const scope = companyScope(ctx);
 	let creating = $state(false);
 </script>
 
 <AppShell
-	title={bolt.t('app.obligations.title')}
-	description={bolt.t('app.obligations.description')}
+	title={ctx.t('app.obligations.title')}
+	description={ctx.t('app.obligations.description')}
 	icon="lucide:clipboard-check"
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
-	{#if scope.id === null}<EmptyState title={bolt.t('app.events.empty_scope')} />{:else}<Table
+	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
+	{#if scope.id === null}<EmptyState title={ctx.t('app.events.empty_scope')} />{:else}<Table
+			{ctx}
 			of="obligation"
 			key="obligations"
 			where={{ entity_id: { eq: scope.id } }}
-			orderBy={{ due_on: 'asc' }}
-			toolbar={{ new: () => (creating = true), title: bolt.t('app.obligations.title') }}
+			order_by={{ due_on: 'asc' }}
+			toolbar={{ new: () => (creating = true), title: ctx.t('app.obligations.title') }}
 			columns={['title', 'employee_id', 'due_on', 'state']}
 		/>{/if}
 </AppShell>
 {#if creating && scope.id !== null}<Sheet
 		open
-		onOpenChange={(open) => !open && (creating = false)}
-		title={bolt.t('v2.create_duty')}
+		on_open_change={(open) => !open && (creating = false)}
+		title={ctx.t('v2.create_duty')}
 		><RecordShell
+			{ctx}
 			of="obligation"
 			mode="create"
 			values={{ entity_id: scope.id }}
-			onDone={() => (creating = false)}
+			on_done={() => (creating = false)}
 		/></Sheet
 	>{/if}

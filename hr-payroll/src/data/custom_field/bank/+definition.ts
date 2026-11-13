@@ -1,7 +1,7 @@
-import { customField } from '@norbital-ai/bolt';
+import { custom_field } from '@norbital-ai/bolt';
 
 /** A bank account: the employer's paying account or an employee's receiving account. */
-export default customField('bank', {
+export default custom_field({
 	description: 'A bank account used to pay or receive salary.',
 	shape: {
 		kind: 'object',

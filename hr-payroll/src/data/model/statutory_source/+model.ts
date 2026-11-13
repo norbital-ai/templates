@@ -1,9 +1,9 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/statutory_source.ts';
 
-export default model('statutory_source', {
+export default model({
 	description:
 		'One official place research reads for a jurisdiction, for one catalogue family or for all of it. It outlives versions: research proposes new and moved sources, a person activates them, and each run stamps what it checked.',
-	label: 'title',
+	record_label: 'record.title',
 	fields: {
 		jurisdiction_code: { kind: 'text' },
 		family: { kind: 'text', optional: true },
@@ -15,20 +15,23 @@ export default model('statutory_source', {
 			kind: 'state',
 			initial: 'PROPOSED',
 			states: {
-				PROPOSED: { to: ['ACTIVE', 'RETIRED'], edit: 'all' },
-				ACTIVE: { to: ['RETIRED'], edit: 'all' },
-				RETIRED: { to: ['ACTIVE'], edit: ['status', 'notes'] }
+				PROPOSED: { to: ['ACTIVE', 'RETIRED'] },
+				ACTIVE: { to: ['RETIRED'] },
+				RETIRED: { to: ['ACTIVE'] }
 			}
 		},
 		last_checked_on: { kind: 'date', optional: true },
 		research_run_id: { kind: 'text', optional: true },
 		notes: { kind: 'text', optional: true }
 	},
-	unique: [{ fields: ['jurisdiction_code', 'url'] }],
-	read: { statutory_source: { fields: 'all' } },
+	constraints: {
+		source_url: { unique: ['jurisdiction_code', 'url'] },
+		retired_source: { locked: { status: { eq: 'RETIRED' } }, except: ['status', 'notes'] }
+	},
+	outputs: { default: { fields: 'all' } },
 	create: {
 		columns: {
-			statutory_source: [
+			fields: [
 				'jurisdiction_code',
 				'family',
 				'title',
@@ -42,17 +45,17 @@ export default model('statutory_source', {
 	},
 	update: {
 		columns: {
-			statutory_source: ['family', 'title', 'url', 'status', 'notes', 'last_checked_on']
+			fields: ['family', 'title', 'url', 'status', 'notes', 'last_checked_on']
 		},
 		transform: function* (changes, ctx) {
-			if (
-				ctx.actor.kind !== 'member' &&
-				changes.some(
-					({ before, set }) =>
-						set.status === 'ACTIVE' && before.status !== 'ACTIVE' && before.origin === 'AGENT'
-				)
-			)
-				return yield* ctx.refuse('A person activates a source research proposes.');
+			const row = changes.findIndex(
+				(change) =>
+					change.changed('status') &&
+					change.after.status === 'ACTIVE' &&
+					change.before.origin === 'AGENT'
+			);
+			if (ctx.actor.kind !== 'member' && row >= 0)
+				return yield* ctx.refuse('errors.statutory_source_person_activates', { row });
 			return changes.map(({ set }) => set);
 		}
 	}

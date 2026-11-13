@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, pack, storedQuery, uuid, workspace } from './kit.ts';
 
 const LONG_SHIFT = idOf('shift_definition', uuid(20));
 const PATTERN = idOf('shift_pattern', uuid(21));
@@ -65,18 +65,23 @@ describe('a contract shift pattern', () => {
 	it.live('refuses a shift longer than its normal day', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const [held] = (yield* t.storedQuery({ employee_contract: { limit: 1 } })).employee_contract
+			const [held] = (yield* storedQuery(t, { employee_contract: { limit: 1 } })).employee_contract
 				.rows;
 			assert.ok(held !== undefined);
+			const admin = yield* t.as(t.admin);
 			const refused = yield* Effect.flip(
-				t.as(t.admin).act('employee_contract.update', [
-					{
-						target: held.id,
-						set: { terms: { ...held.terms, job_title: 'Changed' } }
-					}
-				])
+				admin.act({
+					'employee_contract.update': [
+						{
+							target: held,
+							set: { terms: { ...held.terms, job_title: 'Changed' } }
+						}
+					]
+				})
 			);
-			assert.match(String(refused), /longer than the contract's 8 normal hours per day/);
+			assert.ok(refused._tag === 'ActRefused');
+			assert.equal(refused.key, 'errors.employee_contract_shift_overlong');
+			assert.equal(refused.values?.hours, 8);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
 	);
 });

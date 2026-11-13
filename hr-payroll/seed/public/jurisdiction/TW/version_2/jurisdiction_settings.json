@@ -108,7 +108,7 @@
 								"continued_after_65": {
 									"type": "boolean",
 									"default": false,
-									"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged at 12%, the ordinary-risk rate cut by 1% (no employment insurance after 65)."
+									"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged the 12% ordinary-risk premium (13% from 2027 less 1%), with no employment insurance after 65."
 								},
 								"disability_subsidy": {
 									"type": "number",
@@ -429,8 +429,8 @@
 			"constants": {
 				"meal_exempt_monthly": 3000,
 				"overtime_first_hours": 2,
-				"overtime_first_multiplier": 1.34,
-				"overtime_further_multiplier": 1.67,
+				"overtime_first_multiplier": 1.3333333333333333,
+				"overtime_further_multiplier": 1.6666666666666667,
 				"maximum_coverage_age_years": 65,
 				"insurance_employee_share": 0.2,
 				"insurance_employer_share": 0.7,
@@ -446,7 +446,8 @@
 				"short_tail_years": 0.5,
 				"retirement_exemption_per_service_year": 206000,
 				"half_pay_share": 0.5,
-				"old_system_cutoff": "2005-07-01"
+				"old_system_cutoff": "2005-07-01",
+				"standard_daily_hours": 8
 			}
 		},
 		"status": "SEALED",

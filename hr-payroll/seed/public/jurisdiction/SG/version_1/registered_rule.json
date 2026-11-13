@@ -329,7 +329,7 @@
 						}
 					}
 				},
-				"fields": ["id", "catalog_id", "reverses"],
+				"fields": ["id", "catalog_id"],
 				"limit": 1000
 			},
 			"leave_catalog_entry_day": {
@@ -348,7 +348,7 @@
 				"limit": 10000
 			}
 		},
-		"validate": "// Employment Act s.89(1): the 60 days of hospitalisation leave include the 14 days of outpatient sick leave.\nconst shared = ctx.reads.leave_catalog;\nconst item = shared.find((row) => row.id === ctx.entry.catalog_id);\nif (item == null) return true;\nconst slots = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst year = String(slots[0].incurred_on).slice(0, 4);\nconst ids = shared.map((row) => row.id);\nconst within = (held) => held.filter((slot) => String(slot.incurred_on).slice(0, 4) === year).length / 2;\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst taken = ctx.reads.leave_catalog_entry\n\t.filter((row) => ids.includes(row.catalog_id))\n\t.reduce((total, row) => total + (get(row, 'reverses', null) != null ? -1 : 1) * within(get(grouped, row.id, [])), 0);\nconst wanted = get(ctx.entry, 'reverses', null) != null ? 0 : within(slots);\nconst hospital = shared.find((row) => row.code === ctx.lookup.hospitalisation);\nconst months = calendar_completed_months(String(ctx.subject.employment.effective_range.from), String(slots[0].incurred_on));\nconst cap = get(hospital.lookup, 'service_bands', []).filter((band) => band.service_months <= months).reduce((best, band) => Math.max(best, band.days), 0);\nif (taken + wanted > cap) throw 'Sick and hospitalisation leave together would pass the ' + cap + ' days the year allows.';\nreturn true;\n",
+		"validate": "// Employment Act s.89(1): the 60 days of hospitalisation leave include the 14 days of outpatient sick leave.\nconst shared = ctx.reads.leave_catalog;\nconst item = shared.find((row) => row.id === ctx.entry.catalog_id);\nif (item == null) return true;\nconst slots = get(ctx.entry, 'leave_catalog_entry_day', []);\nconst year = String(slots[0].incurred_on).slice(0, 4);\nconst ids = shared.map((row) => row.id);\nconst within = (held) => held.filter((slot) => String(slot.incurred_on).slice(0, 4) === year).length / 2;\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst taken = ctx.reads.leave_catalog_entry\n\t.filter((row) => ids.includes(row.catalog_id))\n\t.reduce((total, row) => total + within(get(grouped, row.id, [])), 0);\nconst wanted = within(slots);\nconst hospital = shared.find((row) => row.code === ctx.lookup.hospitalisation);\nconst months = calendar_completed_months(String(ctx.subject.employment.effective_range.from), String(slots[0].incurred_on));\nconst cap = get(hospital.lookup, 'service_bands', []).filter((band) => band.service_months <= months).reduce((best, band) => Math.max(best, band.days), 0);\nif (taken + wanted > cap) throw 'Sick and hospitalisation leave together would pass the ' + cap + ' days the year allows.';\nreturn true;\n",
 		"order": 901,
 		"id": "dd35be5e-23d6-5136-9a6b-f98d9b63a4d4",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"

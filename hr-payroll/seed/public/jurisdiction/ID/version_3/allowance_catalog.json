@@ -1,7 +1,7 @@
 [
 	{
 		"code": "CAR_ALLOWANCE",
-		"description": "Contractual car allowance paid when the employment agreement sets an amount; part of wages.",
+		"description": "Contractual car allowance at the amount the employment agreement sets, prorated by the paid share of the month (unpaid days and part months reduce it); a fixed allowance, part of wages.",
 		"lookup": {},
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
 		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE', null);\nreturn agreed != null;",
@@ -21,7 +21,7 @@
 	},
 	{
 		"code": "HOUSE_ALLOWANCE",
-		"description": "Contractual housing allowance paid when the employment agreement sets an amount; part of wages.",
+		"description": "Contractual housing allowance at the amount the employment agreement sets, prorated by the paid share of the month (unpaid days and part months reduce it); a fixed allowance, part of wages.",
 		"lookup": {},
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
 		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE', null);\nreturn agreed != null;",
@@ -41,7 +41,7 @@
 	},
 	{
 		"code": "SPECIAL_ALLOWANCE",
-		"description": "Contractual special allowance paid when the employment agreement sets an amount; part of wages.",
+		"description": "Contractual special allowance at the amount the employment agreement sets, prorated by the paid share of the month (unpaid days and part months reduce it); a fixed allowance, part of wages.",
 		"lookup": {},
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
 		"eligibility": "const agreed = get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE', null);\nreturn agreed != null;",

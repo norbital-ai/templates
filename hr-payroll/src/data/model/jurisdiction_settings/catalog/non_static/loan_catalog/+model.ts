@@ -1,19 +1,20 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../../../../.norbital/models/loan_catalog.ts';
 import {
 	guardConfigurationRows,
 	requireDraftSettings
 } from '../../../../../../lib/payroll_engine/configuration.js';
 
-export default model('loan_catalog', {
+export default model({
 	description:
 		'Effective jurisdiction configuration. Sealing the owner freezes this rule and its declared references.',
-	label: 'code',
+	record_label: 'record.code',
 	fields: {
 		subtotal_id: {
 			kind: 'ref',
 			to: 'subtotal',
 			optional: true,
-			onDelete: 'restrict',
+			on_delete: 'restrict',
 			inverse: 'loan_catalog'
 		},
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
@@ -23,16 +24,17 @@ export default model('loan_catalog', {
 		eligibility: { kind: 'text', max: 65536, optional: true },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'loan_catalog', owned: true }
 	},
-	unique: [{ fields: ['settings_id', 'code'] }],
-	read: {
-		loan_catalog: { fields: 'all' },
-		'loan_catalog.settings_id': { fields: 'all' },
-		'loan_catalog.subtotal_id': { fields: ['code', 'name'] },
-		'loan_catalog.settings_id.registered_rule': { fields: 'all' }
+	constraints: { code_per_settings: { unique: ['settings_id', 'code'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			settings_id: { fields: 'all', registered_rule: { fields: 'all' } },
+			subtotal_id: { fields: ['code', 'name'] }
+		}
 	},
 	create: {
 		columns: {
-			loan_catalog: [
+			fields: [
 				'subtotal_id',
 				'lookup',
 				'code',
@@ -42,35 +44,39 @@ export default model('loan_catalog', {
 				'settings_id'
 			]
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'loan_catalog',
-				rows,
-				rows.map((r) => r.settings_id)
+				changes.map((c) => c.after),
+				changes.map((c) => c.after.settings_id)
 			);
-			return rows;
+			return changes.map((c) => c.set);
 		}
 	},
 	update: {
 		columns: {
-			loan_catalog: ['subtotal_id', 'lookup', 'code', 'description', 'references', 'eligibility']
+			fields: ['subtotal_id', 'lookup', 'code', 'description', 'references', 'eligibility']
 		},
 		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'loan_catalog',
-				changes.map((c) => ({ ...c.before, ...c.set })),
+				changes.map((c) => c.after),
 				changes.map((c) => c.before.settings_id)
 			);
 			return changes.map((c) => c.set);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* requireDraftSettings(
-				ctx.db.query,
-				rows.map((r) => r.settings_id)
+				ctx.query,
+				changes.map((c) => c.before.settings_id)
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
 		}
 	}

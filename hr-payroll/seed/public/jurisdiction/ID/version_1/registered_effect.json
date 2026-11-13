@@ -23,7 +23,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -81,7 +81,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -147,7 +147,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -204,7 +204,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -258,7 +258,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -308,7 +308,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -347,7 +347,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -382,7 +382,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -418,7 +418,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -476,7 +476,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -511,7 +511,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -550,7 +550,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -588,7 +588,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -634,7 +634,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -674,7 +674,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -716,7 +716,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -762,7 +762,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -803,7 +803,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -839,7 +839,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -891,7 +891,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -953,7 +953,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1029,7 +1029,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1082,7 +1082,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1136,7 +1136,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1192,7 +1192,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -1231,7 +1231,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -1269,7 +1269,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1317,7 +1317,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1384,7 +1384,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1439,7 +1439,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1475,7 +1475,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1511,7 +1511,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -1549,7 +1549,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -1607,7 +1607,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -1655,7 +1655,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1713,7 +1713,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1751,7 +1751,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1789,7 +1789,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -1852,7 +1852,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -1889,7 +1889,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -1926,7 +1926,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1964,7 +1964,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 10000
@@ -2023,9 +2023,6 @@
 						"eq": {
 							"var": "ctx.entry.catalog_id"
 						}
-					},
-					"reverses": {
-						"isNull": true
 					}
 				},
 				"fields": ["id"],
@@ -2074,48 +2071,5 @@
 		"id": "3c13ec22-9419-5e5d-b29d-86be41fe3911",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
 		"condition": "return get(first(ctx.reads.leave_catalog), 'code', '') === ctx.lookup.leave_code;"
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"description": "Raises the task to follow up an adhoc contribution correction posted against a closed month.",
-		"name": "Follow up a contribution corrected for a closed month",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['ID', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['ID', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "2b43782d-cd1b-5fdb-9d1e-46e88067a34a",
-		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	}
 ]

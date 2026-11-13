@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { pack, uuid, workspace } from './kit.ts';
+import { pack, uuid, workspace, storedQuery } from './kit.ts';
 
 const NOW = '2026-02-20T02:00:00.000Z';
 const base = pack(
@@ -52,15 +52,13 @@ const seed = {
 };
 /** Every profile as `[name, login]`, by name. */
 const profiles = (t: Kit) =>
-	t
-		.storedQuery({ employee_profile: { limit: 100 } })
-		.pipe(
-			Effect.map(({ employee_profile }) =>
-				employee_profile.rows
-					.map((row) => [row.name, row.user_id ?? null, row.id] as const)
-					.toSorted(([left], [right]) => left.localeCompare(right))
-			)
-		);
+	storedQuery(t, { employee_profile: { limit: 100 } }).pipe(
+		Effect.map(({ employee_profile }) =>
+			employee_profile.rows
+				.map((row) => [row.name, row.user_id ?? null, row.id] as const)
+				.toSorted(([left], [right]) => left.localeCompare(right))
+		)
+	);
 
 describe('an accepted invitation', () => {
 	it.live(
@@ -70,7 +68,7 @@ describe('an accepted invitation', () => {
 				const t = yield* TestWorkspace;
 				// the automation runs on its minute
 				t.clock.set('2026-02-20T02:01:00.000Z');
-				assert.deepEqual((yield* t.runDue()).failed, []);
+				assert.deepEqual((yield* t.run_due()).failed, []);
 				const linked = yield* profiles(t);
 				assert.deepEqual(
 					linked.map(([name, login]) => [name, login]),
@@ -82,21 +80,17 @@ describe('an accepted invitation', () => {
 				);
 				assert.equal(linked.find(([name]) => name === 'Imported')?.[2], uuid(62));
 				t.clock.set('2026-02-20T02:02:00.000Z');
-				assert.deepEqual((yield* t.runDue()).failed, []);
+				assert.deepEqual((yield* t.run_due()).failed, []);
 				assert.deepEqual(yield* profiles(t), linked);
 				// a login is the invitation's to link, an admin included
-				assert.match(
-					String(
-						yield* Effect.flip(
-							t
-								.as(t.admin)
-								.act('employee_profile.create', [
-									{ name: 'By hand', user_id: idOf('sys_user', uuid(61)) }
-								])
-						)
-					),
-					/Only an accepted invitation links a profile to a login/
+				const admin = yield* t.as(t.admin);
+				const refused = yield* Effect.flip(
+					admin.act({
+						'employee_profile.create': [{ name: 'By hand', user_id: idOf('sys_user', uuid(61)) }]
+					})
 				);
+				assert.ok(refused._tag === 'ActRefused');
+				assert.equal(refused.key, 'errors.employee_profile_invitation_links');
 				assert.deepEqual(yield* profiles(t), linked);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);

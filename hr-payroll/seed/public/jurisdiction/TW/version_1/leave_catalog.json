@@ -136,7 +136,7 @@
 		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
 		"id": "fe92acfe-2528-5fe1-b3ce-242571393ffe",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "PERSONAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Personal leave: unpaid, at most 14 days a calendar year (勞工請假規則 §7).",
 		"paid_share": "0"
 	},
 	{
@@ -160,7 +160,7 @@
 		"subtotal_id": null,
 		"id": "4f4e46c3-87e3-5a58-804c-02b5bf7facf8",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "Marriage leave."
+		"description": "Marriage leave: 8 days at full pay per marriage."
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
@@ -173,7 +173,7 @@
 		"subtotal_id": null,
 		"id": "e97f75f7-b624-598f-8c59-aa71ced08e86",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "Bereavement leave."
+		"description": "Bereavement leave at full pay: 8, 6 or 3 days per death by relationship (勞工請假規則 §3)."
 	},
 	{
 		"code": "OCCUPATIONAL_INJURY_LEAVE",
@@ -186,7 +186,7 @@
 		"subtotal_id": null,
 		"id": "b32ccafa-1c86-56ca-b38b-c808159012f2",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "OCCUPATIONAL_INJURY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Occupational injury leave: full pay for the whole treatment period, no day cap (勞基法 §59)."
 	},
 	{
 		"code": "MATERNITY_LEAVE",
@@ -201,7 +201,7 @@
 		"subtotal_id": "1fcfaf05-b5ec-4b3e-b631-f21514b18497",
 		"id": "f19230b8-35f8-5640-967b-b1d681516a73",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "Maternity leave around childbirth.",
+		"description": "Maternity leave: full pay after six months’ service and half pay before (勞基法 §50(2)); 8 weeks for a birth, 4 for a miscarriage at three months or more, 1 week or 5 days for an earlier one (性平法 §15(1)), all paid on the same rule.",
 		"paid_share": "// 勞動基準法 §50(2): full wages after six months' service, half before.\nconst earliest = ctx.entry.days.map((slot) => slot.date).toSorted()[0];\nreturn calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), earliest) >= ctx.lookup.full_pay_service_months ? 1 : ctx.lookup.half_pay_share;"
 	},
 	{
@@ -225,7 +225,7 @@
 		"subtotal_id": null,
 		"id": "15d93803-fcf3-5a4d-aa56-f6e2b8782beb",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "Paternity leave around childbirth."
+		"description": "Paternity (陪產檢及陪產) leave: 7 days at full pay per pregnancy."
 	},
 	{
 		"code": "PRENATAL_CHECKUP_LEAVE",
@@ -248,7 +248,7 @@
 		"subtotal_id": null,
 		"id": "86edb417-fd46-538b-baa7-eb8055bf04fa",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "PRENATAL_CHECKUP_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Prenatal checkup leave: 7 days at full pay per pregnancy."
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
@@ -276,7 +276,7 @@
 		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
 		"id": "e8cb9faf-6d0e-588e-8a99-55c3c6928a07",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "MENSTRUAL_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Menstrual day once the half-paid sick pool is spent: unpaid, one day a month.",
 		"paid_share": "0"
 	},
 	{
@@ -304,7 +304,7 @@
 		"subtotal_id": "0f186443-cc93-4c5e-a44a-a7f66bd2797a",
 		"id": "aaf344e4-51de-5ed5-9ca6-bce7601dfef8",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "PARENTAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Parental leave (育嬰留職停薪): unpaid, until the child is three, at most two years per child.",
 		"paid_share": "0"
 	},
 	{
@@ -318,7 +318,7 @@
 		"subtotal_id": null,
 		"id": "7fffe525-0f3d-5b90-83ac-a6cfbb4f2e30",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "BREASTFEEDING_TIME: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Breastfeeding time: 60 minutes a day for a child under two, counted as paid working time."
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -351,7 +351,7 @@
 		"subtotal_id": "1fcfaf05-b5ec-4b3e-b631-f21514b18497",
 		"id": "cab0c9df-40b4-5b33-811c-6d4e4073f94e",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "HOSPITALISED_SICK_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Hospitalised sick leave: half pay inside the 30-day yearly pool shared with SICK_LEAVE; unpaid beyond it.",
 		"paid_share": "// 勞工請假規則 §4(3): half wages inside the thirty-day pool; the rule SICK_LEAVE_PAY_POOL holds it and the days beyond are SICK_LEAVE_UNPAID.\nreturn ctx.lookup.half_pay_share;"
 	},
 	{
@@ -365,7 +365,7 @@
 		"subtotal_id": null,
 		"id": "73a81b18-a776-5a09-b9ca-0c4df946c554",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "OFFICIAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Official leave for a legal public duty, at full pay."
 	},
 	{
 		"code": "JOB_SEARCH_LEAVE",
@@ -379,7 +379,7 @@
 		"subtotal_id": null,
 		"id": "6cd963da-0889-5818-80a6-23df46d8068c",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "JOB_SEARCH_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Job-search leave during an employer’s notice: full pay, at most two working days a week."
 	},
 	{
 		"code": "STATUTORY_REST_IN_LIEU",
@@ -395,7 +395,7 @@
 		"subtotal_id": null,
 		"id": "1d7b8f3d-2af5-52a9-9fa5-74790e3ce59b",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "STATUTORY_REST_IN_LIEU: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Rest day owed after a 例假 stopped by disaster: full pay; granted by HR’s manual adjustment only."
 	},
 	{
 		"code": "COMPENSATORY_TIME_OFF",
@@ -427,7 +427,7 @@
 		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
 		"id": "be7621fb-981a-51de-99b4-ef31bc29a89f",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "SICK_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Sick leave beyond the 30 half-paid days: unpaid.",
 		"paid_share": "0"
 	},
 	{
@@ -441,7 +441,7 @@
 		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
 		"id": "1b72d96c-412e-54ea-8a44-eb7988c96376",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "SICK_LEAVE_SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Unpaid sickness suspension (留職停薪) of at most one year per illness.",
 		"paid_share": "0"
 	},
 	{
@@ -455,7 +455,7 @@
 		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
 		"id": "d5c23944-f33e-5f34-9692-51133314067c",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "CHILDCARE_REDUCED_HOURS: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Childcare reduced hours: one unpaid hour a day for a child under three, deducted as an eighth of a day.",
 		"paid_share": "0"
 	},
 	{
@@ -470,7 +470,7 @@
 		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
 		"id": "8b1c92c8-5214-558a-bd35-0cbb6c3e62a7",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "NATURAL_DISASTER_ABSENCE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Absence on an authority’s disaster stop-work day: unpaid; not an absence for discipline or the attendance bonus.",
 		"paid_share": "0"
 	},
 	{
@@ -491,6 +491,6 @@
 		"subtotal_id": null,
 		"id": "16e63ab2-1690-5924-a653-1e5ed01bd86b",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
-		"description": "INDIGENOUS_RITUAL_HOLIDAY: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Indigenous ritual holiday: three days at full pay a calendar year."
 	}
 ]

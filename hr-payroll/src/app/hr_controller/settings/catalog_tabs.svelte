@@ -1,11 +1,14 @@
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
-	import { highlightedLine, Table, Tabs } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { highlighted_line, Table, Tabs } from '@norbital-ai/ui';
 
 	let {
+		ctx,
 		versionId,
 		draft
 	}: {
+		ctx: PageContext;
 		versionId: Id<'jurisdiction_settings'>;
 		draft: boolean;
 	} = $props();
@@ -65,8 +68,8 @@
 	<code
 		class="bg-muted block max-w-[18rem] truncate rounded-sm px-1.5 py-0.5 font-mono text-xs"
 		data-cel
-		>{#each highlightedLine(firstLine(value)) as token, i (i)}<span class={token.class || undefined}
-				>{token.text}</span
+		>{#each highlighted_line(firstLine(value)) as token, i (i)}<span
+				class={token.class || undefined}>{token.text}</span
 			>{/each}</code
 	>
 {/snippet}
@@ -81,6 +84,7 @@
 	<section class="min-w-0 space-y-3">
 		<p class="max-w-4xl text-sm text-muted-foreground">{descriptions[selected]}</p>
 		{#if selected === 'allowance_catalog'}<Table
+				{ctx}
 				of="allowance_catalog"
 				key="allowance_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -94,6 +98,7 @@
 				]}
 			/>
 		{:else if selected === 'overtime_catalog'}<Table
+				{ctx}
 				of="overtime_catalog"
 				key="overtime_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -108,6 +113,7 @@
 				]}
 			/>
 		{:else if selected === 'statutory_contribution_catalog'}<Table
+				{ctx}
 				of="statutory_contribution_catalog"
 				key="statutory_contribution_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -124,6 +130,7 @@
 				]}
 			/>
 		{:else if selected === 'leave_catalog'}<Table
+				{ctx}
 				of="leave_catalog"
 				key="leave_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -138,6 +145,7 @@
 				]}
 			/>
 		{:else if selected === 'claim_catalog'}<Table
+				{ctx}
 				of="claim_catalog"
 				key="claim_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -151,6 +159,7 @@
 				]}
 			/>
 		{:else if selected === 'adhoc_catalog'}<Table
+				{ctx}
 				of="adhoc_catalog"
 				key="adhoc_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -166,6 +175,7 @@
 				]}
 			/>
 		{:else if selected === 'loan_catalog'}<Table
+				{ctx}
 				of="loan_catalog"
 				key="loan_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -173,6 +183,7 @@
 				columns={['code', 'description', { field: 'eligibility', cell: codeCell }, 'subtotal_id']}
 			/>
 		{:else if selected === 'workplace_case_catalog'}<Table
+				{ctx}
 				of="workplace_case_catalog"
 				key="workplace_case_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -180,6 +191,7 @@
 				columns={['code', 'description', 'events', { field: 'lookup', cell: jsonCell }]}
 			/>
 		{:else}<Table
+				{ctx}
 				of="work_event_catalog"
 				key="work_event_catalog"
 				where={{ settings_id: { eq: versionId } }}
@@ -194,7 +206,7 @@
 	class="min-h-[34rem]"
 	tabs={families.map((name) => ({ name, title: labels[name], body: catalog }))}
 	value={selected}
-	onValueChange={(next) => {
+	on_value_change={(next) => {
 		selected = families.find((family) => family === next) ?? selected;
 	}}
 />

@@ -7,12 +7,13 @@
 		RecordShell,
 		Table,
 		TimeInput,
-		confirmAction,
+		confirm_action,
 		toast,
-		type RecordView
+		type RecordView,
+		type Value
 	} from '@norbital-ai/ui';
-	import { bolt } from '$bolt';
-	import type { Id } from '@norbital-ai/bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import type { Id, UpdateInput } from '@norbital-ai/bolt';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { PlainDate } from '@norbital-ai/std/date';
 	import { Effect } from 'effect';
@@ -27,10 +28,11 @@
 		type LoanScheduleProblem
 	} from '../../../../../../../lib/payroll_engine/loan_schedule.js';
 
-	let { view }: { view: RecordView<'loan_catalog_entry'> } = $props();
+	let { view, ctx }: { view: RecordView<'loan_catalog_entry'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	type Repayment = {
 		readonly id: Id<'loan_catalog_entry_repayment'>;
+		readonly revision: number;
 		readonly amount: Decimal;
 		readonly paid_on: string | null;
 		readonly payroll_run_id: Id<'payroll_run'> | null;
@@ -53,6 +55,10 @@
 		return Number.NaN;
 	};
 	const day = (value: unknown): string => String(value ?? '').slice(0, 10);
+	const money = (value: Value): Decimal | null =>
+		value instanceof Decimal || typeof value === 'number' || typeof value === 'string'
+			? Decimal.of(value)
+			: null;
 
 	// One read when the record opens and after each write; a table's live query is not needed here.
 	$effect(() => {
@@ -67,16 +73,17 @@
 		untrack(() => {
 			void (async () => {
 				try {
-					const answer = await bolt.query({
+					const answer = await ctx.query({
 						loan_catalog_entry_repayment: {
 							where: { loan_id: { eq: id } },
-							fields: ['id', 'amount', 'paid_on', 'payroll_run_id'],
-							orderBy: { paid_on: 'asc' },
+							fields: ['id', 'revision', 'amount', 'paid_on', 'payroll_run_id'],
+							order_by: { paid_on: 'asc' },
 							limit: 10000
 						}
 					});
 					rows = answer.loan_catalog_entry_repayment.rows.map((row) => ({
 						id: row.id,
+						revision: row.revision,
 						amount: Decimal.of(row.amount),
 						paid_on: row.paid_on == null ? null : day(row.paid_on),
 						payroll_run_id: row.payroll_run_id ?? null
@@ -107,7 +114,7 @@
 	const problems = $derived(schedule === null ? [] : loanScheduleProblems(schedule));
 	const isLocked = () => record === null || !loaded;
 	const label = (problem: LoanScheduleProblem): string =>
-		bolt.t(
+		ctx.t(
 			problem === 'principal'
 				? 'loan.principal_required'
 				: problem === 'period'
@@ -126,24 +133,24 @@
 		);
 	const refresh = () => reload++;
 
-	const edit = (row: Repayment, set: Record<string, unknown>) =>
+	const edit = (row: Repayment, set: UpdateInput<'loan_catalog_entry_repayment'>) =>
 		fork(
-			bolt.act('loan_catalog_entry_repayment.update', [{ target: row.id, set }]).pipe(
+			ctx.act({ 'loan_catalog_entry_repayment.update': [{ target: row, set }] }).pipe(
 				Effect.tap(() => Effect.sync(refresh)),
 				Effect.catch((error) =>
 					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
 					)
 				)
 			)
 		);
 	const remove = (row: Repayment) =>
 		fork(
-			bolt.act('loan_catalog_entry_repayment.delete', [{ target: row.id }]).pipe(
+			ctx.act({ 'loan_catalog_entry_repayment.delete': [{ target: row }] }).pipe(
 				Effect.tap(() => Effect.sync(refresh)),
 				Effect.catch((error) =>
 					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
 					)
 				)
 			)
@@ -152,21 +159,23 @@
 		if (record === null || isLocked() || schedule === null) return;
 		busy = true;
 		fork(
-			bolt
-				.act('loan_catalog_entry_repayment.create', [
-					{
-						entity_id: record.entity_id,
-						employment_id: record.employment_id,
-						loan_id: record.id,
-						amount: 0,
-						paid_on: PlainDate(schedule.from)
-					}
-				])
+			ctx
+				.act({
+					'loan_catalog_entry_repayment.create': [
+						{
+							entity_id: record.entity_id,
+							employment_id: record.employment_id,
+							loan_id: record.id,
+							amount: 0,
+							paid_on: PlainDate(schedule.from)
+						}
+					]
+				})
 				.pipe(
 					Effect.tap(() => Effect.sync(refresh)),
 					Effect.catch((error) =>
 						Effect.sync(() =>
-							toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+							toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
 						)
 					),
 					Effect.ensuring(Effect.sync(() => (busy = false)))
@@ -179,10 +188,10 @@
 		busy = true;
 		fork(
 			Effect.gen(function* () {
-				const proceed = yield* confirmAction({
-					title: bolt.t('loan.generate_title'),
-					body: bolt.t('loan.generate_body'),
-					confirmLabel: bolt.t('loan.regenerate'),
+				const proceed = yield* confirm_action({
+					title: ctx.t('loan.generate_title'),
+					body: ctx.t('loan.generate_body'),
+					confirm_label: ctx.t('loan.regenerate'),
 					destructive: true
 				});
 				if (!proceed) return;
@@ -190,31 +199,30 @@
 				try {
 					plan = buildLoanSchedule(schedule);
 				} catch (error) {
-					toast.error(error instanceof Error ? error.message : bolt.t('component.error'));
+					toast.error(error instanceof Error ? error.message : ctx.t('component.error'));
 					return;
 				}
-				if (plan.remove.length > 0)
-					yield* bolt.act(
-						'loan_catalog_entry_repayment.delete',
-						plan.remove.map((target) => ({ target: target as Id<'loan_catalog_entry_repayment'> }))
-					);
+				const removing = rows.filter((row) => plan.remove.includes(row.id));
+				if (removing.length > 0)
+					yield* ctx.act({
+						'loan_catalog_entry_repayment.delete': removing.map((target) => ({ target }))
+					});
 				if (plan.create.length > 0)
-					yield* bolt.act(
-						'loan_catalog_entry_repayment.create',
-						plan.create.map((row) => ({
+					yield* ctx.act({
+						'loan_catalog_entry_repayment.create': plan.create.map((row) => ({
 							entity_id: record.entity_id,
 							employment_id: record.employment_id,
 							loan_id: record.id,
 							amount: row.amount,
 							paid_on: PlainDate(row.paid_on)
 						}))
-					);
-				toast.success(bolt.t('loan.generated'));
+					});
+				toast.success(ctx.t('loan.generated'));
 				refresh();
 			}).pipe(
 				Effect.catch((error) =>
 					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
 					)
 				),
 				Effect.ensuring(Effect.sync(() => (busy = false)))
@@ -231,7 +239,7 @@
 		if (loanId === undefined) return;
 		fork(
 			Effect.gen(function* () {
-				const answer = yield* bolt.query({
+				const answer = yield* ctx.query({
 					loan_catalog_entry: {
 						where: { id: { eq: loanId as Id<'loan_catalog_entry'> } },
 						fields: ['quantity', 'repayment_period', 'entity_id', 'employment_id'],
@@ -247,16 +255,15 @@
 					repayments: []
 				});
 				if (plan.create.length === 0) return;
-				yield* bolt.act(
-					'loan_catalog_entry_repayment.create',
-					plan.create.map((row) => ({
+				yield* ctx.act({
+					'loan_catalog_entry_repayment.create': plan.create.map((row) => ({
 						entity_id: loan.entity_id,
 						employment_id: loan.employment_id,
 						loan_id: loanId as Id<'loan_catalog_entry'>,
 						amount: row.amount,
 						paid_on: PlainDate(row.paid_on)
 					}))
-				);
+				});
 			}).pipe(Effect.ignore)
 		);
 	};
@@ -282,11 +289,15 @@
 {#snippet amountCell({ row }: { row: Repayment })}
 	<div class="py-1.5">
 		<MoneyInput
+			{ctx}
 			scale={2}
 			value={row.amount}
 			readonly={rowLocked(row)}
 			disabled={busy}
-			onChange={(amount) => edit(row, { amount })}
+			on_change={(next) => {
+				const amount = money(next);
+				if (amount !== null) edit(row, { amount });
+			}}
 		/>
 	</div>
 {/snippet}
@@ -294,12 +305,13 @@
 {#snippet dateCell({ row }: { row: Repayment })}
 	<div class="py-1.5">
 		<TimeInput
+			{ctx}
 			of="date"
 			precision="month"
 			value={row.paid_on == null ? null : day(row.paid_on)}
 			readonly={rowLocked(row)}
 			disabled={busy}
-			onChange={(paid_on: string | null) =>
+			on_change={(paid_on: string | null) =>
 				edit(row, { paid_on: paid_on == null ? null : PlainDate(paid_on) })}
 		/>
 	</div>
@@ -308,14 +320,14 @@
 {#snippet removeControl(row: Repayment)}
 	{#if row.payroll_run_id != null}<span
 			role="img"
-			title={bolt.t('loan.repayment_locked')}
-			aria-label={bolt.t('loan.repayment_locked')}
+			title={ctx.t('loan.repayment_locked')}
+			aria-label={ctx.t('loan.repayment_locked')}
 			><Icon name="lucide:lock-keyhole" class="size-4 text-muted-foreground" /></span
 		>{:else if !rowLocked(row)}<Button
 			size="icon"
 			variant="outline"
-			aria-label={bolt.t('loan.remove_repayment')}
-			hint={bolt.t('loan.remove_repayment')}
+			aria-label={ctx.t('loan.remove_repayment')}
+			hint={ctx.t('loan.remove_repayment')}
 			onclick={() => remove(row)}
 		>
 			<Icon name="lucide:x" class="size-4" />
@@ -324,29 +336,32 @@
 
 {#snippet repaymentsEmpty()}
 	<div class="grid grid-cols-2 gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground">
-		<span>{bolt.t('loan.repayment_amount')}</span>
-		<span>{bolt.t('loan.column_date')}</span>
+		<span>{ctx.t('loan.repayment_amount')}</span>
+		<span>{ctx.t('loan.column_date')}</span>
 	</div>
-	<p class="px-3 py-3 text-sm text-muted-foreground">{bolt.t('loan.no_repayments')}</p>
+	<p class="px-3 py-3 text-sm text-muted-foreground">{ctx.t('loan.no_repayments')}</p>
 {/snippet}
 
 <RecordShell
+	{ctx}
 	of="loan_catalog_entry"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	{#if record === null}
 		<Form
+			{ctx}
 			of="loan_catalog_entry"
 			mode="create"
 			values={view.mode === 'create' ? view.values : {}}
-			onOutcome={createRepayments}
+			on_outcome={createRepayments}
 			class="h-auto! shrink-0"
 		>
-			{#snippet children(form)}<LoanCreateFields {form} />{/snippet}
+			{#snippet children(form)}<LoanCreateFields {ctx} {form} />{/snippet}
 		</Form>
 	{:else}
 		<Form
+			{ctx}
 			of="loan_catalog_entry"
 			mode="update"
 			id={record.id}
@@ -357,13 +372,13 @@
 		/>
 		<section class="mt-4 grid gap-3" data-loan-repayments>
 			<div class="flex flex-wrap items-center justify-between gap-2">
-				<h3 class="font-medium">{bolt.t('loan.repayments')}</h3>
+				<h3 class="font-medium">{ctx.t('loan.repayments')}</h3>
 				<div class="flex items-center gap-1">
 					{#if !isLocked()}<Button
 							size="icon"
 							variant="outline"
-							aria-label={bolt.t('loan.add_repayment')}
-							hint={bolt.t('loan.add_repayment_hint')}
+							aria-label={ctx.t('loan.add_repayment')}
+							hint={ctx.t('loan.add_repayment_hint')}
 							disabled={busy}
 							onclick={add}
 						>
@@ -373,9 +388,9 @@
 						size="icon"
 						variant="outline"
 						aria-label={scheduleState === 'READY'
-							? bolt.t('loan.recalculate')
-							: bolt.t('loan.regenerate')}
-						hint={bolt.t('loan.schedule_hint')}
+							? ctx.t('loan.recalculate')
+							: ctx.t('loan.regenerate')}
+						hint={ctx.t('loan.schedule_hint')}
 						disabled={busy || isLocked() || scheduleState === 'NO_TERMS'}
 						onclick={regenerate}
 					>
@@ -385,16 +400,17 @@
 			</div>
 			<div class="overflow-hidden rounded-md border">
 				<Table
+					{ctx}
 					of={rows}
 					key="loan-repayments-matrix"
 					layout="grid"
 					embedded
 					controlled
-					rowTrailing={removeControl}
+					row_trailing={removeControl}
 					empty={repaymentsEmpty}
 					columns={[
-						{ field: 'amount', label: bolt.t('loan.repayment_amount'), cell: amountCell },
-						{ field: 'paid_on', label: bolt.t('loan.column_date'), cell: dateCell }
+						{ field: 'amount', label: ctx.t('loan.repayment_amount'), cell: amountCell },
+						{ field: 'paid_on', label: ctx.t('loan.column_date'), cell: dateCell }
 					]}
 				/>
 			</div>

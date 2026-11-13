@@ -1,0 +1,82 @@
+[
+	{
+		"code": "EMPLOYER_CAUSED",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "使用者の責に帰すべき事由による休業 (労働基準法 art.26: 休業手当 60% of the 平均賃金 (art.12) per scheduled day; excluded from the 全労働日 of the annual-leave 80% test, 平成25年7月10日 基発0710第3号) The 平均賃金 leaves out the periods art.12(3) lists, their days and their wages: occupational injury absence, 産前産後休業, an employer-caused suspension (the EMPLOYER_CAUSED work event only, with the 休業手当 paid for it), 育児休業 (incl. 出生時育児休業), 介護休業 (the balance's leave and suspension days) and the probation period (terms.probation_period.to, its wages prorated by calendar days); where they cover the whole three months the wages and days of the period are used undivided (施行規則 art.3; 昭和24年4月11日 基発421号), and a worker paid by the day or hour is guaranteed 60% of the three months’ wages over the days worked (art.12(1)(i); the recorded worked days)."
+			}
+		],
+		"id": "1dd141bd-8928-54a6-ad2d-8ef673b4350a",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "An employer-caused event that changes work or pay."
+	},
+	{
+		"code": "FORCE_MAJEURE",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "天災事変その他の不可抗力による休業 (no 休業手当: not attributable to the employer, 労働基準法 art.26; excluded from the 全労働日, 基発0710第3号; e.g. a natural disaster or a scheduled power cut, 平成23年3月15日 基監発0315第1号)"
+			}
+		],
+		"id": "8360ce4c-a395-5781-b994-08243efe1ed7",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "A force-majeure event that stops work; pay follows the agreed stoppage terms."
+	},
+	{
+		"code": "STRIKE",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "正当な争議行為（同盟罷業）による不就労 (no wage for the days not worked, 民法 art.624(1); excluded from the 全労働日, 基発0710第3号; non-strikers idled by a partial strike are not owed 休業手当, 最判昭和62年7月17日)"
+			}
+		],
+		"id": "20703664-15de-5cf5-85c1-7e00a9bb9642",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "A strike stops work; participant pay follows the agreement."
+	},
+	{
+		"code": "LOCKOUT",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "正当なロックアウト (a defensive lockout releases the wage duty, 最判昭和50年4月25日 丸島水門事件; excluded from the 全労働日, 基発0710第3号; an unjustified lockout is EMPLOYER_CAUSED)"
+			}
+		],
+		"id": "2dd4de58-9a1b-5337-baa6-5b5836ac945a",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "An employer lockout stops work; pay follows the agreed terms."
+	},
+	{
+		"code": "GOVERNMENT_ORDER",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "法令・行政命令による休業 (a closure or work restriction ordered under law, e.g. 感染症法 art.18 就業制限: not attributable to the employer, no 休業手当; excluded from the 全労働日 as force majeure, 基発0710第3号)"
+			}
+		],
+		"id": "bb1c8f97-1394-58af-84ec-9a5f2024a044",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "A government order stops work; the day stays scheduled and attended."
+	},
+	{
+		"code": "WRONGFUL_WORK_REFUSAL",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Annual leave attendance for employer wrongful refusal or invalid dismissal",
+				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=00tb9536&dataType=1&pageNo=1",
+				"quote": "A period the employee could not work because of wrongful employer refusal, including a dismissal established invalid, remains in total working days and is deemed attended. This attendance category does not compute the separate back-wage liability."
+			}
+		],
+		"id": "34ce8970-9ee8-574f-a210-dc3363b884e1",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "A wrongful refusal to provide work."
+	}
+]

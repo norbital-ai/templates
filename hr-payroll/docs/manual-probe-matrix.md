@@ -59,15 +59,18 @@ Probe a bonus-only or ad-hoc off-cycle run with no base salary:
 
 Expected: off-cycle pay lines exclude base pay; statutory amounts use the actual off-cycle wage; caps and annual ceilings remain correct across on-cycle and off-cycle runs. Record run kind, lines, wage base, cap and expected/actual statutory amounts.
 
-### 3.6 Contract lock during a run
+Then probe a leaver: end a contract, pay its last period, key overtime on a paid day, and create an off-cycle run choosing the waiting period under "Earlier periods to carry". Expected: one payslip holding only "Adjustments for earlier periods" lines, net positive; the run's "Earlier periods" tab lists the row as carried. Deleting a paid bonus instead and carrying it off-cycle is refused: the recovery stays outside payroll. Naming an entry or period another run already took is refused: "An entry or amended period it names is already attached to another payroll run."
 
-While a run covers a period:
+### 3.6 A run holding its people
 
-1. Attempt to change the employee's contract terms (rate, allowances, normal hours, bank details) for that period.
-2. Expect a refusal naming the capturing run; unrelated future-dated changes remain allowed.
-3. Delete the unpaid run and retry the same change.
+While a run is unpaid:
 
-Expected: the run captures the contract version it calculated, and its input cannot change underneath it. Record run id, attempted change and refusal.
+1. Attempt to change the contract of someone on it (rate, allowances, normal hours), or any record of theirs dated in its period or before.
+2. Expect "Run N holds this person and is not paid yet. Delete it, correct this, and run again." A change dated after the run's period is allowed.
+3. Delete the unpaid run and retry the same change: accepted.
+4. Mark a run paid, then seal a new contract version from a date inside its period: accepted. See §7.2.
+
+Expected: nothing of a person moves under an unpaid run; a paid period is corrected at its source. Record run number, attempted change and the refusal or the amendment shown on the next run.
 
 ### 3.7 Overtime bands and excessive work
 
@@ -87,7 +90,8 @@ For each of leave, claim, adhoc and loan:
 1. Create the record through the employee or controller UI.
 2. Where the writer needs approval, approve it through the policy's approval flow.
 3. Verify one ledger row per movement and the projected balance. A loan posts no ledger row.
-4. As the HR controller, reverse it with a reversal entry on the same item and verify the inverse movement with no history edit.
+4. Change its amount, then delete it, before any run: the ledger posts the difference, then the inverse, with no history edit.
+5. Create it again, run and pay the period, then change it: the form asks "This period is already paid"; after confirming, the paid payslip is unchanged and the next run lists the period under "Earlier periods".
 
 Expected: leave uses dated half-day slots; claim/adhoc use quantity and unit; loan uses principal and repayment amount; the ledger account/code matches the family convention.
 
@@ -117,31 +121,37 @@ A green automated suite is not acceptance evidence. A red probe is always a defe
 
 ### Payroll
 
-| Probe                               | Expected                                                                                                                               |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Off-cycle bonus, no base salary     | Base 0; a scheme charged on salary alone charges nothing; tax on the bonus once; net positive                                          |
-| Off-cycle bonus, every jurisdiction | Each statutory row owes what the same bonus owes inside the on-cycle run, both sides, in either order                                  |
-| MY PCB on an off-cycle bonus        | The bonus withholds its additional MTD only; off-cycle plus on-cycle equals one on-cycle bonus, in either order; the month counts once |
-| SG CPF annual ceiling               | Additional wages attract CPF only up to what the annual ceiling leaves                                                                 |
-| Second salary in a pay month        | A rolled pay date or a mid-month transfer charges each wage month or employer on its own; half-month cycles still combine              |
-| Allowance in a transfer month       | Each company pays its days; a new contract in the same company pays the month once                                                     |
-| Duplicate on-cycle run              | The second run for the pay group and period is refused                                                                                 |
-| Skipped cycle                       | A period behind a later on-cycle run is refused                                                                                        |
-| Marking a run paid                  | The pay date shows only then, keyed in as that day, and is never typed                                                                 |
-| Run paid at once, a full entity     | Every effect finishes, no conflict                                                                                                     |
-| First run deleted and run again     | The rerun posts and can be paid                                                                                                        |
-| Run a later run counted             | Deletion refused; runs come off newest first                                                                                           |
-| A run of about 80 people            | Stays under 2 s of CPU                                                                                                                 |
+| Probe                               | Expected                                                                                                                                                                                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Off-cycle bonus, no base salary     | Base 0; a scheme charged on salary alone charges nothing; tax on the bonus once; net positive                                                                                                                                                           |
+| Off-cycle bonus, every jurisdiction | Each statutory row owes what the same bonus owes inside the on-cycle run, both sides, in either order                                                                                                                                                   |
+| MY PCB on an off-cycle bonus        | The bonus withholds its additional MTD only; off-cycle plus on-cycle equals one on-cycle bonus, in either order; the month counts once                                                                                                                  |
+| SG CPF annual ceiling               | Additional wages attract CPF only up to what the annual ceiling leaves                                                                                                                                                                                  |
+| Second salary in a pay month        | A rolled pay date or a mid-month transfer charges each wage month or employer on its own; half-month cycles still combine                                                                                                                               |
+| Allowance in a transfer month       | Each company pays its days; a new contract in the same company pays the month once                                                                                                                                                                      |
+| Duplicate on-cycle run              | The second run for the pay group and period is refused                                                                                                                                                                                                  |
+| Skipped cycle                       | A period behind a later on-cycle run is refused                                                                                                                                                                                                         |
+| Marking a run paid                  | The pay date shows only then, keyed in as that day, and is never typed                                                                                                                                                                                  |
+| Run paid at once, a full entity     | Every effect finishes, no conflict                                                                                                                                                                                                                      |
+| First run deleted and run again     | The rerun posts and can be paid                                                                                                                                                                                                                         |
+| Run a later run counted             | Deletion refused; runs come off newest first                                                                                                                                                                                                            |
+| A run of about 80 people            | Stays under 2 s of CPU                                                                                                                                                                                                                                  |
+| Salary listing export               | One sheet per run; a coloured band per subtotal closed by it; GROSS PAY before the first statutory band; TAX WITHHELD after the tax band; NET PAY; employer's portion; COST TO COMPANY = net + employee contributions + tax withheld + employer portion |
+| MY CP38 instalment                  | An ad hoc entry on `CP38_INSTALMENT`: deducted, counted in TAX WITHHELD, posted to its own account; the next month's PCB is as without it                                                                                                               |
 
 ### Corrections
 
-| Probe                                 | Expected                                                                                                                                       |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| No-pay day cancelled after its run    | HR enters a reversal on the same item, dated in the next period; that run pays it. A date in a period that has run is refused                  |
-| No-pay day and allowances             | Allowances that read `ctx.paid_share` fall with the day; a bonus stays whole; the reversal gives back what was taken, though the months differ |
-| Overpaid year                         | A row with `below_zero: REFUND` pays a refund line on that run, once; any other row stops at zero and the next run nets it                     |
-| Wrong bonus reversed                  | Premiums and year-end tax come to what they would have been without it                                                                         |
-| Contribution wrong for a closed month | The adjustment entry moves that scheme's balance, a task raises, and the next run pays it                                                      |
+| Probe                               | Expected                                                                                                                                                          |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No-pay day removed after its run    | HR removes the day on the leave entry and confirms. The paid payslip stands; the next payslip gives the day's pay back under "Adjustments for earlier periods"    |
+| No-pay day added in a paid month    | Accepted after the confirmation. The next payslip takes the day's pay, and allowances that read `ctx.paid_share`, tagged with the paid month; a bonus stays whole |
+| Overpaid year                       | A row with `below_zero: REFUND` pays a refund line on that run, once; any other row stops at zero and the next run nets it                                        |
+| Wrong bonus deleted after its run   | The next payslip takes the bonus back with its contributions and tax, tagged with its month; the year's tax comes to what it would have been without it           |
+| Contribution wrong for a paid month | HR corrects the set-up on the contract from its real date. The next run collects each month's difference under that month, with no lump and no double             |
+| Correction put back                 | A record changed and then put back as it was carries nothing on the next payslip                                                                                  |
+| Recovery larger than the pay        | Net pay is zero with a line "Recovery carried forward"; the following run takes the rest, once                                                                    |
+| Correction under an unpaid run      | Refused with "Run N holds this person and is not paid yet. Delete it, correct this, and run again."                                                               |
+| Paid run deleted                    | Refused: a paid run is locked. Correct the record where it was recorded                                                                                           |
 
 ### Leave and facts
 
@@ -163,14 +173,14 @@ A green automated suite is not acceptance evidence. A red probe is always a defe
 | Probe                        | Expected                                                                                                                      |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | Contract state               | Sealed shows the lock and Promotion, Life event, Transfer, Terminate, with no status field or Edit; draft shows Edit and Seal |
-| Promotion                    | Same employee number, service start preserved; no encashment; leave stays                                                     |
+| Promotion                    | Same employee number, service start preserved; no leave paid out; leave stays                                                 |
 | Transfer, cross-jurisdiction | Old leave settles where the row allows; target-driven categories, an old value cleared; the target's fields stored            |
 | Sealed overlap               | A draft overlapping an open sealed contract is refused until the predecessor ends                                             |
 | Termination                  | A last day and a reason; jurisdiction-specific exit facts stay in `employee_extension_data`                                   |
-| Exit encashment              | A request held for the HR controller; approved, the days post as used and pay in `FINAL_PAY`                                  |
+| Exit encashment              | No entry and no request; the last payslip lists the leave under `cash_out` and the balance ends at zero                       |
 | No double payment            | A second run for the period repays no sealed entry                                                                            |
 | Balance across a move        | One `employee_balance` row per employee; a term change leaves the row in place                                                |
-| Void contract                | Moves to `VOID` with a reason after it was paid; the next run excludes it                                                     |
+| Void contract                | Moves to `VOID` with a reason after it was paid; the next run excludes it and works its paid periods out again                |
 | Void employer version        | Moves to `VOID`; the next run cannot use it                                                                                   |
 | Void jurisdiction version    | Moves to `VOID`; the next run cannot use it                                                                                   |
 
@@ -196,18 +206,18 @@ A green automated suite is not acceptance evidence. A red probe is always a defe
 | Face enrolment             | Available from Profile, not a separate tab.                                                                                       |
 | Self-service leave request | The employment selector is hidden when the page already knows the employment; the catalog and calendar remain.                    |
 
-### Ledger, sealing and reversals
+### Ledger, sealing and corrections
 
-| Probe                   | Expected                                                                                                                                  |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Sealed leave slot       | A leave slot captured by a run cannot be edited or deleted. The entry refuses the change.                                                 |
-| Uncaptured leave slot   | Removing a slot before a run posts the inverse ledger movement only; no pay line appears.                                                 |
-| Partially paid leave    | A reversal names the original entry and only the captured subset. The ledger posts the inverse once; the next run repays only those days. |
-| No double reversal      | A second reversal of the same slot is refused. A reversal outside the captured set is refused.                                            |
-| Full leave cancellation | A reversal containing every captured slot returns the leave balance and pay to zero, once.                                                |
-| Sealed loan repayment   | A repayment captured by a run cannot be edited; HR corrects it with a reversal, refunded by the next run.                                 |
-| Ledger conservation     | Every posting has one inverse; no negative amount, no duplicate source, and the balance returns exactly after a full cancellation.        |
-| Work event              | An event never posts by itself; only the allowance/ad-hoc/leave row it qualifies posts.                                                   |
+| Probe                    | Expected                                                                                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unpriced leave slot      | Removing a slot before a run posts the inverse ledger movement only; no pay line appears.                                                          |
+| Paid leave slot          | Removing a slot a paid run priced asks for confirmation, returns the half day to the balance at once, and the next payslip carries the pay for it. |
+| Slot under an unpaid run | The change is refused: the run holds the person. Delete the run first.                                                                             |
+| Full leave cancellation  | Deleting an entry whose slots were all paid returns the leave balance at once and the pay on the next payslip, once.                               |
+| Paid loan repayment      | A repayment a paid run took can be changed or deleted after the confirmation; the next payslip carries the difference for its period.              |
+| Ledger conservation      | Every posting has one inverse; no negative amount, no duplicate source, and the balance returns exactly after a full cancellation.                 |
+| Carried postings         | A carried line posts to the totals of the period it is tagged with, not the period of the payslip that carries it.                                 |
+| Work event               | An event never posts by itself; only the allowance/ad-hoc/leave row it qualifies posts.                                                            |
 
 ### Roster and kiosk
 
@@ -244,28 +254,60 @@ Run against the local demo after `env status` says READY and the demo digest mat
 
 1. Pick a current employee with a positive annual-leave balance on a row with a `payout`.
 2. End the contract (effective range `to`, `final_pay_due_on`) through the UI.
-3. Expect one cash-out request per row with a `payout`, held for the HR controller, before any run; quantity equals what is left after the exit's proration. Approve it: the days post as used and the final run pays it into FINAL_PAY; no later cycle creates a payslip for the person. A run made while the request still waits is refused.
-4. Record balance before, entry id, quantity, ledger movement, final net.
+3. Expect no leave entry, request or task for the leave. Run the cycle whose salary period holds the last day: the payslip lists each row with a `payout` under `cash_out` for what is left after the exit's proration, paid at the row's `payout`, and its posting leaves the balance at zero. No later on-cycle run creates a payslip for the person.
+4. Delete that run and run it again with `encash_leave` switched off in the termination sheet: nothing is paid out and the balance keeps its days. Leave taken beyond what the last day earned is taken back either way.
+5. Mark the run paid, then cancel the exit (a successor version): the next run carries the pay-out back under "Adjustments for earlier periods" and the days return.
+6. Record balance before, quantity, ledger movement, final net.
 
-### 7.2 Ledger: reversal, deletion, addition
+### 7.2 Correcting a paid month
 
-1. Create a leave entry, run payroll, reverse one captured half-day.
-2. Expect exactly one inverse ledger row (same account/code/period, opposite operation), original row untouched, original slot still `payroll_run_id`.
-3. Reverse the same slots again: refused (a slot is reversed once; a partial reversal leaves the rest reversible).
-4. Delete a captured slot: refused with "Create a reversal"; delete an unpriced slot: accepted and ledger inverted once.
-5. Add a new entry after reversal: allowed, posts once, balance returns to the expected figure.
+Each probe starts with a month run and marked paid. Note the paid payslip's figures first: they must be the same at the end.
+
+**Missed overtime**
+
+1. Open Events → Work, find a day of the paid month, add two hours of planned overtime and the clock that covers it, and save.
+2. Open the paid month's payslip: nothing has changed.
+3. Create the next month's run and open its "Earlier periods" tab: the person and the paid month are listed as carried by this run.
+4. Open the person's payslip in the new run. Under "Adjustments for earlier periods" expect the overtime for the paid month and what it moves in contributions and tax, each tagged with that month. No amount was keyed.
+5. Record the carried lines, and compare the two months' net pay with a workspace where the overtime was keyed in time: the totals are equal.
+
+**A deleted claim**
+
+1. Open Events → Claims, pick a claim the paid run paid, and delete it. Changing its amount instead asks "This period is already paid"; confirm with "Save correction".
+2. Expect the claim's `used` to return to the balance at once.
+3. Run the next month. Under "Adjustments for earlier periods" expect one deduction for the claim, tagged with its month, for exactly what was paid.
+4. Delete that unpaid run and create it again: the payslip is the same.
+5. Move another paid claim's date into the unpaid month instead of deleting it: the next payslip takes it back for the month it left and pays it as an ordinary line of the month it joined.
+
+**A backdated raise**
+
+1. With three months paid, open the person's contract, choose Promotion from the first of the earliest paid month, and enter a higher rate. Leave the signed date empty, or enter a date before that month's pay date. Seal.
+2. Run the next month. Under "Adjustments for earlier periods" expect, for each of the three months, the difference in basic pay and in each contribution and the tax, each month under its own ceiling.
+3. On a Singapore or Indonesia test entity, repeat with a signed date in the month being run. Expect no line for the earlier months. The payslip shows the new salary and one line of back pay (`ADDITIONAL_BACKPAY` in SG, `RETROACTIVE_PAY` in ID), and the month's contributions and tax count it by the law's own rule.
+4. On another jurisdiction, a signed date changes nothing: the version applies from its start, as in step 2.
+5. Void the raise after the run is paid and seal a smaller one with the same dates: the following payslip takes back the difference, contributions included.
+
+**A pay-group move**
+
+1. On a company paying twice a month, open the pay group and change its frequency: expect "This group has paid runs. Make a new group for the new schedule, and move people to it from the first of a month." Changing its name or pay day is accepted.
+2. Create a monthly pay group. Move one person to it with a contract version from the first of next month.
+3. Run and pay the old group's last periods and the new group's first month.
+4. Correct a roster day in a half-month the old group paid.
+5. Run the new group's next month. Its "Earlier periods" tab lists the old group's period. The payslip carries the difference tagged with that half-month; the periods after it show no difference.
+
+Also check, once: a correction for a person on an unpaid run is refused until the run is deleted; a request from self-service dated in a paid month shows nothing on the next run until HR approves it, and nothing at all if it is rejected.
 
 ### 7.3 Mid-cycle changes
 
-1. Pay bump mid-month: change the rate for the next contract version; run the next cycle; expect the new rate from its effective date, statutory bands recomputed, YTD carried.
+1. Pay bump: a version starting mid-month is refused ("A contract changes from the first of a month"). Seal it from the 1st; run the next cycle; expect the new rate from that date, statutory bands recomputed, YTD carried. File a `contract_change` ahead, then pay a run covering its date before that day: on its day it stays filed and raises a task.
 2. Mid-month leaver: end the contract mid-month; expect prorated base pay, final statutory amounts, no later payslip.
 3. More children mid-month: add a child/dependant fact and seal; expect the next entitlement sync to open the right leave window and the next tax run to use the new dependant count only from its effective date.
 4. For each, record the before/after wage, band, statutory amounts, leave balance and ledger rows.
 
 ### 7.4 Transfers
 
-1. Same jurisdiction: create a successor contract with no employment gap; leave and YTD continue, no encashment.
-2. Transfer out: create a contract in another jurisdiction or end without a successor; leave settles by encashment, final pay, then a clean new balance under the new entity/version.
+1. Same jurisdiction: create a successor contract with no employment gap; leave and YTD continue, no leave paid out.
+2. Transfer out: create a contract in another jurisdiction or end without a successor; the last payslip settles the leave, then a clean new balance under the new entity/version.
 
 ### 7.5 Allowance proration with unpaid leave
 
@@ -325,8 +367,8 @@ A holiday the six-day staff keep on the Saturday after, and the five-day staff t
 
 ### 7.12 Exit and rehire
 
-1. End a sealed contract with a reason and no successor: `exit` raises once; one held cash-out request and the exit duties appear once. Save it again: nothing new.
-2. Move the end date: the duties of the earlier date are waived and raised for the new one; the pending request is withdrawn by the system and raised again for the new day. Cancel the exit (a successor version): the open duties are waived and the pending request is withdrawn by the system. A cash-out a paid run took raises one task, `reverse:<entry id>`, and HR keys the reversal.
+1. End a sealed contract with a reason and no successor: `exit` raises once; the exit duties appear once and nothing is raised for the leave. Save it again: nothing new.
+2. Move the end date: the duties of the earlier date are waived and raised for the new one. Cancel the exit (a successor version): the open duties are waived. After the last payslip is paid, switch `encash_leave` off on the ended contract: the next run takes the pay-out back under "Adjustments for earlier periods" and the days return.
 3. End a contract and seal a successor the next day: no `exit`.
 4. Rehire after a 4-day gap with `cumulative_service` on: leave bands count both stints (2017 + 2025). Turn it off: only the rehire counts, and the next sync posts the difference.
 5. Indonesia: end a sealed contract from the termination sheet with a `termination_cause` (efficiency, actual loss): the exit duties (termination report, BPA1, BPJS exit) raise once. Saving a cause without ending the contract, or changing a fact the version already holds, is refused.
@@ -336,7 +378,7 @@ A holiday the six-day staff keep on the Saturday after, and the five-day staff t
 1. Settings: all top-level tabs visible; `More` only for genuine overflow.
 2. Catalog: every row shows a description; row sheet has no Settings section.
 3. Event catalog pickers: only current-version codes, no duplicates.
-4. Leave (HR controller): an entry opens in the same calendar form as the employee's leave application, plus the person it is for. Its open half-days stay editable; no `Reverses` field on a forward entry. `Reverse entry` asks which of the entry's sealed half-days to reverse, and files the reversal; a reversal is never created from the blank form. Selected half-days are visibly filled; unavailable ones dimmed. Claims work the same way: `Reverse entry` on a sealed claim asks what of it to reverse. A reversal no run has consumed yet is cancelled by deleting it (the ordinary delete): it disappears, its ledger movement is undone and the original stays sealed; once a run has paid it, delete is refused.
+4. Leave (HR controller): an entry opens in the same calendar form as the employee's leave application, plus the person it is for. Every half-day stays editable, paid ones included. Selected half-days are visibly filled; unavailable ones dimmed. Removing or adding a half-day in a paid period asks "This period is already paid" before it saves. Claims, ad hoc entries and loan repayments ask the same question from their own forms. The payslip of a run that carried something shows "Adjustments for earlier periods", grouped by period; the run shows an "Earlier periods" tab with what it carried and what is waiting for the next run.
 5. Profile and entity drawers: top-level tabs use the default segmented variant, not chips; nested tabs step down to underline and then chips. Face stays inside Profile; no seal badge on the leave/loan entry itself.
 6. Employer payroll versions: Schedule change opens the form, and filed changes appear under Scheduled changes until their day seals them into a new version.
 7. Calculation overview: each catalogue row wraps its description below the code; the info icon opens Eligibility and Payroll amount as labelled code blocks, never one clipped line.

@@ -179,7 +179,7 @@
 		],
 		"id": "91dcde69-16b2-51cb-b5c0-209f2061f6d3",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "CHILD_MARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "One paid day when the employee’s child marries (Labour Code art.115(1)(b)); paid in full."
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
@@ -215,7 +215,7 @@
 		],
 		"id": "218ef646-c8b7-52b2-a6af-af24bfdc958e",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "BEREAVEMENT_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "One unpaid day for the death of a grandparent or sibling, or the marriage of a parent or sibling (Labour Code art.115(2)); the day is not paid.",
 		"paid_share": "0"
 	},
 	{
@@ -289,7 +289,7 @@
 		],
 		"id": "f8759ab7-b13c-5862-8f5c-a64629ceef2d",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "FOREIGN_NATIONAL_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Two paid days a year for a foreign employee: one traditional new year and one national day of their country (Labour Code art.112(2)); paid in full."
 	},
 	{
 		"code": "STOPPAGE_WORKER_FAULT",
@@ -302,7 +302,7 @@
 		],
 		"id": "63949f69-8af9-51b0-90fa-cf72940cd2ea",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "STOPPAGE_WORKER_FAULT: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Work stopped through the employee’s own fault (Labour Code art.99(2)); the day is not paid.",
 		"paid_share": "0"
 	},
 	{
@@ -317,7 +317,7 @@
 		],
 		"id": "2590c92a-693d-5305-bcc5-6d93c71d565a",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "CHILD_SICK_CARE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Days caring for a sick child under 7; the social-insurance fund pays the benefit (Law 41/2024/QH15), so the payroll does not pay the day.",
 		"paid_share": "0"
 	},
 	{
@@ -333,7 +333,7 @@
 		],
 		"id": "3b27b6b4-5c6d-58fd-8b62-72311c012fdf",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "PRENATAL_CHECKUP: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Days for prenatal check-ups; the social-insurance fund pays the benefit (Law 41/2024/QH15), so the payroll does not pay the day.",
 		"paid_share": "0"
 	},
 	{
@@ -356,7 +356,7 @@
 		],
 		"id": "f76865e2-1712-5730-914b-d10e8f51241f",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "MISCARRIAGE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Leave after a miscarriage, abortion or stillbirth; the social-insurance fund pays the benefit (Law 41/2024/QH15), so the payroll does not pay the day.",
 		"paid_share": "0"
 	},
 	{
@@ -371,7 +371,7 @@
 		],
 		"id": "6a08c602-e8e5-58b4-9ad5-d3af448438df",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "CONTRACEPTION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Leave for contraceptive measures; the social-insurance fund pays the benefit (Law 41/2024/QH15), so the payroll does not pay the day.",
 		"paid_share": "0"
 	},
 	{
@@ -386,7 +386,7 @@
 		],
 		"id": "3bbb521f-482d-5006-948f-51b9412bbc47",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "CONVALESCENCE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Recovery days after sickness, maternity or an occupational accident; the social-insurance fund pays the benefit (Law 41/2024/QH15), so the payroll does not pay the day.",
 		"paid_share": "0"
 	},
 	{
@@ -400,7 +400,7 @@
 		],
 		"id": "89e7caf7-471f-57ff-bbb4-b17e9bfd6157",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "OCCUPATIONAL_ACCIDENT_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Treatment days after an occupational accident or disease; the employer pays the full wage (OSH Law 84/2015/QH13 art.38(3))."
 	},
 	{
 		"code": "SUSPENSION_PENDING_DISCIPLINE",
@@ -414,7 +414,7 @@
 		],
 		"id": "d5c49798-52c2-586e-921e-5487849d48d3",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45",
-		"description": "SUSPENSION_PENDING_DISCIPLINE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Suspension pending a disciplinary decision; half the day’s wage is advanced (Labour Code art.128(3)) and the rest is settled on SUSPENSION_SETTLEMENT if no discipline follows.",
 		"paid_share": "0.5"
 	}
 ]

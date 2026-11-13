@@ -25,7 +25,6 @@ import {
 const entity = idOf('entity', '11111111-1111-4111-8111-111111111111');
 const employee = idOf('employee_contract', '22222222-2222-4222-8222-222222222222');
 const shift = idOf('shift_definition', '33333333-3333-4333-8333-333333333333');
-const run = idOf('payroll_run', '66666666-6666-4666-8666-666666666666');
 const settings = idOf('jurisdiction_settings', '77777777-7777-4777-8777-777777777777');
 const leaveCatalog = idOf('leave_catalog', '88888888-8888-4888-8888-888888888888');
 
@@ -59,8 +58,6 @@ const stored = (
 	overtime_as_time_off: false,
 	actual_worked_intervals: null,
 	consent: null,
-	payroll_run_id: null,
-	run_label: null,
 	...over
 });
 
@@ -166,34 +163,6 @@ describe('roster workbook', () => {
 					rosterKnown()
 				),
 			/overlaps the interval on 2026-03-02/
-		);
-	});
-
-	it('refuses a change to a sealed day and names the run, and lets an unchanged one pass', () => {
-		const sealed = stored({
-			work_date: '2026-03-02',
-			actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T09:00:00.000Z')],
-			payroll_run_id: run,
-			run_label: 'RUN-2026-03'
-		});
-		throwsRows(
-			() =>
-				planRosterUpload(
-					rosterSheet(['1001', '2026-03-02', 'DAY', '08:00', '18:00']),
-					rosterKnown([sealed])
-				),
-			/sealed by payroll run RUN-2026-03/
-		);
-		const plan = planRosterUpload(
-			rosterSheet(
-				['1001', '2026-03-02', 'DAY', '08:00', '17:00'],
-				['1001', '2026-03-03', 'DAY', '08:00', '17:00']
-			),
-			rosterKnown([sealed])
-		);
-		assert.deepEqual(
-			plan.rows.map((day) => String(day.work_date)),
-			['2026-03-03']
 		);
 	});
 

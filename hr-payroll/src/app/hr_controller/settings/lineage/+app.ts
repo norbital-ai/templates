@@ -1,6 +1,6 @@
 import { app } from '@norbital-ai/bolt';
 
-export default app('hr_controller/settings/lineage', {
+export default app({
 	title: 'app.settings.lineage',
 	description: 'app.settings.header_description',
 	icon: 'lucide:git-commit-vertical',

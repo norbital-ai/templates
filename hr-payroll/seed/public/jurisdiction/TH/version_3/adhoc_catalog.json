@@ -18,7 +18,7 @@
 		"party": "EMPLOYEE",
 		"id": "9627518b-4922-5efb-a84e-3ce8ffd9f5fb",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "SEVERANCE_PAY: Paid or deducted as an ad-hoc line."
+		"description": "Severance on termination: 30, 90, 180, 240, 300 or 400 days of final wage at the day rate, by service (120 days, 1, 3, 6, 10, 20 years); none under s.118 para 3 or s.119 (LPA s.118)."
 	},
 	{
 		"code": "PAY_IN_LIEU_OF_NOTICE",
@@ -39,7 +39,7 @@
 		"party": "EMPLOYEE",
 		"id": "b52f0ca1-49cb-5950-bed9-ce596c2662f1",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "PAY_IN_LIEU_OF_NOTICE: Paid or deducted as an ad-hoc line."
+		"description": "Wages for notice not given: the amount entered, or the days entered × the day rate (LPA s.17/1)."
 	},
 	{
 		"code": "MINIMUM_WAGE_ARREARS",
@@ -63,7 +63,7 @@
 		"party": "EMPLOYEE",
 		"id": "443dc92d-5016-5657-987c-05b045580938",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "MINIMUM_WAGE_ARREARS: Paid or deducted as an ad-hoc line."
+		"description": "Shortfall below the minimum daily wage: (minimum for the worksite − day rate) × days entered (Wage Committee Notification No. 14)."
 	},
 	{
 		"code": "BONUS",
@@ -110,7 +110,7 @@
 		"party": "EMPLOYEE",
 		"id": "658634c2-73b6-5708-a3bf-90d5805eebb6",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "SPECIAL_SEVERANCE_TECHNOLOGY: Paid or deducted as an ad-hoc line."
+		"description": "Extra severance for a technology dismissal after six years: 15 days of final wage per year of service (a part year over 180 days counts), up to 360 days (LPA s.122)."
 	},
 	{
 		"code": "TECHNOLOGY_NOTICE_IN_LIEU",
@@ -133,7 +133,7 @@
 		"party": "EMPLOYEE",
 		"id": "d4da18e1-b864-5bee-bf60-1a17ab22c059",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "TECHNOLOGY_NOTICE_IN_LIEU: Paid or deducted as an ad-hoc line."
+		"description": "60 days of final wage at the day rate in lieu of the technology-dismissal notice (LPA s.121)."
 	},
 	{
 		"code": "SPECIAL_SEVERANCE_RELOCATION",
@@ -154,7 +154,7 @@
 		"party": "EMPLOYEE",
 		"id": "caa5c652-c48d-5b4a-a1bc-6dacf8a93d2a",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "SPECIAL_SEVERANCE_RELOCATION: Paid or deducted as an ad-hoc line."
+		"description": "Special severance for refusing a relocation, at the s.118 severance scale (LPA s.120)."
 	},
 	{
 		"code": "RELOCATION_NOTICE_IN_LIEU",
@@ -177,7 +177,7 @@
 		"party": "EMPLOYEE",
 		"id": "c3d01369-bb08-569d-b922-2ccb2970e158",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "RELOCATION_NOTICE_IN_LIEU: Paid or deducted as an ad-hoc line."
+		"description": "30 days of final wage at the day rate in lieu of the relocation notice (LPA s.120)."
 	},
 	{
 		"code": "SUSPENSION_BACK_PAY",
@@ -198,7 +198,7 @@
 		"party": "EMPLOYEE",
 		"id": "22fb1045-34bb-59eb-a39f-89a047a43519",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "SUSPENSION_BACK_PAY: Paid or deducted as an ad-hoc line."
+		"description": "The withheld part of suspension pay, with interest, owed when the investigation clears the employee: the amount entered (LPA s.117)."
 	},
 	{
 		"code": "LATE_PAYMENT_INTEREST",
@@ -222,7 +222,7 @@
 		"party": "EMPLOYEE",
 		"id": "9d4d8800-ba06-505b-a519-72fcd007ff8b",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "LATE_PAYMENT_INTEREST: Paid or deducted as an ad-hoc line."
+		"description": "Interest on late wages at 15% a year: the amount entered, or the monthly wage × 15% × days late ÷ 365 (LPA s.9)."
 	},
 	{
 		"code": "HOLIDAY_NOT_GRANTED",
@@ -243,7 +243,7 @@
 		"party": "EMPLOYEE",
 		"id": "b60eeadf-2e17-54db-9c82-5f44d901c863",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "HOLIDAY_NOT_GRANTED: Paid or deducted as an ad-hoc line."
+		"description": "Pay for holiday hours not granted: hours × hour rate × 1 for a monthly wage, × 2 for a daily or hourly wage (LPA s.64)."
 	},
 	{
 		"code": "SECURITY_DEPOSIT",
@@ -264,13 +264,13 @@
 		"party": "EMPLOYEE",
 		"id": "1edb6f39-f9b0-52c9-a086-eee1eaf2e1d4",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "SECURITY_DEPOSIT: Paid or deducted as an ad-hoc line."
+		"description": "Security deposit taken from pay, only for a post allowed to take one: the amount entered (LPA s.10)."
 	},
 	{
 		"code": "STATUTORY_REFUND",
 		"references": [
 			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
 			}
 		],
 		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
@@ -282,128 +282,6 @@
 		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "06289a2c-023a-5ed0-8931-ffb5ead1d625",
-		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
-	},
-	{
-		"code": "SSO_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SSO for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SSO.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "SSO.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "7b388403-085c-5b8b-b493-af799ec282d6",
-		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
-	},
-	{
-		"code": "SSO_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SSO for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SSO.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "SSO.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "819a5b58-0058-59ec-a133-c49784f160d6",
-		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
-	},
-	{
-		"code": "PVD_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects PVD for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "PVD.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "04911eb8-8096-5f31-8702-7f32b6031c03",
-		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
-	},
-	{
-		"code": "PVD_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects PVD for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "PVD.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "f6b5e70b-7296-5d7a-874e-d36d0e5f7353",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
 	}
 ]

@@ -7,16 +7,16 @@ const text = (value: unknown): string => (typeof value === 'string' ? value : ''
  * Runs every minute while the workspace is in use, so a missed event cannot leave an accepted identity
  * unlinked; idle, it rests, because accepting an invitation is itself what wakes the workspace.
  */
-export default automation('invitation_profile', {
+export default automation({
 	description:
 		'Provision one employee profile per accepted staff invitation and link it to the accepting user.',
-	on: { cron: '* * * * *', rest: '1d' },
+	on: [{ cron: '* * * * *', rest: '1d' }],
 	policies: ['invitation_profile_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const invitations = yield* ctx.query({
 			sys_invitation: {
-				where: { accepted_at: { isNull: false }, external: { eq: false } },
+				where: { accepted_at: { is_null: false }, external: { eq: false } },
 				fields: ['email', 'phone', 'accepted_at'],
 				limit: 1000
 			}
@@ -59,7 +59,7 @@ export default automation('invitation_profile', {
 						...(phones.length === 0 ? [] : [{ phone: { in: phones } }])
 					]
 				},
-				fields: ['invitation_id', 'user_id', 'email', 'phone'],
+				fields: ['invitation_id', 'user_id', 'email', 'phone', 'revision'],
 				limit: 1000
 			}
 		});
@@ -89,7 +89,7 @@ export default automation('invitation_profile', {
 				);
 			if (pending !== undefined) {
 				updates.push({
-					target: pending.id,
+					target: { id: pending.id, revision: pending.revision },
 					set: { user_id: user.id, invitation_id: invitation.id }
 				});
 				continue;
@@ -102,10 +102,8 @@ export default automation('invitation_profile', {
 				phone: invitation.phone
 			});
 		}
-		if (creates.length > 0)
-			yield* ctx.act.checked([{ callable: 'employee_profile.create', input: creates }]);
-		if (updates.length > 0)
-			yield* ctx.act.checked([{ callable: 'employee_profile.update', input: updates }]);
+		if (creates.length > 0) yield* ctx.act({ 'employee_profile.create': creates });
+		if (updates.length > 0) yield* ctx.act({ 'employee_profile.update': updates });
 		return undefined;
 	}
 });

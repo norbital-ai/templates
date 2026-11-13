@@ -3,7 +3,7 @@
 // to read, so a write that names one is refused before any policy check runs.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
+import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
@@ -15,7 +15,10 @@ import {
 	uuid,
 	wholeDays,
 	workspace,
-	leaveCreate
+	leaveCreate,
+	query,
+	storedQuery,
+	refusal
 } from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -32,6 +35,15 @@ const terms = {
 	allowances: {}
 };
 const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-11-15');
+/** The profile as stored now: a write's target at its current revision. */
+const profile = (t: Kit) =>
+	storedQuery(t, { employee_profile: { where: { id: { eq: PROFILE } }, limit: 1 } }).pipe(
+		Effect.map(({ employee_profile }) => {
+			const [row] = employee_profile.rows;
+			assert.ok(row !== undefined);
+			return row;
+		})
+	);
 const file = {
 	name: 'birth.pdf',
 	mime: 'application/pdf',
@@ -42,38 +54,41 @@ describe("a profile's documents", () => {
 	it.live("take the person's own upload, and no one else's", () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const me = t.as(t.member(['employee'], { id: uuid(3) }));
+			const me = yield* t.as(t.member(['employee'], { id: uuid(3) }));
 			const uploaded = yield* me.upload('employee_profile.documents', file);
 			assert.ok(uploaded.kind === 'committed');
-			yield* me.act('employee_profile.update', [
-				{ target: PROFILE, set: { documents: [uploaded.output] } }
-			]);
-			const [stored] = (yield* t.storedQuery({ employee_profile: { limit: 1 } })).employee_profile
+			yield* me.act({
+				'employee_profile.update': [
+					{ target: yield* profile(t), set: { documents: [uploaded.output] } }
+				]
+			});
+			const [stored] = (yield* storedQuery(t, { employee_profile: { limit: 1 } })).employee_profile
 				.rows;
 			assert.equal(stored?.documents?.length, 1);
 			assert.match(
 				String(
 					yield* Effect.flip(
-						t
-							.as(t.member(['employee']))
-							.act('employee_profile.update', [{ target: PROFILE, set: { documents: [] } }])
+						Effect.all([t.as(t.member(['employee'])), profile(t)]).pipe(
+							Effect.andThen(([caller, target]) =>
+								caller.act({ 'employee_profile.update': [{ target, set: { documents: [] } }] })
+							)
+						)
 					)
 				),
 				/The record does not exist/
 			);
-			const device = t.as(t.member(['kiosk']));
-			const kiosk = yield* device.query({ employee_profile: { output: 'kiosk', limit: 1 } });
+			const device = yield* t.as(t.member(['kiosk']));
+			const kiosk = yield* query(t, device, { employee_profile: { output: 'kiosk', limit: 1 } });
 			assert.equal(kiosk.employee_profile.rows[0]?.name, 'Worker');
 			assert.ok(!('documents' in (kiosk.employee_profile.rows[0] ?? {})));
 			// the kiosk enrols a face and nothing else: it cannot suspend one, and the enrolment itself passes
 			const enrol = (face_enrollment_status: 'APPROVED' | 'SUSPENDED') =>
-				device.act('employee_profile.update', [
-					{ target: PROFILE, set: { face_enrollment_status } }
-				]);
-			assert.match(
-				String(yield* Effect.flip(enrol('SUSPENDED'))),
-				/A kiosk enrols or refreshes a face; it never undoes an approval/
-			);
+				profile(t).pipe(
+					Effect.andThen((target) =>
+						device.act({ 'employee_profile.update': [{ target, set: { face_enrollment_status } }] })
+					)
+				);
+			assert.equal((yield* refusal(enrol('SUSPENDED'))).key, 'errors.kiosk_face_enrollment_undo');
 			assert.equal((yield* enrol('APPROVED')).kind, 'committed');
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
@@ -119,37 +134,51 @@ describe('a person asking for leave', () => {
 					quantity: 80,
 					incurred_on: PlainDate('2026-11-03')
 				};
-				const me = t.as(t.member(['employee'], { id: uuid(3) }));
-				const other = t.as(t.member(['employee'], { id: uuid(50) }));
-				const refusal = <A, E>(effect: Effect.Effect<A, E>) =>
+				const me = yield* t.as(t.member(['employee'], { id: uuid(3) }));
+				const other = yield* t.as(t.member(['employee'], { id: uuid(50) }));
+				const refusedText = <A, E>(effect: Effect.Effect<A, E>) =>
 					Effect.flip(effect).pipe(Effect.map(String));
 				// the colleague reads the company, never my employment: the link itself is refused
 				const UNREADABLE = /No readable employee_contract has this id/;
-				assert.match(yield* refusal(other.act('leave_catalog_entry.create', [leave])), UNREADABLE);
-				assert.match(yield* refusal(other.act('claim_catalog_entry.create', [claim])), UNREADABLE);
-				assert.equal(
-					(yield* me.act('leave_catalog_entry.create', [leave])).kind,
-					'pendingApproval'
+				assert.match(
+					yield* refusedText(other.act({ 'leave_catalog_entry.create': [leave] })),
+					UNREADABLE
 				);
-				const asked = yield* me.act('claim_catalog_entry.create', [claim]);
-				assert.ok(asked.kind === 'pendingApproval');
+				assert.match(
+					yield* refusedText(other.act({ 'claim_catalog_entry.create': [claim] })),
+					UNREADABLE
+				);
+				assert.equal(
+					(yield* me.act({ 'leave_catalog_entry.create': [leave] })).kind,
+					'pending_approval'
+				);
+				const asked = yield* me.act({ 'claim_catalog_entry.create': [claim] });
+				assert.ok(asked.kind === 'pending_approval');
 				const [mineClaim] = asked.records;
 				assert.ok(mineClaim !== undefined);
 				assert.match(
-					yield* refusal(
-						other.act('claim_catalog_entry.update', [
-							{ target: idOf('claim_catalog_entry', mineClaim.id), set: { quantity: 800 } }
-						])
+					yield* refusedText(
+						other.act({
+							'claim_catalog_entry.update': [
+								{
+									target: {
+										id: idOf('claim_catalog_entry', mineClaim.id),
+										revision: mineClaim.revision
+									},
+									set: { quantity: 800 }
+								}
+							]
+						})
 					),
 					/The record does not exist/
 				);
-				const stored = yield* t.storedQuery({
+				const stored = yield* storedQuery(t, {
 					leave_catalog_entry: { limit: 10 },
 					claim_catalog_entry: { limit: 10 }
 				});
 				assert.equal(stored.leave_catalog_entry.rows.length, 1);
 				assert.deepEqual(
-					stored.claim_catalog_entry.rows.map((row) => row.quantity?.toNumber()),
+					stored.claim_catalog_entry.rows.map((row) => row.quantity?.to_number()),
 					[80]
 				);
 			}).pipe(Effect.provide(workspace({ seed: colleagues, now: NOW })))
@@ -174,38 +203,44 @@ describe('a person asking for leave', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
-				const me = t.as(t.member(['employee'], { id: uuid(3) }));
-				const lead = t.as(yield* t.signIn('lead@example.test')),
-					payroll = t.as(yield* t.signIn('payroll@example.test'));
+				const me = yield* t.as(t.member(['employee'], { id: uuid(3) }));
+				const lead = yield* t.as(yield* t.sign_in('lead@example.test')),
+					payroll = yield* t.as(yield* t.sign_in('payroll@example.test'));
 				const ask = (day: string) =>
-					me.act('leave_catalog_entry.create', [
-						leaveCreate({
-							entity_id: ENTITY,
-							employment_id: idOf('employee_contract', uuid(6)),
-							catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
-							days: wholeDays(day)
-						})
-					]);
+					me.act({
+						'leave_catalog_entry.create': [
+							leaveCreate({
+								entity_id: ENTITY,
+								employment_id: idOf('employee_contract', uuid(6)),
+								catalog_id: idOf(
+									'leave_catalog',
+									catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')
+								),
+								days: wholeDays(day)
+							})
+						]
+					});
 				const posted = (id: string) =>
-					t
-						.storedQuery({
-							ledger_entry: { where: { source: { eq: `leave_catalog_entry:${id}` } }, limit: 100 }
-						})
-						.pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows.length));
+					storedQuery(t, {
+						ledger_entry: { where: { source: { eq: `leave_catalog_entry:${id}` } }, limit: 100 }
+					}).pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows.length));
 				const granted = yield* ask('2026-11-03');
-				assert.ok(granted.kind === 'pendingApproval');
+				assert.ok(granted.kind === 'pending_approval');
 				const [leave] = granted.records;
 				assert.ok(leave !== undefined);
 				assert.equal(yield* posted(leave.id), 0);
-				yield* lead.approvals.decide(granted.requestId, { decision: 'approve' });
+				yield* lead.approvals.decide(granted.request_id, { decision: 'approve' });
 				assert.equal(yield* posted(leave.id), 0);
-				yield* payroll.approvals.decide(granted.requestId, { decision: 'approve' });
+				yield* payroll.approvals.decide(granted.request_id, { decision: 'approve' });
 				assert.ok((yield* posted(leave.id)) > 0);
 				const turned = yield* ask('2026-11-04');
-				assert.ok(turned.kind === 'pendingApproval');
+				assert.ok(turned.kind === 'pending_approval');
 				const [other] = turned.records;
 				assert.ok(other !== undefined);
-				yield* lead.approvals.decide(turned.requestId, { decision: 'reject', reason: 'Busy week' });
+				yield* lead.approvals.decide(turned.request_id, {
+					decision: 'reject',
+					reason: 'Busy week'
+				});
 				assert.equal(yield* posted(other.id), 0);
 			}).pipe(Effect.provide(workspace({ seed: reviewed, now: NOW })))
 	);

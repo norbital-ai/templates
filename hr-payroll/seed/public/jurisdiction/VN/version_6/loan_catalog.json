@@ -1,0 +1,17 @@
+[
+	{
+		"code": "SALARY_ADVANCE",
+		"lookup": {},
+		"subtotal_id": "b6ec90f1-08b8-5306-9399-fa601c05fe5d",
+		"id": "f77a5e24-886e-5f64-91f6-f2df30bda416",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14",
+				"locator": "art.101",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"description": "Salary advance recovered from later pay."
+	}
+]

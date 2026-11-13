@@ -1,0 +1,59 @@
+[
+	{
+		"code": "FIXED_MONTHLY",
+		"description": "Contractual fixed monthly allowance for a monthly-rated employee, prorated like the salary by the month’s paid share (working days, EA s.20A; unpaid leave reduces it). Ordinary Wages for CPF.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Act 1953 s.2(1) and First Schedule — a fixed monthly allowance is an Ordinary Wage",
+				"locator": "s.2(1); First Schedule",
+				"url": "https://sso.agc.gov.sg/Act/CPFA1953",
+				"effective_from": "2026-09-01"
+			}
+		],
+		"subtotal_id": "dc4f87dd-71ae-566a-9b2c-fe24032227b2",
+		"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
+		"conversion": "const amount = get(ctx.subject, 'employment.terms.allowances.FIXED_MONTHLY.amount', 0);\nreturn (typeof amount === 'number' ? amount : get(amount, 'value', 0)) * ctx.paid_share;",
+		"id": "6897c6ec-aaab-5979-b9d0-56457a250e87",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"include_in_rate": false
+	},
+	{
+		"code": "PT_ANNUAL_HOURLY_AW",
+		"description": "Contractual annual-leave uplift for a part-time employee: the contract’s amount paid in full on each run (HR keys the run’s amount; not computed from hours); needs a clear written agreement (PT Regulations reg.7). Additional Wages for CPF.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations reg.7; MOM, Part-time employment: leave — an hourly leave addition needs a clear contractual agreement and is prohibited at 5 days/30–34 hours",
+				"locator": "reg.7",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/leave",
+				"effective_from": "2026-09-01"
+			}
+		],
+		"subtotal_id": "b240451b-7613-5e6f-bb88-80aeaed4abf2",
+		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
+		"conversion": "const amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_AW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
+		"id": "40cb8e19-73fa-5710-ae66-9bd4c618121e",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"include_in_rate": false
+	},
+	{
+		"code": "PT_ANNUAL_HOURLY_OW",
+		"description": "Contractual annual-leave uplift for a part-time employee: the contract’s amount paid in full on each run (HR keys the run’s amount; not computed from hours); needs a clear written agreement (PT Regulations reg.7). Ordinary Wages for CPF.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations reg.7; MOM, Part-time employment: leave — an hourly leave addition needs a clear contractual agreement and is prohibited at 5 days/30–34 hours",
+				"locator": "reg.7",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/leave",
+				"effective_from": "2026-09-01"
+			}
+		],
+		"subtotal_id": "dc4f87dd-71ae-566a-9b2c-fe24032227b2",
+		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
+		"conversion": "const amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_OW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
+		"id": "d60c3e71-750f-5d5b-bef8-6df96938bf2a",
+		"settings_id": "941614af-f3b4-57b7-b22d-1baf1360a5da",
+		"include_in_rate": false
+	}
+]

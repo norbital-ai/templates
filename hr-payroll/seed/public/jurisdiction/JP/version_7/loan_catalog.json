@@ -1,0 +1,44 @@
+[
+	{
+		"code": "SALARY_ADVANCE",
+		"lookup": {},
+		"references": [
+			{
+				"title": "労働基準法 art.24(1) proviso: a deduction from wages other than taxes and social insurance needs a written agreement with the majority union or representative (賃金控除協定; entity_extension_data.wage_deduction_agreement); art.25: an advance of wages already earned for an emergency must be paid on request."
+			}
+		],
+		"subtotal_id": "d283c9b9-2b14-5b5c-a935-07e7b355f06d",
+		"eligibility": "return get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
+		"id": "c5ddcd2a-c71b-5214-a52c-38eaa3069a1b",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "Salary advance recovered from later pay."
+	},
+	{
+		"code": "STAFF_LOAN",
+		"lookup": {},
+		"references": [
+			{
+				"title": "労働基準法 art.24(1) proviso (賃金控除協定 required) and art.17: a loan may not be set off against wages as a condition of work (前借金相殺の禁止); recovery by deduction is only the employee's voluntary repayment under the agreement."
+			}
+		],
+		"subtotal_id": "d283c9b9-2b14-5b5c-a935-07e7b355f06d",
+		"eligibility": "return get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
+		"id": "2c68cc2f-91cc-5999-b78f-a3034a410ed1",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "Staff loan recovered from pay."
+	},
+	{
+		"code": "EMERGENCY_ADVANCE",
+		"lookup": {},
+		"references": [
+			{
+				"title": "労働基準法 art.25 with 施行規則 art.9: for childbirth, illness, disaster, marriage, death or an unavoidable trip of the worker or a dependant, the wages already earned are paid on request before the pay day; the advance is settled from that pay (task EMERGENCY_PAYMENT)."
+			}
+		],
+		"subtotal_id": "d283c9b9-2b14-5b5c-a935-07e7b355f06d",
+		"eligibility": "return true;",
+		"id": "bc57bc12-409b-50ef-be9c-8e15e153137c",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"description": "Emergency advance recovered from pay."
+	}
+]

@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { Instant, PlainDate, datePeriod, eachDay } from '@norbital-ai/std/date';
+import { Instant, PlainDate, date_period, each_day } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
@@ -22,7 +22,8 @@ import {
 	syncAll,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	storedQuery
 } from './kit.ts';
 
 type Seed = ReturnType<typeof pack>;
@@ -67,7 +68,7 @@ const month = (
 	over: Readonly<Record<string, Day | null>> = {},
 	until = '2026-02-28'
 ): readonly Day[] =>
-	eachDay(datePeriod('2026-02-01', until))
+	each_day(date_period('2026-02-01', until))
 		.map(String)
 		.flatMap((date) => {
 			const own = over[date];
@@ -129,25 +130,18 @@ const withPeople = (seed: Seed, count: number): Seed => {
 /** The second person `withPeople` adds. */
 const SECOND = { employee: uuid(9014), contract: uuid(9016) };
 
-/** A catalog row's id on the law in force on a day: an entry is raised on the version of its own date. */
-const rowOn = (seed: Seed, model: string, code: string, on: string): string => {
-	const Range = Schema.Struct({ from: Schema.String, to: Schema.NullOr(Schema.String) });
-	const version = (seed.jurisdiction_settings ?? []).find((row) => {
-		const { from, to } = Schema.decodeUnknownSync(Range)(row.effective_range);
-		return from <= on && (to === null || on <= to);
-	});
-	const row = (seed[model] ?? []).find((r) => r.code === code && r.settings_id === version?.id);
-	assert.ok(row !== undefined, `no ${code} on ${on}`);
-	return String(row.id);
-};
 const run = (t: Kit, period = '2026-02') =>
 	t
 		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-		.pipe(Effect.andThen(t.runDue()));
+		.pipe(
+			Effect.flatMap((caller) =>
+				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+			)
+		)
+		.pipe(Effect.andThen(t.run_due()));
 /** One person's payslip of a period's run: net, checkpoints by code and lines, without the ids a workspace mints. */
 const slipOf = (t: Kit, period = '2026-02', employment: string = uuid(6)) =>
-	t.storedQuery({ payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
+	storedQuery(t, { payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
 		Effect.map((got) => {
 			const ran = got.payroll_run.rows.find((row) => row.period === period);
 			const slip = got.payslip.rows.find(
@@ -156,7 +150,7 @@ const slipOf = (t: Kit, period = '2026-02', employment: string = uuid(6)) =>
 			assert.ok(slip !== undefined, `no payslip for ${period}`);
 			const { checkpoints, lines } = Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown);
 			return {
-				net: slip.net_pay?.toNumber(),
+				net: slip.net_pay?.to_number(),
 				checkpoints: checkpoints.map(({ code, value }) => [code, value] as const),
 				lines: lines.map(({ code, amount, direction, source }) => ({
 					code,
@@ -191,7 +185,7 @@ const paid = <E = never>(
 		return yield* slipOf(t);
 	}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 const rosterOn = (t: Kit, date: string) =>
-	t.storedQuery({ roster_entry: { limit: 1000 } }).pipe(
+	storedQuery(t, { roster_entry: { limit: 1000 } }).pipe(
 		Effect.map(({ roster_entry }) => {
 			const row = roster_entry.rows.find(
 				(entry) => String(entry.work_date) === date && entry.employment_id === uuid(6)
@@ -204,7 +198,9 @@ const clockIn = (date: string, [from, to]: Span) => [
 	{ start: Instant(at(date, from)), end: Instant(at(date, to)) }
 ];
 const runsHeld = (t: Kit) =>
-	t.storedQuery({ payroll_run: { limit: 100 } }).pipe(Effect.map((got) => got.payroll_run.rows));
+	storedQuery(t, { payroll_run: { limit: 100 } }).pipe(Effect.map((got) => got.payroll_run.rows));
+// each of these workspaces has run once, unpaid, when a roster day is refused under it
+const HELD = /Run 1 holds this person and is not paid yet/;
 
 // a Tuesday and a Sunday of the month
 const DAY = '2026-02-10';
@@ -237,14 +233,20 @@ describe('an absence, read from the roster by a real run', () => {
 		() => {
 			const seed = seedOf(unclocked);
 			return paid(seed, (t) =>
-				t.as(t.admin).act('leave_catalog_entry.create', [
-					leaveCreate({
-						entity_id: ENTITY,
-						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
-						days: wholeDays(DAY)
-					})
-				])
+				t.as(t.admin).pipe(
+					Effect.flatMap((caller) =>
+						caller.act({
+							'leave_catalog_entry.create': [
+								leaveCreate({
+									entity_id: ENTITY,
+									employment_id: CONTRACT,
+									catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+									days: wholeDays(DAY)
+								})
+							]
+						})
+					)
+				)
 			).pipe(
 				Effect.map((slip) => {
 					assert.equal(checkpoint(slip, 'PRORATED'), checkpoint(slip, 'BASIC'));
@@ -261,7 +263,7 @@ describe('an absence, read from the roster by a real run', () => {
 	);
 
 	it.live(
-		'a clock entered after the run is refused; deleting the unpaid run lets it in, and the rerun pays the day once',
+		'a clock entered under an unpaid run is refused; deleting the run lets it in, and the rerun pays the day once',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -270,70 +272,79 @@ describe('an absence, read from the roster by a real run', () => {
 				assert.ok(checkpoint(before, 'PRORATED') < checkpoint(before, 'BASIC'));
 				const sealed = yield* rosterOn(t, DAY);
 				assert.ok(sealed.payroll_run_id != null);
+				// the day as stored at each try: deleting the run unlinks it, a new revision
 				const late = () =>
-					t
-						.as(t.admin)
-						.act('roster_entry.update', [
-							{ target: sealed.id, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
-						]);
-				assert.match(String(yield* Effect.flip(late())), /locked by a payroll run/);
+					Effect.all([t.as(t.admin), rosterOn(t, DAY)]).pipe(
+						Effect.flatMap(([caller, target]) =>
+							caller.act({
+								'roster_entry.update': [
+									{ target, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
+								]
+							})
+						)
+					);
+				assert.match(String(yield* Effect.flip(late())), HELD);
 				// the way out while the run is unpaid: delete it, which frees the days it sealed
 				const [first] = yield* runsHeld(t);
 				assert.ok(first !== undefined);
-				yield* t.as(t.admin).act('payroll_run.delete', [{ target: first.id }]);
-				yield* t.runDue();
+				yield* (yield* t.as(t.admin)).act({ 'payroll_run.delete': [{ target: first }] });
+				yield* t.run_due();
 				assert.equal((yield* rosterOn(t, DAY)).payroll_run_id ?? null, null);
 				yield* late();
 				yield* run(t);
 				const after = yield* slipOf(t);
 				assert.equal(checkpoint(after, 'PRORATED'), checkpoint(after, 'BASIC'));
 				assert.equal((yield* runsHeld(t)).length, 1);
-				assert.equal((yield* t.storedQuery({ payslip: { limit: 100 } })).payslip.rows.length, 1);
+				assert.equal((yield* storedQuery(t, { payslip: { limit: 100 } })).payslip.rows.length, 1);
 			}).pipe(Effect.provide(workspace({ seed: seedOf(unclocked), now: NOW })))
 	);
 
 	it.live(
-		'once the run is paid the day stays as recorded: an arrears entry is the way out, paid once by the next run',
-		() => {
-			const seed = seedOf(unclocked);
-			return Effect.gen(function* () {
+		'once the run is paid the clock is entered on the day itself: the payslip stands and the next run takes the month up',
+		() =>
+			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* run(t);
 				const february = yield* slipOf(t);
 				const [first] = yield* runsHeld(t);
 				assert.ok(first !== undefined);
-				yield* t
-					.as(t.admin)
-					.act('payroll_run.update', [{ target: first.id, set: { state: 'PAID' } }]);
-				yield* t.runDue();
+				yield* (yield* t.as(t.admin)).act({
+					'payroll_run.update': [{ target: first, set: { state: 'PAID' } }]
+				});
+				yield* t.run_due();
 				const sealed = yield* rosterOn(t, DAY);
-				const late = () =>
-					t
-						.as(t.admin)
-						.act('roster_entry.update', [
-							{ target: sealed.id, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
-						]);
-				assert.match(String(yield* Effect.flip(late())), /locked by a payroll run/);
-				const dropped = t.as(t.admin).act('payroll_run.delete', [{ target: first.id }]);
-				assert.match(String(yield* Effect.flip(dropped)), /A paid run is locked/);
-				// what the day missed is an arrears adhoc entry: the amount is HR's, the mechanism pays it once
-				yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
-					{
-						entity_id: ENTITY,
-						employment_id: CONTRACT,
-						catalog_id: idOf('adhoc_catalog', rowOn(seed, 'adhoc_catalog', 'BPAYBS', '2026-03-02')),
-						description: `Worked ${DAY}, clocked late`,
-						quantity: 100,
-						incurred_on: PlainDate('2026-03-02')
-					}
-				]);
+				yield* (yield* t.as(t.admin)).act({
+					'roster_entry.update': [
+						{ target: sealed, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
+					]
+				});
+				const amendments = storedQuery(t, { pay_amendment: { limit: 100 } }).pipe(
+					Effect.map(({ pay_amendment }) =>
+						pay_amendment.rows.map((row) => [row.period, row.payroll_run_id])
+					)
+				);
+				// the correction left one open row for the person's February
+				assert.deepEqual(yield* amendments, [['2026-02', null]]);
+				// the run as stored now: paying it made a new revision
+				const paidRun = (yield* runsHeld(t)).find((row) => row.id === first.id);
+				assert.ok(paidRun !== undefined);
+				const dropped = t
+					.as(t.admin)
+					.pipe(
+						Effect.flatMap((caller) => caller.act({ 'payroll_run.delete': [{ target: paidRun }] }))
+					);
+				assert.match(
+					String(yield* Effect.flip(dropped)),
+					/This record is locked and cannot be changed/
+				);
 				yield* run(t, '2026-03');
-				yield* run(t, '2026-04');
-				assert.equal(line(yield* slipOf(t, '2026-03'), 'BPAYBS'), 100);
-				assert.equal(line(yield* slipOf(t, '2026-04'), 'BPAYBS'), 0);
+				const march = (yield* runsHeld(t)).find((row) => row.period === '2026-03');
+				assert.ok(march !== undefined);
+				assert.deepEqual(yield* amendments, [['2026-02', march.id]]);
 				assert.deepEqual(yield* slipOf(t), february);
-			}).pipe(Effect.provide(workspace({ seed, now: '2026-04-28T02:00:00.000Z' })));
-		}
+			}).pipe(
+				Effect.provide(workspace({ seed: seedOf(unclocked), now: '2026-03-28T02:00:00.000Z' }))
+			)
 	);
 });
 
@@ -416,23 +427,31 @@ describe('one roster day a person', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const again = yield* Effect.flip(
-				t.as(t.admin).act('roster_entry.create', [
-					{
-						employment_id: CONTRACT,
-						work_date: PlainDate(DAY),
-						shift_definition_id: idOf('shift_definition', WORK)
-					}
-				])
+				t.as(t.admin).pipe(
+					Effect.flatMap((caller) =>
+						caller.act({
+							'roster_entry.create': [
+								{
+									employment_id: CONTRACT,
+									work_date: PlainDate(DAY),
+									shift_definition_id: idOf('shift_definition', WORK)
+								}
+							]
+						})
+					)
+				)
 			);
 			assert.match(String(again), /another record already has this/);
 			const held = yield* rosterOn(t, DAY);
-			yield* t.as(t.admin).act('roster_entry.update', [
-				{
-					target: held.id,
-					set: { planned_overtime_intervals: clockIn(DAY, ['16:00', '18:00']) }
-				}
-			]);
-			const { roster_entry } = yield* t.storedQuery({ roster_entry: { limit: 1000 } });
+			yield* (yield* t.as(t.admin)).act({
+				'roster_entry.update': [
+					{
+						target: held,
+						set: { planned_overtime_intervals: clockIn(DAY, ['16:00', '18:00']) }
+					}
+				]
+			});
+			const { roster_entry } = yield* storedQuery(t, { roster_entry: { limit: 1000 } });
 			assert.equal(roster_entry.rows.filter((row) => String(row.work_date) === DAY).length, 1);
 		}).pipe(Effect.provide(workspace({ seed: seedOf(month()), now: NOW })))
 	);
@@ -441,13 +460,19 @@ describe('one roster day a person', () => {
 describe('a kiosk punch', () => {
 	const seed = seedOf(month({ [DAY]: null }));
 	const punch = (t: Kit, intervals: readonly { start: Instant; end?: Instant }[]) =>
-		t.as(t.member(['kiosk'])).act('roster_entry.create', [
-			{
-				employment_id: CONTRACT,
-				work_date: PlainDate(DAY),
-				actual_worked_intervals: [...intervals]
-			}
-		]);
+		t.as(t.member(['kiosk'])).pipe(
+			Effect.flatMap((caller) =>
+				caller.act({
+					'roster_entry.create': [
+						{
+							employment_id: CONTRACT,
+							work_date: PlainDate(DAY),
+							actual_worked_intervals: [...intervals]
+						}
+					]
+				})
+			)
+		);
 	it.live('with nothing but its clock commits, and the run reads it as the day attended', () =>
 		Effect.gen(function* () {
 			const absent = yield* paid(seed);
@@ -477,18 +502,21 @@ describe('a kiosk punch', () => {
 				yield* run(t);
 				assert.deepEqual(yield* slipOf(t), absent);
 				// the run took the open punch with the day: it is closed only by taking the unpaid run back
-				const open = yield* rosterOn(t, DAY);
 				const close = () =>
-					t
-						.as(t.member(['kiosk']))
-						.act('roster_entry.update', [
-							{ target: open.id, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
-						]);
-				assert.match(String(yield* Effect.flip(close())), /locked by a payroll run/);
+					Effect.all([t.as(t.member(['kiosk'])), rosterOn(t, DAY)]).pipe(
+						Effect.flatMap(([caller, target]) =>
+							caller.act({
+								'roster_entry.update': [
+									{ target, set: { actual_worked_intervals: clockIn(DAY, SHIFT) } }
+								]
+							})
+						)
+					);
+				assert.match(String(yield* Effect.flip(close())), HELD);
 				const [first] = yield* runsHeld(t);
 				assert.ok(first !== undefined);
-				yield* t.as(t.admin).act('payroll_run.delete', [{ target: first.id }]);
-				yield* t.runDue();
+				yield* (yield* t.as(t.admin)).act({ 'payroll_run.delete': [{ target: first }] });
+				yield* t.run_due();
 				yield* close();
 				yield* run(t);
 				const closed = yield* slipOf(t);
@@ -542,17 +570,23 @@ describe('a work event', () => {
 		to: string,
 		employment?: string
 	) =>
-		t.as(t.admin).act('work_event.create', [
-			{
-				entity_id: ENTITY,
-				catalog_id: idOf('work_event_catalog', catalogRow(seed, 'work_event_catalog', code)),
-				from: PlainDate(from),
-				to: PlainDate(to),
-				...(employment === undefined
-					? {}
-					: { employment_id: idOf('employee_contract', employment) })
-			}
-		]);
+		t.as(t.admin).pipe(
+			Effect.flatMap((caller) =>
+				caller.act({
+					'work_event.create': [
+						{
+							entity_id: ENTITY,
+							catalog_id: idOf('work_event_catalog', catalogRow(seed, 'work_event_catalog', code)),
+							from: PlainDate(from),
+							to: PlainDate(to),
+							...(employment === undefined
+								? {}
+								: { employment_id: idOf('employee_contract', employment) })
+						}
+					]
+				})
+			)
+		);
 	const june = (seed: Seed, events: readonly (readonly [from: string, to: string])[]) =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -727,14 +761,16 @@ describe('a holiday and the days around it', () => {
 				const plain = yield* paid(seed);
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
-				yield* t.as(t.admin).act('leave_catalog_entry.create', [
-					leaveCreate({
-						entity_id: ENTITY,
-						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
-						days: wholeDays('2026-02-09', HOLIDAY, '2026-02-11')
-					})
-				]);
+				yield* (yield* t.as(t.admin)).act({
+					'leave_catalog_entry.create': [
+						leaveCreate({
+							entity_id: ENTITY,
+							employment_id: CONTRACT,
+							catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
+							days: wholeDays('2026-02-09', HOLIDAY, '2026-02-11')
+						})
+					]
+				});
 				yield* run(t);
 				const onLeave = yield* slipOf(t);
 				assert.deepEqual(onLeave.checkpoints, plain.checkpoints);
@@ -754,13 +790,13 @@ describe('a run reads once', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			// the administrator is minted before the count starts
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			t.count.reset();
-			yield* admin.act('payroll_run.create', [
-				{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }
-			]);
+			yield* admin.act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+			});
 			const counted = t.count.reads;
-			const { payslip } = yield* t.storedQuery({ payslip: { limit: 100 } });
+			const { payslip } = yield* storedQuery(t, { payslip: { limit: 100 } });
 			assert.equal(payslip.rows.length, people);
 			return counted;
 		}).pipe(Effect.provide(workspace({ seed: withPeople(seedOf(unclocked), people), now: NOW })));

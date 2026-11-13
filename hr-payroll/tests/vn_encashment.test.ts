@@ -7,7 +7,16 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { jsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, catalogRow, leaveCreate, pack, uuid, wholeDays, workspace } from './kit.ts';
+import {
+	ENTITY,
+	catalogRow,
+	leaveCreate,
+	pack,
+	uuid,
+	wholeDays,
+	workspace,
+	storedQuery
+} from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const terms = {
@@ -74,26 +83,24 @@ const entry = (seed: ReturnType<typeof seedWith>, extra: object = {}) =>
 	});
 const approved = (t: Kit) =>
 	Effect.gen(function* () {
-		const { leave_catalog_entry } = yield* t.storedQuery({
+		const { leave_catalog_entry } = yield* storedQuery(t, {
 			leave_catalog_entry: { where: { encashment: { eq: true } }, limit: 10 }
 		});
-		const requestId = leave_catalog_entry.rows[0]?.$approval?.requestId;
+		const requestId = leave_catalog_entry.rows[0]?.$approval?.request_id;
 		// an administrator supersedes the review: the entry commits directly
 		if (requestId === undefined) return;
-		yield* t.as(t.member(['hr_controller'])).approvals.decide(requestId, {
+		yield* (yield* t.as(t.member(['hr_controller']))).approvals.decide(requestId, {
 			decision: 'approve'
 		});
 	});
 const line = (t: Kit) =>
-	t
-		.storedQuery({ payslip: { limit: 10 } })
-		.pipe(
-			Effect.map(({ payslip }) =>
-				payslip.rows
-					.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines)
-					.filter((row) => row.code === 'ANNUAL_LEAVE')
-			)
-		);
+	storedQuery(t, { payslip: { limit: 10 } }).pipe(
+		Effect.map(({ payslip }) =>
+			payslip.rows
+				.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines)
+				.filter((row) => row.code === 'ANNUAL_LEAVE')
+		)
+	);
 
 describe('a VN exit cash-out', () => {
 	it.live(
@@ -102,28 +109,28 @@ describe('a VN exit cash-out', () => {
 			const seed = midMonthCutoff(seedWith({ ...REVIEW, month: '2026-01' }));
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* t
-					.as(t.admin)
-					.act('leave_catalog_entry.create', [
+				yield* (yield* t.as(t.admin)).act({
+					'leave_catalog_entry.create': [
 						entry(seed, { days: wholeDays('2026-01-29', '2026-02-12') })
-					]);
+					]
+				});
 				yield* approved(t);
-				yield* t
-					.as(t.admin)
-					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
+				yield* (yield* t.as(t.admin)).act({
+					'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+				});
 				// model effects run after the write: capture is due work
-				yield* t.runDue();
+				yield* t.run_due();
 				const lines = yield* line(t);
 				const paid = lines.find((row) => row.direction === 'ADD');
 				assert.ok(paid !== undefined);
 				assert.equal(Number(paid.quantity), 2);
 				// the fixture's recorded daily wage, for each day cashed out
 				assert.equal(Number(paid.amount), Number(paid.quantity) * REVIEW.daily_wage_vnd);
-				const { leave_catalog_entry } = yield* t.storedQuery({
+				const { leave_catalog_entry } = yield* storedQuery(t, {
 					leave_catalog_entry: { where: { encashment: { eq: true } }, fields: ['id'], limit: 10 }
 				});
 				const source = `leave_catalog_entry:${String(leave_catalog_entry.rows[0]?.id)}`;
-				const { ledger_entry } = yield* t.storedQuery({
+				const { ledger_entry } = yield* storedQuery(t, {
 					ledger_entry: {
 						where: { source: { eq: source } },
 						fields: ['operation', 'amount', 'measure'],
@@ -134,12 +141,12 @@ describe('a VN exit cash-out', () => {
 					.filter((row) => row.measure === 'used')
 					.reduce(
 						(total, row) =>
-							total + (row.operation === 'DEDUCT' ? -1 : 1) * (row.amount?.toNumber() ?? 0),
+							total + (row.operation === 'DEDUCT' ? -1 : 1) * (row.amount?.to_number() ?? 0),
 						0
 					);
 				assert.equal(used, Number(paid.quantity));
 				// the run priced all four slots, so all four carry its stamp: two fall after its attendance, which ends on 9 February
-				const { leave_catalog_entry_day } = yield* t.storedQuery({
+				const { leave_catalog_entry_day } = yield* storedQuery(t, {
 					leave_catalog_entry_day: {
 						where: { leave_entry_id: { eq: leave_catalog_entry.rows[0]?.id } },
 						fields: ['payroll_run_id'],

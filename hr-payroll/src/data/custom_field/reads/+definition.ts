@@ -1,7 +1,7 @@
-import { customField } from '@norbital-ai/bolt';
+import { custom_field } from '@norbital-ai/bolt';
 import { READS_SHAPE } from '../../../lib/payroll_engine/reads.js';
 
-export default customField('reads', {
+export default custom_field({
 	description:
 		'The rows a registered rule or effect reads before it runs: one layer per model, its filter, the row limit and the fields it keeps. Every layer is read once for the whole batch.',
 	shape: READS_SHAPE,

@@ -1,50 +1,36 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../../../../../.norbital/models/leave_catalog_entry_day.ts';
 
-export default model('leave_catalog_entry_day', {
+export default model({
 	description:
-		'One leave slot: a dated half-day. A payroll run stamps payroll_run_id when it prices the slot; an unpriced slot is corrected by deletion.',
-	label: 'incurred_on',
+		'One leave slot: a dated half-day. A payroll run stamps payroll_run_id when it prices the slot. A slot is corrected where it stands; when its period is paid, the next run carries the difference.',
+	record_label: 'string(record.incurred_on)',
 	fields: {
 		leave_entry_id: {
 			kind: 'ref',
 			to: 'leave_catalog_entry',
 			inverse: 'leave_catalog_entry_day',
 			owned: true,
-			onDelete: 'cascade'
+			on_delete: 'cascade'
 		},
 		payroll_run_id: {
 			kind: 'ref',
 			to: 'payroll_run',
+			inverse: 'leave_day',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		},
 		incurred_on: { kind: 'date' },
 		part: { kind: 'enum', values: ['AM', 'PM'] }
 	},
-	unique: [{ fields: ['leave_entry_id', 'incurred_on', 'part'] }],
-	read: {
-		leave_catalog_entry_day: { fields: 'all' },
-		'leave_catalog_entry_day.leave_entry_id': {
-			fields: ['id', 'employment_id', 'catalog_id', 'reverses', 'payroll_run_id']
-		},
-		'leave_catalog_entry_day.payroll_run_id': { fields: ['id', 'period', 'state'] }
-	},
-	create: {
-		columns: {
-			leave_catalog_entry_day: ['incurred_on', 'part']
+	constraints: { slot: { unique: ['leave_entry_id', 'incurred_on', 'part'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			leave_entry_id: { fields: ['id', 'employment_id', 'catalog_id', 'payroll_run_id'] },
+			payroll_run_id: { fields: ['id', 'period', 'state'] }
 		}
 	},
-	update: {
-		columns: {
-			leave_catalog_entry_day: ['payroll_run_id']
-		}
-	},
-	delete: {
-		check: function* (rows, ctx) {
-			if (rows.some((row) => row.payroll_run_id != null))
-				return yield* ctx.refuse(
-					'A slot a payroll run priced cannot be deleted; reverse it instead.'
-				);
-		}
-	}
+	create: { columns: { fields: ['incurred_on', 'part'] } },
+	update: { columns: { fields: ['payroll_run_id'] } },
+	delete: {}
 });

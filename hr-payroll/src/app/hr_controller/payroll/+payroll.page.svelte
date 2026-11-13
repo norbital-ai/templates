@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { EmptyState, Table } from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
@@ -9,13 +9,14 @@
 	import { periodLabel } from '../../../lib/ui/payroll/pay_periods.js';
 	import RunCreate from '../../../lib/ui/payroll/run_create.svelte';
 	import { exportSalaryListing } from '../../../lib/export_format_configuration/salary_listing_download.js';
+	let { ctx }: { ctx: PageContext } = $props();
 
-	const scope = companyScope();
+	const scope = companyScope(ctx);
 	let creating = $state(false);
 	const version = $derived(
 		scope.company == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					jurisdiction_settings: {
 						where: { code: { eq: scope.company.settings_code } },
 						fields: ['timezone'],
@@ -28,8 +29,8 @@
 
 {#snippet periodCell({ value }: { value: unknown })}
 	{periodLabel(String(value ?? ''), {
-		first: bolt.t('app.payroll.first_half'),
-		second: bolt.t('app.payroll.second_half')
+		first: ctx.t('app.payroll.first_half'),
+		second: ctx.t('app.payroll.second_half')
 	})}
 {/snippet}
 
@@ -39,45 +40,46 @@
 
 <AppShell
 	icon="lucide:receipt"
-	title={bolt.t('app.payroll.runs_title')}
-	description={bolt.t('app.payroll.configured_description')}
+	title={ctx.t('app.payroll.runs_title')}
+	description={ctx.t('app.payroll.configured_description')}
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
+	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
 	{#if scope.id == null}
-		<EmptyState title={bolt.t('app.payroll.empty_runs')} />
+		<EmptyState title={ctx.t('app.payroll.empty_runs')} />
 	{:else}
 		<Table
+			{ctx}
 			of="payroll_run"
 			key="payroll_run"
 			where={{ entity_id: { eq: scope.id } }}
-			orderBy={{ period: 'desc' }}
+			order_by={{ period: 'desc' }}
 			toolbar={{
 				export: false,
-				title: bolt.t('app.payroll.runs_title'),
+				title: ctx.t('app.payroll.runs_title'),
 				new: () => (creating = true),
 				delete: true,
 				actions: [
 					{
 						icon: 'lucide:file-spreadsheet',
-						name: bolt.t('app.payroll.export_listing'),
-						description: bolt.t('app.payroll.export_listing_description'),
-						requiresSelection: true,
-						run: exportSalaryListing
+						name: ctx.t('app.payroll.export_listing'),
+						description: ctx.t('app.payroll.export_listing_description'),
+						requires_selection: true,
+						run: (ids) => exportSalaryListing(ctx, ids)
 					}
 				]
 			}}
 			columns={[
-				{ field: 'period', label: bolt.t('app.payroll.period'), cell: periodCell },
-				{ field: 'pay_group_id', label: bolt.t('app.payroll.pay_group') },
+				{ field: 'period', label: ctx.t('app.payroll.period'), cell: periodCell },
+				{ field: 'pay_group_id', label: ctx.t('app.payroll.pay_group') },
 				'kind',
 				{
 					field: 'updated_at',
-					label: bolt.t('models.payroll_run.fields.pay_date'),
+					label: ctx.t('models.payroll_run.fields.pay_date'),
 					cell: payDateCell
 				},
 				'state'
 			]}
 		/>
-		<RunCreate companyId={scope.id} bind:open={creating} />
+		<RunCreate {ctx} companyId={scope.id} bind:open={creating} />
 	{/if}
 </AppShell>

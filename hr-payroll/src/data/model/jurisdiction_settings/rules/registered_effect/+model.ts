@@ -1,13 +1,14 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../../../.norbital/models/registered_effect.ts';
 import {
 	guardConfigurationRows,
 	requireDraftSettings
 } from '../../../../../lib/payroll_engine/configuration.js';
 
-export default model('registered_effect', {
+export default model({
 	description:
 		'Effective jurisdiction configuration. Sealing the owner freezes this rule and its declared references.',
-	label: 'code',
+	record_label: 'record.code',
 	fields: {
 		lookup: {
 			kind: 'json',
@@ -36,15 +37,16 @@ export default model('registered_effect', {
 			owned: true
 		}
 	},
-	unique: [{ fields: ['settings_id', 'code'] }],
-	read: {
-		registered_effect: { fields: 'all' },
-		'registered_effect.settings_id': { fields: 'all' },
-		'registered_effect.settings_id.registered_effect': { fields: 'all' }
+	constraints: { code_per_settings: { unique: ['settings_id', 'code'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			settings_id: { fields: 'all', registered_effect: { fields: 'all' } }
+		}
 	},
 	create: {
 		columns: {
-			registered_effect: [
+			fields: [
 				'lookup',
 				'code',
 				'description',
@@ -60,19 +62,19 @@ export default model('registered_effect', {
 				'settings_id'
 			]
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'registered_effect',
-				rows,
-				rows.map((r) => r.settings_id)
+				changes.map((c) => c.after),
+				changes.map((c) => c.after.settings_id)
 			);
-			return rows;
+			return changes.map((c) => c.set);
 		}
 	},
 	update: {
 		columns: {
-			registered_effect: [
+			fields: [
 				'lookup',
 				'code',
 				'description',
@@ -89,19 +91,23 @@ export default model('registered_effect', {
 		},
 		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'registered_effect',
-				changes.map((c) => ({ ...c.before, ...c.set })),
+				changes.map((c) => c.after),
 				changes.map((c) => c.before.settings_id)
 			);
 			return changes.map((c) => c.set);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* requireDraftSettings(
-				ctx.db.query,
-				rows.map((r) => r.settings_id)
+				ctx.query,
+				changes.map((c) => c.before.settings_id)
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
 		}
 	}

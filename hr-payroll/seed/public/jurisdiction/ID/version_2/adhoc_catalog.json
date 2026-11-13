@@ -44,28 +44,6 @@
 		"description": "A medical allowance paid in money, at the amount entered. It is part of the month's wages (PP 36/2021 art.7)."
 	},
 	{
-		"code": "CLAWBACK_OVERTIME",
-		"lookup": {},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn end == null || ctx.entry.incurred_on <= end;",
-		"conversion": "return ctx.entry.quantity;",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"id": "f1756580-a4f4-5c7c-8f4c-2703a1592c44",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"references": [
-			{
-				"title": "PP 36/2021",
-				"locator": "art.63(1)(f), art.65",
-				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
-				"quote": "A wage deduction is permitted only for the listed grounds and at most 50% of each wage payment.",
-				"effective_from": "2021-02-02"
-			}
-		],
-		"description": "Recovers overtime pay that was overpaid, deducting the amount entered from net pay (PP 36/2021 arts.63 and 65)."
-	},
-	{
 		"code": "BACK_PAY_SALARY",
 		"lookup": {},
 		"off_cycle_eligible": true,
@@ -204,12 +182,12 @@
 		"off_cycle_eligible": true,
 		"subtotal_id": "64cb83b6-e9a2-5a1c-b263-671b68fd1ecf",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nreturn calendar_completed_months(get(employment, 'service_started_on', employment.effective_range.from), end ?? ctx.as_of) >= 1;",
-		"conversion": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst start = get(employment, 'service_started_on', employment.effective_range.from);\n// Permenaker 6/2016 art.3(1)(b): under twelve months, the share for the service to the holiday. A month begun counts whole, which pays no less than the proportional share.\nconst on = String(get(ctx.entry, 'incurred_on', ctx.as_of));\nconst months = Math.min((Number(on.slice(0, 4)) - Number(String(start).slice(0, 4))) * 12 + Number(on.slice(5, 7)) - Number(String(start).slice(5, 7)) + 1, ctx.lookup.service_months_cap);\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\nif (rate.unit !== 'DAILY' && !output) return (ctx.month_wage * months) / 12;\n// Permenaker 6/2016 art.3(3), PP 36/2021 art.19: the average received over the last 12 months. A balance holds one tax year, so an entered monthly average wins.\nif (ctx.entry.unit === 'MONEY') return (ctx.entry.quantity * months) / 12;\nconst yearStart = ctx.as_of.slice(0, 4) + '-01-01';\nconst paidMonths = Number(ctx.as_of.slice(5, 7)) - Number((start > yearStart ? start : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nif (paidMonths > 0 && paidWages > 0) return ((paidWages / paidMonths) * months) / 12;\nif (rate.unit !== 'DAILY') return (ctx.month_wage * months) / 12;\n// PP 36/2021 art.17: a month is 25 working days on a six-day week and 21 on a five-day week.\nconst sixDay = Number(get(terms, 'normal_days_per_week', 0)) === 6;\nconst monthDays = sixDay ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nreturn ((ctx.day_rate * monthDays + (ctx.month_wage - ctx.day_rate * ctx.working_days)) * months) / 12;\n",
+		"conversion": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst start = get(employment, 'service_started_on', employment.effective_range.from);\n// Permenaker 6/2016 art.3(1)(b): under twelve months, completed months of service to the holiday × a month's wage ÷ 12.\nconst on = String(get(ctx.entry, 'incurred_on', ctx.as_of));\nconst months = Math.min(calendar_completed_months(start, on), ctx.lookup.service_months_cap);\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\nif (rate.unit !== 'DAILY' && !output) return (ctx.month_wage * months) / 12;\n// Permenaker 6/2016 art.3(3), PP 36/2021 art.19: the average received over the last 12 months. A balance holds one tax year, so an entered monthly average wins.\nif (ctx.entry.unit === 'MONEY') return (ctx.entry.quantity * months) / 12;\nconst yearStart = ctx.as_of.slice(0, 4) + '-01-01';\nconst paidMonths = Number(ctx.as_of.slice(5, 7)) - Number((start > yearStart ? start : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nif (paidMonths > 0 && paidWages > 0) return ((paidWages / paidMonths) * months) / 12;\nif (rate.unit !== 'DAILY') return (ctx.month_wage * months) / 12;\n// PP 36/2021 art.17: a month is 25 working days on a six-day week and 21 on a five-day week.\nconst sixDay = Number(get(terms, 'normal_days_per_week', 0)) === 6;\nconst monthDays = sixDay ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nreturn ((ctx.day_rate * monthDays + (ctx.month_wage - ctx.day_rate * ctx.working_days)) * months) / 12;\n",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "c0dcd50a-829e-5b05-8da5-aca4cc236ae3",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Religious holiday allowance (THR): one month's wage (basic plus fixed allowances) after 12 months' service, or service ÷ 12 of it below that, for a worker with at least one month's service (Permenaker 6/2016 arts.2–3)."
+		"description": "Religious holiday allowance (THR): one month's wage (basic plus fixed allowances) after 12 months' service; below that, completed months of service ÷ 12 of it, for a worker with at least one month's service (Permenaker 6/2016 arts.2–3)."
 	},
 	{
 		"code": "THR_HOLIDAY",
@@ -222,12 +200,12 @@
 		"off_cycle_eligible": true,
 		"subtotal_id": "64cb83b6-e9a2-5a1c-b263-671b68fd1ecf",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nreturn calendar_completed_months(get(employment, 'service_started_on', employment.effective_range.from), end ?? ctx.as_of) >= 1;",
-		"conversion": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst start = get(employment, 'service_started_on', employment.effective_range.from);\n// Permenaker 6/2016 art.3(1)(b): under twelve months, the share for the service to the holiday. A month begun counts whole, which pays no less than the proportional share.\nconst on = String(get(ctx.entry, 'incurred_on', ctx.as_of));\nconst months = Math.min((Number(on.slice(0, 4)) - Number(String(start).slice(0, 4))) * 12 + Number(on.slice(5, 7)) - Number(String(start).slice(5, 7)) + 1, ctx.lookup.service_months_cap);\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\nif (rate.unit !== 'DAILY' && !output) return (ctx.month_wage * months) / 12;\n// Permenaker 6/2016 art.3(3), PP 36/2021 art.19: the average received over the last 12 months. A balance holds one tax year, so an entered monthly average wins.\nif (ctx.entry.unit === 'MONEY') return (ctx.entry.quantity * months) / 12;\nconst yearStart = ctx.as_of.slice(0, 4) + '-01-01';\nconst paidMonths = Number(ctx.as_of.slice(5, 7)) - Number((start > yearStart ? start : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nif (paidMonths > 0 && paidWages > 0) return ((paidWages / paidMonths) * months) / 12;\nif (rate.unit !== 'DAILY') return (ctx.month_wage * months) / 12;\n// PP 36/2021 art.17: a month is 25 working days on a six-day week and 21 on a five-day week.\nconst sixDay = Number(get(terms, 'normal_days_per_week', 0)) === 6;\nconst monthDays = sixDay ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nreturn ((ctx.day_rate * monthDays + (ctx.month_wage - ctx.day_rate * ctx.working_days)) * months) / 12;\n",
+		"conversion": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst start = get(employment, 'service_started_on', employment.effective_range.from);\n// Permenaker 6/2016 art.3(1)(b): under twelve months, completed months of service to the holiday × a month's wage ÷ 12.\nconst on = String(get(ctx.entry, 'incurred_on', ctx.as_of));\nconst months = Math.min(calendar_completed_months(start, on), ctx.lookup.service_months_cap);\nconst output = ['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', ''));\nif (rate.unit !== 'DAILY' && !output) return (ctx.month_wage * months) / 12;\n// Permenaker 6/2016 art.3(3), PP 36/2021 art.19: the average received over the last 12 months. A balance holds one tax year, so an entered monthly average wins.\nif (ctx.entry.unit === 'MONEY') return (ctx.entry.quantity * months) / 12;\nconst yearStart = ctx.as_of.slice(0, 4) + '-01-01';\nconst paidMonths = Number(ctx.as_of.slice(5, 7)) - Number((start > yearStart ? start : yearStart).slice(5, 7));\nconst paidWages = get(ctx.balances, 'ytd.ORDINARY_WAGES', 0);\nif (paidMonths > 0 && paidWages > 0) return ((paidWages / paidMonths) * months) / 12;\nif (rate.unit !== 'DAILY') return (ctx.month_wage * months) / 12;\n// PP 36/2021 art.17: a month is 25 working days on a six-day week and 21 on a five-day week.\nconst sixDay = Number(get(terms, 'normal_days_per_week', 0)) === 6;\nconst monthDays = sixDay ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nreturn ((ctx.day_rate * monthDays + (ctx.month_wage - ctx.day_rate * ctx.working_days)) * months) / 12;\n",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "8d4f3ad9-69dc-5685-9152-d252acbea510",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Religious holiday allowance (THR) for the worker's own religious holiday, once a year: one month's wage after 12 months' service, pro rata below it, paid at the latest seven days before the holiday (Permenaker 6/2016 arts.2–5)."
+		"description": "Religious holiday allowance (THR) for the worker's own religious holiday, once a year: one month's wage after 12 months' service, completed months ÷ 12 of it below that, paid at the latest seven days before the holiday (Permenaker 6/2016 arts.2–5)."
 	},
 	{
 		"code": "PESANGON",
@@ -271,19 +249,28 @@
 				}
 			],
 			"cause_multiplier": {
-				"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY": 2,
-				"DEATH": 2,
-				"RETIREMENT": 1.75,
-				"FORCE_MAJEURE_NO_CLOSURE": 0.75,
 				"MERGER_CONSOLIDATION_SEPARATION": 1,
+				"MERGER_EMPLOYER_UNWILLING": 1,
 				"ACQUISITION": 1,
+				"ACQUISITION_TERMS_CHANGE_REJECTED": 0.5,
+				"EFFICIENCY_ACTUAL_LOSS": 0.5,
 				"EFFICIENCY_PREVENT_LOSS": 1,
+				"CLOSURE_LOSS": 0.5,
 				"CLOSURE_NO_LOSS": 1,
+				"FORCE_MAJEURE_CLOSURE": 0.5,
+				"FORCE_MAJEURE_NO_CLOSURE": 0.75,
+				"DEBT_SUSPENSION_LOSS": 0.5,
 				"DEBT_SUSPENSION_NO_LOSS": 1,
-				"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT": 1
+				"BANKRUPTCY": 0.5,
+				"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT": 1,
+				"VIOLATION_AFTER_WARNINGS": 0.5,
+				"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY": 2,
+				"RETIREMENT": 1.75,
+				"DEATH": 2
 			},
 			"pesangon_causes": [
 				"MERGER_CONSOLIDATION_SEPARATION",
+				"MERGER_EMPLOYER_UNWILLING",
 				"ACQUISITION",
 				"ACQUISITION_TERMS_CHANGE_REJECTED",
 				"EFFICIENCY_ACTUAL_LOSS",
@@ -309,17 +296,23 @@
 				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf",
 				"quote": "Pesangon is 1 month of wage below 1 year, rising by one month for each year to 9 months from 8 years; the cause multiplier is in arts.41–57; a micro or small enterprise may agree the amount (art.59).",
 				"effective_from": "2021-02-02"
+			},
+			{
+				"title": "UU 13/2003 art.157(2) and (4) as amended by UU 6/2023 Lampiran art.81",
+				"locator": "art.157(2), (4); read 2026-11-13",
+				"url": "https://www.hukumonline.com/klinik/a/hukum-pesangon-bagi-pekerja-harian-lt4be13f91985b5/",
+				"quote": "upah sebulan sama dengan 30 dikalikan upah sehari"
 			}
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "f921e7ab-0098-5964-8db0-5f8b8de0c895",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nif (get(employment, 'signed_contract_period.to', null) != null) return false;\nreturn ctx.lookup.pesangon_causes.includes(get(employment, 'employee_extension_data.termination_cause', null));",
-		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst months = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'employee_extension_data.agreed_pesangon_amount', null);\nif (get(ctx.subject.employment, 'employee_extension_data.micro_small_enterprise', false) && agreed != null) return agreed;\nconst cause = String(get(ctx.subject.employment, 'employee_extension_data.termination_cause', null));\nreturn monthly * bracket(months, ctx.lookup.schedule) * get(ctx.lookup.cause_multiplier, cause, 0.5);",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\n// art.157(4) as amended: a month below the worksite minimum wage counts at the minimum wage (not for a micro or small enterprise)\nconst facts = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = get(ctx.subject.employment, 'terms.work_region', '') || get(facts, 'region', '');\nconst floor = get(facts, 'enterprise_size_class', '') === 'MICRO_OR_SMALL' ? 0 : get(ctx.lookup.by_region, region, 0);\nconst wage = Math.max(monthly, floor);\nconst months = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'employee_extension_data.agreed_pesangon_amount', null);\nif (get(ctx.subject.employment, 'employee_extension_data.micro_small_enterprise', false) && agreed != null) return agreed;\nconst cause = String(get(ctx.subject.employment, 'employee_extension_data.termination_cause', null));\n// every listed cause has its factor in the lookup\nreturn wage * bracket(months, ctx.lookup.schedule) * get(ctx.lookup.cause_multiplier, cause, 0.5);",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "8fff1ecf-c7fd-5f5d-8f07-faa3957bafbd",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Severance pay on termination: one month's wage (basic plus fixed allowances) for each year of service, up to nine, times the factor for the cause of termination (PP 35/2021 arts.40–57). A micro or small enterprise pays the agreed amount."
+		"description": "Severance pay on termination: one month's wage (basic plus fixed allowances, at least the worksite minimum wage) for each year of service, up to nine, times the factor for the cause listed in the lookup — 2 for long illness, disability or death, 1.75 for retirement, 0.75 for force majeure without closure, 1 or 0.5 for the business causes (PP 35/2021 arts.40–57). A micro or small enterprise pays the agreed amount."
 	},
 	{
 		"code": "UPMK",
@@ -364,6 +357,7 @@
 			],
 			"upmk_causes": [
 				"MERGER_CONSOLIDATION_SEPARATION",
+				"MERGER_EMPLOYER_UNWILLING",
 				"ACQUISITION",
 				"ACQUISITION_TERMS_CHANGE_REJECTED",
 				"EFFICIENCY_ACTUAL_LOSS",
@@ -390,17 +384,23 @@
 				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf",
 				"quote": "UPMK is 2 months of wage from 3 years, rising to 10 months from 24 years; the cause multiplier is in arts.41–57; a micro or small enterprise may agree the amount (art.59).",
 				"effective_from": "2021-02-02"
+			},
+			{
+				"title": "UU 13/2003 art.157(2) and (4) as amended by UU 6/2023 Lampiran art.81",
+				"locator": "art.157(2), (4); read 2026-11-13",
+				"url": "https://www.hukumonline.com/klinik/a/hukum-pesangon-bagi-pekerja-harian-lt4be13f91985b5/",
+				"quote": "upah sebulan sama dengan 30 dikalikan upah sehari"
 			}
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "f921e7ab-0098-5964-8db0-5f8b8de0c895",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nif (get(employment, 'signed_contract_period.to', null) != null) return false;\nif (!ctx.lookup.upmk_causes.includes(get(employment, 'employee_extension_data.termination_cause', null))) return false;\nreturn calendar_completed_months(get(employment, 'service_started_on', employment.effective_range.from), end ?? ctx.as_of) >= 36;",
-		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst months = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'employee_extension_data.agreed_upmk_amount', null);\nif (get(ctx.subject.employment, 'employee_extension_data.micro_small_enterprise', false) && agreed != null) return agreed;\nreturn monthly * bracket(months, ctx.lookup.schedule);",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\n// art.157(4) as amended: a month below the worksite minimum wage counts at the minimum wage (not for a micro or small enterprise)\nconst facts = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = get(ctx.subject.employment, 'terms.work_region', '') || get(facts, 'region', '');\nconst floor = get(facts, 'enterprise_size_class', '') === 'MICRO_OR_SMALL' ? 0 : get(ctx.lookup.by_region, region, 0);\nconst wage = Math.max(monthly, floor);\nconst months = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'employee_extension_data.agreed_upmk_amount', null);\nif (get(ctx.subject.employment, 'employee_extension_data.micro_small_enterprise', false) && agreed != null) return agreed;\nreturn wage * bracket(months, ctx.lookup.schedule);",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "73724158-7f56-524c-9a0f-0705e9be7f99",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "Long-service pay on termination: from two months' wage after three years of service up to ten months' after 24 years, for the causes that carry it (PP 35/2021 art.40(3)). A micro or small enterprise pays the agreed amount."
+		"description": "Long-service pay on termination: from two months' wage after three years of service up to ten months' after 24 years (at least the worksite minimum wage a month), for the causes that carry it (PP 35/2021 art.40(3)). A micro or small enterprise pays the agreed amount."
 	},
 	{
 		"code": "PKWT_COMPENSATION",
@@ -413,7 +413,7 @@
 		"off_cycle_eligible": true,
 		"subtotal_id": "f921e7ab-0098-5964-8db0-5f8b8de0c895",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nif (get(employment, 'signed_contract_period.to', null) == null) return false;\nif (calendar_completed_months(get(employment, 'signed_contract_period.from', employment.effective_range.from), get(employment, 'signed_contract_period.to', null) ?? end ?? ctx.as_of) < 1) return false;\nreturn get(employment, 'payroll.nationality', 'ID') === 'ID';",
-		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst agreed = get(ctx.subject.employment, 'employee_extension_data.agreed_pkwt_compensation_amount', null);\nif (get(ctx.subject.employment, 'employee_extension_data.micro_small_enterprise', false) && agreed != null) return agreed;\nconst end = get(ctx.subject.employment, 'signed_contract_period.to', null) ?? get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of;\nconst start = get(ctx.subject.employment, 'signed_contract_period.from', ctx.subject.employment.effective_range.from);\nconst completed = calendar_completed_months(start, end);\nconst months = completed + calendar_distance_days(add_months(start, completed), end) / 30;\nreturn monthly * months / 12;",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst agreed = get(ctx.subject.employment, 'employee_extension_data.agreed_pkwt_compensation_amount', null);\nif (get(ctx.subject.employment, 'employee_extension_data.micro_small_enterprise', false) && agreed != null) return agreed;\nconst end = get(ctx.subject.employment, 'signed_contract_period.to', null) ?? get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of;\nconst start = get(ctx.subject.employment, 'signed_contract_period.from', ctx.subject.employment.effective_range.from);\nconst completed = calendar_completed_months(start, end);\nconst months = completed + calendar_distance_days(add_months(start, completed), end) / 30;\nreturn monthly * months / 12;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "432fe415-f9f2-518c-abaa-c22060ec4f74",
@@ -493,19 +493,19 @@
 		},
 		"references": [
 			{
-				"title": "PP 36/2021 art.61(1)–(2): an employer paying the wage late owes a fine counted from the day it was due (`entry.wage_due_on`, `wage_paid_on`, `wage_due_amount`): from the 4th to the 8th day 5% of the wage due for each day late; after the 8th day 1% more for each further day, the month’s fine at most 50%; after a month the highest state-bank interest rate on top (`entry.late_interest_amount`, computed by the employer at that rate). The wage itself stays due (art.61(2)); the fine is income received in connection with the work (PPh 21 additional). Days are counted from the due day as day 1 (“terhitung tanggal seharusnya Upah dibayarkan”, art.61(1)(a)): a wage paid three days after its due day is paid on the 4th day and carries 5%. The record takes this reading, the worker’s, of the counting the regulation leaves open.",
+				"title": "PP 36/2021 art.61(1)–(2): an employer paying the wage late owes a fine counted from the day it was due: from the 4th to the 8th day 5% of the wage due for each day late; after the 8th day 1% more for each further day, the month’s fine at most 50%; after a month the highest state-bank interest rate on top (entered separately by the employer). The wage itself stays due (art.61(2)); the fine is income received in connection with the work (PPh 21 additional). Days are counted from the due day as day 1 (“terhitung tanggal seharusnya Upah dibayarkan”, art.61(1)(a)): a wage paid three days after its due day is paid on the 4th day and carries 5%. The record takes this reading, the worker’s, of the counting the regulation leaves open.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "64cb83b6-e9a2-5a1c-b263-671b68fd1ecf",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nreturn ctx.entry.unit === 'DAY';",
-		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst days = ctx.entry.quantity;\nconst late =\n\tMath.max(Math.min(days, ctx.lookup.first_tier_end) - ctx.lookup.grace_days, 0) * ctx.lookup.first_tier_rate +\n\tMath.max(days - ctx.lookup.first_tier_end, 0) * ctx.lookup.further_tier_rate;\nreturn monthly * Math.min(late, ctx.lookup.ceiling);",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst days = ctx.entry.quantity;\nconst late =\n\tMath.max(Math.min(days, ctx.lookup.first_tier_end) - ctx.lookup.grace_days, 0) * ctx.lookup.first_tier_rate +\n\tMath.max(days - ctx.lookup.first_tier_end, 0) * ctx.lookup.further_tier_rate;\nreturn monthly * Math.min(late, ctx.lookup.ceiling);",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "cb21d928-1df9-53dd-ad7c-8cbc621acf07",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"description": "The fine owed to a worker for a late wage: from the 4th to the 8th day 5% of the wage due for each day, then 1% for each further day, at most 50% in the month (PP 36/2021 art.61)."
+		"description": "The fine owed to a worker for a late wage, on the monthly wage (basic plus fixed allowances): 5% for each day from the 4th to the 8th day counted from the due day, then 1% for each further day, at most 50% in the month (PP 36/2021 art.61). The entry quantity is the day number on which the wage was paid."
 	},
 	{
 		"code": "LATE_THR_FINE",
@@ -546,7 +546,7 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": "64cb83b6-e9a2-5a1c-b263-671b68fd1ecf",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nreturn get(employment, 'family', []).filter((member) => get(member, 'has_income', null) !== true).length >= 1;",
-		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst dependants = Math.min(get(ctx.subject.employment, 'family', []).filter((member) => get(member, 'has_income', null) !== true).length, 4);\nreturn monthly * get(ctx.lookup.dependants_share, String(dependants), 0);",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst dependants = Math.min(get(ctx.subject.employment, 'family', []).filter((member) => get(member, 'has_income', null) !== true).length, 4);\nreturn monthly * get(ctx.lookup.dependants_share, String(dependants), 0);",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "73b26708-bb45-595f-9631-2be5f8c7ed11",
@@ -661,7 +661,7 @@
 		"off_cycle_eligible": true,
 		"subtotal_id": "f921e7ab-0098-5964-8db0-5f8b8de0c895",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end == null) return false;\nif (!(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nif (get(employment, 'signed_contract_period.to', null) == null) return false;\nreturn ['DISMISSAL', 'REDUNDANCY', 'RETRENCHMENT', 'UNILATERAL'].includes(get(employment, 'employee_extension_data.exit_ground', null));",
-		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst end = ctx.subject.employment.effective_range.to;\nconst termEnd = get(ctx.subject.employment, 'signed_contract_period.to', null);\nconst start = add_days(end, 1);\nconst completed = calendar_completed_months(start, termEnd);\nreturn monthly * (completed + calendar_distance_days(add_months(start, completed), termEnd) / 30);",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst end = ctx.subject.employment.effective_range.to;\nconst termEnd = get(ctx.subject.employment, 'signed_contract_period.to', null);\nconst start = add_days(end, 1);\nconst completed = calendar_completed_months(start, termEnd);\nreturn monthly * (completed + calendar_distance_days(add_months(start, completed), termEnd) / 30);",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "3dd615aa-a8d6-52fb-a3ab-ef5144b684e5",
@@ -680,7 +680,7 @@
 		"off_cycle_eligible": true,
 		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
 		"eligibility": "const employment = ctx.subject.employment;\nconst end = get(employment, 'effective_range.to', null);\nif (end == null) return false;\nif (!(ctx.entry.incurred_on <= end)) return false;\nif (get(employment, 'terms.rate.amount', null) == null) return false;\nif (get(employment, 'signed_contract_period.to', null) == null) return false;\nreturn get(employment, 'employee_extension_data.exit_ground', null) === 'RESIGNATION';",
-		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// engine roots (full month): month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * ctx.calendar_days + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst end = ctx.subject.employment.effective_range.to;\nconst termEnd = get(ctx.subject.employment, 'signed_contract_period.to', null);\nconst start = add_days(end, 1);\nconst completed = calendar_completed_months(start, termEnd);\nreturn monthly * (completed + calendar_distance_days(add_months(start, completed), termEnd) / 30);",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\nconst end = ctx.subject.employment.effective_range.to;\nconst termEnd = get(ctx.subject.employment, 'signed_contract_period.to', null);\nconst start = add_days(end, 1);\nconst completed = calendar_completed_months(start, termEnd);\nreturn monthly * (completed + calendar_distance_days(add_months(start, completed), termEnd) / 30);",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "55304c56-48cd-523f-9689-1dd04cc2f75e",
@@ -694,7 +694,7 @@
 				"title": "UU 24/2011 art.19 and UU 36/2008 art.21: the employer withholds and remits; this corrects a prior contribution or withholding remittance."
 			}
 		],
-		"description": "The entry quantity is the statutory correction; the statutory schemes are not re-run.",
+		"description": "A statutory correction deducted from the employee's pay, at the amount entered; the statutory schemes are not re-run.",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
@@ -709,7 +709,7 @@
 		"code": "STATUTORY_REFUND",
 		"references": [
 			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
 			}
 		],
 		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
@@ -721,168 +721,6 @@
 		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "9db34d72-49e2-553c-b800-fbf832eaedf8",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
-	},
-	{
-		"code": "JHT_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects JHT for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "JHT.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "0ed82bd6-3ba6-50e2-bdb3-766e7a6aec49",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
-	},
-	{
-		"code": "JHT_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects JHT for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "JHT.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "ea5d328c-9fe7-5554-98c3-554aaf05a27e",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
-	},
-	{
-		"code": "JP_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects JP for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "JP.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "d5d5bed3-2e7f-5dd1-b504-6216f2eac2e5",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
-	},
-	{
-		"code": "JP_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects JP for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "JP.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "69e8f05e-7194-5b65-a01a-da5013e9b5cd",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
-	},
-	{
-		"code": "KESEHATAN_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects KESEHATAN for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "KESEHATAN.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "22dcbad1-2ced-54f2-ab5d-ea9b89354e29",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
-	},
-	{
-		"code": "KESEHATAN_EMPLOYER_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects the employer's share of KESEHATAN for a closed month. Dated in the month it corrects; it changes employer cost only.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "KESEHATAN.employer",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "7739ad15-cee0-5e25-a829-a6066573dc99",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
 	{
@@ -910,33 +748,6 @@
 		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "e5259f35-44de-55e0-bceb-f969c85a037f",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
-	},
-	{
-		"code": "KESEHATAN_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects KESEHATAN for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "KESEHATAN.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "8ff6542f-3642-5c7b-b252-b532e314c8f2",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	}
 ]

@@ -15,7 +15,7 @@
 		"direction": "ADD",
 		"id": "7bc2354a-bc28-52a8-828e-63522dd6d7e4",
 		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5",
-		"description": "Overtime hours worked inside the normal daily hours, paid at the ordinary overtime multiplier."
+		"description": "Approved overtime past the planned shift that stays within 8 hours a day and 40 a week (法内残業): paid at the ordinary hourly rate (×1, no premium)."
 	},
 	{
 		"code": "OVERTIME",
@@ -33,7 +33,7 @@
 		"direction": "ADD",
 		"id": "39cf66e6-cd69-5c89-ab59-6bac14dd7467",
 		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5",
-		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
+		"description": "Statutory overtime (past 8 hours a day or 40 a week), the first 60 hours of the month: paid at 125% of the hourly rate."
 	},
 	{
 		"code": "OVERTIME_OVER_60",
@@ -51,7 +51,7 @@
 		"direction": "ADD",
 		"id": "88993513-2dbb-5edf-aeac-14265bde2488",
 		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5",
-		"description": "Overtime beyond the statutory 60-hour monthly limit, paid at the applicable multiplier."
+		"description": "Statutory overtime past 60 hours in the month: paid at 150% of the hourly rate."
 	},
 	{
 		"code": "REST_DAY_WORK",
@@ -69,7 +69,7 @@
 		"direction": "ADD",
 		"id": "4f86f53a-11b2-5508-b27e-aa8fe760d997",
 		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5",
-		"description": "Hours worked on a rest day, paid at the statutory rest-day multiplier."
+		"description": "Every hour worked on the statutory weekly rest day: paid at 135% of the hourly rate, or the employer's higher rest-day multiple."
 	},
 	{
 		"code": "NIGHT_WORK",
@@ -89,7 +89,7 @@
 		"direction": "ADD",
 		"id": "cbd07e15-2b35-500a-b2b8-4a17620b7ab9",
 		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5",
-		"description": "Night-shift hours, paid the statutory night differential."
+		"description": "Every hour worked between 22:00 and 05:00: a further 25% of the hourly rate, on top of any overtime or rest-day premium."
 	},
 	{
 		"code": "OVERTIME_SUBSTITUTED",
@@ -117,6 +117,6 @@
 		"direction": "DEDUCT",
 		"id": "b04f805c-f098-5d15-90e9-e806691f3dc7",
 		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5",
-		"description": "Overtime settled as paid time off in lieu instead of a cash premium."
+		"description": "Deducts the extra 25% on four overtime hours for each hour of substitute leave taken instead of the over-60-hour premium (労働基準法 art.37(3))."
 	}
 ]

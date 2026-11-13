@@ -1,7 +1,7 @@
 import type { InputFields } from '@norbital-ai/bolt';
 import { fixed, money, type ExportFormat } from './export_format.js';
 
-const schema = { line: { kind: 'text', label: 'Record' } } as const satisfies InputFields;
+const schema = { line: { kind: 'text' } } as const satisfies InputFields;
 
 /**
  * OCBC FAST bulk credit, one fixed-width detail line per payment.

@@ -1,7 +1,7 @@
 [
 	{
 		"code": "ATTENDANCE_ALLOWANCE",
-		"description": "Contractual attendance allowance paid when the terms set a positive amount; treated as remuneration and included in the overtime base.",
+		"description": "Contractual attendance allowance: the contract amount, paid in full each month (not prorated by the paid share). Remuneration, a wage for labour insurance, salary income and part of the hour and day rate.",
 		"lookup": {},
 		"references": [
 			{
@@ -17,13 +17,19 @@
 	},
 	{
 		"code": "COMMUTING_ALLOWANCE",
-		"description": "Non-taxable portion of the contractual commuting allowance, paid up to the statutory monthly limit for transit or car commuting, including parking.",
+		"description": "Non-taxable part of the contractual commuting allowance: the contract amount, paid in full (not prorated), up to the monthly limit (transit 150,000; a car by one-way distance plus parking). Left out of the hour and day rate (労働基準法 art.37(5)).",
 		"lookup": {},
 		"references": [
 			{
 				"title": "所得税法",
 				"locator": "9条1項5号、所得税法施行令20条の2（通勤手当）",
 				"quote": "通勤手当は、合理的な運賃額の範囲で非課税とする。"
+			},
+			{
+				"title": "労働基準法 art.37(5); 労働基準法施行規則 art.21",
+				"locator": "第37条第5項; 第21条",
+				"url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+				"quote": "家族手当、通勤手当その他厚生労働省令で定める賃金は算入しない"
 			}
 		],
 		"subtotal_id": "59754301-0b1f-5f8f-ad7f-660b6134e82c",
@@ -31,11 +37,11 @@
 		"conversion": "// 所得税法施行令 art.20の2: transit to 150,000 a month; a car or bicycle by one-way distance, plus a car park and any transit fare, within that 150,000.\nconst facts = ctx.subject.employment.employee_extension_data;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0));\nconst km = get(facts, 'commute_car_km_one_way', null);\nconst band = km == null ? null : ctx.lookup.car_distance_bands.find((row) => row.below == null || Number(km) < row.below);\nconst parking = band == null || band.amount === 0 ? 0 : Math.min(Number(get(facts, 'commute_parking_fee', 0)), ctx.lookup.parking_monthly_cap);\nconst car = band == null ? ctx.lookup.commuting_monthly_limit : band.amount + parking + Number(get(facts, 'commute_transit_fare', 0));\nconst limit = Math.min(car, ctx.lookup.commuting_monthly_limit);\nreturn Math.min(amount, limit);",
 		"id": "8148f637-5684-5ae7-a771-c3085db65d89",
 		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69",
-		"include_in_rate": true
+		"include_in_rate": false
 	},
 	{
 		"code": "COMMUTING_ALLOWANCE_TAXABLE",
-		"description": "Taxable excess of the contractual commuting allowance above the statutory non-taxable monthly limit.",
+		"description": "Taxable part of the contractual commuting allowance: the contract amount above the non-taxable monthly limit, paid in full (not prorated). Left out of the hour and day rate (労働基準法 art.37(5)).",
 		"lookup": {},
 		"references": [
 			{
@@ -43,6 +49,12 @@
 				"locator": "9条1項5号、所得税法施行令20条の2（通勤手当）",
 				"url": "https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2582.htm",
 				"quote": "1か月当たりの非課税となる限度額を超えて通勤手当を支給する場合には、超える部分の金額が給与として課税されます。"
+			},
+			{
+				"title": "労働基準法 art.37(5); 労働基準法施行規則 art.21",
+				"locator": "第37条第5項; 第21条",
+				"url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+				"quote": "家族手当、通勤手当その他厚生労働省令で定める賃金は算入しない"
 			}
 		],
 		"subtotal_id": "a0da1d9d-dcfc-5197-8272-03915a93f5ae",
@@ -50,17 +62,23 @@
 		"conversion": "// 所得税法施行令 art.20の2: transit to 150,000 a month; a car or bicycle by one-way distance, plus a car park and any transit fare, within that 150,000.\nconst facts = ctx.subject.employment.employee_extension_data;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0));\nconst km = get(facts, 'commute_car_km_one_way', null);\nconst band = km == null ? null : ctx.lookup.car_distance_bands.find((row) => row.below == null || Number(km) < row.below);\nconst parking = band == null || band.amount === 0 ? 0 : Math.min(Number(get(facts, 'commute_parking_fee', 0)), ctx.lookup.parking_monthly_cap);\nconst car = band == null ? ctx.lookup.commuting_monthly_limit : band.amount + parking + Number(get(facts, 'commute_transit_fare', 0));\nconst limit = Math.min(car, ctx.lookup.commuting_monthly_limit);\nreturn Math.max(0, amount - limit);",
 		"id": "2a3fa929-9988-5d30-83cc-a3c19a863e8a",
 		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69",
-		"include_in_rate": true
+		"include_in_rate": false
 	},
 	{
 		"code": "FAMILY_ALLOWANCE",
-		"description": "Contractual family allowance paid when the terms set a positive amount; treated as remuneration.",
+		"description": "Contractual family allowance set by the number of dependants: the contract amount, paid in full each month (not prorated). Remuneration and salary income, but left out of the hour and day rate (労働基準法 art.37(5)). A flat amount paid to everyone belongs on FIXED_ALLOWANCE.",
 		"lookup": {},
 		"references": [
 			{
 				"title": "健康保険法",
 				"locator": "3条5項（報酬）",
 				"quote": "家族手当は、労働の対償として支払われる限り報酬に含まれる。"
+			},
+			{
+				"title": "労働基準法 art.37(5); 労働基準法施行規則 art.21",
+				"locator": "第37条第5項; 第21条",
+				"url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+				"quote": "家族手当、通勤手当その他厚生労働省令で定める賃金は算入しない"
 			}
 		],
 		"subtotal_id": "a0da1d9d-dcfc-5197-8272-03915a93f5ae",
@@ -68,11 +86,11 @@
 		"conversion": "return Number(get(ctx.subject.employment, 'terms.allowances.FAMILY_ALLOWANCE.amount', 0));",
 		"id": "163f27a4-a12c-5712-b7e9-fd3c6773d35f",
 		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69",
-		"include_in_rate": true
+		"include_in_rate": false
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
-		"description": "Contractual fixed allowance paid when the terms set a positive amount; treated as remuneration, salary income and part of the overtime base.",
+		"description": "Contractual fixed allowance: the contract amount prorated by the period's paid share (working days paid ÷ working days). Remuneration, a wage for labour insurance, salary income and part of the hour and day rate.",
 		"lookup": {},
 		"references": [
 			{
@@ -88,11 +106,17 @@
 	},
 	{
 		"code": "HOUSING_ALLOWANCE",
-		"description": "Contractual housing allowance paid when the terms set a positive amount; treated as remuneration, and excluded from the overtime base when it varies with housing cost.",
+		"description": "Contractual housing allowance that varies with the housing cost: the contract amount, paid in full each month (not prorated). Remuneration and salary income, but left out of the hour and day rate (労働基準法施行規則 art.21(iii)). A flat amount paid to everyone belongs on FIXED_ALLOWANCE.",
 		"lookup": {},
 		"references": [
 			{
 				"title": "Remuneration, wages and salary income; excluded from the overtime base only where it varies with the housing cost (労働基準法施行規則 art.21(iii), 平成11年3月31日 基発170号). A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
+			},
+			{
+				"title": "労働基準法 art.37(5); 労働基準法施行規則 art.21",
+				"locator": "第37条第5項; 第21条",
+				"url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+				"quote": "家族手当、通勤手当その他厚生労働省令で定める賃金は算入しない"
 			}
 		],
 		"subtotal_id": "a0da1d9d-dcfc-5197-8272-03915a93f5ae",
@@ -100,6 +124,6 @@
 		"conversion": "return Number(get(ctx.subject.employment, 'terms.allowances.HOUSING_ALLOWANCE.amount', 0));",
 		"id": "dd5592ef-a872-5195-92aa-d6983db6863d",
 		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69",
-		"include_in_rate": true
+		"include_in_rate": false
 	}
 ]

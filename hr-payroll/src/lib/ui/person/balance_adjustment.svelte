@@ -4,38 +4,48 @@
 	 * in hours), or money on a claim row's limit, of the law in force on the date. One immutable ledger row; the ledger
 	 * works out its window.
 	 */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Id } from '@norbital-ai/bolt';
 	import { PlainDate } from '@norbital-ai/std/date';
-	import { Button, Combobox, Editor, Sheet, Textarea, notifyOutcome, toast } from '@norbital-ai/ui';
+	import {
+		Button,
+		Combobox,
+		Editor,
+		Sheet,
+		Textarea,
+		notify_outcome,
+		toast
+	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import { versionOn } from '../../payroll_engine/contract_change.js';
 
 	let {
+		ctx,
 		employeeId,
 		balanceId,
 		onclose
 	}: {
+		ctx: PageContext;
 		employeeId: Id<'employee_profile'>;
 		balanceId: Id<'employee_balance'>;
 		onclose: () => void;
 	} = $props();
-	const t = bolt.t;
-	const clock = bolt.clock('day');
+	const t = ctx.t;
+	const clock = ctx.clock('day');
 	let date = $state<PlainDate>(PlainDate(clock.today));
 	let chosen = $state<string | null>(null);
 	let amount = $state<number | null>(null);
 	let note = $state('');
 	let saving = $state(false);
-	const law = bolt.query({
+	const law = ctx.query({
 		employee_contract: {
 			where: { employee_id: { eq: employeeId }, status: { eq: 'SEALED' } },
 			fields: ['effective_range', 'entity_id'],
-			limit: 1000
+			limit: 1000,
+			entity_id: { fields: ['settings_code'] }
 		},
-		'employee_contract.entity_id': { fields: ['settings_code'] },
 		jurisdiction_settings: {
 			where: { status: { eq: 'SEALED' } },
 			fields: ['code', 'effective_range'],
@@ -59,17 +69,17 @@
 	const rows = $derived(
 		version === undefined
 			? null
-			: bolt.query({
+			: ctx.query({
 					leave_catalog: {
 						where: { settings_id: { eq: version } },
 						fields: ['code', 'description', 'lookup'],
-						orderBy: { code: 'asc' },
+						order_by: { code: 'asc' },
 						limit: 1000
 					},
 					claim_catalog: {
 						where: { settings_id: { eq: version } },
 						fields: ['code', 'description'],
-						orderBy: { code: 'asc' },
+						order_by: { code: 'asc' },
 						limit: 1000
 					}
 				})
@@ -110,24 +120,26 @@
 		if (!valid || chosen === null || amount === null) return;
 		saving = true;
 		fork(
-			bolt
-				.act('ledger_entry.create', [
-					{
-						balance_id: balanceId,
-						operation: amount < 0 ? 'DEDUCT' : 'ADD',
-						account,
-						code: chosen.slice(chosen.indexOf(':') + 1),
-						measure: account === 'claim' ? 'limit' : 'entitled',
-						amount: Math.abs(amount),
-						unit,
-						effective_on: date,
-						note: note.trim()
-					}
-				])
+			ctx
+				.act({
+					'ledger_entry.create': [
+						{
+							balance_id: balanceId,
+							operation: amount < 0 ? 'DEDUCT' : 'ADD',
+							account,
+							code: chosen.slice(chosen.indexOf(':') + 1),
+							measure: account === 'claim' ? 'limit' : 'entitled',
+							amount: Math.abs(amount),
+							unit,
+							effective_on: date,
+							note: note.trim()
+						}
+					]
+				})
 				.pipe(
 					Effect.tap((outcome) =>
 						Effect.sync(() => {
-							notifyOutcome(bolt, outcome);
+							notify_outcome(ctx, outcome);
 							if (outcome.kind === 'committed') {
 								toast.success(t('balance.adjusted'));
 								onclose();
@@ -145,18 +157,19 @@
 	}
 </script>
 
-<Sheet open title={t('balance.adjust')} onOpenChange={(open) => !open && onclose()}>
+<Sheet open title={t('balance.adjust')} on_open_change={(open) => !open && onclose()}>
 	<Stack gap="md">
 		<p class="text-muted-foreground text-sm">{t('balance.adjust_help')}</p>
 		<label class="grid gap-1" for="balance-adjust-date">
 			<span class="text-xs font-medium text-muted-foreground">{t('balance.date')}</span>
 			<Editor
+				{ctx}
 				id="balance-adjust-date"
 				name="effective_on"
 				kind={{ kind: 'date' }}
 				value={date}
 				disabled={saving}
-				onChange={(next) => next != null && (date = PlainDate(String(next)))}
+				on_change={(next) => next != null && (date = PlainDate(String(next)))}
 			/>
 		</label>
 		<label class="grid gap-1" for="balance-adjust-row">
@@ -167,7 +180,7 @@
 				value={chosen}
 				disabled={saving}
 				loading={rows?.loading ?? law.loading}
-				onChange={(next) => (chosen = next)}
+				on_change={(next) => (chosen = next)}
 			/>
 		</label>
 		<label class="grid gap-1" for="balance-adjust-amount">
@@ -179,12 +192,13 @@
 						: t('balance.days')}</span
 			>
 			<Editor
+				{ctx}
 				id="balance-adjust-amount"
 				name="amount"
 				kind={{ kind: 'number' }}
 				value={amount}
 				disabled={saving}
-				onChange={(next) => (amount = typeof next === 'number' ? next : null)}
+				on_change={(next) => (amount = typeof next === 'number' ? next : null)}
 			/>
 		</label>
 		<label class="grid gap-1" for="balance-adjust-note">

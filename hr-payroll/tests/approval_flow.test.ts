@@ -2,9 +2,10 @@
 // while it waits, each decision moves it once, a rejection restores what stood, and every refusal leaves a way forward.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import type { Id } from '@norbital-ai/bolt';
+import { TestWorkspace, type Caller, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import {
@@ -15,7 +16,8 @@ import {
 	syncAll,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	storedQuery
 } from './kit.ts';
 
 const NOW = '2026-02-20T02:00:00.000Z';
@@ -55,29 +57,30 @@ const reviewers = [
 const seed = { ...base, sys_user: [...(base.sys_user ?? []), ...reviewers] };
 const people = Effect.fnUntraced(function* (t: Kit) {
 	return {
-		me: t.as(t.member(['employee'], { id: uuid(3) })),
-		lead: t.as(yield* t.signIn('lead@example.test')),
-		payroll: t.as(yield* t.signIn('payroll@example.test')),
-		chief: t.as(yield* t.signIn('chief@example.test'))
+		me: yield* t.as(t.member(['employee'], { id: uuid(3) })),
+		lead: yield* t.as(yield* t.sign_in('lead@example.test')),
+		payroll: yield* t.as(yield* t.sign_in('payroll@example.test')),
+		chief: yield* t.as(yield* t.sign_in('chief@example.test'))
 	};
 });
-type Caller = ReturnType<Kit['as']>;
 const leave = (by: Caller, ...dates: readonly string[]) =>
 	by
-		.act('leave_catalog_entry.create', [
-			leaveCreate({
-				entity_id: ENTITY,
-				employment_id: CONTRACT,
-				catalog_id: idOf('leave_catalog', catalogRow(base, 'leave_catalog', 'MEDICAL_LEAVE')),
-				days: wholeDays(...dates)
-			})
-		])
+		.act({
+			'leave_catalog_entry.create': [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: idOf('leave_catalog', catalogRow(base, 'leave_catalog', 'MEDICAL_LEAVE')),
+					days: wholeDays(...dates)
+				})
+			]
+		})
 		.pipe(
 			Effect.map((asked) => {
-				assert.ok(asked.kind === 'pendingApproval');
+				assert.ok(asked.kind === 'pending_approval');
 				const [record] = asked.records;
 				assert.ok(record !== undefined);
-				return { requestId: asked.requestId, id: record.id };
+				return { request_id: asked.request_id, id: record.id };
 			})
 		);
 const CLAIM = idOf('claim_catalog', catalogRow(base, 'claim_catalog', 'MEDICAL_CLAIM'));
@@ -89,30 +92,34 @@ const claimOf = (quantity: number) => ({
 	incurred_on: PlainDate(DAY)
 });
 const claim = (by: Caller, quantity: number) =>
-	by.act('claim_catalog_entry.create', [claimOf(quantity)]).pipe(
+	by.act({ 'claim_catalog_entry.create': [claimOf(quantity)] }).pipe(
 		Effect.map((asked) => {
-			assert.ok(asked.kind === 'pendingApproval');
+			assert.ok(asked.kind === 'pending_approval');
 			const [record] = asked.records;
 			assert.ok(record !== undefined);
-			return { requestId: asked.requestId, id: idOf('claim_catalog_entry', record.id) };
+			return { request_id: asked.request_id, id: idOf('claim_catalog_entry', record.id) };
 		})
 	);
 /** What an entry has posted to the ledger. */
 const posted = (t: Kit, model: string, id: string) =>
-	t
-		.storedQuery({ ledger_entry: { where: { source: { eq: `${model}:${id}` } }, limit: 100 } })
-		.pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows.length));
+	storedQuery(t, {
+		ledger_entry: { where: { source: { eq: `${model}:${id}` } }, limit: 100 }
+	}).pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows.length));
 const refusal = <A, E>(effect: Effect.Effect<A, E>) => Effect.flip(effect).pipe(Effect.map(String));
 const approve = (by: Caller, requestId: string) =>
 	by.approvals.decide(requestId, { decision: 'approve' });
 const run = (t: Kit, period: string) =>
 	t
 		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-		.pipe(Effect.andThen(t.runDue()));
+		.pipe(
+			Effect.flatMap((caller) =>
+				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+			)
+		)
+		.pipe(Effect.andThen(t.run_due()));
 /** What a period's payslip pays on a code; nothing when it has no such line. */
 const paidOn = (t: Kit, period: string, code: string) =>
-	t.storedQuery({ payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
+	storedQuery(t, { payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
 		Effect.map((got) => {
 			const ran = got.payroll_run.rows.find((row) => row.period === period);
 			const slip = got.payslip.rows.find((row) => row.payroll_run_id === ran?.id);
@@ -123,11 +130,24 @@ const paidOn = (t: Kit, period: string, code: string) =>
 		})
 	);
 const claims = (t: Kit) =>
-	t
-		.storedQuery({ claim_catalog_entry: { limit: 100 } })
-		.pipe(Effect.map(({ claim_catalog_entry }) => claim_catalog_entry.rows));
+	storedQuery(t, { claim_catalog_entry: { limit: 100 } }).pipe(
+		Effect.map(({ claim_catalog_entry }) => claim_catalog_entry.rows)
+	);
 const live = (rows: typeof seed = seed, now = NOW) => workspace({ seed: rows, now });
 
+/** A record as a write targets it: its id at its current revision. */
+const current = <C extends string>(t: Kit, model: C, id: Id<C>) =>
+	t.db
+		.one(Schema.Struct({ revision: Schema.Int }), {
+			text: `SELECT revision FROM ${model} WHERE id = $1`,
+			params: [id]
+		})
+		.pipe(
+			Effect.map((found) => {
+				assert.ok(Option.isSome(found), `No ${model} ${id}`);
+				return { id, revision: found.value.revision };
+			})
+		);
 describe('who may decide a request', () => {
 	it.live('the person who asked cannot decide their own', () =>
 		Effect.gen(function* () {
@@ -135,14 +155,14 @@ describe('who may decide a request', () => {
 			yield* syncAll(t);
 			const { me, lead } = yield* people(t);
 			const asked = yield* leave(me, DAY);
-			assert.match(yield* refusal(approve(me, asked.requestId)), /Only the approver may approve/);
+			assert.match(yield* refusal(approve(me, asked.request_id)), /Only the approver may approve/);
 			assert.match(
 				yield* refusal(
-					me.approvals.decide(asked.requestId, { decision: 'reject', reason: 'Changed my mind' })
+					me.approvals.decide(asked.request_id, { decision: 'reject', reason: 'Changed my mind' })
 				),
 				/Only the approver or superseder may reject/
 			);
-			yield* approve(lead, asked.requestId);
+			yield* approve(lead, asked.request_id);
 			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
 		}).pipe(Effect.provide(live()))
 	);
@@ -153,11 +173,11 @@ describe('who may decide a request', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
-			const me = t.as(yield* t.signIn('worker@example.test'));
-			const deputy = t.as(yield* t.signIn('deputy@example.test'));
+			const me = yield* t.as(yield* t.sign_in('worker@example.test'));
+			const deputy = yield* t.as(yield* t.sign_in('deputy@example.test'));
 			const asked = yield* leave(me, DAY);
-			assert.match(yield* refusal(approve(me, asked.requestId)), /Only the approver may approve/);
-			yield* approve(deputy, asked.requestId);
+			assert.match(yield* refusal(approve(me, asked.request_id)), /Only the approver may approve/);
+			yield* approve(deputy, asked.request_id);
 			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
 		}).pipe(
 			Effect.provide(
@@ -184,23 +204,26 @@ describe('who may decide a request', () => {
 			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
 			// HR's step has not come yet
 			assert.match(
-				yield* refusal(approve(payroll, asked.requestId)),
+				yield* refusal(approve(payroll, asked.request_id)),
 				/Only the approver may approve/
 			);
-			yield* approve(lead, asked.requestId);
+			yield* approve(lead, asked.request_id);
 			// the supervisor's step is done: their second approval is not HR's
-			assert.match(yield* refusal(approve(lead, asked.requestId)), /Only the approver may approve/);
+			assert.match(
+				yield* refusal(approve(lead, asked.request_id)),
+				/Only the approver may approve/
+			);
 			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
-			yield* approve(payroll, asked.requestId);
+			yield* approve(payroll, asked.request_id);
 			const once = yield* posted(t, 'leave_catalog_entry', asked.id);
 			assert.ok(once > 0);
 			assert.match(
-				yield* refusal(approve(payroll, asked.requestId)),
+				yield* refusal(approve(payroll, asked.request_id)),
 				/This request is Approved; it no longer changes/
 			);
 			assert.match(
 				yield* refusal(
-					lead.approvals.decide(asked.requestId, { decision: 'reject', reason: 'Too late' })
+					lead.approvals.decide(asked.request_id, { decision: 'reject', reason: 'Too late' })
 				),
 				/This request is Approved; it no longer changes/
 			);
@@ -215,25 +238,28 @@ describe('who may decide a request', () => {
 			const { me, lead, chief } = yield* people(t);
 			const asked = yield* leave(me, DAY);
 			// deciding in a step's place is on the record: it needs its reason
-			assert.match(yield* refusal(approve(chief, asked.requestId)), /This decision needs a reason/);
-			yield* chief.approvals.decide(asked.requestId, {
+			assert.match(
+				yield* refusal(approve(chief, asked.request_id)),
+				/This decision needs a reason/
+			);
+			yield* chief.approvals.decide(asked.request_id, {
 				decision: 'approve',
 				reason: 'Supervisor away'
 			});
 			const once = yield* posted(t, 'leave_catalog_entry', asked.id);
 			assert.ok(once > 0);
 			assert.match(
-				yield* refusal(approve(lead, asked.requestId)),
+				yield* refusal(approve(lead, asked.request_id)),
 				/This request is Superseded; it no longer changes/
 			);
 			assert.match(
 				yield* refusal(
-					lead.approvals.decide(asked.requestId, { decision: 'reject', reason: 'Not agreed' })
+					lead.approvals.decide(asked.request_id, { decision: 'reject', reason: 'Not agreed' })
 				),
 				/This request is Superseded; it no longer changes/
 			);
 			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), once);
-			const { leave_catalog_entry } = yield* t.storedQuery({ leave_catalog_entry: { limit: 10 } });
+			const { leave_catalog_entry } = yield* storedQuery(t, { leave_catalog_entry: { limit: 10 } });
 			assert.equal(leave_catalog_entry.rows.length, 1);
 		}).pipe(Effect.provide(live()))
 	);
@@ -247,11 +273,11 @@ describe('a rejection', () => {
 			const { me, lead } = yield* people(t);
 			const asked = yield* leave(me, DAY);
 			assert.match(
-				yield* refusal(lead.approvals.decide(asked.requestId, { decision: 'reject' })),
+				yield* refusal(lead.approvals.decide(asked.request_id, { decision: 'reject' })),
 				/This decision needs a reason/
 			);
-			yield* lead.approvals.decide(asked.requestId, { decision: 'reject', reason: 'Busy week' });
-			const held = yield* t.storedQuery({
+			yield* lead.approvals.decide(asked.request_id, { decision: 'reject', reason: 'Busy week' });
+			const held = yield* storedQuery(t, {
 				leave_catalog_entry: { limit: 10 },
 				leave_catalog_entry_day: { limit: 10 }
 			});
@@ -260,7 +286,7 @@ describe('a rejection', () => {
 			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
 			// nothing of the rejected request stands in the way of the same day
 			const again = yield* leave(me, DAY);
-			assert.notEqual(again.requestId, asked.requestId);
+			assert.notEqual(again.request_id, asked.request_id);
 		}).pipe(Effect.provide(live()))
 	);
 
@@ -272,19 +298,19 @@ describe('a rejection', () => {
 				const { me, lead } = yield* people(t);
 				// the year's claim limit is on the balance before anyone claims
 				yield* syncAll(t);
-				yield* t.as(t.admin).act('claim_catalog_entry.create', [claimOf(80)]);
+				yield* (yield* t.as(t.admin)).act({ 'claim_catalog_entry.create': [claimOf(80)] });
 				const [standing] = yield* claims(t);
 				assert.ok(standing !== undefined);
-				const changed = yield* me.act('claim_catalog_entry.update', [
-					{ target: standing.id, set: { quantity: 500 } }
-				]);
-				assert.ok(changed.kind === 'pendingApproval');
-				assert.equal((yield* claims(t))[0]?.quantity?.toNumber(), 500);
-				yield* lead.approvals.decide(changed.requestId, {
+				const changed = yield* me.act({
+					'claim_catalog_entry.update': [{ target: standing, set: { quantity: 500 } }]
+				});
+				assert.ok(changed.kind === 'pending_approval');
+				assert.equal((yield* claims(t))[0]?.quantity?.to_number(), 500);
+				yield* lead.approvals.decide(changed.request_id, {
 					decision: 'reject',
 					reason: 'No receipt'
 				});
-				assert.equal((yield* claims(t))[0]?.quantity?.toNumber(), 80);
+				assert.equal((yield* claims(t))[0]?.quantity?.to_number(), 80);
 				yield* run(t, '2026-02');
 				assert.equal(yield* paidOn(t, '2026-02', 'MEDICAL_CLAIM'), 80);
 			}).pipe(Effect.provide(live()))
@@ -300,9 +326,9 @@ describe('a withdrawal', () => {
 				yield* syncAll(t);
 				const { me, lead } = yield* people(t);
 				const asked = yield* leave(me, DAY);
-				yield* me.approvals.decide(asked.requestId, { decision: 'withdraw' });
-				yield* t.runDue();
-				const held = yield* t.storedQuery({
+				yield* me.approvals.decide(asked.request_id, { decision: 'withdraw' });
+				yield* t.run_due();
+				const held = yield* storedQuery(t, {
 					leave_catalog_entry: { limit: 10 },
 					leave_catalog_entry_day: { limit: 10 },
 					approval_request: { limit: 10 }
@@ -316,11 +342,11 @@ describe('a withdrawal', () => {
 				assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
 				// withdrawn, it takes no decision, and nothing of it stands in the way of the same day
 				assert.match(
-					yield* refusal(approve(lead, asked.requestId)),
+					yield* refusal(approve(lead, asked.request_id)),
 					/This request is Withdrawn; it no longer changes/
 				);
 				const again = yield* leave(me, DAY);
-				assert.notEqual(again.requestId, asked.requestId);
+				assert.notEqual(again.request_id, asked.request_id);
 			}).pipe(Effect.provide(live()))
 	);
 
@@ -332,10 +358,10 @@ describe('a withdrawal', () => {
 			const asked = yield* leave(me, DAY);
 			for (const other of [lead, chief])
 				assert.match(
-					yield* refusal(other.approvals.decide(asked.requestId, { decision: 'withdraw' })),
+					yield* refusal(other.approvals.decide(asked.request_id, { decision: 'withdraw' })),
 					/Only the requester may withdraw/
 				);
-			const { leave_catalog_entry, approval_request } = yield* t.storedQuery({
+			const { leave_catalog_entry, approval_request } = yield* storedQuery(t, {
 				leave_catalog_entry: { limit: 10 },
 				approval_request: { limit: 10 }
 			});
@@ -345,7 +371,7 @@ describe('a withdrawal', () => {
 				['ONGOING']
 			);
 			// the way out the refusal leaves a reviewer: reject it, with a reason
-			yield* lead.approvals.decide(asked.requestId, {
+			yield* lead.approvals.decide(asked.request_id, {
 				decision: 'reject',
 				reason: 'Asked in error'
 			});
@@ -365,32 +391,36 @@ describe('requested changes', () => {
 				yield* syncAll(t);
 				const asked = yield* claim(me, 80);
 				const save = (by: Caller, quantity: number) =>
-					by.act('claim_catalog_entry.update', [{ target: asked.id, set: { quantity } }]);
+					current(t, 'claim_catalog_entry', asked.id).pipe(
+						Effect.flatMap((target) =>
+							by.act({ 'claim_catalog_entry.update': [{ target, set: { quantity } }] })
+						)
+					);
 				// while it waits on the supervisor, neither the requester nor HR changes the record under review
 				assert.match(yield* refusal(save(me, 70)), /Under approval/);
 				assert.match(yield* refusal(save(payroll, 70)), /Under approval/);
 				assert.match(
-					yield* refusal(lead.approvals.decide(asked.requestId, { decision: 'requestChanges' })),
+					yield* refusal(lead.approvals.decide(asked.request_id, { decision: 'request_changes' })),
 					/This decision needs a reason/
 				);
-				yield* lead.approvals.decide(asked.requestId, {
-					decision: 'requestChanges',
+				yield* lead.approvals.decide(asked.request_id, {
+					decision: 'request_changes',
 					reason: 'The receipt shows 60'
 				});
 				// nothing is approved until the requester has answered
 				assert.match(
-					yield* refusal(approve(lead, asked.requestId)),
+					yield* refusal(approve(lead, asked.request_id)),
 					/A request in ChangesRequested cannot approve/
 				);
 				assert.match(yield* refusal(save(payroll, 60)), /Under approval/);
-				yield* lead.approvals.decide(asked.requestId, {
+				yield* lead.approvals.decide(asked.request_id, {
 					decision: 'reject',
 					reason: 'Claim the 60 on the receipt'
 				});
 				assert.deepEqual(yield* claims(t), []);
 				const again = yield* claim(me, 60);
-				yield* approve(lead, again.requestId);
-				yield* approve(payroll, again.requestId);
+				yield* approve(lead, again.request_id);
+				yield* approve(payroll, again.request_id);
 				yield* run(t, '2026-02');
 				assert.equal(yield* paidOn(t, '2026-02', 'MEDICAL_CLAIM'), 60);
 			}).pipe(Effect.provide(live()))
@@ -404,18 +434,20 @@ describe('requested changes', () => {
 				const { me, lead, payroll } = yield* people(t);
 				yield* syncAll(t);
 				const asked = yield* claim(me, 80);
-				yield* lead.approvals.decide(asked.requestId, {
-					decision: 'requestChanges',
+				yield* lead.approvals.decide(asked.request_id, {
+					decision: 'request_changes',
 					reason: 'The receipt shows 60'
 				});
-				const saved = yield* me.act('claim_catalog_entry.update', [
-					{ target: asked.id, set: { quantity: 60 } }
-				]);
-				assert.ok(saved.kind === 'pendingApproval');
-				assert.equal(saved.requestId, asked.requestId);
+				const saved = yield* me.act({
+					'claim_catalog_entry.update': [
+						{ target: yield* current(t, 'claim_catalog_entry', asked.id), set: { quantity: 60 } }
+					]
+				});
+				assert.ok(saved.kind === 'pending_approval');
+				assert.equal(saved.request_id, asked.request_id);
 				assert.equal((yield* claims(t)).length, 1);
-				yield* approve(lead, asked.requestId);
-				yield* approve(payroll, asked.requestId);
+				yield* approve(lead, asked.request_id);
+				yield* approve(payroll, asked.request_id);
 				yield* run(t, '2026-02');
 				assert.equal(yield* paidOn(t, '2026-02', 'MEDICAL_CLAIM'), 60);
 			}).pipe(Effect.provide(live()))
@@ -427,24 +459,24 @@ describe('requested changes', () => {
 			yield* syncAll(t);
 			const { me, lead, payroll } = yield* people(t);
 			const asked = yield* leave(me, DAY);
-			yield* lead.approvals.decide(asked.requestId, {
-				decision: 'requestChanges',
+			yield* lead.approvals.decide(asked.request_id, {
+				decision: 'request_changes',
 				reason: 'Take the Wednesday instead'
 			});
 			assert.match(
-				yield* refusal(approve(lead, asked.requestId)),
+				yield* refusal(approve(lead, asked.request_id)),
 				/A request in ChangesRequested cannot approve/
 			);
-			yield* lead.approvals.decide(asked.requestId, {
+			yield* lead.approvals.decide(asked.request_id, {
 				decision: 'reject',
 				reason: 'Ask again for the Wednesday'
 			});
 			assert.equal(yield* posted(t, 'leave_catalog_entry', asked.id), 0);
 			const again = yield* leave(me, '2026-02-11');
-			yield* approve(lead, again.requestId);
-			yield* approve(payroll, again.requestId);
+			yield* approve(lead, again.request_id);
+			yield* approve(payroll, again.request_id);
 			assert.ok((yield* posted(t, 'leave_catalog_entry', again.id)) > 0);
-			const { leave_catalog_entry } = yield* t.storedQuery({ leave_catalog_entry: { limit: 10 } });
+			const { leave_catalog_entry } = yield* storedQuery(t, { leave_catalog_entry: { limit: 10 } });
 			assert.deepEqual(
 				leave_catalog_entry.rows.map((row) => row.id),
 				[again.id]
@@ -458,14 +490,16 @@ describe('a request and the balance', () => {
 	// is asked: a second request cannot ask for the same day of balance, and no approval is left unable to post
 	const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
 	const inLieu = (by: Caller, date: string) =>
-		by.act('leave_catalog_entry.create', [
-			leaveCreate({
-				entity_id: ENTITY,
-				employment_id: CONTRACT,
-				catalog_id: idOf('leave_catalog', catalogRow(base, 'leave_catalog', IN_LIEU)),
-				days: wholeDays(date)
-			})
-		]);
+		by.act({
+			'leave_catalog_entry.create': [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: idOf('leave_catalog', catalogRow(base, 'leave_catalog', IN_LIEU)),
+					days: wholeDays(date)
+				})
+			]
+		});
 	it.live(
 		'still waiting, holds its days: a second request for the last day is refused with the reason; the first rejected, it is taken and approved, and posts once',
 		() =>
@@ -474,36 +508,38 @@ describe('a request and the balance', () => {
 				yield* syncAll(t);
 				const { me, lead, payroll } = yield* people(t);
 				// HR grants the one day there is
-				yield* t.as(t.member(['hr_controller'])).act('ledger_entry.create', [
-					{
-						balance_id: idOf('employee_balance', uuid(5)),
-						operation: 'ADD',
-						account: 'leave',
-						code: IN_LIEU,
-						measure: 'entitled',
-						amount: 1,
-						unit: 'DAY',
-						effective_on: PlainDate('2026-02-02'),
-						note: 'worked the holiday'
-					}
-				]);
+				yield* (yield* t.as(t.member(['hr_controller']))).act({
+					'ledger_entry.create': [
+						{
+							balance_id: idOf('employee_balance', uuid(5)),
+							operation: 'ADD',
+							account: 'leave',
+							code: IN_LIEU,
+							measure: 'entitled',
+							amount: 1,
+							unit: 'DAY',
+							effective_on: PlainDate('2026-02-02'),
+							note: 'worked the holiday'
+						}
+					]
+				});
 				const first = yield* inLieu(me, DAY);
-				assert.ok(first.kind === 'pendingApproval');
+				assert.ok(first.kind === 'pending_approval');
 				assert.match(
 					yield* refusal(inLieu(me, '2026-02-11')),
 					new RegExp(`${IN_LIEU}: insufficient balance`)
 				);
 				// the way out: the waiting request is decided, and the day is free again
-				yield* lead.approvals.decide(first.requestId, {
+				yield* lead.approvals.decide(first.request_id, {
 					decision: 'reject',
 					reason: 'Not that day'
 				});
 				const second = yield* inLieu(me, '2026-02-11');
-				assert.ok(second.kind === 'pendingApproval');
+				assert.ok(second.kind === 'pending_approval');
 				const [record] = second.records;
 				assert.ok(record !== undefined);
-				yield* approve(lead, second.requestId);
-				yield* approve(payroll, second.requestId);
+				yield* approve(lead, second.request_id);
+				yield* approve(payroll, second.request_id);
 				assert.ok((yield* posted(t, 'leave_catalog_entry', record.id)) > 0);
 				assert.match(
 					yield* refusal(inLieu(me, '2026-02-12')),
@@ -524,11 +560,11 @@ describe('a request and the payroll run', () => {
 			// the run would seal a record under review: it is refused whole, and names who must decide
 			assert.match(yield* refusal(run(t, '2026-02')), /Under approval/);
 			assert.equal(
-				(yield* t.storedQuery({ payroll_run: { limit: 10 } })).payroll_run.rows.length,
+				(yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows.length,
 				0
 			);
-			yield* approve(lead, asked.requestId);
-			yield* approve(payroll, asked.requestId);
+			yield* approve(lead, asked.request_id);
+			yield* approve(payroll, asked.request_id);
 			yield* run(t, '2026-02');
 			yield* run(t, '2026-03');
 			assert.equal(yield* paidOn(t, '2026-02', 'MEDICAL_CLAIM'), 80);
@@ -542,18 +578,18 @@ describe('a request and the payroll run', () => {
 			const { me, lead, payroll } = yield* people(t);
 			yield* syncAll(t);
 			const asked = yield* claim(me, 80);
-			yield* approve(lead, asked.requestId);
+			yield* approve(lead, asked.request_id);
 			// the run is not a decision: a reviewer who runs payroll neither pays the claim nor joins its request
 			assert.match(
 				yield* refusal(
-					payroll.act('payroll_run.create', [
-						{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }
-					])
+					payroll.act({
+						'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+					})
 				),
 				/Under approval/
 			);
 			assert.equal(
-				(yield* t.storedQuery({ payroll_run: { limit: 10 } })).payroll_run.rows.length,
+				(yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows.length,
 				0
 			);
 			assert.equal(yield* posted(t, 'claim_catalog_entry', asked.id), 0);
@@ -570,17 +606,19 @@ describe('a request and the payroll run', () => {
 				const asked = yield* claim(me, 80);
 				// a save that changes nothing is no write, yet the entry's body still answers with its postings
 				yield* Effect.exit(
-					t
-						.as(t.admin)
-						.act('claim_catalog_entry.update', [{ target: asked.id, set: { quantity: 80 } }])
+					Effect.all([t.as(t.admin), current(t, 'claim_catalog_entry', asked.id)]).pipe(
+						Effect.flatMap(([caller, target]) =>
+							caller.act({ 'claim_catalog_entry.update': [{ target, set: { quantity: 80 } }] })
+						)
+					)
 				);
-				yield* t.runDue();
+				yield* t.run_due();
 				assert.equal(yield* posted(t, 'claim_catalog_entry', asked.id), 0);
-				yield* lead.approvals.decide(asked.requestId, {
+				yield* lead.approvals.decide(asked.request_id, {
 					decision: 'reject',
 					reason: 'Not covered'
 				});
-				yield* t.runDue();
+				yield* t.run_due();
 				assert.equal(yield* posted(t, 'claim_catalog_entry', asked.id), 0);
 				assert.equal((yield* claims(t)).length, 0);
 			}).pipe(Effect.provide(live(seed, '2026-03-28T02:00:00.000Z')))
@@ -594,29 +632,36 @@ describe('a request and the payroll run', () => {
 			yield* syncAll(t);
 			const asked = yield* claim(me, 80);
 			assert.match(yield* refusal(run(t, '2026-02')), /Under approval/);
-			yield* lead.approvals.decide(asked.requestId, { decision: 'reject', reason: 'Not covered' });
+			yield* lead.approvals.decide(asked.request_id, { decision: 'reject', reason: 'Not covered' });
 			yield* run(t, '2026-02');
 			assert.equal(yield* paidOn(t, '2026-02', 'MEDICAL_CLAIM'), 0);
 			assert.equal((yield* claims(t)).length, 0);
 		}).pipe(Effect.provide(live()))
 	);
 
-	it.live('approved after its month has run, is paid by the next run and by no other', () =>
+	it.live('approved after its month is paid, is carried by the next run and by no other', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const { me, lead, payroll } = yield* people(t);
 			// the year's claim limit is on the balance before anyone claims
 			yield* syncAll(t);
 			yield* run(t, '2026-02');
+			// an unpaid run holds its person: the month is paid before anything late is keyed into it
+			const [february] = (yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows;
+			assert.ok(february !== undefined);
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.update': [{ target: february, set: { state: 'PAID' } }]
+			});
+			yield* t.run_due();
 			const asked = yield* claim(me, 80);
-			yield* approve(lead, asked.requestId);
-			yield* approve(payroll, asked.requestId);
+			yield* approve(lead, asked.request_id);
+			yield* approve(payroll, asked.request_id);
 			assert.equal(yield* paidOn(t, '2026-02', 'MEDICAL_CLAIM'), 0);
 			yield* run(t, '2026-03');
 			yield* run(t, '2026-04');
 			assert.equal(yield* paidOn(t, '2026-03', 'MEDICAL_CLAIM'), 80);
 			assert.equal(yield* paidOn(t, '2026-04', 'MEDICAL_CLAIM'), 0);
-			const runs = (yield* t.storedQuery({ payroll_run: { limit: 10 } })).payroll_run.rows;
+			const runs = (yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows;
 			const [paid] = yield* claims(t);
 			assert.equal(paid?.payroll_run_id, runs.find((row) => row.period === '2026-03')?.id);
 		}).pipe(Effect.provide(live(seed, '2026-04-28T02:00:00.000Z')))

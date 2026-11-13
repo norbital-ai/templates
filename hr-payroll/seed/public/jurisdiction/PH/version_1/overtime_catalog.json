@@ -14,7 +14,7 @@
 		"direction": "ADD",
 		"id": "41e53cde-bcde-5266-aab2-d2885db5b887",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
+		"description": "Hours beyond the contract's normal daily hours, at the hour rate × 125% on an ordinary day, 169% on a rest or special day, 195% on a special day that is the rest day or a double special day, 253.5% on a double special rest day, 260% / 338% on a regular holiday (on the rest day) and 390% / 507% on a double holiday. An employer's higher rest-day multiple stands (Labor Code art.87)."
 	},
 	{
 		"code": "REST_DAY_WORK",
@@ -31,7 +31,7 @@
 		"direction": "ADD",
 		"id": "ce03e0d4-4f1c-54b1-a376-afc8f91a17d9",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Hours worked on a rest day, paid at the statutory rest-day multiplier."
+		"description": "Hours worked on a scheduled rest day that is not a holiday, up to the normal daily hours, at 130% of the hour rate, or the employer's higher rest-day multiple. Hours beyond are overtime (Labor Code art.93)."
 	},
 	{
 		"code": "OFF_DAY_WORK",
@@ -48,7 +48,7 @@
 		"direction": "ADD",
 		"id": "637b3947-cada-5313-b26c-0af24acc3557",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Hours worked on an off day, paid at the off-day multiplier."
+		"description": "Hours worked on the second non-working day of a five-day week, up to the normal daily hours, at 100% of the hour rate. Nothing for a daily-paid or seven-day contract, whose wage already pays the day (DOLE Handbook 2024 ch.2 §E)."
 	},
 	{
 		"code": "HOLIDAY_WORK",
@@ -65,7 +65,7 @@
 		"direction": "ADD",
 		"id": "f3eb42dd-ab79-5e65-8eb0-0c6e3eb180e6",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Hours worked on a statutory holiday, paid at the statutory holiday multiplier."
+		"description": "Hours worked on a regular holiday, up to the normal daily hours, at 200% of the hour rate (260% on the rest day; 300% / 390% on a double holiday). A monthly salary already pays the holiday, so monthly-paid staff get the excess over 100% and daily-paid staff the whole. Not for retail or service establishments of fewer than ten, or excluded categories (Labor Code art.94)."
 	},
 	{
 		"code": "SPECIAL_HOLIDAY_WORK",
@@ -82,7 +82,7 @@
 		"direction": "ADD",
 		"id": "95641b6d-498a-5f30-9f04-53b2a4a4725c",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Hours worked on a special holiday, paid at the special-holiday multiplier."
+		"description": "Hours worked on a special non-working day, up to the normal daily hours, at 130% of the hour rate (150% on the rest day; 150% / 195% on a double special day). On a working day monthly-paid staff get the excess over 100%; daily-paid staff, and anyone on a rest day, the whole (Labor Code art.93(c))."
 	},
 	{
 		"code": "NIGHT_SHIFT_DIFFERENTIAL",
@@ -103,7 +103,7 @@
 		"direction": "ADD",
 		"id": "92a0c3b7-cd33-5360-a7f0-95d28b86d2e4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Extra pay for hours worked on a night shift."
+		"description": "10% of the hour's own rate for each hour worked between 10 p.m. and 6 a.m.: the day's multiple, or the overtime multiple for a night hour that is also overtime (Labor Code art.86)."
 	},
 	{
 		"code": "DOUBLE_HOLIDAY_UNWORKED",
@@ -120,7 +120,7 @@
 		"direction": "ADD",
 		"id": "e6e78c25-4b78-549f-8a4f-c02f7001bc38",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Double holiday pay for an unworked public holiday."
+		"description": "One more day's pay (100% of the day rate) for an unworked double regular holiday; a daily-paid employee on unpaid absence the working day before gets none (Labor Code art.94)."
 	},
 	{
 		"code": "DAILY_HOLIDAY_PAY",
@@ -137,6 +137,6 @@
 		"direction": "ADD",
 		"id": "98712885-815f-5cb0-9260-34cae1e010c4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Holiday pay for a daily-paid employee on a public holiday."
+		"description": "One day's pay (100% of the day rate) for each unworked regular holiday, for a daily-paid employee not on unpaid absence the working day before (Labor Code art.94; Omnibus Rules Book III Rule IV s.6)."
 	}
 ]

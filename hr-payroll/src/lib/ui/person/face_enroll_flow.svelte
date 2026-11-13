@@ -3,13 +3,13 @@
 	import { Clock, Duration, Effect, Schedule, Schema } from 'effect';
 	import type Human from '@vladmandic/human';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
-	import { fileRef } from '@norbital-ai/bolt/page';
+	import { file_ref } from '@norbital-ai/bolt/page';
 	import { Instant } from '@norbital-ai/std/date';
-	import { bolt } from '$bolt';
-	import { DescriptionHint, Button, Icon, Spinner, useKinds } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { DescriptionHint, Button, Icon, Spinner } from '@norbital-ai/ui';
 	import { Cluster, Columns, Frame, Grid, Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { KIOSK_LOOP_MS } from '../../../kiosk/attendance/config.js';
-	import { meanEmbedding } from '../../../kiosk/attendance/embed.js';
+	import { KIOSK_LOOP_MS } from '../../../app/attendance/config.js';
+	import { meanEmbedding } from '../../../app/attendance/embed.js';
 	import {
 		createAnalyseCanvas,
 		drawVideoFrame,
@@ -20,7 +20,7 @@
 		openCamera,
 		closeCamera,
 		warmFaceEngine
-	} from '../../../kiosk/attendance/face.js';
+	} from '../../../app/attendance/face.js';
 	import {
 		GUIDED_POSES,
 		guidedCaptureComplete,
@@ -30,10 +30,10 @@
 		targetPose,
 		type GuidedPose
 	} from './guided_capture.js';
-	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../../kiosk/attendance/phrases.js';
-	import type { KioskSample } from '../../../kiosk/attendance/sample.js';
-	import { readKioskSettings } from '../../../kiosk/attendance/settings.js';
-	import { browserNarratorPlatform, createKioskNarrator } from '../../../kiosk/attendance/voice.js';
+	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../../app/attendance/phrases.js';
+	import type { KioskSample } from '../../../app/attendance/sample.js';
+	import { readKioskSettings } from '../../../app/attendance/settings.js';
+	import { browserNarratorPlatform, createKioskNarrator } from '../../../app/attendance/voice.js';
 	import { getErrorMessage } from '../../payroll_engine/foundation.js';
 	/**
 	 * Guided face enrollment for one known person, opened from their profile.
@@ -48,13 +48,16 @@
 	 * status. A pending or suspended enrollment is HR's to review and blocks a re-enrollment here.
 	 */
 	let {
+		ctx,
 		record,
 		onsaved,
 		onclose,
 		self = false
 	}: {
+		ctx: PageContext;
 		record: {
 			readonly id: Id<'employee_profile'>;
+			readonly revision: number;
 			readonly face_enrollment_status?: unknown;
 		};
 		onsaved: (previewUrl: string) => void;
@@ -91,10 +94,10 @@
 	const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 	const settings = readKioskSettings();
 	const narrator = createKioskNarrator(browserNarratorPlatform(), {
-		language: kioskVoiceLanguage(bolt.locale),
+		language: kioskVoiceLanguage(ctx.locale),
 		enabled: settings.voiceEnabled
 	});
-	const kinds = useKinds();
+	const kinds = ctx.ui.kinds;
 	let step = $state<Step>('capture');
 	let warming = $state(true);
 	let ready = $state(false);
@@ -148,22 +151,22 @@
 		fatal !== null
 			? fatal
 			: engineMissing.length > 0
-				? bolt.t('face.engine_unavailable', { models: engineMissing.join(', ') })
+				? ctx.t('face.engine_unavailable', { models: engineMissing.join(', ') })
 				: warming
-					? bolt.t('face.preparing')
+					? ctx.t('face.preparing')
 					: target === null
-						? bolt.t('face.captured', { count: capturedCount, total: GUIDED_POSES.length })
+						? ctx.t('face.captured', { count: capturedCount, total: GUIDED_POSES.length })
 						: !guided.facePresent
-							? bolt.t('face.guide_no_face')
-							: bolt.t(GUIDE_KEYS[target])
+							? ctx.t('face.guide_no_face')
+							: ctx.t(GUIDE_KEYS[target])
 	);
-	const poseLabel = (pose: GuidedPose): string => bolt.t(POSE_KEYS[pose]);
+	const poseLabel = (pose: GuidedPose): string => ctx.t(POSE_KEYS[pose]);
 	const stopCamera = () => {
 		closeCamera(handles.stream);
 		handles.stream = null;
 	};
 	$effect(() => {
-		narrator.setLanguage(kioskVoiceLanguage(bolt.locale));
+		narrator.setLanguage(kioskVoiceLanguage(ctx.locale));
 	});
 	const restartCapture = () => {
 		guided = initialGuidedCapture();
@@ -336,7 +339,7 @@
 		if (photo === undefined) return;
 		submitting = true;
 		error = null;
-		const target = record.id;
+		const target = { id: record.id, revision: record.revision };
 		const vectors = orderedSamples.map((sample: KioskSample) => sample.vector);
 		const enrollFace = Effect.fnUntraced(function* () {
 			const embedding = yield* Effect.try({
@@ -345,7 +348,7 @@
 			});
 			const upload = kinds.upload;
 			if (upload === undefined)
-				return yield* Effect.fail(enrollmentFailed(bolt.t('face.upload_unavailable')));
+				return yield* Effect.fail(enrollmentFailed(ctx.t('face.upload_unavailable')));
 			const file = yield* canvasToFile(photo.canvas);
 			const facePhoto = yield* upload(file, 'employee_profile.face_photo');
 			const now = Instant(new Date(yield* Clock.currentTimeMillis));
@@ -354,16 +357,16 @@
 					target,
 					set: {
 						face_embedding: embedding,
-						face_photo: fileRef(facePhoto),
+						face_photo: file_ref(facePhoto),
 						face_consent_at: now,
 						face_enrolled_at: now,
 						face_enrollment_status: self ? 'PENDING' : 'APPROVED'
 					}
 				}
 			];
-			const outcome = yield* bolt.act('employee_profile.update', payload);
+			const outcome = yield* ctx.act({ 'employee_profile.update': payload });
 			if (handles.disposed) return;
-			if (outcome.kind === 'pendingApproval') {
+			if (outcome.kind === 'pending_approval') {
 				stopCamera();
 				pendingApproval = true;
 				step = 'done';
@@ -392,14 +395,14 @@
 </script>
 
 <Stack gap="md" data-face-enroll-step={step}>
-	<Columns as="ol" count={3} gap="sm" collapse="none" aria-label={bolt.t('face.progress')}>
+	<Columns as="ol" count={3} gap="sm" collapse="none" aria-label={ctx.t('face.progress')}>
 		{#each STEPS as name, index (name)}
 			<li
 				class="border-t-2 pt-2 text-meta {index <= STEPS.indexOf(step)
 					? 'border-primary text-foreground'
 					: 'border-border'}"
 			>
-				{bolt.t(`face.step_${name}`)}
+				{ctx.t(`face.step_${name}`)}
 			</li>
 		{/each}
 	</Columns>
@@ -411,7 +414,7 @@
 			{#if warming}
 				<Imposter placement="fill" class="bg-black/40">
 					<Inline justify="center" size="fill">
-						<Spinner class="size-8 text-white" label={bolt.t('face.preparing')} />
+						<Spinner class="size-8 text-white" label={ctx.t('face.preparing')} />
 					</Inline>
 				</Imposter>
 			{/if}
@@ -426,7 +429,7 @@
 				</p>
 			</Imposter>
 		</Frame>
-		<Grid as="ol" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={bolt.t('face.poses')}>
+		<Grid as="ol" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={ctx.t('face.poses')}>
 			{#each GUIDED_POSES as pose (pose)}
 				{@const progress = poseProgress(guided, pose, now)}
 				{@const done = guided.captured.includes(pose)}
@@ -479,12 +482,12 @@
 		</Grid>
 		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 		<Inline justify="end" class="border-t pt-4">
-			<Button variant="ghost" onclick={onclose}>{bolt.t('face.cancel')}</Button>
+			<Button variant="ghost" onclick={onclose}>{ctx.t('face.cancel')}</Button>
 		</Inline>
 	</Stack>
 
 	<Stack hidden={step !== 'review'} gap="md">
-		<Grid as="ul" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={bolt.t('face.captures')}>
+		<Grid as="ul" tracks="repeat(5, minmax(0, 1fr))" gap="sm" aria-label={ctx.t('face.captures')}>
 			{#each GUIDED_POSES as pose (pose)}
 				{@const sample = samples[pose]}
 				<li class="rounded-lg border bg-background">
@@ -501,22 +504,22 @@
 			<label class="flex-1 rounded-lg border bg-background p-4 text-sm font-medium">
 				<Inline as="span" gap="sm">
 					<input class="size-4" type="checkbox" bind:checked={consent} />
-					{bolt.t('face.consent')}
+					{ctx.t('face.consent')}
 				</Inline>
-			</label><DescriptionHint text={bolt.t('face.review_description')} />
+			</label><DescriptionHint text={ctx.t('face.review_description')} />
 		</div>
 		{#if blocked}
 			<p role="note" class="text-sm text-warning-foreground">
 				{record.face_enrollment_status === 'PENDING'
-					? bolt.t('face.status_pending')
-					: bolt.t('face.status_suspended')}
+					? ctx.t('face.status_pending')
+					: ctx.t('face.status_suspended')}
 			</p>
 		{/if}
 		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 		<Cluster justify="between" gap="sm" class="border-t pt-4">
 			<Button variant="ghost" onclick={restartCapture} disabled={submitting}>
 				<Icon name="lucide:rotate-ccw" class="size-4" />
-				{bolt.t('face.recapture')}
+				{ctx.t('face.recapture')}
 			</Button>
 			<Button
 				type="button"
@@ -526,7 +529,7 @@
 				{#if submitting}
 					<Icon name="lucide:loader-circle" class="size-4 animate-spin" />
 				{/if}
-				{submitting ? bolt.t('face.enrolling') : bolt.t('face.enroll')}
+				{submitting ? ctx.t('face.enrolling') : ctx.t('face.enroll')}
 			</Button>
 		</Cluster>
 	</Stack>
@@ -545,11 +548,11 @@
 				class="mt-0.5 size-5 shrink-0"
 			/>
 			<p class="text-sm font-medium">
-				{bolt.t(pendingApproval ? 'offboarding.pending' : 'face.saved')}
+				{ctx.t(pendingApproval ? 'offboarding.pending' : 'face.saved')}
 			</p>
 		</Inline>
 		<Inline justify="end" class="border-t pt-4">
-			<Button onclick={onclose}>{bolt.t('face.close')}</Button>
+			<Button onclick={onclose}>{ctx.t('face.close')}</Button>
 		</Inline>
 	</Stack>
 </Stack>

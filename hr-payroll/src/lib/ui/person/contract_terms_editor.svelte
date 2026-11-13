@@ -1,14 +1,18 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
-	import { Editor, type FieldEditor, type Value, valueObject } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { Editor, type FieldEditor, type Value, value_object } from '@norbital-ai/ui';
 	import { idOf } from '../../payroll_engine/reads.js';
 	import { contractCategories } from './contract_categories.js';
 	import AllowanceTermsEditor from './allowance_terms_editor.svelte';
 
-	let { field, versionId }: { field: FieldEditor; versionId: string | null } = $props();
+	let {
+		ctx,
+		field,
+		versionId
+	}: { ctx: PageContext; field: FieldEditor; versionId: string | null } = $props();
 	const settings = $derived(
 		typeof versionId === 'string'
-			? bolt.query({
+			? ctx.query({
 					jurisdiction_settings: {
 						where: { id: { eq: idOf('jurisdiction_settings', versionId) } },
 						fields: ['lookup'],
@@ -19,7 +23,7 @@
 	);
 	const rule = $derived(
 		typeof versionId === 'string'
-			? bolt.query({
+			? ctx.query({
 					registered_rule: {
 						where: {
 							settings_id: { eq: idOf('jurisdiction_settings', versionId) },
@@ -60,28 +64,28 @@
 		// the employee-borne tax items are the agreed allowances
 		const items = fields['employee_borne_tax_items'];
 		const agreed =
-			valueObject(field.value) && valueObject(field.value['allowances'])
+			value_object(field.value) && value_object(field.value['allowances'])
 				? Object.keys(field.value['allowances'])
 				: [];
-		if (items?.kind === 'list' && agreed.length > 0)
-			fields['employee_borne_tax_items'] = { ...items, of: { kind: 'enum', values: agreed } };
+		if (items?.many === true && agreed.length > 0)
+			fields['employee_borne_tax_items'] = { kind: 'enum', values: agreed, many: true };
 		return { ...field.kind, fields };
 	});
-	const terms = $derived(valueObject(field.value) ? field.value : {});
+	const terms = $derived(value_object(field.value) ? field.value : {});
 	const allowances = $derived(terms['allowances']);
 	const allowanceField: FieldEditor = $derived({
 		...field,
 		name: 'allowances',
 		value: allowances ?? null,
-		onChange: (next) => field.onChange({ ...terms, allowances: next })
+		on_change: (next) => field.on_change({ ...terms, allowances: next })
 	});
 	// the generic editor writes the terms without allowances; keep what the custom editor holds
 	const edited: FieldEditor = $derived({
 		...field,
 		kind,
-		onChange: (next: Value) =>
-			field.onChange({
-				...(valueObject(next) ? next : {}),
+		on_change: (next: Value) =>
+			field.on_change({
+				...(value_object(next) ? next : {}),
 				...(allowances === undefined ? {} : { allowances })
 			})
 	});
@@ -93,10 +97,11 @@
 	data-version={JSON.stringify(versionId)}
 	data-version-type={typeof versionId}
 >
-	<Editor {...edited} />
+	<Editor {ctx} {...edited} />
 	<div class="mt-2">
-		<span class="text-sm font-medium">{bolt.t('contract.allowances')}</span>
+		<span class="text-sm font-medium">{ctx.t('contract.allowances')}</span>
 		<AllowanceTermsEditor
+			{ctx}
 			field={allowanceField}
 			versionId={typeof versionId === 'string' ? versionId : undefined}
 		/>

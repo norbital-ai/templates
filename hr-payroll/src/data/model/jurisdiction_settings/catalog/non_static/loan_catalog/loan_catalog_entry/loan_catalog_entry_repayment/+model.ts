@@ -1,21 +1,27 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../../../../../../.norbital/models/loan_catalog_entry_repayment.ts';
 import { validateRegistered } from '../../../../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../../lib/payroll_engine/taps.js';
-import { assertUnpriced } from '../../../../../../../../lib/payroll_engine/pay_cycle.js';
+import { amendmentsFor } from '../../../../../../../../lib/amendments.js';
 
-const NEXT = 'Date the instalment in the next period to run.';
-/** An instalment is deducted by the run whose attendance holds its date; a reversal is paid by the next run. */
-const instalments = (
-	rows: readonly { employment_id: string; paid_on?: string | null; reverses?: string | null }[]
+/** An instalment is deducted by the run whose attendance holds its date: a paid period holding it is worked out again. */
+const touched = (
+	rows: readonly {
+		readonly employment_id: string;
+		readonly paid_on?: string | null | undefined;
+		readonly payroll_run_id?: string | null | undefined;
+	}[]
 ) =>
-	rows.flatMap(({ employment_id, paid_on, reverses }) =>
-		paid_on == null || reverses != null ? [] : [{ employment: employment_id, date: paid_on }]
+	rows.flatMap(({ employment_id, paid_on, payroll_run_id }) =>
+		paid_on == null
+			? []
+			: [{ employment: String(employment_id), from: String(paid_on), run: payroll_run_id ?? null }]
 	);
 
-export default model('loan_catalog_entry_repayment', {
+export default model({
 	description: 'One repayment against a loan entry.',
-	label: 'payment_reference',
+	record_label: "record.payment_reference != null ? record.payment_reference : ''",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: {
@@ -27,53 +33,56 @@ export default model('loan_catalog_entry_repayment', {
 			kind: 'ref',
 			to: 'loan_catalog_entry',
 			inverse: 'repayments',
-			onDelete: 'restrict'
+			on_delete: 'restrict'
 		},
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
+		payroll_run_id: {
+			kind: 'ref',
+			to: 'payroll_run',
+			inverse: 'repayment',
+			optional: true,
+			on_delete: 'set_null'
+		},
 		amount: { kind: 'decimal', scale: 12, min: 0 },
 		paid_on: { kind: 'date', optional: true },
-		payment_reference: { kind: 'text', optional: true },
-		reverses: {
-			kind: 'ref',
-			to: 'loan_catalog_entry_repayment',
-			optional: true,
-			onDelete: 'restrict'
-		}
+		payment_reference: { kind: 'text', optional: true }
 	},
-	unique: [{ fields: ['reverses'] }],
-	locked: { payroll_run_id: { isNull: false } },
-	read: {
-		loan_catalog_entry_repayment: { fields: 'all' },
-		'loan_catalog_entry_repayment.employment_id': { fields: 'all' },
-		'loan_catalog_entry_repayment.loan_id': { fields: 'all' },
-		'loan_catalog_entry_repayment.payroll_run_id': { fields: 'all' }
+	outputs: {
+		default: {
+			fields: 'all',
+			employment_id: { fields: 'all' },
+			loan_id: { fields: 'all' },
+			payroll_run_id: { fields: 'all' }
+		}
 	},
 	create: {
 		columns: {
-			loan_catalog_entry_repayment: [
-				'entity_id',
-				'employment_id',
-				'loan_id',
-				'amount',
-				'paid_on',
-				'payment_reference',
-				'reverses'
-			]
+			fields: ['entity_id', 'employment_id', 'loan_id', 'amount', 'paid_on', 'payment_reference']
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map((c) => c.after);
 			yield* validateRegistered(
-				ctx.db.query,
+				ctx.query,
 				'loan_catalog_entry_repayment',
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
-			yield* assertUnpriced(ctx.db.query, instalments(rows), NEXT);
-			return rows;
+			return {
+				sets: changes.map((c) => c.set),
+				on_approved: yield* amendmentsFor(ctx.query, touched(rows))
+			};
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(
+				ctx,
+				'create',
+				'loan_catalog_entry_repayment',
+				changes.map(({ after }) => ({ after }))
+			);
 		}
 	},
 	update: {
 		columns: {
-			loan_catalog_entry_repayment: [
+			fields: [
 				'payroll_run_id',
 				'amount',
 				'paid_on',
@@ -90,46 +99,39 @@ export default model('loan_catalog_entry_repayment', {
 				)
 			)
 				return changes.map((change) => change.set);
-			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
-			yield* validateRegistered(ctx.db.query, 'loan_catalog_entry_repayment', 'update', proposed);
-			if (changes.some((c) => c.before.payroll_run_id != null))
-				return yield* ctx.refuse(
-					'This record is locked by a payroll run. Create a reversal entry for it instead.'
-				);
-			yield* assertUnpriced(
-				ctx.db.query,
-				instalments(changes.map(({ before, set }) => ({ ...before, ...set }))),
-				NEXT
-			);
-			return changes.map((c) => c.set);
+			const proposed = changes.map((change) => jsonObject(change.after));
+			yield* validateRegistered(ctx.query, 'loan_catalog_entry_repayment', 'update', proposed);
+			return {
+				// a date that moves leaves the run that priced it: the period it joins prices it, and seals it
+				sets: changes.map((c) =>
+					c.before.payroll_run_id != null && c.changed('paid_on')
+						? { ...c.set, payroll_run_id: null }
+						: c.set
+				),
+				on_approved: yield* amendmentsFor(ctx.query, [
+					...touched(changes.map((c) => c.before)),
+					...touched(changes.map((c) => c.after))
+				])
+			};
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(ctx, 'update', 'loan_catalog_entry_repayment', changes);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map((change) => change.before);
 			yield* validateRegistered(
-				ctx.db.query,
+				ctx.query,
 				'loan_catalog_entry_repayment',
 				'delete',
 				rows.map((row) => jsonObject(row))
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
-			if (rows.some((r) => r.payroll_run_id != null))
-				return yield* ctx.refuse(
-					'This record is locked by a payroll run. Create a reversal entry for it instead.'
-				);
-		}
-	},
-
-	effect: {
-		created: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				'loan_catalog_entry_repayment',
-				rows.map((after) => ({ after }))
-			);
-		},
-		updated: function* (changes, ctx) {
-			yield* tap(ctx, 'update', 'loan_catalog_entry_repayment', changes);
+			return { on_approved: yield* amendmentsFor(ctx.query, touched(rows)) };
 		}
 	}
 });

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Button,
 		EmptyState,
 		Field,
 		Form,
 		Icon,
-		openRecord,
+		open_record,
 		RecordShell,
 		Sheet,
 		Table,
@@ -17,14 +17,14 @@
 	import { formatTermsDates } from '../../../lib/ui/format/display_formatters.js';
 	import type { RecordView } from '@norbital-ai/ui';
 
-	let { view }: { view: RecordView<'entity'> } = $props();
+	let { view, ctx }: { view: RecordView<'entity'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
-	const t = bolt.t;
+	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
 	let scheduling = $state(false);
 	const versions = $derived(
 		record == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					entity_profile_version: {
 						where: { entity_id: { eq: record.id } },
 						fields: ['name', 'effective_range', 'status'],
@@ -57,19 +57,21 @@
 
 {#snippet general()}
 	<Form
+		{ctx}
 		of="entity"
 		mode={view.mode === 'create' ? 'create' : 'update'}
 		{...record === null
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}
-		onOutcome={(outcome) => {
+		on_outcome={(outcome) => {
 			if (outcome.kind !== 'committed' || record) return;
 			const created = outcome.records.find((row) => row.model === 'entity');
-			if (created) openRecord('entity', created.id);
+			if (created) open_record('entity', created.id);
 		}}
 	>
 		{#snippet children()}<Stack gap="md"
 				>{#each ['code', 'name', 'settings_code', 'epf_registered_on', 'socso_registered_on'] as name (name)}<Field
+						{ctx}
 						{name}
 					/>{/each}</Stack
 			>{/snippet}
@@ -86,7 +88,7 @@
 					variant="outline"
 					aria-label={t('employer_version.new')}
 					title={t('employer_version.new')}
-					onclick={() => openRecord('entity_profile_version', 'new')}
+					onclick={() => open_record('entity_profile_version', 'new')}
 					><Icon name="lucide:plus" class="size-4" /></Button
 				>
 			</Cluster>
@@ -98,7 +100,7 @@
 				<VersionTimeline
 					label={t('employer_version.plural')}
 					items={timeline}
-					onOpen={(id) => openRecord('entity_profile_version', id)}
+					onOpen={(id) => open_record('entity_profile_version', id)}
 				/>
 			{/if}
 		</Stack>
@@ -108,9 +110,10 @@
 {#snippet changesOnly()}
 	{#if record}
 		<Table
+			{ctx}
 			of="entity_change"
 			key="entity-scheduled-changes"
-			where={{ entity_id: { eq: record.id }, applied_version_id: { isNull: true } }}
+			where={{ entity_id: { eq: record.id }, applied_version_id: { is_null: true } }}
 			toolbar={{
 				title: t('section.scheduled_changes'),
 				new: () => (scheduling = true)
@@ -144,10 +147,11 @@
 {#snippet holidaysTab()}
 	{#if record}
 		<Table
+			{ctx}
 			of="holiday"
 			key="entity-holidays"
 			where={{ entity_id: { eq: record.id } }}
-			orderBy={{ date: 'asc' }}
+			order_by={{ date: 'asc' }}
 			toolbar={{ title: t('app.settings.holidays'), new: true }}
 			columns={[
 				'date',
@@ -162,10 +166,11 @@
 {#snippet payGroupsTab()}
 	{#if record}
 		<Table
+			{ctx}
 			of="pay_group"
 			key="entity-pay-groups"
 			where={{ entity_id: { eq: record.id } }}
-			orderBy={{ name: 'asc' }}
+			order_by={{ name: 'asc' }}
 			toolbar={{ title: t('entity.tab_pay_groups'), new: true }}
 			columns={['name', 'payment_schedule']}
 		/>
@@ -173,6 +178,7 @@
 {/snippet}
 
 <RecordShell
+	{ctx}
 	of="entity"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
@@ -194,15 +200,17 @@
 {#if record !== null}
 	<Sheet bind:open={scheduling} title={t('entity.schedule_change')}>
 		<Form
+			{ctx}
 			of="entity_change"
 			mode="create"
 			values={{ entity_id: record.id }}
-			onOutcome={(outcome) => {
+			on_outcome={(outcome) => {
 				if (outcome.kind === 'committed') scheduling = false;
 			}}
 		>
 			{#snippet children()}<Stack gap="md"
 					>{#each ['field_path', 'new_value', 'effective_from', 'notes'] as name (name)}<Field
+							{ctx}
 							{name}
 						/>{/each}</Stack
 				>{/snippet}

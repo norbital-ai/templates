@@ -1,9 +1,9 @@
-import { addMonths } from '@norbital-ai/std/date';
+import { add_months } from '@norbital-ai/std/date';
 import type { EffectCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import type { JsonObject } from './payroll_engine/foundation.js';
+import type { Json, JsonObject } from './payroll_engine/foundation.js';
 import { queryAllRows, type Reader } from './payroll_engine/reads.js';
-import { exitsIn, isExitDuty, stands } from './dependants.js';
+import { exitsIn, isExitDuty } from './dependants.js';
 import {
 	accountsOf,
 	apply,
@@ -18,12 +18,11 @@ import {
  * What the ledger must always be, checked from outside its service. Hard findings: a balance figure that is not the sum
  * of its ledger rows (`H1`), a ledger source that still holds something and no longer exists (`H3`), an entry sealed
  * by a run that has no payslip for its person (`H6`), an open exit task on a contract that is no exit or whose last day
- * moved (`H9`), an approved derived entry no run has taken whose fact no longer stands (`H10`). A watch: an entitlement
- * or what is left of it below zero (`W1`).
+ * moved (`H9`). A watch: an entitlement or what is left of it below zero (`W1`).
  * It reads and reports; it repairs nothing.
  */
 export type Finding = {
-	readonly invariant: 'H1' | 'H3' | 'H6' | 'H9' | 'H10' | 'W1';
+	readonly invariant: 'H1' | 'H3' | 'H6' | 'H9' | 'W1';
 	readonly subject: string;
 	readonly message: string;
 	readonly employee_id?: string;
@@ -139,7 +138,7 @@ export const findings = (rows: Workspace, today: string): readonly Finding[] => 
 			});
 	}
 
-	const since = String(addMonths(today, -WATCHED_MONTHS));
+	const since = String(add_months(today, -WATCHED_MONTHS));
 	const watched = new Set(
 		(rows.payroll_run ?? [])
 			.filter((run) => run.state !== 'PAID' || String(run.pay_date) >= since)
@@ -179,19 +178,6 @@ export const findings = (rows: Workspace, today: string): readonly Finding[] => 
 				message: `The exit task ${key} is open and its exit ${to === undefined ? 'no longer stands' : 'moved'}.`
 			});
 	}
-	for (const entry of rows.leave_catalog_entry ?? []) {
-		if (stands(entry.occurrence_key, exits)) continue;
-		const employee_id = person.get(String(entry.employment_id));
-		const subject = `leave_catalog_entry:${String(entry.id)}`;
-		// one still waiting is the routine's to withdraw on its pass
-		if (entry.$approval == null && entry.payroll_run_id == null)
-			found.push({
-				invariant: 'H10',
-				subject,
-				...(employee_id === undefined ? {} : { employee_id }),
-				message: `No run has paid ${subject} and the exit it was raised for no longer stands.`
-			});
-	}
 	return found;
 };
 
@@ -218,7 +204,7 @@ export const verify = Effect.fn('integrity.verify')(function* (read: Reader, tod
 				],
 				limit: 10000
 			},
-			leave_catalog_entry: { ...sealed, fields: [...sealed.fields, 'occurrence_key'] },
+			leave_catalog_entry: sealed,
 			claim_catalog_entry: sealed,
 			adhoc_catalog_entry: sealed,
 			payroll_run: { fields: ['id', 'state', 'pay_date'], limit: 10000 },
@@ -228,7 +214,7 @@ export const verify = Effect.fn('integrity.verify')(function* (read: Reader, tod
 						is: {
 							or: [
 								{ state: { eq: 'UNPAID' } },
-								{ pay_date: { gte: String(addMonths(today, -WATCHED_MONTHS)) } }
+								{ pay_date: { gte: String(add_months(today, -WATCHED_MONTHS)) } }
 							]
 						}
 					}
@@ -242,7 +228,7 @@ export const verify = Effect.fn('integrity.verify')(function* (read: Reader, tod
 			},
 			entity: { fields: ['id', 'settings_code'], limit: 10000 },
 			obligation: {
-				where: { state: { eq: 'OPEN' }, employment_id: { isNull: false } },
+				where: { state: { eq: 'OPEN' }, employment_id: { is_null: false } },
 				fields: ['id', 'employment_id', 'occurrence_key'],
 				limit: 10000
 			}
@@ -293,5 +279,6 @@ export const raiseFindings = Effect.fn('integrity.raiseFindings')(function* (
 					}
 				];
 	});
-	if (due.length > 0) yield* ctx.act.checked([{ callable: 'obligation.create', input: due }]);
+	const create: Record<string, Json> = { 'obligation.create': due };
+	if (due.length > 0) yield* ctx.act(create);
 });

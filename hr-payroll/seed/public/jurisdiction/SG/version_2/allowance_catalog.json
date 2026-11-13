@@ -1,7 +1,7 @@
 [
 	{
 		"code": "FIXED_MONTHLY",
-		"description": "Contractual fixed monthly allowance for a monthly-rated employee; counted as Ordinary Wages for CPF.",
+		"description": "Contractual fixed monthly allowance for a monthly-rated employee, prorated like the salary by the month’s paid share (working days, EA s.20A; unpaid leave reduces it). Ordinary Wages for CPF.",
 		"lookup": {},
 		"references": [
 			{
@@ -20,7 +20,7 @@
 	},
 	{
 		"code": "PT_ANNUAL_HOURLY_AW",
-		"description": "Contractual hourly uplift for a part-time employee's annual leave; classified as Additional Wages for CPF.",
+		"description": "Contractual annual-leave uplift for a part-time employee: the contract’s amount paid in full on each run (HR keys the run’s amount; not computed from hours); needs a clear written agreement (PT Regulations reg.7). Additional Wages for CPF.",
 		"lookup": {},
 		"references": [
 			{
@@ -39,7 +39,7 @@
 	},
 	{
 		"code": "PT_ANNUAL_HOURLY_OW",
-		"description": "Contractual hourly uplift for a part-time employee's annual leave; classified as Ordinary Wages for CPF.",
+		"description": "Contractual annual-leave uplift for a part-time employee: the contract’s amount paid in full on each run (HR keys the run’s amount; not computed from hours); needs a clear written agreement (PT Regulations reg.7). Ordinary Wages for CPF.",
 		"lookup": {},
 		"references": [
 			{

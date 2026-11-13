@@ -1,20 +1,23 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Form, RecordShell, type RecordView } from '@norbital-ai/ui';
-	import { bolt } from '$bolt';
-	let { view }: { view: RecordView<'workplace_case_catalog_entry'> } = $props();
+	let { view, ctx }: { view: RecordView<'workplace_case_catalog_entry'>; ctx: PageContext } =
+		$props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const sealed = $derived(record?.payroll_run_id != null);
 </script>
 
 <RecordShell
+	{ctx}
 	of="workplace_case_catalog_entry"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
-	badge={sealed ? bolt.t('entry.included_in_payroll') : undefined}
+	badge={sealed ? ctx.t('entry.included_in_payroll') : undefined}
 >
 	<Form
+		{ctx}
 		of="workplace_case_catalog_entry"
-		mode={view.mode === 'create' ? 'create' : 'update'}
+		mode={view.mode}
 		{...record === null
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}

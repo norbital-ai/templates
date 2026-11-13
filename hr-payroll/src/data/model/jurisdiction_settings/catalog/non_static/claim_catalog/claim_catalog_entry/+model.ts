@@ -1,6 +1,7 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../../../../../.norbital/models/claim_catalog_entry.ts';
+import { amendmentsFor } from '../../../../../../../lib/amendments.js';
 import {
-	assertReversals,
 	entriesUndone,
 	entryPostings,
 	entryRead
@@ -8,16 +9,36 @@ import {
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
-export default model('claim_catalog_entry', {
+/** The days an entry prices: a paid period holding one is worked out again by the next run. */
+const touched = (
+	rows: readonly {
+		readonly employment_id: string;
+		readonly incurred_on: string;
+		readonly payroll_run_id?: string | null | undefined;
+	}[]
+) =>
+	rows.map((row) => ({
+		employment: String(row.employment_id),
+		from: String(row.incurred_on),
+		run: row.payroll_run_id ?? null
+	}));
+
+export default model({
 	description: 'One claim against an employment.',
 	record_label:
 		"record.employment_id.employee_number + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'claim_catalog_entry' },
-		catalog_id: { kind: 'ref', to: 'claim_catalog', onDelete: 'restrict' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
-		quantity: { kind: 'decimal', scale: 12, min: 0, label: 'Amount' },
+		catalog_id: { kind: 'ref', to: 'claim_catalog', on_delete: 'restrict' },
+		payroll_run_id: {
+			kind: 'ref',
+			to: 'payroll_run',
+			inverse: 'claim',
+			optional: true,
+			on_delete: 'set_null'
+		},
+		quantity: { kind: 'decimal', scale: 12, min: 0 },
 		unit: {
 			kind: 'enum',
 			values: ['DAY', 'CALENDAR_DAY', 'HOUR', 'MONEY', 'COUNT'],
@@ -29,48 +50,57 @@ export default model('claim_catalog_entry', {
 			accept: ['application/pdf', 'image/*'],
 			max: '20MiB',
 			optional: true
-		},
-		reverses: { kind: 'ref', to: 'claim_catalog_entry', optional: true, onDelete: 'restrict' }
+		}
 	},
-	locked: { payroll_run_id: { isNull: false } },
-	read: {
-		claim_catalog_entry: { fields: 'all' },
-		'claim_catalog_entry.employment_id': { fields: 'all' },
-		'claim_catalog_entry.catalog_id': { fields: 'all' },
-		'claim_catalog_entry.payroll_run_id': { fields: 'all' }
+	outputs: {
+		default: {
+			fields: 'all',
+			employment_id: { fields: 'all' },
+			catalog_id: { fields: 'all' },
+			payroll_run_id: { fields: 'all' }
+		}
 	},
-	unique: [{ fields: ['reverses'] }],
 	create: {
 		columns: {
-			claim_catalog_entry: [
+			fields: [
 				'entity_id',
 				'employment_id',
 				'catalog_id',
 				'quantity',
 				'incurred_on',
-				'evidence_file',
-				'reverses'
+				'evidence_file'
 			]
 		},
-		transform: function* (input, ctx) {
-			const rows = input;
+		transform: function* (changes, ctx) {
+			const rows = changes.map((c) => c.after);
 			const entries = rows.map((row) => jsonObject(row));
 			// the approving decision asks again only for what the entry posts: what it checked stands
 			const known = yield* entryRead(
-				ctx.db.query,
+				ctx.query,
 				'claim_catalog_entry',
 				entries,
 				ctx.approving ? undefined : 'create'
 			);
-			if (!ctx.approving) {
-				yield* assertReversals(known, 'claim_catalog_entry', entries);
-			}
-			return { rows, onApproved: yield* entryPostings(known, 'claim_catalog_entry', entries) };
+			return {
+				sets: changes.map((c) => c.set),
+				on_approved: {
+					...(yield* entryPostings(known, 'claim_catalog_entry', entries)),
+					...(yield* amendmentsFor(ctx.query, touched(rows)))
+				}
+			};
+		},
+		effect: function* (changes, ctx) {
+			// under the system identity: the writer may be an employee, who cannot read the law
+			yield* ctx.schedule('registered_effects', {
+				collection: 'claim_catalog_entry',
+				operation: 'create',
+				ids: changes.map((c) => String(c.after.id))
+			});
 		}
 	},
 	update: {
 		columns: {
-			claim_catalog_entry: ['payroll_run_id', 'quantity', 'incurred_on', 'evidence_file']
+			fields: ['payroll_run_id', 'quantity', 'incurred_on', 'evidence_file']
 		},
 		transform: function* (changes, ctx) {
 			if (
@@ -80,55 +110,57 @@ export default model('claim_catalog_entry', {
 				)
 			)
 				return changes.map((change) => change.set);
-			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
+			const proposed = changes.map((change) => jsonObject(change.after));
 			const known = yield* entryRead(
-				ctx.db.query,
+				ctx.query,
 				'claim_catalog_entry',
 				proposed,
 				ctx.approving ? undefined : 'update'
 			);
-			if (!ctx.approving && changes.some((c) => c.before.payroll_run_id != null))
-				return yield* ctx.refuse(
-					'This record is locked by a payroll run. Create a reversal entry for it instead.'
-				);
 			return {
-				rows: changes.map((c) => c.set),
-				onApproved: yield* entryPostings(known, 'claim_catalog_entry', proposed)
+				// a date that moves leaves the run that priced it: the period it joins prices it, and seals it
+				sets: changes.map((c) =>
+					c.before.payroll_run_id != null && c.changed('incurred_on')
+						? { ...c.set, payroll_run_id: null }
+						: c.set
+				),
+				on_approved: {
+					...(yield* entryPostings(known, 'claim_catalog_entry', proposed)),
+					// a date that moves touches the period it left and the period it joined
+					...(yield* amendmentsFor(ctx.query, [
+						...touched(changes.map((c) => c.before)),
+						...touched(changes.map((c) => c.after))
+					]))
+				}
 			};
-		}
-	},
-	delete: {
-		check: function* (rows, ctx) {
-			const entries = rows.map((row) => jsonObject(row));
-			const known = yield* entryRead(
-				ctx.db.query,
-				'claim_catalog_entry',
-				entries,
-				ctx.approving ? undefined : 'delete'
-			);
-			if (!ctx.approving && rows.some((r) => r.payroll_run_id != null))
-				return yield* ctx.refuse(
-					'This record is locked by a payroll run. Create a reversal entry for it instead.'
-				);
-			return { onApproved: entriesUndone(known, 'claim_catalog_entry', entries) };
-		}
-	},
-
-	effect: {
-		created: function* (rows, ctx) {
-			// under the system identity: the writer may be an employee, who cannot read the law
-			yield* ctx.schedule('registered_effects', {
-				collection: 'claim_catalog_entry',
-				operation: 'create',
-				ids: rows.map((row) => String(row.id))
-			});
 		},
-		updated: function* (changes, ctx) {
+		effect: function* (changes, ctx) {
 			yield* ctx.schedule('registered_effects', {
 				collection: 'claim_catalog_entry',
 				operation: 'update',
 				ids: changes.map((change) => String(change.after.id))
 			});
+		}
+	},
+	delete: {
+		transform: function* (changes, ctx) {
+			const entries = changes.map((change) => jsonObject(change.before));
+			const known = yield* entryRead(
+				ctx.query,
+				'claim_catalog_entry',
+				entries,
+				ctx.approving ? undefined : 'delete'
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
+			);
+			return {
+				on_approved: {
+					...entriesUndone(known, 'claim_catalog_entry', entries),
+					...(yield* amendmentsFor(ctx.query, touched(changes.map((change) => change.before))))
+				}
+			};
 		}
 	}
 });

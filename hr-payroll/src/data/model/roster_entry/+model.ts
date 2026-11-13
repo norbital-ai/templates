@@ -1,51 +1,63 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../.norbital/models/roster_entry.ts';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { rosterFindings } from '../../../lib/payroll_engine/roster_warnings.js';
-import { assertUnpriced } from '../../../lib/payroll_engine/pay_cycle.js';
+import { amendmentsFor } from '../../../lib/amendments.js';
 
-const ARREARS = 'Pay what it missed with an arrears adhoc entry in the next run.';
+/** The day a roster entry prices, and the run that priced it: a paid period holding it is worked out again. */
+const touched = (
+	rows: readonly {
+		readonly employment_id: string;
+		readonly work_date: string;
+		readonly payroll_run_id?: string | null | undefined;
+	}[]
+) =>
+	rows.map((row) => ({
+		employment: String(row.employment_id),
+		from: String(row.work_date),
+		run: row.payroll_run_id ?? null
+	}));
 
-export default model('roster_entry', {
+export default model({
 	description:
-		'One roster day: its planned overtime, whether that overtime is taken as time off, and actual worked intervals. The employment and payroll run lock are on the entry.',
-	label: 'work_date',
+		'One roster day: its planned overtime, whether that overtime is taken as time off, and actual worked intervals. It is priced under the contract version in force on its date; the run that priced it is on the entry.',
+	record_label: 'record.work_date',
 	fields: {
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'roster_entry' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
+		payroll_run_id: {
+			kind: 'ref',
+			to: 'payroll_run',
+			// the run that priced the day links it through this layer
+			inverse: 'roster_entry',
+			optional: true,
+			on_delete: 'set_null'
+		},
 		work_date: { kind: 'date' },
 		shift_definition_id: {
 			kind: 'ref',
 			to: 'shift_definition',
 			optional: true,
-			onDelete: 'restrict'
+			on_delete: 'restrict'
 		},
 		planned_overtime_intervals: {
-			kind: 'list',
+			kind: 'object',
+			many: true,
 			optional: true,
-			of: {
-				kind: 'object',
-				fields: {
-					start: { kind: 'instant' },
-					end: { kind: 'instant' },
-					break_minutes: { kind: 'number', min: 0, optional: true },
-					breaks: {
-						kind: 'list',
-						optional: true,
-						of: {
-							kind: 'object',
-							fields: { start: { kind: 'instant' }, end: { kind: 'instant' } }
-						}
-					}
+			fields: {
+				start: { kind: 'instant' },
+				end: { kind: 'instant' },
+				break_minutes: { kind: 'number', min: 0, optional: true },
+				breaks: {
+					kind: 'object',
+					many: true,
+					optional: true,
+					fields: { start: { kind: 'instant' }, end: { kind: 'instant' } }
 				}
 			}
 		},
-		overtime_as_time_off: {
-			kind: 'bool',
-			default: false,
-			help: "The worker takes this day's planned overtime as time off: the run pays no overtime for it and owes its hours on the leave row that takes overtime as time off."
-		},
+		overtime_as_time_off: { kind: 'bool', default: false },
 		findings: { kind: 'json', default: [] },
 		// Labour Code art.137(1): pregnancy has no consent exception; an infant under 12 months needs the day's consent.
 		consent: {
@@ -58,49 +70,39 @@ export default model('roster_entry', {
 					overtime: { kind: 'bool' },
 					reference: { kind: 'text' }
 				}
-			},
-			help: 'The signed per-day consent for night work and overtime while raising a child under 12 months. Pregnancy never takes consent.'
+			}
 		},
 		actual_worked_intervals: {
 			was: 'worked_intervals',
-			kind: 'list',
+			kind: 'object',
+			many: true,
 			optional: true,
-			of: {
-				kind: 'object',
-				fields: {
-					start: { kind: 'instant' },
-					end: { kind: 'instant', optional: true },
-					break_minutes: { kind: 'number', min: 0, optional: true },
-					breaks: {
-						kind: 'list',
-						optional: true,
-						of: {
-							kind: 'object',
-							fields: { start: { kind: 'instant' }, end: { kind: 'instant' } }
-						}
-					}
+			fields: {
+				start: { kind: 'instant' },
+				end: { kind: 'instant', optional: true },
+				break_minutes: { kind: 'number', min: 0, optional: true },
+				breaks: {
+					kind: 'object',
+					many: true,
+					optional: true,
+					fields: { start: { kind: 'instant' }, end: { kind: 'instant' } }
 				}
 			}
 		}
 	},
-	unique: [{ fields: ['employment_id', 'work_date'] }],
-	locked: { payroll_run_id: { isNull: false } },
-	read: {
-		roster_entry: { fields: 'all' },
-		'roster_entry.employment_id': { fields: 'all' },
-		'roster_entry.shift_definition_id': { fields: 'all' },
-		'roster_entry.payroll_run_id': { fields: 'all' }
-	},
+	constraints: { one_day: { unique: ['employment_id', 'work_date'], import_key: true } },
 	outputs: {
-		kiosk: {
-			roster_entry: {
-				fields: ['employment_id', 'work_date', 'actual_worked_intervals', 'payroll_run_id']
-			}
-		}
+		default: {
+			fields: 'all',
+			employment_id: { fields: 'all' },
+			shift_definition_id: { fields: 'all' },
+			payroll_run_id: { fields: 'all' }
+		},
+		kiosk: { fields: ['employment_id', 'work_date', 'actual_worked_intervals', 'payroll_run_id'] }
 	},
 	create: {
 		columns: {
-			roster_entry: [
+			fields: [
 				'employment_id',
 				'work_date',
 				'shift_definition_id',
@@ -111,28 +113,35 @@ export default model('roster_entry', {
 				'consent'
 			]
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ set }) => set);
 			yield* validateRegistered(
-				ctx.db.query,
+				ctx.query,
 				'roster_entry',
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
-			yield* assertUnpriced(
-				ctx.db.query,
-				rows.map((row) => ({ employment: row.employment_id, date: row.work_date })),
-				ARREARS
-			);
 			const findings = yield* rosterFindings(
-				ctx.db.query,
+				ctx.query,
 				rows.map((row) => jsonObject(row))
 			);
-			return rows.map((row, index) => ({ ...row, findings: findings[index] ?? [] }));
+			return {
+				sets: rows.map((row, index) => ({ ...row, findings: findings[index] ?? [] })),
+				on_approved: yield* amendmentsFor(ctx.query, touched(rows))
+			};
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(
+				ctx,
+				'create',
+				'roster_entry',
+				changes.map(({ after }) => ({ after }))
+			);
 		}
 	},
 	update: {
 		columns: {
-			roster_entry: [
+			fields: [
 				'payroll_run_id',
 				'work_date',
 				'shift_definition_id',
@@ -152,62 +161,58 @@ export default model('roster_entry', {
 			)
 				return changes.map((change) => change.set);
 			yield* validateRegistered(
-				ctx.db.query,
+				ctx.query,
 				'roster_entry',
 				'update',
-				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
-			);
-			if (changes.some((change) => change.before.payroll_run_id != null))
-				return yield* ctx.refuse('This roster entry is locked by a payroll run.');
-			yield* assertUnpriced(
-				ctx.db.query,
-				changes.map(({ before, set }) => ({
-					employment: before.employment_id,
-					date: set.work_date ?? before.work_date
-				})),
-				ARREARS
+				changes.map((change) => jsonObject(change.after))
 			);
 			const findings = yield* rosterFindings(
-				ctx.db.query,
-				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
+				ctx.query,
+				changes.map((change) => jsonObject(change.after))
 			);
-			return changes.map((change, index) => ({
-				...change.set,
-				findings: findings[index] ?? []
-			}));
-		}
-	},
-	effect: {
-		created: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				'roster_entry',
-				rows.map((after) => ({ after }))
-			);
+			return {
+				sets: changes.map((change, index) => ({
+					...change.set,
+					// a day that moves leaves the run that priced it: the period it joins prices it, and seals it
+					...(change.before.payroll_run_id != null && change.changed('work_date')
+						? { payroll_run_id: null }
+						: {}),
+					findings: findings[index] ?? []
+				})),
+				// a day that moves touches the period it left and the period it joined
+				on_approved: yield* amendmentsFor(ctx.query, [
+					...touched(changes.map((change) => change.before)),
+					...touched(changes.map((change) => change.after))
+				])
+			};
 		},
-		updated: function* (changes, ctx) {
+		effect: function* (changes, ctx) {
 			yield* tap(ctx, 'update', 'roster_entry', changes);
-		},
-		deleted: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'delete',
-				'roster_entry',
-				rows.map((before) => ({ before }))
-			);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ before }) => before);
 			yield* validateRegistered(
-				ctx.db.query,
+				ctx.query,
 				'roster_entry',
 				'delete',
 				rows.map((row) => jsonObject(row))
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
-			if (rows.some((row) => row.payroll_run_id != null))
-				return yield* ctx.refuse('This roster entry is locked by a payroll run.');
+			// a deleted day is not a day off: the shift pattern takes over, and a paid period is worked out again
+			return { on_approved: yield* amendmentsFor(ctx.query, touched(rows)) };
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(
+				ctx,
+				'delete',
+				'roster_entry',
+				changes.map(({ before }) => ({ before }))
+			);
 		}
 	}
 });

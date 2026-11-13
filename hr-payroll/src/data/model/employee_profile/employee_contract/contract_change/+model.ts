@@ -1,24 +1,19 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../../.norbital/models/contract_change.ts';
 import { Instant } from '@norbital-ai/std/date';
 import { changeable } from '../../../../../lib/payroll_engine/contract_change.js';
 
-const REFUSED = {
-	field_path: 'Only a contract term or fact can be scheduled; an entity move is a transfer.',
-	effective_from:
-		'A scheduled change takes effect on the first of a month to come. One due now is a new contract version.'
-};
 const scheduled = (on: string, today: string) => on > today && on.endsWith('-01');
 
-export default model('contract_change', {
+export default model({
 	description:
 		'One dated change to one contract field, filed ahead of its day: its old and new value. Knowledge only; payroll and the ledger read the sealed version it is materialized into.',
-	label: 'field_path',
+	record_label: 'record.field_path',
 	fields: {
 		employee_id: {
 			kind: 'ref',
 			to: 'employee_profile',
 			inverse: 'contract_changes',
-			onDelete: 'cascade'
+			on_delete: 'cascade'
 		},
 		field_path: { kind: 'text' },
 		old_value: { kind: 'json', optional: true },
@@ -28,34 +23,43 @@ export default model('contract_change', {
 			kind: 'ref',
 			to: 'employee_contract',
 			optional: true,
-			onDelete: 'restrict'
+			on_delete: 'restrict'
 		},
 		notes: { kind: 'text', optional: true }
 	},
-	locked: { applied_version_id: { isNull: false } },
-	read: { contract_change: { fields: 'all' } },
+	constraints: { applied_change: { locked: { applied_version_id: { is_null: false } } } },
+	outputs: { default: { fields: 'all' } },
 	create: {
 		columns: {
-			contract_change: [
-				'employee_id',
-				'field_path',
-				'old_value',
-				'new_value',
-				'effective_from',
-				'notes'
-			]
+			fields: ['employee_id', 'field_path', 'old_value', 'new_value', 'effective_from', 'notes']
 		},
-		transform: function* (rows, ctx) {
-			if (rows.some((row) => !changeable(row.field_path)))
-				return yield* ctx.refuse(REFUSED.field_path, { field: 'field_path' });
-			if (rows.some((row) => !scheduled(row.effective_from, ctx.today)))
-				return yield* ctx.refuse(REFUSED.effective_from, { field: 'effective_from' });
-			return rows;
+		transform: function* (changes, ctx) {
+			const unknown = changes.findIndex(({ set }) => !changeable(set.field_path));
+			if (unknown >= 0)
+				return yield* ctx.refuse('errors.contract_change_field_path', {
+					row: unknown,
+					field: 'field_path'
+				});
+			const due = changes.findIndex(({ set }) => !scheduled(set.effective_from, ctx.today));
+			if (due >= 0)
+				return yield* ctx.refuse('errors.contract_change_effective_from', {
+					row: due,
+					field: 'effective_from'
+				});
+			return changes.map(({ set }) => set);
+		},
+		effect: function* (changes, ctx) {
+			for (const on of new Set(changes.map(({ after }) => after.effective_from)))
+				yield* ctx.schedule(
+					'contract_materialize',
+					{},
+					{ at: Instant(`${on}T00:00:00Z`), key: `contract_materialize:${on}` }
+				);
 		}
 	},
 	update: {
 		columns: {
-			contract_change: [
+			fields: [
 				'field_path',
 				'old_value',
 				'new_value',
@@ -66,33 +70,29 @@ export default model('contract_change', {
 		},
 		transform: function* (changes, ctx) {
 			const materializing = ctx.policies.includes('payroll_execution');
-			if (changes.some(({ set }) => set.applied_version_id !== undefined) && !materializing)
-				return yield* ctx.refuse('Only the seal applies a change.');
-			if (changes.some(({ set }) => set.field_path != null && !changeable(set.field_path)))
-				return yield* ctx.refuse(REFUSED.field_path, { field: 'field_path' });
-			if (
-				changes.some(
-					({ set }) => set.effective_from != null && !scheduled(set.effective_from, ctx.today)
-				)
-			)
-				return yield* ctx.refuse(REFUSED.effective_from, { field: 'effective_from' });
-			return changes.map(({ set }) => set);
-		}
-	},
-	delete: {},
-	effect: {
-		created: function* (rows, ctx) {
-			for (const on of new Set(rows.map((row) => row.effective_from)))
-				yield* ctx.schedule(
-					'contract_materialize',
-					{},
-					{ at: Instant(`${on}T00:00:00Z`), key: `contract_materialize:${on}` }
-				);
-		},
-		updated: function* (changes, ctx) {
-			const moved = changes.filter(
-				({ before, after }) => before.effective_from !== after.effective_from
+			const applied = changes.findIndex(({ set }) => set.applied_version_id !== undefined);
+			if (applied >= 0 && !materializing)
+				return yield* ctx.refuse('errors.contract_change_seal_applies', { row: applied });
+			const unknown = changes.findIndex(
+				({ set }) => set.field_path != null && !changeable(set.field_path)
 			);
+			if (unknown >= 0)
+				return yield* ctx.refuse('errors.contract_change_field_path', {
+					row: unknown,
+					field: 'field_path'
+				});
+			const due = changes.findIndex(
+				({ set }) => set.effective_from != null && !scheduled(set.effective_from, ctx.today)
+			);
+			if (due >= 0)
+				return yield* ctx.refuse('errors.contract_change_effective_from', {
+					row: due,
+					field: 'effective_from'
+				});
+			return changes.map(({ set }) => set);
+		},
+		effect: function* (changes, ctx) {
+			const moved = changes.filter((change) => change.changed('effective_from'));
 			for (const on of new Set(moved.map(({ after }) => after.effective_from)))
 				yield* ctx.schedule(
 					'contract_materialize',
@@ -100,5 +100,6 @@ export default model('contract_change', {
 					{ at: Instant(`${on}T00:00:00Z`), key: `contract_materialize:${on}` }
 				);
 		}
-	}
+	},
+	delete: {}
 });

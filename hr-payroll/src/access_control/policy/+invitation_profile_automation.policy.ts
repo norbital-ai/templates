@@ -4,14 +4,14 @@ import { AUTOMATION_LIMITS } from './grants.js';
 export default policy({
 	description: 'Create employee profiles for staff invitations and link them when members join.',
 	grants: {
-		sys_invitation: { read: true },
-		sys_user: { read: true },
+		sys_invitation: { outputs: { default: {} } },
+		sys_user: { outputs: { default: {} } },
 		employee_profile: {
-			read: true,
+			outputs: { default: {} },
 			create: {
-				columns: { employee_profile: ['name', 'email', 'phone', 'invitation_id', 'user_id'] }
+				columns: { fields: ['name', 'email', 'phone', 'invitation_id', 'user_id'] }
 			},
-			update: { columns: { employee_profile: ['invitation_id', 'user_id'] } }
+			update: { columns: { fields: ['invitation_id', 'user_id'] } }
 		}
 	},
 	limits: AUTOMATION_LIMITS

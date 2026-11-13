@@ -5,14 +5,14 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { WHOLE_ROW } from '../src/lib/payroll_engine/statutory_change.ts';
 import { FAMILIES } from '../src/lib/payroll_engine/statutory_research.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { workspace } from './kit.ts';
+import { workspace, storedQuery, refusal } from './kit.ts';
 
 const NOW = '2026-11-05T02:00:00.000Z';
 const ENTITY = idOf('entity', '11111111-1111-4111-8111-111111111111');
@@ -68,7 +68,7 @@ const law = (code: string) => {
 };
 const answer = (value: unknown) => ({
 	content: JSON.stringify(value),
-	toolCalls: [],
+	tool_calls: [],
 	finish: 'stop' as const,
 	usage: { input: 0, output: 0 }
 });
@@ -97,7 +97,7 @@ const rate = (over: object = {}) => ({
 	...over
 });
 const ledger = Effect.fnUntraced(function* (t: Kit) {
-	const got = yield* t.storedQuery({
+	const got = yield* storedQuery(t, {
 		statutory_finding: { limit: 1000 },
 		statutory_change: { limit: 1000 },
 		statutory_source: { limit: 1000 },
@@ -125,11 +125,12 @@ const scenario = (
 				fakes: { ai: { cassette: { strong: [...turns] } } },
 				host: {
 					agent: {
-						hostTools: [
+						host_tools: [
 							{
 								name: 'web_search',
 								description: 'The host search the cassette never calls.',
 								input: { type: 'object' },
+								behavior: {},
 								call: async () => []
 							}
 						]
@@ -143,18 +144,40 @@ const first = <A>(rows: readonly A[]): A => {
 	if (row === undefined) throw new Error('no row');
 	return row;
 };
-const research = (t: Kit, input: object = { code: 'ID' }) =>
-	Effect.andThen(t.as(t.admin).start('statutory_research', input), t.runDue());
-const confirm = (t: Kit, target: Id<'statutory_finding'>) =>
-	t.as(t.admin).act('statutory_finding.update', [{ target, set: { status: 'CONFIRMED' } }]);
+const research = (t: Kit, input: { code: string; family?: string } = { code: 'ID' }) =>
+	t.as(t.admin).pipe(
+		Effect.andThen((admin) => admin.run('statutory_research', input, JobResult)),
+		Effect.andThen(t.run_due())
+	);
+/** A finding confirmed by an admin, at its stored revision. */
+const confirm = (t: Kit, id: Id<'statutory_finding'>) =>
+	Effect.gen(function* () {
+		const { statutory_finding } = yield* storedQuery(t, {
+			statutory_finding: { where: { id: { eq: id } }, limit: 1 }
+		});
+		const admin = yield* t.as(t.admin);
+		return yield* admin.act({
+			'statutory_finding.update': [
+				{ target: first(statutory_finding.rows), set: { status: 'CONFIRMED' } }
+			]
+		});
+	});
+const materialize = (t: Kit, target: string) =>
+	t
+		.as(t.admin)
+		.pipe(
+			Effect.andThen((admin) =>
+				admin.run(
+					'statutory_materialize',
+					{ code: 'ID', target: PlainDate(target), merge: true },
+					JobResult
+				)
+			)
+		);
 const merge = (t: Kit, target: string) =>
 	Effect.gen(function* () {
-		yield* t.as(t.admin).start('statutory_materialize', {
-			code: 'ID',
-			target: PlainDate(target),
-			merge: true
-		});
-		yield* t.runDue();
+		yield* materialize(t, target);
+		yield* t.run_due();
 	});
 
 describe('statutory research', () => {
@@ -253,7 +276,7 @@ describe('statutory research', () => {
 						(row) => row.status === 'SEALED' && row.effective_range.from === '2027-01-01'
 					);
 					assert.ok(sealed, 'the release became a sealed version');
-					const row = yield* t.storedQuery({
+					const row = yield* storedQuery(t, {
 						statutory_contribution_catalog: {
 							where: { settings_id: { eq: sealed.id }, code: { eq: 'TAPERUM' } },
 							limit: 1
@@ -288,8 +311,8 @@ describe('statutory research', () => {
 					assert.equal(findings.length, 2);
 					assert.ok(findings.every((row) => row.fit === 'STRUCTURAL'));
 					assert.equal(changes.length, 0);
-					const refused = yield* Effect.flip(confirm(t, first(findings).id));
-					assert.match(String(refused), /A structural finding needs the template extended/);
+					const refused = yield* refusal(confirm(t, first(findings).id));
+					assert.equal(refused.key, 'errors.statutory_finding_structural');
 				})
 		)
 	);
@@ -317,10 +340,10 @@ describe('statutory research', () => {
 		scenario([found(finding()), answer({ changes: [rate()] }), found(finding())], (t) =>
 			Effect.gen(function* () {
 				yield* research(t);
-				const id = first((yield* ledger(t)).findings).id;
-				yield* t
-					.as(t.admin)
-					.act('statutory_finding.update', [{ target: id, set: { status: 'REJECTED' } }]);
+				const found = first((yield* ledger(t)).findings);
+				yield* (yield* t.as(t.admin)).act({
+					'statutory_finding.update': [{ target: found, set: { status: 'REJECTED' } }]
+				});
 				yield* research(t);
 				const { findings, changes } = yield* ledger(t);
 				assert.equal(findings.length, 1);
@@ -370,14 +393,7 @@ describe('statutory research', () => {
 					assert.equal(later?.old_value, 0.025);
 					yield* confirm(t, first(findings).id);
 					// the later release first: refused by its reason, whether the start or its run answers it
-					const early = yield* Effect.andThen(
-						t.as(t.admin).start('statutory_materialize', {
-							code: 'ID',
-							target: PlainDate('2027-07-01'),
-							merge: true
-						}),
-						t.runDue()
-					).pipe(
+					const early = yield* Effect.andThen(materialize(t, '2027-07-01'), t.run_due()).pipe(
 						Effect.match({
 							onFailure: String,
 							onSuccess: ({ failed }) => failed.map((run) => String(run.error)).join('\n')
@@ -413,15 +429,15 @@ describe('statutory research', () => {
 				Effect.gen(function* () {
 					yield* research(t);
 					const { findings } = yield* ledger(t);
-					const unofficial = yield* Effect.flip(confirm(t, first(findings).id));
-					assert.match(String(unofficial), /needs an official https source/);
-					yield* t
-						.as(t.admin)
-						.act('statutory_finding.update', [
-							{ target: first(findings).id, set: { source_urls: [OFFICIAL] } }
-						]);
-					const undated = yield* Effect.flip(confirm(t, first(findings).id));
-					assert.match(String(undated), /needs every change dated/);
+					const unofficial = yield* refusal(confirm(t, first(findings).id));
+					assert.equal(unofficial.key, 'errors.statutory_finding_official_source');
+					yield* (yield* t.as(t.admin)).act({
+						'statutory_finding.update': [
+							{ target: first(findings), set: { source_urls: [OFFICIAL] } }
+						]
+					});
+					const undated = yield* refusal(confirm(t, first(findings).id));
+					assert.equal(undated.key, 'errors.statutory_finding_changes_dated');
 				})
 		)
 	);
@@ -449,9 +465,9 @@ describe('statutory research', () => {
 						const before = yield* ledger(t);
 						const moved = first(before.sources.filter((row) => row.origin === 'AGENT'));
 						assert.equal(moved.status, 'PROPOSED');
-						yield* t
-							.as(t.admin)
-							.act('statutory_source.update', [{ target: moved.id, set: { status: 'ACTIVE' } }]);
+						yield* (yield* t.as(t.admin)).act({
+							'statutory_source.update': [{ target: moved, set: { status: 'ACTIVE' } }]
+						});
 						yield* research(t);
 						const after = yield* ledger(t);
 						assert.equal(
@@ -469,16 +485,19 @@ describe('statutory research', () => {
 			(t) =>
 				Effect.gen(function* () {
 					const run = () =>
-						t
-							.as(t.admin)
-							.act('payroll_run.create', [
-								{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }
-							]);
+						t.as(t.admin).pipe(
+							Effect.andThen((admin) =>
+								admin.act({
+									'payroll_run.create': [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]
+								})
+							)
+						);
 					yield* research(t);
 					const { findings } = yield* ledger(t);
 					yield* confirm(t, first(findings).id);
-					const held = yield* Effect.flip(run());
-					assert.match(String(held), /Merge the confirmed ID law/);
+					const held = yield* refusal(run());
+					assert.equal(held.key, 'errors.payroll_run_merge_law');
+					assert.deepEqual(held.values, { code: 'ID', date: '2026-11-01' });
 				})
 		)
 	);
@@ -489,7 +508,7 @@ describe('statutory research', () => {
 			(t) =>
 				Effect.gen(function* () {
 					t.clock.set('2026-11-07T03:00:00.000Z');
-					yield* t.runDue();
+					yield* t.run_due();
 					const asked = (t.fakes.ai?.requests ?? []).map((request) => JSON.stringify(request));
 					assert.equal(asked.length, FAMILIES.length + 1);
 					assert.ok(asked.every((prompt) => prompt.includes('# ID')));

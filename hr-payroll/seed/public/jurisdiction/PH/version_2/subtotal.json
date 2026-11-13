@@ -128,9 +128,17 @@
 		"balance_window": "YEAR"
 	},
 	{
+		"code": "DE_MINIMIS_LEAVE",
+		"name": "Monetised unused leave",
+		"previous_id": "210feac0-37c7-4a8c-8fd1-4aa497f966c7",
+		"id": "21f1581f-c665-54aa-9ed8-49423b0bc0d8",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
+	},
+	{
 		"code": "TAXABLE_TERMINATION",
 		"name": "Taxable separation and retirement pay",
-		"previous_id": "210feac0-37c7-4a8c-8fd1-4aa497f966c7",
+		"previous_id": "21f1581f-c665-54aa-9ed8-49423b0bc0d8",
 		"id": "49c04220-922c-4e5d-ae47-aa39757905f0",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
 		"balance_window": "YEAR"

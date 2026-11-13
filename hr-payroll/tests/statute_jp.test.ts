@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { addDays, PlainDate } from '@norbital-ai/std/date';
+import { add_days, PlainDate } from '@norbital-ai/std/date';
 import type { LeavePerson } from '../src/lib/ledger/entitlement.ts';
 import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
@@ -19,13 +19,15 @@ import {
 	catalogRow,
 	measureOf,
 	pack,
+	refusal,
 	read,
 	sealEvents,
 	syncAll,
 	uuid,
 	wholeDays,
 	workspace,
-	leaveCreate
+	leaveCreate,
+	storedQuery
 } from './kit.ts';
 
 const LEAVE = read('seed/public/jurisdiction/JP/version_6/leave_catalog.json');
@@ -152,16 +154,27 @@ const seedOf = (
 	};
 };
 const take = (t: Kit, seed: Seed, code: string, days: ReturnType<typeof wholeDays>) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		leaveCreate({
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
-			days
+	t.as(t.admin).pipe(
+		Effect.andThen((admin) =>
+			admin.act({
+				'leave_catalog_entry.create': [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+						days
+					})
+				]
+			})
+		)
+	);
+const refused = <A, E>(write: Effect.Effect<A, E>, reason: RegExp) =>
+	refusal(write).pipe(
+		Effect.map((error) => {
+			assert.equal(error.key, 'errors.payroll_refused');
+			assert.match(error.message, reason);
 		})
-	]);
-const refused = (write: Effect.Effect<unknown, unknown>, reason: RegExp) =>
-	Effect.flip(write).pipe(Effect.map((error) => assert.match(String(error), reason)));
+	);
 const NO_BALANCE = /insufficient balance/;
 const OVER_CAP = /JP_ANNUAL_LEAVE_HOURS_CAP/;
 
@@ -190,11 +203,11 @@ describe('facts sealed on a contract', () => {
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'FAMILY_CARE_DAYS', 'entitled'), 1);
 			yield* refused(take(t, cared, 'CHILD_NURSING_LEAVE', wholeDays('2026-07-06')), NO_BALANCE);
 			yield* sealEvents(t, '2026-07-01', [{ kind: 'CHILD_BIRTH', on: '2024-05-01' }]);
-			yield* t.runDue();
+			yield* t.run_due();
 			const accounts = yield* accountsIn(t);
 			assert.equal(measureOf(accounts, 'leave', 'CHILD_NURSING_LEAVE', 'entitled'), 1);
 			yield* take(t, cared, 'CHILD_NURSING_LEAVE', wholeDays('2026-07-06'));
-			yield* t.runDue();
+			yield* t.run_due();
 			yield* refused(take(t, cared, 'CHILD_NURSING_LEAVE', wholeDays('2026-07-07')), NO_BALANCE);
 		}).pipe(Effect.provide(workspace({ seed: cared, now: NOW })));
 	});
@@ -207,7 +220,7 @@ describe('annual leave in hours', () => {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
 			yield* take(t, seed, 'ANNUAL_LEAVE_HOURS', wholeDays('2026-07-06'));
-			yield* t.runDue();
+			yield* t.run_due();
 			const accounts = yield* accountsIn(t);
 			assert.equal(measureOf(accounts, 'leave', 'ANNUAL_LEAVE', 'used'), 1);
 			assert.equal(accounts.leave?.['ANNUAL_LEAVE_HOURS'], undefined);
@@ -226,7 +239,7 @@ describe('the attendance review on an annual leave grant day', () => {
 	const year = (absent: number) => {
 		const days: (readonly [string, string])[] = [];
 		let missed = 0;
-		for (let day = PlainDate('2025-07-06'); day < PlainDate('2026-07-01'); day = addDays(day, 1)) {
+		for (let day = PlainDate('2025-07-06'); day < PlainDate('2026-07-01'); day = add_days(day, 1)) {
 			const off = [0, 6].includes(dateWeekday(String(day)));
 			const away = !off && missed < absent;
 			if (away) missed += 1;
@@ -235,16 +248,16 @@ describe('the attendance review on an annual leave grant day', () => {
 		return days;
 	};
 	const reviews = (t: Kit) =>
-		t
-			.storedQuery({ obligation: { limit: 1000 } })
-			.pipe(
-				Effect.map(({ obligation }) => obligation.rows.filter((row) => REVIEW.test(row.title)))
-			);
+		storedQuery(t, { obligation: { limit: 1000 } }).pipe(
+			Effect.map(({ obligation }) => obligation.rows.filter((row) => REVIEW.test(row.title)))
+		);
 	const run = (t: Kit, period = '2026-07') =>
-		t
-			.as(t.admin)
-			.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-			.pipe(Effect.andThen(t.runDue()));
+		t.as(t.admin).pipe(
+			Effect.andThen((admin) =>
+				admin.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+			),
+			Effect.andThen(t.run_due())
+		);
 	const AFTER = { ANNUAL_LEAVE: { attendance_ratio: 0.5 } };
 
 	it.live('raises once, though the run is made again', () => {
@@ -252,10 +265,10 @@ describe('the attendance review on an annual leave grant day', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t);
-			const [made] = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows;
+			const [made] = (yield* storedQuery(t, { payroll_run: { limit: 1 } })).payroll_run.rows;
 			assert.ok(made !== undefined);
-			yield* t.as(t.admin).act('payroll_run.delete', [{ target: made.id }]);
-			yield* t.runDue();
+			yield* (yield* t.as(t.admin)).act({ 'payroll_run.delete': [{ target: made }] });
+			yield* t.run_due();
 			yield* run(t);
 			assert.equal((yield* reviews(t)).length, 1);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));

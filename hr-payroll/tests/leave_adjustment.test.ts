@@ -45,19 +45,25 @@ const adjust = (
 	note = 'worked through the release',
 	on = '2026-11-02'
 ) =>
-	t.as(by).act('ledger_entry.create', [
-		{
-			balance_id: BALANCE,
-			operation: days < 0 ? 'DEDUCT' : 'ADD',
-			account: 'leave',
-			code,
-			measure: 'entitled',
-			amount: Math.abs(days),
-			unit: 'DAY',
-			effective_on: PlainDate(on),
-			note
-		}
-	]);
+	t.as(by).pipe(
+		Effect.flatMap((caller) =>
+			caller.act({
+				'ledger_entry.create': [
+					{
+						balance_id: BALANCE,
+						operation: days < 0 ? 'DEDUCT' : 'ADD',
+						account: 'leave',
+						code,
+						measure: 'entitled',
+						amount: Math.abs(days),
+						unit: 'DAY',
+						effective_on: PlainDate(on),
+						note
+					}
+				]
+			})
+		)
+	);
 const measure = (t: Kit, code: string, name: string) =>
 	accountsIn(t).pipe(Effect.map((accounts) => measureOf(accounts, 'leave', code, name)));
 /** The manual rows, additions first. */
@@ -70,14 +76,20 @@ const manualRows = (t: Kit) =>
 		)
 	);
 const halfDay = (t: Kit, by: Member, part: 'AM' | 'PM') =>
-	t.as(by).act('leave_catalog_entry.create', [
-		leaveCreate({
-			entity_id: ENTITY,
-			employment_id: idOf('employee_contract', uuid(6)),
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', IN_LIEU)),
-			days: [{ date: PlainDate('2026-11-04'), part }]
-		})
-	]);
+	t.as(by).pipe(
+		Effect.flatMap((caller) =>
+			caller.act({
+				'leave_catalog_entry.create': [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: idOf('employee_contract', uuid(6)),
+						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', IN_LIEU)),
+						days: [{ date: PlainDate('2026-11-04'), part }]
+					})
+				]
+			})
+		)
+	);
 
 describe('a manual balance adjustment', () => {
 	it.live('grants half a day in lieu, limits it, and an opposite row takes it back', () =>
@@ -92,7 +104,7 @@ describe('a manual balance adjustment', () => {
 			assert.equal(more.length, 0);
 			assert.equal(row.source, `manual:${row.id}`);
 			assert.deepEqual(
-				[row.operation, row.code, row.period, row.measure, row.amount?.toNumber(), row.note],
+				[row.operation, row.code, row.period, row.measure, row.amount?.to_number(), row.note],
 				['ADD', IN_LIEU, YEAR, 'entitled', 0.5, 'worked through the release']
 			);
 			assert.equal(row.created_by, hr.id);
@@ -102,14 +114,14 @@ describe('a manual balance adjustment', () => {
 			yield* syncAll(t);
 			assert.equal((yield* ledgerRows(t)).length, before);
 			assert.equal((yield* halfDay(t, hr, 'AM')).kind, 'committed');
-			yield* t.runDue();
+			yield* t.run_due();
 			assert.match(String(yield* Effect.flip(halfDay(t, hr, 'PM'))), /insufficient balance/);
 			yield* adjust(t, hr, IN_LIEU, -0.5, 'granted in error');
 			// the day taken stays taken: the window is overdrawn by it
 			assert.equal(leftIn((yield* accountsIn(t)).leave?.[IN_LIEU]?.[YEAR]), -0.5);
 			const rows = yield* manualRows(t);
 			assert.deepEqual(
-				rows.map((item) => [item.operation, item.amount?.toNumber(), item.note]),
+				rows.map((item) => [item.operation, item.amount?.to_number(), item.note]),
 				[
 					['ADD', 0.5, 'worked through the release'],
 					['DEDUCT', 0.5, 'granted in error']
@@ -118,12 +130,22 @@ describe('a manual balance adjustment', () => {
 			// immutable: the model has no update or delete, and the HR controller cannot erase one
 			assert.equal(
 				yield* Effect.isFailure(
-					t.as(hr).act('ledger_entry.erase', { target: row.id, set: { note: 'edited' } })
+					t
+						.as(hr)
+						.pipe(
+							Effect.flatMap((caller) =>
+								caller.act({ 'ledger_entry.erase': { target: row, set: { note: 'edited' } } })
+							)
+						)
 				),
 				true
 			);
 			assert.equal(
-				yield* Effect.isFailure(t.as(hr).act('ledger_entry.erase', { target: row.id })),
+				yield* Effect.isFailure(
+					t
+						.as(hr)
+						.pipe(Effect.flatMap((caller) => caller.act({ 'ledger_entry.erase': { target: row } })))
+				),
 				true
 			);
 			assert.deepEqual(yield* manualRows(t), rows);
@@ -163,7 +185,7 @@ describe('a manual balance adjustment', () => {
 				assert.equal(leave?.['MY.S.2026-06-01']?.carried, held + 2);
 				assert.ok((leave?.['MY.S.2026-06-01']?.entitled ?? 0) > 0);
 				assert.deepEqual(
-					(yield* manualRows(t)).map((item) => [item.operation, item.amount?.toNumber()]),
+					(yield* manualRows(t)).map((item) => [item.operation, item.amount?.to_number()]),
 					[['ADD', 2]]
 				);
 			}).pipe(Effect.provide(workspace({ seed: closing, now: '2026-05-06T02:00:00.000Z' })));
@@ -179,19 +201,21 @@ describe('a manual balance adjustment', () => {
 					Effect.map((accounts) => measureOf(accounts, 'claim', 'MEDICAL_CLAIM', 'limit'))
 				);
 			const before = yield* limit();
-			yield* t.as(hrOf(t)).act('ledger_entry.create', [
-				{
-					balance_id: BALANCE,
-					operation: 'ADD',
-					account: 'claim',
-					code: 'MEDICAL_CLAIM',
-					measure: 'limit',
-					amount: 150.5,
-					unit: 'MONEY',
-					effective_on: PlainDate('2026-11-02'),
-					note: 'approved top-up'
-				}
-			]);
+			yield* (yield* t.as(hrOf(t))).act({
+				'ledger_entry.create': [
+					{
+						balance_id: BALANCE,
+						operation: 'ADD',
+						account: 'claim',
+						code: 'MEDICAL_CLAIM',
+						measure: 'limit',
+						amount: 150.5,
+						unit: 'MONEY',
+						effective_on: PlainDate('2026-11-02'),
+						note: 'approved top-up'
+					}
+				]
+			});
 			assert.equal(yield* limit(), before + 150.5);
 			yield* syncAll(t);
 			assert.equal(yield* limit(), before + 150.5);
@@ -219,20 +243,26 @@ describe('a manual balance adjustment', () => {
 			);
 			// a typed period, source or another measure is not a manual adjustment
 			const typed = (set: { period?: string; source?: string; measure?: 'used' }) =>
-				t.as(hr).act('ledger_entry.create', [
-					{
-						balance_id: BALANCE,
-						operation: 'ADD',
-						account: 'leave',
-						code: IN_LIEU,
-						measure: 'entitled',
-						amount: 1,
-						unit: 'DAY',
-						effective_on: PlainDate('2026-11-02'),
-						note: 'typed',
-						...set
-					}
-				]);
+				t.as(hr).pipe(
+					Effect.flatMap((caller) =>
+						caller.act({
+							'ledger_entry.create': [
+								{
+									balance_id: BALANCE,
+									operation: 'ADD',
+									account: 'leave',
+									code: IN_LIEU,
+									measure: 'entitled',
+									amount: 1,
+									unit: 'DAY',
+									effective_on: PlainDate('2026-11-02'),
+									note: 'typed',
+									...set
+								}
+							]
+						})
+					)
+				);
 			assert.match(yield* refused(typed({ period: YEAR })), shape);
 			assert.match(yield* refused(typed({ source: 'manual:mine' })), shape);
 			assert.match(yield* refused(typed({ measure: 'used' })), shape);

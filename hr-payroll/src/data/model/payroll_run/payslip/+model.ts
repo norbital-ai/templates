@@ -1,7 +1,7 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/payslip.ts';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
-export default model('payslip', {
+export default model({
 	description:
 		'Per-employee payroll totals, read-only once written. Financial detail is recomputed from the subtotal chain, catalogue entries and ledger.',
 	record_label: 'string(record.net_pay)',
@@ -10,12 +10,12 @@ export default model('payslip', {
 			kind: 'ref',
 			to: 'payroll_run',
 			inverse: 'payslips',
-			onDelete: 'cascade'
+			on_delete: 'cascade'
 		},
 		settings_id: {
 			kind: 'ref',
 			to: 'jurisdiction_settings',
-			onDelete: 'restrict'
+			on_delete: 'restrict'
 		},
 		employee_id: { kind: 'ref', to: 'employee_profile', inverse: 'payslips' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'payslips' },
@@ -35,18 +35,19 @@ export default model('payslip', {
 			default: {}
 		}
 	},
-	unique: [{ fields: ['payroll_run_id', 'employee_id', 'entity_id'] }],
-	read: {
-		payslip: { fields: 'all' },
-		'payslip.employment_id': { fields: 'all' },
-		'payslip.employment_id.employee_id': { fields: ['name'] },
-		'payslip.employee_id': { fields: ['name', 'user_id'] },
-		'payslip.payroll_run_id': { fields: 'all' },
-		'payslip.settings_id': { fields: ['code', 'currency'] }
+	constraints: { run_person: { unique: ['payroll_run_id', 'employee_id', 'entity_id'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			employment_id: { fields: 'all', employee_id: { fields: ['name'] } },
+			employee_id: { fields: ['name', 'user_id'] },
+			payroll_run_id: { fields: 'all' },
+			settings_id: { fields: ['code', 'currency'] }
+		}
 	},
 	create: {
 		columns: {
-			payslip: [
+			fields: [
 				'payroll_run_id',
 				'settings_id',
 				'employee_id',
@@ -63,15 +64,13 @@ export default model('payslip', {
 				'tax_withheld',
 				'breakdown'
 			]
-		}
-	},
-	effect: {
-		created: function* (rows, ctx) {
+		},
+		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
 				'create',
 				'payslip',
-				rows.map((after) => ({ after }))
+				changes.map(({ after }) => ({ after }))
 			);
 		}
 	}

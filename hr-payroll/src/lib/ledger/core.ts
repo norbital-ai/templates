@@ -1,5 +1,5 @@
 import { settingsConstants } from '../payroll_engine/contracts.js';
-import { addMonths } from '@norbital-ai/std/date';
+import { add_months } from '@norbital-ai/std/date';
 import {
 	completedMonths,
 	isJsonObject,
@@ -224,10 +224,10 @@ export const windowStart = (window: Window, on: string, started: string): string
 			return `${on.slice(0, 7)}-01`;
 		case 'SERVICE_YEAR': {
 			const years = Math.max(0, Math.floor((months() - window.offset_months) / 12));
-			return String(addMonths(started, window.offset_months + years * 12));
+			return String(add_months(started, window.offset_months + years * 12));
 		}
 		case 'BLOCK':
-			return String(addMonths(started, Math.floor(months() / window.months) * window.months));
+			return String(add_months(started, Math.floor(months() / window.months) * window.months));
 		case 'LIFETIME':
 			return started;
 		case 'EVENT':
@@ -283,12 +283,21 @@ export const leftOn = (
 ): number => leftIn(accounts[account]?.[code]?.[periodOn(lookup, subject, on)]);
 
 /** What is left in a code's newest window, where a page or an exit has no date of its own to ask about. */
-export const latestLeft = (accounts: Accounts, account: string, code: string): number => {
+export const latestLeft = (accounts: Accounts, account: string, code: string): number =>
+	latestWindow(accounts, account, code)?.left ?? 0;
+/** A code's newest window and what is left in it; under one law (`scope`) where a person has worked under several. */
+export const latestWindow = (
+	accounts: Accounts,
+	account: string,
+	code: string,
+	scope?: string
+): { readonly period: string; readonly left: number } | undefined => {
 	const periods = accounts[account]?.[code] ?? {};
 	const newest = Object.keys(periods)
+		.filter((key) => scope === undefined || key.startsWith(`${scope}.`))
 		.toSorted((left, right) => left.slice(-10).localeCompare(right.slice(-10)))
 		.at(-1);
-	return newest === undefined ? 0 : leftIn(periods[newest]);
+	return newest === undefined ? undefined : { period: newest, left: leftIn(periods[newest]) };
 };
 
 /** The next day a person's window turns over, if it ever does. */
@@ -296,15 +305,15 @@ export const nextWindow = (window: Window, on: string, started: string): string 
 	const from = windowStart(window, on, started);
 	switch (window.kind) {
 		case 'YEAR':
-			return String(addMonths(from, 12));
+			return String(add_months(from, 12));
 		case 'MONTH':
-			return String(addMonths(from, 1));
+			return String(add_months(from, 1));
 		case 'SERVICE_YEAR':
-			return on < String(addMonths(started, window.offset_months))
-				? String(addMonths(started, window.offset_months))
-				: String(addMonths(from, 12));
+			return on < String(add_months(started, window.offset_months))
+				? String(add_months(started, window.offset_months))
+				: String(add_months(from, 12));
 		case 'BLOCK':
-			return String(addMonths(from, window.months));
+			return String(add_months(from, window.months));
 		case 'LIFETIME':
 		case 'EVENT':
 			return undefined;
@@ -318,8 +327,8 @@ export const expired = (
 	today: string,
 	yearsHeld: number
 ): readonly Movement[] => {
-	const oldestMonth = String(addMonths(`${today.slice(0, 7)}-01`, -MONTHS_HELD - 1));
-	const oldestYear = String(addMonths(`${today.slice(0, 4)}-01-01`, -12 * yearsHeld));
+	const oldestMonth = String(add_months(`${today.slice(0, 7)}-01`, -MONTHS_HELD - 1));
+	const oldestYear = String(add_months(`${today.slice(0, 4)}-01-01`, -12 * yearsHeld));
 	const moves: Movement[] = [];
 	for (const [account, codes] of Object.entries(accounts))
 		for (const [code, periods] of Object.entries(codes))
@@ -361,7 +370,7 @@ export const viewOf = (
 	payDate: string
 ): JsonObject => {
 	const year = periodKey(scope, { kind: 'YEAR', start_month: taxYearStart }, payDate, payDate);
-	const oldest = String(addMonths(`${payDate.slice(0, 7)}-01`, -MONTHS_HELD)).slice(0, 7);
+	const oldest = String(add_months(`${payDate.slice(0, 7)}-01`, -MONTHS_HELD)).slice(0, 7);
 	const families = [
 		['pay', 'total'],
 		['statutory', 'paid']

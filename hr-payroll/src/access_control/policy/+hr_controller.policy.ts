@@ -3,14 +3,13 @@ import { READ_ALL, HR_OPERATIONS, CONFIGURATION, PAYROLL_STARTS, MEMBER_LIMITS }
 export default policy({
 	description:
 		'Authorised HR source, configuration and payroll operations through guarded native workflows.',
-	capabilities: { apps: ['hr_controller', 'hr_employee'] },
+	capabilities: { apps: ['hr_controller', 'hr_employee'], automations: PAYROLL_STARTS },
 	// a manual balance adjustment on the employee profile: the ledger takes only its own shape
 	grants: {
 		...READ_ALL,
 		...HR_OPERATIONS,
 		...CONFIGURATION,
-		ledger_entry: { read: true, create: true }
+		ledger_entry: { outputs: { default: {} }, create: {} }
 	},
-	automations: PAYROLL_STARTS,
 	limits: MEMBER_LIMITS
 });

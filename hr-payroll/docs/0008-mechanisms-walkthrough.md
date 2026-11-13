@@ -1,6 +1,6 @@
 # Core mechanisms, run through
 
-One invented example followed from setting up a company to an exit. Each step says what the HR user does, what the system writes, and where it shows. Structure is in [the architecture](0001-hrms-calculation-architecture.md); undoing any step is in [reversals and corrections](0007-corrections-and-integrity.md); each country's own figures are in [statutory coverage](0009-statutory-coverage.md).
+One invented example followed from setting up a company to an exit. Each step says what the HR user does, what the system writes, and where it shows. Structure is in [the architecture](0001-hrms-calculation-architecture.md); correcting any step is in [corrections and integrity](0007-corrections-and-integrity.md); each country's own figures are in [statutory coverage](0009-statutory-coverage.md).
 
 **The example.** A company called "Example Co" has one monthly payroll. It hires "the employee" on 3,000 a month. Every name and figure here is invented. To keep the arithmetic visible, the example's law version is assumed to say:
 
@@ -22,6 +22,8 @@ flowchart LR
   month -- posting --> balance
   run -- posting --> balance
   balance --> run
+  paid -- a correction --> amend[Amendment row]
+  amend --> run
   paid --> change[Contract change]
   paid --> exit[Exit and final pay]
 ```
@@ -90,27 +92,28 @@ The employee asks for two days of annual leave, 8 and 9 July.
 
 What to expect:
 
-- **A request is refused at once** when the window does not hold the days, when leave already covers a half day, or when a no-pay day is dated in a period that has already run.
+- **A request is refused at once** when the window does not hold the days, when leave already covers a half day, or when an unpaid run holds the person for that date.
 - **Rejected or withdrawn**, the record is taken back and nothing was posted. Only the requester can withdraw; a reviewer rejects.
 - **HR keying leave for someone** posts in the entry's own write, with no approval step.
 - **Paid leave makes no payslip line.** A day of `NPL` does: see the run below.
-- **A half day is taken once** across all of a person's leave, until a reversal frees it.
+- **A half day is taken once** across all of a person's leave, until the slot is removed from its entry.
 - **A payroll run refuses** while a request it would pay still waits.
 
 ## 5. Claims and ad hoc entries
 
-| HR or the employee does                           | The system writes                                                                                                                             | Where it shows               |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| The employee claims 400 of medical costs          | A `claim_catalog_entry`, held for the same two review steps. On approval: `claim/MEDICAL_CLAIM/<year>/used +400`                              | Events → Claims              |
-| Later the same year, claims 300                   | The row's limit is 500 and 400 is used, so 100 posts. The entry keeps 300; the run pays the 100 that posted                                   | Events → Claims              |
-| HR keys a bonus of 1,000 on the bonus row         | An `adhoc_catalog_entry`. It posts to the ledger only if its row declares accounts                                                            | Events → Ad hoc              |
-| HR keys a statutory adjustment for a closed month | An ad hoc entry dated in that month. It moves that scheme's balance for the month and year; an effect raises the task to settle with the fund | Events → Ad hoc; Obligations |
+| HR or the employee does                                              | The system writes                                                                                                | Where it shows  |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------- |
+| The employee claims 400 of medical costs                             | A `claim_catalog_entry`, held for the same two review steps. On approval: `claim/MEDICAL_CLAIM/<year>/used +400` | Events → Claims |
+| Later the same year, claims 300                                      | The row's limit is 500 and 400 is used, so 100 posts. The entry keeps 300; the run pays the 100 that posted      | Events → Claims |
+| HR keys a bonus of 1,000 on the bonus row                            | An `adhoc_catalog_entry`. It posts to the ledger only if its row declares accounts                               | Events → Ad hoc |
+| HR keys a refund a fund decided, on the generic statutory refund row | An ad hoc entry. It posts to the account its row names; the next run pays it                                     | Events → Ad hoc |
 
 What to expect:
 
-- **An entry no run has paid is paid by the next run**, whatever its date. A claim entered after its month closed is paid one cycle late, once.
+- **A late entry is paid by the next run, once.** Dated in a period that paid the person nothing, it is an ordinary line. Dated in a period the person was paid for, it belongs to that period: the next run carries it under "Adjustments for earlier periods", tagged with the period, with what it moves in contributions and tax.
 - **An ad hoc row says** whether it adds or deducts, whether it is the employee's or the employer's cost, and whether it may run off-cycle.
-- **A statutory adjustment is refused** in a month no run has closed.
+- **A tax instalment the authority directs** (Malaysia's CP38) is an ad hoc entry. It is deducted and counted as tax withheld. It posts to its own account, so the PCB year-to-date the next months read leaves it out.
+- **A contribution wrong in a paid month needs no entry.** HR corrects the record that made it wrong and the next run carries the difference (section 10).
 
 ## 6. Loans
 
@@ -124,23 +127,35 @@ What to expect:
 - **Loans never touch the ledger.** What is outstanding is the principal less the repayments.
 - **Each run recovers the instalment dated in its attendance.** A later month's stays open. Recovery is on-cycle only.
 - **A recovery that would take net pay below zero refuses the run** and says how; reduce the instalment and run again.
-- **An instalment a run took is locked.** A wrong one is reversed, and the next run refunds it.
-- **An instalment cannot be dated** in attendance a run has already priced.
+- **An instalment a run took can still be corrected.** HR changes or deletes it, and the next run carries the difference for the period it was taken in.
 
 ## 7. The payroll run
 
 HR creates the on-cycle run for July, for Example Co's one pay group.
 
+```mermaid
+flowchart TD
+  create[HR creates the run] --> checks{Law, employer version,<br/>approvals in order?}
+  checks -- no --> refused[Refused, nothing written]
+  checks -- yes --> read[Read everything once:<br/>contracts, entries, balance,<br/>open amendment rows]
+  read --> calc[One pass per person:<br/>the subtotal chain]
+  calc --> carry[Earlier periods worked out again;<br/>differences tagged]
+  carry --> write[One write: run, payslips,<br/>seals, ledger rows]
+  write --> unpaid[UNPAID: may be deleted]
+  unpaid --> paid[PAID: locked]
+```
+
 **What it takes.** Everything is read once, before any payslip.
 
-| Source                        | Taken when                                                                                                              |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Contracts                     | Sealed, of this pay group, in force in the period. One payslip per person, on the contract in force at the period's end |
-| Roster days and leave slots   | Dated in the run's attendance window                                                                                    |
-| Claims and ad hoc entries     | Not yet paid by any run, dated up to the period's end                                                                   |
-| Loan repayments               | Dated in the attendance window; a reversal not yet paid, whatever its date                                              |
-| Leave reversals and cash-outs | Not yet paid, whatever their date                                                                                       |
-| Earlier pay                   | The balance's totals for the tax year and the last twelve months. No earlier payslip is read                            |
+| Source                      | Taken when                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Contracts                   | Sealed, of this pay group, in force in the period. One payslip per person, on the contract in force at the period's end  |
+| Roster days and leave slots | Dated in the run's attendance window                                                                                     |
+| Claims and ad hoc entries   | Not yet paid by any run, dated up to the period's end. One dated in a period the person was paid for goes to that period |
+| Loan repayments             | Dated in the attendance window                                                                                           |
+| Leave cash-outs             | Not yet paid, whatever their date. An exit's leave is no entry: the last payslip settles it from the balance             |
+| Earlier pay                 | The balance's totals for the tax year and the last twelve months                                                         |
+| Amended paid periods        | The open amendment rows of the people it pays, and those periods' records and payslips, through the tax year's end       |
 
 **The subtotals, in order.** Suppose July has 31 days and the employee took one day of `NPL`.
 
@@ -151,6 +166,7 @@ PAID_BASIC   2,903.23   less the NPL line: 3,000 ÷ 31 for one day
 ...          + allowances, overtime, the 100 claim, the 1,000 bonus, each at the subtotal its row names
 statutory    each scheme in dependency order, on the subtotal its law names
 NET          after employee contributions, tax and the 100 loan instalment
+...          then any difference for an earlier period, each line tagged with its period
 ```
 
 In June, the joining month, `PRORATED` was 1,500.00: 15 of 30 calendar days from 16 June.
@@ -166,13 +182,14 @@ In June, the joining month, `PRORATED` was 1,500.00: 15 of 30 calendar days from
 | The `payroll_run`, `UNPAID` | Company, pay group, period, the law version, salary coverage and pay date. None of these is typed           |
 | One `payslip` per person    | Totals and the breakdown as calculated: checkpoints, lines, statutory amounts                               |
 | The seals                   | `payroll_run_id` on every roster day, leave slot, claim, ad hoc entry and repayment it priced               |
+| The amendment rows it took  | `payroll_run_id` on each `pay_amendment` row it carried; one new row where a recovery is carried forward    |
 | Ledger rows                 | Each checkpoint as `pay/…/total`, each scheme as `statutory/…/paid`, for the year and where named the month |
 
 The law's run effects then raise the period's tasks: remittances, filings, payslip issue. See Obligations.
 
-**The run refuses**, and writes nothing, when: no sealed employer version or law covers it; a confirmed change of law for its period is not merged; a later cycle of the group has already run; the group already ran this period; an entry it would pay still waits for approval; or a loan recovery would take someone below zero.
+**The run refuses**, and writes nothing, when: no sealed employer version or law covers it; a confirmed change of law for its period is not merged; a later cycle of the group has already run; the group already ran this period; an entry it would pay, or one in a period it works out again, still waits for approval; or a loan recovery would take someone below zero.
 
-**Off-cycle.** An off-cycle run is for what cannot wait: a bonus, severance, an arrears entry. HR names the ad hoc entries it pays. Only their people get a payslip, and it pays no salary. Only rows marked `off_cycle_eligible` may be named; a recurring item is refused. Statutory schemes still apply, on the month's total, so the month owes the same as if the entry had gone on-cycle. A leaver's off-cycle run goes on the period of their last day, for their own pay group.
+**Off-cycle.** An off-cycle run is for what cannot wait: a bonus or severance. HR names the ad hoc entries it pays. Only their people get a payslip, and it pays no salary. Only rows marked `off_cycle_eligible` may be named; a recurring item is refused. Statutory schemes still apply, on the month's total, so the month owes the same as if the entry had gone on-cycle. A leaver's off-cycle run goes on the period of their last day, for their own pay group. An off-cycle run carries earlier periods only when HR names them; it never takes money back. It refuses an entry or amended period another run already took.
 
 ## 8. Payslip, salary listing and bank file
 
@@ -182,9 +199,27 @@ The law's run effects then raise the period's tasks: remittances, filings, paysl
 | Exports the salary listing           | A spreadsheet built from the run's payslips          | Payroll        |
 | Exports a bank file                  | A bank payment file in one of the template's layouts | Payroll        |
 
-The salary listing shows contract basic, paid basic, proration, absence, `NPL`, allowances, gross, statutory and net as separate columns, so each figure can be traced to a checkpoint or a line. An export reads the run; it changes nothing.
+The salary listing is one sheet per run. Every figure is a payslip's own line or total, so each can be traced. An export reads the run; it changes nothing.
 
-While the run is `UNPAID` it can be deleted: its payslips go, its seals come off, and its ledger rows are inverted. Runs come off newest first.
+```mermaid
+flowchart LR
+  who[Who:<br/>position to last day] --> bands[One coloured band<br/>per subtotal, its lines,<br/>closed by the subtotal]
+  bands --> gross[GROSS PAY<br/>before the first<br/>statutory band]
+  gross --> stat[Statutory bands;<br/>TAX WITHHELD<br/>beside the tax]
+  stat --> net[NET PAY]
+  net --> employer[EMPLOYER'S<br/>PORTION]
+  employer --> cost[COST TO<br/>COMPANY]
+```
+
+- **Who.** Position, department, employee code, name, ID number, date joined, last day. Frozen through the name.
+- **Bands.** The law's subtotal chain, in order, each in its own colour. Each band holds the lines that move it (what adds is positive, what takes off negative) and closes on its subtotal. A line identical to its band's subtotal shows once.
+- **GROSS PAY** stands before the first band that holds a statutory deduction.
+- **TAX WITHHELD** comes right after the band that holds the tax. It counts every tax the payslip withholds: the tax scheme and any instalment the authority directs (Malaysia's PCB and CP38).
+- **NET PAY**, then the **employer's portion**, one column per scheme.
+- **COST TO COMPANY** = net pay + employee contributions + tax withheld + employer portion.
+- A `TOTAL` row sums each column.
+
+While the run is `UNPAID` it can be deleted: its payslips go, its seals come off, the amendment rows it took open again, and its ledger rows are inverted. Runs come off newest first. While it stands, nothing of the people it holds can be changed.
 
 ## 9. Marking paid
 
@@ -192,9 +227,34 @@ While the run is `UNPAID` it can be deleted: its payslips go, its seals come off
 | --------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------- |
 | Marks the run as paid | The run moves to `PAID`. The paid date is the moment of this move. The entitlement sync is scheduled for everyone | Payroll        |
 
-A paid run is locked for good, with everything it sealed. The employee sees the payslip in self-service.
+A paid run cannot be deleted and its payslips never change. The employee sees the payslip in self-service. What the run priced can still be corrected at its source: see the next section.
 
-## 10. Balances and the ledger
+## 10. Correcting a paid month
+
+July is paid. HR finds that two hours of planned overtime on 14 July were never keyed.
+
+| HR does                                                   | The system writes                                                                                                                                      | Where it shows                            |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| Opens the roster day of 14 July, adds the hours and saves | The roster day, and one `pay_amendment` row: the employee, the pay group, July. The July payslip does not change                                       | —                                         |
+| Creates the August run                                    | It works July out again on the records as they stand, takes the difference from what July paid, and puts it on the August payslip as lines tagged July | Payroll → the run's "Earlier periods" tab |
+| Reads the August payslip                                  | Under "Adjustments for earlier periods": the overtime for July, and what it moves in contributions and tax, posted to July's own totals                | The payslip                               |
+| Marks August paid                                         | The amendment row stays, held by the August run: it is done                                                                                            | Payroll                                   |
+
+What to expect:
+
+- **HR keys no amount** and picks no period. The correction is the record itself, with its real date.
+- **The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and sealing a contract version, ask first:** "This period is already paid". The paid payslip does not change, and the next run carries the difference.
+- **Any record of a paid month works the same way:** a roster day, a leave day, a claim, an ad hoc entry, a loan instalment. It can be added, changed, moved to another date or deleted.
+- **Many corrections of one month are one difference.** A change put back to what it was carries nothing.
+- **The months after it in the same tax year are worked out again too,** so a yearly ceiling or a cumulative tax ends exact. A later tax year is left alone.
+- **Net pay never goes below zero.** If a correction takes back more than the month pays, the payslip ends at zero with a line "Recovery carried forward", and the next run takes the rest.
+- **While a run is unpaid, the people it holds cannot be corrected.** Delete the run, correct the record, and run again.
+- **Company-wide corrections** work the same way for everyone they reach: a holiday published late, an employer version or a law version sealed from its real date.
+- **A pay group that has paid keeps its schedule.** A new schedule is a new group, and people move to it from the first of a month.
+
+The whole rule, with what is refused, is in [corrections and integrity](0007-corrections-and-integrity.md).
+
+## 11. Balances and the ledger
 
 Each person has one balance. What a person or HR reads:
 
@@ -212,7 +272,7 @@ HR can adjust a balance by hand on the employee profile: days added to or taken 
 
 When the law changes an entitlement, the balance moves by the difference. If the law raises the example's 14 days to 18, the sync posts `entitled +4`. Days already taken stay taken.
 
-## 11. Year or window turnover
+## 12. Year or window turnover
 
 Nothing is closed and nothing is typed.
 
@@ -227,7 +287,7 @@ In the example, with 5 of 14 days left at the turn and a carry of one window, th
 
 A tax row settles the year by its own law, inside the ordinary run: there is no year-end step.
 
-## 12. A contract change
+## 13. A contract change
 
 The employee is promoted to 3,500 from 1 October.
 
@@ -239,28 +299,29 @@ The employee is promoted to 3,500 from 1 October.
 What to expect:
 
 - **A change starts on the first of a month**, so a run never prices a month on two versions. A hire, a rehire and an exit keep their real dates.
-- **A period a run has captured cannot change.** Under an unpaid run, delete the run first. Under a paid run, the change starts the month after.
+- **Under an unpaid run nothing of the person changes.** Delete the run first.
+- **A change may start in a month already paid.** The version is sealed from its real date. If it was signed by that month's pay date, or has no signed date, the month is worked out again and the next run carries the difference on every line. If it was signed later, the paid months do not move: where the law names a back-pay row, the month it was signed in pays what it adds for them as one line of back pay, priced by the law's own rule.
+- **A change filed ahead lands in a paid month** when a run covering its date was paid before its day. It does not seal: it stays filed and raises a task. Move it to the first of a month still to run.
+- **A wrong version** is voided with a reason and replaced. Draft the replacement first.
 - **A transfer** to another company is the same act with a new entity. In the same jurisdiction the balance and loans carry on. To another jurisdiction it is an exit from the old law and a start under the new: see [transfer semantics](transfer-semantics.md).
 - **A life event**, such as a birth, is a new version carrying the fact; the leave it opens appears on the balance after the seal.
 
-## 13. An exit
+## 14. An exit
 
 The employee resigns; the last day is 20 November.
 
-| HR does                                                                 | The system writes                                                                                                                        | Where it shows              |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Opens the contract and chooses Terminate: last day, reason, exit ground | The sealed version ends on 20 November. With no successor in the same jurisdiction, that is an exit                                      | People                      |
-| Nothing                                                                 | The law's exit effects raise the exit duties, each keyed to this exit                                                                    | Obligations                 |
-| Nothing                                                                 | The sync prorates the leaving year's entitlement by the row's rule                                                                       | The balance                 |
-| Nothing                                                                 | `encashment` raises one cash-out request per leave row that has a `payout`, for the days left, held for HR approval                      | Events → Leave              |
-| The HR controller approves the cash-out                                 | The days post as used                                                                                                                    | The balance                 |
-| Confirms the loan settlement the Terminate sheet proposes               | A final settlement repayment, up to what the employer's final-pay floor leaves. The rest is rescheduled and one task asks HR to chase it | Events → Loans; Obligations |
-| Keys any notice pay or severance as ad hoc entries                      | Ad hoc entries on the law's rows                                                                                                         | Events → Ad hoc             |
-| Runs November                                                           | The final payslip: salary for 1 to 20 November, the cash-out at the row's `payout`, the loan settlement, the entries                     | Payroll                     |
+| HR does                                                                                           | The system writes                                                                                                                                                                        | Where it shows              |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Opens the contract and chooses Terminate: last day, reason, exit ground, whether to pay out leave | The sealed version ends on 20 November. With no successor in the same jurisdiction, that is an exit                                                                                      | People                      |
+| Nothing                                                                                           | The law's exit effects raise the exit duties, each keyed to this exit                                                                                                                    | Obligations                 |
+| Nothing                                                                                           | The sync prorates the leaving year's entitlement by the row's rule                                                                                                                       | The balance                 |
+| Confirms the loan settlement the Terminate sheet proposes                                         | A final settlement repayment, up to what the employer's final-pay floor leaves. The rest is rescheduled and one task asks HR to chase it                                                 | Events → Loans; Obligations |
+| Keys any notice pay or severance as ad hoc entries                                                | Ad hoc entries on the law's rows                                                                                                                                                         | Events → Ad hoc             |
+| Runs November                                                                                     | The final payslip: salary for 1 to 20 November, the leave left paid out at the row's `payout`, the loan settlement, the entries. Its posting takes the days, so the balance ends at zero | Payroll                     |
 
 What to expect:
 
-- **The final run is the one covering the last day.** It pays everything up to that day; no later run takes anything of this person.
-- **A dismissal for misconduct** raises no cash-out.
-- **Leave taken beyond what the last day leaves earned** is taken back as a reversal of the latest paid half days.
-- **If the exit is cancelled or its date moves**, the system follows: tasks are waived, a waiting or unpaid cash-out is withdrawn, an unpaid loan settlement goes back to instalments. What a paid run took is not undone; one task asks HR to reverse it. See [reversals and corrections](0007-corrections-and-integrity.md#4-when-an-exit-is-cancelled-or-its-date-moves).
+- **The final run is the one covering the last day.** It pays everything up to that day; while the exit stands, no later on-cycle run pays this person.
+- **The leave is settled by the final payslip.** Nothing is keyed and nothing waits for approval. A dismissal for misconduct, or HR switching the pay-out off, pays none out.
+- **Leave taken beyond what the last day earned** is taken back on the final payslip at the row's `payout`, whatever HR decided.
+- **If HR changes the decision, or the exit is cancelled or its date moves, after the final run is paid**, the period is amended: the next run carries the difference and the days follow. Someone no on-cycle run pays any more is paid by an off-cycle run that carries their waiting periods; what they would owe back is named in one task. Tasks are waived and an unpaid loan settlement goes back to instalments; a paid loan settlement stands. See [corrections and integrity](0007-corrections-and-integrity.md#11-when-an-exit-is-cancelled-or-its-date-moves).

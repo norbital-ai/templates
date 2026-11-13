@@ -8,16 +8,16 @@ import { MEMBER_LIMITS } from './grants.js';
 export default policy({
 	description:
 		'Attendance-kiosk device access: the attendance kiosk only, time entries for people, and kiosk enrollments that always land pending HR review.',
-	capabilities: { kiosks: ['attendance'] },
+	capabilities: { apps: ['attendance'] },
 	grants: {
 		sys_file: {
-			outputs: { meta: { sys_file: { where: { field: { eq: 'employee_profile.face_photo' } } } } }
+			outputs: { meta: { where: { field: { eq: 'employee_profile.face_photo' } } } }
 		},
 		employee_profile: {
-			outputs: { kiosk: true },
+			outputs: { kiosk: {} },
 			update: {
 				columns: {
-					employee_profile: [
+					fields: [
 						'face_embedding',
 						'face_photo',
 						'face_enrollment_status',
@@ -25,35 +25,35 @@ export default policy({
 						'face_enrolled_at'
 					]
 				},
-				check: function* (changes, ctx) {
-					return changes.every(
-						({ before, set }) =>
-							(before.face_enrollment_status === 'NONE' ||
-								before.face_enrollment_status === 'APPROVED') &&
-							(set.face_enrollment_status ?? before.face_enrollment_status) === 'APPROVED'
-					)
+				verdict: function* (changes, ctx) {
+					const undone = changes.findIndex(
+						({ before, after }) =>
+							(before.face_enrollment_status !== 'NONE' &&
+								before.face_enrollment_status !== 'APPROVED') ||
+							after.face_enrollment_status !== 'APPROVED'
+					);
+					return undone < 0
 						? ctx.allow()
-						: ctx.deny('A kiosk enrols or refreshes a face; it never undoes an approval.', {
+						: yield* ctx.refuse('errors.kiosk_face_enrollment_undo', {
+								row: undone,
 								field: 'face_enrollment_status'
 							});
 				}
 			}
 		},
 		employee_contract: {
-			outputs: { kiosk: true }
+			outputs: { kiosk: {} }
 		},
 		// the kiosk output reads no leave
-		entity: { outputs: { kiosk: true } },
-		jurisdiction_settings: { outputs: { kiosk: true } },
-		entity_profile_version: { outputs: { kiosk: true } },
+		entity: { outputs: { kiosk: {} } },
+		jurisdiction_settings: { outputs: { kiosk: {} } },
+		entity_profile_version: { outputs: { kiosk: {} } },
 		roster_entry: {
-			outputs: { kiosk: true },
+			outputs: { kiosk: {} },
 			create: {
-				columns: {
-					roster_entry: ['employment_id', 'work_date', 'actual_worked_intervals']
-				}
+				columns: { fields: ['employment_id', 'work_date', 'actual_worked_intervals'] }
 			},
-			update: { columns: { roster_entry: ['actual_worked_intervals'] } }
+			update: { columns: { fields: ['actual_worked_intervals'] } }
 		}
 	},
 	limits: MEMBER_LIMITS

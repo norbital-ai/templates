@@ -9,7 +9,7 @@ import { Effect } from 'effect';
 import { entitlementOf, type LeavePerson, type LeaveRow } from '../src/lib/ledger/entitlement.ts';
 import { startsOf } from '../src/lib/payroll_engine/contract_change.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { accountsIn, pack, read, syncAll, uuid, workspace } from './kit.ts';
+import { accountsIn, pack, read, storedQuery, syncAll, uuid, workspace } from './kit.ts';
 
 const annual = (code: string): LeaveRow => {
 	const root = join('seed/public/jurisdiction', code);
@@ -153,12 +153,16 @@ describe('service runs from the current stint, or every stint', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
-			yield* t
-				.as(t.member(['hr_controller']))
-				.act('employee_profile.update', [
-					{ target: idOf('employee_profile', uuid(4)), set: { cumulative_service: false } }
-				]);
-			yield* t.runDue();
+			const { employee_profile } = yield* storedQuery(t, {
+				employee_profile: { where: { id: { eq: idOf('employee_profile', uuid(4)) } }, limit: 1 }
+			});
+			const [profile] = employee_profile.rows;
+			assert.ok(profile !== undefined);
+			const hr = yield* t.as(t.member(['hr_controller']));
+			yield* hr.act({
+				'employee_profile.update': [{ target: profile, set: { cumulative_service: false } }]
+			});
+			yield* t.run_due();
 			const leave = (yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'];
 			assert.equal(leave?.['MY.S.2026-07-04']?.entitled, REHIRE);
 		}).pipe(Effect.provide(rehire(true)))

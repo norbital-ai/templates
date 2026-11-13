@@ -53,9 +53,9 @@
 				"url": "https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html"
 			}
 		],
-		"subtotal_id": "f62b9bd3-3366-55a0-b8af-6536872c1b2d",
-		"id": "84df6367-4436-586a-92fd-5542fc2aa0d2",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "6d5dd797-c3f7-5ad3-bc8b-a7dceb5ae0b5",
+		"id": "df912d48-2b86-5a02-b3d7-3b5e89c139cf",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SICK_LEAVE",
@@ -74,11 +74,18 @@
 			{
 				"title": "劳部发〔1994〕479号 第三条 (医疗期); 劳部发〔1995〕309号 第59条 (病假工资不低于最低工资80%); 昆明市工资支付条例 第二十七条. 沪劳保发〔1995〕83号 and 沪劳保保发〔2000〕14号 lapsed on 2026-08-15 unrenewed.",
 				"url": "https://cms.law/en/chn/legal-updates/key-changes-to-shanghai-sick-leave-pay-standards-what-employers-should-know"
+			},
+			{
+				"title": "沪劳保发〔1995〕83号 及 沪劳保保发〔2000〕14号 同日到期失效 (2026-08-15); 沪人社规〔2026〕10号 (2026-08-01至2031-07-31) 未重定病假工资分档",
+				"locator": "中伦律师事务所 2026, 第一部分",
+				"url": "https://www.zhonglun.com/research/articles/56748.html",
+				"quote": "83号文与14号文同日到期",
+				"effective_from": "2026-08-15"
 			}
 		],
-		"subtotal_id": "bc834b2d-f4b7-5383-a538-8fb0c23b4538",
-		"id": "1b5d4412-43d1-5945-b277-07ef208ab992",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "7c5f36f1-3972-584b-8d71-783dcaa4010d",
+		"id": "54f9d80d-5a3e-5223-83e5-4ae4940437b6",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "MATERNITY_LEAVE",
@@ -110,9 +117,9 @@
 				"title": "女职工劳动保护特别规定 第七条、第八条: 98天产假, 难产+15天, 多胞胎每多1个+15天; 未满4个月流产15天, 满4个月42天; 生育津贴由基金按单位上年度月平均工资支付."
 			}
 		],
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"id": "e73f2e16-c035-57f4-8c88-287b8dc1817b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "24297e06-2db9-518a-9928-11cf52a6b354",
+		"id": "c64b9a3d-ec5a-5d7a-beae-812eeab3b671",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "MATERNITY_EXTENSION",
@@ -143,9 +150,9 @@
 				"title": "上海市人口与计划生育条例 第三十一条; 云南省人口与计划生育条例 第十八条: 符合规定生育的女方延长生育假60天, 与产假合并连续使用, 享受产假同等待遇."
 			}
 		],
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"id": "46ddedff-25cd-5894-95c3-c61289ccde1a",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "24297e06-2db9-518a-9928-11cf52a6b354",
+		"id": "66df28d3-9f65-5619-807d-76c416873932",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -176,14 +183,14 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "2ed64061-14dd-5668-83a2-a467918ff586",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "25d3458e-ae70-5c76-bd89-2117d6231779",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
-		"description": "Up to 3 days at full pay.",
+		"description": "1 day at full pay, the statutory minimum: (80)劳总薪字29号 leaves 1–3 days to the employer; a company policy granting more goes on this row.",
 		"lookup": {
-			"grant_days": 3,
+			"grant_days": 1,
 			"window": "EVENT",
 			"opened_by": {
 				"MARRIAGE": {}
@@ -196,11 +203,17 @@
 			{
 				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号): 酌情给予一至三天的婚丧假, per event.",
 				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm"
+			},
+			{
+				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号) 第一条",
+				"locator": "第一条",
+				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm",
+				"quote": "酌情给予一至三天的婚丧假"
 			}
 		],
 		"subtotal_id": null,
-		"id": "a1477b11-d7b5-5e98-91db-fe8c688c651b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "464826c5-9792-5a7f-9705-a3de46b9826f",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "MARRIAGE_EXTENSION",
@@ -228,21 +241,26 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "e444e6f5-0828-5d19-8c90-e5338445d290",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "3ce29073-9789-5e80-9b7c-e722e37af9ed",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "CHILDCARE_LEAVE",
-		"description": "Each parent, a calendar year: Shanghai 5 days for each CHILD_BIRTH event under 3 (the regulation counts each child's year from its birth); Kunming 10 days, 15 with two or more under 3.",
+		"description": "Each parent, a calendar year, while a CHILD_BIRTH event on the contract is under 3: Shanghai 5 days whatever the number of children; Kunming 10 days, 15 with two or more under 3. Full pay.",
 		"lookup": {
 			"child_age_limit_years": 3,
-			"per_child_days_by_region": [
+			"per_child_days_by_region": [],
+			"days_by_children_by_region": [
 				{
 					"region": "SH",
+					"children": 0,
+					"days": 0
+				},
+				{
+					"region": "SH",
+					"children": 1,
 					"days": 5
-				}
-			],
-			"days_by_children_by_region": [
+				},
 				{
 					"region": "KM",
 					"children": 0,
@@ -259,16 +277,22 @@
 					"days": 15
 				}
 			],
-			"entitlement": "// 上海市人口与计划生育条例 第三十一条: 子女年满3周岁前, 按子女数每年5天; 云南省人口与计划生育条例 第十八条: 子女不满3周岁每年10天, 两个以上15天.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst young = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && age_on(event.on, ctx.as_of) < ctx.lookup.child_age_limit_years).length;\nconst each = first(ctx.lookup.per_child_days_by_region.filter((row) => row.region === region));\nif (each != null) return each.days * young;\nreturn get(ctx.lookup.days_by_children_by_region.filter((row) => row.region === region && row.children <= young).at(-1), 'days', 0);"
+			"entitlement": "// 上海市人口与计划生育条例 第三十一条: 子女年满3周岁前, 夫妻双方每年各5天 (不按子女数); 云南省人口与计划生育条例 第十八条: 子女不满3周岁每年10天, 两个以上15天.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst young = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && age_on(event.on, ctx.as_of) < ctx.lookup.child_age_limit_years).length;\nconst each = first(ctx.lookup.per_child_days_by_region.filter((row) => row.region === region));\nif (each != null) return each.days * young;\nreturn get(ctx.lookup.days_by_children_by_region.filter((row) => row.region === region && row.children <= young).at(-1), 'days', 0);"
 		},
 		"references": [
 			{
-				"title": "上海市人口与计划生育条例 第三十一条 (每个子女每年5天); 云南省人口与计划生育条例 第十八条 (每年10天, 两个以上不满3周岁子女再增加5天), 按正常出勤工资发给."
+				"title": "上海市人口与计划生育条例 第三十一条 (子女年满三周岁前, 夫妻双方每年各5天); 云南省人口与计划生育条例 第十八条 (每年10天, 两个以上不满3周岁子女再增加5天), 按正常出勤工资发给."
+			},
+			{
+				"title": "上海市人口与计划生育条例 (2021年11月25日修正) 育儿假",
+				"locator": "第三十一条",
+				"url": "https://www.allbrightlaw.com/CN/10531/fea86d1262f694d6.aspx",
+				"quote": "夫妻双方每年各享受5天育儿假"
 			}
 		],
 		"subtotal_id": null,
-		"id": "bd5e18df-d8c9-5b41-a146-524637776950",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "17f219e0-556e-515f-9ce5-ff11c0ae181a",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "PRENATAL_CHECKUP",
@@ -280,14 +304,14 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "f1b1b7e5-46f5-51c6-8411-3099edbd90b8",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "4a4513ef-cc09-5978-911b-4c6da112b34e",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
-		"description": "Up to 3 days at full pay.",
+		"description": "1 day at full pay, the statutory minimum: (80)劳总薪字29号 leaves 1–3 days to the employer; a company policy granting more goes on this row.",
 		"lookup": {
-			"grant_days": 3,
+			"grant_days": 1,
 			"window": "EVENT",
 			"opened_by": {
 				"BEREAVEMENT": {}
@@ -300,11 +324,17 @@
 			{
 				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号): 酌情给予一至三天的婚丧假, per event.",
 				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm"
+			},
+			{
+				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号) 第一条",
+				"locator": "第一条",
+				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm",
+				"quote": "酌情给予一至三天的婚丧假"
 			}
 		],
 		"subtotal_id": null,
-		"id": "0cee064b-08dc-56b8-95d4-8aec6ab2031b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "fc20efbb-262d-5706-8750-c2206edd5b15",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "NPL",
@@ -316,9 +346,9 @@
 				"title": "工资支付暂行规定 第十一条、第十二条: 仅法定休假和假期支付工资; 事假由双方约定, 无薪."
 			}
 		],
-		"subtotal_id": "42286309-b23e-4cc0-947b-72b213c85027",
-		"id": "dece17ea-7b1c-51ee-9291-78bb2f80dc6a",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "67f71d96-1708-5107-b8e0-cac0c51a838e",
+		"id": "c5397ad0-667d-5d4d-ae7d-b4df3fcc77c5",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "PERSONAL_LEAVE_PAID",
@@ -330,8 +360,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "1c2adc77-8bbd-556d-9dbd-9f84f15d5965",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "738651c4-1f33-5ce8-9cc0-01fe909cd259",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "WORK_INJURY_LEAVE",
@@ -343,8 +373,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "71db5e4d-939a-515d-956b-34c45b0e76d1",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "d7d19a84-663e-5501-a15d-9f87b8dfb0d9",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SOCIAL_ACTIVITY",
@@ -356,8 +386,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "b5be098f-5207-58b9-a9f5-2abce80246e2",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "351f9477-bc9b-54ee-99d0-00f7c3654046",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "NURSING_BREAK",
@@ -372,8 +402,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "2c2137fb-78c9-5f5f-b8f6-cef6c69e6c8c",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "94f2ed35-ca90-58df-aae7-000613771a9f",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "PRENATAL_LEAVE",
@@ -406,9 +436,9 @@
 				"title": "上海市女职工劳动保护办法 第十二条、第十八条: 妊娠7个月以上可申请产前假2个半月, 工资按80%发给."
 			}
 		],
-		"subtotal_id": "bc834b2d-f4b7-5383-a538-8fb0c23b4538",
-		"id": "a56190c0-6f2e-5c43-ac93-743c181f9453",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "7c5f36f1-3972-584b-8d71-783dcaa4010d",
+		"id": "6bf3a4c1-3f8b-5024-b04e-f5f152a94a4b",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "NURSING_LEAVE",
@@ -441,13 +471,13 @@
 				"title": "上海市女职工劳动保护办法 第十六条、第十八条: 哺乳假6个半月, 工资按80%发给."
 			}
 		],
-		"subtotal_id": "bc834b2d-f4b7-5383-a538-8fb0c23b4538",
-		"id": "56a34b3c-dfa2-5372-8c8c-fa230c660719",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "7c5f36f1-3972-584b-8d71-783dcaa4010d",
+		"id": "44eccc1c-3831-5487-8446-4abae6a19417",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
-		"description": "At full pay, a calendar month (MENSTRUAL_LEAVE_CONDITIONS). Shanghai: 1 day of 公假 for a woman in the work the 办法 lists (`protected_work`), unless the employer moves her to other work for the period. Kunming: 1–2 days for diagnosed severe dysmenorrhoea (`severe_dysmenorrhea_diagnosed`); the Yunnan rule does not state the pay — seeded at full pay, unverified.",
+		"description": "At full pay, a calendar month (MENSTRUAL_LEAVE_CONDITIONS). Shanghai: 1 day of 公假 for a woman in the work the 办法 lists (`protected_work`), unless the employer moves her to other work for the period. Kunming: 1 day, the lower bound of the rule's 1–2, for diagnosed severe dysmenorrhoea (`severe_dysmenorrhea_diagnosed`); the Yunnan rule does not state the pay — seeded at full pay, unverified.",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -456,7 +486,7 @@
 				},
 				{
 					"region": "KM",
-					"days": 2
+					"days": 1
 				}
 			],
 			"requires_by_region": [
@@ -476,8 +506,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "f5a62d92-8a77-5ca1-b557-220a18c95590",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "1af81723-b7b1-5801-82ef-2e794d888906",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "FAMILY_PLANNING_LEAVE",
@@ -586,9 +616,9 @@
 				"title": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号) 第十九条; 昆明市医保局生育保险政策: 按手术类型给假, 上海按正常出勤工资, 昆明由生育津贴支付."
 			}
 		],
-		"subtotal_id": "bc834b2d-f4b7-5383-a538-8fb0c23b4538",
-		"id": "a3b47927-3553-5789-9f6d-17303ac6b0e7",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "7c5f36f1-3972-584b-8d71-783dcaa4010d",
+		"id": "d1e7fee4-8a76-5dd6-8782-add98cf0c17c",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "ELDER_CARE_LEAVE",
@@ -614,8 +644,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "b3388bdb-bbeb-5369-8710-62198c75041f",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "41c6c3af-b711-5cda-8301-c88f333c5546",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HOME_LEAVE_SPOUSE",
@@ -640,8 +670,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "cfc8d0fa-74bf-5f48-9092-5cde1e8e2a14",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "ef557962-3e48-5bc6-87e1-6d154372dd72",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HOME_LEAVE_PARENTS",
@@ -667,8 +697,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "072cfc9c-9d46-5b1b-ae0a-849cb331db2c",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "22347ef5-87f8-5357-9c4a-cad6fa56a282",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HOME_LEAVE_PARENTS_BIENNIAL",
@@ -689,8 +719,8 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "6cf65c81-8380-54fd-915a-51506803c5c2",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "2ab1403f-a99d-55e7-b9f9-c5762776f7e9",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HOME_LEAVE_PARENTS_MARRIED",
@@ -711,7 +741,7 @@
 			}
 		],
 		"subtotal_id": null,
-		"id": "88203f84-82ce-5a1e-9748-44c49128dfcf",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "8e37045b-dbdc-53f3-bc05-d15cb62a5447",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	}
 ]

@@ -180,7 +180,7 @@
 		"id": "cff54aa7-cedc-5acf-99b3-6b288a123db7",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"balance_window": "MONTH",
-		"description": "Employees Provident Fund contribution for a permanent resident."
+		"description": "Employees Provident Fund contribution for a permanent resident, or a non-citizen who elected before 1 August 1998, aged 60 to 74: employee 5.5%; employer 6.5% on wages up to RM5,000 and 6% above (EPF Act 1991 Third Schedule Part C)."
 	},
 	{
 		"code": "EPF_NON_CITIZEN",
@@ -410,7 +410,8 @@
 		"id": "61807f8d-94d7-51c9-963f-c78ec8374d43",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"balance_window": "MONTH",
-		"description": "Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5% from the employee and 1.75% from the employer. From age 60, when first insured at 55 or older, or on an invalidity pension, the employer alone pays about 1.25% for employment injury (Employees' Social Security Act 1969)."
+		"description": "Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5% from the employee and 1.75% from the employer. From age 60, when first insured at 55 or older, or on an invalidity pension, the employer alone pays about 1.25% for employment injury (Employees' Social Security Act 1969).",
+		"assessed": "PAID"
 	},
 	{
 		"code": "EIS",
@@ -503,7 +504,8 @@
 		"id": "38dd4a38-f447-5b15-8501-415e2ea0e3f6",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"balance_window": "MONTH",
-		"description": "Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution table: about 0.2% each from the employee and the employer. For citizens and permanent residents aged 18 to 59 (Employment Insurance System Act 2017)."
+		"description": "Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution table: about 0.2% each from the employee and the employer. For citizens and permanent residents aged 18 to 59 (Employment Insurance System Act 2017).",
+		"assessed": "PAID"
 	},
 	{
 		"code": "PCB",
@@ -578,7 +580,7 @@
 				"quote": "Updated 1 January 2025; archived. The MTD formula and approved-profile formulas D(1)-(5) are unchanged between the 2025 and 2026 specifications; the YA2025 list of deductions a-p carries the same caps as 2026 except diagnosis/early intervention for a child with learning disabilities, limited to RM6,000 (raised to RM10,000 from YA2026). Tourist attractions (RM1,000) and food waste grinder/CCTV are YA2026 reliefs, not available in YA2025. Applied to assessment year 2025 (December 2025 pay)."
 			},
 			{
-				"title": "2026-10-31 calculation correction: actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract.",
+				"title": "LHDN, Specification for MTD 2026 — claims and accumulated amounts: actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract.",
 				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
 			},
 			{
@@ -596,7 +598,7 @@
 				"quote": "MTD = [(P - M) R + B - (Z + X)] / (n + 1), where P = [sum(Y - K) + (Y1 - K1) + (Y2 - K2) n + (Yt - Kt)] - [D + S + DU + SU + QC + (sum LP + LP1)]. The additional-remuneration method computes the same P with the current month's (Yt - Kt) and withholds the difference between the total tax for the year and X + the normal MTD for the month x (n + 1). Rounding: cut to sen, then up to the next 5 sen; below RM10 no deduction."
 			},
 			{
-				"title": "Encoded 2026-11-04: actual year-to-date and a bonus paid once",
+				"title": "actual year-to-date and a bonus paid once",
 				"quote": "sum(Y - K) and X come from this employee's ctx.balances for the tax year: ytd.FINAL_PAY less the year's exempt pay, and statutory_contribution for the EPF, SOCSO, EIS, SKBBK and PCB employee shares, never from a contract rate or a whole-year multiplication of the current month. Y1 is ORDINARY_WAGES less exempt pay, arrears, commission not paid monthly and awards, plus official travel above its limit. Yt is the bonus, arrears, commission not paid monthly, taxable awards and compensation, and final settlements, so one-off pay enters P once; Y2 repeats only Y1. K1 is the declared pcb_epf_normal_month when supplied, otherwise the employee EPF apportioned by EPF wages. In a bonus-only run Y1 is zero, so Y2 is zero and the next normal run catches up through X. Payroll zakat is the ZAKAT checkpoint: the month's nets off Step 1[D], earlier months' are in Z (E(5))."
 			}
 		],
@@ -684,6 +686,13 @@
 		"code": "HRDF",
 		"references": [
 			{
+				"title": "Prime Minister's announcement of the one-year HRD levy exemption for private education institutions",
+				"url": "https://fmtv5.freemalaysiatoday.com/category/nation/2025/06/14/private-educational-institutions-to-get-1-year-training-levy-waiver-from-2026",
+				"locator": "Free Malaysia Today, 14 June 2025; read 2026-11-13",
+				"quote": "Private educational institutions to get 1-year training levy waiver from 2026",
+				"effective_from": "2026-01-01"
+			},
+			{
 				"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 				"locator": "ss.1, 2, 13-16; s.14 and First Schedule",
 				"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages."
@@ -741,6 +750,6 @@
 		"id": "a83dba03-4b25-5b38-8b91-53d55b9f5d7f",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"balance_window": "YEAR",
-		"description": "Human Resources Development Fund levy."
+		"description": "Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no bonus, commission or overtime): 1% for a compulsory employer, 0.5% for an optional one (Pembangunan Sumber Manusia Berhad Act 2001 s.14). January to December 2026 wages are exempt for registered education employers with a scheduled MSIC code (HRD Corp Employers' Circular 01/2026)."
 	}
 ]

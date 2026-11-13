@@ -1024,7 +1024,8 @@
 			"proration": "DAY_RATE",
 			"rounding": {
 				"mode": "HALF_UP",
-				"scale": 2
+				"scale": 2,
+				"day_rate": "AMOUNT"
 			}
 		},
 		"ledger": {

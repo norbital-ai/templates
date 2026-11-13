@@ -1,6 +1,7 @@
 // The salary listing is laid out as payroll teams keep theirs: a sheet per run, the company and the month above a group
-// row and upper-case headers, who the person is, then pay to GROSS, deductions and the employee's statutory portion to
-// NET, the employer's portion and the cost to the company, every figure the payslip's own.
+// row and upper-case headers, who the person is, then the subtotal chain band by band (each band's lines, closed by its
+// subtotal; the tax withheld beside the tax), GROSS and NET, the employer's portion and the cost to the company, every
+// figure the payslip's own.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
@@ -12,7 +13,7 @@ import {
 	workbookOf
 } from '../src/lib/export_format_configuration/salary_listing_export.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { ENTITY, pack, workspace } from './kit.ts';
+import { ENTITY, pack, storedQuery, storedReader, workspace } from './kit.ts';
 
 const terms = {
 	rate: { amount: 8000, unit: 'MONTHLY' },
@@ -27,19 +28,22 @@ const terms = {
 	job_title: 'Engineer',
 	department: 'Operations'
 };
-const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-10-15');
+const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-02-15');
 
 describe('the salary listing', () => {
 	it.live('lays a run out as the listing, every figure its payslip’s', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-10', kind: 'ON_CYCLE' }]);
-			const { payroll_run, payslip } = yield* t.storedQuery({
-				payroll_run: { fields: ['period', 'kind', 'entity_id', 'settings_id'], limit: 10 },
-				'payroll_run.entity_id': { fields: ['name'] },
-				'payroll_run.settings_id': { fields: ['currency'] },
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+			});
+			const { payroll_run, payslip } = yield* storedQuery(t, {
+				payroll_run: {
+					fields: ['period', 'kind', 'entity_id', 'settings_id'],
+					limit: 10,
+					entity_id: { fields: ['name'] },
+					settings_id: { fields: ['currency'] }
+				},
 				payslip: {
 					fields: [
 						'payroll_run_id',
@@ -49,21 +53,21 @@ describe('the salary listing', () => {
 						'net_pay',
 						'breakdown'
 					],
-					limit: 100
-				},
-				'payslip.employment_id': {
-					fields: [
-						'employee_number',
-						'employee_id',
-						'terms',
-						'payroll',
-						'service_started_on',
-						'effective_range'
-					]
-				},
-				'payslip.employment_id.employee_id': { fields: ['name'] }
+					limit: 100,
+					employment_id: {
+						fields: [
+							'employee_number',
+							'employee_id',
+							'terms',
+							'payroll',
+							'service_started_on',
+							'effective_range'
+						],
+						employee_id: { fields: ['name'] }
+					}
+				}
 			});
-			const { employee_contract } = yield* t.storedQuery({
+			const { employee_contract } = yield* storedQuery(t, {
 				employee_contract: { fields: ['employee_id', 'effective_range'], limit: 100 }
 			});
 			const sheets = sheetsOf({
@@ -73,13 +77,13 @@ describe('the salary listing', () => {
 			});
 			const [slip] = payslip.rows;
 			assert.ok(slip !== undefined);
-			const ws = workbookOf(sheets).getWorksheet('OCT 2026');
+			const ws = workbookOf(sheets).getWorksheet('FEB 2026');
 			assert.ok(ws !== undefined);
 			assert.equal(
 				ws.getCell(1, 1).value,
 				String(payroll_run.rows[0]?.entity_id?.name).toUpperCase()
 			);
-			assert.match(String(ws.getCell(2, 1).value), /^STAFF SALARY LISTING - OCT 2026 \(MYR\)$/);
+			assert.match(String(ws.getCell(2, 1).value), /^STAFF SALARY LISTING - FEB 2026 \(MYR\)$/);
 
 			const headers: string[] = [];
 			ws.getRow(4).eachCell({ includeEmpty: true }, (cell) =>
@@ -95,44 +99,69 @@ describe('the salary listing', () => {
 				'LAST DAY'
 			]);
 			const at = (header: string) => headers.indexOf(header) + 1;
-			const portion = (group: string) =>
-				headers.filter((_, index) => ws.getCell(3, index + 1).value === group);
-			// the largest scheme first and the tax last, as the listings read
-			const employee = portion('EMPLOYEE PORTION');
+			const groupOf = (column: number) => String(ws.getCell(3, column).value ?? '');
+			const row = ws.getRow(5);
+			const cell = (column: number) => Number(row.getCell(column).value);
+			const breakdown = Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown);
+			const taxed = breakdown.statutory.some(
+				(scheme) => scheme.kind === 'TAX' && scheme.employee !== 0
+			);
+			// each band of the subtotal chain is grouped under its name and closes with the payslip's own checkpoint
+			for (const point of breakdown.checkpoints) {
+				const close = headers.findIndex(
+					(header, index) => header === point.name.toUpperCase() && groupOf(index + 1) === header
+				);
+				if (close >= 0) assert.equal(cell(close + 1), point.value, point.name);
+			}
+			// the employee's statutory shares read as deductions, the largest scheme first, in the band they are taken in;
+			// the tax withheld closes the band that holds the tax
+			const employee = headers.filter(
+				(header, index) =>
+					['EPF', 'SOCSO', 'EIS', 'PCB'].includes(header) &&
+					groupOf(index + 1) !== "EMPLOYER'S PORTION"
+			);
 			assert.equal(employee[0], 'EPF');
 			assert.ok(employee.includes('SOCSO') && employee.includes('EIS'));
-			if (employee.includes('PCB')) assert.equal(employee.at(-1), 'PCB');
-			assert.ok(portion('EMPLOYER PORTION').includes('EPF'));
+			assert.ok(cell(at('EPF')) < 0);
+			assert.ok(taxed, 'the fixture pays tax');
+			assert.ok(at('PCB') > 0 && at('PCB') < at('TAX WITHHELD'));
+			assert.equal(groupOf(at('TAX WITHHELD')), groupOf(at('PCB')));
+			const employer = headers
+				.map((header, index) => [header, index + 1] as const)
+				.filter(([, column]) => groupOf(column) === "EMPLOYER'S PORTION");
+			assert.ok(employer.some(([header]) => header === 'EPF'));
 			assert.ok(at('GROSS PAY') < at('EPF') && at('EPF') < at('NET PAY'));
-			assert.ok(at('NET PAY') < at('COST TO COMPANY'));
+			const [first] = employer;
+			const last = employer.at(-1);
+			assert.ok(first !== undefined && last !== undefined);
+			assert.ok(at('NET PAY') < first[1] && last[1] < at('COST TO COMPANY'));
 
-			const row = ws.getRow(5);
 			assert.equal(row.getCell(1).value, 'Engineer');
 			assert.equal(row.getCell(2).value, 'Operations');
-			assert.equal(row.getCell(at('GROSS PAY')).value, slip.gross_earnings?.toNumber());
-			assert.equal(row.getCell(at('NET PAY')).value, slip.net_pay?.toNumber());
-			const sum = (group: string) =>
-				headers.reduce(
-					(total, _, index) =>
-						ws.getCell(3, index + 1).value === group
-							? total + Number(row.getCell(index + 1).value)
-							: total,
-					0
-				);
+			assert.equal(cell(at('GROSS PAY')), slip.gross_earnings?.to_number());
+			assert.equal(cell(at('NET PAY')), slip.net_pay?.to_number());
+			const contributions = headers.reduce(
+				(total, header, index) =>
+					['EPF', 'SOCSO', 'EIS'].includes(header) && groupOf(index + 1) !== "EMPLOYER'S PORTION"
+						? total - cell(index + 1)
+						: total,
+				0
+			);
 			assert.equal(
-				Number(row.getCell(at('COST TO COMPANY')).value).toFixed(2),
+				cell(at('COST TO COMPANY')).toFixed(2),
 				(
-					Number(slip.net_pay?.toNumber()) +
-					sum('EMPLOYEE PORTION') +
-					sum('EMPLOYER PORTION')
+					Number(slip.net_pay?.to_number()) +
+					contributions +
+					cell(at('TAX WITHHELD')) +
+					employer.reduce((total, [, column]) => total + cell(column), 0)
 				).toFixed(2)
 			);
 			assert.equal(ws.getRow(6).getCell(4).value, 'TOTAL');
 			assert.deepEqual(ws.getRow(6).getCell(at('NET PAY')).value, {
 				formula: `SUM(${ws.getColumn(at('NET PAY')).letter}5:${ws.getColumn(at('NET PAY')).letter}5)`,
-				result: slip.net_pay?.toNumber()
+				result: slip.net_pay?.to_number()
 			});
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-05T02:00:00.000Z' })))
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })))
 	);
 });
 
@@ -152,10 +181,10 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* t
-					.as(t.admin)
-					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-10', kind: 'ON_CYCLE' }]);
-				const { payroll_run, payslip } = yield* t.storedQuery({
+				yield* (yield* t.as(t.admin)).act({
+					'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+				});
+				const { payroll_run, payslip } = yield* storedQuery(t, {
 					payroll_run: { limit: 10 },
 					payslip: { limit: 10 }
 				});
@@ -163,12 +192,12 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 				const [slip, ...more] = payslip.rows;
 				assert.ok(run !== undefined && slip !== undefined);
 				assert.deepEqual(more, []);
-				const net = Number(slip.net_pay?.toNumber());
+				const net = Number(slip.net_pay?.to_number());
 				const allowances = Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown)
 					.lines.filter((line) => line.source === 'allowance_catalog')
 					.reduce((total, line) => total + line.amount, 0);
 				assert.ok(net > 0 && allowances > 0);
-				const rows = yield* exportRows(t.storedQuery, run.id);
+				const rows = yield* exportRows(storedReader(t), run.id);
 				assert.equal(rows.length, 1);
 				const [row] = rows;
 				assert.ok(row !== undefined);
@@ -177,7 +206,7 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 					['W1', '001', '1', 'Worker']
 				);
 				assert.equal(row.net_pay, net);
-				assert.equal(row.gross_earnings, slip.gross_earnings?.toNumber());
+				assert.equal(row.gross_earnings, slip.gross_earnings?.to_number());
 				assert.equal(row.allowances, allowances);
 				// the amount is whole cents, zero-filled, once in each file's one line
 				const cents = String(Math.round(net * 100));
@@ -197,6 +226,6 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 					() => metroBank.records([{ ...row, bank_code: '12345' }]),
 					/Export value '12345' exceeds its 4-character field/
 				);
-			}).pipe(Effect.provide(workspace({ seed: paid, now: '2026-11-05T02:00:00.000Z' })))
+			}).pipe(Effect.provide(workspace({ seed: paid, now: '2026-03-05T02:00:00.000Z' })))
 	);
 });

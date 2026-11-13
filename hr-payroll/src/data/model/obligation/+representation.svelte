@@ -1,16 +1,18 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Form, RecordShell, type RecordView } from '@norbital-ai/ui';
-	let { view }: { view: RecordView<'obligation'> } = $props();
+	let { view, ctx }: { view: RecordView<'obligation'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 </script>
 
 <RecordShell
+	{ctx}
 	of="obligation"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	<Form
+		{ctx}
 		of="obligation"
 		mode={view.mode === 'create' ? 'create' : 'update'}
 		{...record === null

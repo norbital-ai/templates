@@ -4,7 +4,7 @@
 		"name": "Malaysia — 8 July 2026",
 		"effective_range": {
 			"from": "2026-07-08",
-			"to": null
+			"to": "2026-12-31"
 		},
 		"currency": "MYR",
 		"timezone": "Asia/Kuala_Lumpur",
@@ -519,7 +519,8 @@
 			"rounding": {
 				"mode": "HALF_UP",
 				"scale": 2
-			}
+			},
+			"back_pay": "BPAYBS"
 		},
 		"ledger": {
 			"ytd_scope": "JURISDICTION"

@@ -1,7 +1,7 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../../../../../.norbital/models/adhoc_catalog_entry.ts';
+import { amendmentsFor } from '../../../../../../../lib/amendments.js';
 import {
-	assertAdjustmentsClosed,
-	assertReversals,
 	entriesUndone,
 	entryPostings,
 	entryRead
@@ -9,15 +9,34 @@ import {
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
-export default model('adhoc_catalog_entry', {
+/** The days an entry prices: a paid period holding one is worked out again by the next run. */
+const touched = (
+	rows: readonly {
+		readonly employment_id: string;
+		readonly incurred_on: string;
+		readonly payroll_run_id?: string | null | undefined;
+	}[]
+) =>
+	rows.map((row) => ({
+		employment: String(row.employment_id),
+		from: String(row.incurred_on),
+		run: row.payroll_run_id ?? null
+	}));
+
+export default model({
 	description: 'One ad-hoc payment or deduction for an employment.',
 	record_label: "record.employment_id.employee_number + ' · ' + string(record.quantity)",
-	label: 'description',
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'adhoc_catalog_entry' },
-		catalog_id: { kind: 'ref', to: 'adhoc_catalog', onDelete: 'restrict' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
+		catalog_id: { kind: 'ref', to: 'adhoc_catalog', on_delete: 'restrict' },
+		payroll_run_id: {
+			kind: 'ref',
+			to: 'payroll_run',
+			inverse: 'adhoc',
+			optional: true,
+			on_delete: 'set_null'
+		},
 		description: { kind: 'text' },
 		quantity: { kind: 'decimal', scale: 12, min: 0 },
 		unit: {
@@ -31,21 +50,19 @@ export default model('adhoc_catalog_entry', {
 			accept: ['application/pdf', 'image/*'],
 			max: '20MiB',
 			optional: true
-		},
-		reverses: { kind: 'ref', to: 'adhoc_catalog_entry', optional: true, onDelete: 'restrict' }
+		}
 	},
-	locked: { payroll_run_id: { isNull: false } },
-	read: {
-		adhoc_catalog_entry: { fields: 'all' },
-		'adhoc_catalog_entry.employment_id': { fields: 'all' },
-		'adhoc_catalog_entry.employment_id.employee_id': { fields: ['name'] },
-		'adhoc_catalog_entry.catalog_id': { fields: 'all' },
-		'adhoc_catalog_entry.payroll_run_id': { fields: 'all' }
+	outputs: {
+		default: {
+			fields: 'all',
+			employment_id: { fields: 'all', employee_id: { fields: ['name'] } },
+			catalog_id: { fields: 'all' },
+			payroll_run_id: { fields: 'all' }
+		}
 	},
-	unique: [{ fields: ['reverses'] }],
 	create: {
 		columns: {
-			adhoc_catalog_entry: [
+			fields: [
 				'entity_id',
 				'employment_id',
 				'catalog_id',
@@ -53,37 +70,39 @@ export default model('adhoc_catalog_entry', {
 				'quantity',
 				'unit',
 				'incurred_on',
-				'evidence_file',
-				'reverses'
+				'evidence_file'
 			]
 		},
-		transform: function* (input, ctx) {
-			const rows = input;
+		transform: function* (changes, ctx) {
+			const rows = changes.map((c) => c.after);
 			const entries = rows.map((row) => jsonObject(row));
 			// the approving decision asks again only for what the entry posts: what it checked stands
 			const known = yield* entryRead(
-				ctx.db.query,
+				ctx.query,
 				'adhoc_catalog_entry',
 				entries,
 				ctx.approving ? undefined : 'create'
 			);
-			if (!ctx.approving) {
-				yield* assertReversals(known, 'adhoc_catalog_entry', entries);
-				yield* assertAdjustmentsClosed(known, entries);
-			}
-			return { rows, onApproved: yield* entryPostings(known, 'adhoc_catalog_entry', entries) };
+			return {
+				sets: changes.map((c) => c.set),
+				on_approved: {
+					...(yield* entryPostings(known, 'adhoc_catalog_entry', entries)),
+					...(yield* amendmentsFor(ctx.query, touched(rows)))
+				}
+			};
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(
+				ctx,
+				'create',
+				'adhoc_catalog_entry',
+				changes.map(({ after }) => ({ after }))
+			);
 		}
 	},
 	update: {
 		columns: {
-			adhoc_catalog_entry: [
-				'payroll_run_id',
-				'description',
-				'quantity',
-				'unit',
-				'incurred_on',
-				'evidence_file'
-			]
+			fields: ['payroll_run_id', 'description', 'quantity', 'unit', 'incurred_on', 'evidence_file']
 		},
 		transform: function* (changes, ctx) {
 			if (
@@ -93,51 +112,53 @@ export default model('adhoc_catalog_entry', {
 				)
 			)
 				return changes.map((change) => change.set);
-			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
+			const proposed = changes.map((change) => jsonObject(change.after));
 			const known = yield* entryRead(
-				ctx.db.query,
+				ctx.query,
 				'adhoc_catalog_entry',
 				proposed,
 				ctx.approving ? undefined : 'update'
 			);
-			if (!ctx.approving && changes.some((c) => c.before.payroll_run_id != null))
-				return yield* ctx.refuse(
-					'This record is locked by a payroll run. Create a reversal entry for it instead.'
-				);
 			return {
-				rows: changes.map((c) => c.set),
-				onApproved: yield* entryPostings(known, 'adhoc_catalog_entry', proposed)
+				// a date that moves leaves the run that priced it: the period it joins prices it, and seals it
+				sets: changes.map((c) =>
+					c.before.payroll_run_id != null && c.changed('incurred_on')
+						? { ...c.set, payroll_run_id: null }
+						: c.set
+				),
+				on_approved: {
+					...(yield* entryPostings(known, 'adhoc_catalog_entry', proposed)),
+					// a date that moves touches the period it left and the period it joined
+					...(yield* amendmentsFor(ctx.query, [
+						...touched(changes.map((c) => c.before)),
+						...touched(changes.map((c) => c.after))
+					]))
+				}
 			};
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(ctx, 'update', 'adhoc_catalog_entry', changes);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
-			const entries = rows.map((row) => jsonObject(row));
+		transform: function* (changes, ctx) {
+			const entries = changes.map((change) => jsonObject(change.before));
 			const known = yield* entryRead(
-				ctx.db.query,
+				ctx.query,
 				'adhoc_catalog_entry',
 				entries,
 				ctx.approving ? undefined : 'delete'
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
-			if (!ctx.approving && rows.some((r) => r.payroll_run_id != null))
-				return yield* ctx.refuse(
-					'This record is locked by a payroll run. Create a reversal entry for it instead.'
-				);
-			return { onApproved: entriesUndone(known, 'adhoc_catalog_entry', entries) };
-		}
-	},
-
-	effect: {
-		created: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				'adhoc_catalog_entry',
-				rows.map((after) => ({ after }))
-			);
-		},
-		updated: function* (changes, ctx) {
-			yield* tap(ctx, 'update', 'adhoc_catalog_entry', changes);
+			return {
+				on_approved: {
+					...entriesUndone(known, 'adhoc_catalog_entry', entries),
+					...(yield* amendmentsFor(ctx.query, touched(changes.map((change) => change.before))))
+				}
+			};
 		}
 	}
 });

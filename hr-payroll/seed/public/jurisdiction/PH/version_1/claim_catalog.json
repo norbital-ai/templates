@@ -12,7 +12,7 @@
 		"conversion": "return ctx.entry.quantity;",
 		"id": "1416b9a3-3b36-5b2e-9141-8b6b571819d9",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"description": "Medical claim against the annual limit."
+		"description": "Reimburses a medical bill to the employee, at the amount entered. With other medical assistance it is tax-free up to ₱10,000 a year; anything above counts toward the ₱90,000 yearly limit (RR 2-98 s.2.78.1(A)(3)(f))."
 	},
 	{
 		"code": "DENTAL_CLAIM",

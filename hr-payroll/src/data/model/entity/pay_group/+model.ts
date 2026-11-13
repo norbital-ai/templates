@@ -1,17 +1,21 @@
 import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/pay_group.ts';
+import { paidUnder } from '../../../../lib/amendments.js';
+import { jsonObject, stableJson } from '../../../../lib/payroll_engine/foundation.js';
 
-export default model('pay_group', {
+/** What of a schedule decides a paid period's days: its pay day and its name may still change. */
+const paces = (schedule: unknown) => {
+	const { pay_days: _days, business_day: _business, ...pace } = jsonObject(schedule ?? {});
+	return stableJson(pace);
+};
+
+export default model({
 	description:
 		'One payroll of a company: the people paid together on one schedule. A company with staff paid monthly and staff paid twice a month has two. Every contract names its group, and a payroll run is for one group.',
 	icon: 'lucide:calendar-clock',
-	label: 'name',
-	search: { text: ['name'] },
+	record_label: 'record.name',
 	fields: {
-		name: {
-			kind: 'text',
-			help: 'What HR calls this payroll, such as Monthly staff or Semi-monthly.'
-		},
+		name: { kind: 'text' },
 		payment_schedule: {
 			kind: 'json',
 			default: {
@@ -28,71 +32,51 @@ export default model('pay_group', {
 				arms: {
 					MONTHLY: {
 						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
+						non_working_weekdays: { kind: 'int', min: 0, max: 6, many: true },
 						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						pay_days: {
-							kind: 'list',
-							min: 1,
-							of: { kind: 'int', min: 1, max: 31 },
-							help: 'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.'
-						},
+						pay_days: { kind: 'int', min: 1, max: 31, many: true, min_items: 1 },
 						pay_cutoff_day: { kind: 'int', min: 1, max: 28, default: 1 }
 					},
 					SEMI_MONTHLY: {
 						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
+						non_working_weekdays: { kind: 'int', min: 0, max: 6, many: true },
 						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						pay_days: {
-							kind: 'list',
-							min: 1,
-							of: { kind: 'int', min: 1, max: 31 },
-							help: 'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.'
-						},
+						pay_days: { kind: 'int', min: 1, max: 31, many: true, min_items: 1 },
 						pay_cutoff_day: { kind: 'int', min: 1, max: 28, default: 1 }
 					},
 					TEN_DAY: {
 						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
+						non_working_weekdays: { kind: 'int', min: 0, max: 6, many: true },
 						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						pay_days: {
-							kind: 'list',
-							min: 1,
-							of: { kind: 'int', min: 1, max: 31 },
-							help: 'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.'
-						},
+						pay_days: { kind: 'int', min: 1, max: 31, many: true, min_items: 1 },
 						pay_cutoff_day: { kind: 'int', min: 1, max: 28, default: 1 }
 					},
 					INTEGER_MONTHS: {
 						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
+						non_working_weekdays: { kind: 'int', min: 0, max: 6, many: true },
 						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
-						pay_days: {
-							kind: 'list',
-							min: 1,
-							of: { kind: 'int', min: 1, max: 31 },
-							help: 'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.'
-						},
+						pay_days: { kind: 'int', min: 1, max: 31, many: true, min_items: 1 },
 						pay_cutoff_day: { kind: 'int', min: 1, max: 28, default: 1 },
 						month_interval: { kind: 'int', min: 1, max: 12 },
 						anchor_date: { kind: 'date' }
 					},
 					WEEKLY: {
 						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
+						non_working_weekdays: { kind: 'int', min: 0, max: 6, many: true },
 						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
 						weekday: { kind: 'int', min: 0, max: 6 },
 						anchor_date: { kind: 'date' }
 					},
 					BIWEEKLY: {
 						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
+						non_working_weekdays: { kind: 'int', min: 0, max: 6, many: true },
 						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] },
 						weekday: { kind: 'int', min: 0, max: 6 },
 						anchor_date: { kind: 'date' }
 					},
 					DAILY: {
 						business_day: { kind: 'enum', values: ['NONE', 'PREVIOUS', 'NEXT'] },
-						non_working_weekdays: { kind: 'list', of: { kind: 'int', min: 0, max: 6 } },
+						non_working_weekdays: { kind: 'int', min: 0, max: 6, many: true },
 						short_month: { kind: 'enum', values: ['LAST_DAY', 'REFUSE'] }
 					}
 				}
@@ -100,21 +84,38 @@ export default model('pay_group', {
 		},
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'pay_groups' }
 	},
-	unique: [{ fields: ['entity_id', 'name'] }],
-	read: 'all',
-	create: { columns: { pay_group: ['name', 'payment_schedule', 'entity_id'] } },
-	// a group stays with its company: its contracts and runs are that company's
-	update: { columns: { pay_group: ['name', 'payment_schedule'] } },
-	effect: {
-		created: function* (rows, ctx) {
+	constraints: { entity_name: { unique: ['entity_id', 'name'] } },
+	indexes: { search: { text: ['name'] } },
+	outputs: { default: { fields: 'all' } },
+	create: {
+		columns: { fields: ['name', 'payment_schedule', 'entity_id'] },
+		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
 				'create',
 				'pay_group',
-				rows.map((after) => ({ after }))
+				changes.map(({ after }) => ({ after }))
 			);
+		}
+	},
+	// a group stays with its company: its contracts and runs are that company's
+	update: {
+		columns: { fields: ['name', 'payment_schedule'] },
+		transform: function* (changes, ctx) {
+			// every schedule is a group: one that has paid keeps its schedule, so its periods can be worked out again
+			const moved = changes.filter(
+				({ before, after }) => paces(after.payment_schedule) !== paces(before.payment_schedule)
+			);
+			if (
+				moved.length > 0 &&
+				(yield* paidUnder(ctx.query, {
+					pay_group_id: { in: moved.map(({ before }) => before.id) }
+				}))
+			)
+				return yield* ctx.refuse('errors.pay_group_paid_schedule', { field: 'payment_schedule' });
+			return changes.map((change) => change.set);
 		},
-		updated: function* (changes, ctx) {
+		effect: function* (changes, ctx) {
 			yield* tap(ctx, 'update', 'pay_group', changes);
 		}
 	}

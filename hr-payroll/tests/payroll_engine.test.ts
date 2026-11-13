@@ -293,11 +293,6 @@ describe('linear payroll engine', () => {
 			for (const paid_share of ['1.5', 'return -0.5;'])
 				assert.throws(() => priced({ paid_share }), /from 0 to 1 of a normal day/);
 		});
-		it('a reversal gives back the original month’s unpaid part on its refund line', () => {
-			const result = priced({ paid_share: '0.5' }, { reverses: 'earlier' });
-			assert.deepEqual(leaveLines(result), [['ADD', 227.27]]);
-			assert.equal(base(result), 5227.27);
-		});
 		it('an encashment takes no day off and pays its payout', () => {
 			const result = priced(
 				{ paid_share: '0', payout: 'return ctx.entry.quantity * 100;' },
@@ -395,8 +390,8 @@ describe('linear payroll engine', () => {
 		assert.equal(result.subtotals.find((row) => row.code === 'BASE')?.value, 2727.27);
 	});
 
-	it('a correction entry reaches the run’s schemes by the account it corrects, and its reversal flips it', () => {
-		const corrected = (reverses: string | null) =>
+	it('an ad hoc entry’s statutory posting reaches the run’s schemes by its account, and a quantity below zero flips it', () => {
+		const posting = (quantity: number) =>
 			calculatePayroll({
 				...input(),
 				statutory: [
@@ -404,7 +399,7 @@ describe('linear payroll engine', () => {
 						subtotal_id: 'cpf',
 						employer_cost_subtotal_id: 'cpf',
 						eligibility: 'return true;',
-						employee_amount: "return 1000 - get(ctx.corrections, 'FUND.employee', 0);",
+						employee_amount: "return 1000 - get(ctx.posted, 'FUND.employee', 0);",
 						employer_amount: 'return 0;'
 					})
 				],
@@ -424,38 +419,39 @@ describe('linear payroll engine', () => {
 				],
 				entries: {
 					adhoc_catalog_entry: [
-						{ id: 'entry', catalog_id: 'fund-adjustment', quantity: 100, unit: 'MONEY', reverses }
+						{ id: 'entry', catalog_id: 'fund-adjustment', quantity, unit: 'MONEY' }
 					]
 				}
-			}).statutory.find((row) => row.code === 'TAX')?.employee;
-		assert.equal(corrected(null), 900);
-		assert.equal(corrected('earlier'), 1100);
+			});
+		const tax = (quantity: number) =>
+			posting(quantity).statutory.find((row) => row.code === 'TAX')?.employee;
+		const line = (quantity: number) =>
+			posting(quantity)
+				.lines.filter((row) => row.code === 'FUND_ADJUSTMENT')
+				.map((row) => [row.direction, row.amount]);
+		assert.equal(tax(100), 900);
+		assert.deepEqual(line(100), [['DEDUCT', 100]]);
+		assert.equal(tax(-100), 1100);
+		assert.deepEqual(line(-100), [['ADD', 100]]);
 	});
 
-	it('pays a claim to the employee, and its reversal flips the line', () => {
-		const claimed = (reverses: string | null) =>
-			calculatePayroll({
-				...input(),
-				statutory: [],
-				claim_catalog: [
-					catalog('medical', 'MEDICAL', {
-						subtotal_id: 'net',
-						conversion: 'return ctx.entry.quantity;'
-					})
-				],
-				entries: {
-					claim_catalog_entry: [
-						{ id: 'claim', catalog_id: 'medical', quantity: 80, unit: 'MONEY', reverses }
-					]
-				}
-			}).lines.filter((row) => row.code === 'MEDICAL');
+	it('pays a claim to the employee', () => {
+		const claimed = calculatePayroll({
+			...input(),
+			statutory: [],
+			claim_catalog: [
+				catalog('medical', 'MEDICAL', {
+					subtotal_id: 'net',
+					conversion: 'return ctx.entry.quantity;'
+				})
+			],
+			entries: {
+				claim_catalog_entry: [{ id: 'claim', catalog_id: 'medical', quantity: 80, unit: 'MONEY' }]
+			}
+		}).lines.filter((row) => row.code === 'MEDICAL');
 		assert.deepEqual(
-			claimed(null).map((row) => [row.direction, row.party, row.amount]),
+			claimed.map((row) => [row.direction, row.party, row.amount]),
 			[['ADD', 'EMPLOYEE', 80]]
-		);
-		assert.deepEqual(
-			claimed('earlier').map((row) => [row.direction, row.amount]),
-			[['DEDUCT', 80]]
 		);
 	});
 
@@ -601,29 +597,6 @@ describe('linear payroll engine', () => {
 				['TAX', 2500]
 			]
 		);
-	});
-
-	it('reverses NPL instead of prorating the absence again', () => {
-		const value = input();
-		const entries = {
-			...value.entries,
-			leave_catalog_entry: [
-				{
-					id: 'npl-reversal',
-					catalog_id: 'npl',
-					reverses: 'original',
-					days: [
-						{ date: '2026-03-05', part: 'AM' },
-						{ date: '2026-03-05', part: 'PM' },
-						{ date: '2026-03-06', part: 'AM' },
-						{ date: '2026-03-06', part: 'PM' }
-					]
-				}
-			]
-		};
-		const result = calculatePayroll({ ...value, entries });
-		assert.equal(result.subtotals[0]?.value, 5000);
-		assert.equal(result.net_pay, 4000);
 	});
 
 	it('evaluates arbitrary configured JavaScript at each checkpoint', () => {

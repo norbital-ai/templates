@@ -1,13 +1,13 @@
-import { addDays, PlainDate } from '@norbital-ai/std/date';
+import { add_days, PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { CarriedWrites, EffectCtx, Id } from '@norbital-ai/bolt';
 import {
 	Refusal,
 	isJsonObject,
 	jsonObject,
+	type Json,
 	type JsonObject
 } from '../payroll_engine/foundation.js';
-import { dynamicRead } from '@norbital-ai/bolt/protocol';
 import {
 	idOf,
 	objectValue,
@@ -50,7 +50,6 @@ import {
 	type Operation
 } from '../payroll_engine/registrations.js';
 import { chainOf, startsOf, versionOn, type Starts } from '../payroll_engine/contract_change.js';
-import { sharesPay } from '../payroll_engine/engine.js';
 import { payPeriodOf } from '../payroll_engine/pay_cycle.js';
 import {
 	carriedOf,
@@ -156,18 +155,16 @@ export const carry = (
 		if (movements === undefined) continue;
 		carried.ledger_entry.create.push(...movements.map((move) => ledgerRow(String(row.id), move)));
 		carried.employee_balance.update.push({
-			target: idOf('employee_balance', String(row.id)),
-			set: { account: apply(accountsOf(row.account), movements) },
-			observed: Number(row.revision)
+			target: { id: idOf('employee_balance', String(row.id)), revision: Number(row.revision) },
+			set: { account: apply(accountsOf(row.account), movements) }
 		});
 	}
 	return carried;
 };
 type LedgerRow = NonNullable<NonNullable<CarriedWrites['ledger_entry']>['create']>[number];
 type BalanceMove = {
-	readonly target: Id<'employee_balance'>;
+	readonly target: { readonly id: Id<'employee_balance'>; readonly revision: number };
 	readonly set: { readonly account: Accounts };
-	readonly observed: number;
 };
 const ledgerRow = (balance: string, row: Movement): LedgerRow => ({
 	balance_id: idOf('employee_balance', balance),
@@ -208,16 +205,10 @@ export const settle = Effect.fn('ledger.settle')(function* (ctx: Ctx, plans: rea
 		);
 		const { ledger_entry, employee_balance } = carry(due, posted, stored);
 		if (ledger_entry.create.length === 0) continue;
-		yield* ctx.act.checked([
-			{ callable: 'ledger_entry.create', input: ledger_entry.create.map(jsonObject) },
-			{
-				callable: 'employee_balance.update',
-				input: employee_balance.update.map(({ target, set }) => ({ target, set })),
-				observed: Object.fromEntries(
-					employee_balance.update.map(({ target, observed }) => [target, observed])
-				)
-			}
-		]);
+		yield* ctx.act({
+			'ledger_entry.create': ledger_entry.create,
+			'employee_balance.update': employee_balance.update
+		});
 	}
 });
 
@@ -312,10 +303,10 @@ export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function*
 				'events',
 				'family'
 			],
-			limit: 10000
+			limit: 10000,
+			entity_id: { fields: ['settings_code'] },
+			employee_id: { fields: ['cumulative_service'] }
 		},
-		'employee_contract.entity_id': { fields: ['settings_code'] },
-		'employee_contract.employee_id': { fields: ['cumulative_service'] },
 		jurisdiction_settings: {
 			where: { status: { eq: 'SEALED' } },
 			fields: ['code', 'effective_range'],
@@ -381,9 +372,8 @@ export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function*
 			update: [...moves].map(([id, movements]): BalanceMove => {
 				const held = balance.get(id);
 				return {
-					target: idOf('employee_balance', id),
-					set: { account: apply(accountsOf(held?.account), movements) },
-					observed: Number(held?.revision)
+					target: { id: idOf('employee_balance', id), revision: Number(held?.revision) },
+					set: { account: apply(accountsOf(held?.account), movements) }
 				};
 			})
 		}
@@ -400,7 +390,6 @@ export type Subject = {
 	readonly started: string;
 	readonly events: readonly Event[];
 };
-const signOf = (entry: JsonObject) => (entry.reverses != null ? -1 : 1);
 
 /**
  * What a leave entry should have posted: half a day at a time, in the window each day falls in. A row that counts in
@@ -411,8 +400,7 @@ export const leaveWanted = (
 	row: LeaveRow,
 	rowOf: (code: string) => LeaveRow | undefined,
 	subject: Subject,
-	dayHours: number,
-	original?: JsonObject
+	dayHours: number
 ): readonly Wanted[] => {
 	const accounts = Array.isArray(row.lookup.accounts) ? row.lookup.accounts : [];
 	const target = accounts.find(isJsonObject);
@@ -432,7 +420,7 @@ export const leaveWanted = (
 				subject.started
 			),
 			measure: 'used',
-			amount: signOf(entry) * (hours ? dayHours / 2 : 0.5),
+			amount: hours ? dayHours / 2 : 0.5,
 			unit: hours ? 'HOUR' : 'DAY',
 			effective_on: date
 		};
@@ -441,17 +429,15 @@ export const leaveWanted = (
 
 /**
  * What a claim should have posted: its amount against the year it was incurred. A row with a limit pays what remains of
- * it, so `left` is what the window has without this claim, and the excess stays on the entry for HR to see. A reversal
- * gives back no more than its original drew.
+ * it, so `left` is what the window has without this claim, and the excess stays on the entry for HR to see.
  */
 export const claimWanted = (
 	entry: JsonObject,
 	row: LeaveRow,
 	subject: Subject,
-	original?: JsonObject,
 	left?: (period: string) => number
 ): readonly Wanted[] => {
-	const date = String((original ?? entry).incurred_on);
+	const date = String(entry.incurred_on);
 	const period = periodKey(subject.scope, windowOf(row.lookup), date, subject.started);
 	const quantity = Number(entry.quantity ?? 0);
 	const payable =
@@ -464,7 +450,7 @@ export const claimWanted = (
 			code: row.code,
 			period,
 			measure: 'used',
-			amount: signOf(entry) * payable,
+			amount: payable,
 			unit: 'MONEY',
 			effective_on: date
 		}
@@ -478,14 +464,13 @@ export const claimLeft = (accounts: Accounts, row: LeaveRow, period: string) =>
 		...accounts.claim?.[row.code]?.[period]
 	});
 
-/** An adhoc row posts only what it declares: a statutory adjustment moves the scheme it corrects. */
+/** An adhoc row posts only what it declares. */
 export const adhocWanted = (
 	entry: JsonObject,
 	row: LeaveRow,
-	subject: Subject & { readonly taxYearStart: number },
-	original?: JsonObject
+	subject: Subject & { readonly taxYearStart: number }
 ): readonly Wanted[] => {
-	const date = String((original ?? entry).incurred_on);
+	const date = String(entry.incurred_on);
 	const accounts = Array.isArray(row.lookup.accounts) ? row.lookup.accounts : [];
 	return accounts.filter(isJsonObject).map((target) => ({
 		account: String(target.account),
@@ -499,9 +484,35 @@ export const adhocWanted = (
 			subject.started
 		),
 		measure: measureOf(target.measure),
-		amount: signOf(entry) * (target.operation === 'DEDUCT' ? -1 : 1) * Number(entry.quantity ?? 0),
+		amount: (target.operation === 'DEDUCT' ? -1 : 1) * Number(entry.quantity ?? 0),
 		unit: 'MONEY',
 		effective_on: date
+	}));
+};
+
+/** What one payslip carried for one earlier pay period: where the difference posts, beside its tagged lines. */
+export interface Carried {
+	readonly run_id: string;
+	readonly period: string;
+	readonly postings: readonly Wanted[];
+}
+/** What a payslip carried for earlier periods, as its breakdown records it. */
+export const carriedFor = (breakdown: unknown): readonly Carried[] => {
+	const carried = isJsonObject(breakdown) ? breakdown.carried : undefined;
+	return (Array.isArray(carried) ? carried : []).filter(isJsonObject).map((entry) => ({
+		run_id: String(entry.run_id),
+		period: String(entry.period),
+		postings: (Array.isArray(entry.postings) ? entry.postings : [])
+			.filter(isJsonObject)
+			.map((row) => ({
+				account: String(row.account),
+				code: String(row.code),
+				period: periodOf(row.period),
+				measure: measureOf(row.measure),
+				amount: Number(row.amount ?? 0),
+				unit: unitOf(row.unit),
+				effective_on: String(row.effective_on)
+			}))
 	}));
 };
 
@@ -539,6 +550,16 @@ export const payslipWanted = (
 			measure: 'entitled',
 			amount: Number(row.hours),
 			unit: 'HOUR',
+			effective_on: String(row.on)
+		})),
+		// leave an exit settled on its last payslip leaves the balance as days used: paid out, or taken back
+		...rows('cash_out').map((row): Wanted => ({
+			account: 'leave',
+			code: String(row.code),
+			period: periodOf(row.period),
+			measure: 'used',
+			amount: Number(row.amount),
+			unit: row.unit === 'HOUR' ? 'HOUR' : 'DAY',
 			effective_on: String(row.on)
 		})),
 		...rows('checkpoints').flatMap((row) =>
@@ -642,7 +663,7 @@ export const entitlementPlans = (
 		const window = windowOf(lookup);
 		const from = windowStart(window, on, subject.started);
 		const period = periodKey(subject.scope, window, on, subject.started);
-		const before = String(addDays(from, -1));
+		const before = String(add_days(from, -1));
 		const last =
 			before < subject.started
 				? undefined
@@ -741,12 +762,7 @@ export type Known = {
 	/** Each stored entry's catalog code, whichever version of the law it was made under. */
 	readonly codes: ReadonlyMap<string, string>;
 	readonly posted: readonly JsonObject[];
-	readonly runs: readonly JsonObject[];
 	readonly captures: ReadonlyMap<string, readonly JsonObject[]>;
-	/** Entity payment schedules, for the closed-period check. */
-	/** Each pay group's schedule, and each contract's pay group. */
-	readonly schedule: ReadonlyMap<string, JsonObject>;
-	readonly payGroup: ReadonlyMap<string, string>;
 };
 const known = Effect.fn('ledger.known')(function* (
 	read: Reader,
@@ -762,7 +778,6 @@ const known = Effect.fn('ledger.known')(function* (
 			fields: [
 				'employee_id',
 				'entity_id',
-				'pay_group_id',
 				'status',
 				'effective_range',
 				'service_started_on',
@@ -771,10 +786,10 @@ const known = Effect.fn('ledger.known')(function* (
 				'family',
 				'employee_extension_data'
 			],
-			limit: 10000
+			limit: 10000,
+			entity_id: { fields: ['settings_code'] },
+			employee_id: { fields: ['cumulative_service'] }
 		},
-		'employee_contract.entity_id': { fields: ['settings_code'] },
-		'employee_contract.employee_id': { fields: ['cumulative_service'] },
 		[catalog]: {
 			where: { settings_id: { is: entered } },
 			fields: [
@@ -795,35 +810,20 @@ const known = Effect.fn('ledger.known')(function* (
 			fields: ['employee_id', 'account', 'revision'],
 			limit: 10000
 		},
-		[model]: { where: { employment_id: { is: people } }, limit: 10000 },
-		[`${model}.catalog_id`]: { fields: ['code'] },
+		[model]: {
+			where: { employment_id: { is: people } },
+			limit: 10000,
+			catalog_id: { fields: ['code'] }
+		},
 		ledger_entry: {
 			where: { balance_id: { is: people }, source: { like: `${model}:%` } },
 			fields: FIELDS,
 			limit: 10000
-		},
-		...(model === 'adhoc_catalog_entry' || model === LEAVE
-			? {
-					payroll_run: {
-						where: { entity_id: { in: uniqueIds(entries, 'entity_id') } },
-						fields: ['entity_id', 'pay_group_id', 'period', 'salary_coverage', 'kind'],
-						limit: 10000
-					}
-				}
-			: {}),
-		...(model === LEAVE
-			? {
-					pay_group: {
-						where: { entity_id: { in: uniqueIds(entries, 'entity_id') } },
-						fields: ['payment_schedule'],
-						limit: 1000
-					}
-				}
-			: {})
+		}
 	});
 	const familyRows = found[catalog] ?? [];
 	const stored = found[model] ?? [];
-	// every slot of the person's entries, so a stored reversal's freed days are known too
+	// every slot of the person's entries
 	const captures =
 		model === LEAVE && stored.length > 0
 			? ((yield* queryAllRows(read, {
@@ -846,19 +846,11 @@ const known = Effect.fn('ledger.known')(function* (
 		entries: stored.map((row) =>
 			jsonObject({
 				...row,
-				catalog_id: objectValue(row.catalog_id).id ?? row.catalog_id,
-				reverses: isJsonObject(row.reverses) ? (row.reverses.id ?? row.reverses) : row.reverses
+				catalog_id: objectValue(row.catalog_id).id ?? row.catalog_id
 			})
 		),
 		codes: new Map(stored.map((row) => [String(row.id), String(objectValue(row.catalog_id).code)])),
 		posted: found.ledger_entry ?? [],
-		runs: found.payroll_run ?? [],
-		schedule: new Map(
-			(found.pay_group ?? []).map((row) => [String(row.id), objectValue(row.payment_schedule)])
-		),
-		payGroup: new Map(
-			(found.employee_contract ?? []).map((row) => [String(row.id), String(row.pay_group_id)])
-		),
 		captures: Map.groupBy(captures, (row) => String(row.leave_entry_id))
 	} satisfies Known;
 });
@@ -888,7 +880,6 @@ const entryPlans = (
 	entries: readonly JsonObject[]
 ): readonly Plan[] => {
 	if (entries.length === 0) return [];
-	const original = new Map(known.entries.map((row) => [String(row.id), row]));
 	const postedBy = Map.groupBy(known.posted, (row) => String(row.source));
 	const drew = (source: string) =>
 		(postedBy.get(source) ?? [])
@@ -920,19 +911,15 @@ const entryPlans = (
 			const found = known.rows.get(String(catalog.settings_id))?.find((item) => item.code === code);
 			return found === undefined ? undefined : rowOfCatalog(found);
 		};
-		const first = original.get(String(entry.reverses));
 		// the child slots are the truth: a stored entry carries them in `captures`, a batch's own entry on `days`
 		const withSlots = (row: JsonObject) =>
 			family === 'leave'
 				? jsonObject({
 						...row,
-						// stored children and the row's own days can name the same slot: a slot counts once
+						// an entry of this batch states its slots (a slot taken off it is gone); a stored one's are its children
 						days: [
 							...new Map(
-								[
-									...(known.captures.get(String(row.id)) ?? []),
-									...(Array.isArray(row.days) ? row.days : [])
-								]
+								(Array.isArray(row.days) ? row.days : (known.captures.get(String(row.id)) ?? []))
 									.filter(isJsonObject)
 									.map((child) => {
 										const day = {
@@ -947,10 +934,6 @@ const entryPlans = (
 				: row;
 		const source = `${model}:${String(entry.id)}`;
 		const left = (period: string) => {
-			if (entry.reverses != null)
-				return first === undefined
-					? Number(entry.quantity ?? 0)
-					: Math.abs(drew(`${model}:${String(entry.reverses)}`));
 			// what this claim already drew stays available to it
 			const key = `${String(balance.id)}/${row.code}/${period}`;
 			return (
@@ -964,17 +947,14 @@ const entryPlans = (
 						row,
 						rowOf,
 						subject,
-						Number(objectValue(contract.terms).normal_hours_per_day ?? 0),
-						first
+						Number(objectValue(contract.terms).normal_hours_per_day ?? 0)
 					)
 				: family === 'claim'
-					? claimWanted(entry, row, subject, first, left)
-					: adhocWanted(
-							entry,
-							row,
-							{ ...subject, scope: totalsScope(settings ?? {}, entry.entity_id) },
-							first
-						);
+					? claimWanted(entry, row, subject, left)
+					: adhocWanted(entry, row, {
+							...subject,
+							scope: totalsScope(settings ?? {}, entry.entity_id)
+						});
 		if (family === 'claim')
 			for (const item of wanted) {
 				const key = `${String(balance.id)}/${row.code}/${item.period}`;
@@ -1153,14 +1133,18 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 			{
 				source: `payroll_run:${run}`,
 				balance_id,
-				wanted: payslipWanted(objectValue(slip.breakdown), String(payDate.get(run)), {
-					scope: totalsScope(own, slip.entity_id),
-					// a payslip posts to calendar windows, which no service start moves
-					started: String(payDate.get(run)),
-					events: [],
-					taxYearStart: Number(own.tax_year_start_month ?? 1),
-					byMonth
-				})
+				wanted: [
+					...payslipWanted(objectValue(slip.breakdown), String(payDate.get(run)), {
+						scope: totalsScope(own, slip.entity_id),
+						// a payslip posts to calendar windows, which no service start moves
+						started: String(payDate.get(run)),
+						events: [],
+						taxYearStart: Number(own.tax_year_start_month ?? 1),
+						byMonth
+					}),
+					// what it carries for earlier periods posts to those periods, as its breakdown records
+					...carriedFor(slip.breakdown).flatMap((entry) => entry.postings)
+				]
 			}
 		];
 	});
@@ -1172,7 +1156,7 @@ const sourceOf = (row: JsonObject) => `${LEAVE}:${String(row.id)}`;
 
 /**
  * The check before a leave entry commits: each window it draws on has the days, from what its batch read. The balance
- * does not show an entry held for approval, so a held one counts here. Reversals take nothing, and are not checked.
+ * does not show an entry held for approval, so a held one counts here.
  */
 export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	known: Known,
@@ -1180,8 +1164,7 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	today: string,
 	replaced: readonly JsonObject[] = []
 ) {
-	if (entries.every((row) => row.reverses != null)) return;
-	const taking = entries.filter((row) => row.reverses == null && row.encashment !== true);
+	const taking = entries.filter((row) => row.encashment !== true);
 	const ids = uniqueIds(entries, 'employment_id');
 	const held = known.entries;
 	const person = new Map([...known.contract].map(([id, row]) => [id, String(row.employee_id)]));
@@ -1196,19 +1179,9 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 				)
 		)
 	];
-	// a reversal frees exactly the slots its child rows name on the original
-	const freed = new Map<string, Set<string>>();
-	for (const row of held) {
-		if (typeof row.reverses !== 'string') continue;
-		const set = freed.get(row.reverses) ?? new Set<string>();
-		for (const slot of slots(row)) set.add(slot);
-		freed.set(row.reverses, set);
-	}
 	const gone = new Set(replaced.map((row) => String(row.id)));
 	const taken = new Set(
-		held
-			.filter((row) => row.reverses == null && row.encashment !== true && !gone.has(String(row.id)))
-			.flatMap((row) => slots(row).filter((slot) => freed.get(String(row.id))?.has(slot) !== true))
+		held.filter((row) => row.encashment !== true && !gone.has(String(row.id))).flatMap(slots)
 	);
 	for (const slot of taking.flatMap(slots)) {
 		if (taken.has(slot))
@@ -1267,45 +1240,6 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	}
 });
 
-/**
- * An entry on a row whose `paid_share` is set is dated in the period that will pay it. A period already run is closed: the correction is a
- * reversal entry dated in the next period to run. This is the template's paid-run lock, never jurisdiction law.
- */
-export const assertOpenPeriod = Effect.fn('ledger.assertOpenPeriod')(function* (
-	known: Known,
-	entries: readonly JsonObject[]
-) {
-	for (const entry of entries) {
-		if (entry.reverses != null) continue;
-		const catalog = known.catalog.get(String(entry.catalog_id));
-		if (catalog === undefined || !sharesPay(catalog)) continue;
-		// the person's own pay group: its runs close its periods, on its schedule
-		const group = known.payGroup.get(String(entry.employment_id)) ?? '';
-		const ran = new Set(
-			known.runs
-				.filter((run) => String(run.pay_group_id) === group && run.kind !== 'OFF_CYCLE')
-				.map((run) => String(run.period))
-		);
-		if (ran.size === 0) continue;
-		const schedule = known.schedule.get(group) ?? {};
-		const days = (Array.isArray(entry.days) ? entry.days : [])
-			.filter(isJsonObject)
-			.filter((day) => day.payroll_run_id == null);
-		const closed = days.find((day) => ran.has(payPeriodOf(String(day.date), schedule)));
-		if (closed !== undefined)
-			return yield* Effect.fail(
-				new Refusal({
-					message: `${String(closed.date)} is in a period that has already run. Date this entry in the next period to run, and that run takes it.`
-				})
-			);
-	}
-});
-
-const sizeOf = (model: Entries, entry: JsonObject) =>
-	model === LEAVE
-		? (Array.isArray(entry.days) ? entry.days : []).length
-		: Math.abs(Number(entry.quantity ?? 0));
-
 /** A cash-out pays its row's `payout`: a row that declares none has nothing a run could pay for the days drawn. */
 export const assertCashable = Effect.fn('ledger.assertCashable')(function* (
 	known: Known,
@@ -1319,97 +1253,6 @@ export const assertCashable = Effect.fn('ledger.assertCashable')(function* (
 		return yield* Effect.fail(
 			new Refusal({
 				message: `${String(known.catalog.get(String(bare.catalog_id))?.code ?? 'This leave')} has no payout, so its days cannot be cashed out. Take them as leave, or give the row a payout.`
-			})
-		);
-});
-
-/** A reversal undoes one sealed entry of the same person and catalog item, once, for no more than it held. */
-export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
-	known: Known,
-	model: Entries,
-	entries: readonly JsonObject[]
-) {
-	const reversals = entries.filter((entry) => typeof entry.reverses === 'string');
-	if (reversals.length === 0) return;
-	const person = (contract: unknown) => known.contract.get(String(contract))?.employee_id;
-	const original = new Map(known.entries.map((row) => [String(row.id), row]));
-	const leaveSlots = (entry: JsonObject) =>
-		new Set(
-			(Array.isArray(entry.days) ? entry.days : []).flatMap((day) =>
-				isJsonObject(day) ? [`${String(day.date)}:${String(day.part)}`] : []
-			)
-		);
-	const fits = (entry: JsonObject, first: JsonObject | undefined) => {
-		if (
-			first === undefined ||
-			first.reverses != null ||
-			person(entry.employment_id) !== person(first.employment_id) ||
-			known.catalog.get(String(entry.catalog_id))?.code !== known.codes.get(String(first.id))
-		)
-			return false;
-		if (model !== LEAVE)
-			return first.payroll_run_id != null && sizeOf(model, entry) <= sizeOf(model, first);
-		// a cash-out is undone as a cash-out: days that came back without their money would be paid twice. (The other
-		// way round is the take-back of leave taken past what was earned: a cash-out that reverses ordinary leave.)
-		if (first.encashment === true && entry.encashment !== true) return false;
-		// only a slot a run has priced is reversible; an unpriced one is corrected by deletion
-		const original = new Set(
-			(known.captures.get(String(first.id)) ?? [])
-				.filter((row) => row.payroll_run_id != null)
-				.map((row) => `${String(row.incurred_on)}:${String(row.part)}`)
-		);
-		if (original.size === 0) return false;
-		const days = leaveSlots(entry);
-		if (days.size !== (Array.isArray(entry.days) ? entry.days.length : 0)) return false;
-		for (const slot of days) if (!original.has(slot)) return false;
-		return true;
-	};
-	if (!reversals.every((entry) => fits(entry, original.get(String(entry.reverses)))))
-		return yield* Effect.fail(
-			new Refusal({
-				message:
-					'A reversal undoes a sealed entry of the same person and catalog item, for no more than it held, and a cash-out is reversed as a cash-out. An entry no run has sealed is deleted instead.'
-			})
-		);
-});
-
-/**
- * A statutory adjustment corrects a month a run has closed. Dated in an open month, that month's own row counts it as
- * already paid and charges that much less, so nothing would move.
- */
-export const assertAdjustmentsClosed = Effect.fn('ledger.assertAdjustmentsClosed')(function* (
-	known: Known,
-	entries: readonly JsonObject[]
-) {
-	const dated = entries.filter((entry) => typeof entry.reverses !== 'string');
-	if (dated.length === 0) return;
-	const statutory = new Set(
-		[...known.catalog.values()]
-			.filter((row) => {
-				const { accounts } = objectValue(row.lookup);
-				return (
-					Array.isArray(accounts) &&
-					accounts.some((item) => objectValue(item).account === 'statutory')
-				);
-			})
-			.map((row) => String(row.id))
-	);
-	const closed = new Set(
-		known.runs.map(
-			(run) =>
-				`${String(run.entity_id)}/${String(objectValue(run.salary_coverage).from).slice(0, 7)}`
-		)
-	);
-	const open = dated.some(
-		(entry) =>
-			statutory.has(String(entry.catalog_id)) &&
-			!closed.has(`${String(entry.entity_id)}/${String(entry.incurred_on).slice(0, 7)}`)
-	);
-	if (open)
-		return yield* Effect.fail(
-			new Refusal({
-				message:
-					'A statutory adjustment corrects a month a run has closed. Date it in the month it corrects.'
 			})
 		);
 });
@@ -1444,10 +1287,10 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 		employee_contract: {
 			where: { employee_id: { in: uniqueIds(sealing, 'employee_id') }, status: { eq: 'SEALED' } },
 			fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
-			limit: 10000
+			limit: 10000,
+			entity_id: { fields: ['settings_code'] },
+			employee_id: { fields: ['cumulative_service'] }
 		},
-		'employee_contract.entity_id': { fields: ['settings_code'] },
-		'employee_contract.employee_id': { fields: ['cumulative_service'] },
 		employee_balance: {
 			where: { employee_id: { in: uniqueIds(sealing, 'employee_id') } },
 			fields: ['employee_id', 'account'],
@@ -1548,12 +1391,12 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 		(id) => !has.has(id)
 	);
 	if (missing.length > 0)
-		yield* ctx.act.checked([
-			{
-				callable: 'employee_balance.create',
-				input: missing.map((employee_id) => ({ employee_id, account: {} }))
-			}
-		]);
+		yield* ctx.act({
+			'employee_balance.create': missing.map((employee_id) => ({
+				employee_id: idOf('employee_profile', employee_id),
+				account: {}
+			}))
+		});
 	const day = String(ctx.today);
 	const read = yield* queryAllRows(ctx.query, {
 		employee_contract: {
@@ -1622,7 +1465,7 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 				const row = versionOn(versions, code, day);
 				if (row === undefined) return [];
 				const from = String(objectValue(row.effective_range).from);
-				const before = versionOn(versions, code, String(addDays(from, -1)));
+				const before = versionOn(versions, code, String(add_days(from, -1)));
 				return [String(row.id), ...(before === undefined ? [] : [String(before.id)])];
 			})
 		)
@@ -1745,27 +1588,19 @@ export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
 	});
 	for (let at = 0; at < due.length; at += BATCH) {
 		const batch = due.slice(at, at + BATCH);
-		yield* ctx.act.checked([
-			{
-				callable: 'ledger_entry.create',
-				input: batch.flatMap(({ balance, movements }) =>
-					// `REMOVE` only drops the emptied key from the balance: the ledger keeps the movement that emptied it
-					movements
-						.filter((row) => row.operation !== 'REMOVE')
-						.map((row) => jsonObject({ ...row, balance_id: String(balance.id) }))
-				)
-			},
-			{
-				callable: 'employee_balance.update',
-				input: batch.map(({ balance, movements }) => ({
-					target: String(balance.id),
-					set: { account: apply(accountsOf(balance.account), movements) }
-				})),
-				observed: Object.fromEntries(
-					batch.map(({ balance }) => [String(balance.id), Number(balance.revision)])
-				)
-			}
-		]);
+		const acts: Record<string, Json> = {
+			'ledger_entry.create': batch.flatMap(({ balance, movements }) =>
+				// `REMOVE` only drops the emptied key from the balance: the ledger keeps the movement that emptied it
+				movements
+					.filter((row) => row.operation !== 'REMOVE')
+					.map((row) => jsonObject({ ...row, balance_id: String(balance.id) }))
+			),
+			'employee_balance.update': batch.map(({ balance, movements }) => ({
+				target: { id: String(balance.id), revision: Number(balance.revision) },
+				set: jsonObject({ account: apply(accountsOf(balance.account), movements) })
+			}))
+		};
+		yield* ctx.act(acts);
 	}
 });
 
@@ -1809,8 +1644,8 @@ const POSTS = [
 /** Who writes the ledger and the balance: the write of a record that posts, and sync (`payroll_execution`). */
 export const writesLedger = (ctx: {
 	readonly policies: readonly string[];
-	readonly carriedBy: string | null;
-}) => ctx.policies.includes('payroll_execution') || POSTS.includes(ctx.carriedBy ?? '');
+	readonly carried_by: string | null;
+}) => ctx.policies.includes('payroll_execution') || POSTS.includes(ctx.carried_by ?? '');
 
 /** A sync that failed for good raises a task, so nothing is lost in silence. */
 export const raiseFailure = Effect.fn('ledger.raiseFailure')(function* (
@@ -1819,21 +1654,17 @@ export const raiseFailure = Effect.fn('ledger.raiseFailure')(function* (
 	reason: string,
 	title = 'Ledger sync failed'
 ) {
-	const { entity: entities = [] } = yield* queryRows(ctx.query, {
-		entity: { fields: ['id'], limit: 1 }
-	});
-	const first = entities[0];
+	// any one company carries the task: the first page is enough, however many there are
+	const { entity } = yield* ctx.query({ entity: { fields: ['id'], limit: 1 } });
+	const first = entity.rows[0];
 	if (first === undefined) return;
-	yield* ctx.act.checked([
-		{
-			callable: 'obligation.create',
-			input: [
-				{
-					entity_id: String(first.id),
-					title: `${title}: ${label}. ${reason}`,
-					occurrence_key: `ledger-failure:${String(ctx.today)}:${label}`
-				}
-			]
-		}
-	]);
+	yield* ctx.act({
+		'obligation.create': [
+			{
+				entity_id: first.id,
+				title: `${title}: ${label}. ${reason}`,
+				occurrence_key: `ledger-failure:${String(ctx.today)}:${label}`
+			}
+		]
+	});
 });

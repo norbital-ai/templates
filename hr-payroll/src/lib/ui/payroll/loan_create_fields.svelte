@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Field, type FormState } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { numberOf } from '../../payroll_engine/foundation.js';
 	import { buildLoanSchedule } from '../../payroll_engine/loan_schedule.js';
 
-	let { form }: { form: FormState } = $props();
+	let { ctx, form }: { ctx: PageContext; form: FormState } = $props();
 	const principal = $derived(numberOf(form.get('quantity')) ?? 0);
 	const period = $derived.by(() => {
 		const value = form.get('repayment_period');
@@ -31,15 +31,15 @@
 
 <Stack gap="md">
 	<div class="grid gap-3 sm:grid-cols-2">
-		<Field name="employment_id" />
-		<Field name="catalog_id" />
-		<Field name="quantity" />
-		<Field name="repayment_period" />
-		<Field name="evidence_file" />
+		<Field {ctx} name="employment_id" />
+		<Field {ctx} name="catalog_id" />
+		<Field {ctx} name="quantity" />
+		<Field {ctx} name="repayment_period" />
+		<Field {ctx} name="evidence_file" />
 	</div>
 	{#if plan !== null && plan.create.length > 0}<div class="rounded-lg border">
 			<div class="flex items-center justify-between border-b px-3 py-2">
-				<span class="text-sm font-medium">{bolt.t('loan.repayments')}</span>
+				<span class="text-sm font-medium">{ctx.t('loan.repayments')}</span>
 				<span class="text-xs text-muted-foreground">{plan.create.length} ×</span>
 			</div>
 			<div class="grid grid-cols-2 gap-x-4 gap-y-1 p-3 text-sm sm:grid-cols-3">

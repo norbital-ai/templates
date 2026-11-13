@@ -18,7 +18,7 @@
 		"code": "MEDICAL_CLAIM_DIRECT",
 		"references": [
 			{
-				"title": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line. Encoded 2026-10-08 (QA F10)."
+				"title": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line."
 			}
 		],
 		"lookup": {
@@ -28,13 +28,13 @@
 		"conversion": "return ctx.entry.quantity;",
 		"id": "c78901b1-faaf-5c94-8d9f-886494683d92",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"description": "Direct medical claim against the annual limit."
+		"description": "A medical bill the employer settles directly with the clinic, at the amount entered, counted against a RM1,000 yearly limit. It makes no payslip line. An employer benefit; no statute requires it."
 	},
 	{
 		"code": "MEDICAL_CLAIM",
 		"references": [
 			{
-				"title": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line. Encoded 2026-10-08 (QA F10)."
+				"title": "Employer medical benefit policy (not a statute; EA 1955 s.60F(3) pays sick-leave days, not treatment): reimbursed up to RM576 per employee per calendar year for this class. The limit is the year's remainder — 576 less the class's earlier entries of the same calendar year (`earlier.calendar_year`) — and on_exceed BLOCK pays only that remainder, so a RM400 then RM800 claim pays 400 and 176, and a third claim that year pays nothing; the excess stays on the entry for HR to see against the paid line."
 			}
 		],
 		"lookup": {
@@ -44,6 +44,6 @@
 		"conversion": "return ctx.entry.quantity;",
 		"id": "54e0a3e1-0765-519d-ae81-afcb609544b4",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"description": "Medical claim against the annual limit."
+		"description": "Reimburses a medical bill to the employee with net pay, at the amount entered, up to RM1,000 a year. An employer benefit; no statute requires it."
 	}
 ]

@@ -6,10 +6,21 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
+import { verify } from '../src/lib/integrity.ts';
 import { isExit } from '../src/lib/payroll_engine/contract_change.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { catalogRow, pack, sealEvents, syncAll, uuid, workspace } from './kit.ts';
+import {
+	catalogRow,
+	pack,
+	sealEvents,
+	storedQuery,
+	storedReader,
+	syncAll,
+	uuid,
+	workspace,
+	refusal
+} from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -31,22 +42,37 @@ const seed = {
 	)
 };
 
+/** The first contract as stored now: a write's target at its current revision. */
+const contract = (t: Kit) =>
+	storedQuery(t, { employee_contract: { where: { id: { eq: CONTRACT } }, limit: 1 } }).pipe(
+		Effect.map(({ employee_contract }) => {
+			const [row] = employee_contract.rows;
+			assert.ok(row !== undefined);
+			return row;
+		})
+	);
 /** End the first contract on `to`, with a reason. */
 const end = (t: Kit, to: string) =>
-	t.as(t.admin).act('employee_contract.update', [
-		{
-			target: CONTRACT,
-			set: {
-				effective_range: { from: PlainDate('2025-01-01'), to: PlainDate(to) },
-				reason: 'Resignation'
-			}
-		}
-	]);
-/** The tasks the first contract's exit raised (`…:<contract>:exit:<last day>`), and its encashment requests. */
+	Effect.all([t.as(t.admin), contract(t)]).pipe(
+		Effect.andThen(([caller, target]) =>
+			caller.act({
+				'employee_contract.update': [
+					{
+						target,
+						set: {
+							effective_range: { from: PlainDate('2025-01-01'), to: PlainDate(to) },
+							reason: 'Resignation'
+						}
+					}
+				]
+			})
+		)
+	);
+/** The tasks the first contract's exit raised (`…:<contract>:exit:<last day>`), and any cash-out entry keyed for it. */
 const held = (t: Kit) =>
 	Effect.gen(function* () {
-		const { obligation } = yield* t.storedQuery({ obligation: { limit: 200 } });
-		const { leave_catalog_entry } = yield* t.storedQuery({
+		const { obligation } = yield* storedQuery(t, { obligation: { limit: 200 } });
+		const { leave_catalog_entry } = yield* storedQuery(t, {
 			leave_catalog_entry: { where: { encashment: { eq: true } }, limit: 10 }
 		});
 		return {
@@ -90,29 +116,39 @@ describe('an exit', () => {
 		assert.equal(isExit(version('a', '2025-01-01', null, 'ph-1'), [], lineage), false);
 	});
 
-	it.live('raises once: duties and encashment appear once, and saving again adds nothing', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* syncAll(t);
-			yield* end(t, '2026-10-31');
-			yield* t.runDue();
-			const first = yield* held(t);
-			const keys = first.duties.map((row) => row.occurrence_key);
-			assert.ok(keys.length > 0);
-			assert.equal(new Set(keys).size, keys.length);
-			for (const key of keys) assert.ok(key.endsWith(`:${CONTRACT}:exit:2026-10-31`), key);
-			assert.equal(first.encashments, 1);
-			yield* end(t, '2026-10-31');
-			yield* t
-				.as(t.admin)
-				.act('employee_contract.update', [
-					{ target: CONTRACT, set: { reason: 'Resignation confirmed' } }
-				]);
-			yield* t.runDue();
-			const second = yield* held(t);
-			assert.deepEqual(second.duties.map((row) => row.occurrence_key).sort(), keys.toSorted());
-			assert.equal(second.encashments, 1);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	it.live(
+		'raises once: duties appear once, no cash-out is keyed, and saving again adds nothing',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				yield* end(t, '2026-10-31');
+				yield* t.run_due();
+				const first = yield* held(t);
+				const keys = first.duties.map((row) => row.occurrence_key);
+				assert.ok(keys.length > 0);
+				assert.equal(new Set(keys).size, keys.length);
+				for (const key of keys) assert.ok(key.endsWith(`:${CONTRACT}:exit:2026-10-31`), key);
+				// the last payslip settles the leave itself
+				assert.equal(first.encashments, 0);
+				yield* end(t, '2026-10-31');
+				yield* (yield* t.as(t.admin)).act({
+					'employee_contract.update': [
+						{ target: yield* contract(t), set: { reason: 'Resignation confirmed' } }
+					]
+				});
+				yield* t.run_due();
+				const second = yield* held(t);
+				assert.deepEqual(second.duties.map((row) => row.occurrence_key).sort(), keys.toSorted());
+				assert.equal(second.encashments, 0);
+				assert.deepEqual((yield* t.run_due()).failed, []);
+				assert.deepEqual(
+					(yield* verify(storedReader(t), NOW.slice(0, 10)))
+						.filter((finding) => finding.invariant !== 'W1')
+						.map((finding) => `${finding.invariant} ${finding.message}`),
+					[]
+				);
+			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
 	it.live('is not raised when a successor is sealed for the next day', () =>
@@ -120,7 +156,7 @@ describe('an exit', () => {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
 			yield* sealEvents(t, '2026-11-02', []);
-			yield* t.runDue();
+			yield* t.run_due();
 			const { duties, encashments } = yield* held(t);
 			assert.deepEqual(duties, []);
 			assert.equal(encashments, 0);
@@ -133,11 +169,11 @@ describe('an exit', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* end(t, '2026-10-31');
-				yield* t.runDue();
+				yield* t.run_due();
 				const first = (yield* held(t)).duties;
 				assert.ok(first.length > 0);
 				yield* end(t, '2026-09-30');
-				yield* t.runDue();
+				yield* t.run_due();
 				const moved = (yield* held(t)).duties;
 				const open = moved.filter((row) => row.state === 'OPEN');
 				assert.deepEqual(
@@ -154,26 +190,28 @@ describe('an exit', () => {
 						.sort(),
 					first.map((row) => row.id).sort()
 				);
-				const [ended] = (yield* t.storedQuery({ employee_contract: { limit: 1 } }))
+				const [ended] = (yield* storedQuery(t, { employee_contract: { limit: 1 } }))
 					.employee_contract.rows;
 				assert.ok(ended !== undefined);
-				yield* t.as(t.admin).act('employee_contract.create', [
-					{
-						employee_id: ended.employee_id,
-						entity_id: ended.entity_id,
-						engagement: ended.engagement,
-						employee_number: ended.employee_number,
-						terms: ended.terms,
-						payroll: ended.payroll,
-						bank: ended.bank,
-						employee_extension_data: ended.employee_extension_data,
-						service_started_on: ended.service_started_on,
-						effective_range: { from: PlainDate('2026-10-01'), to: null },
-						status: 'DRAFT',
-						reason: 'Rehired'
-					}
-				]);
-				yield* t.runDue();
+				yield* (yield* t.as(t.admin)).act({
+					'employee_contract.create': [
+						{
+							employee_id: ended.employee_id,
+							entity_id: ended.entity_id,
+							engagement: ended.engagement,
+							employee_number: ended.employee_number,
+							terms: ended.terms,
+							payroll: ended.payroll,
+							bank: ended.bank,
+							employee_extension_data: ended.employee_extension_data,
+							service_started_on: ended.service_started_on,
+							effective_range: { from: PlainDate('2026-10-01'), to: null },
+							status: 'DRAFT',
+							reason: 'Rehired'
+						}
+					]
+				});
+				yield* t.run_due();
 				const cancelled = (yield* held(t)).duties;
 				assert.equal(cancelled.length, 2 * first.length);
 				assert.deepEqual(
@@ -214,45 +252,39 @@ const answersSeed = {
 		payroll: { date_of_birth: '1990-01-01', gender: 'FEMALE', marital_status: 'MARRIED' }
 	}))
 };
-const extension = (t: Kit) =>
-	t
-		.storedQuery({ employee_contract: { where: { id: { eq: CONTRACT } }, limit: 1 } })
-		.pipe(
-			Effect.map(
-				({ employee_contract }) => employee_contract.rows[0]?.employee_extension_data ?? {}
-			)
-		);
 const save = (
 	t: Kit,
 	answers: Readonly<Record<string, string>>,
 	to: string | null = '2026-06-30'
 ) =>
-	extension(t).pipe(
+	contract(t).pipe(
 		Effect.andThen((stored) =>
-			t.as(t.admin).act('employee_contract.update', [
-				{
-					target: CONTRACT,
-					set: {
-						employee_extension_data: { ...stored, ...answers },
-						...(to === null
-							? {}
-							: { effective_range: { from: PlainDate('2026-01-01'), to: PlainDate(to) } })
-					}
-				}
-			])
+			t.as(t.admin).pipe(
+				Effect.andThen((caller) =>
+					caller.act({
+						'employee_contract.update': [
+							{
+								target: stored,
+								set: {
+									employee_extension_data: { ...stored.employee_extension_data, ...answers },
+									...(to === null
+										? {}
+										: { effective_range: { from: PlainDate('2026-01-01'), to: PlainDate(to) } })
+								}
+							}
+						]
+					})
+				)
+			)
 		)
 	);
 /** The exit duties whose condition reads the answer. */
 const reports = (t: Kit) =>
-	t
-		.storedQuery({ obligation: { limit: 100 } })
-		.pipe(
-			Effect.map(({ obligation }) =>
-				obligation.rows.filter((row) =>
-					String(row.occurrence_key).startsWith('TERMINATION_REPORT:')
-				)
-			)
-		);
+	storedQuery(t, { obligation: { limit: 100 } }).pipe(
+		Effect.map(({ obligation }) =>
+			obligation.rows.filter((row) => String(row.occurrence_key).startsWith('TERMINATION_REPORT:'))
+		)
+	);
 const answering = () => workspace({ seed: answersSeed, now: '2026-07-01T02:00:00.000Z' });
 
 describe('exit answers on a sealed contract', () => {
@@ -260,7 +292,7 @@ describe('exit answers on a sealed contract', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* save(t, { termination_cause: 'EFFICIENCY_ACTUAL_LOSS' });
-			yield* t.runDue();
+			yield* t.run_due();
 			assert.equal((yield* reports(t)).length, 1);
 		}).pipe(Effect.provide(answering()))
 	);
@@ -268,10 +300,10 @@ describe('exit answers on a sealed contract', () => {
 	it.live('a save that does not end it cannot add one', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const refused = yield* Effect.flip(
+			const refused = yield* refusal(
 				save(t, { termination_cause: 'EFFICIENCY_ACTUAL_LOSS' }, null)
 			);
-			assert.match(String(refused), /adds its exit answers in the save that ends it/);
+			assert.equal(refused.key, 'errors.employee_contract_exit_answers');
 		}).pipe(Effect.provide(answering()))
 	);
 
@@ -279,10 +311,10 @@ describe('exit answers on a sealed contract', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* save(t, { termination_cause: 'EFFICIENCY_ACTUAL_LOSS' });
-			const refused = yield* Effect.flip(
+			const refused = yield* refusal(
 				save(t, { termination_cause: 'VOLUNTARY_RESIGNATION' }, '2026-07-31')
 			);
-			assert.match(String(refused), /the facts it holds change only by a new version/);
+			assert.equal(refused.key, 'errors.employee_contract_exit_answers');
 		}).pipe(Effect.provide(answering()))
 	);
 

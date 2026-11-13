@@ -8,5 +8,5 @@ export default workspace({
 	tz: 'UTC',
 	locale: 'en',
 	// statutory drift researches on the strong class; the host maps each class to a model
-	ai: { models: ['default', 'strong'], default: 'default', embeddings: ['default'] }
+	ai: { embeddings: ['default'] }
 });

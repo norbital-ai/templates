@@ -4,7 +4,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
-import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
@@ -18,7 +17,8 @@ import {
 	pack,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	storedQuery
 } from './kit.ts';
 
 type Seed = ReturnType<typeof pack>;
@@ -27,9 +27,13 @@ const slip = (seed: Seed, period: string, now: string) =>
 		const t = yield* TestWorkspace;
 		yield* t
 			.as(t.admin)
-			.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
-		yield* t.runDue();
-		const payslip = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows[0];
+			.pipe(
+				Effect.andThen((caller) =>
+					caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+				)
+			);
+		yield* t.run_due();
+		const payslip = (yield* storedQuery(t, { payslip: { limit: 1 } })).payslip.rows[0];
 		assert.ok(payslip !== undefined, 'the run wrote a payslip');
 		return { payslip, breakdown: Schema.decodeUnknownSync(PayslipBreakdown)(payslip.breakdown) };
 	}).pipe(Effect.provide(workspace({ seed, now })));
@@ -42,8 +46,6 @@ const withEmployer = (seed: Seed, employer: JsonObject): Seed => ({
 });
 const amount = (breakdown: PayslipBreakdown, code: string) =>
 	breakdown.lines.find((line) => line.code === code)?.amount ?? 0;
-const near = (actual: number, expected: number, what: string) =>
-	assert.ok(Math.abs(actual - expected) < 0.01, `${what}: paid ${actual}, expected ${expected}`);
 /** The method pays more than the statute alone, which pays something. */
 const lifted = (method: number, statutory: number, what: string) =>
 	assert.ok(
@@ -276,11 +278,15 @@ describe('contribution split', () => {
 				const t = yield* TestWorkspace;
 				const shares = (period: string) =>
 					Effect.gen(function* () {
-						yield* t
-							.as(t.admin)
-							.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
-						yield* t.runDue();
-						const { payslip, payroll_run } = yield* t.storedQuery({
+						yield* t.as(t.admin).pipe(
+							Effect.andThen((caller) =>
+								caller.act({
+									'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]
+								})
+							)
+						);
+						yield* t.run_due();
+						const { payslip, payroll_run } = yield* storedQuery(t, {
 							payslip: { limit: 2 },
 							payroll_run: { limit: 2 }
 						});
@@ -300,14 +306,20 @@ describe('contribution split', () => {
 				const first = yield* shares('2026-02-1');
 				for (const [code, [employee = 0, employer = 0]] of Object.entries(first))
 					assert.ok(employee >= 0 && employer > 0, `${code} is charged on the first run`);
-				yield* t.as(t.admin).act('leave_catalog_entry.create', [
-					leaveCreate({
-						entity_id: ENTITY,
-						employment_id: idOf('employee_contract', uuid(6)),
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
-						days: wholeDays('2026-02-17', '2026-02-18', '2026-02-19')
-					})
-				]);
+				yield* t.as(t.admin).pipe(
+					Effect.andThen((caller) =>
+						caller.act({
+							'leave_catalog_entry.create': [
+								leaveCreate({
+									entity_id: ENTITY,
+									employment_id: idOf('employee_contract', uuid(6)),
+									catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+									days: wholeDays('2026-02-17', '2026-02-18', '2026-02-19')
+								})
+							]
+						})
+					)
+				);
 				const second = yield* shares('2026-02-2');
 				// nothing is charged twice: the second run only settles, and what the lower wages over-charged comes back
 				for (const [code, [employee = 0, employer = 0]] of Object.entries(second)) {
@@ -361,127 +373,6 @@ describe('benefit exclusion', () => {
 			);
 			const more = tax(projected.breakdown) - tax(paid.breakdown);
 			assert.ok(more > 0 && more < 4500, `WTAX on the excess: ${more}`);
-		})
-	);
-});
-
-describe('employer-share correction', () => {
-	// The employer's side of a closed month's SSS correction: employer cost only, the payslip's net is untouched.
-	it.live('an employer-share adjustment adds to employer cost and leaves net pay alone', () =>
-		Effect.gen(function* () {
-			const seed = filipino([]);
-			// a correction is dated in a month a run has closed: January runs first, February carries the entry
-			const february = (correct: boolean) =>
-				Effect.gen(function* () {
-					const t = yield* TestWorkspace;
-					const run = (period: string) =>
-						t
-							.as(t.admin)
-							.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
-					yield* run('2026-01');
-					yield* t.runDue();
-					if (correct)
-						yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
-							{
-								entity_id: ENTITY,
-								employment_id: idOf('employee_contract', uuid(6)),
-								catalog_id: idOf(
-									'adhoc_catalog',
-									catalogRow(seed, 'adhoc_catalog', 'SSS_EMPLOYER_ADJUSTMENT')
-								),
-								description: 'Correction',
-								quantity: 450,
-								incurred_on: PlainDate('2026-01-15'),
-								reverses: null
-							}
-						]);
-					yield* run('2026-02');
-					yield* t.runDue();
-					const { payslip, payroll_run } = yield* t.storedQuery({
-						payslip: { limit: 2 },
-						payroll_run: { limit: 2 }
-					});
-					const row = payslip.rows.find(
-						(slip) =>
-							slip.payroll_run_id === payroll_run.rows.find((r) => r.period === '2026-02')?.id
-					);
-					assert.ok(row !== undefined, 'the February run wrote a payslip');
-					return row;
-				}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })));
-			const plain = { payslip: yield* february(false) };
-			const corrected = yield* february(true);
-			near(corrected.net_pay.toNumber(), plain.payslip.net_pay.toNumber(), 'net pay');
-			near(
-				corrected.employer_cost.toNumber() - plain.payslip.employer_cost.toNumber(),
-				450,
-				'employer cost'
-			);
-		})
-	);
-});
-
-describe('contribution correction and tax', () => {
-	// A contribution correction deducted in February is a contribution deducted: February's withholding falls by a
-	// share of it.
-	it.live('a correction entry of the run lowers the taxable pay it is deducted from', () =>
-		Effect.gen(function* () {
-			const seed = pack(
-				'PH',
-				'Asia/Manila',
-				{
-					rate: { amount: 130_000, unit: 'MONTHLY' },
-					normal_hours_per_day: 8,
-					normal_hours_per_week: 48,
-					normal_days_per_week: 6,
-					statutory_work_category: 'NON_FIELD',
-					work_classification: 'RANK_AND_FILE',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
-				{ days_per_year: 313, nationality: 'PH' },
-				[],
-				[]
-			);
-			const february = (correct: boolean) =>
-				Effect.gen(function* () {
-					const t = yield* TestWorkspace;
-					const run = (period: string) =>
-						t
-							.as(t.admin)
-							.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
-					yield* run('2026-01');
-					yield* t.runDue();
-					if (correct)
-						yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
-							{
-								entity_id: ENTITY,
-								employment_id: idOf('employee_contract', uuid(6)),
-								catalog_id: idOf(
-									'adhoc_catalog',
-									catalogRow(seed, 'adhoc_catalog', 'PHIC_ADJUSTMENT')
-								),
-								description: 'Correction',
-								quantity: 100,
-								incurred_on: PlainDate('2026-01-15'),
-								reverses: null
-							}
-						]);
-					yield* run('2026-02');
-					yield* t.runDue();
-					const { payslip, payroll_run } = yield* t.storedQuery({
-						payslip: { limit: 2 },
-						payroll_run: { limit: 2 }
-					});
-					const row = payslip.rows.find(
-						(slip) =>
-							slip.payroll_run_id === payroll_run.rows.find((r) => r.period === '2026-02')?.id
-					);
-					assert.ok(row !== undefined, 'the February run wrote a payslip');
-					return row.tax_withheld.toNumber();
-				}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })));
-			const less = (yield* february(false)) - (yield* february(true));
-			assert.ok(less > 0 && less < 100, `tax on the correction: ${less}`);
 		})
 	);
 });

@@ -1,7 +1,8 @@
 <script lang="ts">
+	import type { UiContext } from '@norbital-ai/ui';
 	import { CodeEditor, Field, type FieldEditor } from '@norbital-ai/ui';
 
-	let { name, help }: { name: string; help?: string } = $props();
+	let { ctx, name, help }: { ctx: UiContext; name: string; help?: string } = $props();
 </script>
 
 {#snippet editor(field: FieldEditor)}
@@ -10,7 +11,7 @@
 		wrap
 		value={String(field.value ?? '')}
 		aria-label={field.name}
-		onChange={field.onChange}
+		on_change={field.on_change}
 	/>
 {/snippet}
 
@@ -19,10 +20,10 @@
 		language="javascript"
 		wrap
 		readonly
-		minHeight="3rem"
+		min_height="3rem"
 		value={String(field.value ?? '')}
 		aria-label={field.name}
 	/>
 {/snippet}
 
-<Field {name} {help} {editor} {view} />
+<Field {ctx} {name} {help} {editor} {view} />

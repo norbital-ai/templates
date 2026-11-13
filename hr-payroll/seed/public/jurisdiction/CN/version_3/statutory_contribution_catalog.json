@@ -8,6 +8,12 @@
 		"references": [
 			{
 				"title": "社会保险法 第十二条、第六十条; 国办发〔2019〕13号 (单位16%, 个人8%); 上海2026年度基数7546–37731 (2026-07-01起); 云南2026年度基数4403–22017 (云人社发〔2026〕8号, 2026-08-21印发; 通知仅写明医疗基数2026-09-01起执行, 养老、失业、工伤按年度参数自2026-01-01, 起始日未见官方明文). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者 (人社部令第56号 第十六条, 2026-07-01起): 未领取养老金且选择继续参保的, 经协商单位可为其缴费; 否则不计缴. 退休年龄表 in the jurisdiction lookup; stops the month after the worker reaches it."
+			},
+			{
+				"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
+				"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
+				"quote": "上限为月额37,731元，下限为月额7,546元",
+				"effective_from": "2026-07-01"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -19,7 +25,7 @@
 		"id": "51645881-4c1f-54a7-9db7-3fc7c9fc572e",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
 		"balance_window": "YEAR",
-		"description": "Pension contribution shared by employee and employer."
+		"description": "Pension: employee 8%, employer 16% of the declared base (si_contribution_base), or of this month's basic salary when none is declared, held within the region's floor and ceiling."
 	},
 	{
 		"code": "MEDICAL",
@@ -44,6 +50,19 @@
 		"references": [
 			{
 				"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+			},
+			{
+				"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
+				"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
+				"quote": "上限为月额37,731元，下限为月额7,546元",
+				"effective_from": "2026-07-01"
+			},
+			{
+				"title": "沪医保规〔2026〕2号 关于继续阶段性降低本市职工基本医疗保险费费率的通知 (2026-03-01至2027-02-28)",
+				"locator": "第一条",
+				"url": "https://ybj.sh.gov.cn/cmsres/63/63eea49f9baa436c93a12759749d40d6/8d71a6ae4f2035f213b41a359da317a9.pdf",
+				"quote": "本市职工基本医疗保险单位缴费继续执行 9%的缴费比例",
+				"effective_from": "2026-03-01"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -55,7 +74,7 @@
 		"id": "38b0b0ed-fe74-5f4f-b896-a9df2bb36819",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
 		"balance_window": "YEAR",
-		"description": "Medical insurance contribution shared by employee and employer."
+		"description": "Medical insurance, maternity included: Shanghai employer 9%, Kunming employer 7.9%, employee 2%, on the same base held within the region's floor and ceiling."
 	},
 	{
 		"code": "MAJOR_MEDICAL",
@@ -103,6 +122,11 @@
 		"references": [
 			{
 				"title": "社会保险法 第四十四条; 失业保险条例; 沪人社规〔2024〕25号 (0.5%/0.5%, 至2025-12-31); 人社部发〔2025〕18号 (1%费率至2025-12-31); 2026年未见国家、上海或云南的延期文件, 上海0.5%/0.5%与昆明单位0.7%/个人0.3% (云人社规〔2022〕1号) 为暂定. 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 不设失业保险条款; 未约定时不计缴. 2026-11-06 复核: 人社部发〔2026〕39号 (2026-06-18, 2026-01-01至12-31) 不涉及费率 https://fgk.chinatax.gov.cn/zcfgk/c100013/c5250797/content.html; 上海2026年7月后的第三方表仍列0.5%/0.5%."
+			},
+			{
+				"title": "人社部发〔2024〕40号: 阶段性降低失业保险费率至1%执行至2025-12-31; 人社部发〔2026〕39号 (2026-06-18) 未涉及费率. 2026年费率续延未见官方原文; 二手来源称上海等多数省份延续1%至2026年底, 本包沿用.",
+				"locator": "人社部发〔2026〕39号",
+				"url": "https://fgk.chinatax.gov.cn/zcfgk/c100013/c5250797/content.html"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -114,7 +138,7 @@
 		"id": "66d48a58-8706-50bb-b6ba-3bf6cac3af5e",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
 		"balance_window": "YEAR",
-		"description": "Unemployment insurance contribution shared by employee and employer."
+		"description": "Unemployment insurance: Shanghai 0.5% employer and 0.5% employee, Kunming 0.7% employer and 0.3% employee, on the same base held within the floor and ceiling."
 	},
 	{
 		"code": "WORK_INJURY",
@@ -167,6 +191,11 @@
 		"references": [
 			{
 				"title": "社会保险法 第三十三条; 工伤保险条例 第八条; 人社部发〔2015〕71号 行业基准费率0.2%–1.9%; 上海实习生及超龄人员单险种参保见沪人社规〔2025〕22号 (2025-12-01起, 至2030-11-30); 超龄劳动者基本权益保障暂行规定 (人社部令第56号, 2026-07-01起) 第十五条: 用人单位应当为超龄劳动者参加工伤保险并缴纳工伤保险费, 个人不缴费 https://shanghai.chinatax.gov.cn/zzzb/zcwj/202605/t480421.html. 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+			},
+			{
+				"title": "沪人社规〔2024〕25号 (2025-01-01起): 工伤保险一至八类基准费率按全国规定 0.2%、0.4%、0.7%、0.9%、1.1%、1.3%、1.6%、1.9%; 沪人社规〔2026〕2号 (2026-01-01至2030-12-31) 行业基准费率表 一类0.2%",
+				"locator": "沪人社规〔2026〕2号 附件",
+				"url": "https://rsj.sh.gov.cn/cmsres/7d/7da0dbfc4dcc46f5b54fe55e16284d4a/79267e08630e9eefa589bcfb67de68de.pdf"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -186,6 +215,12 @@
 		"references": [
 			{
 				"title": "住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2026〕3号 (2026-07-01起 2740–37731, 5%–7%); 昆明2026年度上限32543 (昆公积金〔2026〕69号, 执行期2026-01-01至12-31 https://zfgjj.km.gov.cn/c/2026-09-04/5109614.shtml), 下限为当地最低工资2170/2020/1870 (至2026-08-31), 5%–12%. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+			},
+			{
+				"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
+				"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
+				"quote": "上限为月额37,731元，下限为月额7,546元",
+				"effective_from": "2026-07-01"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -205,6 +240,12 @@
 		"references": [
 			{
 				"title": "沪公积金管委会〔2026〕3号: 补充住房公积金比例1%–5%, 基数2740–37731. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+			},
+			{
+				"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
+				"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
+				"quote": "上限为月额37,731元，下限为月额7,546元",
+				"effective_from": "2026-07-01"
 			}
 		],
 		"kind": "CONTRIBUTION",
@@ -237,7 +278,7 @@
 		"employer_cost_subtotal_id": "c3890fcd-4799-5bbf-94de-776d861ade65",
 		"eligibility": "const code = get(\n\t\tctx.subject.employer,\n\t\t'entity_extension_data.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst rule = get(ctx.lookup.preparatory, code, null);\n\tif (rule == null) return false;\n\tif (!(Number(get(ctx.subtotals, 'FOREIGN_ALLOWANCES', 0)) > 0)) return false;\n\tif (get(ctx.subject.employer, 'entity_extension_data.union_established', false) === true) return true;\n\tif (rule === 'ORGANISATION') return get(ctx.subject.employer, 'entity_extension_data.union_preparatory', false) === true;\n\treturn rule === 'NO_UNION';",
 		"employee_amount": "\treturn 0;",
-		"employer_amount": "\treturn Math.max(0, Number(get(ctx.subtotals, 'FOREIGN_ALLOWANCES', 0))) * ctx.lookup.employer_rate;",
+		"employer_amount": "// FOREIGN_ALLOWANCES is the checkpoint of all taxable wages: salary, allowances, bonuses and expatriate allowances (工资总额)\n\treturn Math.max(0, Number(get(ctx.subtotals, 'FOREIGN_ALLOWANCES', 0))) * ctx.lookup.employer_rate;",
 		"id": "9c484326-df53-5415-8034-9f1f3636032f",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
 		"balance_window": "YEAR",

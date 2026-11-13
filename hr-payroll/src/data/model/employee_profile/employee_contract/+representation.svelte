@@ -1,20 +1,22 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { changesBetween, versionOn } from '../../../../lib/payroll_engine/contract_change.js';
 	import { accountsOf, latestLeft } from '../../../../lib/ledger/core.js';
 	import {
 		Button,
 		Combobox,
+		confirm_action,
 		Editor,
 		Field,
 		Form,
-		isJsonSchema,
-		notifyOutcome,
-		openRecord,
+		is_json_schema,
+		notify_outcome,
+		open_record,
 		RecordShell,
 		Sheet,
 		Textarea,
 		toast,
-		valueObject,
+		value_object,
 		type FieldEditor,
 		type Kind,
 		type RecordView,
@@ -23,7 +25,8 @@
 	import { Cluster, Columns, Stack } from '@norbital-ai/ui/layout';
 	import { fork, run } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
-	import { addDays, addMonths, monthOf, PlainDate } from '@norbital-ai/std/date';
+	import { PAID_NOTE, paidPeriods } from '../../../../lib/ui/payroll/paid_period.svelte.js';
+	import { add_days, add_months, month_of, PlainDate } from '@norbital-ai/std/date';
 	import {
 		buildLoanSchedule,
 		FINAL_SETTLEMENT,
@@ -33,7 +36,6 @@
 	} from '../../../../lib/payroll_engine/loan_schedule.js';
 	import { isJsonObject, type JsonObject } from '../../../../lib/payroll_engine/foundation.js';
 	import type { Id } from '@norbital-ai/bolt';
-	import { bolt } from '$bolt';
 	import { contractCategories } from '../../../../lib/ui/person/contract_categories.js';
 	import ContractTermsEditor from '../../../../lib/ui/person/contract_terms_editor.svelte';
 	import VersionFacts from '../../../../lib/ui/person/version_facts.svelte';
@@ -56,42 +58,44 @@
 	const EXIT_GROUND: Kind = { kind: 'enum', values: [...EXIT_GROUNDS], optional: true };
 	/** The contract's dated `events`, for the life-event sheet's editor. */
 	const EVENTS: Kind = {
-		kind: 'list',
-		of: {
-			kind: 'object',
-			fields: {
-				kind: { kind: 'text' },
-				on: { kind: 'date' },
-				opened_on: { kind: 'date', optional: true },
-				ended_on: { kind: 'date', optional: true },
-				allocated_days: { kind: 'int', optional: true }
-			}
+		kind: 'object',
+		many: true,
+		fields: {
+			kind: { kind: 'text' },
+			on: { kind: 'date' },
+			opened_on: { kind: 'date', optional: true },
+			ended_on: { kind: 'date', optional: true },
+			allocated_days: { kind: 'int', optional: true }
 		}
 	};
 	/** The contract's `family` list, for the life-event sheet's editor. */
 	const FAMILY: Kind = {
-		kind: 'list',
-		of: {
-			kind: 'object',
-			fields: {
-				relation: { kind: 'enum', values: RELATIONS },
-				born_on: { kind: 'date', optional: true },
-				expected_on: { kind: 'date', optional: true },
-				has_income: { kind: 'bool', optional: true },
-				disabled: { kind: 'bool', optional: true },
-				studying: { kind: 'bool', optional: true },
-				allocations: { kind: 'record', optional: true, of: { kind: 'number', min: 0 } }
-			}
+		kind: 'object',
+		many: true,
+		fields: {
+			relation: { kind: 'enum', values: RELATIONS },
+			born_on: { kind: 'date', optional: true },
+			expected_on: { kind: 'date', optional: true },
+			has_income: { kind: 'bool', optional: true },
+			disabled: { kind: 'bool', optional: true },
+			studying: { kind: 'bool', optional: true },
+			allocations: { kind: 'record', optional: true, of: { kind: 'number', min: 0 } }
 		}
 	};
 	type SalaryUnit = 'MONTHLY' | 'DAILY' | 'HOURLY';
 	type Engagement =
 		'EMPLOYEE' | 'PART_TIME' | 'CONTRACTOR' | 'INTERN' | 'APPRENTICE' | 'CONSULTANT' | 'PAYEE';
 
-	let { view }: { view: RecordView<'employee_contract'> } = $props();
+	let { view, ctx }: { view: RecordView<'employee_contract'>; ctx: PageContext } = $props();
+	const paid = paidPeriods(ctx);
+	const PAID_QUESTION = {
+		title: 'This period is already paid',
+		body: PAID_NOTE,
+		confirm_label: 'Save correction'
+	};
 	const record = $derived(view.mode === 'create' ? null : view.record);
-	const t = bolt.t;
-	const today = bolt.clock('day').today;
+	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
+	const today = ctx.clock('day').today;
 
 	let action = $state<ChangeAction | null>(null);
 	let step = $state<1 | 2>(1);
@@ -101,6 +105,7 @@
 	let lastDay = $state<PlainDate | null>(null);
 	let finalPayDueOn = $state<PlainDate | null>(null);
 	let exitGround = $state<(typeof EXIT_GROUNDS)[number] | null>(null);
+	let encashLeave = $state(true);
 	let jobTitle = $state('');
 	let department = $state('');
 	let salaryAmount = $state<number | null>(null);
@@ -121,7 +126,7 @@
 	const siblings = $derived(
 		record == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_contract: {
 						where: {
 							employee_id: { eq: record.employee_id }
@@ -137,14 +142,14 @@
 					}
 				})
 	);
-	const entities = bolt.query({
+	const entities = ctx.query({
 		entity: {
 			fields: ['id', 'name', 'settings_code'],
-			orderBy: { name: 'asc' },
+			order_by: { name: 'asc' },
 			limit: 1000
 		}
 	});
-	const settings = bolt.query({
+	const settings = ctx.query({
 		jurisdiction_settings: {
 			where: { status: { eq: 'SEALED' } },
 			fields: ['id', 'code', 'name', 'effective_range', 'currency'],
@@ -159,10 +164,10 @@
 	/** The law a contract form answers to: in force on the first day it states. */
 	const formLaw = (values: { readonly [name: string]: Value }) => {
 		const range = values['effective_range'];
-		const from = valueObject(range) && typeof range['from'] === 'string' ? range['from'] : today;
+		const from = value_object(range) && typeof range['from'] === 'string' ? range['from'] : today;
 		return lawOn(values['entity_id'], String(from))?.id ?? null;
 	};
-	const nextDay = $derived(lastDay === null ? null : addDays(lastDay, 1));
+	const nextDay = $derived(lastDay === null ? null : add_days(lastDay, 1));
 	/** The new version's law: the target entity's lineage in force on the day it starts. */
 	const targetSettings = $derived(
 		targetEntity === null ? null : (lawOn(targetEntity, nextDay ?? today)?.id ?? null)
@@ -170,7 +175,7 @@
 	const targetConfiguration = $derived(
 		targetSettings === null
 			? null
-			: bolt.query({
+			: ctx.query({
 					jurisdiction_settings: {
 						where: { id: { eq: targetSettings } },
 						fields: ['lookup', 'employee_extension_schema'],
@@ -186,7 +191,7 @@
 	const balance = $derived(
 		record == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_balance: {
 						where: { employee_id: { eq: record.employee_id } },
 						fields: ['account'],
@@ -197,7 +202,7 @@
 	const loans = $derived(
 		record == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					loan_catalog_entry: {
 						where: { employment_id: { eq: record.id } },
 						fields: ['id', 'quantity'],
@@ -205,7 +210,7 @@
 					},
 					loan_catalog_entry_repayment: {
 						where: { employment_id: { eq: record.id } },
-						fields: ['loan_id', 'amount', 'reverses', 'payroll_run_id'],
+						fields: ['loan_id', 'amount', 'payroll_run_id'],
 						limit: 10000
 					},
 					payslip: {
@@ -253,7 +258,7 @@
 	/** The months a contract change can start: this one, if no run has taken it, and the year ahead. */
 	const months = $derived(
 		Array.from({ length: 13 }, (_, index) => {
-			const first = addMonths(monthOf(today).from, index);
+			const first = add_months(month_of(today).from, index);
 			return { value: first, label: first.slice(0, 7) };
 		})
 	);
@@ -284,7 +289,6 @@
 		repayments: readonly {
 			readonly loan_id: unknown;
 			readonly amount: unknown;
-			readonly reverses?: string | null;
 			readonly payroll_run_id?: unknown;
 		}[]
 	) {
@@ -292,7 +296,7 @@
 		for (const row of repayments) {
 			if (row.payroll_run_id == null) continue;
 			const key = String(row.loan_id);
-			paid.set(key, (paid.get(key) ?? 0) + (row.reverses != null ? -1 : 1) * amountOf(row.amount));
+			paid.set(key, (paid.get(key) ?? 0) + amountOf(row.amount));
 		}
 		return loanRows
 			.map((row) => ({ row, amount: amountOf(row.quantity) - (paid.get(String(row.id)) ?? 0) }))
@@ -396,7 +400,7 @@
 	const targetExtensionSchema = $derived.by(() => {
 		const stored =
 			targetConfiguration?.current?.jurisdiction_settings.rows[0]?.employee_extension_schema;
-		return stored != null && isJsonSchema(stored) ? stored : null;
+		return stored != null && is_json_schema(stored) ? stored : null;
 	});
 	/** The person's facts from their latest contract in the target jurisdiction; another jurisdiction's never carry over. */
 	const priorExtension = $derived(
@@ -422,7 +426,7 @@
 		eventsEdit === null
 			? (record?.events ?? [])
 			: (Array.isArray(eventsEdit) ? eventsEdit : []).flatMap((item) =>
-					valueObject(item) && typeof item.kind === 'string' && typeof item.on === 'string'
+					value_object(item) && typeof item.kind === 'string' && typeof item.on === 'string'
 						? [
 								{
 									kind: item.kind,
@@ -446,10 +450,10 @@
 		familyEdit === null
 			? (record?.family ?? [])
 			: (Array.isArray(familyEdit) ? familyEdit : []).flatMap((item) => {
-					const relation = valueObject(item)
+					const relation = value_object(item)
 						? RELATIONS.find((known) => known === item.relation)
 						: undefined;
-					return valueObject(item) && relation !== undefined
+					return value_object(item) && relation !== undefined
 						? [
 								{
 									relation,
@@ -460,7 +464,7 @@
 									...(typeof item.has_income === 'boolean' ? { has_income: item.has_income } : {}),
 									...(typeof item.disabled === 'boolean' ? { disabled: item.disabled } : {}),
 									...(typeof item.studying === 'boolean' ? { studying: item.studying } : {}),
-									...(valueObject(item.allocations)
+									...(value_object(item.allocations)
 										? {
 												allocations: Object.fromEntries(
 													Object.entries(item.allocations).flatMap(([code, days]) =>
@@ -499,9 +503,10 @@
 		step = 1;
 		changeError = null;
 		// only an exit keeps its own day: every other change starts on the first of a month
-		lastDay = kind === 'TERMINATE' ? today : monthOf(today).to;
+		lastDay = kind === 'TERMINATE' ? today : month_of(today).to;
 		finalPayDueOn = null;
 		exitGround = record.exit_ground ?? null;
+		encashLeave = record.encash_leave !== false;
 		note = '';
 		settleLoans = false;
 		expectedPayEdit = null;
@@ -534,15 +539,15 @@
 		changeError = null;
 	}
 	async function readLoans(current: NonNullable<typeof record>) {
-		const held = await bolt.query({
+		const held = await ctx.query({
 			loan_catalog_entry: {
 				where: { employment_id: { eq: current.id } },
-				fields: ['id', 'catalog_id', 'quantity', 'repayment_period'],
+				fields: ['id', 'revision', 'catalog_id', 'quantity', 'repayment_period'],
 				limit: 10000
 			},
 			loan_catalog_entry_repayment: {
 				where: { employment_id: { eq: current.id } },
-				fields: ['id', 'loan_id', 'amount', 'reverses', 'payroll_run_id'],
+				fields: ['id', 'revision', 'loan_id', 'amount', 'payroll_run_id'],
 				limit: 10000
 			}
 		});
@@ -558,16 +563,16 @@
 		const loanIds = new Set(outstanding.map((item) => String(item.row.id)));
 		const open = held.loan_catalog_entry_repayment.rows
 			.filter((row) => loanIds.has(String(row.loan_id)) && row.payroll_run_id == null)
-			.map((row) => ({ target: row.id }));
+			.map((row) => ({ target: { id: row.id, revision: row.revision } }));
 		if (open.length === 0) return;
-		const cleared = await run(bolt.act('loan_catalog_entry_repayment.delete', open));
+		const cleared = await run(ctx.act({ 'loan_catalog_entry_repayment.delete': open }));
 		if (cleared.kind !== 'committed')
 			throw new Error('The open loan schedule could not be cleared.');
 	}
 	async function catalogCodes(outstanding: Awaited<ReturnType<typeof readLoans>>['outstanding']) {
 		const ids = [...new Set(outstanding.map((item) => item.row.catalog_id as Id<'loan_catalog'>))];
 		if (ids.length === 0) return new Map<string, string>();
-		const { loan_catalog } = await bolt.query({
+		const { loan_catalog } = await ctx.query({
 			loan_catalog: { where: { id: { in: ids } }, fields: ['id', 'code'], limit: 10000 }
 		});
 		return new Map(
@@ -591,23 +596,25 @@
 			decimals: decimals(currentSettings?.currency)
 		});
 		await clearOpenSchedule(position);
-		const nextMonth = addMonths(PlainDate(`${String(day).slice(0, 7)}-01`), 1);
+		const nextMonth = add_months(PlainDate(`${String(day).slice(0, 7)}-01`), 1);
 		for (const item of outstanding) {
 			const share = plan.allocations.find((row) => row.id === String(item.row.id));
 			if (share === undefined) continue;
 			if (share.final > 0) {
 				const settled = await run(
-					bolt.act('loan_catalog_entry_repayment.create', [
-						{
-							entity_id: current.entity_id,
-							employment_id: current.id,
-							loan_id: item.row.id,
-							amount: share.final,
-							paid_on: day,
-							payment_reference:
-								share.remaining > 0 ? `${FINAL_SETTLEMENT} (partial)` : FINAL_SETTLEMENT
-						}
-					])
+					ctx.act({
+						'loan_catalog_entry_repayment.create': [
+							{
+								entity_id: current.entity_id,
+								employment_id: current.id,
+								loan_id: item.row.id,
+								amount: share.final,
+								paid_on: day,
+								payment_reference:
+									share.remaining > 0 ? `${FINAL_SETTLEMENT} (partial)` : FINAL_SETTLEMENT
+							}
+						]
+					})
 				);
 				if (settled.kind !== 'committed')
 					throw new Error('The final loan repayment could not be recorded.');
@@ -618,11 +625,16 @@
 			const end =
 				oldEnd.slice(0, 7) >= String(nextMonth).slice(0, 7)
 					? PlainDate(oldEnd)
-					: addMonths(nextMonth, 11);
+					: add_months(nextMonth, 11);
 			const moved = await run(
-				bolt.act('loan_catalog_entry.update', [
-					{ target: item.row.id, set: { repayment_period: { from: addDays(day, 1), to: end } } }
-				])
+				ctx.act({
+					'loan_catalog_entry.update': [
+						{
+							target: { id: item.row.id, revision: item.row.revision },
+							set: { repayment_period: { from: add_days(day, 1), to: end } }
+						}
+					]
+				})
 			);
 			if (moved.kind !== 'committed')
 				throw new Error('The remaining loan period could not be updated.');
@@ -633,35 +645,36 @@
 				repayments: []
 			}).create;
 			const scheduled = await run(
-				bolt.act(
-					'loan_catalog_entry_repayment.create',
-					schedule.map((row) => ({
+				ctx.act({
+					'loan_catalog_entry_repayment.create': schedule.map((row) => ({
 						entity_id: current.entity_id,
 						employment_id: current.id,
 						loan_id: item.row.id,
 						amount: row.amount,
 						paid_on: PlainDate(row.paid_on)
 					}))
-				)
+				})
 			);
 			if (scheduled.kind !== 'committed')
 				throw new Error('The remaining loan schedule could not be created.');
 		}
 		if (plan.remaining <= 0) return;
 		const task = await run(
-			bolt.act('obligation.create', [
-				{
-					entity_id: current.entity_id,
-					employee_id: current.employee_id,
-					employment_id: current.id,
-					title: t('contract.loan_recovery_task', {
-						number: current.employee_number ?? '',
-						amount: plan.remaining
-					}),
-					due_on: nextMonth,
-					occurrence_key: `LOAN_RECOVERY:${current.id}:exit:${day}`
-				}
-			])
+			ctx.act({
+				'obligation.create': [
+					{
+						entity_id: current.entity_id,
+						employee_id: current.employee_id,
+						employment_id: current.id,
+						title: t('contract.loan_recovery_task', {
+							number: current.employee_number ?? '',
+							amount: plan.remaining
+						}),
+						due_on: nextMonth,
+						occurrence_key: `LOAN_RECOVERY:${current.id}:exit:${day}`
+					}
+				]
+			})
 		);
 		if (task.kind !== 'committed') throw new Error('The loan recovery task could not be raised.');
 	}
@@ -680,13 +693,12 @@
 		if (outstanding.length === 0) return;
 		if (carry) {
 			const moved = await run(
-				bolt.act(
-					'loan_catalog_entry.update',
-					outstanding.map((item) => ({
-						target: item.row.id,
+				ctx.act({
+					'loan_catalog_entry.update': outstanding.map((item) => ({
+						target: { id: item.row.id, revision: item.row.revision },
 						set: { entity_id: target.entityId, employment_id: target.id }
 					}))
-				)
+				})
 			);
 			if (moved.kind !== 'committed')
 				throw new Error('The carried loan could not be moved to the replacement contract.');
@@ -694,11 +706,11 @@
 			const open = held.loan_catalog_entry_repayment.rows
 				.filter((row) => loanIds.has(String(row.loan_id)) && row.payroll_run_id == null)
 				.map((row) => ({
-					target: row.id,
+					target: { id: row.id, revision: row.revision },
 					set: { entity_id: target.entityId, employment_id: target.id }
 				}));
 			if (open.length > 0) {
-				const movedSchedule = await run(bolt.act('loan_catalog_entry_repayment.update', open));
+				const movedSchedule = await run(ctx.act({ 'loan_catalog_entry_repayment.update': open }));
 				if (movedSchedule.kind !== 'committed')
 					throw new Error(
 						'The carried loan schedule could not be moved to the replacement contract.'
@@ -709,7 +721,7 @@
 		await clearOpenSchedule(position);
 		const oldCodes = await catalogCodes(outstanding);
 		const targetCatalogs = (
-			await bolt.query({
+			await ctx.query({
 				loan_catalog: {
 					where: { settings_id: { eq: target.settingsId } },
 					fields: ['id', 'code'],
@@ -733,16 +745,18 @@
 			if (disposition === 'CARRY') continue;
 			if (disposition === 'SETTLE') {
 				const settled = await run(
-					bolt.act('loan_catalog_entry_repayment.create', [
-						{
-							entity_id: current.entity_id,
-							employment_id: current.id,
-							loan_id: item.row.id,
-							amount: item.amount,
-							paid_on: day,
-							payment_reference: 'Transfer settlement'
-						}
-					])
+					ctx.act({
+						'loan_catalog_entry_repayment.create': [
+							{
+								entity_id: current.entity_id,
+								employment_id: current.id,
+								loan_id: item.row.id,
+								amount: item.amount,
+								paid_on: day,
+								payment_reference: 'Transfer settlement'
+							}
+						]
+					})
 				);
 				if (settled.kind !== 'committed')
 					throw new Error('The outstanding loan could not be settled.');
@@ -751,27 +765,31 @@
 			if (targetCatalogId === undefined)
 				throw new Error('The target jurisdiction has no matching loan catalogue.');
 			const period = item.row.repayment_period;
-			const start = addDays(day, 1);
+			const start = add_days(day, 1);
 			const oldEnd =
 				period !== null && typeof period === 'object' && !Array.isArray(period)
 					? String(Reflect.get(period, 'to') ?? '')
 					: '';
 			const end =
-				oldEnd !== '' && oldEnd > String(start) ? PlainDate(oldEnd) : addMonths(start, 12);
+				oldEnd !== '' && oldEnd > String(start) ? PlainDate(oldEnd) : add_months(start, 12);
 			const created = await run(
-				bolt.act('loan_catalog_entry.create', [
-					{
-						entity_id: target.entityId,
-						employment_id: target.id,
-						catalog_id: targetCatalogId,
-						quantity: item.amount,
-						repayment_period: { from: start, to: end }
-					}
-				])
+				ctx.act({
+					'loan_catalog_entry.create': [
+						{
+							entity_id: target.entityId,
+							employment_id: target.id,
+							catalog_id: targetCatalogId,
+							quantity: item.amount,
+							repayment_period: { from: start, to: end }
+						}
+					]
+				})
 			);
 			if (created.kind !== 'committed')
 				throw new Error('The replacement loan could not be created.');
-			const newLoanId = created.records.find((row) => row.model === 'loan_catalog_entry')?.id;
+			const newLoanId = created.records.flatMap((row) =>
+				row.model === 'loan_catalog_entry' ? [row.id] : []
+			)[0];
 			if (newLoanId === undefined) throw new Error('The replacement loan has no id.');
 			const months = Math.max(
 				1,
@@ -790,9 +808,9 @@
 				loan_id: newLoanId,
 				amount:
 					index === months - 1 ? Math.round((item.amount - base * (months - 1)) * 100) / 100 : base,
-				paid_on: addMonths(start, index)
+				paid_on: add_months(start, index)
 			}));
-			const scheduled = await run(bolt.act('loan_catalog_entry_repayment.create', schedule));
+			const scheduled = await run(ctx.act({ 'loan_catalog_entry_repayment.create': schedule }));
 			if (scheduled.kind !== 'committed')
 				throw new Error('The replacement loan schedule could not be created.');
 		}
@@ -810,25 +828,28 @@
 			if (kind === 'TERMINATE') {
 				await recoverLoans(current, day);
 				const outcome = await run(
-					bolt.act('employee_contract.update', [
-						{
-							target: current.id,
-							set: {
-								effective_range: { from: current.effective_range.from, to: day },
-								reason: changeNote,
-								...(finalPayDueOn === null ? {} : { final_pay_due_on: finalPayDueOn }),
-								...(exitGround === null ? {} : { exit_ground: exitGround }),
-								// the exit answers the jurisdiction reads (a termination cause) go in the save that ends it
-								...(extensionEdits === null ? {} : { employee_extension_data: extensionEdits })
+					ctx.act({
+						'employee_contract.update': [
+							{
+								target: { id: current.id, revision: current.revision },
+								set: {
+									effective_range: { from: current.effective_range.from, to: day },
+									reason: changeNote,
+									...(finalPayDueOn === null ? {} : { final_pay_due_on: finalPayDueOn }),
+									...(exitGround === null ? {} : { exit_ground: exitGround }),
+									encash_leave: encashLeave,
+									// the exit answers the jurisdiction reads (a termination cause) go in the save that ends it
+									...(extensionEdits === null ? {} : { employee_extension_data: extensionEdits })
+								}
 							}
-						}
-					])
+						]
+					})
 				);
-				notifyOutcome(bolt, outcome);
+				notify_outcome(ctx, outcome);
 				if (outcome.kind === 'committed') {
 					changeSaving = false;
 					closeChange();
-					openRecord('employee_contract', current.id);
+					open_record('employee_contract', current.id);
 				}
 				return;
 			}
@@ -868,9 +889,8 @@
 			const startsOn = nextDay ?? day;
 			if (kind !== 'TRANSFER' && startsOn > today) {
 				const filed = await run(
-					bolt.act(
-						'contract_change.create',
-						[
+					ctx.act({
+						'contract_change.create': [
 							...changesBetween(current.engagement, engagement, 'engagement'),
 							...changesBetween(current.terms, terms, 'terms'),
 							...(kind === 'LIFE_EVENT'
@@ -890,57 +910,65 @@
 							effective_from: startsOn,
 							notes: `${label}${changeNote === '' ? '' : ` · ${changeNote}`}`
 						}))
-					)
+					})
 				);
-				notifyOutcome(bolt, filed);
+				notify_outcome(ctx, filed);
 				if (filed.kind === 'committed') {
 					changeSaving = false;
 					closeChange();
 				}
 				return;
 			}
+			// a version that starts in a paid period amends it: HR is asked first, as on an entry
+			if (paid.covers(String(nextDay ?? day)) && !(await run(confirm_action(PAID_QUESTION))))
+				return;
 			const created = await run(
-				bolt.act('employee_contract.create', [
-					{
-						employee_id: current.employee_id,
-						entity_id: targetEntity ?? current.entity_id,
-						// the same company keeps its pay group; another company's is its only one, or HR's choice before sealing
-						...((targetEntity ?? current.entity_id) === current.entity_id &&
-						current.pay_group_id != null
-							? { pay_group_id: current.pay_group_id }
-							: {}),
-						engagement,
-						employee_number: current.employee_number,
-						terms,
-						payroll: current.payroll,
-						bank: current.bank,
-						employee_extension_data:
-							(transferring || kind === 'LIFE_EVENT') && targetExtensionSchema !== null
-								? targetExtension
-								: current.employee_extension_data,
-						// the person's dated facts move with them inside one jurisdiction
-						...(kind === 'LIFE_EVENT'
-							? { events: targetEvents }
-							: sameJurisdiction && current.events != null
-								? { events: current.events }
+				ctx.act({
+					'employee_contract.create': [
+						{
+							employee_id: current.employee_id,
+							entity_id: targetEntity ?? current.entity_id,
+							// the same company keeps its pay group; another company's is its only one, or HR's choice before sealing
+							...((targetEntity ?? current.entity_id) === current.entity_id &&
+							current.pay_group_id != null
+								? { pay_group_id: current.pay_group_id }
 								: {}),
-						// the family is the person's, whatever the jurisdiction
-						family: targetFamily,
-						signed_contract_period: current.signed_contract_period,
-						// credited service stays with the stint; worked-out service needs no copy
-						service_started_on: sameJurisdiction ? (current.service_started_on ?? null) : null,
-						effective_range: { from: nextDay ?? day, to: null },
-						reason: `${label}${changeNote === '' ? '' : ` · ${changeNote}`}`,
-						status: 'DRAFT'
-					}
-				])
+							engagement,
+							employee_number: current.employee_number,
+							terms,
+							payroll: current.payroll,
+							bank: current.bank,
+							employee_extension_data:
+								(transferring || kind === 'LIFE_EVENT') && targetExtensionSchema !== null
+									? targetExtension
+									: current.employee_extension_data,
+							// the person's dated facts move with them inside one jurisdiction
+							...(kind === 'LIFE_EVENT'
+								? { events: targetEvents }
+								: sameJurisdiction && current.events != null
+									? { events: current.events }
+									: {}),
+							// the family is the person's, whatever the jurisdiction
+							family: targetFamily,
+							signed_contract_period: current.signed_contract_period,
+							// credited service stays with the stint; worked-out service needs no copy
+							service_started_on: sameJurisdiction ? (current.service_started_on ?? null) : null,
+							effective_range: { from: nextDay ?? day, to: null },
+							reason: `${label}${changeNote === '' ? '' : ` · ${changeNote}`}`,
+							status: 'DRAFT'
+						}
+					]
+				})
 			);
 			if (created.kind !== 'committed') {
-				notifyOutcome(bolt, created);
+				notify_outcome(ctx, created);
 				return;
 			}
-			const createdId = created.records.find((row) => row.model === 'employee_contract')?.id;
-			if (createdId === undefined) throw new Error('The replacement draft was not created.');
+			const draft = created.records.flatMap((row) =>
+				row.model === 'employee_contract' ? [row] : []
+			)[0];
+			if (draft === undefined) throw new Error('The replacement draft was not created.');
+			const createdId = draft.id;
 			await transferOrSettleLoans(
 				current,
 				{
@@ -952,28 +980,34 @@
 				sameJurisdiction
 			);
 			const ended = await run(
-				bolt.act('employee_contract.update', [
-					{
-						target: current.id,
-						set: {
-							effective_range: { from: current.effective_range.from, to: day },
-							reason: `${label}${changeNote === '' ? '' : ` · ${changeNote}`}`
+				ctx.act({
+					'employee_contract.update': [
+						{
+							target: { id: current.id, revision: current.revision },
+							set: {
+								effective_range: { from: current.effective_range.from, to: day },
+								reason: `${label}${changeNote === '' ? '' : ` · ${changeNote}`}`
+							}
 						}
-					}
-				])
+					]
+				})
 			);
 			if (ended.kind !== 'committed') {
-				notifyOutcome(bolt, ended);
+				notify_outcome(ctx, ended);
 				return;
 			}
 			const sealed = await run(
-				bolt.act('employee_contract.update', [{ target: createdId, set: { status: 'SEALED' } }])
+				ctx.act({
+					'employee_contract.update': [
+						{ target: { id: draft.id, revision: draft.revision }, set: { status: 'SEALED' } }
+					]
+				})
 			);
-			notifyOutcome(bolt, sealed);
+			notify_outcome(ctx, sealed);
 			if (sealed.kind === 'committed') {
 				changeSaving = false;
 				closeChange();
-				openRecord('employee_contract', createdId);
+				open_record('employee_contract', createdId);
 			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : t('component.error');
@@ -983,15 +1017,60 @@
 			changeSaving = false;
 		}
 	}
+	/** HR's decision on an ended contract, changed where it stands: a paid last period is amended and the next run carries it. */
+	function flipEncash() {
+		if (record === null || changeSaving) return;
+		changeSaving = true;
+		const flipped = ctx.act({
+			'employee_contract.update': [
+				{
+					target: { id: record.id, revision: record.revision },
+					set: { encash_leave: record.encash_leave === false }
+				}
+			]
+		});
+		fork(
+			(paid.covers(String(record.effective_range.to ?? ''))
+				? confirm_action(PAID_QUESTION)
+				: Effect.succeed(true)
+			).pipe(
+				Effect.flatMap((proceed) => (proceed ? flipped : Effect.succeed(null))),
+				Effect.tap((outcome) =>
+					Effect.sync(() => {
+						if (outcome !== null) notify_outcome(ctx, outcome);
+					})
+				),
+				Effect.catch((error) =>
+					Effect.sync(() =>
+						toast.error(error instanceof Error ? error.message : t('component.error'))
+					)
+				),
+				Effect.ensuring(Effect.sync(() => (changeSaving = false)))
+			)
+		);
+	}
 	function sealContract() {
 		if (record === null || changeSaving) return;
 		changeSaving = true;
+		const sealing = ctx.act({
+			'employee_contract.update': [
+				{ target: { id: record.id, revision: record.revision }, set: { status: 'SEALED' } }
+			]
+		});
 		fork(
-			bolt.act('employee_contract.update', [{ target: record.id, set: { status: 'SEALED' } }]).pipe(
-				Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+			(paid.covers(String(record.effective_range.from))
+				? confirm_action(PAID_QUESTION)
+				: Effect.succeed(true)
+			).pipe(
+				Effect.flatMap((proceed) => (proceed ? sealing : Effect.succeed(null))),
 				Effect.tap((outcome) =>
 					Effect.sync(() => {
-						if (outcome.kind === 'committed') openRecord('employee_contract', record.id);
+						if (outcome !== null) notify_outcome(ctx, outcome);
+					})
+				),
+				Effect.tap((outcome) =>
+					Effect.sync(() => {
+						if (outcome?.kind === 'committed') open_record('employee_contract', record.id);
 					})
 				),
 				Effect.catch((error) =>
@@ -1010,18 +1089,23 @@
 	function voidContract() {
 		if (record === null || voidSaving || voidReason.trim() === '') return;
 		const id = record.id;
+		const revision = record.revision;
 		const note = voidReason.trim();
 		voidSaving = true;
 		fork(
-			bolt
-				.act('employee_contract.update', [{ target: id, set: { status: 'VOID', reason: note } }])
+			ctx
+				.act({
+					'employee_contract.update': [
+						{ target: { id, revision }, set: { status: 'VOID', reason: note } }
+					]
+				})
 				.pipe(
-					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+					Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
 					Effect.tap((outcome) =>
 						Effect.sync(() => {
 							if (outcome.kind !== 'committed') return;
 							voiding = false;
-							openRecord('employee_contract', id);
+							open_record('employee_contract', id);
 						})
 					),
 					Effect.catch((error) =>
@@ -1057,6 +1141,7 @@
 
 {#snippet details()}
 	<Form
+		{ctx}
 		of="employee_contract"
 		mode={view.mode === 'create' ? 'create' : 'update'}
 		{...record === null
@@ -1065,6 +1150,7 @@
 	>
 		{#snippet children()}<Columns count={2}
 				>{#each ['entity_id', 'pay_group_id', 'employee_id', 'engagement', 'effective_range', 'terms', 'payroll', 'employee_extension_data', 'events', 'family', 'bank', 'signed_contract_period', 'final_pay_due_on', 'reason'] as name (name)}<Field
+						{ctx}
 						{name}
 						{...name === 'employee_extension_data'
 							? { editor: extension }
@@ -1087,13 +1173,14 @@
 						: t('contract.target_extension')}</span
 			>
 			<Editor
+				{ctx}
 				id="contract-target-extension"
 				name="employee_extension_data"
 				kind={{ kind: 'json' }}
-				jsonSchema={targetExtensionSchema}
+				json_schema={targetExtensionSchema}
 				value={targetExtension}
 				disabled={changeSaving}
-				onChange={(next) => (extensionEdits = isJsonObject(next) ? next : null)}
+				on_change={(next) => (extensionEdits = isJsonObject(next) ? next : null)}
 			/>
 		</div>
 	{:else}
@@ -1119,13 +1206,22 @@
 				>{t('contract.terminate')}</Button
 			>
 		{:else if record.status === 'SEALED'}
+			<Button variant="outline" disabled={changeSaving} onclick={flipEncash}
+				>{record.encash_leave === false
+					? t('contract.encash_leave_on')
+					: t('contract.encash_leave_off')}</Button
+			>
 			<Button variant="destructive" onclick={beginVoid}>{t('contract.void')}</Button>
 		{/if}
 	{/if}
 {/snippet}
 
 {#if record !== null}
-	<Sheet open={action !== null} onOpenChange={(open) => !open && closeChange()} title={actionTitle}>
+	<Sheet
+		open={action !== null}
+		on_open_change={(open) => !open && closeChange()}
+		title={actionTitle}
+	>
 		<Stack gap="md">
 			{#if changeError !== null}
 				<p class="text-sm text-destructive">{changeError}</p>
@@ -1149,7 +1245,7 @@
 							value={nextDay}
 							disabled={changeSaving}
 							aria-label={t('contract.takes_effect')}
-							onChange={(next) => (lastDay = next === null ? null : addDays(PlainDate(next), -1))}
+							on_change={(next) => (lastDay = next === null ? null : add_days(PlainDate(next), -1))}
 						/>
 					</label>
 				{:else}
@@ -1158,12 +1254,13 @@
 							>{t('contract.last_working_day')}</span
 						>
 						<Editor
+							{ctx}
 							id="contract-change-last-day"
 							name="last_day"
 							kind={{ kind: 'date' }}
 							value={lastDay}
 							disabled={changeSaving}
-							onChange={(next) => (lastDay = next == null ? null : PlainDate(String(next)))}
+							on_change={(next) => (lastDay = next == null ? null : PlainDate(String(next)))}
 						/>
 					</label>
 				{/if}
@@ -1180,7 +1277,7 @@
 							options={entityOptions}
 							value={targetEntity}
 							disabled={changeSaving}
-							onChange={chooseEntity}
+							on_change={chooseEntity}
 						/>
 					</label>
 				{/if}
@@ -1188,23 +1285,25 @@
 					<div class="grid gap-1">
 						<span class="text-xs font-medium text-muted-foreground">{t('contract.events')}</span>
 						<Editor
+							{ctx}
 							id="contract-events"
 							name="events"
 							kind={EVENTS}
 							value={targetEvents}
 							disabled={changeSaving}
-							onChange={(next) => (eventsEdit = next)}
+							on_change={(next) => (eventsEdit = next)}
 						/>
 					</div>
 					<div class="grid gap-1">
 						<span class="text-xs font-medium text-muted-foreground">{t('contract.family')}</span>
 						<Editor
+							{ctx}
 							id="contract-family"
 							name="family"
 							kind={FAMILY}
 							value={targetFamily}
 							disabled={changeSaving}
-							onChange={(next) => (familyEdit = next)}
+							on_change={(next) => (familyEdit = next)}
 						/>
 					</div>
 					{@render targetFacts()}
@@ -1214,35 +1313,38 @@
 							>{t('contract.next_job_title')}</span
 						>
 						<Editor
+							{ctx}
 							id="contract-change-title"
 							name="job_title"
 							kind={{ kind: 'text' }}
 							value={jobTitle}
 							disabled={changeSaving}
-							onChange={(next) => (jobTitle = next == null ? '' : String(next))}
+							on_change={(next) => (jobTitle = next == null ? '' : String(next))}
 						/>
 					</label>
 					<label class="grid gap-1" for="contract-change-department">
 						<span class="text-xs font-medium text-muted-foreground">{t('contract.department')}</span
 						>
 						<Editor
+							{ctx}
 							id="contract-change-department"
 							name="department"
 							kind={{ kind: 'text' }}
 							value={department}
 							disabled={changeSaving}
-							onChange={(next) => (department = next == null ? '' : String(next))}
+							on_change={(next) => (department = next == null ? '' : String(next))}
 						/>
 					</label>
 					<label class="grid gap-1" for="contract-change-salary">
 						<span class="text-xs font-medium text-muted-foreground">{t('contract.salary')}</span>
 						<Editor
+							{ctx}
 							id="contract-change-salary"
 							name="salary"
 							kind={{ kind: 'number', min: 0 }}
 							value={salaryAmount}
 							disabled={changeSaving}
-							onChange={(next) => (salaryAmount = typeof next === 'number' ? next : null)}
+							on_change={(next) => (salaryAmount = typeof next === 'number' ? next : null)}
 						/>
 					</label>
 					<label class="grid gap-1" for="contract-change-unit">
@@ -1258,7 +1360,7 @@
 							]}
 							value={salaryUnit}
 							disabled={changeSaving}
-							onChange={(next) => (salaryUnit = (next ?? 'MONTHLY') as SalaryUnit)}
+							on_change={(next) => (salaryUnit = (next ?? 'MONTHLY') as SalaryUnit)}
 						/>
 					</label>
 					<label class="grid gap-1" for="contract-change-engagement">
@@ -1276,7 +1378,7 @@
 							]}
 							value={engagement}
 							disabled={changeSaving}
-							onChange={(next) => (engagement = (next ?? 'EMPLOYEE') as Engagement)}
+							on_change={(next) => (engagement = (next ?? 'EMPLOYEE') as Engagement)}
 						/>
 					</label>
 				{/if}
@@ -1286,12 +1388,13 @@
 							<span class="text-xs font-medium text-muted-foreground">{field.label}</span>
 							{#if field.values === undefined}
 								<Editor
+									{ctx}
 									id="contract-{field.name}"
 									name={field.name}
 									kind={{ kind: 'text' }}
 									value={field.value}
 									disabled={changeSaving}
-									onChange={(next) =>
+									on_change={(next) =>
 										(categoryEdits = { ...categoryEdits, [field.name]: String(next ?? '') })}
 								/>
 							{:else}
@@ -1300,7 +1403,7 @@
 									options={field.values.map((value) => ({ value, label: value }))}
 									value={field.value === '' ? null : field.value}
 									disabled={changeSaving}
-									onChange={(next) =>
+									on_change={(next) =>
 										(categoryEdits = { ...categoryEdits, [field.name]: String(next ?? '') })}
 								/>
 							{/if}
@@ -1311,12 +1414,13 @@
 				{#if loanTotal > 0 && action !== 'TERMINATE' && !sameJurisdiction}
 					<label class="flex items-center gap-2 text-sm" for="contract-settle-loans">
 						<Editor
+							{ctx}
 							id="contract-settle-loans"
 							name="settle_loans"
 							kind={{ kind: 'bool' }}
 							value={settleLoans}
 							disabled={changeSaving}
-							onChange={(next) => (settleLoans = next === true)}
+							on_change={(next) => (settleLoans = next === true)}
 						/>
 						<span>{t('contract.settle_loan')}</span>
 					</label>
@@ -1338,12 +1442,13 @@
 								>{t('contract.expected_final_pay')}</span
 							>
 							<Editor
+								{ctx}
 								id="contract-expected-pay"
 								name="expected_final_pay"
 								kind={{ kind: 'number', min: 0 }}
 								value={expectedPay}
 								disabled={changeSaving}
-								onChange={(next) => (expectedPayEdit = typeof next === 'number' ? next : null)}
+								on_change={(next) => (expectedPayEdit = typeof next === 'number' ? next : null)}
 							/>
 							<span class="text-xs text-muted-foreground">{recoveryBasis}</span>
 						</label>
@@ -1371,13 +1476,28 @@
 							>{t('contract.exit_ground')}</span
 						>
 						<Editor
+							{ctx}
 							id="contract-exit-ground"
 							name="exit_ground"
 							kind={EXIT_GROUND}
 							value={exitGround}
 							disabled={changeSaving}
-							onChange={(next) =>
+							on_change={(next) =>
 								(exitGround = EXIT_GROUNDS.find((ground) => ground === next) ?? null)}
+						/>
+					</label>
+					<label class="grid gap-1" for="contract-encash-leave">
+						<span class="text-xs font-medium text-muted-foreground"
+							>{t('contract.encash_leave')}</span
+						>
+						<Editor
+							{ctx}
+							id="contract-encash-leave"
+							name="encash_leave"
+							kind={{ kind: 'bool' }}
+							value={encashLeave}
+							disabled={changeSaving}
+							on_change={(next) => (encashLeave = next === true)}
 						/>
 					</label>
 					{@render targetFacts()}
@@ -1386,24 +1506,26 @@
 							>{t('contract.final_pay_due')}</span
 						>
 						<Editor
+							{ctx}
 							id="contract-final-pay-due"
 							name="final_pay_due_on"
 							kind={{ kind: 'date' }}
 							value={finalPayDueOn}
 							disabled={changeSaving}
-							onChange={(next) => (finalPayDueOn = next == null ? null : PlainDate(String(next)))}
+							on_change={(next) => (finalPayDueOn = next == null ? null : PlainDate(String(next)))}
 						/>
 					</label>
 				{/if}
 				<label class="grid gap-1" for="contract-change-note">
 					<span class="text-xs font-medium text-muted-foreground">{t('contract.reason')}</span>
 					<Editor
+						{ctx}
 						id="contract-change-note"
 						name="reason"
 						kind={{ kind: 'text' }}
 						value={note}
 						disabled={changeSaving}
-						onChange={(next) => (note = next == null ? '' : String(next))}
+						on_change={(next) => (note = next == null ? '' : String(next))}
 					/>
 				</label>
 				<Cluster gap="sm" justify="end">
@@ -1421,7 +1543,9 @@
 					{#if action === 'TERMINATE'}
 						<p class="text-sm">{t('contract.reason')}: {note}</p>
 						<p class="text-sm text-muted-foreground">
-							{t('contract.leave_encash_preview', { days: leaveDays })}
+							{encashLeave
+								? t('contract.leave_encash_preview', { days: leaveDays })
+								: t('contract.leave_not_encashed')}
 						</p>
 					{:else}
 						<p class="text-sm">
@@ -1489,11 +1613,12 @@
 {/if}
 
 <RecordShell
+	{ctx}
 	of="employee_contract"
 	mode={view.mode}
 	badge={stateBadge}
 	lock={record !== null && record.status !== 'DRAFT' ? t('contract.read_only') : undefined}
-	footerActions={contractActions}
+	footer_actions={contractActions}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	{@render details()}

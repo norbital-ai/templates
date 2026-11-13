@@ -1,20 +1,23 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Field, Form, RecordShell, Section, type RecordView } from '@norbital-ai/ui';
 	import { Columns, Stack } from '@norbital-ai/ui/layout';
 	import CodeField from '../../../../../../lib/ui/settings/code_field.svelte';
 
-	let { view }: { view: RecordView<'workplace_case_catalog'> } = $props();
+	let { view, ctx }: { view: RecordView<'workplace_case_catalog'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 </script>
 
 <RecordShell
+	{ctx}
 	of="workplace_case_catalog"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	<Form
+		{ctx}
 		of="workplace_case_catalog"
-		mode={view.mode === 'create' ? 'create' : 'update'}
+		mode={view.mode}
 		{...record === null
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}
@@ -28,8 +31,8 @@
 					hint="The case type, its identity and what it does."
 					first
 				>
-					<Field name="code" />
-					<Field name="description" />
+					<Field {ctx} name="code" />
+					<Field {ctx} name="description" />
 				</Section>
 				<Section
 					name="configuration"
@@ -38,9 +41,9 @@
 					hint="Events, lookup values and source references used by the workflow."
 				>
 					<Columns count={2} gap="md">
-						<Field name="events" />
-						<Field name="lookup" />
-						<Field name="references" />
+						<Field {ctx} name="events" />
+						<Field {ctx} name="lookup" />
+						<Field {ctx} name="references" />
 					</Columns>
 				</Section>
 				<Section
@@ -48,10 +51,10 @@
 					title="Posting"
 					icon="lucide:arrow-down-up"
 					hint="The subtotal that receives a priced case outcome, where one exists."
-					defaultOpen={false}
+					default_open={false}
 				>
 					<Columns count={2} gap="md">
-						<Field name="subtotal_id" />
+						<Field {ctx} name="subtotal_id" />
 					</Columns>
 				</Section>
 			</Stack>

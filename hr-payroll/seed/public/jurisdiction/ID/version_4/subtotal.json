@@ -1,0 +1,73 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic pay",
+		"previous_id": null,
+		"id": "c4c47414-b948-5f00-87ab-951bfe5161d0",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "d90efab8-29ea-59c8-84f9-caca68eb901e",
+		"previous_id": "c4c47414-b948-5f00-87ab-951bfe5161d0",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "3f60e23e-9d67-5130-a322-8bd10287ccfe",
+		"previous_id": "d90efab8-29ea-59c8-84f9-caca68eb901e",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages",
+		"previous_id": "3f60e23e-9d67-5130-a322-8bd10287ccfe",
+		"id": "e52fe56f-1c3c-5b50-a989-6560f87546ca",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Ordinary and additional wages",
+		"previous_id": "e52fe56f-1c3c-5b50-a989-6560f87546ca",
+		"id": "9745be76-ec58-584c-9d96-5245b6d8750a",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "SEVERANCE",
+		"name": "Wages and severance",
+		"previous_id": "9745be76-ec58-584c-9d96-5245b6d8750a",
+		"id": "1c858e5a-0962-5b3c-8845-dba2c0fcdb3d",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "PENSION_BENEFIT",
+		"name": "Wages, severance and pension benefit",
+		"previous_id": "1c858e5a-0962-5b3c-8845-dba2c0fcdb3d",
+		"id": "7ca4a8d8-1c06-5c51-82b5-afa871fffca7",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings",
+		"previous_id": "7ca4a8d8-1c06-5c51-82b5-afa871fffca7",
+		"id": "a1cb5d39-2a6a-535a-8ed0-0dc05ae1356e",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay",
+		"previous_id": "a1cb5d39-2a6a-535a-8ed0-0dc05ae1356e",
+		"id": "536dab59-7baa-5010-8150-81d2987975e1",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"balance_window": "YEAR"
+	}
+]

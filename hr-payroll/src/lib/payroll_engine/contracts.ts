@@ -15,8 +15,16 @@ export interface Period {
 export const Lookup = Schema.Record(Schema.String, Schema.Json);
 export type Lookup = typeof Lookup.Type;
 /** Constants belong to their expression owner; no inherited or merged lookup. */
-export const lookupOf = (owner: { readonly lookup?: unknown }): Lookup =>
-	Schema.decodeUnknownSync(Lookup)(owner.lookup ?? {});
+const lookups = new WeakMap<object, Lookup>();
+export const lookupOf = (owner: { readonly lookup?: unknown }): Lookup => {
+	const raw = owner.lookup;
+	// a row's lookup is decoded once, not once for every person it prices
+	const held = typeof raw === 'object' && raw !== null ? lookups.get(raw) : undefined;
+	if (held !== undefined) return held;
+	const decoded = Schema.decodeUnknownSync(Lookup)(raw ?? {});
+	if (typeof raw === 'object' && raw !== null) lookups.set(raw, decoded);
+	return decoded;
+};
 
 const Rounding = Schema.Struct({
 	mode: Schema.Literals(['HALF_UP', 'HALF_EVEN', 'UP', 'DOWN', 'TRUNCATE']),
@@ -43,7 +51,7 @@ const CALCULATION_ROOTS = [
 	'subtotals',
 	'overtime',
 	'statutory',
-	'corrections',
+	'posted',
 	'encashment',
 	'allowance',
 	'run',
@@ -84,7 +92,15 @@ export const PHASE_ROOTS: Readonly<Record<Phase, readonly string[]>> = {
  * The constants one settings row gives an expression: its shared rate tables plus the typed conversions under the names
  * the stored formulas already use. `ctx.lookup` is this view.
  */
+const constantsOf = new WeakMap<object, Lookup>();
 export const settingsConstants = (settings: JsonObject): Lookup => {
+	const held = constantsOf.get(settings);
+	if (held !== undefined) return held;
+	const view = settingsView(settings);
+	constantsOf.set(settings, view);
+	return view;
+};
+const settingsView = (settings: JsonObject): Lookup => {
 	const lookup = lookupOf(settings);
 	const constants = isPlainObject(lookup.constants) ? lookup.constants : {};
 	const conversions = isPlainObject(settings.conversions) ? settings.conversions : {};
@@ -100,6 +116,7 @@ export const settingsConstants = (settings: JsonObject): Lookup => {
 		proration_basis: conversions.proration ?? null,
 		rounding: rounding.mode ?? 'HALF_UP',
 		rounding_scale: typeof rounding.scale === 'number' ? rounding.scale : 2,
+		day_rate_rounding: rounding.day_rate === 'AMOUNT' ? 'AMOUNT' : 'RATE',
 		ytd_scope: ledger.ytd_scope === 'EMPLOYER' ? 'EMPLOYER' : 'JURISDICTION'
 	};
 };

@@ -1,6 +1,6 @@
 import { app } from '@norbital-ai/bolt';
 
-export default app('hr_controller/obligations', {
+export default app({
 	title: 'app.obligations.title',
 	description: 'app.obligations.description',
 	icon: 'lucide:clipboard-check',

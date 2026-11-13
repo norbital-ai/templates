@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
 	import type { Value } from '@norbital-ai/std/kind';
-	import { formatValue, RecordShell, type RecordView } from '@norbital-ai/ui';
+	import { format_value, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import {
 		emptyPayslipBreakdown,
 		PayslipBreakdown
 	} from '../../../../lib/payroll_engine/payslip_breakdown.js';
 
-	let { view }: { view: RecordView<'payslip'> } = $props();
+	let { view, ctx }: { view: RecordView<'payslip'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const breakdown = $derived.by(() => {
 		if (record === null) return emptyPayslipBreakdown;
@@ -35,16 +35,28 @@
 	const money = (value: Value | undefined) => {
 		const number = numberValue(value);
 		return number === null
-			? formatValue(value, bolt.locale)
-			: new Intl.NumberFormat(bolt.locale, { maximumFractionDigits: 2 }).format(number);
+			? format_value(value, ctx.locale)
+			: new Intl.NumberFormat(ctx.locale, { maximumFractionDigits: 2 }).format(number);
 	};
+	// the period's own lines; what the payslip carries for earlier periods is shown apart, by the period it belongs to
+	const own = $derived(breakdown.lines.filter((line) => line.period === undefined));
 	const earnings = $derived(
-		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'ADD')
+		own.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'ADD')
 	);
 	const deductions = $derived(
-		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'DEDUCT')
+		own.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'DEDUCT')
 	);
-	const employer = $derived(breakdown.lines.filter((line) => line.party === 'EMPLOYER'));
+	const employer = $derived(own.filter((line) => line.party === 'EMPLOYER'));
+	const adjustments = $derived(
+		[
+			...Map.groupBy(
+				breakdown.lines.filter((line) => line.period !== undefined),
+				(line) => String(line.period)
+			)
+		].toSorted(([one], [other]) => one.localeCompare(other))
+	);
+	const signedMoney = (line: (typeof breakdown.lines)[number]) =>
+		`${line.direction === 'DEDUCT' ? '−' : '+'} ${money(line.amount)}`;
 
 	// What each line is, in the words of the catalogue row that posted it under the payslip's own law version. An
 	// employee reads five of the seven families; a family the reader cannot see leaves its lines by code.
@@ -60,7 +72,7 @@
 	const entryFamilies = $derived(
 		inLaw === null
 			? null
-			: bolt.query({
+			: ctx.query({
 					allowance_catalog: inLaw,
 					leave_catalog: inLaw,
 					claim_catalog: inLaw,
@@ -71,7 +83,7 @@
 	const lawFamilies = $derived(
 		inLaw === null
 			? null
-			: bolt.query({ overtime_catalog: inLaw, statutory_contribution_catalog: inLaw })
+			: ctx.query({ overtime_catalog: inLaw, statutory_contribution_catalog: inLaw })
 	);
 	const descriptions = $derived(
 		new Map(
@@ -91,7 +103,7 @@
 	const measure = (line: (typeof breakdown.lines)[number]) =>
 		line.quantity === undefined || line.unit === undefined || line.unit === 'MONEY'
 			? ''
-			: `${new Intl.NumberFormat(bolt.locale, { maximumFractionDigits: 4 }).format(line.quantity)} ${line.unit.toLowerCase()}`;
+			: `${new Intl.NumberFormat(ctx.locale, { maximumFractionDigits: 4 }).format(line.quantity)} ${line.unit.toLowerCase()}`;
 </script>
 
 {#snippet list(title: string, lines: typeof breakdown.lines)}
@@ -119,6 +131,7 @@
 		</section>{/if}
 {/snippet}
 <RecordShell
+	{ctx}
 	of="payslip"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
@@ -138,9 +151,32 @@
 					<p class="text-lg font-medium tabular-nums">{money(record.total_deductions)}</p>
 				</div>
 			</section>
-			{@render list(bolt.t('app.payroll.earnings'), earnings)}
-			{@render list(bolt.t('app.payroll.deductions'), deductions)}
-			{@render list(bolt.t('app.payroll.employer_contributions'), employer)}
+			{@render list(ctx.t('app.payroll.earnings'), earnings)}
+			{@render list(ctx.t('app.payroll.deductions'), deductions)}
+			{@render list(ctx.t('app.payroll.employer_contributions'), employer)}
+			{#if adjustments.length > 0}<section>
+					<h3 class="text-xs font-medium text-muted-foreground">
+						{ctx.t('app.payroll.adjustments')}
+					</h3>
+					<p class="mt-1 text-xs text-muted-foreground">{ctx.t('app.payroll.adjustments_help')}</p>
+					{#each adjustments as [period, lines] (period)}
+						<h4 class="mt-3 text-xs font-medium tabular-nums">{period}</h4>
+						<ul class="mt-1 divide-y">
+							{#each lines as line (line.code + line.party)}
+								{@const description = describe(line)}
+								<li class="flex items-start justify-between gap-3 py-1.5 text-sm">
+									<span class="min-w-0">
+										<span class="block">{description ?? line.label}</span>
+										{#if line.party === 'EMPLOYER'}<span class="block text-xs text-muted-foreground"
+												>{ctx.t('app.payroll.adjustment_employer')}</span
+											>{/if}
+									</span>
+									<span class="shrink-0 tabular-nums">{signedMoney(line)}</span>
+								</li>
+							{/each}
+						</ul>
+					{/each}
+				</section>{/if}
 		</div>
 	{/if}
 </RecordShell>

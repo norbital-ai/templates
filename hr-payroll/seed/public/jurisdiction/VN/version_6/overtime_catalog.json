@@ -1,0 +1,141 @@
+[
+	{
+		"code": "OVERTIME",
+		"lookup": {
+			"multiplier": 1.5
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.98(1)(a): an employee who works overtime on a normal day is paid at least 150% of the wage of the normal working hour.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			},
+			{
+				"title": "The roster is the source of truth: a planned shift or overtime pays only when the clock covers it; the run passes each clocked day (day type, holiday kind, worked and overtime hours, clocked intervals) with the hour rate of its own month. The previous expressions read ctx.entry, which an overtime row never has, so they paid nothing."
+			}
+		],
+		"subtotal_id": "a8edc3c0-0d29-5121-9584-1d83e8e986c2",
+		"eligibility": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', ''));",
+		"conversion": "// Labour Code 45/2019/QH14 art.98(1)(a): overtime on a normal working day is paid at least 150% of the normal hour.\n// The roster's clocked overtime hours of each working or off day that is neither a weekly rest day nor a holiday.\nconst holiday = (d) => {\n\tconst kind = get(d, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((d) => !holiday(d) && ['WORK', 'OFF'].includes(get(d, 'day_type', '')))\n\t\t.map((d) => Number(get(d, 'overtime_hours', 0)))\n);\nreturn ctx.hour_rate * hours * ctx.lookup.multiplier;",
+		"direction": "ADD",
+		"id": "60311a01-d932-573f-a91b-4466c5e772bd",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"description": "Clocked overtime hours on a working or off day that is neither a weekly rest day nor a holiday, at 150% of the normal hour (Labour Code art.98(1)(a)). Not prorated; each day at its own hour rate."
+	},
+	{
+		"code": "REST_DAY_OVERTIME",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.98(1)(b): work on a weekly rest day is paid at least 200%; every hour worked on that day is overtime. A public holiday falling on a rest day is paid as a holiday (Decree 145/2020/NĐ-CP art.55(3)). The hourly base is the same as OVERTIME.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			},
+			{
+				"title": "The roster is the source of truth: a planned shift or overtime pays only when the clock covers it; the run passes each clocked day (day type, holiday kind, worked and overtime hours, clocked intervals) with the hour rate of its own month. The previous expressions read ctx.entry, which an overtime row never has, so they paid nothing."
+			}
+		],
+		"subtotal_id": "a8edc3c0-0d29-5121-9584-1d83e8e986c2",
+		"eligibility": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', ''));",
+		"conversion": "// Labour Code 45/2019/QH14 art.98(1)(b); Decree 145/2020/NĐ-CP art.55(1)(b): every hour worked on a weekly rest day is overtime at\n// least 200% of the normal hour; the employer's rest-day hourly multiple stands where it pays more.\nconst holiday = (d) => {\n\tconst kind = get(d, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst multiple = Math.max(\n\tctx.lookup.rest_day_multiple,\n\tNumber(get(ctx.subject.employer, 'pay_methods.rest_day_hourly_multiplier', 0))\n);\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((d) => get(d, 'day_type', '') === 'REST' && !holiday(d))\n\t\t.map((d) => Number(get(d, 'worked_hours', 0)))\n);\nreturn ctx.hour_rate * hours * multiple;",
+		"direction": "ADD",
+		"id": "c245fa72-da37-5167-935d-7aaafd208fa7",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"description": "Every hour worked on a weekly rest day that is not a holiday, at 200% of the normal hour, or the employer's higher rest-day multiple (Labour Code art.98(1)(b)). Not prorated; each day at its own hour rate."
+	},
+	{
+		"code": "HOLIDAY_WORK",
+		"lookup": {
+			"multiplier": 3
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.98(1)(c): work on a public holiday or paid day off is paid at least 300% for each hour worked, excluding the holiday pay a monthly wage already carries; hours banked as time off are not worked hours. The hourly base is the same as OVERTIME.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			},
+			{
+				"title": "The roster is the source of truth: a planned shift or overtime pays only when the clock covers it; the run passes each clocked day (day type, holiday kind, worked and overtime hours, clocked intervals) with the hour rate of its own month. The previous expressions read ctx.entry, which an overtime row never has, so they paid nothing."
+			}
+		],
+		"subtotal_id": "a8edc3c0-0d29-5121-9584-1d83e8e986c2",
+		"eligibility": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', ''));",
+		"conversion": "// Labour Code 45/2019/QH14 art.98(1)(c): every hour worked on a public holiday or paid day off is paid at least 300% of the\n// normal hour, not counting the holiday pay a monthly wage already carries.\nconst holiday = (d) => {\n\tconst kind = get(d, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst hours = sum(get(ctx, 'work.days', []).filter(holiday).map((d) => Number(get(d, 'worked_hours', 0))));\nreturn ctx.hour_rate * hours * ctx.lookup.multiplier;",
+		"direction": "ADD",
+		"id": "dd314a91-8b2e-5783-abab-bb017cd74926",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"description": "Every hour worked on a public holiday or paid day off, at 300% of the normal hour on top of the holiday's own pay (Labour Code art.98(1)(c)). Not prorated; each day at its own hour rate."
+	},
+	{
+		"code": "NIGHT_WORK",
+		"lookup": {
+			"multiplier": 0.3
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 arts.98(2), 106: work between 22:00 and 06:00 is night work and is paid at least 30% above the normal-day hour wage for each night hour, whether the hour is normal or overtime (Decree 145/2020/NĐ-CP art.56(1); art.57 adds the night-overtime supplement). The hourly base is the same as OVERTIME.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			},
+			{
+				"title": "Circular 111/2013/TT-BTC art.3(1)(i) exempts the night-work premium from personal income tax to 2025; Law 109/2025 art.4(8) from 2026. This is a tax treatment of the premium, not a pay rate."
+			},
+			{
+				"title": "The roster is the source of truth: a planned shift or overtime pays only when the clock covers it; the run passes each clocked day (day type, holiday kind, worked and overtime hours, clocked intervals) with the hour rate of its own month. The previous expressions read ctx.entry, which an overtime row never has, so they paid nothing."
+			}
+		],
+		"subtotal_id": "a8edc3c0-0d29-5121-9584-1d83e8e986c2",
+		"eligibility": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', ''));",
+		"conversion": "// Labour Code 45/2019/QH14 arts.98(2), 106; Decree 145/2020/NĐ-CP art.56: every hour worked between 22:00 and 06:00, normal or\n// overtime, earns at least 30% of the normal hour on top of its pay.\nconst zone = get(ctx.subject.employer, 'time_zone', 'Asia/Ho_Chi_Minh');\nconst night = (d) =>\n\tclock_window_minutes(get(d, 'intervals', []), zone, ctx.lookup.night_from, ctx.lookup.night_to, ctx.as_of) / 60;\nreturn ctx.hour_rate * sum(get(ctx, 'work.days', []).map(night)) * ctx.lookup.multiplier;",
+		"direction": "ADD",
+		"id": "05ec8b00-fb29-55b9-92db-a7dc73cb1030",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"description": "Every clocked hour between 22:00 and 06:00, normal or overtime, earns 30% of the normal hour on top of its pay (Labour Code art.98(2)). Not prorated; each day at its own hour rate."
+	},
+	{
+		"code": "NIGHT_OVERTIME",
+		"lookup": {
+			"multiplier": 0.2,
+			"overtime_multiples": {
+				"NORMAL_DAY": 1,
+				"DAYTIME_OVERTIME": 1.5,
+				"REST_DAY": 2,
+				"PUBLIC_HOLIDAY": 3,
+				"SUBSTITUTE": 3,
+				"DOUBLE_HOLIDAY": 3
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.98(3); Decree 145/2020/NĐ-CP art.57(1)(b): overtime at night adds 20% of the daytime hour wage of that day — 100% on a normal day with no daytime overtime, 150% where the day also has daytime overtime, 200% on a weekly rest day and 300% on a public holiday. The admitted night-overtime hours carry their day kind; lookup.day_wage_factor holds those four statutory factors. On a public holiday every paid night hour of the holiday is in the supplement; on a normal or rest day only the night hours inside the overtime span are. The hourly base is the same as OVERTIME.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			},
+			{
+				"title": "The roster is the source of truth: a planned shift or overtime pays only when the clock covers it; the run passes each clocked day (day type, holiday kind, worked and overtime hours, clocked intervals) with the hour rate of its own month. The previous expressions read ctx.entry, which an overtime row never has, so they paid nothing."
+			}
+		],
+		"subtotal_id": "a8edc3c0-0d29-5121-9584-1d83e8e986c2",
+		"eligibility": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', ''));",
+		"conversion": "// Labour Code 45/2019/QH14 art.98(3); Decree 145/2020/NĐ-CP art.57(1): a night overtime hour adds 20% of that day's daytime\n// hour wage: 100% on a normal day with no daytime overtime, 150% where the day also has daytime overtime, 200% on a weekly rest\n// day and 300% on a holiday. On a rest day or a holiday every hour is overtime; on other days only the clocked overtime spans.\nconst holiday = (d) => {\n\tconst kind = get(d, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst zone = get(ctx.subject.employer, 'time_zone', 'Asia/Ho_Chi_Minh');\nconst night = (d, field) =>\n\tclock_window_minutes(get(d, field, []), zone, ctx.lookup.night_from, ctx.lookup.night_to, ctx.as_of) / 60;\nconst rest = (d) => get(d, 'day_type', '') === 'REST';\nconst hours = (d) => (holiday(d) || rest(d) ? night(d, 'intervals') : night(d, 'overtime_intervals'));\nconst multiples = ctx.lookup.overtime_multiples;\nconst factor = (d) => {\n\tif (holiday(d)) return get(multiples, get(d, 'holiday_kind', ''), multiples.PUBLIC_HOLIDAY);\n\tif (rest(d)) return multiples.REST_DAY;\n\treturn Number(get(d, 'overtime_hours', 0)) > hours(d) ? multiples.DAYTIME_OVERTIME : multiples.NORMAL_DAY;\n};\nreturn ctx.hour_rate * ctx.lookup.multiplier * sum(get(ctx, 'work.days', []).map((d) => hours(d) * factor(d)));",
+		"direction": "ADD",
+		"id": "c2f44e8e-388b-5daf-b4af-234981200ee1",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"description": "Overtime hours worked between 22:00 and 06:00 add 20% of that day's daytime hour wage: 100% on a normal day, 150% where the day also has daytime overtime, 200% on a weekly rest day, 300% on a holiday (Labour Code art.98(3); Decree 145/2020 art.57). Not prorated."
+	}
+]

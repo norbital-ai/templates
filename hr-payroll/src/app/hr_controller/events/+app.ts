@@ -1,6 +1,6 @@
 import { app } from '@norbital-ai/bolt';
 
-export default app('hr_controller/events', {
+export default app({
 	title: 'app.events.title',
 	description: 'app.events.description',
 	icon: 'lucide:inbox',

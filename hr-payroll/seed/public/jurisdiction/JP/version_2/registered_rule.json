@@ -1155,7 +1155,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code && get(ctx.entry, 'reverses', null) == null;",
+		"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code;",
 		"validate": "// 労働基準法 art.65(1): from 6 weeks before the expected birth, 14 for a multiple pregnancy, to the birth, the expected day counted.\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst births = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'EXPECTED_BIRTH' || event.kind === 'EXPECTED_MULTIPLE_BIRTH');\nconst opens = (event) => add_days(event.on, 1 - (event.kind === 'EXPECTED_MULTIPLE_BIRTH' ? row.multiple_pregnancy_days : row.days));\nreturn ctx.entry.leave_catalog_entry_day.every((day) => births.some((event) => opens(event) <= day.incurred_on && day.incurred_on <= get(event, 'ended_on', day.incurred_on)));",
 		"order": 37,
 		"lookup": {
@@ -1216,7 +1216,7 @@
 						}
 					}
 				},
-				"fields": ["id", "reverses"],
+				"fields": ["id"],
 				"limit": 1000
 			},
 			"leave_catalog_entry_day": {
@@ -1235,8 +1235,8 @@
 				"limit": 10000
 			}
 		},
-		"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code && get(ctx.entry, 'reverses', null) == null;",
-		"validate": "// 施行規則 art.24の4: a year's days taken in hours are capped, the year running from the grant day (労働基準法 art.39(4)).\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst yearOf = (date) => Math.floor((calendar_completed_months(started, date) - row.service_offset_months) / 12);\nconst held = ctx.reads.leave_catalog_entry;\nconst reversed = held.map((entry) => get(entry, 'reverses', null));\nconst standing = held.filter((entry) => entry.id !== get(ctx.entry, 'id', null) && get(entry, 'reverses', null) == null && !reversed.includes(entry.id));\nconst slots = ctx.reads.leave_catalog_entry_day.filter((child) => standing.some((entry) => entry.id === child.leave_entry_id));\nconst days = [...slots.map((child) => child.incurred_on), ...ctx.entry.leave_catalog_entry_day.map((child) => child.incurred_on)];\nreturn ctx.entry.leave_catalog_entry_day.every((day) => days.filter((other) => yearOf(other) === yearOf(day.incurred_on)).length / 2 <= row.annual_days_cap);",
+		"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code;",
+		"validate": "// 施行規則 art.24の4: a year's days taken in hours are capped, the year running from the grant day (労働基準法 art.39(4)).\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst yearOf = (date) => Math.floor((calendar_completed_months(started, date) - row.service_offset_months) / 12);\nconst held = ctx.reads.leave_catalog_entry;\nconst standing = held.filter((entry) => entry.id !== get(ctx.entry, 'id', null));\nconst slots = ctx.reads.leave_catalog_entry_day.filter((child) => standing.some((entry) => entry.id === child.leave_entry_id));\nconst days = [...slots.map((child) => child.incurred_on), ...ctx.entry.leave_catalog_entry_day.map((child) => child.incurred_on)];\nreturn ctx.entry.leave_catalog_entry_day.every((day) => days.filter((other) => yearOf(other) === yearOf(day.incurred_on)).length / 2 <= row.annual_days_cap);",
 		"order": 38,
 		"lookup": {
 			"catalog_code": "ANNUAL_LEAVE_HOURS"

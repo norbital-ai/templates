@@ -1,11 +1,32 @@
 import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/holiday.ts';
+import { amendmentsOf } from '../../../../lib/amendments.js';
 
-export default model('holiday', {
+/** The day a published holiday prices, for everyone the company paid or the one person it names. */
+const spans = (
+	rows: readonly {
+		readonly date: string;
+		readonly published_at?: unknown;
+		readonly employee_id?: string | null | undefined;
+	}[]
+) =>
+	rows.flatMap((row) =>
+		row.published_at == null
+			? []
+			: [
+					{
+						from: String(row.date),
+						to: String(row.date),
+						...(row.employee_id == null ? {} : { employee: String(row.employee_id) })
+					}
+				]
+	);
+
+export default model({
 	description:
-		'One observed public holiday of one legal entity on one day. Published individually; a row a payroll run captured or a work day pins is frozen. Imported from a spreadsheet or entered by hand.',
+		'One observed public holiday of one legal entity on one day. Published individually. A published day corrected in paid time amends everyone the company paid for it. Imported from a spreadsheet or entered by hand.',
 	icon: 'lucide:calendar-x',
-	label: 'date',
+	record_label: 'record.date',
 	fields: {
 		date: {
 			kind: 'date'
@@ -45,14 +66,16 @@ export default model('holiday', {
 		// when their shift put it on another date (a night guard whose holiday shift starts as the holiday ends)
 		employee_id: { kind: 'ref', to: 'employee_profile', inverse: 'holiday', optional: true }
 	},
-	read: {
-		holiday: { fields: 'all' },
-		// the person a holiday is for alone shows by name
-		'holiday.employee_id': { fields: ['name'] }
+	outputs: {
+		default: {
+			fields: 'all',
+			// the person a holiday is for alone shows by name
+			employee_id: { fields: ['name'] }
+		}
 	},
 	create: {
 		columns: {
-			holiday: [
+			fields: [
 				'date',
 				'name',
 				'kind',
@@ -62,42 +85,90 @@ export default model('holiday', {
 				'entity_id',
 				'employee_id'
 			]
-		}
-	},
-	update: {
-		columns: {
-			holiday: [
-				'date',
-				'name',
-				'kind',
-				'published_at',
-				'replaces',
-				'given_to',
-				'entity_id',
-				'employee_id'
-			]
-		}
-	},
-	effect: {
-		created: function* (rows, ctx) {
+		},
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ set }) => set);
+			return {
+				sets: rows,
+				on_approved: yield* amendmentsOf(
+					ctx.query,
+					[...new Set(rows.map((row) => String(row.entity_id)))],
+					spans(rows)
+				)
+			};
+		},
+		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
 				'create',
 				'holiday',
-				rows.map((after) => ({ after }))
+				changes.map(({ after }) => ({ after }))
 			);
+		}
+	},
+	update: {
+		columns: {
+			fields: [
+				'date',
+				'name',
+				'kind',
+				'published_at',
+				'replaces',
+				'given_to',
+				'entity_id',
+				'employee_id'
+			]
 		},
-		updated: function* (changes, ctx) {
+		transform: function* (changes, ctx) {
+			// a holiday's name moves nobody's pay: only what says which day, of what kind, for whom
+			const moved = changes.filter((change) =>
+				(
+					[
+						'date',
+						'kind',
+						'published_at',
+						'replaces',
+						'given_to',
+						'entity_id',
+						'employee_id'
+					] as const
+				).some((field) => change.changed(field))
+			);
+			return {
+				sets: changes.map((change) => change.set),
+				// the day as it was and the day as it is now: published, moved or taken back
+				on_approved: yield* amendmentsOf(
+					ctx.query,
+					[...new Set(moved.map((change) => String(change.before.entity_id)))],
+					[
+						...spans(moved.map((change) => change.before)),
+						...spans(moved.map((change) => change.after))
+					]
+				)
+			};
+		},
+		effect: function* (changes, ctx) {
 			yield* tap(ctx, 'update', 'holiday', changes);
+		}
+	},
+	delete: {
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ before }) => before);
+			return {
+				on_approved: yield* amendmentsOf(
+					ctx.query,
+					[...new Set(rows.map((row) => String(row.entity_id)))],
+					spans(rows)
+				)
+			};
 		},
-		deleted: function* (rows, ctx) {
+		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
 				'holiday',
-				rows.map((before) => ({ before }))
+				changes.map(({ before }) => ({ before }))
 			);
 		}
-	},
-	delete: {}
+	}
 });

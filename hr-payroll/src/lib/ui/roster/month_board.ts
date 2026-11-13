@@ -51,7 +51,6 @@ type LeaveRow = {
 	readonly employee?: string;
 	readonly days: readonly { readonly date: string; readonly part: string }[];
 	readonly catalog_id?: { readonly code?: string; readonly name?: string } | null;
-	readonly reverses?: string | null;
 };
 
 type HolidayRow = { readonly date: string; readonly name: string };
@@ -259,7 +258,6 @@ export function buildDays(input: {
 	const holidays = new Map(input.holidays.map((row) => [String(row.date).slice(0, 10), row.name]));
 	const leave = new Map<string, { codes: Set<string>; parts: Set<string> }>();
 	for (const row of input.leave) {
-		if (row.reverses != null) continue;
 		for (const slot of row.days) {
 			if (!input.dates.includes(slot.date)) continue;
 			const key = dayKey(row.employee ?? row.employment_id, slot.date);

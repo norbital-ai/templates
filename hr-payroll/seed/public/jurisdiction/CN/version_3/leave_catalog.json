@@ -59,8 +59,8 @@
 	},
 	{
 		"code": "SICK_LEAVE",
-		"description": "Shanghai to 2026-08-15: the 沪劳保发〔1995〕83号 scale by continuous service, and an ILLNESS event past six months moves to the later scale. Everywhere: at least 80% of the local minimum wage, or the higher `sick_pay_share` agreed by contract, collective contract or handbook.",
-		"paid_share": "// 沪劳保发〔1995〕83号: 连续休假6个月以内, 连续工龄不满2年60%, 满2年70%, 满4年80%, 满6年90%, 满8年100%; 超过6个月的疾病救济费, 不满1年40%, 满1年50%, 满3年60%. In force to 2026-08-15.\n// 劳部发〔1995〕309号 第59条; 沪劳保保发〔2000〕14号: 不低于最低工资的80%. 昆明市工资支付条例 第二十七条: 按有关规定支付. An agreed higher share binds.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst region = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst zones = ctx.lookup.minimum_wage_by_zone.filter((row) => row.region === region);\nif (zones.length === 0 || !(ctx.month_wage > 0)) return 1;\nconst zone = String(get(ctx.subject.employer, 'entity_extension_data.wage_zone', zones[0].default_zone));\nconst least = (ctx.lookup.minimum_wage_floor_share * zones.find((row) => row.zone === zone).monthly) / ctx.month_wage;\nconst agreed = Number(get(ctx.subject.employment, 'employee_extension_data.sick_pay_share', 0));\nconst scale = () => {\n\tif (region !== 'SH' || ctx.as_of > ctx.lookup.shanghai_scale_until) return 0;\n\tconst long = ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.shanghai_scale_first_months;\n\tconst service = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of);\n\treturn (long ? ctx.lookup.shanghai_scale_later : ctx.lookup.shanghai_scale_first).find((step) => step.completed_months == null || service <= step.completed_months).share;\n};\nreturn Math.min(1, Math.max(agreed, least, scale()));",
+		"description": "Shanghai (to 2026-08-14, when the scale lapsed): the 沪劳保发〔1995〕83号 scale by continuous service, and an ILLNESS event past six months moves to the later scale. Everywhere: at least 80% of the local minimum wage, or the higher `sick_pay_share` agreed by contract, collective contract or handbook.",
+		"paid_share": "// 沪劳保发〔1995〕83号: 连续休假6个月以内, 连续工龄不满2年60%, 满2年70%, 满4年80%, 满6年90%, 满8年100%; 超过6个月的疾病救济费, 不满1年40%, 满1年50%, 满3年60%. In force to 2026-08-14 (this version).\n// 劳部发〔1995〕309号 第59条; 沪劳保保发〔2000〕14号: 不低于最低工资的80%. 昆明市工资支付条例 第二十七条: 按有关规定支付. An agreed higher share binds.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst employerRegion = String(get(ext, 'region', ''));\nconst worksite = String(get(ctx.subject.employment.terms, 'work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst zones = ctx.lookup.minimum_wage_by_zone.filter((row) => row.region === region);\nif (zones.length === 0 || !(ctx.month_wage > 0)) return 1;\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(zones[0].default_zone)\n  : String(get(ext, 'wage_zone', zones[0].default_zone));\nconst least = (ctx.lookup.minimum_wage_floor_share * zones.find((row) => row.zone === zone).monthly) / ctx.month_wage;\nconst agreed = Number(get(ctx.subject.employment, 'employee_extension_data.sick_pay_share', 0));\nconst scale = () => {\n\tif (region !== 'SH') return 0;\n\tconst long = ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.shanghai_scale_first_months;\n\tconst service = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), ctx.as_of);\n\treturn (long ? ctx.lookup.shanghai_scale_later : ctx.lookup.shanghai_scale_first).find((step) => step.completed_months == null || service <= step.completed_months).share;\n};\nreturn Math.min(1, Math.max(agreed, least, scale()));",
 		"lookup": {
 			"minimum_wage_floor_share": 0.8,
 			"medical_period_max_months": 24,
@@ -105,8 +105,7 @@
 				"ILLNESS": {
 					"days": 0
 				}
-			},
-			"shanghai_scale_until": "2026-08-15"
+			}
 		},
 		"references": [
 			{
@@ -174,7 +173,7 @@
 			"opened_by": {
 				"CHILD_BIRTH": {}
 			},
-			"entitlement": "// 上海市人口与计划生育条例 第三十一条; 云南省人口与计划生育条例 第十八条: 符合规定生育的女方延长生育假60天.\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', ''))), 'days', 0);"
+			"entitlement": "// 上海市人口与计划生育条例 第三十一条; 云南省人口与计划生育条例 第十八条: 符合规定生育的女方延长生育假60天.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === region)), 'days', 0);"
 		},
 		"references": [
 			{
@@ -187,7 +186,7 @@
 	},
 	{
 		"code": "PATERNITY_LEAVE",
-		"description": "10 days, taken within the mother's maternity leave, at the normal wage. | 30 days; paid (第三十五条).",
+		"description": "Shanghai 10 days, within the mother's maternity leave; Kunming 30 days. Both at the normal wage.",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -206,7 +205,7 @@
 			"opened_by": {
 				"CHILD_BIRTH": {}
 			},
-			"entitlement": "// 上海市人口与计划生育条例 第三十一条: 陪产假10天; 云南省人口与计划生育条例 第十八条: 护理假30天.\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', ''))), 'days', 0);"
+			"entitlement": "// 上海市人口与计划生育条例 第三十一条: 陪产假10天; 云南省人口与计划生育条例 第十八条: 护理假30天.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === region)), 'days', 0);"
 		},
 		"references": [
 			{
@@ -219,9 +218,9 @@
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
-		"description": "Up to 3 days at full pay.",
+		"description": "1 day at full pay, the statutory minimum: (80)劳总薪字29号 leaves 1–3 days to the employer; a company policy granting more goes on this row.",
 		"lookup": {
-			"grant_days": 3,
+			"grant_days": 1,
 			"window": "EVENT",
 			"opened_by": {
 				"MARRIAGE": {}
@@ -234,6 +233,12 @@
 			{
 				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号): 酌情给予一至三天的婚丧假, per event.",
 				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm"
+			},
+			{
+				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号) 第一条",
+				"locator": "第一条",
+				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm",
+				"quote": "酌情给予一至三天的婚丧假"
 			}
 		],
 		"subtotal_id": null,
@@ -242,7 +247,7 @@
 	},
 	{
 		"code": "MARRIAGE_EXTENSION",
-		"description": "7 days after MARRIAGE_LEAVE, full pay. | 15 days after MARRIAGE_LEAVE; paid (第三十五条).",
+		"description": "Shanghai increases marriage leave by 7 days and Kunming by 15, at full pay.",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -258,7 +263,7 @@
 			"opened_by": {
 				"MARRIAGE": {}
 			},
-			"entitlement": "// 上海市人口与计划生育条例 第三十一条: 增加婚假7天; 云南省人口与计划生育条例 第十八条: 增加婚假15天.\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', ''))), 'days', 0);"
+			"entitlement": "// 上海市人口与计划生育条例 第三十一条: 增加婚假7天; 云南省人口与计划生育条例 第十八条: 增加婚假15天.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === region)), 'days', 0);"
 		},
 		"references": [
 			{
@@ -271,16 +276,21 @@
 	},
 	{
 		"code": "CHILDCARE_LEAVE",
-		"description": "Each parent, a calendar year: Shanghai 5 days for each CHILD_BIRTH event under 3 (the regulation counts each child's year from its birth); Kunming 10 days, 15 with two or more under 3.",
+		"description": "Each parent, a calendar year, while a CHILD_BIRTH event on the contract is under 3: Shanghai 5 days whatever the number of children; Kunming 10 days, 15 with two or more under 3. Full pay.",
 		"lookup": {
 			"child_age_limit_years": 3,
-			"per_child_days_by_region": [
+			"per_child_days_by_region": [],
+			"days_by_children_by_region": [
 				{
 					"region": "SH",
+					"children": 0,
+					"days": 0
+				},
+				{
+					"region": "SH",
+					"children": 1,
 					"days": 5
-				}
-			],
-			"days_by_children_by_region": [
+				},
 				{
 					"region": "KM",
 					"children": 0,
@@ -297,11 +307,17 @@
 					"days": 15
 				}
 			],
-			"entitlement": "// 上海市人口与计划生育条例 第三十一条: 子女年满3周岁前, 按子女数每年5天; 云南省人口与计划生育条例 第十八条: 子女不满3周岁每年10天, 两个以上15天.\nconst region = get(ctx.subject.employer, 'entity_extension_data.region', '');\nconst young = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && age_on(event.on, ctx.as_of) < ctx.lookup.child_age_limit_years).length;\nconst each = first(ctx.lookup.per_child_days_by_region.filter((row) => row.region === region));\nif (each != null) return each.days * young;\nreturn get(ctx.lookup.days_by_children_by_region.filter((row) => row.region === region && row.children <= young).at(-1), 'days', 0);"
+			"entitlement": "// 上海市人口与计划生育条例 第三十一条: 子女年满3周岁前, 夫妻双方每年各5天 (不按子女数); 云南省人口与计划生育条例 第十八条: 子女不满3周岁每年10天, 两个以上15天.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst young = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && age_on(event.on, ctx.as_of) < ctx.lookup.child_age_limit_years).length;\nconst each = first(ctx.lookup.per_child_days_by_region.filter((row) => row.region === region));\nif (each != null) return each.days * young;\nreturn get(ctx.lookup.days_by_children_by_region.filter((row) => row.region === region && row.children <= young).at(-1), 'days', 0);"
 		},
 		"references": [
 			{
-				"title": "上海市人口与计划生育条例 第三十一条 (每个子女每年5天); 云南省人口与计划生育条例 第十八条 (每年10天, 两个以上不满3周岁子女再增加5天), 按正常出勤工资发给."
+				"title": "上海市人口与计划生育条例 第三十一条 (子女年满三周岁前, 夫妻双方每年各5天); 云南省人口与计划生育条例 第十八条 (每年10天, 两个以上不满3周岁子女再增加5天), 按正常出勤工资发给."
+			},
+			{
+				"title": "上海市人口与计划生育条例 (2021年11月25日修正) 育儿假",
+				"locator": "第三十一条",
+				"url": "https://www.allbrightlaw.com/CN/10531/fea86d1262f694d6.aspx",
+				"quote": "夫妻双方每年各享受5天育儿假"
 			}
 		],
 		"subtotal_id": null,
@@ -323,9 +339,9 @@
 	},
 	{
 		"code": "BEREAVEMENT_LEAVE",
-		"description": "Up to 3 days at full pay.",
+		"description": "1 day at full pay, the statutory minimum: (80)劳总薪字29号 leaves 1–3 days to the employer; a company policy granting more goes on this row.",
 		"lookup": {
-			"grant_days": 3,
+			"grant_days": 1,
 			"window": "EVENT",
 			"opened_by": {
 				"BEREAVEMENT": {}
@@ -338,6 +354,12 @@
 			{
 				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号): 酌情给予一至三天的婚丧假, per event.",
 				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm"
+			},
+			{
+				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号) 第一条",
+				"locator": "第一条",
+				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm",
+				"quote": "酌情给予一至三天的婚丧假"
 			}
 		],
 		"subtotal_id": null,
@@ -416,7 +438,7 @@
 	{
 		"code": "PRENATAL_LEAVE",
 		"description": "At most 2.5 months (76 days) per PREGNANCY event; paid at 80%.",
-		"paid_share": "// 上海市女职工劳动保护办法 第十八条: 产前假工资按80%发给.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nreturn held == null ? 1 : held.share;",
+		"paid_share": "// 上海市女职工劳动保护办法 第十八条: 产前假工资按80%发给.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === region));\nreturn held == null ? 1 : held.share;",
 		"lookup": {
 			"paid_share_by_region": [
 				{
@@ -437,7 +459,7 @@
 			"opened_by": {
 				"PREGNANCY": {}
 			},
-			"entitlement": "// 上海市女职工劳动保护办法 第十二条: 产前假2个半月.\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', ''))), 'days', 0);"
+			"entitlement": "// 上海市女职工劳动保护办法 第十二条: 产前假2个半月.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === region)), 'days', 0);"
 		},
 		"references": [
 			{
@@ -451,7 +473,7 @@
 	{
 		"code": "NURSING_LEAVE",
 		"description": "At most 6.5 months (198 days) per CHILD_BIRTH event; paid at 80%.",
-		"paid_share": "// 上海市女职工劳动保护办法 第十八条: 哺乳假工资按80%发给.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nreturn held == null ? 1 : held.share;",
+		"paid_share": "// 上海市女职工劳动保护办法 第十八条: 哺乳假工资按80%发给.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === region));\nreturn held == null ? 1 : held.share;",
 		"lookup": {
 			"paid_share_by_region": [
 				{
@@ -472,7 +494,7 @@
 			"opened_by": {
 				"CHILD_BIRTH": {}
 			},
-			"entitlement": "// 上海市女职工劳动保护办法 第十六条: 哺乳假6个半月.\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', ''))), 'days', 0);"
+			"entitlement": "// 上海市女职工劳动保护办法 第十六条: 哺乳假6个半月.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nreturn get(first(ctx.lookup.days_by_region.filter((row) => row.region === region)), 'days', 0);"
 		},
 		"references": [
 			{
@@ -485,7 +507,7 @@
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
-		"description": "At full pay, a calendar month (MENSTRUAL_LEAVE_CONDITIONS). Shanghai: 1 day of 公假 for a woman in the work the 办法 lists (`protected_work`), unless the employer moves her to other work for the period. Kunming: 1–2 days for diagnosed severe dysmenorrhoea (`severe_dysmenorrhea_diagnosed`); the Yunnan rule does not state the pay — seeded at full pay, unverified.",
+		"description": "At full pay, a calendar month (MENSTRUAL_LEAVE_CONDITIONS). Shanghai: 1 day of 公假 for a woman in the work the 办法 lists (`protected_work`), unless the employer moves her to other work for the period. Kunming: 1 day, the lower bound of the rule's 1–2, for diagnosed severe dysmenorrhoea (`severe_dysmenorrhea_diagnosed`); the Yunnan rule does not state the pay — seeded at full pay, unverified.",
 		"lookup": {
 			"days_by_region": [
 				{
@@ -494,7 +516,7 @@
 				},
 				{
 					"region": "KM",
-					"days": 2
+					"days": 1
 				}
 			],
 			"requires_by_region": [
@@ -520,7 +542,7 @@
 	{
 		"code": "FAMILY_PLANNING_LEAVE",
 		"description": "Days by the surgery event on the contract, per event. Shanghai at full pay; Kunming without wage: the fund's maternity allowance pays the days.",
-		"paid_share": "// 上海市计划生育奖励与补助若干规定 第十九条: 按正常出勤工资; 昆明市医保局生育保险政策: 由生育津贴支付, 单位不发工资.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nreturn held == null ? 1 : held.share;",
+		"paid_share": "// 上海市计划生育奖励与补助若干规定 第十九条: 按正常出勤工资; 昆明市医保局生育保险政策: 由生育津贴支付, 单位不发工资.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst held = first(ctx.lookup.paid_share_by_region.filter((row) => row.region === region));\nreturn held == null ? 1 : held.share;",
 		"lookup": {
 			"paid_share_by_region": [
 				{
@@ -617,7 +639,7 @@
 				"TUBAL_RECANALIZATION": {},
 				"VAS_RECANALIZATION": {}
 			},
-			"entitlement": "// 上海市计划生育奖励与补助若干规定 第十九条; 昆明市医保局生育保险政策: 按手术类型给假.\nreturn get(first(ctx.lookup.days_by_surgery_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '') && row.surgery === ctx.event.kind)), 'days', 0);"
+			"entitlement": "// 上海市计划生育奖励与补助若干规定 第十九条; 昆明市医保局生育保险政策: 按手术类型给假.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nreturn get(first(ctx.lookup.days_by_surgery_by_region.filter((row) => row.region === region && row.surgery === ctx.event.kind)), 'days', 0);"
 		},
 		"references": [
 			{
@@ -644,7 +666,7 @@
 					"only_child_days": 20
 				}
 			],
-			"entitlement": "// 上海市老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 赡养人每年累计不超过5个工作日的陪护假, 独生子女7个工作日.\n// 云南省老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 独生子女每年累计20天、非独生子女10天的护理时间.\nconst held = first(ctx.lookup.days_by_region.filter((row) => row.region === get(ctx.subject.employer, 'entity_extension_data.region', '')));\nif (held == null) return 0;\nreturn get(ctx.subject.employment, 'employee_extension_data.statutory.IIT.elderly_support_only_child', false) === true ? held.only_child_days : held.days;"
+			"entitlement": "// 上海市老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 赡养人每年累计不超过5个工作日的陪护假, 独生子女7个工作日.\n// 云南省老年人权益保障条例 第二十四条: 老年人患病住院治疗期间, 独生子女每年累计20天、非独生子女10天的护理时间.\nconst employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst held = first(ctx.lookup.days_by_region.filter((row) => row.region === region));\nif (held == null) return 0;\nreturn get(ctx.subject.employment, 'employee_extension_data.statutory.IIT.elderly_support_only_child', false) === true ? held.only_child_days : held.days;"
 		},
 		"references": [
 			{

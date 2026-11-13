@@ -23,7 +23,7 @@
 		"subtotal_id": "a70a02cc-2df8-5ce4-a3c3-2e80e2548bb1",
 		"id": "693fd157-6343-5156-9428-fe775fd78ce5",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "Paid annual leave earned by service; untaken days are paid at exit (LPA s.67).",
+		"description": "Six paid working days a year after one year of service. At exit, carried-over untaken days are always paid at the day rate; this year's untaken days are paid in proportion to the months served only when the employer ends the employment for a reason outside s.119 (LPA ss.30, 67).",
 		"payout": "// LPA s.67 para 1: an employer who ends the employment without a s.119 ground pays the annual holidays of the year of\n// termination in proportion to the s.30 entitlement. s.67 para 2: on any termination, the untaken days accumulated under\n// s.30 para 3 are paid.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst end = get(employment, 'effective_range.to', ctx.as_of);\nconst started = get(employment, 'service_started_on', employment.effective_range.from);\nconst year = Math.floor(calendar_completed_months(started, end) / 12);\nconst grant = year * 12 >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;\nconst current = Math.min(ctx.entry.quantity, grant);\nconst dismissed =\n  ['DISMISSAL', 'DISMISSAL_FOR_CAUSE', 'REDUNDANCY', 'RETIREMENT', 'END_OF_CONTRACT'].includes(get(facts, 'exit_ground', '')) &&\n  get(facts, 'section_119_ground', false) !== true;\nconst served = calendar_completed_months(add_months(started, 12 * year), add_days(end, 1));\nconst owed = dismissed ? Math.max(0, current - (grant * (12 - served)) / 12) : 0;\nreturn ctx.day_rate * (ctx.entry.quantity - current + owed);"
 	},
 	{
@@ -49,7 +49,7 @@
 		"subtotal_id": null,
 		"id": "4756c349-0f83-550c-8371-a5decea03a9d",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "Paid sick leave."
+		"description": "Paid sick leave: up to 30 working days a year at full pay (LPA s.57)."
 	},
 	{
 		"code": "SICK_LEAVE_UNPAID",
@@ -65,7 +65,7 @@
 		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
 		"id": "e1c90435-fd38-5384-b2cb-856a35cb9e93",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "SICK_LEAVE_UNPAID: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Sick days beyond the 30 paid a year; unpaid (paid share 0) (LPA s.57).",
 		"paid_share": "0"
 	},
 	{
@@ -85,7 +85,7 @@
 		"subtotal_id": null,
 		"id": "b528d4c3-f0ca-5b11-b5fd-4d035002d7b3",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "PERSONAL_BUSINESS_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Leave for necessary business: 3 working days a year at full pay (LPA ss.34, 57/1)."
 	},
 	{
 		"code": "STERILISATION_LEAVE",
@@ -101,7 +101,7 @@
 		"subtotal_id": null,
 		"id": "d8afa459-b902-5240-8904-6d50d363f659",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "STERILISATION_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Leave for sterilisation for the days a physician certifies, at full pay (LPA ss.33, 57)."
 	},
 	{
 		"code": "MILITARY_LEAVE",
@@ -126,7 +126,7 @@
 		"subtotal_id": null,
 		"id": "8b09bad1-14a7-52a9-ba44-584b50457461",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "MILITARY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "Leave for military call-up or training: full pay for up to 60 days a year (LPA s.58)."
 	},
 	{
 		"code": "TRAINING_LEAVE",
@@ -142,7 +142,7 @@
 		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
 		"id": "a787932a-90b3-513f-bc05-3c3d792156e4",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "TRAINING_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Leave for training or skill development; unpaid (paid share 0) (LPA s.36).",
 		"paid_share": "0"
 	},
 	{
@@ -162,7 +162,7 @@
 		"subtotal_id": null,
 		"id": "2bc39d3a-2dc0-5842-b378-6f526528e00f",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "YOUNG_WORKER_TRAINING_LEAVE: Leave days granted and drawn under this jurisdiction’s rules."
+		"description": "An employee under 18: up to 30 days a year for approved training, at full pay (LPA s.52)."
 	},
 	{
 		"code": "MATERNITY_LEAVE",
@@ -193,7 +193,7 @@
 		"subtotal_id": null,
 		"id": "3d5937ec-8fe0-56bd-b836-53506373bdb2",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "Maternity leave around childbirth."
+		"description": "Maternity leave: the first 60 days of each pregnancy at full pay from the employer (LPA s.59 as amended by Act No. 9)."
 	},
 	{
 		"code": "MATERNITY_LEAVE_SSO",
@@ -209,7 +209,7 @@
 		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
 		"id": "397564ee-c8ab-5952-baa3-db2121e14f0a",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "MATERNITY_LEAVE_SSO: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Maternity leave after the 60 employer-paid days, up to 120 days in all; unpaid by the employer (paid share 0), the Social Security Fund pays its maternity benefit.",
 		"paid_share": "0"
 	},
 	{
@@ -276,7 +276,7 @@
 		"subtotal_id": "d4afc6a2-96a9-5deb-b6fb-a122917084ab",
 		"id": "9efa91d5-24c7-5d9e-926b-2e11e3d2a2ca",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "CHILD_CARE_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Up to 15 days after maternity leave for a newborn who is ill or at risk, on a medical certificate; half pay (paid share 0.5) (LPA s.41 para 4, s.59/1).",
 		"paid_share": "0.5"
 	},
 	{
@@ -308,7 +308,7 @@
 		"subtotal_id": null,
 		"id": "e2550855-67f6-5045-9728-9389cb776d2e",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "Paternity leave around childbirth."
+		"description": "Up to 15 days to help a legally married spouse who gives birth, taken before or within 90 days after the birth, at full pay (LPA ss.41/1, 59/2)."
 	},
 	{
 		"code": "WORK_INJURY_LEAVE",
@@ -324,7 +324,7 @@
 		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
 		"id": "86deaba2-4a96-5616-aa41-cfeea3301ca9",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "WORK_INJURY_LEAVE: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Absence for a work injury or illness; unpaid by the employer (paid share 0), the Workmen's Compensation Fund pays 70% of wages (WCA s.18).",
 		"paid_share": "0"
 	},
 	{
@@ -353,7 +353,7 @@
 		"subtotal_id": "d4afc6a2-96a9-5deb-b6fb-a122917084ab",
 		"id": "46ca3d02-9a20-59aa-886a-7079ff3de407",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253",
-		"description": "SUSPENSION: Leave days granted and drawn under this jurisdiction’s rules.",
+		"description": "Suspension pending a disciplinary investigation: up to 7 days at half pay (paid share 0.5) (LPA ss.116-117).",
 		"paid_share": "0.5"
 	}
 ]

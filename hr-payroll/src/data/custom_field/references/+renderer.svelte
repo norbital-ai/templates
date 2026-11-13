@@ -4,31 +4,30 @@
 	 * the quoted wording, the day it took effect and a link to the official text. In a table cell, compact chips with
 	 * the same details on hover or focus. Edited as a table of the field's list of objects.
 	 */
-	import { bolt } from '$bolt';
 	import type { CustomFieldView } from '@norbital-ai/bolt';
-	import { Badge, Editor, Icon, Tooltip } from '@norbital-ai/ui';
+	import { Badge, Editor, Icon, Tooltip, type UiContext } from '@norbital-ai/ui';
 	import { Bound, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { formatCalendarDate } from '../../../lib/ui/format/display_formatters.js';
 	import { REFERENCES_SHAPE } from '../../../lib/payroll_engine/references.js';
 
-	let { view }: { view: CustomFieldView<'references'> } = $props();
-	const t = bolt.t;
+	let { view, ctx }: { view: CustomFieldView<'references'>; ctx: UiContext } = $props();
+	/** Outside a page (no view client) a text is named by its message key. */
+	const t = (key: string, vars?: Readonly<Record<string, string>>) =>
+		ctx.ui.bolt?.t(key, vars) ?? key;
 
 	type Reference = NonNullable<CustomFieldView<'references'>['value']>[number];
 	const rows = $derived(view.value ?? []);
-	const FIELDS = REFERENCES_SHAPE.of.fields;
+	const FIELDS = REFERENCES_SHAPE.fields;
 	// the quote is a passage: a textarea cell
 	const EDIT_KIND = {
-		kind: 'list',
-		of: {
-			kind: 'object',
-			fields: {
-				title: { ...FIELDS.title, label: t('references.title') },
-				locator: { ...FIELDS.locator, label: t('references.locator') },
-				url: { ...FIELDS.url, label: t('references.url') },
-				quote: { ...FIELDS.quote, max: 100_000, label: t('references.quote') },
-				effective_from: { ...FIELDS.effective_from, label: t('references.effective_from') }
-			}
+		kind: 'object',
+		many: true,
+		fields: {
+			title: { ...FIELDS.title, label: t('references.title') },
+			locator: { ...FIELDS.locator, label: t('references.locator') },
+			url: { ...FIELDS.url, label: t('references.url') },
+			quote: { ...FIELDS.quote, max: 100_000, label: t('references.quote') },
+			effective_from: { ...FIELDS.effective_from, label: t('references.effective_from') }
 		}
 	} as const;
 </script>
@@ -77,11 +76,12 @@
 
 {#if view.mode === 'edit'}
 	<Editor
+		{ctx}
 		kind={EDIT_KIND}
 		name={view.name}
 		{...view.id === undefined ? {} : { id: view.id }}
 		value={view.value}
-		onChange={view.onChange}
+		on_change={view.on_change}
 		disabled={view.disabled}
 	/>
 {:else if rows.length === 0}

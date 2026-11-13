@@ -1,4 +1,4 @@
-import { addDays } from '@norbital-ai/std/date';
+import { add_days } from '@norbital-ai/std/date';
 import { evaluate } from '../payroll_engine/expressions.js';
 import { completedMonths, isJsonObject } from '../payroll_engine/foundation.js';
 import type { JsonObject } from '../payroll_engine/contracts.js';
@@ -131,7 +131,7 @@ export const entitlementOf = (
 	const first = bands[0];
 	// until the first band, a share of the first year by completed months, the day itself served; the band stays the day's
 	if (lookup.proration === 'COMPLETED_MONTHS' && first && months < first.service_months) {
-		const served = completedMonths(person.started, String(addDays(on, 1)));
+		const served = completedMonths(person.started, String(add_days(on, 1)));
 		return served < qualifying(lookup)
 			? 0
 			: prorated(

@@ -5,7 +5,7 @@ import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace, leaveCreate } from './kit.ts';
+import { ENTITY, pack, storedQuery, workspace, leaveCreate } from './kit.ts';
 
 const terms = {
 	rate: { amount: 30_000, unit: 'MONTHLY' },
@@ -34,46 +34,52 @@ describe('a work-injury leave entry', () => {
 	it.live('without a day is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
+			const admin = yield* t.as(t.admin);
 			const refused = yield* Effect.flip(
-				t
-					.as(t.admin)
-					.act('leave_catalog_entry.create', [
+				admin.act({
+					'leave_catalog_entry.create': [
 						{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: CATALOG }
-					])
+					]
+				})
 			);
-			assert.match(String(refused), /at least one day/);
+			assert.ok(refused._tag === 'ActRefused');
+			assert.equal(refused.key, 'errors.leave_entry_needs_day');
 		}).pipe(Effect.provide(live))
 	);
 	it.live('cannot have its only day deleted', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t.as(t.admin).act('leave_catalog_entry.create', [
-				leaveCreate({
-					entity_id: ENTITY,
-					employment_id: CONTRACT,
-					catalog_id: CATALOG,
-					days: whole('2026-03-01')
-				})
-			]);
-			const [entry] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
+			const admin = yield* t.as(t.admin);
+			yield* admin.act({
+				'leave_catalog_entry.create': [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: CATALOG,
+						days: whole('2026-03-01')
+					})
+				]
+			});
+			const [entry] = (yield* storedQuery(t, { leave_catalog_entry: { limit: 1 } }))
 				.leave_catalog_entry.rows;
 			assert.ok(entry !== undefined);
-			const { leave_catalog_entry_day } = yield* t.storedQuery({
+			const { leave_catalog_entry_day } = yield* storedQuery(t, {
 				leave_catalog_entry_day: {
 					where: { leave_entry_id: { eq: entry.id } },
-					fields: ['id'],
+					fields: ['id', 'revision'],
 					limit: 10
 				}
 			});
-			const ids = leave_catalog_entry_day.rows.map((row) => row.id);
+			const ids = leave_catalog_entry_day.rows;
 			const refused = yield* Effect.flip(
-				t
-					.as(t.admin)
-					.act('leave_catalog_entry.update', [
-						{ target: entry.id, set: { leave_catalog_entry_day: { delete: ids } } }
-					])
+				admin.act({
+					'leave_catalog_entry.update': [
+						{ target: entry, set: { leave_catalog_entry_day: { delete: ids } } }
+					]
+				})
 			);
-			assert.match(String(refused), /at least one day/);
+			assert.ok(refused._tag === 'ActRefused');
+			assert.equal(refused.key, 'errors.leave_entry_needs_day');
 		}).pipe(Effect.provide(live))
 	);
 });

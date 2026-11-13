@@ -12,7 +12,7 @@
 		"subtotal_id": null,
 		"id": "0dac5715-2429-5a10-93de-20520b2ca979",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
-		"description": "A paid day in lieu of a public holiday worked."
+		"description": "Days off in place of a holiday. The law grants none (grant 0 days); only HR's manual adjustments add days, each paid as a normal day and not paid out in cash."
 	},
 	{
 		"code": "VAWC_LEAVE",
@@ -37,10 +37,7 @@
 		"code": "MEDICAL_LEAVE",
 		"references": [
 			{
-				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). It is not encashable."
-			},
-			{
-				"title": "Employer-granted leave, paid in full here (an empty `paid_share` is a full paid day). No statute requires paid medical or emergency leave; the statutory floor is the five-day service incentive leave (Labor Code art.95; DOLE Handbook 2024 ch.7 §A). An employer that does not pay it sets this row's `paid_share` to 0 in its own Settings.",
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. An employer that pays it sets this row's `paid_share` in its own Settings (empty is a full paid day).",
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
@@ -48,8 +45,8 @@
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"id": "98d51a56-1647-52e2-9403-05baea68bda4",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
-		"description": "Sick leave an employer may grant. No statute grants it; a day taken is paid as a normal day, and an employer that does not pay it changes the paid share of this leave in its own settings.",
-		"paid_share": ""
+		"description": "Sick leave an employer may grant. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
+		"paid_share": "0"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -105,10 +102,7 @@
 		"code": "EMERGENCY_LEAVE",
 		"references": [
 			{
-				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). It is not encashable."
-			},
-			{
-				"title": "Employer-granted leave, paid in full here (an empty `paid_share` is a full paid day). No statute requires paid medical or emergency leave; the statutory floor is the five-day service incentive leave (Labor Code art.95; DOLE Handbook 2024 ch.7 §A). An employer that does not pay it sets this row's `paid_share` to 0 in its own Settings.",
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. An employer that pays it sets this row's `paid_share` in its own Settings (empty is a full paid day).",
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
@@ -116,8 +110,8 @@
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"id": "ff5621b2-777e-5ed2-8c82-388ce391de8b",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
-		"description": "Emergency leave an employer may grant. No statute grants it; a day taken is paid as a normal day, and an employer that does not pay it changes the paid share of this leave in its own settings.",
-		"paid_share": ""
+		"description": "Emergency leave an employer may grant. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
+		"paid_share": "0"
 	},
 	{
 		"code": "ANNUAL_LEAVE",
@@ -125,18 +119,30 @@
 			"grant_days": 5,
 			"per_months": 12,
 			"service_months": 12,
-			"window": "LIFETIME"
+			"window": "LIFETIME",
+			"entitlement": "// Labor Code art.95; Omnibus Rules Book III Rule V s.1: five days a year after one year of service. Outside it: an establishment\n// regularly employing fewer than ten, managerial staff, field personnel and task or contract workers; a kasambahay has ANNUAL_LEAVE_DOMESTIC.\nconst contract = ctx.subject.employment;\nif (get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) === true) return 0;\nif (['MANAGERIAL', 'FIELD_PERSONNEL', 'TASK_BASIS', 'DOMESTIC'].includes(get(contract, 'terms.statutory_work_category', ''))) return 0;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from', ctx.as_of));\nreturn calendar_completed_months(started, ctx.as_of) >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;"
 		},
-		"subtotal_id": "1fe27bd2-4ea2-5419-a8d8-052fa33e187e",
+		"subtotal_id": "21f1581f-c665-54aa-9ed8-49423b0bc0d8",
 		"references": [
 			{
 				"title": "Labor Code, article 95, and DOLE Handbook on Workers' Statutory Monetary Benefits 2024, chapter 7 C-D: five paid days of service incentive leave per year after one year of service, accrued pro rata at five-twelfths of a day per completed month; unused days may be carried and commuted on separation at the then-current daily rate. Supreme Court, Rodriguez v. Park N Ride, G.R. No. 222980, 20 March 2017. Managerial employees, field personnel, task-basis workers and establishments regularly employing fewer than ten are excluded.",
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
+			},
+			{
+				"title": "Labor Code art.95(b); Omnibus Rules Book III Rule V s.1; DOLE Handbook 2024 ch.7 §B",
+				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf",
+				"quote": "Read 2026-11-13. Service incentive leave excludes establishments \"regularly employing less than ten (10) employees\", managerial employees, field personnel and those engaged on task or contract basis, and kasambahays (covered by RA 10361 s.29)."
+			},
+			{
+				"title": "Revenue Regulations 29-2025 s.1, amending RR 2-98 s.2.78.1(A)(3)(a)",
+				"url": "https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025.pdf",
+				"locator": "s.1(a); s.3 effectivity (in force 6 January 2026)",
+				"quote": "Read 2026-11-13. \"Monetized unused vacation leave credits of private employees not exceeding twelve (12) days during the year\"."
 			}
 		],
 		"id": "fdf75737-76d5-518c-af33-e59d6bcf3722",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
-		"description": "Paid annual leave accrued by service.",
+		"description": "Service incentive leave: five paid days a year once a year of service is complete, carried over while unused, and paid out at the daily rate. None in an establishment regularly employing fewer than ten, nor for managerial staff, field personnel or task-basis workers (Labor Code art.95). A cash-out is tax-free up to 12 days a year.",
 		"payout": "// Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commuted to its money equivalent at the daily rate.\nreturn ctx.day_rate * ctx.entry.quantity;"
 	},
 	{

@@ -29,7 +29,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -39,8 +39,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.due_day, region, null) == null) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.salary_coverage.from, get(ctx.lookup.due_day, region, 1) - 1),\n  occurrence_key: 'SI_MONTHLY_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "7129ba33-615a-5534-99cd-68e2e31c16fe",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "7c795dc7-8b12-5e0e-83b7-73cd64f5a9e1",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HPF_MONTHLY_REMITTANCE",
@@ -69,7 +69,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -79,8 +79,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.pay_date, ctx.lookup.due_days),\n  occurrence_key: 'HPF_MONTHLY_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "2b70d232-ac5a-5cc7-b997-9474bfd42443",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "c878d006-07ff-5bd2-a987-cee45e2f79f4",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "IIT_MONTHLY_DECLARATION",
@@ -125,7 +125,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -135,8 +135,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst filing = month_start(add_months(month_start(run.pay_date), 1));\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: get(ctx.lookup.filing_dates, filing.slice(0, 7), add_days(filing, ctx.lookup.due_days)),\n  occurrence_key: 'IIT_MONTHLY_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "9b9ff400-8369-56e9-ae97-ce4d4e3d5388",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "bc6f4551-ae96-51cd-87eb-a3cd6384af46",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "UNION_FUND_REMITTANCE",
@@ -172,7 +172,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -182,8 +182,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst union = get(ext, 'union_established', false) === true ||\n  (get(ctx.lookup.preparatory, region, '') === 'ORGANISATION' && get(ext, 'union_preparatory', false) === true);\nif (!union) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: get(ctx.lookup.due_day, region, null) == null\n  ? month_end(add_months(month_start(run.salary_coverage.from), 1))\n  : add_days(month_start(add_months(run.salary_coverage.from, 1)), get(ctx.lookup.due_day, region, 1) - 1),\n  occurrence_key: 'UNION_FUND_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "9a3f32f6-0740-5844-a41d-1d5f36be2a4b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "79d8783c-3cd8-5364-a070-682eaf88852e",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "UNION_PREPARATORY_FUND",
@@ -219,7 +219,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -229,8 +229,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.preparatory, region, '') !== 'NO_UNION') return [];\nif (get(ext, 'union_established', false) === true) return [];\nconst month = Number(run.salary_coverage.from.slice(5, 7));\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month >= ctx.lookup.cutoff_month\n  ? run.salary_coverage.from.slice(0, 4) + ctx.lookup.annual_due_suffix\n  : add_days(add_months(month_start(run.salary_coverage.from), (Math.trunc((month - 1) / ctx.lookup.quarter_months) + 1) * ctx.lookup.quarter_months - month + 1), ctx.lookup.due_days),\n  occurrence_key: 'UNION_PREPARATORY_FUND:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "96b6d613-493d-5a66-bcbd-70071ad2fae8",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "415b4d5e-2b64-536d-9754-76f42acf0a4f",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "IIT_INCOME_STATEMENT",
@@ -260,7 +260,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -270,8 +270,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(add_months(run.salary_coverage.from, ctx.lookup.offset_months)),\n  occurrence_key: 'IIT_INCOME_STATEMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "9f0bab96-cafe-553c-be71-bc7980c8b061",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "0b56c376-ef60-5d58-a7f9-073aa7926803",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "IIT_ANNUAL_RECONCILIATION",
@@ -301,7 +301,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -311,8 +311,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(add_months(run.salary_coverage.from, ctx.lookup.offset_months)),\n  occurrence_key: 'IIT_ANNUAL_RECONCILIATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "cf648083-0cae-5e6c-b4ff-bfbd78b7356a",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "ae484bc6-3fc4-5228-9c11-9c4f8e6f7f01",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SI_REGISTRATION",
@@ -341,7 +341,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -351,8 +351,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_REGISTRATION:' + row.id\n}];",
-		"id": "b9e75d95-5dfa-5f0a-9887-04fd44441847",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "f1c5c471-0201-5e5f-b515-d0bd6524d05a",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HPF_DEPOSIT_REGISTRATION",
@@ -381,7 +381,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -391,8 +391,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'HPF_DEPOSIT_REGISTRATION:' + row.id\n}];",
-		"id": "b4ec0487-5fdd-50cb-9aa2-132e6fd48b53",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "b4cc2c31-4bb9-5bde-880d-81c774ccdf5e",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "EMPLOYEE_ROSTER",
@@ -420,7 +420,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -430,8 +430,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'EMPLOYEE_ROSTER:' + row.id\n}];",
-		"id": "86365e36-b93d-5669-a090-6123c7251d9e",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "5e1e6772-13bd-598a-b543-ba40ff091d46",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "TERMINATION_CERTIFICATE",
@@ -459,7 +459,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -469,8 +469,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.to,\n  occurrence_key: 'TERMINATION_CERTIFICATE:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "0a380478-1822-57be-b9f5-8c4a6b697d22",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "6d3efe6d-c412-57d4-a290-11a11f53dec0",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SI_FILE_TRANSFER",
@@ -499,7 +499,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -509,8 +509,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'SI_FILE_TRANSFER:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "8eebfc7a-677b-5ec4-8738-b16c7d5df9b0",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "0b9927af-a334-5f58-8e74-44deb8374392",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HPF_CHANGE_REGISTRATION",
@@ -539,7 +539,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -549,8 +549,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'HPF_CHANGE_REGISTRATION:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "180a547e-e17f-50a4-8469-e79964b3263d",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "da150a91-5f8d-5f03-9baf-5fbf86f2fdb7",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "FINAL_WAGES",
@@ -583,7 +583,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -604,8 +604,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = get(ctx.lookup.working_days, region, 0);\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: working > 0\n  ? add_working_days(row.effective_range.to, working, ctx.reads.holiday ?? [], [0, 6])\n  : row.effective_range.to,\n  occurrence_key: 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "6640aa56-f826-5db6-b960-9d886ce02429",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "2cc10429-d6dd-54c6-b62d-fe38e44eabd7",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "TERMINATED_CONTRACT_RETENTION",
@@ -634,7 +634,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -644,8 +644,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.to, ctx.lookup.retention_years),\n  occurrence_key: 'TERMINATED_CONTRACT_RETENTION:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "ef139e83-ab1c-5321-b448-dbac5048b719",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "8941ea68-0fc5-59f5-a3d7-a0f68e0c8d1d",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "ECONOMIC_LAYOFF_REPORT",
@@ -676,7 +676,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -686,8 +686,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, -ctx.lookup.advance_days),\n  occurrence_key: 'ECONOMIC_LAYOFF_REPORT:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "49ab2116-6295-5278-9551-aa11e6dd2ae6",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "ff7561fa-fd1d-5f7d-b9d6-dc8909bab04e",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SI_BASE_ANNUAL_DECLARATION",
@@ -725,7 +725,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -735,8 +735,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst declaration = get(ctx.lookup.declaration, region, null);\nif (declaration == null || get(declaration, 'month', null) !== run.salary_coverage.from.slice(5, 7)) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(month_start(add_months(run.salary_coverage.from, 1)), Number(get(declaration, 'due_day', 1)) - 1),\n  occurrence_key: 'SI_BASE_ANNUAL_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "214b3b6d-edad-56e3-8226-c98fc7ca7515",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "2b50fd1f-a619-5813-98b6-c252b4869124",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "EMPLOYMENT_REGISTRATION",
@@ -766,7 +766,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -776,8 +776,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'EMPLOYMENT_REGISTRATION:' + row.id\n}];",
-		"id": "874451d2-4c34-5bf1-94b6-e5cd4eaba742",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "01d2a0bd-e3ca-53fe-98f0-a9f6487449bc",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "EMPLOYMENT_DEREGISTRATION",
@@ -806,7 +806,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -816,8 +816,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'EMPLOYMENT_DEREGISTRATION:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "fbb0d24e-9fa4-5677-b6ac-b68313a579d7",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "f5933bee-899b-55ce-90d3-3fe3869daeb7",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "WORK_INJURY_RECOGNITION",
@@ -844,7 +844,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 1000
@@ -876,8 +876,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nconst firstDay = (ctx.reads.leave_catalog_entry_day ?? []).map((slot) => slot.incurred_on).toSorted().at(0);\nconst injury = get(ctx.subject.employment, 'events', []).filter((event) => event.kind === 'WORK_INJURY' && event.on <= firstDay).map((event) => event.on).toSorted().at(-1);\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: add_days(injury ?? firstDay, ctx.lookup.due_days),\n  occurrence_key: 'WORK_INJURY_RECOGNITION:' + row.id\n}];",
-		"id": "2d769e32-48eb-58a7-b325-3294bfcb2010",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "7fe3177c-5004-5c27-8699-076e213f15d2",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SI_UNIT_REGISTRATION",
@@ -906,7 +906,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -927,8 +927,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];",
-		"id": "74123107-1cdc-586b-87aa-4057b1bfd66d",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "00ace496-bcd8-5cd2-818e-edc12e7827a4",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SI_UNIT_CHANGE_REGISTRATION",
@@ -958,7 +958,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -979,8 +979,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_UNIT_CHANGE_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];",
-		"id": "dc2270ba-846a-55b7-b602-985fe024c6a2",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "c6745249-e7f1-5672-9981-7f2b5fb3b895",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HPF_UNIT_REGISTRATION",
@@ -1009,7 +1009,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1030,8 +1030,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'HPF_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];",
-		"id": "669ae4d7-baf6-50b1-8ac7-68ed0532dca8",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "56d52b62-18cb-572b-922d-6e11675f9051",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "WRITTEN_CONTRACT_OVERDUE",
@@ -1059,7 +1059,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1069,8 +1069,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_months(row.effective_range.from, 1),\n  occurrence_key: 'WRITTEN_CONTRACT_OVERDUE:' + row.id\n}];",
-		"id": "20fe3f8e-e6e3-5f88-8bc1-a07f6f813efb",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "8ecafcbc-a220-5445-9710-6718c4f882b7",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "DEEMED_OPEN_ENDED_CONTRACT",
@@ -1099,7 +1099,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1109,8 +1109,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'DEEMED_OPEN_ENDED_CONTRACT:' + row.id\n}];",
-		"id": "14c260c9-c8a1-57c4-8e16-bc0a5b7d1c2a",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "c49b06e6-5163-50ff-88f4-3db3a16be52c",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "WAGE_STATEMENT",
@@ -1138,7 +1138,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1148,8 +1148,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: run.pay_date,\n  occurrence_key: 'WAGE_STATEMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "2cb5d048-9217-5818-808c-94a1c43d44f9",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "9b5d3d28-60fb-5557-89e7-68dab50ec7eb",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "WAGE_RECORDS_RETENTION",
@@ -1180,7 +1180,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1190,8 +1190,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst migrant = get(ctx.subject.employer, 'entity_extension_data.employs_migrant_workers', false) === true;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_years(run.salary_coverage.to, migrant ? ctx.lookup.migrant_years : ctx.lookup.retention_years),\n  occurrence_key: 'WAGE_RECORDS_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "ec4eb5d1-9e66-56bc-93d0-179d56eacbf5",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "4732a6ae-2cb4-564b-99bd-77b51d85567d",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "HPF_BASE_ANNUAL_ADJUSTMENT",
@@ -1224,7 +1224,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1234,8 +1234,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.month_by_region, region, null) !== run.salary_coverage.from.slice(5, 7)) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.pay_date, ctx.lookup.due_days),\n  occurrence_key: 'HPF_BASE_ANNUAL_ADJUSTMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "efc292d3-7686-5cd8-a293-82201acf336b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "76e19c53-7a71-5f4f-b7c1-8e9edd3d1e09",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SAD_RECORD_RETENTION",
@@ -1265,7 +1265,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1275,8 +1275,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(add_years(run.salary_coverage.from, ctx.lookup.retention_years), -1),\n  occurrence_key: 'SAD_RECORD_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "6604f709-7868-5c25-a1c7-7da6feda5ea0",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "92c7f155-c290-5abd-91f4-e9bd7dce70ad",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "IIT_RECONCILIATION_RECORDS",
@@ -1306,7 +1306,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1316,8 +1316,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_years(month_end(run.salary_coverage.from), ctx.lookup.retention_years),\n  occurrence_key: 'IIT_RECONCILIATION_RECORDS:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "cb330917-56bb-5558-b7ea-01cc2290c990",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "386b3e9c-290c-59e1-9f76-c97165330414",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "DISABLED_EMPLOYMENT_FUND",
@@ -1350,7 +1350,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1360,8 +1360,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.month_by_region, region, null) !== run.salary_coverage.from.slice(5, 7)) return [];\nconst headcount = Number(get(ext, 'prior_year_average_headcount', 0));\nif (!(headcount > ctx.lookup.employee_count_threshold)) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(run.salary_coverage.from),\n  occurrence_key: 'DISABLED_EMPLOYMENT_FUND:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "08375f47-c86a-5b52-99e8-3b94aff641b1",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "77ec24de-ab7c-526c-8ae2-2b1663d21f4f",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "PERSONAL_DATA_DISPOSAL",
@@ -1390,7 +1390,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1400,8 +1400,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: String(Number(row.effective_range.to.slice(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n  occurrence_key: 'PERSONAL_DATA_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to\n}];",
-		"id": "e77d8e3f-3b35-59b7-add5-cb5b043acfe2",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "b9c362e1-a4c2-5786-9561-d9d081d82b71",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "PI_PROCESSING_NOTICE",
@@ -1430,7 +1430,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1440,8 +1440,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'PI_PROCESSING_NOTICE:' + row.id\n}];",
-		"id": "4be3d9c8-8f22-5450-bde7-56bbbd60d9c7",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "62f17f88-b027-5a5d-b220-7286684f83c6",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SENSITIVE_PI_CONSENT",
@@ -1470,7 +1470,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1480,8 +1480,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'SENSITIVE_PI_CONSENT:' + row.id\n}];",
-		"id": "67c37f07-709d-5e9e-979b-eed319f0bdbd",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "c5a49748-0f46-56a5-805f-dfd1da8019fe",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SENSITIVE_PI_CONSENT_MEDICAL",
@@ -1509,7 +1509,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 1000
@@ -1541,8 +1541,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nconst firstDay = (ctx.reads.leave_catalog_entry_day ?? []).map((slot) => slot.incurred_on).toSorted().at(0);\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: firstDay,\n  occurrence_key: 'SENSITIVE_PI_CONSENT_MEDICAL:' + row.id\n}];",
-		"id": "da2354f4-04e6-5bf4-afea-699ac1b5818b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "f8b37740-c9d6-58eb-b71c-c2fb851e5a77",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "CROSS_BORDER_HR_TRANSFER",
@@ -1575,7 +1575,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1596,8 +1596,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'CROSS_BORDER_HR_TRANSFER:' + row.entity_id + ':' + row.effective_range.from\n}];",
-		"id": "762ff9d7-82e0-5441-8ed0-7f037c4c9bcb",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "582c976b-6d5b-5744-8e88-582718635e6a",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "PI_COMPLIANCE_AUDIT",
@@ -1626,7 +1626,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1636,8 +1636,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(run.salary_coverage.from),\n  occurrence_key: 'PI_COMPLIANCE_AUDIT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "bd004af3-5670-51b4-ba28-2151d68cf6b0",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "64722231-17d1-5331-aeef-8ab5066a4430",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "JUVENILE_WORKER_REGISTRATION",
@@ -1672,7 +1672,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1682,8 +1682,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'JUVENILE_WORKER_REGISTRATION:' + row.id\n}];",
-		"id": "c923992e-6c50-5f7c-b5f6-e3bb62dc95a5",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "1e085a03-9a92-5538-8ff5-979c6eb6cd52",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "JUVENILE_WORKER_ANNUAL_CHECK",
@@ -1714,7 +1714,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1724,8 +1724,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'JUVENILE_WORKER_ANNUAL_CHECK:' + row.id\n}];",
-		"id": "f6afc52a-9cf7-5ad7-98f5-9d7584516e2c",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "73ec478e-7f74-544e-98e3-8dc2f3ec18cd",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "OPEN_ENDED_CONTRACT_RIGHT",
@@ -1755,7 +1755,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -1765,8 +1765,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'OPEN_ENDED_CONTRACT_RIGHT:' + row.id\n}];",
-		"id": "92e7a889-7bb3-5252-a083-d1da60e75087",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "5f7b2a29-6100-5063-835a-cadcb1d7e2d7",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "SI_LATE_SURCHARGE",
@@ -1795,7 +1795,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1805,8 +1805,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const task = ctx.entry;\nreturn [{\n  entity_id: task.entity_id,\n  title: ctx.lookup.title,\n  due_on: task.fulfilled_on,\n  occurrence_key: 'SI_LATE_SURCHARGE:' + task.id\n}];",
-		"id": "6aeb8369-f6a5-5741-95e9-888a9e1b0a9d",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "5ef6d136-cc94-59a5-9de9-8312d840870a",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "ACCOUNTING_VOUCHER_RETENTION",
@@ -1837,7 +1837,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"limit": 10000
@@ -1847,8 +1847,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: String(Number(run.salary_coverage.from.slice(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n  occurrence_key: 'ACCOUNTING_VOUCHER_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "948a3919-d257-57e5-a2a8-4297564e87ea",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "1a6cc462-afa0-5a49-a6c7-8f90dcd14d32",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "MINIMUM_WAGE",
@@ -1860,6 +1860,11 @@
 		"references": [
 			{
 				"title": "最低工资规定 第十二条; 上海市企业工资支付办法; 昆明市工资支付条例; 超龄劳动者基本权益保障暂行规定 (人社部令第56号) 第十一条: 超龄劳动者正常提供劳动的, 报酬不得低于当地最低工资标准. A full month at the contract monthly rate; Shanghai excludes the employee's social insurance and housing fund from the comparison. A warning, never a stop."
+			},
+			{
+				"title": "上海 最低工资标准 2025-07-01起 月2740元, 小时25元; 2026年未调整",
+				"url": "https://wageindicator.org/zh-cn/ai/work-in-china/minimum-wage/6930-/",
+				"effective_from": "2025-07-01"
 			}
 		],
 		"source_collection": "payslip",
@@ -1890,8 +1895,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'MINIMUM_WAGE:' + ctx.entry.id\n}];",
-		"id": "d9265fcd-c6c7-4f88-ac18-aa04874799fd",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "858504f3-0720-5a3a-9ce7-5bac865b3c92",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "DISABILITY_ALLOWANCE_SI_BASE",
@@ -1935,8 +1940,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'DISABILITY_ALLOWANCE_SI_BASE:' + ctx.entry.id\n}];",
-		"id": "3008819a-ec64-4ee7-aec0-30babe8ffc01",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "2ad675a6-3ac6-5f39-9d42-f2c3ca6653ea",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "CN_COMPREHENSIVE_REVIEW",
@@ -1978,8 +1983,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_COMPREHENSIVE_REVIEW:' + ctx.entry.id\n}];",
-		"id": "9c9af7a1-811e-4ea4-80cc-96460149335b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "c96c57e1-91dd-5a79-89cb-1af4901789bc",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "CN_HPF_COMMENCEMENT_REVIEW",
@@ -2021,8 +2026,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_HPF_COMMENCEMENT_REVIEW:' + ctx.entry.employment_id\n}];",
-		"id": "7af9ab67-7fe3-423d-8b6e-29b528793ea0",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "e9745f96-8981-525d-b99d-7648d640fbca",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "CN_ANNUAL_LEAVE_REVIEW",
@@ -2048,7 +2053,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": false
+						"is_null": false
 					}
 				},
 				"limit": 1000
@@ -2079,8 +2084,8 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + first(ctx.reads.payroll_run).salary_coverage.from.slice(0, 4)\n}];",
-		"id": "0e682e36-2cb8-4b61-8198-5b4875ab3af3",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "3778af19-99f1-5db6-b142-34c127d841a6",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "OVER_AGE_AGREEMENT",
@@ -2122,50 +2127,7 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'OVER_AGE_AGREEMENT:' + ctx.entry.employment_id\n}];",
-		"id": "a303e46b-edac-493a-981d-80aa686ab057",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"name": "Follow up a contribution corrected for a closed month",
-		"description": "Raises a follow-up task when a contribution correction for a closed month posts to a fund account.",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['CN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['CN', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "2b03210c-7d0b-578e-ab1c-08eefbee7b44",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "8158d87d-05fe-5ef6-a54b-222c08d26950",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	}
 ]

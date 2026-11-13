@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput } from '@norbital-ai/bolt';
@@ -16,7 +16,8 @@
 		runWorkbookImport,
 		type WorkbookGrids
 	} from '../../../lib/ui/workbook/workbook_import.js';
-	const scope = companyScope();
+	let { ctx }: { ctx: PageContext } = $props();
+	const scope = companyScope(ctx);
 	let creating = $state(false);
 	let importing = $state(false);
 	let warnings: readonly string[] = [];
@@ -24,7 +25,7 @@
 	const held = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_contract: {
 						where: { entity_id: { eq: scope.id }, status: { eq: 'SEALED' } },
 						fields: ['employee_number', 'entity_id', 'effective_range'],
@@ -96,9 +97,9 @@
 	function importClaims() {
 		importing = true;
 		fork(
-			runWorkbookImport({
+			runWorkbookImport(ctx, {
 				action: 'claim_catalog_entry.create',
-				recordLabel: bolt.t('app.claims.title').toLowerCase(),
+				recordLabel: ctx.t('app.claims.title').toLowerCase(),
 				buildPayload: claimRows,
 				importedCount: (payload) => payload.length,
 				warnings: () => warnings
@@ -116,26 +117,26 @@
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 
 <AppShell
-	title={bolt.t('app.claims.title')}
-	description={bolt.t('app.claims.description')}
+	title={ctx.t('app.claims.title')}
+	description={ctx.t('app.claims.description')}
 	icon="lucide:receipt-text"
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
-	{#if scope.id === null}<EmptyState title={bolt.t('app.events.empty_scope')} />
+	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
+	{#if scope.id === null}<EmptyState title={ctx.t('app.events.empty_scope')} />
 	{:else}<Table
+			{ctx}
 			of="claim_catalog_entry"
 			key="claim_catalog_entry"
 			where={{ entity_id: { eq: scope.id } }}
 			toolbar={{
 				new: () => (creating = true),
-				title: bolt.t('app.claims.title'),
+				title: ctx.t('app.claims.title'),
 				actions: [
 					{
 						run: importClaims,
 						icon: 'lucide:file-spreadsheet',
-						name: bolt.t('holiday_calendar.import_spreadsheet'),
-						disabled: () =>
-							importing || held?.current == null ? bolt.t('component.loading') : null
+						name: ctx.t('holiday_calendar.import_spreadsheet'),
+						disabled: () => (importing || held?.current == null ? ctx.t('component.loading') : null)
 					}
 				]
 			}}
@@ -149,6 +150,7 @@
 		/>{/if}
 </AppShell>
 {#if creating && scope.id !== null}<ClaimRequest
+		{ctx}
 		companyId={scope.id}
 		onsaved={() => (creating = false)}
 		onclose={() => (creating = false)}

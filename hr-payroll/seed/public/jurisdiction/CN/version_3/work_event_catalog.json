@@ -8,6 +8,22 @@
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
 	{
+		"id": "26e21631-6341-5f25-9de8-b8793e705228",
+		"code": "NATURAL_DISASTER",
+		"description": "A dated natural disaster that interrupts work or triggers a relief allowance.",
+		"lookup": {},
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
+		"subtotal_id": null
+	},
+	{
+		"id": "dcdebcfb-62f3-57a9-bd04-84056bf69793",
+		"code": "EPIDEMIC",
+		"description": "A dated epidemic period that changes attendance or triggers a public-health allowance.",
+		"lookup": {},
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
+		"subtotal_id": null
+	},
+	{
 		"code": "STOPPAGE_EMPLOYER",
 		"lookup": {},
 		"subtotal_id": null,

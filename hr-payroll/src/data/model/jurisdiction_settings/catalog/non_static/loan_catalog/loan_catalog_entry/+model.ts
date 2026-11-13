@@ -1,4 +1,5 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../../../../../.norbital/models/loan_catalog_entry.ts';
 import {
 	refuseIneligible,
 	validateRegistered
@@ -6,20 +7,19 @@ import {
 import { jsonObject, numberOf } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
-export default model('loan_catalog_entry', {
+export default model({
 	description: 'One employee loan advance and its repayment period.',
 	record_label:
 		"record.employment_id.employee_number + ' · ' + string(record.recovered) + ' recovered'",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'loan_catalog_entry' },
-		catalog_id: { kind: 'ref', to: 'loan_catalog', onDelete: 'restrict' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
+		catalog_id: { kind: 'ref', to: 'loan_catalog', on_delete: 'restrict' },
+		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, on_delete: 'set_null' },
 		quantity: { kind: 'decimal', scale: 12, min: 0 },
 		recovered: {
 			kind: 'sum',
 			of: 'repayments.amount',
-			where: { reverses: { isNull: true } },
 			hidden: true
 		},
 		repayment_period: { kind: 'period', of: 'date' },
@@ -30,15 +30,17 @@ export default model('loan_catalog_entry', {
 			optional: true
 		}
 	},
-	read: {
-		loan_catalog_entry: { fields: 'all' },
-		'loan_catalog_entry.employment_id': { fields: 'all' },
-		'loan_catalog_entry.catalog_id': { fields: 'all' },
-		'loan_catalog_entry.payroll_run_id': { fields: 'all' }
+	outputs: {
+		default: {
+			fields: 'all',
+			employment_id: { fields: 'all' },
+			catalog_id: { fields: 'all' },
+			payroll_run_id: { fields: 'all' }
+		}
 	},
 	create: {
 		columns: {
-			loan_catalog_entry: [
+			fields: [
 				'entity_id',
 				'employment_id',
 				'catalog_id',
@@ -47,24 +49,24 @@ export default model('loan_catalog_entry', {
 				'evidence_file'
 			]
 		},
-		transform: function* (rows, ctx) {
-			yield* validateRegistered(
-				ctx.db.query,
-				'loan_catalog_entry',
+		transform: function* (changes, ctx) {
+			const rows = changes.map((c) => jsonObject(c.after));
+			yield* validateRegistered(ctx.query, 'loan_catalog_entry', 'create', rows);
+			yield* refuseIneligible(ctx.query, 'loan_catalog_entry', rows);
+			return changes.map((c) => c.set);
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(
+				ctx,
 				'create',
-				rows.map((row) => jsonObject(row))
-			);
-			yield* refuseIneligible(
-				ctx.db.query,
 				'loan_catalog_entry',
-				rows.map((row) => jsonObject(row))
+				changes.map(({ after }) => ({ after }))
 			);
-			return rows;
 		}
 	},
 	update: {
 		columns: {
-			loan_catalog_entry: [
+			fields: [
 				'payroll_run_id',
 				'quantity',
 				'repayment_period',
@@ -81,55 +83,47 @@ export default model('loan_catalog_entry', {
 				)
 			)
 				return changes.map((change) => change.set);
-			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
-			yield* validateRegistered(ctx.db.query, 'loan_catalog_entry', 'update', proposed);
-			yield* refuseIneligible(ctx.db.query, 'loan_catalog_entry', proposed);
-			const sealed = yield* ctx.db.query({
+			const proposed = changes.map((change) => jsonObject(change.after));
+			yield* validateRegistered(ctx.query, 'loan_catalog_entry', 'update', proposed);
+			yield* refuseIneligible(ctx.query, 'loan_catalog_entry', proposed);
+			const sealed = yield* ctx.query({
 				loan_catalog_entry_repayment: {
 					where: { loan_id: { in: changes.map((c) => c.before.id) } },
 					fields: ['loan_id', 'amount', 'payroll_run_id'],
 					limit: 10000
 				}
 			});
-			for (const change of changes) {
+			for (const [index, change] of changes.entries()) {
 				const paid = (sealed.loan_catalog_entry_repayment.rows ?? [])
 					.filter((row) => row.loan_id === change.before.id && row.payroll_run_id != null)
 					.reduce((total, row) => total + (numberOf(row.amount) ?? 0), 0);
-				const principal = numberOf(change.set.quantity ?? change.before.quantity) ?? 0;
+				const principal = numberOf(change.after.quantity) ?? 0;
 				if (principal < paid)
-					return yield* ctx.refuse(
-						'The principal cannot be less than repayments already included in payroll. Enter a principal at or above that total.'
-					);
+					return yield* ctx.refuse('errors.loan_principal_below_repaid', {
+						row: index,
+						field: 'quantity'
+					});
 			}
 			return changes.map((c) => c.set);
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(ctx, 'update', 'loan_catalog_entry', changes);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* validateRegistered(
-				ctx.db.query,
+				ctx.query,
 				'loan_catalog_entry',
 				'delete',
-				rows.map((row) => jsonObject(row))
+				changes.map((change) => jsonObject(change.before))
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
-			if (rows.some((r) => r.payroll_run_id != null))
-				return yield* ctx.refuse(
-					'A payroll run has paid this loan, so it cannot be deleted. Record a reversing repayment instead.'
-				);
-		}
-	},
-
-	effect: {
-		created: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				'loan_catalog_entry',
-				rows.map((after) => ({ after }))
-			);
-		},
-		updated: function* (changes, ctx) {
-			yield* tap(ctx, 'update', 'loan_catalog_entry', changes);
+			const paid = changes.findIndex((change) => change.before.payroll_run_id != null);
+			if (paid >= 0) return yield* ctx.refuse('errors.loan_paid_no_delete', { row: paid });
 		}
 	}
 });

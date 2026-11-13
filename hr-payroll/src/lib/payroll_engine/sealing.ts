@@ -14,10 +14,12 @@ export const sealConfiguration = Effect.fn('payroll.sealConfiguration')(function
 	ids: readonly Id<'jurisdiction_settings'>[]
 ) {
 	if (ids.length === 0) return;
-	yield* requireDraftSettings(ctx.db.query, ids).pipe(
-		Effect.catch((error) => ctx.refuse(error.message))
+	yield* requireDraftSettings(ctx.query, ids).pipe(
+		Effect.catch((error) =>
+			ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+		)
 	);
-	const got = yield* queryRows(ctx.db.query, {
+	const got = yield* queryRows(ctx.query, {
 		jurisdiction_settings: { where: { id: { in: ids } }, limit: 10000 },
 		subtotal: { where: { settings_id: { in: ids } }, limit: 10000 },
 		statutory_contribution_catalog: { where: { settings_id: { in: ids } }, limit: 10000 },

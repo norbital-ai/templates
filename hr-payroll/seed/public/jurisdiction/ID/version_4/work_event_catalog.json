@@ -1,0 +1,79 @@
+[
+	{
+		"code": "EMPLOYER_CAUSED",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			},
+			{
+				"title": "PP 36/2021",
+				"locator": "art.40(2)(d)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf"
+			}
+		],
+		"id": "fb3d4322-9854-5de7-9ea4-29cedb8158d0",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"description": "An employer-caused event that changes work or pay."
+	},
+	{
+		"code": "FORCE_MAJEURE",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.93(1)",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			},
+			{
+				"title": "PP 36/2021",
+				"locator": "art.40(1)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf"
+			}
+		],
+		"id": "a6aa58a0-3532-5241-9f51-2dc48b8642c1",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"description": "A force-majeure event that stops work; pay follows the agreed stoppage terms."
+	},
+	{
+		"code": "STRIKE_NORMATIVE",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.145",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			},
+			{
+				"title": "PP 36/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf"
+			}
+		],
+		"id": "d379b0fb-a290-51e2-b080-46edef712465",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"description": "A strike under the applicable rules."
+	},
+	{
+		"code": "STRIKE_OTHER",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.93(1)",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			},
+			{
+				"title": "PP 36/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf"
+			}
+		],
+		"id": "abaf8a52-c934-58ea-89f8-4533b3441221",
+		"settings_id": "44664d72-83d6-5d8a-b585-9435331605aa",
+		"description": "A strike outside the normative rules."
+	}
+]

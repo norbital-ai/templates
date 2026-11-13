@@ -1,4 +1,4 @@
-import { addDays } from '@norbital-ai/std/date';
+import { add_days } from '@norbital-ai/std/date';
 import type { JsonObject } from './contracts.js';
 import { objectValue, valueText } from './reads.js';
 
@@ -22,14 +22,22 @@ const formatIn = (zone: string): Intl.DateTimeFormat => {
 };
 
 /** `date` + clock time in an IANA zone, as epoch milliseconds. */
+// everyone on one shift shares its instants: a run works each out once
+const instants = new Map<string, number>();
 const instant = (date: string, time: string, zone: string): number => {
+	const key = `${zone} ${date} ${time}`;
+	const held = instants.get(key);
+	if (held !== undefined) return held;
 	const guess = Date.parse(`${date}T${time}:00Z`);
 	const shown = formatIn(zone)
 		.formatToParts(new Date(guess))
 		.filter((part) => part.type !== 'literal')
 		.map((part) => part.value);
 	const [year, month, day, hour, minute, second] = shown;
-	return guess - (Date.UTC(+year!, +month! - 1, +day!, +hour!, +minute!, +second!) - guess);
+	const found = guess - (Date.UTC(+year!, +month! - 1, +day!, +hour!, +minute!, +second!) - guess);
+	if (instants.size >= 20_000) instants.clear();
+	instants.set(key, found);
+	return found;
 };
 
 /** The planned shift for one roster day, or an untimed/non-work day. */
@@ -50,7 +58,7 @@ export function scheduled(
 	if (variant == null || variant.start_time == null || variant.end_time == null)
 		return { spans: [], day_type, untimed };
 	const date = valueText(row, 'work_date');
-	const endDate = variant.ends_next_day === true ? String(addDays(date, 1)) : date;
+	const endDate = variant.ends_next_day === true ? String(add_days(date, 1)) : date;
 	const start = instant(date, String(variant.start_time), data.zone);
 	const end = instant(endDate, String(variant.end_time), data.zone);
 	const pauses = (Array.isArray(variant.breaks) ? variant.breaks : [])

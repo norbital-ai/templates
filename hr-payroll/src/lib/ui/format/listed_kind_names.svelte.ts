@@ -1,14 +1,14 @@
-import { bolt } from '$bolt';
-import { enumText } from '@norbital-ai/ui';
+import type { PageContext } from '@norbital-ai/bolt/page';
+import { enum_text } from '@norbital-ai/ui';
 import { kindsOf } from '../../payroll_engine/listed_kinds.js';
 
 /**
  * A stored kind code as the name the version's typed catalogue lists it under (`case_kinds`), across the
  * sealed versions, live; a code no version names reads as words. Call during component initialisation.
  */
-export function listedKindNames(rule: 'case_kinds') {
+export function listedKindNames(ctx: Pick<PageContext, 'query'>, rule: 'case_kinds') {
 	const rows = $derived.by(() =>
-		bolt.query({
+		ctx.query({
 			jurisdiction_settings: { where: { status: { eq: 'SEALED' } }, fields: ['lookup'] }
 		})
 	);
@@ -19,5 +19,5 @@ export function listedKindNames(rule: 'case_kinds') {
 			)
 		)
 	);
-	return (code: string): string => names.get(code) ?? enumText(code);
+	return (code: string): string => names.get(code) ?? enum_text(code);
 }

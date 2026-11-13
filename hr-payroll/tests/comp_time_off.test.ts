@@ -19,7 +19,8 @@ import {
 	measureOf,
 	pack,
 	uuid,
-	workspace
+	workspace,
+	storedQuery
 } from './kit.ts';
 
 const CODE = 'COMPENSATORY_TIME_OFF';
@@ -83,40 +84,58 @@ const live = (marked: boolean) =>
 const runJune = (t: Kit) =>
 	t
 		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }])
-		.pipe(Effect.andThen(t.runDue()));
+		.pipe(
+			Effect.flatMap((caller) =>
+				caller.act({
+					'payroll_run.create': [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]
+				})
+			)
+		)
+		.pipe(Effect.andThen(t.run_due()));
 const overtimePaid = Effect.fnUntraced(function* () {
 	const t = yield* TestWorkspace;
 	yield* runJune(t);
-	const payslip = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows[0];
+	const payslip = (yield* storedQuery(t, { payslip: { limit: 1 } })).payslip.rows[0];
 	const { lines } = Schema.decodeUnknownSync(PayslipBreakdown)(payslip?.breakdown);
 	return lines.find((line) => line.code === 'OVERTIME')?.amount ?? 0;
 });
 const owed = (t: Kit, measure: string) =>
 	accountsIn(t).pipe(Effect.map((accounts) => measureOf(accounts, 'leave', CODE, measure)));
 const halfDay = (t: Kit) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		leaveCreate({
-			entity_id: ENTITY,
-			employment_id: idOf('employee_contract', uuid(6)),
-			catalog_id: idOf('leave_catalog', catalogRow(seedOf(true), 'leave_catalog', CODE)),
-			days: [{ date: PlainDate('2026-07-06'), part: 'AM' }]
-		})
-	]);
+	t.as(t.admin).pipe(
+		Effect.flatMap((caller) =>
+			caller.act({
+				'leave_catalog_entry.create': [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: idOf('employee_contract', uuid(6)),
+						catalog_id: idOf('leave_catalog', catalogRow(seedOf(true), 'leave_catalog', CODE)),
+						days: [{ date: PlainDate('2026-07-06'), part: 'AM' }]
+					})
+				]
+			})
+		)
+	);
 const adjust = (t: Kit, unit: 'DAY' | 'HOUR', amount: number) =>
-	t.as(t.member(['hr_controller'])).act('ledger_entry.create', [
-		{
-			balance_id: BALANCE,
-			operation: 'ADD',
-			account: 'leave',
-			code: CODE,
-			measure: 'entitled',
-			amount,
-			unit,
-			effective_on: PlainDate('2026-07-01'),
-			note: 'overtime of 30 June taken as time off'
-		}
-	]);
+	t.as(t.member(['hr_controller'])).pipe(
+		Effect.flatMap((caller) =>
+			caller.act({
+				'ledger_entry.create': [
+					{
+						balance_id: BALANCE,
+						operation: 'ADD',
+						account: 'leave',
+						code: CODE,
+						measure: 'entitled',
+						amount,
+						unit,
+						effective_on: PlainDate('2026-07-01'),
+						note: 'overtime of 30 June taken as time off'
+					}
+				]
+			})
+		)
+	);
 
 describe('overtime taken as time off', () => {
 	it.live('pays no overtime for the marked day and owes its hours', () =>
@@ -130,7 +149,7 @@ describe('overtime taken as time off', () => {
 					(row) => String(row.source).startsWith('payroll_run:') && row.code === CODE
 				);
 				assert.deepEqual(
-					posted.map((row) => [row.measure, row.unit, row.amount?.toNumber()]),
+					posted.map((row) => [row.measure, row.unit, row.amount?.to_number()]),
 					[['entitled', 'HOUR', 2]]
 				);
 				return amount;
@@ -151,7 +170,7 @@ describe('overtime taken as time off', () => {
 			assert.equal((yield* adjust(t, 'HOUR', 2)).kind, 'committed');
 			assert.equal(yield* owed(t, 'entitled'), 4);
 			assert.equal((yield* halfDay(t)).kind, 'committed');
-			yield* t.runDue();
+			yield* t.run_due();
 			assert.equal(yield* owed(t, 'used'), 4);
 		}).pipe(Effect.provide(live(true)))
 	);

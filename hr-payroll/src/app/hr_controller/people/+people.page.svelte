@@ -3,10 +3,10 @@
 	 * Workforce health for one legal entity (headcount in force today and twelve months of turnover and hire rate,
 	 * derived from its employment contracts' ranges, never stored) and one profile per person employed there.
 	 */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell, Columns, Split, Stack } from '@norbital-ai/ui/layout';
 	import { DescriptionHint, Chart, EmptyState, Table, Tabs } from '@norbital-ai/ui';
-	import { addDays } from '@norbital-ai/std/date';
+	import { add_days } from '@norbital-ai/std/date';
 	import { todayKey } from '../../../lib/ui/format/calendar.js';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
@@ -14,14 +14,15 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import { importDataRequest } from '../../../lib/ui/workbook/data_request_import.js';
+	let { ctx }: { ctx: PageContext } = $props();
 
-	const clock = bolt.clock('day');
-	const scope = companyScope();
+	const clock = ctx.clock('day');
+	const scope = companyScope(ctx);
 	const today = todayKey();
 	const employee_contracts = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_contract: {
 						where: {
 							entity_id: { eq: scope.id },
@@ -45,7 +46,7 @@
 			if (
 				previous?.employee === row.employee_id &&
 				!previous.exit &&
-				(previous.end === '9999-12-31' || addDays(previous.end, 1) >= row.effective_range.from)
+				(previous.end === '9999-12-31' || add_days(previous.end, 1) >= row.effective_range.from)
 			) {
 				previous.end = end;
 				previous.exit = row.status === 'VOID';
@@ -62,8 +63,8 @@
 	const current = $derived(
 		new Set(ranges.filter((r) => r.start <= today && r.end >= today).map((r) => r.employee)).size
 	);
-	const TURNOVER = $derived(bolt.t('app.people.chart_turnover_rate'));
-	const HIRES = $derived(bolt.t('app.people.chart_hire_rate'));
+	const TURNOVER = $derived(ctx.t('app.people.chart_turnover_rate'));
+	const HIRES = $derived(ctx.t('app.people.chart_hire_rate'));
 	// a rate in percent, one decimal: the chart's axis reads 4.2, not 0.042
 	const rate = (count: number, average: number) =>
 		average > 0 ? Math.round((count / average) * 1000) / 10 : 0;
@@ -98,10 +99,10 @@
 	let importing = $state(false);
 	function importRequest() {
 		importing = true;
-		fork(importDataRequest().pipe(Effect.ensuring(Effect.sync(() => (importing = false)))));
+		fork(importDataRequest(ctx).pipe(Effect.ensuring(Effect.sync(() => (importing = false)))));
 	}
 	const percent = (n: number) =>
-		(n / 100).toLocaleString(bolt.locale, { style: 'percent', maximumFractionDigits: 1 });
+		(n / 100).toLocaleString(ctx.locale, { style: 'percent', maximumFractionDigits: 1 });
 </script>
 
 {#snippet empty(message: string)}
@@ -109,25 +110,25 @@
 {/snippet}
 
 {#snippet summary()}
-	<Stack as="section" gap="md" aria-label={bolt.t('app.people.workforce')}>
+	<Stack as="section" gap="md" aria-label={ctx.t('app.people.workforce')}>
 		<div>
 			<div class="flex items-center gap-1">
-				<h2 class="text-heading">{bolt.t('app.people.workforce')}</h2>
-				<DescriptionHint text={bolt.t('app.people.workforce_description')} />
+				<h2 class="text-heading">{ctx.t('app.people.workforce')}</h2>
+				<DescriptionHint text={ctx.t('app.people.workforce_description')} />
 			</div>
 		</div>
 		{#if scope.id == null}
-			{@render empty(bolt.t('app.people.empty_overview'))}
+			{@render empty(ctx.t('app.people.empty_overview'))}
 		{:else}
 			<!-- repository-health:allow UI27 -- a 1px hairline between the cards; the gap scale has none -->
 			<Columns count={2} gap="none" class="gap-px rounded-lg border bg-border">
 				<Stack gap="none" class="bg-card p-4">
-					<p class="text-xs font-medium text-muted-foreground">{bolt.t('app.people.current')}</p>
+					<p class="text-xs font-medium text-muted-foreground">{ctx.t('app.people.current')}</p>
 					<p class="text-section tabular-nums" data-headcount>{current}</p>
 				</Stack>
 				<Stack gap="none" class="bg-card p-4">
 					<p class="text-xs font-medium text-muted-foreground">
-						{bolt.t('app.people.turnover_12m')}
+						{ctx.t('app.people.turnover_12m')}
 					</p>
 					<p class="text-section tabular-nums">{percent(turnover)}</p>
 				</Stack>
@@ -138,40 +139,41 @@
 
 {#snippet chart()}
 	{#if scope.id == null}
-		{@render empty(bolt.t('app.people.empty_trend'))}
+		{@render empty(ctx.t('app.people.empty_trend'))}
 	{:else}
 		<div class="min-w-0 rounded-lg border bg-card p-4">
 			<div class="mb-2 flex items-center gap-1">
-				<h2 class="text-sm font-medium">{bolt.t('app.people.chart_title')}</h2>
-				<DescriptionHint text={bolt.t('app.people.chart_description')} />
+				<h2 class="text-sm font-medium">{ctx.t('app.people.chart_title')}</h2>
+				<DescriptionHint text={ctx.t('app.people.chart_description')} />
 			</div>
-			<Chart of={trend} x="month" y={[TURNOVER, HIRES]} kind="line" />
+			<Chart {ctx} of={trend} x="month" y={[TURNOVER, HIRES]} kind="line" />
 		</div>
 	{/if}
 {/snippet}
 
 {#snippet overview()}
-	<Split ratio="third" collapse="stack" collapseAt="narrow" gap="lg" start={summary} end={chart} />
+	<Split ratio="third" collapse="stack" collapse_at="narrow" gap="lg" start={summary} end={chart} />
 {/snippet}
 
 {#snippet profiles()}
 	{#if scope.id == null}
-		{@render empty(bolt.t('app.people.empty_profiles'))}
+		{@render empty(ctx.t('app.people.empty_profiles'))}
 	{:else}
 		{#key scope.id}
 			<Table
+				{ctx}
 				of="employee_profile"
 				key={`people-${scope.id}`}
 				toolbar={{
-					title: bolt.t('app.people.profiles_title'),
+					title: ctx.t('app.people.profiles_title'),
 					new: false,
 					actions: [
 						{
 							run: importRequest,
 							icon: 'lucide:file-up',
-							name: bolt.t('data_request.import'),
-							description: bolt.t('data_request.import_description'),
-							disabled: () => (importing ? bolt.t('component.loading') : null)
+							name: ctx.t('data_request.import'),
+							description: ctx.t('data_request.import_description'),
+							disabled: () => (importing ? ctx.t('component.loading') : null)
 						}
 					]
 				}}
@@ -180,10 +182,10 @@
 						some: { entity_id: { eq: scope.id } }
 					}
 				}}
-				initialFilter={{
+				initial_filter={{
 					employee_contract: { some: { effective_range: { contains: clock.today } } }
 				}}
-				orderBy={{ name: 'asc' }}
+				order_by={{ name: 'asc' }}
 				columns={['name', 'email', 'phone', 'face_enrollment_status']}
 			/>
 		{/key}
@@ -192,22 +194,22 @@
 
 <AppShell
 	icon="lucide:users"
-	title={bolt.t('app.people.title')}
-	description={bolt.t('app.people.description')}
+	title={ctx.t('app.people.title')}
+	description={ctx.t('app.people.description')}
 	variant="full"
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
+	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
 	<Tabs
 		tabs={[
 			{
 				name: 'profiles',
-				title: bolt.t('app.people.tab_profiles'),
+				title: ctx.t('app.people.tab_profiles'),
 				icon: 'lucide:users',
 				body: profiles
 			},
 			{
 				name: 'overview',
-				title: bolt.t('component.tab_overview'),
+				title: ctx.t('component.tab_overview'),
 				icon: 'lucide:chart-no-axes-combined',
 				body: overview
 			}

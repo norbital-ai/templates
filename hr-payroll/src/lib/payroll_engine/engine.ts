@@ -1,9 +1,9 @@
-import { datePeriod, eachDay, isPlainDate } from '@norbital-ai/std/date';
+import { is_plain_date } from '@norbital-ai/std/date';
 import type { JsonObject, Lookup, Party, Direction, Rounding, Unit } from './contracts.js';
 import { lookupOf, settingsConstants } from './contracts.js';
 import { contextRoots, evaluate } from './expressions.js';
 import { programOf } from './programs.js';
-import { Refusal, isJsonObject, leaveEntry } from './foundation.js';
+import { Refusal, daysIn, isJsonObject, leaveEntry } from './foundation.js';
 import { rounded } from './money.js';
 import { accountsOf, eventOn, eventsOf, periodOn } from '../ledger/core.js';
 
@@ -20,7 +20,6 @@ export interface PayLine {
 	readonly unit?: Unit;
 	readonly rate_code?: string;
 	readonly source_id: { readonly model: string; readonly id: string };
-	readonly reversal: boolean;
 }
 
 export interface SubtotalResult {
@@ -65,9 +64,19 @@ export interface PayrollInput {
 	readonly work_events?: readonly JsonObject[];
 	readonly work?: { readonly days: readonly JsonObject[] };
 	/** The person's contracts, whichever one pays: days outside all of them were never owed. */
-	readonly employed?: readonly { readonly from: string; readonly to: string | null }[];
+	/** The person's contract versions: their days, and the terms each was agreed on. */
+	readonly employed?: readonly {
+		readonly from: string;
+		readonly to: string | null;
+		readonly terms?: JsonObject | null;
+	}[];
 	/** The person's pattern over the salary and attendance periods. */
 	readonly projected_days?: readonly ProjectedDay[];
+	/**
+	 * Pay this run carries for earlier periods, by checkpoint code, signed. A scheme assessed in the month paid counts it
+	 * as this month's wages; every other scheme was worked out again for the month it was earned.
+	 */
+	readonly carried?: Readonly<Record<string, number>>;
 }
 
 /** Overtime a run owes as time off: its hours, on the leave row that takes them, in the window of the day worked. */
@@ -111,12 +120,19 @@ const period = (run: JsonObject): { from: string; to: string } => {
 	const value = coverage as JsonObject;
 	const from = value.from,
 		to = value.to;
-	if (!isPlainDate(from) || !isPlainDate(to))
+	if (!is_plain_date(from) || !is_plain_date(to))
 		throw new Refusal({ message: 'Salary coverage requires actual dates.' });
 	return { from, to };
 };
-const catalogById = (rows: readonly JsonObject[]): ReadonlyMap<string, JsonObject> =>
-	new Map(rows.map((row) => [id(row), row]));
+// one map a catalogue, not one for every person it prices
+const catalogMaps = new WeakMap<readonly JsonObject[], ReadonlyMap<string, JsonObject>>();
+const catalogById = (rows: readonly JsonObject[]): ReadonlyMap<string, JsonObject> => {
+	const held = catalogMaps.get(rows);
+	if (held !== undefined) return held;
+	const made = new Map(rows.map((row) => [id(row), row]));
+	catalogMaps.set(rows, made);
+	return made;
+};
 
 /** The configured chain is the whole execution plan: no implicit BASE/EARNINGS/NET stages. */
 export function subtotalChain(rows: readonly JsonObject[]): readonly JsonObject[] {
@@ -224,7 +240,6 @@ function line(input: {
 	readonly coverage: { from: string; to: string };
 	readonly source: JsonObject;
 	readonly model: string;
-	readonly reversal?: boolean;
 	readonly quantity?: number;
 	readonly unit?: Unit;
 	readonly rate_code?: string;
@@ -239,7 +254,6 @@ function line(input: {
 		incurred_on: input.incurred_on,
 		coverage: input.coverage,
 		source_id: { model: input.model, id: id(input.source) },
-		reversal: input.reversal === true,
 		...(input.quantity === undefined ? {} : { quantity: input.quantity }),
 		...(input.unit === undefined ? {} : { unit: input.unit }),
 		...(input.rate_code === undefined ? {} : { rate_code: input.rate_code })
@@ -260,7 +274,7 @@ type Slot = { readonly date: string; readonly part: string };
 type SlotShare = (row: JsonObject, entry: JsonObject, slot: Slot) => number;
 const slotsOf = (entry: JsonObject): readonly Slot[] =>
 	(Array.isArray(entry.days) ? entry.days : []).flatMap((day) =>
-		isJsonObject(day) && isPlainDate(day.date)
+		isJsonObject(day) && is_plain_date(day.date)
 			? [{ date: String(day.date), part: String(day.part) }]
 			: []
 	);
@@ -297,9 +311,8 @@ const unpaidByDate = (input: PayrollInput, share: SlotShare): Map<string, number
 	const catalogs = catalogById(input.leave_catalog);
 	for (const entry of input.entries.leave_catalog_entry ?? []) {
 		const row = catalogs.get(String(entry.catalog_id));
-		// an encashment takes no day off; a reversal is refunded by its own line in the original month
-		if (row === undefined || !sharesPay(row) || entry.encashment === true || entry.reverses != null)
-			continue;
+		// an encashment takes no day off
+		if (row === undefined || !sharesPay(row) || entry.encashment === true) continue;
 		for (const slot of slotsOf(entry)) {
 			const lost = (1 - share(row, entry, slot)) / 2;
 			if (lost > 0) add(slot.date, lost);
@@ -316,7 +329,7 @@ const plannedDays = (
 ): readonly ProjectedDay[] => {
 	if (input.projected_days !== undefined) return input.projected_days;
 	const off = offDaysOf(input);
-	return eachDay(datePeriod(coverage.from, coverage.to)).map((date) => ({
+	return daysIn(coverage.from, coverage.to).map((date) => ({
 		date: String(date),
 		work: isWorkingDay(String(date), off)
 	}));
@@ -337,7 +350,7 @@ const basisDays = (
 ): readonly string[] => {
 	const calendar = basis === 'CALENDAR_DAYS' || (basis === 'DAY_RATE' && dayRateCalendar(input));
 	return calendar
-		? eachDay(datePeriod(coverage.from, coverage.to)).map(String)
+		? daysIn(coverage.from, coverage.to)
 		: plannedDays(input, coverage)
 				.filter(({ date, work }) => work && date >= coverage.from && date <= coverage.to)
 				.map(({ date }) => date);
@@ -349,7 +362,7 @@ const basisDays = (
  */
 const monthBasisCount = (input: PayrollInput, date: string, basis: unknown): number => {
 	const month = monthBounds(date);
-	const days = eachDay(datePeriod(month.from, month.to)).map(String);
+	const days = daysIn(month.from, month.to);
 	if (basis === 'CALENDAR_DAYS' || (basis === 'DAY_RATE' && dayRateCalendar(input)))
 		return days.length;
 	const off = offDaysOf(input);
@@ -481,11 +494,11 @@ export const payBasis = (input: PayrollInput, coverage: { from: string; to: stri
 	const { terms, amount: rate, unit, hoursPerDay, daysPerWeek, weeklyHours } = rateOf(input);
 	const off = offDaysOf(input);
 	const month = monthBounds(coverage.from);
-	const monthDays = eachDay(datePeriod(month.from, month.to)).map(String);
+	const monthDays = daysIn(month.from, month.to);
 	const monthCalendar = monthDays.length;
 	const monthWorking = monthDays.filter((date) => isWorkingDay(date, off)).length;
-	const calendar_days = eachDay(datePeriod(coverage.from, coverage.to)).length;
-	const working_days = eachDay(datePeriod(coverage.from, coverage.to)).filter((date) =>
+	const calendar_days = daysIn(coverage.from, coverage.to).length;
+	const working_days = daysIn(coverage.from, coverage.to).filter((date) =>
 		isWorkingDay(String(date), off)
 	).length;
 	const monthly =
@@ -538,44 +551,11 @@ export const payBasis = (input: PayrollInput, coverage: { from: string; to: stri
 	);
 	return { month_wage, day_rate, hour_rate, overtime_hour_rate, calendar_days, working_days };
 };
-/** What a reversal gives back: the original month's wage over the share its slots' unpaid parts took. */
-const unpaidRefund = (
-	input: PayrollInput,
-	entry: JsonObject,
-	share: (slot: Slot) => number
-): number => {
-	const slots = slotsOf(entry).toSorted((left, right) => left.date.localeCompare(right.date));
-	const first = slots[0]?.date;
-	if (first === undefined) return 0;
-	const month = monthBounds(first),
-		coverage = { from: month.from, to: month.to },
-		basis = payBasis(input, coverage),
-		{ unit } = rateOf(input),
-		unpaid = new Map<string, number>();
-	for (const slot of slots)
-		unpaid.set(slot.date, (unpaid.get(slot.date) ?? 0) + (1 - share(slot)) / 2);
-	if (unit !== 'MONTHLY')
-		return basis.day_rate * [...unpaid.values()].reduce((total, value) => total + value, 0);
-	const off = offDaysOf(input),
-		planned = eachDay(datePeriod(month.from, month.to)).map((date) => ({
-			date: String(date),
-			work: isWorkingDay(String(date), off)
-		}));
-	const lost = [...unpaid.values()].reduce((total, value) => total + value, 0);
-	if (settingsConstants(input.settings).proration_basis === 'DAY_RATE')
-		return Math.min(basis.month_wage, lost * basis.day_rate);
-	if (settingsConstants(input.settings).proration_basis === 'CALENDAR_DAYS') {
-		const calendar = eachDay(datePeriod(coverage.from, coverage.to)).length;
-		return (basis.month_wage * Math.min(calendar, lost)) / calendar;
-	}
-	const work = planned.filter((day) => day.work).length;
-	return work <= 0 ? 0 : (basis.month_wage * Math.min(work, lost)) / work;
-};
 /** The contract salary of a period and the basis its share follows. */
 function salaryOf(input: PayrollInput, coverage: { from: string; to: string }) {
 	const { amount: rate, unit, hoursPerDay } = rateOf(input);
 	const off = offDaysOf(input);
-	const workingDays = eachDay(datePeriod(coverage.from, coverage.to)).filter((date) =>
+	const workingDays = daysIn(coverage.from, coverage.to).filter((date) =>
 		isWorkingDay(String(date), off)
 	).length;
 	if (workingDays <= 0) throw new Refusal({ message: 'Working days must be positive.' });
@@ -660,9 +640,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			period = periodOn(lookup, person, slot.date);
 		// ponytail: a day posted after this run's window still counts as used; read those slots if a rule needs it exact
 		const after = (input.entries.leave_catalog_entry ?? [])
-			.filter(
-				(entry) => entry.reverses == null && leaveRows.get(String(entry.catalog_id))?.code === code
-			)
+			.filter((entry) => leaveRows.get(String(entry.catalog_id))?.code === code)
 			.flatMap(slotsOf)
 			.filter(
 				(other) => order(other) >= order(slot) && periodOn(lookup, person, other.date) === period
@@ -693,7 +671,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	// the run's priced leave slots: a statutory base that counts a leave code's days reads them here
 	const leave = (input.entries.leave_catalog_entry ?? []).flatMap((entry) => {
 		const row = leaveRows.get(String(entry.catalog_id));
-		if (row === undefined || entry.encashment === true || entry.reverses != null) return [];
+		if (row === undefined || entry.encashment === true) return [];
 		const code = String(row.code);
 		return slotsOf(entry).map((slot) => ({
 			code,
@@ -729,19 +707,56 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		salary === undefined
 			? 0
 			: salary.amount / (frequency === 'SEMI_MONTHLY' ? 2 : frequency === 'TEN_DAY' ? 3 : 1);
+	// a jurisdiction rounds a day's rate before it multiplies the days (`RATE`, the default) or only the amount (`AMOUNT`)
+	const rateFirst = settingsConstants(input.settings).day_rate_rounding !== 'AMOUNT';
+	const perDay = (value: number) => (rateFirst ? round(input.settings, value) : value);
 	// a day not employed at the statute's day rate is priced as a no-pay day is: the rate to the minor unit, times the days
-	const proration_amount = Math.min(
-		periodBasic,
-		prorationDays * (salary?.basis === 'DAY_RATE' ? round(input.settings, unit) : unit)
-	);
+	// a version that starts inside the period: the period pays the first version's salary, and each later version adds
+	// the difference of its day rate for its own days. The period's basic is the last version's, so the proration
+	// gives back what that overstates.
+	const dayPrice = (value: number) => (salary?.basis === 'DAY_RATE' ? perDay(value) : value);
+	const inPeriod = (input.employed ?? [])
+		.filter((version) => isJsonObject(version.terms))
+		.map((version) => ({
+			from: version.from,
+			terms: isJsonObject(version.terms) ? version.terms : {},
+			days: counted.filter(
+				(day) => version.from <= day && (version.to === null || day <= version.to)
+			).length
+		}))
+		.filter((version) => version.days > 0)
+		.toSorted((a, b) => a.from.localeCompare(b.from));
+	const [firstVersion] = inPeriod;
+	const amountOf = (terms: JsonObject) =>
+		salaryOf({ ...input, employment: { ...input.employment, terms } }, coverage).amount;
+	const earlierTerms =
+		salary === undefined || salary.amount <= 0 || firstVersion === undefined || inPeriod.length < 2
+			? 0
+			: (() => {
+					const baseAmount = amountOf(firstVersion.terms);
+					const baseDay = dayPrice((unit * baseAmount) / salary.amount);
+					return (
+						salary.amount -
+						baseAmount -
+						inPeriod
+							.slice(1)
+							.reduce(
+								(total, version) =>
+									total +
+									version.days *
+										(dayPrice((unit * amountOf(version.terms)) / salary.amount) - baseDay),
+								0
+							)
+					);
+				})();
+	const proration_amount = Math.min(periodBasic, prorationDays * dayPrice(unit) + earlierTerms);
 	// an absent day is a day of its own month, its rate to the minor unit like a no-pay day's
 	const absent = (input.work?.days ?? [])
 		.filter((day) => day.day_type === 'ABS')
 		.reduce(
 			(total, day) =>
 				total +
-				round(
-					input.settings,
+				perDay(
 					unit *
 						(salary === undefined || salary.basis === 'DAY_RATE'
 							? 1
@@ -773,47 +788,6 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		run: input.run,
 		as_of: coverage.to
 	});
-	/**
-	 * A reversal refunds the salary basis through its one line. Where allowances are not part of that basis, the
-	 * allowances that read `ctx.paid_share`, which the absence also cut, are refunded at the same share of the
-	 * original month.
-	 */
-	const producerRefund = (original: JsonObject, salaryRefund: number): number => {
-		if (salaryRefund === 0) return 0;
-		const dates = (Array.isArray(original.days) ? original.days : [])
-			.flatMap((day) => (isJsonObject(day) && isPlainDate(day.date) ? [String(day.date)] : []))
-			.sort();
-		const first = dates[0];
-		if (first === undefined) return 0;
-		const month = monthBounds(first);
-		// the salary alone was refunded: the allowances the absence also cut come back at the same share
-		const rated = salary === undefined;
-		const monthWage = rated ? payBasis(input, month).month_wage : salary.amount;
-		if (monthWage <= 0) return 0;
-		const share = Math.min(1, salaryRefund / monthWage);
-		let total = 0;
-		for (const producer of input.allowance) {
-			if (input.run.kind === 'OFF_CYCLE' || (rated && producer.include_in_rate === true)) continue;
-			if (
-				typeof producer.conversion !== 'string' ||
-				!contextRoots(producer.conversion).has('paid_share')
-			)
-				continue;
-			const context = {
-				...base(0, lookupOf(producer)),
-				paid_share: 1,
-				subtotals: Object.fromEntries(results.map((result) => [result.code, result.value]))
-			};
-			const raw = evaluateNumber(
-				producer.conversion,
-				context,
-				`${text(producer, 'code')}.conversion`,
-				programOf('allowance_catalog')?.roots
-			);
-			total += raw * share;
-		}
-		return total;
-	};
 	const hasProrated = chain.some((row) => text(row, 'code') === 'PRORATED');
 	const paidBasicRow = chain.find((row) => text(row, 'code') === 'PAID_BASIC');
 	const paidBasicId = paidBasicRow === undefined ? undefined : id(paidBasicRow);
@@ -825,8 +799,8 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				? salary.amount
 				: salary.amount * paidShare(input, coverage, salary.basis, unpaid);
 	const lines: PayLine[] = [];
-	// what this run's correction entries add to or take from a scheme's share (`CODE.employee`, `CODE.employer`)
-	const corrections: Record<string, Record<string, number>> = {};
+	// what this run's ad hoc entries post to an account (`CODE.side`), such as a benefit in kind a tax row counts
+	const posted: Record<string, Record<string, number>> = {};
 	// leave paid out in money by this run (a cash-out at exit or on request): a levy that stops at wages reads it
 	let encashment = 0;
 	const values = new Map<string, number>();
@@ -887,7 +861,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				(day) => `${String(day.hour_rate)}/${String(day.day_rate)}`
 			);
 			const value =
-				model !== 'overtime_catalog' || byRate.size <= 1
+				model !== 'overtime_catalog' || byRate.size === 0
 					? evaluateNumber(producer.conversion, context, `${code}.conversion`, roots)
 					: [...byRate.values()].reduce((total, days) => {
 							const [first] = days;
@@ -965,8 +939,8 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					continue;
 				const code = text(catalog, 'code');
 				const leave = group.model === 'leave_catalog';
-				// a no-pay leave posts its unpaid amount as the catalog line; reversal keeps the refund path below
-				if (leave && entry.encashment !== true && entry.reverses == null && hasPaidBasic) {
+				// a no-pay leave posts its unpaid amount as the catalog line
+				if (leave && entry.encashment !== true && hasPaidBasic) {
 					const slots = slotsOf(entry);
 					// the day's rate to the currency's minor unit, then each date's own share of it, rounded: as a payroll
 					// clerk prices it (a half day is half the rounded rate, to the minor unit)
@@ -981,13 +955,11 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 							total +
 							// the statute's own day rate is shared out before it is rounded (half a day is half the rate); a
 							// month's day count gives a rate that is rounded first, then shared
-							round(
-								input.settings,
+							perDay(
 								settingsView.proration_basis === 'DAY_RATE'
 									? share * nplUnit
 									: share *
-											round(
-												input.settings,
+											perDay(
 												nplUnit *
 													(settingsView.proration_basis === 'CALENDAR_DAYS'
 														? ownMonthWeight(input, coverage, 'CALENDAR_DAYS', date)
@@ -1022,54 +994,8 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 						);
 					continue;
 				}
-				// a reversal of a row that shares pay gives back the original month, its slots the original's captured days
-				if (leave && entry.encashment !== true) {
-					if (entry.reverses == null || !sharesPay(catalog)) continue;
-					// like the no-pay line it undoes: each day in its own month, that month's day rate to the minor unit
-					const salaryRefund =
-						salary === undefined
-							? unpaidRefund(input, entry, (slot) => shareOf(catalog, entry, slot))
-							: salary.basis === 'DAY_RATE'
-								? slotsOf(entry).reduce(
-										(total, slot) =>
-											total +
-											((1 - shareOf(catalog, entry, slot)) / 2) * round(input.settings, unit),
-										0
-									)
-								: Math.min(
-										salary.amount,
-										slotsOf(entry).reduce(
-											(total, slot) =>
-												total +
-												((1 - shareOf(catalog, entry, slot)) / 2) *
-													round(
-														input.settings,
-														salary.amount /
-															Math.max(1, monthBasisCount(input, slot.date, salary.basis))
-													),
-											0
-										)
-									);
-					const refund = salaryRefund + producerRefund(entry, salaryRefund);
-					if (refund === 0) continue;
-					subtotalLines.push(
-						line({
-							code,
-							label: text(catalog, 'code'),
-							subtotal,
-							amount: round(input.settings, refund),
-							direction: 'ADD',
-							incurred_on: String(entry.incurred_on ?? coverage.to),
-							coverage,
-							source: entry,
-							model: group.entryModel,
-							reversal: true,
-							...(typeof entry.quantity === 'number' ? { quantity: entry.quantity } : {}),
-							...(entry.unit === undefined ? {} : { unit: entry.unit as Unit })
-						})
-					);
-					continue;
-				}
+				// leave taken prices no line of its own: only its unpaid part, above, and a cash-out, below
+				if (leave && entry.encashment !== true) continue;
 				const lookup = lookupOf(catalog);
 				const context = {
 					...base(previousValue + computed, lookup),
@@ -1081,10 +1007,13 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				// a cash-out takes no day off and pays its row's payout
 				const field = leave ? 'payout' : 'conversion';
 				const value = evaluateNumber(catalog[field], context, `${code}.${field}`, roots);
-				// only adhoc states a direction and a party; a reversal flips its entry's line
+				// only adhoc states a direction and a party; a quantity below zero flips its line
+				// leave taken beyond what the last day earned is taken back at the row's own payout
 				const net =
-					(group.model === 'adhoc_catalog' && catalog.direction === 'DEDUCT' ? -value : value) *
-					(entry.reverses == null ? 1 : -1);
+					(group.model === 'adhoc_catalog' && catalog.direction === 'DEDUCT') ||
+					(leave && entry.take_back === true)
+						? -value
+						: value;
 				const paid = round(input.settings, Math.abs(net));
 				if (paid === 0) continue;
 				if (leave && entry.encashment === true) encashment += net;
@@ -1097,9 +1026,8 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 							account.period === undefined
 						) {
 							const [scheme = '', side = ''] = String(account.code).split('.');
-							const sign =
-								(account.operation === 'DEDUCT' ? -1 : 1) * (entry.reverses == null ? 1 : -1);
-							const held = (corrections[scheme] ??= {});
+							const sign = (account.operation === 'DEDUCT' ? -1 : 1) * (value < 0 ? -1 : 1);
+							const held = (posted[scheme] ??= {});
 							held[side] = (held[side] ?? 0) + sign * paid;
 						}
 				subtotalLines.push(
@@ -1117,7 +1045,6 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 						coverage,
 						source: entry,
 						model: group.entryModel,
-						reversal: entry.reverses != null,
 						...(typeof entry.quantity === 'number' ? { quantity: entry.quantity } : {}),
 						...(entry.unit === undefined ? {} : { unit: entry.unit as Unit })
 					})
@@ -1153,13 +1080,12 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					label: text(catalog, 'code'),
 					subtotal,
 					amount: round(input.settings, value),
-					direction: repayment.reverses != null ? 'ADD' : 'DEDUCT',
+					direction: 'DEDUCT',
 					party: 'EMPLOYEE',
 					incurred_on: String(repayment.paid_on ?? coverage.to),
 					coverage,
 					source: repayment,
 					model: 'loan_catalog_entry_repayment',
-					reversal: repayment.reverses != null,
 					quantity: value,
 					unit: 'MONEY'
 				})
@@ -1185,17 +1111,28 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 
 	const statutory: StatutoryResult[] = [];
 	const statutoryValues: Record<string, { employee: number; employer: number }> = {};
+	// carried pay enters the chain where it was earned: its checkpoint and every one after it
+	let carriedSoFar = 0;
+	const withCarried = new Map(
+		results.map((r) => {
+			carriedSoFar += input.carried?.[r.code] ?? 0;
+			return [r.id, r.value + carriedSoFar] as const;
+		})
+	);
 	for (const scheme of statutoryOrder(input.statutory)) {
 		const code = text(scheme, 'code');
 		const subtotal = chain.find((row) => id(row) === scheme.subtotal_id);
 		if (subtotal === undefined)
 			throw new Refusal({ message: `${code}: its subtotal is not in this version.` });
 		const lookup = lookupOf(scheme);
+		const paidMonth = scheme.assessed === 'PAID' && input.carried !== undefined;
 		const context = {
-			...base(values.get(id(subtotal)) ?? 0, lookup),
-			subtotals: Object.fromEntries(results.map((r) => [r.code, r.value])),
+			...base((paidMonth ? withCarried : values).get(id(subtotal)) ?? 0, lookup),
+			subtotals: Object.fromEntries(
+				results.map((r) => [r.code, paidMonth ? (withCarried.get(r.id) ?? r.value) : r.value])
+			),
 			statutory: statutoryValues,
-			corrections,
+			posted,
 			encashment,
 			overtime: lines
 				.filter((row) => row.source_id.model === 'overtime_catalog')
@@ -1295,10 +1232,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	}
 	results.splice(0, results.length, ...finalResults);
 	const net = results.at(-1)?.value ?? 0;
-	if (
-		net < 0 &&
-		lines.some((l) => l.source_id?.model === 'loan_catalog_entry_repayment' && !l.reversal)
-	)
+	if (net < 0 && lines.some((l) => l.source_id?.model === 'loan_catalog_entry_repayment'))
 		throw new Refusal({
 			message: `${String(input.employee.name ?? id(input.employee))}: loan recovery would leave net pay at ${net}; reduce the final repayment.`
 		});

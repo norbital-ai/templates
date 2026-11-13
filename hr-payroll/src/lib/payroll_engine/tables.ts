@@ -686,6 +686,8 @@ export const TABLES = {
 		monthly_wage_threshold: Schema.optional(Schema.Number),
 		nhi_supplement_payment_ceiling: Schema.optional(Schema.Number),
 		nhi_supplement_rate: Schema.optional(Schema.Number),
+		night_from: Schema.optional(Schema.String),
+		night_to: Schema.optional(Schema.String),
 		non_resident_rate: Schema.optional(Schema.Number),
 		nonresident_rate: Schema.optional(Schema.Number),
 		nursing_maximum_age_years: Schema.optional(Schema.Number),
@@ -712,7 +714,6 @@ export const TABLES = {
 			})
 		),
 		paid_multiple: Schema.optional(Schema.Number),
-		paid_share: Schema.optional(Schema.Number),
 		parking_monthly_cap: Schema.optional(Schema.Number),
 		part_time_hours_factor: Schema.optional(Schema.Number),
 		pension_cap: Schema.optional(Schema.Number),
@@ -723,6 +724,7 @@ export const TABLES = {
 		premium_excluded_categories: Schema.optional(Schema.Array(Schema.String)),
 		reconstruction_multiplier: Schema.optional(Schema.Number),
 		regular_fund_salary_credit_ceiling: Schema.optional(Schema.Number),
+		rest_day_multiple: Schema.optional(Schema.Number),
 		retirement_exemption_per_service_year: Schema.optional(Schema.Number),
 		rounding_step: Schema.optional(Schema.Number),
 		salary_ceiling: Schema.optional(Schema.Number),
@@ -1121,26 +1123,17 @@ export const TABLES = {
 		RETAIL_ASSISTANT: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		RETAIL_ASSISTANT_SUPERVISOR: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		RETAIL_SENIOR_ASSISTANT: Schema.Struct({
 			base: Schema.String,
 			monthly_floor: Schema.Number,
-			sector: Schema.String,
-			steps: Schema.optional(
-				Schema.Array(Schema.Struct({ from: Schema.String, monthly_floor: Schema.Number }))
-			)
+			sector: Schema.String
 		}),
 		SECURITY_INHOUSE_OFFICER: Schema.Struct({
 			base: Schema.String,

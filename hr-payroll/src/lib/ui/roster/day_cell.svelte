@@ -5,12 +5,12 @@
 	due day with no attendance.
 -->
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { cn, Icon } from '@norbital-ai/ui';
 	import { Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { hoursLabel, isAbsent, isUnrecorded, type Day } from './month_board.js';
 
-	let { day }: { day: Day } = $props();
+	let { ctx, day }: { ctx: PageContext; day: Day } = $props();
 
 	const open = $derived(day.intervals?.some((interval) => interval.end == null) ?? false);
 	const absent = $derived(isAbsent(day));
@@ -24,9 +24,9 @@
 	const tag = $derived(
 		day.shift == null && day.projectedShift == null
 			? day.leave != null && day.holiday != null
-				? bolt.t('roster.public_holiday_mark')
+				? ctx.t('roster.public_holiday_mark')
 				: ''
-			: [leaveLabel, day.holiday == null ? '' : bolt.t('roster.public_holiday_mark')]
+			: [leaveLabel, day.holiday == null ? '' : ctx.t('roster.public_holiday_mark')]
 					.filter(Boolean)
 					.join(' · ')
 	);
@@ -78,16 +78,16 @@
 			<span class="truncate text-micro leading-5 text-muted-foreground">{leaveLabel}</span>
 		{:else if day.holiday != null}
 			<span class="truncate text-micro leading-5 text-muted-foreground"
-				>{bolt.t('roster.public_holiday_mark')}</span
+				>{ctx.t('roster.public_holiday_mark')}</span
 			>
 		{/if}
 		{#if tag !== ''}
 			<span class="truncate text-micro leading-3 text-muted-foreground">{tag}</span>
 		{/if}
 		{#if unrecorded}
-			<span class="text-micro text-destructive">{bolt.t('roster.attendance_missing')}</span>
+			<span class="text-micro text-destructive">{ctx.t('roster.attendance_missing')}</span>
 		{:else if absent}
-			<span class="text-micro text-destructive">{bolt.t('roster.layer_awol')}</span>
+			<span class="text-micro text-destructive">{ctx.t('roster.layer_awol')}</span>
 		{:else if day.percent != null && day.percent < 100}
 			<span class="text-micro text-warning">{day.percent}%</span>
 		{/if}
@@ -95,7 +95,7 @@
 			<span
 				class="absolute inset-x-1 bottom-1 h-1 overflow-hidden rounded-full bg-muted-foreground/20"
 				role="progressbar"
-				aria-label={bolt.t('roster.actual_progress')}
+				aria-label={ctx.t('roster.actual_progress')}
 				aria-valuemin={0}
 				aria-valuemax={100}
 				aria-valuenow={day.percent}
@@ -109,7 +109,7 @@
 				></span>
 			</span>
 		{:else if open}
-			<span class="text-micro leading-3 text-warning">{bolt.t('roster.progress_open')}</span>
+			<span class="text-micro leading-3 text-warning">{ctx.t('roster.progress_open')}</span>
 		{/if}
 		{#if day.findings.length > 0}
 			<Imposter as="span" placement="top-start" offset="none" layer="under" class="p-0.5">

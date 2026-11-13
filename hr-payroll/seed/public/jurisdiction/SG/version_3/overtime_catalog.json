@@ -5,7 +5,9 @@
 			"multiplier": 1.5,
 			"non_workman_hourly_cap": 13.6,
 			"weeks_per_year": 52,
-			"full_time_weekly_hours": 44
+			"full_time_weekly_hours": 44,
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600
 		},
 		"references": [
 			{
@@ -13,15 +15,22 @@
 				"locator": "ss.38(4)–(5); Fourth Schedule",
 				"url": "https://sso.agc.gov.sg/Act/EmA1968",
 				"effective_from": "2026-07-01"
+			},
+			{
+				"title": "MOM, Hours of work, overtime and rest days — Part 4 coverage (read 2026-11-13)",
+				"locator": "EA Part 4",
+				"url": "https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days",
+				"quote": "Part 4 of the Employment Act does not cover managers and executives. … You can claim overtime if you are: A non-workman earning a monthly basic salary of $2,600 or less. A workman earning a monthly basic salary of $4,500 or less.",
+				"effective_from": "2026-07-01"
 			}
 		],
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
-		"eligibility": "if (get(ctx.subject.employment, 'terms.work_classification', '') === 'NON_EA') return false;\nreturn get(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME';",
+		"eligibility": "const terms = ctx.subject.employment.terms;\nif (['NON_EA', 'MANAGERIAL'].includes(get(terms, 'work_classification', ''))) return false;\nif (get(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME') return false;\n// EA Part 4 (MOM): a workman on up to $4,500 basic a month, any other employee (not a manager or executive) on up to $2,600\nconst ceiling =\n\tget(terms, 'statutory_work_category', 'NON_MANUAL') === 'NON_MANUAL'\n\t\t? ctx.lookup.nonmanual_monthly_ceiling\n\t\t: ctx.lookup.manual_monthly_ceiling;\nreturn get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || Number(get(terms, 'rate.amount', 0)) <= ceiling;",
 		"conversion": "// EA s.38(4), (6) and Fourth Schedule: a monthly rate's hourly basic rate is 12 × monthly ÷ (52 × 44) whatever the contract's week; a daily rate's is the day ÷ its hours\nconst terms = ctx.subject.employment.terms;\nconst normal = Number(terms.normal_hours_per_day);\nconst monthly = get(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY';\nconst hourly = monthly\n\t? (ctx.month_wage * 12) / (ctx.lookup.weeks_per_year * ctx.lookup.full_time_weekly_hours)\n\t: ctx.hour_rate;\nconst category = get(terms, 'statutory_work_category', 'NON_MANUAL');\nconst capped = category === 'NON_MANUAL' ? Math.min(hourly, ctx.lookup.non_workman_hourly_cap) : hourly;\n// the employer's own overtime hour stands where it pays more than the Fourth Schedule\nconst methods = get(ctx.subject.employer, 'pay_methods', {});\nconst hour = monthly && get(methods, 'overtime_hour_basis', 'STATUTORY') !== 'STATUTORY' ? Math.max(ctx.hour_rate, capped) : capped;\n// EA s.37(2)(c)(ii), (3)(c)(ii): a rest day's normal hours are rest-day pay; the hours past them are overtime, at the employer's rest-day multiple where it pays more\nconst multiple = Number(get(methods, 'rest_day_hourly_multiplier', 0));\nreturn sum(\n\tget(ctx, 'work.days', []).map((day) => {\n\t\tif (get(day, 'day_type', 'WORK') !== 'REST') return Number(get(day, 'overtime_hours', 0)) * hour * ctx.lookup.multiplier;\n\t\tconst past = Math.max(0, Number(get(day, 'worked_hours', 0)) - normal);\n\t\treturn Math.max(past * hour * ctx.lookup.multiplier, past * multiple * ctx.hour_rate);\n\t})\n);\n",
 		"direction": "ADD",
 		"id": "e617a32c-8908-537e-bdc3-33e18252e6a5",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
+		"description": "Overtime on a working day, and rest-day hours past the normal day: 1.5 × the hourly basic rate (12 × monthly basic ÷ (52 × 44)), capped at $13.60 an hour for a non-workman (EA s.38). Part 4 employees only (workman ≤ $4,500, other ≤ $2,600 basic a month; no manager or executive)."
 	},
 	{
 		"code": "PART_TIME_EXTRA_HOURS",
@@ -44,7 +53,7 @@
 		"direction": "ADD",
 		"id": "e80b3d18-379b-5656-9f15-58569b998058",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "Extra hours worked by a part-time employee beyond the agreed hours."
+		"description": "Part-time hours past the agreed day and up to the comparable full-timer’s day, at 1 × the hourly basic rate (PT Regulations)."
 	},
 	{
 		"code": "PART_TIME_OVERTIME",
@@ -67,14 +76,16 @@
 		"direction": "ADD",
 		"id": "93bcc778-5d3f-5f3c-8f18-d564cfd1b22c",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "Overtime hours worked by a part-time employee, paid at the part-time overtime multiplier."
+		"description": "Part-time hours past the comparable full-timer’s day, at 1.5 × the hourly basic rate (PT Regulations)."
 	},
 	{
 		"code": "REST_DAY_WORK",
 		"lookup": {
 			"half_day_divisor": 2,
 			"employer_request_days_up_to_half": 1,
-			"employer_request_days_above_half": 2
+			"employer_request_days_above_half": 2,
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600
 		},
 		"references": [
 			{
@@ -82,15 +93,22 @@
 				"locator": "s.37(2)–(3)",
 				"url": "https://sso.agc.gov.sg/Act/EmA1968",
 				"effective_from": "2026-07-01"
+			},
+			{
+				"title": "MOM, Hours of work, overtime and rest days — Part 4 coverage (read 2026-11-13)",
+				"locator": "EA Part 4",
+				"url": "https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days",
+				"quote": "Part 4 of the Employment Act does not cover managers and executives. … You can claim overtime if you are: A non-workman earning a monthly basic salary of $2,600 or less. A workman earning a monthly basic salary of $4,500 or less.",
+				"effective_from": "2026-07-01"
 			}
 		],
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
-		"eligibility": "return get(ctx.subject.employment, 'terms.work_classification', '') !== 'NON_EA';",
+		"eligibility": "const terms = ctx.subject.employment.terms;\nif (['NON_EA', 'MANAGERIAL'].includes(get(terms, 'work_classification', ''))) return false;\n// EA Part 4 (MOM): a workman on up to $4,500 basic a month, any other employee (not a manager or executive) on up to $2,600\nconst ceiling =\n\tget(terms, 'statutory_work_category', 'NON_MANUAL') === 'NON_MANUAL'\n\t\t? ctx.lookup.nonmanual_monthly_ceiling\n\t\t: ctx.lookup.manual_monthly_ceiling;\nreturn get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || Number(get(terms, 'rate.amount', 0)) <= ceiling;",
 		"conversion": "// EA s.37(3), at the employer's request: one day's basic pay up to half the normal hours, two above half; the employer's rest-day multiple stands on each day it pays more\nconst normal = Number(ctx.subject.employment.terms.normal_hours_per_day);\nconst worked = (day) => Number(get(day, 'worked_hours', 0));\nconst rest = get(ctx, 'work.days', []).filter((day) => get(day, 'day_type', 'WORK') === 'REST' && worked(day) > 0);\nconst owed = (day) =>\n\tworked(day) <= normal / ctx.lookup.half_day_divisor\n\t\t? ctx.lookup.employer_request_days_up_to_half\n\t\t: ctx.lookup.employer_request_days_above_half;\nconst multiple = Number(get(ctx.subject.employer, 'pay_methods.rest_day_hourly_multiplier', 0));\nif (multiple <= 0) return sum(rest.map(owed)) * ctx.day_rate;\nreturn sum(rest.map((day) => Math.max(owed(day) * ctx.day_rate, Math.min(worked(day), normal) * multiple * ctx.hour_rate)));\n",
 		"direction": "ADD",
 		"id": "99e11b59-a784-5c6e-8118-c4562f903755",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "Hours worked on a rest day, paid at the statutory rest-day multiplier."
+		"description": "Work on a rest day, paid at the employer-request rate: one day’s basic pay for up to half the normal hours, two days’ above half (EA s.37(3)); the employer’s own hourly rest-day multiple where it pays more. Part 4 employees only."
 	},
 	{
 		"code": "PART_TIME_REST_DAY_EXTRA_HOURS",
@@ -113,7 +131,7 @@
 		"direction": "ADD",
 		"id": "ea7a92ac-d05e-5cb4-961a-f9ef97dfa743",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "Extra hours worked by a part-time employee on a rest day."
+		"description": "Part-time hours past the agreed day and up to the comparable full-timer’s day, at 1 × the hourly basic rate on a rest day (PT Regulations)."
 	},
 	{
 		"code": "PART_TIME_REST_DAY_OVERTIME",
@@ -136,7 +154,7 @@
 		"direction": "ADD",
 		"id": "439ea493-e35f-5968-b849-b6aeafb3c791",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "Overtime worked by a part-time employee on a rest day, paid at the rest-day multiplier."
+		"description": "Part-time hours past the comparable full-timer’s day on a rest day, at 1.5 × the hourly basic rate (PT Regulations)."
 	},
 	{
 		"code": "HOLIDAY_WORK",
@@ -157,6 +175,6 @@
 		"direction": "ADD",
 		"id": "01be10d9-b840-513e-b351-f9dd3eadccee",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "Hours worked on a statutory holiday, paid at the statutory holiday multiplier."
+		"description": "A public holiday worked: one extra day’s basic pay for each holiday worked, on top of the salary (EA s.88(4))."
 	}
 ]

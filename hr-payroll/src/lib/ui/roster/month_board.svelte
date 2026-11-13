@@ -4,9 +4,9 @@
 -->
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { PlainDate } from '@norbital-ai/std/date';
-	import { cn, CustomView, openRecord, RecordShell, Sheet } from '@norbital-ai/ui';
+	import { cn, CustomView, open_record, RecordShell, Sheet } from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import { downloadRosterWorkbook, runRosterImport } from '../workbook/roster_import.js';
@@ -42,11 +42,13 @@
 	};
 
 	let {
+		ctx,
 		company,
 		from,
 		to,
 		today
 	}: {
+		ctx: PageContext;
 		company: {
 			readonly id: Id<'entity'>;
 			readonly name: string;
@@ -67,21 +69,21 @@
 	const companyId = $derived(company.id);
 	const dates = $derived(datesBetween(from, to));
 	const contracts = $derived(
-		bolt.query({
+		ctx.query({
 			employee_contract: {
 				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
 				fields: ['employee_id', 'employee_number', 'effective_range', 'terms'],
-				orderBy: { employee_number: 'asc' },
-				limit: 10000
-			},
-			'employee_contract.employee_id': { fields: ['name'] }
+				order_by: { employee_number: 'asc' },
+				limit: 10000,
+				employee_id: { fields: ['name'] }
+			}
 		})
 	);
 	const ids = $derived((contracts.current?.employee_contract.rows ?? []).map((row) => row.id));
 	const data = $derived.by(() =>
 		ids.length === 0
 			? null
-			: bolt.query({
+			: ctx.query({
 					roster_entry: {
 						where: {
 							employment_id: { in: [...ids] },
@@ -113,8 +115,8 @@
 					holiday: {
 						where: {
 							entity_id: { eq: companyId },
-							published_at: { isNull: false },
-							employee_id: { isNull: true },
+							published_at: { is_null: false },
+							employee_id: { is_null: true },
 							date: { gte: PlainDate(from), lte: PlainDate(to) }
 						},
 						fields: ['date', 'name'],
@@ -122,18 +124,18 @@
 					},
 					leave_catalog_entry: {
 						where: { employment_id: { in: [...ids] } },
-						fields: ['employment_id', 'catalog_id', 'reverses'],
-						limit: 10000
-					},
-					'leave_catalog_entry.catalog_id': { fields: ['code'] },
-					'leave_catalog_entry.leave_catalog_entry_day': {
-						fields: ['incurred_on', 'part'],
-						limit: 10000
+						fields: ['employment_id', 'catalog_id'],
+						limit: 10000,
+						catalog_id: { fields: ['code'] },
+						leave_catalog_entry_day: {
+							fields: ['incurred_on', 'part'],
+							limit: 10000
+						}
 					}
 				})
 	);
 	const versions = $derived(
-		bolt.query({
+		ctx.query({
 			entity_profile_version: {
 				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
 				fields: ['effective_range', 'time_zone'],
@@ -260,7 +262,7 @@
 	function openDay(day: Day, person: BoardPerson) {
 		if (!day.employed) return;
 		if (day.entryId != null) {
-			openRecord('roster_entry', day.entryId);
+			open_record('roster_entry', day.entryId);
 			return;
 		}
 		if (person.locked) return;
@@ -272,7 +274,7 @@
 	function importRoster() {
 		importing = true;
 		fork(
-			runRosterImport({
+			runRosterImport(ctx, {
 				entity_id: company.id,
 				entity_name: company.name,
 				settings_code: company.settings_code
@@ -316,10 +318,11 @@
 	<p class="text-sm text-destructive" role="alert">{error}</p>
 {:else}
 	<CustomView
+		{ctx}
 		of={people.map(({ id, number, name }) => ({ id, number, name }))}
 		fields={[
-			{ field: 'number', label: bolt.t('models.employee_contract.fields.employee_number') },
-			{ field: 'name', label: bolt.t('roster.person') }
+			{ field: 'number', label: ctx.t('models.employee_contract.fields.employee_number') },
+			{ field: 'name', label: ctx.t('roster.person') }
 		]}
 		key="roster-board"
 		model="roster_entry"
@@ -329,14 +332,14 @@
 				{
 					run: importRoster,
 					icon: 'lucide:file-spreadsheet',
-					name: bolt.t('holiday_calendar.import_spreadsheet'),
-					disabled: () => (importing || loading ? bolt.t('component.loading') : null)
+					name: ctx.t('holiday_calendar.import_spreadsheet'),
+					disabled: () => (importing || loading ? ctx.t('component.loading') : null)
 				},
 				{
 					run: downloadRoster,
 					icon: 'lucide:download',
-					name: bolt.t('roster.download_workbook'),
-					disabled: () => (loading ? bolt.t('component.loading') : null)
+					name: ctx.t('roster.download_workbook'),
+					disabled: () => (loading ? ctx.t('component.loading') : null)
 				}
 			]
 		}}
@@ -345,7 +348,7 @@
 			{@render board(shown.flatMap((row) => byId.get(String(row.id)) ?? []))}
 		{/snippet}
 		{#snippet empty()}
-			{#if !loading}<p class="text-sm text-muted-foreground">{bolt.t('v2.no_rosters')}</p>{/if}
+			{#if !loading}<p class="text-sm text-muted-foreground">{ctx.t('v2.no_rosters')}</p>{/if}
 		{/snippet}
 	</CustomView>
 {/if}
@@ -356,7 +359,7 @@
 			class="table-fixed border-separate border-spacing-0 text-left text-xs"
 			style:width={`${PERSON_REM + dates.length * DAY_REM}rem`}
 			aria-busy={loading}
-			aria-label={bolt.t('roster.board_scroll_name')}
+			aria-label={ctx.t('roster.board_scroll_name')}
 		>
 			<colgroup>
 				<col style:width={`${PERSON_REM}rem`} />
@@ -368,9 +371,9 @@
 						scope="col"
 						class="sticky top-0 left-0 z-30 border-r border-b bg-card px-3 py-1.5 text-left"
 					>
-						<span class="block font-semibold">{bolt.t('roster.person')}</span>
+						<span class="block font-semibold">{ctx.t('roster.person')}</span>
 						<span class="block text-micro text-muted-foreground">
-							{bolt.t('roster.plan_recorded')} · {bolt.t('component.work_day_actual')}
+							{ctx.t('roster.plan_recorded')} · {ctx.t('component.work_day_actual')}
 						</span>
 					</th>
 					{#each dates as date (date)}
@@ -391,7 +394,7 @@
 							<span class="block text-meta">
 								{holiday == null
 									? WEEKDAY_LETTERS[new Date(`${date}T00:00:00Z`).getUTCDay()]
-									: bolt.t('roster.public_holiday_mark')}
+									: ctx.t('roster.public_holiday_mark')}
 							</span>
 							<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
 						</th>
@@ -414,7 +417,7 @@
 								{#if loading || day == null}
 									<span class="block h-14 w-full animate-pulse rounded-sm bg-muted"></span>
 								{:else}
-									{@const label = describeDay(day, `${person.name} · ${date}`, timeZone, bolt.t)}
+									{@const label = describeDay(day, `${person.name} · ${date}`, timeZone, ctx.t)}
 									<button
 										type="button"
 										class={cn(
@@ -433,7 +436,7 @@
 										disabled={!day.employed || (day.entryId == null && person.locked)}
 										onclick={() => openDay(day, person)}
 									>
-										<DayCell {day} />
+										<DayCell {ctx} {day} />
 									</button>
 								{/if}
 							</td>
@@ -448,10 +451,11 @@
 {#if creating != null}
 	<Sheet
 		open
-		onOpenChange={(open) => !open && (creating = null)}
-		title={bolt.t('models.roster_entry.singular')}
+		on_open_change={(open) => !open && (creating = null)}
+		title={ctx.t('models.roster_entry.singular')}
 	>
 		<RecordShell
+			{ctx}
 			of="roster_entry"
 			mode="create"
 			fields={[
@@ -466,7 +470,7 @@
 				employment_id: creating.employmentId,
 				work_date: PlainDate(creating.date)
 			}}
-			onDone={() => (creating = null)}
+			on_done={() => (creating = null)}
 		/>
 	</Sheet>
 {/if}

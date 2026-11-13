@@ -10,8 +10,8 @@
 		],
 		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nif (get(ctx.subject.employer.entity_extension_data, 'state_owned', false) !== true) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end === null) return true;\nreturn ctx.entry.incurred_on <= end;",
 		"conversion": "return ctx.entry.quantity;",
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"id": "9fcd0b06-7422-5019-9f5b-f70cf2b61758",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"subtotal_id": "24297e06-2db9-518a-9928-11cf52a6b354",
+		"id": "c7cbaa00-1a01-5bb0-899e-af4c292844fe",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	}
 ]

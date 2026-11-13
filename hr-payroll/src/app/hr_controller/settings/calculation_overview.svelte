@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Accordion, EmptyState, Icon, Popover } from '@norbital-ai/ui';
 
-	let { versionId }: { versionId: Id<'jurisdiction_settings'> } = $props();
+	let { ctx, versionId }: { ctx: PageContext; versionId: Id<'jurisdiction_settings'> } = $props();
 	let open = $state<string[]>([]);
 	let initialized = $state(false);
 
 	const data = $derived(
-		bolt.query({
+		ctx.query({
 			subtotal: { where: { settings_id: { eq: versionId } }, limit: 10000 },
 			allowance_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
 			overtime_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
@@ -141,12 +141,12 @@
 {#if data.loading}
 	<div
 		class="h-40 animate-pulse rounded-lg bg-muted/40"
-		aria-label={bolt.t('component.loading')}
+		aria-label={ctx.t('component.loading')}
 	></div>
 {:else if data.error}
 	<p role="alert" class="text-sm text-destructive">{data.error.message}</p>
 {:else if chain.length === 0}
-	<EmptyState title={bolt.t('v2.subtotals')} />
+	<EmptyState title={ctx.t('v2.subtotals')} />
 {:else}
 	<div class="grid gap-2">
 		<p class="text-xs text-muted-foreground">

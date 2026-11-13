@@ -1,5 +1,7 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/shift_pattern.ts';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
+import { paidUnder } from '../../../../lib/amendments.js';
+import { stableJson } from '../../../../lib/payroll_engine/foundation.js';
 
 const onePatternShape = (pattern: unknown) => {
 	if (typeof pattern !== 'object' || pattern === null) return false;
@@ -8,11 +10,12 @@ const onePatternShape = (pattern: unknown) => {
 };
 
 const columns = ['entity_id', 'code', 'name', 'effective_range', 'pattern'] as const;
+const shift = { kind: 'ref', to: 'shift_definition' } as const;
 
-export default model('shift_pattern', {
+export default model({
 	description:
-		'Employer-scoped source data, validated before acceptance and protected when captured by payroll.',
-	label: 'code',
+		'Employer-scoped source data, validated before acceptance. A pattern paid periods followed keeps its days: a change is a new pattern from a date.',
+	record_label: 'record.code',
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'shift_pattern' },
 		code: { kind: 'text' },
@@ -24,76 +27,91 @@ export default model('shift_pattern', {
 				week_start: {
 					kind: 'enum',
 					values: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
-					default: 'MONDAY',
-					help: 'The weekday the statutory week opens on. The contract period owns the dates.'
+					default: 'MONDAY'
 				},
 				days: {
 					kind: 'object',
 					optional: true,
 					fields: {
-						MONDAY: { kind: 'id', of: 'shift_definition' },
-						TUESDAY: { kind: 'id', of: 'shift_definition' },
-						WEDNESDAY: { kind: 'id', of: 'shift_definition' },
-						THURSDAY: { kind: 'id', of: 'shift_definition' },
-						FRIDAY: { kind: 'id', of: 'shift_definition' },
-						SATURDAY: { kind: 'id', of: 'shift_definition' },
-						SUNDAY: { kind: 'id', of: 'shift_definition' }
+						MONDAY: shift,
+						TUESDAY: shift,
+						WEDNESDAY: shift,
+						THURSDAY: shift,
+						FRIDAY: shift,
+						SATURDAY: shift,
+						SUNDAY: shift
 					}
 				},
 				cycle: {
-					kind: 'list',
+					kind: 'object',
+					many: true,
 					optional: true,
-					of: {
-						kind: 'object',
-						fields: { shift_definition_id: { kind: 'id', of: 'shift_definition' } }
-					},
-					help: 'A repeating rotation longer than a week. Its first day is the pattern effective start; use days for a weekly pattern.'
+					fields: { shift_definition_id: shift }
 				}
 			}
 		}
 	},
-	unique: [{ fields: ['entity_id', 'code'] }],
-	read: 'all',
+	constraints: { entity_code: { unique: ['entity_id', 'code'] } },
+	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: { shift_pattern: columns },
-		transform: function* (rows, ctx) {
-			if (rows.some((row) => !onePatternShape(row.pattern)))
-				return yield* ctx.refuse('A shift pattern is either a weekday map or a cycle, not both.');
-			return rows;
-		}
-	},
-	update: {
-		columns: { shift_pattern: columns },
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
-			if (
-				changes.some(
-					(change) => !onePatternShape({ ...change.before.pattern, ...change.set.pattern })
-				)
-			)
-				return yield* ctx.refuse('A shift pattern is either a weekday map or a cycle, not both.');
-			return changes.map((change) => change.set);
-		}
-	},
-	effect: {
-		created: function* (rows, ctx) {
+			const row = changes.findIndex(({ after }) => !onePatternShape(after.pattern));
+			if (row >= 0)
+				return yield* ctx.refuse('errors.shift_pattern_one_shape', { row, field: 'pattern' });
+			return changes.map(({ set }) => set);
+		},
+		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
 				'create',
 				'shift_pattern',
-				rows.map((after) => ({ after }))
+				changes.map(({ after }) => ({ after }))
 			);
+		}
+	},
+	update: {
+		columns: { fields: columns },
+		transform: function* (changes, ctx) {
+			const row = changes.findIndex(({ after }) => !onePatternShape(after.pattern));
+			if (row >= 0)
+				return yield* ctx.refuse('errors.shift_pattern_one_shape', { row, field: 'pattern' });
+			// its name may change; the days paid periods were worked out on may not
+			const moved = changes.filter(
+				({ before, after }) =>
+					stableJson(after.pattern) !== stableJson(before.pattern) ||
+					stableJson(after.effective_range ?? null) !== stableJson(before.effective_range ?? null)
+			);
+			if (
+				moved.length > 0 &&
+				(yield* paidUnder(ctx.query, {
+					entity_id: { in: moved.map(({ before }) => before.entity_id) }
+				}))
+			)
+				return yield* ctx.refuse('errors.shift_pattern_paid');
+			return changes.map(({ set }) => set);
 		},
-		updated: function* (changes, ctx) {
+		effect: function* (changes, ctx) {
 			yield* tap(ctx, 'update', 'shift_pattern', changes);
+		}
+	},
+	delete: {
+		// a pattern paid periods followed is not deleted
+		transform: function* (changes, ctx) {
+			if (
+				yield* paidUnder(ctx.query, {
+					entity_id: { in: changes.map(({ before }) => before.entity_id) }
+				})
+			)
+				return yield* ctx.refuse('errors.shift_pattern_paid');
 		},
-		deleted: function* (rows, ctx) {
+		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
 				'delete',
 				'shift_pattern',
-				rows.map((before) => ({ before }))
+				changes.map(({ before }) => ({ before }))
 			);
 		}
-	},
-	delete: {}
+	}
 });

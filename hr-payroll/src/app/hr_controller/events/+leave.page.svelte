@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
@@ -15,22 +15,16 @@
 		runWorkbookImport,
 		type WorkbookGrids
 	} from '../../../lib/ui/workbook/workbook_import.js';
-	const scope = companyScope();
+	let { ctx }: { ctx: PageContext } = $props();
+	const scope = companyScope(ctx);
 	let creating = $state(false);
-	type ReversingRow = {
-		readonly id: Id<'leave_catalog_entry'>;
-		readonly employment_id: Id<'employee_contract'>;
-		readonly catalog_id: Id<'leave_catalog'>;
-		readonly encashment: boolean;
-	};
-	let reversingRow = $state<ReversingRow | null>(null);
 	let importing = $state(false);
 	let warnings: readonly string[] = [];
 
 	const held = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_contract: {
 						where: { entity_id: { eq: scope.id }, status: { eq: 'SEALED' } },
 						fields: ['employee_number', 'entity_id', 'effective_range'],
@@ -44,12 +38,9 @@
 					leave_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					leave_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'catalog_id', 'reverses'],
-						limit: 10000
-					},
-					'leave_catalog_entry.leave_catalog_entry_day': {
-						fields: ['incurred_on', 'part'],
-						limit: 10000
+						fields: ['employment_id', 'catalog_id'],
+						limit: 10000,
+						leave_catalog_entry_day: { fields: ['incurred_on', 'part'] }
 					}
 				})
 	);
@@ -91,8 +82,7 @@
 				days: (row.leave_catalog_entry_day ?? []).map((child) => ({
 					date: String(child.incurred_on),
 					part: child.part
-				})),
-				reverses: row.reverses
+				}))
 			}))
 		});
 		warnings = parsed.warnings;
@@ -110,9 +100,9 @@
 	function importLeave() {
 		importing = true;
 		fork(
-			runWorkbookImport({
+			runWorkbookImport(ctx, {
 				action: 'leave_catalog_entry.create',
-				recordLabel: bolt.t('app.leave.title').toLowerCase(),
+				recordLabel: ctx.t('app.leave.title').toLowerCase(),
 				buildPayload: leaveRows,
 				importedCount: (payload) => payload.length,
 				warnings: () => warnings
@@ -128,78 +118,37 @@
 </script>
 
 {#snippet requests()}{#if scope.id !== null}<Table
+			{ctx}
 			of="leave_catalog_entry"
 			key="leave-requests"
 			where={{ entity_id: { eq: scope.id } }}
 			toolbar={{
 				new: () => (creating = true),
-				title: bolt.t('v2.leave_requests'),
+				title: ctx.t('v2.leave_requests'),
 				actions: [
 					{
 						run: importLeave,
 						icon: 'lucide:file-spreadsheet',
-						name: bolt.t('holiday_calendar.import_spreadsheet'),
-						disabled: () =>
-							importing || held?.current == null ? bolt.t('component.loading') : null
+						name: ctx.t('holiday_calendar.import_spreadsheet'),
+						disabled: () => (importing || held?.current == null ? ctx.t('component.loading') : null)
 					}
 				]
 			}}
 			columns={['employment_id', 'catalog_id']}
-			actions={[
-				{
-					label: 'Reverse entry',
-					run: (row) => {
-						const ref = (value: unknown): string => {
-							if (typeof value === 'string') return value;
-							if (value !== null && typeof value === 'object' && 'id' in value)
-								return String((value as { readonly id: unknown }).id);
-							return '';
-						};
-						const id = ref(row.id);
-						const employment = ref(row.employment_id);
-						const catalog = ref(row.catalog_id);
-						if (id === '' || employment === '' || catalog === '') {
-							toast.error('The leave entry is still loading.');
-							return;
-						}
-						reversingRow = {
-							id: idOf('leave_catalog_entry', id),
-							employment_id: idOf('employee_contract', employment),
-							catalog_id: idOf('leave_catalog', catalog),
-							// a reversal of a cash-out must stay a cash-out: only a cash-out pays its row's payout
-							encashment: row.encashment === true
-						};
-					}
-				}
-			]}
 		/>{/if}{/snippet}
 <AppShell
-	title={bolt.t('app.leave.title')}
-	description={bolt.t('v2.leave_help')}
+	title={ctx.t('app.leave.title')}
+	description={ctx.t('v2.leave_help')}
 	icon="lucide:calendar-check-2"
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
+	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
 	{#if scope.id === null}<EmptyState
-			title={bolt.t('app.events.empty_scope')}
+			title={ctx.t('app.events.empty_scope')}
 		/>{:else}{@render requests()}{/if}
 </AppShell>
 {#if creating && scope.id !== null}<Sheet
 		open
-		onOpenChange={(open) => !open && (creating = false)}
-		title={bolt.t('v2.leave_requests')}
-		><LeaveEntryForm entityId={scope.id} onDone={() => (creating = false)} /></Sheet
+		on_open_change={(open) => !open && (creating = false)}
+		title={ctx.t('v2.leave_requests')}
+		><LeaveEntryForm {ctx} entityId={scope.id} onDone={() => (creating = false)} /></Sheet
 	>{/if}
-{#if reversingRow !== null && scope.id !== null}{#key reversingRow.id}<Sheet
-			open
-			onOpenChange={(open) => !open && (reversingRow = null)}
-			title="Reverse leave"
-			><LeaveEntryForm
-				person
-				entityId={scope.id}
-				employmentId={reversingRow.employment_id}
-				catalogId={reversingRow.catalog_id}
-				encashment={reversingRow.encashment}
-				reverses={reversingRow.id}
-				onDone={() => (reversingRow = null)}
-			/></Sheet
-		>{/key}{/if}

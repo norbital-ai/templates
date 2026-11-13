@@ -18,7 +18,7 @@
 		"party": "EMPLOYEE",
 		"id": "a0a773c6-4307-5775-b310-335d8468bfb3",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "bonus: paid or deducted as an ad-hoc line."
+		"description": "Bonus keyed by HR; paid in full as keyed; Additional Wages for CPF."
 	},
 	{
 		"code": "SALARY_IN_LIEU_OF_NOTICE",
@@ -39,7 +39,7 @@
 		"party": "EMPLOYEE",
 		"id": "72cbf2cc-a67e-5a97-8e5e-b00d21105534",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "SALARY_IN_LIEU_OF_NOTICE: Paid or deducted as an ad-hoc line."
+		"description": "Salary in lieu of notice keyed by HR; paid in full as keyed (EA ss.10, 11)."
 	},
 	{
 		"code": "RETRENCHMENT_BENEFIT",
@@ -60,7 +60,7 @@
 		"party": "EMPLOYEE",
 		"id": "89ec8fa3-5f91-585b-87b4-12ff803d29fa",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "RETRENCHMENT_BENEFIT: Paid or deducted as an ad-hoc line."
+		"description": "Retrenchment benefit keyed by HR; paid in full as keyed; not statutory below 2 years’ service (EA s.45)."
 	},
 	{
 		"code": "DAMAGE_RECOVERY",
@@ -81,7 +81,7 @@
 		"party": "EMPLOYEE",
 		"id": "626cc8b8-cfc8-5028-8fae-a83a86d1a0b3",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "DAMAGE_RECOVERY: Paid or deducted as an ad-hoc line."
+		"description": "Deduction for proven damage or loss after inquiry, as keyed; at most a quarter of the month’s salary (EA s.29)."
 	},
 	{
 		"code": "ACCOMMODATION_RECOVERY",
@@ -102,7 +102,7 @@
 		"party": "EMPLOYEE",
 		"id": "34da5d32-98dd-524f-89c3-2dae9f910210",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "ACCOMMODATION_RECOVERY: Paid or deducted as an ad-hoc line."
+		"description": "Deduction for accommodation supplied and accepted, as keyed, within its value (EA s.30)."
 	},
 	{
 		"code": "AMENITIES_RECOVERY",
@@ -123,7 +123,7 @@
 		"party": "EMPLOYEE",
 		"id": "320c8e4e-9c9e-58de-9b47-e10ef68688b3",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "AMENITIES_RECOVERY: Paid or deducted as an ad-hoc line."
+		"description": "Deduction for amenities or services authorised by the Commissioner, as keyed, within their value (EA s.30)."
 	},
 	{
 		"code": "COOPERATIVE_DUES",
@@ -144,7 +144,7 @@
 		"party": "EMPLOYEE",
 		"id": "f1520e7e-df3f-5969-991f-c2cdf9d14d69",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "COOPERATIVE_DUES: Paid or deducted as an ad-hoc line."
+		"description": "Deduction of consented co-operative society dues, as keyed; outside the 50% deduction cap (EA ss.27(1)(j), 32)."
 	},
 	{
 		"code": "APPROVED_DAMAGE_RECOVERY",
@@ -165,7 +165,7 @@
 		"party": "EMPLOYEE",
 		"id": "a55913c8-a42d-52bb-95ea-ed481c96a4c7",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "APPROVED_DAMAGE_RECOVERY: Paid or deducted as an ad-hoc line."
+		"description": "Deduction for damage above the quarter-salary limit, as keyed, with the Commissioner’s permission (EA s.29(1))."
 	},
 	{
 		"code": "ORDINARY_BACKPAY",
@@ -186,7 +186,7 @@
 		"party": "EMPLOYEE",
 		"id": "14134f48-b80e-5768-af96-634f07ae887a",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "ORDINARY_BACKPAY: Paid or deducted as an ad-hoc line."
+		"description": "Back pay keyed by HR; paid in full as keyed; Ordinary Wages for CPF."
 	},
 	{
 		"code": "ADDITIONAL_BACKPAY",
@@ -207,7 +207,7 @@
 		"party": "EMPLOYEE",
 		"id": "f0c8d4e6-ea06-52c6-8852-0ee07f02364c",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "ADDITIONAL_BACKPAY: Paid or deducted as an ad-hoc line."
+		"description": "Back pay keyed by HR; paid in full as keyed; Additional Wages for CPF."
 	},
 	{
 		"code": "PRIOR_WAGE_CASH_REPAYMENT",
@@ -228,7 +228,7 @@
 		"party": "EMPLOYEE",
 		"id": "5d24d1e1-f2cf-5b52-980b-de169c249f93",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "PRIOR_WAGE_CASH_REPAYMENT: Paid or deducted as an ad-hoc line."
+		"description": "Deduction of wages the employee repays for an earlier period, as keyed; the CPF refund is applied for separately."
 	},
 	{
 		"code": "EMPLOYMENT_ASSISTANCE_PAYMENT",
@@ -249,7 +249,7 @@
 		"party": "EMPLOYEE",
 		"id": "4f4e4e81-4fce-5938-bdb1-cb3000bf9b91",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "EMPLOYMENT_ASSISTANCE_PAYMENT: Paid or deducted as an ad-hoc line."
+		"description": "Employment Assistance Payment keyed by HR when re-employment is not offered (3.5 months’ salary, $6,250 to $14,750; RRA s.7C); paid in full as keyed."
 	},
 	{
 		"code": "DIRECTOR_GENERAL_MEETING_FEE",
@@ -270,7 +270,7 @@
 		"party": "EMPLOYEE",
 		"id": "301d67e1-9fad-554a-8bd5-b96519be9f89",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "DIRECTOR_GENERAL_MEETING_FEE: Paid or deducted as an ad-hoc line."
+		"description": "Director’s fee voted at a general meeting; paid in full as keyed; not wages for CPF."
 	},
 	{
 		"code": "CPF_MISSED_SHARE_RECOVERY",
@@ -291,7 +291,7 @@
 		"party": "EMPLOYEE",
 		"id": "dd6515bc-d0cb-5a1a-8559-dead0724afc9",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "CPF_MISSED_SHARE_RECOVERY: Paid or deducted as an ad-hoc line."
+		"description": "Deduction recovering an employee CPF share missed earlier, as keyed (CPF Act s.7(3)–(4))."
 	},
 	{
 		"code": "NOTICE_BREACH_COMPENSATION_RECOVERY",
@@ -312,7 +312,7 @@
 		"party": "EMPLOYEE",
 		"id": "ed6f5a98-349f-5de1-a49d-f23aae4c5f00",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "NOTICE_BREACH_COMPENSATION_RECOVERY: Paid or deducted as an ad-hoc line."
+		"description": "Deduction of the employee’s notice-pay liability for notice not served, as keyed (EA ss.10, 11)."
 	},
 	{
 		"code": "FOOD_ABSENCE_COST",
@@ -333,7 +333,7 @@
 		"party": "EMPLOYEE",
 		"id": "9eed881f-0fff-5776-b676-99c12f8245e8",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "FOOD_ABSENCE_COST: Paid or deducted as an ad-hoc line."
+		"description": "Deduction for food supplied during an absence, as keyed (EA ss.27(1)(a), 28(3))."
 	},
 	{
 		"code": "CONSENT_EMPLOYEE_BENEFIT",
@@ -354,7 +354,7 @@
 		"party": "EMPLOYEE",
 		"id": "17569fe6-9aca-51e7-96e3-b465e81baa4a",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "CONSENT_EMPLOYEE_BENEFIT: Paid or deducted as an ad-hoc line."
+		"description": "Deduction for a benefit the employee consented to in writing, as keyed (EA s.27(1)(e), (i))."
 	},
 	{
 		"code": "NR_PUBLIC_ENTERTAINER_FEE",
@@ -375,13 +375,13 @@
 		"party": "EMPLOYEE",
 		"id": "e61f6a1f-2154-5a1b-b363-5735928cb2c0",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"description": "NR_PUBLIC_ENTERTAINER_FEE: Paid or deducted as an ad-hoc line."
+		"description": "Fee to a non-resident public entertainer; paid in full as keyed; 15% withheld (ITA s.45)."
 	},
 	{
 		"code": "STATUTORY_REFUND",
 		"references": [
 			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
 			}
 		],
 		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
@@ -393,346 +393,6 @@
 		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "c96549d5-7a44-5338-adff-727a59ab169e",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "CPF_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects CPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "CPF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "CPF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "57a4d556-6fe8-5e1c-aa3e-4efceb2fd690",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "CPF_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects CPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "CPF.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "CPF.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "42421ce5-32ac-5969-bd8d-0d316f7b7d8f",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "CDAC_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects CDAC for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "CDAC.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "CDAC.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "3a1c1661-92fc-5dae-b420-d95358676565",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "CDAC_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects CDAC for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "CDAC.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "CDAC.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "7389b59d-66bd-5449-b9a3-350fdfb6617a",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "ECF_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects ECF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "ECF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "ECF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "3d792c56-0a81-5909-9bf5-e55bdf1ca132",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "ECF_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects ECF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "ECF.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "ECF.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "6996976f-f55d-5994-9ee9-59643193307b",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "MBMF_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects MBMF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "MBMF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "MBMF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "8c16c969-9a6d-5c18-959b-257710f2fbdb",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "MBMF_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects MBMF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "MBMF.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "MBMF.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "f626885d-688a-5237-b1dc-b35eeeb21451",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "SINDA_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SINDA for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SINDA.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "SINDA.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "29188638-6364-541c-9135-7e7dc4b9308b",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
-	},
-	{
-		"code": "SINDA_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SINDA for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SINDA.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "SINDA.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "eb1a09a4-fe46-5305-a0dc-0128a069e4ac",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	}
 ]

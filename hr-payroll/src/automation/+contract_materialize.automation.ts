@@ -1,5 +1,5 @@
 import { automation, type EffectCtx } from '@norbital-ai/bolt';
-import { addDays, PlainDate } from '@norbital-ai/std/date';
+import { add_days, PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { JsonObject } from '../lib/payroll_engine/contracts.js';
 import { withChange, type ContractChange } from '../lib/payroll_engine/contract_change.js';
@@ -15,8 +15,10 @@ const changeOf = (row: JsonObject): ContractChange => ({
 });
 
 const draftOf = Effect.fnUntraced(function* (ctx: Pick<EffectCtx, 'act'>, row: JsonObject) {
-	const answer = yield* ctx.act.checked([{ callable: 'employee_contract.create', input: [row] }]);
-	return answer.records.find((written) => written.model === 'employee_contract')?.id;
+	const acts: JsonObject = { 'employee_contract.create': [row] };
+	const answer = yield* ctx.act(acts);
+	const written = answer.records.find((record) => record.model === 'employee_contract');
+	return written === undefined ? undefined : { id: written.id, revision: written.revision };
 });
 
 /**
@@ -24,7 +26,7 @@ const draftOf = Effect.fnUntraced(function* (ctx: Pick<EffectCtx, 'act'>, row: J
  * last version ending the day before, and the seal, which triggers sync. Payroll and the ledger never read a change.
  * A change that cannot seal stays filed and raises a task.
  */
-export default automation('contract_materialize', {
+export default automation({
 	description: 'Seal contract changes whose day has come; safe to run at any time.',
 	input: {},
 	policies: ['payroll_execution'],
@@ -32,7 +34,7 @@ export default automation('contract_materialize', {
 	run: function* (_input, ctx) {
 		const { contract_change: due = [] } = yield* queryAllRows(ctx.query, {
 			contract_change: {
-				where: { applied_version_id: { isNull: true }, effective_from: { lte: ctx.today } },
+				where: { applied_version_id: { is_null: true }, effective_from: { lte: ctx.today } },
 				limit: 1000
 			}
 		});
@@ -44,12 +46,36 @@ export default automation('contract_materialize', {
 			const changes = groups.get(key) ?? [];
 			const on = String(changes[0]?.effective_from);
 			yield* Effect.gen(function* () {
-				const { employee_contract: versions = [] } = yield* queryRows(ctx.query, {
-					employee_contract: {
-						where: { employee_id: { eq: String(changes[0]?.employee_id) } },
-						limit: 10000
+				const { employee_contract: versions = [], payslip: paid = [] } = yield* queryRows(
+					ctx.query,
+					{
+						employee_contract: {
+							where: { employee_id: { eq: String(changes[0]?.employee_id) } },
+							limit: 10000
+						},
+						// a paid run already priced the day: the change waits for HR to move it to a month still to run
+						payslip: {
+							where: {
+								employee_id: { eq: String(changes[0]?.employee_id) },
+								payroll_run_id: {
+									is: {
+										state: { eq: 'PAID' },
+										kind: { eq: 'ON_CYCLE' },
+										salary_coverage: { overlaps: { from: on, to: null } }
+									}
+								}
+							},
+							fields: ['id'],
+							limit: 1
+						}
 					}
-				});
+				);
+				if (paid.length > 0)
+					return yield* Effect.fail(
+						new Refusal({
+							message: `A paid run already covers ${on}. Move the change to the first of a month still to run.`
+						})
+					);
 				const open = versions.find(
 					(row) => row.status === 'SEALED' && objectValue(row.effective_range).to == null
 				);
@@ -62,7 +88,7 @@ export default automation('contract_materialize', {
 				const reason = changes.flatMap((row) => row.notes ?? []).join(' · ') || 'Scheduled change';
 				const held = versions.find((row) => row.status === 'DRAFT' && fromOf(row) === on);
 				const draft =
-					held?.id ??
+					held ??
 					(yield* draftOf(ctx, {
 						employee_id: open.employee_id ?? null,
 						entity_id: open.entity_id ?? null,
@@ -82,36 +108,28 @@ export default automation('contract_materialize', {
 						reason,
 						status: 'DRAFT'
 					}));
-				if (typeof draft !== 'string' || typeof open.id !== 'string')
+				if (draft === undefined || typeof draft.id !== 'string' || typeof open.id !== 'string')
 					return yield* Effect.fail(new Refusal({ message: 'The draft version was not created.' }));
-				yield* ctx.act.checked([
-					{
-						callable: 'employee_contract.update',
-						input: [
-							{
-								target: open.id,
-								set: {
-									effective_range: {
-										from: fromOf(open),
-										to: String(addDays(PlainDate(on), -1))
-									},
-									reason
-								}
+				const acts: JsonObject = {
+					'employee_contract.update': [
+						{
+							target: open,
+							set: {
+								effective_range: {
+									from: fromOf(open),
+									to: String(add_days(PlainDate(on), -1))
+								},
+								reason
 							}
-						]
-					},
-					{
-						callable: 'employee_contract.update',
-						input: [{ target: draft, set: { status: 'SEALED' } }]
-					},
-					{
-						callable: 'contract_change.update',
-						input: changes.map((row) => ({
-							target: String(row.id),
-							set: { applied_version_id: draft }
-						}))
-					}
-				]);
+						},
+						{ target: draft, set: { status: 'SEALED' } }
+					],
+					'contract_change.update': changes.map((row) => ({
+						target: row,
+						set: { applied_version_id: draft.id }
+					}))
+				};
+				yield* ctx.act(acts);
 			}).pipe(
 				Effect.catch((error) =>
 					raiseFailure(

@@ -1,0 +1,178 @@
+[
+	{
+		"code": "DEPENDANT_CHANGE",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "a4249cbc-dad3-5b0e-a89b-b9bad130a3df",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "健康保険法施行規則",
+				"locator": "38条（被扶養者異動届）",
+				"quote": "被扶養者の異動があった日から五日以内に届け出る。"
+			}
+		],
+		"description": "Change of dependants for statutory benefits."
+	},
+	{
+		"code": "DATA_BREACH",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "d225440f-dd37-516e-9d97-d3a79e1c73a5",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "個人情報の保護に関する法律",
+				"locator": "26条（報告及び通知）",
+				"quote": "漏えい等の事実を知ったときは、個人情報保護委員会に報告し、本人に通知する。"
+			}
+		],
+		"description": "Data breach and its notification workflow."
+	},
+	{
+		"code": "EMPLOYMENT_CERTIFICATE_REQUEST",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "5bbd14f3-7121-5be3-85fd-9a3372f4fabc",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "労働基準法",
+				"locator": "22条（退職証明書）",
+				"quote": "労働者が退職証明書の交付を請求したときは、遅滞なく交付する。"
+			}
+		],
+		"description": "Request for an employment certificate."
+	},
+	{
+		"code": "CHILDCARE_OVERTIME_LIMIT_REQUEST",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "4b51e9d0-fa8c-5d38-8cae-7fa2503c9be9",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
+				"locator": "17条（時間外労働の制限）",
+				"quote": "小学校就学の始期に達するまでの子を養育する労働者が請求したときは、一月二十四時間・一年百五十時間を超えて時間外労働をさせてはならない。"
+			}
+		],
+		"description": "CHILDCARE_OVERTIME_LIMIT_REQUEST: Case with its declared events and workflow inputs."
+	},
+	{
+		"code": "CHILDCARE_NO_OVERTIME_REQUEST",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "3c4a79e1-00b8-5609-bea0-711dc2a86b6f",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
+				"locator": "16条の8（所定外労働の制限）",
+				"quote": "小学校就学の始期に達するまでの子を養育する労働者が請求したときは、所定労働時間を超えて労働させてはならない（令和7年4月1日施行）。"
+			}
+		],
+		"description": "CHILDCARE_NO_OVERTIME_REQUEST: Case with its declared events and workflow inputs."
+	},
+	{
+		"code": "CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "9a1242a0-8f2c-5636-b0c0-216d5b22f068",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
+				"locator": "19条（深夜業の制限）",
+				"quote": "小学校就学の始期に達するまでの子を養育する労働者が請求したときは、午後十時から午前五時までの間に労働させてはならない。"
+			}
+		],
+		"description": "CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST: Case with its declared events and workflow inputs."
+	},
+	{
+		"code": "PREGNANCY_WORK_LIMIT_REQUEST",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "004681ef-459d-5426-abeb-18ed1a9709e0",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "労働基準法",
+				"locator": "66条2項・3項（妊産婦の時間外・休日・深夜労働の制限）",
+				"quote": "妊産婦が請求した場合、時間外労働、休日労働及び深夜労働をさせてはならない。"
+			}
+		],
+		"description": "PREGNANCY_WORK_LIMIT_REQUEST: Case with its declared events and workflow inputs."
+	},
+	{
+		"code": "DIGITAL_WAGE_PAYMENT_CONSENT",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "24795754-dcc2-58b8-868d-090ee795f033",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "労働基準法",
+				"locator": "24条1項、労働基準法施行規則7条の2（デジタル払い）",
+				"quote": "デジタル払いには、労働者の同意と厚生労働大臣の指定を受けた資金移動業者の口座を要する。"
+			}
+		],
+		"description": "Consent to digital wage payment."
+	},
+	{
+		"code": "SHORT_TIME_COVERAGE_NOTICE",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "e620b766-4d39-57c3-845e-e9cd875c1df3",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "健康保険法",
+				"locator": "3条1項、厚生年金保険法12条（短時間労働者の適用）",
+				"quote": "特定適用事業所の短時間労働者は、所定の要件を満たすとき被保険者となる。"
+			}
+		],
+		"description": "SHORT_TIME_COVERAGE_NOTICE: Case with its declared events and workflow inputs."
+	},
+	{
+		"code": "SHORT_TIME_VOLUNTARY_APPROVAL",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "4b4a1f1f-f182-5a86-b53b-f0ef3ab02a74",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "健康保険法",
+				"locator": "3条1項、厚生年金保険法12条（任意特定適用事業所）",
+				"quote": "任意特定適用事業所の短時間労働者は、所定の要件を満たすとき被保険者となる。"
+			}
+		],
+		"description": "SHORT_TIME_VOLUNTARY_APPROVAL: Case with its declared events and workflow inputs."
+	},
+	{
+		"code": "RETIREMENT_INCOME_DECLARATION",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "0cb3fe6a-52ce-5eaf-aaa8-66f3a4666db7",
+		"settings_id": "dae06115-403c-5a0f-8a81-a1cb03cadde4",
+		"references": [
+			{
+				"title": "所得税法",
+				"locator": "203条（退職所得の源泉徴収）",
+				"quote": "退職所得の受給に関する申告書を提出したときは、退職所得の金額に応じて源泉徴収する。"
+			}
+		],
+		"description": "Retirement-income declaration."
+	}
+]

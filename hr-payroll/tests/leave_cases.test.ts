@@ -20,7 +20,8 @@ import {
 	uuid,
 	wholeDays,
 	workspace,
-	leaveCreate
+	leaveCreate,
+	storedQuery
 } from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -81,16 +82,20 @@ const steps = (code: string) =>
 		lookupOf(code).pay_steps
 	).map((step) => step.unpaid_share);
 const take = (t: Kit, seed: Seed, code: string, dates: readonly string[], employment = CONTRACT) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		leaveCreate({
-			entity_id: ENTITY,
-			employment_id: employment,
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
-			days: wholeDays(...dates)
+	Effect.flatMap(t.as(t.admin), (caller) =>
+		caller.act({
+			'leave_catalog_entry.create': [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: employment,
+					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+					days: wholeDays(...dates)
+				})
+			]
 		})
-	]);
+	);
 const seal = (t: Kit, from: string, ...events: readonly JsonObject[]) =>
-	sealEvents(t, from, events).pipe(Effect.tap(t.runDue()));
+	sealEvents(t, from, events).pipe(Effect.tap(t.run_due()));
 const periodsOf = (t: Kit, code: string) =>
 	accountsIn(t).pipe(Effect.map((accounts) => accounts.leave?.[code] ?? {}));
 const movesOf = (t: Kit, code: string) =>
@@ -98,7 +103,7 @@ const movesOf = (t: Kit, code: string) =>
 		Effect.map((rows) =>
 			rows
 				.filter((row) => row.code === code)
-				.map((row) => [row.operation, row.period, row.measure, row.amount?.toNumber()])
+				.map((row) => [row.operation, row.period, row.measure, row.amount?.to_number()])
 				.toSorted()
 		)
 	);
@@ -133,48 +138,56 @@ describe('a birth on the contract', () => {
 	it.live('on a draft version, nothing moves until it seals, then once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const admin = t.as(t.admin);
-			const [held] = (yield* t.storedQuery({ employee_contract: { limit: 1 } })).employee_contract
+			const admin = yield* t.as(t.admin);
+			const [held] = (yield* storedQuery(t, { employee_contract: { limit: 1 } })).employee_contract
 				.rows;
 			assert.ok(held !== undefined);
-			yield* admin.act('employee_contract.update', [
-				{
-					target: held.id,
-					set: { effective_range: { from: PlainDate('2026-01-01'), to: PlainDate('2026-06-30') } }
-				}
-			]);
-			yield* admin.act('employee_contract.create', [
-				{
-					employee_id: held.employee_id,
-					entity_id: held.entity_id,
-					engagement: held.engagement,
-					employee_number: held.employee_number,
-					terms: held.terms,
-					payroll: held.payroll,
-					bank: held.bank,
-					employee_extension_data: held.employee_extension_data,
-					events: [{ kind: BIRTH.kind, on: PlainDate(BIRTH.on) }],
-					service_started_on: held.service_started_on,
-					effective_range: { from: PlainDate('2026-07-01'), to: null },
-					signed_contract_period: held.signed_contract_period,
-					status: 'DRAFT',
-					reason: 'A child was born'
-				}
-			]);
-			yield* t.runDue();
+			yield* admin.act({
+				'employee_contract.update': [
+					{
+						target: held,
+						set: { effective_range: { from: PlainDate('2026-01-01'), to: PlainDate('2026-06-30') } }
+					}
+				]
+			});
+			yield* admin.act({
+				'employee_contract.create': [
+					{
+						employee_id: held.employee_id,
+						entity_id: held.entity_id,
+						engagement: held.engagement,
+						employee_number: held.employee_number,
+						terms: held.terms,
+						payroll: held.payroll,
+						bank: held.bank,
+						employee_extension_data: held.employee_extension_data,
+						events: [{ kind: BIRTH.kind, on: PlainDate(BIRTH.on) }],
+						service_started_on: held.service_started_on,
+						effective_range: { from: PlainDate('2026-07-01'), to: null },
+						signed_contract_period: held.signed_contract_period,
+						status: 'DRAFT',
+						reason: 'A child was born'
+					}
+				]
+			});
+			yield* t.run_due();
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {});
-			const draft = (yield* t.storedQuery({
+			const draft = (yield* storedQuery(t, {
 				employee_contract: { where: { status: { eq: 'DRAFT' } }, limit: 1 }
 			})).employee_contract.rows[0];
 			assert.ok(draft !== undefined);
-			yield* admin.act('employee_contract.update', [
-				{ target: draft.id, set: { status: 'SEALED' } }
-			]);
-			yield* t.runDue();
-			yield* admin.act('employee_contract.update', [
-				{ target: draft.id, set: { reason: 'Reviewed' } }
-			]);
-			yield* t.runDue();
+			yield* admin.act({
+				'employee_contract.update': [{ target: draft, set: { status: 'SEALED' } }]
+			});
+			yield* t.run_due();
+			const sealed = (yield* storedQuery(t, {
+				employee_contract: { where: { id: { eq: draft.id } }, limit: 1 }
+			})).employee_contract.rows[0];
+			assert.ok(sealed !== undefined);
+			yield* admin.act({
+				'employee_contract.update': [{ target: sealed, set: { reason: 'Reviewed' } }]
+			});
+			yield* t.run_due();
 			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
 				['ADD', 'ID.E.2026-03-02', 'entitled', GRANT]
 			]);
@@ -197,7 +210,7 @@ describe('a birth on the contract', () => {
 			const expected = { kind: 'CHILD_BIRTH', on: '2026-03-02', opened_on: '2026-02-16' };
 			const version = yield* seal(t, '2026-02-01', expected);
 			yield* take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-02-16'], version);
-			yield* t.runDue();
+			yield* t.run_due();
 			yield* seal(t, '2026-03-01', { ...expected, on: '2026-02-27' });
 			yield* syncAll(t);
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
@@ -214,7 +227,7 @@ describe('a birth on the contract', () => {
 			const t = yield* TestWorkspace;
 			const version = yield* seal(t, BIRTH.on, BIRTH);
 			yield* take(t, WOMAN, 'MATERNITY_LEAVE', [BIRTH.on], version);
-			yield* t.runDue();
+			yield* t.run_due();
 			const refused = yield* Effect.flip(seal(t, '2026-04-01', { ...BIRTH, on: '2026-03-04' }));
 			assert.match(String(refused), /Leave from/);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
@@ -244,7 +257,7 @@ describe('a birth on the contract', () => {
 			const t = yield* TestWorkspace;
 			const version = yield* seal(t, BIRTH.on, BIRTH);
 			yield* take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-03-03'], version);
-			yield* t.runDue();
+			yield* t.run_due();
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MATERNITY_LEAVE', 'used'), 1);
 			assert.equal(yield* Effect.isFailure(sealEvents(t, '2026-04-01', [])), true);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
@@ -286,20 +299,22 @@ describe('a workplace case', () => {
 	it.live('moves no balance', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t.as(t.admin).act('workplace_case_catalog_entry.create', [
-				{
-					entity_id: ENTITY,
-					employment_id: CONTRACT,
-					catalog_id: idOf(
-						'workplace_case_catalog',
-						catalogRow(WOMAN, 'workplace_case_catalog', 'PERSONAL_DATA_BREACH')
-					),
-					kind: 'PERSONAL_DATA_BREACH',
-					opened_on: PlainDate('2026-03-02'),
-					inputs: {}
-				}
-			]);
-			yield* t.runDue();
+			yield* (yield* t.as(t.admin)).act({
+				'workplace_case_catalog_entry.create': [
+					{
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: idOf(
+							'workplace_case_catalog',
+							catalogRow(WOMAN, 'workplace_case_catalog', 'PERSONAL_DATA_BREACH')
+						),
+						kind: 'PERSONAL_DATA_BREACH',
+						opened_on: PlainDate('2026-03-02'),
+						inputs: {}
+					}
+				]
+			});
+			yield* t.run_due();
 			assert.deepEqual(yield* ledgerRows(t), []);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
@@ -307,18 +322,15 @@ describe('a workplace case', () => {
 
 describe('pay that steps down, on one row', () => {
 	const run = (t: Kit, period: string) =>
-		t
-			.as(t.admin)
-			.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-			.pipe(Effect.andThen(t.runDue()));
+		Effect.flatMap(t.as(t.admin), (caller) =>
+			caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+		).pipe(Effect.andThen(t.run_due()));
 	const breakdowns = (t: Kit) =>
-		t
-			.storedQuery({ payslip: { limit: 12 } })
-			.pipe(
-				Effect.map(({ payslip }) =>
-					payslip.rows.map((slip) => Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown))
-				)
-			);
+		storedQuery(t, { payslip: { limit: 12 } }).pipe(
+			Effect.map(({ payslip }) =>
+				payslip.rows.map((slip) => Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown))
+			)
+		);
 	/** What the unpaid part of the days took off the salary: the leave row's own line, which PAID_BASIC falls by. */
 	const taken = (t: Kit) =>
 		breakdowns(t).pipe(
@@ -332,31 +344,37 @@ describe('pay that steps down, on one row', () => {
 				)
 			)
 		);
-	/** What a reversal's refund line gave back. */
-	const refunded = (t: Kit, code: string) =>
+	/** What a later payslip gave back for a paid period, on the row's own line. */
+	const refunded = (t: Kit, code: string, period: string) =>
 		breakdowns(t).pipe(
 			Effect.map((slips) =>
 				slips
 					.flatMap((slip) => slip.lines)
-					.filter((line) => line.code === code && line.direction === 'ADD')
+					.filter(
+						(line) => line.code === code && line.direction === 'ADD' && line.period === period
+					)
 					.reduce((sum, line) => sum + line.amount, 0)
 			)
 		);
 	const JUNE = ['2026-06-09', '2026-06-10'];
-	// the fixture's law prices a missed day at the monthly wage ÷ its fixed hours × the day's hours; each date's share
-	// is rounded to the whole unit before the dates add up
+	// the fixture's law prices a missed day at its day basis: a year's wage over the year's working days, or the monthly
+	// wage ÷ its fixed hours × the day's hours; each date's share is rounded to the whole unit before the dates add up
 	const settings = (WOMAN.jurisdiction_settings ?? []).find(
 		(row) => row.id === WOMAN.entity_profile_version?.[0]?.input_schema_version_id
 	);
-	const HOURS = Number(objectValue(objectValue(settings?.conversions).hour).hours);
-	const DAY = (terms.rate.amount * terms.normal_hours_per_day) / HOURS;
+	const conversions = objectValue(settings?.conversions);
+	const DAY =
+		objectValue(conversions.day).basis === 'YEAR'
+			? (terms.rate.amount * 12) / (52 * terms.normal_days_per_week)
+			: (terms.rate.amount * terms.normal_hours_per_day) /
+				Number(objectValue(conversions.hour).hours);
 	const SICK = steps('MEDICAL_LEAVE');
 
 	it.live('a sick day with no fact is at full pay', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, WOMAN, 'MEDICAL_LEAVE', JUNE);
-			yield* t.runDue();
+			yield* t.run_due();
 			yield* run(t, '2026-06');
 			assert.equal(yield* taken(t), 0);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
@@ -369,7 +387,7 @@ describe('pay that steps down, on one row', () => {
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
-				yield* t.runDue();
+				yield* t.run_due();
 				yield* run(t, '2026-06');
 				near(yield* taken(t), 2 * Math.round(DAY * share));
 			}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
@@ -380,9 +398,9 @@ describe('pay that steps down, on one row', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
-			yield* t.runDue();
+			yield* t.run_due();
 			const next = yield* sealEvents(t, '2026-07-01', [event]);
-			const { employee_contract } = yield* t.storedQuery({
+			const { employee_contract } = yield* storedQuery(t, {
 				employee_contract: { where: { id: { eq: next } }, fields: ['status'], limit: 1 }
 			});
 			assert.equal(employee_contract.rows[0]?.status, 'SEALED');
@@ -395,38 +413,44 @@ describe('pay that steps down, on one row', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
-			yield* t.runDue();
+			yield* t.run_due();
 			yield* run(t, '2026-06');
 			assert.equal(yield* taken(t), 0);
 		}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 	});
-	it.live('a reversal gives back the month it corrects, at that month’s share', () => {
-		const born = seedOf('FEMALE', [{ kind: 'CHILD_BIRTH', on: '2026-02-02' }]);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* syncAll(t);
-			yield* take(t, born, 'MATERNITY_LEAVE', ['2026-06-09']);
-			yield* t.runDue();
-			yield* run(t, '2026-06');
-			const before = yield* taken(t);
-			assert.ok(before > 0 && before < DAY);
-			const [first] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
-				.leave_catalog_entry.rows;
-			assert.ok(first !== undefined);
-			yield* t.as(t.admin).act('leave_catalog_entry.create', [
-				leaveCreate({
-					entity_id: ENTITY,
-					employment_id: CONTRACT,
-					catalog_id: idOf('leave_catalog', catalogRow(born, 'leave_catalog', 'MATERNITY_LEAVE')),
-					days: wholeDays('2026-06-09'),
-					reverses: first.id
-				})
-			]);
-			yield* t.runDue();
-			yield* run(t, '2026-07');
-			near(yield* refunded(t, 'MATERNITY_LEAVE'), before);
-		}).pipe(Effect.provide(workspace({ seed: born, now: NOW })));
-	});
+	it.live(
+		'deleted after its month is paid, the next run gives that month back, at that month’s share',
+		() => {
+			const born = seedOf('FEMALE', [{ kind: 'CHILD_BIRTH', on: '2026-02-02' }]);
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				yield* take(t, born, 'MATERNITY_LEAVE', ['2026-06-09']);
+				yield* t.run_due();
+				yield* run(t, '2026-06');
+				const before = yield* taken(t);
+				assert.ok(before > 0 && before < DAY);
+				const [june] = (yield* storedQuery(t, { payroll_run: { limit: 1 } })).payroll_run.rows;
+				assert.ok(june !== undefined);
+				yield* (yield* t.as(t.admin)).act({
+					'payroll_run.update': [{ target: june, set: { state: 'PAID' } }]
+				});
+				yield* t.run_due();
+				const [first] = (yield* storedQuery(t, { leave_catalog_entry: { limit: 1 } }))
+					.leave_catalog_entry.rows;
+				assert.ok(first !== undefined);
+				yield* (yield* t.as(t.admin)).act({ 'leave_catalog_entry.delete': [{ target: first }] });
+				yield* t.run_due();
+				const { pay_amendment } = yield* storedQuery(t, { pay_amendment: { limit: 10 } });
+				assert.deepEqual(
+					pay_amendment.rows.map((row) => [row.period, row.payroll_run_id]),
+					[['2026-06', null]]
+				);
+				yield* run(t, '2026-07');
+				near(yield* refunded(t, 'MATERNITY_LEAVE', '2026-06'), before);
+			}).pipe(Effect.provide(workspace({ seed: born, now: NOW })));
+		}
+	);
 	it.live('a long sick spell with no fact asks HR to record one, once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -435,19 +459,17 @@ describe('pay that steps down, on one row', () => {
 				(_, day) => `2026-03-${String(day + 1).padStart(2, '0')}`
 			);
 			yield* take(t, WOMAN, 'MEDICAL_LEAVE', spell.slice(0, 29));
-			yield* t.runDue();
-			const raised = t
-				.storedQuery({ obligation: { limit: 200 } })
-				.pipe(
-					Effect.map(({ obligation }) =>
-						obligation.rows.filter(({ title }) => /Long illness case/.test(title))
-					)
-				);
+			yield* t.run_due();
+			const raised = storedQuery(t, { obligation: { limit: 200 } }).pipe(
+				Effect.map(({ obligation }) =>
+					obligation.rows.filter(({ title }) => /Long illness case/.test(title))
+				)
+			);
 			assert.equal((yield* raised).length, 0);
 			yield* take(t, WOMAN, 'MEDICAL_LEAVE', [spell[29] ?? '']);
-			yield* t.runDue();
+			yield* t.run_due();
 			yield* take(t, WOMAN, 'MEDICAL_LEAVE', [spell[30] ?? '']);
-			yield* t.runDue();
+			yield* t.run_due();
 			assert.equal((yield* raised).length, 1);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);

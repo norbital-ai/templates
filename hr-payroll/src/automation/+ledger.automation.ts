@@ -12,14 +12,14 @@ const ATTEMPTS = 8;
  * what carried, or for everyone when the law, the year or an entity did. Posting is no part of it: a record's own write
  * carries what it posts. It writes only what differs, so running it again changes nothing.
  */
-export default automation('ledger', {
+export default automation({
 	description: 'Sync entitlements to the ledger; safe to run at any time.',
 	input: {
-		employees: { kind: 'list', of: { kind: 'id', of: 'employee_profile' }, optional: true },
+		employees: { kind: 'ref', to: 'employee_profile', many: true, optional: true },
 		// contracts whose exit moved: their dependants follow once the sync has settled
-		employments: { kind: 'list', of: { kind: 'id', of: 'employee_contract' }, optional: true }
+		employments: { kind: 'ref', to: 'employee_contract', many: true, optional: true }
 	},
-	on: { cron: '0 0 1 1 *' },
+	on: [{ cron: '0 0 1 1 *' }],
 	policies: ['payroll_execution'],
 	concurrency: { max: 1 },
 	retry: { attempts: ATTEMPTS, backoff: '10s' },

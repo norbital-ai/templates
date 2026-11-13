@@ -33,7 +33,19 @@ One folder per version, one JSON file per model type: the file name is the model
 
 ## 3. Versions
 
-A change of law is a new version, never an edit to a sealed one. A lineage is numbered in date order, sealed and unbroken, and a version exists only because something changed on its date. Seed only the live window **December 2025 – November 2026**; every lineage's last version is open-ended. A later change is not seeded: research files it as a `statutory_finding` with its `statutory_change` rows, and `statutory_materialize` makes the next version when it takes effect; never a pre-seeded snapshot folder. The folder number is a rolling sequence, never a legal effective date: the date is the version's `effective_range`.
+- A change of law is a new version, never an edit to a sealed one.
+- A lineage is numbered in date order, sealed and unbroken. Its last version is open-ended.
+- The seed starts on 1 December 2025.
+- A version starts on the day a change in law took effect, and exists only because something changed that day.
+- A change already enacted with a later date of effect is seeded in advance, as its own version from that date.
+- A change not yet enacted is not seeded. Research files it as a `statutory_finding` with its `statutory_change` rows, and `statutory_materialize` merges it as the next version.
+- The folder number is a sequence, never a date. The date is the version's `effective_range`.
+
+```mermaid
+flowchart LR
+  v1[version_1<br/>2025-12-01 to the day<br/>before the next change] --> v2[version_2<br/>a change in force]
+  v2 --> v3[version_3<br/>enacted, future date<br/>open-ended]
+```
 
 ## 4. Authoring rules
 
@@ -53,6 +65,10 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 
 - `subtotal` rows carry `code`, `name`, `previous_id`, `balance_window` (`MONTH` or `YEAR`) and optional `calculation`. The first computes base pay; later rows accumulate producer lines. Statutory rows carry `balance_window` too. Do not seed output bindings, phases, channels, order fields or subtotal-held catalogue lists.
 - Static catalogues hold confirmed definitions and leave `subtotal_id` null when they create no pay line. Non-static catalogues own their entries.
+- `conversions.rounding.day_rate` is `RATE` (the default) or `AMOUNT`. `RATE` rounds the day rate before it multiplies the days; `AMOUNT` rounds only the amount. The Philippines uses `AMOUNT`.
+- `conversions.back_pay` names the ad hoc row that prices back pay, where the law prices it apart from ordinary pay: Singapore names `ADDITIONAL_BACKPAY` and Indonesia `RETROACTIVE_PAY`. Every other law leaves it out, so a contract version there applies from its start.
+- Seed no refund or adjustment row per scheme, and no effect for a contribution correction. A contribution wrong in a paid period is corrected at its source and the next run carries the difference. The generic `STATUTORY_REFUND` and `STATUTORY_ADJUSTMENT` rows hold a refund or charge decided outside the system. A row a statute's own procedure needs stays: Malaysia's `NO_PAY_ADJUSTMENT` and `NO_PAY_REFUND`, Japan's `SOCIAL_INSURANCE_ADJUSTMENT` and `SOCIAL_INSURANCE_REFUND`.
+- A tax row that counts what an ad hoc entry posts to a statutory account reads it as `ctx.posted.<SCHEME>.<employee|employer>` (Indonesia's `EMPLOYER_PAID_BENEFIT`, a benefit in kind).
 
 ### Data
 
@@ -65,7 +81,7 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 
 ## 5. Acceptance
 
-A jurisdiction is accepted when its boundary scenarios pass: overtime inclusion, allowances, balance limits, ledger reversal and retry, run locks, dependent contributions, exits and carry-forward, where applicable.
+A jurisdiction is accepted when its boundary scenarios pass: overtime inclusion, allowances, balance limits, a correction of a paid period and its retry, a run holding its people, dependent contributions, exits and carry-forward, where applicable.
 
 Tests prove those mechanisms with synthetic inputs; they do not certify a seeded legal value. How legal values are verified is in [statutory coverage](0009-statutory-coverage.md#how-it-is-verified).
 

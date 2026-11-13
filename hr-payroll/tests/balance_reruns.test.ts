@@ -20,7 +20,8 @@ import {
 	workspace,
 	leaveCreate,
 	flat,
-	projection
+	projection,
+	storedQuery
 } from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -59,14 +60,18 @@ const WINDOW = 'ID.S.2026-01-01';
 const HOLDS = seedOf({ leave: { ANNUAL_LEAVE: { [WINDOW]: { entitled: 12 } } } });
 const EMPTY = seedOf({});
 const take = (t: Kit, seed: Seed, code: string, ...dates: string[]) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		leaveCreate({
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
-			days: wholeDays(...dates)
+	Effect.flatMap(t.as(t.admin), (admin) =>
+		admin.act({
+			'leave_catalog_entry.create': [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+					days: wholeDays(...dates)
+				})
+			]
 		})
-	]);
+	);
 const used = (t: Kit) =>
 	accountsIn(t).pipe(
 		Effect.map((accounts) => accounts.leave?.['ANNUAL_LEAVE']?.[WINDOW]?.['used'])
@@ -76,24 +81,25 @@ const leaveRows = (t: Kit, code: string) =>
 		Effect.map((rows) =>
 			rows
 				.filter((row) => row.account === 'leave' && row.code === code)
-				.map((row) => `${row.operation} ${row.measure} ${row.amount?.toNumber()}`)
+				.map((row) => `${row.operation} ${row.measure} ${row.amount?.to_number()}`)
 				.toSorted()
 		)
 	);
 const firstEntry = (t: Kit) =>
-	t.storedQuery({ leave_catalog_entry: { limit: 1 } }).pipe(
+	storedQuery(t, { leave_catalog_entry: { limit: 1 } }).pipe(
 		Effect.map(({ leave_catalog_entry }) => {
 			const row = leave_catalog_entry.rows[0];
 			assert.ok(row !== undefined);
-			return row.id;
+			return row;
 		})
 	);
-/** A run that prices the entry's slots, so a correction is a reversal and not an edit. */
+/** A run that prices the entry's slots: while it is unpaid, it holds the entry. */
 const price = (t: Kit) =>
-	t
-		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-03', kind: 'ON_CYCLE' }])
-		.pipe(Effect.andThen(t.runDue()));
+	Effect.flatMap(t.as(t.admin), (admin) =>
+		admin.act({
+			'payroll_run.create': [{ entity_id: ENTITY, period: '2026-03', kind: 'ON_CYCLE' }]
+		})
+	).pipe(Effect.andThen(t.run_due()));
 /** Lets each queued effect and posting finish its work, kills the host as it ends, then runs it again. */
 const crashEach = (t: Kit) =>
 	Effect.gen(function* () {
@@ -113,7 +119,7 @@ const crashEach = (t: Kit) =>
 			yield* t.crash(id);
 		}
 		assert.ok(killed.size > 0, 'nothing queued');
-		yield* t.runDue();
+		yield* t.run_due();
 	});
 describe('a posting that runs again', () => {
 	it.live('a leave entry is posted once', () =>
@@ -125,16 +131,17 @@ describe('a posting that runs again', () => {
 			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
 	);
-	it.live('a priced entry cannot be deleted', () =>
+	it.live('an entry an unpaid run priced is held under that run, and its posting stands', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, HOLDS, 'ANNUAL_LEAVE', '2026-03-03', '2026-03-04');
 			yield* crashEach(t);
 			yield* price(t);
+			const admin = yield* t.as(t.admin);
 			const failed = yield* Effect.flip(
-				t.as(t.admin).act('leave_catalog_entry.delete', [{ target: yield* firstEntry(t) }])
+				admin.act({ 'leave_catalog_entry.delete': [{ target: yield* firstEntry(t) }] })
 			);
-			assert.match(String(failed), /already paid by a payroll run cannot be deleted/);
+			assert.match(String(failed), /Run \d+ holds this person and is not paid yet/);
 			assert.equal(yield* used(t), 2);
 			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
@@ -156,7 +163,9 @@ describe('a posting that runs again', () => {
 			yield* crashEach(t);
 			assert.equal(yield* used(t), 1);
 			assert.deepEqual(yield* leaveRows(t, 'JOINT_LEAVE'), []);
-			yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: yield* firstEntry(t) }]);
+			yield* (yield* t.as(t.admin)).act({
+				'leave_catalog_entry.delete': [{ target: yield* firstEntry(t) }]
+			});
 			yield* crashEach(t);
 			assert.equal(yield* used(t), 0);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
@@ -164,16 +173,17 @@ describe('a posting that runs again', () => {
 	it.live('a payslip posts once, and a run deleted after it posts its inverse once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
+			const admin = yield* t.as(t.admin);
+			yield* admin.act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+			});
 			yield* crashEach(t);
 			const year = (yield* accountsIn(t)).pay?.['BASIC']?.['ID.Y.2026-01-01']?.['total'];
 			assert.equal(year, terms.rate.amount);
-			const { payroll_run: runs } = yield* t.storedQuery({ payroll_run: { limit: 1 } });
+			const { payroll_run: runs } = yield* storedQuery(t, { payroll_run: { limit: 1 } });
 			const run = runs.rows[0];
 			assert.ok(run !== undefined);
-			yield* t.as(t.admin).act('payroll_run.delete', [{ target: run.id }]);
+			yield* admin.act({ 'payroll_run.delete': [{ target: run }] });
 			yield* crashEach(t);
 			assert.deepEqual((yield* accountsIn(t)).pay?.['BASIC']?.['ID.Y.2026-01-01'], { total: 0 });
 		}).pipe(Effect.provide(workspace({ seed: EMPTY, now: NOW })))
@@ -184,43 +194,45 @@ describe('a balance is its ledger', () => {
 	it.live('from nothing, through a year of entries, facts, runs and corrections', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			yield* syncAll(t);
 			yield* take(t, EMPTY, 'ANNUAL_LEAVE', '2026-01-06', '2026-01-07');
-			yield* t.runDue();
+			yield* t.run_due();
 			const first = yield* firstEntry(t);
 			yield* take(t, EMPTY, 'ANNUAL_LEAVE', '2026-01-08');
-			const { leave_catalog_entry: later } = yield* t.storedQuery({
+			const { leave_catalog_entry: later } = yield* storedQuery(t, {
 				leave_catalog_entry: { limit: 2 }
 			});
-			const second = later.rows.find((row) => row.id !== first);
+			const second = later.rows.find((row) => row.id !== first.id);
 			assert.ok(second !== undefined);
-			yield* admin.act('leave_catalog_entry.delete', [{ target: second.id }]);
-			yield* t.runDue();
+			yield* admin.act({ 'leave_catalog_entry.delete': [{ target: second }] });
+			yield* t.run_due();
 			yield* sealEvents(t, '2026-02-02', [
 				{ kind: 'LONG_ILLNESS', on: '2026-02-02', ended_on: '2026-02-20' },
 				{ kind: 'CHILD_BIRTH', on: '2026-02-03' }
 			]);
-			yield* t.runDue();
+			yield* t.run_due();
 			yield* sealEvents(t, '2026-03-03', [{ kind: 'CHILD_BIRTH', on: '2026-02-03' }]);
-			yield* t.runDue();
+			yield* t.run_due();
 			const pay = (period: string) =>
 				admin
-					.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-					.pipe(Effect.andThen(t.runDue()));
-			const onlyRun = t.storedQuery({ payroll_run: { limit: 1 } }).pipe(
+					.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+					.pipe(Effect.andThen(t.run_due()));
+			const onlyRun = storedQuery(t, { payroll_run: { limit: 1 } }).pipe(
 				Effect.map(({ payroll_run }) => {
 					const row = payroll_run.rows[0];
 					assert.ok(row !== undefined);
-					return row.id;
+					return row;
 				})
 			);
 			yield* pay('2026-02');
-			yield* admin.act('payroll_run.delete', [{ target: yield* onlyRun }]);
-			yield* t.runDue();
+			yield* admin.act({ 'payroll_run.delete': [{ target: yield* onlyRun }] });
+			yield* t.run_due();
 			yield* pay('2026-02');
-			yield* admin.act('payroll_run.update', [{ target: yield* onlyRun, set: { state: 'PAID' } }]);
-			yield* t.runDue();
+			yield* admin.act({
+				'payroll_run.update': [{ target: yield* onlyRun, set: { state: 'PAID' } }]
+			});
+			yield* t.run_due();
 			assert.ok((yield* ledgerRows(t)).length > 0);
 			assert.deepEqual(flat(yield* accountsIn(t)), yield* projection(t));
 		}).pipe(Effect.provide(workspace({ seed: EMPTY, now: NOW })))

@@ -1,6 +1,6 @@
 import { app } from '@norbital-ai/bolt';
 
-export default app('hr_controller/settings/change_log', {
+export default app({
 	title: 'app.settings.change_log',
 	description: 'app.settings.change_log_description',
 	icon: 'lucide:history',

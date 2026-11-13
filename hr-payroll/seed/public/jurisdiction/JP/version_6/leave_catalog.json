@@ -197,7 +197,7 @@
 		],
 		"id": "b30a2215-ca5a-55a7-bdd0-9062a56a4067",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"description": "Paid annual leave accrued by service."
+		"description": "Paid annual leave accrued by service. Paid as a normal day (paid_share 1)."
 	},
 	{
 		"code": "PRENATAL_LEAVE",
@@ -214,7 +214,7 @@
 		],
 		"id": "24bdc989-47b0-585e-bf65-951ac667096b",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"description": "Leave before childbirth.",
+		"description": "Leave before childbirth. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -231,7 +231,7 @@
 		],
 		"id": "84b40e12-9cc0-51c4-8ab3-72100317c42f",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"description": "Leave after childbirth.",
+		"description": "Leave after childbirth. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -245,7 +245,7 @@
 		"id": "fda35d74-f117-5042-b2bc-e158581ce9b3",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"lookup": {},
-		"description": "Childcare leave.",
+		"description": "Childcare leave. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -261,7 +261,7 @@
 		],
 		"id": "ce4e4a40-6a2c-59fb-92e7-780a5b67f24f",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"description": "Paternity leave after childbirth.",
+		"description": "Paternity leave after childbirth. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -277,7 +277,7 @@
 		],
 		"id": "c2787e21-ce7e-5d8d-899e-210caeec7097",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"description": "Leave to care for a family member.",
+		"description": "Leave to care for a family member. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -296,7 +296,7 @@
 		],
 		"id": "76f487d5-f834-5e53-81dc-22b1f3189a2d",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"description": "Nursing breaks or leave for a child.",
+		"description": "Nursing breaks or leave for a child. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -315,7 +315,7 @@
 		],
 		"id": "6325c8be-c435-5e98-b5ab-f1501916a759",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"description": "Days to care for a family member.",
+		"description": "Days to care for a family member. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -330,7 +330,7 @@
 		"id": "0581c173-0ce4-56b4-b849-9b82c55b1de5",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"lookup": {},
-		"description": "Menstrual leave days.",
+		"description": "Menstrual leave days. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -344,7 +344,7 @@
 		"id": "ba7b7134-96b5-5258-b074-1fdd11165728",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"lookup": {},
-		"description": "Leave for civic duty.",
+		"description": "Leave for civic duty. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -358,7 +358,7 @@
 		"id": "7e47978c-dcb5-5cf1-a1b4-4b11e36370b1",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"lookup": {},
-		"description": "Unpaid sickness absence.",
+		"description": "Unpaid sickness absence. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -372,7 +372,7 @@
 		"id": "cb308f0b-d3c0-501e-9648-c5a7bf668125",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"lookup": {},
-		"description": "Absence from an occupational injury.",
+		"description": "Absence from an occupational injury. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -386,7 +386,7 @@
 		"id": "5b55dfe6-db7c-5297-b02e-5f8652c80461",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"lookup": {},
-		"description": "Unpaid absence from work.",
+		"description": "Unpaid absence from work. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -410,7 +410,7 @@
 		],
 		"id": "0beecf3c-c55d-536f-8e9e-875f351469fb",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
-		"description": "Annual leave taken in hours."
+		"description": "Annual leave taken in hours. Paid as a normal day (paid_share 1)."
 	},
 	{
 		"code": "NURSING_TIME",
@@ -423,7 +423,7 @@
 		"id": "1d0a8b52-6ae6-58e7-9b85-abb5fee7b120",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"lookup": {},
-		"description": "Nursing time.",
+		"description": "Nursing time. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -438,7 +438,7 @@
 		"id": "9f19f0d0-d19b-57ea-b72b-669757e2ae3b",
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
 		"lookup": {},
-		"description": "Maternal health-check leave.",
+		"description": "Maternal health-check leave. Unpaid by the employer (paid_share 0); any benefit comes from social insurance, not payroll.",
 		"paid_share": "0"
 	},
 	{
@@ -463,6 +463,6 @@
 		"lookup": {
 			"grant_days": 0
 		},
-		"description": "Time off in lieu of overtime."
+		"description": "Time off in lieu of overtime. Paid as a normal day (paid_share 1)."
 	}
 ]

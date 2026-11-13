@@ -20,7 +20,7 @@
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
-		"description": "Contractual fixed monthly allowance paid when the contract sets an amount, prorated over the salary-coverage days; a wage that enters the social-security and workmen's compensation bases.",
+		"description": "Contractual fixed monthly allowance paid when the contract sets an amount. Prorated by the calendar days of the salary coverage over the days of its month, then by the paid share (unpaid leave and absence reduce it as they reduce salary). A wage that enters the social-security and workmen's compensation bases.",
 		"lookup": {},
 		"references": [
 			{

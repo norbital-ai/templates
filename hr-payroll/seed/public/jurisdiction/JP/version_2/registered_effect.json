@@ -25,7 +25,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -87,7 +87,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -149,7 +149,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -211,7 +211,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -275,7 +275,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -323,7 +323,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -403,7 +403,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -451,7 +451,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -565,7 +565,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -613,7 +613,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1030,7 +1030,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1047,7 +1047,8 @@
 		},
 		"references": [
 			{
-				"title": "障害者の雇用の促進等に関する法律 art.43(7) with 施行規則 art.8: by 15 July, an employer bound by the employment quota — 40.0 or more regular employees at the statutory rate of 2.5% (from 1 April 2024) (施行令 art.9 as amended by 令和5年政令第239号; entity_extension_data.regular_employee_count, else the employments in force). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days."
+				"title": "障害者の雇用の促進等に関する法律 art.43(7) with 施行規則 art.8: by 15 July, an employer bound by the employment quota — 40.0 or more regular employees at the statutory rate of 2.5% (from 1 April 2024) (施行令 art.9 as amended by 令和5年政令第44号; entity_extension_data.regular_employee_count, else the employments in force). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days.",
+				"url": "https://www.pref.ehime.jp/uploaded/attachment/174647.pdf"
 			}
 		],
 		"id": "36b11477-c674-5e9f-95f1-2be2201e143a",
@@ -1079,7 +1080,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1141,7 +1142,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1756,7 +1757,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1868,7 +1869,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1928,7 +1929,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1990,7 +1991,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2593,7 +2594,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2699,7 +2700,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2983,7 +2984,7 @@
 						}
 					}
 				},
-				"fields": ["employment_id", "id", "reverses"],
+				"fields": ["employment_id", "id"],
 				"limit": 10000
 			},
 			"leave_catalog_entry_day": {
@@ -3005,7 +3006,7 @@
 		"condition": "return ctx.reads.obligation.length === 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// 労働基準法 art.39(1)–(2): each grant day closes the six months or the year whose attendance it turns on.\nconst contracts = ctx.reads.employee_contract;\nconst contract = contracts.find((row) => row.id === ctx.entry.employment_id);\nconst leave = first(ctx.reads.leave_catalog);\nif (contract == null || leave == null) return [];\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst month = (date) => Number(date.substring(0, 4)) * 12 + Number(date.substring(5, 7));\nconst served = month(ctx.entry.period + '-01') - month(started);\nconst offset = leave.lookup.service_offset_months;\nif (served < offset || (served - offset) % 12 !== 0) return [];\nconst grant = add_months(started, served);\nconst events = get(ctx.subject.employment, 'events', []);\nif (events.some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return [];\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment, 'terms.normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst shifts = group_by(ctx.reads.shift_definition, 'id');\nconst roster = Object.fromEntries(ctx.reads.roster_entry.map((row) => [row.work_date, get(first(get(shifts, String(row.shift_definition_id), [])) ?? {}, 'variant.day_type', 'WORK')]));\nconst holidays = ctx.reads.holiday.map((row) => row.date);\n// art.39(10): leave the reads leave out counts as attended; a reversed entry stands for nothing.\nconst own = ctx.reads.leave_catalog_entry.filter((entry) => contracts.some((row) => row.id === entry.employment_id));\nconst reversed = own.map((entry) => get(entry, 'reverses', null));\nconst standing = own.filter((entry) => get(entry, 'reverses', null) == null && !reversed.includes(entry.id)).map((entry) => entry.id);\nconst absences = group_by(ctx.reads.leave_catalog_entry_day.filter((day) => standing.includes(day.leave_entry_id)), 'incurred_on');\nconst from = served === offset ? started : add_months(grant, -12);\nlet working = 0;\nlet absent = 0;\nfor (let step = 0; step < calendar_distance_days(from, grant); step += 1) {\n\tconst date = add_days(from, step);\n\tconst type = get(roster, date, null);\n\tif (type == null ? off.includes(weekday(date)) || holidays.includes(date) : type !== 'WORK' && type !== 'ABS') continue;\n\tworking += 1;\n\tabsent += type === 'ABS' ? 1 : Math.min(1, get(absences, date, []).length / 2);\n}\nif (working - absent >= leave.lookup.attendance_ratio * working) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message + ' ' + (working - absent) + '/' + working + ' days recorded.',\n\tdue_on: grant,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_ATTENDANCE_REVIEW', ctx.entry.employee_id, ctx.entry.period])\n}];",
+		"effects": "// 労働基準法 art.39(1)–(2): each grant day closes the six months or the year whose attendance it turns on.\nconst contracts = ctx.reads.employee_contract;\nconst contract = contracts.find((row) => row.id === ctx.entry.employment_id);\nconst leave = first(ctx.reads.leave_catalog);\nif (contract == null || leave == null) return [];\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst month = (date) => Number(date.substring(0, 4)) * 12 + Number(date.substring(5, 7));\nconst served = month(ctx.entry.period + '-01') - month(started);\nconst offset = leave.lookup.service_offset_months;\nif (served < offset || (served - offset) % 12 !== 0) return [];\nconst grant = add_months(started, served);\nconst events = get(ctx.subject.employment, 'events', []);\nif (events.some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return [];\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment, 'terms.normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst shifts = group_by(ctx.reads.shift_definition, 'id');\nconst roster = Object.fromEntries(ctx.reads.roster_entry.map((row) => [row.work_date, get(first(get(shifts, String(row.shift_definition_id), [])) ?? {}, 'variant.day_type', 'WORK')]));\nconst holidays = ctx.reads.holiday.map((row) => row.date);\n// art.39(10): leave the reads leave out counts as attended.\nconst own = ctx.reads.leave_catalog_entry.filter((entry) => contracts.some((row) => row.id === entry.employment_id));\nconst standing = own.map((entry) => entry.id);\nconst absences = group_by(ctx.reads.leave_catalog_entry_day.filter((day) => standing.includes(day.leave_entry_id)), 'incurred_on');\nconst from = served === offset ? started : add_months(grant, -12);\nlet working = 0;\nlet absent = 0;\nfor (let step = 0; step < calendar_distance_days(from, grant); step += 1) {\n\tconst date = add_days(from, step);\n\tconst type = get(roster, date, null);\n\tif (type == null ? off.includes(weekday(date)) || holidays.includes(date) : type !== 'WORK' && type !== 'ABS') continue;\n\tworking += 1;\n\tabsent += type === 'ABS' ? 1 : Math.min(1, get(absences, date, []).length / 2);\n}\nif (working - absent >= leave.lookup.attendance_ratio * working) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message + ' ' + (working - absent) + '/' + working + ' days recorded.',\n\tdue_on: grant,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_ATTENDANCE_REVIEW', ctx.entry.employee_id, ctx.entry.period])\n}];",
 		"lookup": {
 			"message": "Recorded attendance before this annual leave grant day is below the statutory ratio. Confirm it, and where it stands record ATTENDANCE_BELOW_RATIO on the grant day (労働基準法 art.39(1)–(2))."
 		},
@@ -3122,7 +3123,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -3186,7 +3187,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -3248,7 +3249,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -3310,7 +3311,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -3626,7 +3627,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -3688,7 +3689,7 @@
 						}
 					},
 					"employee_id": {
-						"isNull": true
+						"is_null": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -5607,49 +5608,6 @@
 			}
 		],
 		"id": "921f97bc-b3d5-5473-8671-86a660aaac03",
-		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"name": "Follow up a contribution corrected for a closed month",
-		"description": "Raises the fund follow-up for a contribution refund or adjustment entry on a closed month.",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['JP', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['JP', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "3b561451-c50c-525d-93bd-a389b65d5f13",
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	}
 ]

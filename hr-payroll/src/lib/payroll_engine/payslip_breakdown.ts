@@ -20,7 +20,9 @@ export const PayslipBreakdown = Schema.Struct({
 			party: Schema.String,
 			source: Schema.String,
 			quantity: Schema.optional(Schema.Number),
-			unit: Schema.optional(Schema.String)
+			unit: Schema.optional(Schema.String),
+			/** The earlier pay period this line belongs to: a difference this payslip carries for it. */
+			period: Schema.optional(Schema.String)
 		})
 	),
 	statutory: Schema.Array(
@@ -31,6 +33,26 @@ export const PayslipBreakdown = Schema.Struct({
 			employer: Schema.Number
 		})
 	),
+	/** What the payslip carries for earlier pay periods, beside its tagged lines: where each difference posts. */
+	carried: Schema.optional(
+		Schema.Array(
+			Schema.Struct({
+				run_id: Schema.String,
+				period: Schema.String,
+				postings: Schema.Array(
+					Schema.Struct({
+						account: Schema.String,
+						code: Schema.String,
+						period: Schema.String,
+						measure: Schema.String,
+						amount: Schema.Number,
+						unit: Schema.optional(Schema.String),
+						effective_on: Schema.String
+					})
+				)
+			})
+		)
+	),
 	/** Overtime taken as time off, which the payslip posts as hours owed; a payslip with none carries none. */
 	time_off: Schema.optional(
 		Schema.Array(
@@ -38,6 +60,21 @@ export const PayslipBreakdown = Schema.Struct({
 				code: Schema.String,
 				period: Schema.String,
 				hours: Schema.Number,
+				on: Schema.String
+			})
+		)
+	),
+	/**
+	 * Leave an exit settled on its last payslip, which the payslip posts as days used: what was left is paid out, and
+	 * what was taken beyond what the last day earned is taken back (a figure below zero).
+	 */
+	cash_out: Schema.optional(
+		Schema.Array(
+			Schema.Struct({
+				code: Schema.String,
+				period: Schema.String,
+				amount: Schema.Number,
+				unit: Schema.Literals(['DAY', 'HOUR']),
 				on: Schema.String
 			})
 		)

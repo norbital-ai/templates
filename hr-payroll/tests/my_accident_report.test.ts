@@ -28,23 +28,30 @@ const ACCIDENT = idOf(
 );
 const live = workspace({ seed, now: '2026-06-20T02:00:00.000Z' });
 const file = (t: Kit, catalog_id: typeof ACCIDENT, kind: string, inputs: JsonObject) =>
-	t.as(t.admin).act('workplace_case_catalog_entry.create', [
-		{
-			catalog_id,
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			kind,
-			opened_on: PlainDate('2026-06-10'),
-			inputs
-		}
-	]);
+	Effect.gen(function* () {
+		const admin = yield* t.as(t.admin);
+		return yield* admin.act({
+			'workplace_case_catalog_entry.create': [
+				{
+					catalog_id,
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					kind,
+					opened_on: PlainDate('2026-06-10'),
+					inputs
+				}
+			]
+		});
+	});
 
 describe('MY SOCSO accident report', () => {
 	it.live('an accident without its type is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(file(t, ACCIDENT, 'WORKPLACE_ACCIDENT', {}));
-			assert.match(String(refused), /CASE_INPUTS_REQUIRED|accident_type/);
+			assert.ok(refused._tag === 'ActRefused');
+			assert.equal(refused.key, 'errors.workplace_case_missing_inputs');
+			assert.match(String(refused.values?.inputs), /accident_type/);
 		}).pipe(Effect.provide(live))
 	);
 });

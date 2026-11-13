@@ -123,8 +123,10 @@ export const ROW_PARAMS = {
 				)
 			),
 			full_time_weekly_hours: Schema.optional(Schema.Number),
+			manual_monthly_ceiling: Schema.optional(Schema.Number),
 			multiplier: Schema.optional(Schema.Number),
 			non_workman_hourly_cap: Schema.optional(Schema.Number),
+			nonmanual_monthly_ceiling: Schema.optional(Schema.Number),
 			ordinary_bands: Schema.optional(
 				Schema.Array(
 					Schema.Struct({ rate: Schema.Number, up_to: Schema.Union([Schema.Null, Schema.Number]) })
@@ -174,7 +176,6 @@ export const ROW_PARAMS = {
 			rest_day: Schema.Boolean
 		}),
 		REST_DAY_OVERTIME: Schema.Struct({
-			multiplier: Schema.optional(Schema.Number),
 			part_time_premium: Schema.optional(Schema.Number),
 			rest_day_premium: Schema.optional(Schema.Number)
 		}),
@@ -183,9 +184,11 @@ export const ROW_PARAMS = {
 			employer_request_days_up_to_half: Schema.optional(Schema.Number),
 			half_day_divisor: Schema.optional(Schema.Number),
 			half_day_hours_factor: Schema.optional(Schema.Number),
+			manual_monthly_ceiling: Schema.optional(Schema.Number),
 			monthly_full_day: Schema.optional(Schema.Number),
 			monthly_half_day: Schema.optional(Schema.Number),
 			multiplier: Schema.optional(Schema.Number),
+			nonmanual_monthly_ceiling: Schema.optional(Schema.Number),
 			other_full_day: Schema.optional(Schema.Number),
 			other_half_day: Schema.optional(Schema.Number)
 		}),
@@ -852,6 +855,7 @@ export const ROW_PARAMS = {
 				Schema.Struct({
 					after: Schema.String,
 					ceiling: Schema.Number,
+					ceiling_days: Schema.optional(Schema.Number),
 					months: Schema.Number,
 					subtotal: Schema.String
 				})
@@ -1040,9 +1044,7 @@ export const ROW_PARAMS = {
 				)
 			),
 			entitlement: Schema.optional(Schema.String),
-			per_child_days_by_region: Schema.optional(
-				Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
-			),
+			per_child_days_by_region: Schema.optional(Schema.Array(Schema.Union([]))),
 			service_bands: Schema.optional(
 				Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
 			),
@@ -1183,7 +1185,12 @@ export const ROW_PARAMS = {
 				Schema.Struct({ account: Schema.String, code: Schema.String, measure: Schema.String })
 			)
 		}),
-		LONG_LEAVE: Schema.Struct({}),
+		LONG_LEAVE: Schema.Struct({
+			grant_days: Schema.optional(Schema.Number),
+			rolling_months: Schema.optional(Schema.Number),
+			service_months: Schema.optional(Schema.Number),
+			unit: Schema.optional(Schema.String)
+		}),
 		MARRIAGE_EXTENSION: Schema.Struct({
 			days_by_region: Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String })),
 			entitlement: Schema.String,
@@ -1461,7 +1468,6 @@ export const ROW_PARAMS = {
 					})
 				)
 			),
-			shanghai_scale_until: Schema.optional(Schema.String),
 			window: Schema.optional(Schema.String)
 		}),
 		SICK_LEAVE_PART_TIME: Schema.Struct({
@@ -1516,7 +1522,15 @@ export const ROW_PARAMS = {
 			opened_by: Schema.Struct({ VAWC: Schema.Struct({}) }),
 			window: Schema.String
 		}),
-		WORK_ACCIDENT_LEAVE: Schema.Struct({}),
+		WORK_ACCIDENT_LEAVE: Schema.Struct({
+			opened_by: Schema.Struct({ WORK_ACCIDENT: Schema.Struct({ days: Schema.Number }) }),
+			pay_steps: Schema.Array(
+				Schema.Struct({
+					unpaid_share: Schema.Number,
+					until_month: Schema.Union([Schema.Null, Schema.Number])
+				})
+			)
+		}),
 		WORK_INJURY_HOSPITALISATION_LEAVE: Schema.Struct({
 			days: Schema.Number,
 			max_months: Schema.Number,
@@ -1575,75 +1589,8 @@ export const ROW_PARAMS = {
 		BONUS_THR: Schema.Struct({}),
 		BPAYBS: Schema.Struct({}),
 		CBA_PRODUCTIVITY: Schema.Struct({}),
-		CDAC_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		CDAC_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		CHILD_SUPPORT_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		CHILD_SUPPORT_BONUS_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		CHILD_SUPPORT_BONUS_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		CHILD_SUPPORT_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		CHRISTMAS_BONUS: Schema.Struct({}),
 		CHRISTMAS_GIFT: Schema.Struct({}),
-		CLAWBACK_OVERTIME: Schema.Struct({}),
 		COMMISSION: Schema.Struct({}),
 		COMMISSION_IRREGULAR: Schema.Struct({}),
 		COMMISSION_MONTHLY: Schema.Struct({}),
@@ -1654,30 +1601,17 @@ export const ROW_PARAMS = {
 		COURT_GARNISHMENT: Schema.Struct({
 			ceiling: Schema.optional(Schema.Number)
 		}),
-		CP38_INSTALMENT: Schema.Struct({}),
-		CPF_ADJUSTMENT: Schema.Struct({
+		CP38_INSTALMENT: Schema.Struct({
 			accounts: Schema.Array(
 				Schema.Struct({
 					account: Schema.String,
 					code: Schema.String,
 					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
+					operation: Schema.String
 				})
 			)
 		}),
 		CPF_MISSED_SHARE_RECOVERY: Schema.Struct({}),
-		CPF_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		DAMAGE_COMPENSATION_DEDUCTION: Schema.Struct({
 			max_share_of_wage: Schema.Number
 		}),
@@ -1700,95 +1634,7 @@ export const ROW_PARAMS = {
 		}),
 		DISMISSAL_NOTICE_ALLOWANCE: Schema.Struct({}),
 		EARLY_RETIREMENT_LUMP_SUM: Schema.Struct({}),
-		ECF_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		ECF_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		ECONOMIC_COMPENSATION: Schema.Struct({}),
-		EI_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EI_BONUS_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EI_BONUS_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EI_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EIS_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EIS_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		EMPLOYEE_UNLAWFUL_TERMINATION: Schema.Struct({}),
 		EMPLOYER_PAID_BENEFIT: Schema.Struct({
 			accounts: Schema.Array(
@@ -1802,277 +1648,23 @@ export const ROW_PARAMS = {
 		}),
 		EMPLOYER_PENSION_CONTRIBUTION: Schema.Struct({}),
 		EMPLOYMENT_ASSISTANCE_PAYMENT: Schema.Struct({}),
-		EPF_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EPF_NON_CITIZEN_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EPF_NON_CITIZEN_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EPF_PR_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EPF_PR_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EPF_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		EWF_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		EWF_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		EXCELLENCE_AWARD: Schema.Struct({}),
 		FOOD_ABSENCE_COST: Schema.Struct({}),
 		FOOD_LODGING: Schema.Struct({}),
 		FRINGE_BENEFIT: Schema.Struct({}),
 		HAZARD_PAY: Schema.Struct({}),
-		HDMF_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		HDMF_MP2: Schema.Struct({}),
-		HDMF_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		HDMF_VOLUNTARY: Schema.Struct({}),
-		HEALTH_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		HEALTH_BONUS_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		HEALTH_BONUS_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		HEALTH_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		HI_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		HI_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		HOLIDAY_NOT_GRANTED: Schema.Struct({}),
-		HPF_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		HPF_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		HPF_SUPPLEMENTARY_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		HPF_SUPPLEMENTARY_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		INCENTIVE_OT: Schema.Struct({}),
 		INDIGENOUS_RITUAL_DAY_WORK: Schema.Struct({}),
 		INJURY_WAITING_COMPENSATION: Schema.Struct({
 			rate: Schema.Number
 		}),
 		INTERNAL_RETIREMENT_LUMP_SUM: Schema.Struct({}),
-		JHT_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		JHT_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		JOB_LOSS_ALLOWANCE: Schema.Struct({
 			minimum_months: Schema.Number,
 			qualifying_service_months: Schema.Number
-		}),
-		JP_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		JP_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
 		}),
 		KASAMBAHAY_FORFEITURE: Schema.Struct({
 			forfeiture_days: Schema.Number
@@ -2080,60 +1672,8 @@ export const ROW_PARAMS = {
 		KASAMBAHAY_INDEMNITY: Schema.Struct({
 			indemnity_days: Schema.Number
 		}),
-		KESEHATAN_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		KESEHATAN_EMPLOYER_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		KESEHATAN_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		KESEHATAN_TERMINATION_MONTH_EMPLOYEE: Schema.Struct({}),
 		KESEHATAN_TERMINATION_MONTH_EMPLOYER: Schema.Struct({}),
-		LABOR_PENSION_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		LABOR_PENSION_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		LATE_PAYMENT_INTEREST: Schema.Struct({
 			annual_rate: Schema.Number,
 			days_per_year: Schema.Number
@@ -2155,161 +1695,19 @@ export const ROW_PARAMS = {
 		LAYOFF_BENEFIT: Schema.Struct({
 			service_months: Schema.Number
 		}),
-		LI_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		LI_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		LONG_SERVICE_AWARD: Schema.Struct({}),
 		LOSS_DAMAGE_DEDUCTION: Schema.Struct({
 			max_share_of_basic: Schema.Number
 		}),
-		MAJOR_MEDICAL_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		MAJOR_MEDICAL_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		MATERNITY_ALLOWANCE_PASSTHROUGH: Schema.Struct({}),
 		MATERNITY_SALARY_DIFFERENTIAL: Schema.Struct({}),
 		MATERNITY_TOPUP: Schema.Struct({}),
-		MBMF_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		MBMF_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		MEDICAL_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		MEDICAL_ALLOWANCE: Schema.Struct({}),
 		MEDICAL_ASSISTANCE: Schema.Struct({}),
-		MEDICAL_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		MINIMUM_WAGE_ARREARS: Schema.Struct({
 			business_400: Schema.Number
 		}),
 		NATURA: Schema.Struct({}),
-		NHI_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		NHI_PART_TIME_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		NHI_PART_TIME_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		NHI_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		NHI_SUPPLEMENT_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		NHI_SUPPLEMENT_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		NIGHT_DUTY_ALLOWANCE: Schema.Struct({
 			limit_per_unit: Schema.Number
 		}),
@@ -2393,67 +1791,30 @@ export const ROW_PARAMS = {
 		OCCUPATIONAL_ACCIDENT_MEDICAL: Schema.Struct({}),
 		ORDINARY_BACKPAY: Schema.Struct({}),
 		OT_MEAL_ALLOWANCE: Schema.Struct({}),
-		OVERTIME_ARREARS: Schema.Struct({}),
 		PAY_IN_LIEU_OF_NOTICE: Schema.Struct({}),
 		PAYEE_PAYMENT: Schema.Struct({}),
-		PENSION_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		PENSION_BONUS_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		PENSION_BONUS_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		PENSION_LUMPSUM: Schema.Struct({}),
 		PENSION_OFFSET: Schema.Struct({}),
-		PENSION_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		PESANGON: Schema.Struct({
 			cause_multiplier: Schema.Struct({
 				ACQUISITION: Schema.Number,
+				ACQUISITION_TERMS_CHANGE_REJECTED: Schema.Number,
+				BANKRUPTCY: Schema.Number,
+				CLOSURE_LOSS: Schema.Number,
 				CLOSURE_NO_LOSS: Schema.Number,
 				DEATH: Schema.Number,
+				DEBT_SUSPENSION_LOSS: Schema.Number,
 				DEBT_SUSPENSION_NO_LOSS: Schema.Number,
+				EFFICIENCY_ACTUAL_LOSS: Schema.Number,
 				EFFICIENCY_PREVENT_LOSS: Schema.Number,
 				EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT: Schema.Number,
+				FORCE_MAJEURE_CLOSURE: Schema.Number,
 				FORCE_MAJEURE_NO_CLOSURE: Schema.Number,
 				LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY: Schema.Number,
 				MERGER_CONSOLIDATION_SEPARATION: Schema.Number,
-				RETIREMENT: Schema.Number
+				MERGER_EMPLOYER_UNWILLING: Schema.Number,
+				RETIREMENT: Schema.Number,
+				VIOLATION_AFTER_WARNINGS: Schema.Number
 			}),
 			pesangon_causes: Schema.Array(Schema.String),
 			schedule: Schema.Array(
@@ -2515,26 +1876,6 @@ export const ROW_PARAMS = {
 			deduction_share: Schema.Number
 		}),
 		PROTECTION_ORDER_SUPPORT: Schema.Struct({}),
-		PVD_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		PVD_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		RELOCATION_NOTICE_IN_LIEU: Schema.Struct({
 			notice_days: Schema.Number
 		}),
@@ -2568,96 +1909,8 @@ export const ROW_PARAMS = {
 		SHUTDOWN_ALLOWANCE: Schema.Struct({
 			rate: Schema.Number
 		}),
-		SI_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SI_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SINDA_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SINDA_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SKBBK_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SKBBK_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		SOCIAL_INSURANCE_ADJUSTMENT: Schema.Struct({}),
 		SOCIAL_INSURANCE_REFUND: Schema.Struct({}),
-		SOCSO_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SOCSO_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		SPECIAL_ALLOWANCE: Schema.Struct({}),
 		SPECIAL_SEVERANCE_RELOCATION: Schema.Struct({}),
 		SPECIAL_SEVERANCE_TECHNOLOGY: Schema.Struct({
@@ -2665,28 +1918,6 @@ export const ROW_PARAMS = {
 			maximum_days: Schema.Number,
 			part_year_days: Schema.Number,
 			qualifying_years: Schema.Number
-		}),
-		SSO_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SSO_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
 		}),
 		SSS_ADJUSTMENT: Schema.Struct({
 			accounts: Schema.Array(
@@ -2709,50 +1940,7 @@ export const ROW_PARAMS = {
 				})
 			)
 		}),
-		SSS_EMPLOYER_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		SSS_MATERNITY_BENEFIT: Schema.Struct({}),
-		SSS_MPF_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SSS_MPF_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		SSS_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		SSS_SICKNESS_BENEFIT: Schema.Struct({}),
 		STATUTORY_ADJUSTMENT: Schema.Struct({}),
 		STATUTORY_REFUND: Schema.Struct({}),
@@ -2774,72 +1962,8 @@ export const ROW_PARAMS = {
 		UANG_PISAH: Schema.Struct({
 			separation_pay_causes: Schema.Array(Schema.String)
 		}),
-		UI_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		UI_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		UNEMPLOYMENT_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		UNEMPLOYMENT_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		UNIFORM_ALLOWANCE: Schema.Struct({}),
 		UNION_DUES: Schema.Struct({}),
-		UNION_DUES_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
-		UNION_DUES_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String,
-					period: Schema.optional(Schema.String)
-				})
-			)
-		}),
 		UNLAWFUL_TERMINATION_COMPENSATION: Schema.Struct({
 			months_of_wage: Schema.optional(Schema.Number),
 			multiple: Schema.optional(Schema.Number)
@@ -2849,30 +1973,33 @@ export const ROW_PARAMS = {
 			schedule: Schema.Array(
 				Schema.Struct({ amount: Schema.Number, up_to: Schema.Union([Schema.Null, Schema.Number]) })
 			),
-			upmk_causes: Schema.Array(Schema.String)
+			upmk_causes: Schema.Array(Schema.String),
+			cause_multiplier: Schema.optional(
+				Schema.Struct({
+					ACQUISITION: Schema.Number,
+					ACQUISITION_TERMS_CHANGE_REJECTED: Schema.Number,
+					BANKRUPTCY: Schema.Number,
+					CLOSURE_LOSS: Schema.Number,
+					CLOSURE_NO_LOSS: Schema.Number,
+					DEATH: Schema.Number,
+					DEBT_SUSPENSION_LOSS: Schema.Number,
+					DEBT_SUSPENSION_NO_LOSS: Schema.Number,
+					DETENTION_NO_LOSS: Schema.Number,
+					EFFICIENCY_ACTUAL_LOSS: Schema.Number,
+					EFFICIENCY_PREVENT_LOSS: Schema.Number,
+					EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT: Schema.Number,
+					FORCE_MAJEURE_CLOSURE: Schema.Number,
+					FORCE_MAJEURE_NO_CLOSURE: Schema.Number,
+					LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY: Schema.Number,
+					MERGER_CONSOLIDATION_SEPARATION: Schema.Number,
+					MERGER_EMPLOYER_UNWILLING: Schema.Number,
+					RETIREMENT: Schema.Number,
+					VIOLATION_AFTER_WARNINGS: Schema.Number
+				})
+			)
 		}),
 		WAGE_ADJUSTMENT: Schema.Struct({}),
 		WAGE_ARREARS_PENALTY: Schema.Struct({}),
-		WELFARE_FUND_ADJUSTMENT: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
-		WELFARE_FUND_REFUND: Schema.Struct({
-			accounts: Schema.Array(
-				Schema.Struct({
-					account: Schema.String,
-					code: Schema.String,
-					measure: Schema.String,
-					operation: Schema.String
-				})
-			)
-		}),
 		WORK_INJURY_DISABILITY_ALLOWANCE: Schema.Struct({}),
 		WORK_INJURY_DISABILITY_SUBSIDY: Schema.Struct({}),
 		ZAKAT: Schema.Struct({})
@@ -2911,12 +2038,14 @@ export const PARAM_KEYS = {
 		'half_day_hours_factor',
 		'holiday_premium',
 		'holiday_work_days',
+		'manual_monthly_ceiling',
 		'monthly_full_day',
 		'monthly_half_day',
 		'multiplier',
 		'night_from',
 		'night_to',
 		'non_workman_hourly_cap',
+		'nonmanual_monthly_ceiling',
 		'ordinary_bands',
 		'other_full_day',
 		'other_half_day',
@@ -3194,7 +2323,6 @@ export const PARAM_KEYS = {
 		'shanghai_scale_first',
 		'shanghai_scale_first_months',
 		'shanghai_scale_later',
-		'shanghai_scale_until',
 		'sick_leave_disqualification_days',
 		'solo_parent_days',
 		'state_owned_employer',

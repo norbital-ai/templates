@@ -29,8 +29,8 @@
 				"title": "劳动合同法 第十四条第二款第(三)项: 连续订立二次固定期限劳动合同, 劳动者提出或同意续订的, 应当订立无固定期限劳动合同."
 			}
 		],
-		"id": "ce965cd3-765f-5799-ab33-3edf45f3472b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"id": "7e9043b5-9961-51ec-9465-e85907e012ed",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"description": "Request to engage or renew a fixed-term contract, with its dates and business case."
 	},
 	{
@@ -77,8 +77,8 @@
 				"title": "劳动合同法 第四十六条第五项: 固定期限劳动合同期满终止, 除用人单位维持或提高约定条件续订而劳动者不同意续订外, 应支付经济补偿."
 			}
 		],
-		"id": "848ab4b1-95db-5221-afcb-29c7074f04f9",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"id": "f4e09f50-ee73-5ac5-a15e-fbcc450a87c0",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"description": "Refusal to renew a fixed-term contract, with its review dates and evidence."
 	},
 	{
@@ -406,8 +406,8 @@
 				"title": "财政部 税务总局公告2019年第35号 第二条: 居民个人境内外所得按境内工作天数占当期公历天数比例计算; 实际境外工作日期为分摊依据."
 			}
 		],
-		"id": "d0022265-54ad-5318-8c35-346513f7eaec",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"id": "7d427746-a7ee-5521-9832-ad8436f73142",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"description": "Record of work performed across a border."
 	},
 	{
@@ -808,8 +808,8 @@
 				"title": "财政部 税务总局公告2019年第35号 第二条第(二)项: 境外支付的工资、薪金及境外工作天数是居民个人境外所得分摊依据."
 			}
 		],
-		"id": "f2e567da-3b6b-50a6-8426-97664732b3db",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"id": "fa64341e-3a90-50ec-83c6-f1e21488f559",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"description": "Record of wages paid by another employer."
 	},
 	{
@@ -1143,8 +1143,8 @@
 				"title": "财政部 税务总局公告2019年第35号 第二条: 跨境服务期间按实际服务天数分摊所得; 服务国家与实际雇主为分摊事实."
 			}
 		],
-		"id": "d8877f13-188c-58bd-9d89-aeb04999b21c",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"id": "ad835b46-2782-5300-a166-ff883a4dac11",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"description": "Record of a benefit or service entitlement."
 	}
 ]

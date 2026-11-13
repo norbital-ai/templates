@@ -1,0 +1,98 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic salary (Lương cơ bản)",
+		"previous_id": null,
+		"id": "d9f0ea6d-1341-5053-bc5e-2d9fe831071f",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "c232218b-73fa-5b1e-9bf0-0cd8c6bedf16",
+		"previous_id": "d9f0ea6d-1341-5053-bc5e-2d9fe831071f",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "e9a57143-6335-5cfc-8f1a-ff988ff62945",
+		"previous_id": "c232218b-73fa-5b1e-9bf0-0cd8c6bedf16",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "MEAL_PAY",
+		"name": "Meal allowance (Tiền ăn giữa ca)",
+		"previous_id": "e9a57143-6335-5cfc-8f1a-ff988ff62945",
+		"id": "4ae99768-da81-5f03-94cf-018a03f7099c",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "WORK_EXPENSE_PAY",
+		"name": "Work expense allowance (Phụ cấp công tác)",
+		"previous_id": "4ae99768-da81-5f03-94cf-018a03f7099c",
+		"id": "6ee4539e-95fa-53a5-adeb-dae2f97c70bb",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "HOUSING_PAY",
+		"name": "Employer-paid housing (Tiền nhà đơn vị trả thay)",
+		"previous_id": "6ee4539e-95fa-53a5-adeb-dae2f97c70bb",
+		"id": "dfb95dab-d6d9-5a6b-b664-054e00e907ac",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "PENSION_PAY",
+		"name": "Employer pension and life insurance (Hưu trí bổ sung, nhân thọ)",
+		"previous_id": "dfb95dab-d6d9-5a6b-b664-054e00e907ac",
+		"id": "3f702b7b-70a4-580c-9a90-19e476612e11",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "PIT_EXEMPT_PAY",
+		"name": "Outside taxable income (Không tính vào thu nhập chịu thuế)",
+		"previous_id": "3f702b7b-70a4-580c-9a90-19e476612e11",
+		"id": "e07a090b-6ee1-5b05-ad20-35a70c4409f7",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages (Tiền lương thông thường)",
+		"previous_id": "e07a090b-6ee1-5b05-ad20-35a70c4409f7",
+		"id": "a8edc3c0-0d29-5121-9584-1d83e8e986c2",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Ordinary pay and bonus (Tiền lương và tiền thưởng)",
+		"previous_id": "a8edc3c0-0d29-5121-9584-1d83e8e986c2",
+		"id": "c3eefbf0-4246-508a-a88f-39f7fa4edeb6",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay (Thực lĩnh)",
+		"previous_id": "9068860c-f584-5b77-a247-c75cb5a50fc3",
+		"id": "b6ec90f1-08b8-5306-9399-fa601c05fe5d",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "c3eefbf0-4246-508a-a88f-39f7fa4edeb6",
+		"id": "9068860c-f584-5b77-a247-c75cb5a50fc3",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"balance_window": "YEAR"
+	}
+]

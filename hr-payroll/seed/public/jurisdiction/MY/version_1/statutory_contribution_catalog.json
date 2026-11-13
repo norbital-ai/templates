@@ -180,7 +180,7 @@
 		"id": "0ad4fc24-2923-5732-8ed4-1149341497e3",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"balance_window": "MONTH",
-		"description": "Employees Provident Fund contribution for a permanent resident."
+		"description": "Employees Provident Fund contribution for a permanent resident, or a non-citizen who elected before 1 August 1998, aged 60 to 74: employee 5.5%; employer 6.5% on wages up to RM5,000 and 6% above (EPF Act 1991 Third Schedule Part C)."
 	},
 	{
 		"code": "EPF_NON_CITIZEN",
@@ -410,7 +410,8 @@
 		"id": "d5f34dc3-95f7-5ede-af93-9567dc784373",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"balance_window": "MONTH",
-		"description": "Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5% from the employee and 1.75% from the employer. From age 60, when first insured at 55 or older, or on an invalidity pension, the employer alone pays about 1.25% for employment injury (Employees' Social Security Act 1969)."
+		"description": "Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5% from the employee and 1.75% from the employer. From age 60, when first insured at 55 or older, or on an invalidity pension, the employer alone pays about 1.25% for employment injury (Employees' Social Security Act 1969).",
+		"assessed": "PAID"
 	},
 	{
 		"code": "EIS",
@@ -503,7 +504,8 @@
 		"id": "f5ea8188-8437-5b0b-91ea-9179027f3242",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"balance_window": "MONTH",
-		"description": "Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution table: about 0.2% each from the employee and the employer. For citizens and permanent residents aged 18 to 59 (Employment Insurance System Act 2017)."
+		"description": "Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution table: about 0.2% each from the employee and the employer. For citizens and permanent residents aged 18 to 59 (Employment Insurance System Act 2017).",
+		"assessed": "PAID"
 	},
 	{
 		"code": "PCB",
@@ -560,7 +562,7 @@
 				"quote": "MTD = [(P - M) R + B - (Z + X)] / (n + 1), where P = [sum(Y - K) + (Y1 - K1) + (Y2 - K2) n + (Yt - Kt)] - [D + S + DU + SU + QC + (sum LP + LP1)]. The additional-remuneration method computes the same P with the current month's (Yt - Kt) and withholds the difference between the total tax for the year and X + the normal MTD for the month x (n + 1). Rounding: cut to sen, then up to the next 5 sen; below RM10 no deduction."
 			},
 			{
-				"title": "Encoded 2026-11-04: actual year-to-date and a bonus paid once",
+				"title": "actual year-to-date and a bonus paid once",
 				"quote": "sum(Y - K) and X come from this employee's ctx.balances for the tax year: ytd.FINAL_PAY less the year's exempt pay, and statutory_contribution for the EPF, SOCSO, EIS, SKBBK and PCB employee shares, never from a contract rate or a whole-year multiplication of the current month. Y1 is ORDINARY_WAGES less exempt pay, arrears, commission not paid monthly and awards, plus official travel above its limit. Yt is the bonus, arrears, commission not paid monthly, taxable awards and compensation, and final settlements, so one-off pay enters P once; Y2 repeats only Y1. K1 is the declared pcb_epf_normal_month when supplied, otherwise the employee EPF apportioned by EPF wages. In a bonus-only run Y1 is zero, so Y2 is zero and the next normal run catches up through X. Payroll zakat is the ZAKAT checkpoint: the month's nets off Step 1[D], earlier months' are in Z (E(5))."
 			}
 		],
@@ -694,6 +696,6 @@
 		"id": "58f40747-cf29-5cde-b2c5-3539d3732ce5",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"balance_window": "YEAR",
-		"description": "Human Resources Development Fund levy."
+		"description": "Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no bonus, commission or overtime): 1% for a compulsory employer, 0.5% for an optional one (Pembangunan Sumber Manusia Berhad Act 2001 s.14)."
 	}
 ]

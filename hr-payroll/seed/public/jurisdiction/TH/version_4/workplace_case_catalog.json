@@ -65,7 +65,7 @@
 				"quote": "An employee whose ordinary living is substantially affected may refuse the relocation in writing."
 			}
 		],
-		"description": "RELOCATION_EMPLOYEE_REFUSAL: Case with its declared events and workflow inputs."
+		"description": "An employee refuses a workplace relocation; opens the special-severance assessment (LPA s.120)."
 	},
 	{
 		"code": "RELOCATION_EMPLOYER_OBJECTION",
@@ -82,7 +82,7 @@
 				"quote": "A disputed refusal is petitioned to the Labour Welfare Committee within 30 days of the refusal."
 			}
 		],
-		"description": "RELOCATION_EMPLOYER_OBJECTION: Case with its declared events and workflow inputs."
+		"description": "The employer disputes an employee’s relocation refusal before the Labour Welfare Committee (LPA s.120)."
 	},
 	{
 		"code": "RELOCATION_BOARD_ORDER",
@@ -99,7 +99,7 @@
 				"quote": "The Labour Welfare Committee orders the employer to pay compensation or the employee to work at the new place; a court challenge is filed within 30 days."
 			}
 		],
-		"description": "RELOCATION_BOARD_ORDER: Case with its declared events and workflow inputs."
+		"description": "The Labour Welfare Committee’s order on a disputed relocation (LPA s.120/1)."
 	},
 	{
 		"code": "EQUIVALENT_WELFARE_FIRST_WITHHOLDING",
@@ -116,7 +116,7 @@
 				"quote": "The employer discloses the bank account holding the equivalent-welfare money and the employee and employer contributions."
 			}
 		],
-		"description": "EQUIVALENT_WELFARE_FIRST_WITHHOLDING: Case with its declared events and workflow inputs."
+		"description": "First withholding under an equivalent-welfare arrangement: the employer discloses the account (regulation B.E. 2567 cl.5)."
 	},
 	{
 		"code": "EQUIVALENT_WELFARE_INSPECTION_REQUEST",
@@ -133,7 +133,7 @@
 				"quote": "The employer produces the account and records for inspection by the competent official."
 			}
 		],
-		"description": "EQUIVALENT_WELFARE_INSPECTION_REQUEST: Case with its declared events and workflow inputs."
+		"description": "A competent official asks to inspect the equivalent-welfare account and records (regulation B.E. 2567 cl.6)."
 	},
 	{
 		"code": "EQUIVALENT_WELFARE_EMPLOYMENT_END",
@@ -150,7 +150,7 @@
 				"quote": "On the end of employment the employer returns the account and the exit certificate to the employee."
 			}
 		],
-		"description": "EQUIVALENT_WELFARE_EMPLOYMENT_END: Case with its declared events and workflow inputs."
+		"description": "Employment ends under an equivalent-welfare arrangement: return the account and exit certificate (regulation B.E. 2567 cl.7)."
 	},
 	{
 		"code": "EQUIVALENT_WELFARE_SETUP",
@@ -167,7 +167,7 @@
 				"quote": "The employer verifies the equivalent-welfare arrangement before relying on it instead of the Employee Welfare Fund."
 			}
 		],
-		"description": "EQUIVALENT_WELFARE_SETUP: Case with its declared events and workflow inputs."
+		"description": "The employer sets up an equivalent-welfare arrangement instead of the Employee Welfare Fund (regulation B.E. 2567 cl.2-4)."
 	},
 	{
 		"code": "EQUIVALENT_WELFARE_BENEFICIARY_REQUEST",
@@ -184,7 +184,7 @@
 				"quote": "The employer facilitates a beneficiary withdrawal from the equivalent-welfare account."
 			}
 		],
-		"description": "EQUIVALENT_WELFARE_BENEFICIARY_REQUEST: Case with its declared events and workflow inputs."
+		"description": "A beneficiary asks to withdraw from the equivalent-welfare account (regulation B.E. 2567 cl.8)."
 	},
 	{
 		"code": "SKILL_DEVELOPMENT_COURSE_COMPLETED",
@@ -201,7 +201,7 @@
 				"quote": "An application for approval of an employee upskilling or retraining course and its costs is filed within 60 days after completion and no later than 15 January of the following year."
 			}
 		],
-		"description": "SKILL_DEVELOPMENT_COURSE_COMPLETED: Case with its declared events and workflow inputs."
+		"description": "A completed training course whose approval and costs are claimed under the Skill Development Promotion Act."
 	},
 	{
 		"code": "DEDUCTION_LIMIT_CONSENT",
@@ -218,7 +218,7 @@
 				"quote": "A deduction above the statutory limit needs the employee's prior written consent, naming the deduction and its amount or limit."
 			}
 		],
-		"description": "DEDUCTION_LIMIT_CONSENT: Case with its declared events and workflow inputs."
+		"description": "An employee’s signed consent to deductions above the LPA s.76 limits, with its interval and codes."
 	},
 	{
 		"code": "SECURITY_DEPOSIT_RECEIVED",
@@ -235,6 +235,6 @@
 				"quote": "Security money may be taken only for work, in the amounts and by the keeping method the Minister's notification allows."
 			}
 		],
-		"description": "SECURITY_DEPOSIT_RECEIVED: Case with its declared events and workflow inputs."
+		"description": "A security deposit received for a post allowed to take one; returned with interest within 7 days of exit (LPA s.10)."
 	}
 ]

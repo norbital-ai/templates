@@ -4,22 +4,26 @@
 	 * remove. The catalog row owns the allowance; the contract states only how
 	 * much.
 	 */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Button,
 		Combobox,
 		Input,
 		type FieldEditor,
 		type Value,
-		valueObject
+		value_object
 	} from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { idOf } from '../../payroll_engine/reads.js';
 
-	let { field, versionId }: { field: FieldEditor; versionId: string | undefined } = $props();
+	let {
+		ctx,
+		field,
+		versionId
+	}: { ctx: PageContext; field: FieldEditor; versionId: string | undefined } = $props();
 	const catalog = $derived(
 		typeof versionId === 'string'
-			? bolt.query({
+			? ctx.query({
 					allowance_catalog: {
 						where: { settings_id: { eq: idOf('jurisdiction_settings', versionId) } },
 						fields: ['code', 'lookup', 'conversion'],
@@ -33,7 +37,7 @@
 		(catalog?.current?.allowance_catalog.rows ?? [])
 			.filter((row) => /allowances\.[A-Z0-9_]+/.test(String(row.conversion ?? '')))
 			.map((row) => {
-				const lookup = valueObject(row.lookup) ? row.lookup : {};
+				const lookup = value_object(row.lookup) ? row.lookup : {};
 				return {
 					value: typeof lookup.allowance === 'string' ? lookup.allowance : row.code,
 					label: row.code,
@@ -42,22 +46,22 @@
 			})
 	);
 	const entries = $derived(
-		Object.entries(valueObject(field.value) ? field.value : {}) as [string, Value][]
+		Object.entries(value_object(field.value) ? field.value : {}) as [string, Value][]
 	);
 	const amountOf = (value: Value): number =>
-		valueObject(value) && typeof value.amount === 'number' ? value.amount : 0;
+		value_object(value) && typeof value.amount === 'number' ? value.amount : 0;
 	const record = (rows: readonly (readonly [string, Value])[]) =>
 		Object.fromEntries(rows) as Record<string, Value>;
 	const set = (code: string, next: Value) =>
-		field.onChange(record(entries.map(([key, value]) => [key, key === code ? next : value])));
+		field.on_change(record(entries.map(([key, value]) => [key, key === code ? next : value])));
 	const rename = (from: string, to: string) => {
 		if (to === from || entries.some(([key]) => key === to)) return;
-		field.onChange(record(entries.map(([key, value]) => [key === from ? to : key, value])));
+		field.on_change(record(entries.map(([key, value]) => [key === from ? to : key, value])));
 	};
-	const remove = (code: string) => field.onChange(record(entries.filter(([key]) => key !== code)));
+	const remove = (code: string) => field.on_change(record(entries.filter(([key]) => key !== code)));
 	const add = (code: string | null) => {
 		if (code === null) return;
-		field.onChange(record([...entries, [code, { amount: 0 }]]));
+		field.on_change(record([...entries, [code, { amount: 0 }]]));
 	};
 	const unused = $derived(
 		choices.filter((choice) => !entries.some(([key]) => key === choice.value))
@@ -73,7 +77,7 @@
 				value={code}
 				options={choices}
 				display={code}
-				onChange={(next) => next !== null && rename(code, next)}
+				on_change={(next) => next !== null && rename(code, next)}
 			/>
 			<Input
 				type="number"
@@ -101,7 +105,7 @@
 			options={unused}
 			placeholder="Add allowance"
 			searchable
-			onChange={add}
+			on_change={add}
 		/>
 	{/if}
 </Stack>

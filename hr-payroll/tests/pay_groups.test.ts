@@ -5,11 +5,20 @@ import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { cycleOf, payDateOf } from '../src/lib/payroll_engine/pay_cycle.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, PAY_GROUP, catalogRow, ledgerRows, pack, uuid, workspace } from './kit.ts';
+import {
+	ENTITY,
+	PAY_GROUP,
+	catalogRow,
+	ledgerRows,
+	pack,
+	uuid,
+	workspace,
+	storedQuery
+} from './kit.ts';
 
 const NOW = '2026-03-20T02:00:00.000Z';
 const TERMS = {
@@ -101,27 +110,31 @@ const withSister = (): Seed => {
 const run = (t: Kit, group: Id<'pay_group'> | null, period: string) =>
 	t
 		.as(t.admin)
-		.act('payroll_run.create', [
-			{
-				entity_id: ENTITY,
-				...(group === null ? {} : { pay_group_id: group }),
-				period,
-				kind: 'ON_CYCLE'
-			}
-		])
-		.pipe(Effect.andThen(t.runDue()));
-const runs = (t: Kit) =>
-	t
-		.storedQuery({ payroll_run: { limit: 100 } })
 		.pipe(
-			Effect.map((got) =>
-				[...got.payroll_run.rows].sort((a, b) =>
-					`${a.period} ${a.pay_group_id}`.localeCompare(`${b.period} ${b.pay_group_id}`)
-				)
+			Effect.flatMap((caller) =>
+				caller.act({
+					'payroll_run.create': [
+						{
+							entity_id: ENTITY,
+							...(group === null ? {} : { pay_group_id: group }),
+							period,
+							kind: 'ON_CYCLE'
+						}
+					]
+				})
 			)
-		);
+		)
+		.pipe(Effect.andThen(t.run_due()));
+const runs = (t: Kit) =>
+	storedQuery(t, { payroll_run: { limit: 100 } }).pipe(
+		Effect.map((got) =>
+			[...got.payroll_run.rows].sort((a, b) =>
+				`${a.period} ${a.pay_group_id}`.localeCompare(`${b.period} ${b.pay_group_id}`)
+			)
+		)
+	);
 const slips = (t: Kit) =>
-	t.storedQuery({ payslip: { limit: 100 } }).pipe(Effect.map((got) => got.payslip.rows));
+	storedQuery(t, { payslip: { limit: 100 } }).pipe(Effect.map((got) => got.payslip.rows));
 /** The contracts a group's run of a period paid. */
 const paidBy = (t: Kit, group: Id<'pay_group'>, period: string) =>
 	Effect.gen(function* () {
@@ -132,20 +145,18 @@ const paidBy = (t: Kit, group: Id<'pay_group'>, period: string) =>
 			.map((slip) => slip.employment_id)
 			.sort();
 	});
-// each of these workspaces has run once when a contract is refused under it: the refusal names that run
-const CAPTURED = /Payroll run 1 already captured this period/;
+// each of these workspaces has run once, unpaid, when a contract is refused under it: the refusal names that run
+const HELD = /Run 1 holds this person and is not paid yet/;
 const failures = (t: Kit) =>
-	t
-		.storedQuery({ obligation: { limit: 500 } })
-		.pipe(
-			Effect.map(({ obligation }) =>
-				obligation.rows.map((row) => row.title).filter((title) => /failed/i.test(title))
-			)
-		);
+	storedQuery(t, { obligation: { limit: 500 } }).pipe(
+		Effect.map(({ obligation }) =>
+			obligation.rows.map((row) => row.title).filter((title) => /failed/i.test(title))
+		)
+	);
 const sealed = (t: Kit) =>
-	t
-		.storedQuery({ employee_contract: { where: { status: { eq: 'SEALED' } }, limit: 100 } })
-		.pipe(Effect.map(({ employee_contract }) => employee_contract.rows));
+	storedQuery(t, { employee_contract: { where: { status: { eq: 'SEALED' } }, limit: 100 } }).pipe(
+		Effect.map(({ employee_contract }) => employee_contract.rows)
+	);
 type Version = Effect.Success<ReturnType<typeof sealed>>[number];
 /** A draft successor of a sealed version from `from`, in a named group, one of another company or none. */
 const draft = (
@@ -155,37 +166,53 @@ const draft = (
 	group: Id<'pay_group'> | null,
 	entity: Id<'entity'> = ENTITY
 ) =>
-	t.as(t.admin).act('employee_contract.create', [
-		{
-			employee_id: held.employee_id,
-			entity_id: entity,
-			...(group === null ? {} : { pay_group_id: group }),
-			engagement: held.engagement,
-			employee_number: held.employee_number,
-			terms: held.terms,
-			payroll: held.payroll,
-			bank: held.bank,
-			family: held.family,
-			employee_extension_data: held.employee_extension_data,
-			service_started_on: held.service_started_on,
-			effective_range: { from: PlainDate(from), to: null },
-			status: 'DRAFT',
-			reason: 'Moved to another payroll'
-		}
-	]);
+	t.as(t.admin).pipe(
+		Effect.flatMap((caller) =>
+			caller.act({
+				'employee_contract.create': [
+					{
+						employee_id: held.employee_id,
+						entity_id: entity,
+						...(group === null ? {} : { pay_group_id: group }),
+						engagement: held.engagement,
+						employee_number: held.employee_number,
+						terms: held.terms,
+						payroll: held.payroll,
+						bank: held.bank,
+						family: held.family,
+						employee_extension_data: held.employee_extension_data,
+						service_started_on: held.service_started_on,
+						effective_range: { from: PlainDate(from), to: null },
+						status: 'DRAFT',
+						reason: 'Moved to another payroll'
+					}
+				]
+			})
+		)
+	);
 const drafts = (t: Kit) =>
-	t
-		.storedQuery({ employee_contract: { where: { status: { eq: 'DRAFT' } }, limit: 100 } })
-		.pipe(Effect.map(({ employee_contract }) => employee_contract.rows));
+	storedQuery(t, { employee_contract: { where: { status: { eq: 'DRAFT' } }, limit: 100 } }).pipe(
+		Effect.map(({ employee_contract }) => employee_contract.rows)
+	);
 const end = (t: Kit, held: Version, to: string) =>
-	t.as(t.admin).act('employee_contract.update', [
-		{
-			target: held.id,
-			set: { effective_range: { from: held.effective_range.from, to: PlainDate(to) } }
-		}
-	]);
+	t.as(t.admin).pipe(
+		Effect.flatMap((caller) =>
+			caller.act({
+				'employee_contract.update': [
+					{
+						target: held,
+						set: { effective_range: { from: held.effective_range.from, to: PlainDate(to) } }
+					}
+				]
+			})
+		)
+	);
 const seal = (t: Kit, id: Id<'employee_contract'>) =>
-	t.as(t.admin).act('employee_contract.update', [{ target: id, set: { status: 'SEALED' } }]);
+	Effect.all([t.as(t.admin), current(t, 'employee_contract', id)]).pipe(
+		Effect.flatMap(([caller, target]) =>
+			caller.act({ 'employee_contract.update': [{ target, set: { status: 'SEALED' } }] })
+		)
+	);
 const firstOf = (t: Kit) =>
 	sealed(t).pipe(
 		Effect.map((rows) => {
@@ -195,6 +222,22 @@ const firstOf = (t: Kit) =>
 		})
 	);
 
+/** A record as a write targets it: its id at its current revision. */
+const current = <C extends string>(t: Kit, model: C, id: Id<C>) =>
+	t.db
+		.one(Schema.Struct({ revision: Schema.Int }), {
+			text: `SELECT revision FROM ${model} WHERE id = $1`,
+			params: [id]
+		})
+		.pipe(
+			Effect.map((found) => {
+				assert.ok(Option.isSome(found), `No ${model} ${id}`);
+				return { id, revision: found.value.revision };
+			})
+		);
+/** The catalogue key a refused write names; another failure answers its tag. */
+const keyOf = (failure: { readonly _tag: string; readonly key?: string | undefined }) =>
+	failure.key ?? failure._tag;
 describe('a run pays one pay group', () => {
 	it.live('only the contracts naming it, and the other group’s same period still runs', () =>
 		Effect.gen(function* () {
@@ -213,9 +256,9 @@ describe('a run pays one pay group', () => {
 	it.live('with two groups and none named it is refused, and naming one is the way out', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			assert.match(
-				String(yield* Effect.flip(run(t, null, '2026-02'))),
-				/Choose the pay group this run pays/
+			assert.equal(
+				keyOf(yield* Effect.flip(run(t, null, '2026-02'))),
+				'errors.payroll_run_choose_group'
 			);
 			assert.equal((yield* runs(t)).length, 0);
 			yield* run(t, A, '2026-02');
@@ -226,9 +269,9 @@ describe('a run pays one pay group', () => {
 	it.live('a group of another company is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			assert.match(
-				String(yield* Effect.flip(run(t, SISTER_GROUP, '2026-02'))),
-				/belongs to another company/
+			assert.equal(
+				keyOf(yield* Effect.flip(run(t, SISTER_GROUP, '2026-02'))),
+				'errors.payroll_run_group_other_company'
 			);
 			assert.equal((yield* runs(t)).length, 0);
 		}).pipe(Effect.provide(workspace({ seed: withSister(), now: NOW })))
@@ -318,19 +361,25 @@ describe('two schedules in one company', () => {
 			const t = yield* TestWorkspace;
 			yield* run(t, A, '2026-02');
 			const rescheduled = yield* Effect.result(
-				t.as(t.admin).act('pay_group.update', [
-					{
-						target: A,
-						set: {
-							payment_schedule: {
-								...SEMI_MONTHLY,
-								frequency: 'SEMI_MONTHLY',
-								business_day: 'PREVIOUS',
-								short_month: 'LAST_DAY'
-							}
-						}
-					}
-				])
+				Effect.all([t.as(t.admin), current(t, 'pay_group', A)]).pipe(
+					Effect.flatMap(([caller, target]) =>
+						caller.act({
+							'pay_group.update': [
+								{
+									target,
+									set: {
+										payment_schedule: {
+											...SEMI_MONTHLY,
+											frequency: 'SEMI_MONTHLY',
+											business_day: 'PREVIOUS',
+											short_month: 'LAST_DAY'
+										}
+									}
+								}
+							]
+						})
+					)
+				)
 			);
 			const again = yield* Effect.result(run(t, A, '2026-02-1'));
 			const covering = (yield* runs(t)).filter(
@@ -344,6 +393,62 @@ describe('two schedules in one company', () => {
 			assert.equal((yield* slips(t)).length, 1);
 		}).pipe(Effect.provide(workspace({ seed: twoGroups(), now: NOW })))
 	);
+
+	it.live('a group with a paid run keeps its schedule; its name and pay day still change', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* run(t, A, '2026-02');
+			const [ran] = yield* runs(t);
+			assert.ok(ran !== undefined);
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.update': [{ target: ran, set: { state: 'PAID' } }]
+			});
+			yield* t.run_due();
+			const refused = yield* Effect.flip(
+				Effect.all([t.as(t.admin), current(t, 'pay_group', A)]).pipe(
+					Effect.flatMap(([caller, target]) =>
+						caller.act({
+							'pay_group.update': [
+								{
+									target,
+									set: {
+										payment_schedule: {
+											...SEMI_MONTHLY,
+											frequency: 'SEMI_MONTHLY',
+											business_day: 'PREVIOUS',
+											short_month: 'LAST_DAY'
+										}
+									}
+								}
+							]
+						})
+					)
+				)
+			);
+			assert.equal(keyOf(refused), 'errors.pay_group_paid_schedule');
+			yield* (yield* t.as(t.admin)).act({
+				'pay_group.update': [
+					{
+						target: yield* current(t, 'pay_group', A),
+						set: {
+							name: 'Monthly staff',
+							payment_schedule: {
+								...MONTHLY,
+								frequency: 'MONTHLY',
+								business_day: 'PREVIOUS',
+								short_month: 'LAST_DAY',
+								pay_days: [28]
+							}
+						}
+					}
+				]
+			});
+			const { pay_group } = yield* storedQuery(t, {
+				pay_group: { where: { id: { eq: A } }, limit: 1 }
+			});
+			assert.equal(pay_group.rows[0]?.name, 'Monthly staff');
+		}).pipe(Effect.provide(workspace({ seed: twoGroups(), now: NOW })))
+	);
 });
 
 describe('a contract and its pay group', () => {
@@ -352,7 +457,7 @@ describe('a contract and its pay group', () => {
 			const t = yield* TestWorkspace;
 			const held = yield* firstOf(t);
 			const refused = yield* Effect.flip(draft(t, held, '2026-04-01', SISTER_GROUP));
-			assert.match(String(refused), /belongs to another company/);
+			assert.equal(keyOf(refused), 'errors.employee_contract_pay_group_other_company');
 			assert.deepEqual(yield* drafts(t), []);
 		}).pipe(Effect.provide(workspace({ seed: withSister(), now: NOW })))
 	);
@@ -366,21 +471,21 @@ describe('a contract and its pay group', () => {
 			assert.ok(waiting !== undefined);
 			assert.equal(waiting.pay_group_id, null);
 			yield* end(t, held, '2026-03-31');
-			assert.match(
-				String(yield* Effect.flip(seal(t, waiting.id))),
-				/Choose the pay group this person is paid in/
+			assert.equal(
+				keyOf(yield* Effect.flip(seal(t, waiting.id))),
+				'errors.employee_contract_choose_pay_group'
 			);
 			// the way out the refusal names
-			yield* t
-				.as(t.admin)
-				.act('employee_contract.update', [{ target: waiting.id, set: { pay_group_id: B } }]);
+			yield* (yield* t.as(t.admin)).act({
+				'employee_contract.update': [{ target: waiting, set: { pay_group_id: B } }]
+			});
 			yield* seal(t, waiting.id);
 			const moved = (yield* sealed(t)).find((row) => row.id === waiting.id);
 			assert.equal(moved?.pay_group_id, B);
 		}).pipe(Effect.provide(workspace({ seed: twoGroups(), now: NOW })))
 	);
 
-	it.live('the capture lock is the group’s: A’s run holds A’s contracts, not B’s', () =>
+	it.live('an unpaid run holds its own people: A’s run holds A’s contracts, not B’s', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t, A, '2026-02');
@@ -388,11 +493,9 @@ describe('a contract and its pay group', () => {
 			const first = versions.find((row) => row.id === FIRST);
 			const second = versions.find((row) => row.id === SECOND);
 			assert.ok(first !== undefined && second !== undefined);
-			assert.match(String(yield* Effect.flip(end(t, first, '2026-02-13'))), CAPTURED);
-			assert.match(String(yield* Effect.flip(draft(t, first, '2026-02-01', A))), CAPTURED);
-			// B has not run February: a new version of its person may still start inside it
-			yield* draft(t, second, '2026-02-01', B);
-			assert.equal((yield* drafts(t)).length, 1);
+			assert.match(String(yield* Effect.flip(end(t, first, '2026-02-13'))), HELD);
+			// B has not run February: its person's version may still end inside it
+			yield* end(t, second, '2026-02-13');
 			yield* run(t, B, '2026-02');
 			assert.deepEqual(yield* paidBy(t, B, '2026-02'), [SECOND]);
 		}).pipe(Effect.provide(workspace({ seed: twoGroups(), now: NOW })))
@@ -404,24 +507,29 @@ describe('a contract and its pay group', () => {
 			const t = yield* TestWorkspace;
 			yield* run(t, A, '2026-02');
 			const held = yield* firstOf(t);
-			// B has run nothing, so the draft itself is allowed; the version A's run paid cannot end under it
+			// a draft reaches nothing; the version A's unpaid run priced cannot end under it
 			yield* draft(t, held, '2026-02-01', B);
 			const [moving] = yield* drafts(t);
 			assert.ok(moving !== undefined);
-			assert.match(String(yield* Effect.flip(end(t, held, '2026-01-31'))), CAPTURED);
-			assert.match(String(yield* Effect.flip(seal(t, moving.id))), /overlaps another record/);
+			assert.match(String(yield* Effect.flip(end(t, held, '2026-01-31'))), HELD);
+			assert.match(
+				String(yield* Effect.flip(seal(t, moving.id))),
+				/overlaps another record|holds this person/
+			);
 			yield* run(t, B, '2026-02');
 			assert.deepEqual(yield* paidBy(t, B, '2026-02'), [SECOND]);
 			// the way out: the move starts the first month neither payroll has paid them
-			yield* t.as(t.admin).act('employee_contract.update', [
-				{
-					target: moving.id,
-					set: { effective_range: { from: PlainDate('2026-03-01'), to: null } }
-				}
-			]);
+			yield* (yield* t.as(t.admin)).act({
+				'employee_contract.update': [
+					{
+						target: moving,
+						set: { effective_range: { from: PlainDate('2026-03-01'), to: null } }
+					}
+				]
+			});
 			yield* end(t, held, '2026-02-28');
 			yield* seal(t, moving.id);
-			yield* t.runDue();
+			yield* t.run_due();
 			yield* run(t, B, '2026-03');
 			assert.deepEqual(yield* paidBy(t, B, '2026-03'), [SECOND, moving.id].sort());
 			const periodOf = new Map((yield* runs(t)).map((row) => [row.id, row.period]));
@@ -432,38 +540,29 @@ describe('a contract and its pay group', () => {
 			assert.deepEqual(theirs, ['2026-02', '2026-03']);
 		}).pipe(Effect.provide(workspace({ seed: twoGroups(), now: NOW })))
 	);
-
-	it.live(
-		'cannot join a group for a month that group already ran, and their own group pays it',
-		() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* run(t, B, '2026-02');
-				const held = yield* firstOf(t);
-				assert.match(String(yield* Effect.flip(draft(t, held, '2026-02-01', B))), CAPTURED);
-				assert.deepEqual(yield* drafts(t), []);
-				yield* run(t, A, '2026-02');
-				assert.deepEqual(yield* paidBy(t, A, '2026-02'), [FIRST]);
-			}).pipe(Effect.provide(workspace({ seed: twoGroups(), now: NOW })))
-	);
 });
 
 describe('an off-cycle run and the pay groups', () => {
 	const seed = twoGroups();
 	const BONUS = idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', 'BONUS'));
 	const offCycle = (t: Kit, group: Id<'pay_group'>, entry: Id<'adhoc_catalog_entry'>) =>
-		t
-			.as(t.admin)
-			.act('payroll_run.create', [
-				{
-					entity_id: ENTITY,
-					pay_group_id: group,
-					period: '2026-02',
-					kind: 'OFF_CYCLE',
-					attaches: { adhoc: [entry] }
-				}
-			])
-			.pipe(Effect.andThen(t.runDue()));
+		Effect.all([t.as(t.admin), current(t, 'adhoc_catalog_entry', entry)])
+			.pipe(
+				Effect.flatMap(([caller, adhoc]) =>
+					caller.act({
+						'payroll_run.create': [
+							{
+								entity_id: ENTITY,
+								pay_group_id: group,
+								period: '2026-02',
+								kind: 'OFF_CYCLE',
+								adhoc: [adhoc]
+							}
+						]
+					})
+				)
+			)
+			.pipe(Effect.andThen(t.run_due()));
 	const bonuses = (t: Kit) =>
 		slips(t).pipe(
 			Effect.map((rows) =>
@@ -481,22 +580,24 @@ describe('an off-cycle run and the pay groups', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
-					{
-						entity_id: ENTITY,
-						employment_id: SECOND,
-						catalog_id: BONUS,
-						description: 'Bonus',
-						quantity: 500,
-						incurred_on: PlainDate('2026-02-10')
-					}
-				]);
-				const [entry] = (yield* t.storedQuery({ adhoc_catalog_entry: { limit: 1 } }))
+				yield* (yield* t.as(t.admin)).act({
+					'adhoc_catalog_entry.create': [
+						{
+							entity_id: ENTITY,
+							employment_id: SECOND,
+							catalog_id: BONUS,
+							description: 'Bonus',
+							quantity: 500,
+							incurred_on: PlainDate('2026-02-10')
+						}
+					]
+				});
+				const [entry] = (yield* storedQuery(t, { adhoc_catalog_entry: { limit: 1 } }))
 					.adhoc_catalog_entry.rows;
 				assert.ok(entry !== undefined);
 				const refused = yield* Effect.flip(offCycle(t, A, entry.id));
 				assert.equal((yield* runs(t)).length, 0);
-				const [waiting] = (yield* t.storedQuery({ adhoc_catalog_entry: { limit: 1 } }))
+				const [waiting] = (yield* storedQuery(t, { adhoc_catalog_entry: { limit: 1 } }))
 					.adhoc_catalog_entry.rows;
 				assert.equal(waiting?.payroll_run_id, null);
 				// the way out: the run of the group that pays them

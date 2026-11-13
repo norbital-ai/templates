@@ -1,10 +1,10 @@
 // The ledger checked from outside its service: a balance is the sum of its ledger rows (H1), what a ledger source still
-// holds has its record (H3), an entry a run sealed has that run's payslip (H6), an open exit task and an unpaid derived
-// entry name an exit that stands (H9, H10), and nothing entitled or left is below zero (W1, a watch). Each is broken by a seed no act could have written; the check finds exactly that and changes
+// holds has its record (H3), an entry a run sealed has that run's payslip (H6), an open exit task names an exit that
+// stands (H9), and nothing entitled or left is below zero (W1, a watch). Each is broken by a seed no act could have written; the check finds exactly that and changes
 // nothing. A manual deduction stops at what is left, and the database refuses a ledger row that names no source.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Cause, Effect, Exit } from 'effect';
 import { verify } from '../src/lib/integrity.ts';
@@ -23,7 +23,9 @@ import {
 	syncAll,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	storedQuery,
+	storedReader
 } from './kit.ts';
 
 // inside one version of the law the template holds (8 July to 30 November 2026)
@@ -65,11 +67,11 @@ const ledgerRow = (id: number, row: Seed[string][number]) => ({
 	...row
 });
 const found = (t: Kit) =>
-	verify(t.storedQuery, TODAY).pipe(
+	verify(storedReader(t), TODAY).pipe(
 		Effect.map((rows) => rows.map((row) => [row.invariant, row.subject]))
 	);
 const tasks = (t: Kit) =>
-	t.storedQuery({ obligation: { limit: 1000 } }).pipe(
+	storedQuery(t, { obligation: { limit: 1000 } }).pipe(
 		Effect.map(({ obligation }) =>
 			obligation.rows
 				.filter((row) => row.occurrence_key.startsWith('integrity:'))
@@ -77,7 +79,11 @@ const tasks = (t: Kit) =>
 				.toSorted((left, right) => left.key.localeCompare(right.key))
 		)
 	);
-const check = (t: Kit) => t.as(t.admin).start('ledger', {}).pipe(Effect.andThen(t.runDue()));
+const check = (t: Kit) =>
+	t.as(t.admin).pipe(
+		Effect.andThen((admin) => admin.run('ledger', {}, JobResult)),
+		Effect.andThen(t.run_due())
+	);
 const catalog = <M extends 'leave_catalog' | 'claim_catalog' | 'adhoc_catalog'>(
 	model: M,
 	code: string
@@ -90,19 +96,25 @@ const entry = (quantity: number, on: string) => ({
 });
 /** A manual adjustment as the profile sends it: signed days. */
 const adjust = (t: Kit, code: string, days: number, on: string) =>
-	t.as(t.member(['hr_controller'])).act('ledger_entry.create', [
-		{
-			balance_id: idOf('employee_balance', BALANCE),
-			operation: days < 0 ? 'DEDUCT' : 'ADD',
-			account: 'leave',
-			code,
-			measure: 'entitled',
-			amount: Math.abs(days),
-			unit: 'DAY',
-			effective_on: PlainDate(on),
-			note: 'keyed by hand'
-		}
-	]);
+	t.as(t.member(['hr_controller'])).pipe(
+		Effect.andThen((caller) =>
+			caller.act({
+				'ledger_entry.create': [
+					{
+						balance_id: idOf('employee_balance', BALANCE),
+						operation: days < 0 ? 'DEDUCT' : 'ADD',
+						account: 'leave',
+						code,
+						measure: 'entitled',
+						amount: Math.abs(days),
+						unit: 'DAY',
+						effective_on: PlainDate(on),
+						note: 'keyed by hand'
+					}
+				]
+			})
+		)
+	);
 
 const H1 = holding({ leave: { ANNUAL_LEAVE: { [YEAR]: { used: 2 } } } });
 const H1_SUBJECT = `${BALANCE}/leave/ANNUAL_LEAVE/${YEAR}/used`;
@@ -111,48 +123,56 @@ describe('a workspace worked through its real acts', () => {
 	it.live('has no finding, and its check raises nothing', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const admin = t.as(t.admin);
+			const admin = yield* t.as(t.admin);
 			yield* syncAll(t);
-			yield* admin.act('leave_catalog_entry.create', [
-				leaveCreate({
-					entity_id: ENTITY,
-					employment_id: CONTRACT,
-					catalog_id: catalog('leave_catalog', 'ANNUAL_LEAVE'),
-					days: wholeDays('2026-08-11')
-				})
-			]);
-			yield* admin.act('claim_catalog_entry.create', [
-				{ ...entry(50, '2026-08-10'), catalog_id: catalog('claim_catalog', 'MEDICAL_CLAIM') }
-			]);
-			yield* admin.act('adhoc_catalog_entry.create', [
-				{
-					...entry(500, '2026-08-10'),
-					catalog_id: catalog('adhoc_catalog', 'BONUS'),
-					description: 'BONUS'
-				}
-			]);
-			yield* t.runDue();
+			yield* admin.act({
+				'leave_catalog_entry.create': [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: catalog('leave_catalog', 'ANNUAL_LEAVE'),
+						days: wholeDays('2026-08-11')
+					})
+				]
+			});
+			yield* admin.act({
+				'claim_catalog_entry.create': [
+					{ ...entry(50, '2026-08-10'), catalog_id: catalog('claim_catalog', 'MEDICAL_CLAIM') }
+				]
+			});
+			yield* admin.act({
+				'adhoc_catalog_entry.create': [
+					{
+						...entry(500, '2026-08-10'),
+						catalog_id: catalog('adhoc_catalog', 'BONUS'),
+						description: 'BONUS'
+					}
+				]
+			});
+			yield* t.run_due();
 			yield* adjust(t, 'ANNUAL_LEAVE', 1, '2026-08-18');
 			// a claim keyed and taken back leaves its source at nothing
-			yield* admin.act('claim_catalog_entry.create', [
-				{ ...entry(20, '2026-09-10'), catalog_id: catalog('claim_catalog', 'MEDICAL_CLAIM') }
-			]);
-			const { claim_catalog_entry: claims } = yield* t.storedQuery({
+			yield* admin.act({
+				'claim_catalog_entry.create': [
+					{ ...entry(20, '2026-09-10'), catalog_id: catalog('claim_catalog', 'MEDICAL_CLAIM') }
+				]
+			});
+			const { claim_catalog_entry: claims } = yield* storedQuery(t, {
 				claim_catalog_entry: { limit: 10 }
 			});
 			const later = claims.rows.find((row) => String(row.incurred_on) === '2026-09-10');
 			assert.ok(later !== undefined);
-			yield* admin.act('claim_catalog_entry.delete', [{ target: later.id }]);
-			yield* admin.act('payroll_run.create', [
-				{ entity_id: ENTITY, period: '2026-08', kind: 'ON_CYCLE' }
-			]);
-			yield* t.runDue();
-			const { payroll_run: runs } = yield* t.storedQuery({ payroll_run: { limit: 1 } });
+			yield* admin.act({ 'claim_catalog_entry.delete': [{ target: later }] });
+			yield* admin.act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-08', kind: 'ON_CYCLE' }]
+			});
+			yield* t.run_due();
+			const { payroll_run: runs } = yield* storedQuery(t, { payroll_run: { limit: 1 } });
 			const run = runs.rows[0];
 			assert.ok(run !== undefined);
 			// paying a run starts the whole-workspace ledger pass, which ends with the check
-			yield* admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
-			assert.deepEqual((yield* t.runDue()).failed, []);
+			yield* admin.act({ 'payroll_run.update': [{ target: run, set: { state: 'PAID' } }] });
+			assert.deepEqual((yield* t.run_due()).failed, []);
 			const sources = new Set(
 				(yield* ledgerRows(t)).map((row) => String(row.source).split(':')[0])
 			);
@@ -165,7 +185,7 @@ describe('a workspace worked through its real acts', () => {
 			])
 				assert.ok(sources.has(kind), `nothing posted by ${kind}`);
 			assert.deepEqual(flat(yield* accountsIn(t)), yield* projection(t));
-			assert.deepEqual(yield* verify(t.storedQuery, TODAY), []);
+			assert.deepEqual(yield* verify(storedReader(t), TODAY), []);
 			yield* check(t);
 			assert.deepEqual(yield* tasks(t), []);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
@@ -255,7 +275,7 @@ describe('a broken invariant yields exactly its finding', () => {
 			assert.deepEqual(yield* found(t), [['H6', `claim_catalog_entry:${uuid(721)}`]]);
 		}).pipe(Effect.provide(workspace({ seed: sealed, now: NOW })));
 	});
-	// the exit dependants routine keeps these two; here it never ran, and each record has a twin whose exit stands
+	// the exit dependants routine keeps this one; here it never ran, and the task has a twin whose exit stands
 	const LAST = '2026-10-31';
 	const MOVED = '2026-09-30';
 	const exited = (more: Seed): Seed =>
@@ -285,36 +305,6 @@ describe('a broken invariant yields exactly its finding', () => {
 		}).pipe(
 			Effect.provide(
 				workspace({ seed: exited({ obligation: [task(740, MOVED), task(741, LAST)] }), now: NOW })
-			)
-		);
-	});
-	it.live('H10: an approved cash-out in no run whose exit moved to another last day', () => {
-		const cashOut = (id: number, day: string) => ({
-			id: uuid(id),
-			entity_id: ENTITY,
-			employment_id: uuid(6),
-			catalog_id: catalogRow(seed, 'leave_catalog', IN_LIEU),
-			encashment: true,
-			occurrence_key: `exit:${uuid(6)}:${day}`,
-			payroll_run_id: null
-		});
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			assert.deepEqual(yield* found(t), [['H10', `leave_catalog_entry:${uuid(750)}`]]);
-		}).pipe(
-			Effect.provide(
-				workspace({
-					seed: exited({
-						leave_catalog_entry: [cashOut(750, MOVED), cashOut(751, LAST)],
-						leave_catalog_entry_day: [750, 751].map((entry, index) => ({
-							id: uuid(760 + index),
-							leave_entry_id: uuid(entry),
-							incurred_on: LAST,
-							part: 'AM'
-						}))
-					}),
-					now: NOW
-				})
 			)
 		);
 	});
@@ -364,12 +354,16 @@ describe('the integrity check', () => {
 				assert.deepEqual(yield* accountsIn(t), before.balance);
 				assert.deepEqual(yield* found(t), [['H1', H1_SUBJECT]]);
 				// closed without a repair, the finding is raised again under its date, once
-				yield* t
-					.as(t.admin)
-					.act('obligation.update', [
-						{ target: task.id, set: { state: 'WAIVED', waiver_reason: 'Looked at, not repaired' } }
-					]);
-				yield* t.runDue();
+				const [open] = (yield* storedQuery(t, {
+					obligation: { where: { id: { eq: task.id } }, limit: 1 }
+				})).obligation.rows;
+				assert.ok(open !== undefined);
+				yield* (yield* t.as(t.admin)).act({
+					'obligation.update': [
+						{ target: open, set: { state: 'WAIVED', waiver_reason: 'Looked at, not repaired' } }
+					]
+				});
+				yield* t.run_due();
 				yield* check(t);
 				yield* check(t);
 				assert.deepEqual(
@@ -393,7 +387,7 @@ describe('a manual deduction', () => {
 			assert.equal((yield* adjust(t, IN_LIEU, -1.5, '2026-11-02')).kind, 'committed');
 			assert.equal(leftIn((yield* accountsIn(t)).leave?.[IN_LIEU]?.[YEAR]), -0.5);
 			assert.deepEqual(
-				(yield* verify(t.storedQuery, TODAY)).map((finding) => finding.invariant),
+				(yield* verify(storedReader(t), TODAY)).map((finding) => finding.invariant),
 				['W1']
 			);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))

@@ -1,5 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
-import { addDays } from '@norbital-ai/std/date';
+import { add_days } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { JsonObject } from '../lib/payroll_engine/contracts.js';
 import { Refusal, stableJson, type Json } from '../lib/payroll_engine/foundation.js';
@@ -66,7 +66,7 @@ const snapshotOf = Effect.fnUntraced(function* (
 	return { settings, rows: collected };
 });
 
-export default automation('statutory_materialize', {
+export default automation({
 	description:
 		'Materializes confirmed statutory changes of one jurisdiction, up to a target date, into one cumulative draft version per effective date, and seals a reviewed draft; `merge` does both for one release. Payroll keeps reading sealed versions until a draft is sealed.',
 	input: {
@@ -75,7 +75,7 @@ export default automation('statutory_materialize', {
 		seal: { kind: 'text', optional: true },
 		merge: { kind: 'bool', optional: true }
 	},
-	output: { kind: 'object', fields: { drafts: { kind: 'list', of: { kind: 'text' } } } },
+	output: { kind: 'object', fields: { drafts: { kind: 'text', many: true } } },
 	policies: ['configuration_execution'],
 	run: function* (input, ctx) {
 		const got = yield* queryAllRows(ctx.query, {
@@ -86,7 +86,7 @@ export default automation('statutory_materialize', {
 			statutory_change: {
 				where: {
 					jurisdiction_code: { eq: input.code },
-					applied_version_id: { isNull: true },
+					applied_version_id: { is_null: true },
 					finding_id: { is: { status: { eq: 'CONFIRMED' } } }
 				},
 				limit: 10000
@@ -94,6 +94,17 @@ export default automation('statutory_materialize', {
 		});
 		const versions = got.jurisdiction_settings ?? [];
 		const changes = (got.statutory_change ?? []).map(changeOf);
+		/** Update targets carry the revision they were read at. */
+		const targets = Effect.fnUntraced(function* (
+			model: 'statutory_change' | 'statutory_finding',
+			ids: readonly string[]
+		) {
+			if (ids.length === 0) return [];
+			const { [model]: rows = [] } = yield* queryAllRows(ctx.query, {
+				[model]: { where: { id: { in: [...ids] } }, fields: ['revision'], limit: 10000 }
+			});
+			return rows.map((row) => ({ id: row.id ?? null, revision: row.revision ?? null }));
+		});
 		const sealed = versions.filter((row) => row.status === 'SEALED');
 		const baselineOn = (date: string): JsonObject => {
 			// the seed holds law only to the live window's end: past it the last sealed version still stands until a
@@ -146,40 +157,31 @@ export default automation('statutory_materialize', {
 			// last version) keeps its end: a sealed version only ever shortens
 			const end = objectValue(predecessor.effective_range).to;
 			const ended = typeof end === 'string' ? end : '';
-			const answer = yield* ctx.act.checked([
-				...(ended !== '' && ended < day
-					? []
-					: [
-							{
-								callable: 'jurisdiction_settings.update' as const,
-								input: [
-									{
-										target: valueText(predecessor, 'id'),
-										set: { effective_range: { from: fromOf(predecessor), to: addDays(day, -1) } }
-									}
-								]
-							}
-						]),
-				{
-					callable: 'jurisdiction_settings.update',
-					input: [{ target: valueText(draft, 'id'), set: { status: 'SEALED' } }]
-				},
-				{
-					callable: 'statutory_change.update',
-					input: dated.map((change) => ({
-						target: change.id,
-						set: { applied_version_id: valueText(draft, 'id') }
-					}))
-				},
+			const acts: JsonObject = {
+				'jurisdiction_settings.update': [
+					...(ended !== '' && ended < day
+						? []
+						: [
+								{
+									target: predecessor,
+									set: { effective_range: { from: fromOf(predecessor), to: add_days(day, -1) } }
+								}
+							]),
+					{ target: draft, set: { status: 'SEALED' } }
+				],
+				'statutory_change.update': (yield* targets(
+					'statutory_change',
+					dated.map((change) => change.id)
+				)).map((target) => ({ target, set: { applied_version_id: valueText(draft, 'id') } })),
 				...(finished.length === 0
-					? []
-					: [
-							{
-								callable: 'statutory_finding.update' as const,
-								input: finished.map((target) => ({ target, set: { status: 'APPLIED' as const } }))
-							}
-						])
-			]);
+					? {}
+					: {
+							'statutory_finding.update': (yield* targets('statutory_finding', finished)).map(
+								(target) => ({ target, set: { status: 'APPLIED' } })
+							)
+						})
+			};
+			const answer = yield* ctx.act(acts);
 			if (answer.kind !== 'committed')
 				return yield* Effect.fail(new Refusal({ message: 'The seal was held for approval.' }));
 			return { drafts: [valueText(draft, 'id')] };
@@ -242,8 +244,9 @@ export default automation('statutory_materialize', {
 			rows: readonly JsonObject[]
 		) {
 			if (rows.length === 0) return [];
-			const answer = yield* ctx.act
-				.checked([{ callable, input: rows }])
+			const acts: JsonObject = { [callable]: rows };
+			const answer = yield* ctx
+				.act(acts)
 				.pipe(
 					Effect.mapError((error) => new Refusal({ message: `${callable}: ${String(error)}` }))
 				);
@@ -261,8 +264,9 @@ export default automation('statutory_materialize', {
 					Object.entries(business(snapshot.settings)).filter(([key]) => !LIFECYCLE.has(key))
 				)
 			]);
-			const draftId = created.find((row) => row.model === 'jurisdiction_settings')?.id;
-			if (draftId === undefined)
+			const draft = created.find((row) => row.model === 'jurisdiction_settings');
+			const draftId = draft?.id;
+			if (draft === undefined || draftId === undefined)
 				return yield* Effect.fail(
 					new Refusal({ message: `${input.code}: the ${effective_from} draft was not created.` })
 				);
@@ -332,45 +336,36 @@ export default automation('statutory_materialize', {
 				// as on a seal: a baseline that already ended keeps its end
 				const end = objectValue(baselineRow.effective_range).to;
 				const ended = typeof end === 'string' ? end : '';
-				const answer = yield* ctx.act.checked([
-					...(ended !== '' && ended < plan.effective_from
-						? []
-						: [
-								{
-									callable: 'jurisdiction_settings.update' as const,
-									input: [
-										{
-											target: valueText(baselineRow, 'id'),
-											set: {
-												effective_range: {
-													from: fromOf(baselineRow),
-													to: addDays(plan.effective_from, -1)
-												}
+				const acts: JsonObject = {
+					'jurisdiction_settings.update': [
+						...(ended !== '' && ended < plan.effective_from
+							? []
+							: [
+									{
+										target: baselineRow,
+										set: {
+											effective_range: {
+												from: fromOf(baselineRow),
+												to: add_days(plan.effective_from, -1)
 											}
 										}
-									]
-								}
-							]),
-					{
-						callable: 'jurisdiction_settings.update',
-						input: [{ target: String(draftId), set: { status: 'SEALED' } }]
-					},
-					{
-						callable: 'statutory_change.update',
-						input: dated.map((change) => ({
-							target: change.id,
-							set: { applied_version_id: String(draftId) }
-						}))
-					},
+									}
+								]),
+						{ target: draft, set: { status: 'SEALED' } }
+					],
+					'statutory_change.update': (yield* targets(
+						'statutory_change',
+						dated.map((change) => change.id)
+					)).map((target) => ({ target, set: { applied_version_id: String(draftId) } })),
 					...(finished.length === 0
-						? []
-						: [
-								{
-									callable: 'statutory_finding.update' as const,
-									input: finished.map((target) => ({ target, set: { status: 'APPLIED' as const } }))
-								}
-							])
-				]);
+						? {}
+						: {
+								'statutory_finding.update': (yield* targets('statutory_finding', finished)).map(
+									(target) => ({ target, set: { status: 'APPLIED' } })
+								)
+							})
+				};
+				const answer = yield* ctx.act(acts);
 				if (answer.kind !== 'committed')
 					return yield* Effect.fail(new Refusal({ message: 'The merge was held for approval.' }));
 			}

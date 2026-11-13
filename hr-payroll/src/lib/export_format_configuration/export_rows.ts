@@ -23,8 +23,11 @@ export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reade
 	const second = yield* queryRows(read, {
 		jurisdiction_settings: { where: { id: { eq: settingsId } }, limit: 1 },
 		entity: { where: { id: { eq: text(run.entity_id) } }, limit: 1 },
-		employee_contract: { where: { id: { in: employmentIds } }, limit: 10000 },
-		'employee_contract.employee_id': { fields: ['name'] }
+		employee_contract: {
+			where: { id: { in: employmentIds } },
+			limit: 10000,
+			employee_id: { fields: ['name'] }
+		}
 	});
 	const currency = text((second.jurisdiction_settings ?? [])[0]?.currency);
 	const entityName = text((second.entity ?? [])[0]?.name);

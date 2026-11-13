@@ -1,25 +1,26 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../../../../.norbital/models/statutory_contribution_catalog.ts';
 import {
 	guardConfigurationRows,
 	requireDraftSettings
 } from '../../../../../../lib/payroll_engine/configuration.js';
 
-export default model('statutory_contribution_catalog', {
+export default model({
 	description:
 		'Effective jurisdiction statutory scheme. One lookup, an eligibility function and employee/employer amount functions.',
-	label: 'code',
+	record_label: 'record.code',
 	fields: {
 		employer_cost_subtotal_id: {
 			kind: 'ref',
 			to: 'subtotal',
 			optional: true,
-			onDelete: 'restrict',
+			on_delete: 'restrict',
 			inverse: 'statutory_employer_cost'
 		},
 		subtotal_id: {
 			kind: 'ref',
 			to: 'subtotal',
-			onDelete: 'restrict',
+			on_delete: 'restrict',
 			inverse: 'statutory_contribution_catalog'
 		},
 		lookup: {
@@ -30,15 +31,24 @@ export default model('statutory_contribution_catalog', {
 		code: { kind: 'text' },
 		description: {
 			kind: 'text',
-			optional: true,
-			help: 'What this catalog row does: its rule, behaviour and any legal or operational note.'
+			optional: true
 		},
 		references: { kind: 'custom', of: 'references', optional: true },
 		kind: { kind: 'enum', values: ['CONTRIBUTION', 'TAX'] },
 		/** The posting window this scheme holds in the ledger. */
 		balance_window: { kind: 'enum', values: ['MONTH', 'YEAR'], default: 'YEAR' },
+		/**
+		 * Which month answers for pay a run carries for an earlier period. EARNED: the scheme is worked out again for
+		 * the month the pay was earned, and the difference is carried. PAID: the earlier month's charge stands, and
+		 * the carried pay counts as wages of the month that pays it.
+		 */
+		assessed: {
+			kind: 'enum',
+			values: ['EARNED', 'PAID'],
+			default: 'EARNED'
+		},
 		eligibility: { kind: 'text', max: 65536 },
-		depends_on: { kind: 'list', of: { kind: 'text' }, optional: true },
+		depends_on: { kind: 'text', many: true, optional: true },
 		employee_amount: { kind: 'text', max: 65536 },
 		employer_amount: { kind: 'text', max: 65536, optional: true },
 		settings_id: {
@@ -48,16 +58,18 @@ export default model('statutory_contribution_catalog', {
 			owned: true
 		}
 	},
-	unique: [{ fields: ['settings_id', 'code'] }],
-	read: {
-		statutory_contribution_catalog: { fields: 'all' },
-		'statutory_contribution_catalog.settings_id': { fields: 'all' },
-		'statutory_contribution_catalog.subtotal_id': { fields: ['code', 'name'] },
-		'statutory_contribution_catalog.employer_cost_subtotal_id': { fields: ['code', 'name'] }
+	constraints: { code_per_settings: { unique: ['settings_id', 'code'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			settings_id: { fields: 'all' },
+			subtotal_id: { fields: ['code', 'name'] },
+			employer_cost_subtotal_id: { fields: ['code', 'name'] }
+		}
 	},
 	create: {
 		columns: {
-			statutory_contribution_catalog: [
+			fields: [
 				'employer_cost_subtotal_id',
 				'subtotal_id',
 				'lookup',
@@ -66,6 +78,7 @@ export default model('statutory_contribution_catalog', {
 				'references',
 				'kind',
 				'balance_window',
+				'assessed',
 				'eligibility',
 				'depends_on',
 				'employee_amount',
@@ -73,19 +86,19 @@ export default model('statutory_contribution_catalog', {
 				'settings_id'
 			]
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'statutory_contribution_catalog',
-				rows,
-				rows.map((r) => r.settings_id)
+				changes.map((c) => c.after),
+				changes.map((c) => c.after.settings_id)
 			);
-			return rows;
+			return changes.map((c) => c.set);
 		}
 	},
 	update: {
 		columns: {
-			statutory_contribution_catalog: [
+			fields: [
 				'employer_cost_subtotal_id',
 				'subtotal_id',
 				'lookup',
@@ -94,6 +107,7 @@ export default model('statutory_contribution_catalog', {
 				'references',
 				'kind',
 				'balance_window',
+				'assessed',
 				'eligibility',
 				'depends_on',
 				'employee_amount',
@@ -102,19 +116,23 @@ export default model('statutory_contribution_catalog', {
 		},
 		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'statutory_contribution_catalog',
-				changes.map((c) => ({ ...c.before, ...c.set })),
+				changes.map((c) => c.after),
 				changes.map((c) => c.before.settings_id)
 			);
 			return changes.map((c) => c.set);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* requireDraftSettings(
-				ctx.db.query,
-				rows.map((r) => r.settings_id)
+				ctx.query,
+				changes.map((c) => c.before.settings_id)
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
 		}
 	}

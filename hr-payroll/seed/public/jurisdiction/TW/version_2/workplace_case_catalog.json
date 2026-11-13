@@ -13,7 +13,7 @@
 		],
 		"id": "4bedcb5a-6fdd-59d3-9f0c-b373780e6ec6",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"description": "EMERGENCY_OVERTIME: Case with its declared events and workflow inputs."
+		"description": "Emergency overtime under 勞基法 §32(4): the case records it and its notice to the union or authority within 24 hours."
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT",
@@ -189,7 +189,7 @@
 		],
 		"id": "3e890a6c-8e2b-5522-848b-9e6782f1bbea",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"description": "OCCUPATIONAL_ACCIDENT: Case with its declared events and workflow inputs."
+		"description": "Occupational accident: the case records it, its reports and the §59 compensation duties."
 	},
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",
@@ -1277,6 +1277,6 @@
 		],
 		"id": "cda81d43-3a3d-47d8-90ff-2e66411346bd",
 		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c",
-		"description": "FOREIGN_WORKER_ABSENCE: Case with its declared events and workflow inputs."
+		"description": "A foreign worker absent without contact for three days: the case records it and its three-day notice."
 	}
 ]

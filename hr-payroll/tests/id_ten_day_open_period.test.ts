@@ -1,11 +1,21 @@
-// A ten-day run with a cutoff prices [previous cutoff, current cutoff − 1]. A no-pay day in that window is closed as
-// soon as the part's run exists, even when the day's calendar part number is different. Indonesia is only the fixture.
+// A ten-day run with a cutoff prices [previous cutoff, current cutoff − 1]. A no-pay day keyed in that window after the
+// part is paid leaves that part to be worked out again, even when the day's calendar part number is different. Indonesia
+// is only the fixture.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, catalogRow, leaveCreate, pack, uuid, wholeDays, workspace } from './kit.ts';
+import {
+	ENTITY,
+	catalogRow,
+	leaveCreate,
+	pack,
+	uuid,
+	wholeDays,
+	workspace,
+	storedQuery
+} from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const terms = {
@@ -43,16 +53,28 @@ const seedOf = (cutoff: number) => {
 const live = (cutoff: number) =>
 	workspace({ seed: seedOf(cutoff), now: '2026-02-15T02:00:00.000Z' });
 const run = (t: Kit, period: string) =>
-	t.as(t.admin).act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
+	t
+		.as(t.admin)
+		.pipe(
+			Effect.andThen((caller) =>
+				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+			)
+		);
 const noPay = (t: Kit, date: string) =>
-	t.as(t.admin).act('leave_catalog_entry.create', [
-		leaveCreate({
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(seedOf(1), 'leave_catalog', 'NPL')),
-			days: wholeDays(date)
-		})
-	]);
+	t.as(t.admin).pipe(
+		Effect.andThen((caller) =>
+			caller.act({
+				'leave_catalog_entry.create': [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: idOf('leave_catalog', catalogRow(seedOf(1), 'leave_catalog', 'NPL')),
+						days: wholeDays(date)
+					})
+				]
+			})
+		)
+	);
 
 describe('a ten-day schedule with a cutoff', () => {
 	for (const [cutoff, day] of [
@@ -60,14 +82,28 @@ describe('a ten-day schedule with a cutoff', () => {
 		[25, '2026-02-12']
 	] as const)
 		it.live(
-			`cutoff ${cutoff}: a no-pay day in the attendance the first part priced is refused`,
+			`cutoff ${cutoff}: a no-pay day in the attendance the first part paid leaves that part to be worked out again`,
 			() =>
 				Effect.gen(function* () {
 					const t = yield* TestWorkspace;
 					yield* run(t, '2026-02-1');
-					yield* t.runDue();
-					const refused = yield* Effect.flip(noPay(t, day));
-					assert.match(String(refused), new RegExp(`${day} is in a period that has already run`));
+					yield* t.run_due();
+					const [first] = (yield* storedQuery(t, { payroll_run: { limit: 1 } })).payroll_run.rows;
+					assert.ok(first !== undefined);
+					yield* t
+						.as(t.admin)
+						.pipe(
+							Effect.andThen((caller) =>
+								caller.act({ 'payroll_run.update': [{ target: first, set: { state: 'PAID' } }] })
+							)
+						);
+					yield* t.run_due();
+					yield* noPay(t, day);
+					const { pay_amendment } = yield* storedQuery(t, { pay_amendment: { limit: 10 } });
+					assert.deepEqual(
+						pay_amendment.rows.map((row) => [row.period, row.payroll_run_id ?? null]),
+						[['2026-02-1', null]]
+					);
 				}).pipe(Effect.provide(live(cutoff)))
 		);
 });

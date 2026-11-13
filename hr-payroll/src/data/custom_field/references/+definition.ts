@@ -1,7 +1,7 @@
-import { customField } from '@norbital-ai/bolt';
+import { custom_field } from '@norbital-ai/bolt';
 import { REFERENCES_SHAPE } from '../../../lib/payroll_engine/references.js';
 
-export default customField('references', {
+export default custom_field({
 	description:
 		'The legal instruments a statutory row rests on: each its title, the article, section or schedule cited, a link to the official text, the official wording quoted and the day it took effect.',
 	shape: REFERENCES_SHAPE,

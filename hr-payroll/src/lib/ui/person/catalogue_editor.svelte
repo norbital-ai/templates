@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
-	import { Combobox, useForm, type FieldEditor } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { Combobox, use_form, type FieldEditor } from '@norbital-ai/ui';
 	import { idOf } from '../../payroll_engine/reads.js';
 	let {
+		ctx,
 		family,
 		field
 	}: {
+		ctx: PageContext;
 		family: 'leave_catalog' | 'claim_catalog' | 'adhoc_catalog' | 'loan_catalog';
 		field: FieldEditor;
 	} = $props();
-	const form = useForm();
+	const form = use_form();
 	const selected = $derived(form?.get('catalog_id'));
 	const catalogId = $derived(typeof selected === 'string' ? selected : null);
 	const companyId = $derived(form?.get('entity_id'));
@@ -18,17 +20,17 @@
 	const claims = $derived(
 		family !== 'claim_catalog' || typeof employmentId !== 'string'
 			? null
-			: bolt.query({
+			: ctx.query({
 					claim_catalog_entry: {
 						where: { employment_id: { eq: idOf('employee_contract', employmentId) } },
-						fields: ['catalog_id', 'quantity', 'incurred_on', 'reverses'],
+						fields: ['catalog_id', 'quantity', 'incurred_on'],
 						limit: 10000
 					}
 				})
 	);
 	const company = $derived(
 		typeof companyId === 'string'
-			? bolt.query({
+			? ctx.query({
 					entity: {
 						output: 'self_service',
 						where: { id: { eq: idOf('entity', companyId) } },
@@ -38,27 +40,33 @@
 				})
 			: null
 	);
-	const catalogs = bolt.query({
-		leave_catalog: { limit: 10000 },
-		'leave_catalog.settings_id': { fields: ['code', 'status', 'effective_range'] },
-		claim_catalog: { limit: 10000 },
-		'claim_catalog.settings_id': { fields: ['code', 'status', 'effective_range'] },
-		adhoc_catalog: { limit: 10000 },
-		'adhoc_catalog.settings_id': { fields: ['code', 'status', 'effective_range'] },
-		loan_catalog: { limit: 10000 },
-		'loan_catalog.settings_id': { fields: ['code', 'status', 'effective_range'] }
+	const catalogs = ctx.query({
+		leave_catalog: {
+			limit: 10000,
+			settings_id: { fields: ['code', 'status', 'effective_range'] }
+		},
+		claim_catalog: {
+			limit: 10000,
+			settings_id: { fields: ['code', 'status', 'effective_range'] }
+		},
+		adhoc_catalog: {
+			limit: 10000,
+			settings_id: { fields: ['code', 'status', 'effective_range'] }
+		},
+		loan_catalog: {
+			limit: 10000,
+			settings_id: { fields: ['code', 'status', 'effective_range'] }
+		}
 	});
 	const year = $derived(
 		typeof incurredOn === 'string'
 			? incurredOn.slice(0, 4)
-			: String(bolt.clock('day').today).slice(0, 4)
+			: String(ctx.clock('day').today).slice(0, 4)
 	);
 	const usedFor = (catalogId: string) =>
 		(claims?.current?.claim_catalog_entry.rows ?? []).reduce(
 			(total, row) =>
-				row.catalog_id === catalogId &&
-				row.reverses == null &&
-				String(row.incurred_on).startsWith(year)
+				row.catalog_id === catalogId && String(row.incurred_on).startsWith(year)
 					? total + Number(row.quantity ?? 0)
 					: total,
 			0
@@ -96,5 +104,5 @@
 			? { suffix: `${remainingFor(c)} left` }
 			: {})
 	}))}
-	onChange={(value) => field.onChange(value)}
+	on_change={(value) => field.on_change(value)}
 />

@@ -1,18 +1,19 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/entity_profile_version.ts';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
+import { amendmentsOf, versionReach } from '../../../../lib/amendments.js';
 
-export default model('entity_profile_version', {
+export default model({
 	description:
 		'Sealed employer data. A dated replacement changes future values; consumed historical values remain protected.',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		input_schema_version_id: {
 			kind: 'ref',
 			to: 'jurisdiction_settings',
 			inverse: 'employer_payroll_versions',
-			onDelete: 'restrict',
+			on_delete: 'restrict',
 			where: { status: { eq: 'SEALED' } }
 		},
 		settings_code: {
@@ -23,76 +24,65 @@ export default model('entity_profile_version', {
 		},
 		representative_name: {
 			kind: 'text',
-			optional: true,
-			help: 'The responsible person the law names for filing and registration duties.'
+			optional: true
 		},
 		registered_address: { kind: 'text', optional: true },
 		final_pay_loan_floor_percent: {
 			kind: 'int',
 			min: 0,
 			max: 100,
-			default: 10,
-			help: 'The share of expected final pay that must remain after loan recovery.'
+			default: 10
 		},
 		overtime_full_award_percent: {
 			kind: 'int',
 			min: 1,
 			max: 100,
-			default: 100,
-			help: 'How much of planned overtime the clock must cover to pay all of it. Below this, the clocked time pays, rounded down to the half hour.'
+			default: 100
 		},
 		pay_methods: {
 			kind: 'object',
 			optional: true,
-			help: "The employer's own pay methods. Each applies only where it pays at least the law; otherwise the law stands.",
 			fields: {
 				overtime_hour_basis: {
 					kind: 'enum',
 					values: ['STATUTORY', 'CONTRACT_WEEKLY'],
-					default: 'STATUTORY',
-					label: 'Overtime hour rate',
-					help: "What one overtime hour is priced on. Statutory: the hour rate the law works out. Contract weekly: the monthly wage × 12 ÷ (52 × the contract's weekly hours). It changes the overtime lines of a payslip."
+					default: 'STATUTORY'
 				},
 				rest_day_hourly_multiplier: {
 					kind: 'number',
 					min: 1,
-					optional: true,
-					label: 'Rest-day hour multiple',
-					help: 'Every hour worked on a rest day pays this multiple of the hour rate. Leave empty to pay what the law pays. It changes the rest-day work lines of a payslip.'
+					optional: true
 				},
 				night_differential_basis: {
 					kind: 'enum',
 					values: ['WORKED', 'CLOCK_SPAN', 'WHOLE_NIGHT'],
-					default: 'WORKED',
-					label: 'Night premium hours',
-					help: 'Which hours earn the night premium. Worked: the hours worked inside the night window. Clock span: every clocked hour in the window, unpaid breaks and overtime included, at the ordinary hour rate. Whole night: a worked night shift earns eight full hours of premium at the day’s rate. It changes the night premium line of a payslip. Only the Philippines’ rows read it; it changes nothing in other countries.'
+					default: 'WORKED'
 				},
 				contribution_split: {
 					kind: 'enum',
 					values: ['EVEN', 'FIRST_RUN'],
-					default: 'EVEN',
-					label: 'Contributions over two runs a month',
-					help: 'How a month’s contributions fall on the two payslips of a twice-monthly group. Even: half on each. First run: the whole month on the first payslip, on an estimate, and the second settles the month’s actual wages. Only the Philippines’ rows read it; it changes nothing in other countries.'
+					default: 'EVEN'
+				},
+				health_billing: {
+					kind: 'enum',
+					values: ['CURRENT', 'ARREARS'],
+					default: 'CURRENT'
 				},
 				benefit_exclusion: {
 					kind: 'enum',
 					values: ['POOLED', 'EXCESS_TAXED'],
-					default: 'POOLED',
-					label: 'Benefits over their tax-free limit',
-					help: 'How a benefit paid past its own tax-free limit is taxed. Pooled: the excess joins the yearly exclusion for bonuses and benefits. Excess taxed: it is taxed on the payslip of the month it is paid. The year’s last payslip settles either way, so only the month the tax is withheld changes. Only the Philippines’ rows read it; it changes nothing in other countries.'
+					default: 'POOLED'
 				}
 			}
 		},
 		entity_extension_data: {
 			kind: 'json',
 			shape: { kind: 'record', of: { kind: 'json' } },
-			default: {},
-			help: "The entity data the jurisdiction's entity extension schema declares."
+			default: {}
 		},
 		time_zone: {
 			kind: 'text',
-			optional: true,
-			help: "The zone this entity's payroll windows and rostered days are counted in."
+			optional: true
 		},
 		bank: { kind: 'custom', of: 'bank', optional: true },
 
@@ -105,32 +95,38 @@ export default model('entity_profile_version', {
 			kind: 'state',
 			initial: 'DRAFT',
 			states: {
-				DRAFT: { to: ['SEALED'], edit: 'all' },
-				SEALED: { to: ['VOID'], edit: ['effective_range', 'reason'] },
-				VOID: { to: [], edit: 'none' }
+				DRAFT: { to: ['SEALED'] },
+				SEALED: { to: ['VOID'] },
+				VOID: { to: [] }
 			}
 		},
-		entity_id: { kind: 'ref', to: 'entity', inverse: 'payroll_versions', onDelete: 'restrict' },
+		entity_id: { kind: 'ref', to: 'entity', inverse: 'payroll_versions', on_delete: 'restrict' },
 		reason: { kind: 'text', optional: true }
 	},
-	noOverlap: [
-		{ key: ['entity_id'], period: 'effective_range', where: { status: { eq: 'SEALED' } } }
-	],
-	read: {
-		entity_profile_version: { fields: 'all' },
-		'entity_profile_version.entity_id': { fields: 'all' },
-		'entity_profile_version.input_schema_version_id': { fields: 'all' }
+	constraints: {
+		sealed_range: {
+			no_overlap: 'effective_range',
+			per: ['entity_id'],
+			where: { status: { eq: 'SEALED' } }
+		},
+		// a sealed version keeps its terms: only its period, its reason and a move to VOID stay editable
+		sealed_version: {
+			locked: { status: { eq: 'SEALED' } },
+			except: ['effective_range', 'reason', 'status']
+		},
+		void_version: { locked: { status: { eq: 'VOID' } } }
 	},
 	outputs: {
-		kiosk: {
-			entity_profile_version: {
-				fields: ['entity_id', 'effective_range', 'status', 'time_zone']
-			}
-		}
+		default: {
+			fields: 'all',
+			entity_id: { fields: 'all' },
+			input_schema_version_id: { fields: 'all' }
+		},
+		kiosk: { fields: ['entity_id', 'effective_range', 'status', 'time_zone'] }
 	},
 	create: {
 		columns: {
-			entity_profile_version: [
+			fields: [
 				'entity_id',
 				'name',
 				'representative_name',
@@ -148,34 +144,36 @@ export default model('entity_profile_version', {
 				'reason'
 			]
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
+			const rows = changes.map(({ set }) => set);
 			yield* validateRegistered(
-				ctx.db.query,
+				ctx.query,
 				'entity_profile_version',
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
-			return rows;
+			return {
+				sets: rows,
+				// a version sealed over paid periods amends everyone the company paid in them
+				on_approved: yield* amendmentsOf(
+					ctx.query,
+					[...new Set(rows.map((row) => String(row.entity_id)))],
+					rows.flatMap((row) => versionReach(undefined, row))
+				)
+			};
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(
+				ctx,
+				'create',
+				'entity_profile_version',
+				changes.map(({ after }) => ({ after }))
+			);
 		}
 	},
 	update: {
-		transform: function* (changes, ctx) {
-			const substantive = changes.filter((change) => change.set.status !== 'VOID');
-			if (substantive.length > 0)
-				yield* validateRegistered(
-					ctx.db.query,
-					'entity_profile_version',
-					'update',
-					substantive.map((change) => jsonObject({ ...change.before, ...change.set }))
-				);
-			for (const { set } of changes) {
-				if (set.status === 'VOID' && !set.reason?.trim())
-					return yield* ctx.refuse('Record why this version is void.');
-			}
-			return changes.map((change) => change.set);
-		},
 		columns: {
-			entity_profile_version: [
+			fields: [
 				'entity_id',
 				'name',
 				'representative_name',
@@ -192,18 +190,35 @@ export default model('entity_profile_version', {
 				'status',
 				'reason'
 			]
-		}
-	},
-	effect: {
-		created: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				'entity_profile_version',
-				rows.map((after) => ({ after }))
-			);
 		},
-		updated: function* (changes, ctx) {
+		transform: function* (changes, ctx) {
+			const substantive = changes.filter((change) => change.set.status !== 'VOID');
+			if (substantive.length > 0)
+				yield* validateRegistered(
+					ctx.query,
+					'entity_profile_version',
+					'update',
+					substantive.map((change) => jsonObject(change.after))
+				);
+			const unexplained = changes.findIndex(
+				({ set }) => set.status === 'VOID' && !set.reason?.trim()
+			);
+			if (unexplained >= 0)
+				return yield* ctx.refuse('errors.entity_profile_version_void_reason', {
+					row: unexplained,
+					field: 'reason'
+				});
+			return {
+				sets: changes.map((change) => change.set),
+				// sealed, voided or cut short over paid periods: everyone the company paid in them is amended
+				on_approved: yield* amendmentsOf(
+					ctx.query,
+					[...new Set(changes.map((change) => String(change.before.entity_id)))],
+					changes.flatMap(({ before, after }) => versionReach(before, after))
+				)
+			};
+		},
+		effect: function* (changes, ctx) {
 			const sealed = changes.filter(
 				({ before, after }) => before.status !== 'SEALED' && after.status === 'SEALED'
 			);

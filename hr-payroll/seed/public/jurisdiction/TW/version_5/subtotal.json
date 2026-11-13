@@ -1,0 +1,81 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic salary (基本工資)",
+		"previous_id": null,
+		"id": "7319dbd4-cc28-5404-b174-44c5a30a6b87",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages (經常性給與)",
+		"previous_id": "c9de2d49-e5ba-50a0-b879-08cdf415549a",
+		"id": "57d8aa0e-90f7-5b47-a932-a0956e7a9ed2",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Additional wages (含獎金的應發工資)",
+		"previous_id": "57d8aa0e-90f7-5b47-a932-a0956e7a9ed2",
+		"id": "3ecaf23d-78de-56f9-bc42-61767b1808ff",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"balance_window": "MONTH"
+	},
+	{
+		"code": "RETIREMENT",
+		"name": "Retirement and severance (退休金及資遣費)",
+		"previous_id": "3ecaf23d-78de-56f9-bc42-61767b1808ff",
+		"id": "ad83ed36-b7f4-5405-ab89-255711fb7667",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay (實發工資)",
+		"previous_id": "92ecf252-4b4a-5a68-8bf8-d2c429a09820",
+		"id": "2cc25aed-cf09-54b2-8aae-c68a5c35fa49",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "ad83ed36-b7f4-5405-ab89-255711fb7667",
+		"id": "92ecf252-4b4a-5a68-8bf8-d2c429a09820",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "PRORATED",
+		"name": "Prorated basic",
+		"id": "f798e308-5365-5037-a189-232d365fd00b",
+		"previous_id": "7319dbd4-cc28-5404-b174-44c5a30a6b87",
+		"calculation": "return -(ctx.proration_amount + ctx.abs_amount);",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3"
+	},
+	{
+		"code": "PAID_BASIC",
+		"name": "Paid basic",
+		"id": "17b47227-1825-52bf-bd77-bb7d109c2270",
+		"previous_id": "f798e308-5365-5037-a189-232d365fd00b",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3"
+	},
+	{
+		"code": "BASIC_AFTER_PARENTAL_LEAVE",
+		"name": "Basic salary after parental leave (育嬰留職停薪後)",
+		"previous_id": "17b47227-1825-52bf-bd77-bb7d109c2270",
+		"id": "04445daf-8c56-55af-b2a3-1b11c9f09ce3",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"balance_window": "YEAR"
+	},
+	{
+		"code": "SALARY_INCOME",
+		"name": "Salary income (薪資所得)",
+		"previous_id": "04445daf-8c56-55af-b2a3-1b11c9f09ce3",
+		"id": "c9de2d49-e5ba-50a0-b879-08cdf415549a",
+		"settings_id": "3ac5d46e-2077-5876-bb4d-53f3800dddf3",
+		"balance_window": "MONTH"
+	}
+]

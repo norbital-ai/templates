@@ -116,7 +116,7 @@
 				"title": "RA 11199, RA 11223, RA 9679 and NIRC s.58: correction of a prior statutory contribution or withholding remittance."
 			}
 		],
-		"description": "The entry quantity is the statutory correction; the statutory schemes are not re-run.",
+		"description": "A statutory contribution or tax correction decided outside the run, deducted from pay at the amount entered; the statutory schemes are not re-run.",
 		"lookup": {},
 		"off_cycle_eligible": true,
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
@@ -131,7 +131,7 @@
 		"code": "STATUTORY_REFUND",
 		"references": [
 			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
 			}
 		],
 		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
@@ -146,374 +146,8 @@
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
 	{
-		"code": "SSS_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SSS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SSS.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "SSS.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "2911664e-41a4-5278-b5d9-196850389c8b",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "SSS_EMPLOYER_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects the employer's share of SSS for a closed month. Dated in the month it corrects; it changes employer cost only.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SSS.employer",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "d5e45b04-3bba-5a7a-8cf3-1898f6dfc9cb",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "SSS_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SSS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SSS.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "SSS.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "8d719ad7-d7a3-52f6-a742-c8da602bc5e6",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "SSS_EMPLOYER_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects the employer's share of SSS for a closed month. Dated in the month it corrects; it changes employer cost only.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SSS.employer",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "ADD",
-		"party": "EMPLOYER",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "5fef0003-b2bc-5d5a-a993-95ce922f4bf0",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "SSS_MPF_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SSS_MPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SSS_MPF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "SSS_MPF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "ce17f39b-a0e1-5ce0-8e6f-d5da110834f1",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "SSS_MPF_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects SSS_MPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "SSS_MPF.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "SSS_MPF.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "2314015c-2478-5f61-8e49-34f180bf54e1",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "PHIC_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects PHIC for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "PHIC.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "b0a60791-2c55-5379-bebf-b383a5a41467",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "PHIC_EMPLOYER_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects the employer's share of PHIC for a closed month. Dated in the month it corrects; it changes employer cost only.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "PHIC.employer",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYER",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "eb306889-ab2e-512a-aeaf-08e2d5b18a43",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "PHIC_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects PHIC for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "PHIC.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "819a2006-545f-5fe7-a942-84219259a4f4",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "PHIC_EMPLOYER_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects the employer's share of PHIC for a closed month. Dated in the month it corrects; it changes employer cost only.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "PHIC.employer",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "ADD",
-		"party": "EMPLOYER",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "ee1d968b-1074-5780-816e-2739d244348b",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "HDMF_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects HDMF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "HDMF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				},
-				{
-					"account": "statutory",
-					"code": "HDMF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "79097b2d-a281-5ef4-8dd4-bdaf093e63e0",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "HDMF_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects HDMF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "HDMF.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				},
-				{
-					"account": "statutory",
-					"code": "HDMF.employee",
-					"measure": "paid",
-					"operation": "ADD",
-					"period": "MONTH"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "bbee3b3d-1ef1-5f66-a827-ceecb8608983",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
 		"code": "THIRTEENTH_MONTH_PAY",
-		"description": "The entry quantity is the 13th-month amount due for the entitlement year; the engine posts it as gross earnings. Practical treatment: SSS/MPF/EC and HDMF use ordinary wages; PHIC uses basic salary; 13th month and Christmas bonus are outside all four monthly bases. The SSS IRR expressly excludes Christmas bonus and does not name 13th month. WTAX uses final gross and includes both in the 90,000 aggregate benefits pool. If a written SSS ruling requires 13th-month inclusion, change only the SSS checkpoint routing.",
+		"description": "13th-month pay at the amount entered: at least one twelfth of the basic salary earned in the calendar year, paid by 24 December (PD 851). Outside the SSS, PhilHealth and Pag-IBIG bases; tax-free with other benefits up to ₱90,000 a year.",
 		"lookup": {},
 		"references": [
 			{
@@ -1002,6 +636,175 @@
 		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nconst birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = birth === null ? 0 : age_on(birth, ctx.entry.incurred_on);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (age < 50) return false;\nconst from = get(ctx.subject.employment, 'service_started_on', get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on));\nif (calendar_completed_months(from, ctx.entry.incurred_on) < 120) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.bir_qualified_retirement_plan', false) !== true) return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.retirement_plan_exemption_availed', false) !== true;",
 		"conversion": "return ctx.entry.quantity;",
 		"id": "70e53166-7e8b-5880-b27c-9b851cfc7422",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "SSS_ADJUSTMENT",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SSS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SSS.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "SSS.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "8d719ad7-d7a3-52f6-a742-c8da602bc5e6",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "SSS_EMPLOYER_ADJUSTMENT",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects the employer's share of SSS for a closed month. Dated in the month it corrects; it changes employer cost only.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SSS.employer",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "ADD",
+		"party": "EMPLOYER",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "5fef0003-b2bc-5d5a-a993-95ce922f4bf0",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "PHIC_REFUND",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects PHIC for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PHIC.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "b0a60791-2c55-5379-bebf-b383a5a41467",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "PHIC_EMPLOYER_REFUND",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects the employer's share of PHIC for a closed month. Dated in the month it corrects; it changes employer cost only.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PHIC.employer",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYER",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "eb306889-ab2e-512a-aeaf-08e2d5b18a43",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "PHIC_ADJUSTMENT",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects PHIC for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PHIC.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "819a2006-545f-5fe7-a942-84219259a4f4",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "PHIC_EMPLOYER_ADJUSTMENT",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects the employer's share of PHIC for a closed month. Dated in the month it corrects; it changes employer cost only.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PHIC.employer",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "ADD",
+		"party": "EMPLOYER",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "return ctx.entry.quantity;",
+		"id": "ee1d968b-1074-5780-816e-2739d244348b",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	}
 ]

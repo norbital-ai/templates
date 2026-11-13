@@ -17,7 +17,7 @@
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
-		"description": "Contractual fixed allowance paid for the days covered by basic salary and reduced with unpaid leave; part of the wage total.",
+		"description": "A fixed monthly amount from the contract, prorated by the same paid share as basic salary (joiner and leaver days, ABS and NPL); part of the wage total and taxed.",
 		"lookup": {},
 		"references": [
 			{
@@ -81,7 +81,7 @@
 	},
 	{
 		"code": "MEAL_SUBSIDY_OUT",
-		"description": "Contractual meal subsidy for meals taken away from the workplace, paid when the contract sets an amount; only actual meal-expense reimbursement is tax-exempt, while a fixed payment is wages.",
+		"description": "A fixed monthly meal amount from the contract, paid in full (not prorated) and taxed as wages. Reimburse actual meal costs as a claim instead: only those are tax-free.",
 		"lookup": {},
 		"references": [
 			{
@@ -90,7 +90,7 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.MEAL_SUBSIDY_OUT.amount', 0);",
-		"subtotal_id": "69f267bb-d2c3-5b65-9561-09bef8ccce0f",
+		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "bcbada03-b71b-51a5-b59d-b8291dea4599",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
 		"include_in_rate": false
@@ -113,7 +113,7 @@
 	},
 	{
 		"code": "TRAVEL_ALLOWANCE",
-		"description": "Contractual travel allowance paid when the contract sets an amount; only actual travel-expense reimbursement is tax-exempt, while a fixed payment is wages.",
+		"description": "A fixed monthly travel amount from the contract, paid in full (not prorated) and taxed as wages. Reimburse actual travel costs as a claim instead: only those are tax-free.",
 		"lookup": {},
 		"references": [
 			{
@@ -122,14 +122,14 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.TRAVEL_ALLOWANCE.amount', 0);",
-		"subtotal_id": "69f267bb-d2c3-5b65-9561-09bef8ccce0f",
+		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "fbe3aa75-7caf-580b-be59-070d28ce078d",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
 		"include_in_rate": false
 	},
 	{
 		"code": "HIGH_TEMPERATURE_ALLOWANCE",
-		"description": "Shanghai June–September allowance for an employee with a dated high-temperature exposure period.",
+		"description": "Shanghai, June to September: 300 a month, paid in full (not prorated) in any month whose run date falls in a HIGH_TEMPERATURE work event for the employee's work site (outdoor work, or a workplace not cooled below 33℃). Taxable wages.",
 		"lookup": {
 			"region": "SH",
 			"monthly": 300,
@@ -138,9 +138,14 @@
 		"references": [
 			{
 				"title": "防暑降温措施管理办法 (安监总安健〔2012〕89号) 第十七条: 室外露天作业或工作场所不能降到33℃以下的, 发放高温津贴并纳入工资总额. 上海 300元/月, 6月至9月 (沪人社规〔2019〕19号; 官方通知未读, 2026年媒体转载一致 https://www.thepaper.cn/newsDetail_forward_33263111)."
+			},
+			{
+				"title": "上海 夏季高温津贴 (沪人社规〔2019〕19号, 2019-06-01起) 300元/月, 6月至9月, 可按月或提前一次性发放",
+				"url": "https://www.thepaper.cn/newsDetail_forward_33263111",
+				"quote": "标准为每月300元"
 			}
 		],
-		"eligibility": "if (get(ctx.subject.employer, 'entity_extension_data.region', '') !== ctx.lookup.region) return false;\nif (!ctx.lookup.months.includes(Number(ctx.as_of.slice(5, 7)))) return false;\nreturn (ctx.work_events ?? []).some((event) => {\n  if (get(event, 'code', '') !== 'HIGH_TEMPERATURE') return false;\n  const from = String(get(event, 'from', ''));\n  const to = get(event, 'to', null);\n  return from !== '' && from <= ctx.as_of && ctx.as_of <= String(to ?? from);\n});",
+		"eligibility": "const employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nif (region !== ctx.lookup.region) return false;\nif (!ctx.lookup.months.includes(Number(ctx.as_of.slice(5, 7)))) return false;\nreturn (ctx.work_events ?? []).some((event) => {\n  if (get(event, 'code', '') !== 'HIGH_TEMPERATURE') return false;\n  const from = String(get(event, 'from', ''));\n  const to = get(event, 'to', null);\n  return from !== '' && from <= ctx.as_of && ctx.as_of <= String(to ?? from);\n});",
 		"conversion": "return ctx.lookup.monthly;",
 		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "882f786f-d15b-498d-9c06-9fcc34675467",

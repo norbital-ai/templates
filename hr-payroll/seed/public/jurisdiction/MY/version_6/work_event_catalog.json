@@ -1,0 +1,16 @@
+[
+	{
+		"code": "EMPLOYER_SHUTDOWN",
+		"lookup": {},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "EA s.24(1): no deduction from wages other than in accordance with the Act, so the contract wage stands; EA s.60E(1) proviso: not an absence without permission for annual leave. Employment Act 1955",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"id": "8a5ffeb8-c47e-541e-ad43-f9c80764632d",
+		"settings_id": "74fdc43c-9a15-5707-be88-e701e5cb6276",
+		"description": "An employer shutdown that stops work."
+	}
+]

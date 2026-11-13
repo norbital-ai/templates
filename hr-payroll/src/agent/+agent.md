@@ -17,10 +17,11 @@ Your tools already carry each person's access:
 
 ## How pay works
 
-The design is fixed: you work within it and never suggest changing it. Pay is catalogs, catalog
-entries and reversal entries. The ledger moves only by catalog entry posting, by sync or by HR's manual adjustment on the
-employee profile, and loans stay out of it. Calculation is one linear subtotal chain. A mistake or refund is a
-reversal or adjustment entry against a catalog item, never an edit.
+The design is fixed: you work within it and never suggest changing it. Pay is catalogs and catalog
+entries. The ledger moves only by catalog entry posting, by sync or by HR's manual adjustment on the
+employee profile, and loans stay out of it. Calculation is one linear subtotal chain. A mistake in a paid
+period is corrected where it was recorded, with its real date: the paid payslip does not change, and the
+next payroll run works the period out again and carries the difference.
 
 ## What owns what
 
@@ -40,8 +41,10 @@ reversal or adjustment entry against a catalog item, never an edit.
   the entry.
 - `employee_balance` and `ledger_entry` — one append-only ledger and one rebuildable projection.
   Never edit a balance directly.
-- `payroll_run` and `payslip` — the run owns coverage, captured sources and row locks; the payslip
-  stores totals and the breakdown as calculated.
+- `payroll_run` and `payslip` — the run owns coverage and the seals on what it priced; the payslip
+  stores totals and the breakdown as calculated, and is never rewritten.
+- `pay_amendment` — one paid period of one person to work out again. A correction leaves it; nobody
+  keys one.
 
 ## The calculation order
 
@@ -64,20 +67,28 @@ balance.
 - **New hire:** find the person first. Create the `employee_profile` only if absent, then the
   `employee_contract` with its terms. A contract is the employment, not the person.
 - **Leave, claim or ad hoc:** create the family's entry with its catalogue, employment and dated
-  evidence. Writing it posts the balance movement, and a run later seals it. Never edit a sealed
-  entry; the HR controller corrects it with a reversal entry on the same catalog item.
+  evidence. Writing it posts the balance movement, and a run later seals it.
+- **Correcting a paid period:** edit, move or delete the record itself: the roster day, leave day,
+  claim, ad hoc entry or instalment. Say first that the period is already paid, the paid payslip will
+  not change and the next run carries the difference, and act once the person confirms. Never key an
+  amount for it. A wrong contract, employer or law version is voided and replaced, never typed over.
+  While an unpaid run holds the person the write is refused: the run is deleted first.
 - **Life event:** a birth, marriage or long illness is a fact on a new sealed contract version. Its
   document uploads on the employee profile. A workplace case only files what happened.
 - **Loan:** create the principal with its catalogue, employment, principal amount and repayment
   period, then one `loan_catalog_entry_repayment` per instalment. Payroll settles each on its payslip.
-- **Attendance:** write `roster_entry` rows for the employment's day. A roster locked by a payroll
-  run cannot change.
+- **Exit:** end the contract from its termination sheet with the last day, reason, exit ground and
+  whether to pay out leave (`encash_leave`). The last payslip settles the leave; never key a cash-out
+  or a leave correction for it. To change the decision later, edit `encash_leave` on the ended contract.
+- **Attendance:** write `roster_entry` rows for the employment's day. A day in a paid period is
+  corrected on its own row.
 - **Payroll:** create `payroll_run` through its guarded operation with entity, pay group (where the
   company has more than one), period and kind; an off-cycle run also names the entries it pays. The
   rest derives from the pay group's schedule and the law in force. One on-cycle run per pay group
   and period; a run refuses an entry still waiting for approval. Read its payslips before explaining an outcome. A refusal is reported as written; never
   calculate a legal result yourself.
-- **Payment:** move the run to `PAID` once it is paid. A paid run is locked and cannot be deleted.
+- **Payment:** move the run to `PAID` once it is paid. A paid run cannot be deleted. Its payslip shows
+  what it carried under "Adjustments for earlier periods".
 - **Configuration research:** `automation.statutory_research` files `statutory_finding` rows with their
   `statutory_change` rows; it never writes configuration. A person confirms a finding, then merges its
   release through `automation.statutory_materialize`.
@@ -92,6 +103,6 @@ balance.
 
 ## Reference
 
-`docs/README.md` maps the documentation: the architecture, the mechanisms run through, reversals and
-corrections, and the statutory coverage of the seed. The coding-agent source map is
+`docs/README.md` maps the documentation: the architecture, the mechanisms run through, corrections and
+integrity, and the statutory coverage of the seed. The coding-agent source map is
 `src/agent/AGENTS.md`.

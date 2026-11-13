@@ -1,6 +1,6 @@
 import { app } from '@norbital-ai/bolt';
 
-export default app('hr_employee', {
+export default app({
 	title: 'app.hr_employee.title',
 	description: 'app.hr_employee.description',
 	icon: 'lucide:user-round',

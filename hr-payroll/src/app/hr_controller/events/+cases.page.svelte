@@ -1,6 +1,6 @@
 <script lang="ts">
 	/** Workplace case files of one legal entity: requests, incidents and changes its version lists. */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput, Row } from '@norbital-ai/bolt';
@@ -15,10 +15,11 @@
 		runWorkbookImport,
 		type WorkbookGrids
 	} from '../../../lib/ui/workbook/workbook_import.js';
+	let { ctx }: { ctx: PageContext } = $props();
 
-	const scope = companyScope();
-	const t = bolt.t;
-	const caseName = listedKindNames('case_kinds');
+	const scope = companyScope(ctx);
+	const t = ctx.t;
+	const caseName = listedKindNames(ctx, 'case_kinds');
 	let creating = $state<'workplace_case_catalog_entry' | null>(null);
 	let importing = $state(false);
 	let warnings: readonly string[] = [];
@@ -26,7 +27,7 @@
 	const held = $derived.by(() =>
 		scope.id == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					jurisdiction_settings: {
 						where: { status: { eq: 'SEALED' } },
 						fields: ['code', 'effective_range'],
@@ -111,7 +112,7 @@
 	function importCases() {
 		importing = true;
 		fork(
-			runWorkbookImport({
+			runWorkbookImport(ctx, {
 				action: 'workplace_case_catalog_entry.create',
 				recordLabel: t('app.cases.title').toLowerCase(),
 				buildPayload: caseRows,
@@ -139,15 +140,16 @@
 	title={t('app.cases.title')}
 	description={t('app.cases.description')}
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
+	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
 	{#if scope.id == null}
 		<EmptyState title={t('app.events.empty_scope')} />
 	{:else}
 		<Table
+			{ctx}
 			of="workplace_case_catalog_entry"
 			key={`workplace_case_catalog_entry-${scope.id}`}
 			where={{ entity_id: { eq: scope.id } }}
-			orderBy={{ opened_on: 'desc' }}
+			order_by={{ opened_on: 'desc' }}
 			toolbar={{
 				title: t('app.cases.title'),
 				new: () => (creating = 'workplace_case_catalog_entry'),
@@ -166,12 +168,13 @@
 </AppShell>
 
 {#if creating != null && scope.id != null}
-	<Sheet open onOpenChange={(open) => !open && (creating = null)} title={t('app.cases.title')}>
+	<Sheet open on_open_change={(open) => !open && (creating = null)} title={t('app.cases.title')}>
 		<RecordShell
+			{ctx}
 			of={creating}
 			mode="create"
 			values={{ entity_id: scope.id }}
-			onDone={() => (creating = null)}
+			on_done={() => (creating = null)}
 		/>
 	</Sheet>
 {/if}

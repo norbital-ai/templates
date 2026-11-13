@@ -6,7 +6,7 @@
 import type { Id } from '@norbital-ai/bolt';
 import { Schema } from 'effect';
 import { JsonObject } from './contracts.js';
-import { addDays, isPlainDate } from '@norbital-ai/std/date';
+import { add_days, is_plain_date } from '@norbital-ai/std/date';
 import {
 	cellDay,
 	cellNumber,
@@ -59,7 +59,6 @@ export type ExistingLeave = {
 	readonly employment_id: Id<'employee_contract'>;
 	readonly catalog_id: Id<'leave_catalog'>;
 	readonly days: readonly { readonly date: string; readonly part: 'AM' | 'PM' }[];
-	readonly reverses?: string | null;
 };
 export type ExistingPayment<C extends string> = {
 	readonly employment_id: Id<'employee_contract'>;
@@ -298,7 +297,7 @@ const leaveSlots = (row: SheetRow, problems: string[]): LeaveDraft['days'] | nul
 			.map((part) => part.trim())
 			.filter((part) => part !== '')) {
 			const found = /^(\d{4}-\d{2}-\d{2})(?:\s*(?:\/|\s)\s*(AM|PM))?$/i.exec(token);
-			if (found == null || !isPlainDate(found[1]!)) {
+			if (found == null || !is_plain_date(found[1]!)) {
 				problems.push(`Row ${row.at}: "${token}" is not a date, optionally followed by AM or PM.`);
 				continue;
 			}
@@ -333,7 +332,7 @@ const leaveSlots = (row: SheetRow, problems: string[]): LeaveDraft['days'] | nul
 		if (fromPart === undefined) return null;
 		const toPart = partOf(cellText(row.cells.to_part), row.at, 'to part', problems);
 		if (toPart === undefined) return null;
-		for (let day: string = from; day <= to; day = addDays(day, 1)) {
+		for (let day: string = from; day <= to; day = add_days(day, 1)) {
 			const first = day === from ? (fromPart === 'PM' ? 'PM' : 'AM') : 'AM';
 			const last = day === to ? (toPart === 'AM' ? 'AM' : 'PM') : 'PM';
 			if (first === 'PM' && last === 'AM') continue;
@@ -370,7 +369,6 @@ export function parseLeaveSheet(
 	const codes = new Map(known.catalogs.map((catalog) => [catalog.id, catalog.code]));
 	const held = new Map<string, string>();
 	for (const entry of known.existing) {
-		if (entry.reverses != null) continue;
 		const code = codes.get(entry.catalog_id) ?? '';
 		for (const slot of entry.days)
 			held.set(`${entry.employment_id}:${String(slot.date).slice(0, 10)}:${slot.part}`, code);

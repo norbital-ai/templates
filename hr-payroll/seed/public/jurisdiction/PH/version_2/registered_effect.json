@@ -1,37 +1,5 @@
 [
 	{
-		"code": "encash-leave-on-exit",
-		"description": "Raises the leave-encashment task when a sealed contract ends.",
-		"name": "Encash Leave On Exit",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Labor Code art.95; DOLE Handbook 2024 ch.7: unused service incentive leave is commuted on separation; company policy may provide more."
-			}
-		],
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "\"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to"
-						}
-					}
-				},
-				"fields": ["occurrence_key"],
-				"limit": 1
-			}
-		},
-		"condition": "if (ctx.after == null) return false;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return false;\nreturn true;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Encash Leave On Exit\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? ctx.entry.effective_range.to,\n\t\toccurrence_key: \"encash-leave-on-exit:\" + ctx.entry.id + \":exit:\" + ctx.entry.effective_range.to\n\t}\n];",
-		"id": "32da7795-1f9d-596c-9324-f7e72b0417cd",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
 		"code": "raise-exit-pay",
 		"description": "Raises the separation or retirement pay task when a sealed contract ends.",
 		"name": "Raise Exit Pay",
@@ -86,7 +54,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -121,7 +89,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -156,7 +124,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -191,7 +159,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -294,7 +262,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -396,7 +364,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -429,7 +397,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -465,7 +433,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -533,7 +501,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -600,7 +568,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -669,7 +637,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -701,7 +669,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -733,7 +701,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -766,7 +734,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -801,7 +769,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -834,7 +802,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -869,7 +837,7 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			}
 		},
@@ -1312,11 +1280,11 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"SSS_CONTRIBUTION_REMITTANCE:\" + ctx.entry.id"
+							"var": "\"SSS_CONTRIBUTION_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			},
 			"payslip": {
@@ -1334,7 +1302,7 @@
 		"condition": "const slips = get(ctx, 'reads.payslip', []);\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"SSS_CONTRIBUTION_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7))) return false;\nconst has = (code) => slips.some((s) => (get(s, 'breakdown.statutory', []) ?? []).some((row) => row.code === code));\nreturn has('SSS') || has('SSS_MPF') || has('SSS_EC');",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"SSS contributions (SS, MPF, EC) for the month\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"SSS_CONTRIBUTION_REMITTANCE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"SSS contributions (SS, MPF, EC) for the month\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"SSS_CONTRIBUTION_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)\n\t}\n];",
 		"id": "57f5236b-3085-54b2-868e-6d98b60bd1bc",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1358,11 +1326,11 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"PHILHEALTH_PREMIUM_REMITTANCE:\" + ctx.entry.id"
+							"var": "\"PHILHEALTH_PREMIUM_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			},
 			"payslip": {
@@ -1380,7 +1348,7 @@
 		"condition": "const slips = get(ctx, 'reads.payslip', []);\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_PREMIUM_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7))) return false;\nconst has = (code) => slips.some((s) => (get(s, 'breakdown.statutory', []) ?? []).some((row) => row.code === code));\nreturn has('PHIC');",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"PhilHealth premium for the month\",\n\t\tdue_on: add_days(month_end(get(ctx.entry, 'salary_coverage.to', null)), ctx.lookup.due_days),\n\t\toccurrence_key: \"PHILHEALTH_PREMIUM_REMITTANCE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"PhilHealth premium for the month\",\n\t\tdue_on: add_days(month_end(get(ctx.entry, 'salary_coverage.to', null)), ctx.lookup.due_days),\n\t\toccurrence_key: \"PHILHEALTH_PREMIUM_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)\n\t}\n];",
 		"id": "77736d2b-6c53-54b1-80e4-baf11dcdaa7d",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1404,11 +1372,11 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"HDMF_CONTRIBUTION_REMITTANCE:\" + ctx.entry.id"
+							"var": "\"HDMF_CONTRIBUTION_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			},
 			"payslip": {
@@ -1426,7 +1394,7 @@
 		"condition": "const slips = get(ctx, 'reads.payslip', []);\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_CONTRIBUTION_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7))) return false;\nconst has = (code) => slips.some((s) => (get(s, 'breakdown.statutory', []) ?? []).some((row) => row.code === code));\nreturn has('HDMF');",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Pag-IBIG contributions for the month\",\n\t\tdue_on: add_days(month_end(get(ctx.entry, 'salary_coverage.to', null)), ctx.lookup.due_days),\n\t\toccurrence_key: \"HDMF_CONTRIBUTION_REMITTANCE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Pag-IBIG contributions for the month\",\n\t\tdue_on: add_days(month_end(get(ctx.entry, 'salary_coverage.to', null)), ctx.lookup.due_days),\n\t\toccurrence_key: \"HDMF_CONTRIBUTION_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)\n\t}\n];",
 		"id": "8b5bb665-c9cb-5a94-98b7-c7278a660ebb",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1451,7 +1419,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"BIR_1601C_MONTHLY_REMITTANCE:\" + ctx.entry.id"
+							"var": "\"BIR_1601C_MONTHLY_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)"
 						}
 					}
 				},
@@ -1462,7 +1430,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 1601-C and the compensation tax withheld\",\n\t\tdue_on: add_days(month_end(get(ctx.entry, 'salary_coverage.to', null)), String(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12' ? ctx.lookup.december_due_days : ctx.lookup.due_days),\n\t\toccurrence_key: \"BIR_1601C_MONTHLY_REMITTANCE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 1601-C and the compensation tax withheld\",\n\t\tdue_on: add_days(month_end(get(ctx.entry, 'salary_coverage.to', null)), String(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12' ? ctx.lookup.december_due_days : ctx.lookup.due_days),\n\t\toccurrence_key: \"BIR_1601C_MONTHLY_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)\n\t}\n];",
 		"id": "5bee8df9-f29e-5c8b-b705-a16a69fb73e3",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1484,11 +1452,11 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"BIR_1603Q_FRINGE_BENEFITS:\" + ctx.entry.id"
+							"var": "\"BIR_1603Q_FRINGE_BENEFITS:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4) + \"-Q\" + Math.ceil(Number(String(get(ctx.entry, 'salary_coverage.to', '')).slice(5, 7)) / 3)"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			},
 			"payslip": {
@@ -1506,7 +1474,7 @@
 		"condition": "const slips = get(ctx, 'reads.payslip', []);\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"BIR_1603Q_FRINGE_BENEFITS:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4) + \"-Q\" + Math.ceil(Number(String(get(ctx.entry, 'salary_coverage.to', '')).slice(5, 7)) / 3))) return false;\nreturn slips.some((s) => (get(s, 'breakdown.statutory', []) ?? []).some((row) => row.code === 'FBT' && (Number(row.employee) > 0 || Number(row.employer) > 0)));",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 1603Q and the fringe benefit tax\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"BIR_1603Q_FRINGE_BENEFITS:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 1603Q and the fringe benefit tax\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"BIR_1603Q_FRINGE_BENEFITS:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4) + \"-Q\" + Math.ceil(Number(String(get(ctx.entry, 'salary_coverage.to', '')).slice(5, 7)) / 3)\n\t}\n];",
 		"id": "9eca03c2-7147-5800-9e9b-3a11c33d1ad5",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1528,11 +1496,11 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"SSS_LOAN_REMITTANCE:\" + ctx.entry.id"
+							"var": "\"SSS_LOAN_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			},
 			"payslip": {
@@ -1550,7 +1518,7 @@
 		"condition": "const slips = get(ctx, 'reads.payslip', []);\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"SSS_LOAN_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7))) return false;\nconst loan = slips.some((s) => (get(s, 'breakdown.lines', []) ?? []).some((line) => line.source === 'loan_catalog_entry_repayment' && line.direction === 'DEDUCT' && Number(line.amount) > 0 && String(line.code).startsWith('LOAN_RECOVERY_SSS')));\nreturn loan;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Remit the SSS loan amortisations deducted\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"SSS_LOAN_REMITTANCE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Remit the SSS loan amortisations deducted\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"SSS_LOAN_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)\n\t}\n];",
 		"id": "475b2fc9-3806-51c1-80d5-9ab8c29f732d",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1573,11 +1541,11 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"PAGIBIG_LOAN_REMITTANCE:\" + ctx.entry.id"
+							"var": "\"PAGIBIG_LOAN_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)"
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": ["occurrence_key"],
 				"limit": 1
 			},
 			"payslip": {
@@ -1595,7 +1563,7 @@
 		"condition": "const slips = get(ctx, 'reads.payslip', []);\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PAGIBIG_LOAN_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7))) return false;\nconst loan = slips.some((s) => (get(s, 'breakdown.lines', []) ?? []).some((line) => line.source === 'loan_catalog_entry_repayment' && line.direction === 'DEDUCT' && Number(line.amount) > 0 && String(line.code).startsWith('LOAN_RECOVERY_PAGIBIG')));\nreturn loan;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Remit the Pag-IBIG loan amortisations and voluntary savings deducted\",\n\t\tdue_on: add_days(month_end(get(ctx.entry, 'salary_coverage.to', null)), ctx.lookup.due_days),\n\t\toccurrence_key: \"PAGIBIG_LOAN_REMITTANCE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Remit the Pag-IBIG loan amortisations and voluntary savings deducted\",\n\t\tdue_on: add_days(month_end(get(ctx.entry, 'salary_coverage.to', null)), ctx.lookup.due_days),\n\t\toccurrence_key: \"PAGIBIG_LOAN_REMITTANCE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 7)\n\t}\n];",
 		"id": "9c124469-5c22-5edb-8514-9cc8a96b2c12",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1617,7 +1585,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"BIR_YEAR_END_ADJUSTMENT:\" + ctx.entry.id"
+							"var": "\"BIR_YEAR_END_ADJUSTMENT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1628,7 +1596,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Year-end annualisation and refund of over-withholding\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-25',\n\t\toccurrence_key: \"BIR_YEAR_END_ADJUSTMENT:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Year-end annualisation and refund of over-withholding\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-25',\n\t\toccurrence_key: \"BIR_YEAR_END_ADJUSTMENT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "d42ac35f-6ec9-5c08-a11b-2824ed4daf87",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1650,7 +1618,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"BIR_1604C_ANNUAL_ALPHALIST:\" + ctx.entry.id"
+							"var": "\"BIR_1604C_ANNUAL_ALPHALIST:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1661,7 +1629,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 1604-C with the alphalist of employees\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"BIR_1604C_ANNUAL_ALPHALIST:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 1604-C with the alphalist of employees\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"BIR_1604C_ANNUAL_ALPHALIST:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "022c4f28-970a-53bf-9d80-e169bcfe08a5",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1683,7 +1651,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"BIR_2316_CERTIFICATE:\" + ctx.entry.id"
+							"var": "\"BIR_2316_CERTIFICATE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1694,7 +1662,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 2316 to every employee for the year\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"BIR_2316_CERTIFICATE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 2316 to every employee for the year\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"BIR_2316_CERTIFICATE:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "7bc5ca4d-7be9-5393-9ea1-2b83029d40fa",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1716,7 +1684,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"BIR_2316_SUBSTITUTED_FILING_LIST:\" + ctx.entry.id"
+							"var": "\"BIR_2316_SUBSTITUTED_FILING_LIST:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1727,7 +1695,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Duplicate 2316s with the certified list for substituted filing\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-02-28',\n\t\toccurrence_key: \"BIR_2316_SUBSTITUTED_FILING_LIST:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Duplicate 2316s with the certified list for substituted filing\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-02-28',\n\t\toccurrence_key: \"BIR_2316_SUBSTITUTED_FILING_LIST:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "7d7b9980-eba1-571d-a452-cb12c997cbb1",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1749,7 +1717,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"THIRTEENTH_MONTH_PAYMENT:\" + ctx.entry.id"
+							"var": "\"THIRTEENTH_MONTH_PAYMENT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1760,7 +1728,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"13th-month pay for the year\",\n\t\tdue_on: String(get(ctx.entry, 'salary_coverage.to', '')).substring(0, 4) + '-12-24',\n\t\toccurrence_key: \"THIRTEENTH_MONTH_PAYMENT:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"13th-month pay for the year\",\n\t\tdue_on: String(get(ctx.entry, 'salary_coverage.to', '')).substring(0, 4) + '-12-24',\n\t\toccurrence_key: \"THIRTEENTH_MONTH_PAYMENT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "59be5b17-3971-50d3-bb80-b5b10e79bb74",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1782,7 +1750,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"THIRTEENTH_MONTH_DOLE_REPORT:\" + ctx.entry.id"
+							"var": "\"THIRTEENTH_MONTH_DOLE_REPORT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1793,7 +1761,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"13th-month compliance report to DOLE\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-15',\n\t\toccurrence_key: \"THIRTEENTH_MONTH_DOLE_REPORT:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"13th-month compliance report to DOLE\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-15',\n\t\toccurrence_key: \"THIRTEENTH_MONTH_DOLE_REPORT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "bee71780-a048-5a79-8a01-a2ac1836a8c0",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1815,7 +1783,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES:\" + ctx.entry.id"
+							"var": "\"ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1826,7 +1794,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Establishment Report on Wages (NWPC)\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-08-31',\n\t\toccurrence_key: \"ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Establishment Report on Wages (NWPC)\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-08-31',\n\t\toccurrence_key: \"ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "c15eea4f-a7f9-5339-a648-a29fc2fe7b16",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1848,7 +1816,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"DOLE_ANNUAL_EXPOSURE_DATA_REPORT:\" + ctx.entry.id"
+							"var": "\"DOLE_ANNUAL_EXPOSURE_DATA_REPORT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1859,7 +1827,7 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Work Accident/Illness Exposure Data Report (AEDR)\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-30',\n\t\toccurrence_key: \"DOLE_ANNUAL_EXPOSURE_DATA_REPORT:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Work Accident/Illness Exposure Data Report (AEDR)\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-30',\n\t\toccurrence_key: \"DOLE_ANNUAL_EXPOSURE_DATA_REPORT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "ea8692f8-ef9f-5905-b86a-5f88e74709e0",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
@@ -1881,7 +1849,7 @@
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "\"DOLE_ANNUAL_MEDICAL_REPORT:\" + ctx.entry.id"
+							"var": "\"DOLE_ANNUAL_MEDICAL_REPORT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)"
 						}
 					}
 				},
@@ -1892,51 +1860,8 @@
 		"condition": "if (get(ctx, \"reads.obligation\", []).length > 0) return false;\nreturn ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Medical Report (AMR) to the DOLE regional office\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-03-31',\n\t\toccurrence_key: \"DOLE_ANNUAL_MEDICAL_REPORT:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Medical Report (AMR) to the DOLE regional office\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-03-31',\n\t\toccurrence_key: \"DOLE_ANNUAL_MEDICAL_REPORT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];",
 		"id": "0e96887d-c900-5ae7-a1ac-e7f4fe29cd39",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"description": "Raises a follow-up task when a contribution correction for a closed month is entered.",
-		"name": "Follow up a contribution corrected for a closed month",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "description", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['PH', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (get(ctx, \"reads.obligation\", []).length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['PH', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "34427a46-70fb-56cb-8af1-70927ec5d758",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	}
 ]

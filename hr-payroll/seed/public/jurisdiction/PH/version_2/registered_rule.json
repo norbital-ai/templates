@@ -207,11 +207,22 @@
 		"events": ["create", "update"],
 		"order": 25,
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
-		"validate": "const employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst domestic = get(terms, 'statutory_work_category', '') === 'DOMESTIC';\nconst region = get(ctx.subject, 'employment.terms.work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\nconst start = get(ctx.entry, 'effective_range.from', '9999-12-31');\nconst rates = table.filter((entry) => entry.region === region && entry.from <= start);\nif (rates.length === 0) return false;\nconst floor = Number(rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0].monthly);\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nif (domestic && unit === 'MONTHLY') return amount + 0.005 >= floor;\nconst hours = Number(get(terms, 'normal_hours_per_day', 0));\n// DOLE ch.2: a day is the monthly wage × 12 ÷ the contract week's working days (365 − 52 rest days).\nconst daysPerYear = 365 - 52 * (7 - Number(get(terms, 'normal_days_per_week', 6)));\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: (amount * 12) / daysPerYear;\nreturn daily + 0.005 >= (floor * 12) / daysPerYear;",
+		"validate": "const employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst domestic = get(terms, 'statutory_work_category', '') === 'DOMESTIC';\nconst region = get(ctx.subject, 'employment.terms.work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\nconst start = get(ctx.entry, 'effective_range.from', '9999-12-31');\nconst rates = table.filter((entry) => entry.region === region && entry.from <= start);\nif (rates.length === 0) return false;\nconst floor = Number(rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0].monthly);\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nif (domestic && unit === 'MONTHLY') return amount + 0.005 >= floor;\nconst hours = Number(get(terms, 'normal_hours_per_day', 0));\n// DOLE ch.2: a day is the monthly wage × 12 ÷ the contract week's working days (365 − 52 rest days).\nconst daysPerYear = 365 - 52 * (7 - Number(get(terms, 'normal_days_per_week', 6)));\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: (amount * 12) / daysPerYear;\n// The table's monthly figure is the wage order's daily rate × 313 ÷ 12: the order fixes the day, whatever the work week.\nreturn daily + 0.005 >= (floor * 12) / 313;",
 		"lookup": {},
 		"references": [
 			{
 				"title": "RA 6727 s.2 and the Regional Tripartite Wages and Productivity Board wage orders: the daily minimum wage depends on the region and the establishment's agriculture/non-agriculture/retail classification; domestic workers have a separate wage table. DOLE/BWC wage order summaries, read 2026-10-31."
+			},
+			{
+				"title": "NWPC Summary of Current Regional Daily Minimum Wage Rates (6 November 2026)",
+				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2026/11/4-Summary-of-Current-Regl-MWRs-Non-Agri-and-Agri-by-Region-November-6_2026.pdf",
+				"quote": "Read 2026-11-13. Each wage order states a daily rate; a contract on a five-day week meets it when its day rate (monthly × 12 ÷ 261) reaches that daily rate."
+			},
+			{
+				"title": "Wage Orders RBVI-30 (Western Visayas) and RB XII-26 (SOCCSKSARGEN), NWPC summary of 6 November 2026",
+				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2026/11/4-Summary-of-Current-Regl-MWRs-Non-Agri-and-Agri-by-Region-November-6_2026.pdf",
+				"locator": "Region VI and XII rows",
+				"quote": "Read 2026-11-13. RBVI-30, issued 21 October 2026, effective 20 November 2026: ₱565–590 non-agriculture, ₱565 agriculture. RB XII-26, issued 7 October 2026: ₱476 non-agriculture/retail/service and ₱459 agriculture from 22 November 2026; ₱501 and ₱484 from 1 January 2027."
 			}
 		],
 		"id": "5eb24813-7eb1-5765-81cc-9a9ec8fc4c1b",

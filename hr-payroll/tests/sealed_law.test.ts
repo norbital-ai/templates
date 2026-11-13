@@ -9,7 +9,7 @@ import { Cause, Effect, Exit } from 'effect';
 import { type JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { pack, uuid, workspace } from './kit.ts';
+import { pack, uuid, workspace, storedQuery } from './kit.ts';
 
 const NOW = '2026-08-20T02:00:00.000Z';
 const base = pack(
@@ -48,6 +48,9 @@ const MODELS = [
 ] as const;
 type Model = (typeof MODELS)[number];
 const NOT_DRAFT = /Only a draft jurisdiction configuration can be changed/;
+// a sealed version locks its rows: a delete may be refused by that lock before any callback runs
+const LOCKED =
+	/Only a draft jurisdiction configuration can be changed|The parent record is locked in its current state/;
 
 /** The sealed version copied whole as a draft under another code, every id and link its own. */
 const drafted = (change: (model: Model, row: JsonObject) => JsonObject = (_, row) => row): Seed => {
@@ -93,49 +96,50 @@ const added = (seed: Seed, model: Model, version: string): JsonObject => {
 		...(model === 'subtotal' && last !== undefined ? { previous_id: last.id } : {})
 	};
 };
-/** Every row of the law, as `model/version/code → id`. */
+/** Every row of the law, as `model/version/code → { id, revision }`. */
 const law = (t: Kit) =>
-	t
-		.storedQuery({
-			subtotal: { limit: 10000 },
-			allowance_catalog: { limit: 10000 },
-			overtime_catalog: { limit: 10000 },
-			statutory_contribution_catalog: { limit: 10000 },
-			leave_catalog: { limit: 10000 },
-			claim_catalog: { limit: 10000 },
-			adhoc_catalog: { limit: 10000 },
-			loan_catalog: { limit: 10000 },
-			work_event_catalog: { limit: 10000 },
-			workplace_case_catalog: { limit: 10000 },
-			registered_rule: { limit: 10000 },
-			registered_effect: { limit: 10000 }
-		})
-		.pipe(
-			Effect.map(
-				(got) =>
-					new Map<string, string>(
-						MODELS.flatMap((model) =>
-							got[model].rows.map(
-								(row) => [`${model}/${row.settings_id}/${row.code}`, String(row.id)] as const
-							)
+	storedQuery(t, {
+		subtotal: { limit: 10000 },
+		allowance_catalog: { limit: 10000 },
+		overtime_catalog: { limit: 10000 },
+		statutory_contribution_catalog: { limit: 10000 },
+		leave_catalog: { limit: 10000 },
+		claim_catalog: { limit: 10000 },
+		adhoc_catalog: { limit: 10000 },
+		loan_catalog: { limit: 10000 },
+		work_event_catalog: { limit: 10000 },
+		workplace_case_catalog: { limit: 10000 },
+		registered_rule: { limit: 10000 },
+		registered_effect: { limit: 10000 }
+	}).pipe(
+		Effect.map(
+			(got) =>
+				new Map<string, { readonly id: string; readonly revision: number }>(
+					MODELS.flatMap((model) =>
+						got[model].rows.map(
+							(row) =>
+								[
+									`${model}/${row.settings_id}/${row.code}`,
+									{ id: String(row.id), revision: row.revision }
+								] as const
 						)
 					)
-			)
-		);
+				)
+		)
+	);
 /** Why an act did not commit; `committed` when it did. */
 const outcome = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 	Effect.exit(effect).pipe(
 		Effect.map((exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : 'committed'))
 	);
-const statusOf = (t: Kit, id: string) =>
-	t
-		.storedQuery({ jurisdiction_settings: { limit: 100 } })
-		.pipe(
-			Effect.map(
-				({ jurisdiction_settings }) =>
-					jurisdiction_settings.rows.find((row) => row.id === id)?.status
-			)
-		);
+const settingsRow = (t: Kit, id: string) =>
+	storedQuery(t, { jurisdiction_settings: { limit: 100 } }).pipe(
+		Effect.map(({ jurisdiction_settings }) => {
+			const row = jurisdiction_settings.rows.find((one) => one.id === id);
+			assert.ok(row !== undefined, id);
+			return row;
+		})
+	);
 
 describe('the rows of a version of the law', () => {
 	const seed = drafted();
@@ -144,9 +148,9 @@ describe('the rows of a version of the law', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const acts = t.bodyActs(t.admin);
+				const acts = yield* t.body_acts(t.admin);
 				const write = (model: Model, verb: 'create' | 'update' | 'delete', input: JsonObject) =>
-					outcome(acts.checked([{ callable: `${model}.${verb}`, input: [input] }]));
+					outcome(acts({ [`${model}.${verb}`]: [input] }));
 				const before = yield* law(t);
 				for (const model of MODELS) {
 					const row = added(seed, model, SEALED);
@@ -158,11 +162,7 @@ describe('the rows of a version of the law', () => {
 						NOT_DRAFT,
 						`${model}.update`
 					);
-					assert.match(
-						yield* write(model, 'delete', { target: held }),
-						NOT_DRAFT,
-						`${model}.delete`
-					);
+					assert.match(yield* write(model, 'delete', { target: held }), LOCKED, `${model}.delete`);
 				}
 				assert.deepEqual(yield* law(t), before);
 				// the draft is where the law is written: the same three acts, on each model
@@ -179,8 +179,10 @@ describe('the rows of a version of the law', () => {
 						'committed',
 						`${model}.update`
 					);
+					const renamed = (yield* law(t)).get(`${model}/${DRAFT}/${String(row.code)}_2`);
+					assert.ok(renamed !== undefined, model);
 					assert.equal(
-						yield* write(model, 'delete', { target: made }),
+						yield* write(model, 'delete', { target: renamed }),
 						'committed',
 						`${model}.delete`
 					);
@@ -206,36 +208,51 @@ describe('sealing a draft', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const admin = t.as(t.admin);
-				const seal = outcome(
-					admin.act('jurisdiction_settings.update', [
-						{ target: idOf('jurisdiction_settings', DRAFT), set: { status: 'SEALED' } }
-					])
+				const admin = yield* t.as(t.admin);
+				const seal = settingsRow(t, DRAFT).pipe(
+					Effect.andThen((settings) =>
+						outcome(
+							admin.act({
+								'jurisdiction_settings.update': [{ target: settings, set: { status: 'SEALED' } }]
+							})
+						)
+					)
 				);
 				assert.match(yield* seal, new RegExp(`${CLAIM}: params do not match the family shape`));
-				assert.equal(yield* statusOf(t, DRAFT), 'DRAFT');
+				assert.equal((yield* settingsRow(t, DRAFT)).status, 'DRAFT');
 				const row = (yield* law(t)).get(`claim_catalog/${DRAFT}/${CLAIM}`);
 				assert.ok(row !== undefined);
-				const target = idOf('claim_catalog', row);
+				const target = { id: idOf('claim_catalog', row.id), revision: row.revision };
 				// a claim row prices from the entry and the wage, never from overtime
 				assert.match(
 					yield* outcome(
-						admin.act('claim_catalog.update', [
-							{ target, set: { conversion: 'return ctx.overtime.total;' } }
-						])
+						admin.act({
+							'claim_catalog.update': [
+								{ target, set: { conversion: 'return ctx.overtime.total;' } }
+							]
+						})
 					),
 					/ctx\.overtime is unavailable at CALCULATION/
 				);
 				// the way out: the row corrected on the draft
-				yield* admin.act('claim_catalog.update', [
-					{ target, set: { lookup: { annual_limit: 1000 } } }
-				]);
+				yield* admin.act({
+					'claim_catalog.update': [{ target, set: { lookup: { annual_limit: 1000 } } }]
+				});
 				assert.equal(yield* seal, 'committed');
-				assert.deepEqual((yield* t.runDue()).failed, []);
-				assert.equal(yield* statusOf(t, DRAFT), 'SEALED');
+				assert.deepEqual((yield* t.run_due()).failed, []);
+				assert.equal((yield* settingsRow(t, DRAFT)).status, 'SEALED');
+				const sealedRow = (yield* law(t)).get(`claim_catalog/${DRAFT}/${CLAIM}`);
+				assert.ok(sealedRow !== undefined);
 				assert.match(
 					yield* outcome(
-						admin.act('claim_catalog.update', [{ target, set: { lookup: { annual_limit: 2000 } } }])
+						admin.act({
+							'claim_catalog.update': [
+								{
+									target: { ...target, revision: sealedRow.revision },
+									set: { lookup: { annual_limit: 2000 } }
+								}
+							]
+						})
 					),
 					NOT_DRAFT
 				);

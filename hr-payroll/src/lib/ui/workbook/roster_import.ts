@@ -1,8 +1,8 @@
 import { Effect } from 'effect';
 import type { Id } from '@norbital-ai/bolt';
-import { PlainDate, monthOf } from '@norbital-ai/std/date';
+import { PlainDate, month_of } from '@norbital-ai/std/date';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import { bolt } from '$bolt';
+import type { PageContext } from '@norbital-ai/bolt/page';
 import {
 	planRosterUpload,
 	rosterMonth,
@@ -36,16 +36,18 @@ const zoneOn = <V>(
 
 /**
  * Reads one roster workbook for the scoped entity and writes what it changes as one import: a dry run first, whose
- * refusal lists every row the server refuses and writes nothing, then the import itself. A sealed day is refused by
- * the plan before either call, naming the payroll run.
+ * refusal lists every row the server refuses and writes nothing, then the import itself.
  */
-export const runRosterImport = (options: {
-	readonly entity_id: Id<'entity'>;
-	readonly entity_name: string;
-	readonly settings_code: string;
-}) =>
-	runWorkbookImportSteps({
-		recordLabel: bolt.t('models.roster_entry.label').toLowerCase(),
+export const runRosterImport = (
+	ctx: Pick<PageContext, 't' | 'act' | 'query'>,
+	options: {
+		readonly entity_id: Id<'entity'>;
+		readonly entity_name: string;
+		readonly settings_code: string;
+	}
+) =>
+	runWorkbookImportSteps(ctx, {
+		recordLabel: ctx.t('models.roster_entry.label').toLowerCase(),
 		buildPayload: (grids) =>
 			Effect.gen(function* () {
 				const month = yield* Effect.try({
@@ -53,7 +55,7 @@ export const runRosterImport = (options: {
 					catch: workbookImportError
 				});
 				const day = PlainDate(`${month}-01`);
-				const scope = yield* bolt.query({
+				const scope = yield* ctx.query({
 					employee_contract: {
 						where: { entity_id: { eq: options.entity_id }, status: { eq: 'SEALED' } },
 						fields: ['employee_number', 'entity_id', 'effective_range'],
@@ -97,13 +99,13 @@ export const runRosterImport = (options: {
 				const entries =
 					scope.employee_contract.rows.length === 0
 						? []
-						: (yield* bolt.query({
+						: (yield* ctx.query({
 								roster_entry: {
 									where: {
 										employment_id: {
 											in: scope.employee_contract.rows.map((row) => row.id)
 										},
-										work_date: { gte: day, lte: monthOf(day).to ?? day }
+										work_date: { gte: day, lte: month_of(day).to ?? day }
 									},
 									fields: [
 										'employment_id',
@@ -112,27 +114,11 @@ export const runRosterImport = (options: {
 										'planned_overtime_intervals',
 										'overtime_as_time_off',
 										'actual_worked_intervals',
-										'consent',
-										'payroll_run_id'
+										'consent'
 									],
 									limit: 10000
 								}
 							})).roster_entry.rows;
-				const runIds = [
-					...new Set(
-						entries.flatMap((entry) => (entry.payroll_run_id == null ? [] : [entry.payroll_run_id]))
-					)
-				];
-				const runs =
-					runIds.length === 0
-						? []
-						: (yield* bolt.query({
-								payroll_run: {
-									where: { id: { in: runIds } },
-									fields: ['run_number', 'period'],
-									limit: 10000
-								}
-							})).payroll_run.rows;
 				const employees: RosterEmployee[] = scope.employee_contract.rows.map((row) => ({
 					id: row.id,
 					number: row.employee_number,
@@ -150,22 +136,17 @@ export const runRosterImport = (options: {
 					end_time: row.variant.end_time ?? null,
 					ends_next_day: row.variant.ends_next_day === true
 				}));
-				const stored: RosterStored[] = entries.map((entry) => {
-					const run = runs.find((candidate) => candidate.id === entry.payroll_run_id);
-					return {
-						employment_id: entry.employment_id,
-						work_date: String(entry.work_date),
-						shift_definition_id: entry.shift_definition_id,
-						planned_overtime_intervals: entry.planned_overtime_intervals ?? null,
-						overtime_as_time_off: entry.overtime_as_time_off,
-						actual_worked_intervals: (entry.actual_worked_intervals ?? []).flatMap((interval) =>
-							interval.end == null ? [] : [{ start: interval.start, end: interval.end }]
-						),
-						consent: entry.consent ?? null,
-						payroll_run_id: entry.payroll_run_id ?? null,
-						run_label: run?.run_number == null ? null : String(run.run_number)
-					};
-				});
+				const stored: RosterStored[] = entries.map((entry) => ({
+					employment_id: entry.employment_id,
+					work_date: String(entry.work_date),
+					shift_definition_id: entry.shift_definition_id,
+					planned_overtime_intervals: entry.planned_overtime_intervals ?? null,
+					overtime_as_time_off: entry.overtime_as_time_off,
+					actual_worked_intervals: (entry.actual_worked_intervals ?? []).flatMap((interval) =>
+						interval.end == null ? [] : [{ start: interval.start, end: interval.end }]
+					),
+					consent: entry.consent ?? null
+				}));
 				return yield* Effect.try({
 					try: () =>
 						planRosterUpload(grids, {
@@ -179,10 +160,10 @@ export const runRosterImport = (options: {
 				});
 			}).pipe(Effect.mapError(workbookImportError)),
 		submit: (plan) => {
-			const input = { rows: plan.rows, onConflict: 'update' } as const;
+			const input = { rows: plan.rows, on_conflict: 'update' } as const;
 			// the server judges the whole file through the write itself, then writes all of it or nothing
-			return bolt.act('roster_entry.import', { ...input, dryRun: true }).pipe(
-				Effect.andThen(bolt.act('roster_entry.import', input)),
+			return ctx.act({ 'roster_entry.import': { ...input, dry_run: true as const } }).pipe(
+				Effect.andThen(ctx.act({ 'roster_entry.import': input })),
 				Effect.as({
 					imported: plan.rows.length,
 					overwritten: plan.overwritten,
@@ -191,14 +172,14 @@ export const runRosterImport = (options: {
 				Effect.catchTag('ActRefused', (refused) =>
 					Effect.fail(
 						new WorkbookImportError({
-							message: bolt.t('roster.import_refused'),
+							message: ctx.t('roster.import_refused'),
 							detail: refused.message.split('\n')
 						})
 					)
 				),
 				Effect.catchTag('ActUnknown', () =>
 					Effect.fail(
-						new WorkbookImportError({ message: bolt.t('roster.import_interrupted'), detail: [] })
+						new WorkbookImportError({ message: ctx.t('roster.import_interrupted'), detail: [] })
 					)
 				)
 			);

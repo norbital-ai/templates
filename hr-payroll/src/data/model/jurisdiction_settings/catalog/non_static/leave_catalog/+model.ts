@@ -1,19 +1,20 @@
-import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
+import { model } from '../../../../../../../.norbital/models/leave_catalog.ts';
 import {
 	guardConfigurationRows,
 	requireDraftSettings
 } from '../../../../../../lib/payroll_engine/configuration.js';
 
-export default model('leave_catalog', {
+export default model({
 	description:
 		'Effective jurisdiction configuration. Sealing the owner freezes this rule and its declared references.',
-	label: 'code',
+	record_label: 'record.code',
 	fields: {
 		subtotal_id: {
 			kind: 'ref',
 			to: 'subtotal',
 			optional: true,
-			onDelete: 'restrict',
+			on_delete: 'restrict',
 			inverse: 'leave_catalog'
 		},
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
@@ -27,16 +28,17 @@ export default model('leave_catalog', {
 		eligibility: { kind: 'text', max: 65536, optional: true },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'leave_catalog', owned: true }
 	},
-	unique: [{ fields: ['settings_id', 'code'] }],
-	read: {
-		leave_catalog: { fields: 'all' },
-		'leave_catalog.settings_id': { fields: 'all' },
-		'leave_catalog.subtotal_id': { fields: ['code', 'name'] },
-		'leave_catalog.settings_id.registered_rule': { fields: 'all' }
+	constraints: { code_per_settings: { unique: ['settings_id', 'code'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			settings_id: { fields: 'all', registered_rule: { fields: 'all' } },
+			subtotal_id: { fields: ['code', 'name'] }
+		}
 	},
 	create: {
 		columns: {
-			leave_catalog: [
+			fields: [
 				'subtotal_id',
 				'lookup',
 				'code',
@@ -48,19 +50,19 @@ export default model('leave_catalog', {
 				'settings_id'
 			]
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'leave_catalog',
-				rows,
-				rows.map((r) => r.settings_id)
+				changes.map((c) => c.after),
+				changes.map((c) => c.after.settings_id)
 			);
-			return rows;
+			return changes.map((c) => c.set);
 		}
 	},
 	update: {
 		columns: {
-			leave_catalog: [
+			fields: [
 				'subtotal_id',
 				'lookup',
 				'code',
@@ -73,19 +75,23 @@ export default model('leave_catalog', {
 		},
 		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
-				ctx.db.query,
+				ctx.query,
 				'leave_catalog',
-				changes.map((c) => ({ ...c.before, ...c.set })),
+				changes.map((c) => c.after),
 				changes.map((c) => c.before.settings_id)
 			);
 			return changes.map((c) => c.set);
 		}
 	},
 	delete: {
-		check: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			yield* requireDraftSettings(
-				ctx.db.query,
-				rows.map((r) => r.settings_id)
+				ctx.query,
+				changes.map((c) => c.before.settings_id)
+			).pipe(
+				Effect.catchTag('Refusal', (error) =>
+					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+				)
 			);
 		}
 	}

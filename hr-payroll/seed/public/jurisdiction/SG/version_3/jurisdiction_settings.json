@@ -4,7 +4,7 @@
 		"name": "Singapore — 1 July 2026",
 		"effective_range": {
 			"from": "2026-07-01",
-			"to": null
+			"to": "2026-08-31"
 		},
 		"currency": "SGD",
 		"timezone": "Asia/Singapore",
@@ -198,7 +198,7 @@
 					"type": "boolean",
 					"default": false,
 					"title": "Dismissed for misconduct after due inquiry",
-					"description": "Employment Act 1968 s.14(1) (due inquiry) with s.88A: untaken annual leave is paid on every exit except a DISMISSAL for misconduct; the encash-leave-on-exit rule withholds it when this is true on a DISMISSAL."
+					"description": "Employment Act 1968 s.14(1) (due inquiry) with s.88A: untaken annual leave is paid on every exit except a DISMISSAL for misconduct; HR switches the pay-out off on the contract when this is true on a DISMISSAL."
 				},
 				"final_pay_not_possible": {
 					"type": "boolean",
@@ -764,35 +764,17 @@
 				"RETAIL_ASSISTANT": {
 					"sector": "RETAIL",
 					"base": "GROSS_EX_OT",
-					"monthly_floor": 2305,
-					"steps": [
-						{
-							"from": "2026-09-01",
-							"monthly_floor": 2435
-						}
-					]
+					"monthly_floor": 2305
 				},
 				"RETAIL_ASSISTANT_SUPERVISOR": {
 					"sector": "RETAIL",
 					"base": "GROSS_EX_OT",
-					"monthly_floor": 2790,
-					"steps": [
-						{
-							"from": "2026-09-01",
-							"monthly_floor": 2950
-						}
-					]
+					"monthly_floor": 2790
 				},
 				"RETAIL_SENIOR_ASSISTANT": {
 					"sector": "RETAIL",
 					"base": "GROSS_EX_OT",
-					"monthly_floor": 2535,
-					"steps": [
-						{
-							"from": "2026-09-01",
-							"monthly_floor": 2680
-						}
-					]
+					"monthly_floor": 2535
 				},
 				"SECURITY_INHOUSE_OFFICER": {
 					"sector": "SECURITY",
@@ -926,7 +908,8 @@
 			"rounding": {
 				"mode": "HALF_UP",
 				"scale": 2
-			}
+			},
+			"back_pay": "ADDITIONAL_BACKPAY"
 		},
 		"ledger": {
 			"ytd_scope": "JURISDICTION"

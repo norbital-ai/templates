@@ -3,19 +3,19 @@ import { employeeReference, type ExportFormat } from './export_format.js';
 
 /** Salary listing: one row per payslip, the workbook every payroll team reconciles against. */
 const schema = {
-	employee_number: { kind: 'text', label: 'Employee no.' },
-	employee_name: { kind: 'text', label: 'Employee' },
-	currency: { kind: 'text', label: 'Currency' },
-	basic_earnings: { kind: 'number', label: 'Basic salary (contract)' },
-	allowances: { kind: 'number', label: 'Allowances' },
-	npl: { kind: 'number', label: 'NPL' },
-	proration: { kind: 'number', label: 'Proration' },
-	gross_earnings: { kind: 'number', label: 'Gross pay' },
-	total_deductions: { kind: 'number', label: 'Deductions' },
-	net_pay: { kind: 'number', label: 'Net pay' },
-	employer_cost: { kind: 'number', label: 'Employer cost' },
-	bank_name: { kind: 'text', label: 'Bank' },
-	bank_account_number: { kind: 'text', label: 'Account' }
+	employee_number: { kind: 'text' },
+	employee_name: { kind: 'text' },
+	currency: { kind: 'text' },
+	basic_earnings: { kind: 'number' },
+	allowances: { kind: 'number' },
+	npl: { kind: 'number' },
+	proration: { kind: 'number' },
+	gross_earnings: { kind: 'number' },
+	total_deductions: { kind: 'number' },
+	net_pay: { kind: 'number' },
+	employer_cost: { kind: 'number' },
+	bank_name: { kind: 'text' },
+	bank_account_number: { kind: 'text' }
 } as const satisfies InputFields;
 
 export const salaryListing = {

@@ -7,7 +7,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { changesBetween, withChange } from '../src/lib/payroll_engine/contract_change.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, pack, sealEvents, uuid, workspace } from './kit.ts';
+import { ENTITY, accountsIn, pack, sealEvents, uuid, workspace, storedQuery } from './kit.ts';
 
 const PROFILE = idOf('employee_profile', uuid(4));
 const terms = {
@@ -45,22 +45,26 @@ const seed = {
 const birth = { kind: 'CHILD_BIRTH', on: '2026-03-02' };
 const PATH = 'events';
 const file = (t: Kit, set: Partial<{ on: string; from: string; value: typeof birth }> = {}) =>
-	t.as(t.member(['hr_controller'])).act('contract_change.create', [
-		{
-			employee_id: PROFILE,
-			field_path: PATH,
-			new_value: set.value ?? birth,
-			effective_from: PlainDate(set.from ?? '2026-02-01')
-		}
-	]);
+	Effect.flatMap(t.as(t.member(['hr_controller'])), (caller) =>
+		caller.act({
+			'contract_change.create': [
+				{
+					employee_id: PROFILE,
+					field_path: PATH,
+					new_value: set.value ?? birth,
+					effective_from: PlainDate(set.from ?? '2026-02-01')
+				}
+			]
+		})
+	);
 const versions = (t: Kit) =>
-	t
-		.storedQuery({ employee_contract: { where: { status: { eq: 'SEALED' } }, limit: 10 } })
-		.pipe(Effect.map(({ employee_contract }) => employee_contract.rows));
+	storedQuery(t, { employee_contract: { where: { status: { eq: 'SEALED' } }, limit: 10 } }).pipe(
+		Effect.map(({ employee_contract }) => employee_contract.rows)
+	);
 const periods = (t: Kit) =>
 	accountsIn(t).pipe(Effect.map((accounts) => accounts.leave?.MATERNITY_LEAVE ?? {}));
 const reach = (t: Kit, instant: string) =>
-	Effect.sync(() => t.clock.set(instant)).pipe(Effect.andThen(t.runDue()));
+	Effect.sync(() => t.clock.set(instant)).pipe(Effect.andThen(t.run_due()));
 
 describe('the pure rules', () => {
 	const contract = { terms: { rate: { amount: 100 } }, employee_extension_data: {} };
@@ -106,18 +110,18 @@ describe('a child known ahead of time', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* file(t);
-			yield* t.runDue();
+			yield* t.run_due();
 			assert.equal((yield* versions(t)).length, 1);
 			assert.deepEqual(yield* periods(t), {});
 			yield* reach(t, '2026-02-01T01:00:00.000Z');
-			const { obligation } = yield* t.storedQuery({ obligation: { limit: 200 } });
+			const { obligation } = yield* storedQuery(t, { obligation: { limit: 200 } });
 			assert.deepEqual(
 				obligation.rows.filter((row) => /failed/.test(row.title)).map((row) => row.title),
 				[]
 			);
 			assert.equal((yield* versions(t)).length, 2);
 			assert.deepEqual(yield* periods(t), { 'ID.E.2026-03-02': { entitled: 90 } });
-			const { contract_change } = yield* t.storedQuery({ contract_change: { limit: 1 } });
+			const { contract_change } = yield* storedQuery(t, { contract_change: { limit: 1 } });
 			assert.notEqual(contract_change.rows[0]?.applied_version_id, null);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
@@ -125,14 +129,14 @@ describe('a child known ahead of time', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* file(t);
-			const { contract_change } = yield* t.storedQuery({ contract_change: { limit: 1 } });
+			const { contract_change } = yield* storedQuery(t, { contract_change: { limit: 1 } });
 			const [filed] = contract_change.rows;
 			assert.ok(filed !== undefined);
-			yield* t
-				.as(t.member(['hr_controller']))
-				.act('contract_change.update', [
-					{ target: filed.id, set: { new_value: { ...birth, on: '2026-02-25' } } }
-				]);
+			yield* (yield* t.as(t.member(['hr_controller']))).act({
+				'contract_change.update': [
+					{ target: filed, set: { new_value: { ...birth, on: '2026-02-25' } } }
+				]
+			});
 			yield* reach(t, '2026-02-01T01:00:00.000Z');
 			assert.deepEqual(yield* periods(t), { 'ID.E.2026-02-25': { entitled: 90 } });
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
@@ -141,12 +145,12 @@ describe('a child known ahead of time', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* file(t);
-			const { contract_change } = yield* t.storedQuery({ contract_change: { limit: 1 } });
+			const { contract_change } = yield* storedQuery(t, { contract_change: { limit: 1 } });
 			const [filed] = contract_change.rows;
 			assert.ok(filed !== undefined);
-			yield* t
-				.as(t.member(['hr_controller']))
-				.act('contract_change.delete', [{ target: filed.id }]);
+			yield* (yield* t.as(t.member(['hr_controller']))).act({
+				'contract_change.delete': [{ target: filed }]
+			});
 			yield* reach(t, '2026-02-01T01:00:00.000Z');
 			assert.equal((yield* versions(t)).length, 1);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
@@ -154,18 +158,20 @@ describe('a child known ahead of time', () => {
 	it.live('a change that can no longer seal stays filed and raises a task', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t.as(t.member(['hr_controller'])).act('contract_change.create', [
-				{
-					employee_id: PROFILE,
-					field_path: 'terms.rate.amount',
-					old_value: 1,
-					new_value: 2,
-					effective_from: PlainDate('2026-02-01')
-				}
-			]);
+			yield* (yield* t.as(t.member(['hr_controller']))).act({
+				'contract_change.create': [
+					{
+						employee_id: PROFILE,
+						field_path: 'terms.rate.amount',
+						old_value: 1,
+						new_value: 2,
+						effective_from: PlainDate('2026-02-01')
+					}
+				]
+			});
 			yield* reach(t, '2026-02-01T01:00:00.000Z');
 			assert.equal((yield* versions(t)).length, 1);
-			const { obligation } = yield* t.storedQuery({ obligation: { limit: 200 } });
+			const { obligation } = yield* storedQuery(t, { obligation: { limit: 200 } });
 			assert.ok(obligation.rows.some((row) => /Contract change failed/.test(row.title)));
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
@@ -173,18 +179,24 @@ describe('a child known ahead of time', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const due = yield* Effect.flip(file(t, { from: '2026-01-20' }));
-			assert.match(String(due), /new contract version/);
+			assert.ok(due._tag === 'ActRefused');
+			assert.equal(due.key, 'errors.contract_change_effective_from');
 			const moved = yield* Effect.flip(
-				t.as(t.member(['hr_controller'])).act('contract_change.create', [
-					{
-						employee_id: PROFILE,
-						field_path: 'entity_id',
-						new_value: 'elsewhere',
-						effective_from: PlainDate('2026-02-01')
-					}
-				])
+				Effect.flatMap(t.as(t.member(['hr_controller'])), (caller) =>
+					caller.act({
+						'contract_change.create': [
+							{
+								employee_id: PROFILE,
+								field_path: 'entity_id',
+								new_value: 'elsewhere',
+								effective_from: PlainDate('2026-02-01')
+							}
+						]
+					})
+				)
 			);
-			assert.match(String(moved), /transfer/);
+			assert.ok(moved._tag === 'ActRefused');
+			assert.equal(moved.key, 'errors.contract_change_field_path');
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
@@ -194,92 +206,134 @@ describe('the first of a month', () => {
 	it.live('is when a contract changes; a hire or an exit keeps its real date', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const hr = t.as(t.member(['hr_controller']));
+			const hr = yield* t.as(t.member(['hr_controller']));
 			const [open] = yield* versions(t);
 			assert.ok(open !== undefined);
 			const { id: _id, ...row } = open;
 			const midMonth = yield* Effect.flip(
-				hr.act('employee_contract.create', [
-					{
-						employee_id: row.employee_id,
-						entity_id: row.entity_id,
-						engagement: row.engagement,
-						employee_number: row.employee_number,
-						terms: row.terms,
-						payroll: row.payroll,
-						bank: row.bank,
-						employee_extension_data: row.employee_extension_data,
-						service_started_on: row.service_started_on,
-						effective_range: { from: PlainDate('2026-02-16'), to: null },
-						signed_contract_period: row.signed_contract_period,
-						status: 'DRAFT',
-						reason: 'Promotion'
-					}
-				])
+				hr.act({
+					'employee_contract.create': [
+						{
+							employee_id: row.employee_id,
+							entity_id: row.entity_id,
+							engagement: row.engagement,
+							employee_number: row.employee_number,
+							terms: row.terms,
+							payroll: row.payroll,
+							bank: row.bank,
+							employee_extension_data: row.employee_extension_data,
+							service_started_on: row.service_started_on,
+							effective_range: { from: PlainDate('2026-02-16'), to: null },
+							signed_contract_period: row.signed_contract_period,
+							status: 'DRAFT',
+							reason: 'Promotion'
+						}
+					]
+				})
 			);
-			assert.match(String(midMonth), /first of a month/);
+			assert.ok(midMonth._tag === 'ActRefused');
+			assert.equal(midMonth.key, 'errors.employee_contract_mid_month');
 			const filed = yield* Effect.flip(file(t, { from: '2026-02-16' }));
-			assert.match(String(filed), /first of a month/);
-			yield* hr.act('employee_contract.update', [
-				{
-					target: open.id,
-					set: {
-						effective_range: { from: open.effective_range.from, to: PlainDate('2026-02-13') }
+			assert.ok(filed._tag === 'ActRefused');
+			assert.equal(filed.key, 'errors.contract_change_effective_from');
+			yield* hr.act({
+				'employee_contract.update': [
+					{
+						target: open,
+						set: {
+							effective_range: { from: open.effective_range.from, to: PlainDate('2026-02-13') }
+						}
 					}
-				}
-			]);
+				]
+			});
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('refuses service that starts after the version that records it', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const hr = t.as(t.member(['hr_controller']));
+			const hr = yield* t.as(t.member(['hr_controller']));
 			const [open] = yield* versions(t);
 			assert.ok(open !== undefined);
-			yield* hr.act('employee_contract.update', [
-				{
-					target: open.id,
-					set: {
-						effective_range: { from: open.effective_range.from, to: PlainDate('2026-01-31') }
-					}
-				}
-			]);
-			const refused = yield* Effect.flip(
-				hr.act('employee_contract.create', [
+			yield* hr.act({
+				'employee_contract.update': [
 					{
-						employee_id: open.employee_id,
-						entity_id: open.entity_id,
-						engagement: open.engagement,
-						employee_number: open.employee_number,
-						terms: open.terms,
-						payroll: open.payroll,
-						bank: open.bank,
-						employee_extension_data: open.employee_extension_data,
-						service_started_on: PlainDate('2026-02-02'),
-						effective_range: { from: PlainDate('2026-02-01'), to: null },
-						signed_contract_period: open.signed_contract_period,
-						status: 'DRAFT',
-						reason: 'A replacement'
+						target: open,
+						set: {
+							effective_range: { from: open.effective_range.from, to: PlainDate('2026-01-31') }
+						}
 					}
-				])
+				]
+			});
+			const refused = yield* Effect.flip(
+				hr.act({
+					'employee_contract.create': [
+						{
+							employee_id: open.employee_id,
+							entity_id: open.entity_id,
+							engagement: open.engagement,
+							employee_number: open.employee_number,
+							terms: open.terms,
+							payroll: open.payroll,
+							bank: open.bank,
+							employee_extension_data: open.employee_extension_data,
+							service_started_on: PlainDate('2026-02-02'),
+							effective_range: { from: PlainDate('2026-02-01'), to: null },
+							signed_contract_period: open.signed_contract_period,
+							status: 'DRAFT',
+							reason: 'A replacement'
+						}
+					]
+				})
 			);
-			assert.match(String(refused), /Service begins/);
+			assert.ok(refused._tag === 'ActRefused');
+			assert.equal(refused.key, 'errors.employee_contract_service_after_start');
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
 
-describe('a version a run captured', () => {
+describe('a version under a run', () => {
 	const NOW = '2026-07-20T02:00:00.000Z';
-	it.live('ends after the run, and never inside it', () =>
+	const june = (t: Kit) =>
+		Effect.flatMap(t.as(t.admin), (caller) =>
+			caller.act({
+				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]
+			})
+		);
+	it.live('does not end inside an unpaid run', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]);
+			yield* june(t);
 			const inside = yield* Effect.flip(sealEvents(t, '2026-06-15', [birth]));
-			assert.match(String(inside), /already captured/);
+			assert.match(String(inside), /Run 1 holds this person and is not paid yet/);
+			assert.equal((yield* versions(t)).length, 1);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('ends after an unpaid run', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* june(t);
 			yield* sealEvents(t, '2026-07-16', [birth]);
 			assert.equal((yield* versions(t)).length, 2);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('ends inside a paid run, and leaves its period to be worked out again', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* june(t);
+			yield* t.run_due();
+			const [ran] = (yield* storedQuery(t, { payroll_run: { limit: 1 } })).payroll_run.rows;
+			assert.ok(ran !== undefined);
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.update': [{ target: ran, set: { state: 'PAID' } }]
+			});
+			yield* t.run_due();
+			yield* sealEvents(t, '2026-06-15', [birth]);
+			assert.equal((yield* versions(t)).length, 2);
+			const { pay_amendment } = yield* storedQuery(t, { pay_amendment: { limit: 10 } });
+			assert.deepEqual(
+				pay_amendment.rows.map((row) => [row.employee_id, row.period, row.payroll_run_id]),
+				[[PROFILE, '2026-06', null]]
+			);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
@@ -289,7 +343,7 @@ describe('a child registered late', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* sealEvents(t, '2026-11-01', [birth], t.member(['hr_controller']));
-			yield* t.runDue();
+			yield* t.run_due();
 			assert.deepEqual(yield* periods(t), { 'ID.E.2026-03-02': { entitled: 90 } });
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
 	);

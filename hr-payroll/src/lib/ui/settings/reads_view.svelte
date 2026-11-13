@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { UiContext } from '@norbital-ai/ui';
 	import { FilterEditor, type FilterValue } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 
@@ -10,7 +11,7 @@
 		readonly limit: number | null;
 		readonly fields: string | null;
 	};
-	let { value }: { value: unknown } = $props();
+	let { ctx, value }: { ctx: UiContext; value: unknown } = $props();
 
 	const isRecord = (input: unknown): input is Record<string, unknown> =>
 		input !== null && typeof input === 'object' && !Array.isArray(input);
@@ -46,7 +47,7 @@
 					model,
 					filter: {
 						...(rest !== null && Object.keys(rest).length > 0 ? { where: rest } : {}),
-						...(isJson(spec.orderBy) ? { orderBy: spec.orderBy } : {})
+						...(isJson(spec.order_by) ? { order_by: spec.order_by } : {})
 					},
 					id,
 					limit: typeof spec.limit === 'number' ? spec.limit : null,
@@ -101,7 +102,8 @@
 							<span class="text-muted-foreground">id</span>
 							<code class="rounded-sm bg-muted px-1.5 py-0.5 font-mono">{read.id}</code>
 						</div>{/if}
-					{#if read.filter.where !== undefined || read.filter.orderBy !== undefined}<FilterEditor
+					{#if read.filter.where !== undefined || read.filter.order_by !== undefined}<FilterEditor
+							{ctx}
 							model={read.model}
 							value={read.filter}
 							readonly

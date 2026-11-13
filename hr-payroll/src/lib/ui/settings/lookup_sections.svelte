@@ -44,21 +44,23 @@
 	 * A jurisdiction's global lookup: its single values by what they govern, an expression as code, then each table in its
 	 * own collapsed section.
 	 */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { CodeEditor, Section, StructuredData, type FieldEditor } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 
 	type Value = FieldEditor['value'];
 	let {
+		ctx,
 		value,
 		name,
 		disabled = false,
-		onChange
+		on_change
 	}: {
+		ctx: PageContext;
 		value: Value;
 		name: string;
 		disabled?: boolean;
-		onChange?: (next: Value) => void;
+		on_change?: (next: Value) => void;
 	} = $props();
 
 	const entries = $derived(
@@ -88,23 +90,24 @@
 		String(Array.isArray(item) ? item.length : Object.keys(Object(item)).length);
 	const replacing = (keys: readonly string[], next: Value) => {
 		const kept = entries.filter(([key]) => !keys.includes(key));
-		onChange?.({ ...Object.fromEntries(kept), ...Object(next) });
+		on_change?.({ ...Object.fromEntries(kept), ...Object(next) });
 	};
-	const mode = $derived(onChange === undefined ? 'view' : 'edit');
+	const mode = $derived(on_change === undefined ? 'view' : 'edit');
 </script>
 
 <Stack gap="sm">
 	{#each groups as { group, code, single } (group)}
-		<Section name="lookup_{group}" title={bolt.t(`settings_lookup.${group}`)}>
+		<Section name="lookup_{group}" title={ctx.t(`settings_lookup.${group}`)}>
 			<Stack gap="md">
 				{#if single.length > 0}<StructuredData
+						{ctx}
 						{name}
 						{mode}
 						{disabled}
 						frame={false}
 						kind={RECORD}
 						value={Object.fromEntries(single)}
-						onChange={(next) =>
+						on_change={(next) =>
 							replacing(
 								single.map(([key]) => key),
 								next
@@ -116,11 +119,11 @@
 						<CodeEditor
 							language="javascript"
 							wrap
-							readonly={onChange === undefined}
-							minHeight="2.25rem"
+							readonly={on_change === undefined}
+							min_height="2.25rem"
 							value={String(text)}
 							aria-label={title(key)}
-							onChange={(next) => replacing([key], { [key]: next })}
+							on_change={(next) => replacing([key], { [key]: next })}
 						/>
 					</Stack>
 				{/each}
@@ -128,14 +131,15 @@
 		</Section>
 	{/each}
 	{#each tables as [key, table] (key)}
-		<Section name="lookup_{key}" title={title(key)} summary={size(table)} defaultOpen={false}>
+		<Section name="lookup_{key}" title={title(key)} summary={size(table)} default_open={false}>
 			<StructuredData
+				{ctx}
 				name={key}
 				{mode}
 				{disabled}
 				kind={JSON_KIND}
 				value={table}
-				onChange={(next) => replacing([key], { [key]: next })}
+				on_change={(next) => replacing([key], { [key]: next })}
 			/>
 		</Section>
 	{/each}

@@ -180,7 +180,7 @@
 		"id": "ccfe4e22-56a3-580b-b499-81c2e75d0fd0",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"balance_window": "MONTH",
-		"description": "Employees Provident Fund contribution for a permanent resident."
+		"description": "Employees Provident Fund contribution for a permanent resident, or a non-citizen who elected before 1 August 1998, aged 60 to 74: employee 5.5%; employer 6.5% on wages up to RM5,000 and 6% above (EPF Act 1991 Third Schedule Part C)."
 	},
 	{
 		"code": "EPF_NON_CITIZEN",
@@ -409,7 +409,8 @@
 		"id": "baa936da-27e5-56a1-a92e-8c97cc26e05b",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"balance_window": "MONTH",
-		"description": "Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5% from the employee and 1.75% from the employer. From age 60, when first insured at 55 or older, or on an invalidity pension, the employer alone pays about 1.25% for employment injury (Employees' Social Security Act 1969)."
+		"description": "Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5% from the employee and 1.75% from the employer. From age 60, when first insured at 55 or older, or on an invalidity pension, the employer alone pays about 1.25% for employment injury (Employees' Social Security Act 1969).",
+		"assessed": "PAID"
 	},
 	{
 		"code": "SKBBK",
@@ -430,6 +431,8 @@
 			},
 			{
 				"title": "Cabinet decision and Ministry of Human Resources announcement on SKBBK",
+				"url": "https://www.thestar.com.my/news/nation/2026/07/09/lindung-24-jam-still-mandatory-for-foreign-workers-only-optional-for-locals-says-hr-minister",
+				"locator": "The Star, 9 July 2026; NST, 8 July 2026; read 2026-11-13",
 				"quote": "On 8 July 2026 the Cabinet made the employee contribution voluntary for Malaysian citizens and permanent residents while leaving it mandatory for non-citizens, effective immediately; the Ministry of Human Resources confirmed it on 9 July 2026. PERKESO opened the election on 13 July 2026 through a Notis Perakuan Pelepasan Liabiliti on the LINDUNG Faedah portal, closing 31 August 2026. Voluntary means opt-out: an employee who files no release continues to participate.",
 				"effective_from": "2026-07-08"
 			},
@@ -512,7 +515,8 @@
 		"id": "e1ac8ef5-33db-52c7-8f47-e29242e774b9",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"balance_window": "MONTH",
-		"description": "Contribution to the social security scheme for injuries outside work, paid by the employee only, from the contribution table on the month's wages (Employees' Social Security (Amendment) Act 2026, in operation 1 June 2026). Since 8 July 2026 a citizen or permanent resident may opt out; it stays compulsory for non-citizens."
+		"description": "Contribution to the social security scheme for injuries outside work, paid by the employee only, from the contribution table on the month's wages (Employees' Social Security (Amendment) Act 2026, in operation 1 June 2026). Since 8 July 2026 a citizen or permanent resident may opt out; it stays compulsory for non-citizens.",
+		"assessed": "PAID"
 	},
 	{
 		"code": "EIS",
@@ -605,7 +609,8 @@
 		"id": "f5cfbef6-9baa-5a31-8749-33912c0bdeb5",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"balance_window": "MONTH",
-		"description": "Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution table: about 0.2% each from the employee and the employer. For citizens and permanent residents aged 18 to 59 (Employment Insurance System Act 2017)."
+		"description": "Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution table: about 0.2% each from the employee and the employer. For citizens and permanent residents aged 18 to 59 (Employment Insurance System Act 2017).",
+		"assessed": "PAID"
 	},
 	{
 		"code": "PCB",
@@ -628,7 +633,7 @@
 				"title": "LHDN, Specification for Monthly Tax Deduction (MTD) 2026",
 				"locator": "sections D and E; D(a) note p.9; D(2) Steps 1(C/E) and 4; D(3)-(5); E(9) item v p.21; E(5), E(13), E(15)",
 				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
-				"quote": "Assessment years outside 2026 require further verification. Resident: year-to-date formula P = Σ(Y − K*) + (Y1 − K1) + (Y2 − K2)n + (Yt − Kt) − (D + S + DU + SU + QC); all EPF relief within RM4,000. D RM9,000 (the only automatic relief, D.2(i) item a); S RM4,000 spouse without income; DU RM7,000 disabled individual; SU a further RM6,000 disabled spouse; QC child relief RM2,000 under 18 or studying, RM8,000 tertiary or disabled, RM16,000 disabled in tertiary education, half amounts for a shared child. Normal MTD = [tax − (Z + X)] ÷ (n + 1), truncated to the sen and rounded up to 5 sen; additional remuneration adds the year’s tax with Yt − Kt; each component under RM10 is not deducted; the month’s zakat is then rebated. Optional deductions item k (D.2(ii)): SOCSO/EIS RM350 a year, the specification’s worked examples carry LP1 = 0 on a RM5,500 wage. D(a): exempt income is excluded from MTD remuneration; \"With effect from August 2017, MTD for resident on foreign workers is applicable to employees with an employment contract of or more than 182 days\". Non-resident 30%. D(b) and E(13): current additional-remuneration EPF is included once in the additional-pay calculation. D(3)-(5): approved REP, knowledge-worker and relocation C-suite profiles are 15% of projected chargeable income after relief and accumulated PCB/rebates; REP and knowledge-worker profiles retain the RM400/RM800 low-chargeable-income rebate, C-suite none; REP requires Malaysian citizenship, C-suite non-citizenship; REP and C-suite periods are exactly five consecutive assessment years. E(5), E(15): external zakat and religious-travel departure levy are rebates in the accepted claim month; full rebate amounts remain in history even when current PCB is zero. Accumulated MTD excludes CP38 directed instalments; accumulated rebates retain the full qualifying zakat, including TP3 openings. E(9): exempt perquisites leave the MTD remuneration (official travelling allowance up to RM6,000 a year, child care allowance up to RM3,000, awards up to RM2,000 together)."
+				"quote": "Resident: year-to-date formula P = Σ(Y − K*) + (Y1 − K1) + (Y2 − K2)n + (Yt − Kt) − (D + S + DU + SU + QC); all EPF relief within RM4,000. D RM9,000 (the only automatic relief, D.2(i) item a); S RM4,000 spouse without income; DU RM7,000 disabled individual; SU a further RM6,000 disabled spouse; QC child relief RM2,000 under 18 or studying, RM8,000 tertiary or disabled, RM16,000 disabled in tertiary education, half amounts for a shared child. Normal MTD = [tax − (Z + X)] ÷ (n + 1), truncated to the sen and rounded up to 5 sen; additional remuneration adds the year’s tax with Yt − Kt; each component under RM10 is not deducted; the month’s zakat is then rebated. Optional deductions item k (D.2(ii)): SOCSO/EIS RM350 a year, the specification’s worked examples carry LP1 = 0 on a RM5,500 wage. D(a): exempt income is excluded from MTD remuneration; \"With effect from August 2017, MTD for resident on foreign workers is applicable to employees with an employment contract of or more than 182 days\". Non-resident 30%. D(b) and E(13): current additional-remuneration EPF is included once in the additional-pay calculation. D(3)-(5): approved REP, knowledge-worker and relocation C-suite profiles are 15% of projected chargeable income after relief and accumulated PCB/rebates; REP and knowledge-worker profiles retain the RM400/RM800 low-chargeable-income rebate, C-suite none; REP requires Malaysian citizenship, C-suite non-citizenship; REP and C-suite periods are exactly five consecutive assessment years. E(5), E(15): external zakat and religious-travel departure levy are rebates in the accepted claim month; full rebate amounts remain in history even when current PCB is zero. Accumulated MTD excludes CP38 directed instalments; accumulated rebates retain the full qualifying zakat, including TP3 openings. E(9): exempt perquisites leave the MTD remuneration (official travelling allowance up to RM6,000 a year, child care allowance up to RM3,000, awards up to RM2,000 together)."
 			},
 			{
 				"title": "LHDN, Form TP1 2026",
@@ -674,7 +679,7 @@
 				"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
 			},
 			{
-				"title": "2026-10-31 calculation correction: actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract.",
+				"title": "LHDN, Specification for MTD 2026 — claims and accumulated amounts: actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract.",
 				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
 			},
 			{
@@ -692,7 +697,7 @@
 				"quote": "MTD = [(P - M) R + B - (Z + X)] / (n + 1), where P = [sum(Y - K) + (Y1 - K1) + (Y2 - K2) n + (Yt - Kt)] - [D + S + DU + SU + QC + (sum LP + LP1)]. The additional-remuneration method computes the same P with the current month's (Yt - Kt) and withholds the difference between the total tax for the year and X + the normal MTD for the month x (n + 1). Rounding: cut to sen, then up to the next 5 sen; below RM10 no deduction."
 			},
 			{
-				"title": "Encoded 2026-11-04: actual year-to-date and a bonus paid once",
+				"title": "actual year-to-date and a bonus paid once",
 				"quote": "sum(Y - K) and X come from this employee's ctx.balances for the tax year: ytd.FINAL_PAY less the year's exempt pay, and statutory_contribution for the EPF, SOCSO, EIS, SKBBK and PCB employee shares, never from a contract rate or a whole-year multiplication of the current month. Y1 is ORDINARY_WAGES less exempt pay, arrears, commission not paid monthly and awards, plus official travel above its limit. Yt is the bonus, arrears, commission not paid monthly, taxable awards and compensation, and final settlements, so one-off pay enters P once; Y2 repeats only Y1. K1 is the declared pcb_epf_normal_month when supplied, otherwise the employee EPF apportioned by EPF wages. In a bonus-only run Y1 is zero, so Y2 is zero and the next normal run catches up through X. Payroll zakat is the ZAKAT checkpoint: the month's nets off Step 1[D], earlier months' are in Z (E(5))."
 			}
 		],
@@ -780,6 +785,13 @@
 		"code": "HRDF",
 		"references": [
 			{
+				"title": "Prime Minister's announcement of the one-year HRD levy exemption for private education institutions",
+				"url": "https://fmtv5.freemalaysiatoday.com/category/nation/2025/06/14/private-educational-institutions-to-get-1-year-training-levy-waiver-from-2026",
+				"locator": "Free Malaysia Today, 14 June 2025; read 2026-11-13",
+				"quote": "Private educational institutions to get 1-year training levy waiver from 2026",
+				"effective_from": "2026-01-01"
+			},
+			{
 				"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 				"locator": "ss.1, 2, 13-16; s.14 and First Schedule",
 				"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages."
@@ -837,6 +849,6 @@
 		"id": "40115626-06e8-5b08-aa15-c4c2e2189e01",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"balance_window": "YEAR",
-		"description": "Human Resources Development Fund levy."
+		"description": "Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no bonus, commission or overtime): 1% for a compulsory employer, 0.5% for an optional one (Pembangunan Sumber Manusia Berhad Act 2001 s.14). January to December 2026 wages are exempt for registered education employers with a scheduled MSIC code (HRD Corp Employers' Circular 01/2026)."
 	}
 ]

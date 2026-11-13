@@ -611,6 +611,29 @@
 			}
 		},
 		"lookup": {
+			"retirement": [
+				{
+					"category": "MALE",
+					"base_years": 60,
+					"cutoff": "1965-01-01",
+					"max_deferral_months": 36,
+					"birth_months_per_step": 4
+				},
+				{
+					"category": "FEMALE_55",
+					"base_years": 55,
+					"cutoff": "1970-01-01",
+					"max_deferral_months": 36,
+					"birth_months_per_step": 4
+				},
+				{
+					"category": "FEMALE_50",
+					"base_years": 50,
+					"cutoff": "1975-01-01",
+					"max_deferral_months": 60,
+					"birth_months_per_step": 2
+				}
+			],
 			"si_base": [
 				{
 					"code": "SH",

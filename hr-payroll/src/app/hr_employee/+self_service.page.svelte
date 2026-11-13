@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Id, Row } from '@norbital-ai/bolt';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { AppShell, Bound, Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
@@ -14,8 +14,8 @@
 		Sheet,
 		Table,
 		Tabs,
-		setUiText,
-		uiText,
+		set_ui_text,
+		ui_text,
 		type UiTextKey
 	} from '@norbital-ai/ui';
 	import { formatTermsDates, formatNumeric } from '../../lib/ui/format/display_formatters.js';
@@ -23,9 +23,10 @@
 	import LeaveEntryForm from '../../lib/ui/person/leave_entry_form.svelte';
 	import WorkCalendar from '../../lib/ui/person/work_calendar.svelte';
 	import FaceEnrollFlow from '../../lib/ui/person/face_enroll_flow.svelte';
-	const inheritedChrome = uiText();
+	let { ctx }: { ctx: PageContext } = $props();
+	const inheritedChrome = ui_text();
 	// Keep inherited translations while describing the native virtual-label search in employee terms.
-	setUiText(
+	set_ui_text(
 		new Proxy<Partial<Record<UiTextKey, string>>>(
 			{},
 			{
@@ -33,21 +34,24 @@
 					typeof key !== 'string'
 						? undefined
 						: key === 'searchFields'
-							? bolt.t('v2.search_records_hint')
+							? ctx.t('v2.search_records_hint')
 							: inheritedChrome(key as UiTextKey)
 			}
 		)
 	);
 
-	const clock = bolt.clock('day');
+	const clock = ctx.clock('day');
 	const today = $derived(clock.today);
-	const employee = bolt.query({
+	const employee = ctx.query({
 		employee_profile: { where: { user_id: { eq: { var: 'requestor.id' } } }, limit: 1 },
-		entity: { output: 'self_service', fields: ['name', 'settings_code'], limit: 10000 },
-		'entity.payroll_versions': {
-			fields: ['entity_id', 'effective_range', 'status', 'time_zone'],
-			where: { status: { eq: 'SEALED' } },
-			limit: 10000
+		entity: {
+			output: 'self_service',
+			fields: ['name', 'settings_code'],
+			limit: 10000,
+			payroll_versions: {
+				fields: ['entity_id', 'effective_range', 'status', 'time_zone'],
+				where: { status: { eq: 'SEALED' } }
+			}
 		}
 	});
 	const me = $derived(employee.current?.employee_profile.rows[0] ?? null);
@@ -57,7 +61,7 @@
 	const contracts = $derived(
 		me == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					employee_contract: {
 						where: { employee_id: { eq: me.id }, status: { eq: 'SEALED' } },
 						limit: 10000
@@ -84,7 +88,7 @@
 	const settings = $derived(
 		company == null
 			? null
-			: bolt.query({
+			: ctx.query({
 					jurisdiction_settings: {
 						where: {
 							code: { eq: company.settings_code },
@@ -104,7 +108,7 @@
 		noEmployment || active.length > 1 || employee.error != null || contracts?.error != null
 	);
 	const employmentLabel = (row: { entity_id: Id<'entity'>; employee_number: string }) =>
-		`${entityById.get(row.entity_id)?.name ?? bolt.t('app.hr_employee.company_fallback')}${bolt.t('app.hr_employee.employment_affiliation', { number: row.employee_number })}`;
+		`${entityById.get(row.entity_id)?.name ?? ctx.t('app.hr_employee.company_fallback')}${ctx.t('app.hr_employee.employment_affiliation', { number: row.employee_number })}`;
 	const choices = $derived(active.map((row) => ({ value: row.id, label: employmentLabel(row) })));
 	const mine = $derived(
 		employmentId == null
@@ -123,7 +127,7 @@
 	value
 }: {
 	value: Row<'claim_catalog_entry'>['quantity'] | undefined;
-})}{#if value instanceof Decimal}{money(value.toNumber())}{:else}—{/if}{/snippet}
+})}{#if value instanceof Decimal}{money(value.to_number())}{:else}—{/if}{/snippet}
 
 {#snippet gate()}
 	{#if employee.error || contracts?.error}
@@ -132,9 +136,9 @@
 		</p>
 	{:else if noEmployment}
 		<Stack gap="none" class="rounded-xl border bg-card p-4">
-			<p class="text-sm font-medium">{bolt.t('app.hr_employee.no_active_employment')}</p>
+			<p class="text-sm font-medium">{ctx.t('app.hr_employee.no_active_employment')}</p>
 			<p class="text-sm text-muted-foreground">
-				{bolt.t('app.hr_employee.no_active_employment_description')}
+				{ctx.t('app.hr_employee.no_active_employment_description')}
 			</p>
 		</Stack>
 	{:else if active.length > 1}
@@ -142,8 +146,8 @@
 			<Stack gap="none">
 				<p class="text-sm font-medium">
 					{needsChoice
-						? bolt.t('app.hr_employee.choose_employment')
-						: bolt.t('app.hr_employee.working_in')}
+						? ctx.t('app.hr_employee.choose_employment')
+						: ctx.t('app.hr_employee.working_in')}
 				</p>
 				{#if !needsChoice && employment != null}<p class="text-sm text-muted-foreground">
 						{employmentLabel(employment)}
@@ -153,19 +157,19 @@
 				<div class="flex items-center gap-1">
 					<Label
 						>{needsChoice
-							? bolt.t('app.hr_employee.working_as')
-							: bolt.t('app.hr_employee.switch_employment')}</Label
-					><DescriptionHint text={bolt.t('app.hr_employee.choose_employment_description')} />
+							? ctx.t('app.hr_employee.working_as')
+							: ctx.t('app.hr_employee.switch_employment')}</Label
+					><DescriptionHint text={ctx.t('app.hr_employee.choose_employment_description')} />
 				</div>
 				<Combobox
 					class="w-64"
 					options={choices}
 					aria-label={needsChoice
-						? bolt.t('app.hr_employee.working_as')
-						: bolt.t('app.hr_employee.switch_employment')}
+						? ctx.t('app.hr_employee.working_as')
+						: ctx.t('app.hr_employee.switch_employment')}
 					value={employmentId}
-					placeholder={bolt.t('app.hr_employee.choose_employment')}
-					onChange={(id) => id != null && (chosen = id)}
+					placeholder={ctx.t('app.hr_employee.choose_employment')}
+					on_change={(id) => id != null && (chosen = id)}
 				/>
 			</Stack>
 		</Cluster>
@@ -179,18 +183,19 @@
 			{#if employee?.loading}
 				<div
 					class="h-56 animate-pulse rounded-lg bg-muted/40"
-					aria-label={bolt.t('component.loading_profile')}
+					aria-label={ctx.t('component.loading_profile')}
 				></div>
 			{:else if me != null}
 				{#if contract != null && company != null}<WorkCalendar
+						{ctx}
 						{contract}
 						{company}
 						employerVersions={company.payroll_versions}
 					/>
 				{:else}<Stack gap="none" class="rounded-xl border bg-card p-4">
-						<p class="text-sm font-medium">{bolt.t('app.hr_employee.calendar_unavailable')}</p>
+						<p class="text-sm font-medium">{ctx.t('app.hr_employee.calendar_unavailable')}</p>
 						<p class="text-sm text-muted-foreground">
-							{bolt.t('app.hr_employee.calendar_unavailable_hint')}
+							{ctx.t('app.hr_employee.calendar_unavailable_hint')}
 						</p>
 					</Stack>{/if}
 			{/if}
@@ -200,8 +205,8 @@
 
 {#snippet documents()}
 	<Bound size="fill" inset>
-		{#if me != null}<Form of="employee_profile" mode="update" id={me.id} record={me}
-				>{#snippet children()}<Field name="documents" />{/snippet}</Form
+		{#if me != null}<Form {ctx} of="employee_profile" mode="update" id={me.id} record={me}
+				>{#snippet children()}<Field {ctx} name="documents" />{/snippet}</Form
 			>{/if}
 	</Bound>
 {/snippet}
@@ -211,9 +216,10 @@
 		{#if requesting && employmentId != null && contract?.entity_id != null}
 			<Sheet
 				open
-				onOpenChange={(open) => !open && (requesting = false)}
-				title={bolt.t('app.hr_employee.my_leave_title')}
+				on_open_change={(open) => !open && (requesting = false)}
+				title={ctx.t('app.hr_employee.my_leave_title')}
 				><LeaveEntryForm
+					{ctx}
 					entityId={contract.entity_id}
 					{employmentId}
 					onDone={() => (requesting = false)}
@@ -221,43 +227,46 @@
 			>
 		{/if}
 		<Table
+			{ctx}
 			of="leave_catalog_entry"
 			key="my-leave"
 			toolbar={{
-				title: bolt.t('app.hr_employee.my_leave_title'),
+				title: ctx.t('app.hr_employee.my_leave_title'),
 				actions: false,
 				export: false,
 				new: employmentId == null ? false : () => (requesting = true)
 			}}
 			where={mine}
-			orderBy={{ created_at: 'desc' }}
-			columns={[{ field: 'catalog_id', label: bolt.t('component.catalogue_leave') }]}
+			order_by={{ created_at: 'desc' }}
+			columns={[{ field: 'catalog_id', label: ctx.t('component.catalogue_leave') }]}
 		/>
 	</Cover>
 {/snippet}
 {#snippet claims()}
 	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		{#if claiming && employmentId != null && contract != null}<ClaimRequest
+				{ctx}
 				{employmentId}
 				companyId={contract.entity_id}
 				onsaved={() => (claiming = false)}
 				onclose={() => (claiming = false)}
 			/>{/if}
 		<Table
+			{ctx}
 			of="claim_catalog_entry"
 			key="my-claims"
 			toolbar={{
-				title: bolt.t('app.hr_employee.my_claims_title'),
+				title: ctx.t('app.hr_employee.my_claims_title'),
 				actions: false,
 				export: false,
 				new: employmentId == null ? false : () => (claiming = true)
 			}}
 			where={mine}
-			orderBy={{ incurred_on: 'desc' }}
+			order_by={{ incurred_on: 'desc' }}
 			columns={[
-				{ field: 'catalog_id', label: bolt.t('models.claim_catalog.singular') },
-				{ field: 'quantity', label: bolt.t('component.amount'), cell: amountCell },
-				{ field: 'incurred_on', label: bolt.t('component.incurred_on') }
+				{ field: 'catalog_id', label: ctx.t('models.claim_catalog.singular') },
+				{ field: 'quantity', label: ctx.t('component.amount'), cell: amountCell },
+				{ field: 'incurred_on', label: ctx.t('component.incurred_on') }
 			]}
 		/>
 	</Cover>
@@ -265,16 +274,17 @@
 {#snippet loans()}
 	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		<Table
+			{ctx}
 			of="loan_catalog_entry"
 			key="my-loans"
 			toolbar={{
-				title: bolt.t('app.hr_employee.my_loans_title'),
+				title: ctx.t('app.hr_employee.my_loans_title'),
 				actions: false,
 				export: false,
 				new: false
 			}}
 			where={mine}
-			orderBy={{ created_at: 'desc' }}
+			order_by={{ created_at: 'desc' }}
 			columns={['catalog_id', { field: 'quantity', cell: amountCell }, 'repayment_period']}
 		/>
 	</Cover>
@@ -282,21 +292,22 @@
 {#snippet payslips()}
 	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		<Table
+			{ctx}
 			of="payslip"
 			key="my-payslips"
 			toolbar={{
-				title: bolt.t('app.hr_employee.my_payslips_title'),
+				title: ctx.t('app.hr_employee.my_payslips_title'),
 				actions: false,
 				export: false,
 				new: false
 			}}
 			where={mine}
-			orderBy={{ created_at: 'desc' }}
+			order_by={{ created_at: 'desc' }}
 			columns={[
-				{ field: 'payroll_run_id', label: bolt.t('app.hr_employee.pay_run') },
-				{ field: 'gross_earnings', label: bolt.t('component.gross') },
-				{ field: 'total_deductions', label: bolt.t('component.deductions') },
-				{ field: 'net_pay', label: bolt.t('component.net') }
+				{ field: 'payroll_run_id', label: ctx.t('app.hr_employee.pay_run') },
+				{ field: 'gross_earnings', label: ctx.t('component.gross') },
+				{ field: 'total_deductions', label: ctx.t('component.deductions') },
+				{ field: 'net_pay', label: ctx.t('component.net') }
 			]}
 		/>
 	</Cover>
@@ -304,8 +315,8 @@
 
 <AppShell
 	icon="lucide:user-round"
-	title={bolt.t('app.hr_employee.title')}
-	description={bolt.t('app.hr_employee.description')}
+	title={ctx.t('app.hr_employee.title')}
+	description={ctx.t('app.hr_employee.description')}
 	variant="full"
 >
 	{#snippet actions()}
@@ -315,12 +326,12 @@
 				align="center"
 				justify="end"
 				class="text-right"
-				aria-label={bolt.t('app.hr_employee.my_profile')}
+				aria-label={ctx.t('app.hr_employee.my_profile')}
 			>
 				<Stack gap="none" class="min-w-0">
 					<span class="text-sm font-semibold">{me.name}</span>
 					{#if contract}<span class="text-xs text-muted-foreground"
-							>{contract.employee_number} · {formatTermsDates(contract, bolt.t)}</span
+							>{contract.employee_number} · {formatTermsDates(contract, ctx.t)}</span
 						>{/if}
 				</Stack>
 				<Button
@@ -330,8 +341,8 @@
 				>
 					<Icon name="lucide:scan-face" class="size-3.5" />
 					{(me.face_enrollment_status ?? 'NONE') === 'NONE'
-						? bolt.t('face.empty_title')
-						: bolt.t('v2.face_status')}
+						? ctx.t('face.empty_title')
+						: ctx.t('v2.face_status')}
 				</Button>
 			</Cluster>
 		{/if}
@@ -340,22 +351,22 @@
 		tabs={[
 			{
 				name: 'home',
-				title: bolt.t('app.hr_employee.tab_home'),
+				title: ctx.t('app.hr_employee.tab_home'),
 				icon: 'lucide:user-round',
 				body: home
 			},
-			{ name: 'leave', title: bolt.t('family.leave'), icon: 'lucide:calendar-check', body: leave },
-			{ name: 'claim', title: bolt.t('family.claim'), icon: 'lucide:receipt-text', body: claims },
-			{ name: 'loan', title: bolt.t('family.loan'), icon: 'lucide:landmark', body: loans },
+			{ name: 'leave', title: ctx.t('family.leave'), icon: 'lucide:calendar-check', body: leave },
+			{ name: 'claim', title: ctx.t('family.claim'), icon: 'lucide:receipt-text', body: claims },
+			{ name: 'loan', title: ctx.t('family.loan'), icon: 'lucide:landmark', body: loans },
 			{
 				name: 'documents',
-				title: bolt.t('models.employee_profile.fields.documents'),
+				title: ctx.t('models.employee_profile.fields.documents'),
 				icon: 'lucide:file-text',
 				body: documents
 			},
 			{
 				name: 'payslip',
-				title: bolt.t('app.hr_employee.tab_payslips'),
+				title: ctx.t('app.hr_employee.tab_payslips'),
 				icon: 'lucide:badge-dollar-sign',
 				body: payslips
 			}
@@ -363,9 +374,10 @@
 	/>
 	{#if enrolling && me}<Sheet
 			open
-			onOpenChange={(open) => !open && (enrolling = false)}
-			title={bolt.t('face.enroll')}
+			on_open_change={(open) => !open && (enrolling = false)}
+			title={ctx.t('face.enroll')}
 			><FaceEnrollFlow
+				{ctx}
 				record={me}
 				self
 				onsaved={() => (enrolling = false)}

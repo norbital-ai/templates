@@ -198,7 +198,7 @@
 					"type": "boolean",
 					"default": false,
 					"title": "Dismissed for misconduct after due inquiry",
-					"description": "Employment Act 1968 s.14(1) (due inquiry) with s.88A: untaken annual leave is paid on every exit except a DISMISSAL for misconduct; the encash-leave-on-exit rule withholds it when this is true on a DISMISSAL."
+					"description": "Employment Act 1968 s.14(1) (due inquiry) with s.88A: untaken annual leave is paid on every exit except a DISMISSAL for misconduct; HR switches the pay-out off on the contract when this is true on a DISMISSAL."
 				},
 				"final_pay_not_possible": {
 					"type": "boolean",
@@ -898,7 +898,8 @@
 			"rounding": {
 				"mode": "HALF_UP",
 				"scale": 2
-			}
+			},
+			"back_pay": "ADDITIONAL_BACKPAY"
 		},
 		"ledger": {
 			"ytd_scope": "JURISDICTION"

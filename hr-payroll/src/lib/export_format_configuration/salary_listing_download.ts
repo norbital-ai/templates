@@ -1,21 +1,24 @@
 import { Effect } from 'effect';
-import { bolt } from '$bolt';
 import type { Id } from '@norbital-ai/bolt';
+import type { PageContext } from '@norbital-ai/bolt/page';
 import { sheetsOf, workbookOf } from './salary_listing_export.js';
 
 /**
  * Every selected run's listing, read for the whole selection in two waves: the runs with their payslips and contracts,
  * then those people's contract versions, which say who has left.
  */
-const listingRead = Effect.fn('payroll.listingRead')(function* (ids: readonly Id<'payroll_run'>[]) {
-	const { payroll_run: runs, payslip: slips } = yield* bolt.query({
+const listingRead = Effect.fn('payroll.listingRead')(function* (
+	ctx: Pick<PageContext, 'query'>,
+	ids: readonly Id<'payroll_run'>[]
+) {
+	const { payroll_run: runs, payslip: slips } = yield* ctx.query({
 		payroll_run: {
 			where: { id: { in: [...ids] } },
 			fields: ['period', 'kind', 'entity_id', 'settings_id'],
-			limit: 1000
+			limit: 1000,
+			entity_id: { fields: ['name'] },
+			settings_id: { fields: ['currency'] }
 		},
-		'payroll_run.entity_id': { fields: ['name'] },
-		'payroll_run.settings_id': { fields: ['currency'] },
 		payslip: {
 			where: { payroll_run_id: { in: [...ids] } },
 			fields: [
@@ -24,23 +27,24 @@ const listingRead = Effect.fn('payroll.listingRead')(function* (ids: readonly Id
 				'employment_id',
 				'gross_earnings',
 				'net_pay',
+				'tax_withheld',
 				'breakdown'
 			],
-			limit: 10000
-		},
-		'payslip.employment_id': {
-			fields: [
-				'employee_number',
-				'employee_id',
-				'terms',
-				'payroll',
-				'service_started_on',
-				'effective_range'
-			]
-		},
-		'payslip.employment_id.employee_id': { fields: ['name'] }
+			limit: 10000,
+			employment_id: {
+				fields: [
+					'employee_number',
+					'employee_id',
+					'terms',
+					'payroll',
+					'service_started_on',
+					'effective_range'
+				],
+				employee_id: { fields: ['name'] }
+			}
+		}
 	});
-	const { employee_contract: versions } = yield* bolt.query({
+	const { employee_contract: versions } = yield* ctx.query({
 		employee_contract: {
 			where: {
 				employee_id: { in: [...new Set(slips.rows.map((slip) => slip.employee_id))] },
@@ -54,8 +58,11 @@ const listingRead = Effect.fn('payroll.listingRead')(function* (ids: readonly Id
 });
 
 /** Reads the selected runs and downloads their salary listing: one workbook, a sheet each. */
-export const exportSalaryListing = (ids: readonly Id<'payroll_run'>[]) =>
-	listingRead(ids).pipe(
+export const exportSalaryListing = (
+	ctx: Pick<PageContext, 'query'>,
+	ids: readonly Id<'payroll_run'>[]
+) =>
+	listingRead(ctx, ids).pipe(
 		Effect.map(sheetsOf),
 		Effect.flatMap((sheets) =>
 			Effect.promise(async () => {

@@ -1,23 +1,24 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { Button, Combobox, notifyOutcome, Table } from '@norbital-ai/ui';
+	import { Button, Combobox, notify_outcome, Table, toast } from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { PlainDate } from '@norbital-ai/std/date';
 	import { Effect } from 'effect';
 	import { jurisdictionVersions } from '../jurisdiction_scope.svelte.js';
+	let { ctx }: { ctx: PageContext } = $props();
 
-	const all = jurisdictionVersions();
+	const all = jurisdictionVersions(ctx);
 	let code = $state<string | null>(null);
 	let starting = $state(false);
 	const codes = $derived([
 		...new Set(all.current?.jurisdiction_settings.rows.map((row) => row.code) ?? [])
 	]);
 	const scope = $derived(code === null ? {} : { jurisdiction_code: { eq: code } });
-	const unmerged = { isNull: true } as const;
+	const unmerged = { is_null: true } as const;
 	const confirmed = { is: { status: { eq: 'CONFIRMED' as const } } };
 	const waiting = $derived(
-		bolt.query({
+		ctx.query({
 			statutory_change: {
 				where: { ...scope, applied_version_id: unmerged, finding_id: confirmed },
 				fields: ['jurisdiction_code', 'effective_from'],
@@ -45,11 +46,16 @@
 			(release, index) => releases.findIndex((other) => other.code === release.code) === index
 		)
 	);
-	function start(run: ReturnType<typeof bolt.start>) {
+	function start<E>(run: Effect.Effect<Parameters<typeof notify_outcome>[1], E>) {
 		starting = true;
 		fork(
 			run.pipe(
-				Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+				Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
+				Effect.catch((error) =>
+					Effect.sync(() =>
+						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
+					)
+				),
 				Effect.ensuring(Effect.sync(() => (starting = false)))
 			)
 		);
@@ -57,8 +63,8 @@
 </script>
 
 <AppShell
-	title={bolt.t('app.settings.scheduled')}
-	description={bolt.t('app.settings.scheduled_description')}
+	title={ctx.t('app.settings.scheduled')}
+	description={ctx.t('app.settings.scheduled_description')}
 	icon="lucide:calendar-clock"
 >
 	{#snippet actions()}
@@ -66,17 +72,17 @@
 			<Button
 				variant="outline"
 				disabled={starting}
-				onclick={() => start(bolt.start('statutory_research', code === null ? {} : { code }))}
-				>{bolt.t('scheduled.research')}</Button
+				onclick={() => start(ctx.run('statutory_research', code === null ? {} : { code }))}
+				>{ctx.t('scheduled.research')}</Button
 			>
 			<Combobox
-				aria-label={bolt.t('app.settings.jurisdiction')}
+				aria-label={ctx.t('app.settings.jurisdiction')}
 				class="min-w-48"
 				clearable
-				placeholder={bolt.t('scheduled.all')}
+				placeholder={ctx.t('scheduled.all')}
 				options={codes.map((value) => ({ value, label: value }))}
 				value={code}
-				onChange={(next) => (code = next)}
+				on_change={(next) => (code = next)}
 			/>
 		</div>
 	{/snippet}
@@ -88,21 +94,22 @@
 						disabled={starting || !earliest.includes(release)}
 						onclick={() =>
 							start(
-								bolt.start('statutory_materialize', {
+								ctx.run('statutory_materialize', {
 									code: release.code,
 									target: PlainDate(release.date),
 									merge: true
 								})
-							)}>{bolt.t('scheduled.merge', { ...release, count: String(release.count) })}</Button
+							)}>{ctx.t('scheduled.merge', { ...release, count: String(release.count) })}</Button
 					>
 				{/each}
 			</Cluster>
 		{/if}
 		<Table
+			{ctx}
 			of="statutory_finding"
 			key="statutory_changes"
 			where={{ ...scope, status: { in: ['PROPOSED', 'CONFIRMED'] } }}
-			toolbar={{ new: true, title: bolt.t('scheduled.changes') }}
+			toolbar={{ new: true, title: ctx.t('scheduled.changes') }}
 			columns={[
 				'title',
 				'jurisdiction_code',

@@ -4,17 +4,23 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "勞動基準法 §24(1): 延長工作時間在二小時以內者，按平日每小時工資額加給三分之一以上；再延長工作時間在二小時以內者，加給三分之二以上 — each working day’s overtime: the time recorded past the planned shift’s hours in completed half-hours, less any banked as 補休 (work.days[].overtime_hours), the first two at 1.34 and every further hour at 1.67 of the hourly wage (monthly wage incl. regular allowances ÷ 30 ÷ 8). §24(1)(3): 依第三十二條第四項規定，延長工作時間者，按平日每小時工資額加倍發給 — not priced: no roster fact marks a §32(4) day in work.days. Within the §32 limits it is not taxable salary (所得稅法 §14(1)(3)).",
+				"title": "勞動基準法 §24(1): 延長工作時間在二小時以內者，按平日每小時工資額加給三分之一以上；再延長工作時間在二小時以內者，加給三分之二以上 — each working day’s overtime: the time recorded past the planned shift’s hours in completed half-hours, less any banked as 補休 (work.days[].overtime_hours), the first two at 1⅓ and every further hour at 1⅔ of the hourly wage (monthly wage incl. regular allowances ÷ 30 ÷ 8). §24(1)(3): 依第三十二條第四項規定，延長工作時間者，按平日每小時工資額加倍發給 — not priced: no roster fact marks a §32(4) day in work.days. Within the §32 limits it is not taxable salary (所得稅法 §14(1)(3)).",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=24"
+			},
+			{
+				"title": "勞動基準法 §24",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=24",
+				"locator": "§24(1)–(2); read 2026-11-13",
+				"quote": "按平日每小時工資額加給三分之一以上…加給三分之二以上"
 			}
 		],
 		"subtotal_id": "16346347-0ca1-5c03-aaa8-923c37d3c545",
 		"eligibility": "return true;",
-		"conversion": "// 勞動基準法 §24(1): each working day's first two overtime hours at 1.34, each further hour at 1.67.\nconst unit_wage = ctx.hour_rate;\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => get(day, 'day_type', '') === 'WORK' && !holiday(day))\n  .map((day) => {\n    const hours = Math.max(0, Number(get(day, 'overtime_hours', 0)));\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
+		"conversion": "// 勞動基準法 §24(1): each working day's first two overtime hours at 1⅓ of the hourly wage, each further hour at 1⅔ (the statute's lower bound).\nconst unit_wage = ctx.hour_rate;\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => get(day, 'day_type', '') === 'WORK' && !holiday(day))\n  .map((day) => {\n    const hours = Math.max(0, Number(get(day, 'overtime_hours', 0)));\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
 		"direction": "ADD",
 		"id": "044a9d37-c10e-5a66-a6df-2a8c0571d2b4",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"description": "Normal working-day overtime hours, paid at the statutory multiplier."
+		"description": "Working-day overtime: the hourly wage × 1⅓ for each day’s first two overtime hours and × 1⅔ for every further hour (勞基法 §24(1))."
 	},
 	{
 		"code": "STATUTORY_REST_WORK",
@@ -30,23 +36,42 @@
 		"direction": "ADD",
 		"id": "e9d15501-411b-5afc-9070-12bff1b4d446",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"description": "Hours worked on the statutory weekly rest day, paid at the rest-day multiplier."
+		"description": "A 例假 worked: one further day’s wage for each such day (an hourly worker: their hours up to normal hours), or the employer’s rest-day multiple where it pays more (勞基法 §40)."
 	},
 	{
 		"code": "REST_DAY_WORK",
-		"lookup": {},
+		"lookup": {
+			"multiplier": 2.6666666666666665
+		},
 		"references": [
 			{
-				"title": "勞動基準法 §24(2): 雇主使勞工於第三十六條所定休息日工作，工作時間在二小時以內者，其工資按平日每小時工資額另再加給一又三分之一以上；工作二小時後再繼續工作者，按平日每小時工資額另再加給一又三分之二以上 — the statute has two tiers only, so every hour after the second is 1.67, the ninth to twelfth included (owner decision 2026-11-06). Priced on the hours actually worked — all of the day’s recorded time in completed half-hours, less any banked as 補休, counted from the first hour (the minimum-count rule was deleted 2018-03-01) on a day whose shift is OFF, the TW 休息日 (shift_definition.variant.day_type OFF; REST is the §36 例假)."
+				"title": "勞動基準法 §24(2): 雇主使勞工於第三十六條所定休息日工作，工作時間在二小時以內者，其工資按平日每小時工資額另再加給一又三分之一以上；工作二小時後再繼續工作者，按平日每小時工資額另再加給一又三分之二以上 — hours three to eight at 1⅔ and, on the Ministry of Labor reading that the monthly wage already holds eight rest-day hours, the ninth to twelfth at 2⅔ (law-audit decision 2026-11-13, superseding the two-tier decision of 2026-11-06). Priced on the hours actually worked — all of the day’s recorded time in completed half-hours, less any banked as 補休, counted from the first hour (the minimum-count rule was deleted 2018-03-01) on a day whose shift is OFF, the TW 休息日 (shift_definition.variant.day_type OFF; REST is the §36 例假)."
+			},
+			{
+				"title": "勞動基準法 §24",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=24",
+				"locator": "§24(1)–(2); read 2026-11-13",
+				"quote": "按平日每小時工資額加給三分之一以上…加給三分之二以上"
+			},
+			{
+				"title": "衛生福利部 勞動基準法出勤加給工資標準 (summary of the Ministry of Labor reading)",
+				"url": "https://mohw.gov.tw/dl-56292-63ba2d18-295c-473e-8c0c-2cc15c0c159c.html",
+				"locator": "休息日; read 2026-11-13",
+				"quote": "前2小時另再加給1又1/3，第3至8小時另再加給1又2/3，第9至12小時另再加給2又2/3"
+			},
+			{
+				"title": "臺北市政府勞動局 休息日加班費計算範例",
+				"url": "https://www.laws.taipei.gov.tw/lawatt/SLaw/183067/02910703300008-002.pdf",
+				"locator": "休息日加班 12小時 (月薪以30日計: hours 9–12 at 2⅔); read 2026-11-13"
 			}
 		],
 		"subtotal_id": "16346347-0ca1-5c03-aaa8-923c37d3c545",
 		"eligibility": "return true;",
-		"conversion": "// 勞動基準法 §24(2): each 休息日 worked, 1.34 for the first two hours and 1.67 for every further hour.\nconst unit_wage = ctx.hour_rate;\n// 勞動基準法 §1(2): the employer's rest-day hourly multiple stands on each day it pays more than the Act.\nconst multiple = Number(get(ctx.subject.employer, 'pay_methods.rest_day_hourly_multiplier', 0));\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => get(day, 'day_type', '') === 'OFF' && !holiday(day))\n  .map((day) => {\n    const hours = Math.max(0, Number(get(day, 'worked_hours', 0)));\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return Math.max(first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier, hours * multiple);\n  });\nreturn unit_wage * sum(priced);",
+		"conversion": "// 勞動基準法 §24(2): each 休息日 worked, 1⅓ for the first two hours and 1⅔ to the eighth (standard_daily_hours);\n// MOL: the monthly wage holds eight rest-day hours, so from the ninth the hour’s own wage is added: 2⅔ (lookup.multiplier).\nconst unit_wage = ctx.hour_rate;\n// 勞動基準法 §1(2): the employer's rest-day hourly multiple stands on each day it pays more than the Act.\nconst multiple = Number(get(ctx.subject.employer, 'pay_methods.rest_day_hourly_multiplier', 0));\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => get(day, 'day_type', '') === 'OFF' && !holiday(day))\n  .map((day) => {\n    const hours = Math.max(0, Number(get(day, 'worked_hours', 0)));\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    const middle_hours = Math.min(hours, ctx.lookup.standard_daily_hours) - first_hours;\n    const late_hours = Math.max(0, hours - ctx.lookup.standard_daily_hours);\n    const statutory = first_hours * ctx.lookup.overtime_first_multiplier + middle_hours * ctx.lookup.overtime_further_multiplier + late_hours * ctx.lookup.multiplier;\n    return Math.max(statutory, hours * multiple);\n  });\nreturn unit_wage * sum(priced);",
 		"direction": "ADD",
 		"id": "c8f9ee15-7b57-575f-ba32-3b1a1dd9eaee",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"description": "Hours worked on a rest day, paid at the statutory rest-day multiplier."
+		"description": "Work on a 休息日: the hourly wage × 1⅓ for the first two hours, × 1⅔ to the eighth and × 2⅔ from the ninth (勞基法 §24(2), MOL reading), or the employer’s rest-day multiple where it pays more."
 	},
 	{
 		"code": "HOLIDAY_WORK",
@@ -63,7 +88,7 @@
 		"direction": "ADD",
 		"id": "66391362-1151-5b53-a7e5-07a840a5b366",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"description": "Hours worked on a statutory holiday, paid at the statutory holiday multiplier."
+		"description": "A published holiday worked: one further day’s wage for each such day; an hourly worker is paid their hours up to normal hours (勞基法 §39)."
 	},
 	{
 		"code": "HOLIDAY_OVERTIME",
@@ -75,10 +100,10 @@
 		],
 		"subtotal_id": "16346347-0ca1-5c03-aaa8-923c37d3c545",
 		"eligibility": "return true;",
-		"conversion": "// 勞動基準法 §39 with §24(1): hours after the planned shift on a holiday (on a planned off day, after the eighth), 1.34 for the first two and 1.67 after.\nconst day_hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day'));\nconst unit_wage = ctx.hour_rate;\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', '')) && holiday(day))\n  .map((day) => {\n    const hours = get(day, 'day_type', '') === 'WORK' ? Math.max(0, Number(get(day, 'overtime_hours', 0))) : Math.max(0, Number(get(day, 'worked_hours', 0)) - day_hours);\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
+		"conversion": "// 勞動基準法 §39 with §24(1): hours after the planned shift on a holiday (on a planned off day, after the eighth), 1⅓ for the first two and 1⅔ after.\nconst day_hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day'));\nconst unit_wage = ctx.hour_rate;\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst priced = ctx.work.days\n  .filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', '')) && holiday(day))\n  .map((day) => {\n    const hours = get(day, 'day_type', '') === 'WORK' ? Math.max(0, Number(get(day, 'overtime_hours', 0))) : Math.max(0, Number(get(day, 'worked_hours', 0)) - day_hours);\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
 		"direction": "ADD",
 		"id": "a0258cd3-1517-5ef8-8e6c-b58ea09d0cc2",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"description": "Overtime hours worked on a statutory holiday, paid at the holiday-overtime multiplier."
+		"description": "Hours past the shift on a published holiday (past the eighth on a planned off day): the hourly wage × 1⅓ for the first two and × 1⅔ after (勞基法 §39, §24(1))."
 	}
 ]

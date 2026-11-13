@@ -1,4 +1,5 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/employee_profile.ts';
+import { amendmentsFor } from '../../../lib/amendments.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 
 /** The s.113 register particulars the template owns on the profile: name and address. */
@@ -15,19 +16,14 @@ export const registerChanged = <
 			before.name !== after.name || (before.address ?? null) !== (after.address ?? null)
 	);
 
-export default model('employee_profile', {
+export default model({
 	description:
 		'One system identity for a person: name, contact details, documents, login and face enrolment. Standing payroll inputs belong to sealed employment contracts.',
 	icon: 'lucide:user',
-	label: 'name',
-	unique: [{ fields: ['invitation_id'] }, { fields: ['user_id'] }],
+	record_label: 'record.name',
 	fields: {
-		source_reference: { kind: 'text', optional: true, label: 'Source reference' },
-		cumulative_service: {
-			kind: 'bool',
-			default: false,
-			help: 'Service counts every stint at the employer, rehires included. Off, only the current unbroken stint counts: the statutory continuous service.'
-		},
+		source_reference: { kind: 'text', optional: true },
+		cumulative_service: { kind: 'bool', default: false },
 		name: {
 			kind: 'text'
 		},
@@ -53,7 +49,7 @@ export default model('employee_profile', {
 			kind: 'file',
 			accept: ['application/pdf', 'image/*'],
 			max: '20MiB',
-			multiple: true,
+			many: true,
 			optional: true
 		},
 		face_embedding: {
@@ -85,39 +81,40 @@ export default model('employee_profile', {
 			kind: 'ref',
 			to: 'sys_invitation',
 			optional: true,
-			onDelete: 'setNull'
+			on_delete: 'set_null'
 		},
 		// empty until the person is invited: payroll needs a person, not a login
-		user_id: { kind: 'ref', to: 'sys_user', optional: true, onDelete: 'restrict' }
+		user_id: { kind: 'ref', to: 'sys_user', optional: true, on_delete: 'restrict' }
 	},
-	search: {
-		text: ['name', 'email', 'phone'],
-		semantic: { fields: ['address'], model: 'default', dim: 1536 }
+	constraints: {
+		invitation_id: { unique: ['invitation_id'] },
+		user_id: { unique: ['user_id'] }
 	},
-	read: {
-		employee_profile: { fields: 'all' },
-		'employee_profile.employee_contract': { fields: 'all' },
-		'employee_profile.employee_contract.entity_id': { fields: 'all' }
+	indexes: {
+		search: { text: ['name', 'email', 'phone'] },
+		semantic: { semantic: { fields: ['address'], model: 'default', dim: 1536 } }
 	},
 	outputs: {
+		default: {
+			fields: 'all',
+			employee_contract: { fields: 'all', entity_id: { fields: 'all' } }
+		},
 		// the attendance kiosk: who may punch and their enrolled face
 		kiosk: {
-			employee_profile: {
-				fields: [
-					'name',
-					'email',
-					'phone',
-					'face_embedding',
-					'face_photo',
-					'face_enrollment_status',
-					'face_enrolled_at'
-				]
-			}
+			fields: [
+				'name',
+				'email',
+				'phone',
+				'face_embedding',
+				'face_photo',
+				'face_enrollment_status',
+				'face_enrolled_at'
+			]
 		}
 	},
 	create: {
 		columns: {
-			employee_profile: [
+			fields: [
 				'name',
 				'source_reference',
 				'cumulative_service',
@@ -135,50 +132,60 @@ export default model('employee_profile', {
 				'user_id'
 			]
 		},
-		transform: function* (rows, ctx) {
+		transform: function* (changes, ctx) {
 			// identity is the invitation automation's to link; an imported person has no login yet
-			if (
-				!ctx.policies.includes('invitation_profile_automation') &&
-				rows.some((row) => row.user_id != null || row.invitation_id != null)
-			)
-				return yield* ctx.refuse(
-					'Only an accepted invitation links a profile to a login. Create the profile without a login; it is linked when the person accepts their invitation.'
-				);
-			return rows;
-		}
-	},
-	update: {
-		columns: {
-			employee_profile: [
-				'name',
-				'source_reference',
-				'cumulative_service',
-				'email',
-				'phone',
-				'address',
-				'location',
-				'documents',
-				'face_embedding',
-				'face_photo',
-				'face_enrollment_status',
-				'face_consent_at',
-				'face_enrolled_at',
-				'invitation_id',
-				'user_id'
-			]
-		}
-	},
-	// The jurisdiction's registered effects for this model's writes.
-	effect: {
-		created: function* (rows, ctx) {
+			const linked = changes.findIndex(
+				({ set }) => set.user_id != null || set.invitation_id != null
+			);
+			if (!ctx.policies.includes('invitation_profile_automation') && linked >= 0)
+				return yield* ctx.refuse('errors.employee_profile_invitation_links', { row: linked });
+			return changes.map(({ set }) => set);
+		},
+		effect: function* (changes, ctx) {
 			// under the system identity: the invitation automation makes profiles and cannot read the law
 			yield* ctx.schedule('registered_effects', {
 				collection: 'employee_profile',
 				operation: 'create',
-				ids: rows.map((row) => String(row.id))
+				ids: changes.map(({ after }) => String(after.id))
 			});
+		}
+	},
+	update: {
+		columns: {
+			fields: [
+				'name',
+				'source_reference',
+				'cumulative_service',
+				'email',
+				'phone',
+				'address',
+				'location',
+				'documents',
+				'face_embedding',
+				'face_photo',
+				'face_enrollment_status',
+				'face_consent_at',
+				'face_enrolled_at',
+				'invitation_id',
+				'user_id'
+			]
 		},
-		updated: function* (changes, ctx) {
+		transform: function* (changes, ctx) {
+			// how service counts moves what every paid period of the person was worked out on
+			const counted = changes.filter((change) => change.changed('cumulative_service'));
+			return {
+				sets: changes.map(({ set }) => set),
+				on_approved: yield* amendmentsFor(
+					ctx.query,
+					counted.map(({ before }) => ({
+						employee: String(before.id),
+						from: '1900-01-01',
+						to: null
+					}))
+				)
+			};
+		},
+		effect: function* (changes, ctx) {
 			// how service counts moves every service window and band: the person's entitlements sync again
 			const counted = changes.filter(
 				({ before, after }) => before.cumulative_service !== after.cumulative_service
@@ -189,14 +196,6 @@ export default model('employee_profile', {
 			// register changes, so they do not raise EMPLOYEE_REGISTER_UPDATE.
 			const register = registerChanged(changes);
 			if (register.length > 0) yield* tap(ctx, 'update', 'employee_profile', register);
-		},
-		deleted: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'delete',
-				'employee_profile',
-				rows.map((before) => ({ before }))
-			);
 		}
 	}
 });

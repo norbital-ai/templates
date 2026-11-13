@@ -1,28 +1,24 @@
-import type { Actor, PolicyReads, Flow, Verdict } from '@norbital-ai/bolt';
+import type { ApprovalFlow, Clock, Id, WorkspaceQuery } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { idOf } from '../../lib/payroll_engine/reads.js';
 export const MEMBER_LIMITS = { act: '600/min', read: '600/min', agent: '100/h' } as const;
 export const AUTOMATION_LIMITS = { act: '600/min', read: '600/min' } as const;
 export const OWN_EMPLOYEE = { user_id: { eq: { var: 'requestor.id' } } } as const;
 export const OWN_EMPLOYMENT = { employee_id: { is: OWN_EMPLOYEE } } as const;
 export const OWN = { employment_id: { is: OWN_EMPLOYMENT } } as const;
-type Judge = {
-	readonly actor: Actor;
-	readonly db: PolicyReads;
-	allow(): Verdict;
-	deny(message: string): Verdict;
-	approve(build: (flow: Flow) => Flow): Verdict;
-};
 export const ownsEmployments = Effect.fn('policy.ownsEmployments')(function* (
-	ctx: Judge,
-	values: readonly unknown[]
+	ctx: Pick<Clock, 'actor'> & { readonly query: WorkspaceQuery['query'] },
+	values: readonly (Id<'employee_contract'> | null)[]
 ) {
-	if (ctx.actor.kind !== 'member' || values.some((v) => typeof v !== 'string')) return false;
+	if (ctx.actor.kind !== 'member' || values.some((v) => v === null)) return false;
 	const actorId = ctx.actor.id;
-	const ids = [...new Set(values.map((v) => idOf('employee_contract', v)))],
-		got = yield* ctx.db.query({
-			employee_contract: { where: { id: { in: ids } }, fields: ['employee_id'], limit: 10000 },
-			'employee_contract.employee_id': { fields: ['user_id'] }
+	const ids = [...new Set(values.flatMap((v) => (v === null ? [] : [v])))],
+		got = yield* ctx.query({
+			employee_contract: {
+				where: { id: { in: ids } },
+				fields: ['employee_id'],
+				limit: 10000,
+				employee_id: { fields: ['user_id'] }
+			}
 		});
 	return (
 		got.employee_contract.next === null &&
@@ -30,193 +26,151 @@ export const ownsEmployments = Effect.fn('policy.ownsEmployments')(function* (
 		got.employee_contract.rows.every((c) => c.employee_id?.user_id === actorId)
 	);
 });
-export const requestReview = (flow: Flow) =>
-	flow
-		.step('Supervisor review', { teams: ['supervisor', 'manager', 'production_manager'] })
-		.step('HR review', { teams: ['hr_controller', 'hr_manager', 'manager_hr_controller'] })
-		.supersededBy(['hr_manager', 'senior_management']);
+export const requestReview: ApprovalFlow = {
+	steps: [
+		{ name: 'Supervisor review', teams: ['supervisor', 'manager', 'production_manager'] },
+		{ name: 'HR review', teams: ['hr_controller', 'hr_manager', 'manager_hr_controller'] }
+	],
+	superseded_by: ['hr_manager', 'senior_management']
+};
+const READ = { outputs: { default: {} } } as const;
+const HISTORY = { outputs: { default: { history: true } } } as const;
 export const READ_ALL = {
-	entity: { read: true, history: true, outputs: { self_service: true } },
-	pay_group: { read: true, history: true },
-	entity_profile_version: { read: true, history: true },
-	employee_profile: { read: true, history: true },
-	employee_contract: { read: true, history: true },
-	contract_change: { read: true },
-	entity_change: { read: true },
-	jurisdiction_settings: { read: true, history: true },
-	statutory_change: { read: true, history: true },
-	statutory_finding: { read: true, history: true },
-	statutory_source: { read: true, history: true },
-	leave_catalog: { read: true },
-	claim_catalog: { read: true },
-	allowance_catalog: { read: true },
-	adhoc_catalog: { read: true },
-	loan_catalog: { read: true },
-	subtotal: { read: true },
-	statutory_contribution_catalog: { read: true },
-	registered_rule: { read: true },
-	registered_effect: { read: true },
-	leave_catalog_entry: { read: true, history: true },
-	leave_catalog_entry_day: { read: true, update: true },
-	claim_catalog_entry: { read: true, history: true },
-	adhoc_catalog_entry: { read: true, history: true },
-	loan_catalog_entry: { read: true, history: true },
-	loan_catalog_entry_repayment: { read: true, history: true },
-	employee_balance: { read: true },
-	ledger_entry: { read: true },
-	holiday: { read: true, history: true },
-	shift_definition: { read: true, history: true },
-	shift_pattern: { read: true, history: true },
-	roster_entry: { read: true, history: true },
-	work_event_catalog: { read: true },
-	work_event: { read: true, history: true },
-	workplace_case_catalog: { read: true, history: true },
-	workplace_case_catalog_entry: { read: true, history: true },
-	payroll_run: { read: true, history: true },
-	payslip: { read: true, history: true },
-	obligation: { read: true, history: true },
-	sys_user: { read: true },
-	sys_invitation: { read: true }
+	entity: { outputs: { default: { history: true }, self_service: {} } },
+	pay_group: HISTORY,
+	entity_profile_version: HISTORY,
+	employee_profile: HISTORY,
+	employee_contract: HISTORY,
+	contract_change: READ,
+	entity_change: READ,
+	jurisdiction_settings: HISTORY,
+	statutory_change: HISTORY,
+	statutory_finding: HISTORY,
+	statutory_source: HISTORY,
+	leave_catalog: READ,
+	claim_catalog: READ,
+	allowance_catalog: READ,
+	adhoc_catalog: READ,
+	loan_catalog: READ,
+	subtotal: READ,
+	statutory_contribution_catalog: READ,
+	registered_rule: READ,
+	registered_effect: READ,
+	leave_catalog_entry: HISTORY,
+	leave_catalog_entry_day: { ...READ, update: {} },
+	claim_catalog_entry: HISTORY,
+	adhoc_catalog_entry: HISTORY,
+	loan_catalog_entry: HISTORY,
+	loan_catalog_entry_repayment: HISTORY,
+	employee_balance: READ,
+	ledger_entry: READ,
+	holiday: HISTORY,
+	shift_definition: HISTORY,
+	shift_pattern: HISTORY,
+	roster_entry: HISTORY,
+	work_event_catalog: READ,
+	work_event: HISTORY,
+	workplace_case_catalog: HISTORY,
+	workplace_case_catalog_entry: HISTORY,
+	payroll_run: HISTORY,
+	payslip: HISTORY,
+	// a run takes the rows it carries: the update is that seal, as it is for a leave slot
+	pay_amendment: { ...READ, update: {} },
+	obligation: HISTORY,
+	sys_user: READ,
+	sys_invitation: READ
 } as const;
 export const CONFIGURATION = {
 	jurisdiction_settings: {
 		...READ_ALL.jurisdiction_settings,
-		create: true,
-		update: true,
-		moves: 'all'
+		create: {},
+		update: { moves: 'all' }
 	},
-	statutory_change: { ...READ_ALL.statutory_change, create: true, update: true },
-	statutory_finding: { ...READ_ALL.statutory_finding, create: true, update: true, moves: 'all' },
-	statutory_source: { ...READ_ALL.statutory_source, create: true, update: true, moves: 'all' },
-	leave_catalog: { read: true, create: true, update: true, delete: true },
-	claim_catalog: { read: true, create: true, update: true, delete: true },
-	allowance_catalog: { read: true, create: true, update: true, delete: true },
-	adhoc_catalog: { read: true, create: true, update: true, delete: true },
-	loan_catalog: { read: true, create: true, update: true, delete: true },
-	overtime_catalog: { read: true, create: true, update: true, delete: true },
-	workplace_case_catalog: { read: true, create: true, update: true, delete: true },
-	work_event_catalog: { ...READ_ALL.work_event_catalog, create: true, update: true, delete: true },
-	work_event: { ...READ_ALL.work_event, create: true, update: true, delete: true },
-	subtotal: { read: true, create: true, update: true, delete: true },
-	statutory_contribution_catalog: { read: true, create: true, update: true, delete: true },
-	registered_rule: { read: true, create: true, update: true, delete: true },
-	registered_effect: { read: true, create: true, update: true, delete: true }
+	statutory_change: { ...READ_ALL.statutory_change, create: {}, update: {} },
+	statutory_finding: { ...READ_ALL.statutory_finding, create: {}, update: { moves: 'all' } },
+	statutory_source: { ...READ_ALL.statutory_source, create: {}, update: { moves: 'all' } },
+	leave_catalog: { ...READ, create: {}, update: {}, delete: {} },
+	claim_catalog: { ...READ, create: {}, update: {}, delete: {} },
+	allowance_catalog: { ...READ, create: {}, update: {}, delete: {} },
+	adhoc_catalog: { ...READ, create: {}, update: {}, delete: {} },
+	loan_catalog: { ...READ, create: {}, update: {}, delete: {} },
+	overtime_catalog: { ...READ, create: {}, update: {}, delete: {} },
+	workplace_case_catalog: { ...READ, create: {}, update: {}, delete: {} },
+	work_event_catalog: { ...READ_ALL.work_event_catalog, create: {}, update: {}, delete: {} },
+	work_event: { ...READ_ALL.work_event, create: {}, update: {}, delete: {} },
+	subtotal: { ...READ, create: {}, update: {}, delete: {} },
+	statutory_contribution_catalog: { ...READ, create: {}, update: {}, delete: {} },
+	registered_rule: { ...READ, create: {}, update: {}, delete: {} },
+	registered_effect: { ...READ, create: {}, update: {}, delete: {} }
 } as const;
-/** A reversal is the HR controller's alone; automations act under their own policy. */
-const REVERSAL = {
-	check: function* (
-		rows: readonly { readonly reverses?: unknown }[],
-		ctx: Pick<Judge, 'allow' | 'deny'> & { readonly policies: readonly string[] }
-	) {
-		return rows.some((row) => row.reverses != null) &&
-			!ctx.policies.includes('hr_controller') &&
-			!ctx.policies.includes('payroll_execution')
-			? ctx.deny('Only the HR controller makes a reversal.')
-			: ctx.allow();
-	}
-};
-/** An exit encashment pays out what the ledger holds: an HR controller approves it, and only then does it post. */
-const encashmentReview = (flow: Flow) =>
-	flow
-		.step('HR review', { teams: ['hr_controller', 'manager_hr_controller'] })
-		.supersededBy(['hr_manager', 'senior_management']);
-const LEAVE_REQUEST = {
-	check: function* (
-		rows: readonly {
-			readonly reverses?: unknown;
-			readonly encashment?: unknown;
-			readonly occurrence_key?: unknown;
-		}[],
-		ctx: Pick<Judge, 'allow' | 'deny' | 'approve'> & { readonly policies: readonly string[] }
-	) {
-		if (
-			rows.some((row) => row.occurrence_key != null) &&
-			!ctx.policies.includes('payroll_execution')
-		)
-			return ctx.deny('Only the system names the event an entry was raised for. Leave it empty.');
-		if (
-			rows.some((row) => row.reverses != null) &&
-			!ctx.policies.includes('hr_controller') &&
-			!ctx.policies.includes('payroll_execution')
-		)
-			return ctx.deny('Only the HR controller makes a reversal.');
-		return rows.some((row) => row.encashment === true)
-			? ctx.approve(encashmentReview)
-			: ctx.allow();
-	}
-};
 export const HR_OPERATIONS = {
-	entity: { ...READ_ALL.entity, create: true, update: true },
-	pay_group: { ...READ_ALL.pay_group, create: true, update: true },
+	entity: { ...READ_ALL.entity, create: {}, update: {} },
+	pay_group: { ...READ_ALL.pay_group, create: {}, update: {} },
 	entity_profile_version: {
 		...READ_ALL.entity_profile_version,
-		create: true,
-		update: true,
-		moves: 'all'
+		create: {},
+		update: { moves: 'all' }
 	},
-	employee_profile: { ...READ_ALL.employee_profile, create: true, update: true },
-	contract_change: { ...READ_ALL.contract_change, create: true, update: true, delete: true },
-	entity_change: { ...READ_ALL.entity_change, create: true, update: true, delete: true },
+	employee_profile: { ...READ_ALL.employee_profile, create: {}, update: {} },
+	contract_change: { ...READ_ALL.contract_change, create: {}, update: {}, delete: {} },
+	entity_change: { ...READ_ALL.entity_change, create: {}, update: {}, delete: {} },
 	employee_contract: {
 		...READ_ALL.employee_contract,
-		create: true,
-		update: true,
-		moves: 'all'
+		create: {},
+		update: { moves: 'all' }
 	},
 	leave_catalog_entry: {
 		...READ_ALL.leave_catalog_entry,
-		create: LEAVE_REQUEST,
-		update: true,
-		delete: true
+		create: {},
+		update: {},
+		delete: {}
 	},
-	leave_catalog_entry_day: { read: true, create: true, update: true, delete: true },
+	leave_catalog_entry_day: { ...READ, create: {}, update: {}, delete: {} },
 	claim_catalog_entry: {
 		...READ_ALL.claim_catalog_entry,
-		create: REVERSAL,
-		update: true,
-		delete: true
+		create: {},
+		update: {},
+		delete: {}
 	},
 	adhoc_catalog_entry: {
 		...READ_ALL.adhoc_catalog_entry,
-		create: REVERSAL,
-		update: true,
-		delete: true
+		create: {},
+		update: {},
+		delete: {}
 	},
 	loan_catalog_entry: {
 		...READ_ALL.loan_catalog_entry,
-		create: true,
-		update: true,
-		delete: true
+		create: {},
+		update: {},
+		delete: {}
 	},
 	loan_catalog_entry_repayment: {
 		...READ_ALL.loan_catalog_entry_repayment,
-		create: true,
-		update: true,
-		delete: true
+		create: {},
+		update: {},
+		delete: {}
 	},
-	holiday: { ...READ_ALL.holiday, create: true, update: true, delete: true },
-	shift_definition: { ...READ_ALL.shift_definition, create: true, update: true, delete: true },
-	shift_pattern: { ...READ_ALL.shift_pattern, create: true, update: true, delete: true },
-	roster_entry: { ...READ_ALL.roster_entry, create: true, update: true, delete: true },
+	holiday: { ...READ_ALL.holiday, create: {}, update: {}, delete: {} },
+	shift_definition: { ...READ_ALL.shift_definition, create: {}, update: {}, delete: {} },
+	shift_pattern: { ...READ_ALL.shift_pattern, create: {}, update: {}, delete: {} },
+	roster_entry: { ...READ_ALL.roster_entry, create: {}, update: {}, delete: {} },
 	workplace_case_catalog_entry: {
 		...READ_ALL.workplace_case_catalog_entry,
-		create: true,
-		update: true
+		create: {},
+		update: {}
 	},
 	workplace_case_catalog: {
 		...READ_ALL.workplace_case_catalog,
-		create: true,
-		update: true,
-		delete: true,
-		moves: 'all'
+		create: {},
+		update: { moves: 'all' },
+		delete: {}
 	},
 	payroll_run: {
 		...READ_ALL.payroll_run,
-		create: true,
-		update: true,
-		delete: true,
-		moves: 'all'
+		create: {},
+		update: { moves: 'all' },
+		delete: {}
 	},
-	obligation: { ...READ_ALL.obligation, create: true, update: true, delete: true, moves: 'all' }
+	obligation: { ...READ_ALL.obligation, create: {}, update: { moves: 'all' }, delete: {} }
 } as const;
 export const PAYROLL_STARTS = ['statutory_research', 'statutory_materialize', 'ledger'] as const;

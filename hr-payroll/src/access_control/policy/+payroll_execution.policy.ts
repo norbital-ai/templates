@@ -6,10 +6,15 @@ export default policy({
 	grants: {
 		...READ_ALL,
 		...HR_OPERATIONS,
-		payroll_run: { read: true, create: true, update: true, delete: true, moves: 'all' },
-		payslip: { read: true, create: true },
-		employee_balance: { read: true, create: true, update: true },
-		ledger_entry: { read: true, create: true }
+		payroll_run: {
+			outputs: { default: {} },
+			create: {},
+			update: { moves: 'all' },
+			delete: {}
+		},
+		payslip: { outputs: { default: {} }, create: {} },
+		employee_balance: { outputs: { default: {} }, create: {}, update: {} },
+		ledger_entry: { outputs: { default: {} }, create: {} }
 	},
 	limits: AUTOMATION_LIMITS
 });

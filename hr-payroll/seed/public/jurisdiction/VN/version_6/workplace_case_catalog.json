@@ -1,0 +1,83 @@
+[
+	{
+		"code": "PERSONAL_DATA_BREACH",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "22ac499d-fe9c-53f3-9d69-484322898707",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"references": [
+			{
+				"title": "Law 91/2025/QH15 on personal data protection",
+				"locator": "art.23",
+				"url": "https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"description": "Personal-data breach and its notification workflow."
+	},
+	{
+		"code": "ANNUAL_LEAVE_COMBINING_AGREEMENT",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "fa20ae01-63de-557d-95a2-cb45d4a64b3a",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14",
+				"locator": "art.113(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"description": "Agreement to combine annual leave."
+	},
+	{
+		"code": "CROSS_BORDER_WORK_RECORD",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "6e4ab1fb-a0c0-5969-92ff-a70d65c608cc",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"references": [
+			{
+				"title": "Law 109/2025/QH15 on Personal Income Tax",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"description": "Record of work performed across a border."
+	},
+	{
+		"code": "EXTERNAL_WAGE_RECORD",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "17b010e9-10f2-52cc-8b90-6acf80c32ad8",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"references": [
+			{
+				"title": "Decree 253/2026/NĐ-CP",
+				"locator": "arts.4-5",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"description": "Record of wages paid by another employer."
+	},
+	{
+		"code": "BENEFIT_SERVICE_RECORD",
+		"lookup": {},
+		"subtotal_id": null,
+		"events": {},
+		"id": "1468f83a-67a3-5c3c-a401-b25f3fb7603e",
+		"settings_id": "5d595b8a-75a8-58ac-9110-3149646a0354",
+		"references": [
+			{
+				"title": "Law on Social Insurance 41/2024/QH15",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
+				"effective_from": "2025-07-01"
+			}
+		],
+		"description": "Record of a benefit or service entitlement."
+	}
+]

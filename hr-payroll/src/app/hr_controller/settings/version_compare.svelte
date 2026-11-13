@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { Combobox, EmptyState, StructuredData } from '@norbital-ai/ui';
 	import { Schema } from 'effect';
@@ -13,8 +13,11 @@
 	type Versions = NonNullable<
 		ReturnType<typeof jurisdictionVersions>['current']
 	>['jurisdiction_settings']['rows'];
-	let { versions, current }: { versions: Versions; current: Id<'jurisdiction_settings'> } =
-		$props();
+	let {
+		ctx,
+		versions,
+		current
+	}: { ctx: PageContext; versions: Versions; current: Id<'jurisdiction_settings'> } = $props();
 
 	const lineage = $derived(
 		newest_first(
@@ -38,7 +41,7 @@
 
 	const read = (id: Id<'jurisdiction_settings'>) => {
 		const owned = { where: { settings_id: { eq: id } }, limit: 10000 };
-		return bolt.query({
+		return ctx.query({
 			jurisdiction_settings: { where: { id: { eq: id } }, limit: 1 },
 			subtotal: owned,
 			allowance_catalog: owned,
@@ -70,34 +73,35 @@
 	};
 	const beforeDocument = $derived(document(before?.current));
 	const afterDocument = $derived(document(after.current));
-	const options = $derived(jurisdictionOptions(lineage));
+	const options = $derived(jurisdictionOptions(ctx, lineage));
 </script>
 
 <Stack gap="sm">
 	<Cluster gap="sm">
 		<Combobox
-			aria-label={bolt.t('settings_version.compare_from')}
+			aria-label={ctx.t('settings_version.compare_from')}
 			class="w-72"
 			{options}
 			value={from}
-			onChange={(next) => (chosenFrom = next)}
+			on_change={(next) => (chosenFrom = next)}
 		/>
 		<Combobox
-			aria-label={bolt.t('settings_version.compare_to')}
+			aria-label={ctx.t('settings_version.compare_to')}
 			class="w-72"
 			{options}
 			value={to}
-			onChange={(next) => (chosenTo = next)}
+			on_change={(next) => (chosenTo = next)}
 		/>
 	</Cluster>
-	{#if from === null}<EmptyState title={bolt.t('settings_version.compare_empty')} />
+	{#if from === null}<EmptyState title={ctx.t('settings_version.compare_empty')} />
 	{:else if beforeDocument !== undefined && afterDocument !== undefined}<StructuredData
+			{ctx}
 			id="settings-version-compare"
 			mode="diff"
 			kind={{ kind: 'json' }}
 			before={beforeDocument}
 			value={afterDocument}
-			changesOnly
-			name={bolt.t('settings_version.compare')}
+			changes_only
+			name={ctx.t('settings_version.compare')}
 		/>{/if}
 </Stack>

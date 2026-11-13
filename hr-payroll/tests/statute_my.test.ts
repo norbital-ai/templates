@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { PlainDate, addDays } from '@norbital-ai/std/date';
+import { PlainDate, add_days } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
@@ -14,7 +14,6 @@ import {
 	catalogRow,
 	pack,
 	read,
-	sealedLeave,
 	syncAll,
 	uuid,
 	wholeDays,
@@ -22,7 +21,7 @@ import {
 	accountsIn,
 	measureOf,
 	leaveCreate,
-	reversalSlots
+	storedQuery
 } from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -89,41 +88,44 @@ const seedOf = ({
 type Seed = ReturnType<typeof seedOf>;
 const born = (...dates: readonly string[]) => dates.map((on) => ({ kind: 'CHILD_BIRTH', on }));
 const dates = (from: string, count: number) =>
-	Array.from({ length: count }, (_, index) => String(addDays(PlainDate(from), index)));
+	Array.from({ length: count }, (_, index) => String(add_days(PlainDate(from), index)));
 const take = (
 	t: Kit,
 	seed: Seed,
 	code: string,
 	days: readonly string[],
-	more: {
-		readonly encashment?: boolean;
-		readonly reverses?: ReturnType<typeof idOf<'leave_catalog_entry'>>;
-	} = {}
+	more: { readonly encashment?: boolean } = {}
 ) =>
-	Effect.gen(function* () {
-		const selected =
-			more.reverses == null ? wholeDays(...days) : yield* reversalSlots(t, more.reverses);
-		yield* t.as(t.admin).act('leave_catalog_entry.create', [
-			leaveCreate({
-				entity_id: ENTITY,
-				employment_id: CONTRACT,
-				catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
-				days: selected,
-				...more
+	t.as(t.admin).pipe(
+		Effect.flatMap((caller) =>
+			caller.act({
+				'leave_catalog_entry.create': [
+					leaveCreate({
+						entity_id: ENTITY,
+						employment_id: CONTRACT,
+						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+						days: wholeDays(...days),
+						...more
+					})
+				]
 			})
-		]);
-	});
+		)
+	);
 const run = (t: Kit, period: string) =>
 	t
 		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-		.pipe(Effect.andThen(t.runDue()));
+		.pipe(
+			Effect.flatMap((caller) =>
+				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+			)
+		)
+		.pipe(Effect.andThen(t.run_due()));
 const ANNUAL_DAY = ['2026-11-23'];
 /** How many leave entries the workspace holds. */
 const entries = (t: Kit) =>
-	t
-		.storedQuery({ leave_catalog_entry: { fields: ['id'], limit: 10 } })
-		.pipe(Effect.map(({ leave_catalog_entry }) => leave_catalog_entry.rows.length));
+	storedQuery(t, { leave_catalog_entry: { fields: ['id'], limit: 10 } }).pipe(
+		Effect.map(({ leave_catalog_entry }) => leave_catalog_entry.rows.length)
+	);
 
 describe('a father', () => {
 	it.live(
@@ -163,18 +165,13 @@ describe('absence without leave', () => {
 		return { seed, layer: workspace({ seed, now: NOW }) };
 	};
 	// B2: a contract without its ordinary week is refused, so the rule has no unrecorded-week fallback
-	it.live('does not stop an exit pay-out or a reversal being written', () => {
+	it.live('does not stop an exit pay-out being written', () => {
 		const { seed, layer } = asks({ absent: dates('2026-02-01', 27) });
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
 			yield* take(t, seed, 'ANNUAL_LEAVE', ANNUAL_DAY, { encashment: true });
-			yield* run(t, '2026-11');
-			yield* take(t, seed, 'ANNUAL_LEAVE', ['2026-12-01'], {
-				reverses: yield* sealedLeave(t),
-				encashment: true
-			});
-			assert.equal(yield* entries(t), 2);
+			assert.equal(yield* entries(t), 1);
 		}).pipe(Effect.provide(layer));
 	});
 });
@@ -185,15 +182,24 @@ describe('unpaid leave', () => {
 	const nine = dates('2026-11-23', 9);
 	const layer = workspace({ seed, now: NOW });
 	const unpaid = (t: Kit, days: readonly string[]) => take(t, seed, 'NPL', days);
-	it.live('reversed does not count', () =>
+	it.live('deleted after its run is paid does not count', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
 			yield* unpaid(t, dates('2026-03-01', 31));
 			yield* run(t, '2026-03');
-			yield* take(t, seed, 'NPL', ['2026-11-02'], { reverses: yield* sealedLeave(t) });
+			const [march] = (yield* storedQuery(t, { payroll_run: { limit: 1 } })).payroll_run.rows;
+			const [priced] = (yield* storedQuery(t, { leave_catalog_entry: { limit: 1 } }))
+				.leave_catalog_entry.rows;
+			assert.ok(march !== undefined && priced !== undefined);
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.update': [{ target: march, set: { state: 'PAID' } }]
+			});
+			yield* t.run_due();
+			yield* (yield* t.as(t.admin)).act({ 'leave_catalog_entry.delete': [{ target: priced }] });
+			yield* t.run_due();
 			yield* take(t, seed, 'ANNUAL_LEAVE', nine);
-			assert.equal(yield* entries(t), 3);
+			assert.equal(yield* entries(t), 1);
 		}).pipe(Effect.provide(layer))
 	);
 });

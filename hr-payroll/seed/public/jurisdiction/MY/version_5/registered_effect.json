@@ -1,30 +1,5 @@
 [
 	{
-		"code": "encash-leave-on-exit",
-		"description": "Raises a task to encash unused leave when a sealed contract ends.",
-		"name": "Encash Leave On Exit",
-		"source_collection": "employee_contract",
-		"events": ["exit"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "'MY:encash-leave-on-exit:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
-						}
-					}
-				},
-				"limit": 10
-			}
-		},
-		"condition": "return ctx.after != null;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const r = ctx.entry;\nconst key = 'MY:encash-leave-on-exit:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Encash unused leave on exit',\n\tdue_on: get(r, 'final_pay_due_on', get(r, 'effective_range.to', r.effective_range.from)),\n\toccurrence_key: key\n}];",
-		"id": "96949fd4-a23d-53f3-906e-bd57adb45300",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
-	},
-	{
 		"code": "EPF_MONTHLY_CONTRIBUTION",
 		"description": "Raises the monthly EPF remittance task after a payroll run, due fifteen days after the salary period.",
 		"name": "EPF_MONTHLY_CONTRIBUTION",
@@ -183,31 +158,6 @@
 		"target_action": "create",
 		"effects": "const r = ctx.entry;\nconst key = 'MY:PCB_REMITTANCE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit PCB withholding',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "f390c832-31d6-52ed-ad7b-8062d2ba9ef8",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
-	},
-	{
-		"code": "encash-leave-at-window-end",
-		"description": "Raises a task to encash leave at the end of the leave year when a contract is sealed.",
-		"name": "Encash Leave At Window End",
-		"source_collection": "employee_contract",
-		"events": ["create", "update"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "'MY:encash-leave-at-window-end:' + ctx.entry.id"
-						}
-					}
-				},
-				"limit": 10
-			}
-		},
-		"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const r = ctx.entry;\nconst key = 'MY:encash-leave-at-window-end:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Encash leave at the leave-year end',\n\tdue_on: add_years(r.effective_range.from, 1),\n\toccurrence_key: key\n}];",
-		"id": "1051d818-1be1-5eff-83f3-7e497d48393c",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
 	},
 	{
@@ -1095,7 +1045,7 @@
 		},
 		"references": [
 			{
-				"title": "Employees Provident Fund Act 1991 (Act 452) s.41(3): within the period and in the manner prescribed by the Board (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); KWSP, Update & Maintain Records — Termination Of Operations: \"within 30 days\" by Form KWSP 6 (Form B) (https://www.kwsp.gov.my/en/employer/responsibilities/records), last updated 4 June 2026, read 2026-10-08 in the browser."
+				"title": "Employees Provident Fund Act 1991 (Act 452) s.41(3): within the period and in the manner prescribed by the Board (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); KWSP, Update & Maintain Records — Termination Of Operations: \"within 30 days\" by Form KWSP 6 (Form B) (https://www.kwsp.gov.my/en/employer/responsibilities/records), last updated 4 June 2026, read 2026-10-08."
 			}
 		],
 		"source_collection": "entity_profile_version",
@@ -1888,49 +1838,6 @@
 		"target_action": "create",
 		"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_MEDICAL_EXAMINATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Send a new foreign worker for a FOMEMA examination',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "a8f38670-cb40-5ad5-b037-db830827db5b",
-		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
-	},
-	{
-		"code": "CONTRIBUTION_CORRECTION",
-		"description": "Raises a task to settle a corrected statutory contribution with the fund when an adhoc correction entry is created.",
-		"name": "Follow up a contribution corrected for a closed month",
-		"lookup": {},
-		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"adhoc_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 1
-			},
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['MY', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"condition": "const row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "if (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.code,\n\toccurrence_key: occurrence_key(['MY', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
-		"references": [
-			{
-				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
-			}
-		],
-		"id": "897436ee-f296-56f5-b863-fce769ff93b6",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
 	}
 ]

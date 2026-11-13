@@ -1,15 +1,17 @@
 // Mistakes and their correction: each case does the mistaken thing through the real acts, reads every other record it
-// moved (duties, held requests, the ledger and balance, payslips, locks), then takes the way back the system offers and
-// reads the state again. Where the way back is a manual step, the test takes it. Public law packs are only the fixture:
-// every expected figure is one the test keyed or the system itself produced.
+// moved (duties, held requests, the ledger and balance, payslips, amendment rows), then corrects the record where it was
+// recorded and reads the state again. Where the way back is a manual step, the test takes it. Public law packs are only
+// the fixture: every expected figure is one the test keyed or the system itself produced.
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { PlainDate, addDays } from '@norbital-ai/std/date';
+import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import { dynamic_read } from '@norbital-ai/bolt/protocol';
+import { PlainDate, add_days } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
+import { verify } from '../src/lib/integrity.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
@@ -22,11 +24,13 @@ import {
 	ledgerRows,
 	measureOf,
 	pack,
-	reversalSlots,
 	syncAll,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	refusal,
+	storedQuery,
+	storedReader
 } from './kit.ts';
 
 // inside one version of the law the template holds (8 July to 30 November 2026), so no run changes law under a case
@@ -51,27 +55,14 @@ const TERMS = {
 	allowances: {}
 };
 type Seed = ReturnType<typeof pack>;
-/**
- * One person under Malaysian law, an HR controller to decide what a policy holds, and annual leave cashed out at a flat
- * amount a day, so no statute's day rate is under test.
- */
+/** One person under Malaysian law, and annual leave cashed out at a flat amount a day, so no statute's day rate is under test. */
 const malaysia = (terms: JsonObject = TERMS, extension: JsonObject = {}): Seed => {
 	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, extension, [], [], '2026-08-15');
 	return {
 		...seed,
 		leave_catalog: (seed.leave_catalog ?? []).map((row) =>
 			row.code === 'ANNUAL_LEAVE' ? { ...row, payout: `return ${FLAT} * ctx.entry.quantity;` } : row
-		),
-		sys_user: [
-			...(seed.sys_user ?? []),
-			{
-				id: uuid(41),
-				name: 'Payroll',
-				email: 'payroll@example.test',
-				kind: 'staff',
-				team: 'hr_controller'
-			}
-		]
+		)
 	};
 };
 /** A second person in the same company and payroll. */
@@ -103,17 +94,33 @@ const twoPeople = (): Seed => {
 	};
 };
 const seed = malaysia();
-const refused = (effect: Effect.Effect<unknown, unknown>) =>
-	Effect.flip(effect).pipe(Effect.map(String));
-const CAPTURED = /Payroll run \d+ already captured this period/;
+/** A stored row as a write targets it: its id at its current revision. */
+const at = <C extends string>(t: Kit, model: C, id: Id<C>) =>
+	t
+		.stored_query(
+			dynamic_read({ [model]: { where: { id: { eq: id } }, fields: ['revision'], limit: 1 } })
+		)
+		.pipe(
+			Effect.map((answer) => {
+				const [row] = Schema.decodeUnknownSync(
+					Schema.Struct({ rows: Schema.Array(Schema.Struct({ revision: Schema.Int })) })
+				)(answer[model]).rows;
+				assert.ok(row !== undefined, `No ${model} ${id}`);
+				return { id, revision: row.revision };
+			})
+		);
 
 const run = (t: Kit, period: string) =>
 	t
 		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-		.pipe(Effect.andThen(t.runDue()));
+		.pipe(
+			Effect.andThen((caller) =>
+				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+			)
+		)
+		.pipe(Effect.andThen(t.run_due()));
 const runOf = (t: Kit, period: string, kind: 'ON_CYCLE' | 'OFF_CYCLE' = 'ON_CYCLE') =>
-	t.storedQuery({ payroll_run: { limit: 100 } }).pipe(
+	storedQuery(t, { payroll_run: { limit: 100 } }).pipe(
 		Effect.map(({ payroll_run }) => {
 			const ran = payroll_run.rows.find((row) => row.period === period && row.kind === kind);
 			assert.ok(ran !== undefined, `${period} did not run`);
@@ -123,14 +130,22 @@ const runOf = (t: Kit, period: string, kind: 'ON_CYCLE' | 'OFF_CYCLE' = 'ON_CYCL
 const pay = (t: Kit, period: string) =>
 	Effect.gen(function* () {
 		const ran = yield* runOf(t, period);
-		yield* t.as(t.admin).act('payroll_run.update', [{ target: ran.id, set: { state: 'PAID' } }]);
-		yield* t.runDue();
+		yield* t
+			.as(t.admin)
+			.pipe(
+				Effect.andThen((caller) =>
+					caller.act({ 'payroll_run.update': [{ target: ran, set: { state: 'PAID' } }] })
+				)
+			);
+		yield* t.run_due();
 	});
 const drop = (t: Kit, period: string) =>
 	Effect.gen(function* () {
 		const ran = yield* runOf(t, period);
-		yield* t.as(t.admin).act('payroll_run.delete', [{ target: ran.id }]);
-		yield* t.runDue();
+		yield* t
+			.as(t.admin)
+			.pipe(Effect.andThen((caller) => caller.act({ 'payroll_run.delete': [{ target: ran }] })));
+		yield* t.run_due();
 	});
 /** One person's payslip of a period's run. */
 const slipOf = (
@@ -141,7 +156,7 @@ const slipOf = (
 ) =>
 	Effect.gen(function* () {
 		const ran = yield* runOf(t, period, kind);
-		const { payslip } = yield* t.storedQuery({ payslip: { limit: 100 } });
+		const { payslip } = yield* storedQuery(t, { payslip: { limit: 100 } });
 		const slip = payslip.rows.find(
 			(row) => row.payroll_run_id === ran.id && row.employee_id === employee
 		);
@@ -155,14 +170,29 @@ const signed = (slip: { readonly breakdown: unknown }, code: string) =>
 	breakdown(slip)
 		.lines.filter((line) => line.code === code)
 		.reduce((total, line) => total + (line.direction === 'DEDUCT' ? -1 : 1) * line.amount, 0);
+/** What a payslip carries for an earlier period: its lines tagged with that period. */
+const carriedFor = (slip: { readonly breakdown: unknown }, period: string) =>
+	breakdown(slip).lines.filter((line) => line.period === period);
+/** What the carried lines of one code come to. */
+const carriedOf = (slip: { readonly breakdown: unknown }, period: string, code: string) =>
+	carriedFor(slip, period)
+		.filter((line) => line.code === code)
+		.reduce((total, line) => total + (line.direction === 'DEDUCT' ? -1 : 1) * line.amount, 0);
+/** Every amendment row: its paid period, and the run that took it (none while it is open). */
+const amendments = (t: Kit) =>
+	storedQuery(t, { pay_amendment: { limit: 100 } }).pipe(
+		Effect.map(({ pay_amendment }) =>
+			pay_amendment.rows.map((row) => [row.period, row.payroll_run_id ?? null])
+		)
+	);
 /** The contract salary a payslip opened with. */
 const basicOf = (slip: { readonly breakdown: unknown }) =>
 	breakdown(slip).checkpoints.find((point) => point.code === 'BASIC')?.value;
 
 const contracts = (t: Kit, status: 'DRAFT' | 'SEALED' | 'VOID') =>
-	t
-		.storedQuery({ employee_contract: { where: { status: { eq: status } }, limit: 100 } })
-		.pipe(Effect.map(({ employee_contract }) => employee_contract.rows));
+	storedQuery(t, { employee_contract: { where: { status: { eq: status } }, limit: 100 } }).pipe(
+		Effect.map(({ employee_contract }) => employee_contract.rows)
+	);
 type Version = Effect.Success<ReturnType<typeof contracts>>[number];
 type Patch = { readonly terms?: Version['terms']; readonly family?: Version['family'] };
 /** One sealed version, by id. */
@@ -178,54 +208,74 @@ const versionOf = (t: Kit, id: Id<'employee_contract'>) =>
 const draftOf = (t: Kit, held: Version, from: string, patch: Patch = {}) =>
 	Effect.gen(function* () {
 		const before = new Set((yield* contracts(t, 'DRAFT')).map((row) => row.id));
-		yield* t.as(t.admin).act('employee_contract.create', [
-			{
-				employee_id: held.employee_id,
-				entity_id: held.entity_id,
-				engagement: held.engagement,
-				employee_number: held.employee_number,
-				terms: patch.terms ?? held.terms,
-				payroll: held.payroll,
-				bank: held.bank,
-				family: patch.family ?? held.family,
-				employee_extension_data: held.employee_extension_data,
-				service_started_on: held.service_started_on,
-				effective_range: { from: PlainDate(from), to: null },
-				status: 'DRAFT',
-				reason: 'A new version'
-			}
-		]);
+		yield* t.as(t.admin).pipe(
+			Effect.andThen((caller) =>
+				caller.act({
+					'employee_contract.create': [
+						{
+							employee_id: held.employee_id,
+							entity_id: held.entity_id,
+							engagement: held.engagement,
+							employee_number: held.employee_number,
+							terms: patch.terms ?? held.terms,
+							payroll: held.payroll,
+							bank: held.bank,
+							family: patch.family ?? held.family,
+							employee_extension_data: held.employee_extension_data,
+							service_started_on: held.service_started_on,
+							effective_range: { from: PlainDate(from), to: null },
+							status: 'DRAFT',
+							reason: 'A new version'
+						}
+					]
+				})
+			)
+		);
 		const made = (yield* contracts(t, 'DRAFT')).find((row) => !before.has(row.id));
 		assert.ok(made !== undefined, 'No draft version');
 		return made.id;
 	});
 const end = (t: Kit, held: Version, to: string | null, reason = 'Replaced') =>
-	t.as(t.admin).act('employee_contract.update', [
-		{
-			target: held.id,
-			set: {
-				effective_range: {
-					from: held.effective_range.from,
-					to: to === null ? null : PlainDate(to)
-				},
-				reason
-			}
-		}
-	]);
+	t.as(t.admin).pipe(
+		Effect.andThen((caller) =>
+			caller.act({
+				'employee_contract.update': [
+					{
+						target: held,
+						set: {
+							effective_range: {
+								from: held.effective_range.from,
+								to: to === null ? null : PlainDate(to)
+							},
+							reason
+						}
+					}
+				]
+			})
+		)
+	);
 const seal = (t: Kit, id: Id<'employee_contract'>) =>
-	t.as(t.admin).act('employee_contract.update', [{ target: id, set: { status: 'SEALED' } }]);
+	Effect.gen(function* () {
+		const target = yield* at(t, 'employee_contract', id);
+		const admin = yield* t.as(t.admin);
+		return yield* admin.act({
+			'employee_contract.update': [{ target, set: { status: 'SEALED' } }]
+		});
+	});
 const voided = (t: Kit, id: Id<'employee_contract'>, reason: string) =>
-	t
-		.as(t.admin)
-		.act('employee_contract.update', [{ target: id, set: { status: 'VOID', reason } }])
-		.pipe(Effect.andThen(t.runDue()));
+	Effect.gen(function* () {
+		const target = yield* at(t, 'employee_contract', id);
+		const admin = yield* t.as(t.admin);
+		yield* admin.act({ 'employee_contract.update': [{ target, set: { status: 'VOID', reason } }] });
+		yield* t.run_due();
+	});
 /** A new version from the first of a month, the way HR makes one: the draft, the last version's end, the seal. */
 const amend = (t: Kit, held: Version, from: string, patch: Patch) =>
 	Effect.gen(function* () {
 		const next = yield* draftOf(t, held, from, patch);
-		yield* end(t, held, String(addDays(PlainDate(from), -1)));
+		yield* end(t, held, String(add_days(PlainDate(from), -1)));
 		yield* seal(t, next);
-		yield* t.runDue();
+		yield* t.run_due();
 		return next;
 	});
 const rated = (held: Version, amount: number): Version['terms'] => ({
@@ -235,30 +285,25 @@ const rated = (held: Version, amount: number): Version['terms'] => ({
 
 /** The duties an exit raised on the first contract. */
 const exitDuties = (t: Kit) =>
-	t
-		.storedQuery({ obligation: { limit: 500 } })
-		.pipe(
-			Effect.map(({ obligation }) =>
-				obligation.rows.filter((row) => row.occurrence_key.includes(':exit:'))
-			)
-		);
+	storedQuery(t, { obligation: { limit: 500 } }).pipe(
+		Effect.map(({ obligation }) =>
+			obligation.rows.filter((row) => row.occurrence_key.includes(':exit:'))
+		)
+	);
 const cashOuts = (t: Kit) =>
-	t
-		.storedQuery({ leave_catalog_entry: { where: { encashment: { eq: true } }, limit: 10 } })
-		.pipe(Effect.map(({ leave_catalog_entry }) => leave_catalog_entry.rows));
-/** The cash-out requests an HR controller still has to decide. */
-const waiting = (t: Kit) =>
+	storedQuery(t, { leave_catalog_entry: { where: { encashment: { eq: true } }, limit: 10 } }).pipe(
+		Effect.map(({ leave_catalog_entry }) => leave_catalog_entry.rows)
+	);
+/** The ledger after a case: no queued work failed, and only the watch for a balance below zero may remain. */
+const ledgerWhole = (t: Kit) =>
 	Effect.gen(function* () {
-		const hr = t.as(yield* t.signIn('payroll@example.test'));
-		const { leave_catalog_entry } = yield* hr.query({
-			leave_catalog_entry: { where: { encashment: { eq: true } }, limit: 10 }
-		});
-		return {
-			hr,
-			ids: leave_catalog_entry.rows.flatMap((row) =>
-				row.$approval?.requestId === undefined ? [] : [row.$approval.requestId]
-			)
-		};
+		assert.deepEqual((yield* t.run_due()).failed, []);
+		assert.deepEqual(
+			(yield* verify(storedReader(t), NOW.slice(0, 10)))
+				.filter((finding) => finding.invariant !== 'W1')
+				.map((finding) => `${finding.invariant} ${finding.message}`),
+			[]
+		);
 	});
 const held = (t: Kit, code: string, employee: string = PERSON, family = 'leave') =>
 	accountsIn(t, employee).pipe(
@@ -274,102 +319,100 @@ const adhoc = (
 	code: string,
 	quantity: number,
 	on: string,
-	employment: Id<'employee_contract'> = FIRST,
-	reverses: Id<'adhoc_catalog_entry'> | null = null
+	employment: Id<'employee_contract'> = FIRST
 ) =>
 	Effect.gen(function* () {
 		const before = new Set(
-			(yield* t.storedQuery({ adhoc_catalog_entry: { limit: 100 } })).adhoc_catalog_entry.rows.map(
+			(yield* storedQuery(t, { adhoc_catalog_entry: { limit: 100 } })).adhoc_catalog_entry.rows.map(
 				(row) => row.id
 			)
 		);
-		yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
-			{
-				entity_id: ENTITY,
-				employment_id: employment,
-				catalog_id: idOf('adhoc_catalog', rowOf('adhoc_catalog', code)),
-				description: code,
-				quantity,
-				incurred_on: PlainDate(on),
-				reverses
-			}
-		]);
-		yield* t.runDue();
-		const made = (yield* t.storedQuery({
+		yield* t.as(t.admin).pipe(
+			Effect.andThen((caller) =>
+				caller.act({
+					'adhoc_catalog_entry.create': [
+						{
+							entity_id: ENTITY,
+							employment_id: employment,
+							catalog_id: idOf('adhoc_catalog', rowOf('adhoc_catalog', code)),
+							description: code,
+							quantity,
+							incurred_on: PlainDate(on)
+						}
+					]
+				})
+			)
+		);
+		yield* t.run_due();
+		const made = (yield* storedQuery(t, {
 			adhoc_catalog_entry: { limit: 100 }
 		})).adhoc_catalog_entry.rows.find((row) => !before.has(row.id));
 		assert.ok(made !== undefined, 'No adhoc entry');
 		return made.id;
 	});
-const claim = (
-	t: Kit,
-	quantity: number,
-	on: string,
-	reverses: Id<'claim_catalog_entry'> | null = null
-) =>
+const claim = (t: Kit, quantity: number, on: string) =>
 	Effect.gen(function* () {
 		const before = new Set(
-			(yield* t.storedQuery({ claim_catalog_entry: { limit: 100 } })).claim_catalog_entry.rows.map(
+			(yield* storedQuery(t, { claim_catalog_entry: { limit: 100 } })).claim_catalog_entry.rows.map(
 				(row) => row.id
 			)
 		);
-		yield* t.as(t.admin).act('claim_catalog_entry.create', [
-			{
-				entity_id: ENTITY,
-				employment_id: FIRST,
-				catalog_id: idOf('claim_catalog', rowOf('claim_catalog', 'MEDICAL_CLAIM')),
-				quantity,
-				incurred_on: PlainDate(on),
-				reverses
-			}
-		]);
-		yield* t.runDue();
-		const made = (yield* t.storedQuery({
+		yield* t.as(t.admin).pipe(
+			Effect.andThen((caller) =>
+				caller.act({
+					'claim_catalog_entry.create': [
+						{
+							entity_id: ENTITY,
+							employment_id: FIRST,
+							catalog_id: idOf('claim_catalog', rowOf('claim_catalog', 'MEDICAL_CLAIM')),
+							quantity,
+							incurred_on: PlainDate(on)
+						}
+					]
+				})
+			)
+		);
+		yield* t.run_due();
+		const made = (yield* storedQuery(t, {
 			claim_catalog_entry: { limit: 100 }
 		})).claim_catalog_entry.rows.find((row) => !before.has(row.id));
 		assert.ok(made !== undefined, 'No claim entry');
 		return made.id;
 	});
-/**
- * A leave entry on whole days; with `reverses` it selects the original's slots. A cash-out reversal a policy holds for
- * review is approved by an HR controller, so what the test reads next has posted.
- */
+/** A leave entry on whole days. One a policy holds is approved by an HR controller, so what is read next has posted. */
 const leave = (
 	t: Kit,
 	code: string,
 	dates: readonly string[],
-	options: {
-		readonly employment?: Id<'employee_contract'>;
-		readonly reverses?: Id<'leave_catalog_entry'>;
-		readonly encashment?: boolean;
-	} = {}
+	options: { readonly employment?: Id<'employee_contract'> } = {}
 ) =>
 	Effect.gen(function* () {
 		const before = new Set(
-			(yield* t.storedQuery({ leave_catalog_entry: { limit: 100 } })).leave_catalog_entry.rows.map(
+			(yield* storedQuery(t, { leave_catalog_entry: { limit: 100 } })).leave_catalog_entry.rows.map(
 				(row) => row.id
 			)
 		);
-		const days =
-			options.reverses === undefined
-				? wholeDays(...dates)
-				: yield* reversalSlots(t, options.reverses);
-		const result = yield* t.as(t.admin).act('leave_catalog_entry.create', [
-			leaveCreate({
-				entity_id: ENTITY,
-				employment_id: options.employment ?? FIRST,
-				catalog_id: idOf('leave_catalog', rowOf('leave_catalog', code)),
-				encashment: options.encashment ?? false,
-				reverses: options.reverses ?? null,
-				days
-			})
-		]);
-		if (result.kind === 'pendingApproval')
-			yield* t
-				.as(t.member(['hr_controller']))
-				.approvals.decide(result.requestId, { decision: 'approve' });
-		yield* t.runDue();
-		const made = (yield* t.storedQuery({
+		const result = yield* t.as(t.admin).pipe(
+			Effect.andThen((caller) =>
+				caller.act({
+					'leave_catalog_entry.create': [
+						leaveCreate({
+							entity_id: ENTITY,
+							employment_id: options.employment ?? FIRST,
+							catalog_id: idOf('leave_catalog', rowOf('leave_catalog', code)),
+							encashment: false,
+							days: wholeDays(...dates)
+						})
+					]
+				})
+			)
+		);
+		if (result.kind === 'pending_approval')
+			yield* (yield* t.as(t.member(['hr_controller']))).approvals.decide(result.request_id, {
+				decision: 'approve'
+			});
+		yield* t.run_due();
+		const made = (yield* storedQuery(t, {
 			leave_catalog_entry: { limit: 100 }
 		})).leave_catalog_entry.rows.find((row) => !before.has(row.id));
 		assert.ok(made !== undefined, 'No leave entry');
@@ -377,28 +420,33 @@ const leave = (
 	});
 
 // 1. transfer-semantics.md §3.4: an exit is read from the chain, so undoing one is a write to the chain. One routine
-// then settles what the exit left (docs/0007 §4): its tasks are waived, the loan task with them, and a cash-out request
-// still waiting is withdrawn. A cash-out a paid run took is
-// reversed by HR, who is asked by one task.
+// then settles what the exit left (docs/0007 §4): its tasks are waived, the loan task with them. The leave is settled by
+// the last payslip itself, so nothing is keyed to withdraw; a paid one is amended, and the next run takes the money back.
 describe('a contract ended by mistake', () => {
 	const LAST = '2026-09-15';
 	const ended = (t: Kit, first: Version) =>
 		t
 			.as(t.admin)
-			.act('employee_contract.update', [
-				{
-					target: FIRST,
-					set: {
-						effective_range: { from: first.effective_range.from, to: PlainDate(LAST) },
-						final_pay_due_on: PlainDate('2026-09-22'),
-						reason: 'Resignation'
-					}
-				}
-			])
-			.pipe(Effect.andThen(t.runDue()));
+			.pipe(
+				Effect.andThen((caller) =>
+					caller.act({
+						'employee_contract.update': [
+							{
+								target: first,
+								set: {
+									effective_range: { from: first.effective_range.from, to: PlainDate(LAST) },
+									final_pay_due_on: PlainDate('2026-09-22'),
+									reason: 'Resignation'
+								}
+							}
+						]
+					})
+				)
+			)
+			.pipe(Effect.andThen(t.run_due()));
 
 	it.live(
-		'before any run: reopened, its duties and the loan task are waived, the leave returns, the waiting cash-out request is withdrawn, and the month pays whole',
+		'before any run: reopened, its duties and the loan task are waived, the leave returns, and the month pays whole',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -406,7 +454,7 @@ describe('a contract ended by mistake', () => {
 				const before = yield* held(t, 'ANNUAL_LEAVE');
 				const first = yield* versionOf(t, FIRST);
 				yield* ended(t, first);
-				// what the mistake moved: the exit duties, on the final pay date HR gave, and one held cash-out request
+				// what the mistake moved: the exit duties, on the final pay date HR gave; no cash-out is keyed
 				const raised = (yield* exitDuties(t)).filter((row) => row.state === 'OPEN');
 				assert.ok(raised.length > 0);
 				assert.ok(raised.every((row) => row.occurrence_key.endsWith(`:exit:${LAST}`)));
@@ -418,35 +466,39 @@ describe('a contract ended by mistake', () => {
 					),
 					'2026-09-22'
 				);
-				const [request, ...more] = yield* cashOuts(t);
-				assert.ok(request !== undefined);
-				assert.deepEqual(more, []);
-				const asked = yield* waiting(t);
-				assert.equal(asked.ids.length, 1);
+				assert.deepEqual(yield* cashOuts(t), []);
 				// the loan task the contract page raises beside a leaver's recovery (see loan_lifecycle.test.ts)
-				yield* t.as(t.admin).act('obligation.create', [
-					{
-						entity_id: ENTITY,
-						employee_id: idOf('employee_profile', PERSON),
-						employment_id: FIRST,
-						title: 'Recover 500 from W1',
-						due_on: PlainDate('2026-10-01'),
-						occurrence_key: `LOAN_RECOVERY:${FIRST}:exit:${LAST}`
-					}
-				]);
+				yield* t.as(t.admin).pipe(
+					Effect.andThen((caller) =>
+						caller.act({
+							'obligation.create': [
+								{
+									entity_id: ENTITY,
+									employee_id: idOf('employee_profile', PERSON),
+									employment_id: FIRST,
+									title: 'Recover 500 from W1',
+									due_on: PlainDate('2026-10-01'),
+									occurrence_key: `LOAN_RECOVERY:${FIRST}:exit:${LAST}`
+								}
+							]
+						})
+					)
+				);
 
 				// the correction: the last day and the final pay date come off the version
-				yield* t.as(t.admin).act('employee_contract.update', [
-					{
-						target: FIRST,
-						set: {
-							effective_range: { from: first.effective_range.from, to: null },
-							final_pay_due_on: null,
-							reason: 'Ended in error'
+				yield* (yield* t.as(t.admin)).act({
+					'employee_contract.update': [
+						{
+							target: yield* at(t, 'employee_contract', FIRST),
+							set: {
+								effective_range: { from: first.effective_range.from, to: null },
+								final_pay_due_on: null,
+								reason: 'Ended in error'
+							}
 						}
-					}
-				]);
-				yield* t.runDue();
+					]
+				});
+				yield* t.run_due();
 				const reopened = yield* versionOf(t, FIRST);
 				assert.equal(reopened.effective_range.to, null);
 				assert.equal(reopened.final_pay_due_on ?? null, null);
@@ -459,7 +511,7 @@ describe('a contract ended by mistake', () => {
 				// every duty the law raised, and the loan task
 				assert.equal(waived.length, raised.length + 1);
 				assert.ok(waived.every((row) => /exit was cancelled/.test(String(row.waiver_reason))));
-				const { obligation } = yield* t.storedQuery({ obligation: { limit: 500 } });
+				const { obligation } = yield* storedQuery(t, { obligation: { limit: 500 } });
 				assert.deepEqual(
 					obligation.rows
 						.filter((row) => row.occurrence_key.startsWith('LOAN_RECOVERY:'))
@@ -469,25 +521,24 @@ describe('a contract ended by mistake', () => {
 				// sync gives back what the exit's proration took
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).entitled, before.entitled);
 
-				// the request that still waited is withdrawn by the system: nothing is left for HR to decide
-				assert.deepEqual((yield* waiting(t)).ids, []);
-				assert.deepEqual(yield* cashOuts(t), []);
-				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, before.used);
+				assert.deepEqual(yield* held(t, 'ANNUAL_LEAVE'), before);
 
 				// the month of the mistaken last day pays whole, with no cash-out, and the next month pays too
 				yield* run(t, '2026-09');
 				const september = yield* slipOf(t, '2026-09');
-				assert.ok((september.gross_earnings?.toNumber() ?? 0) >= RATE);
+				assert.ok((september.gross_earnings?.to_number() ?? 0) >= RATE);
 				assert.equal(signed(september, 'ANNUAL_LEAVE'), 0);
 				yield* run(t, '2026-10');
 				assert.equal((yield* slipOf(t, '2026-10')).employment_id, FIRST);
+				assert.deepEqual(yield* held(t, 'ANNUAL_LEAVE'), before);
+				yield* ledgerWhole(t);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
-	// The unpaid final run is the same lock with a way out: delete the run, then move the exit (cash_out.test.ts, “paid
-	// in the final run, the exit cannot move under that run”). Paid, the run is the record and the correction goes forward.
+	// The unpaid final run is deleted first, then the exit moves (cash_out.test.ts). Paid, the run is the record: the exit
+	// is still corrected where it was recorded, and the next run carries what the month now owes.
 	it.live(
-		'after the final run is paid: the exit stands in that month; a new contract from the next month, an arrears entry and the cash-out reversal HR is asked for put it right, each paid once',
+		'after the final run is paid: the exit is reopened on the version itself; the paid payslip stands and the next run takes the pay-out back, carries the month and returns the days',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -495,74 +546,64 @@ describe('a contract ended by mistake', () => {
 				const before = yield* held(t, 'ANNUAL_LEAVE');
 				const first = yield* versionOf(t, FIRST);
 				yield* ended(t, first);
-				const { hr, ids } = yield* waiting(t);
-				const [requestId] = ids;
-				assert.ok(requestId !== undefined);
-				yield* hr.approvals.decide(requestId, { decision: 'approve' });
-				yield* t.runDue();
-				const [request] = yield* cashOuts(t);
-				assert.ok(request !== undefined);
-				assert.ok((yield* held(t, 'ANNUAL_LEAVE')).used > before.used);
 				yield* run(t, '2026-09');
 				const final = yield* slipOf(t, '2026-09');
+				// the last payslip pays out what is left, and its posting uses it up
 				const cashed = signed(final, 'ANNUAL_LEAVE');
 				assert.ok(cashed > 0);
 				yield* pay(t, '2026-09');
+				assert.deepEqual(yield* amendments(t), []);
+				const settled = yield* held(t, 'ANNUAL_LEAVE');
+				assert.equal(settled.entitled - settled.used, 0);
 
-				// nothing reaches back into the paid month
-				const leaver = yield* versionOf(t, FIRST);
-				assert.match(yield* refused(end(t, leaver, null, 'Ended in error')), CAPTURED);
-				assert.match(yield* refused(end(t, leaver, '2026-09-30', 'Ended in error')), CAPTURED);
-				assert.match(yield* refused(drop(t, '2026-09')), /A paid run is locked/);
-
-				// the way forward: the employment continues from the first month no run holds; the service start is carried
-				// on the new version, so the gap does not restart the service year
-				const next = yield* draftOf(t, leaver, '2026-10-01');
-				yield* t.runDue();
+				// the paid run itself is never deleted
+				assert.match((yield* refusal(drop(t, '2026-09'))).message, /This record is locked/);
+				// the correction: the last day and the final pay date come off the version, and the write leaves the
+				// month to be worked out again
+				yield* (yield* t.as(t.admin)).act({
+					'employee_contract.update': [
+						{
+							target: yield* at(t, 'employee_contract', FIRST),
+							set: {
+								effective_range: { from: first.effective_range.from, to: null },
+								final_pay_due_on: null,
+								reason: 'Ended in error'
+							}
+						}
+					]
+				});
+				yield* t.run_due();
+				assert.equal((yield* versionOf(t, FIRST)).effective_range.to, null);
+				assert.deepEqual(yield* amendments(t), [['2026-09', null]]);
 				assert.deepEqual(
 					(yield* exitDuties(t)).filter((row) => row.state === 'OPEN'),
 					[]
 				);
-				yield* seal(t, next);
-				yield* t.runDue();
-				// manual: the pay of the days the exit cut off, as HR works it out
-				const OWED = 1560;
-				yield* adhoc(t, 'BPAYBS', OWED, '2026-10-01', next);
-				// asked by the system, once: a task to reverse the paid cash-out. Nothing moves until HR keys it, as a cash-out
-				const { obligation } = yield* t.storedQuery({ obligation: { limit: 500 } });
-				assert.deepEqual(
-					obligation.rows
-						.filter((row) => row.occurrence_key.startsWith('reverse:'))
-						.map((row) => [row.occurrence_key, row.state]),
-					[[`reverse:${request.id}`, 'OPEN']]
-				);
-				assert.ok((yield* held(t, 'ANNUAL_LEAVE')).used > before.used);
-				yield* leave(t, 'ANNUAL_LEAVE', [], { reverses: request.id, encashment: true });
-				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, before.used);
+				assert.deepEqual(yield* cashOuts(t), []);
+				// the paid payslip was not rewritten
+				const kept = yield* slipOf(t, '2026-09');
+				assert.equal(kept.net_pay.to_number(), final.net_pay.to_number());
+				assert.equal(signed(kept, 'ANNUAL_LEAVE'), cashed);
 
+				// the next run pays the person on the same contract, carries September and takes the row
 				yield* run(t, '2026-10');
 				const october = yield* slipOf(t, '2026-10');
-				assert.equal(october.employment_id, next);
-				assert.equal(signed(october, 'BPAYBS'), OWED);
-				assert.equal(signed(october, 'ANNUAL_LEAVE'), -cashed);
-				// once: the next run carries neither, and the paid payslip was not rewritten
-				yield* run(t, '2026-11');
-				const november = yield* slipOf(t, '2026-11');
-				assert.equal(signed(november, 'BPAYBS'), 0);
-				assert.equal(signed(november, 'ANNUAL_LEAVE'), 0);
-				const kept = yield* slipOf(t, '2026-09');
-				assert.equal(kept.net_pay.toNumber(), final.net_pay.toNumber());
-				assert.equal(signed(kept, 'ANNUAL_LEAVE'), cashed);
+				assert.equal(october.employment_id, FIRST);
+				assert.ok(carriedFor(october, '2026-09').length > 0);
+				assert.equal(carriedOf(october, '2026-09', 'ANNUAL_LEAVE'), -cashed);
+				assert.deepEqual(yield* amendments(t), [['2026-09', (yield* runOf(t, '2026-10')).id]]);
+				// the days the pay-out used return with it
+				assert.deepEqual(yield* held(t, 'ANNUAL_LEAVE'), before);
+				yield* ledgerWhole(t);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
 
-// 2. A paid run is the record: nothing in it is edited. The correction is a new entry the next run pays once: a reversal
-// of what it sealed, plus the entry as it should have been. Statutory corrections of a closed month are proven in
-// eventual_sg_my.test.ts (“a contribution corrected for a closed month”), a loan repayment's in loan_lifecycle.test.ts.
+// 2. A paid run is the record: its payslips never change. What it sealed is corrected where it was recorded, and the
+// next run carries the difference, tagged with the paid period, once.
 describe('a paid run that needs an adjustment', () => {
 	it.live(
-		'is locked whole: no delete, no second run, no edit of what it sealed; a reversal and the right entry go to the next run, once',
+		'is the record: no delete, no second run, no way back to unpaid; an entry it sealed is corrected on the entry, and the next run carries the difference, once',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -574,55 +615,53 @@ describe('a paid run that needs an adjustment', () => {
 				assert.equal(signed(paid, 'BONUS'), 500);
 				assert.equal(signed(paid, 'MEDICAL_CLAIM'), 80);
 
-				assert.match(yield* refused(drop(t, '2026-08')), /A paid run is locked/);
-				assert.match(yield* refused(run(t, '2026-08')), /already has this payroll_run/);
+				assert.match((yield* refusal(drop(t, '2026-08'))).message, /This record is locked/);
+				assert.match((yield* refusal(run(t, '2026-08'))).message, /already has this payroll_run/);
 				const ran = yield* runOf(t, '2026-08');
 				assert.equal(
 					yield* Effect.isFailure(
-						t.as(t.admin).act('payroll_run.update', [{ target: ran.id, set: { state: 'UNPAID' } }])
+						t
+							.as(t.admin)
+							.pipe(
+								Effect.andThen((caller) =>
+									caller.act({ 'payroll_run.update': [{ target: ran, set: { state: 'UNPAID' } }] })
+								)
+							)
 					),
 					true
 				);
 				assert.equal((yield* runOf(t, '2026-08')).state, 'PAID');
-				const admin = t.as(t.admin);
-				assert.match(
-					yield* refused(
-						admin.act('adhoc_catalog_entry.update', [{ target: bonus, set: { quantity: 300 } }])
-					),
-					/locked/
-				);
-				assert.match(
-					yield* refused(admin.act('adhoc_catalog_entry.delete', [{ target: bonus }])),
-					/locked/
-				);
-				assert.match(
-					yield* refused(
-						admin.act('claim_catalog_entry.update', [{ target: medical, set: { quantity: 60 } }])
-					),
-					/locked/
-				);
-				assert.match(
-					yield* refused(admin.act('claim_catalog_entry.delete', [{ target: medical }])),
-					/locked/
-				);
 
-				// the way forward the lock leaves: undo each whole, and key it as it should have been
-				yield* adhoc(t, 'BONUS', 500, '2026-09-05', FIRST, bonus);
-				yield* adhoc(t, 'BONUS', 300, '2026-09-05');
-				yield* claim(t, 80, '2026-09-05', medical);
-				yield* claim(t, 60, '2026-09-05');
-				// the balance already holds the claim as it should have been
+				// the correction: each entry is keyed as it should have been, on the entry itself
+				const admin = yield* t.as(t.admin);
+				assert.deepEqual(yield* amendments(t), []);
+				yield* admin.act({
+					'adhoc_catalog_entry.update': [
+						{ target: yield* at(t, 'adhoc_catalog_entry', bonus), set: { quantity: 300 } }
+					]
+				});
+				yield* admin.act({
+					'claim_catalog_entry.update': [
+						{ target: yield* at(t, 'claim_catalog_entry', medical), set: { quantity: 60 } }
+					]
+				});
+				yield* t.run_due();
+				// one open row for the person's August, however many corrections; the balance follows the edit
+				assert.deepEqual(yield* amendments(t), [['2026-08', null]]);
 				assert.equal((yield* held(t, 'MEDICAL_CLAIM', PERSON, 'claim')).used, 60);
+				assert.equal((yield* slipOf(t, '2026-08')).net_pay.to_number(), paid.net_pay.to_number());
+
 				yield* run(t, '2026-09');
 				const september = yield* slipOf(t, '2026-09');
-				assert.equal(signed(september, 'BONUS'), 300 - 500);
-				assert.equal(signed(september, 'MEDICAL_CLAIM'), 60 - 80);
+				assert.equal(carriedOf(september, '2026-08', 'BONUS'), 300 - 500);
+				assert.equal(carriedOf(september, '2026-08', 'MEDICAL_CLAIM'), 60 - 80);
+				assert.deepEqual(yield* amendments(t), [['2026-08', (yield* runOf(t, '2026-09')).id]]);
 				// once, and the paid payslip is not rewritten
 				yield* run(t, '2026-10');
 				const october = yield* slipOf(t, '2026-10');
 				assert.equal(signed(october, 'BONUS'), 0);
 				assert.equal(signed(october, 'MEDICAL_CLAIM'), 0);
-				assert.equal((yield* slipOf(t, '2026-08')).net_pay.toNumber(), paid.net_pay.toNumber());
+				assert.equal((yield* slipOf(t, '2026-08')).net_pay.to_number(), paid.net_pay.to_number());
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
@@ -635,31 +674,33 @@ describe('a paid run that needs an adjustment', () => {
 				yield* pay(t, '2026-08');
 				const paid = yield* slipOf(t, '2026-08');
 				const arrears = yield* adhoc(t, 'BPAYBS', 200, '2026-08-31');
-				yield* t.as(t.admin).act('payroll_run.create', [
-					{
-						entity_id: ENTITY,
-						period: '2026-08',
-						kind: 'OFF_CYCLE',
-						attaches: { adhoc: [arrears] }
-					}
-				]);
-				yield* t.runDue();
-				assert.equal(signed(yield* slipOf(t, '2026-08', PERSON, 'OFF_CYCLE'), 'BPAYBS'), 200);
-				// the off-cycle run sealed it: it is no longer HR's to change
-				assert.match(
-					yield* refused(t.as(t.admin).act('adhoc_catalog_entry.delete', [{ target: arrears }])),
-					/locked/
+				const owed = yield* at(t, 'adhoc_catalog_entry', arrears);
+				yield* t.as(t.admin).pipe(
+					Effect.andThen((caller) =>
+						caller.act({
+							'payroll_run.create': [
+								{
+									entity_id: ENTITY,
+									period: '2026-08',
+									kind: 'OFF_CYCLE',
+									adhoc: [owed]
+								}
+							]
+						})
+					)
 				);
+				yield* t.run_due();
+				assert.equal(signed(yield* slipOf(t, '2026-08', PERSON, 'OFF_CYCLE'), 'BPAYBS'), 200);
 				yield* run(t, '2026-09');
 				assert.equal(signed(yield* slipOf(t, '2026-09'), 'BPAYBS'), 0);
-				assert.equal((yield* slipOf(t, '2026-08')).net_pay.toNumber(), paid.net_pay.toNumber());
+				assert.equal((yield* slipOf(t, '2026-08')).net_pay.to_number(), paid.net_pay.to_number());
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
 
-// 3. A sealed version's terms stand: the correction is another version. A change filed ahead and not yet sealed is
-// edited or cancelled (contract_change.test.ts); a version under an unpaid run is freed by deleting the run and one
-// under a paid run is corrected from the next month (contract_lifecycle.test.ts, “a contract under a run”).
+// 3. A sealed version's terms stand: the correction is another version over the same days. A change filed ahead and
+// not yet sealed is edited or cancelled (contract_change.test.ts); a version under an unpaid run is freed by deleting the
+// run, and one a paid run took is replaced all the same: the next run carries the difference.
 describe('a contract version sealed with a wrong term', () => {
 	const WRONG = 5300;
 	const RIGHT = 3500;
@@ -675,7 +716,7 @@ describe('a contract version sealed with a wrong term', () => {
 				const right = yield* draftOf(t, first, '2026-09-01', { terms: rated(first, RIGHT) });
 				yield* voided(t, wrong, `Keyed ${WRONG} for ${RIGHT}`);
 				yield* seal(t, right);
-				yield* t.runDue();
+				yield* t.run_due();
 				assert.deepEqual(yield* exitDuties(t), []);
 				assert.deepEqual(yield* cashOuts(t), []);
 				assert.deepEqual(
@@ -691,7 +732,7 @@ describe('a contract version sealed with a wrong term', () => {
 	// Break-it: the same correction in the other order. With the wrong version void and nothing after it, the version
 	// before it ends with no successor, which is what an exit is.
 	it.live(
-		'voided before its replacement exists: the version before it reads as an exit until the replacement is drafted, and the cash-out request it raised is withdrawn with it',
+		'voided before its replacement exists: the version before it reads as an exit until the replacement is drafted, and its leave returns with it',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -703,30 +744,28 @@ describe('a contract version sealed with a wrong term', () => {
 				const raised = (yield* exitDuties(t)).filter((row) => row.state === 'OPEN');
 				assert.ok(raised.length > 0);
 				assert.ok(raised.every((row) => row.occurrence_key.endsWith(':exit:2026-08-31')));
-				assert.equal((yield* cashOuts(t)).length, 1);
+				assert.deepEqual(yield* cashOuts(t), []);
 
 				const right = yield* draftOf(t, first, '2026-09-01', { terms: rated(first, RIGHT) });
-				yield* t.runDue();
+				yield* t.run_due();
 				assert.deepEqual(
 					(yield* exitDuties(t)).filter((row) => row.state === 'OPEN'),
 					[]
 				);
 				yield* seal(t, right);
-				yield* t.runDue();
-				// the request the mistaken exit raised is withdrawn with it
-				assert.deepEqual((yield* waiting(t)).ids, []);
-				assert.deepEqual(yield* cashOuts(t), []);
+				yield* t.run_due();
 				const after = yield* held(t, 'ANNUAL_LEAVE');
 				assert.deepEqual(after, before);
 				yield* run(t, '2026-09');
 				const slip = yield* slipOf(t, '2026-09');
 				assert.deepEqual([slip.employment_id, basicOf(slip)], [right, RIGHT]);
 				assert.equal(signed(slip, 'ANNUAL_LEAVE'), 0);
+				yield* ledgerWhole(t);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
 	it.live(
-		'after a paid run took it: the version is held, the right term starts the next month, and the difference is an arrears entry paid once',
+		'after a paid run took it: the version is replaced from its own first day, the paid payslip stands, and the next run carries the difference, once',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -735,26 +774,33 @@ describe('a contract version sealed with a wrong term', () => {
 				const wrong = yield* amend(t, first, '2026-09-01', { terms: rated(first, LOW) });
 				yield* run(t, '2026-09');
 				yield* pay(t, '2026-09');
-				assert.match(
-					yield* refused(draftOf(t, first, '2026-09-01', { terms: rated(first, RIGHT) })),
-					CAPTURED
-				);
-				const paid = yield* versionOf(t, wrong);
-				const right = yield* amend(t, paid, '2026-10-01', { terms: rated(first, RIGHT) });
-				// manual: HR works out what the wrong month fell short by
-				yield* adhoc(t, 'BPAYBS', RIGHT - LOW, '2026-10-01', right);
-				yield* run(t, '2026-10');
-				const october = yield* slipOf(t, '2026-10');
-				assert.deepEqual([october.employment_id, basicOf(october)], [right, RIGHT]);
-				assert.equal(signed(october, 'BPAYBS'), RIGHT - LOW);
+				assert.deepEqual(yield* amendments(t), []);
+
+				// the correction, in the order that never reads as an exit: the replacement drafted, the wrong one voided
+				const right = yield* draftOf(t, first, '2026-09-01', { terms: rated(first, RIGHT) });
+				yield* voided(t, wrong, `Keyed ${LOW} for ${RIGHT}`);
+				yield* seal(t, right);
+				yield* t.run_due();
+				assert.deepEqual(yield* amendments(t), [['2026-09', null]]);
 				const september = yield* slipOf(t, '2026-09');
 				assert.deepEqual(
 					[september.employment_id, basicOf(september)],
 					[wrong, LOW],
 					'the paid payslip is not rewritten'
 				);
+
+				yield* run(t, '2026-10');
+				const october = yield* slipOf(t, '2026-10');
+				assert.deepEqual([october.employment_id, basicOf(october)], [right, RIGHT]);
+				// September on the right term pays more than it did: the rest is on October's payslip, tagged with its month
+				assert.ok(
+					carriedFor(october, '2026-09').some(
+						(line) => line.party === 'EMPLOYEE' && line.direction === 'ADD' && line.amount > 0
+					)
+				);
+				assert.deepEqual(yield* amendments(t), [['2026-09', (yield* runOf(t, '2026-10')).id]]);
 				yield* run(t, '2026-11');
-				assert.equal(signed(yield* slipOf(t, '2026-11'), 'BPAYBS'), 0);
+				assert.deepEqual(carriedFor(yield* slipOf(t, '2026-11'), '2026-09'), []);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
@@ -785,7 +831,7 @@ describe('a family fact sealed wrongly', () => {
 			Effect.map((rows) =>
 				rows
 					.filter((row) => row.code === PATERNITY && row.measure === 'entitled')
-					.map((row) => [row.operation, row.period, row.amount?.toNumber()])
+					.map((row) => [row.operation, row.period, row.amount?.to_number()])
 					.toSorted()
 			)
 		);
@@ -797,8 +843,10 @@ describe('a family fact sealed wrongly', () => {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
 				assert.equal((yield* held(t, PATERNITY)).entitled, 0);
+				// paid: the new version's write amends from the old version's last day, which an unpaid run would hold
 				yield* run(t, '2026-08');
-				const august = (yield* slipOf(t, '2026-08')).tax_withheld.toNumber();
+				yield* pay(t, '2026-08');
+				const august = (yield* slipOf(t, '2026-08')).tax_withheld.to_number();
 				const first = yield* versionOf(t, FIRST);
 				const wrong = yield* amend(t, first, '2026-09-01', {
 					family: withChild(first, '2026-08-10')
@@ -808,7 +856,7 @@ describe('a family fact sealed wrongly', () => {
 				assert.ok(given > 0);
 				yield* run(t, '2026-09');
 				yield* pay(t, '2026-09');
-				const september = (yield* slipOf(t, '2026-09')).tax_withheld.toNumber();
+				const september = (yield* slipOf(t, '2026-09')).tax_withheld.to_number();
 				// a dependant never raises the tax withheld
 				assert.ok(september <= august);
 
@@ -832,13 +880,13 @@ describe('a family fact sealed wrongly', () => {
 
 				// residue: September's payslip keeps the tax it withheld; no later run withholds less than it did
 				yield* run(t, '2026-10');
-				assert.equal((yield* slipOf(t, '2026-09')).tax_withheld.toNumber(), september);
-				assert.ok((yield* slipOf(t, '2026-10')).tax_withheld.toNumber() >= september);
+				assert.equal((yield* slipOf(t, '2026-09')).tax_withheld.to_number(), september);
+				assert.ok((yield* slipOf(t, '2026-10')).tax_withheld.to_number() >= september);
 			}).pipe(Effect.provide(workspace({ seed: father(), now: NOW })))
 	);
 
 	it.live(
-		'its leave already taken and paid: the correcting version is refused until a reversal gives the days back, then it seals and the days are keyed as the leave they were',
+		'its leave already taken and paid: the correcting version is refused until the days are deleted where they were keyed, then it seals and the days are keyed as the leave they were',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -859,17 +907,17 @@ describe('a family fact sealed wrongly', () => {
 				const held9 = yield* versionOf(t, wrong);
 				const right = yield* draftOf(t, held9, '2026-10-01', { family: first.family });
 				yield* end(t, held9, '2026-09-30');
-				assert.match(yield* refused(seal(t, right)), /days taken stand on a fact/);
-				// the days a run priced are not deleted
-				assert.match(
-					yield* refused(t.as(t.admin).act('leave_catalog_entry.delete', [{ target: taken }])),
-					/Create a reversal/
-				);
-				// the way out: the reversal gives the days back, and the version seals
-				yield* leave(t, PATERNITY, [], { employment: wrong, reverses: taken });
+				assert.match((yield* refusal(seal(t, right))).message, /days taken stand on a fact/);
+				// the way out: the entry a paid run priced is deleted, which gives the days back and leaves the month to
+				// be worked out again; then the version seals
+				yield* (yield* t.as(t.admin)).act({
+					'leave_catalog_entry.delete': [{ target: yield* at(t, 'leave_catalog_entry', taken) }]
+				});
+				yield* t.run_due();
 				assert.equal((yield* held(t, PATERNITY)).used, 0);
+				assert.deepEqual(yield* amendments(t), [['2026-09', null]]);
 				yield* seal(t, right);
-				yield* t.runDue();
+				yield* t.run_due();
 				yield* syncAll(t);
 				assert.deepEqual(yield* held(t, PATERNITY), { entitled: 0, used: 0 });
 				// manual: the days off were real, so HR keys them on the leave they should have drawn
@@ -882,38 +930,40 @@ describe('a family fact sealed wrongly', () => {
 	);
 });
 
-// 5. Until a run seals it an entry is HR's to change or delete, and the balance follows each write; after, it is a
-// reversal (the case above, ledger_limits.test.ts, no_pay_reversal.test.ts). A manual balance row is never changed.
+// 5. An entry is HR's to change or delete, and the balance follows each write; one a paid run sealed leaves an
+// amendment row besides (the cases above, amendments.test.ts). A manual balance row is never changed.
 describe('an entry keyed wrongly', () => {
 	it.live(
 		'before a run: a wrong amount is edited, a wrong date and a wrong person are deleted and keyed again, and the run pays what stands',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const admin = t.as(t.admin);
+				const admin = yield* t.as(t.admin);
 				yield* syncAll(t);
 				const annual = yield* held(t, 'ANNUAL_LEAVE');
-				// the wrong person: nothing is sealed, so there is nothing to reverse
+				// the wrong person: the entry is deleted and keyed on the right one
 				const bonus = yield* adhoc(t, 'BONUS', 500, '2026-08-10', FIRST);
-				assert.match(
-					yield* refused(adhoc(t, 'BONUS', 500, '2026-08-10', FIRST, bonus)),
-					/deleted instead/
-				);
-				yield* admin.act('adhoc_catalog_entry.delete', [{ target: bonus }]);
+				yield* admin.act({
+					'adhoc_catalog_entry.delete': [{ target: yield* at(t, 'adhoc_catalog_entry', bonus) }]
+				});
 				yield* adhoc(t, 'BONUS', 500, '2026-08-10', SECOND);
 				// the wrong amount: the balance follows the edit
 				const medical = yield* claim(t, 80, '2026-08-11');
 				assert.equal((yield* held(t, 'MEDICAL_CLAIM', PERSON, 'claim')).used, 80);
-				yield* admin.act('claim_catalog_entry.update', [
-					{ target: medical, set: { quantity: 60 } }
-				]);
-				yield* t.runDue();
+				yield* admin.act({
+					'claim_catalog_entry.update': [
+						{ target: yield* at(t, 'claim_catalog_entry', medical), set: { quantity: 60 } }
+					]
+				});
+				yield* t.run_due();
 				assert.equal((yield* held(t, 'MEDICAL_CLAIM', PERSON, 'claim')).used, 60);
 				// the wrong date: the day comes back with the entry, and the right one draws it again
 				const day = yield* leave(t, 'ANNUAL_LEAVE', ['2026-08-10']);
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, annual.used + 1);
-				yield* admin.act('leave_catalog_entry.delete', [{ target: day }]);
-				yield* t.runDue();
+				yield* admin.act({
+					'leave_catalog_entry.delete': [{ target: yield* at(t, 'leave_catalog_entry', day) }]
+				});
+				yield* t.run_due();
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, annual.used);
 				yield* leave(t, 'ANNUAL_LEAVE', ['2026-08-11']);
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, annual.used + 1);
@@ -936,7 +986,7 @@ describe('an entry keyed wrongly', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const hr = t.as(t.member(['hr_controller']));
+				const hr = yield* t.as(t.member(['hr_controller']));
 				const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
 				const adjust = (
 					balance: Id<'employee_balance'>,
@@ -944,19 +994,21 @@ describe('an entry keyed wrongly', () => {
 					days: number,
 					note: string
 				) =>
-					hr.act('ledger_entry.create', [
-						{
-							balance_id: balance,
-							operation,
-							account: 'leave',
-							code: IN_LIEU,
-							measure: 'entitled',
-							amount: days,
-							unit: 'DAY',
-							effective_on: PlainDate('2026-11-02'),
-							note
-						}
-					]);
+					hr.act({
+						'ledger_entry.create': [
+							{
+								balance_id: balance,
+								operation,
+								account: 'leave',
+								code: IN_LIEU,
+								measure: 'entitled',
+								amount: days,
+								unit: 'DAY',
+								effective_on: PlainDate('2026-11-02'),
+								note
+							}
+						]
+					});
 				yield* syncAll(t);
 				yield* adjust(BALANCE, 'ADD', 5, 'worked the holiday');
 				assert.equal((yield* held(t, IN_LIEU)).entitled, 5);
@@ -969,7 +1021,7 @@ describe('an entry keyed wrongly', () => {
 				);
 				assert.deepEqual(
 					manual
-						.map((row) => [String(row.balance_id), row.operation, row.amount?.toNumber()])
+						.map((row) => [String(row.balance_id), row.operation, row.amount?.to_number()])
 						.toSorted(),
 					[
 						[BALANCE, 'ADD', 5],
@@ -997,22 +1049,24 @@ describe('a pay group with a wrong pay day', () => {
 				const t = yield* TestWorkspace;
 				yield* run(t, '2026-08');
 				yield* pay(t, '2026-08');
-				yield* t.as(t.admin).act('pay_group.update', [
-					{
-						target: idOf('pay_group', PAY_GROUP),
-						set: {
-							payment_schedule: {
-								frequency: 'MONTHLY',
-								business_day: 'PREVIOUS',
-								non_working_weekdays: [0, 6],
-								short_month: 'LAST_DAY',
-								pay_cutoff_day: 1,
-								pay_days: [28]
+				yield* (yield* t.as(t.admin)).act({
+					'pay_group.update': [
+						{
+							target: yield* at(t, 'pay_group', idOf('pay_group', PAY_GROUP)),
+							set: {
+								payment_schedule: {
+									frequency: 'MONTHLY',
+									business_day: 'PREVIOUS',
+									non_working_weekdays: [0, 6],
+									short_month: 'LAST_DAY',
+									pay_cutoff_day: 1,
+									pay_days: [28]
+								}
 							}
 						}
-					}
-				]);
-				yield* t.runDue();
+					]
+				});
+				yield* t.run_due();
 				const august = yield* runOf(t, '2026-08');
 				assert.deepEqual(
 					[
@@ -1086,7 +1140,7 @@ describe('a law change merged by mistake', () => {
 	};
 	const answer = (value: unknown) => ({
 		content: JSON.stringify(value),
-		toolCalls: [],
+		tool_calls: [],
 		finish: 'stop' as const,
 		usage: { input: 0, output: 0 }
 	});
@@ -1118,23 +1172,25 @@ describe('a law change merged by mistake', () => {
 	];
 	const scenario = (
 		turns: readonly ReturnType<typeof answer>[],
-		body: (t: Kit) => Effect.Effect<void, unknown>
+		body: (t: Kit) => Effect.Effect<void, unknown>,
+		seed: { readonly [model: string]: readonly JsonObject[] } = law()
 	) =>
 		Effect.gen(function* () {
 			yield* body(yield* TestWorkspace);
 		}).pipe(
 			Effect.provide(
 				workspace({
-					seed: law(),
+					seed,
 					now: LAW_NOW,
 					fakes: { ai: { cassette: { strong: [...turns] } } },
 					host: {
 						agent: {
-							hostTools: [
+							host_tools: [
 								{
 									name: 'web_search',
 									description: 'The host search the cassette never calls.',
 									input: { type: 'object' },
+									behavior: {},
 									call: async () => []
 								}
 							]
@@ -1146,40 +1202,43 @@ describe('a law change merged by mistake', () => {
 	/** Confirm the one finding still proposed and merge the release of `on`. */
 	const released = (t: Kit, on: string) =>
 		Effect.gen(function* () {
-			const { statutory_finding } = yield* t.storedQuery({ statutory_finding: { limit: 100 } });
+			const { statutory_finding } = yield* storedQuery(t, { statutory_finding: { limit: 100 } });
 			const proposed = statutory_finding.rows.find((row) => row.status === 'PROPOSED');
 			assert.ok(proposed !== undefined, 'Nothing is proposed');
-			yield* t
-				.as(t.admin)
-				.act('statutory_finding.update', [{ target: proposed.id, set: { status: 'CONFIRMED' } }]);
-			yield* t.as(t.admin).start('statutory_materialize', {
-				code: 'ID',
-				target: PlainDate(on),
-				merge: true
-			});
-			yield* t.runDue();
+			yield* t.as(t.admin).pipe(
+				Effect.andThen((caller) =>
+					caller.act({
+						'statutory_finding.update': [{ target: proposed, set: { status: 'CONFIRMED' } }]
+					})
+				)
+			);
+			yield* (yield* t.as(t.admin)).run(
+				'statutory_materialize',
+				{ code: 'ID', target: PlainDate(on), merge: true },
+				JobResult
+			);
+			yield* t.run_due();
 		});
 	/** Research once, confirm what it proposed and merge the release of `on`. */
 	const merged = (t: Kit, on: string) =>
-		t
-			.as(t.admin)
-			.start('statutory_research', { code: 'ID' })
-			.pipe(Effect.andThen(t.runDue()), Effect.andThen(released(t, on)));
+		t.as(t.admin).pipe(
+			Effect.andThen((admin) => admin.run('statutory_research', { code: 'ID' }, JobResult)),
+			Effect.andThen(t.run_due()),
+			Effect.andThen(released(t, on))
+		);
 	const sealedLaw = (t: Kit) =>
-		t
-			.storedQuery({
-				jurisdiction_settings: {
-					where: { code: { eq: 'ID' }, status: { eq: 'SEALED' } },
-					limit: 100
-				}
-			})
-			.pipe(
-				Effect.map(({ jurisdiction_settings }) =>
-					jurisdiction_settings.rows.toSorted((left, right) =>
-						String(left.effective_range.from).localeCompare(String(right.effective_range.from))
-					)
+		storedQuery(t, {
+			jurisdiction_settings: {
+				where: { code: { eq: 'ID' }, status: { eq: 'SEALED' } },
+				limit: 100
+			}
+		}).pipe(
+			Effect.map(({ jurisdiction_settings }) =>
+				jurisdiction_settings.rows.toSorted((left, right) =>
+					String(left.effective_range.from).localeCompare(String(right.effective_range.from))
 				)
-			);
+			)
+		);
 	/** The sealed version starting on a day. */
 	const lawFrom = (t: Kit, from: string) =>
 		sealedLaw(t).pipe(
@@ -1190,19 +1249,17 @@ describe('a law change merged by mistake', () => {
 			})
 		);
 	const rateIn = (t: Kit, version: Id<'jurisdiction_settings'>) =>
-		t
-			.storedQuery({
-				statutory_contribution_catalog: {
-					where: { settings_id: { eq: version }, code: { eq: 'JHT' } },
-					limit: 1
-				}
-			})
-			.pipe(
-				Effect.map(
-					({ statutory_contribution_catalog }) =>
-						objectValue(statutory_contribution_catalog.rows[0]?.lookup).employee_rate
-				)
-			);
+		storedQuery(t, {
+			statutory_contribution_catalog: {
+				where: { settings_id: { eq: version }, code: { eq: 'JHT' } },
+				limit: 1
+			}
+		}).pipe(
+			Effect.map(
+				({ statutory_contribution_catalog }) =>
+					objectValue(statutory_contribution_catalog.rows[0]?.lookup).employee_rate
+			)
+		);
 	const MISTAKEN = 0.025;
 
 	it.live(
@@ -1243,6 +1300,62 @@ describe('a law change merged by mistake', () => {
 	);
 
 	it.live(
+		'superseded after its run was paid: everyone paid under it is amended, and the next run carries the difference',
+		() => {
+			const WAGE = 10_000_000;
+			const packed = pack(
+				'ID',
+				'Asia/Jakarta',
+				{
+					rate: { amount: WAGE, unit: 'MONTHLY' },
+					statutory_work_category: 'NON_MANUAL',
+					work_classification: 'EA_COVERED',
+					residency_status: 'CITIZEN',
+					wage_payment_method: 'BANK',
+					allowances: {}
+				},
+				{ work_region: 'Provinsi Aceh/Kabupaten Aceh Barat' },
+				[],
+				[],
+				'2026-11-05'
+			);
+			return scenario(
+				[
+					...found('Permenaker 9/2027', MISTAKEN, '2026-11-01'),
+					...found('Permenaker 10/2027', 0.02, '2026-11-02')
+				],
+				(t) =>
+					Effect.gen(function* () {
+						yield* merged(t, '2026-11-01');
+						yield* run(t, '2026-11');
+						yield* pay(t, '2026-11');
+						assert.equal(signed(yield* slipOf(t, '2026-11'), 'JHT'), -WAGE * MISTAKEN);
+						assert.deepEqual(yield* amendments(t), []);
+						// the corrective release covers the paid run's pay date: its people are amended by the merge itself
+						yield* merged(t, '2026-11-02');
+						assert.deepEqual(yield* amendments(t), [['2026-11', null]]);
+						yield* Effect.sync(() => t.clock.set('2026-12-05T02:00:00.000Z'));
+						yield* run(t, '2026-12');
+						const december = yield* slipOf(t, '2026-12');
+						assert.equal(carriedOf(december, '2026-11', 'JHT'), 50_000);
+						assert.equal(
+							signed(yield* slipOf(t, '2026-11'), 'JHT'),
+							-WAGE * MISTAKEN,
+							'the paid payslip stands'
+						);
+					}),
+				{
+					...packed,
+					entity_profile_version: (packed.entity_profile_version ?? []).map((row) => ({
+						...row,
+						entity_extension_data: { risk_class: 'I' }
+					}))
+				}
+			);
+		}
+	);
+
+	it.live(
 		'voided: no run can be made until the release is merged again as it should have been, from the version that stood before',
 		() =>
 			scenario(found('Permenaker 9/2027', MISTAKEN, '2026-11-01'), (t) =>
@@ -1252,65 +1365,93 @@ describe('a law change merged by mistake', () => {
 					const lawful = yield* rateIn(t, stood.id);
 					yield* merged(t, '2026-11-01');
 					const mistaken = yield* lawFrom(t, '2026-11-01');
-					yield* t.as(t.admin).act('jurisdiction_settings.update', [
-						{
-							target: mistaken.id,
-							set: { status: 'VOID', reason: 'Merged with the wrong rate' }
-						}
-					]);
-					yield* t.runDue();
-					// the version before it was ended to make room, and a sealed version only ever shortens
-					assert.match(yield* refused(run(t, '2026-11')), /No sealed ID law covers 2026-11-\d\d/);
-					assert.match(
-						yield* refused(
-							t.as(t.admin).act('jurisdiction_settings.update', [
-								{
-									target: stood.id,
-									set: {
-										effective_range: {
-											from: stood.effective_range.from,
-											to: PlainDate('2026-11-30')
-										}
+					yield* t.as(t.admin).pipe(
+						Effect.andThen((caller) =>
+							caller.act({
+								'jurisdiction_settings.update': [
+									{
+										target: mistaken,
+										set: { status: 'VOID', reason: 'Merged with the wrong rate' }
 									}
-								}
-							])
-						),
-						/may only shorten its future effective period/
+								]
+							})
+						)
+					);
+					yield* t.run_due();
+					// the version before it was ended to make room, and a sealed version only ever shortens
+					const ended = yield* lawFrom(t, String(stood.effective_range.from));
+					const lawless = yield* refusal(run(t, '2026-11'));
+					assert.equal(lawless.key, 'errors.payroll_run_no_law');
+					assert.equal(lawless.values?.code, 'ID');
+					assert.match(String(lawless.values?.date), /^2026-11-\d\d$/);
+					assert.equal(
+						(yield* refusal(
+							t.as(t.admin).pipe(
+								Effect.andThen((caller) =>
+									caller.act({
+										'jurisdiction_settings.update': [
+											{
+												target: ended,
+												set: {
+													effective_range: {
+														from: ended.effective_range.from,
+														to: PlainDate('2026-11-30')
+													}
+												}
+											}
+										]
+									})
+								)
+							)
+						)).key,
+						'errors.jurisdiction_sealed_shorten_only'
 					);
 					// the way out: the release as it should have been, on the same date. Research reads only law still in
 					// force today and the last version has ended, so HR files the finding and its change by hand, against the
 					// version that stood before; the materializer takes that version as its baseline.
-					yield* t.as(t.admin).act('statutory_finding.create', [
-						{
-							jurisdiction_code: 'ID',
-							instrument_key: 'permenaker-10-2027',
-							title: 'JHT employee rate, as the instrument states it',
-							fit: 'VALUE',
-							status: 'PROPOSED',
-							families: ['statutory_contribution_catalog'],
-							source_urls: ['https://jdih.kemnaker.go.id/permenaker.pdf'],
-							source_quote: 'Iuran JHT pekerja.'
-						}
-					]);
-					const { statutory_finding } = yield* t.storedQuery({
+					yield* t.as(t.admin).pipe(
+						Effect.andThen((caller) =>
+							caller.act({
+								'statutory_finding.create': [
+									{
+										jurisdiction_code: 'ID',
+										instrument_key: 'permenaker-10-2027',
+										title: 'JHT employee rate, as the instrument states it',
+										fit: 'VALUE',
+										status: 'PROPOSED',
+										families: ['statutory_contribution_catalog'],
+										source_urls: ['https://jdih.kemnaker.go.id/permenaker.pdf'],
+										source_quote: 'Iuran JHT pekerja.'
+									}
+								]
+							})
+						)
+					);
+					const { statutory_finding } = yield* storedQuery(t, {
 						statutory_finding: { where: { status: { eq: 'PROPOSED' } }, limit: 10 }
 					});
 					const [filed, ...others] = statutory_finding.rows;
 					assert.ok(filed !== undefined);
 					assert.deepEqual(others, []);
-					yield* t.as(t.admin).act('statutory_change.create', [
-						{
-							finding_id: filed.id,
-							jurisdiction_code: 'ID',
-							family: 'statutory_contribution_catalog',
-							row_code: 'JHT',
-							field_path: 'lookup.employee_rate',
-							old_value: lawful ?? null,
-							new_value: 0.021,
-							effective_from: PlainDate('2026-11-01'),
-							baseline_version_id: stood.id
-						}
-					]);
+					yield* t.as(t.admin).pipe(
+						Effect.andThen((caller) =>
+							caller.act({
+								'statutory_change.create': [
+									{
+										finding_id: filed.id,
+										jurisdiction_code: 'ID',
+										family: 'statutory_contribution_catalog',
+										row_code: 'JHT',
+										field_path: 'lookup.employee_rate',
+										old_value: lawful ?? null,
+										new_value: 0.021,
+										effective_from: PlainDate('2026-11-01'),
+										baseline_version_id: stood.id
+									}
+								]
+							})
+						)
+					);
 					yield* released(t, '2026-11-01');
 					const replacement = yield* lawFrom(t, '2026-11-01');
 					assert.notEqual(replacement.id, mistaken.id);

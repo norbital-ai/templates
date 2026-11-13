@@ -2,11 +2,11 @@
  * The roster workbook, one month in two sheets. Plan is the scheme: each person-day's shift and planned overtime. Work
  * entries are what happened: a clock in and a clock out. A file may carry either or both and each writes only its own
  * fields, so the plan can go in ahead of the month and the clocks after it. A blank row and a day the file leaves out
- * stay as they are, and a day a payroll run sealed refuses a change. Times are read in the entity's zone.
+ * stay as they are. Times are read in the entity's zone.
  */
 import type { Cell } from '@norbital-ai/std/sheet';
 import type { Id } from '@norbital-ai/bolt';
-import { Instant, PlainDate, Zone, addDays, monthOf, parseInstant } from '@norbital-ai/std/date';
+import { Instant, PlainDate, Zone, add_days, month_of, parse_instant } from '@norbital-ai/std/date';
 import {
 	cellDay,
 	cellText,
@@ -55,8 +55,6 @@ export type RosterStored = {
 	readonly overtime_as_time_off: boolean;
 	readonly actual_worked_intervals: readonly RosterStoredInterval[] | null;
 	readonly consent: Consent | null;
-	readonly payroll_run_id: Id<'payroll_run'> | null;
-	readonly run_label: string | null;
 };
 export type RosterKnown = {
 	readonly entity_name: string;
@@ -251,7 +249,7 @@ const clockAt = (
 	if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value < 1) {
 		const minutes = Math.round(value * 1440) % 1440;
 		const time = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-		const instant = parseInstant(`${day} ${time}`, zone);
+		const instant = parse_instant(`${day} ${time}`, zone);
 		if (instant == null) {
 			problems.push(`Row ${at}: ${column} cannot be read in ${zone}.`);
 			return null;
@@ -262,14 +260,14 @@ const clockAt = (
 	const timeOnly = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(text);
 	if (timeOnly != null) {
 		const time = `${timeOnly[1]!.padStart(2, '0')}:${timeOnly[2]}`;
-		const instant = parseInstant(`${day} ${time}`, zone);
+		const instant = parse_instant(`${day} ${time}`, zone);
 		if (instant == null) {
 			problems.push(`Row ${at}: ${column} "${text}" is not a clock time.`);
 			return null;
 		}
 		return { instant, explicitDate: false, time };
 	}
-	const instant = parseInstant(text, zone);
+	const instant = parse_instant(text, zone);
 	if (instant == null) {
 		problems.push(`Row ${at}: ${column} "${text}" is not a clock time or dated timestamp.`);
 		return null;
@@ -312,7 +310,7 @@ const intervalOf = (
 			);
 			return undefined;
 		}
-		const next = parseInstant(`${addDays(day, 1)} ${end.time ?? ''}`, zone);
+		const next = parse_instant(`${add_days(day, 1)} ${end.time ?? ''}`, zone);
 		if (next == null || Date.parse(next) <= Date.parse(start.instant)) {
 			problems.push(`Row ${at}: ${endName} must be after ${startName}.`);
 			return undefined;
@@ -338,7 +336,7 @@ const overtimeDay = (row: RawRow, shift: RosterShift | null, zone: string): stri
 	)
 		return row.day;
 	return minutesOf(start.time) * 2 < minutesOf(shift.start_time) + minutesOf(shift.end_time)
-		? addDays(row.day, 1)
+		? add_days(row.day, 1)
 		: row.day;
 };
 
@@ -410,7 +408,7 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 	} catch {
 		throw new WorkbookRowsError(`The entity's time zone "${known.zone}" is not known.`);
 	}
-	const period = monthOf(PlainDate(`${month}-01`));
+	const period = month_of(PlainDate(`${month}-01`));
 	const last = period.to ?? period.from;
 	const stored = new Map(
 		known.entries.map((entry) => [
@@ -461,12 +459,6 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 		const entry = stored.get(key);
 		const fields = changed(entry, set);
 		if (Object.keys(fields).length === 0 && entry !== undefined) return;
-		if (entry?.payroll_run_id != null) {
-			problems.push(
-				`Row ${row.at}: ${row.number} ${row.day} is sealed by payroll run ${entry.run_label ?? entry.payroll_run_id}; delete that run to change it.`
-			);
-			return;
-		}
 		days.set(key, {
 			employment_id: employee.id,
 			number: row.number,

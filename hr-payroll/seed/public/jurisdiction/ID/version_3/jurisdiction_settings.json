@@ -4,7 +4,7 @@
 		"name": "Indonesia — 1 March 2026",
 		"effective_range": {
 			"from": "2026-03-01",
-			"to": null
+			"to": "2026-10-27"
 		},
 		"currency": "IDR",
 		"tax_year_start_month": 1,
@@ -184,6 +184,7 @@
 					"type": "string",
 					"enum": [
 						"MERGER_CONSOLIDATION_SEPARATION",
+						"MERGER_EMPLOYER_UNWILLING",
 						"ACQUISITION",
 						"ACQUISITION_TERMS_CHANGE_REJECTED",
 						"EFFICIENCY_ACTUAL_LOSS",
@@ -207,8 +208,8 @@
 						"RETIREMENT",
 						"DEATH"
 					],
-					"title": "PP 35/2021 termination cause",
-					"description": "The statutory ground (PP 35/2021 arts.41–57); it chooses the pesangon multiplier and whether UPMK or uang pisah is owed. Required for a PKWTT exit."
+					"title": "Statutory termination cause",
+					"description": "The statutory ground (PP 35/2021 arts.41–57; from 28 October 2026 UU 27/2026 arts.236–249); it chooses the pesangon and UPMK multipliers and whether UPMK or uang pisah is owed. MERGER_CONSOLIDATION_SEPARATION: the worker will not continue after a merger, consolidation or separation; MERGER_EMPLOYER_UNWILLING: the employer will not take the worker on. Required for a PKWTT exit."
 				},
 				"micro_small_enterprise": {
 					"type": "boolean",
@@ -467,6 +468,19 @@
 					"format": "date",
 					"title": "Date the business first employed a worker",
 					"description": "The actual date the business first employed a worker, including employment before this workspace."
+				},
+				"jkk_labour_intensive_industry": {
+					"type": "string",
+					"enum": [
+						"FOOD_BEVERAGE_TOBACCO",
+						"TEXTILE_GARMENT",
+						"LEATHER_GOODS",
+						"FOOTWEAR",
+						"CHILDREN_TOYS",
+						"FURNITURE"
+					],
+					"title": "Labour-intensive industry under the 2025 JKK relief",
+					"description": "Set only where the company qualifies under PP 7/2025 as extended by PP 36/2025: the JKK rate is halved for the contribution months February 2025 to January 2026."
 				}
 			}
 		},
@@ -1529,7 +1543,7 @@
 		"id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"conversions": {
 			"day": {
-				"basis": "HOUR"
+				"basis": "YEAR"
 			},
 			"hour": {
 				"basis": "FIXED",
@@ -1539,7 +1553,8 @@
 			"rounding": {
 				"mode": "HALF_UP",
 				"scale": 0
-			}
+			},
+			"back_pay": "RETROACTIVE_PAY"
 		},
 		"ledger": {
 			"ytd_scope": "JURISDICTION"

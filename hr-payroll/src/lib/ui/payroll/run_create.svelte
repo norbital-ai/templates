@@ -1,36 +1,40 @@
 <script lang="ts">
 	/**
 	 * A new payroll run for one pay group of the entity in scope. An on-cycle run names its group and cycle. An
-	 * off-cycle run names who and what for: it pays the open ad hoc and claim entries those pick out, and no salary.
+	 * off-cycle run names who and what for: it pays the open ad hoc and claim entries those pick out, and no salary. It
+	 * may also carry earlier periods that wait: the way someone no on-cycle run pays any more is paid what they are owed.
 	 */
-	import { bolt } from '$bolt';
-	import type { Id } from '@norbital-ai/bolt';
-	import { Button, Combobox, notifyOutcome, Sheet, Tabs, toast } from '@norbital-ai/ui';
+	import type { PageContext } from '@norbital-ai/bolt/page';
+	import type { ActInput, Id } from '@norbital-ai/bolt';
+	import { Button, Combobox, notify_outcome, Sheet, Tabs, toast } from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import { addMonths } from '@norbital-ai/std/date';
+	import { add_months } from '@norbital-ai/std/date';
 	import { Effect } from 'effect';
 	import { jsonObject } from '../../payroll_engine/foundation.js';
 	import { cycleOn, cyclesIn } from '../../payroll_engine/pay_cycle.js';
 	import { todayKey } from '../format/calendar.js';
 	import { periodLabel } from './pay_periods.js';
 
-	let { companyId, open = $bindable(false) }: { companyId: Id<'entity'>; open?: boolean } =
-		$props();
+	let {
+		ctx,
+		companyId,
+		open = $bindable(false)
+	}: { ctx: PageContext; companyId: Id<'entity'>; open?: boolean } = $props();
 
 	const today = String(todayKey());
 	const known = $derived(
-		bolt.query({
+		ctx.query({
 			pay_group: {
 				where: { entity_id: { eq: companyId } },
 				fields: ['name', 'payment_schedule'],
-				orderBy: { name: 'asc' },
+				order_by: { name: 'asc' },
 				limit: 100
 			},
 			entity_profile_version: {
 				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
 				fields: ['effective_range'],
-				orderBy: { created_at: 'desc' },
+				order_by: { created_at: 'desc' },
 				limit: 100
 			},
 			payroll_run: {
@@ -60,15 +64,15 @@
 	const latest = $derived(runs.map((run) => run.period).reduce((a, b) => (a > b ? a : b), ''));
 	const cycles = $derived(
 		Array.from({ length: 13 }, (_, back) =>
-			String(addMonths(`${today.slice(0, 7)}-01`, -back)).slice(0, 7)
+			String(add_months(`${today.slice(0, 7)}-01`, -back)).slice(0, 7)
 		)
 			.flatMap((month) => cyclesIn(schedule, month).toReversed())
 			.filter((cycle) => cycle.from <= today && cycle.key > latest)
 			.map((cycle) => ({
 				value: cycle.key,
 				label: periodLabel(cycle.key, {
-					first: bolt.t('app.payroll.first_half'),
-					second: bolt.t('app.payroll.second_half')
+					first: ctx.t('app.payroll.first_half'),
+					second: ctx.t('app.payroll.second_half')
 				}),
 				description: `${cycle.from} – ${cycle.to}`
 			}))
@@ -76,19 +80,21 @@
 	let cycle = $state<string | null>(null);
 
 	const openEntry = {
-		where: { entity_id: { eq: companyId }, payroll_run_id: { isNull: true } },
-		fields: ['catalog_id', 'employment_id', 'quantity'],
+		where: { entity_id: { eq: companyId }, payroll_run_id: { is_null: true } },
+		fields: ['catalog_id', 'employment_id', 'quantity', 'revision'],
 		limit: 10000
 	} as const;
 	const listed = $derived(
 		open
-			? bolt.query({
-					adhoc_catalog_entry: openEntry,
-					'adhoc_catalog_entry.catalog_id': { fields: ['code', 'off_cycle_eligible'] },
-					'adhoc_catalog_entry.employment_id': {
-						fields: ['employee_number', 'employee_id', 'effective_range']
-					},
-					'adhoc_catalog_entry.employment_id.employee_id': { fields: ['name'] }
+			? ctx.query({
+					adhoc_catalog_entry: {
+						...openEntry,
+						catalog_id: { fields: ['code', 'off_cycle_eligible'] },
+						employment_id: {
+							fields: ['employee_number', 'employee_id', 'effective_range'],
+							employee_id: { fields: ['name'] }
+						}
+					}
 				})
 			: null
 	);
@@ -96,10 +102,9 @@
 		[
 			...(listed?.current?.adhoc_catalog_entry.rows ?? []).map((row) => ({
 				row,
-				adhoc: [row.id],
-				claim: []
+				adhoc: [{ id: row.id, revision: row.revision }]
 			}))
-		].flatMap(({ row, adhoc, claim }) => {
+		].flatMap(({ row, adhoc }) => {
 			const offCycle =
 				row.catalog_id !== null &&
 				'off_cycle_eligible' in row.catalog_id &&
@@ -108,7 +113,6 @@
 				? [
 						{
 							adhoc,
-							claim,
 							who: String(row.employment_id.id),
 							employed: row.employment_id.effective_range,
 							person: `${row.employment_id.employee_id?.name ?? ''} (${row.employment_id.employee_number})`,
@@ -135,12 +139,35 @@
 		entries.filter((row) => who.includes(row.who) && what.includes(row.what))
 	);
 
+	// paid periods corrected since and still waiting for a run: an off-cycle run carries the ones HR names
+	const waitingRows = $derived(
+		open && group !== undefined
+			? ctx.query({
+					pay_amendment: {
+						where: { pay_group_id: { eq: group.id }, payroll_run_id: { is_null: true } },
+						fields: ['employee_id', 'period', 'revision'],
+						order_by: { period: 'asc' },
+						limit: 10000,
+						employee_id: { fields: ['name'] }
+					}
+				})
+			: null
+	);
+	const waiting = $derived(
+		(waitingRows?.current?.pay_amendment.rows ?? []).map((row) => ({
+			value: String(row.id),
+			link: { id: row.id, revision: row.revision },
+			label: `${row.employee_id?.name ?? ''} · ${row.period}`
+		}))
+	);
+	let carried = $state<string[]>([]);
+
 	let saving = $state(false);
-	const create = (row: Parameters<typeof bolt.act<'payroll_run.create'>>[1][number]) => {
+	const create = (row: ActInput<'payroll_run.create'>[number]) => {
 		saving = true;
 		fork(
-			bolt.act('payroll_run.create', [row]).pipe(
-				Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+			ctx.act({ 'payroll_run.create': [row] }).pipe(
+				Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
 				Effect.tap((outcome) =>
 					Effect.sync(() => {
 						if (outcome.kind === 'committed') open = false;
@@ -148,7 +175,7 @@
 				),
 				Effect.catch((error) =>
 					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
 					)
 				),
 				Effect.ensuring(Effect.sync(() => (saving = false)))
@@ -164,9 +191,9 @@
 		const day = [today, ...paying.flatMap((row) => row.employed.to ?? [])]
 			.map(String)
 			.toSorted()[0];
-		if (day === undefined || paying.length === 0) return;
+		if (day === undefined || (paying.length === 0 && carried.length === 0)) return;
 		if (paying.some((row) => String(row.employed.from) > day)) {
-			toast.error(bolt.t('app.payroll.separate_runs'));
+			toast.error(ctx.t('app.payroll.separate_runs'));
 			return;
 		}
 		const period = cycleOn(schedule, day)?.key;
@@ -176,10 +203,9 @@
 			pay_group_id: group.id,
 			period,
 			kind: 'OFF_CYCLE',
-			attaches: {
-				adhoc: paying.flatMap((row) => row.adhoc),
-				claim: paying.flatMap((row) => row.claim)
-			}
+			// the run links what it pays and the amendment rows it carries, each at the revision read
+			adhoc: paying.flatMap((row) => row.adhoc),
+			amendments: waiting.flatMap((row) => (carried.includes(row.value) ? [row.link] : []))
 		});
 	};
 </script>
@@ -190,8 +216,8 @@
 			class="w-full"
 			options={groupOptions}
 			value={group?.id ?? null}
-			placeholder={bolt.t('app.payroll.pay_group')}
-			onChange={(next) => {
+			placeholder={ctx.t('app.payroll.pay_group')}
+			on_change={(next) => {
 				chosen = next;
 				cycle = null;
 			}}
@@ -205,47 +231,60 @@
 			class="w-full"
 			options={cycles}
 			value={cycle}
-			placeholder={bolt.t('app.payroll.period')}
-			onChange={(next) => (cycle = next)}
+			placeholder={ctx.t('app.payroll.period')}
+			on_change={(next) => (cycle = next)}
 		/>
 		<Button disabled={saving || cycle === null || group === undefined} onclick={runOnCycle}>
-			{bolt.t('app.payroll.create_run')}
+			{ctx.t('app.payroll.create_run')}
 		</Button>
 	</Stack>
 {/snippet}
 {#snippet offCycleForm()}
 	<Stack gap="sm">
 		{@render groupPicker()}
-		{#if entries.length === 0}
-			<p class="text-meta">{bolt.t('app.payroll.no_adhoc_items')}</p>
+		{#if entries.length === 0 && waiting.length === 0}
+			<p class="text-meta">{ctx.t('app.payroll.no_adhoc_items')}</p>
 		{:else}
+			{#if waiting.length > 0}
+				<Combobox
+					multiple
+					class="w-full"
+					options={waiting}
+					value={carried}
+					placeholder={ctx.t('app.payroll.amended_carry')}
+					on_change={(next) => (carried = [...next])}
+				/>
+			{/if}
 			<Combobox
 				multiple
 				class="w-full"
 				options={people}
 				value={who}
-				placeholder={bolt.t('app.payroll.adhoc_people')}
-				onChange={(next) => (who = [...next])}
+				placeholder={ctx.t('app.payroll.adhoc_people')}
+				on_change={(next) => (who = [...next])}
 			/>
 			<Combobox
 				multiple
 				class="w-full"
 				options={items}
 				value={what}
-				placeholder={bolt.t('app.payroll.adhoc_items')}
-				onChange={(next) => (what = [...next])}
+				placeholder={ctx.t('app.payroll.adhoc_items')}
+				on_change={(next) => (what = [...next])}
 			/>
-			<Button disabled={saving || paying.length === 0 || group === undefined} onclick={runOffCycle}>
-				{bolt.t('app.payroll.create_run')}
+			<Button
+				disabled={saving || (paying.length === 0 && carried.length === 0) || group === undefined}
+				onclick={runOffCycle}
+			>
+				{ctx.t('app.payroll.create_run')}
 			</Button>
 		{/if}
 	</Stack>
 {/snippet}
-<Sheet bind:open title={bolt.t('v2.create_run')}>
+<Sheet bind:open title={ctx.t('v2.create_run')}>
 	<Tabs
 		tabs={[
-			{ name: 'on_cycle', title: bolt.t('v2.on_cycle'), body: onCycle },
-			{ name: 'off_cycle', title: bolt.t('v2.off_cycle'), body: offCycleForm }
+			{ name: 'on_cycle', title: ctx.t('v2.on_cycle'), body: onCycle },
+			{ name: 'off_cycle', title: ctx.t('v2.off_cycle'), body: offCycleForm }
 		]}
 	/>
 </Sheet>

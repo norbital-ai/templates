@@ -1,15 +1,15 @@
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../../.norbital/models/statutory_change.ts';
 
-export default model('statutory_change', {
+export default model({
 	description:
 		'One dated change to one configuration field or row, under the finding that decides it: its old and new value and effective date. Knowledge only; payroll reads the sealed jurisdiction snapshot it is materialized into.',
-	label: 'field_path',
+	record_label: 'record.field_path',
 	fields: {
 		finding_id: {
 			kind: 'ref',
 			to: 'statutory_finding',
 			inverse: 'changes',
-			onDelete: 'cascade'
+			on_delete: 'cascade'
 		},
 		jurisdiction_code: { kind: 'text' },
 		family: { kind: 'text' },
@@ -22,26 +22,25 @@ export default model('statutory_change', {
 			kind: 'ref',
 			to: 'jurisdiction_settings',
 			inverse: 'statutory_changes',
-			onDelete: 'restrict'
+			on_delete: 'restrict'
 		},
 		applied_version_id: {
 			kind: 'ref',
 			to: 'jurisdiction_settings',
 			optional: true,
-			onDelete: 'restrict'
+			on_delete: 'restrict'
 		},
 		notes: { kind: 'text', optional: true }
 	},
 	// isolated research runs meet here: one finding names one path once per effective date
-	unique: [{ fields: ['finding_id', 'family', 'row_code', 'field_path', 'effective_from'] }],
-	locked: { applied_version_id: { isNull: false } },
-	read: {
-		statutory_change: { fields: 'all' },
-		'statutory_change.finding_id': { fields: 'all' }
+	constraints: {
+		finding_path: { unique: ['finding_id', 'family', 'row_code', 'field_path', 'effective_from'] },
+		applied_change: { locked: { applied_version_id: { is_null: false } } }
 	},
+	outputs: { default: { fields: 'all', finding_id: { fields: 'all' } } },
 	create: {
 		columns: {
-			statutory_change: [
+			fields: [
 				'finding_id',
 				'jurisdiction_code',
 				'family',
@@ -57,7 +56,7 @@ export default model('statutory_change', {
 	},
 	update: {
 		columns: {
-			statutory_change: ['old_value', 'new_value', 'effective_from', 'notes', 'applied_version_id']
+			fields: ['old_value', 'new_value', 'effective_from', 'notes', 'applied_version_id']
 		}
 	}
 });

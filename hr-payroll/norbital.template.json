@@ -1,13 +1,13 @@
 {
-	"schemaVersion": 1,
+	"schema_version": 1,
 	"key": "norbital_hr",
 	"name": "HR & Payroll",
 	"industry": "Human resources",
 	"description": "Multi-country HR and payroll: sealed jurisdiction data, an append-only ledger, a linear subtotal chain and statutory obligations.",
 	"visibility": "public",
 	"counts": {
-		"models": 40,
-		"apps": 9,
+		"models": 41,
+		"apps": 10,
 		"automations": 8
 	},
 	"tags": ["HR", "Finance", "Approvals"],

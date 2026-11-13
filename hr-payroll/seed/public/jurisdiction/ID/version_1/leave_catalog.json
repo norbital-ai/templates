@@ -12,7 +12,7 @@
 		},
 		"references": [
 			{
-				"title": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement. a cuti bersama day taken is set against the annual leave (SKB 3 Menteri)."
+				"title": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement."
 			}
 		],
 		"subtotal_id": null,
@@ -44,7 +44,7 @@
 		"id": "ffac85c8-740d-5496-858c-4f3f6e852911",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
 		"description": "Paid annual leave accrued by service.",
-		"payout": "// UU 13/2003 art.156(4)(a) as amended by UU 6/2023, PP 35/2021 art.40(4)(a): unused annual leave that has not lapsed is compensated on termination.\nreturn ctx.day_rate * ctx.entry.quantity;"
+		"payout": "// UU 13/2003 art.156(4)(a) as amended by UU 6/2023, PP 35/2021 art.40(4)(a): unused annual leave that has not lapsed is compensated on termination.\n// Neither sets a day's rate; PP 36/2021 art.17 is the statute's only divisor of a month's wage into days: ÷ 25 for a six-day\n// week, ÷ 21 for a five-day week.\nconst days = Number(get(ctx.subject.employment, 'terms.normal_days_per_week', 5));\nreturn (ctx.month_wage / (days >= 6 ? 25 : 21)) * ctx.entry.quantity;"
 	},
 	{
 		"code": "NPL",
@@ -58,7 +58,7 @@
 		"subtotal_id": "e9129460-657a-4a15-9c06-d5eb8ebf1585",
 		"id": "7ab8ee9d-bdb0-51a9-86de-f6a79c76aed2",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
-		"description": "Unpaid absence: no wage for a day not worked, other than the absences the law pays. Each day taken reduces the month's basic pay by one day's pay (PP 36/2021 art.40(1)).",
+		"description": "Unpaid absence: no wage for a day not worked, other than the absences the law pays. Each day taken takes one day's pay off the month: the monthly wage × 12 ÷ (52 × contract days a week) (PP 36/2021 art.40(1)).",
 		"paid_share": "0"
 	},
 	{
@@ -377,8 +377,24 @@
 	},
 	{
 		"code": "WORK_ACCIDENT_LEAVE",
-		"description": "Absence after a work accident or occupational disease, while the worker cannot work (sementara tidak mampu bekerja).",
-		"lookup": {},
+		"description": "Absence after a work accident or occupational disease while the worker cannot work. The wage is paid in full for the first 12 months from the accident (a WORK_ACCIDENT event on the contract) and at 50% after that until recovery; the employer claims it back from BPJS Ketenagakerjaan (PP 44/2015 as amended by PP 82/2019).",
+		"lookup": {
+			"opened_by": {
+				"WORK_ACCIDENT": {
+					"days": 0
+				}
+			},
+			"pay_steps": [
+				{
+					"until_month": 12,
+					"unpaid_share": 0
+				},
+				{
+					"until_month": null,
+					"unpaid_share": 0.5
+				}
+			]
+		},
 		"references": [
 			{
 				"title": "UU 13/2003 art.86; PP 44/2015 art.25 and Lampiran III as amended by PP 82/2019: while a worker is temporarily unable to work after a work accident or occupational disease the employer pays the wage (STMB) — 100% for the first 12 months, then 50% until recovery (secondary for the 50% tail; the official Lampiran could not be read) — and claims it back from BPJS Ketenagakerjaan."
@@ -386,7 +402,8 @@
 		],
 		"subtotal_id": null,
 		"id": "77eb7e30-38cb-52c7-a3ad-9b5f86691213",
-		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
+		"paid_share": "// PP 44/2015 Lampiran III as amended by PP 82/2019: STMB is 100% of the wage for the first 12 months from the accident, then 50% until recovery.\nif (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;"
 	},
 	{
 		"code": "STATE_DUTY_LEAVE",

@@ -1,10 +1,11 @@
 <script lang="ts">
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Button,
 		Field,
 		Form,
-		notifyOutcome,
-		openRecord,
+		notify_outcome,
+		open_record,
 		RecordShell,
 		Sheet,
 		Textarea,
@@ -14,11 +15,10 @@
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
-	import { bolt } from '$bolt';
 
-	let { view }: { view: RecordView<'entity_profile_version'> } = $props();
+	let { view, ctx }: { view: RecordView<'entity_profile_version'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
-	const t = bolt.t;
+	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
 	let voiding = $state(false);
 	let voidReason = $state('');
 	let voidSaving = $state(false);
@@ -52,13 +52,17 @@
 		if (record === null || sealing) return;
 		sealing = true;
 		fork(
-			bolt
-				.act('entity_profile_version.update', [{ target: record.id, set: { status: 'SEALED' } }])
+			ctx
+				.act({
+					'entity_profile_version.update': [
+						{ target: { id: record.id, revision: record.revision }, set: { status: 'SEALED' } }
+					]
+				})
 				.pipe(
-					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+					Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
 					Effect.tap((outcome) =>
 						Effect.sync(() => {
-							if (outcome.kind === 'committed') openRecord('entity_profile_version', record.id);
+							if (outcome.kind === 'committed') open_record('entity_profile_version', record.id);
 						})
 					),
 					Effect.catch((error) =>
@@ -77,19 +81,22 @@
 	function voidVersion() {
 		if (record === null || voidSaving || voidReason.trim() === '') return;
 		const id = record.id;
+		const revision = record.revision;
 		voidSaving = true;
 		fork(
-			bolt
-				.act('entity_profile_version.update', [
-					{ target: id, set: { status: 'VOID', reason: voidReason.trim() } }
-				])
+			ctx
+				.act({
+					'entity_profile_version.update': [
+						{ target: { id, revision }, set: { status: 'VOID', reason: voidReason.trim() } }
+					]
+				})
 				.pipe(
-					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+					Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
 					Effect.tap((outcome) =>
 						Effect.sync(() => {
 							if (outcome.kind !== 'committed') return;
 							voiding = false;
-							openRecord('entity_profile_version', id);
+							open_record('entity_profile_version', id);
 						})
 					),
 					Effect.catch((error) =>
@@ -114,25 +121,27 @@
 {/snippet}
 
 <RecordShell
+	{ctx}
 	of="entity_profile_version"
 	mode={view.mode}
 	badge={stateBadge}
 	lock={record !== null && record.status !== 'DRAFT' ? t('employer_version.read_only') : undefined}
-	footerActions={actions}
+	footer_actions={actions}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	{#if record === null}
 		<Form
+			{ctx}
 			of="entity_profile_version"
 			mode="create"
 			values={view.mode === 'create' ? view.values : {}}
 		>
 			{#snippet children()}<Stack gap="md"
-					>{#each fields as name (name)}<Field {name} />{/each}</Stack
+					>{#each fields as name (name)}<Field {ctx} {name} />{/each}</Stack
 				>{/snippet}
 		</Form>
 	{:else}
-		<Form of="entity_profile_version" mode="update" id={record.id} {record} {fields} />
+		<Form {ctx} of="entity_profile_version" mode="update" id={record.id} {record} {fields} />
 	{/if}
 </RecordShell>
 

@@ -3,7 +3,7 @@
 	 * The legal entities this workspace operates, their holiday calendar, and the one-file holiday import:
 	 * a workbook with one sheet per entity. Existing days are skipped; imported days land unpublished.
 	 */
-	import { bolt } from '$bolt';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput } from '@norbital-ai/bolt';
@@ -20,9 +20,10 @@
 		type WorkbookGrids
 	} from '../../../lib/ui/workbook/workbook_import.js';
 	import { importDataRequest } from '../../../lib/ui/workbook/data_request_import.js';
+	let { ctx }: { ctx: PageContext } = $props();
 
 	const held = $derived.by(() =>
-		bolt.query({ entity: { fields: ['name'] }, holiday: { fields: ['entity_id', 'date'] } })
+		ctx.query({ entity: { fields: ['name'] }, holiday: { fields: ['entity_id', 'date'] } })
 	);
 
 	function holidayRows(grids: WorkbookGrids): ActInput<'holiday.create'> {
@@ -47,14 +48,14 @@
 	let importing = $state(false);
 	function importRequest() {
 		importing = true;
-		fork(importDataRequest().pipe(Effect.ensuring(Effect.sync(() => (importing = false)))));
+		fork(importDataRequest(ctx).pipe(Effect.ensuring(Effect.sync(() => (importing = false)))));
 	}
 	function importHolidays() {
 		importing = true;
 		fork(
-			runWorkbookImport({
+			runWorkbookImport(ctx, {
 				action: 'holiday.create',
-				recordLabel: bolt.t('app.settings.holidays').toLowerCase(),
+				recordLabel: ctx.t('app.settings.holidays').toLowerCase(),
 				buildPayload: holidayRows,
 				importedCount: (payload) => payload.length
 			}).pipe(
@@ -70,36 +71,37 @@
 
 <AppShell
 	icon="lucide:building-2"
-	title={bolt.t('app.hr_controller.entities_title')}
-	description={bolt.t('app.hr_controller.entities_description')}
+	title={ctx.t('app.hr_controller.entities_title')}
+	description={ctx.t('app.hr_controller.entities_description')}
 >
 	<Stack gap="lg">
 		<Table
+			{ctx}
 			of="entity"
 			key="entity"
 			toolbar={{
-				title: bolt.t('app.hr_controller.entities_title'),
+				title: ctx.t('app.hr_controller.entities_title'),
 				actions: [
 					{
 						run: importRequest,
 						icon: 'lucide:file-up',
-						name: bolt.t('data_request.import'),
-						description: bolt.t('data_request.import_description'),
-						disabled: () => (importing ? bolt.t('component.loading') : null)
+						name: ctx.t('data_request.import'),
+						description: ctx.t('data_request.import_description'),
+						disabled: () => (importing ? ctx.t('component.loading') : null)
 					},
 					{
 						run: importHolidays,
 						icon: 'lucide:file-spreadsheet',
-						name: bolt.t('holiday_calendar.import_spreadsheet'),
-						description: bolt.t('holiday_calendar.import_spreadsheet_description'),
-						disabled: () => (importing ? bolt.t('component.loading') : null)
+						name: ctx.t('holiday_calendar.import_spreadsheet'),
+						description: ctx.t('holiday_calendar.import_spreadsheet_description'),
+						disabled: () => (importing ? ctx.t('component.loading') : null)
 					}
 				]
 			}}
-			orderBy={{ name: 'asc' }}
+			order_by={{ name: 'asc' }}
 			columns={[
 				'name',
-				{ field: 'settings_code', label: bolt.t('component.settings_lineage') },
+				{ field: 'settings_code', label: ctx.t('component.settings_lineage') },
 				'payroll_versions'
 			]}
 		/>

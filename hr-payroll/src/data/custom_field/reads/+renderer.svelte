@@ -10,9 +10,9 @@
 		FilterEditor,
 		Input,
 		type FilterVariables,
+		type UiContext,
 		type Value,
-		useKinds,
-		valueObject
+		value_object
 	} from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Schema } from 'effect';
@@ -25,10 +25,9 @@
 		readonly fields?: readonly string[];
 	};
 
-	let { view }: { view: CustomFieldView<'reads'> } = $props();
-	const kinds = useKinds();
-	const models = $derived(Object.keys(kinds.catalog ?? {}).toSorted());
-	const record = $derived(valueObject(view.value) ? view.value : {});
+	let { view, ctx }: { view: CustomFieldView<'reads'>; ctx: UiContext } = $props();
+	const models = $derived(Object.keys(ctx.ui.kinds.catalog ?? {}).toSorted());
+	const record = $derived(value_object(view.value) ? view.value : {});
 	const entries = $derived(
 		Object.entries(record).map(([name, value]) => [name, layerOf(value)] as const)
 	);
@@ -50,26 +49,27 @@
 	};
 	const asJson = (value: unknown): JsonObject => Schema.decodeUnknownSync(JsonObject)(value);
 	function layerOf(value: Value): Layer {
-		if (!valueObject(value)) return {};
+		if (!value_object(value)) return {};
 		const where = value['where'];
 		const limit = value['limit'];
 		const fields = value['fields'];
 		return {
-			...(valueObject(where) ? { where: asJson(where) } : {}),
+			...(value_object(where) ? { where: asJson(where) } : {}),
 			...(typeof limit === 'number' ? { limit } : {}),
 			...(Array.isArray(fields) ? { fields: fields.map(String) } : {})
 		};
 	}
 	/** The filter editor writes a flat object; a lone `and` is flattened so a batch can gather it into one read. */
 	function flat(where: unknown): JsonObject {
-		if (!valueObject(where)) return {};
+		if (!value_object(where)) return {};
 		const keys = Object.keys(where);
 		const only = keys[0] === 'and' && keys.length === 1 ? where['and'] : null;
-		const flat = Array.isArray(only) && only.length === 1 && valueObject(only[0]) ? only[0] : where;
+		const flat =
+			Array.isArray(only) && only.length === 1 && value_object(only[0]) ? only[0] : where;
 		return asJson(flat);
 	}
 	function commit(rows: readonly (readonly [string, Layer])[]) {
-		if (view.mode === 'edit') view.onChange(Object.fromEntries(rows));
+		if (view.mode === 'edit') view.on_change(Object.fromEntries(rows));
 	}
 	const edit = (model: string, next: { readonly where?: unknown }) =>
 		commit(
@@ -97,7 +97,7 @@
 </script>
 
 {#if view.mode === 'show'}
-	<ReadsView value={view.value} />
+	<ReadsView {ctx} value={view.value} />
 {:else}
 	<Stack gap="sm">
 		{#each entries as [model, value], index (model)}
@@ -109,7 +109,7 @@
 						value={model}
 						options={models.map((name) => ({ value: name, label: name }))}
 						display={model}
-						onChange={(next) => next !== null && rename(model, next)}
+						on_change={(next) => next !== null && rename(model, next)}
 					/>
 					<Input
 						id={id(String(index), 'limit')}
@@ -131,11 +131,12 @@
 					</Button>
 				</Inline>
 				<FilterEditor
+					{ctx}
 					{model}
 					value={{ where: value.where ?? {} }}
 					readonly={disabled}
 					{variables}
-					onChange={(next) => edit(model, next)}
+					on_change={(next) => edit(model, next)}
 				/>
 				<Input
 					id={id(String(index), 'fields')}
@@ -162,7 +163,7 @@
 				options={unused.map((model) => ({ value: model, label: model }))}
 				placeholder="Add a model to read"
 				searchable
-				onChange={add}
+				on_change={add}
 			/>
 		{/if}
 	</Stack>

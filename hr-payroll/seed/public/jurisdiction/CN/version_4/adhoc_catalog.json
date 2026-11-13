@@ -9,13 +9,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "828ba3fb-7189-4df8-afb1-f012578d60b5",
+		"subtotal_id": "5613bc4a-6076-509e-b2de-d21dd9a02752",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "const start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / 12);\nconst remainder = months % 12;\nconst part =\n\tremainder >= 6 ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nconst count = years + part;\n// 劳动合同法 第四十七条第二款: the 3× wage and the 12-year cap bind only a wage above 3× the local monthly average\nconst wage = Number(ctx.entry.quantity);\nconst code = get(\n\tctx.subject.employer,\n\t'entity_extension_data.region',\n\tget(ctx.subject.employer, 'source_reference', '')\n);\nconst cap = first(ctx.lookup.average_wage_cap.filter((row) => row.code === code));\nif (wage <= cap.monthly) return wage * count;\nreturn cap.monthly * Math.min(12, count);",
-		"id": "9988c4d7-6500-5d28-a122-b00bd12a2c8d",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "fefad33e-fb24-526a-99b4-246731c3ecdb",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "PAY_IN_LIEU_OF_NOTICE",
@@ -27,13 +27,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "828ba3fb-7189-4df8-afb1-f012578d60b5",
+		"subtotal_id": "5613bc4a-6076-509e-b2de-d21dd9a02752",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "81a760ce-3d8c-56f3-bcdc-0b30470e31bb",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "46fef845-6fff-5f1f-b13f-c49c9763541a",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "ANNUAL_BONUS",
@@ -48,13 +48,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "fc0a4cd6-7935-4b27-9ffe-a870c6eed6de",
+		"subtotal_id": "145f9739-a8c8-54cb-b76a-c6648d888ca5",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "676361e0-e911-50f0-be90-22f5c0b0da8b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "436ca599-f0c5-53a6-914e-491c80ee3148",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "BONUS",
@@ -66,13 +66,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "f62b9bd3-3366-55a0-b8af-6536872c1b2d",
+		"subtotal_id": "6d5dd797-c3f7-5ad3-bc8b-a7dceb5ae0b5",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "7d4b673c-af78-5d9d-bd6f-59c0b59646bd",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "76e794f0-9e58-5b74-929a-2061b22660ce",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "DAMAGE_COMPENSATION_DEDUCTION",
@@ -86,13 +86,13 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
+		"subtotal_id": "24297e06-2db9-518a-9928-11cf52a6b354",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "const wage = get(ctx.subject.employment, 'terms.rate.amount');\nif (wage == null) return ctx.entry.quantity;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst employerRegion = String(get(ext, 'region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(get((ctx.lookup.minimum_wage_by_zone || []).find((row) => row.region === region), 'default_zone', '1'))\n  : String(get(ext, 'wage_zone', '1'));\nconst table = (ctx.lookup.minimum_wage_by_zone || []).find((row) => row.region === region && row.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst cap = Math.min(Number(wage) * ctx.lookup.max_share_of_wage, Math.max(0, Number(wage) - floor));\nreturn Math.min(ctx.entry.quantity, cap);",
-		"id": "ee41f4f2-ac11-5335-b606-c24b0e29e092",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "bb069582-20af-59df-99e1-6e57fe142ad3",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "UNLAWFUL_TERMINATION_COMPENSATION",
@@ -106,13 +106,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "828ba3fb-7189-4df8-afb1-f012578d60b5",
+		"subtotal_id": "5613bc4a-6076-509e-b2de-d21dd9a02752",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "const start = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / 12);\nconst remainder = months % 12;\nconst part =\n\tremainder >= 6 ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nconst count = years + part;\n// 劳动合同法 第四十七条第二款: the 3× wage and the 12-year cap bind only a wage above 3× the local monthly average\nconst wage = Number(ctx.entry.quantity);\nconst code = get(\n\tctx.subject.employer,\n\t'entity_extension_data.region',\n\tget(ctx.subject.employer, 'source_reference', '')\n);\nconst cap = first(ctx.lookup.average_wage_cap.filter((row) => row.code === code));\nif (wage <= cap.monthly) return wage * count * ctx.lookup.multiple;\nreturn cap.monthly * Math.min(12, count) * ctx.lookup.multiple;",
-		"id": "7c4656ad-67fa-5c33-9cc8-149119e68231",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "34bbcc5e-d36d-5ff5-baa3-f842e72eef1a",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "MATERNITY_ALLOWANCE_PASSTHROUGH",
@@ -124,13 +124,13 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"subtotal_id": "6036bb82-4017-590c-a6c9-6b980989eff7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subject.employment, 'payroll.gender') === 'FEMALE';",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "e7e87919-3dd0-5fcd-bba4-a8cf62f114c9",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "e2a23d2e-8859-5858-9550-d318617ee4c4",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "EARLY_RETIREMENT_LUMP_SUM",
@@ -142,13 +142,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"subtotal_id": "6036bb82-4017-590c-a6c9-6b980989eff7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "c8b63ade-4462-5507-b399-d6e3b965ff25",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "d905a0d7-76b6-550e-9ef9-05d918a4b2b3",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "WAGE_ARREARS_PENALTY",
@@ -160,13 +160,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"subtotal_id": "6036bb82-4017-590c-a6c9-6b980989eff7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "1485fa70-3223-561e-9adb-2d0ed81a3702",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "bb8f68c0-3d87-5955-a572-ba7f101ffb34",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "WORK_INJURY_DISABILITY_SUBSIDY",
@@ -178,13 +178,13 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"subtotal_id": "6036bb82-4017-590c-a6c9-6b980989eff7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "7d44b147-6dc8-5bde-b91c-9d8db3304d08",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "85bc2921-5f7a-5081-aac4-ade8c4b93229",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "MATERNITY_TOPUP",
@@ -196,13 +196,13 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"subtotal_id": "8182fa6e-8de9-550f-81be-c90aa7292d76",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subject.employment, 'payroll.gender') === 'FEMALE';",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "fdddb95b-4a95-5b93-90c1-c143f267b55b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "abfc7fa4-68ba-5e63-9752-ae119995be6a",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "INTERNAL_RETIREMENT_LUMP_SUM",
@@ -214,13 +214,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"subtotal_id": "6036bb82-4017-590c-a6c9-6b980989eff7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "0583f005-1f3e-5179-9119-cb9c9cb592e3",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "af578d0e-494b-5be6-8d83-353e385b56a6",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "NON_COMPETE_COMPENSATION",
@@ -234,13 +234,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"subtotal_id": "6036bb82-4017-590c-a6c9-6b980989eff7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to');\nif (!(ctx.entry.quantity > 0)) return false;\nif (end == null) return false;\nif (!(ctx.entry.incurred_on > end)) return false;\nreturn ctx.entry.incurred_on <= add_years(end, ctx.lookup.max_years);",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "ef8a86d4-01fc-5bd9-8a06-a162920a223a",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "0766acd8-e164-5f56-a39a-5ea23397693a",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "WORK_INJURY_DISABILITY_ALLOWANCE",
@@ -252,354 +252,30 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"subtotal_id": "6036bb82-4017-590c-a6c9-6b980989eff7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "4e8eba9f-3ad9-5b69-95c8-15e765b5e6b9",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "692557c0-621a-50bc-acf2-e59b0d621609",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	},
 	{
 		"code": "STATUTORY_REFUND",
 		"references": [
 			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+				"title": "A statutory correction is an adhoc entry on this item. A year that comes out overpaid raises an obligation for the HR controller to enter it."
 			}
 		],
 		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
 		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
+		"subtotal_id": "24297e06-2db9-518a-9928-11cf52a6b354",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "return ctx.entry.quantity;",
-		"id": "47e9c8f5-bc1c-5e35-985d-81bafdc7d3b7",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "PENSION_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects PENSION for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "PENSION.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "c9cb3825-055b-54fa-8487-4f4ef215c8c5",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "PENSION_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects PENSION for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "PENSION.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "7c42f13d-6367-5e9e-ad46-07138d15f51d",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "MEDICAL_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects MEDICAL for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "MEDICAL.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "9654b831-1bd5-530a-b662-4d76719f644f",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "MEDICAL_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects MEDICAL for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "MEDICAL.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "02630842-058d-5438-a90a-f692f767a58f",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "MAJOR_MEDICAL_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects MAJOR_MEDICAL for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "MAJOR_MEDICAL.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "e77792be-359b-5db1-be3a-a315cc21aa44",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "MAJOR_MEDICAL_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects MAJOR_MEDICAL for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "MAJOR_MEDICAL.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "bf4d07ff-0e42-5aca-969c-484c21a6e9d5",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "UNEMPLOYMENT_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects UNEMPLOYMENT for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "UNEMPLOYMENT.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "ed1b75de-373c-5981-95a0-d472eb885736",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "UNEMPLOYMENT_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects UNEMPLOYMENT for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "UNEMPLOYMENT.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "8f9a6584-2758-5324-aea7-edcf45c2ec39",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "HPF_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects HPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "HPF.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "cf22ffee-d163-53d2-b578-3ebc03a0d314",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "HPF_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects HPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "HPF.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "58a9db57-255e-5cb5-8c7c-4157e58ea7c2",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "HPF_SUPPLEMENTARY_REFUND",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects HPF_SUPPLEMENTARY for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "HPF_SUPPLEMENTARY.employee",
-					"measure": "paid",
-					"operation": "DEDUCT"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "7688bcd1-2599-579e-ac1d-901376c7a015",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
-	},
-	{
-		"code": "HPF_SUPPLEMENTARY_ADJUSTMENT",
-		"references": [
-			{
-				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
-			}
-		],
-		"description": "Corrects HPF_SUPPLEMENTARY for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
-		"lookup": {
-			"accounts": [
-				{
-					"account": "statutory",
-					"code": "HPF_SUPPLEMENTARY.employee",
-					"measure": "paid",
-					"operation": "ADD"
-				}
-			]
-		},
-		"off_cycle_eligible": true,
-		"subtotal_id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-		"conversion": "return ctx.entry.quantity;",
-		"id": "372e94c0-250a-5ef9-a4f6-d671ae66292c",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"id": "745d648b-af19-572a-91bb-67846a5872b7",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd"
 	}
 ]

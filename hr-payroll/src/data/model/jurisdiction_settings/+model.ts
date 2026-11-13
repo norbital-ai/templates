@@ -1,14 +1,22 @@
 import { tap } from '../../../lib/payroll_engine/taps.js';
-import { model } from '@norbital-ai/bolt';
+import { model } from '../../../../.norbital/models/jurisdiction_settings.ts';
 import { Instant } from '@norbital-ai/std/date';
 import { sealConfiguration } from '../../../lib/payroll_engine/sealing.js';
 import { rangeObject } from '../../../lib/payroll_engine/registrations.js';
+import { amendmentsOf, versionReach } from '../../../lib/amendments.js';
+
+type ArmError = {
+	readonly key:
+		| 'errors.jurisdiction_conversion_fixed_divisor'
+		| 'errors.jurisdiction_conversion_divisor_fixed_only';
+	readonly values: { readonly code: string; readonly arm: string; readonly unit: string };
+};
 
 /** A conversion arm is a union in use: only FIXED owns its divisor; no other arm may carry it. */
 const conversionArmError = (row: {
 	readonly conversions?: unknown;
 	readonly code?: unknown;
-}): string | undefined => {
+}): ArmError | undefined => {
 	if (
 		row.conversions === null ||
 		typeof row.conversions !== 'object' ||
@@ -25,18 +33,19 @@ const conversionArmError = (row: {
 		const value = arm as Record<string, unknown>;
 		const fixed = value.basis === 'FIXED';
 		const divisor = value[unit];
+		const values = { code: String(row.code ?? 'settings'), arm: name, unit };
 		if (fixed && (typeof divisor !== 'number' || divisor <= 0))
-			return `${String(row.code ?? 'settings')}: conversions.${name} FIXED requires a positive ${unit}.`;
+			return { key: 'errors.jurisdiction_conversion_fixed_divisor', values };
 		if (!fixed && divisor !== undefined)
-			return `${String(row.code ?? 'settings')}: conversions.${name}.${unit} belongs only to FIXED.`;
+			return { key: 'errors.jurisdiction_conversion_divisor_fixed_only', values };
 	}
 	return undefined;
 };
 
-export default model('jurisdiction_settings', {
+export default model({
 	description:
 		'One sealed effective legal configuration. Catalogue definitions, validation, registered effects and statutory references have explicit owners.',
-	label: 'name',
+	record_label: 'record.name',
 	fields: {
 		code: { kind: 'text' },
 		name: { kind: 'text' },
@@ -56,12 +65,8 @@ export default model('jurisdiction_settings', {
 							kind: 'enum',
 							values: ['CALENDAR_DAYS', 'WORKING_DAYS', 'YEAR', 'YEAR_REST_DAYS', 'HOUR', 'FIXED']
 						},
-						days: {
-							kind: 'number',
-							min: 0,
-							optional: true,
-							help: 'The divisor when the basis is FIXED (Malaysia 26, China 21.75, Thailand and Taiwan 30).'
-						}
+						/** The divisor when the basis is FIXED (Malaysia 26, China 21.75, Thailand and Taiwan 30). */
+						days: { kind: 'number', min: 0, optional: true }
 					}
 				},
 				/** How one hour's pay derives: the contract's day, the contract's week, or a fixed statutory divisor. */
@@ -69,12 +74,8 @@ export default model('jurisdiction_settings', {
 					kind: 'object',
 					fields: {
 						basis: { kind: 'enum', values: ['CONTRACT_HOURS', 'CONTRACT_WEEKLY', 'FIXED'] },
-						hours: {
-							kind: 'number',
-							min: 0,
-							optional: true,
-							help: 'The divisor when the basis is FIXED (Indonesia 173, China 174).'
-						}
+						/** The divisor when the basis is FIXED (Indonesia 173, China 174). */
+						hours: { kind: 'number', min: 0, optional: true }
 					}
 				},
 				proration: { kind: 'enum', values: ['CALENDAR_DAYS', 'WORKING_DAYS', 'DAY_RATE'] },
@@ -86,9 +87,13 @@ export default model('jurisdiction_settings', {
 							values: ['HALF_UP', 'HALF_EVEN', 'UP', 'DOWN', 'TRUNCATE'],
 							default: 'HALF_UP'
 						},
-						scale: { kind: 'int', min: 0, max: 12, default: 2 }
+						scale: { kind: 'int', min: 0, max: 12, default: 2 },
+						/** Where a day not paid or not employed is rounded: the day rate first, or only the amount. */
+						day_rate: { kind: 'enum', values: ['RATE', 'AMOUNT'], default: 'RATE' }
 					}
-				}
+				},
+				/** The ad hoc row, by code, that prices pay of earlier periods in the period it is paid. */
+				back_pay: { kind: 'text', optional: true }
 			}
 		},
 		/** Whether the year-to-date balance totals restart per employer (China and Thailand withhold alone). */
@@ -101,46 +106,50 @@ export default model('jurisdiction_settings', {
 		employee_extension_schema: { kind: 'json', optional: true },
 		entity_extension_schema: { kind: 'json', optional: true },
 		lookup: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} },
-		work_regions: {
-			kind: 'json',
-			shape: { kind: 'record', of: { kind: 'text' } },
-			default: {},
-			help: 'The work-region keys this jurisdiction recognises, mapped to their display names. A contract picks one key.'
-		},
+		/** The work-region keys this jurisdiction recognises, mapped to their display names. */
+		work_regions: { kind: 'json', shape: { kind: 'record', of: { kind: 'text' } }, default: {} },
 		status: {
 			kind: 'state',
 			initial: 'DRAFT',
 			states: {
-				DRAFT: { to: ['SEALED', 'VOID'], edit: 'all' },
-				SEALED: { to: ['VOID'], edit: ['effective_range', 'reason'] },
-				VOID: { to: [], edit: 'none' }
+				DRAFT: { to: ['SEALED', 'VOID'] },
+				SEALED: { to: ['VOID'] },
+				VOID: { to: [] }
 			}
 		},
 		reason: { kind: 'text', optional: true }
 	},
-	noOverlap: [{ key: ['code'], period: 'effective_range', where: { status: { eq: 'SEALED' } } }],
-	read: {
-		jurisdiction_settings: { fields: 'all' },
-		'jurisdiction_settings.subtotals': { fields: 'all' },
-		'jurisdiction_settings.leave_catalog': { fields: 'all' },
-		'jurisdiction_settings.claim_catalog': { fields: 'all' },
-		'jurisdiction_settings.allowance_catalog': { fields: 'all' },
-		'jurisdiction_settings.adhoc_catalog': { fields: 'all' },
-		'jurisdiction_settings.loan_catalog': { fields: 'all' },
-		'jurisdiction_settings.statutory_contribution_catalog': { fields: 'all' },
-		'jurisdiction_settings.registered_rule': { fields: 'all' },
-		'jurisdiction_settings.registered_effect': { fields: 'all' }
+	constraints: {
+		sealed_range: {
+			no_overlap: 'effective_range',
+			per: ['code'],
+			where: { status: { eq: 'SEALED' } }
+		},
+		// a sealed version keeps its terms: only its period, its reason and a move to VOID stay editable
+		sealed_version: {
+			locked: { status: { eq: 'SEALED' } },
+			except: ['effective_range', 'reason', 'status']
+		},
+		void_version: { locked: { status: { eq: 'VOID' } } }
 	},
 	outputs: {
-		kiosk: {
-			jurisdiction_settings: {
-				fields: ['code', 'name', 'timezone', 'effective_range', 'status']
-			}
-		}
+		default: {
+			fields: 'all',
+			subtotals: { fields: 'all' },
+			leave_catalog: { fields: 'all' },
+			claim_catalog: { fields: 'all' },
+			allowance_catalog: { fields: 'all' },
+			adhoc_catalog: { fields: 'all' },
+			loan_catalog: { fields: 'all' },
+			statutory_contribution_catalog: { fields: 'all' },
+			registered_rule: { fields: 'all' },
+			registered_effect: { fields: 'all' }
+		},
+		kiosk: { fields: ['code', 'name', 'timezone', 'effective_range', 'status'] }
 	},
 	create: {
 		columns: {
-			jurisdiction_settings: [
+			fields: [
 				'code',
 				'name',
 				'effective_range',
@@ -157,19 +166,34 @@ export default model('jurisdiction_settings', {
 				'reason'
 			]
 		},
-		transform: function* (rows, ctx) {
-			if (rows.some((r) => r.status !== undefined && r.status !== 'DRAFT'))
-				return yield* ctx.refuse('Create a draft before sealing a jurisdiction configuration.');
-			for (const row of rows) {
-				const error = conversionArmError(row);
-				if (error !== undefined) return yield* ctx.refuse(error);
+		transform: function* (changes, ctx) {
+			const sealed = changes.findIndex(
+				(c) => c.set.status !== undefined && c.set.status !== 'DRAFT'
+			);
+			if (sealed >= 0)
+				return yield* ctx.refuse('errors.jurisdiction_create_draft_first', {
+					row: sealed,
+					field: 'status'
+				});
+			for (const [row, c] of changes.entries()) {
+				const error = conversionArmError(c.after);
+				if (error !== undefined)
+					return yield* ctx.refuse(error.key, { row, field: 'conversions', values: error.values });
 			}
-			return rows.map((r) => ({ ...r, status: 'DRAFT' as const }));
+			return changes.map((c) => ({ ...c.set, status: 'DRAFT' as const }));
+		},
+		effect: function* (changes, ctx) {
+			yield* tap(
+				ctx,
+				'create',
+				'jurisdiction_settings',
+				changes.map(({ after }) => ({ after }))
+			);
 		}
 	},
 	update: {
 		columns: {
-			jurisdiction_settings: [
+			fields: [
 				'code',
 				'name',
 				'effective_range',
@@ -188,15 +212,16 @@ export default model('jurisdiction_settings', {
 		},
 		transform: function* (changes, ctx) {
 			const sealing = changes.filter(
-				(c) => c.before.status === 'DRAFT' && c.set.status === 'SEALED'
+				(c) => c.before.status === 'DRAFT' && c.after.status === 'SEALED'
 			);
 			yield* sealConfiguration(
 				ctx,
 				sealing.map((c) => c.before.id)
 			);
-			for (const { before, set } of changes) {
-				const error = conversionArmError({ ...before, ...set });
-				if (error !== undefined) return yield* ctx.refuse(error);
+			for (const [row, { before, set, after }] of changes.entries()) {
+				const error = conversionArmError(after);
+				if (error !== undefined)
+					return yield* ctx.refuse(error.key, { row, field: 'conversions', values: error.values });
 				if (
 					before.status === 'SEALED' &&
 					set.effective_range !== undefined &&
@@ -205,25 +230,43 @@ export default model('jurisdiction_settings', {
 						(before.effective_range.to !== null &&
 							set.effective_range.to > before.effective_range.to))
 				)
-					return yield* ctx.refuse(
-						'A sealed version may only shorten its future effective period.'
-					);
+					return yield* ctx.refuse('errors.jurisdiction_sealed_shorten_only', {
+						row,
+						field: 'effective_range'
+					});
 				if (set.status === 'VOID' && !set.reason?.trim())
-					return yield* ctx.refuse('Record why this configuration is void.');
+					return yield* ctx.refuse('errors.jurisdiction_void_reason', { row, field: 'reason' });
 			}
-			return changes.map(({ set }) => set);
-		}
-	},
-	effect: {
-		created: function* (rows, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				'jurisdiction_settings',
-				rows.map((after) => ({ after }))
+			// a version sealed from its real date over paid periods corrects the law they were worked out on: everyone
+			// paid under it in those periods is amended, and the next run works each period out on the law now in force
+			// A sealed version that only ends earlier moves no pay by itself: the version sealed over the days it gave up
+			// amends them, in the same merge or a later one.
+			const reached = changes.flatMap(({ before, set, after }) =>
+				before.status === 'SEALED' && set.status !== 'VOID'
+					? []
+					: versionReach(before, after).map((span) => ({
+							code: before.code,
+							...span
+						}))
 			);
+			if (reached.length === 0) return changes.map(({ set }) => set);
+			const governed = yield* ctx.query({
+				entity: {
+					where: { settings_code: { in: [...new Set(reached.map((span) => span.code))] } },
+					fields: ['id'],
+					limit: 10000
+				}
+			});
+			return {
+				sets: changes.map(({ set }) => set),
+				on_approved: yield* amendmentsOf(
+					ctx.query,
+					governed.entity.rows.map((row) => String(row.id)),
+					reached
+				)
+			};
 		},
-		updated: function* (changes, ctx) {
+		effect: function* (changes, ctx) {
 			// the catalog changed: now if the version is in force, else on the day it starts
 			for (const { before, after } of changes)
 				if (before.status !== 'SEALED' && after.status === 'SEALED') {

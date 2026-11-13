@@ -4,7 +4,7 @@
 		"name": "Thailand — 1 January 2026",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-09-30"
+			"to": "2026-12-31"
 		},
 		"currency": "THB",
 		"timezone": "Asia/Bangkok",
@@ -541,7 +541,6 @@
 				"severance_taxed_grounds": ["RETIREMENT", "END_OF_CONTRACT", "RESIGNATION"],
 				"severance_daily_wages_limit": 400,
 				"severance_exemption_limit": 600000,
-				"paid_share": 0.5,
 				"minimum_service_days": 120,
 				"first_tier_days": 30
 			}

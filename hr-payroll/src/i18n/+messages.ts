@@ -8,37 +8,36 @@ export default messages({
 	'models.subtotal.fields.name': 'Name',
 	'models.subtotal.fields.order': 'Order',
 	'models.subtotal.fields.previous_id': 'Previous subtotal',
-	'models.subtotal.fields.previous_id.help':
-		'An earlier subtotal in this version and financial channel.',
+	'models.subtotal.help.previous_id': 'An earlier subtotal in this version and financial channel.',
 	'models.statutory_contribution_catalog.fields.subtotal_id': 'Employee subtotal',
 	'models.statutory_contribution_catalog.fields.employer_cost_subtotal_id':
 		'Employer expense subtotal',
 	'models.jurisdiction_settings.fields.lookup': 'Constants and rates',
-	'models.jurisdiction_settings.fields.lookup.help':
+	'models.jurisdiction_settings.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.leave_catalog.fields.lookup': 'Constants and rates',
-	'models.leave_catalog.fields.lookup.help':
+	'models.leave_catalog.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.claim_catalog.fields.lookup': 'Constants and rates',
-	'models.claim_catalog.fields.lookup.help':
+	'models.claim_catalog.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.allowance_catalog.fields.lookup': 'Constants and rates',
-	'models.allowance_catalog.fields.lookup.help':
+	'models.allowance_catalog.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.adhoc_catalog.fields.lookup': 'Constants and rates',
-	'models.adhoc_catalog.fields.lookup.help':
+	'models.adhoc_catalog.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.loan_catalog.fields.lookup': 'Constants and rates',
-	'models.loan_catalog.fields.lookup.help':
+	'models.loan_catalog.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.statutory_contribution_catalog.fields.lookup': 'Constants and rates',
-	'models.statutory_contribution_catalog.fields.lookup.help':
+	'models.statutory_contribution_catalog.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.registered_rule.fields.lookup': 'Constants and rates',
-	'models.registered_rule.fields.lookup.help':
+	'models.registered_rule.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.registered_effect.fields.lookup': 'Constants and rates',
-	'models.registered_effect.fields.lookup.help':
+	'models.registered_effect.help.lookup':
 		'Constants, rates and flat legal tables used by this definition.',
 	'models.leave_catalog.fields.subtotal_id': 'Posting subtotal',
 	'models.claim_catalog.fields.subtotal_id': 'Posting subtotal',
@@ -116,6 +115,14 @@ export default messages({
 	'app.payroll.earnings': 'Earnings',
 	'app.payroll.deductions': 'Deductions',
 	'app.payroll.employer_contributions': 'Employer contributions',
+	'app.payroll.adjustments': 'Adjustments for earlier periods',
+	'app.payroll.adjustments_help':
+		'A record of a paid period was corrected. That payslip stands; this one carries the difference.',
+	'app.payroll.adjustment_employer': 'employer',
+	'app.payroll.amended': 'Earlier periods',
+	'app.payroll.amended_carried': 'Carried by this run',
+	'app.payroll.amended_waiting': 'Waiting for the next run',
+	'app.payroll.amended_carry': 'Earlier periods to carry',
 	'app.payroll.create_run': 'Create run',
 	'app.people.chart_description': 'Monthly leavers and joiners against average headcount.',
 	'app.people.chart_hire_rate': 'Hire rate (%)',
@@ -154,7 +161,6 @@ export default messages({
 	'component.references_effective_from': 'In force from {date}',
 	'component.catalogue_leave': 'Leave',
 	'component.choose_legal_entity': 'Choose a legal entity',
-	'component.day': 'Day',
 	'component.deductions': 'Deductions',
 	'component.gross': 'Gross',
 	'component.incurred_on': 'Incurred on',
@@ -197,12 +203,17 @@ export default messages({
 	'contract.residency_status': 'Residency status',
 	'contract.work_classification': 'Work classification',
 	'contract.final_pay_due': 'Final pay due on',
+	'contract.encash_leave': 'Pay out the leave that is left',
+	'contract.encash_leave_off': 'Do not pay out leave',
+	'contract.encash_leave_on': 'Pay out leave',
+	'contract.leave_not_encashed':
+		'Leave left is not paid out. Leave taken beyond what was earned is still taken back.',
 	'contract.exit_ground': 'Exit ground',
 	'contract.exit_answers': 'Exit answers this jurisdiction reads',
 	'contract.leave_carry_preview': 'Leave: {days} days carry with the person.',
 	'contract.leave_settle_preview':
 		'Leave: {days} days settle in the old jurisdiction before the new contract starts.',
-	'contract.leave_encash_preview': 'Leave: {days} days are encashed in the final payroll.',
+	'contract.leave_encash_preview': 'Leave: {days} days left are paid out on the last payslip.',
 	'contract.loan_preview':
 		'Loan balance: {amount}; transfers to the target catalogue when available, otherwise settles from final pay.',
 	'contract.loan_carry_preview': 'Loan balance: {amount}; carries with the person.',
@@ -272,7 +283,6 @@ export default messages({
 	'face.consent': 'Consent recorded',
 	'face.engine_unavailable': 'Face engine unavailable: {models} did not load.',
 	'face.empty_title': 'No face enrolled',
-	'face.empty_hint': 'Enroll a face so this person can clock in at the attendance kiosk.',
 	'face.enroll': 'Enroll face',
 	'face.enrolling': 'Enrolling…',
 	'face.guide_down': 'And down a little',
@@ -410,7 +420,6 @@ export default messages({
 	'roster.download_workbook': 'Download workbook',
 	'app.payroll.separate_runs':
 		'These people were not employed in the same period. Pay them in separate runs.',
-	'app.leave.computing': 'Computing this person’s leave from the catalog.',
 	'settings_form.version': 'Version',
 	'settings_form.calendar': 'Currency and calendar',
 	'settings_form.employee_schema': 'Employee extension schema',
@@ -490,7 +499,7 @@ export default messages({
 	'models.employee_profile.fields.face_consent_at': 'Face consent given',
 	'models.employee_profile.fields.face_enrolled_at': 'Face enrolled',
 	'models.employee_profile.fields.cumulative_service': 'Count every stint',
-	'models.employee_profile.fields.cumulative_service.help':
+	'models.employee_profile.help.cumulative_service':
 		'Service counts every stint at the employer, rehires included. Off, only the current unbroken stint counts: the statutory continuous service.',
 	'models.employee_contract.label': 'Employment contracts',
 	'models.employee_contract.singular': 'Employment contract',
@@ -507,7 +516,6 @@ export default messages({
 	'models.entity_profile_version.fields.final_pay_loan_floor_percent': 'Final-pay loan floor (%)',
 	'models.entity_profile_version.fields.overtime_full_award_percent': 'Full overtime threshold (%)',
 	'models.entity_profile_version.fields.pay_methods': 'Employer pay methods',
-	'settings_version.changelog': 'Changelog',
 	'settings_version.compare': 'Compare',
 	'settings_version.compare_from': 'From version',
 	'settings_version.compare_to': 'To version',
@@ -539,7 +547,7 @@ export default messages({
 	'models.roster_entry.label': 'Person-days',
 	'models.roster_entry.singular': 'Person-day',
 	'models.roster_entry.fields.overtime_as_time_off': 'Overtime as time off',
-	'models.roster_entry.fields.overtime_as_time_off.help':
+	'models.roster_entry.help.overtime_as_time_off':
 		"The worker takes this day's planned overtime as time off: no overtime pay, and its hours are owed as time off.",
 	'app.obligations.title': 'Obligations',
 	'app.obligations.description':
@@ -594,8 +602,8 @@ export default messages({
 	'loan.principal_required': 'Enter the principal actually lent.',
 	'loan.period_required': 'Choose the first and last repayment months.',
 	'entry.included_in_payroll': 'Included in payroll',
-	'entry.input_schema_version': 'Input definition version',
-	'entry.reverse': 'Reverse transaction',
+	'models.pay_amendment.label': 'Amended pay periods',
+	'models.pay_amendment.singular': 'Amended pay period',
 	'models.leave_catalog_entry.label': 'Leave entries',
 	'models.leave_catalog_entry.singular': 'Leave entry',
 	'models.claim_catalog_entry.label': 'Claims',
@@ -610,7 +618,7 @@ export default messages({
 	'models.jurisdiction_settings.fields.currency': 'Currency',
 	'models.jurisdiction_settings.fields.timezone': 'Time zone',
 	'models.jurisdiction_settings.fields.tax_year_start_month': 'Tax year starts in month',
-	'models.jurisdiction_settings.fields.tax_year_start_month.help': '1 is January.',
+	'models.jurisdiction_settings.help.tax_year_start_month': '1 is January.',
 	'models.obligation.fields.title': 'Task',
 	'models.obligation.fields.state': 'Status',
 	'models.obligation.fields.fulfilled_on': 'Completed on',
@@ -699,5 +707,268 @@ export default messages({
 	'models.contract_change.fields.new_value': 'To',
 	'models.contract_change.fields.effective_from': 'Takes effect',
 	'models.contract_change.fields.applied_version_id': 'Sealed in',
-	'models.contract_change.fields.notes': 'Notes'
+	'models.contract_change.fields.notes': 'Notes',
+	// Bolt 0.0.26 migration: refusal keys, field help and captions moved out of the models
+	'errors.subtotal_previous_other_version':
+		'A subtotal can only follow another subtotal of the same version.',
+	'errors.subtotal_chain_branch':
+		'Subtotals must form one linear chain: two subtotals cannot follow the same one.',
+	'errors.subtotal_chain_cycle': 'Subtotal order cannot contain a cycle.',
+	'errors.jurisdiction_conversion_fixed_divisor':
+		'{code}: conversions.{arm} FIXED requires a positive {unit}.',
+	'errors.jurisdiction_conversion_divisor_fixed_only':
+		'{code}: conversions.{arm}.{unit} belongs only to FIXED.',
+	'errors.jurisdiction_create_draft_first':
+		'Create a draft before sealing a jurisdiction configuration.',
+	'errors.jurisdiction_sealed_shorten_only':
+		'A sealed version may only shorten its future effective period.',
+	'errors.jurisdiction_void_reason': 'Record why this configuration is void.',
+	'models.jurisdiction_settings.help.conversions.day.days':
+		'The divisor when the basis is FIXED (Malaysia 26, China 21.75, Thailand and Taiwan 30).',
+	'models.jurisdiction_settings.help.conversions.hour.hours':
+		'The divisor when the basis is FIXED (Indonesia 173, China 174).',
+	'models.jurisdiction_settings.help.conversions.rounding.day_rate':
+		'Where a day not paid or not employed is rounded. Rate: the day rate is rounded first, then multiplied by the days. Amount: the days are multiplied at the unrounded rate and only the amount is rounded.',
+	'models.jurisdiction_settings.help.conversions.back_pay':
+		'The ad hoc row that prices pay belonging to earlier periods in the period it is paid, by its code. With one named, a contract version signed after a period was paid changes nothing in that period, and what it adds is back pay of the period it was signed in. Left out, a version applies from its start.',
+	'models.jurisdiction_settings.help.work_regions':
+		'The work-region keys this jurisdiction recognises, mapped to their display names. A contract picks one key.',
+	'models.allowance_catalog.help.description':
+		'What this catalog row does: its rule, behaviour and any legal or operational note.',
+	'models.overtime_catalog.help.description':
+		'What this catalog row does: its rule, behaviour and any legal or operational note.',
+	'models.statutory_contribution_catalog.help.description':
+		'What this catalog row does: its rule, behaviour and any legal or operational note.',
+	'models.statutory_contribution_catalog.help.assessed':
+		'A correction of a paid period is charged in the month the pay was earned, or in the month it is paid.',
+	'errors.loan_principal_below_repaid':
+		'The principal cannot be less than repayments already included in payroll. Enter a principal at or above that total.',
+	'errors.loan_paid_no_delete': 'A payroll run has paid this loan, so it cannot be deleted.',
+	'errors.workplace_case_missing_inputs': 'This case needs {inputs}.',
+	'models.workplace_case_catalog_entry.help.severity':
+		'The injury or loss classification. Non-injury cases such as harassment or data mishandling use N/A.',
+	'models.workplace_case_catalog_entry.fields.evidence_file': 'Document',
+	'errors.leave_entry_needs_day': 'A leave entry needs at least one day.',
+	'errors.statutory_source_person_activates': 'A person activates a source research proposes.',
+	'errors.pay_amendment_carried_only':
+		'A correction leaves this row itself. Correct the record where it was recorded.',
+	'models.pay_amendment.help.period': 'The paid cycle, as its run names it.',
+	'errors.employee_balance_ledger_only':
+		'Only the ledger moves a balance, an admin included. Key an entry, or a manual adjustment on the employee profile.',
+	'errors.entity_change_field_path':
+		'Only an employer fact can be scheduled: name, representative, address, time zone, loan floor, overtime award, pay methods, bank or extension data.',
+	'errors.entity_change_effective_from':
+		'A scheduled change takes effect on the first of a month to come. One due now is a new employer version.',
+	'errors.entity_change_no_open_version': 'No open employer version to change.',
+	'errors.entity_change_seal_applies': 'Only the seal applies a change.',
+	'models.entity_change.help.field_path':
+		'One of name, representative_name, registered_address, time_zone, final_pay_loan_floor_percent, overtime_full_award_percent, pay_methods, bank or entity_extension_data. A dotted path changes one nested value.',
+	'models.entity_change.help.new_value':
+		'The value that stands from the effective date, as JSON: a quoted string, a number, true/false, or an object.',
+	'models.entity_change.help.effective_from':
+		'The first day of a future month. The open employer version ends the day before it.',
+	'errors.contract_change_field_path':
+		'Only a contract term or fact can be scheduled; an entity move is a transfer.',
+	'errors.contract_change_effective_from':
+		'A scheduled change takes effect on the first of a month to come. One due now is a new contract version.',
+	'errors.contract_change_seal_applies': 'Only the seal applies a change.',
+	'errors.statutory_finding_starts_proposed': 'A statutory finding starts as proposed.',
+	'errors.statutory_finding_person_verifies': 'A person verifies a statutory finding.',
+	'errors.statutory_finding_structural':
+		'A structural finding needs the template extended; data cannot carry it.',
+	'errors.statutory_finding_official_source':
+		'Confirming a finding needs an official https source.',
+	'errors.statutory_finding_quote': 'Confirming a finding needs its quoted source.',
+	'errors.statutory_finding_changes_drafted': 'Confirming a finding needs its changes drafted.',
+	'errors.statutory_finding_changes_dated': 'Confirming a finding needs every change dated.',
+	'errors.shift_pattern_one_shape': 'A shift pattern is either a weekday map or a cycle, not both.',
+	'errors.shift_pattern_paid':
+		'Paid periods follow this pattern. Make a new pattern from the date it changes.',
+	'errors.shift_definition_paid':
+		'Paid days use this shift. Correct the roster days themselves, or make a new shift.',
+	'models.shift_pattern.help.pattern.week_start':
+		'The weekday the statutory week opens on. The contract period owns the dates.',
+	'models.shift_pattern.help.pattern.cycle':
+		'A repeating rotation longer than a week. Its first day is the pattern effective start; use days for a weekly pattern.',
+	'errors.pay_group_paid_schedule':
+		'This group has paid runs. Make a new group for the new schedule, and move people to it from the first of a month.',
+	'models.pay_group.help.name':
+		'What HR calls this payroll, such as Monthly staff or Semi-monthly.',
+	'models.pay_group.help.payment_schedule.pay_days':
+		'The day each cycle part pays, in order; the last entry repeats. A day past the month end pays on the last day.',
+	'errors.entity_code_blank':
+		'An entered company code must contain a nonblank business identifier. Enter the code, or leave the field empty.',
+	'errors.entity_jurisdiction_linked':
+		'This company has payroll versions or contracts linked to its jurisdiction. Create a separate company for a different jurisdiction.',
+	'models.entity.fields.source_reference': 'Source reference',
+	'models.entity.help.code':
+		'The company’s stable business code for imports and cross-references. This is separate from its immutable record ID, name, jurisdiction and dated registration numbers.',
+	'models.entity.help.epf_registered_on':
+		'The actual date the employer registered with the Employees Provident Fund. A missing date means not yet recorded, not unregistered.',
+	'models.entity.help.socso_registered_on':
+		'The actual date the employer registered with PERKESO; the single registration covers SOCSO and EIS. A missing date means not yet recorded, not unregistered.',
+	'models.entity_profile_version.help.representative_name':
+		'The responsible person the law names for filing and registration duties.',
+	'models.entity_profile_version.help.final_pay_loan_floor_percent':
+		'The share of expected final pay that must remain after loan recovery.',
+	'models.entity_profile_version.help.overtime_full_award_percent':
+		'How much of planned overtime the clock must cover to pay all of it. Below this, the clocked time pays, rounded down to the half hour.',
+	'models.entity_profile_version.help.pay_methods':
+		"The employer's own pay methods. Each applies only where it pays at least the law; otherwise the law stands.",
+	'models.entity_profile_version.fields.pay_methods.overtime_hour_basis': 'Overtime hour rate',
+	'models.entity_profile_version.help.pay_methods.overtime_hour_basis':
+		"What one overtime hour is priced on. Statutory: the hour rate the law works out. Contract weekly: the monthly wage × 12 ÷ (52 × the contract's weekly hours). It changes the overtime lines of a payslip.",
+	'models.entity_profile_version.fields.pay_methods.rest_day_hourly_multiplier':
+		'Rest-day hour multiple',
+	'models.entity_profile_version.help.pay_methods.rest_day_hourly_multiplier':
+		'Every hour worked on a rest day pays this multiple of the hour rate. Leave empty to pay what the law pays. It changes the rest-day work lines of a payslip.',
+	'models.entity_profile_version.fields.pay_methods.night_differential_basis':
+		'Night premium hours',
+	'models.entity_profile_version.help.pay_methods.night_differential_basis':
+		'Which hours earn the night premium. Worked: the hours worked inside the night window. Clock span: every clocked hour in the window, unpaid breaks and overtime included, at the ordinary hour rate. Whole night: a worked night shift earns eight full hours of premium at the day’s rate. It changes the night premium line of a payslip. Only the Philippines’ rows read it; it changes nothing in other countries.',
+	'models.entity_profile_version.fields.pay_methods.contribution_split':
+		'Contributions over two runs a month',
+	'models.entity_profile_version.help.pay_methods.contribution_split':
+		'How a month’s contributions fall on the two payslips of a twice-monthly group. Even: half on each. First run: the whole month on the first payslip, on an estimate, and the second settles the month’s actual wages. Only the Philippines’ rows read it; it changes nothing in other countries.',
+	'models.entity_profile_version.fields.pay_methods.health_billing': 'Health insurance billing',
+	'models.entity_profile_version.help.pay_methods.health_billing':
+		'Which payslip charges a month’s health insurance. Current: each month’s own payslip. Arrears: the next month’s, so the month someone joins charges nothing and their last payslip charges two months. Over an employment the same contributions are paid. Only Indonesia’s BPJS Kesehatan rows read it; it changes nothing in other countries.',
+	'models.entity_profile_version.fields.pay_methods.benefit_exclusion':
+		'Benefits over their tax-free limit',
+	'models.entity_profile_version.help.pay_methods.benefit_exclusion':
+		'How a benefit paid past its own tax-free limit is taxed. Pooled: the excess joins the yearly exclusion for bonuses and benefits. Excess taxed: it is taxed on the payslip of the month it is paid. The year’s last payslip settles either way, so only the month the tax is withheld changes. Only the Philippines’ rows read it; it changes nothing in other countries.',
+	'models.entity_profile_version.help.entity_extension_data':
+		"The entity data the jurisdiction's entity extension schema declares.",
+	'models.entity_profile_version.help.time_zone':
+		"The zone this entity's payroll windows and rostered days are counted in.",
+	'errors.entity_profile_version_void_reason': 'Record why this version is void.',
+	'models.roster_entry.help.consent':
+		'The signed per-day consent for night work and overtime while raising a child under 12 months. Pregnancy never takes consent.',
+	'errors.ledger_entry_names_its_movement':
+		'A ledger row names its source, period, measure and amount.',
+	'errors.ledger_entry_posting_only':
+		"Only posting, sync and HR's manual adjustments write the ledger, an admin included.",
+	'models.ledger_entry.help.account': 'Catalogue family key, for example leave or claim.',
+	'models.ledger_entry.help.code': 'Account code inside the family, for example ANNUAL_LEAVE.',
+	'models.ledger_entry.help.period':
+		'The window the value belongs to, for example MY.S.2026-03-05.',
+	'models.ledger_entry.help.measure': 'What is held in that window.',
+	'models.ledger_entry.help.source':
+		'What caused this movement. Plain text, so a movement outlives what caused it.',
+	'models.ledger_entry.help.note': "The cause of HR's manual adjustment.",
+	'errors.employee_profile_invitation_links':
+		'Only an accepted invitation links a profile to a login. Create the profile without a login; it is linked when the person accepts their invitation.',
+	'models.employee_profile.fields.source_reference': 'Source reference',
+	'errors.payroll_run_no_entity_version': 'No sealed entity version covers {period}.',
+	'errors.payroll_run_choose_group': 'Choose the pay group this run pays.',
+	'errors.payroll_run_group_other_company': 'The pay group belongs to another company.',
+	'errors.payroll_run_not_a_cycle': '{period} is not a pay cycle of {group}.',
+	'errors.payroll_run_later_ran': '{later} has already run, so {period} cannot run after it.',
+	'errors.payroll_run_cycle_paid':
+		'{period} already paid {from} to {to} for {group}. Run the first cycle after it.',
+	'errors.payroll_run_no_law': 'No sealed {code} law covers {date}.',
+	'errors.payroll_run_choose_pays': 'Choose what this run pays.',
+	'errors.payroll_run_merge_law':
+		'Merge the confirmed {code} law taking effect {date} before this run.',
+	'errors.payroll_run_not_in_group':
+		'Someone in this run is not paid by this pay group in its period: they are in another group, or were not employed. Run it for their own pay group, on the period of their last day.',
+	'errors.payroll_run_carry_takes_back':
+		'What this run carries would take money back from someone it pays too little. Leave it for their next on-cycle run, or recover it from them directly.',
+	'errors.payroll_run_below_zero':
+		'This run would take someone below zero. Leave the deduction for the next on-cycle run.',
+	'errors.payroll_run_moved_company':
+		'Someone in this run moved between companies this month. Pay this on the on-cycle run.',
+	'errors.payroll_run_already_attached':
+		'An entry or amended period it names is already attached to another payroll run.',
+	'errors.payroll_run_counted_later': 'A later run has already counted this one. Delete it first.',
+	'models.employee_contract.help.engagement':
+		'The contracted role. PAYEE is paid without employment (a commission agent), outside the headcount and separations.',
+	'models.employee_contract.help.effective_range':
+		'The dates this agreement applies. A replacement contract continues employment; ending it records a reason.',
+	'models.employee_contract.help.service_started_on':
+		'Only for service credited from elsewhere. Service is otherwise worked out from the stints under this jurisdiction: the current unbroken one, or every one, rehires included, where the profile counts every stint.',
+	'models.employee_contract.help.terms.signed_on':
+		'The actual date this employment agreement was signed.',
+	'models.employee_contract.help.terms.probation_period':
+		'The original agreed probation dates. Salary amendments retain these dates; they do not start another probation.',
+	'models.employee_contract.help.terms.normal_hours_per_day':
+		'The ordinary hours of one working day. Every overtime, leave and statutory hour reads it.',
+	'models.employee_contract.help.terms.normal_hours_per_week':
+		'The ordinary hours of one working week.',
+	'models.employee_contract.help.terms.normal_days_per_week':
+		'The ordinary working days of one week.',
+	'models.employee_contract.help.terms.employer_bears_income_tax':
+		'The agreement makes the employer bear the employee’s income tax. The jurisdiction formula determines any required gross-up.',
+	'models.employee_contract.help.terms.employee_borne_tax_items':
+		'Where the employer bears the income tax: the agreed allowances whose tax the employee still pays, at their own rate.',
+	'models.employee_contract.help.terms.work_authorisation_expires_on':
+		'The day the work pass or permit ends, an extension included. Where the law ties a contribution to the pass (Malaysia: provident fund stops in its last two months), the rule reads this day.',
+	'models.employee_contract.help.terms.work_region':
+		'The worksite region key the jurisdiction minimum-wage tables use, where it differs from the employer region.',
+	'models.employee_contract.help.terms.worksite':
+		'The establishment or site the person works at, where the law applies thresholds by site.',
+	'models.employee_contract.help.terms.annual_leave_carry_limit_days':
+		'An agreed contractual limit for carrying annual leave into the next leave year.',
+	'models.employee_contract.help.terms.allowances':
+		'The agreed allowances, keyed by the catalog code; the catalog row carries how each behaves.',
+	'models.employee_contract.fields.payroll': 'Person details',
+	'models.employee_contract.help.events':
+		'Dated statutory events on this contract: illness, bereavement, marriage, work injury, confinement and similar. A child is a `family` member; termination is the contract status and reason.',
+	'models.employee_contract.help.family':
+		"The person's family. Every count or flag a scheme reads (dependants, a spouse's income, births) is worked out from this list. A child's `allocations` are HR's approved leave days for that child, keyed by leave code.",
+	'models.employee_contract.help.final_pay_due_on':
+		'The actual contractual date the final settlement becomes payable. This differs from the maximum statutory deadline and the run’s actual payment date.',
+	'models.employee_contract.help.reason': 'Why this record was voided or the employment ended.',
+	'models.employee_contract.help.encash_leave':
+		'At an exit, leave left on a row with a payout is paid out on the last payslip. Switch it off and it is not; leave taken beyond what the last day earned is taken back either way.',
+	'models.employee_contract.help.exit_ground':
+		'The statutory ground for ending the employment. It decides severance eligibility and exit duties; reason carries the narrative.',
+	'models.employee_contract.help.employee_extension_data':
+		"The employee data the jurisdiction's employee extension schema declares.",
+	'models.employee_contract.help.payroll.nationality': 'ISO 3166-1 alpha-2 country code.',
+	'errors.employee_contract_rate_positive': 'The agreed rate must be more than zero.',
+	'errors.employee_contract_hours_per_day':
+		'The normal hours a day must be within the jurisdiction’s contract limits.',
+	'errors.employee_contract_hours_per_week':
+		'The normal hours a week must be within the jurisdiction’s contract limits.',
+	'errors.employee_contract_days_allowed':
+		'The normal days a week must be one the jurisdiction allows.',
+	'errors.employee_contract_days_per_week':
+		'The normal days a week must be within the jurisdiction’s contract limits.',
+	'errors.employee_contract_choose_pay_group': 'Choose the pay group this person is paid in.',
+	'errors.employee_contract_pay_group_other_company': 'The pay group belongs to another company.',
+	'errors.employee_contract_shift_overlong':
+		"Shift {code} lasts {lasts}h, longer than the contract's {hours} normal hours per day.",
+	'errors.employee_contract_work_category':
+		"Choose one of the jurisdiction's statutory work categories.",
+	'errors.employee_contract_work_region': "Choose one of the jurisdiction's declared work regions.",
+	'errors.employee_contract_mid_month':
+		'A contract changes from the first of a month. Date the event as it happened; the version starts on the first.',
+	'errors.employee_contract_exit_answers':
+		'A sealed contract adds its exit answers in the save that ends it or moves its end; the facts it holds change only by a new version.',
+	'errors.employee_contract_service_after_start':
+		'Service begins on or before the contract starts; it never starts after the version that records it.',
+	'errors.employee_contract_void_reason': 'Record why this contract is void.',
+	'errors.employee_own_profile_documents': 'Upload documents to your own profile.',
+	'errors.employee_own_claim_submit': 'Submit a claim for your own employment.',
+	'errors.employee_own_claim_update': 'Update your own claim.',
+	'errors.employee_own_leave_request': 'Request leave on your own employment.',
+	'errors.kiosk_face_enrollment_undo':
+		'A kiosk enrols or refreshes a face; it never undoes an approval.',
+	'models.payroll_run.syncs.salary_listing.schema.fields.employee_number': 'Employee no.',
+	'models.payroll_run.syncs.salary_listing.schema.fields.employee_name': 'Employee',
+	'models.payroll_run.syncs.salary_listing.schema.fields.currency': 'Currency',
+	'models.payroll_run.syncs.salary_listing.schema.fields.basic_earnings': 'Basic salary (contract)',
+	'models.payroll_run.syncs.salary_listing.schema.fields.allowances': 'Allowances',
+	'models.payroll_run.syncs.salary_listing.schema.fields.npl': 'NPL',
+	'models.payroll_run.syncs.salary_listing.schema.fields.proration': 'Proration',
+	'models.payroll_run.syncs.salary_listing.schema.fields.gross_earnings': 'Gross pay',
+	'models.payroll_run.syncs.salary_listing.schema.fields.total_deductions': 'Deductions',
+	'models.payroll_run.syncs.salary_listing.schema.fields.net_pay': 'Net pay',
+	'models.payroll_run.syncs.salary_listing.schema.fields.employer_cost': 'Employer cost',
+	'models.payroll_run.syncs.salary_listing.schema.fields.bank_name': 'Bank',
+	'models.payroll_run.syncs.salary_listing.schema.fields.bank_account_number': 'Account',
+	'models.payroll_run.syncs.ocbc_fast.schema.fields.line': 'Record',
+	'models.payroll_run.syncs.metro_bank.schema.fields.line': 'Record',
+	'errors.payroll_refused': '{message}'
 });

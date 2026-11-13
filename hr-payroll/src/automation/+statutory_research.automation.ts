@@ -1,8 +1,8 @@
 import { automation } from '@norbital-ai/bolt';
-import { addDays } from '@norbital-ai/std/date';
+import { add_days } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { JsonObject } from '../lib/payroll_engine/contracts.js';
-import { objectValue, queryAllRows, valueText } from '../lib/payroll_engine/reads.js';
+import { objectValue, queryAllRows, queryRows, valueText } from '../lib/payroll_engine/reads.js';
 import { jsonObject, Refusal, type Json } from '../lib/payroll_engine/foundation.js';
 import {
 	officialSource,
@@ -45,10 +45,10 @@ const toOf = (row: JsonObject): string | null => {
 const text = (value: Json | undefined): string | null =>
 	typeof value === 'string' && value !== '' ? value : null;
 
-export default automation('statutory_research', {
+export default automation({
 	description:
 		'Every Saturday, one research agent per jurisdiction in use reads its official sources and records each legal instrument it finds as a proposed statutory finding, classified against the catalogue families; a second agent per affected family drafts the dated changes. It never writes configuration.',
-	on: { cron: '0 3 * * 6' },
+	on: [{ cron: '0 3 * * 6' }],
 	input: {
 		code: { kind: 'text', optional: true },
 		family: { kind: 'text', optional: true },
@@ -57,10 +57,10 @@ export default automation('statutory_research', {
 	output: {
 		kind: 'object',
 		fields: {
-			sources: { kind: 'list', of: { kind: 'text' } },
-			researched: { kind: 'list', of: { kind: 'text' } },
-			proposed: { kind: 'list', of: { kind: 'text' } },
-			known: { kind: 'list', of: { kind: 'text' } }
+			sources: { kind: 'text', many: true },
+			researched: { kind: 'text', many: true },
+			proposed: { kind: 'text', many: true },
+			known: { kind: 'text', many: true }
 		}
 	},
 	policies: ['configuration_execution'],
@@ -74,8 +74,8 @@ export default automation('statutory_research', {
 				entity: { fields: ['settings_code'], limit: 10000 },
 				statutory_change: {
 					where: {
-						applied_version_id: { isNull: true },
-						effective_from: { lte: addDays(ctx.today, DUE_DAYS) },
+						applied_version_id: { is_null: true },
+						effective_from: { lte: add_days(ctx.today, DUE_DAYS) },
 						finding_id: { is: { status: { eq: 'CONFIRMED' } } }
 					},
 					fields: ['jurisdiction_code', 'effective_from'],
@@ -140,12 +140,28 @@ export default automation('statutory_research', {
 		const moved = new Set(live.map((row) => row.replaces_url));
 		const active = live.filter((row) => !moved.has(row.url));
 
+		// an update names each record at the revision it is read at now
+		const at = Effect.fnUntraced(function* (
+			model: 'statutory_finding' | 'statutory_source',
+			ids: readonly string[]
+		) {
+			const { [model]: rows = [] } = yield* queryRows(ctx.query, {
+				[model]: { where: { id: { in: [...ids] } }, fields: ['revision'], limit: 10000 }
+			});
+			return new Map(
+				rows.map((row) => [
+					valueText(row, 'id'),
+					{ id: row.id ?? null, revision: row.revision ?? null }
+				])
+			);
+		});
 		const write = Effect.fnUntraced(function* (
 			callable: 'statutory_finding.create' | 'statutory_source.create',
 			rows: readonly JsonObject[]
 		) {
 			if (rows.length === 0) return [];
-			const answer = yield* ctx.act.checked([{ callable, input: rows }]);
+			const acts: JsonObject = { [callable]: rows };
+			const answer = yield* ctx.act(acts);
 			if (answer.kind !== 'committed')
 				return yield* Effect.fail(
 					new Refusal({ message: `${callable}: the write was held for approval.` })
@@ -206,16 +222,14 @@ export default automation('statutory_research', {
 					kind: 'object',
 					fields: {
 						changes: {
-							kind: 'list',
-							of: {
-								kind: 'object',
-								fields: {
-									row_code: { kind: 'text', optional: true },
-									field_path: { kind: 'text' },
-									new_value: { kind: 'json', optional: true },
-									effective_from: { kind: 'text', optional: true },
-									notes: { kind: 'text', optional: true }
-								}
+							kind: 'object',
+							many: true,
+							fields: {
+								row_code: { kind: 'text', optional: true },
+								field_path: { kind: 'text' },
+								new_value: { kind: 'json', optional: true },
+								effective_from: { kind: 'text', optional: true },
+								notes: { kind: 'text', optional: true }
 							}
 						}
 					}
@@ -245,16 +259,14 @@ export default automation('statutory_research', {
 				today: ctx.today
 			});
 			if (planned.length > 0) {
-				const written = yield* ctx.act.checked([
-					{
-						callable: 'statutory_change.create',
-						input: planned.map((change) => ({
-							...change,
-							finding_id: finding,
-							jurisdiction_code: code
-						}))
-					}
-				]);
+				const acts: JsonObject = {
+					'statutory_change.create': planned.map((change) => ({
+						...change,
+						finding_id: finding,
+						jurisdiction_code: code
+					}))
+				};
+				const written = yield* ctx.act(acts);
 				if (written.kind !== 'committed')
 					return yield* Effect.fail(
 						new Refusal({ message: 'statutory_change.create: the write was held for approval.' })
@@ -345,32 +357,28 @@ export default automation('statutory_research', {
 				kind: 'object',
 				fields: {
 					findings: {
-						kind: 'list',
-						of: {
-							kind: 'object',
-							fields: {
-								instrument: { kind: 'text' },
-								title: { kind: 'text' },
-								fit: { kind: 'enum', values: ['VALUE', 'ROW', 'STRUCTURAL'] },
-								families: { kind: 'list', of: { kind: 'text' } },
-								summary: { kind: 'text', optional: true },
-								announced_on: { kind: 'text', optional: true },
-								source_urls: { kind: 'list', of: { kind: 'text' } },
-								source_quote: { kind: 'text', optional: true },
-								notes: { kind: 'text', optional: true }
-							}
+						kind: 'object',
+						many: true,
+						fields: {
+							instrument: { kind: 'text' },
+							title: { kind: 'text' },
+							fit: { kind: 'enum', values: ['VALUE', 'ROW', 'STRUCTURAL'] },
+							families: { kind: 'text', many: true },
+							summary: { kind: 'text', optional: true },
+							announced_on: { kind: 'text', optional: true },
+							source_urls: { kind: 'text', many: true },
+							source_quote: { kind: 'text', optional: true },
+							notes: { kind: 'text', optional: true }
 						}
 					},
 					new_sources: {
-						kind: 'list',
-						of: {
-							kind: 'object',
-							fields: {
-								url: { kind: 'text' },
-								title: { kind: 'text' },
-								family: { kind: 'text', optional: true },
-								replaces_url: { kind: 'text', optional: true }
-							}
+						kind: 'object',
+						many: true,
+						fields: {
+							url: { kind: 'text' },
+							title: { kind: 'text' },
+							family: { kind: 'text', optional: true },
+							replaces_url: { kind: 'text', optional: true }
 						}
 					}
 				}
@@ -395,30 +403,32 @@ export default automation('statutory_research', {
 				.filter((row) => !recorded.has(row.url) && URL.canParse(row.url))
 				.map((row) => [row.url, row])
 		);
-		if (live.length > active.length)
-			yield* ctx.act.checked([
-				{
-					callable: 'statutory_source.update',
-					input: live
-						.filter((row) => moved.has(row.url))
-						.map((row) => ({
-							target: valueText(row, 'id'),
-							set: { status: 'RETIRED' as const }
-						}))
-				}
-			]);
+		if (live.length > active.length) {
+			const retired: JsonObject = {
+				'statutory_source.update': live
+					.filter((row) => moved.has(row.url))
+					.map((row) => ({ target: row, set: { status: 'RETIRED' } }))
+			};
+			yield* ctx.act(retired);
+		}
 		const created = yield* write('statutory_finding.create', [
 			...fresh.map((row) =>
 				jsonObject({ ...row, jurisdiction_code: code, research_run_id: ctx.run.id })
 			)
 		]);
-		if (merged.length > 0)
-			yield* ctx.act.checked([
-				{
-					callable: 'statutory_finding.update',
-					input: merged.map(([target, source_urls]) => ({ target, set: { source_urls } }))
-				}
-			]);
+		if (merged.length > 0) {
+			const targets = yield* at(
+				'statutory_finding',
+				merged.map(([target]) => String(target))
+			);
+			const urls: JsonObject = {
+				'statutory_finding.update': merged.map(([target, source_urls]) => ({
+					target: targets.get(String(target)) ?? null,
+					set: { source_urls }
+				}))
+			};
+			yield* ctx.act(urls);
+		}
 		const opened = yield* write('statutory_source.create', [
 			...bootstrapped.map(({ title, url }) =>
 				jsonObject({
@@ -445,16 +455,16 @@ export default automation('statutory_research', {
 				row.status === 'ACTIVE' ? [String(opened[index]?.id)] : []
 			)
 		];
-		if (checked.length > 0)
-			yield* ctx.act.checked([
-				{
-					callable: 'statutory_source.update',
-					input: checked.map((target) => ({
-						target,
-						set: { status: 'ACTIVE' as const, last_checked_on: ctx.today }
-					}))
-				}
-			]);
+		if (checked.length > 0) {
+			const targets = yield* at('statutory_source', checked);
+			const stamped: JsonObject = {
+				'statutory_source.update': checked.map((target) => ({
+					target: targets.get(target) ?? null,
+					set: { status: 'ACTIVE', last_checked_on: ctx.today }
+				}))
+			};
+			yield* ctx.act(stamped);
+		}
 		const ids = created.filter((row) => row.model === 'statutory_finding');
 		for (const [index, row] of fresh.entries()) {
 			const id = ids[index]?.id;

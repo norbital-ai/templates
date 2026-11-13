@@ -11,7 +11,7 @@ import {
 	type RosterKnown,
 	type RosterPlan
 } from '../src/lib/payroll_engine/roster_workbook.ts';
-import { ENTITY, WORK, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, WORK, pack, uuid, workspace, storedQuery } from './kit.ts';
 
 const seed = pack('MY', 'Asia/Kuala_Lumpur', {}, {}, [], [], '2026-02-15');
 const first = seed.employee_contract?.[0] ?? {};
@@ -80,14 +80,20 @@ const workbook = (...long: readonly string[]): RosterPlan =>
 		known
 	);
 const importing = (t: Kit, plan: RosterPlan, dryRun: boolean) =>
-	t.as(t.admin).act('roster_entry.import', {
-		rows: plan.rows,
-		onConflict: 'update',
-		...(dryRun ? { dryRun: true } : {})
-	});
+	t.as(t.admin).pipe(
+		Effect.andThen((caller) =>
+			caller.act({
+				'roster_entry.import': {
+					rows: plan.rows,
+					on_conflict: 'update',
+					...(dryRun ? { dry_run: true } : {})
+				}
+			})
+		)
+	);
 const stored = (t: Kit) =>
 	Effect.map(
-		t.storedQuery({ roster_entry: { limit: 10000 } }),
+		storedQuery(t, { roster_entry: { limit: 10000 } }),
 		(answer) => answer.roster_entry.rows.length
 	);
 
@@ -120,11 +126,13 @@ describe('roster workbook import', () => {
 			assert.equal(yield* stored(t), 0);
 			const written = yield* importing(t, plan, false);
 			assert.ok(written.kind === 'committed');
-			assert.ok(written.output.rows.every((row) => row.action === 'created'));
+			assert.ok(
+				written.output['roster_entry.import']?.rows.every((row) => row.action === 'created')
+			);
 			assert.equal(yield* stored(t), all);
 			const again = yield* importing(t, plan, false);
 			assert.ok(again.kind === 'committed');
-			assert.ok(again.output.rows.every((row) => row.action === 'updated'));
+			assert.ok(again.output['roster_entry.import']?.rows.every((row) => row.action === 'updated'));
 			assert.equal(yield* stored(t), all);
 		}).pipe(Effect.provide(workspace({ seed: seeded, now: '2026-02-20T02:00:00.000Z' })))
 	);
@@ -147,7 +155,7 @@ describe('roster workbook import', () => {
 				known
 			);
 			yield* importing(t, plan, false);
-			const written = (yield* t.storedQuery({
+			const written = (yield* storedQuery(t, {
 				roster_entry: { limit: 100 }
 			})).roster_entry.rows.filter((row) => days.includes(String(row.work_date)));
 			assert.equal(written.length, days.length);

@@ -10,14 +10,14 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.CHILDCARE_SUBSIDY.amount', 0);",
-		"subtotal_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
-		"id": "f599cc60-ef48-515f-83ac-8edf00869e9b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "2ac2755a-3d88-5e58-94c8-0deecd310d1d",
+		"id": "d41717c8-0034-57c9-a75a-5bba8b20ae7e",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": false
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
-		"description": "Contractual fixed allowance paid for the days covered by basic salary and reduced with unpaid leave; part of the wage total.",
+		"description": "A fixed monthly amount from the contract, prorated by the same paid share as basic salary (joiner and leaver days, ABS and NPL); part of the wage total and taxed.",
 		"lookup": {},
 		"references": [
 			{
@@ -26,9 +26,9 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "// 工资支付暂行规定 第十一条、第十二条: no wage for days not worked. A fixed allowance is paid for the days the salary pays: it falls by the period's paid share on its own line, and BASIC stays the salary alone.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst coverage = ctx.run.salary_coverage;\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nlet working = 0;\nfor (let date = coverage.from; date <= coverage.to; date = add_days(date, 1)) if (!off.includes(weekday(date))) working += 1;\nconst hours = working * Number(get(terms, 'normal_hours_per_day', 8));\nconst salary = unit === 'DAILY' ? rate * working : unit === 'HOURLY' ? rate * hours : rate;\nreturn salary > 0 ? amount * ctx.paid_share : amount;",
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
-		"id": "68215c38-1749-5e5c-bb8f-6682e76fa726",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "8182fa6e-8de9-550f-81be-c90aa7292d76",
+		"id": "eebd1c28-93c2-525a-94e4-2828f6c43087",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": true
 	},
 	{
@@ -42,9 +42,9 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_CHILD_EDUCATION_ALLOWANCE.amount', 0);",
-		"subtotal_id": "774613ce-1ec5-4560-9c53-457f516e6891",
-		"id": "67e7afaf-ccf9-5753-8b67-1cfaf4c7a82f",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "3507c7ec-fa0f-58bd-8084-4f6cca6c3ef1",
+		"id": "da8c8a42-66d5-56fa-9854-83c70dde869e",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": true
 	},
 	{
@@ -58,9 +58,9 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_HOUSING_ALLOWANCE.amount', 0);",
-		"subtotal_id": "774613ce-1ec5-4560-9c53-457f516e6891",
-		"id": "9e718c1e-b1c2-55cb-841c-8c882e5ee3c9",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "3507c7ec-fa0f-58bd-8084-4f6cca6c3ef1",
+		"id": "f439c750-fb57-5a88-9f48-f2201f295412",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": false
 	},
 	{
@@ -74,14 +74,14 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_LANGUAGE_ALLOWANCE.amount', 0);",
-		"subtotal_id": "774613ce-1ec5-4560-9c53-457f516e6891",
-		"id": "4c6389d8-57eb-5b8b-be53-06a9bdcd9e6b",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "3507c7ec-fa0f-58bd-8084-4f6cca6c3ef1",
+		"id": "9c0504e6-d6c1-5adf-84dc-7360a8735c48",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": true
 	},
 	{
 		"code": "MEAL_SUBSIDY_OUT",
-		"description": "Contractual meal subsidy for meals taken away from the workplace, paid when the contract sets an amount; only actual meal-expense reimbursement is tax-exempt, while a fixed payment is wages.",
+		"description": "A fixed monthly meal amount from the contract, paid in full (not prorated) and taxed as wages. Reimburse actual meal costs as a claim instead: only those are tax-free.",
 		"lookup": {},
 		"references": [
 			{
@@ -90,9 +90,9 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.MEAL_SUBSIDY_OUT.amount', 0);",
-		"subtotal_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
-		"id": "d587b294-1f34-5699-96f2-98963a565089",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "8182fa6e-8de9-550f-81be-c90aa7292d76",
+		"id": "f5a0e899-0d78-5d6a-bef0-36a6e2937187",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": false
 	},
 	{
@@ -106,14 +106,14 @@
 		],
 		"eligibility": "return get(ctx.subject.employment, 'family', []).filter((member) => member.relation === 'CHILD').length === 1;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.ONLY_CHILD_ALLOWANCE.amount', 0);",
-		"subtotal_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
-		"id": "26cd3aa3-795d-5891-866b-e05327216028",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "2ac2755a-3d88-5e58-94c8-0deecd310d1d",
+		"id": "3b5b14e7-75ca-5cff-8f83-3c1b79a67392",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": false
 	},
 	{
 		"code": "TRAVEL_ALLOWANCE",
-		"description": "Contractual travel allowance paid when the contract sets an amount; only actual travel-expense reimbursement is tax-exempt, while a fixed payment is wages.",
+		"description": "A fixed monthly travel amount from the contract, paid in full (not prorated) and taxed as wages. Reimburse actual travel costs as a claim instead: only those are tax-free.",
 		"lookup": {},
 		"references": [
 			{
@@ -122,14 +122,14 @@
 		],
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.TRAVEL_ALLOWANCE.amount', 0);",
-		"subtotal_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
-		"id": "802d2797-8514-534f-88f2-71a5145453b9",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "8182fa6e-8de9-550f-81be-c90aa7292d76",
+		"id": "3c053561-9fcb-5b67-9eb7-b04ee95fcdf7",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": false
 	},
 	{
 		"code": "HIGH_TEMPERATURE_ALLOWANCE",
-		"description": "Shanghai June–September allowance for an employee with a dated high-temperature exposure period.",
+		"description": "Shanghai, June to September: 300 a month, paid in full (not prorated) in any month whose run date falls in a HIGH_TEMPERATURE work event for the employee's work site (outdoor work, or a workplace not cooled below 33℃). Taxable wages.",
 		"lookup": {
 			"region": "SH",
 			"monthly": 300,
@@ -138,13 +138,18 @@
 		"references": [
 			{
 				"title": "防暑降温措施管理办法 (安监总安健〔2012〕89号) 第十七条: 室外露天作业或工作场所不能降到33℃以下的, 发放高温津贴并纳入工资总额. 上海 300元/月, 6月至9月 (沪人社规〔2019〕19号; 官方通知未读, 2026年媒体转载一致 https://www.thepaper.cn/newsDetail_forward_33263111)."
+			},
+			{
+				"title": "上海 夏季高温津贴 (沪人社规〔2019〕19号, 2019-06-01起) 300元/月, 6月至9月, 可按月或提前一次性发放",
+				"url": "https://www.thepaper.cn/newsDetail_forward_33263111",
+				"quote": "标准为每月300元"
 			}
 		],
 		"eligibility": "const employerRegion = String(get(ctx.subject.employer, 'entity_extension_data.region', ''));\nconst worksite = String(get(ctx.subject.employment, 'terms.work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nif (region !== ctx.lookup.region) return false;\nif (!ctx.lookup.months.includes(Number(ctx.as_of.slice(5, 7)))) return false;\nreturn (ctx.work_events ?? []).some((event) => {\n  if (get(event, 'code', '') !== 'HIGH_TEMPERATURE') return false;\n  const from = String(get(event, 'from', ''));\n  const to = get(event, 'to', null);\n  return from !== '' && from <= ctx.as_of && ctx.as_of <= String(to ?? from);\n});",
 		"conversion": "return ctx.lookup.monthly;",
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
-		"id": "45cadd8a-9335-4134-827e-44cadd9bbfe4",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"subtotal_id": "8182fa6e-8de9-550f-81be-c90aa7292d76",
+		"id": "179c62bb-5188-5885-98dd-197203c6d019",
+		"settings_id": "b56eb3e8-9253-50b2-860a-62931946cdbd",
 		"include_in_rate": false
 	}
 ]

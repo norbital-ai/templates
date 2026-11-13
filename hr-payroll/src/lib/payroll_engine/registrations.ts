@@ -6,7 +6,7 @@ import { JsonObject, settingsConstants } from './contracts.js';
 import { queryRows, type Reader } from './reads.js';
 import { programOf } from './programs.js';
 import { chainOf, startsOf, versionOn } from './contract_change.js';
-import { ReadRequestSchema } from '@norbital-ai/bolt/protocol';
+import { ReadRequestJson } from '@norbital-ai/bolt/protocol';
 
 export type Operation = 'create' | 'update' | 'delete' | 'seal' | 'exit';
 const CATALOG_OF: Readonly<Record<string, string>> = {
@@ -344,25 +344,27 @@ const withStints = (layer: Layer): Record<string, Layer> =>
 	!layer.fields.includes(EMPLOYMENT_START)
 		? { employee_contract: layer }
 		: {
-				employee_contract: Array.isArray(layer.fields)
-					? {
-							...layer,
-							fields: [
-								...new Set([
-									...layer.fields.filter((field) => field !== EMPLOYMENT_START),
-									'service_started_on',
-									...STINT
-								])
-							]
+				employee_contract: {
+					...(Array.isArray(layer.fields)
+						? {
+								...layer,
+								fields: [
+									...new Set([
+										...layer.fields.filter((field) => field !== EMPLOYMENT_START),
+										'service_started_on',
+										...STINT
+									])
+								]
+							}
+						: layer),
+					employee_id: {
+						fields: ['id', 'cumulative_service'],
+						employee_contract: {
+							where: { status: { eq: 'SEALED' } },
+							fields: STINT,
+							entity_id: { fields: ['settings_code'] }
 						}
-					: layer,
-				'employee_contract.employee_id': { fields: ['id', 'cumulative_service'] },
-				'employee_contract.employee_id.employee_contract': {
-					where: { status: { eq: 'SEALED' } },
-					fields: STINT
-				},
-				'employee_contract.employee_id.employee_contract.entity_id': {
-					fields: ['settings_code']
+					}
 				}
 			};
 /** A contract read with its stints carries the service and employment starts sync and the run work out, on its plain person id. */
@@ -476,7 +478,7 @@ const batchRead = Effect.fnUntraced(function* (
 	}
 	const found = yield* Effect.forEach(
 		packs,
-		({ request }) => queryRows(read, Schema.decodeUnknownSync(ReadRequestSchema)(request)),
+		({ request }) => queryRows(read, Schema.decodeUnknownSync(ReadRequestJson)(request)),
 		{ concurrency: 'unbounded' }
 	);
 	for (const [index, rows] of found.entries())
@@ -668,7 +670,7 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 	}
 	// every refused row, each named by its person and day, so a batch is fixed in one pass
 	if (refused.size > 0)
-		throw new Refusal({
+		return yield* new Refusal({
 			message: [...refused]
 				.toSorted(([left], [right]) => left - right)
 				.map(([index, code]) => {
@@ -834,7 +836,8 @@ const versionsOf = Effect.fn('payroll.versionsOf')(function* (
  * target action writes. Models call it through `tap`.
  */
 export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects')(function* (
-	ctx: EffectCtx,
+	// a model effect and the automation that runs held effects both give it these two
+	ctx: Pick<EffectCtx, 'query' | 'act'>,
 	operation: Operation,
 	collection: string,
 	changes: readonly { readonly before?: object; readonly after?: object }[]
@@ -906,7 +909,15 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 	const allReads = yield* batchRead(
 		ctx.query,
 		effects.map((effect) => {
-			const declared = isJsonObject(effect.reads) ? effect.reads : {};
+			const stated = isJsonObject(effect.reads) ? effect.reads : {};
+			// a task is known by its key: an effect that reads tasks reads the key, whatever fields it lists
+			const tasks = stated.obligation;
+			const declared =
+				isJsonObject(tasks) &&
+				Array.isArray(tasks.fields) &&
+				!tasks.fields.includes('occurrence_key')
+					? { ...stated, obligation: { ...tasks, fields: [...tasks.fields, 'occurrence_key'] } }
+					: stated;
 			return entries.map((entry, index) =>
 				jsonObject(resolveRead(declared, { entry, subject: subjects[index] }))
 			);
@@ -947,6 +958,34 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 			if (Array.isArray(result))
 				input.push(...Schema.decodeUnknownSync(Schema.Array(JsonObject))(result));
 		}
-		if (input.length > 0) yield* ctx.act.checked([{ callable: `${target}.${action}`, input }]);
+		if (input.length === 0) continue;
+		// A task is raised once, whatever fires its effect again (a retried run, a host that replays): one with its key
+		// already on file, or twice in this batch, is left out.
+		const keyed = target === 'obligation' && action === 'create';
+		const keys = keyed
+			? input.flatMap((row) => (typeof row.occurrence_key === 'string' ? [row.occurrence_key] : []))
+			: [];
+		const onFile = new Set(
+			keys.length === 0
+				? []
+				: (
+						(yield* queryRows(ctx.query, {
+							obligation: {
+								where: { occurrence_key: { in: [...new Set(keys)] } },
+								fields: ['occurrence_key'],
+								limit: 10000
+							}
+						})).obligation ?? []
+					).map((row) => String(row.occurrence_key))
+		);
+		const fresh = !keyed
+			? input
+			: input.filter((row) => {
+					if (typeof row.occurrence_key !== 'string') return true;
+					if (onFile.has(row.occurrence_key)) return false;
+					onFile.add(row.occurrence_key);
+					return true;
+				});
+		if (fresh.length > 0) yield* ctx.act({ [`${target}.${action}`]: fresh });
 	}
 });

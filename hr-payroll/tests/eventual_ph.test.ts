@@ -1,34 +1,23 @@
 // On the Philippines' law pack. A wrong payment is corrected by later cycles: each statutory row charges what the month's
-// total owes less what the month already charged. A no-pay day is a catalog line at PAID_BASIC, so a reversal after payment pays it back.
+// total owes less what the month already charged. A no-pay day is a catalog line at PAID_BASIC.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	pack,
-	sealedAdhoc,
-	sealedLeave,
-	uuid,
-	workspace,
-	leaveCreate,
-	reversalSlots
-} from './kit.ts';
+import { ENTITY, pack, uuid, workspace, leaveCreate, storedQuery } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 type Seed = ReturnType<typeof pack>;
 type Row = Seed[string][number];
 type Allowances = Record<string, { readonly amount: number }>;
-/** The fixture: an off-cycle wage item, a salary, an amount that crosses a tax band on top of it, and two flat allowances. */
+/** The fixture: an off-cycle wage item, a salary, and an amount that crosses a tax band on top of it. */
 const ITEM = 'BACKPAY_BASIC';
 const SALARY = 60_000;
 const EXTRA = 300_000;
 const TAX = 'WTAX.employee';
-const ALLOWANCES: Allowances = { transport: { amount: 2200 }, meal: { amount: 2000 } };
 const WAGES = 'ORDINARY_WAGES';
 const terms = (amount: number, allowances: Allowances = {}, unit = 'MONTHLY') => ({
 	rate: { amount, unit },
@@ -80,55 +69,58 @@ const catalogId = <M extends 'adhoc_catalog' | 'leave_catalog'>(
 	return idOf(model, String(row.id));
 };
 const onCycle = (t: Kit, period: string) =>
-	t
-		.as(t.admin)
-		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
-		.pipe(Effect.andThen(t.runDue()));
-const adhoc = (
-	t: Kit,
-	seed: Seed,
-	item: string,
-	amount: number,
-	on: string,
-	reverses: Id<'adhoc_catalog_entry'> | null = null
-) =>
-	t.as(t.admin).act('adhoc_catalog_entry.create', [
-		{
-			entity_id: ENTITY,
-			employment_id: CONTRACT,
-			catalog_id: catalogId(seed, 'adhoc_catalog', item),
-			description: 'Adjustment',
-			quantity: amount,
-			incurred_on: PlainDate(on),
-			reverses
-		}
-	]);
-const offCycle = (
-	t: Kit,
-	seed: Seed,
-	item: string,
-	amount: number,
-	period: string,
-	reverses: Id<'adhoc_catalog_entry'> | null = null
-) =>
+	Effect.flatMap(t.as(t.admin), (caller) =>
+		caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
+	).pipe(Effect.andThen(t.run_due()));
+/** The period's on-cycle run, paid: what is entered for the period after it no longer waits on its review. */
+const paidCycle = (t: Kit, period: string) =>
 	Effect.gen(function* () {
-		yield* adhoc(t, seed, item, amount, `${period}-10`, reverses);
-		const open = (yield* t.storedQuery({
-			adhoc_catalog_entry: { where: { payroll_run_id: { isNull: true } }, limit: 1 }
+		yield* onCycle(t, period);
+		const [run] = (yield* storedQuery(t, {
+			payroll_run: { where: { period: { eq: period } }, limit: 1 }
+		})).payroll_run.rows;
+		assert.ok(run !== undefined);
+		yield* (yield* t.as(t.admin)).act({
+			'payroll_run.update': [{ target: run, set: { state: 'PAID' } }]
+		});
+		yield* t.run_due();
+	});
+const adhoc = (t: Kit, seed: Seed, item: string, amount: number, on: string) =>
+	Effect.flatMap(t.as(t.admin), (caller) =>
+		caller.act({
+			'adhoc_catalog_entry.create': [
+				{
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: catalogId(seed, 'adhoc_catalog', item),
+					description: 'Adjustment',
+					quantity: amount,
+					incurred_on: PlainDate(on)
+				}
+			]
+		})
+	);
+const offCycle = (t: Kit, seed: Seed, item: string, amount: number, period: string) =>
+	Effect.gen(function* () {
+		yield* adhoc(t, seed, item, amount, `${period}-10`);
+		const open = (yield* storedQuery(t, {
+			adhoc_catalog_entry: { where: { payroll_run_id: { is_null: true } }, limit: 1 }
 		})).adhoc_catalog_entry.rows[0];
 		assert.ok(open !== undefined);
-		yield* t.as(t.admin).act('payroll_run.create', [
-			{
-				entity_id: ENTITY,
-				period,
-				kind: 'OFF_CYCLE',
-				attaches: { adhoc: [idOf('adhoc_catalog_entry', open.id)] }
-			}
-		]);
-		yield* t.runDue();
+		yield* (yield* t.as(t.admin)).act({
+			'payroll_run.create': [
+				{
+					entity_id: ENTITY,
+					period,
+					kind: 'OFF_CYCLE',
+					adhoc: [{ id: open.id, revision: open.revision }]
+				}
+			]
+		});
+		yield* t.run_due();
 	});
 const slips = (t: Kit, period: string) =>
-	t.storedQuery({ payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
+	storedQuery(t, { payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
 		Effect.map((got) =>
 			got.payroll_run.rows
 				.filter((run) => run.period.startsWith(period))
@@ -143,7 +135,7 @@ const slips = (t: Kit, period: string) =>
 						: [
 								{
 									...Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown),
-									net: slip.net_pay.toNumber()
+									net: slip.net_pay.to_number()
 								}
 							];
 				})
@@ -195,7 +187,7 @@ describe('short, then topped up in the same month', () => {
 				)
 			);
 			const topped = yield* inWorkspace(seed, NOW, (t) =>
-				onCycle(t, '2026-06').pipe(
+				paidCycle(t, '2026-06').pipe(
 					Effect.andThen(offCycle(t, seed, ITEM, EXTRA, '2026-06')),
 					Effect.andThen(charged(t, '2026-06'))
 				)
@@ -243,27 +235,6 @@ describe('corrected in the next month', () => {
 			assert.ok(late.december > on.december);
 		})
 	);
-	it.live("a reversal in the next run takes it back out of the year's tax", () =>
-		Effect.gen(function* () {
-			const right = yield* inWorkspace(seed, DECEMBER, (t) =>
-				Effect.gen(function* () {
-					yield* onCycle(t, '2026-11');
-					yield* onCycle(t, '2026-12');
-					return yield* tax(t);
-				})
-			);
-			const corrected = yield* inWorkspace(seed, DECEMBER, (t) =>
-				Effect.gen(function* () {
-					yield* adhoc(t, seed, ITEM, EXTRA, '2026-11-10');
-					yield* onCycle(t, '2026-11');
-					yield* adhoc(t, seed, ITEM, EXTRA, '2026-12-10', yield* sealedAdhoc(t));
-					yield* onCycle(t, '2026-12');
-					return yield* tax(t);
-				})
-			);
-			assert.equal(corrected.total, right.total);
-		})
-	);
 });
 
 describe('twice a month', () => {
@@ -297,14 +268,16 @@ describe('twice a month', () => {
 		return inWorkspace(seed, '2026-07-05T02:00:00.000Z', (t) =>
 			Effect.gen(function* () {
 				yield* onCycle(t, '2026-06-1');
-				yield* t.as(t.admin).act('leave_catalog_entry.create', [
-					leaveCreate({
-						entity_id: ENTITY,
-						employment_id: CONTRACT,
-						catalog_id: noPay,
-						days
-					})
-				]);
+				yield* (yield* t.as(t.admin)).act({
+					'leave_catalog_entry.create': [
+						leaveCreate({
+							entity_id: ENTITY,
+							employment_id: CONTRACT,
+							catalog_id: noPay,
+							days
+						})
+					]
+				});
 				yield* onCycle(t, '2026-06-2');
 				const [, second] = yield* slips(t, '2026-06');
 				assert.ok(second !== undefined);
@@ -320,31 +293,74 @@ const whole = (date: string) => [
 	{ date: PlainDate(date), part: 'AM' as const },
 	{ date: PlainDate(date), part: 'PM' as const }
 ];
-const leave = (
-	t: Kit,
-	seed: Seed,
-	days: ReturnType<typeof whole>,
-	reverses: Id<'leave_catalog_entry'> | null = null
-) =>
-	Effect.gen(function* () {
-		const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
-		yield* t.as(t.admin).act('leave_catalog_entry.create', [
-			leaveCreate({
-				entity_id: ENTITY,
-				employment_id: CONTRACT,
-				catalog_id: catalogId(seed, 'leave_catalog', 'NPL'),
-				days: selected,
-				reverses
-			})
-		]);
-	});
+const leave = (t: Kit, seed: Seed, days: ReturnType<typeof whole>) =>
+	Effect.flatMap(t.as(t.admin), (caller) =>
+		caller.act({
+			'leave_catalog_entry.create': [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: catalogId(seed, 'leave_catalog', 'NPL'),
+					days
+				})
+			]
+		})
+	);
 const lineOf = (lines: PayslipBreakdown['lines'], code: string) =>
 	lines
 		.filter((line) => line.code === code)
 		.reduce((total, line) => total + line.amount * (line.direction === 'DEDUCT' ? -1 : 1), 0);
 
+describe('a raise inside the month', () => {
+	it.live('pays the earlier salary and the raise for the days after it', () => {
+		const earlier = seedOf(terms(40_000));
+		const [first] = earlier.employee_contract ?? [];
+		assert.ok(first !== undefined);
+		const seed: Seed = {
+			...earlier,
+			employee_contract: [
+				{ ...first, effective_range: { from: '2026-01-01', to: '2026-06-25' } },
+				{
+					...first,
+					id: uuid(61),
+					effective_range: { from: '2026-06-26', to: null },
+					terms: terms(43_000)
+				}
+			]
+		};
+		return inWorkspace(seed, NOW, (t) =>
+			Effect.gen(function* () {
+				yield* onCycle(t, '2026-06');
+				const [slip] = yield* slips(t, '2026-06');
+				assert.ok(slip !== undefined);
+				// 26, 29 and 30 June at the raise's day rate: 3,000 × 12 ÷ 261 a day
+				assert.equal(
+					checkpoint(slip.checkpoints, 'PAID_BASIC'),
+					40_000 + Math.round(((3 * 3000 * 12) / 261) * 100) / 100
+				);
+			})
+		);
+	});
+});
+
 describe('a no-pay day', () => {
-	const monthly = seedOf(terms(44_000, ALLOWANCES));
+	it.live('the law rounds what the days take, not the day rate first', () => {
+		// 21,774 × 12 ÷ 261 = 1,001.1034… a day: three days take 3,003.31; at the rate rounded first, 3,003.30
+		const seed = seedOf(terms(21_774));
+		return inWorkspace(seed, NOW, (t) =>
+			Effect.gen(function* () {
+				yield* leave(t, seed, [
+					...whole('2026-06-10'),
+					...whole('2026-06-11'),
+					...whole('2026-06-12')
+				]);
+				yield* onCycle(t, '2026-06');
+				const [slip] = yield* slips(t, '2026-06');
+				assert.ok(slip !== undefined);
+				assert.equal(lineOf(slip.lines, 'NPL'), -3003.31);
+			})
+		);
+	});
 
 	it.live('a daily rate takes its day at the rate', () => {
 		const rate = 2000;
@@ -359,51 +375,6 @@ describe('a no-pay day', () => {
 				within(lineOf(slip.lines, 'NPL'), -rate);
 				within(checkpoint(slip.checkpoints, 'BASIC'), rate * 22);
 				within(checkpoint(slip.checkpoints, 'PAID_BASIC'), rate * 21);
-			})
-		);
-	});
-
-	it.live('reversed across a 30/31-day boundary, the next run pays back what June took', () =>
-		inWorkspace(monthly, '2026-07-20T02:00:00.000Z', (t) =>
-			Effect.gen(function* () {
-				yield* leave(t, monthly, whole('2026-06-10'));
-				yield* onCycle(t, '2026-06');
-				yield* leave(t, monthly, whole('2026-07-06'), yield* sealedLeave(t));
-				yield* onCycle(t, '2026-07');
-				yield* onCycle(t, '2026-08');
-				const [june] = yield* slips(t, '2026-06');
-				const [july] = yield* slips(t, '2026-07');
-				const [august] = yield* slips(t, '2026-08');
-				assert.ok(june !== undefined && july !== undefined && august !== undefined);
-				const full = checkpoint(august.checkpoints, WAGES);
-				const taken = full - checkpoint(june.checkpoints, WAGES);
-				assert.ok(taken > 0);
-				// a reversal is priced like the line it undoes; an allowance that fell with the day gives it back on its own line
-				within(lineOf(july.lines, 'NPL'), -lineOf(june.lines, 'NPL'));
-				for (const code of Object.keys(ALLOWANCES))
-					within(
-						lineOf(july.lines, code) - lineOf(august.lines, code),
-						lineOf(august.lines, code) - lineOf(june.lines, code)
-					);
-				within(checkpoint(july.checkpoints, WAGES), full + taken);
-				assert.equal(lineOf(august.lines, 'NPL'), 0);
-			})
-		)
-	);
-
-	it.live("twice a month, a reversal in the next half pays back that half's day", () => {
-		const seed = reschedule(monthly, TWICE);
-		return inWorkspace(seed, '2026-07-05T02:00:00.000Z', (t) =>
-			Effect.gen(function* () {
-				yield* leave(t, seed, whole('2026-06-10'));
-				yield* onCycle(t, '2026-06-1');
-				yield* leave(t, seed, whole('2026-06-22'), yield* sealedLeave(t));
-				yield* onCycle(t, '2026-06-2');
-				const [first, second] = yield* slips(t, '2026-06');
-				assert.ok(first !== undefined && second !== undefined);
-				const taken = lineOf(first.lines, 'NPL');
-				assert.ok(taken < 0);
-				within(lineOf(second.lines, 'NPL'), -taken);
 			})
 		);
 	});

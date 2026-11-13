@@ -3,7 +3,7 @@
  * per model field, and the plan that turns filled rows back into those models. A contract change is a duplicated row,
  * so a person or company may repeat with a later start; an empty end then closes on the day before that start.
  */
-import { addDays } from '@norbital-ai/std/date';
+import { add_days } from '@norbital-ai/std/date';
 import type { Cell } from '@norbital-ai/std/sheet';
 import {
 	isJsonObject,
@@ -835,7 +835,7 @@ const closed = <R extends Dated>(rows: readonly R[]): readonly R[] => {
 	return ordered.map((row, index) => {
 		const next = ordered[index + 1];
 		const range = isJsonObject(row.model.effective_range) ? row.model.effective_range : {};
-		const to = range.to ?? (next?.key === row.key ? String(addDays(next.from, -1)) : null);
+		const to = range.to ?? (next?.key === row.key ? String(add_days(next.from, -1)) : null);
 		return { ...row, model: { ...row.model, effective_range: { from: row.from, to } } };
 	});
 };
