@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Decimal } from '@norbital-ai/std/decimal';
+	import { BigDecimal } from 'effect';
 	import { Chart, EmptyState, Show, type RecordView } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
+	import { dec, div, text } from '../../../lib/values.js';
 	let {
 		view,
 		ctx
@@ -68,7 +69,7 @@
 				group: floor.group_code,
 				threshold: floor.minimum_quantity,
 				price: floor.tax_inclusive
-					? floor.floor_price.div(Decimal.of(1).plus(floor.tax_rate.div(100, 8)), 8)
+					? text(div(floor.floor_price, BigDecimal.sum(dec(1), div(floor.tax_rate, 100, 8)), 8))
 					: floor.floor_price
 			}))
 			.reverse() ?? []
@@ -101,10 +102,8 @@
 						.filter((r) => `${r.currency}/${r.unit}` === group)
 						.map((r) => ({
 							on: r.business_on,
-							[ctx.t('component.sold_price')]:
-								r.sold_price == null ? null : Decimal.of(r.sold_price).toString(),
-							[ctx.t('models.pricing_floors.fields.floor_price')]:
-								r.floor_net == null ? null : Decimal.of(r.floor_net).toString()
+							[ctx.t('component.sold_price')]: r.sold_price,
+							[ctx.t('models.pricing_floors.fields.floor_price')]: r.floor_net
 						}))}
 					x="on"
 					y={[
@@ -139,13 +138,13 @@
 					{ctx}
 					of={points.map((r) => ({
 						on: r.on,
-						[ctx.t('models.pricing_floors.fields.floor_price')]: r.price.toString()
+						[ctx.t('models.pricing_floors.fields.floor_price')]: r.price
 					}))}
 					x="on"
 					y={ctx.t('models.pricing_floors.fields.floor_price')}
 					kind="line"
 					interpolation="step"
-					title={`${ctx.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first?.threshold.gt(0) ? ` · ≥ ${first.threshold}` : ''}`}
+					title={`${ctx.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first && BigDecimal.isPositive(dec(first.threshold)) ? ` · ≥ ${first.threshold}` : ''}`}
 				/>
 			{/each}
 			{#if (sales?.loading || floors?.loading) && rows.length === 0 && rates.length === 0}

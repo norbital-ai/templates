@@ -1,6 +1,4 @@
 import { JobResult } from '@norbital-ai/bolt-cli/test';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { Instant } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { agreements, currentAgreement } from '../src/lib/agreements.js';
@@ -21,7 +19,7 @@ it.live('procurement can record and revise a local commitment without Kingdee', 
 				.query({ orders: { where: { id: { eq: order } }, limit: 1 } })
 				.pipe(Effect.map((answer) => answer.orders.rows));
 		const seal = Effect.gen(function* () {
-			const check = yield* confirmationOf(as, { order, as_of: Instant(t.clock.now()) });
+			const check = yield* confirmationOf(as, { order, as_of: t.clock.now() });
 			committed(
 				'orders',
 				yield* as.act({
@@ -56,9 +54,7 @@ it.live('procurement can record and revise a local commitment without Kingdee', 
 		expect(draftRecord.status).toBe('draft');
 		expect(currentAgreement(draftRecord)).toEqual(original);
 		yield* as.act({
-			'order_lines.update': [
-				{ target: yield* t.at('order_lines', line), set: { quantity: Decimal.of(7) } }
-			]
+			'order_lines.update': [{ target: yield* t.at('order_lines', line), set: { quantity: '7' } }]
 		});
 		yield* seal;
 		yield* t.deliver();

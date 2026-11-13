@@ -1,7 +1,7 @@
-import { Decimal, currency } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
+import { BigDecimal } from 'effect';
 import { price } from '../../lib/commercial.js';
-import { SourceRowInvalid } from './polling.js';
+import { dec, div, minorDigits, round, text } from '../../lib/values.js';
+import { currency, PlainDate, SourceRowInvalid } from './polling.js';
 
 type OrderLine = {
 	readonly id: string;
@@ -174,7 +174,7 @@ export function sourceEntryIds(payload: OrderPayload) {
 			'An amendment requires the complete previously observed source version'
 		);
 	sourceInteger(previous.source_id, 'FInterID');
-	if (Decimal.of(previous.source_exchange_rate).lte(0))
+	if (!BigDecimal.isPositive(dec(previous.source_exchange_rate)))
 		return invalid('currency', 'A positive previously observed exchange rate is required');
 	const existing = new Map(
 		previous.lines.map((line) => [line.id, sourceInteger(line.source_entry_id, 'FEntryID')])
@@ -258,8 +258,9 @@ export function sourceOrderBatch(
 		return invalid('lines', 'A complete sales order requires between 1 and 200 mapped items');
 	PlainDate(payload.ordered_on);
 	if (bindings.packagingId !== '') sourceInteger(bindings.packagingId, 'packagingId');
-	const rate = Decimal.of(bindings.rate);
-	if (rate.lte(0)) return invalid('currency', 'A positive source exchange rate is required');
+	const rate = dec(bindings.rate);
+	if (!BigDecimal.isPositive(rate))
+		return invalid('currency', 'A positive source exchange rate is required');
 	const date = `${payload.ordered_on}T00:00:00`;
 	const values = {
 		FBrNo: bindings.branchNo,
@@ -268,7 +269,7 @@ export function sourceOrderBatch(
 		FCurrencyID: sourceInteger(bindings.currencyId, 'FCurrencyID'),
 		FCustID: sourceInteger(bindings.customerId, 'FCustID'),
 		FDate: date,
-		FExchangeRate: rate.toString(),
+		FExchangeRate: text(rate),
 		FDeptID: sourceInteger(bindings.departmentId, 'FDeptID'),
 		FEmpID: sourceInteger(bindings.employeeId, 'FEmpID'),
 		FBillerID: sourceInteger(bindings.billerId, 'FBillerID'),
@@ -299,49 +300,60 @@ export function sourceOrderBatch(
 	const rows = payload.lines.map((line, index) => {
 		const item = bindings.items[index];
 		if (item === undefined) return invalid('lines', 'Source item mapping is missing');
-		const quantity = Decimal.of(line.quantity);
-		const discount = Decimal.of(line.discount_pct);
-		const taxRate = Decimal.of(line.tax_rate);
+		const quantity = dec(line.quantity);
+		const discount = dec(line.discount_pct);
+		const taxRate = dec(line.tax_rate);
+		const hundred = dec(100);
 		if (
-			quantity.lte(0) ||
-			Decimal.of(line.unit_price).lt(0) ||
-			discount.lt(0) ||
-			discount.gt(100) ||
-			taxRate.lt(0) ||
-			taxRate.gt(100)
+			!BigDecimal.isPositive(quantity) ||
+			BigDecimal.isNegative(dec(line.unit_price)) ||
+			BigDecimal.isNegative(discount) ||
+			BigDecimal.isGreaterThan(discount, hundred) ||
+			BigDecimal.isNegative(taxRate) ||
+			BigDecimal.isGreaterThan(taxRate, hundred)
 		)
 			return invalid('lines', 'Invalid source quantity, discount or tax rate');
 		const actual = price(
 			{ currency: currency(payload.currency), tax_inclusive: payload.tax_inclusive },
 			line
 		);
-		if (!actual.net.eq(line.net) || !actual.tax.eq(line.tax) || !actual.total.eq(line.total))
+		if (
+			!BigDecimal.equals(dec(actual.net), dec(line.net)) ||
+			!BigDecimal.equals(dec(actual.tax), dec(line.tax)) ||
+			!BigDecimal.equals(dec(actual.total), dec(line.total))
+		)
 			return invalid('lines', 'The sealed line amounts do not match its quantity, price and tax');
-		const discounted = Decimal.of(line.unit_price)
-			.times(Decimal.of(100).minus(discount))
-			.div(100, 12);
-		const factor = Decimal.of(1).plus(taxRate.div(100, 6));
-		const exclusive = payload.tax_inclusive ? discounted.div(factor, 8) : discounted;
-		const inclusive = payload.tax_inclusive ? discounted : discounted.times(factor).round(8);
+		const discounted = div(
+			BigDecimal.multiply(dec(line.unit_price), BigDecimal.subtract(hundred, discount)),
+			hundred,
+			12
+		);
+		const factor = BigDecimal.sum(dec(1), div(taxRate, hundred, 6));
+		const exclusive = payload.tax_inclusive ? div(discounted, factor, 8) : discounted;
+		const inclusive = payload.tax_inclusive
+			? discounted
+			: round(BigDecimal.multiply(discounted, factor), 8);
 		return {
 			FEntryID: entries[index]?.entry_id ?? invalid('FEntryID', 'Source entry mapping is missing'),
 			FItemID: sourceInteger(item.itemId, 'FItemID'),
 			FUnitID: sourceInteger(item.unitId, 'FUnitID'),
-			FQty: quantity.toString(),
-			Fauxqty: quantity.toString(),
-			FAuxStockAwaitQty: quantity.toString(),
-			FComplexQty: quantity.toString(),
-			Fauxprice: exclusive.toString(),
-			FPrice: exclusive.toString(),
-			FAuxTaxPrice: inclusive.toString(),
-			FTaxPrice: inclusive.toString(),
-			FPriceDiscount: inclusive.toString(),
-			FAuxPriceDiscount: inclusive.toString(),
-			FCESS: taxRate.toString(),
-			FAmount: actual.net.toString(),
-			FAllAmount: actual.total.toString(),
-			FAllStdAmount: actual.total.times(rate).round_to(bindings.baseCurrency).toString(),
-			FTaxAmt: actual.tax.toString(),
+			FQty: text(quantity),
+			Fauxqty: text(quantity),
+			FAuxStockAwaitQty: text(quantity),
+			FComplexQty: text(quantity),
+			Fauxprice: text(exclusive),
+			FPrice: text(exclusive),
+			FAuxTaxPrice: text(inclusive),
+			FTaxPrice: text(inclusive),
+			FPriceDiscount: text(inclusive),
+			FAuxPriceDiscount: text(inclusive),
+			FCESS: text(taxRate),
+			FAmount: text(actual.net),
+			FAllAmount: text(actual.total),
+			FAllStdAmount: text(
+				round(BigDecimal.multiply(dec(actual.total), rate), minorDigits(bindings.baseCurrency))
+			),
+			FTaxAmt: text(actual.tax),
 			FDate: date,
 			FAdviceConsignDate: date,
 			FNote: '',

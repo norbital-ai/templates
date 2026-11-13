@@ -1,6 +1,4 @@
-import { Instant } from '@norbital-ai/std/date';
-import { fixtureId, decimalText } from './test-runtime.js';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { fixtureId, decimalText, sameDecimal } from './test-runtime.js';
 import { Schema, Effect } from 'effect';
 import { expect, layer } from '@effect/vitest';
 import { direct } from './synced-kit.js';
@@ -34,7 +32,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 							'order_lines.update': [
 								{
 									target: yield* t.at('order_lines', other.line),
-									set: { unit_price: Decimal.of('1') }
+									set: { unit_price: '1' }
 								}
 							]
 						})
@@ -47,7 +45,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 						})
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
-				yield* rejects(confirmationOf(as, { as_of: Instant(t.clock.now()), order: other.order }));
+				yield* rejects(confirmationOf(as, { as_of: t.clock.now(), order: other.order }));
 				yield* rejects((yield* t.as(t.member(['configuration']))).query({ orders: {} }));
 				expect(
 					yield* direct(t, as.authority, {
@@ -75,7 +73,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 				const line = (yield* logistics.query({
 					order_lines: { output: 'logistics', where: { id: { eq: foreign.line } }, limit: 1 }
 				})).order_lines.rows[0];
-				expect(line?.quantity.eq(10)).toBe(true);
+				expect(sameDecimal(line?.quantity, '10')).toBe(true);
 				expect(line).not.toHaveProperty('unit_price');
 				yield* rejects(logistics.query({ order_lines: {} }));
 				expect(
@@ -101,9 +99,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 					sealedExportOf(actor, { order: foreign.order }),
 					'errors.order_not_confirmed'
 				);
-				yield* rejects(
-					confirmationOf(actor, { as_of: Instant(t.clock.now()), order: foreign.order })
-				);
+				yield* rejects(confirmationOf(actor, { as_of: t.clock.now(), order: foreign.order }));
 				const personal = yield* draft(t, 'sales', fixtureId('sys_user', mixed.id), undefined, WEST);
 				yield* confirm(t, personal.order);
 				expect(yield* commissionOf(actor, {})).toMatchObject([

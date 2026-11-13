@@ -16,7 +16,6 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Instant, PlainDate } from '@norbital-ai/std/date';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { untrack } from 'svelte';
 	import SlotPicker from '../../../../lib/SlotPicker.svelte';
@@ -101,7 +100,7 @@
 	);
 	const target = $derived(chosen?.current?.customers.rows[0] ?? null);
 	const chosenService = $derived(chosen?.current?.services.rows[0] ?? null);
-	const horizon = $derived(bookingWindow({ from: PlainDate(from), days: 7, repeat }, zone));
+	const horizon = $derived(bookingWindow({ from, days: 7, repeat }, zone));
 	const pool = livePool(
 		ctx,
 		() =>
@@ -131,7 +130,7 @@
 			service !== null &&
 			start !== null &&
 			(preference === 'any' || helpers.length > 0) &&
-			shown?.some((d) => d.starts.includes(Instant(start!))) === true
+			shown?.some((d) => d.starts.includes(start!)) === true
 	);
 	function book() {
 		const selectedCustomer = customer,
@@ -148,7 +147,7 @@
 					service: selectedService,
 					preference,
 					...(preference === 'preferred' ? { helpers: order } : {}),
-					start: Instant(selectedStart),
+					start: selectedStart,
 					repeat
 				});
 				const outcome = yield* call;
@@ -328,6 +327,7 @@
 				<Stack gap="sm" class="max-w-xs">
 					<Label for="booking-date">{t('app.booking.dates_from')}</Label>
 					<TimeInput
+						{ctx}
 						id="booking-date"
 						value={from}
 						on_change={(next: string | null) => {

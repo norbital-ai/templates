@@ -102,7 +102,7 @@ export default model({
 				pnl_pct: { kind: 'decimal', scale: 2, optional: true }
 			}
 		},
-		research_summary: { kind: 'text', optional: true },
+		research_summary: { kind: 'text', format: 'markdown', optional: true },
 		research_at: { kind: 'instant', optional: true },
 		insights: {
 			kind: 'object',

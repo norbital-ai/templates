@@ -1,4 +1,5 @@
-import { Decimal, type DecimalLike } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { type D, type DecimalLike, dec, text } from './values.js';
 /** A total is unknown if any constituent transaction lacks its consumed-lot cost. */
 export function marginSeries(
 	rows: readonly {
@@ -15,7 +16,7 @@ export function marginSeries(
 		{
 			currency: string;
 			salesperson: string;
-			margin: Decimal;
+			margin: D;
 			unknown: boolean;
 		}
 	>();
@@ -24,16 +25,16 @@ export function marginSeries(
 		const group = groups.get(key) ?? {
 			currency: row.currency,
 			salesperson: row.owner_name,
-			margin: Decimal.of(0),
+			margin: dec(0),
 			unknown: false
 		};
 		if (row.margin == null) group.unknown = true;
-		else group.margin = group.margin.plus(row.margin);
+		else group.margin = BigDecimal.sum(group.margin, dec(row.margin));
 		groups.set(key, group);
 	}
 	return [...groups.values()].map((row) => ({
 		currency: row.currency,
 		salesperson: row.salesperson,
-		margin: row.unknown ? null : row.margin.toString()
+		margin: row.unknown ? null : text(row.margin)
 	}));
 }

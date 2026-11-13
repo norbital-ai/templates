@@ -1,5 +1,4 @@
 import { decimalText } from './test-runtime.js';
-import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { workspace, draft, confirm } from './kit.js';
@@ -23,7 +22,7 @@ it.live(
 			const refund = yield* sourcePayment(t, parent, invoice.id, '-2');
 			const deposit = yield* sourcePayment(t, parent, null, '3');
 			const aging = () =>
-				agingOf(as, { as_of: PlainDate('2026-10-10') }).pipe(
+				agingOf(as, { as_of: '2026-10-10' }).pipe(
 					Effect.map((rows) => rows.filter((row) => row.invoice === invoice.id))
 				);
 			expect(yield* aging()).toMatchObject([{ balance: decimalText('13.80') }]);

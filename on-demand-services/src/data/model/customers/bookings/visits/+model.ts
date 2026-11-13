@@ -1,7 +1,6 @@
 import type { Instant } from '@norbital-ai/bolt';
 import { model } from '../../../../../../.norbital/models/visits.ts';
 import { alertHelpers } from '../../../../../lib/dispatch.js';
-import { Instant as instant } from '@norbital-ai/std/date';
 import { AREAS, lookups, refusal, SKILLS, type Refusal } from '../../../../../lib/matching.js';
 const HOUR = 3600000;
 const WHY = {
@@ -196,8 +195,8 @@ export default model({
 			if (touched.length === 0) return changes.map(({ set }) => stamped(set, ctx.now));
 			const ids = [...new Set(touched)];
 			const starts = changes.map(({ after }) => Date.parse(after.slot.start));
-			const from = instant(new Date(Math.min(...starts) - 2 * 24 * HOUR).toISOString());
-			const to = instant(new Date(Math.max(...starts) + 2 * 24 * HOUR).toISOString());
+			const from = new Date(Math.min(...starts) - 2 * 24 * HOUR).toISOString();
+			const to = new Date(Math.max(...starts) + 2 * 24 * HOUR).toISOString();
 			const {
 				helpers,
 				visits: stored,
@@ -220,7 +219,7 @@ export default model({
 				held.set(String(v.id), {
 					id: v.id,
 					helper: v.helper,
-					slot: { start: instant(v.slot.start), end: instant(v.slot.end!) },
+					slot: { start: v.slot.start, end: v.slot.end! },
 					location: v.location,
 					status: v.status
 				});
@@ -267,7 +266,7 @@ export default model({
 						h,
 						{
 							skill: before.skill,
-							slot: { start: instant(slot.start), end: instant(slot.end!) },
+							slot: { start: slot.start, end: slot.end! },
 							location: before.location,
 							area: before.area,
 							visit: before.id

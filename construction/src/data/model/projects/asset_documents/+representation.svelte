@@ -23,6 +23,7 @@
 			<Field {ctx} name="status" />
 			<Field {ctx} name="version" />
 			<Field {ctx} name="document_url" />
+			<Field {ctx} name="document_file" />
 			<Column span="all"><Field {ctx} name="validity_range" /></Column>
 		</Grid>
 	</Section>

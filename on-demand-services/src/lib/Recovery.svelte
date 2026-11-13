@@ -12,7 +12,6 @@
 	import { Effect } from 'effect';
 	import type { Id, Outcome } from '@norbital-ai/bolt';
 	import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
-	import { Instant, PlainDate } from '@norbital-ai/std/date';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from './SlotPicker.svelte';
 	import Countdown from './Countdown.svelte';
@@ -85,7 +84,7 @@
 	const candidates = $derived(
 		rematch === undefined || start === null || around.current === undefined
 			? undefined
-			: candidatesFor(rematch, newTime ? Instant(start) : undefined, around.current, zone)
+			: candidatesFor(rematch, newTime ? start : undefined, around.current, zone)
 	);
 	const best = $derived(
 		candidates?.find((c) => c.helper === chosen) ??
@@ -94,7 +93,7 @@
 	);
 	const clock = ctx.clock('minute');
 	// another time: the next fortnight's feasible starts, adjacent travel included
-	const fortnight = $derived(dayList(PlainDate(from), 14));
+	const fortnight = $derived(dayList(from, 14));
 	const ahead = livePool(
 		ctx,
 		() =>
@@ -144,7 +143,7 @@
 			Effect.gen(function* () {
 				const call = ctx.run('visits_rebook', {
 					targets: [visit],
-					start: Instant(at),
+					start: at,
 					helper: replacement.helper
 				});
 				const outcome = yield* call;
@@ -210,6 +209,7 @@
 				<Stack gap="sm">
 					<Label for="rebook-from">{t('app.recovery.from')}</Label>
 					<TimeInput
+						{ctx}
 						id="rebook-from"
 						value={from}
 						on_change={(d: string | null) => {

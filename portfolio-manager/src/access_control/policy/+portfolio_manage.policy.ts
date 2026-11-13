@@ -9,6 +9,9 @@ export default policy({
 		holding: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		report: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		portfolio_settings: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
-		sys_integration: { outputs: { default: {} } }
+		sys_integration: { outputs: { default: {} } },
+		report_subscription: { outputs: { default: {} }, create: {}, delete: {} },
+		/** The users who may be subscribed to the report. */
+		sys_user: { outputs: { default: {} } }
 	}
 });

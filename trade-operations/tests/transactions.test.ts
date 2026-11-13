@@ -1,10 +1,9 @@
-import { firstRow, decimalText } from './test-runtime.js';
+import { firstRow, decimalText, sameDecimal } from './test-runtime.js';
 import { Effect } from 'effect';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { expect, layer } from '@effect/vitest';
-import { Trade, shared, draft, confirm, committed, PRODUCT } from './kit.js';
+import { Trade, shared, draft, confirm, committed, revise, PRODUCT } from './kit.js';
 import { sourceOrder, sourceTransaction, sync } from './synced-kit.js';
-import { agreements } from '../src/lib/agreements.js';
+import { agreements, currentAgreement } from '../src/lib/agreements.js';
 import { deliveredByLine, orderDeliveries } from '../src/lib/order-delivery.js';
 layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 	test.effect(
@@ -74,7 +73,7 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 				});
 				expect(result.transactions.rows).toHaveLength(1);
 				expect(result.transactions.rows[0]?.id).toBe(delivery.id);
-				expect(result.transactions.rows[0]?.items?.[0]?.quantity.eq(10)).toBe(true);
+				expect(sameDecimal(result.transactions.rows[0]?.items?.[0]?.quantity, '10')).toBe(true);
 			})
 	);
 
@@ -123,8 +122,8 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 							{
 								order: own.order,
 								product: PRODUCT,
-								quantity: Decimal.of('10'),
-								unit_price: Decimal.of('2')
+								quantity: '10',
+								unit_price: '2'
 							}
 						]
 					})
@@ -166,6 +165,62 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 				const changedQuantities = deliveredByLine(changed, history, transactions.rows);
 				expect(changedQuantities.get(own.line)).toBeUndefined();
 				expect(changedQuantities.get(other)).toEqual(decimalText('3'));
+			})
+	);
+
+	test.effect(
+		'a partial delivery counts on the amended line and the superseded contract keeps its own',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* Trade,
+					own = yield* draft(t),
+					as = yield* t.as(t.admin);
+				const spare = committed(
+					'order_lines',
+					yield* as.act({
+						'order_lines.create': [
+							{
+								order: own.order,
+								product: PRODUCT,
+								quantity: '5',
+								unit_price: '2'
+							}
+						]
+					})
+				);
+				yield* confirm(t, own.order);
+				const parent = yield* sourceOrder(t, own.order);
+				yield* sourceTransaction(t, own, parent, 'delivery', '4');
+				yield* revise(t, own.order);
+				committed(
+					'order_lines',
+					yield* as.act({
+						'order_lines.update': [
+							{ target: yield* t.at('order_lines', own.line), set: { quantity: '12' } }
+						]
+					})
+				);
+				yield* as.act({ 'order_lines.delete': [{ target: yield* t.at('order_lines', spare) }] });
+				yield* confirm(t, own.order);
+				const order = firstRow(
+					(yield* as.query({ orders: { where: { id: { eq: own.order } } } })).orders.rows
+				);
+				const history = agreements(order);
+				const current = currentAgreement(order);
+				const original = history.find((version) => version.version === 1);
+				if (!current || !original) throw new Error('Both contract versions required');
+				expect(current.version).toBe(2);
+				expect(current.snapshot.lines.map((line) => line.id)).toEqual([own.line]);
+				expect(original.snapshot.lines.map((line) => line.id).sort()).toEqual(
+					[own.line, spare].sort()
+				);
+				const { transactions } = yield* as.query(orderDeliveries(own.order));
+				const amended = deliveredByLine(current, history, transactions.rows);
+				expect(amended.get(own.line)).toEqual(decimalText('4'));
+				expect(amended.get(spare)).toBeUndefined();
+				const superseded = deliveredByLine(original, history, transactions.rows);
+				expect(superseded.get(own.line)).toEqual(decimalText('4'));
+				expect(superseded.get(spare)).toBeUndefined();
 			})
 	);
 });

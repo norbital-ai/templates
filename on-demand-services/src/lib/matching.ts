@@ -9,9 +9,31 @@
  * A drive is Google's time between the ~1 km squares the two addresses sit in, when the `drive_times` cache has it
  * (the `check_drives` run fetches every planned leg), else the straight-line estimate.
  */
-import type { Id, PlainTime } from '@norbital-ai/bolt';
-import { add_days, add_months, Instant, type PlainDate } from '@norbital-ai/std/date';
-import { local_of, utc_of } from '@norbital-ai/std/zone';
+import type { Id, Instant, PlainDate, PlainTime } from '@norbital-ai/bolt';
+import { DateTime } from 'effect';
+/** `date` moved by `days` calendar days. */
+export const add_days = (date: PlainDate, days: number): PlainDate =>
+	DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(date), { days }));
+/** `date` moved by `months` calendar months (clamped to the month's last day). */
+export const add_months = (date: PlainDate, months: number): PlainDate =>
+	DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(date), { months }));
+/** The zone-local day and milliseconds into it of a UTC instant (ms). */
+export function local_of(at: number, zone: string): { date: PlainDate; ms_of_day: number } {
+	const local = DateTime.makeZonedUnsafe(at, { timeZone: zone });
+	const { hour, minute, second, millisecond } = DateTime.toParts(local);
+	return {
+		date: DateTime.formatIsoDate(local),
+		ms_of_day: ((hour * 60 + minute) * 60 + second) * 1000 + millisecond
+	};
+}
+/** The UTC instant (ms) of a zone-local wall time; a DST gap or fold resolves as Temporal's 'compatible'. */
+export const utc_of = (date: PlainDate, ms_of_day: number, zone: string): number =>
+	DateTime.toEpochMillis(
+		DateTime.makeZonedUnsafe(Date.parse(`${date}T00:00:00Z`) + ms_of_day, {
+			timeZone: zone,
+			adjustForTimeZone: true
+		})
+	);
 export const SKILLS = [
 	'home_cleaning',
 	'deep_cleaning',
@@ -118,7 +140,7 @@ export const DAY = 24 * 60 * MINUTE;
 const slotMinutes = (slot: Slot): number =>
 	(Date.parse(slot.end) - Date.parse(slot.start)) / MINUTE;
 const ms = Date.parse;
-const iso = (t: number) => Instant(new Date(t).toISOString());
+const iso = (t: number): Instant => new Date(t).toISOString();
 /** Minutes into the day of an `HH:mm` wall time. */
 const minutesOf = (time: PlainTime) => {
 	const [h = '0', m = '0'] = String(time).split(':');

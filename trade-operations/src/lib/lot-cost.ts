@@ -1,4 +1,5 @@
-import { type DecimalLike, Decimal, sum } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { type D, type DecimalLike, dec, div, sum } from './values.js';
 import type { Id, ReadAnswer } from '@norbital-ai/bolt';
 
 export const fifoStockFields = [
@@ -49,16 +50,20 @@ export function estimateFifoCost(
 		as_of: string;
 	}
 ) {
-	const quantity = Decimal.of(input.quantity);
+	const quantity = dec(input.quantity);
 	const now = Date.parse(input.as_of);
 	const fresh = (value: string) => Math.abs(now - Date.parse(value)) < 30 * 60_000;
-	if (quantity.lte(0) || purchase.currency !== input.currency || !fresh(purchase.observed_at))
+	if (
+		!BigDecimal.isPositive(quantity) ||
+		purchase.currency !== input.currency ||
+		!fresh(purchase.observed_at)
+	)
 		return null;
 	const productLots = lots.filter(
 		(lot) => lot.product === input.product && lot.source === input.source
 	);
 	const selected = productLots.filter(
-		(lot) => input.warehouses.includes(lot.warehouse) && !Decimal.of(lot.on_hand).is_zero()
+		(lot) => input.warehouses.includes(lot.warehouse) && !BigDecimal.isZero(dec(lot.on_hand))
 	);
 	if (
 		selected.some(
@@ -66,7 +71,7 @@ export function estimateFifoCost(
 				!lot.lot_number ||
 				!fresh(lot.as_of) ||
 				unitKey(lot.unit) !== unitKey(input.unit) ||
-				Decimal.of(lot.on_hand).lt(0)
+				BigDecimal.isNegative(dec(lot.on_hand))
 		)
 	)
 		return null;
@@ -77,27 +82,27 @@ export function estimateFifoCost(
 	);
 	const picks = new Map<
 		string,
-		{ lot_number: string; quantity: Decimal; unit_cost: Decimal; received_on: string }
+		{ lot_number: string; quantity: D; unit_cost: D; received_on: string }
 	>();
 	for (const lot of selected) {
 		const name = lot.lot_number ?? '';
 		const receipt = costs.get(name);
 		if (!receipt || unitKey(receipt.unit) !== unitKey(input.unit)) return null;
 		const recorded = productLots.filter(
-			(row) => row.lot_number === name && Decimal.of(row.on_hand).gt(0)
+			(row) => row.lot_number === name && BigDecimal.isPositive(dec(row.on_hand))
 		);
 		if (
 			recorded.some((row) => !fresh(row.as_of) || unitKey(row.unit) !== unitKey(input.unit)) ||
-			sum(recorded.map((row) => row.on_hand)).gt(receipt.received_qty)
+			BigDecimal.isGreaterThan(sum(recorded.map((row) => row.on_hand)), dec(receipt.received_qty))
 		)
 			return null;
 		const previous = picks.get(name);
-		if (previous) previous.quantity = previous.quantity.plus(lot.on_hand);
+		if (previous) previous.quantity = BigDecimal.sum(previous.quantity, dec(lot.on_hand));
 		else
 			picks.set(name, {
 				lot_number: name,
-				quantity: Decimal.of(lot.on_hand),
-				unit_cost: Decimal.of(receipt.unit_cost),
+				quantity: dec(lot.on_hand),
+				unit_cost: dec(receipt.unit_cost),
 				received_on: receipt.received_on
 			});
 	}
@@ -105,14 +110,15 @@ export function estimateFifoCost(
 		(a, b) => a.received_on.localeCompare(b.received_on) || a.lot_number.localeCompare(b.lot_number)
 	);
 	let left = quantity;
-	let total = Decimal.of(0);
+	let total = dec(0);
 	const allocated = [];
 	for (const lot of ordered) {
-		const used = left.lte(lot.quantity) ? left : lot.quantity;
+		const used = BigDecimal.min(left, lot.quantity);
 		allocated.push({ ...lot, quantity: used });
-		total = total.plus(used.times(lot.unit_cost));
-		left = left.minus(used);
-		if (left.is_zero()) return { total, unit_cost: total.div(quantity, 8), lots: allocated };
+		total = BigDecimal.sum(total, BigDecimal.multiply(used, lot.unit_cost));
+		left = BigDecimal.subtract(left, used);
+		if (BigDecimal.isZero(left))
+			return { total, unit_cost: div(total, quantity, 8), lots: allocated };
 	}
 	return null;
 }
@@ -129,17 +135,22 @@ export function averageLotCost(
 	unit: string,
 	currency: string
 ) {
-	if (rows.some((r) => r.product === product && r.unit === null && Decimal.of(r.on_hand).gt(0)))
+	if (
+		rows.some(
+			(r) => r.product === product && r.unit === null && BigDecimal.isPositive(dec(r.on_hand))
+		)
+	)
 		return null;
 	const lots = rows.filter(
 		(r) =>
 			r.product === product &&
 			r.unit === unit &&
 			r.currency === currency &&
-			Decimal.of(r.on_hand).gt(0)
+			BigDecimal.isPositive(dec(r.on_hand))
 	);
 	if (!lots.length || lots.some((r) => r.unit_cost === null)) return null;
-	return sum(lots.map((r) => Decimal.of(r.on_hand).times(r.unit_cost!))).div(
+	return div(
+		sum(lots.map((r) => BigDecimal.multiply(dec(r.on_hand), dec(r.unit_cost!)))),
 		sum(lots.map((r) => r.on_hand)),
 		8
 	);
@@ -173,7 +184,10 @@ export function inventoryCost(
 		floor.unit,
 		floor.currency
 	);
-	return { below: average !== null && floorNetPrice(floor).lt(average), average };
+	return {
+		below: average !== null && BigDecimal.isLessThan(floorNetPrice(floor), average),
+		average
+	};
 }
 
 export function floorNetPrice(floor: {
@@ -181,10 +195,9 @@ export function floorNetPrice(floor: {
 	tax_inclusive: boolean;
 	tax_rate: DecimalLike;
 }) {
-	return Decimal.of(floor.price).div(
-		floor.tax_inclusive
-			? Decimal.of(1).plus(Decimal.of(floor.tax_rate).div(100, 8))
-			: Decimal.of(1),
+	return div(
+		floor.price,
+		floor.tax_inclusive ? BigDecimal.sum(dec(1), div(floor.tax_rate, 100, 8)) : 1,
 		8
 	);
 }

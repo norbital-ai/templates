@@ -1,5 +1,4 @@
-import type { Id } from '@norbital-ai/bolt';
-import { input_schema } from '@norbital-ai/std/kind';
+import { input_schema, type Id } from '@norbital-ai/bolt';
 import { Schema } from 'effect';
 /** A fixture must actually contain the row or selected value its assertion uses. */
 export const present = <A>(value: A | null | undefined): A => {

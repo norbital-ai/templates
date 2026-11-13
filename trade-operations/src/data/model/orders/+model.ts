@@ -1,6 +1,6 @@
 import { model } from '../../../../.norbital/models/orders.ts';
 import { lineDeletes } from '../../../lib/order-review.js';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { isCurrency, text } from '../../../lib/values.js';
 import {
 	logisticsDocument,
 	logisticsLine,
@@ -914,12 +914,15 @@ export default model({
 							ctx.actor.by.automation !== 'orders_revise')
 					)
 						return yield* ctx.refuse('errors.contract_source_changed');
+					const currency = adopted?.snapshot.currency ?? old.currency;
+					if (!isCurrency(currency)) return yield* ctx.refuse('errors.contract_source_changed');
 					const current = executableAgreement({ ...old, contract_versions: imported });
 					transformed.push({
 						...input,
 						...(adopted
 							? {
 									...agreementState(adopted),
+									currency,
 									supporting_documents: retainedContractDocuments(
 										imported.map((version) => version.supporting_documents),
 										old.supporting_documents ?? []
@@ -1164,8 +1167,8 @@ export default model({
 								effective_on: rule.effective_on,
 								currency: rule.currency,
 								basis_unit: rule.basis_unit ?? '',
-								fixed_rate: Decimal.of(rule.fixed_rate).toString(),
-								spread_pct: Decimal.of(rule.spread_pct).toString()
+								fixed_rate: text(rule.fixed_rate),
+								spread_pct: text(rule.spread_pct)
 							}
 						: null;
 					const reference = references.rows.find((o) => o.id === old.id)?.number;

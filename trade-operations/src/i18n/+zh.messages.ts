@@ -60,6 +60,7 @@ export default messages({
 	'component.order_changed': '订单已更新，请刷新后重试。',
 	'component.contract_pending': '等待金蝶确认',
 	'component.contract_current': '当前有效',
+	'component.contract_provisional': '暂定，等待审批',
 	'component.contract_superseded': '已被替代',
 	'component.new_contract': '修订合同',
 	'component.resume_contract_setup': '继续合同设置',

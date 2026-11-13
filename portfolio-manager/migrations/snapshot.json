@@ -253,6 +253,7 @@
 					"optional": true
 				},
 				"research_summary": {
+					"format": "markdown",
 					"kind": "text",
 					"optional": true
 				},
@@ -311,6 +312,21 @@
 			"fields": {
 				"base_currency": {
 					"kind": "currency"
+				},
+				"benchmarks": {
+					"fields": {
+						"name": {
+							"kind": "text",
+							"optional": true
+						},
+						"symbol": {
+							"kind": "text"
+						}
+					},
+					"key": "symbol",
+					"kind": "object",
+					"many": true,
+					"optional": true
 				},
 				"recipients": {
 					"fields": {
@@ -394,6 +410,7 @@
 					"optional": true
 				},
 				"headline": {
+					"format": "markdown",
 					"kind": "text"
 				},
 				"invested": {
@@ -405,7 +422,28 @@
 					"scale": 2
 				},
 				"market_view": {
+					"format": "markdown",
 					"kind": "text",
+					"optional": true
+				},
+				"markets": {
+					"fields": {
+						"change_pct": {
+							"kind": "decimal",
+							"optional": true,
+							"scale": 2
+						},
+						"instrument": {
+							"kind": "text"
+						},
+						"level": {
+							"kind": "decimal",
+							"scale": 2
+						}
+					},
+					"key": "instrument",
+					"kind": "object",
+					"many": true,
 					"optional": true
 				},
 				"net_assets": {
@@ -415,6 +453,7 @@
 				"positions": {
 					"fields": {
 						"analysis": {
+							"format": "markdown",
 							"kind": "text"
 						},
 						"call": {
@@ -435,6 +474,9 @@
 							"kind": "decimal",
 							"optional": true,
 							"scale": 2
+						},
+						"headline": {
+							"kind": "text"
 						},
 						"instrument": {
 							"kind": "text"
@@ -468,7 +510,29 @@
 					"kind": "text",
 					"optional": true
 				},
+				"sources": {
+					"fields": {
+						"at": {
+							"kind": "instant"
+						},
+						"publisher": {
+							"kind": "text"
+						},
+						"title": {
+							"kind": "text"
+						},
+						"url": {
+							"format": "url",
+							"kind": "text"
+						}
+					},
+					"key": "url",
+					"kind": "object",
+					"many": true,
+					"optional": true
+				},
 				"summary": {
+					"format": "markdown",
 					"kind": "text"
 				},
 				"unrealised_pl": {
@@ -491,6 +555,27 @@
 						"for_date"
 					],
 					"name": "one_per_day"
+				}
+			]
+		},
+		"report_subscription": {
+			"audit": true,
+			"fields": {
+				"user": {
+					"default": {
+						"var": "requestor.id"
+					},
+					"kind": "ref",
+					"to": "sys_user"
+				}
+			},
+			"record_label": "record.user.name",
+			"unique": [
+				{
+					"fields": [
+						"user"
+					],
+					"name": "one_per_user"
 				}
 			]
 		},
@@ -1839,6 +1924,10 @@
 					},
 					"kind": "instant"
 				},
+				"discord": {
+					"kind": "text",
+					"optional": true
+				},
 				"email": {
 					"format": "email",
 					"kind": "text",
@@ -1875,6 +1964,10 @@
 				"signup": {
 					"default": false,
 					"kind": "bool"
+				},
+				"slack": {
+					"kind": "text",
+					"optional": true
 				},
 				"team": {
 					"format": "team",

@@ -1,5 +1,4 @@
 import { Effect } from 'effect';
-import { Instant } from '@norbital-ai/std/date';
 import { automation } from '@norbital-ai/bolt';
 import { settingsOf } from '../lib/dispatch.js';
 const MINUTE = 60000;
@@ -24,7 +23,7 @@ export default automation({
 					slot: {
 						overlaps: {
 							start: ctx.now,
-							end: Instant(new Date(now + settings.eta_check_lead_minutes * MINUTE).toISOString())
+							end: new Date(now + settings.eta_check_lead_minutes * MINUTE).toISOString()
 						}
 					}
 				},

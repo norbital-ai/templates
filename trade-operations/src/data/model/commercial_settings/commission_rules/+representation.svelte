@@ -1,12 +1,10 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Decimal } from '@norbital-ai/std/decimal';
-
 	import { commissionPreview, previewRead } from '../../../../lib/commission-expressions.js';
+	import { dec, text } from '../../../../lib/values.js';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect, Schema } from 'effect';
 	import { Input, Button, Show, TimeInput, type RecordView } from '@norbital-ai/ui';
-	import { PlainDate } from '@norbital-ai/std/date';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 
@@ -43,14 +41,14 @@
 		fork(
 			Effect.try({
 				try: () => ({
-					quantity: Decimal.of(quantity),
-					net: Decimal.of(net),
-					...(floor ? { floor_net: Decimal.of(floor) } : {}),
-					...(factor ? { factor: Decimal.of(factor) } : {}),
+					quantity: dec(quantity),
+					net: dec(net),
+					...(floor ? { floor_net: dec(floor) } : {}),
+					...(factor ? { factor: dec(factor) } : {}),
 					product_code: product,
 					unit,
 					party_code: party,
-					ordered_on: PlainDate(selectedDay)
+					ordered_on: selectedDay
 				}),
 				catch: (cause) => new PreviewInputInvalid({ message: String(cause) })
 			}).pipe(
@@ -160,6 +158,7 @@
 					<label class="text-xs font-medium text-muted-foreground" for="commission-preview-date"
 						>{ctx.t('models.orders.fields.ordered_on')}</label
 					><TimeInput
+						{ctx}
 						id="commission-preview-date"
 						value={orderedOn}
 						on_change={(value: string | null) => (orderedOn = value)}
@@ -176,8 +175,8 @@
 						<Show
 							{ctx}
 							kind={{ kind: 'money', currency: 'currency', optional: true }}
-							value={result.amount}
-							row={result}
+							value={result.amount === null ? null : text(result.amount)}
+							row={{ currency: result.currency }}
 						/>
 					</p>{/if}
 				{#if feedback}<p role="alert">{feedback}</p>{/if}

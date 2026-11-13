@@ -8,8 +8,7 @@
 	 * to the best match or cancel it. Open a visit for the helpers free to take it.
 	 */
 	import type { ListRow, Row } from '@norbital-ai/bolt';
-	import { add_days, Instant } from '@norbital-ai/std/date';
-	import { utc_of } from '@norbital-ai/std/zone';
+	import { add_days, utc_of } from '../../../lib/matching.js';
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	const zone = ctx.tz;
 	const t = ctx.t;
@@ -25,8 +24,8 @@
 	let day = $state<string>(clock.today);
 	/** The chosen workspace day, bounded by its two local midnights. */
 	const span = $derived({
-		start: Instant(new Date(utc_of(day, 0, zone)).toISOString()),
-		end: Instant(new Date(utc_of(add_days(day, 1), 0, zone)).toISOString())
+		start: new Date(utc_of(day, 0, zone)).toISOString(),
+		end: new Date(utc_of(add_days(day, 1), 0, zone)).toISOString()
 	});
 	const helpers = $derived(
 		ctx.query({
@@ -78,7 +77,7 @@
 
 {#snippet dayPicker()}
 	<div class="w-40">
-		<TimeInput value={day} on_change={(next: string | null) => (day = next ?? clock.today)} />
+		<TimeInput {ctx} value={day} on_change={(next: string | null) => (day = next ?? clock.today)} />
 	</div>
 {/snippet}
 

@@ -1,6 +1,5 @@
 import type { Row } from '@norbital-ai/bolt';
 import { decimalText } from './test-runtime.js';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { committed, CUSTOMER, SUPPLIER, PRODUCT, workspace } from './kit.js';
@@ -29,7 +28,7 @@ test.live(
 			const line = committed(
 				'order_lines',
 				yield* as.act({
-					'order_lines.create': [{ order, product: PRODUCT, quantity: Decimal.of('10') }]
+					'order_lines.create': [{ order, product: PRODUCT, quantity: '10' }]
 				})
 			);
 			expect(
@@ -47,8 +46,8 @@ test.live(
 						{
 							order,
 							product: PRODUCT,
-							quantity: Decimal.of('1'),
-							tax_rate: Decimal.of('0')
+							quantity: '1',
+							tax_rate: '0'
 						}
 					]
 				})
@@ -68,7 +67,7 @@ test.live(
 							{
 								order: purchase,
 								product: PRODUCT,
-								quantity: Decimal.of('1')
+								quantity: '1'
 							}
 						]
 					})
@@ -81,8 +80,8 @@ test.live(
 						{
 							order: purchase,
 							product: PRODUCT,
-							quantity: Decimal.of('1'),
-							unit_price: Decimal.of('1.25')
+							quantity: '1',
+							unit_price: '1.25'
 						}
 					]
 				})
@@ -98,7 +97,7 @@ test.live(
 			expect(
 				yield* Effect.flip(
 					as.act({
-						'order_lines.create': [{ order: usd, product: PRODUCT, quantity: Decimal.of('1') }]
+						'order_lines.create': [{ order: usd, product: PRODUCT, quantity: '1' }]
 					})
 				)
 			).toMatchObject({ _tag: 'ActRefused', key: 'errors.currency_price' });

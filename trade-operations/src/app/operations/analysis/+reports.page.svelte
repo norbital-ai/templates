@@ -20,7 +20,7 @@
 	import { earliestReceivablesCutoff } from '../../../lib/receivables.js';
 	import { xlsxWorkbook, type XlsxColumn } from '../../../lib/xlsx.js';
 	import { boardRead, completeCommissionBoard, monthOf } from '../../../lib/monthly-commission.js';
-	import { PlainDate, add_days, add_months } from '@norbital-ai/std/date';
+	import { addDays, addMonths } from '../../../lib/values.js';
 	import {
 		Dialog,
 		Table,
@@ -54,8 +54,7 @@
 	let commissionPeriod = $state<string | null>(currentMonth);
 	type MonthlyCommission = Effect.Success<ReturnType<typeof completeCommissionBoard>>[number];
 	let monthSelection = $state<MonthlyCommission | null>(null);
-	const monthEnd = (value: string) =>
-		add_days(add_months(PlainDate(value.slice(0, 7) + '-01'), 1), -1);
+	const monthEnd = (value: string) => addDays(addMonths(value.slice(0, 7) + '-01', 1), -1);
 	let as_of = $state<string | null>(day.today);
 	let agingView = $state<'customers' | 'entries'>('customers');
 	let agingBasis = $state<'estimated' | 'gross'>('estimated');
@@ -74,15 +73,15 @@
 		chosenTab ?? (salesShown ? 'sales' : agingShown ? 'aging' : boardShown ? 'commission' : null)
 	);
 	const invalidSalesRange = $derived(Boolean(salesFrom && salesTo && salesFrom > salesTo));
-	const agingDay = $derived(as_of ? PlainDate(as_of) : day.today);
+	const agingDay = $derived(as_of ?? day.today);
 	const futureAging = $derived(agingDay > day.today);
 	const salesRequest = $derived(
 		salesShown && tab === 'sales' && !invalidSalesRange
 			? salesReadDuring(
 					{
 						basis: salesBasis,
-						from: salesFrom ? PlainDate(salesFrom) : null,
-						to: salesTo ? PlainDate(monthEnd(salesTo)) : null
+						from: salesFrom,
+						to: salesTo ? monthEnd(salesTo) : null
 					},
 					ctx.catalog?.source_sales_lines?.output === 'commercial',
 					pageSize
@@ -347,6 +346,7 @@
 			<option value="delivery">{ctx.t('reports.sales.date_delivery')}</option>
 		</select>
 		<span class="sr-only">{ctx.t('component.sales_analysis')}</span><TimeRangeInput
+			{ctx}
 			id="sales-range"
 			of="date"
 			precision="month"
@@ -364,6 +364,7 @@
 	</div>{/snippet}
 {#snippet commissionMonth()}<label class="w-40"
 		><span class="sr-only">{ctx.t('models.commission_statements.fields.period')}</span><TimeInput
+			{ctx}
 			id="commission-month"
 			of="date"
 			precision="month"
@@ -628,6 +629,7 @@
 		<label class="flex w-44 flex-col gap-1 text-sm" for="ar-aging-date">
 			{ctx.t('component.aging_as_of')}
 			<TimeInput
+				{ctx}
 				id="ar-aging-date"
 				value={as_of}
 				on_change={(value: string | null) => (as_of = value)}
@@ -947,7 +949,7 @@
 		{/if}
 	{/snippet}
 	{#if salesShown || agingShown || boardShown}<Tabs
-			value={tab ?? undefined}
+			{...tab === null ? {} : { value: tab }}
 			on_value_change={(value) => (chosenTab = value)}
 			tabs={[
 				...(salesShown

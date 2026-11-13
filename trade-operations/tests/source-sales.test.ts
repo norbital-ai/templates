@@ -1,4 +1,3 @@
-import { PlainDate } from '@norbital-ai/std/date';
 import { fixtureId, decimalText } from './test-runtime.js';
 import { Schema, Effect, Exit } from 'effect';
 import { businessRows } from './business-source.js';
@@ -6,7 +5,7 @@ import { expect, it } from '@effect/vitest';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { committed, confirm, draft, SETTINGS, workspace, type T } from './kit.js';
 import { salesAnalysisOf, salesDetailOf } from './reads.js';
-import { salesDetail, salesRead } from '../src/lib/reports.js';
+import { readSalesReport, salesDetail, salesRead, salesReadDuring } from '../src/lib/reports.js';
 const stamp = '2026-10-10T00:00:00Z';
 const fact = Effect.fnUntraced(function* (
 	t: T,
@@ -104,16 +103,16 @@ it.live(
 					expect(
 						Effect.runPromise(
 							salesDetailOf(seller, {
-								from: PlainDate('2026-09-30'),
-								to: PlainDate('2026-09-01')
+								from: '2026-09-30',
+								to: '2026-09-01'
 							})
 						)
 					).rejects.toThrow('errors.report_range'),
 				catch: (cause) => new TestIoFailed({ message: String(cause) })
 			});
 			const detail = yield* salesDetailOf(yield* t.as(sales), {
-				from: PlainDate('2026-09-01'),
-				to: PlainDate('2026-09-30')
+				from: '2026-09-01',
+				to: '2026-09-30'
 			});
 			expect(detail).toHaveLength(2);
 			expect(detail).toEqual(
@@ -160,8 +159,8 @@ it.live(
 			expect(yield* salesAnalysisOf(yield* t.as(sales), {})).toMatchObject(before);
 			expect(
 				yield* salesAnalysisOf(yield* t.as(sales), {
-					from: PlainDate('2026-12-01'),
-					to: PlainDate('2026-12-31')
+					from: '2026-12-01',
+					to: '2026-12-31'
 				})
 			).toEqual([]);
 			// the order captured its freight treatment when sealed: a later setting does not rewrite it
@@ -182,6 +181,42 @@ it.live(
 				{ period: '2026-10-01', net: null },
 				{ freight_treatment: 'deduct', source_lines: 1, net: decimalText('17.00') }
 			]);
+		})
+);
+it.live(
+	'a paged sales report reads every fact on both bases and refuses rows that move mid-read',
+	() =>
+		Effect.gen(function* () {
+			const t = yield* workspace();
+			const own = yield* draft(t);
+			yield* confirm(t, own.order);
+			const base = yield* fact(t, own, 'SHIP-1');
+			const facts = ['SHIP-1', 'SHIP-2', 'INV-1', 'INV-2'].map((code) => ({
+				...base,
+				external_code: code,
+				reference: code,
+				kind: code.startsWith('INV') ? 'invoice' : 'shipment'
+			}));
+			yield* pull(t, facts);
+			const finance = yield* t.as(t.member(['finance']));
+			for (const basis of ['delivery', 'invoice'] as const) {
+				const paged = salesReadDuring({ from: null, to: null, basis }, false, 1);
+				const first = yield* finance.query(paged);
+				expect(first.source_sales_lines.next).not.toBeNull();
+				const rows = yield* readSalesReport(finance, paged, first, basis);
+				const complete = salesDetail(
+					yield* finance.query(salesReadDuring({ from: null, to: null, basis })),
+					{ basis }
+				);
+				expect(rows).toHaveLength(2);
+				expect(rows).toEqual(complete);
+			}
+			const paged = salesReadDuring({ from: null, to: null, basis: 'delivery' }, false, 1);
+			const first = yield* finance.query(paged);
+			yield* pull(t, [{ ...base, external_code: 'SHIP-3', reference: 'SHIP-3' }]);
+			expect(yield* Effect.flip(readSalesReport(finance, paged, first, 'delivery'))).toMatchObject({
+				_tag: 'ReportRowsChanged'
+			});
 		})
 );
 class TestIoFailed extends Schema.TaggedError<TestIoFailed>()('TestIoFailed', {

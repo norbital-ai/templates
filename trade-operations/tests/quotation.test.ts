@@ -1,5 +1,4 @@
-import { PlainDate } from '@norbital-ai/std/date';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { sameDecimal } from './test-runtime.js';
 import { Effect, Result } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { committed, confirm, draft, PRODUCT, SETTINGS, workspace } from './kit.js';
@@ -23,8 +22,8 @@ test.live(
 							target: yield* t.at('orders', own.order),
 							set: {
 								payment_terms: 'Net 60',
-								valid_from: PlainDate('2026-08-01'),
-								valid_until: PlainDate('2026-12-31')
+								valid_from: '2026-08-01',
+								valid_until: '2026-12-31'
 							}
 						}
 					]
@@ -34,7 +33,7 @@ test.live(
 				'order_lines',
 				yield* as.act({
 					'order_lines.update': [
-						{ target: yield* t.at('order_lines', own.line), set: { unit_price: Decimal.of('3') } }
+						{ target: yield* t.at('order_lines', own.line), set: { unit_price: '3' } }
 					]
 				})
 			);
@@ -59,7 +58,7 @@ test.live(
 				yield* Effect.flip(
 					as.act({
 						'order_lines.update': [
-							{ target: yield* t.at('order_lines', own.line), set: { unit_price: Decimal.of('4') } }
+							{ target: yield* t.at('order_lines', own.line), set: { unit_price: '4' } }
 						]
 					})
 				)
@@ -81,7 +80,7 @@ test.live('contract validity rejects reversed dates including a partial edit', (
 				'orders.update': [
 					{
 						target: yield* t.at('orders', order),
-						set: { valid_from: PlainDate('2026-08-01'), valid_until: PlainDate('2026-12-31') }
+						set: { valid_from: '2026-08-01', valid_until: '2026-12-31' }
 					}
 				]
 			})
@@ -90,7 +89,7 @@ test.live('contract validity rejects reversed dates including a partial edit', (
 			yield* Effect.flip(
 				as.act({
 					'orders.update': [
-						{ target: yield* t.at('orders', order), set: { valid_until: PlainDate('2026-07-31') } }
+						{ target: yield* t.at('orders', order), set: { valid_until: '2026-07-31' } }
 					]
 				})
 			)
@@ -119,11 +118,11 @@ test.live(
 							currency: 'SGD' as const,
 							unit: 'kg',
 							group_code: group,
-							effective_on: PlainDate(day),
-							floor_price: Decimal.of(index === 0 ? '3.27' : '5.45'),
+							effective_on: day,
+							floor_price: index === 0 ? '3.27' : '5.45',
 							tax_inclusive: true,
-							tax_rate: Decimal.of(9),
-							minimum_quantity: Decimal.of(0)
+							tax_rate: '9',
+							minimum_quantity: '0'
 						}))
 					]
 				})
@@ -139,7 +138,7 @@ test.live(
 			const read = () => as.query(confirmationRead(order));
 			const check = confirmationCheck(yield* read(), { as_of: '2026-08-02T00:00:00Z' });
 			if (Result.isFailure(check)) throw new Error(check.failure);
-			expect(check.success.floors[0]?.net?.eq(3)).toBe(true);
+			expect(sameDecimal(check.success.floors[0]?.net, '3')).toBe(true);
 			expect(check.success.floors[0]?.effective_on).toBe('2026-07-01');
 			expect(check.success.floors[0]?.below).toBe(true);
 			const check_hash = yield* confirmationHash(check.success);
@@ -156,7 +155,7 @@ test.live(
 				'order_lines',
 				yield* as.act({
 					'order_lines.update': [
-						{ target: yield* t.at('order_lines', line), set: { unit_price: Decimal.of(4) } }
+						{ target: yield* t.at('order_lines', line), set: { unit_price: '4' } }
 					]
 				})
 			);

@@ -1,5 +1,4 @@
 import { firstRow } from './test-runtime.js';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { direct } from './synced-kit.js';
 import { businessRows } from './business-source.js';
@@ -78,10 +77,10 @@ test.live(
 						{
 							order,
 							product: product.id,
-							quantity: Decimal.of('10'),
-							unit_price: Decimal.of('2'),
-							tax_rate: Decimal.of('9'),
-							discount_pct: Decimal.of('0')
+							quantity: '10',
+							unit_price: '2',
+							tax_rate: '9',
+							discount_pct: '0'
 						}
 					]
 				})
@@ -146,7 +145,7 @@ test.live('a manager edits SKU commission settings but not source-owned product 
 				'products.update': [
 					{
 						target: yield* t.at('products', PRODUCT),
-						set: { commission_factor: Decimal.of('0.002'), commission_basis_unit: 't' }
+						set: { commission_factor: '0.002', commission_basis_unit: 't' }
 					}
 				]
 			})

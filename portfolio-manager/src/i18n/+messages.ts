@@ -41,7 +41,7 @@ export default messages({
 		'What the agent read on this run: each source and what came back.',
 	'models.report.fields.day_change': 'Change since the last report',
 	'models.report.fields.fx_used': 'Rates used',
-	'models.report.fields.positions': 'One call per holding',
+	'models.report.fields.positions': 'Sections',
 	'models.portfolio_settings.label': 'Settings',
 	'models.portfolio_settings.singular': 'Settings',
 	'models.portfolio_settings.fields.base_currency': 'Base currency',
@@ -52,13 +52,33 @@ export default messages({
 		'The paired workspace account the daily report is sent from: WhatsApp, Telegram, Slack or Discord.',
 	'models.portfolio_settings.fields.recipients': 'Recipients',
 	'models.portfolio_settings.fields.recipients.help':
-		'Who receives the daily report: a WhatsApp number, a Telegram chat, a Slack or Discord channel.',
+		'Chats that receive the daily report and its PDF: a WhatsApp number or group JID, a Telegram chat or group, a Slack or Discord channel.',
+	'models.report_subscription.label': 'Subscribers',
+	'models.report_subscription.singular': 'Subscriber',
+	'models.report_subscription.fields.user': 'User',
+	'component.subscribe': 'Subscribe to the daily report',
+	'component.unsubscribe': 'Unsubscribe',
 	'models.report.fields.deliveries': 'Sent as',
+	'component.report_contents': 'In today’s report',
+	'component.report_markets': 'Markets',
+	'component.report_instrument': 'Instrument',
+	'component.report_level': 'Level',
+	'component.report_change': 'Change',
+	'models.report.fields.headline': 'Lead',
+	'models.report.fields.summary': 'In today’s report',
+	'models.report.fields.markets': 'Markets',
+	'models.report.fields.sources': 'Sources',
+	'models.portfolio_settings.fields.benchmarks': 'Benchmarks',
+	'models.portfolio_settings.fields.benchmarks.help':
+		'Indices the markets table leads with, by quote symbol: "^GSPC" for the S&P 500, "^STI" for the Straits Times Index.',
 	'automations.portfolio_agent.input.fields.send': 'Send to the recipients',
 	'errors.settings_ambiguous':
 		'Keep one portfolio settings row: the agent cannot choose between several.',
 	'errors.no_report_account':
 		'The settings name recipients but no active account to send through: set Send through to a paired chat account.',
+	'errors.report_not_filed': 'The day’s report was not filed, so it was not sent.',
+	'errors.own_subscription': 'You can subscribe or unsubscribe only yourself.',
+	'errors.already_subscribed': 'This user is already subscribed to the daily report.',
 	'errors.loan_is_owed': 'A loan line is owed: its base value must be zero or negative.',
 	'errors.report_exists': 'There is already a report for this date.'
 });

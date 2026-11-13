@@ -1,5 +1,4 @@
 import { JobResult } from '@norbital-ai/bolt-cli/test';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
 import { expect, layer } from '@effect/vitest';
 import { agreements, currentAgreement, kingdeeAgreement } from '../src/lib/agreements.js';
@@ -228,7 +227,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					if (!lines[0]) throw new Error('Copied line required');
 					yield* as.act({
 						'order_lines.update': [
-							{ target: yield* t.at('order_lines', lines[0].id), set: { quantity: Decimal.of(14) } }
+							{ target: yield* t.at('order_lines', lines[0].id), set: { quantity: '14' } }
 						]
 					});
 					yield* confirm(t, own.order);
@@ -344,7 +343,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					expect(
 						(yield* as.query({ order_lines: { where: { order: { eq: own.order } } } })).order_lines
 							.rows
-					).toMatchObject([{ quantity: Decimal.of(12), unit_price: Decimal.of(3) }]);
+					).toMatchObject([{ quantity: '12', unit_price: '3' }]);
 				})
 		);
 

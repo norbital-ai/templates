@@ -1,4 +1,5 @@
-import { Decimal } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { dec } from './values.js';
 import type { StoredRow } from '@norbital-ai/bolt';
 import type { ContractVersion } from './agreements.js';
 
@@ -44,7 +45,7 @@ export function draftLineMatches(
 		samePrintValues(line.print_values, target.print_values) &&
 		(line.source_entry_id ?? null) === contractEntryId(contract, target) &&
 		(['quantity', 'unit_price', 'discount_pct', 'tax_rate'] as const).every((field) =>
-			Decimal.of(line[field]).eq(target[field])
+			BigDecimal.equals(dec(line[field]), dec(target[field]))
 		)
 	);
 }

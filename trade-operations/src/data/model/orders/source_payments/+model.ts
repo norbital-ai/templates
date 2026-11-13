@@ -1,8 +1,8 @@
 import { model } from '../../../../../.norbital/models/source_payments.ts';
 import { fromSource } from '../../../../integration/kingdee/polling.js';
 import { readPaymentSource } from '../../../../integration/kingdee/financial-source.js';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { Effect } from 'effect';
+import { BigDecimal, Effect } from 'effect';
+import { dec } from '../../../../lib/values.js';
 import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { agreement } from '../../../../lib/agreements.js';
 
@@ -37,8 +37,10 @@ const settle = Effect.fnUntraced(function* (
 			!value.reference?.trim() ||
 			!value.source_updated_at ||
 			value.amount == null ||
-			Decimal.of(value.amount).eq(0) ||
-			(value.kind === 'receipt' ? Decimal.of(value.amount).lt(0) : Decimal.of(value.amount).gt(0))
+			BigDecimal.isZero(dec(value.amount)) ||
+			(value.kind === 'receipt'
+				? BigDecimal.isNegative(dec(value.amount))
+				: BigDecimal.isPositive(dec(value.amount)))
 		)
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const order = orders.rows.find((row) => row.id === value.order);

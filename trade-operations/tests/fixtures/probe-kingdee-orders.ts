@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import mssql from 'mssql';
 import { Effect, Schema } from 'effect';
-import { input_schema } from '@norbital-ai/std/kind';
+import { input_schema } from '@norbital-ai/bolt';
 import type { Id } from '@norbital-ai/bolt';
 import {
 	validate_database_request,

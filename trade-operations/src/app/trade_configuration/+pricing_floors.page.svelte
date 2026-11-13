@@ -4,8 +4,8 @@
 	let { ctx }: { ctx: PageContext } = $props();
 	import { run } from '@norbital-ai/ui/effect';
 	import type { CurrencyCode } from '@norbital-ai/bolt';
-	import { Decimal } from '@norbital-ai/std/decimal';
-	import { PlainDate } from '@norbital-ai/std/date';
+	import { BigDecimal } from 'effect';
+	import { dec } from '../../lib/values.js';
 	import { Combobox, CustomView, Table, Tabs, TimeInput } from '@norbital-ai/ui';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
@@ -112,18 +112,12 @@
 		if (value === '') return;
 		if (group === null || currency === null) return;
 		const existing = row.cells[day];
-		if (existing && Decimal.of(existing.floor_price).eq(value)) return;
-		let price: Decimal;
-		try {
-			price = Decimal.of(value);
-		} catch {
+		if (!/^\d+(\.\d+)?$/.test(value) || !BigDecimal.isPositive(dec(value))) {
 			error = ctx.t('component.price_floor_positive');
 			return;
 		}
-		if (!price.gt(0)) {
-			error = ctx.t('component.price_floor_positive');
-			return;
-		}
+		if (existing && BigDecimal.equals(dec(existing.floor_price), dec(value))) return;
+		const price = value;
 		error = null;
 		writing = key;
 		try {
@@ -145,12 +139,12 @@
 									product: row.product,
 									group_code: group,
 									currency,
-									effective_on: PlainDate(day),
+									effective_on: day,
 									unit: row.latest.unit,
 									floor_price: price,
 									tax_inclusive: row.latest.tax_inclusive,
-									tax_rate: Decimal.of(row.latest.tax_rate),
-									minimum_quantity: Decimal.of(row.minimum_quantity)
+									tax_rate: row.latest.tax_rate,
+									minimum_quantity: row.minimum_quantity
 								}
 							]
 						})
@@ -175,7 +169,7 @@
 		openCreate('pricing_floors', {
 			...(group === null ? {} : { group_code: group }),
 			...(currency === null ? {} : { currency }),
-			effective_on: PlainDate(`${month}-01`)
+			effective_on: `${month}-01`
 		});
 	}
 	function focusInput(node: HTMLInputElement) {
@@ -210,6 +204,7 @@
 	<label class="sr-only" for="price-book-month">{ctx.t('component.price_book_month')}</label>
 	<div class="w-36">
 		<TimeInput
+			{ctx}
 			id="price-book-month"
 			of="date"
 			precision="month"
@@ -247,7 +242,7 @@
 			{ field: 'name', label: ctx.t('models.pricing_floors.fields.product') },
 			{ field: 'code', label: ctx.t('models.products.fields.external_code') }
 		]}
-		empty={rows.length === 0 ? bookState : undefined}
+		empty={rows.length === 0 ? bookState : false}
 		toolbar={{
 			title: false,
 			description: ctx.t('component.price_book_help'),
@@ -396,7 +391,12 @@
 	/>
 {/snippet}
 
-<AppShell icon="lucide:chart-no-axes-combined" title={ctx.t('section.pricing')} variant="full">
+<AppShell
+	description={ctx.t('app.trade_configuration.description')}
+	icon="lucide:chart-no-axes-combined"
+	title={ctx.t('section.pricing')}
+	variant="full"
+>
 	<Tabs
 		orientation="vertical"
 		side="end"

@@ -1,7 +1,5 @@
 import { decimalText } from './test-runtime.js';
-import { PlainDate } from '@norbital-ai/std/date';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { Effect } from 'effect';
+import { BigDecimal, Effect } from 'effect';
 import { expect, it as test, layer } from '@effect/vitest';
 import {
 	commissionContext,
@@ -29,40 +27,43 @@ const context = (over: Partial<Parameters<typeof commissionContext>[0]> = {}) =>
 		parameters: [],
 		...over
 	});
+const cents = (amount: BigDecimal.BigDecimal) =>
+	BigDecimal.format(BigDecimal.round(amount, { scale: 2, mode: 'half-from-zero' }));
 test('CEL decimals configure tiers, eligibility, caps and exact large monetary values', () => {
+	expect(cents(evaluateCommission('true', DEFAULT_COMMISSION_EXPRESSION, context()).amount)).toBe(
+		'210'
+	);
 	expect(
-		evaluateCommission('true', DEFAULT_COMMISSION_EXPRESSION, context()).amount.round(2).toString()
-	).toBe('210.00');
-	expect(
-		evaluateCommission(
-			'quantity >= 1000 && product.code == "SKU-1"',
-			'min(net * params.rate, params.cap)',
-			context({
-				parameters: [
-					{ name: 'rate', value: '0.15' },
-					{ name: 'cap', value: '250' }
-				]
-			})
+		cents(
+			evaluateCommission(
+				'quantity >= 1000 && product.code == "SKU-1"',
+				'min(net * params.rate, params.cap)',
+				context({
+					parameters: [
+						{ name: 'rate', value: '0.15' },
+						{ name: 'cap', value: '250' }
+					]
+				})
+			).amount
 		)
-			.amount.round(2)
-			.toString()
-	).toBe('250.00');
+	).toBe('250');
 	expect(evaluateCommission('quantity > 1000', 'net * decimal("0.05")', context())).toMatchObject({
 		eligible: false
 	});
 	expect(
-		evaluateCommission(
-			'true',
-			'net >= 2000 ? net * decimal("0.1") : net * decimal("0.05")',
-			context({ floor_net: null, factor: null })
+		cents(
+			evaluateCommission(
+				'true',
+				'net >= 2000 ? net * decimal("0.1") : net * decimal("0.05")',
+				context({ floor_net: null, factor: null })
+			).amount
 		)
-			.amount.round(2)
-			.toString()
-	).toBe('200.00');
+	).toBe('200');
 	expect(
-		evaluateCommission('true', 'net + decimal("0.01")', context({ net: '9007199254740993.12' }))
-			.amount.round(2)
-			.toString()
+		cents(
+			evaluateCommission('true', 'net + decimal("0.01")', context({ net: '9007199254740993.12' }))
+				.amount
+		)
 	).toBe('9007199254740993.13');
 	for (const source of ['net / 0', '"not money"', 'unknown_fact * 2'])
 		expect(() => evaluateCommission('true', source, context())).toThrow();
@@ -99,28 +100,28 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 				expect(
 					yield* previewOf(configuration, {
 						rule,
-						quantity: Decimal.of('1000'),
-						net: Decimal.of('2000'),
+						quantity: '1000',
+						net: '2000',
 						unit: 'kg',
-						ordered_on: PlainDate('2026-10-10')
+						ordered_on: '2026-10-10'
 					})
 				).toMatchObject({ currency: 'SGD', amount: decimalText('250.00'), reason: 'resolved' });
 				expect(
 					yield* previewOf(configuration, {
 						rule,
-						quantity: Decimal.of('1000'),
-						net: Decimal.of('2000'),
+						quantity: '1000',
+						net: '2000',
 						unit: 'piece',
-						ordered_on: PlainDate('2026-10-10')
+						ordered_on: '2026-10-10'
 					})
 				).toMatchObject({ amount: decimalText('0.00'), reason: 'ineligible' });
 				// a preview is computed from the rule the caller already reads: no authority beyond `commission_rules.read`
 				expect(
 					yield* previewOf(yield* t.as(t.member(['sales'])), {
 						rule,
-						quantity: Decimal.of('1000'),
-						net: Decimal.of('2000'),
-						ordered_on: PlainDate('2026-10-10')
+						quantity: '1000',
+						net: '2000',
+						ordered_on: '2026-10-10'
 					})
 				).toMatchObject({ currency: 'SGD' });
 				yield* confirm(t, own.order);
@@ -200,12 +201,12 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 						'commission_rules.create': [
 							{
 								currency: 'SGD',
-								effective_on: PlainDate('2026-10-10'),
+								effective_on: '2026-10-10',
 								eligibility_expression: 'true',
 								amount_expression: 'net * decimal("0.05")',
 								parameters: [],
-								fixed_rate: Decimal.of('0'),
-								spread_pct: Decimal.of('0'),
+								fixed_rate: '0',
+								spread_pct: '0',
 								active: true
 							}
 						]

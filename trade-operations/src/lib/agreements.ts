@@ -1,7 +1,7 @@
-import { PlainDate } from '@norbital-ai/std/date';
 import type { snapshot } from './commercial.js';
 import { type Row, type StoredRow } from '@norbital-ai/bolt';
-import { currency, Decimal } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { dec } from './values.js';
 /** The order fields every agreement helper reads (a read request's `fields`). */
 export const agreementFields = [
 	'seal_hash',
@@ -75,16 +75,19 @@ export function kingdeeTermsChanged(previous: ContractVersion, next: ContractVer
 		return true;
 	const priorLines = new Map(before.lines.map((line) => [line.id, line]));
 	const effective = (line: (typeof before.lines)[number]) =>
-		Decimal.of(line.unit_price).times(Decimal.of(100).minus(line.discount_pct));
+		BigDecimal.multiply(
+			dec(line.unit_price),
+			BigDecimal.subtract(dec(100), dec(line.discount_pct))
+		);
 	return next.lines.some((line) => {
 		const prior = priorLines.get(line.id);
 		return (
 			!prior ||
 			prior.product_code !== line.product_code ||
 			prior.unit !== line.unit ||
-			!effective(line).eq(effective(prior)) ||
+			!BigDecimal.equals(effective(line), effective(prior)) ||
 			(['quantity', 'tax_rate', 'net', 'tax', 'total'] as const).some(
-				(field) => !Decimal.of(line[field]).eq(prior[field])
+				(field) => !BigDecimal.equals(dec(line[field]), dec(prior[field]))
 			)
 		);
 	});
@@ -140,7 +143,7 @@ const currentContractVersion = (versions: readonly ContractVersion[]) =>
 /** The current contract's total: the order list's agreed total, written wherever the versions change. */
 export const agreedTotal = (versions: readonly ContractVersion[]) => {
 	const total = currentContractVersion(versions)?.snapshot.total;
-	return total === undefined ? null : Decimal.of(total);
+	return total === undefined ? null : total;
 };
 export const currentAgreement = (order: AgreementOrder) =>
 	currentContractVersion(agreements(order));
@@ -154,7 +157,7 @@ export const agreement = (order: AgreementOrder, seal: string | null | undefined
 	agreements(order).find((v) => v.seal_hash === seal);
 export function agreementState(version: ContractVersion) {
 	return {
-		currency: currency(version.snapshot.currency),
+		currency: version.snapshot.currency,
 		tax_inclusive: version.snapshot.tax_inclusive,
 		payment_terms: version.snapshot.payment_terms,
 		delivery_terms: version.snapshot.delivery_terms,
@@ -169,9 +172,7 @@ export function agreementState(version: ContractVersion) {
 		buyer_contact: version.snapshot.buyer_contact ?? '',
 		buyer_mobile: version.snapshot.buyer_mobile || null,
 		delivery_address: version.snapshot.delivery_address ?? '',
-		delivery_date: version.snapshot.delivery_date
-			? PlainDate(version.snapshot.delivery_date)
-			: null,
+		delivery_date: version.snapshot.delivery_date || null,
 		party_name: version.snapshot.party_name,
 		supporting_documents: version.supporting_documents ?? [],
 		seal_hash: version.seal_hash,

@@ -1,8 +1,8 @@
-import { Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Decimal, currency } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
+import { dec, div, text } from '../../lib/values.js';
+import { currency, PlainDate } from './polling.js';
 import { kingdeeStockLotCostAccount } from './configuration.js';
 import { readChangedSnapshot, snapshotFingerprint, snapshotStatement } from './changed-snapshot.js';
 import { checked } from './order-source.js';
@@ -99,9 +99,15 @@ export const readStockLotCosts = Effect.fnUntraced(function* (
 			const lot_number = row.lot_number.trim();
 			const unit = row.unit.trim();
 			const key = JSON.stringify([row.product_code, lot_number]);
-			const received = Decimal.of(row.received_qty);
-			const amount = Decimal.of(row.received_amount);
-			if (!lot_number || !unit || received.lte(0) || amount.lte(0) || seen.has(key))
+			const received = dec(row.received_qty);
+			const amount = dec(row.received_amount);
+			if (
+				!lot_number ||
+				!unit ||
+				!BigDecimal.isPositive(received) ||
+				!BigDecimal.isPositive(amount) ||
+				seen.has(key)
+			)
 				throw invalid(
 					'ICStockBillEntry',
 					'The purchase lot has an invalid quantity, cost or identity'
@@ -112,8 +118,8 @@ export const readStockLotCosts = Effect.fnUntraced(function* (
 				lot_number,
 				unit,
 				received_on: PlainDate(row.received_on),
-				received_qty: received.toString(),
-				unit_cost: amount.div(received, 10).toString()
+				received_qty: text(received),
+				unit_cost: text(div(amount, received, 10))
 			};
 		});
 	});

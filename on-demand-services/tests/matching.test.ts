@@ -1,10 +1,8 @@
 import { present } from './test-runtime.js';
 /** The matching rules, pure: hard requirements, the travel buffer, ranking, recurrence and proposals. */
 import { describe, expect, it } from '@effect/vitest';
-import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Schema } from 'effect';
-import type { PlainTime } from '@norbital-ai/bolt';
-import { input_schema } from '@norbital-ai/std/kind';
+import { input_schema, type PlainTime } from '@norbital-ai/bolt';
 import { createHash } from 'node:crypto';
 import { fixtureId } from './test-runtime.js';
 import {
@@ -27,7 +25,7 @@ import {
 const SG = 'Asia/Singapore';
 const EAST = { lat: 1.3526, lng: 103.9447 };
 const WEST = { lat: 1.3404, lng: 103.709 };
-const at = (s: string) => Instant(s);
+const at = (s: string) => s;
 const uuid = (label: string) => {
 	const hex = createHash('sha256').update(label).digest('hex');
 	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
@@ -69,7 +67,7 @@ describe('hard requirements', () => {
 			refusal(
 				helper('a'),
 				need,
-				pool({ off: [{ helper: hid('a'), period: { from: PlainDate('2026-09-28'), to: null } }] }),
+				pool({ off: [{ helper: hid('a'), period: { from: '2026-09-28', to: null } }] }),
 				SG
 			)
 		).toBe('time_off');
@@ -250,7 +248,7 @@ describe('scheduling', () => {
 		const [monday] = openSlots(
 			h,
 			{ ...need, minutes: 60 },
-			[PlainDate('2026-09-28')],
+			['2026-09-28'],
 			pool({ busy: [held] }),
 			SG,
 			'2026-09-27T00:00:00.000Z'
@@ -333,12 +331,10 @@ describe('small booking heuristics', () => {
 	it('scopes starts to the preference, and checks every recurring occurrence', () => {
 		const p = pool({
 			helpers: [helper('a'), helper('b', { skills: ['handyman'] })],
-			off: [
-				{ helper: hid('a'), period: { from: PlainDate('2026-10-05'), to: PlainDate('2026-10-05') } }
-			]
+			off: [{ helper: hid('a'), period: { from: '2026-10-05', to: '2026-10-05' } }]
 		});
 		const args = { ...need, minutes: 180 };
-		const days = [PlainDate('2026-09-28')];
+		const days = ['2026-09-28'];
 		const once = availableSlots(args, days, p, SG, '2026-09-25T00:00:00Z', 'once', 2, [hid('a')]);
 		expect(present(once[0]).starts).toContain(MONDAY.start);
 		expect(
@@ -356,9 +352,7 @@ describe('small booking heuristics', () => {
 	it('uses continuity for recurring visits but falls back when the cleaner is unavailable', () => {
 		const p = pool({
 			helpers: [helper('a'), helper('b')],
-			off: [
-				{ helper: hid('a'), period: { from: PlainDate('2026-10-12'), to: PlainDate('2026-10-12') } }
-			]
+			off: [{ helper: hid('a'), period: { from: '2026-10-12', to: '2026-10-12' } }]
 		});
 		const plan = planBooking(
 			{ ...need, minutes: 180 },
@@ -447,7 +441,7 @@ describe('open starts follow the drive', () => {
 			openSlots(
 				helper('a'),
 				{ skill: 'home_cleaning', location: MID, area: null, minutes: 60 },
-				[PlainDate('2026-09-28')],
+				['2026-09-28'],
 				pool({ helpers: [helper('a')], busy: [at9, at2], drive }),
 				SG,
 				'2026-09-27T00:00:00.000Z'

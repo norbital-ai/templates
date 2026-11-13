@@ -1,5 +1,6 @@
 import type { Id, Row } from '@norbital-ai/bolt';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { type D, dec } from './values.js';
 import type { ContractVersion } from './agreements.js';
 import { contractEntryId } from './contract-draft.js';
 
@@ -35,14 +36,17 @@ export function deliveredByLine(
 			return [version.seal_hash, lines] as const;
 		})
 	);
-	const quantities = new Map<string, Decimal>();
+	const quantities = new Map<string, D>();
 	for (const delivery of deliveries) {
 		const lines = targets.get(delivery.seal_hash);
 		if (!lines) continue;
 		for (const item of delivery.items ?? []) {
 			const line = lines.get(item.order_line_id);
 			if (!line || line.unit !== item.unit) continue;
-			quantities.set(line.id, (quantities.get(line.id) ?? Decimal.of(0)).plus(item.quantity));
+			quantities.set(
+				line.id,
+				BigDecimal.sum(quantities.get(line.id) ?? dec(0), dec(item.quantity))
+			);
 		}
 	}
 	return quantities;

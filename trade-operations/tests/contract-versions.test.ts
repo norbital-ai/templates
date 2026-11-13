@@ -1,14 +1,12 @@
 import { JobResult } from '@norbital-ai/bolt-cli/test';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
-import { Instant } from '@norbital-ai/std/date';
 import { committed, confirm, draft, revise, workspace } from './kit.js';
 import { WEST } from './commission-kit.js';
 import { agreements, currentAgreement, kingdeeAgreement } from '../src/lib/agreements.js';
 import { kingdeeDraft, kingdeeFixture, observeKingdeeOrder } from './kingdee-fixture.js';
 import { confirmationOf, documentOf } from './reads.js';
-import { firstRow, fixtureId } from './test-runtime.js';
+import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
 
 it.live('sales can approve revised local terms without Kingdee or retroactive export', () =>
 	Effect.gen(function* () {
@@ -34,7 +32,7 @@ it.live('sales can approve revised local terms without Kingdee or retroactive ex
 				.query({ orders: { where: { id: { eq: order } }, limit: 1 } })
 				.pipe(Effect.map((answer) => firstRow(answer.orders.rows)));
 		const seal = Effect.gen(function* () {
-			const check = yield* confirmationOf(as, { order, as_of: Instant(t.clock.now()) });
+			const check = yield* confirmationOf(as, { order, as_of: t.clock.now() });
 			const request = yield* as.act({
 				'orders.update': [
 					{
@@ -61,9 +59,7 @@ it.live('sales can approve revised local terms without Kingdee or retroactive ex
 		expect(yield* read()).toMatchObject({ status: 'draft', draft_setup: null });
 		expect(currentAgreement(yield* read())).toEqual(original);
 		yield* as.act({
-			'order_lines.update': [
-				{ target: yield* t.at('order_lines', line), set: { quantity: Decimal.of(7) } }
-			]
+			'order_lines.update': [{ target: yield* t.at('order_lines', line), set: { quantity: '7' } }]
 		});
 		yield* (yield* t.as(t.admin)).act({
 			'sys_integration.update': [
@@ -140,7 +136,7 @@ it.live(
 				'order_lines',
 				yield* as.act({
 					'order_lines.update': [
-						{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+						{ target: yield* t.at('order_lines', own.line), set: { quantity: '12' } }
 					]
 				})
 			);
@@ -150,7 +146,7 @@ it.live(
 			expect(replacement.seal_hash).not.toBe(original.seal_hash);
 			expect(currentAgreement(replacement)?.seal_hash).toBe(replacement.seal_hash);
 			expect(kingdeeAgreement(agreements(replacement))?.seal_hash).toBe(original.seal_hash);
-			expect(Decimal.of(replacement.agreed_total ?? 0).eq('27.12')).toBe(true);
+			expect(sameDecimal(replacement.agreed_total, '27.12')).toBe(true);
 			expect((yield* documentOf(as, { order: own.order })).contract_version).toBe('2');
 			const versions = agreements(replacement);
 			expect(versions).toHaveLength(2);
@@ -208,7 +204,7 @@ it.live('equal terms do not transfer a Kingdee audit to an unproven local amendm
 		});
 		yield* as.act({
 			'order_lines.update': [
-				{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+				{ target: yield* t.at('order_lines', own.line), set: { quantity: '12' } }
 			]
 		});
 		yield* confirm(t, own.order);
@@ -283,7 +279,7 @@ it.live(
 						'order_lines.update': [
 							{
 								target: yield* t.at('order_lines', own.line),
-								set: { quantity: Decimal.of(quantity) }
+								set: { quantity: String(quantity) }
 							}
 						]
 					});
@@ -388,7 +384,7 @@ it.live('local-only terms keep the source version available for the next mapped 
 		yield* revise(t, own.order);
 		yield* as.act({
 			'order_lines.update': [
-				{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+				{ target: yield* t.at('order_lines', own.line), set: { quantity: '12' } }
 			]
 		});
 		yield* confirm(t, own.order);
@@ -414,7 +410,7 @@ it.live('a rejected resubmission restores the draft before the approval request'
 		const before = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 			.rows[0];
 		if (!before) throw new Error('Expected the draft');
-		const check = yield* confirmationOf(as, { order, as_of: Instant(t.clock.now()) });
+		const check = yield* confirmationOf(as, { order, as_of: t.clock.now() });
 		const request = yield* as.act({
 			'orders.update': [
 				{

@@ -1,8 +1,8 @@
 import { model } from '../../../../../.norbital/models/order_lines.ts';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { dec, div, text, type DecimalLike } from '../../../../lib/values.js';
 import { logisticsLine } from '../../../../lib/logistics.js';
 import { type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
-import { Effect } from 'effect';
+import { BigDecimal, Effect } from 'effect';
 import { agreement } from '../../../../lib/agreements.js';
 import {
 	contractEntryId,
@@ -16,7 +16,7 @@ import {
 	validPrintValues
 } from '../../../../lib/print-details.js';
 const cells = ['quantity', 'unit_price', 'discount_pct', 'tax_rate'] as const;
-type Cell = Decimal | number | `${number}`;
+type Cell = DecimalLike;
 /** One line to price: its order and product, the cells the writer sent, and the stored line an update changes. */
 type Pricing = {
 	readonly order: Id<'orders'>;
@@ -114,21 +114,21 @@ const priced = Effect.fnUntraced(function* (
 			input.unit_price ??
 			old?.unit_price ??
 			(order.direction === 'sales' ? product.unit_price : null);
-		const discount_pct = input.discount_pct ?? old?.discount_pct ?? Decimal.of(0);
+		const discount_pct = input.discount_pct ?? old?.discount_pct ?? '0';
 		const tax_rate = input.tax_rate ?? old?.tax_rate ?? product.tax_rate;
 		const unit = old?.unit ?? product.unit;
 		if (unit == null || unit.trim() === '')
 			return yield* ctx.refuse('errors.unit_mismatch', { field: 'product' });
 		if (tax_rate == null) return yield* ctx.refuse('errors.percentage', { field: 'tax_rate' });
-		if (quantity == null || Decimal.of(quantity).lte(0))
+		if (quantity == null || BigDecimal.isLessThanOrEqualTo(dec(quantity), dec(0)))
 			return yield* ctx.refuse('errors.quantity_positive', { field: 'quantity' });
-		if (unit_price === null || unit_price === undefined || Decimal.of(unit_price).lt(0))
+		if (unit_price === null || unit_price === undefined || BigDecimal.isNegative(dec(unit_price)))
 			return yield* ctx.refuse('errors.price_required', { field: 'unit_price' });
 		if (
-			Decimal.of(discount_pct).lt(0) ||
-			Decimal.of(discount_pct).gt(100) ||
-			Decimal.of(tax_rate).lt(0) ||
-			Decimal.of(tax_rate).gt(100)
+			BigDecimal.isNegative(dec(discount_pct)) ||
+			BigDecimal.isGreaterThan(dec(discount_pct), dec(100)) ||
+			BigDecimal.isNegative(dec(tax_rate)) ||
+			BigDecimal.isGreaterThan(dec(tax_rate), dec(100))
 		)
 			return yield* ctx.refuse('errors.percentage');
 		const details =
@@ -151,10 +151,10 @@ const priced = Effect.fnUntraced(function* (
 					source_entry_id,
 					unit,
 					print_values,
-					quantity: Decimal.of(quantity),
-					unit_price: Decimal.of(unit_price),
-					discount_pct: Decimal.of(discount_pct),
-					tax_rate: Decimal.of(tax_rate)
+					quantity: text(quantity),
+					unit_price: text(unit_price),
+					discount_pct: text(discount_pct),
+					tax_rate: text(tax_rate)
 				})
 			)
 				return yield* ctx.refuse('errors.contract_setup');
@@ -168,28 +168,26 @@ const priced = Effect.fnUntraced(function* (
 					f.currency === order.currency &&
 					f.group_code === group &&
 					f.effective_on <= order.ordered_on &&
-					Decimal.of(f.minimum_quantity).lte(quantity)
+					BigDecimal.isLessThanOrEqualTo(dec(f.minimum_quantity), dec(quantity))
 			)
 			.sort(
 				(a, b) =>
 					b.effective_on.localeCompare(a.effective_on) ||
-					Decimal.of(b.minimum_quantity).cmp(a.minimum_quantity)
+					BigDecimal.Order(dec(b.minimum_quantity), dec(a.minimum_quantity))
 			)[0];
 		if (floor && floor.unit !== unit) return yield* ctx.refuse('errors.unit_mismatch');
 		const floor_net = floor
 			? floor.tax_inclusive
-				? Decimal.of(floor.floor_price).div(
-						Decimal.of(1).plus(Decimal.of(floor.tax_rate).div(100, 6)),
-						8
-					)
+				? text(div(floor.floor_price, BigDecimal.sum(dec(1), div(floor.tax_rate, 100, 6)), 8))
 				: floor.floor_price
 			: null;
+		const amounts = price(order, { quantity, unit_price, discount_pct, tax_rate });
 		out.push({
 			source_entry_id,
-			quantity: Decimal.of(quantity),
-			unit_price: Decimal.of(unit_price),
-			discount_pct: Decimal.of(discount_pct),
-			tax_rate: Decimal.of(tax_rate),
+			quantity: text(quantity),
+			unit_price: text(unit_price),
+			discount_pct: text(discount_pct),
+			tax_rate: text(tax_rate),
 			print_values,
 			product_code: setupTarget?.product_code ?? old?.product_code ?? product.external_code,
 			product_name: setupTarget?.product_name ?? old?.product_name ?? product.name,
@@ -199,7 +197,10 @@ const priced = Effect.fnUntraced(function* (
 					? old.product_spec
 					: product.spec,
 			unit,
-			...price(order, { quantity, unit_price, discount_pct, tax_rate }),
+			currency: amounts.currency,
+			net: text(amounts.net),
+			tax: text(amounts.tax),
+			total: text(amounts.total),
 			floor_net,
 			floor_on: floor?.effective_on ?? null,
 			commission_basis_unit: old?.commission_basis_unit ?? product.commission_basis_unit,

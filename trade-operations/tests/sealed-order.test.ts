@@ -1,8 +1,6 @@
-import { Instant, PlainDate } from '@norbital-ai/std/date';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
-import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
+import { workspace as acquireWorkspace, fixtureId, sameDecimal } from './test-runtime.js';
 import { committed } from './kit.js';
 import { confirmationOf } from './reads.js';
 const sealingWorkspace = () =>
@@ -98,16 +96,16 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 					{
 						order,
 						product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
-						quantity: Decimal.of('10'),
-						unit_price: Decimal.of('2'),
-						discount_pct: Decimal.of('0'),
-						tax_rate: Decimal.of('9')
+						quantity: '10',
+						unit_price: '2',
+						discount_pct: '0',
+						tax_rate: '9'
 					}
 				]
 			})
 		);
 		const check = yield* confirmationOf(as, {
-			as_of: Instant(t.clock.now()),
+			as_of: t.clock.now(),
 			order
 		});
 		expect(check).toHaveProperty('check_hash');
@@ -127,7 +125,7 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 			.rows[0];
 		expect(before).toMatchObject({ status: 'confirmed', sealed_contract_version: '1' });
 		expect(before?.sealed_snapshot).toMatchObject({ total: '21.80', payment_terms: 'Net 30' });
-		expect(before?.agreed_total?.eq('21.80')).toBe(true);
+		expect(sameDecimal(before?.agreed_total, '21.80')).toBe(true);
 		expect(before?.sealed_contract).toContain('Net 30');
 		expect(before?.sealed_contract).toContain(before?.number);
 		expect(before?.sealed_contract).not.toContain(order);
@@ -144,7 +142,7 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 			yield* Effect.flip(
 				as.act({
 					'order_lines.update': [
-						{ target: yield* t.at('order_lines', line), set: { unit_price: Decimal.of('99') } }
+						{ target: yield* t.at('order_lines', line), set: { unit_price: '99' } }
 					]
 				})
 			)
@@ -213,10 +211,10 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 					{
 						order: first,
 						product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
-						quantity: Decimal.of('10'),
-						unit_price: Decimal.of('2'),
-						discount_pct: Decimal.of('0'),
-						tax_rate: Decimal.of('9')
+						quantity: '10',
+						unit_price: '2',
+						discount_pct: '0',
+						tax_rate: '9'
 					}
 				]
 			})
@@ -228,16 +226,16 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 					{
 						order: second,
 						product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
-						quantity: Decimal.of('10'),
-						unit_price: Decimal.of('2'),
-						discount_pct: Decimal.of('0'),
-						tax_rate: Decimal.of('9')
+						quantity: '10',
+						unit_price: '2',
+						discount_pct: '0',
+						tax_rate: '9'
 					}
 				]
 			})
 		);
 		const check = yield* confirmationOf(as, {
-			as_of: Instant(t.clock.now()),
+			as_of: t.clock.now(),
 			order: first
 		});
 		expect(
@@ -256,7 +254,7 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 			'order_lines',
 			yield* as.act({
 				'order_lines.update': [
-					{ target: yield* t.at('order_lines', line), set: { unit_price: Decimal.of('3') } }
+					{ target: yield* t.at('order_lines', line), set: { unit_price: '3' } }
 				]
 			})
 		);
@@ -273,7 +271,7 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 			)
 		).toMatchObject({ _tag: 'ActRefused', key: 'errors.check_changed' });
 		const refreshed = yield* confirmationOf(as, {
-			as_of: Instant(t.clock.now()),
+			as_of: t.clock.now(),
 			order: first
 		});
 		committed(
@@ -320,9 +318,9 @@ test.live('a draft with no lines is refused before any confirmation', () =>
 				]
 			})
 		);
-		expect(
-			yield* Effect.flip(confirmationOf(as, { as_of: Instant(t.clock.now()), order }))
-		).toMatchObject({ message: 'errors.lines_required' });
+		expect(yield* Effect.flip(confirmationOf(as, { as_of: t.clock.now(), order }))).toMatchObject({
+			message: 'errors.lines_required'
+		});
 	})
 );
 
@@ -351,7 +349,7 @@ test.live('commercial trade and shipping fields stay queryable and are retained 
 						buyer_contact: 'Li Wei',
 						buyer_mobile: '+6590000000',
 						delivery_address: '1 Test Road, Singapore',
-						delivery_date: PlainDate('2026-10-20')
+						delivery_date: '2026-10-20'
 					}
 				]
 			})
@@ -361,14 +359,14 @@ test.live('commercial trade and shipping fields stay queryable and are retained 
 				{
 					order,
 					product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
-					quantity: Decimal.of('10'),
-					unit_price: Decimal.of('2'),
-					discount_pct: Decimal.of('0'),
-					tax_rate: Decimal.of('9')
+					quantity: '10',
+					unit_price: '2',
+					discount_pct: '0',
+					tax_rate: '9'
 				}
 			]
 		});
-		const check = yield* confirmationOf(as, { order, as_of: Instant(t.clock.now()) });
+		const check = yield* confirmationOf(as, { order, as_of: t.clock.now() });
 		yield* as.act({
 			'orders.update': [
 				{

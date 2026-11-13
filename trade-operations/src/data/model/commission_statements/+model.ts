@@ -1,6 +1,5 @@
 import { model } from '../../../../.norbital/models/commission_statements.ts';
 import { Effect } from 'effect';
-import { PlainDate } from '@norbital-ai/std/date';
 import { boardRead, calculateBoard, readCommissionBoard } from '../../../lib/monthly-commission.js';
 export default model({
 	description: 'Monthly salesperson commission statement.',
@@ -50,7 +49,7 @@ export default model({
 					Effect.gen(function* () {
 						if (!input.period || input.period.slice(8) !== '01')
 							return yield* ctx.refuse('errors.commission_month');
-						const period = PlainDate(input.period);
+						const period = input.period;
 						const request = boardRead(period, false, input.owner);
 						const answer = yield* ctx.query(request);
 						const complete = yield* readCommissionBoard(ctx, request, answer).pipe(

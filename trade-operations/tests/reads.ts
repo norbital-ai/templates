@@ -1,9 +1,8 @@
 // The reads the pages make, as a test caller makes them: each former declared query is the page's read request
 // (`src/lib`) answered under the caller's authority, then the same pure helper the page and the file sync call.
 import { Effect, Result, Schema } from 'effect';
-import type { Id } from '@norbital-ai/bolt';
+import type { Id, PlainDate } from '@norbital-ai/bolt';
 import type { Typed } from './test-runtime.js';
-import { PlainDate } from '@norbital-ai/std/date';
 import { previewRead, commissionPreview } from '../src/lib/commission-expressions.js';
 import {
 	confirmationCheck,

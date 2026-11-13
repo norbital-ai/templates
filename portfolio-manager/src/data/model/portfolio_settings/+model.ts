@@ -7,7 +7,7 @@ import { model } from '../../../../.norbital/models/portfolio_settings.ts';
  */
 export default model({
 	description:
-		'The base currency, and the paired account and recipients the daily report is sent to.',
+		'The base currency, the benchmarks, and the paired account and chats the daily report is sent to.',
 	icon: 'lucide:settings',
 	record_label: 'string(record.base_currency)',
 	fields: {
@@ -19,10 +19,18 @@ export default model({
 			optional: true,
 			key: 'handle',
 			fields: { name: { kind: 'text', optional: true }, handle: { kind: 'text' } }
+		},
+		/** The indices the markets table leads with, by quote symbol ("^GSPC", "^STI"). */
+		benchmarks: {
+			kind: 'object',
+			many: true,
+			optional: true,
+			key: 'symbol',
+			fields: { name: { kind: 'text', optional: true }, symbol: { kind: 'text' } }
 		}
 	},
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: ['base_currency', 'report_via', 'recipients'] } },
-	update: { columns: { fields: ['base_currency', 'report_via', 'recipients'] } },
+	create: { columns: { fields: ['base_currency', 'report_via', 'recipients', 'benchmarks'] } },
+	update: { columns: { fields: ['base_currency', 'report_via', 'recipients', 'benchmarks'] } },
 	delete: {}
 });

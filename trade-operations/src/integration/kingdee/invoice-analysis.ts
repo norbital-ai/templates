@@ -1,11 +1,12 @@
-import { Effect } from 'effect';
+import { BigDecimal, Effect } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Instant } from '@norbital-ai/std/date';
+import { text as decimalText } from '../../lib/values.js';
 import { kingdeeInvoiceAnalysisAccount } from './configuration.js';
 import { exactId, flag, isoCurrency, nullableText, sourceDate, text } from './order-source.js';
 import {
 	columns,
+	Instant,
 	readSource,
 	sourceState,
 	SourceRowInvalid,
@@ -101,7 +102,7 @@ function invoiceFact(row: SqlRow, observedAt: string) {
 	const tax =
 		exactId(row, 'invoice_type') === '86' || net === null || gross === null
 			? r.decimal('tax', null)
-			: gross.minus(net);
+			: BigDecimal.subtract(gross, net);
 	return {
 		external_code: `invoice-only:${exactId(row, 'detail_id')}`,
 		kind: 'invoice_only' as const,
@@ -109,10 +110,10 @@ function invoiceFact(row: SqlRow, observedAt: string) {
 		business_on,
 		source_updated_at: Instant(observedAt),
 		unit: nullableText(row, 'unit') ?? '',
-		quantity: r.decimal('quantity'),
+		quantity: decimalText(r.decimal('quantity')),
 		currency: isoCurrency(row),
-		net_amount: net,
-		tax_amount: tax,
+		net_amount: net === null ? null : decimalText(net),
+		tax_amount: tax === null ? null : decimalText(tax),
 		source_dimensions: {
 			customer: nullableText(row, 'customer'),
 			product: nullableText(row, 'product'),

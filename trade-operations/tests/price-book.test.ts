@@ -1,3 +1,4 @@
+import { sameDecimal } from './test-runtime.js';
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { priceBookRead, priceBookRows } from '../src/lib/price-book.js';
@@ -61,7 +62,7 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 		]);
 		const rows = (yield* floors()).pricing_floors.rows;
 		expect(rows).toHaveLength(1);
-		expect(rows[0]?.floor_price.eq(12)).toBe(true);
+		expect(sameDecimal(rows[0]?.floor_price, '12')).toBe(true);
 		const stale = yield* load(withId('RESIN-A', '10', String(original.revision)));
 		expect(stale).toMatchObject([
 			{

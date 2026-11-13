@@ -1,15 +1,13 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { expect, it } from '@effect/vitest';
-import { Effect, Exit, Schema } from 'effect';
+import { BigDecimal, Effect, Exit, Schema } from 'effect';
 import mssql from 'mssql';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
 import { validate_database_request, type DatabaseRequest } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { committed, confirm, revise, SETTINGS, workspace } from './kit.js';
-import { firstRow, fixtureId } from './test-runtime.js';
+import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
 import { agreements, currentAgreement } from '../src/lib/agreements.js';
 import { confirmationRead, quotationFifoCosts } from '../src/lib/confirmation.js';
 import { estimateFifoCost, inventoryCostRead, purchaseLotCostRead } from '../src/lib/lot-cost.js';
@@ -198,18 +196,21 @@ it.effect.skipIf(!password)(
 				{ product_code: '210', unit: 'kg', warehouse: null, quantity: '7.000' }
 			]);
 			const totals = firstRow(stockAvailability(observed, Date.now(), false));
-			expect(totals.on_hand?.eq('10.500')).toBe(true);
-			expect(totals.available?.eq('3.500')).toBe(true);
+			expect(sameDecimal(totals.on_hand, '10.500')).toBe(true);
+			expect(sameDecimal(totals.available, '3.500')).toBe(true);
 			expect(
 				stockAvailability(observed, Date.now(), true).every((row) => row.available === null)
 			).toBe(true);
 			const logisticsReport = yield* logistics.query(logisticsStockAvailabilityRead);
 			expect(
-				firstRow(stockAvailability(logisticsReport, Date.now(), false)).available?.eq('3.500')
+				sameDecimal(
+					firstRow(stockAvailability(logisticsReport, Date.now(), false)).available,
+					'3.500'
+				)
 			).toBe(true);
 			const stale = firstRow(stockAvailability(observed, Date.now() + 31 * 60_000, false));
 			expect(stale.available).toBeNull();
-			expect(stale.on_hand?.eq('10.500')).toBe(true);
+			expect(sameDecimal(stale.on_hand, '10.500')).toBe(true);
 			committed(
 				'commercial_settings',
 				yield* admin.act({
@@ -223,7 +224,8 @@ it.effect.skipIf(!password)(
 			);
 			const configured = yield* logistics.query(logisticsStockAvailabilityRead);
 			expect(
-				firstRow(stockAvailability(configured, Date.now() + 31 * 60_000, false)).available?.eq(
+				sameDecimal(
+					firstRow(stockAvailability(configured, Date.now() + 31 * 60_000, false)).available,
 					'3.500'
 				)
 			).toBe(true);
@@ -242,7 +244,7 @@ it.effect.skipIf(!password)(
 			const shipped = firstRow(
 				stockAvailability(yield* sales.query(stockAvailabilityRead), Date.now(), false)
 			);
-			expect(shipped.available?.eq('5.500')).toBe(true);
+			expect(sameDecimal(shipped.available, '5.500')).toBe(true);
 			const pullCosts = () => t.pull('source_lot_costs');
 			yield* pullCosts();
 			expect(costPayloads).toEqual([]);
@@ -291,8 +293,8 @@ it.effect.skipIf(!password)(
 					currency,
 					as_of
 				});
-			expect(estimate('5')?.unit_cost.eq('2')).toBe(true);
-			expect(estimate('8')?.unit_cost.eq('2.375')).toBe(true);
+			expect(sameDecimal(estimate('5')?.unit_cost, '2')).toBe(true);
+			expect(sameDecimal(estimate('8')?.unit_cost, '2.375')).toBe(true);
 			expect(estimate('11')).toBeNull();
 			expect(estimate('8', 'USD')).toBeNull();
 			expect(estimate('8', 'CNY', new Date(Date.now() + 31 * 60_000).toISOString())).toBeNull();
@@ -306,7 +308,7 @@ it.effect.skipIf(!password)(
 							party: firstRow(masters.parties.rows).id,
 							warehouse,
 							currency: 'CNY',
-							ordered_on: PlainDate('2026-11-07'),
+							ordered_on: '2026-11-07',
 							payment_terms: 'NET30'
 						}
 					]
@@ -316,9 +318,9 @@ it.effect.skipIf(!password)(
 				'order_lines.create': [5, 3].map((quantity) => ({
 					order,
 					product,
-					quantity: Decimal.of(quantity),
-					unit_price: Decimal.of('2.25'),
-					tax_rate: Decimal.of(0)
+					quantity: String(quantity),
+					unit_price: '2.25',
+					tax_rate: '0'
 				}))
 			});
 			const savedQuote = yield* admin.query(confirmationRead(order));
@@ -346,14 +348,14 @@ it.effect.skipIf(!password)(
 			);
 			expect(mismatched.available).toBeNull();
 			expect(mismatched.unit).toBe('kg / box');
-			expect(mismatched.awaiting?.eq(5)).toBe(true);
+			expect(sameDecimal(mismatched.awaiting, '5')).toBe(true);
 			yield* sql('DELETE dbo.SEOrderEntry');
 			yield* pull();
 			const empty = yield* sales.query(stockAvailabilityRead);
 			expect(firstRow(empty.source_stock_commitments.rows).entries).toEqual([]);
-			expect(firstRow(stockAvailability(empty, Date.now(), false)).available?.eq('10.500')).toBe(
-				true
-			);
+			expect(
+				sameDecimal(firstRow(stockAvailability(empty, Date.now(), false)).available, '10.500')
+			).toBe(true);
 		}),
 	120_000
 );
@@ -600,7 +602,7 @@ it.effect.skipIf(!password)(
 							direction: 'sales',
 							party: firstRow(masters.parties.rows).id,
 							currency: 'CNY',
-							ordered_on: PlainDate('2026-10-26'),
+							ordered_on: '2026-10-26',
 							payment_terms: 'NET30'
 						}
 					]
@@ -613,9 +615,9 @@ it.effect.skipIf(!password)(
 						{
 							order,
 							product: firstRow(masters.products.rows).id,
-							quantity: Decimal.of(10),
-							unit_price: Decimal.of(2),
-							tax_rate: Decimal.of(13)
+							quantity: '10',
+							unit_price: '2',
+							tax_rate: '13'
 						}
 					]
 				})
@@ -755,12 +757,12 @@ it.effect.skipIf(!password)(
 				);
 			const booked = yield* shipmentCost();
 			expect(booked?.booked_cost_currency).toBe('CNY');
-			expect(booked?.booked_cost?.eq('5.1234567891')).toBe(true);
+			expect(sameDecimal(booked?.booked_cost, '5.1234567891')).toBe(true);
 			const invoiced = (yield* evidence()).source_sales_lines.rows.find(
 				(row) => row.kind === 'invoice'
 			);
 			expect(invoiced?.booked_cost_currency).toBe('CNY');
-			expect(invoiced?.booked_cost?.eq('5.1234567891')).toBe(true);
+			expect(sameDecimal(invoiced?.booked_cost, '5.1234567891')).toBe(true);
 			yield* configureDeliveryCost(
 				'11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111'
 			);
@@ -778,19 +780,19 @@ it.effect.skipIf(!password)(
 				due_on: '2026-12-02',
 				items: [{ lot_number: 'LOT-01', order_line_id: line }]
 			});
-			expect(invoice?.total?.eq('9.04')).toBe(true);
+			expect(sameDecimal(invoice?.total, '9.04')).toBe(true);
 			const payment = firstRow(before.source_payments.rows);
 			expect(payment).toMatchObject({
 				invoice: invoice?.id,
 				seal_hash: originalSeal,
 				settled_on: '2026-11-04'
 			});
-			expect(payment.amount.eq(3)).toBe(true);
+			expect(sameDecimal(payment.amount, '3')).toBe(true);
 
 			yield* revise(t, order);
 			yield* as.act({
 				'order_lines.update': [
-					{ target: yield* t.at('order_lines', line), set: { quantity: Decimal.of(12) } }
+					{ target: yield* t.at('order_lines', line), set: { quantity: '12' } }
 				]
 			});
 			yield* confirm(t, order);
@@ -821,7 +823,7 @@ it.effect.skipIf(!password)(
 				yield* revise(t, order);
 				yield* as.act({
 					'order_lines.update': [
-						{ target: yield* t.at('order_lines', line), set: { quantity: Decimal.of(quantity) } }
+						{ target: yield* t.at('order_lines', line), set: { quantity: String(quantity) } }
 					]
 				});
 				yield* confirm(t, order);
@@ -858,8 +860,8 @@ it.effect.skipIf(!password)(
 				const rows = salesDetail(
 					yield* finance.query(
 						salesReadDuring({
-							from: PlainDate(`2026-${month}-01`),
-							to: PlainDate(`2026-${month}-30`),
+							from: `2026-${month}-01`,
+							to: `2026-${month}-30`,
 							basis
 						})
 					),
@@ -867,14 +869,14 @@ it.effect.skipIf(!password)(
 				);
 				expect(rows).toHaveLength(1);
 				expect(rows[0]?.business_on).toBe(`2026-${month}-${date}`);
-				expect(rows[0]?.source_net?.eq(8)).toBe(true);
-				expect(rows[0]?.cost?.eq('5.12')).toBe(true);
+				expect(sameDecimal(rows[0]?.source_net, '8')).toBe(true);
+				expect(sameDecimal(rows[0]?.cost, '5.12')).toBe(true);
 				expect(rows[0]?.cost_currency).toBe('CNY');
 				const otherMonth = month === '10' ? '11' : '10';
 				const absent = yield* finance.query(
 					salesReadDuring({
-						from: PlainDate(`2026-${otherMonth}-01`),
-						to: PlainDate(`2026-${otherMonth}-30`),
+						from: `2026-${otherMonth}-01`,
+						to: `2026-${otherMonth}-30`,
 						basis
 					})
 				);
@@ -884,7 +886,7 @@ it.effect.skipIf(!password)(
 				['2026-11-03', '9.04'],
 				['2026-11-04', '6.04']
 			] as const) {
-				const cutoff = PlainDate(date);
+				const cutoff = date;
 				const aging = arAging(yield* finance.query(agingRead(cutoff)), cutoff);
 				expect(aging).toHaveLength(1);
 				expect(aging[0]).toMatchObject({
@@ -893,7 +895,7 @@ it.effect.skipIf(!password)(
 					currency: 'CNY',
 					bucket: 'not_due'
 				});
-				expect(aging[0]?.balance.eq(balance)).toBe(true);
+				expect(sameDecimal(aging[0]?.balance, balance)).toBe(true);
 			}
 
 			yield* sql('UPDATE dbo.ICSale SET FCheckDate=NULL WHERE FInterID=30001');
@@ -921,26 +923,35 @@ it.effect.skipIf(!password)(
 			const withReturn = yield* evidence();
 			const returned = withReturn.transactions.rows.find((row) => row.reference === 'RETURN-PROBE');
 			expect(returned?.seal_hash).toBe(invoice?.seal_hash);
-			expect(returned?.items?.[0]?.quantity.eq(-1)).toBe(true);
+			expect(sameDecimal(returned?.items?.[0]?.quantity, '-1')).toBe(true);
 			for (const basis of ['delivery', 'invoice'] as const) {
 				const request = salesReadDuring({ from: null, to: null, basis }, false, 1);
 				const first = yield* finance.query(request);
 				expect(first.source_sales_lines.next).not.toBeNull();
 				const rows = yield* readSalesReport(finance, request, first, basis);
 				expect(rows).toHaveLength(2);
-				const reversal = rows.find((row) => row.quantity.lt(0));
-				expect(reversal?.source_net?.eq(-2)).toBe(true);
-				expect(reversal?.cost?.eq('-1.25')).toBe(true);
-				expect(rows.reduce((net, row) => net.plus(row.source_net ?? 0), Decimal.of(0)).eq(6)).toBe(
-					true
+				const reversal = rows.find((row) =>
+					BigDecimal.isNegative(BigDecimal.fromStringUnsafe(row.quantity))
 				);
+				expect(sameDecimal(reversal?.source_net, '-2')).toBe(true);
+				expect(sameDecimal(reversal?.cost, '-1.25')).toBe(true);
+				expect(
+					sameDecimal(
+						BigDecimal.format(
+							BigDecimal.sumAll(
+								rows.map((row) => BigDecimal.fromStringUnsafe(row.source_net ?? '0'))
+							)
+						),
+						'6'
+					)
+				).toBe(true);
 			}
-			const creditDay = PlainDate('2026-11-05');
+			const creditDay = '2026-11-05';
 			const credit = arAging(yield* finance.query(agingRead(creditDay)), creditDay).find(
 				(row) => row.reference === 'CREDIT-PROBE'
 			);
-			expect(credit?.credit.eq('2.26')).toBe(true);
-			expect(credit?.overpaid.is_zero()).toBe(true);
+			expect(sameDecimal(credit?.credit, '2.26')).toBe(true);
+			expect(sameDecimal(credit?.overpaid, '0')).toBe(true);
 
 			yield* sql(`
 				INSERT dbo.ICSale (FInterID,FBillNo,FDate,FTranType,FCheckDate,FCancellation,FROB,FCurrencyID,FCustID,FEmpID)
@@ -1013,8 +1024,8 @@ it.effect.skipIf(!password)(
 				['11', '01', 'RED-INDEPENDENT/1', '-30']
 			] as const) {
 				const span = {
-					from: PlainDate(`2026-${month}-01`),
-					to: PlainDate(`2026-${month}-${month === '10' ? '31' : '30'}`)
+					from: `2026-${month}-01`,
+					to: `2026-${month}-${month === '10' ? '31' : '30'}`
 				};
 				const query = salesReadDuring({ ...span, basis: 'invoice' });
 				const answer = yield* finance.query(query);
@@ -1035,12 +1046,12 @@ it.effect.skipIf(!password)(
 					margin: null,
 					currency: 'CNY'
 				});
-				expect(fact.source_net?.eq(amount)).toBe(true);
+				expect(sameDecimal(fact.source_net, amount)).toBe(true);
 				const summary = salesAnalysis(answer, { basis: 'invoice' }).find(
 					(row) => row.owner === null
 				);
 				expect(summary).toMatchObject({ orders: 0, source_lines: 1 });
-				expect(summary?.source_net?.eq(amount)).toBe(true);
+				expect(sameDecimal(summary?.source_net, amount)).toBe(true);
 				expect(
 					salesDetail(yield* finance.query(salesReadDuring({ ...span, basis: 'delivery' })), {
 						basis: 'delivery'
@@ -1123,20 +1134,20 @@ it.effect.skipIf(!password)(
 			expect(
 				Exit.isFailure(sellerSnapshot) || sellerSnapshot.value.source_receivables.rows.length === 0
 			).toBe(true);
-			const opening = PlainDate('2024-12-31');
+			const opening = '2024-12-31';
 			const openingRows = agingDetails(
 				yield* finance.query(agingRead(opening)),
 				opening,
 				snapshots
 			);
 			expect(openingRows.map((row) => row.reference)).toEqual(['AR-OPENING']);
-			expect(firstRow(openingRows).balance.eq(10)).toBe(true);
+			expect(sameDecimal(firstRow(openingRows).balance, '10')).toBe(true);
 			for (const [date, gross, cash, credit, net] of [
 				['2026-11-03', '119.04', '50', '0', '69.04'],
 				['2026-11-04', '86.04', '20', '0', '66.04'],
 				['2026-11-06', '86.04', '20', '5', '61.04']
 			] as const) {
-				const cutoff = PlainDate(date);
+				const cutoff = date;
 				const answer = yield* finance.query(agingRead(cutoff));
 				const details = agingDetails(answer, cutoff, snapshots);
 				expect(details.filter((row) => row.reference === 'INV-PROBE')).toHaveLength(1);
@@ -1147,14 +1158,21 @@ it.effect.skipIf(!password)(
 					bucket: date === '2026-11-03' ? 'not_due' : '1_30'
 				});
 				const customer = firstRow(agingSummary(details));
-				expect(customer.balance.eq(gross)).toBe(true);
-				expect(customer.unapplied.eq(cash)).toBe(true);
-				expect(customer.credit.eq(credit)).toBe(true);
-				expect(customer.net.eq(net)).toBe(true);
+				expect(sameDecimal(customer.balance, gross)).toBe(true);
+				expect(sameDecimal(customer.unapplied, cash)).toBe(true);
+				expect(sameDecimal(customer.credit, credit)).toBe(true);
+				expect(sameDecimal(customer.net, net)).toBe(true);
 				const estimated = estimateAging(details);
 				const estimatedInvoice = estimated.find((row) => row.reference === 'INV-INDEPENDENT');
-				expect(estimatedInvoice?.estimated_applied?.eq(Decimal.of(cash).plus(credit))).toBe(true);
-				expect(firstRow(agingSummary(estimated)).estimated_balance?.eq(net)).toBe(true);
+				expect(
+					sameDecimal(
+						estimatedInvoice?.estimated_applied,
+						BigDecimal.format(
+							BigDecimal.sum(BigDecimal.fromStringUnsafe(cash), BigDecimal.fromStringUnsafe(credit))
+						)
+					)
+				).toBe(true);
+				expect(sameDecimal(firstRow(agingSummary(estimated)).estimated_balance, net)).toBe(true);
 				const scoped = yield* finance.query(agingRead(cutoff, [instance]));
 				expect(scoped.transactions.rows).toHaveLength(0);
 				expect(scoped.source_payments.rows).toHaveLength(0);
@@ -1172,7 +1190,7 @@ it.effect.skipIf(!password)(
 			const revisedBalance = revisedAr.entries.find(
 				(entry) => entry.contact_id === '10002'
 			)?.remaining;
-			expect(revisedBalance != null && Decimal.of(revisedBalance).eq(67)).toBe(true);
+			expect(sameDecimal(revisedBalance, '67')).toBe(true);
 			yield* sql("UPDATE dbo.t_RP_NewCheckInfo SET FCheckDate='20261105' WHERE FInterID=50002");
 			yield* pullReceivables();
 			const correctedAr = firstRow((yield* finance.query(receivablesRead)).source_receivables.rows);

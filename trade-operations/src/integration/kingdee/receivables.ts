@@ -1,8 +1,7 @@
 import { Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Instant, PlainDate } from '@norbital-ai/std/date';
-import { Decimal, currency } from '@norbital-ai/std/decimal';
+import { text as decimalText } from '../../lib/values.js';
 import { sha256Hex } from '../../lib/commercial.js';
 import { kingdeeReceivablesAccount } from './configuration.js';
 import {
@@ -16,6 +15,9 @@ import {
 } from './order-source.js';
 import {
 	columns,
+	currency,
+	Instant,
+	PlainDate,
 	SourceRowInvalid,
 	SourceUnavailable,
 	type DatabaseContext,
@@ -122,7 +124,7 @@ function mapEntry(row: SqlRow) {
 		throw invalid('t_RP_Contact', 'Receivables require a dated reference and a verified customer');
 	const r = columns(row);
 	const kind = exactId(row, 'contact_type') === '3' ? ('invoice' as const) : ('receipt' as const);
-	const remaining = r.decimal('remaining').toString();
+	const remaining = decimalText(r.decimal('remaining'));
 	return {
 		contact_id,
 		customer_id,
@@ -133,7 +135,7 @@ function mapEntry(row: SqlRow) {
 		due_on: sourceDate(row, 'due_on'),
 		remaining,
 		settlements: Schema.decodeUnknownSync(settlementsSchema)(r.text('settlements', '[]')).map(
-			(check) => ({ on: PlainDate(check.on), amount: Decimal.of(check.amount).toString() })
+			(check) => ({ on: PlainDate(check.on), amount: decimalText(check.amount) })
 		)
 	};
 }

@@ -1,5 +1,4 @@
-import type { Id } from '@norbital-ai/bolt';
-import { input_schema } from '@norbital-ai/std/kind';
+import { input_schema, type Id } from '@norbital-ai/bolt';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { TestWorkspace, type TestOptions, type TestPorts } from '@norbital-ai/bolt-cli/test';
 /** Each caller owns this workspace's scope and every engine service it acquired. */

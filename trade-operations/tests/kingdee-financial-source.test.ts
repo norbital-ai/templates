@@ -1,8 +1,6 @@
 import { expect, it as test } from '@effect/vitest';
-import { Effect } from 'effect';
-import { Decimal, currency } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
-import { fixtureId } from './test-runtime.js';
+import { BigDecimal, Effect } from 'effect';
+import { fixtureId, sameDecimal } from './test-runtime.js';
 import {
 	mapPayments,
 	mapSalesFacts,
@@ -22,7 +20,7 @@ const line = (set: Partial<Line> = {}): Line => ({
 	entryId: '1',
 	detailId: '201',
 	unit: 'kg',
-	quantity: Decimal.of('10'),
+	quantity: BigDecimal.fromStringUnsafe('10'),
 	lotNumber: 'lot-A',
 	netAmount: null,
 	grossAmount: null,
@@ -33,7 +31,7 @@ const line = (set: Partial<Line> = {}): Line => ({
 const document = (set: Partial<FinancialDocument> = {}): FinancialDocument => ({
 	fid: '10',
 	reference: 'XOUT10',
-	issuedOn: PlainDate('2026-10-25'),
+	issuedOn: '2026-10-25',
 	currency: 'CNY',
 	status: 'issued',
 	owner,
@@ -44,12 +42,12 @@ const invoice = (deliveryId = '10', set: Partial<FinancialDocument> = {}) =>
 	document({
 		fid: '20',
 		reference: 'INV20',
-		issuedOn: PlainDate('2026-11-02'),
+		issuedOn: '2026-11-02',
 		lines: [
 			line({
 				upstream: { fid: deliveryId, entryId: '1' },
-				netAmount: Decimal.of('100'),
-				grossAmount: Decimal.of('113')
+				netAmount: BigDecimal.fromStringUnsafe('100'),
+				grossAmount: BigDecimal.fromStringUnsafe('113')
 			})
 		],
 		...set
@@ -87,7 +85,7 @@ test('one settlement header spanning invoice lines contributes its amount once w
 		'CNY'
 	);
 	expect(facts).toHaveLength(1);
-	expect(facts[0]?.amount.eq('9007199254740993.12')).toBe(true);
+	expect(sameDecimal(facts[0]?.amount, '9007199254740993.12')).toBe(true);
 	expect(facts[0]).toMatchObject({
 		$id: 'receipt:100',
 		external_code: 'receipt:100',
@@ -166,9 +164,9 @@ test('a negative delivery maps as a return and keeps signed money', () => {
 		reference: 'RET12',
 		lines: [
 			line({
-				quantity: Decimal.of('-2'),
-				netAmount: Decimal.of('-4'),
-				grossAmount: Decimal.of('-4.52')
+				quantity: BigDecimal.fromStringUnsafe('-2'),
+				netAmount: BigDecimal.fromStringUnsafe('-4'),
+				grossAmount: BigDecimal.fromStringUnsafe('-4.52')
 			})
 		]
 	});
@@ -177,9 +175,9 @@ test('a negative delivery maps as a return and keeps signed money', () => {
 	expect(facts[0]).toMatchObject({
 		external_code: 'return:12:1',
 		kind: 'return',
-		quantity: Decimal.of('-2'),
-		net_amount: Decimal.of('-4'),
-		tax_amount: Decimal.of('-0.52'),
+		quantity: '-2',
+		net_amount: '-4',
+		tax_amount: '-0.52',
 		active: true
 	});
 });
@@ -190,9 +188,9 @@ test('a return with positive money is refused', () => {
 		reference: 'RET12',
 		lines: [
 			line({
-				quantity: Decimal.of('-2'),
-				netAmount: Decimal.of('4'),
-				grossAmount: Decimal.of('4.52')
+				quantity: BigDecimal.fromStringUnsafe('-2'),
+				netAmount: BigDecimal.fromStringUnsafe('4'),
+				grossAmount: BigDecimal.fromStringUnsafe('4.52')
 			})
 		]
 	});
@@ -203,13 +201,13 @@ test('a linked red invoice reverses quantity and money without inventing a retur
 	const red = document({
 		fid: '21',
 		reference: 'INVR21',
-		issuedOn: PlainDate('2026-11-03'),
+		issuedOn: '2026-11-03',
 		lines: [
 			line({
 				upstream: { fid: '10', entryId: '1' },
-				quantity: Decimal.of('-10'),
-				netAmount: Decimal.of('-100'),
-				grossAmount: Decimal.of('-113')
+				quantity: BigDecimal.fromStringUnsafe('-10'),
+				netAmount: BigDecimal.fromStringUnsafe('-100'),
+				grossAmount: BigDecimal.fromStringUnsafe('-113')
 			})
 		]
 	});
@@ -219,15 +217,15 @@ test('a linked red invoice reverses quantity and money without inventing a retur
 	expect(invoiced[1]).toMatchObject({
 		external_code: 'invoice:21:201',
 		reference: 'INVR21/1',
-		quantity: Decimal.of('-10'),
-		net_amount: Decimal.of('-100'),
-		tax_amount: Decimal.of('-13'),
+		quantity: '-10',
+		net_amount: '-100',
+		tax_amount: '-13',
 		active: true
 	});
 	expect(
-		invoiced
-			.reduce((total, fact) => total.plus(fact.net_amount ?? Decimal.of(0)), Decimal.of(0))
-			.is_zero()
+		BigDecimal.isZero(
+			BigDecimal.sumAll(invoiced.map((fact) => BigDecimal.fromStringUnsafe(fact.net_amount ?? '0')))
+		)
 	).toBe(true);
 });
 
@@ -238,9 +236,9 @@ test('a red invoice whose amount sign disagrees with its quantity is refused', (
 		lines: [
 			line({
 				upstream: { fid: '10', entryId: '1' },
-				quantity: Decimal.of('-10'),
-				netAmount: Decimal.of('100'),
-				grossAmount: Decimal.of('113')
+				quantity: BigDecimal.fromStringUnsafe('-10'),
+				netAmount: BigDecimal.fromStringUnsafe('100'),
+				grossAmount: BigDecimal.fromStringUnsafe('113')
 			})
 		]
 	});
@@ -257,8 +255,8 @@ test('invoice money is attributed to the precise delivery line instead of anothe
 		order_line: 'sealed-line-A',
 		active: true
 	});
-	expect(facts[0]?.net_amount?.eq('100')).toBe(true);
-	expect(facts[0]?.tax_amount?.eq('13')).toBe(true);
+	expect(sameDecimal(facts[0]?.net_amount, '100')).toBe(true);
+	expect(sameDecimal(facts[0]?.tax_amount, '13')).toBe(true);
 	expect(facts[1]?.net_amount).toBeNull();
 	expect(facts[2]).toMatchObject({
 		external_code: 'invoice:20:201',
@@ -266,7 +264,7 @@ test('invoice money is attributed to the precise delivery line instead of anothe
 		business_on: '2026-11-02',
 		reference: 'INV20/1'
 	});
-	expect(facts[2]?.net_amount?.eq('100')).toBe(true);
+	expect(sameDecimal(facts[2]?.net_amount, '100')).toBe(true);
 	expect(facts.every((fact) => fact.freight === null && fact.unit_cost === null)).toBe(true);
 });
 
@@ -274,39 +272,44 @@ test('partially invoiced deliveries retain their actual quantity while financial
 	const billed = invoice('10', {
 		lines: [
 			line({
-				quantity: Decimal.of('5'),
+				quantity: BigDecimal.fromStringUnsafe('5'),
 				upstream: { fid: '10', entryId: '1' },
-				netAmount: Decimal.of('50'),
-				grossAmount: Decimal.of('56.5')
+				netAmount: BigDecimal.fromStringUnsafe('50'),
+				grossAmount: BigDecimal.fromStringUnsafe('56.5')
 			})
 		]
 	});
 	const [fact, invoiced] = mapSalesFacts([document()], [billed], observed);
-	expect(fact?.quantity.eq('10')).toBe(true);
+	expect(sameDecimal(fact?.quantity, '10')).toBe(true);
 	expect(fact?.net_amount).toBeNull();
 	expect(fact?.tax_amount).toBeNull();
-	expect(invoiced?.quantity.eq('5')).toBe(true);
-	expect(invoiced?.net_amount?.eq('50')).toBe(true);
+	expect(sameDecimal(invoiced?.quantity, '5')).toBe(true);
+	expect(sameDecimal(invoiced?.net_amount, '50')).toBe(true);
 });
 
 test('an invoice carries its delivery line cost only for the billed quantity', () => {
-	const counted = currency('CNY');
+	const counted = 'CNY';
 	const costed = document({
-		lines: [line({ quantity: Decimal.of('10'), costAmount: Decimal.of('5.1234567891') })]
+		lines: [
+			line({
+				quantity: BigDecimal.fromStringUnsafe('10'),
+				costAmount: BigDecimal.fromStringUnsafe('5.1234567891')
+			})
+		]
 	});
 	const partial = invoice('10', {
 		lines: [
 			line({
-				quantity: Decimal.of('4'),
+				quantity: BigDecimal.fromStringUnsafe('4'),
 				upstream: { fid: '10', entryId: '1' },
-				netAmount: Decimal.of('40'),
-				grossAmount: Decimal.of('45.2')
+				netAmount: BigDecimal.fromStringUnsafe('40'),
+				grossAmount: BigDecimal.fromStringUnsafe('45.2')
 			})
 		]
 	});
 	const [shipment, invoiced] = mapSalesFacts([costed], [partial], observed, counted);
-	expect(shipment?.booked_cost?.eq('5.1234567891')).toBe(true);
-	expect(invoiced?.booked_cost?.eq('2.0493827156')).toBe(true);
+	expect(sameDecimal(shipment?.booked_cost, '5.1234567891')).toBe(true);
+	expect(sameDecimal(invoiced?.booked_cost, '2.0493827156')).toBe(true);
 	expect(invoiced?.booked_cost_currency).toBe('CNY');
 	expect(mapSalesFacts([costed], [partial], observed)[1]?.booked_cost).toBeNull();
 });
@@ -340,20 +343,15 @@ test.effect(
 );
 
 test('withholds overallocated invoice cost without dropping either invoice revenue', () => {
-	const costed = document({ lines: [line({ costAmount: Decimal.of('30') })] });
-	const facts = mapSalesFacts(
-		[costed],
-		[invoice(), invoice('10', { fid: '21' })],
-		observed,
-		currency('CNY')
-	);
+	const costed = document({ lines: [line({ costAmount: BigDecimal.fromStringUnsafe('30') })] });
+	const facts = mapSalesFacts([costed], [invoice(), invoice('10', { fid: '21' })], observed, 'CNY');
 	expect(
 		facts
 			.filter((fact) => fact.kind === 'invoice')
-			.map((fact) => [fact.net_amount?.eq(100), fact.booked_cost])
+			.map((fact) => [sameDecimal(fact.net_amount, '100'), fact.booked_cost])
 	).toEqual([
 		[true, null],
 		[true, null]
 	]);
-	expect(facts.find((fact) => fact.kind === 'shipment')?.booked_cost?.eq(30)).toBe(true);
+	expect(sameDecimal(facts.find((fact) => fact.kind === 'shipment')?.booked_cost, '30')).toBe(true);
 });

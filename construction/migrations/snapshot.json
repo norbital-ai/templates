@@ -115,6 +115,14 @@
 					"kind": "text",
 					"optional": true
 				},
+				"document_file": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"max": "50MiB",
+					"optional": true
+				},
 				"document_number": {
 					"kind": "text",
 					"optional": true
@@ -2439,6 +2447,10 @@
 					},
 					"kind": "instant"
 				},
+				"discord": {
+					"kind": "text",
+					"optional": true
+				},
 				"email": {
 					"format": "email",
 					"kind": "text",
@@ -2475,6 +2487,10 @@
 				"signup": {
 					"default": false,
 					"kind": "bool"
+				},
+				"slack": {
+					"kind": "text",
+					"optional": true
 				},
 				"team": {
 					"format": "team",

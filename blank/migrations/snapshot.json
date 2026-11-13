@@ -1457,6 +1457,10 @@
 					},
 					"kind": "instant"
 				},
+				"discord": {
+					"kind": "text",
+					"optional": true
+				},
 				"email": {
 					"format": "email",
 					"kind": "text",
@@ -1493,6 +1497,10 @@
 				"signup": {
 					"default": false,
 					"kind": "bool"
+				},
+				"slack": {
+					"kind": "text",
+					"optional": true
 				},
 				"team": {
 					"format": "team",

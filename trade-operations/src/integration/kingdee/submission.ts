@@ -1,7 +1,7 @@
-import { Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import { type DatabaseContext, query, SourceRowInvalid } from './polling.js';
 import { sha256Hex } from '../../lib/commercial.js';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { dec, text } from '../../lib/values.js';
 import {
 	headerTypes,
 	itemTypes,
@@ -288,10 +288,13 @@ export const submitOrder = Effect.fnUntraced(function* (
 				return rows[0];
 			};
 			const sourceCurrency = one('currency');
-			const rate = Decimal.of(sourceCurrency.rate);
-			if (rate.lte(0) || (selected.denomination.base && !rate.eq(1)))
+			const rate = dec(sourceCurrency.rate);
+			if (
+				!BigDecimal.isPositive(rate) ||
+				(selected.denomination.base && !BigDecimal.equals(rate, dec(1)))
+			)
 				return invalid('currency', 'Source exchange rate is invalid for this currency binding');
-			if (payload.previous && !rate.eq(payload.previous.source_exchange_rate))
+			if (payload.previous && !BigDecimal.equals(rate, dec(payload.previous.source_exchange_rate)))
 				return invalid(
 					'currency',
 					'Source exchange rate changed since the previous contract observation'
@@ -310,7 +313,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				settlementId: one('settlement').id,
 				currencyId: sourceCurrency.id,
 				baseCurrency: config.baseCurrency,
-				rate: rate.toString(),
+				rate: text(rate),
 				packagingId: config.packagingId ? sourceInteger(config.packagingId, 'packagingId') : '',
 				creditDays: selected.rule.creditDays,
 				fromMonthEnd: selected.rule.fromMonthEnd,

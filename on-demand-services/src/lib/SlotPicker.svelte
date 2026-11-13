@@ -3,7 +3,7 @@
 	 * Picking a visit's start: the available days as a swipeable strip (each with how many starts it has; a day
 	 * nobody can take is greyed), then the chosen day's starts by part of the day, each with when the visit would end.
 	 */
-	import { local_of } from '@norbital-ai/std/zone';
+	import { local_of } from './matching.js';
 	import { Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	type Day = {
 		readonly day: string;

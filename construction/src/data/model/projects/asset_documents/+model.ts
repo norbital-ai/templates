@@ -10,6 +10,7 @@ const columns = [
 	'status',
 	'validity_range',
 	'document_url',
+	'document_file',
 	'version',
 	'tags'
 ] as const;
@@ -38,6 +39,7 @@ export default model({
 		},
 		validity_range: { kind: 'period', of: 'date', optional: true },
 		document_url: { kind: 'text', optional: true },
+		document_file: { kind: 'file', accept: ['*/*'], max: '50MiB', optional: true },
 		version: { kind: 'text', optional: true },
 		tags: { kind: 'text', many: true, optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'asset_documents', optional: true },

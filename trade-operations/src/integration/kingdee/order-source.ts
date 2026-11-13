@@ -1,14 +1,16 @@
-import { Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import type { Id, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Decimal, currency, sum } from '@norbital-ai/std/decimal';
-import { Instant, PlainDate } from '@norbital-ai/std/date';
+import { dec, div, round, sum, text as decimalText, type D } from '../../lib/values.js';
 import { agreements, agreementFields } from '../../lib/agreements.js';
 import { hash, sha256Hex } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
 import {
 	columns,
+	currency,
+	Instant,
+	PlainDate,
 	query,
 	SourceRowInvalid,
 	type DatabaseContext,
@@ -24,11 +26,11 @@ type SalesLine = {
 	readonly detailId: string;
 	readonly itemId: string;
 	readonly unit: string;
-	readonly quantity: Decimal;
+	readonly quantity: D;
 	readonly lotNumber: string | null;
-	readonly netAmount: Decimal | null;
-	readonly grossAmount: Decimal | null;
-	readonly costAmount?: Decimal | null;
+	readonly netAmount: D | null;
+	readonly grossAmount: D | null;
+	readonly costAmount?: D | null;
 	readonly localLine: LocalLine;
 	readonly upstream: { readonly fid: string; readonly entryId: string } | null;
 };
@@ -48,13 +50,13 @@ type OwnedSales = {
 type SalesDocument = {
 	readonly fid: string;
 	readonly reference: string;
-	readonly issuedOn: ReturnType<typeof PlainDate>;
-	readonly dueOn: ReturnType<typeof PlainDate> | null;
+	readonly issuedOn: string;
+	readonly dueOn: string | null;
 	readonly currency: string;
 	readonly status: 'issued' | 'void';
 	readonly owner: OwnedSales;
 	readonly lines: readonly SalesLine[];
-	readonly total: Decimal | null;
+	readonly total: D | null;
 };
 type DocumentIssue = { readonly document: string; readonly column: string };
 type DocumentReview = {
@@ -64,7 +66,7 @@ type DocumentReview = {
 type SalesGraph = DocumentReview & {
 	readonly deliveries: readonly SalesDocument[];
 	readonly invoices: readonly SalesDocument[];
-	readonly observedAt: ReturnType<typeof Instant>;
+	readonly observedAt: string;
 	readonly source: string;
 };
 const invalid = (name: string, reason: string): never => {
@@ -511,20 +513,28 @@ export const readOwnedSales = Effect.fnUntraced(function* (
 								);
 							positions.add(position);
 							const r = columns(entry);
-							const effective = Decimal.of(line.unit_price)
-								.times(Decimal.of(100).minus(line.discount_pct))
-								.div(100, 12);
+							const effective = div(
+								BigDecimal.multiply(
+									dec(line.unit_price),
+									BigDecimal.subtract(dec(100), dec(line.discount_pct))
+								),
+								100,
+								12
+							);
 							if (
 								exactId(entry, 'item_id') !== line.product_code ||
 								text(entry, 'unit') !== line.unit ||
-								!r.decimal('quantity').eq(line.quantity) ||
-								!r
-									.decimal(agreement.snapshot.tax_inclusive ? 'unit_price_inclusive' : 'unit_price')
-									.eq(effective) ||
-								!r.decimal('tax_rate').eq(line.tax_rate) ||
-								!r.decimal('net_amount').eq(line.net) ||
-								!r.decimal('tax_amount').eq(line.tax) ||
-								!r.decimal('gross_amount').eq(line.total)
+								!BigDecimal.equals(r.decimal('quantity'), dec(line.quantity)) ||
+								!BigDecimal.equals(
+									r.decimal(
+										agreement.snapshot.tax_inclusive ? 'unit_price_inclusive' : 'unit_price'
+									),
+									effective
+								) ||
+								!BigDecimal.equals(r.decimal('tax_rate'), dec(line.tax_rate)) ||
+								!BigDecimal.equals(r.decimal('net_amount'), dec(line.net)) ||
+								!BigDecimal.equals(r.decimal('tax_amount'), dec(line.tax)) ||
+								!BigDecimal.equals(r.decimal('gross_amount'), dec(line.total))
 							)
 								return invalid(
 									'SEOrderEntry',
@@ -557,7 +567,7 @@ export const readOwnedSales = Effect.fnUntraced(function* (
 								detailId: entry.detail_id,
 								itemId: line.product_code,
 								unit: line.unit,
-								quantity: Decimal.of(line.quantity),
+								quantity: dec(line.quantity),
 								lotNumber: null,
 								netAmount: null,
 								grossAmount: null,
@@ -777,10 +787,12 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					if (
 						exactId(entry, 'item_id') !== source.itemId ||
 						text(entry, 'unit') !== source.unit ||
-						quantity.is_zero() ||
-						(!red && quantity.lt(0)) ||
-						(linkedReturn && (!source.quantity.gt(0) || quantity.abs().gt(source.quantity))) ||
-						!quantity.round(3).eq(quantity)
+						BigDecimal.isZero(quantity) ||
+						(!red && BigDecimal.isNegative(quantity)) ||
+						(linkedReturn &&
+							(!BigDecimal.isPositive(source.quantity) ||
+								BigDecimal.isGreaterThan(BigDecimal.abs(quantity), source.quantity))) ||
+						!BigDecimal.equals(round(quantity, 3), quantity)
 					)
 						return invalid(
 							'ICStockBillEntry',
@@ -789,14 +801,15 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					if (
 						kind === 'invoice' &&
 						!red &&
-						(r.decimal('net_amount').lt(0) || r.decimal('gross_amount').lt(0))
+						(BigDecimal.isNegative(r.decimal('net_amount')) ||
+							BigDecimal.isNegative(r.decimal('gross_amount')))
 					)
 						return invalid(
 							'ICSaleEntry',
 							'A blue invoice line has a negative amount requiring an explicit reversal mapping'
 						);
 					const costAmount = r.decimal('cost_amount', null);
-					const signed = (value: Decimal) => (red ? value.abs().neg() : value);
+					const signed = (value: D) => (red ? BigDecimal.negate(BigDecimal.abs(value)) : value);
 					return {
 						entryId: exactId(entry, 'entry_id'),
 						detailId:
@@ -1097,9 +1110,9 @@ export const readTransactions = Effect.fnUntraced(function* (
 						order_line_id: string;
 						product_name: string;
 						unit: string;
-						quantity: Decimal;
+						quantity: D;
 						lot_number: string | null;
-						net_amount: Decimal | null;
+						net_amount: D | null;
 					}
 				>();
 				for (const line of document.lines) {
@@ -1118,12 +1131,12 @@ export const readTransactions = Effect.fnUntraced(function* (
 						order_line_id: line.localLine.id,
 						product_name: line.localLine.product_name,
 						unit: line.unit,
-						quantity: previous ? previous.quantity.plus(line.quantity) : line.quantity,
+						quantity: previous ? BigDecimal.sum(previous.quantity, line.quantity) : line.quantity,
 						lot_number: line.lotNumber,
 						net_amount: previous
 							? previous.net_amount === null || line.netAmount === null
 								? null
-								: previous.net_amount.plus(line.netAmount)
+								: BigDecimal.sum(previous.net_amount, line.netAmount)
 							: line.netAmount
 					});
 				}
@@ -1141,8 +1154,12 @@ export const readTransactions = Effect.fnUntraced(function* (
 					status: document.status,
 					issued_on: document.issuedOn,
 					due_on: document.dueOn,
-					total: document.total,
-					items: [...items.values()],
+					total: document.total === null ? null : decimalText(document.total),
+					items: [...items.values()].map((item) => ({
+						...item,
+						quantity: decimalText(item.quantity),
+						net_amount: item.net_amount === null ? null : decimalText(item.net_amount)
+					})),
 					documents: [],
 					source_updated_at: graph.observedAt
 				};

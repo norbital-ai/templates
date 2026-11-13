@@ -1,7 +1,7 @@
-import { Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { dec, text, type D } from '../../lib/values.js';
 import { kingdeeAgreement } from '../../lib/agreements.js';
 import { sha256Hex } from '../../lib/commercial.js';
 import { kingdeeStockAvailabilityAccount } from './configuration.js';
@@ -109,19 +109,19 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 			throw invalid('SEOrderEntry', 'The open order snapshot exceeds its row bound');
 		const totals = new Map<
 			string,
-			{ product_code: string; warehouse: string | null; unit: string | null; quantity: Decimal }
+			{ product_code: string; warehouse: string | null; unit: string | null; quantity: D }
 		>();
 		for (const row of rows) {
-			const quantity = Decimal.of(row.quantity);
-			if (quantity.eq(0)) continue;
+			const quantity = dec(row.quantity);
+			if (BigDecimal.isZero(quantity)) continue;
 			const warehouse = warehouses.get(JSON.stringify([row.branch, row.fid])) ?? null;
 			const unit = row.unit?.trim() || null;
 			const key = JSON.stringify([row.item, warehouse, unit]);
 			const previous = totals.get(key);
-			if (previous) previous.quantity = previous.quantity.plus(quantity);
+			if (previous) previous.quantity = BigDecimal.sum(previous.quantity, quantity);
 			else totals.set(key, { product_code: row.item, warehouse, unit, quantity });
 		}
-		return [...totals.values()].map((entry) => ({ ...entry, quantity: entry.quantity.toString() }));
+		return [...totals.values()].map((entry) => ({ ...entry, quantity: text(entry.quantity) }));
 	});
 	return { rows: [{ ...header, entries }], cursor: checkpoint, more: false };
 });

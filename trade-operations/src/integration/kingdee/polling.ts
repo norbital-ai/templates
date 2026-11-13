@@ -1,14 +1,40 @@
-import { Effect, Record as EffectRecord, Result, Schema } from 'effect';
+import { DateTime, Effect, Record as EffectRecord, Result, Schema } from 'effect';
 import type { FacilityFailure, ReadFailed, Unavailable } from '@norbital-ai/bolt/errors';
 import { sha256Hex, type DigestUnavailable } from '../../lib/commercial.js';
-import type { Health, Id, InstanceId } from '@norbital-ai/bolt';
+import {
+	input_schema,
+	type CurrencyCode,
+	type Health,
+	type Id,
+	type InstanceId
+} from '@norbital-ai/bolt';
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
-import { Decimal, currency } from '@norbital-ai/std/decimal';
-import { input_schema } from '@norbital-ai/std/kind';
-import { Instant, PlainDate } from '@norbital-ai/std/date';
+import { dec } from '../../lib/values.js';
 import type { SourceProjection as Projection } from './sql.js';
 import { sourceCheckpoint, sourcePage, sourceMarkers } from './sql.js';
 import { bindings, normalizeSourceRow } from './source-bindings.js';
+/** An ISO 4217 code the runtime knows; anything else throws. */
+export function currency(code: string): CurrencyCode {
+	if (!isCurrency(code)) throw new RangeError(`'${code}' is not an ISO 4217 currency`);
+	return code;
+}
+const isCurrency = (code: string): code is CurrencyCode =>
+	/^[A-Z]{3}$/.test(code) && Intl.supportedValuesOf('currency').includes(code);
+/** A calendar day `YYYY-MM-DD`; anything else throws. */
+export function PlainDate(text: string): string {
+	if (
+		!/^\d{4}-\d{2}-\d{2}$/.test(text) ||
+		DateTime.formatIsoDateUtc(DateTime.makeUnsafe(text)) !== text
+	)
+		throw new RangeError(`'${text}' is not a calendar date (YYYY-MM-DD)`);
+	return text;
+}
+/** An ISO instant with `Z` or an offset, as canonical UTC `…Z`; anything else throws. */
+export function Instant(text: string): string {
+	if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:?\d{2})$/i.test(text))
+		throw new RangeError(`'${text}' is not an ISO instant with a zone`);
+	return new Date(text).toISOString();
+}
 export class SourceRowInvalid extends Schema.TaggedError<SourceRowInvalid>()('SourceRowInvalid', {
 	column: Schema.String,
 	reason: Schema.String
@@ -116,7 +142,9 @@ export function columns(row: SqlRow) {
 			)(name),
 		text: reader(Schema.String, same, 'text'),
 		bool: reader(Schema.Boolean, same, 'a bit'),
-		decimal: reader(Precise, (value) => Decimal.of(value), 'decimal'),
+		decimal: reader(Precise, dec, 'decimal'),
+		/** A decimal column as the exact text a decimal field stores. */
+		decimalText: reader(Precise, same, 'decimal'),
 		currency: reader(Schema.String, currency, 'a currency'),
 		date: reader(Schema.String, PlainDate, 'a date'),
 		instant: reader(Schema.String, Instant, 'an instant'),

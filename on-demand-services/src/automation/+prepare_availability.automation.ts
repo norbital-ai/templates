@@ -1,15 +1,15 @@
 import { Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
-import { add_days } from '@norbital-ai/std/date';
-import { utc_of } from '@norbital-ai/std/zone';
 import { loadPool, learnLegs, targetOf } from '../lib/dispatch.js';
 import {
+	add_days,
 	availableSlots,
 	BOOKING_AHEAD,
 	legOf,
 	lookups,
 	occurrences,
-	type Point
+	type Point,
+	utc_of
 } from '../lib/matching.js';
 export default automation({
 	description:

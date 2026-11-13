@@ -1,7 +1,7 @@
 import { expect, it as test } from '@effect/vitest';
 import { Effect, Schema } from 'effect';
 import { DatabaseRequest, type Json } from '@norbital-ai/bolt/engine';
-import { fixtureId } from './test-runtime.js';
+import { fixtureId, sameDecimal } from './test-runtime.js';
 import { sourceOrderUuid } from '../src/integration/kingdee/submission.js';
 import {
 	readOwnedSales,
@@ -375,7 +375,7 @@ test.effect(
 				ICStockBill: [{ ...deliveryHeader, rob: -1 }]
 			});
 			const { documents: redDocuments } = yield* readSalesDocuments(owned, red, 'delivery');
-			expect(redDocuments[0]?.lines[0]?.quantity.eq('-100')).toBe(true);
+			expect(sameDecimal(redDocuments[0]?.lines[0]?.quantity, '-100')).toBe(true);
 			const returnFid = '64600';
 			const returned = fixture({
 				ICStockBillEntry: [
@@ -403,7 +403,7 @@ test.effect(
 			const { documents: withReturn } = yield* readSalesDocuments(owned, returned, 'delivery');
 			const returnDoc = withReturn.find((doc) => doc.fid === returnFid);
 			expect(returnDoc?.owner.seal).toBe(deliveries[0]?.owner.seal);
-			expect(returnDoc?.lines[0]?.quantity.eq(-25)).toBe(true);
+			expect(sameDecimal(returnDoc?.lines[0]?.quantity, '-25')).toBe(true);
 			expect(returnDoc?.lines[0]?.localLine.id).toBe('line-owned');
 
 			const invoiceHeader: SqlRow = {
@@ -439,7 +439,7 @@ test.effect(
 				'invoice',
 				deliveries
 			);
-			expect(invoices[0]?.total?.eq('226')).toBe(true);
+			expect(sameDecimal(invoices[0]?.total, '226')).toBe(true);
 			expect(invoices[0]?.lines[0]).toMatchObject({
 				localLine: { id: 'line-owned' },
 				upstream: { fid: '64599', entryId: '1' },

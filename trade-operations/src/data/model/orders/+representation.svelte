@@ -2,11 +2,11 @@
 	import { translated } from '../../../lib/ui/message.js';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { attach, fork } from '@norbital-ai/ui/effect';
-	import { Effect, Result, Schema, Scope } from 'effect';
-	import { Decimal } from '@norbital-ai/std/decimal';
+	import { BigDecimal, Effect, Result, Schema, Scope } from 'effect';
 	import { observe_once } from '@norbital-ai/ui/effect';
 	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
 	import { reportPages } from '../../../lib/reports.js';
+	import { dec, div, round, text, type DecimalLike } from '../../../lib/values.js';
 	import {
 		agreements,
 		awaitingKingdee,
@@ -56,8 +56,8 @@
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { createValues, openCreate } from '../../../lib/ui/create-values.js';
 	const moneyKind = { kind: 'money', currency: 'currency' } as const;
-	function displayDecimal(value: string) {
-		const exact = Decimal.of(value).toString();
+	function displayDecimal(value: DecimalLike) {
+		const exact = text(value);
 		return exact.includes('.') ? exact.replace(/0+$/, '').replace(/\.$/, '') : exact;
 	}
 
@@ -320,15 +320,22 @@
 				liveSource.seal_hash !== selectedContract?.seal_hash &&
 				liveSource.seal_hash !== selectedContract?.basis_seal)
 	);
+	// a confirmation an approval holds is provisional: its seal is not yet the agreed contract
+	const provisional = (version: ContractVersion) =>
+		view.mode !== 'create' &&
+		view.record.$approval !== undefined &&
+		version.seal_hash === view.record.seal_hash;
 	function contractLabel(version: ContractVersion) {
 		return ctx.t(
-			version.seal_hash === currentContract?.seal_hash
-				? 'component.contract_current'
-				: version.lifecycle === 'pending'
-					? 'component.contract_pending'
-					: version.origin === 'kingdee' && version.kingdee && !version.kingdee.archived
-						? 'component.kingdee_version'
-						: 'component.contract_superseded'
+			provisional(version)
+				? 'component.contract_provisional'
+				: version.seal_hash === currentContract?.seal_hash
+					? 'component.contract_current'
+					: version.lifecycle === 'pending'
+						? 'component.contract_pending'
+						: version.origin === 'kingdee' && version.kingdee && !version.kingdee.archived
+							? 'component.kingdee_version'
+							: 'component.contract_superseded'
 		);
 	}
 	function confirmationPresentation(
@@ -505,6 +512,7 @@
 
 {#snippet validity(form: FormState, field: FieldEditor)}
 	<TimeRangeInput
+		{ctx}
 		of="date"
 		precision="day"
 		id={field.id}
@@ -612,16 +620,16 @@
 						<ul class="mt-2 space-y-2">
 							{#each fifoCosts as row (row.key)}
 								<li>
-									<span class="font-medium">{row.product}</span> · {row.quantity.toString()}
+									<span class="font-medium">{row.product}</span> · {text(row.quantity)}
 									{row.unit}
 									{#if row.estimate}
 										· {purchaseCosts.currency}
-										{row.estimate.unit_cost.round(4).toString()} / {row.unit}
+										{text(round(row.estimate.unit_cost, 4))} / {row.unit}
 										{#if row.below}
 											· {ctx.t('stock.fifo.below_quote')}{/if}
 										<div class="text-muted-foreground">
 											{row.estimate.lots
-												.map((lot) => `${lot.lot_number} × ${lot.quantity.toString()}`)
+												.map((lot) => `${lot.lot_number} × ${text(lot.quantity)}`)
 												.join(' · ')}
 										</div>
 									{:else}
@@ -665,6 +673,7 @@
 			ctx.catalog?.order_files?.create &&
 			!archived &&
 			selectedContract.lifecycle !== 'pending' &&
+			!provisional(selectedContract) &&
 			!recordController?.historical}
 		<Stack gap="md">
 			<Grid as="dl" gap="md" minimum="compact">
@@ -821,7 +830,7 @@
 												/>
 											</dd>
 										</div>
-										{#if Decimal.of(line.discount_pct).gt(0)}
+										{#if BigDecimal.isPositive(dec(line.discount_pct))}
 											<div>
 												<dt class="inline">{ctx.t('models.order_lines.fields.discount_pct')}</dt>
 												<dd class="inline">{displayDecimal(line.discount_pct)}%</dd>
@@ -836,16 +845,21 @@
 								<td class="px-3 py-2 text-right tabular-nums">
 									{displayDecimal(line.quantity)}
 									{line.unit}
-									{#if delivered && Decimal.of(line.quantity).gt(0)}
+									{#if delivered && BigDecimal.isPositive(dec(line.quantity))}
 										{@const label = ctx.t('component.line_delivery_progress', {
-											quantity: displayDecimal(delivered.toString()),
+											quantity: displayDecimal(delivered),
 											unit: line.unit
 										})}
 										<Progress
 											class="mt-1 h-1"
 											value={Math.max(
 												0,
-												Math.min(100, delivered.times(100).div(line.quantity, 2).to_number())
+												Math.min(
+													100,
+													BigDecimal.toNumberUnsafe(
+														div(BigDecimal.multiply(delivered, dec(100)), line.quantity, 2)
+													)
+												)
 											)}
 											aria-label={label}
 										/>
@@ -913,14 +927,14 @@
 	{@const floor = draftContract ? quoteFloors.get(row.id) : undefined}
 	{#if floor?.net != null && quote && value != null}
 		{@const status = ctx.t(floor.below ? 'errors.floor_below' : 'component.quote_floor_met')}
-		{@const minimum = `${quote.currency} ${displayDecimal(floor.net.toString())}/${floor.unit}`}
+		{@const minimum = `${quote.currency} ${displayDecimal(floor.net)}/${floor.unit}`}
 		{@const hint = `${status} ${ctx.t('component.quote_floor_minimum')}: ${minimum} · ${floor.effective_on}`}
 		<Tooltip text={hint}>
 			{#snippet trigger({ props })}
 				<button
 					{...props}
 					type="button"
-					aria-label={`${quote.currency} ${displayDecimal(value.toString())}. ${hint}`}
+					aria-label={`${quote.currency} ${displayDecimal(value)}. ${hint}`}
 					class="inline-flex items-center gap-1 rounded-sm font-medium focus-visible:outline-2 focus-visible:outline-ring"
 					class:text-destructive={floor.below}
 					class:text-success={!floor.below}
@@ -1143,7 +1157,7 @@
 			{:else}{@render sourceConfirmation()}{/each}
 		{:else if !purchase}{@render sourceConfirmation()}{/if}
 	{/if}{/snippet}
-{#snippet contractActions(form: FormState)}
+{#snippet contractActions(form: FormState | undefined)}
 	{@const lockedLabel = selectedContract
 		? ctx.t(purchase ? 'component.commitment_recorded' : 'component.sealed')
 		: null}
@@ -1176,7 +1190,7 @@
 				>{ctx.t('component.revise_kingdee')}</Button
 			>
 		{/if}
-		{@render sealButton(form)}
+		{#if form}{@render sealButton(form)}{/if}
 		{#if lockedLabel}
 			<Tooltip
 				text={selectedContract?.origin === 'kingdee'
@@ -1198,7 +1212,7 @@
 	<Cluster gap="sm" align="center">
 		{#if selectedContract}
 			<Badge
-				variant={selectedContract.lifecycle === 'pending'
+				variant={selectedContract.lifecycle === 'pending' || provisional(selectedContract)
 					? 'warning'
 					: selectedContract.seal_hash === currentContract?.seal_hash
 						? 'success'
@@ -1206,7 +1220,7 @@
 			>
 				{contractLabel(selectedContract)}
 			</Badge>
-			{#if selectedContract.lifecycle !== 'pending'}{@render confirmationLink()}{/if}
+			{#if selectedContract.lifecycle !== 'pending' && !provisional(selectedContract)}{@render confirmationLink()}{/if}
 		{/if}
 	</Cluster>
 {/snippet}

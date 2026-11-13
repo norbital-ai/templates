@@ -1,8 +1,7 @@
-import { Effect } from 'effect';
+import { BigDecimal, Effect } from 'effect';
 import { type InstanceId } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Decimal, sum } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
+import { dec, div, sum, text as decimalText } from '../../lib/values.js';
 import {
 	agreedTotal,
 	agreements,
@@ -16,7 +15,7 @@ import {
 } from '../../lib/agreements.js';
 import { contractEntryId } from '../../lib/contract-draft.js';
 import { hash, sha256Hex } from '../../lib/commercial.js';
-import { columns, SourceRowInvalid, type SqlRow } from './polling.js';
+import { columns, PlainDate, SourceRowInvalid, type SqlRow } from './polling.js';
 import {
 	checked,
 	exactId,
@@ -55,7 +54,10 @@ function sourceMatchesContract(version: ContractVersion, header: SqlRow, rows: r
 	if (
 		isoCurrency(header) !== snapshot.currency ||
 		(version.kingdee?.exchange_rate != null &&
-			!columns(header).decimal('exchange_rate').eq(version.kingdee.exchange_rate)) ||
+			!BigDecimal.equals(
+				columns(header).decimal('exchange_rate'),
+				dec(version.kingdee.exchange_rate)
+			)) ||
 		exactId(header, 'customer_id') !== snapshot.party_code ||
 		text(header, 'settlement') !== snapshot.payment_terms ||
 		text(header, 'ordered_on') !== version.ordered_on ||
@@ -73,18 +75,26 @@ function sourceMatchesContract(version: ContractVersion, header: SqlRow, rows: r
 		if (!line || used.has(line.id)) return false;
 		used.add(line.id);
 		const r = columns(entry);
-		const effective = Decimal.of(line.unit_price)
-			.times(Decimal.of(100).minus(line.discount_pct))
-			.div(100, 12);
+		const effective = div(
+			BigDecimal.multiply(
+				dec(line.unit_price),
+				BigDecimal.subtract(dec(100), dec(line.discount_pct))
+			),
+			100,
+			12
+		);
 		return (
 			exactId(entry, 'item_id') === line.product_code &&
 			text(entry, 'unit') === line.unit &&
-			r.decimal('quantity').eq(line.quantity) &&
-			r.decimal(snapshot.tax_inclusive ? 'unit_price_inclusive' : 'unit_price').eq(effective) &&
-			r.decimal('tax_rate').eq(line.tax_rate) &&
-			r.decimal('net_amount').eq(line.net) &&
-			r.decimal('tax_amount').eq(line.tax) &&
-			r.decimal('gross_amount').eq(line.total)
+			BigDecimal.equals(r.decimal('quantity'), dec(line.quantity)) &&
+			BigDecimal.equals(
+				r.decimal(snapshot.tax_inclusive ? 'unit_price_inclusive' : 'unit_price'),
+				effective
+			) &&
+			BigDecimal.equals(r.decimal('tax_rate'), dec(line.tax_rate)) &&
+			BigDecimal.equals(r.decimal('net_amount'), dec(line.net)) &&
+			BigDecimal.equals(r.decimal('tax_amount'), dec(line.tax)) &&
+			BigDecimal.equals(r.decimal('gross_amount'), dec(line.total))
 		);
 	});
 }
@@ -239,8 +249,9 @@ export const readContractVersions = Effect.fnUntraced(function* (
 		for (const header of headers) {
 			const exchangeRate = columns(header).decimal('exchange_rate');
 			if (
-				exchangeRate.lte(0) ||
-				(isoCurrency(header) === ctx.configuration.baseCurrency && !exchangeRate.eq(1))
+				!BigDecimal.isPositive(exchangeRate) ||
+				(isoCurrency(header) === ctx.configuration.baseCurrency &&
+					!BigDecimal.equals(exchangeRate, dec(1)))
 			)
 				return yield* new SourceRowInvalid({
 					column: 'FExchangeRate',
@@ -262,7 +273,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 			const archived = flag(header, 'archive');
 			const status = sourceStatus(header);
 			const contentHash = yield* hash({
-				exchange_rate: exchangeRate.toString(),
+				exchange_rate: decimalText(exchangeRate),
 				customer: exactId(header, 'customer_id'),
 				currency: isoCurrency(header),
 				settlement: text(header, 'settlement'),
@@ -272,13 +283,13 @@ export const readContractVersions = Effect.fnUntraced(function* (
 					detail_id: exactId(entry, 'detail_id'),
 					item: exactId(entry, 'item_id'),
 					unit: text(entry, 'unit'),
-					quantity: columns(entry).decimal('quantity').toString(),
-					price: columns(entry).decimal('unit_price').toString(),
-					tax_price: columns(entry).decimal('unit_price_inclusive').toString(),
-					tax_rate: columns(entry).decimal('tax_rate').toString(),
-					net: columns(entry).decimal('net_amount').toString(),
-					tax: columns(entry).decimal('tax_amount').toString(),
-					total: columns(entry).decimal('gross_amount').toString()
+					quantity: decimalText(columns(entry).decimal('quantity')),
+					price: decimalText(columns(entry).decimal('unit_price')),
+					tax_price: decimalText(columns(entry).decimal('unit_price_inclusive')),
+					tax_rate: decimalText(columns(entry).decimal('tax_rate')),
+					net: decimalText(columns(entry).decimal('net_amount')),
+					tax: decimalText(columns(entry).decimal('tax_amount')),
+					total: decimalText(columns(entry).decimal('gross_amount'))
 				}))
 			});
 			const changed = changedAt(header);
@@ -407,15 +418,15 @@ export const readContractVersions = Effect.fnUntraced(function* (
 						product_code: item,
 						product_name: product.name,
 						unit: text(entry, 'unit'),
-						quantity: r.decimal('quantity').toString(),
-						unit_price: r
-							.decimal(basis.snapshot.tax_inclusive ? 'unit_price_inclusive' : 'unit_price')
-							.toString(),
+						quantity: decimalText(r.decimal('quantity')),
+						unit_price: decimalText(
+							r.decimal(basis.snapshot.tax_inclusive ? 'unit_price_inclusive' : 'unit_price')
+						),
 						discount_pct: '0',
-						tax_rate: r.decimal('tax_rate').toString(),
-						net: r.decimal('net_amount').toString(),
-						tax: r.decimal('tax_amount').toString(),
-						total: r.decimal('gross_amount').toString(),
+						tax_rate: decimalText(r.decimal('tax_rate')),
+						net: decimalText(r.decimal('net_amount')),
+						tax: decimalText(r.decimal('tax_amount')),
+						total: decimalText(r.decimal('gross_amount')),
 						floor_net: '',
 						commission_factor: '',
 						commission_basis_unit: ''
@@ -431,9 +442,9 @@ export const readContractVersions = Effect.fnUntraced(function* (
 					currency: isoCurrency(header),
 					payment_terms: text(header, 'settlement'),
 					lines,
-					net: sum(lines.map((line) => line.net)).toString(),
-					tax: sum(lines.map((line) => line.tax)).toString(),
-					total: sum(lines.map((line) => line.total)).toString()
+					net: decimalText(sum(lines.map((line) => line.net))),
+					tax: decimalText(sum(lines.map((line) => line.tax))),
+					total: decimalText(sum(lines.map((line) => line.total)))
 				};
 				const localVersion = Math.max(...versions.map((version) => version.version)) + 1;
 				const contract = snapshotText(snapshot, family.reference, versionNo);
@@ -473,7 +484,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 				};
 			});
 			const source: Source = {
-				exchange_rate: exchangeRate.toString(),
+				exchange_rate: decimalText(exchangeRate),
 				binding_id: binding,
 				branch: ctx.configuration.branchNo,
 				source_id: exactId(header, 'fid'),

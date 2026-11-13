@@ -1,10 +1,8 @@
 import { Effect } from 'effect';
-import { add_days } from '@norbital-ai/std/date';
 import { automation, type CreateInput, type ActInput } from '@norbital-ai/bolt';
 import { targetOf } from '../lib/dispatch.js';
-import { utc_of } from '@norbital-ai/std/zone';
 import { loadPool } from '../lib/dispatch.js';
-import { openSlots } from '../lib/matching.js';
+import { add_days, openSlots, utc_of } from '../lib/matching.js';
 /** How far ahead the portal offers times. */
 const AHEAD = 14;
 /**

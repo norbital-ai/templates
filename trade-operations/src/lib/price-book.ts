@@ -1,6 +1,7 @@
 import type { CurrencyCode } from '@norbital-ai/bolt';
 import type { Id, ReadAnswer } from '@norbital-ai/bolt';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { dec, text } from './values.js';
 
 /** A group's dated book in one currency, with the product identity each cell prices. */
 export const priceBookRead = (group: string, currency: CurrencyCode) =>
@@ -58,11 +59,11 @@ const cellOf = (row: Answer['pricing_floors']['rows'][number]): PriceCell => ({
 	id: row.id,
 	revision: row.revision,
 	effective_on: row.effective_on,
-	floor_price: Decimal.of(row.floor_price).toString(),
+	floor_price: text(row.floor_price),
 	unit: row.unit,
 	tax_inclusive: row.tax_inclusive,
-	tax_rate: Decimal.of(row.tax_rate).toString(),
-	minimum_quantity: Decimal.of(row.minimum_quantity).toString()
+	tax_rate: text(row.tax_rate),
+	minimum_quantity: text(row.minimum_quantity)
 });
 
 /** Every month in the book, newest first. */
@@ -87,7 +88,7 @@ export function priceBookRows(answer: Answer, month: string): readonly PriceRow[
 			name: product.name,
 			unit: cell.unit,
 			minimum_quantity: cell.minimum_quantity,
-			band: Decimal.of(cell.minimum_quantity).gt(0) ? `≥ ${cell.minimum_quantity}` : '',
+			band: BigDecimal.isPositive(dec(cell.minimum_quantity)) ? `≥ ${cell.minimum_quantity}` : '',
 			cells: {},
 			latest: cell,
 			inMonth: false
@@ -104,13 +105,13 @@ export function priceBookRows(answer: Answer, month: string): readonly PriceRow[
 		.sort(
 			(a, b) =>
 				a.code.localeCompare(b.code) ||
-				Decimal.of(a.minimum_quantity).cmp(Decimal.of(b.minimum_quantity))
+				BigDecimal.Order(dec(a.minimum_quantity), dec(b.minimum_quantity))
 		);
 }
 
 /** The exact stored digits, trailing zeros dropped: 8450.1235 stays, 8450.0000 reads 8450. */
 export const priceText = (value: string): string => {
-	const exact = Decimal.of(value).toString();
+	const exact = text(value);
 	return exact.includes('.') ? exact.replace(/0+$/, '').replace(/\.$/, '') : exact;
 };
 

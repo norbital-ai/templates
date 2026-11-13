@@ -1,20 +1,28 @@
 <script lang="ts">
-	/** The one settings row: base currency, the account the report is sent from and its recipients. */
+	/** The one settings row (base currency, benchmarks, the account and chats the report goes to) and its subscribers. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Table } from '@norbital-ai/ui';
-	import { AppShell } from '@norbital-ai/ui/layout';
+	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
 </script>
 
 <AppShell
 	title="Settings"
-	description="The currency the book is valued in, and who receives the daily report through which paired account. Keep one row."
+	description="The currency the book is valued in, the benchmarks, the paired account and chats the daily report goes to, and the users subscribed to it. Keep one settings row."
 	icon="lucide:settings"
 >
-	<Table
-		{ctx}
-		of="portfolio_settings"
-		columns={['base_currency', 'report_via', 'recipients']}
-		toolbar={{ title: 'Settings', new: true }}
-	/>
+	<Stack gap="lg">
+		<Table
+			{ctx}
+			of="portfolio_settings"
+			columns={['base_currency', 'report_via', 'recipients', 'benchmarks']}
+			toolbar={{ title: 'Settings', new: true }}
+		/>
+		<Table
+			{ctx}
+			of="report_subscription"
+			columns={['user']}
+			toolbar={{ title: 'Subscribers', new: true }}
+		/>
+	</Stack>
 </AppShell>

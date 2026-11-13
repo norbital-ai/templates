@@ -43,6 +43,7 @@ export default messages({
 	'models.workers.label': 'Workers',
 	'models.workers.singular': 'Worker',
 	'models.asset_documents.fields.document_url': 'Document link',
+	'models.asset_documents.fields.document_file': 'Document file',
 	'models.asset_documents.fields.validity_range': 'Validity',
 	'models.asset_documents.fields.document_type.ifc_model': 'IFC model',
 	'models.asset_documents.fields.document_type.handover_pack': 'Handover pack',

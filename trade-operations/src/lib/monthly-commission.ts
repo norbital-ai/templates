@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { agreement, withAgreement } from './agreements.js';
-import { minor_digits, sum } from '@norbital-ai/std/decimal';
+import { addMonths, minorDigits, round, sum, text } from './values.js';
 import {
 	AgreementUnavailable,
 	commissionCalculation,
@@ -12,7 +12,6 @@ import {
 	type ReportOrder
 } from './reports.js';
 import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
-import { PlainDate, add_months } from '@norbital-ai/std/date';
 import { hash } from './commercial.js';
 type MonthlyOrder = ReportOrder;
 /** The fields a statement's sign-off compares (the board and the statement create read them). */
@@ -26,7 +25,7 @@ const statementFields = [
 ] as const;
 /** The board's read for one month (`period`, its first day): sales orders, statements, salespeople and sales facts. */
 export const boardRead = (
-	period: PlainDate,
+	period: string,
 	commercial = false,
 	owner?: Id<'sys_user'>,
 	limit = 200
@@ -47,7 +46,7 @@ export const boardRead = (
 			where: {
 				active: { eq: true },
 				kind: { in: ['shipment', 'return'] },
-				business_on: { gte: period, lt: add_months(period, 1) },
+				business_on: { gte: period, lt: addMonths(period, 1) },
 				order: { is: { direction: { eq: 'sales' }, ...(owner ? { owner: { eq: owner } } : {}) } }
 			},
 			fields: commissionFactFields,
@@ -133,7 +132,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 							number: order.number,
 							seal_hash: seal,
 							calculation_hash: current.calculation_hash,
-							amount: current.amount?.toString() ?? null,
+							amount: current.amount === null ? null : text(current.amount),
 							unresolved_lines: current.unresolved_lines,
 							awaiting_approval: false
 						}))
@@ -147,8 +146,11 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 					const amount =
 						unresolved_lines || awaiting_approval
 							? null
-							: sum(snapshot.flatMap((row) => (row.amount === null ? [] : [row.amount]))).round(
-									minor_digits(group.currency)
+							: text(
+									round(
+										sum(snapshot.flatMap((row) => (row.amount === null ? [] : [row.amount]))),
+										minorDigits(group.currency)
+									)
 								);
 					return hash({
 						owner: group.owner,
@@ -235,7 +237,7 @@ export const calculateBoard = (
 	facts: BoardAnswer['source_sales_lines']['rows'],
 	statements: BoardAnswer['commission_statements']['rows'],
 	users: BoardAnswer['sys_user']['rows'],
-	period: PlainDate
+	period: string
 ) => {
 	const orders = new Map(facts.flatMap(({ order }) => (order ? [[order.id, order] as const] : [])));
 	return monthlyCommission(
@@ -248,30 +250,24 @@ export const calculateBoard = (
 };
 
 /** The monthly commission board: per salesperson and currency, the amount to sign off and how it stands. */
-export const commissionBoard = (answer: BoardAnswer, period: PlainDate) =>
+export const commissionBoard = (answer: BoardAnswer, period: string) =>
 	calculateBoard(
 		answer.source_sales_lines.rows,
 		answer.commission_statements.rows,
 		answer.sys_user.rows,
 		period
-	).pipe(
-		Effect.map((rows) =>
-			rows.map(({ snapshot, ...row }) => ({ ...row, period: PlainDate(row.period) }))
-		)
-	);
+	).pipe(Effect.map((rows) => rows.map(({ snapshot, ...row }) => row)));
 export const completeCommissionBoard = <E>(
 	reader: ReportReader<E>,
 	request: BoardRead,
 	first: BoardAnswer,
-	period: PlainDate
+	period: string
 ) =>
 	readCommissionBoard(reader, request, first).pipe(
 		Effect.flatMap(({ facts, statements, users }) =>
 			calculateBoard(facts, statements, users, period)
 		),
-		Effect.map((rows) =>
-			rows.map(({ snapshot, ...row }) => ({ ...row, period: PlainDate(row.period) }))
-		)
+		Effect.map((rows) => rows.map(({ snapshot, ...row }) => row))
 	);
 /** The first day of `on`'s month: the period a board and a statement name. */
-export const monthOf = (on: string) => PlainDate(on.slice(0, 7) + '-01');
+export const monthOf = (on: string) => on.slice(0, 7) + '-01';

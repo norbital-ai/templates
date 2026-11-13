@@ -42,6 +42,7 @@ export default messages({
 	'models.workers.label': '工人',
 	'models.workers.singular': '工人',
 	'models.asset_documents.fields.document_url': '文档链接',
+	'models.asset_documents.fields.document_file': '文档文件',
 	'models.asset_documents.fields.validity_range': '有效期',
 	'models.asset_documents.fields.document_type.ifc_model': 'IFC 模型',
 	'models.asset_documents.fields.document_type.handover_pack': '移交资料包',

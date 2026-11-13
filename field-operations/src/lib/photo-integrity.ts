@@ -1,5 +1,4 @@
-import type { AutomationCtx, Instant, Point, ValueOf } from '@norbital-ai/bolt';
-import type { Duration } from '@norbital-ai/std/date';
+import type { AutomationCtx, Duration, Instant, Point, ValueOf } from '@norbital-ai/bolt';
 import type * as Effect from 'effect/Effect';
 
 /** What `ctx.files.image(ref)` answers: a cached run's `files.image` has only that overload. */

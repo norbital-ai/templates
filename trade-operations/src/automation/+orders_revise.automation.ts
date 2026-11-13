@@ -1,10 +1,8 @@
-import { automation, type Id } from '@norbital-ai/bolt';
+import { automation, input_schema, type Id } from '@norbital-ai/bolt';
 import { Effect, Schema } from 'effect';
-import { input_schema } from '@norbital-ai/std/kind';
-import { Decimal, currency } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
 import { agreements, currentAgreement, resolvableKingdee } from '../lib/agreements.js';
 import { contractEntryId } from '../lib/contract-draft.js';
+import { isCurrency } from '../lib/values.js';
 
 const isId = <C extends string>(of: C, value: string): value is Id<C> =>
 	Schema.is(input_schema({ kind: 'ref', to: of }))(value);
@@ -87,6 +85,8 @@ export default automation({
 			});
 			return;
 		}
+		const currency = current.snapshot.currency;
+		if (!isCurrency(currency)) return yield* ctx.refuse('errors.contract_source_changed');
 		// Parent aggregates cannot be read prospectively inside a combined parent/line write.
 		const opened = yield* ctx.act({
 			'orders.update': [
@@ -99,16 +99,14 @@ export default automation({
 							? yield* identity('document_templates', current.snapshot.document_template_id)
 							: null,
 						print_values: current.snapshot.print_values ?? null,
-						currency: currency(current.snapshot.currency),
+						currency,
 						tax_inclusive: current.snapshot.tax_inclusive,
 						ordered_on: current.ordered_on,
 						warehouse: current.snapshot.warehouse
 							? yield* identity('warehouses', current.snapshot.warehouse)
 							: null,
-						valid_from: current.snapshot.valid_from ? PlainDate(current.snapshot.valid_from) : null,
-						valid_until: current.snapshot.valid_until
-							? PlainDate(current.snapshot.valid_until)
-							: null,
+						valid_from: current.snapshot.valid_from || null,
+						valid_until: current.snapshot.valid_until || null,
 						payment_terms: current.snapshot.payment_terms,
 						delivery_terms: current.snapshot.delivery_terms || null,
 						supporting_documents: current.supporting_documents ?? []
@@ -135,10 +133,10 @@ export default automation({
 					set: {
 						source_entry_id,
 						print_values: line.print_values ?? null,
-						quantity: Decimal.of(line.quantity),
-						unit_price: Decimal.of(line.unit_price),
-						discount_pct: Decimal.of(line.discount_pct),
-						tax_rate: Decimal.of(line.tax_rate)
+						quantity: line.quantity,
+						unit_price: line.unit_price,
+						discount_pct: line.discount_pct,
+						tax_rate: line.tax_rate
 					}
 				};
 			})

@@ -3,10 +3,9 @@
  * `poolRequest` + `driveRequest`, read by the page with its `ctx.query` or by server code with `loadPool`). The writes
  * that act on a pick (`bookings_book`, `visits_rebook`, `visits_reassign`) recheck everything, so a preview is safe.
  */
-import type { Id } from '@norbital-ai/bolt';
-import { add_days, Instant, type PlainDate } from '@norbital-ai/std/date';
-import { utc_of } from '@norbital-ai/std/zone';
+import type { Id, Instant, PlainDate } from '@norbital-ai/bolt';
 import {
+	add_days,
 	availableSlots,
 	BOOKING_AHEAD,
 	occurrences,
@@ -14,13 +13,14 @@ import {
 	rank,
 	slotOf,
 	type Point,
-	type Pool
+	type Pool,
+	utc_of
 } from './matching.js';
 /** `days` local days from `from`. */
 export const dayList = (from: PlainDate, days: number): PlainDate[] =>
 	Array.from({ length: days }, (_, i) => add_days(from, i));
-const midnight = (day: PlainDate, zone: string) =>
-	Instant(new Date(utc_of(day, 0, zone)).toISOString());
+const midnight = (day: PlainDate, zone: string): Instant =>
+	new Date(utc_of(day, 0, zone)).toISOString();
 /** The days a booking picker lists and the full recurring horizon its pool must cover. */
 export function bookingWindow(
 	input: {

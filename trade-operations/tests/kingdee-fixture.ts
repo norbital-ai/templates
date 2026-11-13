@@ -1,6 +1,4 @@
-import { PlainDate } from '@norbital-ai/std/date';
 import { randomUUID } from 'node:crypto';
-import { Decimal } from '@norbital-ai/std/decimal';
 import type { Id } from '@norbital-ai/bolt';
 import { committed, confirm, type T } from './kit.js';
 import { fixtureId } from './test-runtime.js';
@@ -440,7 +438,7 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 					party: party.id,
 					currency: 'CNY',
 					payment_terms: 'PROBE-NET30',
-					ordered_on: PlainDate('2026-10-10'),
+					ordered_on: '2026-10-10',
 					tax_inclusive: false
 				}
 			]
@@ -453,10 +451,10 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 				{
 					order,
 					product: product.id,
-					quantity: Decimal.of(10),
-					unit_price: Decimal.of(2),
-					discount_pct: Decimal.of(0),
-					tax_rate: Decimal.of(13)
+					quantity: '10',
+					unit_price: '2',
+					discount_pct: '0',
+					tax_rate: '13'
 				}
 			]
 		})

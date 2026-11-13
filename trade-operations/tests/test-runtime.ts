@@ -1,5 +1,13 @@
-import type { Id, ModelName, ReadAnswer, ReadRequest, ReadRequestBase } from '@norbital-ai/bolt';
-import { Context, Effect, Layer, Predicate, Schema } from 'effect';
+import {
+	input_schema,
+	type Id,
+	type Kind,
+	type ModelName,
+	type ReadAnswer,
+	type ReadRequest,
+	type ReadRequestBase
+} from '@norbital-ai/bolt';
+import { BigDecimal, Context, Effect, Layer, Predicate, Schema } from 'effect';
 import {
 	TestWorkspace,
 	type Caller,
@@ -8,15 +16,6 @@ import {
 	type TestPorts
 } from '@norbital-ai/bolt-cli/test';
 import type { EngineManifest } from '@norbital-ai/bolt/engine';
-import { input_schema, type Kind } from '@norbital-ai/std/kind';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { expect } from '@effect/vitest';
-expect.addEqualityTesters([
-	(left: unknown, right: unknown) =>
-		left instanceof Decimal && right instanceof Decimal
-			? left.toString() === right.toString()
-			: undefined
-]);
 /** Each caller owns this workspace's scope and every engine service it acquired. */
 export const workspace = Effect.fnUntraced(function* <P extends TestPorts = never>(
 	options: TestOptions<P>
@@ -139,12 +138,25 @@ export const fixtureId = <C extends string>(model: C, value: string) =>
 			)(input)
 		)
 	)(value);
-/** Native caller decimals retain the exact text previously asserted at the wire edge. */
+/** A decimal equal to `expected`: its exact text, or a `BigDecimal` of the same value. */
 export const decimalText = (expected: string) => ({
-	asymmetricMatch: (value: unknown) => value instanceof Decimal && value.toString() === expected,
+	asymmetricMatch: (value: unknown) =>
+		value === expected ||
+		(BigDecimal.isBigDecimal(value) &&
+			BigDecimal.Equivalence(value, BigDecimal.fromStringUnsafe(expected))),
 	toString: () => `Decimal(${expected})`,
 	getExpectedType: () => 'Decimal'
 });
+/** Whether a decimal text holds the expected value, whatever its scale. */
+export const sameDecimal = (
+	value: string | BigDecimal.BigDecimal | null | undefined,
+	expected: string
+) =>
+	value != null &&
+	BigDecimal.Equivalence(
+		typeof value === 'string' ? BigDecimal.fromStringUnsafe(value) : value,
+		BigDecimal.fromStringUnsafe(expected)
+	);
 export function firstRow<A>(rows: readonly A[]) {
 	const row = rows[0];
 	if (row === undefined) throw new Error('Fixture row required');

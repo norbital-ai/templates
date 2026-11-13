@@ -104,8 +104,8 @@ export default model({
 								brand_en: r.text('brand_en', null),
 								unit: r.text('unit', null),
 								currency: r.currency('currency'),
-								unit_price: r.decimal('unit_price', null),
-								tax_rate: r.decimal('tax_rate', null),
+								unit_price: r.decimalText('unit_price', null),
+								tax_rate: r.decimalText('tax_rate', null),
 								active: r.bool('active', true),
 								source_updated_at: r.instant('source_updated_at')
 							};

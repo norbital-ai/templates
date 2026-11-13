@@ -59,7 +59,7 @@ export default policy({
 		},
 		// a new contact at a customer or supplier waits for a commercial manager
 		contacts: {
-			outputs: { default: {} },
+			outputs: { default: { history: true } },
 			create: {
 				verdict: function* (_changes, ctx) {
 					return ctx.approve(commercialReview);

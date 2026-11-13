@@ -186,6 +186,7 @@
 		<div class="w-40">
 			<TimeInput
 				id="dispatch-day"
+				{ctx}
 				value={day}
 				on_change={(next: string | null) => (day = next ?? clock.today)}
 			/>

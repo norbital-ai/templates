@@ -1,8 +1,8 @@
-import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { expect, it as test, layer } from '@effect/vitest';
 
 import { averageLotCost } from '../src/lib/lot-cost.js';
+import { sameDecimal } from './test-runtime.js';
 import { shared, Trade, PRODUCT } from './kit.js';
 import { businessRows } from './business-source.js';
 import { inventoryCostOf } from './reads.js';
@@ -32,12 +32,12 @@ layer(shared(), { excludeTestServices: true })('stock on a workspace', (it) => {
 					product: PRODUCT,
 					unit: 'kg',
 					currency: 'SGD',
-					price: Decimal.of('1.60'),
+					price: '1.60',
 					tax_inclusive: true,
-					tax_rate: Decimal.of('9')
+					tax_rate: '9'
 				} satisfies Parameters<typeof inventoryCostOf>[1];
 				expect(yield* inventoryCostOf(as, input)).toMatchObject({ below: true });
-				expect(yield* inventoryCostOf(as, { ...input, price: Decimal.of('1.635') })).toMatchObject({
+				expect(yield* inventoryCostOf(as, { ...input, price: '1.635' })).toMatchObject({
 					below: false
 				});
 				expect(yield* inventoryCostOf(as, { ...input, currency: 'USD' })).toMatchObject({
@@ -55,7 +55,7 @@ test('average inventory cost weights remaining lots and leaves incomplete cost e
 		{ ...base, on_hand: '0', unit_cost: '99' },
 		{ ...base, currency: 'USD', unit_cost: '99' }
 	];
-	expect(averageLotCost(rows, 'resin', 'kg', 'SGD')?.toString()).toBe('3.50000000');
+	expect(sameDecimal(averageLotCost(rows, 'resin', 'kg', 'SGD'), '3.5')).toBe(true);
 	expect(averageLotCost([...rows, { ...base, unit_cost: null }], 'resin', 'kg', 'SGD')).toBeNull();
 	expect(averageLotCost(rows, 'resin', 'box', 'SGD')).toBeNull();
 	expect(averageLotCost([...rows, { ...base, unit: null }], 'resin', 'kg', 'SGD')).toBeNull();

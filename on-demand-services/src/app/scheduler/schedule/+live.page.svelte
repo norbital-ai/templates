@@ -7,7 +7,6 @@
 	 * next (the visit under way, else their next one in the coming hours); and those visits as a list with the ETA the
 	 * watch last estimated. Both refresh as helpers report.
 	 */
-	import { Instant } from '@norbital-ai/std/date';
 	import { AppShell, Split } from '@norbital-ai/ui/layout';
 	const zone = ctx.tz;
 	const t = ctx.t;
@@ -29,8 +28,8 @@
 					status: { in: ['scheduled', 'in_progress'] },
 					slot: {
 						overlaps: {
-							start: Instant(new Date(now - 6 * HOUR).toISOString()),
-							end: Instant(new Date(now + 8 * HOUR).toISOString())
+							start: new Date(now - 6 * HOUR).toISOString(),
+							end: new Date(now + 8 * HOUR).toISOString()
 						}
 					}
 				},
@@ -40,7 +39,7 @@
 			}
 		})
 	);
-	const soon = $derived(Instant(new Date(now + 4 * HOUR).toISOString()));
+	const soon = $derived(new Date(now + 4 * HOUR).toISOString());
 	/** Each helper's next stop: the visit under way, else the earliest still to start. */
 	const overlays = $derived.by(() => {
 		const next = new globalThis.Map<

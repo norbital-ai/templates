@@ -1,9 +1,8 @@
 import { expect, it } from '@effect/vitest';
 import { Effect } from 'effect';
-import { PlainDate } from '@norbital-ai/std/date';
 import { salesDetail, salesReadDuring } from '../src/lib/reports.js';
 import { workspace } from './kit.js';
-import { fixtureId } from './test-runtime.js';
+import { fixtureId, sameDecimal } from './test-runtime.js';
 import { kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
 
@@ -156,19 +155,19 @@ it.live(
 				seal_hash: sealed.seal_hash,
 				due_on: '2026-11-25'
 			});
-			expect(invoice.total?.eq('22.60')).toBe(true);
+			expect(sameDecimal(invoice.total, '22.60')).toBe(true);
 			if (!invoice.items) throw new Error('Visible invoice items required');
 			expect(invoice.items).toHaveLength(1);
 			const item = invoice.items[0];
 			if (!item) throw new Error('Grouped invoice item required');
 			expect(item).toMatchObject({ order_line_id: line, unit: 'kg', lot_number: 'LOT-A' });
-			expect(item.quantity.eq(10)).toBe(true);
-			expect(item.net_amount?.eq(20)).toBe(true);
+			expect(sameDecimal(item.quantity, '10')).toBe(true);
+			expect(sameDecimal(item.net_amount, '20')).toBe(true);
 			const facts = (yield* as.query({ source_sales_lines: { where: { order: { eq: order } } } }))
 				.source_sales_lines.rows;
 			expect(facts).toHaveLength(4);
-			const october = { from: PlainDate('2026-10-01'), to: PlainDate('2026-10-31') };
-			const november = { from: PlainDate('2026-11-01'), to: PlainDate('2026-11-30') };
+			const october = { from: '2026-10-01', to: '2026-10-31' };
+			const november = { from: '2026-11-01', to: '2026-11-30' };
 			const octoberInvoices = yield* as.query(salesReadDuring({ ...october, basis: 'invoice' }));
 			expect(salesDetail(octoberInvoices, { basis: 'invoice' })).toEqual([]);
 			const delivered = salesDetail(
@@ -182,19 +181,23 @@ it.live(
 			expect(delivered).toHaveLength(2);
 			expect(invoiced).toHaveLength(2);
 			expect(
-				invoiced.every((row) => row.business_on === '2026-11-02' && row.source_net?.eq(10))
+				invoiced.every(
+					(row) => row.business_on === '2026-11-02' && sameDecimal(row.source_net, '10')
+				)
 			).toBe(true);
 			expect(
-				delivered.every((row) => row.business_on === '2026-10-26' && row.source_net?.eq(10))
+				delivered.every(
+					(row) => row.business_on === '2026-10-26' && sameDecimal(row.source_net, '10')
+				)
 			).toBe(true);
 			expect(
 				facts.every(
 					(row) =>
 						row.order_line === line &&
 						row.seal_hash === sealed.seal_hash &&
-						row.quantity.eq(5) &&
-						row.net_amount?.eq(10) === true &&
-						row.tax_amount?.eq('1.30') === true
+						sameDecimal(row.quantity, '5') &&
+						sameDecimal(row.net_amount, '10') === true &&
+						sameDecimal(row.tax_amount, '1.30') === true
 				)
 			).toBe(true);
 			expect(
@@ -206,6 +209,76 @@ it.live(
 				contract_version: sealed.contract_version
 			});
 		})
+);
+
+it.live('holds premature and malformed settlements with the prior receipt, then reconciles', () =>
+	Effect.gen(function* () {
+		const { t, as, order, fid, source } = yield* ownedSale();
+		yield* t.pull('ext_sales_orders');
+		addDelivery(source, '22001', fid);
+		addInvoice(source, '32001', ['22001']);
+		const settle = (amount: string) => {
+			source.tables.t_rp_CheckEntry = [
+				{
+					__key: padded('1'),
+					fid: '32001',
+					detail_id: '1',
+					check_id: '40001',
+					type: '3',
+					source_type: '5',
+					invoice_id: '32001',
+					invoice_entry: '1',
+					receipt_id: '41001',
+					header_id: '40001',
+					header_direction: '1',
+					header_type: '3',
+					contact_id: '42001',
+					settled_on: '2026-10-27',
+					amount,
+					contact_direction: '1',
+					contact_type: '3',
+					contact_invoice: '32001',
+					receipt_reference: 'RC-41001',
+					receipt_direction: '1',
+					receipt_currency: 'RMB'
+				}
+			];
+		};
+		const payments = () =>
+			as
+				.query({ source_payments: { where: { order: { eq: order } } } })
+				.pipe(Effect.map((answer) => answer.source_payments.rows));
+		const health = () =>
+			as
+				.query({ sys_integration: { where: { id: { eq: instance } }, limit: 1 } })
+				.pipe(Effect.map((answer) => answer.sys_integration.rows[0]?.status));
+		settle('5.20');
+		// receipts polled before their invoice arrived locally
+		yield* t.pull('source_payments');
+		expect(yield* payments()).toEqual([]);
+		expect(yield* health()).toMatchObject({
+			health: { state: 'attention', code: 'documentReview' }
+		});
+		yield* t.pull('transactions');
+		yield* t.pull('source_payments');
+		const [receipt] = yield* payments();
+		expect(receipt).toMatchObject({ kind: 'receipt', settled_on: '2026-10-27', active: true });
+		expect(sameDecimal(receipt?.amount, '5.20')).toBe(true);
+		const retained = yield* payments();
+		settle('5.205');
+		yield* t.pull('source_payments');
+		expect(yield* payments()).toEqual(retained);
+		expect(yield* health()).toMatchObject({
+			health: { state: 'attention', code: 'documentReview' }
+		});
+		settle('5.21');
+		yield* t.pull('source_payments');
+		const corrected = yield* payments();
+		expect(corrected).toHaveLength(1);
+		expect(corrected[0]?.id).toBe(receipt?.id);
+		expect(sameDecimal(corrected[0]?.amount, '5.21')).toBe(true);
+		expect(yield* health()).not.toMatchObject({ health: { state: 'attention' } });
+	})
 );
 
 it.live('holds a mixed invoice and its prior evidence while an unrelated order advances', () =>

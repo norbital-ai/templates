@@ -21,11 +21,9 @@
 	import { Effect } from 'effect';
 	import type { Id, Outcome } from '@norbital-ai/bolt';
 	import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
-	import { add_days, Instant, PlainDate } from '@norbital-ai/std/date';
-	import { utc_of } from '@norbital-ai/std/zone';
 	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
-	import { driveMinutes, type Point } from '../../lib/matching.js';
+	import { add_days, driveMinutes, type Point, utc_of } from '../../lib/matching.js';
 	const zone = ctx.tz;
 	const t = ctx.t;
 	const actor = ctx.actor;
@@ -48,8 +46,8 @@
 	const today = $derived(clock.today);
 	let selectedDay = $state<string>(clock.today);
 	const span = $derived({
-		start: Instant(new Date(utc_of(selectedDay, 0, zone)).toISOString()),
-		end: Instant(new Date(utc_of(add_days(selectedDay, 1), 0, zone)).toISOString())
+		start: new Date(utc_of(selectedDay, 0, zone)).toISOString(),
+		end: new Date(utc_of(add_days(selectedDay, 1), 0, zone)).toISOString()
 	});
 	/** A day's visits of this helper in `status`, with whom and what for. */
 	const dayRead = (
@@ -90,7 +88,7 @@
 					helper_time_off: {
 						where: {
 							helper: { eq: helper.id },
-							period: { overlaps: { from: PlainDate(selectedDay), to: PlainDate(selectedDay) } }
+							period: { overlaps: { from: selectedDay, to: selectedDay } }
 						},
 						limit: 1
 					}
@@ -308,6 +306,7 @@
 		<Label for="route-date" class="sr-only">{t('app.helper.date')}</Label>
 		<div class="w-40">
 			<TimeInput
+				{ctx}
 				id="route-date"
 				value={selectedDay}
 				on_change={(day: string | null) => (selectedDay = day ?? today)}

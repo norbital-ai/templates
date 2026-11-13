@@ -15,7 +15,7 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Bound, Column, Grid, Inline, Split, Stack } from '@norbital-ai/ui/layout';
-	import { input_schema } from '@norbital-ai/std/kind';
+	import { input_schema } from '@norbital-ai/bolt';
 	import { Schema } from 'effect';
 	import RecordForm from '../../../lib/record-form.svelte';
 	let { view, ctx }: { view: RecordView<'projects'>; ctx: PageContext } = $props();
@@ -47,7 +47,7 @@
 						project_id: { eq: record.id },
 						status: { in: ['draft', 'in_review', 'issued'] }
 					},
-					fields: ['title', 'document_type', 'document_url'],
+					fields: ['title', 'document_type', 'document_file'],
 					order_by: { updated_at: 'desc' }
 				}
 			})
@@ -65,10 +65,8 @@
 	const ifc = $derived(
 		documents?.current?.asset_documents.rows.find(
 			(d) =>
-				d.document_type === 'ifc_model' ||
-				String(d.document_url ?? '')
-					.toLowerCase()
-					.endsWith('.ifc')
+				d.document_file != null &&
+				(d.document_type === 'ifc_model' || d.document_file.name.toLowerCase().endsWith('.ifc'))
 		)
 	);
 	/** The viewer is a heavy WebGL module graph: loaded only when a model is linked. */
@@ -145,7 +143,7 @@
 				{:then mod}
 					<mod.default
 						t={ctx.t}
-						src={String(ifc['document_url'] ?? '')}
+						src={ifc.document_file ? ctx.file_url(ifc.document_file) : ''}
 						alt={text(ifc['title'], ctx.t('component.current_ifc_model'))}
 					/>
 				{:catch error}

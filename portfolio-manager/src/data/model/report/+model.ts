@@ -5,6 +5,7 @@ const columns = [
 	'base_currency',
 	'headline',
 	'summary',
+	'markets',
 	'market_view',
 	'research_log',
 	'net_assets',
@@ -16,12 +17,15 @@ const columns = [
 	'allocation',
 	'fx_used',
 	'positions',
+	'sources',
 	'deliveries'
 ] as const;
 
 /**
- * One day's report: the book's totals, its allocation and the rates they were struck at, the
- * market view and one call per holding. The daily agent writes it and sends it; people read it.
+ * One day's report, written to be read in a minute: the lead, what is in it, the markets table with the data line and
+ * the move, and one section per line with cited news. Every claim links its source; `sources` keeps them. The book's
+ * totals, allocation and rates stay on the record. The daily agent sends its record view, rendered to PDF, to the
+ * subscribed users and the chats in the settings.
  */
 export default model({
 	description:
@@ -31,9 +35,24 @@ export default model({
 	fields: {
 		for_date: { kind: 'date' },
 		base_currency: { kind: 'currency' },
-		headline: { kind: 'text' },
-		summary: { kind: 'text' },
-		market_view: { kind: 'text', optional: true },
+		/** The lead: one sentence, the most important thing today, with its source linked. */
+		headline: { kind: 'text', format: 'markdown' },
+		/** In today's report: two to four bullets. */
+		summary: { kind: 'text', format: 'markdown' },
+		/** Every line of the book and the benchmarks: its price where quoted, else its value in base. */
+		markets: {
+			kind: 'object',
+			many: true,
+			optional: true,
+			key: 'instrument',
+			fields: {
+				instrument: { kind: 'text' },
+				level: { kind: 'decimal', scale: 2 },
+				change_pct: { kind: 'decimal', scale: 2, optional: true }
+			}
+		},
+		/** The data line (as of, providers) and one cited paragraph on the move. */
+		market_view: { kind: 'text', format: 'markdown', optional: true },
 		research_log: {
 			kind: 'text',
 			optional: true
@@ -73,10 +92,25 @@ export default model({
 				weight: { kind: 'decimal', scale: 2, optional: true },
 				change_pct: { kind: 'decimal', scale: 2, optional: true },
 				call: { kind: 'enum', values: ['buy', 'sell', 'hold', 'watch'] },
+				headline: { kind: 'text' },
 				pnl: { kind: 'decimal', scale: 2, optional: true },
 				pnl_pct: { kind: 'decimal', scale: 2, optional: true },
-				analysis: { kind: 'text' },
+				/** What happened, why it matters for the book, the call: each paragraph cites its sources inline. */
+				analysis: { kind: 'text', format: 'markdown' },
 				confidence: { kind: 'decimal', scale: 2, optional: true }
+			}
+		},
+		/** Every source the report cites, as read on the run. */
+		sources: {
+			kind: 'object',
+			many: true,
+			optional: true,
+			key: 'url',
+			fields: {
+				title: { kind: 'text' },
+				publisher: { kind: 'text' },
+				url: { kind: 'text', format: 'url' },
+				at: { kind: 'instant' }
 			}
 		},
 		/** The messages the report went out as: queue admission; each message's own status says whether it arrived. */

@@ -1,5 +1,4 @@
 import { decimalText, fixtureId, firstRow } from './test-runtime.js';
-import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Result } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { commissionRule, commissionSale } from './commission-kit.js';
@@ -46,9 +45,9 @@ it.live(
 			const finance = t.member(['finance']);
 			const f = yield* t.as(finance);
 			const manager = yield* t.as(t.member(['manager']));
-			const board = () => boardOf(f, { period: PlainDate('2026-10-10') });
+			const board = () => boardOf(f, { period: '2026-10-10' });
 			const current = firstRow(yield* board());
-			const period = PlainDate('2026-10-01');
+			const period = '2026-10-01';
 			const paged = boardRead(period, false, undefined, 1);
 			const first = yield* f.query(paged);
 			expect(first.source_sales_lines.next).not.toBeNull();
@@ -63,11 +62,11 @@ it.live(
 				state: 'unacknowledged'
 			});
 			expect(
-				yield* boardOf(yield* t.as(sales), { period: PlainDate('2026-10-01'), commercial: true })
+				yield* boardOf(yield* t.as(sales), { period: '2026-10-01', commercial: true })
 			).toMatchObject([{ owner: fixtureId('sys_user', sales.id), amount: decimalText('210.00') }]);
 			expect(
 				yield* boardOf(yield* t.as(t.member(['sales'])), {
-					period: PlainDate('2026-10-01'),
+					period: '2026-10-01',
 					commercial: true
 				})
 			).toEqual([]);

@@ -1,4 +1,5 @@
-import { Decimal, sum } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { dec, div, round, sum, text } from './values.js';
 import type { Row } from '@norbital-ai/bolt';
 
 type Seal = NonNullable<Row<'orders'>['sealed_snapshot']>;
@@ -50,31 +51,26 @@ export function printAmounts(seal: Seal) {
 		const perTonne = kilograms.has(unit) ? 1000 : tonnes.has(unit) ? 1 : null;
 		const exportUnit =
 			kilograms.has(unit) && unit !== 'kgs' ? 'KGS' : unit === '吨' ? 'MT' : line.unit;
-		const quantity = perTonne === null ? null : Decimal.of(line.quantity).div(perTonne, 3);
-		const price = Decimal.of(line.unit_price);
+		const quantity = perTonne === null ? null : div(line.quantity, perTonne, 3);
+		const price = dec(line.unit_price);
 		const gross = seal.tax_inclusive
 			? price
-			: price.times(Decimal.of(line.tax_rate).div(100, 4).plus(1));
+			: BigDecimal.multiply(price, BigDecimal.sum(div(line.tax_rate, 100, 4), dec(1)));
 		return {
 			quantity,
 			exportUnit,
 			gross,
-			grossPerTonne: perTonne === null ? null : gross.times(perTonne)
+			grossPerTonne: perTonne === null ? null : BigDecimal.multiply(gross, dec(perTonne))
 		};
 	});
 	return {
 		fields: {
 			quantity_grouped:
 				lines.length && new Set(lines.map(({ exportUnit }) => exportUnit)).size === 1
-					? groupedWithPrecision(
-							sum(seal.lines.map((line) => Decimal.of(line.quantity))).toString(),
-							0
-						)
+					? groupedWithPrecision(text(sum(seal.lines.map((line) => line.quantity))), 0)
 					: '',
 			quantity_tonnes: lines.every(({ quantity }) => quantity !== null)
-				? sum(lines.flatMap(({ quantity }) => quantity ?? []))
-						.round(3)
-						.toString()
+				? text(round(sum(lines.flatMap(({ quantity }) => quantity ?? [])), 3))
 				: '',
 			total_cny_words: seal.currency === 'CNY' ? cnyInWords(seal.total) : '',
 			total_grouped: grouped(seal.total),
@@ -85,9 +81,9 @@ export function printAmounts(seal: Seal) {
 			quantity_grouped: groupedWithPrecision(seal.lines[index]!.quantity, 0),
 			unit_export: exportUnit,
 			unit_price_grouped: groupedWithPrecision(seal.lines[index]!.unit_price, 2),
-			quantity_tonnes: quantity?.toString() ?? '',
-			gross_unit_price: gross.round(2).toString(),
-			gross_unit_price_per_tonne: grossPerTonne ? grouped(grossPerTonne.round(2).toString()) : '',
+			quantity_tonnes: quantity ? text(quantity) : '',
+			gross_unit_price: text(round(gross, 2)),
+			gross_unit_price_per_tonne: grossPerTonne ? grouped(text(round(grossPerTonne, 2))) : '',
 			total_grouped: grouped(seal.lines[index]!.total),
 			net_grouped: grouped(seal.lines[index]!.net),
 			tax_grouped: grouped(seal.lines[index]!.tax)

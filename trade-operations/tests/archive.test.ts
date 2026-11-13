@@ -1,5 +1,4 @@
 import { Effect } from 'effect';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { expect, layer } from '@effect/vitest';
 import { Trade, committed, shared, draft, confirm } from './kit.js';
 import { sourceOrder, sourcePayment, sourceTransaction } from './synced-kit.js';
@@ -78,7 +77,7 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 				yield* as
 					.act({
 						'order_lines.update': [
-							{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+							{ target: yield* t.at('order_lines', own.line), set: { quantity: '12' } }
 						]
 					})
 					.pipe(Effect.flip)
@@ -109,7 +108,7 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 				'order_lines',
 				yield* as.act({
 					'order_lines.update': [
-						{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of(12) } }
+						{ target: yield* t.at('order_lines', own.line), set: { quantity: '12' } }
 					]
 				})
 			);

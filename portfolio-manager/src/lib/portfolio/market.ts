@@ -8,6 +8,60 @@ export const QUOTE_URL = (ticker: string) =>
 export const NEWS_URL = (query: string) =>
 	`https://news.google.com/rss/search?q=${encodeURIComponent(`${query} when:7d`)}&hl=en-US&gl=US&ceid=US:en`;
 
+/** A source a claim cites: what was read, who published it, where, and when the agent read it. */
+export type Source = { readonly title: string; readonly publisher: string; readonly url: string };
+/** The providers market figures cite: quotes and exchange rates. */
+export const QUOTE_SOURCE: Source = {
+	title: 'Quotes',
+	publisher: 'Yahoo Finance',
+	url: 'https://finance.yahoo.com'
+};
+export const RATES_SOURCE: Source = {
+	title: 'Exchange rates',
+	publisher: 'ExchangeRate-API',
+	url: 'https://www.exchangerate-api.com'
+};
+/** A read page as a source: its publisher is the site's host. */
+export const sourceOf = (read: Read): Source => ({
+	title: read.label,
+	publisher: (read.url.split('/')[2] ?? read.url).replace(/^www\./, ''),
+	url: read.url
+});
+/** The numbered list a prompt shows: the model cites a source as `[n]`. */
+export const numbered = (sources: readonly Source[]) =>
+	sources.map((one, index) => `[${index + 1}] ${one.publisher}: ${one.title}`).join('\n') ||
+	'- none';
+
+/**
+ * A model's text with every `[n]` turned into a link to its source (publisher as link text), and the sources it cites;
+ * null when any paragraph cites nothing or a marker names no source, so an uncited claim is dropped, never printed.
+ */
+export const cite = (text: string, sources: readonly Source[]) => {
+	const paragraphs = text
+		.split(/\n\s*\n/)
+		.map((one) => one.trim())
+		.filter((one) => one.length > 0);
+	const used = new Set<Source>();
+	const linked: string[] = [];
+	for (const paragraph of paragraphs) {
+		const marked = [...paragraph.matchAll(/\[(\d+)\]/g)].map((one) => sources[Number(one[1]) - 1]);
+		if (marked.length === 0) return null;
+		for (const one of marked) {
+			if (one === undefined) return null;
+			used.add(one);
+		}
+		linked.push(
+			paragraph.replace(/\[(\d+)\]/g, (marker, n: string) => {
+				const one = sources[Number(n) - 1];
+				return one ? `[${one.publisher}](${one.url.replace(/\)/g, '%29')})` : marker;
+			})
+		);
+	}
+	return linked.length === 0 ? null : { text: linked.join('\n\n'), sources: [...used] };
+};
+/** Markdown links as their text alone: a chat message shows no markup. */
+export const unlinked = (text: string) => text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
 /**
  * What one unit of each currency is worth in `base`. The source quotes the base against everything,
  * so each is inverted. An unreadable answer is an empty map: the caller keeps its recorded values.

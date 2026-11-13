@@ -6,7 +6,6 @@
 import { expect, layer } from '@effect/vitest';
 import type { ActInput, Id } from '@norbital-ai/bolt';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { Instant } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { finished } from './automation-runtime.js';
 import { fixtureId, present } from './test-runtime.js';
@@ -22,7 +21,7 @@ const CHECKED = id('visits', 5);
 const DRIVEN = id('visits', 6);
 /** The customer's ready quote, timed at boot: Wednesday 10:00. */
 const QUOTE = id('availability_requests', 8);
-const WEDNESDAY_10 = Instant('2026-09-30T02:00:00.000Z');
+const WEDNESDAY_10 = '2026-09-30T02:00:00.000Z';
 const phone = '+6580000001';
 const address = '1 Example Avenue, Singapore 400001';
 const Runs = Schema.Struct({

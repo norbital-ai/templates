@@ -1,5 +1,4 @@
-import { fixtureId, firstRow } from './test-runtime.js';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { fixtureId, firstRow, sameDecimal } from './test-runtime.js';
 import { Context, Effect, Exit, Layer, Schema } from 'effect';
 import { expect, layer } from '@effect/vitest';
 import { DatabaseRequest, type DatabaseResult } from '@norbital-ai/bolt/engine';
@@ -67,7 +66,7 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 						'products.update': [
 							{
 								target: yield* t.at('products', original.id),
-								set: { commission_factor: Decimal.of('1.25'), commission_basis_unit: 'kg' }
+								set: { commission_factor: '1.25', commission_basis_unit: 'kg' }
 							}
 						]
 					});
@@ -84,7 +83,7 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 						spec: 'Changed source grade',
 						commission_basis_unit: 'kg'
 					});
-					expect(updated.commission_factor?.eq('1.25')).toBe(true);
+					expect(sameDecimal(updated.commission_factor, '1.25')).toBe(true);
 					expect(firstRow((yield* read(second)).rows)).toMatchObject({
 						name: 'Second resin',
 						spec: 'A'
@@ -115,10 +114,10 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 									{
 										order,
 										product: original.id,
-										quantity: Decimal.of(1),
-										unit_price: Decimal.of(2),
-										discount_pct: Decimal.of(0),
-										tax_rate: Decimal.of(13)
+										quantity: '1',
+										unit_price: '2',
+										discount_pct: '0',
+										tax_rate: '13'
 									}
 								]
 							})

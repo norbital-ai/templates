@@ -1,12 +1,10 @@
 import { model } from '../../../../../.norbital/models/commission_rules.ts';
 import { Result } from 'effect';
-import { type Finding } from '@norbital-ai/bolt';
-import type { Json } from '@norbital-ai/std/wire';
+import { type Finding, type Json } from '@norbital-ai/bolt';
 import {
 	commissionFault,
 	DEFAULT_COMMISSION_EXPRESSION
 } from '../../../../lib/commission-expressions.js';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { commissionRuleWorkbook } from '../../../../lib/workbook.js';
 
 type Expressions = {
@@ -26,7 +24,8 @@ const valid = ({ eligibility, amount, parameters }: Expressions) =>
 				if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(parameter.name) || names.has(parameter.name))
 					throw new Error('Duplicate or invalid parameter name');
 				names.add(parameter.name);
-				Decimal.of(parameter.value);
+				if (!/^[+-]?\d+(?:\.\d+)?$/.test(parameter.value.trim()))
+					throw new Error('Invalid parameter value');
 			}
 		})
 	);
@@ -169,8 +168,8 @@ export default model({
 					currency: rule.currency,
 					effective_on: rule.effective_on,
 					basis_unit: rule.basis_unit ?? '',
-					fixed_rate: rule.fixed_rate.to_number(),
-					spread_pct: rule.spread_pct.to_number(),
+					fixed_rate: Number(rule.fixed_rate),
+					spread_pct: Number(rule.spread_pct),
 					eligibility_expression: rule.eligibility_expression,
 					amount_expression: rule.amount_expression,
 					parameters: JSON.stringify(rule.parameters ?? []),

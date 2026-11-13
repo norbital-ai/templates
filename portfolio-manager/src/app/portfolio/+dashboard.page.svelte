@@ -11,12 +11,14 @@
 	const trend = $derived(
 		rows.map((one) => ({ for_date: one.for_date, net_assets: one.net_assets })).reverse()
 	);
-	const money = (value: { to_number(): number } | null) =>
+	/** A stored decimal (a string) for reading: two places, the workspace's grouping. */
+	const money = (value: string | null) =>
 		value === null
 			? '—'
-			: value
-					.to_number()
-					.toLocaleString(ctx.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+			: Number(value).toLocaleString(ctx.locale, {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2
+				});
 </script>
 
 <AppShell

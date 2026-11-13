@@ -105,7 +105,7 @@ export default model({
 	outputs: {
 		default: {
 			fields: 'all',
-			site_location_id: { fields: ['project_id'] },
+			site_location_id: { fields: ['project_id', 'location_code', 'location_name'] },
 			job_id: { fields: ['job_title'] }
 		}
 	},

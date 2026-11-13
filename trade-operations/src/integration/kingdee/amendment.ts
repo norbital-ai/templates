@@ -1,5 +1,5 @@
-import { Decimal } from '@norbital-ai/std/decimal';
-import { Effect } from 'effect';
+import { BigDecimal, Effect } from 'effect';
+import { dec, div, minorDigits, round, text } from '../../lib/values.js';
 import { query, SourceRowInvalid, type DatabaseContext } from './polling.js';
 import { requireWriteAccount } from './sql.js';
 import {
@@ -155,27 +155,36 @@ export function previousOrderDocument(
 		});
 	return `<previous>${previous.lines
 		.map((line) => {
-			const effective = Decimal.of(line.unit_price)
-				.times(Decimal.of(100).minus(line.discount_pct))
-				.div(100, 12);
-			const factor = Decimal.of(1).plus(Decimal.of(line.tax_rate).div(100, 6));
-			const exclusive = previous.tax_inclusive ? effective.div(factor, 8) : effective;
-			const inclusive = previous.tax_inclusive ? effective : effective.times(factor).round(8);
+			const effective = div(
+				BigDecimal.multiply(
+					dec(line.unit_price),
+					BigDecimal.subtract(dec(100), dec(line.discount_pct))
+				),
+				100,
+				12
+			);
+			const factor = BigDecimal.sum(dec(1), div(line.tax_rate, 100, 6));
+			const exclusive = previous.tax_inclusive ? div(effective, factor, 8) : effective;
+			const inclusive = previous.tax_inclusive
+				? effective
+				: round(BigDecimal.multiply(effective, factor), 8);
 			const values = {
 				entry: line.source_entry_id,
 				item: line.product_code,
 				unit: line.unit,
 				quantity: line.quantity,
-				exclusive: exclusive.toString(),
-				inclusive: inclusive.toString(),
+				exclusive: text(exclusive),
+				inclusive: text(inclusive),
 				tax_rate: line.tax_rate,
 				net: line.net,
 				tax: line.tax,
 				total: line.total,
-				standard_total: Decimal.of(line.total)
-					.times(previous.source_exchange_rate)
-					.round_to(bindings.baseCurrency)
-					.toString()
+				standard_total: text(
+					round(
+						BigDecimal.multiply(dec(line.total), dec(previous.source_exchange_rate)),
+						minorDigits(bindings.baseCurrency)
+					)
+				)
 			};
 			return `<line ${Object.entries(values)
 				.map(([key, value]) => `${key}="${escape(value)}"`)

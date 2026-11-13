@@ -1,7 +1,5 @@
 import { decimalText, firstRow, fixtureId } from './test-runtime.js';
-import { add_days, PlainDate } from '@norbital-ai/std/date';
-import { Decimal, currency } from '@norbital-ai/std/decimal';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { sourceOrder, sourceTransaction, sourcePayment } from './synced-kit.js';
 import { expect, it as test } from '@effect/vitest';
 import { committed, workspace, draft, confirm } from './kit.js';
@@ -25,7 +23,7 @@ test.live(
 			const invoice = yield* sourceTransaction(t, { order, line }, parent);
 			yield* sourcePayment(t, parent, invoice.id, '5');
 			yield* sourcePayment(t, parent, null, '3');
-			const cutoff = PlainDate('2026-10-10');
+			const cutoff = '2026-10-10';
 			const paged = agingRead(cutoff, [], 1);
 			const first = yield* as.query(paged);
 			expect(first.source_payments.next).not.toBeNull();
@@ -34,7 +32,7 @@ test.live(
 				agingDetails(full, cutoff)
 			);
 
-			expect(yield* agingOf(as, { as_of: PlainDate('2026-10-10') })).toMatchObject([
+			expect(yield* agingOf(as, { as_of: '2026-10-10' })).toMatchObject([
 				{ balance: decimalText('16.80'), bucket: '61_90', overpaid: decimalText('0') }
 			]);
 			yield* sourcePayment(t, parent, invoice.id, '20');
@@ -44,14 +42,14 @@ test.live(
 					'orders.update': [{ target: yield* t.at('orders', order), set: { archived: true } }]
 				})
 			);
-			expect(yield* agingOf(as, { as_of: PlainDate('2026-10-10') })).toMatchObject([
+			expect(yield* agingOf(as, { as_of: '2026-10-10' })).toMatchObject([
 				{ balance: decimalText('0'), overpaid: decimalText('3.20') }
 			]);
 		})
 );
 
 test('the account estimate uses oldest due date and native contact ties without changing signed account balances', () => {
-	const day = PlainDate('2026-11-06');
+	const day = '2026-11-06';
 	const main = fixtureId('sys_integration', 'kingdee');
 	const other = fixtureId('sys_integration', 'kingdee-other');
 	const row = (
@@ -67,32 +65,32 @@ test('the account estimate uses oldest due date and native contact ties without 
 		party: '123',
 		party_name: 'Customer',
 		reference: contact_id ?? 'Order invoice',
-		currency: currency('CNY'),
-		issued_on: PlainDate('2026-10-01'),
-		due_on: PlainDate('2026-11-01'),
+		currency: 'CNY',
+		issued_on: '2026-10-01',
+		due_on: '2026-11-01',
 		settled_on: null,
 		as_of: day,
 		bucket: '1_30',
-		balance: Decimal.of(10),
-		unapplied: Decimal.of(0),
-		overpaid: Decimal.of(0),
-		credit: Decimal.of(0),
+		balance: '10',
+		unapplied: '0',
+		overpaid: '0',
+		credit: '0',
 		...fields
 	});
 	const cash = (id: string, amount: number, party = '123') =>
-		row(id, { party, balance: Decimal.of(0), unapplied: Decimal.of(amount), bucket: 'unapplied' });
+		row(id, { party, balance: '0', unapplied: String(amount), bucket: 'unapplied' });
 	const credit = (id: string, amount: number, party = '123') =>
-		row(id, { party, balance: Decimal.of(0), credit: Decimal.of(amount) });
+		row(id, { party, balance: '0', credit: String(amount) });
 	const raw = [
 		row('1', { due_on: null, bucket: 'no_due_date' }),
-		row('10', { balance: Decimal.of(100) }),
-		row('2', { balance: Decimal.of(40) }),
+		row('10', { balance: '100' }),
+		row('2', { balance: '40' }),
 		cash('11', 55),
 		credit('12', 20),
 		row('13', { ledger: other }),
-		row('14', { currency: currency('USD') }),
+		row('14', { currency: 'USD' }),
 		row(null, { party: 'order-only' }),
-		row('15', { party: 'refund', balance: Decimal.of(50) }),
+		row('15', { party: 'refund', balance: '50' }),
 		cash('16', -10, 'refund'),
 		credit('17', 2, 'refund'),
 		row('18', { party: 'advance' }),
@@ -159,7 +157,9 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 		const own = yield* draft(t);
 		yield* confirm(t, own.order);
 		const parent = yield* sourceOrder(t, own.order);
-		const cutoff = PlainDate('2026-10-10');
+		const cutoff = '2026-10-10';
+		const addDays = (date: string, days: number) =>
+			DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(date), { days }));
 		const invoice = yield* sourceTransaction(t, own, parent, 'invoice', '4', {
 			reference: 'INV-100',
 			total: '100',
@@ -169,7 +169,7 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 		yield* sourcePayment(t, parent, invoice.id, '-5', 'REFUND-5', { settled_on: cutoff });
 		yield* sourcePayment(t, parent, null, '20', 'UNALLOCATED-20', { settled_on: cutoff });
 		yield* sourcePayment(t, parent, invoice.id, '75', 'FUTURE-75', {
-			settled_on: add_days(cutoff, 1),
+			settled_on: addDays(cutoff, 1),
 			source_updated_at: '2026-10-11T00:00:00Z'
 		});
 		const boundaries = [
@@ -187,7 +187,7 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 			yield* sourceTransaction(t, own, parent, 'invoice', '4', {
 				reference: `DUE-${days ?? 'UNKNOWN'}`,
 				total: '1',
-				due_on: days === null ? null : add_days(cutoff, -days)
+				due_on: days === null ? null : addDays(cutoff, -days)
 			});
 		const purchase = yield* draft(t, 'purchasing');
 		yield* confirm(t, purchase.order);
@@ -198,9 +198,9 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 		});
 
 		const finance = yield* t.as(t.member(['finance']));
-		const read = (day: PlainDate) =>
+		const read = (day: string) =>
 			finance.query(agingRead(day)).pipe(Effect.map((answer) => agingDetails(answer, day)));
-		const earlier = yield* read(add_days(cutoff, -1));
+		const earlier = yield* read(addDays(cutoff, -1));
 		expect(earlier.find((row) => row.reference === 'INV-100')?.balance).toEqual(decimalText('70'));
 		expect(earlier.find((row) => row.reference === 'UNALLOCATED-20')).toBeUndefined();
 		const details = yield* read(cutoff);
@@ -228,7 +228,7 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 				no_due_date: decimalText('1')
 			}
 		]);
-		const later = yield* read(add_days(cutoff, 1));
+		const later = yield* read(addDays(cutoff, 1));
 		expect(later.find((row) => row.reference === 'INV-100')).toBeUndefined();
 		const otherCurrency = details.find((row) => row.reference === 'INV-100');
 		if (!otherCurrency) throw new Error('Expected the funded invoice');

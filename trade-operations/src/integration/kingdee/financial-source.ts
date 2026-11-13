@@ -1,8 +1,15 @@
-import { Effect } from 'effect';
-import type { StoredRow, Id } from '@norbital-ai/bolt';
+import { BigDecimal, Effect } from 'effect';
+import type { CurrencyCode, StoredRow, Id } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { Decimal, currency, minor_digits, sum } from '@norbital-ai/std/decimal';
-import { Instant, PlainDate } from '@norbital-ai/std/date';
+import {
+	dec,
+	div,
+	minorDigits,
+	round,
+	sum,
+	text as decimalText,
+	type D
+} from '../../lib/values.js';
 import {
 	readSalesGraph,
 	reviewedPage,
@@ -11,7 +18,14 @@ import {
 	type NativeProjection,
 	type OrderSourceContext
 } from './order-source.js';
-import { columns, SourceRowInvalid, SourceUnavailable, type SqlRow } from './polling.js';
+import {
+	columns,
+	currency,
+	Instant,
+	SourceRowInvalid,
+	SourceUnavailable,
+	type SqlRow
+} from './polling.js';
 import { kingdeeDeliveryCostAccount } from './configuration.js';
 
 const invalid = (column: string, reason: string): never => {
@@ -45,18 +59,18 @@ type FinancialLine = {
 	readonly entryId: string;
 	readonly detailId: string;
 	readonly unit: string;
-	readonly quantity: Decimal;
+	readonly quantity: D;
 	readonly lotNumber: string | null;
-	readonly netAmount: Decimal | null;
-	readonly grossAmount: Decimal | null;
-	readonly costAmount?: Decimal | null;
+	readonly netAmount: D | null;
+	readonly grossAmount: D | null;
+	readonly costAmount?: D | null;
 	readonly localLine: { readonly id: string };
 	readonly upstream: { readonly fid: string; readonly entryId: string } | null;
 };
 export type FinancialDocument = {
 	readonly fid: string;
 	readonly reference: string;
-	readonly issuedOn: ReturnType<typeof PlainDate>;
+	readonly issuedOn: string;
 	readonly currency: string;
 	readonly status: 'issued' | 'void';
 	readonly owner: Owner;
@@ -86,22 +100,18 @@ type SalesFact = Pick<
 >;
 
 /** A red document reverses both quantity and money; every part must share one sign and tax may not exceed gross. */
-const signedAmounts = (
-	quantity: Decimal | null,
-	net: Decimal | null,
-	gross: Decimal | null
-): boolean => {
-	if (quantity !== null && quantity.is_zero()) return false;
+const signedAmounts = (quantity: D | null, net: D | null, gross: D | null): boolean => {
+	if (quantity !== null && BigDecimal.isZero(quantity)) return false;
 	if (net === null || gross === null) return true;
-	if (net.lt(0) !== gross.lt(0)) return false;
-	return gross.abs().gte(net.abs());
+	if (BigDecimal.isNegative(net) !== BigDecimal.isNegative(gross)) return false;
+	return BigDecimal.isGreaterThanOrEqualTo(BigDecimal.abs(gross), BigDecimal.abs(net));
 };
 /** Invoice money belongs to its exact delivery line; matching only product or local line would double-count split deliveries. */
 export function mapSalesFacts(
 	deliveries: readonly FinancialDocument[],
 	invoices: readonly FinancialDocument[],
 	observedAt: string,
-	costCurrency?: ReturnType<typeof currency>
+	costCurrency?: CurrencyCode
 ): readonly (SalesFact & { readonly $id: string })[] {
 	const observed = Instant(observedAt);
 	const deliveryLines = new Map<string, { delivery: FinancialDocument; line: FinancialLine }>(
@@ -129,7 +139,7 @@ export function mapSalesFacts(
 				const gross = line.grossAmount;
 				if (
 					!signedAmounts(line.quantity, net, gross) ||
-					(net !== null && line.quantity.lt(0) !== net.lt(0))
+					(net !== null && BigDecimal.isNegative(line.quantity) !== BigDecimal.isNegative(net))
 				)
 					return invalid(
 						'FAmount',
@@ -150,14 +160,15 @@ export function mapSalesFacts(
 					source_updated_at: observed,
 					seal_hash: invoice.owner.seal,
 					unit: line.unit,
-					quantity: line.quantity,
+					quantity: decimalText(line.quantity),
 					currency: currency(invoice.currency),
 					lot_number: source.line.lotNumber,
 					unit_cost: null,
 					booked_cost: null,
 					booked_cost_currency: null,
-					net_amount: net,
-					tax_amount: net !== null && gross !== null ? gross.minus(net) : null,
+					net_amount: net === null ? null : decimalText(net),
+					tax_amount:
+						net !== null && gross !== null ? decimalText(BigDecimal.subtract(gross, net)) : null,
 					freight: null,
 					active: true
 				};
@@ -173,38 +184,54 @@ export function mapSalesFacts(
 			!costCurrency ||
 			deliveryLine.costAmount == null ||
 			!quantity ||
-			deliveryLine.quantity.is_zero()
+			BigDecimal.isZero(deliveryLine.quantity)
 		)
 			return fact;
 		if (
-			quantity.abs().gt(deliveryLine.quantity.abs()) ||
-			(!quantity.is_zero() && quantity.lt(0) !== deliveryLine.quantity.lt(0))
+			BigDecimal.isGreaterThan(BigDecimal.abs(quantity), BigDecimal.abs(deliveryLine.quantity)) ||
+			(!BigDecimal.isZero(quantity) &&
+				BigDecimal.isNegative(quantity) !== BigDecimal.isNegative(deliveryLine.quantity))
 		)
 			return fact;
 		return {
 			...fact,
-			booked_cost: deliveryLine.costAmount.times(fact.quantity).div(deliveryLine.quantity, 10),
+			booked_cost: decimalText(
+				div(
+					BigDecimal.multiply(deliveryLine.costAmount, dec(fact.quantity)),
+					deliveryLine.quantity,
+					10
+				)
+			),
 			booked_cost_currency: costCurrency
 		};
 	});
 	const shipmentFacts = deliveries.flatMap((delivery) =>
 		delivery.lines.map((line): SalesFact & { $id: string } => {
-			if (delivery.currency !== delivery.owner.currency || line.quantity.is_zero())
+			if (delivery.currency !== delivery.owner.currency || BigDecimal.isZero(line.quantity))
 				return invalid('FQty', 'An owned delivery requires a quantity and its sealed currency');
-			const returned = line.quantity.lt(0);
+			const returned = BigDecimal.isNegative(line.quantity);
 			if (
 				returned &&
-				((line.netAmount !== null && line.netAmount.gt(0)) ||
-					(line.grossAmount !== null && line.grossAmount.gt(0)))
+				((line.netAmount !== null && BigDecimal.isPositive(line.netAmount)) ||
+					(line.grossAmount !== null && BigDecimal.isPositive(line.grossAmount)))
 			)
 				return invalid('FAmount', 'A return requires negative money with its negative quantity');
 			const billed = billedByDelivery.get(`${delivery.fid}:${line.entryId}`) ?? [];
 			const complete =
 				billed.length > 0 &&
-				sum(billed.map((entry) => entry.quantity)).eq(line.quantity) &&
+				BigDecimal.equals(sum(billed.map((entry) => entry.quantity)), line.quantity) &&
 				billed.every((entry) => entry.netAmount !== null && entry.grossAmount !== null);
-			const net = complete ? sum(billed.flatMap((entry) => entry.netAmount ?? [])) : null;
-			const gross = complete ? sum(billed.flatMap((entry) => entry.grossAmount ?? [])) : null;
+			// billed money when its invoices cover the line; an unbilled return keeps the signed money it carries
+			const net = complete
+				? sum(billed.flatMap((entry) => entry.netAmount ?? []))
+				: returned
+					? line.netAmount
+					: null;
+			const gross = complete
+				? sum(billed.flatMap((entry) => entry.grossAmount ?? []))
+				: returned
+					? line.grossAmount
+					: null;
 			if (!signedAmounts(null, net, gross))
 				return invalid(
 					'FAmount',
@@ -223,14 +250,15 @@ export function mapSalesFacts(
 				source_updated_at: observed,
 				seal_hash: delivery.owner.seal,
 				unit: line.unit,
-				quantity: line.quantity,
+				quantity: decimalText(line.quantity),
 				currency: currency(delivery.currency),
 				lot_number: line.lotNumber,
 				unit_cost: null,
-				booked_cost: booked,
+				booked_cost: booked === null ? null : decimalText(booked),
 				booked_cost_currency: booked === null ? null : (costCurrency ?? null),
-				net_amount: net,
-				tax_amount: net !== null && gross !== null ? gross.minus(net) : null,
+				net_amount: net === null ? null : decimalText(net),
+				tax_amount:
+					net !== null && gross !== null ? decimalText(BigDecimal.subtract(gross, net)) : null,
 				freight: null,
 				active: delivery.status === 'issued'
 			};
@@ -319,7 +347,7 @@ export function mapPayments(
 				'FCheckAmount',
 				'The verified settlement amount is in base currency; foreign allocation requires a verified original-currency binding'
 			);
-		if (!amount.round(minor_digits(base)).eq(amount))
+		if (!BigDecimal.equals(round(amount, minorDigits(base)), amount))
 			return invalid('FCheckAmount', 'The settlement amount exceeds its currency precision');
 		const seen = new Set<string>();
 		for (const row of entries) {
@@ -349,19 +377,19 @@ export function mapPayments(
 			if (!invoice.lines.some((line) => line.entryId === id(row, 'invoice_entry')))
 				return invalid('FEntryID', 'Settlement detail has no verified owned invoice line');
 			if (
-				!columns(row).decimal('amount').eq(amount) ||
+				!BigDecimal.equals(columns(row).decimal('amount'), amount) ||
 				columns(row).date('settled_on') !== settledOn ||
 				text(row, 'receipt_reference') !== reference
 			)
 				return invalid('FCheckAmount', 'Settlement header changed during the source read');
 		}
-		if (amount.lt(0))
+		if (BigDecimal.isNegative(amount))
 			return invalid(
 				'FCheckAmount',
 				'A negative settlement can be an unallocation; it is not a verified cash refund'
 			);
 		// The native AR settlement is the evidence; an unverified receipt status is not an approval or absence rule.
-		if (amount.eq(0)) continue;
+		if (BigDecimal.isZero(amount)) continue;
 		const external = `receipt:${checkId}`;
 		result.push({
 			$id: external,
@@ -374,7 +402,7 @@ export function mapPayments(
 			source_updated_at: observed,
 			seal_hash: invoice.owner.seal,
 			currency: base,
-			amount,
+			amount: decimalText(amount),
 			active: true
 		});
 	}

@@ -1,6 +1,4 @@
 import type { Id, Row, ModelName } from '@norbital-ai/bolt';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { PlainDate, Instant } from '@norbital-ai/std/date';
 import {
 	JobResult,
 	type NativeActAnswer,
@@ -98,7 +96,7 @@ export const draft = Effect.fnUntraced(function* (
 					payment_terms: 'Net 30',
 					...(owner ? { owner } : {}),
 					...(warehouse ? { warehouse } : {}),
-					...(ordered_on ? { ordered_on: PlainDate(ordered_on) } : {})
+					...(ordered_on ? { ordered_on: ordered_on } : {})
 				}
 			]
 		})
@@ -110,10 +108,10 @@ export const draft = Effect.fnUntraced(function* (
 				{
 					order,
 					product: PRODUCT,
-					quantity: Decimal.of('10'),
-					unit_price: Decimal.of('2'),
-					discount_pct: Decimal.of('0'),
-					tax_rate: Decimal.of('9')
+					quantity: '10',
+					unit_price: '2',
+					discount_pct: '0',
+					tax_rate: '9'
 				}
 			]
 		})
@@ -122,7 +120,7 @@ export const draft = Effect.fnUntraced(function* (
 });
 export const confirm = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
 	const as = yield* t.as(t.admin);
-	const check = yield* confirmationOf(as, { as_of: Instant(t.clock.now()), order });
+	const check = yield* confirmationOf(as, { as_of: t.clock.now(), order });
 	return committed(
 		'orders',
 		yield* as.act({

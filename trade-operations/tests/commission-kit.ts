@@ -1,6 +1,4 @@
 import { Effect } from 'effect';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
 import { fixtureId } from './test-runtime.js';
 import { committed, confirm, draft, PRODUCT, type T } from './kit.js';
 /** The SGD commission rule and the product's WEST floor: once per workspace. */
@@ -12,10 +10,10 @@ export const commissionRule = Effect.fnUntraced(function* (t: T) {
 			'commission_rules.create': [
 				{
 					currency: 'SGD',
-					effective_on: PlainDate('2026-01-01'),
+					effective_on: '2026-01-01',
 					basis_unit: 't',
-					fixed_rate: Decimal.of('10'),
-					spread_pct: Decimal.of('20')
+					fixed_rate: '10',
+					spread_pct: '20'
 				}
 			]
 		})
@@ -28,9 +26,9 @@ export const commissionRule = Effect.fnUntraced(function* (t: T) {
 					product: PRODUCT,
 					currency: 'SGD',
 					group_code: 'WEST',
-					effective_on: PlainDate('2026-01-01'),
+					effective_on: '2026-01-01',
 					unit: 'kg',
-					floor_price: Decimal.of('1'),
+					floor_price: '1',
 					tax_inclusive: false
 				}
 			]
@@ -49,7 +47,7 @@ export const commissionSale = Effect.fnUntraced(function* (t: T, confirmOrder = 
 		'order_lines',
 		yield* as.act({
 			'order_lines.update': [
-				{ target: yield* t.at('order_lines', own.line), set: { quantity: Decimal.of('1000') } }
+				{ target: yield* t.at('order_lines', own.line), set: { quantity: '1000' } }
 			]
 		})
 	);

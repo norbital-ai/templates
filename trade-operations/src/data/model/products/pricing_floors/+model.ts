@@ -1,6 +1,7 @@
 import { model } from '../../../../../.norbital/models/pricing_floors.ts';
 import { type Finding } from '@norbital-ai/bolt';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { dec } from '../../../../lib/values.js';
 
 const priceBook = {
 	ledger: { kind: 'text' },
@@ -213,8 +214,9 @@ export default model({
 				}
 			] of changes.entries()) {
 				const same =
-					(set.floor_price == null || Decimal.of(set.floor_price).eq(before.floor_price)) &&
-					(set.tax_rate == null || Decimal.of(set.tax_rate).eq(before.tax_rate)) &&
+					(set.floor_price == null ||
+						BigDecimal.equals(dec(set.floor_price), dec(before.floor_price))) &&
+					(set.tax_rate == null || BigDecimal.equals(dec(set.tax_rate), dec(before.tax_rate))) &&
 					(set.tax_inclusive === undefined || set.tax_inclusive === before.tax_inclusive);
 				if (
 					import_revision != null &&

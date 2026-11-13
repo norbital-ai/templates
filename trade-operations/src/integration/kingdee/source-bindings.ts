@@ -1,7 +1,5 @@
 import type { SourceProjection } from './sql.js';
-import { Instant } from '@norbital-ai/std/date';
-import { currency } from '@norbital-ai/std/decimal';
-import { SourceRowInvalid, type SqlRow } from './polling.js';
+import { currency, Instant, SourceRowInvalid, type SqlRow } from './polling.js';
 
 const ref = (tableAlias: string, name: string) => ({ tableAlias, name });
 const column = (tableAlias: string, name: string) => ({ column: ref(tableAlias, name) });

@@ -1,5 +1,4 @@
-import { PlainDate } from '@norbital-ai/std/date';
-import { Effect, Option, Result, Schema, Stream } from 'effect';
+import { BigDecimal, Effect, Option, Result, Schema, Stream } from 'effect';
 import {
 	agreement,
 	agreements,
@@ -17,6 +16,7 @@ import {
 import type {
 	Cursor,
 	Id,
+	PlainDate,
 	Page,
 	ReadAnswer,
 	ReadRequest,
@@ -26,7 +26,7 @@ import type {
 } from '@norbital-ai/bolt';
 import { hash } from './commercial.js';
 import { commercialSalesFields } from './sales-fact-fields.js';
-import { minor_digits, Decimal, sum } from '@norbital-ai/std/decimal';
+import { type D, dec, div, minorDigits, round, sum, text } from './values.js';
 /** The order fields the commission and report helpers read. */
 export const reportFields = [
 	...agreementFields,
@@ -91,7 +91,7 @@ function commissionLines(
 		const base = {
 			order_line: orderLine,
 			product: line?.product_name ?? '',
-			quantity: Decimal.of(rawQuantity),
+			quantity: dec(rawQuantity),
 			basis_unit: rule?.basis_unit ?? '',
 			spread: null,
 			amount: null
@@ -103,16 +103,16 @@ function commissionLines(
 		)
 			return { ...base, reason: 'expression_error' as const };
 		if (!rule) return { ...base, reason: 'rule_missing' as const };
-		const quantity = fact ? Decimal.of(fact.quantity).abs().toString() : line.quantity;
+		const quantity = fact ? text(BigDecimal.abs(dec(fact.quantity))) : line.quantity;
 		const factNet = fact?.net_amount;
 		if (fact && factNet == null) return { ...base, reason: 'expression_error' as const };
-		const net = factNet == null ? line.net : Decimal.of(factNet).abs().toString();
+		const net = factNet == null ? line.net : text(BigDecimal.abs(dec(factNet)));
 		const evaluated = Result.try(() => {
 			if (rule.engine_version && rule.engine_version !== COMMISSION_ENGINE)
 				throw new Error('Unknown commission engine');
 			const factor =
 				line.commission_factor &&
-				Decimal.of(line.commission_factor).gt(0) &&
+				BigDecimal.isPositive(dec(line.commission_factor)) &&
 				line.commission_basis_unit === rule.basis_unit
 					? line.commission_factor
 					: null;
@@ -138,13 +138,17 @@ function commissionLines(
 			);
 			const spread =
 				line.floor_net && factor
-					? Decimal.of(net).div(quantity, 18).minus(line.floor_net).div(factor, 18).round(8)
+					? round(
+							div(BigDecimal.subtract(div(net, quantity, 18), dec(line.floor_net)), factor, 18),
+							8
+						)
 					: null;
 			return {
 				...base,
 				spread,
-				amount: (fact?.kind === 'return' ? result.amount.neg() : result.amount).round(
-					minor_digits(order.currency)
+				amount: round(
+					fact?.kind === 'return' ? BigDecimal.negate(result.amount) : result.amount,
+					minorDigits(order.currency)
 				),
 				reason: result.eligible ? ('resolved' as const) : ('ineligible' as const)
 			};
@@ -156,7 +160,7 @@ function commissionLines(
 					? ('expression_error' as const)
 					: !line.floor_net
 						? ('floor_missing' as const)
-						: !line.commission_factor || Decimal.of(line.commission_factor).lte(0)
+						: !line.commission_factor || !BigDecimal.isPositive(dec(line.commission_factor))
 							? ('conversion_missing' as const)
 							: line.commission_basis_unit !== rule.basis_unit
 								? ('unit_mismatch' as const)
@@ -174,15 +178,20 @@ function commissionRows(orders: readonly ReportOrder[], selectedVersion?: number
 				: agreements(record).find((v) => v.version === selectedVersion);
 		if (selectedVersion != null && !version) return [];
 		const order = version ? withAgreement(record, version) : record;
-		return commissionLines(order, version?.seal_hash).map(({ order_line, ...line }) => ({
-			...line,
-			owner_name: '',
-			order: order.id,
-			number: order.number,
-			owner: order.owner,
-			ordered_on: order.ordered_on,
-			currency: order.currency
-		}));
+		return commissionLines(order, version?.seal_hash).map(
+			({ order_line, quantity, spread, amount, ...line }) => ({
+				...line,
+				quantity: text(quantity),
+				spread: spread && text(spread),
+				amount: amount && text(amount),
+				owner_name: '',
+				order: order.id,
+				number: order.number,
+				owner: order.owner,
+				ordered_on: order.ordered_on,
+				currency: order.currency
+			})
+		);
 	});
 }
 export class AgreementUnavailable extends Schema.TaggedError<AgreementUnavailable>()(
@@ -202,8 +211,9 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 	const unresolved_lines = lines.filter((line) => line.amount === null).length;
 	const amount = unresolved_lines
 		? null
-		: sum(lines.flatMap((line) => (line.amount === null ? [] : [line.amount]))).round(
-				minor_digits(order.currency)
+		: round(
+				sum(lines.flatMap((line) => (line.amount === null ? [] : [line.amount]))),
+				minorDigits(order.currency)
 			);
 	const snapshot = {
 		seal_hash: order.seal_hash ?? '',
@@ -211,10 +221,10 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 		lines: lines.map((line) => ({
 			order_line: line.order_line,
 			product: line.product,
-			quantity: line.quantity.toString(),
+			quantity: text(line.quantity),
 			basis_unit: line.basis_unit,
-			spread: line.spread?.toString() ?? null,
-			amount: line.amount?.toString() ?? null,
+			spread: line.spread && text(line.spread),
+			amount: line.amount && text(line.amount),
 			reason: line.reason
 		}))
 	};
@@ -412,13 +422,13 @@ function salesFacts(answer: SalesAnswer, range: SalesRange) {
 }
 /** Net sales after the agreed freight treatment, `null` while a needed amount is unknown. */
 function bookedNet(
-	net: Decimal | null,
-	freight: Decimal | null,
+	net: string | null,
+	freight: string | null,
 	treatment: Row<'orders'>['freight_treatment']
 ) {
 	if (net === null) return null;
-	if (treatment !== 'deduct') return net;
-	return freight === null ? null : net.minus(freight);
+	if (treatment !== 'deduct') return dec(net);
+	return freight === null ? null : BigDecimal.subtract(dec(net), dec(freight));
 }
 /** Monthly sales and returns by currency and salesperson (an inverted range reads nothing). */
 export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
@@ -434,11 +444,11 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 			orderIds: Set<string>;
 			source_lines: number;
 			unresolved_lines: number;
-			net: Decimal | null;
-			source_net: Decimal | null;
-			tax: Decimal | null;
-			total: Decimal | null;
-			freight: Decimal | null;
+			net: D | null;
+			source_net: D | null;
+			tax: D | null;
+			total: D | null;
+			freight: D | null;
 		}
 	>();
 	for (const source of salesFacts(answer, range)) {
@@ -460,16 +470,16 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 			currency: denomination,
 			owner: order?.owner ?? null,
 			owner_name: (order ? byUser.get(order.owner) : dimensions?.employee) ?? '',
-			period: PlainDate(period),
+			period,
 			freight_treatment: treatment,
 			orderIds: new Set<string>(),
 			source_lines: 0,
 			unresolved_lines: 0,
-			net: Decimal.of(0),
-			source_net: Decimal.of(0),
-			tax: Decimal.of(0),
-			total: Decimal.of(0),
-			freight: Decimal.of(0)
+			net: dec(0),
+			source_net: dec(0),
+			tax: dec(0),
+			total: dec(0),
+			freight: dec(0)
 		};
 		const net = source.net_amount,
 			tax = source.tax_amount,
@@ -478,24 +488,29 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 		if (order) group.orderIds.add(order.id);
 		group.source_lines++;
 		if (net === null || tax === null || freight === null) group.unresolved_lines++;
-		group.net = group.net === null || booked === null ? null : group.net.plus(booked);
+		group.net = group.net === null || booked === null ? null : BigDecimal.sum(group.net, booked);
 		group.source_net =
-			group.source_net === null || net === null ? null : group.source_net.plus(net);
-		group.tax = group.tax === null || tax === null ? null : group.tax.plus(tax);
-		group.freight = group.freight === null || freight === null ? null : group.freight.plus(freight);
+			group.source_net === null || net === null ? null : BigDecimal.sum(group.source_net, dec(net));
+		group.tax = group.tax === null || tax === null ? null : BigDecimal.sum(group.tax, dec(tax));
+		group.freight =
+			group.freight === null || freight === null
+				? null
+				: BigDecimal.sum(group.freight, dec(freight));
 		group.total =
-			group.total === null || net === null || tax === null ? null : group.total.plus(net).plus(tax);
+			group.total === null || net === null || tax === null
+				? null
+				: BigDecimal.sum(BigDecimal.sum(group.total, dec(net)), dec(tax));
 		groups.set(key, group);
 	}
 	return [...groups.values()]
 		.map(({ orderIds, ...row }) => ({
 			...row,
 			orders: orderIds.size,
-			net: row.net?.round(minor_digits(row.currency)) ?? null,
-			source_net: row.source_net?.round(minor_digits(row.currency)) ?? null,
-			tax: row.tax?.round(minor_digits(row.currency)) ?? null,
-			total: row.total?.round(minor_digits(row.currency)) ?? null,
-			freight: row.freight?.round(minor_digits(row.currency)) ?? null
+			net: row.net && text(round(row.net, minorDigits(row.currency))),
+			source_net: row.source_net && text(round(row.source_net, minorDigits(row.currency))),
+			tax: row.tax && text(round(row.tax, minorDigits(row.currency))),
+			total: row.total && text(round(row.total, minorDigits(row.currency))),
+			freight: row.freight && text(round(row.freight, minorDigits(row.currency)))
 		}))
 		.sort(
 			(a, b) =>
@@ -524,12 +539,12 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 			const treatment = order?.freight_treatment ?? null;
 			const denomination = order?.currency ?? source.currency;
 			const booked = treatment ? bookedNet(net, freight, treatment) : null;
-			const digits = minor_digits(denomination);
+			const digits = minorDigits(denomination);
 			const legacyCost =
 				source.lot_number && source.unit_cost !== null
-					? Decimal.of(source.unit_cost).times(source.quantity)
+					? BigDecimal.multiply(dec(source.unit_cost), dec(source.quantity))
 					: null;
-			const bookedCost = source.booked_cost ?? null;
+			const bookedCost = source.booked_cost == null ? null : dec(source.booked_cost);
 			const cost = bookedCost ?? legacyCost;
 			const costCurrency =
 				bookedCost !== null
@@ -545,10 +560,10 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					owner: order?.owner ?? null,
 					source_owner: dimensions ? sourceOwner(source) : null,
 					sold_price:
-						net === null || Decimal.of(source.quantity).is_zero()
+						net === null || BigDecimal.isZero(dec(source.quantity))
 							? null
-							: net.div(source.quantity, 8),
-					floor_net: sealed?.floor_net ? Decimal.of(sealed.floor_net) : null,
+							: text(div(net, source.quantity, 8)),
+					floor_net: sealed?.floor_net || null,
 					order_number: order?.number ?? '',
 					party_name: order?.party?.name ?? dimensions?.customer ?? '',
 					product_name:
@@ -563,19 +578,22 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					unit: source.unit,
 					quantity: source.quantity,
 					lot_number: source.lot_number,
-					cost: cost !== null && costCurrency ? cost.round(minor_digits(costCurrency)) : null,
+					cost: cost !== null && costCurrency ? text(round(cost, minorDigits(costCurrency))) : null,
 					cost_currency: costCurrency,
 					margin:
 						cost !== null && costCurrency === denomination && booked !== null
-							? booked.minus(cost).round(digits)
+							? text(round(BigDecimal.subtract(booked, cost), digits))
 							: null,
 					currency: denomination,
 					freight_treatment: treatment,
 					source_net: net,
-					net: booked?.round(digits) ?? null,
+					net: booked && text(round(booked, digits)),
 					tax,
 					freight,
-					total: net === null || tax === null ? null : net.plus(tax).round(digits)
+					total:
+						net === null || tax === null
+							? null
+							: text(round(BigDecimal.sum(dec(net), dec(tax)), digits))
 				}
 			];
 		})
@@ -696,7 +714,8 @@ export const agingBuckets = [
 	'over_90',
 	'no_due_date'
 ] as const;
-const zero = Decimal.of(0);
+const zero = '0';
+const add = (a: string, b: string) => text(BigDecimal.sum(dec(a), dec(b)));
 function agingBucket(due: PlainDate | null, cutoff: PlainDate): AgingBucket {
 	if (due === null) return 'no_due_date';
 	const days = Math.floor(
@@ -717,23 +736,29 @@ const agingAccount = (
 });
 /** Open issued invoices by due date. Only linked source settlements reduce an invoice. */
 export function arAging(answer: AgingAnswer, as_of: PlainDate) {
-	const paidByInvoice = new Map<string, Decimal>();
+	const paidByInvoice = new Map<string, D>();
 	for (const payment of answer.source_payments.rows)
 		if (payment.invoice) {
 			paidByInvoice.set(
 				payment.invoice,
-				(paidByInvoice.get(payment.invoice) ?? zero).plus(payment.amount)
+				BigDecimal.sum(paidByInvoice.get(payment.invoice) ?? dec(0), dec(payment.amount))
 			);
 		}
 	return answer.transactions.rows.flatMap((invoice) => {
 		const order = invoice.order;
 		if (!order || invoice.total === null) return [];
-		const total = Decimal.of(invoice.total);
-		const raw = total.minus(paidByInvoice.get(invoice.id) ?? zero);
-		if (raw.is_zero()) return [];
-		const balance = raw.lt(0) ? zero : raw;
-		const credit = total.lt(0) && raw.lt(0) ? raw.neg() : zero;
-		const overpaid = !total.lt(0) && raw.lt(0) ? raw.neg() : zero;
+		const total = dec(invoice.total);
+		const raw = BigDecimal.subtract(total, paidByInvoice.get(invoice.id) ?? dec(0));
+		if (BigDecimal.isZero(raw)) return [];
+		const balance = BigDecimal.isNegative(raw) ? zero : text(raw);
+		const credit =
+			BigDecimal.isNegative(total) && BigDecimal.isNegative(raw)
+				? text(BigDecimal.negate(raw))
+				: zero;
+		const overpaid =
+			!BigDecimal.isNegative(total) && BigDecimal.isNegative(raw)
+				? text(BigDecimal.negate(raw))
+				: zero;
 		return [
 			{
 				...agingAccount(order, invoice.source),
@@ -759,13 +784,16 @@ export function receivablesDetails(snapshots: readonly ReceivablesSnapshot[], as
 	return snapshots.flatMap((snapshot) =>
 		snapshot.entries.flatMap((entry) => {
 			if (!snapshot.source || entry.business_on > as_of) return [];
-			const amount = sum([
-				entry.remaining,
-				...entry.settlements
-					.filter((settlement) => settlement.on > as_of)
-					.map((settlement) => settlement.amount)
-			]).round(minor_digits(snapshot.currency));
-			if (amount.eq(0)) return [];
+			const amount = round(
+				sum([
+					entry.remaining,
+					...entry.settlements
+						.filter((settlement) => settlement.on > as_of)
+						.map((settlement) => settlement.amount)
+				]),
+				minorDigits(snapshot.currency)
+			);
+			if (BigDecimal.isZero(amount)) return [];
 			const receipt = entry.kind === 'receipt';
 			return [
 				{
@@ -783,10 +811,11 @@ export function receivablesDetails(snapshots: readonly ReceivablesSnapshot[], as
 					due_on: receipt ? null : (entry.due_on ?? null),
 					settled_on: receipt ? entry.business_on : null,
 					as_of,
-					balance: receipt || amount.lt(0) ? zero : amount,
+					balance: receipt || BigDecimal.isNegative(amount) ? zero : text(amount),
 					overpaid: zero,
-					credit: !receipt && amount.lt(0) ? amount.neg() : zero,
-					unapplied: receipt ? amount : zero,
+					credit:
+						!receipt && BigDecimal.isNegative(amount) ? text(BigDecimal.negate(amount)) : zero,
+					unapplied: receipt ? text(amount) : zero,
 					bucket: receipt ? ('unapplied' as const) : agingBucket(entry.due_on ?? null, as_of)
 				}
 			];
@@ -841,36 +870,37 @@ type AgingDetail = {
 	due_on: PlainDate | null;
 	settled_on: PlainDate | null;
 	as_of: PlainDate;
-	balance: Decimal;
-	overpaid: Decimal;
-	credit: Decimal;
-	unapplied: Decimal;
+	balance: string;
+	overpaid: string;
+	credit: string;
+	unapplied: string;
 	bucket: AgingBucket | 'unapplied';
 };
 export const agingGroup = (row: AgingDetail) =>
 	JSON.stringify([row.ledger, row.party, row.currency]);
 type AgingEstimate = {
-	estimated_applied: Decimal | null;
-	estimated_balance: Decimal | null;
+	estimated_applied: string | null;
+	estimated_balance: string | null;
 };
 
 /** Apply the SalesBridge estimate to complete account snapshots within one customer, ledger and currency. */
 export function estimateAging(details: readonly AgingDetail[]) {
-	const groups = new Map<
-		string,
-		{ invoices: { row: AgingDetail; id: bigint }[]; available: Decimal }
-	>();
+	const groups = new Map<string, { invoices: { row: AgingDetail; id: bigint }[]; available: D }>();
 	for (const row of details) {
 		if (row.contact_id === null) continue;
 		const key = agingGroup(row);
-		const group = groups.get(key) ?? { invoices: [], available: zero };
-		if (row.balance.gt(0)) group.invoices.push({ row, id: BigInt(row.contact_id) });
-		group.available = group.available.plus(row.unapplied).plus(row.credit);
+		const group = groups.get(key) ?? { invoices: [], available: dec(0) };
+		if (BigDecimal.isPositive(dec(row.balance)))
+			group.invoices.push({ row, id: BigInt(row.contact_id) });
+		group.available = BigDecimal.sum(
+			BigDecimal.sum(group.available, dec(row.unapplied)),
+			dec(row.credit)
+		);
 		groups.set(key, group);
 	}
 	const estimates = new Map<AgingDetail, AgingEstimate>();
 	for (const group of groups.values()) {
-		let available = group.available.lt(0) ? zero : group.available;
+		let available = BigDecimal.isNegative(group.available) ? dec(0) : group.available;
 		group.invoices.sort((a, b) => {
 			if (a.row.due_on !== b.row.due_on) {
 				if (a.row.due_on === null) return 1;
@@ -880,18 +910,19 @@ export function estimateAging(details: readonly AgingDetail[]) {
 			return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 		});
 		for (const { row: invoice } of group.invoices) {
-			const applied = invoice.balance.lt(available) ? invoice.balance : available;
-			available = available.minus(applied);
+			const balance = dec(invoice.balance);
+			const applied = BigDecimal.isLessThan(balance, available) ? balance : available;
+			available = BigDecimal.subtract(available, applied);
 			estimates.set(invoice, {
-				estimated_applied: applied,
-				estimated_balance: invoice.balance.minus(applied)
+				estimated_applied: text(applied),
+				estimated_balance: text(BigDecimal.subtract(balance, applied))
 			});
 		}
 	}
 	return details.map((row) => {
 		const estimate =
-			row.contact_id !== null && row.credit.gt(0)
-				? { estimated_applied: row.credit.neg(), estimated_balance: zero }
+			row.contact_id !== null && BigDecimal.isPositive(dec(row.credit))
+				? { estimated_applied: text(BigDecimal.negate(dec(row.credit))), estimated_balance: zero }
 				: estimates.get(row);
 		return { estimated_applied: null, estimated_balance: null, ...row, ...estimate };
 	});
@@ -899,14 +930,14 @@ export function estimateAging(details: readonly AgingDetail[]) {
 
 type AgingBucket = (typeof agingBuckets)[number];
 type AgingSummary = Pick<AgingDetail, 'party_name' | 'ledger_name' | 'currency' | 'as_of'> &
-	Record<AgingBucket, Decimal> & {
+	Record<AgingBucket, string> & {
 		group: string;
-		balance: Decimal;
-		overpaid: Decimal;
-		credit: Decimal;
-		unapplied: Decimal;
-		net: Decimal;
-		estimated_balance: Decimal | null;
+		balance: string;
+		overpaid: string;
+		credit: string;
+		unapplied: string;
+		net: string;
+		estimated_balance: string | null;
 	};
 /** The account net always uses actual balances. Estimated amounts only affect the invoice buckets. */
 export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstimate>)[]) {
@@ -932,20 +963,25 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 			over_90: zero,
 			no_due_date: zero
 		};
-		summary.balance = summary.balance.plus(row.balance);
-		summary.overpaid = summary.overpaid.plus(row.overpaid);
-		summary.credit = summary.credit.plus(row.credit);
-		summary.unapplied = summary.unapplied.plus(row.unapplied);
+		summary.balance = add(summary.balance, row.balance);
+		summary.overpaid = add(summary.overpaid, row.overpaid);
+		summary.credit = add(summary.credit, row.credit);
+		summary.unapplied = add(summary.unapplied, row.unapplied);
 		if (row.estimated_balance != null)
-			summary.estimated_balance = (summary.estimated_balance ?? zero).plus(row.estimated_balance);
+			summary.estimated_balance = add(summary.estimated_balance ?? zero, row.estimated_balance);
 		if (row.bucket !== 'unapplied')
-			summary[row.bucket] = summary[row.bucket].plus(row.estimated_balance ?? row.balance);
+			summary[row.bucket] = add(summary[row.bucket], row.estimated_balance ?? row.balance);
 		groups.set(group, summary);
 	}
 	return [...groups.values()]
 		.map((row) => ({
 			...row,
-			net: row.balance.minus(row.unapplied).minus(row.overpaid).minus(row.credit)
+			net: text(
+				[row.unapplied, row.overpaid, row.credit].reduce(
+					(net, amount) => BigDecimal.subtract(net, dec(amount)),
+					dec(row.balance)
+				)
+			)
 		}))
 		.sort(
 			(a, b) =>

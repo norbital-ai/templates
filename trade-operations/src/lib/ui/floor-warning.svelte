@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { type FormState } from '@norbital-ai/ui';
-	import { currency as currencyCode, Decimal } from '@norbital-ai/std/decimal';
-	import { Result } from 'effect';
+	import { BigDecimal, Result } from 'effect';
 	import {
 		estimateFifoCost,
 		floorNetPrice,
@@ -10,6 +9,7 @@
 		inventoryCostRead,
 		purchaseLotCostRead
 	} from '../lot-cost.js';
+	import { dec, isCurrency, round, text } from '../values.js';
 
 	let {
 		form,
@@ -25,16 +25,17 @@
 			unit = String(form.row.unit ?? ''),
 			currency = String(form.row.currency ?? ''),
 			price = String(form.row.floor_price ?? '');
-		if (!product || !unit || !currency || !price || !ctx.catalog?.stock_snapshots) return null;
+		if (!product || !unit || !isCurrency(currency) || !price || !ctx.catalog?.stock_snapshots)
+			return null;
 		return Result.getOrNull(
 			Result.try(() => ({
 				product,
 				unit,
-				currency: currencyCode(currency),
-				price: Decimal.of(price),
+				currency,
+				price: dec(price),
 				tax_inclusive: form.row.tax_inclusive === true,
-				tax_rate: Decimal.of(String(form.row.tax_rate ?? '0')),
-				quantity: Decimal.of(String(form.row.minimum_quantity ?? '0'))
+				tax_rate: dec(String(form.row.tax_rate ?? '0')),
+				quantity: dec(String(form.row.minimum_quantity ?? '0'))
 			}))
 		);
 	});
@@ -45,7 +46,11 @@
 	);
 	const item = $derived(lots?.current?.products.rows[0]);
 	const costs = $derived(
-		item && ctx.catalog?.source_lot_costs && basis?.quantity.gt(0) && warehouseGroup
+		item &&
+			ctx.catalog?.source_lot_costs &&
+			basis &&
+			BigDecimal.isPositive(basis.quantity) &&
+			warehouseGroup
 			? ctx.query(purchaseLotCostRead(item.source))
 			: null
 	);
@@ -77,10 +82,10 @@
 </script>
 
 {#if fifo && basis}<p role="status" class="text-sm text-muted-foreground">
-		{ctx.t('stock.fifo.title')} · {basis.quantity.toString()}
+		{ctx.t('stock.fifo.title')} · {text(basis.quantity)}
 		{basis.unit} · {basis.currency}
-		{fifo.unit_cost.round(4).toString()} / {basis.unit}
-		{#if floorNetPrice(basis).lt(fifo.unit_cost)}
+		{text(round(fifo.unit_cost, 4))} / {basis.unit}
+		{#if BigDecimal.isLessThan(floorNetPrice(basis), fifo.unit_cost)}
 			· {ctx.t('stock.fifo.below_floor')}{/if}
 	</p>{:else if lots?.error || costs?.error || purchase}<p
 		role="status"

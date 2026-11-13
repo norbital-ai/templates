@@ -1,6 +1,6 @@
-import { Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import * as Hex from 'effect/encoding/Hex';
-import { Decimal, minor_digits, sum, type DecimalLike } from '@norbital-ai/std/decimal';
+import { type D, type DecimalLike, dec, div, minorDigits, round, sum, text } from './values.js';
 import type { Row } from '@norbital-ai/bolt';
 
 export function price(
@@ -12,17 +12,23 @@ export function price(
 		tax_rate: DecimalLike;
 	}
 ) {
-	const digits = minor_digits(document.currency);
-	const base = Decimal.of(line.quantity)
-		.times(line.unit_price)
-		.times(Decimal.of(100).minus(line.discount_pct))
-		.div(100, 12);
-	const factor = Decimal.of(1).plus(Decimal.of(line.tax_rate).div(100, 6));
-	const net = document.tax_inclusive ? base.round(digits).div(factor, digits) : base.round(digits);
+	const digits = minorDigits(document.currency);
+	const base = div(
+		BigDecimal.multiply(
+			BigDecimal.multiply(dec(line.quantity), dec(line.unit_price)),
+			BigDecimal.subtract(dec(100), dec(line.discount_pct))
+		),
+		100,
+		12
+	);
+	const factor = BigDecimal.sum(dec(1), div(line.tax_rate, 100, 6));
+	const net = document.tax_inclusive
+		? div(round(base, digits), factor, digits)
+		: round(base, digits);
 	const tax = document.tax_inclusive
-		? base.round(digits).minus(net)
-		: net.times(line.tax_rate).div(100, digits);
-	return { currency: document.currency, net, tax, total: net.plus(tax) };
+		? BigDecimal.subtract(round(base, digits), net)
+		: div(BigDecimal.multiply(net, dec(line.tax_rate)), 100, digits);
+	return { currency: document.currency, net, tax, total: BigDecimal.sum(net, tax) };
 }
 function canonical(value: unknown): string {
 	const keys = new Set<string>();
@@ -114,21 +120,20 @@ export function snapshot(
 				...(l.print_values?.length ? { print_values: l.print_values } : {}),
 				...(l.product_spec ? { product_spec: l.product_spec } : {}),
 				unit: l.unit,
-				quantity: Decimal.of(l.quantity).toString(),
-				unit_price: Decimal.of(l.unit_price).toString(),
-				discount_pct: Decimal.of(l.discount_pct).toString(),
-				tax_rate: Decimal.of(l.tax_rate).toString(),
-				net: Decimal.of(l.net).toString(),
-				tax: Decimal.of(l.tax).toString(),
-				total: Decimal.of(l.total).toString(),
-				floor_net: l.floor_net === null ? '' : Decimal.of(l.floor_net).toString(),
+				quantity: text(l.quantity),
+				unit_price: text(l.unit_price),
+				discount_pct: text(l.discount_pct),
+				tax_rate: text(l.tax_rate),
+				net: text(l.net),
+				tax: text(l.tax),
+				total: text(l.total),
+				floor_net: l.floor_net === null ? '' : text(l.floor_net),
 				commission_basis_unit: l.commission_basis_unit ?? '',
-				commission_factor:
-					l.commission_factor === null ? '' : Decimal.of(l.commission_factor).toString()
+				commission_factor: l.commission_factor === null ? '' : text(l.commission_factor)
 			})),
-		net: sum(lines.map((l) => l.net)).toString(),
-		tax: sum(lines.map((l) => l.tax)).toString(),
-		total: sum(lines.map((l) => l.total)).toString()
+		net: text(sum(lines.map((l) => l.net))),
+		tax: text(sum(lines.map((l) => l.tax))),
+		total: text(sum(lines.map((l) => l.total)))
 	};
 }
 export function contract(
@@ -172,7 +177,7 @@ export function contract(
 }
 export function creditWarning(
 	order: Pick<Row<'orders'>, 'currency' | 'direction'>,
-	gross: Decimal,
+	gross: D,
 	credit:
 		| Pick<
 				Row<'credit_snapshots'>,
@@ -193,7 +198,11 @@ export function creditWarning(
 	const adverse =
 		credit !== undefined &&
 		(credit.credit_hold ||
-			(!unavailable && Decimal.of(credit.credit_used!).plus(gross).gt(credit.credit_limit!)));
+			(!unavailable &&
+				BigDecimal.isGreaterThan(
+					BigDecimal.sum(dec(credit.credit_used!), gross),
+					dec(credit.credit_limit!)
+				)));
 	return { warning: unavailable || adverse, unavailable };
 }
 /** Internal approval basis is refreshed until confirmation, then retained in the SO seal. */
@@ -212,22 +221,19 @@ export function currentFloors(
 					f.currency === order.currency &&
 					f.group_code === group &&
 					f.effective_on <= order.ordered_on &&
-					Decimal.of(f.minimum_quantity).lte(line.quantity)
+					BigDecimal.isLessThanOrEqualTo(dec(f.minimum_quantity), dec(line.quantity))
 			)
 			.sort(
 				(a, b) =>
 					b.effective_on.localeCompare(a.effective_on) ||
-					Decimal.of(b.minimum_quantity).cmp(a.minimum_quantity)
+					BigDecimal.Order(dec(b.minimum_quantity), dec(a.minimum_quantity))
 			)[0];
 		return {
 			...line,
 			floor_net:
 				floor && floor.unit === line.unit
 					? floor.tax_inclusive
-						? Decimal.of(floor.floor_price).div(
-								Decimal.of(1).plus(Decimal.of(floor.tax_rate).div(100, 6)),
-								8
-							)
+						? text(div(floor.floor_price, BigDecimal.sum(dec(1), div(floor.tax_rate, 100, 6)), 8))
 						: floor.floor_price
 					: null,
 			floor_on: floor?.effective_on ?? null
@@ -237,5 +243,5 @@ export function currentFloors(
 
 export const quoteBelowFloor = (line: Pick<Row<'order_lines'>, 'net' | 'quantity' | 'floor_net'>) =>
 	line.floor_net !== null &&
-	line.quantity.gt(0) &&
-	line.net.div(line.quantity, 8).lt(line.floor_net);
+	BigDecimal.isPositive(dec(line.quantity)) &&
+	BigDecimal.isLessThan(div(line.net, line.quantity, 8), dec(line.floor_net));

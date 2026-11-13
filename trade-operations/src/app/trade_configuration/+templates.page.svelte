@@ -6,7 +6,11 @@
 	import CommercialSettingsForm from '../../lib/ui/commercial-settings-form.svelte';
 </script>
 
-<AppShell title={ctx.t('section.documents')} icon="lucide:file-text">
+<AppShell
+	description={ctx.t('app.trade_configuration.description')}
+	title={ctx.t('section.documents')}
+	icon="lucide:file-text"
+>
 	<Stack size="fill" gap="lg">
 		<div class="shrink-0">
 			<CommercialSettingsForm

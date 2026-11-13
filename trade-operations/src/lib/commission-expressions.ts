@@ -1,15 +1,22 @@
-import { Decimal, minor_digits, type DecimalLike } from '@norbital-ai/std/decimal';
-import { Result } from 'effect';
-import type { Id, ReadAnswer } from '@norbital-ai/bolt';
-import { compile, context, evaluate, formula } from '@norbital-ai/std/formula';
+import { BigDecimal, Predicate, Result } from 'effect';
+import { compile, context, evaluate, formula, type Id, type ReadAnswer } from '@norbital-ai/bolt';
+import { type D, type DecimalLike, dec, div, minorDigits, round, text } from './values.js';
 
 export const DEFAULT_COMMISSION_EXPRESSION =
 	'basis_quantity * (rule.fixed_rate + max(spread, 0) * rule.spread_pct / 100)';
 export const COMMISSION_ENGINE = 'cel-decimal-v1';
-const decimal = (value: unknown) => (value instanceof Decimal ? value : Decimal.of(String(value)));
+/** A CEL argument as a figure: a boxed decimal carries its `BigDecimal` as `value`. */
+const decimal = (value: unknown): D =>
+	Predicate.hasProperty(value, 'value') && BigDecimal.isBigDecimal(value.value)
+		? value.value
+		: typeof value === 'bigint'
+			? BigDecimal.fromBigInt(value)
+			: typeof value === 'number'
+				? BigDecimal.fromNumberUnsafe(value)
+				: BigDecimal.fromStringUnsafe(String(value));
 const numeric = { kind: 'decimal' } as const;
 const optionalNumeric = { kind: 'decimal', optional: true } as const;
-const text = { kind: 'text' } as const;
+const textKind = { kind: 'text' } as const;
 const commission = context(
 	{
 		quantity: numeric,
@@ -17,8 +24,11 @@ const commission = context(
 		floor_net: optionalNumeric,
 		basis_quantity: optionalNumeric,
 		spread: optionalNumeric,
-		product: { kind: 'object', fields: { code: text, name: text, unit: text } },
-		order: { kind: 'object', fields: { currency: text, ordered_on: text, party_code: text } },
+		product: { kind: 'object', fields: { code: textKind, name: textKind, unit: textKind } },
+		order: {
+			kind: 'object',
+			fields: { currency: textKind, ordered_on: textKind, party_code: textKind }
+		},
 		rule: { kind: 'object', fields: { fixed_rate: numeric, spread_pct: numeric } },
 		params: { kind: 'record', of: numeric }
 	},
@@ -26,11 +36,14 @@ const commission = context(
 		functions: {
 			min: {
 				signature: 'min(dyn, dyn): Decimal',
-				fn: (a: unknown, b: unknown) => (decimal(a).lte(decimal(b)) ? decimal(a) : decimal(b))
+				// Returns the argument itself, so CEL keeps its own decimal box.
+				fn: (a: unknown, b: unknown) =>
+					BigDecimal.isLessThanOrEqualTo(decimal(a), decimal(b)) ? a : b
 			},
 			max: {
 				signature: 'max(dyn, dyn): Decimal',
-				fn: (a: unknown, b: unknown) => (decimal(a).gte(decimal(b)) ? decimal(a) : decimal(b))
+				fn: (a: unknown, b: unknown) =>
+					BigDecimal.isGreaterThanOrEqualTo(decimal(a), decimal(b)) ? a : b
 			}
 		}
 	}
@@ -54,17 +67,18 @@ type CommissionFacts = {
 	}[];
 };
 export function commissionContext(values: CommissionFacts) {
-	const quantity = Decimal.of(values.quantity),
-		factor = values.factor ? Decimal.of(values.factor) : null;
-	const floor = values.floor_net === null ? null : Decimal.of(values.floor_net);
+	const quantity = dec(values.quantity),
+		factor = values.factor ? dec(values.factor) : null;
+	const floor = values.floor_net === null ? null : dec(values.floor_net);
 	return {
 		quantity,
-		net: Decimal.of(values.net),
+		net: dec(values.net),
 		floor_net: floor,
-		basis_quantity: factor && factor.gt(0) ? quantity.times(factor) : null,
+		basis_quantity:
+			factor && BigDecimal.isPositive(factor) ? BigDecimal.multiply(quantity, factor) : null,
 		spread:
-			floor && factor && factor.gt(0) && quantity.gt(0)
-				? Decimal.of(values.net).div(quantity, 18).minus(floor).div(factor, 18)
+			floor && factor && BigDecimal.isPositive(factor) && BigDecimal.isPositive(quantity)
+				? div(BigDecimal.subtract(div(values.net, quantity, 18), floor), factor, 18)
 				: null,
 		product: { code: values.product_code, name: values.product_name, unit: values.unit },
 		order: {
@@ -72,10 +86,8 @@ export function commissionContext(values: CommissionFacts) {
 			ordered_on: values.ordered_on,
 			party_code: values.party_code
 		},
-		rule: { fixed_rate: Decimal.of(values.fixed_rate), spread_pct: Decimal.of(values.spread_pct) },
-		params: Object.fromEntries(
-			values.parameters.map((p): [string, Decimal] => [p.name, Decimal.of(p.value)])
-		)
+		rule: { fixed_rate: dec(values.fixed_rate), spread_pct: dec(values.spread_pct) },
+		params: Object.fromEntries(values.parameters.map((p): [string, D] => [p.name, dec(p.value)]))
 	};
 }
 type CommissionValues = ReturnType<typeof commissionContext>;
@@ -86,7 +98,7 @@ export const commissionFault = (source: string, result: 'bool' | 'money') =>
 export function evaluateCommission(eligibility: string, amount: string, values: CommissionValues) {
 	const eligible = compile(commission, eligibility, 'bool');
 	if ('error' in eligible) throw new Error(eligible.error);
-	if (!evaluate(eligible, values)) return { eligible: false, amount: Decimal.of(0) };
+	if (!evaluate(eligible, values)) return { eligible: false, amount: dec(0) };
 	const result = compile(commission, amount, 'money');
 	if ('error' in result) throw new Error(result.error);
 	return { eligible: true, amount: evaluate(result, values) };
@@ -118,24 +130,24 @@ export function commissionPreview(
 			rule.eligibility_expression,
 			rule.amount_expression,
 			commissionContext({
-				quantity: Decimal.of(sample.quantity).toString(),
-				net: Decimal.of(sample.net).toString(),
-				floor_net: sample.floor_net == null ? null : Decimal.of(sample.floor_net).toString(),
-				factor: sample.factor == null ? null : Decimal.of(sample.factor).toString(),
+				quantity: text(sample.quantity),
+				net: text(sample.net),
+				floor_net: sample.floor_net == null ? null : text(sample.floor_net),
+				factor: sample.factor == null ? null : text(sample.factor),
 				product_code: sample.product_code ?? '',
 				product_name: '',
 				unit: sample.unit ?? '',
 				currency: rule.currency,
 				ordered_on: sample.ordered_on,
 				party_code: sample.party_code ?? '',
-				fixed_rate: rule.fixed_rate.toString(),
-				spread_pct: rule.spread_pct.toString(),
+				fixed_rate: rule.fixed_rate,
+				spread_pct: rule.spread_pct,
 				parameters: rule.parameters ?? []
 			})
 		);
 		return {
 			currency: rule.currency,
-			amount: result.amount.round(minor_digits(rule.currency)),
+			amount: round(result.amount, minorDigits(rule.currency)),
 			reason: result.eligible ? ('resolved' as const) : ('ineligible' as const)
 		};
 	});

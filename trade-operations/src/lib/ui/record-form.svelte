@@ -22,7 +22,7 @@
 		wide?: readonly string[];
 		/** A secondary section: closed until opened, showing this line ("No notes", "Not set"). */
 		closed?: string;
-		actions?: Snippet<[FormState]>;
+		actions?: Snippet<[FormState | undefined]>;
 		body?: Snippet<[FormState]>;
 	};
 	export type RecordFormProps = {
@@ -158,7 +158,7 @@
 						kind={stored.kind}
 						value={form.get(name)}
 						row={form.row}
-						relation={stored.relation}
+						{...stored.relation ? { relation: stored.relation } : {}}
 					/>{/if}
 			</Stack>
 		{/if}

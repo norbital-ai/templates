@@ -12,7 +12,6 @@ import {
 } from '@norbital-ai/bolt-cli/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { Effect, Layer, Schema, Stream } from 'effect';
-import { PlainDate } from '@norbital-ai/std/date';
 /** The template root: `bolt test` runs from it. */
 const root = `${process.cwd()}/`;
 export const CONTROLLER = ['field_ops_controller'];
@@ -78,7 +77,7 @@ export const siteWithJob = Effect.fnUntraced(function* (
 				{
 					site_id: site,
 					title: 'Installation — Kismis',
-					scheduled_for: PlainDate('2026-09-25'),
+					scheduled_for: '2026-09-25',
 					description: 'Grab bars',
 					...over
 				}

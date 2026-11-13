@@ -1,5 +1,5 @@
-import { Result } from 'effect';
-import { Decimal, sum } from '@norbital-ai/std/decimal';
+import { BigDecimal, Result } from 'effect';
+import { type D, dec, div, sum } from './values.js';
 import { type Id, type ReadAnswer } from '@norbital-ai/bolt';
 import { confirmationBasis } from './agreements.js';
 import {
@@ -118,7 +118,10 @@ export function confirmationCheck(
 								line.unit,
 								doc.currency
 							);
-							return average !== null && price(doc, line).net.div(line.quantity, 8).lt(average);
+							return (
+								average !== null &&
+								BigDecimal.isLessThan(div(price(doc, line).net, line.quantity, 8), average)
+							);
 						})
 						.map((line) => line.product_name)
 				: []
@@ -133,18 +136,15 @@ export function quotationFifoCosts(
 	if (!doc || doc.direction !== 'sales' || !doc.warehouse || !doc.ledger) return [];
 	const source = doc.ledger;
 	const warehouse = doc.warehouse;
-	const groups = new Map<
-		string,
-		{ line: (typeof doc.lines)[number]; quantity: Decimal; net: Decimal }
-	>();
+	const groups = new Map<string, { line: (typeof doc.lines)[number]; quantity: D; net: D }>();
 	for (const line of doc.lines) {
 		const key = JSON.stringify([line.product, line.unit.normalize('NFKC').trim().toLowerCase()]);
 		const previous = groups.get(key);
 		const net = price(doc, line).net;
 		if (previous) {
-			previous.quantity = previous.quantity.plus(line.quantity);
-			previous.net = previous.net.plus(net);
-		} else groups.set(key, { line, quantity: Decimal.of(line.quantity), net });
+			previous.quantity = BigDecimal.sum(previous.quantity, dec(line.quantity));
+			previous.net = BigDecimal.sum(previous.net, net);
+		} else groups.set(key, { line, quantity: dec(line.quantity), net });
 	}
 	return [...groups].map(([key, { line, quantity, net }]) => {
 		const estimate = answer.stock_snapshots.next
@@ -165,7 +165,7 @@ export function quotationFifoCosts(
 			quantity,
 			unit: line.unit,
 			estimate,
-			below: estimate !== null && net.lt(estimate.total)
+			below: estimate !== null && BigDecimal.isLessThan(net, estimate.total)
 		};
 	});
 }

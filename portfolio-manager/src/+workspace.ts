@@ -8,5 +8,7 @@ export default workspace({
 	tz: 'America/New_York',
 	locale: 'en-US',
 	currency: 'USD',
-	apps: ['portfolio']
+	apps: ['portfolio'],
+	/** The daily report's record view is rendered to PDF and sent with its summary. */
+	convert: { to: ['pdf'] }
 });

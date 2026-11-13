@@ -15,7 +15,6 @@ import {
 	type T
 } from './kit.js';
 import { Convert } from '@norbital-ai/bolt/engine';
-import { Decimal } from '@norbital-ai/std/decimal';
 import { cnyInWords, printAmounts } from '../src/lib/print-amounts.js';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import {
@@ -292,7 +291,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				'order_lines.update': [
 					{
 						target: yield* t.at('order_lines', line),
-						set: { quantity: Decimal.of('20'), print_values: [{ key: 'brand', value: '' }] }
+						set: { quantity: '20', print_values: [{ key: 'brand', value: '' }] }
 					}
 				]
 			});

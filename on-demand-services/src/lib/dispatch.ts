@@ -10,12 +10,14 @@ import {
 	type EffectCtx,
 	type CreateInput,
 	type Id,
+	type Instant,
 	type InstanceId,
 	type Where
 } from '@norbital-ai/bolt';
-import { add_days, Instant } from '@norbital-ai/std/date';
-import { local_of, utc_of } from '@norbital-ai/std/zone';
 import {
+	add_days,
+	local_of,
+	utc_of,
 	DEFAULTS,
 	improve,
 	lookups,
@@ -28,7 +30,7 @@ import {
 } from './matching.js';
 type Reads = Pick<AutomationCtx, 'query' | 'tz' | 'now'>;
 type Writes = Reads & Pick<AutomationCtx, 'act' | 'notify'>;
-const iso = (t: number) => Instant(new Date(t).toISOString());
+const iso = (t: number): Instant => new Date(t).toISOString();
 /**
  * The workspace's one active shared account of `definition` (Settings → Connections): `null` when there is none, or more
  * than one to choose from, and then nothing is sent or requested through it.

@@ -1,9 +1,7 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
-import { add_days, Instant as instant } from '@norbital-ai/std/date';
-import { utc_of } from '@norbital-ai/std/zone';
 import { loadPool, when, targetOf } from '../lib/dispatch.js';
-import { proposal } from '../lib/matching.js';
+import { add_days, proposal, utc_of } from '../lib/matching.js';
 
 export default automation({
 	description:
@@ -23,7 +21,7 @@ export default automation({
 		for (const helper of targets) {
 			if (helper.status !== 'active')
 				return yield* ctx.refuse('errors.helper_already_left', { values: { name: helper.name } });
-			const after = instant(new Date(utc_of(add_days(last_day, 1), 0, ctx.tz)).toISOString());
+			const after = new Date(utc_of(add_days(last_day, 1), 0, ctx.tz)).toISOString();
 			const { rows: later } = (yield* ctx.query({
 				visits: {
 					where: {

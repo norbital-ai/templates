@@ -11,6 +11,7 @@ says where the source lives and what an edit must not break.
 holding/
 portfolio_settings/
 report/
+report_subscription/
 ```
 
 ## Surfaces
@@ -20,7 +21,9 @@ report/
 - Policies: `portfolio_manage`, `portfolio_read`, `portfolio_automation`
 - Teams: `investors`, `portfolio_viewers`
 - Shared modules: `src/lib/portfolio/book.ts` (the totals), `src/lib/portfolio/market.ts` (rate, quote
-  and headline readers, browser research)
+  and headline readers, browser research, sources and citations)
+- Record view: `src/data/model/report/+representation.svelte` is the client-facing report; the PDF sent
+  is this view rendered
 - Custom fields, integrations: none; delivery uses a built-in chat account named by the settings row
 
 ## Gates
@@ -31,7 +34,9 @@ generated: commit SQL, `snapshot.json`, `migrations.lock.json` and `physical.jso
 
 ## Invariants
 
-- Three models. Cash and facilities are `holding` lines; a facility's base value is never positive.
-- Currency, delivery account and recipients are the `portfolio_settings` row: configuration, not code.
+- Four models. Cash and facilities are `holding` lines; a facility's base value is never positive.
+- Currency, delivery account, recipients and benchmarks are the `portfolio_settings` row; subscribers
+  are `report_subscription` rows, one per user, each client's own: configuration, not code.
+- Every claim in a report links its source (`cite` in `market.ts`); an uncited section is dropped.
 - One report per day: a second run that day updates it.
 - The agent asks the model for no host tool.

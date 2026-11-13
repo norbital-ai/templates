@@ -1,4 +1,4 @@
-import { csv_rows } from '@norbital-ai/std/csv';
+import Papa from 'papaparse';
 /**
  * The rows of an RFC 4180 CSV as records keyed by its header row, blank cells omitted.
  *
@@ -6,7 +6,9 @@ import { csv_rows } from '@norbital-ai/std/csv';
  */
 export function csvRecords(text: string): Array<Record<string, string>> {
 	return gridRecords(
-		csv_rows(text.replace(/^﻿/, '')).filter((row) => row.some((cell) => cell.trim() !== ''))
+		Papa.parse<string[]>(text.replace(/^﻿/, '')).data.filter((row) =>
+			row.some((cell) => cell.trim() !== '')
+		)
 	);
 }
 /** Rows under a header row as records keyed by the lower-cased header, blank cells omitted. */

@@ -17,7 +17,6 @@
 		type Point
 	} from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Instant } from '@norbital-ai/std/date';
 	import { Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from '../../lib/SlotPicker.svelte';
 	import type { PublicPageContext } from '@norbital-ai/bolt/page';
@@ -286,7 +285,7 @@
 							phone,
 							address: address.trim(),
 							service: selectedService,
-							start: Instant(selectedStart),
+							start: selectedStart,
 							repeat,
 							...(notes.trim() === '' ? {} : { notes: notes.trim() })
 						}

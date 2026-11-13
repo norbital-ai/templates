@@ -7,7 +7,6 @@ import type {
 	Point,
 	Row
 } from '@norbital-ai/bolt';
-import { Instant as instantOf } from '@norbital-ai/std/date';
 import type { Pair } from './suspicion-review-verdict.js';
 import {
 	assetName,
@@ -432,9 +431,7 @@ const fileFactsOf = Effect.fnUntraced(function* (ctx: Ctx, ref: FileRef) {
 export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 	// ponytail: a claim held past this lease is taken as abandoned (its run died mid-inspection); an inspection that
 	// genuinely runs longer is repeated by the next run
-	const abandoned = instantOf(
-		new Date(Date.parse(ctx.now) - INSPECTION_CLAIM_LEASE_MS).toISOString()
-	);
+	const abandoned = new Date(Date.parse(ctx.now) - INSPECTION_CLAIM_LEASE_MS).toISOString();
 	const { photo_evidence: pending } = yield* ctx.query({
 		photo_evidence: {
 			where: { sha256: { eq: '' }, inspection_failed_at: { is_null: true } },
@@ -942,5 +939,5 @@ export const nextRetrySlot = (now: Instant): Instant => {
 	const at = new Date(now);
 	at.setUTCMinutes(0, 0, 0);
 	at.setUTCHours(at.getUTCHours() - (at.getUTCHours() % 2) + 2);
-	return instantOf(at.toISOString());
+	return at.toISOString();
 };

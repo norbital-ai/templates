@@ -1,4 +1,3 @@
-import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { automation, type Id } from '@norbital-ai/bolt';
 import * as Effect from 'effect/Effect';
 import {
@@ -11,8 +10,7 @@ import {
 	when,
 	whatsapp
 } from '../lib/dispatch.js';
-import { local_of } from '@norbital-ai/std/zone';
-import type { Slot } from '../lib/matching.js';
+import { local_of, type Slot } from '../lib/matching.js';
 const MINUTE = 60000;
 /**
  * The pre-shift check. Two hours before a helper's first visit of the day they are asked to confirm the day. No answer
@@ -29,7 +27,7 @@ export default automation({
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const now = Date.parse(ctx.now);
-		const at = (m: number) => Instant(new Date(now + m * MINUTE).toISOString());
+		const at = (m: number) => new Date(now + m * MINUTE).toISOString();
 		const settings = yield* settingsOf(ctx);
 		// ask: the first unconfirmed visit of each helper's day that starts within the lead time
 		const { rows: soon } = (yield* ctx.query({
@@ -154,7 +152,7 @@ export default automation({
 					slot: { overlaps: d.day }
 				})
 			)).visits;
-			const date = PlainDate(local_of(Date.parse(d.day.start), ctx.tz).date);
+			const date = local_of(Date.parse(d.day.start), ctx.tz).date;
 			const existing = (yield* ctx.query({
 				helper_time_off: {
 					where: { helper: { eq: d.helper }, period: { overlaps: { from: date, to: date } } },

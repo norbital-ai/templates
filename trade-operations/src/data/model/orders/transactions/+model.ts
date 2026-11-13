@@ -1,10 +1,10 @@
 import { model } from '../../../../../.norbital/models/transactions.ts';
 import { fromSource } from '../../../../integration/kingdee/polling.js';
-import { Effect } from 'effect';
+import { BigDecimal, Effect } from 'effect';
 import { logisticsDocument, logisticsOrder } from '../../../../lib/logistics.js';
 import { readTransactions } from '../../../../integration/kingdee/order-source.js';
 import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
-import { Decimal } from '@norbital-ai/std/decimal';
+import { dec } from '../../../../lib/values.js';
 import { agreement } from '../../../../lib/agreements.js';
 
 const transactionItems = {
@@ -99,16 +99,18 @@ const settle = Effect.fnUntraced(function* (
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const first = value.items?.[0];
-		const reversal = first !== undefined && Decimal.of(first.quantity).lt(0);
+		const reversal = first !== undefined && BigDecimal.isNegative(dec(first.quantity));
 		const factor = reversal ? -1 : 1;
 		const priorQuantity = old?.items?.[0]?.quantity;
-		if (first && priorQuantity != null && reversal !== Decimal.of(priorQuantity).lt(0))
+		if (first && priorQuantity != null && reversal !== BigDecimal.isNegative(dec(priorQuantity)))
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (reversal && !value.ext_sales_order) yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
 			value.kind === 'invoice' &&
 			value.status === 'issued' &&
-			(!value.issued_on || value.total == null || Decimal.of(value.total).times(factor).lt(0))
+			(!value.issued_on ||
+				value.total == null ||
+				BigDecimal.isNegative(BigDecimal.multiply(dec(value.total), dec(factor))))
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
@@ -133,9 +135,10 @@ const settle = Effect.fnUntraced(function* (
 				seen.has(`${item.order_line_id}/${item.lot_number ?? ''}`) ||
 				!line ||
 				line.unit !== item.unit ||
-				Decimal.of(item.quantity).times(factor).lte(0) ||
-				(item.net_amount != null && Decimal.of(item.net_amount).times(factor).lt(0)) ||
-				(item.unit_price != null && !Decimal.of(item.unit_price).eq(line.unit_price))
+				!BigDecimal.isPositive(BigDecimal.multiply(dec(item.quantity), dec(factor))) ||
+				(item.net_amount != null &&
+					BigDecimal.isNegative(BigDecimal.multiply(dec(item.net_amount), dec(factor)))) ||
+				(item.unit_price != null && !BigDecimal.equals(dec(item.unit_price), dec(line.unit_price)))
 			)
 				yield* ctx.refuse('errors.evidence_sealed', { row: i });
 			seen.add(`${item.order_line_id}/${item.lot_number ?? ''}`);

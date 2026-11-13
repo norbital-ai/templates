@@ -1,7 +1,6 @@
+import { sameDecimal } from './test-runtime.js';
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
-import { Decimal } from '@norbital-ai/std/decimal';
-import { PlainDate } from '@norbital-ai/std/date';
 import { committed, draft, workspace, type T } from './kit.js';
 
 const orderHeader = [
@@ -224,8 +223,8 @@ it.live('updates and inserts order lines by the order number and stable line key
 		const updated = (yield* as.query({
 			order_lines: { where: { id: { eq: line } }, limit: 1 }
 		})).order_lines.rows[0];
-		expect(updated?.quantity.eq('12')).toBe(true);
-		expect(updated?.unit_price.eq('2.5')).toBe(true);
+		expect(sameDecimal(updated?.quantity, '12')).toBe(true);
+		expect(sameDecimal(updated?.unit_price, '2.5')).toBe(true);
 		expect(yield* load([[number, '', 'RESIN-A', '3', '1', '0', '9'].join(',')])).toMatchObject([
 			{ state: 'succeeded', output: { applied: true, created: 1 } }
 		]);
@@ -258,9 +257,9 @@ it.live('imports commission rules and exports the same columns', () =>
 				{
 					code: 'default',
 					currency: 'SGD',
-					effective_on: PlainDate('2026-10-01'),
-					fixed_rate: Decimal.of('0.10'),
-					spread_pct: Decimal.of('0'),
+					effective_on: '2026-10-01',
+					fixed_rate: '0.10',
+					spread_pct: '0',
 					eligibility_expression: 'true',
 					amount_expression: 'quantity * rule.fixed_rate'
 				}
@@ -310,7 +309,7 @@ it.live('imports commission rules and exports the same columns', () =>
 			})
 		).toMatchObject([{ state: 'succeeded', output: { applied: true, updated: 1 } }]);
 		const rule = (yield* as.query({ commission_rules: { limit: 1 } })).commission_rules.rows[0];
-		expect(rule?.fixed_rate.eq('0.25')).toBe(true);
+		expect(sameDecimal(rule?.fixed_rate, '0.25')).toBe(true);
 		expect(rule?.parameters).toEqual([{ name: 'tier', value: '1.5' }]);
 		const exported = yield* exportRun(t)('commission_rules');
 		expect(exported.text).toContain('quantity * rule.fixed_rate');

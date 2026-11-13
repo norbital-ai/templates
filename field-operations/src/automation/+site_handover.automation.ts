@@ -1,7 +1,6 @@
 import { automation } from '@norbital-ai/bolt';
 import type * as Effect from 'effect/Effect';
 import * as Predicate from 'effect/Predicate';
-import { Decimal } from '@norbital-ai/std/decimal';
 const SCHEMA = 'norbital.field_operations.interoperability.v2';
 type Point = {
 	readonly lat: number;
@@ -16,7 +15,7 @@ const geolocation = (point: Point, address: string | null) =>
 				type: 'Point',
 				srid: 4326
 			};
-/** RFC 4180; a decimal cell is its digits, any other object cell its JSON. */
+/** RFC 4180; an object cell is its JSON. */
 const csv = (
 	rows: readonly {
 		readonly [k: string]: unknown;
@@ -24,14 +23,7 @@ const csv = (
 ) => {
 	const head = Object.keys(rows[0] ?? {});
 	const cell = (v: unknown) => {
-		const s =
-			v == null
-				? ''
-				: v instanceof Decimal
-					? v.toString()
-					: Predicate.isObjectOrArray(v)
-						? JSON.stringify(v)
-						: String(v);
+		const s = v == null ? '' : Predicate.isObjectOrArray(v) ? JSON.stringify(v) : String(v);
 		return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
 	};
 	return [head, ...rows.map((row) => head.map((k) => row[k]))]

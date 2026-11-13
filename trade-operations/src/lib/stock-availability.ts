@@ -1,5 +1,6 @@
 import type { ReadAnswer } from '@norbital-ai/bolt';
-import { Decimal, sum } from '@norbital-ai/std/decimal';
+import { BigDecimal } from 'effect';
+import { sum, text } from './values.js';
 
 export const stockAvailabilityRead = {
 	commercial_settings: {
@@ -112,7 +113,7 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 				fresh(stockTime) &&
 				fresh(orderTime) &&
 				(!byWarehouse || !unattributed)
-					? onHand.minus(awaiting)
+					? text(BigDecimal.subtract(onHand, awaiting))
 					: null;
 			const location = warehouse ? warehouses.get(warehouse) : null;
 			return {
@@ -122,8 +123,8 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 				unit,
 				warehouse: location?.name ?? null,
 				warehouse_group: location?.group_code ?? null,
-				on_hand: onHand,
-				awaiting,
+				on_hand: onHand && text(onHand),
+				awaiting: awaiting && text(awaiting),
 				available,
 				ledger: snapshot?.source?.name ?? product.source,
 				stock_as_of: stockTime,
