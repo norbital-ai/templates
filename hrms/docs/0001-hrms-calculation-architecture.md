@@ -624,7 +624,7 @@ src/app/                HR controller apps, employee self-service
 
 ## 11. Screens
 
-- HR Controller holds Entities, People, Events, Payroll runs, Obligations, Formats and a Settings group. Settings has two apps: Lineage (one jurisdiction's law on a chosen day) and Change log (Scheduled: the findings research proposed and those confirmed, with a button that starts research).
+- HR Controller holds Entities, People, Events, Payroll runs, Obligations, Formats and Settings.
 - Settings is one screen for a jurisdiction and a day. Its tabs: General (currency, calendar, conversions, ledger, work regions, extension schemas), Lookup (the shared tables), Calculation overview, Catalog, Registered rules, Registered behaviour and Change log (the timeline of the law's changes, and the research findings). Each shows the law in force on the chosen day. A change opens to show what it changed. Saving a value asks whether it was always so or changes from a date.
 - Events lists each entry family on its own page: leave, claims, ad hoc, loans, workplace cases, the work month board and work events.
 - An employee profile's tabs: Profile (face enrolment inside it), Contract (the stints, newest first, each a timeline of its terms from the hire to the last day), Statutory parameters (the same timeline of what the law is told), Family (the dependants), Events, Loans, Workplace cases, and Balances (a balance overview of what is left today, and the ledger where HR adds manual adjustments).
