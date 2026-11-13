@@ -11,6 +11,11 @@ const held = (outcome: NativeActAnswer) => {
 	if (record === undefined) throw new Error('The request holds no record');
 	return { request: outcome.request_id, id: record.id };
 };
+// a held delete commits only its request: its rows stay until the approving decision
+const heldDelete = (outcome: NativeActAnswer) => {
+	if (outcome.kind !== 'pending_approval') throw new Error(JSON.stringify(outcome));
+	return outcome.request_id;
+};
 layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 	const people = Effect.gen(function* () {
 		const t = yield* Trade;
@@ -80,20 +85,22 @@ layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 					.query({ orders: { where: { id: { eq: fixtureId('orders', id) } } } })
 					.pipe(Effect.map((answer) => answer.orders.rows));
 			const kept = yield* draft(t, 'sales', fixtureId('sys_user', seller.id));
-			const rejected = held(
+			const rejected = heldDelete(
 				yield* sales.act({ 'orders.delete': [{ target: yield* t.at('orders', kept.order) }] })
 			);
-			yield* manager.approvals.decide(rejected.request, {
+			expect(yield* orders(kept.order)).toMatchObject([{ $approval: { pending_delete: true } }]);
+			yield* manager.approvals.decide(rejected, {
 				decision: 'reject',
 				reason: 'The customer still wants it'
 			});
 			expect(yield* orders(kept.order)).toHaveLength(1);
 
 			const gone = yield* draft(t, 'sales', fixtureId('sys_user', seller.id));
-			const approved = held(
+			const approved = heldDelete(
 				yield* sales.act({ 'orders.delete': [{ target: yield* t.at('orders', gone.order) }] })
 			);
-			yield* manager.approvals.decide(approved.request, { decision: 'approve' });
+			expect(yield* orders(gone.order)).toMatchObject([{ $approval: { pending_delete: true } }]);
+			yield* manager.approvals.decide(approved, { decision: 'approve' });
 			expect(yield* orders(gone.order)).toEqual([]);
 		})
 	);

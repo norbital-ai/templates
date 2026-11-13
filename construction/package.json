@@ -12,8 +12,8 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/bolt": "0.0.33",
-		"@norbital-ai/ui": "0.0.33",
+		"@norbital-ai/bolt": "0.0.38",
+		"@norbital-ai/ui": "0.0.38",
 		"effect": "4.0.6",
 		"runed": "^0.37.1",
 		"svelte": "5.57.3",
@@ -30,7 +30,7 @@
 		"@typescript/native": "npm:typescript@7.0.2",
 		"svelte2tsx": "0.7.61",
 		"typescript": "6.0.3",
-		"@norbital-ai/bolt-cli": "0.0.33"
+		"@norbital-ai/bolt-cli": "0.0.38"
 	},
 	"trustedDependencies": [
 		"esbuild",
