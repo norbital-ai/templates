@@ -649,6 +649,8 @@ export default messages({
 		'The commercial check changed. Review the current terms and credit warning again.',
 	'errors.party_inactive': 'Choose an active customer or supplier.',
 	'errors.party_direction': 'The selected party does not support this order direction.',
+	'errors.kingdee_header':
+		"Kingdee keeps a confirmed sales order's header. Change the payment terms in Kingdee; the next sync brings them here.",
 	'errors.line_basis_locked':
 		'Remove draft lines before changing their customer, date, currency, warehouse or tax basis.',
 	'errors.save_before_confirm': 'Save the draft before confirming it.',

@@ -124,7 +124,12 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 	const observed = yield* observation(ctx, cursor);
 	const { owned, anchors } = yield* ownedSalesOrders(instance, ctx);
 	const families = yield* readSourceOrderFamilies(anchors, ctx);
-	const { products } = yield* ctx.query({
+	const { products, order_lines } = yield* ctx.query({
+		// a line whose own write to the SO is still pending or failed keeps its local terms until it lands
+		order_lines: {
+			where: { order: { in: owned.map((order) => order.id) } },
+			fields: ['source_entry_id']
+		},
 		products: {
 			where: { source: { eq: instance } },
 			fields: [
@@ -144,8 +149,17 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 		if (!order) continue;
 		const source = yield* checked(() => kingdeeOrder(family));
 		const id = binding(ctx.configuration.branchNo, source.fid, order.source_order_key);
-		const pairs = pairLines(order.lines, source.lines);
+		const unsent = order.lines.filter((line) => {
+			const state = order_lines.rows.find((row) => row.id === line.id)?.$sync?.kingdee?.status;
+			return state === 'pending' || state === 'failed';
+		});
+		const held = new Set(unsent.flatMap((line) => line.source_entry_id ?? []));
+		const pairs = pairLines(
+			order.lines.filter((line) => !unsent.includes(line)),
+			source.lines
+		);
 		for (const entry of source.lines) {
+			if (held.has(entry.entry)) continue;
 			const line = pairs.get(entry.entry);
 			const product = products.rows.find((row) => row.external_code === entry.item);
 			const productId = line?.product ?? product?.id;
@@ -187,6 +201,7 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 		for (const line of order.lines)
 			if (
 				line.source_entry_id &&
+				!unsent.includes(line) &&
 				!source.lines.some((entry) => entry.entry === line.source_entry_id)
 			)
 				rows.push({
@@ -213,7 +228,7 @@ const defer = (message: string) => new FacilityFailure({ kind: 'upstream', messa
 const refuse = (message: string) => new FacilityFailure({ kind: 'invalid', message });
 /**
  * Sends a confirmed sales order to its Kingdee SO: creates it, or amends its lines where they differ (Kingdee keeps
- * the header). Answers the SO identity and versions as written, or `null` for an order this ledger does not receive.
+ * the header). Answers the SO identity and its entries as written, or `null` for an order this ledger does not receive.
  */
 export const pushOrder = Effect.fnUntraced(function* (
 	id: Id<'orders'>,
@@ -304,7 +319,8 @@ export const pushOrder = Effect.fnUntraced(function* (
 			before.payment_terms !== order.payment_terms ||
 			before.ordered_on !== order.ordered_on
 		)
-			return yield* refuse('Kingdee keeps the SO header; only its lines can change.');
+			// Kingdee owns the header and confirmed orders refuse local header edits: the next read brings it in
+			return yield* defer('Waiting for the next read of the Kingdee SO header.');
 		const same =
 			before.lines.length === lines.length &&
 			before.lines.every((entry) => {
@@ -336,15 +352,6 @@ export const pushOrder = Effect.fnUntraced(function* (
 	const written = pairLines(lines, after.lines);
 	return {
 		$id: binding(ctx.configuration.branchNo, after.fid, key),
-		$version: yield* headerVersion(after),
-		lines: yield* Effect.forEach(after.lines, (entry) =>
-			lineVersion(entry).pipe(
-				Effect.map(($version) => ({
-					line: written.get(entry.entry)?.id,
-					entry: entry.entry,
-					$version
-				}))
-			)
-		)
+		lines: after.lines.map((entry) => ({ line: written.get(entry.entry)?.id, entry: entry.entry }))
 	};
 });

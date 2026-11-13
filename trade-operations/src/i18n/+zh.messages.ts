@@ -534,6 +534,8 @@ export default messages({
 	'errors.check_changed': '商务检查结果已变更。请重新核对当前条款和信用警告。',
 	'errors.party_inactive': '请选择启用的客户或供应商。',
 	'errors.party_direction': '所选往来单位不适用于此订单类型。',
+	'errors.kingdee_header':
+		'已确认销售订单的表头以金蝶为准，请在金蝶中修改收款条件，下次同步会带回。',
 	'errors.line_basis_locked': '更改客户、日期、币种、仓库或含税方式前，请先移除草稿明细。',
 	'errors.save_before_confirm': '请先保存草稿，再确认订单。',
 	'errors.configuration_missing': '缺少默认商务配置。',

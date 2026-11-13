@@ -301,15 +301,25 @@ the audit trail. A confirmed sales order is the two-way shadow of its Kingdee SO
 `kingdee` sync mirrors the SO header (`kingdee`: FInterID, bill number, version, audit/void and
 closed state, exchange rate; and currency, settlement and date), and the `order_lines` `kingdee`
 sync mirrors its entries (quantity, price, tax and amounts, bound by `source_entry_id`). Each read
-row carries a content hash as its `$version`; an unchanged SO is skipped, so a local change waiting
-in the outbox is not overwritten by the terms it replaces. A Kingdee change applies to the order
-directly; a sales rep's local change waits for a commercial manager, then writes the SO.
+row carries a content hash as its `$version`; an unchanged SO is skipped. A write acknowledges only
+the SO identity (`$id`), so the next read brings back what Kingdee holds (identity, version, audit
+state, entry ids) as the same values, never as a change that bounces back. A Kingdee change applies
+to the order directly; a sales rep's local change waits for a commercial manager, then writes the SO.
+
+The lines are ours and the header is Kingdee's. A line whose own write is still pending or failed
+(`$sync.kingdee`) keeps its local terms through every read, including a Kingdee edit of the same
+entry; the write then amends the SO to the local terms, and Kingdee's `ICOrderAlter` keeps the
+value it replaced. A confirmed Kingdee-bound order refuses a local header change (customer,
+currency, date, tax basis, owner, settlement) with its reason; Kingdee's header changes arrive by
+read, and a line write that meets a header the read has not brought in yet waits for it.
 
 A write reads the live SO first. With no SO, it creates one; with an SO whose lines differ, it
-amends them against the lines just read. Kingdee keeps the SO header, so a change to customer,
-currency, date or settlement after confirmation is refused and rolled back. The SO must be audited
-and open before its lines change; until then the write waits and retries. Several local changes
-before the write runs are sent as one amendment of the latest terms.
+amends them against the lines just read. The SO must be audited and open before its lines change;
+until then the write waits and retries. Several local changes before the write runs are sent as one
+amendment of the latest terms, and each line's write sends the whole order, so an amendment lands
+whole or not at all. A failed or unreachable Kingdee leaves the writes queued (the order and lines
+show `pending`) and retries them; a lost receipt is retried against the FUUID and the amendment's
+own version check, never a second SO or a second version.
 
 A confirmed sales order creates an **unapproved** SEOrder and its SEOrderEntry rows.
 One serializable SQL batch takes a transaction-owned application lock, allocates the numeric

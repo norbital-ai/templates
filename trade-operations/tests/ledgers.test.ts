@@ -207,6 +207,12 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 						submitted: false
 					});
 					expect(fixture.submissions.size).toBe(before + 1);
+					const sync = Effect.fnUntraced(function* () {
+						return (yield* (yield* t.as(t.admin)).query({
+							orders: { where: { id: { eq: own.order } }, limit: 1 }
+						})).orders.rows[0]?.$sync?.kingdee?.status;
+					});
+					expect(yield* sync()).toBe('pending');
 					t.clock.set(new Date(queued.next_attempt_at).toISOString());
 					yield* t.deliver();
 					expect(yield* state()).toMatchObject({
@@ -218,8 +224,12 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 					});
 					expect(fixture.submissions.size).toBe(before + 1);
 					expect(fixture.state.lostReceipts).toBe(1);
+					expect(yield* sync()).toBe('ok');
 					const identity = yield* t.db.rows(
-						Schema.Struct({ remote_id: Schema.String, remote_version: Schema.String }),
+						Schema.Struct({
+							remote_id: Schema.String,
+							remote_version: Schema.NullOr(Schema.String)
+						}),
 						{
 							text: "SELECT remote_id,remote_version FROM sys_sync_row WHERE sync='orders.sync.kingdee' AND record=$1",
 							params: [own.order]
@@ -231,7 +241,8 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 					expect(identity).toMatchObject([
 						{
 							remote_id: `sales:0:${9002 + before}:${key}`,
-							remote_version: expect.stringMatching(/^[0-9a-f]{64}$/)
+							// the ack carries no version: the next read brings the SO's own state back
+							remote_version: null
 						}
 					]);
 				})

@@ -29,6 +29,8 @@ const xmlValues = (types: Readonly<Record<string, string>>) =>
 		.map(([name, type]) => `item.value('(@${name})[1]','${type}')`)
 		.join(',');
 const fail = (message: string) => `BEGIN RAISERROR('${message}',16,1); RETURN; END;`;
+/** A race with another Kingdee writer: no RAISERROR (the driver reports those as refusals); the writer reads again and retries. */
+export const moved = `BEGIN SELECT 'moved' AS remote,@fingerprint AS hash; RETURN; END;`;
 const sameText = (left: string, right: string) =>
 	`CONVERT(nvarchar(max),${left}) COLLATE Latin1_General_BIN2=CONVERT(nvarchar(max),${right}) COLLATE Latin1_General_BIN2 AND DATALENGTH(CONVERT(nvarchar(max),${left}))=DATALENGTH(CONVERT(nvarchar(max),${right}))`;
 export const amendmentCause = (reference: string, fingerprint: string) =>
@@ -127,11 +129,11 @@ IF EXISTS(SELECT FEntryID FROM @lines GROUP BY FEntryID HAVING COUNT(*)<>1) ${fa
 IF @source_version NOT LIKE '[0-9][0-9][0-9]' OR @source_version='999' ${fail('Source version is not amendable')}
 SET @new_version=RIGHT('000'+CONVERT(varchar(3),CAST(@source_version AS int)+1),3);
 EXEC @lock_result=sys.sp_getapplock @Resource=@resource,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=5000;
-IF @lock_result NOT IN (0,1) ${fail('Source order is busy')}
+IF @lock_result NOT IN (0,1) ${moved}
 SELECT @actual_version=FVersionNo FROM dbo.SEOrder WITH (UPDLOCK,HOLDLOCK) WHERE FBrNo=@branch AND FInterID=@remote AND FUUID=CAST(@correlation AS uniqueidentifier);
 IF @actual_version IS NULL ${fail('The verified source order identity moved or disappeared')}
 IF (SELECT COUNT(*) FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))<>1 ${fail('Ambiguous source correlation')}
-IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND CAST(FExchangeRate AS decimal(28,10))=@source_exchange_rate) ${fail('Source exchange rate changed since the previous observation')}
+IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND CAST(FExchangeRate AS decimal(28,10))=@source_exchange_rate) ${moved}
 IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND ${header.map((name) => (name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`)).join(' AND ')}) ${fail('Amendments cannot change the approved source header terms')}
 IF EXISTS(SELECT FEntryID FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote GROUP BY FEntryID HAVING COUNT(*)<>1) ${fail('Source entry identities are ambiguous')}
 IF @actual_version=@new_version BEGIN
@@ -139,11 +141,11 @@ IF @actual_version=@new_version BEGIN
  IF NOT EXISTS(SELECT 1 FROM dbo.ICOrderAlter WHERE FInterID=@remote AND FBillType=81 AND FVersionNo=@new_version AND FChangeCauses=@change_cause) ${fail('This source version was changed by another amendment')}
  SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash; RETURN;
 END;
-IF @actual_version<>@source_version ${fail('Source business version changed; read it before amending')}
+IF @actual_version<>@source_version ${moved}
 IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND FCheckerID>0 AND FCheckDate>=CONVERT(datetime,'19010102',112)) ${fail('The source order is no longer audited')}
 IF EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND (FCancellation<>0 OR FChangeMark<>0 OR FClosed<>0 OR FStatus=3)) ${fail('Source order is void, archived or closed')}
 IF (SELECT COUNT(*) FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FBillNo=expected.FBillNo AND actual.FCancellation=0 AND actual.FChangeMark=0)<>1 ${fail('The source document family has an ambiguous live order')}
-IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @previous) OR EXISTS(SELECT 1 FROM @previous expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual JOIN dbo.t_Item unit ON unit.FItemID=actual.FUnitID AND unit.FItemClassID=7 WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.entry_id AND actual.FItemID=expected.item_id AND ${sameText('unit.FName', 'expected.unit_name')} AND actual.FQty=expected.quantity AND actual.Fauxqty=expected.quantity AND actual.FComplexQty=expected.quantity AND actual.FAuxPrice=expected.exclusive AND actual.FPrice=expected.exclusive AND actual.FAuxTaxPrice=expected.inclusive AND actual.FTaxPrice=expected.inclusive AND actual.FPriceDiscount=expected.inclusive AND actual.FAuxPriceDiscount=expected.inclusive AND actual.FCESS=expected.tax_rate AND actual.FAmount=expected.net AND actual.FTaxAmt=expected.tax AND actual.FAllAmount=expected.total AND actual.FAllStdAmount=expected.standard_total)) ${fail('Source contents changed since the previous observation')}
+IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @previous) OR EXISTS(SELECT 1 FROM @previous expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual JOIN dbo.t_Item unit ON unit.FItemID=actual.FUnitID AND unit.FItemClassID=7 WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.entry_id AND actual.FItemID=expected.item_id AND ${sameText('unit.FName', 'expected.unit_name')} AND actual.FQty=expected.quantity AND actual.Fauxqty=expected.quantity AND actual.FComplexQty=expected.quantity AND actual.FAuxPrice=expected.exclusive AND actual.FPrice=expected.exclusive AND actual.FAuxTaxPrice=expected.inclusive AND actual.FTaxPrice=expected.inclusive AND actual.FPriceDiscount=expected.inclusive AND actual.FAuxPriceDiscount=expected.inclusive AND actual.FCESS=expected.tax_rate AND actual.FAmount=expected.net AND actual.FTaxAmt=expected.tax AND actual.FAllAmount=expected.total AND actual.FAllStdAmount=expected.standard_total)) ${moved}
 IF EXISTS(SELECT 1 FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE target.FItemID<>old.item_id) ${fail('A changed product requires a new line identity')}
 IF EXISTS(SELECT 1 FROM dbo.SEOrderEntry old JOIN @lines target ON target.FEntryID=old.FEntryID WHERE old.FBrNO=@branch AND old.FInterID=@remote AND old.FUnitID<>target.FUnitID) ${fail('An existing source line cannot change its unit')}
 IF EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.t_Item item JOIN dbo.t_ICItem detail ON detail.FItemID=item.FItemID WHERE item.FItemID=expected.FItemID AND item.FItemClassID=4 AND item.FDetail=1 AND item.FDeleted=0 AND item.FUnUsed=0 AND detail.FDeleted=0 AND detail.FUnitID=expected.FUnitID)) ${fail('Source item or base unit changed')}

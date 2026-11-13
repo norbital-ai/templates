@@ -110,7 +110,22 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		ICSale: [],
 		ICSaleEntry: []
 	};
-	const state = { unreachable: 0, loseNextReceipt: false, lostReceipts: 0 };
+	const state: {
+		unreachable: number;
+		loseNextReceipt: boolean;
+		lostReceipts: number;
+		abortAmendments: number;
+		/** Runs once as the next amendment reaches Kingdee: another Kingdee writer's change in between. */
+		beforeAmendment?: (() => void) | undefined;
+	} = { unreachable: 0, loseNextReceipt: false, lostReceipts: 0, abortAmendments: 0 };
+	const receipt = (remote: string, hash: string) => {
+		if (state.loseNextReceipt) {
+			state.loseNextReceipt = false;
+			state.lostReceipts++;
+			throw new Error('The committed source receipt was lost');
+		}
+		return { rows: [{ remote, hash }] };
+	};
 	const configuration = (owner: string) => ({
 		baseCurrency: 'CNY',
 		branchNo: '0',
@@ -120,7 +135,10 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		maxWindowMinutes: 15,
 		salespersonBindings: JSON.stringify({ [owner]: { employeeId: '701', departmentId: '601' } }),
 		currencyBindings: JSON.stringify({ CNY: { id: '1', base: true } }),
-		settlementRules: JSON.stringify({ 'PROBE-NET30': { creditDays: 30, fromMonthEnd: false } })
+		settlementRules: JSON.stringify({
+			'PROBE-NET30': { creditDays: 30, fromMonthEnd: false },
+			'PROBE-NET60': { creditDays: 60, fromMonthEnd: false }
+		})
 	});
 	const request = Effect.fnUntraced(function* (operation: DatabaseRequest) {
 		calls.push(operation);
@@ -142,14 +160,24 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		return yield* Effect.try({
 			try: (): DatabaseResult | null => {
 				if (statement === sourceAmendmentSql) {
+					const race = state.beforeAmendment;
+					state.beforeAmendment = undefined;
+					race?.();
 					const correlation = string(args.correlation, 'owned UUID');
 					const existing = submissions.get(correlation);
 					const hash = string(args.fingerprint, 'fingerprint');
 					if (!existing) throw new Error('Owned source order is unavailable');
 					if (existing.hash === hash) return { rows: [{ remote: existing.remote, hash }] };
 					const source = tables.SEOrder?.find((row) => row.fid === existing.remote);
-					if (!source || source.version !== args.source_version)
-						throw new Error('The source version changed');
+					if (!source) throw new Error('Owned source order is unavailable');
+					// another Kingdee writer amended the SO after the writer read it
+					if (source.version !== args.source_version) return { rows: [{ remote: 'moved', hash }] };
+					// SET XACT_ABORT: a RAISERROR anywhere rolls the whole amendment back
+					// the connection drops mid-batch: SET XACT_ABORT rolls the whole amendment back
+					if (state.abortAmendments > 0) {
+						state.abortAmendments--;
+						throw new Error('The connection dropped during the amendment');
+					}
 					const version = String(Number(source.version) + 1).padStart(3, '0');
 					const document = string(args.document, 'target source document');
 					const header = attributes(/<header\s+([^>]*)\/>/.exec(document)?.[1] ?? '');
@@ -214,7 +242,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 						version,
 						cause: string(args.change_cause, 'amendment cause')
 					});
-					return { rows: [{ remote: existing.remote, hash }] };
+					return receipt(existing.remote, hash);
 				}
 				if (statement === sourceOrderSql) {
 					const correlation = string(args.correlation, 'FUUID');
@@ -272,12 +300,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 							});
 						}
 					}
-					if (state.loseNextReceipt) {
-						state.loseNextReceipt = false;
-						state.lostReceipts++;
-						throw new Error('The committed source receipt was lost');
-					}
-					return { rows: [{ remote: existing.remote, hash }] };
+					return receipt(existing.remote, hash);
 				}
 				if (statement.includes('DECLARE @lines xml=CONVERT(xml,@items)')) {
 					const requested = string(args.items, 'item lookups');

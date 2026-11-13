@@ -434,6 +434,14 @@ export default model({
 					)
 				)
 					return yield* ctx.refuse('errors.line_basis_locked');
+				// Kingdee keeps the SO header; the sync's read brings its changes in
+				if (
+					old.status === 'confirmed' &&
+					old.write_target &&
+					input.payment_terms !== undefined &&
+					input.payment_terms !== old.payment_terms
+				)
+					return yield* ctx.refuse('errors.kingdee_header', { field: 'payment_terms' });
 				if (old.status === 'confirmed' || after.status === 'draft') {
 					transformed.push({
 						...input,
@@ -950,8 +958,9 @@ export default model({
 			},
 			write: function* ({ op, row, instance }, ctx) {
 				if (op === 'delete') return null;
+				// no `$version`: the read brings the SO's own state back, which this order does not hold yet
 				const written = yield* pushOrder(row.id, instance, ctx);
-				return written && { $id: written.$id, $version: written.$version };
+				return written && { $id: written.$id };
 			}
 		}
 	}

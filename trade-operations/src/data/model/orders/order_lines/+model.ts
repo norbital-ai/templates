@@ -317,7 +317,7 @@ export default model({
 				const entry = written?.lines.find((line) => line.line === row.id);
 				return op === 'delete' || !written || !entry
 					? null
-					: { $id: `${written.$id}:${entry.entry}`, $version: entry.$version };
+					: { $id: `${written.$id}:${entry.entry}` };
 			}
 		}
 	}

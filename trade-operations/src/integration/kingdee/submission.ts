@@ -1,4 +1,5 @@
 import { BigDecimal, Effect, Schema } from 'effect';
+import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { type DatabaseContext, query, SourceRowInvalid } from './polling.js';
 import { sha256Hex } from '../../lib/commercial.js';
 import { dec, text } from '../../lib/values.js';
@@ -15,6 +16,7 @@ import {
 import {
 	amendmentCause,
 	amendmentFingerprint,
+	moved,
 	previousOrderDocument,
 	sourceAmendmentSql
 } from './amendment.js';
@@ -63,7 +65,12 @@ const LookupRow = Schema.Struct({
 	rate: Schema.String
 });
 const Receipt = Schema.Struct({
-	rows: Schema.Array(Schema.Struct({ remote: SourceId, hash: Schema.String }))
+	rows: Schema.Array(
+		Schema.Struct({
+			remote: Schema.Union([SourceId, Schema.Literal('moved')]),
+			hash: Schema.String
+		})
+	)
 });
 const decode = <A>(schema: Schema.Codec<A, unknown>, value: unknown) =>
 	Schema.decodeUnknownEffect(schema)(value).pipe(Effect.mapError(failure));
@@ -163,7 +170,7 @@ IF (SELECT COUNT(*) FROM @header)<>1 OR (SELECT COUNT(*) FROM @lines) NOT BETWEE
 IF EXISTS(SELECT FEntryID FROM @lines GROUP BY FEntryID HAVING COUNT(*)<>1) ${fail('Duplicate source order line')}
 IF EXISTS(SELECT 1 FROM @header WHERE FBrNo<>@branch) ${fail('Source branch mismatch')}
 EXEC @lock_result=sys.sp_getapplock @Resource=@resource,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=5000;
-IF @lock_result NOT IN (0,1) ${fail('Source order is busy')}
+IF @lock_result NOT IN (0,1) ${moved}
 IF (SELECT COUNT(*) FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))>1 ${fail('Ambiguous source correlation')}
 SELECT @remote=FInterID FROM dbo.SEOrder WITH (UPDLOCK,HOLDLOCK) WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier);
 IF @remote IS NULL BEGIN
@@ -372,6 +379,11 @@ export const submitOrder = Effect.fnUntraced(function* (
 		})
 	);
 	const receipt = result.rows[0];
+	if (receipt?.remote === 'moved')
+		return yield* new FacilityFailure({
+			kind: 'upstream',
+			message: 'Kingdee changed the SO while it was being written; it is read again and retried.'
+		});
 	if (result.rows.length !== 1 || receipt === undefined || receipt.hash !== fingerprint)
 		return yield* new SourceRowInvalid({
 			column: '$receipt',
