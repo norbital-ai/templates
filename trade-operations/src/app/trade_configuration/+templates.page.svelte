@@ -12,7 +12,7 @@
 	icon="lucide:file-text"
 >
 	<Stack size="fill" gap="lg">
-		<div class="shrink-0">
+		<Stack>
 			<CommercialSettingsForm
 				{ctx}
 				fields={[
@@ -22,7 +22,7 @@
 					'require_floor'
 				]}
 			/>
-		</div>
+		</Stack>
 		<Table
 			{ctx}
 			of="document_templates"

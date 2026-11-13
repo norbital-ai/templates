@@ -1,7 +1,6 @@
-import { Effect, Schema } from 'effect';
+import { BigDecimal, Duration, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { text as decimalText } from '../../lib/values.js';
 import { sha256Hex } from '../../lib/commercial.js';
 import { kingdeeReceivablesAccount } from './configuration.js';
 import {
@@ -124,7 +123,12 @@ function mapEntry(row: SqlRow) {
 		throw invalid('t_RP_Contact', 'Receivables require a dated reference and a verified customer');
 	const r = columns(row);
 	const kind = exactId(row, 'contact_type') === '3' ? ('invoice' as const) : ('receipt' as const);
-	const remaining = decimalText(r.decimal('remaining'));
+	const remainingAmount = r.decimal('remaining');
+	const remaining = new Intl.NumberFormat('en', {
+		useGrouping: false,
+		minimumFractionDigits: remainingAmount.scale,
+		maximumFractionDigits: remainingAmount.scale
+	}).format(BigDecimal.format(remainingAmount) as Intl.StringNumericLiteral);
 	return {
 		contact_id,
 		customer_id,
@@ -135,7 +139,18 @@ function mapEntry(row: SqlRow) {
 		due_on: sourceDate(row, 'due_on'),
 		remaining,
 		settlements: Schema.decodeUnknownSync(settlementsSchema)(r.text('settlements', '[]')).map(
-			(check) => ({ on: PlainDate(check.on), amount: decimalText(check.amount) })
+			(check) => {
+				const amount = BigDecimal.fromStringUnsafe(check.amount);
+				const scale = Math.max(0, amount.scale);
+				return {
+					on: PlainDate(check.on),
+					amount: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: scale,
+						maximumFractionDigits: scale
+					}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral)
+				};
+			}
 		)
 	};
 }
@@ -197,7 +212,7 @@ export const readReceivables = Effect.fnUntraced(function* (
 		prior?.scope === scope &&
 		prior.fingerprint === before.fingerprint &&
 		Date.parse(before.observed_at) - Date.parse(prior.observed_at) <
-			ctx.configuration.fullSnapshotMinutes * 60000
+			Duration.toMillis(Duration.minutes(ctx.configuration.fullSnapshotMinutes))
 	)
 		return { rows: [], cursor, more: false };
 	const rows = yield* readNativeRows(ctx, entries, { account, ids });

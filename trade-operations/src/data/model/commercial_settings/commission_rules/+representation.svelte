@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { commissionPreview, previewRead } from '../../../../lib/commission-expressions.js';
-	import { dec, text } from '../../../../lib/values.js';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect, Schema } from 'effect';
+	import { BigDecimal, Effect, Schema } from 'effect';
 	import { Input, Button, Show, TimeInput, type RecordView } from '@norbital-ai/ui';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
@@ -41,10 +40,10 @@
 		fork(
 			Effect.try({
 				try: () => ({
-					quantity: dec(quantity),
-					net: dec(net),
-					...(floor ? { floor_net: dec(floor) } : {}),
-					...(factor ? { factor: dec(factor) } : {}),
+					quantity: BigDecimal.format(BigDecimal.fromStringUnsafe(quantity)),
+					net: BigDecimal.format(BigDecimal.fromStringUnsafe(net)),
+					...(floor ? { floor_net: BigDecimal.format(BigDecimal.fromStringUnsafe(floor)) } : {}),
+					...(factor ? { factor: BigDecimal.format(BigDecimal.fromStringUnsafe(factor)) } : {}),
 					product_code: product,
 					unit,
 					party_code: party,
@@ -175,7 +174,7 @@
 						<Show
 							{ctx}
 							kind={{ kind: 'money', currency: 'currency', optional: true }}
-							value={result.amount === null ? null : text(result.amount)}
+							value={result.amount === null ? null : BigDecimal.format(result.amount)}
 							row={{ currency: result.currency }}
 						/>
 					</p>{/if}

@@ -1,6 +1,5 @@
 import type { Terms } from './commercial.js';
 import type { Row } from '@norbital-ai/bolt';
-import { minorDigits } from './values.js';
 
 type Locale = Row<'document_templates'>['locale'];
 
@@ -64,12 +63,6 @@ export function paragraphs(text: string) {
 		.join('');
 }
 
-function paperAmount(value: string, currency: string) {
-	const [whole, fraction = ''] = value.split('.');
-	const decimals = fraction.padEnd(minorDigits(currency), '0');
-	return decimals ? `${whole}.${decimals}` : (whole ?? '');
-}
-
 /** The published table layout projects only customer-facing order terms. */
 export function commercialDocument(seal: Terms, locale: Locale, reference: string, date: string) {
 	const label = labels[locale];
@@ -93,21 +86,29 @@ export function commercialDocument(seal: Terms, locale: Locale, reference: strin
 		label.vat,
 		label.amount
 	];
-	const amount = (value: string) => paperAmount(value, seal.currency);
+	const amount = new Intl.NumberFormat('en', {
+		useGrouping: false,
+		minimumFractionDigits:
+			new Intl.NumberFormat('en', {
+				style: 'currency',
+				currency: seal.currency
+			}).resolvedOptions().maximumFractionDigits ?? 2,
+		maximumFractionDigits: 100
+	});
 	const lines = seal.lines.map((line) => ({
 		product: [line.product_name, line.product_code, line.product_spec].filter(Boolean).join(' · '),
 		numeric: [
 			`${line.quantity} ${line.unit}`,
-			amount(line.unit_price),
+			amount.format(line.unit_price as Intl.StringNumericLiteral),
 			`${line.discount_pct}%`,
 			`${line.tax_rate}%`,
-			amount(line.total)
+			amount.format(line.total as Intl.StringNumericLiteral)
 		]
 	}));
 	const totals = [
-		[label.net, amount(seal.net)],
-		[label.tax, amount(seal.tax)],
-		[label.total, `${amount(seal.total)} ${seal.currency}`]
+		[label.net, amount.format(seal.net as Intl.StringNumericLiteral)],
+		[label.tax, amount.format(seal.tax as Intl.StringNumericLiteral)],
+		[label.total, `${amount.format(seal.total as Intl.StringNumericLiteral)} ${seal.currency}`]
 	];
 	const text = [
 		...terms.map(([key, value]) => `${key}: ${value}`),

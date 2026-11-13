@@ -1,4 +1,12 @@
-import { DateTime, Effect, Record as EffectRecord, Result, Schema } from 'effect';
+import {
+	BigDecimal,
+	DateTime,
+	Duration,
+	Effect,
+	Record as EffectRecord,
+	Result,
+	Schema
+} from 'effect';
 import type { FacilityFailure, ReadFailed, Unavailable } from '@norbital-ai/bolt/errors';
 import { sha256Hex, type DigestUnavailable } from '../../lib/commercial.js';
 import {
@@ -9,7 +17,6 @@ import {
 	type InstanceId
 } from '@norbital-ai/bolt';
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
-import { dec } from '../../lib/values.js';
 import type { SourceProjection as Projection } from './sql.js';
 import { sourceCheckpoint, sourcePage, sourceMarkers } from './sql.js';
 import { bindings, normalizeSourceRow } from './source-bindings.js';
@@ -142,7 +149,7 @@ export function columns(row: SqlRow) {
 			)(name),
 		text: reader(Schema.String, same, 'text'),
 		bool: reader(Schema.Boolean, same, 'a bit'),
-		decimal: reader(Precise, dec, 'decimal'),
+		decimal: reader(Precise, BigDecimal.fromStringUnsafe, 'decimal'),
 		/** A decimal column as the exact text a decimal field stores. */
 		decimalText: reader(Precise, same, 'decimal'),
 		currency: reader(Schema.String, currency, 'a currency'),
@@ -319,7 +326,7 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 		state.fullAt === null ||
 		!versioned ||
 		Date.parse(current.now) - Date.parse(state.fullAt) >=
-			ctx.configuration.fullSnapshotMinutes * 60000;
+			Duration.toMillis(Duration.minutes(ctx.configuration.fullSnapshotMinutes));
 	const position = state.continuation ?? {
 		mode: full ? ('snapshot' as const) : ('changes' as const),
 		upper: current.maximum,
@@ -332,7 +339,7 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 		});
 	const health: Health =
 		Date.parse(current.now) - Date.parse(position.started) >
-		ctx.configuration.maxWindowMinutes * 60000
+		Duration.toMillis(Duration.minutes(ctx.configuration.maxWindowMinutes))
 			? { state: 'attention', code: 'windowLag' }
 			: { state: 'ready' };
 	if (position.mode === 'finish')

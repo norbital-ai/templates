@@ -1,6 +1,5 @@
 import type { ReadAnswer } from '@norbital-ai/bolt';
-import { BigDecimal } from 'effect';
-import { sum, text } from './values.js';
+import { BigDecimal, Duration } from 'effect';
 
 export const stockAvailabilityRead = {
 	commercial_settings: {
@@ -34,7 +33,9 @@ type Commitment = Snapshot['entries'][number];
 const normalizeUnit = (unit: string | null) => unit?.normalize('NFKC').trim().toLowerCase() || null;
 
 export function stockAvailability(answer: Answer, now: number, byWarehouse: boolean) {
-	const freshness = (answer.commercial_settings.rows[0]?.stock_fresh_minutes ?? 30) * 60_000;
+	const freshness = Duration.toMillis(
+		Duration.minutes(answer.commercial_settings.rows[0]?.stock_fresh_minutes ?? 30)
+	);
 	const warehouses = new Map<string, Answer['warehouses']['rows'][number]>(
 		answer.warehouses.rows.map((row) => [row.id, row])
 	);
@@ -103,9 +104,15 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 				: commitments;
 			const stockTime = selectedLots.map((row) => row.as_of).sort()[0] ?? null;
 			const onHand =
-				selectedLots.length && stockKnown ? sum(selectedLots.map((lot) => lot.on_hand)) : null;
+				selectedLots.length && stockKnown
+					? BigDecimal.sumAll(selectedLots.map((lot) => BigDecimal.fromStringUnsafe(lot.on_hand)))
+					: null;
 			const awaiting =
-				snapshot && orderKnown ? sum(selectedOrders.map((row) => row.quantity)) : null;
+				snapshot && orderKnown
+					? BigDecimal.sumAll(
+							selectedOrders.map((row) => BigDecimal.fromStringUnsafe(row.quantity))
+						)
+					: null;
 			const available =
 				compatible &&
 				onHand !== null &&
@@ -113,7 +120,7 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 				fresh(stockTime) &&
 				fresh(orderTime) &&
 				(!byWarehouse || !unattributed)
-					? text(BigDecimal.subtract(onHand, awaiting))
+					? BigDecimal.format(BigDecimal.subtract(onHand, awaiting))
 					: null;
 			const location = warehouse ? warehouses.get(warehouse) : null;
 			return {
@@ -123,8 +130,8 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 				unit,
 				warehouse: location?.name ?? null,
 				warehouse_group: location?.group_code ?? null,
-				on_hand: onHand && text(onHand),
-				awaiting: awaiting && text(awaiting),
+				on_hand: onHand && BigDecimal.format(onHand),
+				awaiting: awaiting && BigDecimal.format(awaiting),
 				available,
 				ledger: snapshot?.source?.name ?? product.source,
 				stock_as_of: stockTime,

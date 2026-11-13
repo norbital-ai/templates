@@ -1,5 +1,4 @@
 import { BigDecimal, Result } from 'effect';
-import { type D, dec, div, sum } from './values.js';
 import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
 import {
 	creditWarning,
@@ -89,7 +88,7 @@ export function confirmationCheck(
 		basis: confirmationBasis(doc.revision, terms, config, template),
 		...creditWarning(
 			doc,
-			sum(lines.map((l) => l.total)),
+			BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.total))),
 			credit,
 			input.as_of,
 			config.credit_fresh_minutes
@@ -118,7 +117,16 @@ export function confirmationCheck(
 							);
 							return (
 								average !== null &&
-								BigDecimal.isLessThan(div(price(doc, line).net, line.quantity, 8), average)
+								BigDecimal.isLessThan(
+									BigDecimal.round(
+										BigDecimal.divideUnsafe(
+											price(doc, line).net,
+											BigDecimal.fromStringUnsafe(line.quantity)
+										),
+										{ scale: 8 }
+									),
+									average
+								)
 							);
 						})
 						.map((line) => line.product_name)
@@ -134,15 +142,25 @@ export function quotationFifoCosts(
 	if (!doc || doc.direction !== 'sales' || !doc.warehouse || !doc.ledger) return [];
 	const source = doc.ledger;
 	const warehouse = doc.warehouse;
-	const groups = new Map<string, { line: (typeof doc.lines)[number]; quantity: D; net: D }>();
+	const groups = new Map<
+		string,
+		{
+			line: (typeof doc.lines)[number];
+			quantity: BigDecimal.BigDecimal;
+			net: BigDecimal.BigDecimal;
+		}
+	>();
 	for (const line of doc.lines) {
 		const key = JSON.stringify([line.product, line.unit.normalize('NFKC').trim().toLowerCase()]);
 		const previous = groups.get(key);
 		const net = price(doc, line).net;
 		if (previous) {
-			previous.quantity = BigDecimal.sum(previous.quantity, dec(line.quantity));
+			previous.quantity = BigDecimal.sum(
+				previous.quantity,
+				BigDecimal.fromStringUnsafe(line.quantity)
+			);
 			previous.net = BigDecimal.sum(previous.net, net);
-		} else groups.set(key, { line, quantity: dec(line.quantity), net });
+		} else groups.set(key, { line, quantity: BigDecimal.fromStringUnsafe(line.quantity), net });
 	}
 	return [...groups].map(([key, { line, quantity, net }]) => {
 		const estimate = answer.stock_snapshots.next
@@ -152,7 +170,7 @@ export function quotationFifoCosts(
 					productCode: line.product_code,
 					source,
 					warehouses: [warehouse],
-					quantity,
+					quantity: BigDecimal.format(quantity),
 					unit: line.unit,
 					currency: doc.currency,
 					as_of

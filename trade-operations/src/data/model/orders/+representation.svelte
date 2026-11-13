@@ -6,7 +6,6 @@
 	import { observe_once } from '@norbital-ai/ui/effect';
 	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
 	import { reportPages } from '../../../lib/reports.js';
-	import { dec, div, round, text, type DecimalLike } from '../../../lib/values.js';
 	import {
 		confirmationCheck,
 		confirmationHash,
@@ -17,6 +16,7 @@
 	import {
 		Table,
 		Button,
+		format,
 		Show,
 		Picker,
 		Combobox,
@@ -31,17 +31,13 @@
 		type RecordView,
 		type RowOf
 	} from '@norbital-ai/ui';
-	import { Stack, Cluster } from '@norbital-ai/ui/layout';
+	import { Bound, Stack, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
 	import OrderDocumentDialog from './order-document-dialog.svelte';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { createValues, openCreate } from '../../../lib/ui/create-values.js';
 	const moneyKind = { kind: 'money', currency: 'currency' } as const;
-	function displayDecimal(value: DecimalLike) {
-		const exact = text(value);
-		return exact.includes('.') ? exact.replace(/0+$/, '').replace(/\.$/, '') : exact;
-	}
 
 	const DateBounds = Schema.Struct({
 		from: Schema.NullOr(Schema.String),
@@ -341,16 +337,28 @@
 						<ul class="mt-2 space-y-2">
 							{#each fifoCosts as row (row.key)}
 								<li>
-									<span class="font-medium">{row.product}</span> · {text(row.quantity)}
+									<span class="font-medium">{row.product}</span> · {format(
+										{ kind: 'decimal', scale: 3 },
+										BigDecimal.format(row.quantity),
+										{ locale: ctx.locale }
+									)}
 									{row.unit}
 									{#if row.estimate}
 										· {purchaseCosts.currency}
-										{text(round(row.estimate.unit_cost, 4))} / {row.unit}
+										{format(
+											{ kind: 'decimal', scale: 4 },
+											BigDecimal.format(BigDecimal.round(row.estimate.unit_cost, { scale: 4 })),
+											{ locale: ctx.locale }
+										)}
+										/ {row.unit}
 										{#if row.below}
 											· {ctx.t('stock.fifo.below_quote')}{/if}
 										<div class="text-muted-foreground">
 											{row.estimate.lots
-												.map((lot) => `${lot.lot_number} × ${text(lot.quantity)}`)
+												.map(
+													(lot) =>
+														`${lot.lot_number} × ${format({ kind: 'decimal', scale: 3 }, BigDecimal.format(lot.quantity), { locale: ctx.locale })}`
+												)
 												.join(' · ')}
 										</div>
 									{:else}
@@ -394,14 +402,14 @@
 	{@const floor = draft ? quoteFloors.get(row.id) : undefined}
 	{#if floor?.net != null && quote && value != null}
 		{@const status = ctx.t(floor.below ? 'errors.floor_below' : 'component.quote_floor_met')}
-		{@const minimum = `${quote.currency} ${displayDecimal(floor.net)}/${floor.unit}`}
+		{@const minimum = `${quote.currency} ${format({ kind: 'decimal', scale: 8 }, floor.net, { locale: ctx.locale })}/${floor.unit}`}
 		{@const hint = `${status} ${ctx.t('component.quote_floor_minimum')}: ${minimum} · ${floor.effective_on}`}
 		<Tooltip text={hint}>
 			{#snippet trigger({ props })}
 				<button
 					{...props}
 					type="button"
-					aria-label={`${quote.currency} ${displayDecimal(value)}. ${hint}`}
+					aria-label={`${quote.currency} ${format({ kind: 'decimal', scale: 4 }, value, { locale: ctx.locale })}. ${hint}`}
 					class="inline-flex items-center gap-1 rounded-sm font-medium focus-visible:outline-2 focus-visible:outline-ring"
 					class:text-destructive={floor.below}
 					class:text-success={!floor.below}
@@ -423,10 +431,12 @@
 	value: RowOf<'order_lines'>['quantity'] | undefined;
 })}
 	{@const delivered = deliveryTotals?.get(`${row.id}/${row.unit}`)}
-	{#if value != null}{displayDecimal(value)}{/if}
-	{#if delivered && value != null && BigDecimal.isPositive(dec(value))}
+	{#if value != null}{format({ kind: 'decimal', scale: 3 }, value, { locale: ctx.locale })}{/if}
+	{#if delivered && value != null && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(value))}
 		{@const label = ctx.t('component.line_delivery_progress', {
-			quantity: displayDecimal(delivered),
+			quantity: format({ kind: 'decimal', scale: 3 }, BigDecimal.format(delivered), {
+				locale: ctx.locale
+			}),
 			unit: row.unit
 		})}
 		<Progress
@@ -435,7 +445,15 @@
 				0,
 				Math.min(
 					100,
-					BigDecimal.toNumberUnsafe(div(BigDecimal.multiply(delivered, dec(100)), value, 2))
+					BigDecimal.toNumberUnsafe(
+						BigDecimal.round(
+							BigDecimal.divideUnsafe(
+								BigDecimal.multiply(delivered, BigDecimal.fromBigInt(100n)),
+								BigDecimal.fromStringUnsafe(value)
+							),
+							{ scale: 2 }
+						)
+					)
 				)
 			)}
 			aria-label={label}
@@ -483,20 +501,18 @@
 			}}
 		/>{/if}{/snippet}
 {#snippet activity()}{#if id}
-		<Stack gap="md">
-			<Table
-				{ctx}
-				of="activities"
-				where={{ order: { eq: id } }}
-				columns={['title', 'kind', 'owner', 'due_on', 'done']}
-				toolbar={{
-					new:
-						ctx.catalog?.activities?.create && !archived
-							? () => openCreate('activities', { order: id })
-							: false
-				}}
-			/>
-		</Stack>{/if}{/snippet}
+		<Table
+			{ctx}
+			of="activities"
+			where={{ order: { eq: id } }}
+			columns={['title', 'kind', 'owner', 'due_on', 'done']}
+			toolbar={{
+				new:
+					ctx.catalog?.activities?.create && !archived
+						? () => openCreate('activities', { order: id })
+						: false
+			}}
+		/>{/if}{/snippet}
 {#snippet contractActions(form: FormState | undefined)}
 	<Cluster gap="sm" class="max-w-full">
 		{#if kingdee}
@@ -529,7 +545,7 @@
 		{#if purchase && draft}
 			<p class="text-sm text-muted-foreground">{ctx.t('component.commitment_help')}</p>
 		{/if}
-		{@render lines()}
+		<Bound size="viewport">{@render lines()}</Bound>
 	</Stack>{/snippet}
 {#snippet orderState()}
 	{#if view.mode !== 'create'}

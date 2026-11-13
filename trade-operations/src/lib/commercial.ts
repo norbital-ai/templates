@@ -1,33 +1,54 @@
-import { BigDecimal, Effect, Schema } from 'effect';
+import { BigDecimal, Duration, Effect, Schema } from 'effect';
 import * as Hex from 'effect/encoding/Hex';
-import { type D, type DecimalLike, dec, div, minorDigits, round, sum, text } from './values.js';
 import type { Row } from '@norbital-ai/bolt';
 
 export function price(
 	document: Pick<Row<'orders'>, 'currency' | 'tax_inclusive'>,
 	line: {
-		quantity: DecimalLike;
-		unit_price: DecimalLike;
-		discount_pct: DecimalLike;
-		tax_rate: DecimalLike;
+		quantity: string;
+		unit_price: string;
+		discount_pct: string;
+		tax_rate: string;
 	}
 ) {
-	const digits = minorDigits(document.currency);
-	const base = div(
-		BigDecimal.multiply(
-			BigDecimal.multiply(dec(line.quantity), dec(line.unit_price)),
-			BigDecimal.subtract(dec(100), dec(line.discount_pct))
+	const digits =
+		new Intl.NumberFormat('en', {
+			style: 'currency',
+			currency: document.currency
+		}).resolvedOptions().maximumFractionDigits ?? 2;
+	const hundred = BigDecimal.fromBigInt(100n);
+	const base = BigDecimal.round(
+		BigDecimal.divideUnsafe(
+			BigDecimal.multiply(
+				BigDecimal.multiply(
+					BigDecimal.fromStringUnsafe(line.quantity),
+					BigDecimal.fromStringUnsafe(line.unit_price)
+				),
+				BigDecimal.subtract(hundred, BigDecimal.fromStringUnsafe(line.discount_pct))
+			),
+			hundred
 		),
-		100,
-		12
+		{ scale: 12 }
 	);
-	const factor = BigDecimal.sum(dec(1), div(line.tax_rate, 100, 6));
+	const factor = BigDecimal.sum(
+		BigDecimal.fromBigInt(1n),
+		BigDecimal.round(BigDecimal.divideUnsafe(BigDecimal.fromStringUnsafe(line.tax_rate), hundred), {
+			scale: 6
+		})
+	);
+	const gross = BigDecimal.round(base, { scale: digits });
 	const net = document.tax_inclusive
-		? div(round(base, digits), factor, digits)
-		: round(base, digits);
+		? BigDecimal.round(BigDecimal.divideUnsafe(gross, factor), { scale: digits })
+		: gross;
 	const tax = document.tax_inclusive
-		? BigDecimal.subtract(round(base, digits), net)
-		: div(BigDecimal.multiply(net, dec(line.tax_rate)), 100, digits);
+		? BigDecimal.subtract(gross, net)
+		: BigDecimal.round(
+				BigDecimal.divideUnsafe(
+					BigDecimal.multiply(net, BigDecimal.fromStringUnsafe(line.tax_rate)),
+					hundred
+				),
+				{ scale: digits }
+			);
 	return { currency: document.currency, net, tax, total: BigDecimal.sum(net, tax) };
 }
 function canonical(value: unknown): string {
@@ -82,6 +103,9 @@ export function snapshot(
 	lines: readonly Row<'order_lines'>[],
 	contractVersion: string
 ) {
+	const net = BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.net)));
+	const tax = BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.tax)));
+	const total = BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.total)));
 	return {
 		order_id: order.id,
 		title: order.title,
@@ -120,20 +144,32 @@ export function snapshot(
 				...(l.print_values?.length ? { print_values: l.print_values } : {}),
 				...(l.product_spec ? { product_spec: l.product_spec } : {}),
 				unit: l.unit,
-				quantity: text(l.quantity),
-				unit_price: text(l.unit_price),
-				discount_pct: text(l.discount_pct),
-				tax_rate: text(l.tax_rate),
-				net: text(l.net),
-				tax: text(l.tax),
-				total: text(l.total),
-				floor_net: l.floor_net === null ? '' : text(l.floor_net),
+				quantity: l.quantity,
+				unit_price: l.unit_price,
+				discount_pct: l.discount_pct,
+				tax_rate: l.tax_rate,
+				net: l.net,
+				tax: l.tax,
+				total: l.total,
+				floor_net: l.floor_net ?? '',
 				commission_basis_unit: l.commission_basis_unit ?? '',
-				commission_factor: l.commission_factor === null ? '' : text(l.commission_factor)
+				commission_factor: l.commission_factor ?? ''
 			})),
-		net: text(sum(lines.map((l) => l.net))),
-		tax: text(sum(lines.map((l) => l.tax))),
-		total: text(sum(lines.map((l) => l.total)))
+		net: new Intl.NumberFormat('en', {
+			useGrouping: false,
+			minimumFractionDigits: net.scale,
+			maximumFractionDigits: net.scale
+		}).format(BigDecimal.format(net) as Intl.StringNumericLiteral),
+		tax: new Intl.NumberFormat('en', {
+			useGrouping: false,
+			minimumFractionDigits: tax.scale,
+			maximumFractionDigits: tax.scale
+		}).format(BigDecimal.format(tax) as Intl.StringNumericLiteral),
+		total: new Intl.NumberFormat('en', {
+			useGrouping: false,
+			minimumFractionDigits: total.scale,
+			maximumFractionDigits: total.scale
+		}).format(BigDecimal.format(total) as Intl.StringNumericLiteral)
 	};
 }
 /** An order's commercial terms as its documents render them. */
@@ -175,7 +211,7 @@ export function contract(template: string, seal: Terms, reference: string) {
 }
 export function creditWarning(
 	order: Pick<Row<'orders'>, 'currency' | 'direction'>,
-	gross: D,
+	gross: BigDecimal.BigDecimal,
 	credit:
 		| Pick<
 				Row<'credit_snapshots'>,
@@ -192,14 +228,14 @@ export function creditWarning(
 		credit.credit_limit === null ||
 		credit.credit_used === null ||
 		Date.parse(credit.as_of) > Date.parse(now) ||
-		Date.parse(now) - Date.parse(credit.as_of) > freshMinutes * 60000;
+		Date.parse(now) - Date.parse(credit.as_of) > Duration.toMillis(Duration.minutes(freshMinutes));
 	const adverse =
 		credit !== undefined &&
 		(credit.credit_hold ||
 			(!unavailable &&
 				BigDecimal.isGreaterThan(
-					BigDecimal.sum(dec(credit.credit_used!), gross),
-					dec(credit.credit_limit!)
+					BigDecimal.sum(BigDecimal.fromStringUnsafe(credit.credit_used!), gross),
+					BigDecimal.fromStringUnsafe(credit.credit_limit!)
 				)));
 	return { warning: unavailable || adverse, unavailable };
 }
@@ -219,19 +255,48 @@ export function currentFloors(
 					f.currency === order.currency &&
 					f.group_code === group &&
 					f.effective_on <= order.ordered_on &&
-					BigDecimal.isLessThanOrEqualTo(dec(f.minimum_quantity), dec(line.quantity))
+					BigDecimal.isLessThanOrEqualTo(
+						BigDecimal.fromStringUnsafe(f.minimum_quantity),
+						BigDecimal.fromStringUnsafe(line.quantity)
+					)
 			)
 			.sort(
 				(a, b) =>
 					b.effective_on.localeCompare(a.effective_on) ||
-					BigDecimal.Order(dec(b.minimum_quantity), dec(a.minimum_quantity))
+					BigDecimal.Order(
+						BigDecimal.fromStringUnsafe(b.minimum_quantity),
+						BigDecimal.fromStringUnsafe(a.minimum_quantity)
+					)
 			)[0];
 		return {
 			...line,
 			floor_net:
 				floor && floor.unit === line.unit
 					? floor.tax_inclusive
-						? text(div(floor.floor_price, BigDecimal.sum(dec(1), div(floor.tax_rate, 100, 6)), 8))
+						? new Intl.NumberFormat('en', {
+								useGrouping: false,
+								minimumFractionDigits: 8,
+								maximumFractionDigits: 8
+							}).format(
+								BigDecimal.format(
+									BigDecimal.round(
+										BigDecimal.divideUnsafe(
+											BigDecimal.fromStringUnsafe(floor.floor_price),
+											BigDecimal.sum(
+												BigDecimal.fromBigInt(1n),
+												BigDecimal.round(
+													BigDecimal.divideUnsafe(
+														BigDecimal.fromStringUnsafe(floor.tax_rate),
+														BigDecimal.fromBigInt(100n)
+													),
+													{ scale: 6 }
+												)
+											)
+										),
+										{ scale: 8 }
+									)
+								) as Intl.StringNumericLiteral
+							)
 						: floor.floor_price
 					: null,
 			floor_on: floor?.effective_on ?? null
@@ -241,5 +306,14 @@ export function currentFloors(
 
 export const quoteBelowFloor = (line: Pick<Row<'order_lines'>, 'net' | 'quantity' | 'floor_net'>) =>
 	line.floor_net !== null &&
-	BigDecimal.isPositive(dec(line.quantity)) &&
-	BigDecimal.isLessThan(div(line.net, line.quantity, 8), dec(line.floor_net));
+	BigDecimal.isPositive(BigDecimal.fromStringUnsafe(line.quantity)) &&
+	BigDecimal.isLessThan(
+		BigDecimal.round(
+			BigDecimal.divideUnsafe(
+				BigDecimal.fromStringUnsafe(line.net),
+				BigDecimal.fromStringUnsafe(line.quantity)
+			),
+			{ scale: 8 }
+		),
+		BigDecimal.fromStringUnsafe(line.floor_net)
+	);

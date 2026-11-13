@@ -20,7 +20,6 @@
 	import { earliestReceivablesCutoff } from '../../../lib/receivables.js';
 	import { xlsxWorkbook, type XlsxColumn } from '../../../lib/xlsx.js';
 	import { boardRead, completeCommissionBoard, monthOf } from '../../../lib/monthly-commission.js';
-	import { addDays, addMonths } from '../../../lib/values.js';
 	import {
 		Dialog,
 		Table,
@@ -39,7 +38,7 @@
 		type Kind,
 		type ShowProps
 	} from '@norbital-ai/ui';
-	import { Effect, Schema } from 'effect';
+	import { DateTime, Effect, Schema } from 'effect';
 	import type { Cursor } from '@norbital-ai/bolt';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	const DateBounds = Schema.Struct({
@@ -54,7 +53,6 @@
 	let commissionPeriod = $state<string | null>(currentMonth);
 	type MonthlyCommission = Effect.Success<ReturnType<typeof completeCommissionBoard>>[number];
 	let monthSelection = $state<MonthlyCommission | null>(null);
-	const monthEnd = (value: string) => addDays(addMonths(value.slice(0, 7) + '-01', 1), -1);
 	let as_of = $state<string | null>(day.today);
 	let agingView = $state<'customers' | 'entries'>('customers');
 	let agingBasis = $state<'estimated' | 'gross'>('estimated');
@@ -81,7 +79,11 @@
 					{
 						basis: salesBasis,
 						from: salesFrom,
-						to: salesTo ? monthEnd(salesTo) : null
+						to: salesTo
+							? DateTime.formatIsoDateUtc(
+									DateTime.endOf(DateTime.makeUnsafe(`${salesTo.slice(0, 7)}-01`), 'month')
+								)
+							: null
 					},
 					ctx.catalog?.source_sales_lines?.output === 'commercial',
 					pageSize

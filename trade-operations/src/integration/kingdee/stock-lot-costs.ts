@@ -1,7 +1,6 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { dec, div, text } from '../../lib/values.js';
 import { currency, PlainDate } from './polling.js';
 import { kingdeeStockLotCostAccount } from './configuration.js';
 import { readChangedSnapshot, snapshotFingerprint, snapshotStatement } from './changed-snapshot.js';
@@ -99,8 +98,8 @@ export const readStockLotCosts = Effect.fnUntraced(function* (
 			const lot_number = row.lot_number.trim();
 			const unit = row.unit.trim();
 			const key = JSON.stringify([row.product_code, lot_number]);
-			const received = dec(row.received_qty);
-			const amount = dec(row.received_amount);
+			const received = BigDecimal.fromStringUnsafe(row.received_qty);
+			const amount = BigDecimal.fromStringUnsafe(row.received_amount);
 			if (
 				!lot_number ||
 				!unit ||
@@ -118,8 +117,20 @@ export const readStockLotCosts = Effect.fnUntraced(function* (
 				lot_number,
 				unit,
 				received_on: PlainDate(row.received_on),
-				received_qty: text(received),
-				unit_cost: text(div(amount, received, 10))
+				received_qty: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: Math.max(0, received.scale),
+					maximumFractionDigits: Math.max(0, received.scale)
+				}).format(BigDecimal.format(received) as Intl.StringNumericLiteral),
+				unit_cost: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: 10,
+					maximumFractionDigits: 10
+				}).format(
+					BigDecimal.format(
+						BigDecimal.round(BigDecimal.divideUnsafe(amount, received), { scale: 10 })
+					) as Intl.StringNumericLiteral
+				)
 			};
 		});
 	});

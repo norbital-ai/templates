@@ -1,7 +1,6 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { dec, text, type D } from '../../lib/values.js';
 import { sha256Hex } from '../../lib/commercial.js';
 import { kingdeeStockAvailabilityAccount } from './configuration.js';
 import { checked } from './order-source.js';
@@ -107,10 +106,15 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 			throw invalid('SEOrderEntry', 'The open order snapshot exceeds its row bound');
 		const totals = new Map<
 			string,
-			{ product_code: string; warehouse: string | null; unit: string | null; quantity: D }
+			{
+				product_code: string;
+				warehouse: string | null;
+				unit: string | null;
+				quantity: BigDecimal.BigDecimal;
+			}
 		>();
 		for (const row of rows) {
-			const quantity = dec(row.quantity);
+			const quantity = BigDecimal.fromStringUnsafe(row.quantity);
 			if (BigDecimal.isZero(quantity)) continue;
 			const warehouse = warehouses.get(JSON.stringify([row.branch, row.fid])) ?? null;
 			const unit = row.unit?.trim() || null;
@@ -119,7 +123,14 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 			if (previous) previous.quantity = BigDecimal.sum(previous.quantity, quantity);
 			else totals.set(key, { product_code: row.item, warehouse, unit, quantity });
 		}
-		return [...totals.values()].map((entry) => ({ ...entry, quantity: text(entry.quantity) }));
+		return [...totals.values()].map((entry) => ({
+			...entry,
+			quantity: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: Math.max(0, entry.quantity.scale),
+				maximumFractionDigits: Math.max(0, entry.quantity.scale)
+			}).format(BigDecimal.format(entry.quantity) as Intl.StringNumericLiteral)
+		}));
 	});
 	return { rows: [{ ...header, entries }], cursor: checkpoint, more: false };
 });

@@ -5,7 +5,6 @@
 	import { run } from '@norbital-ai/ui/effect';
 	import type { CurrencyCode } from '@norbital-ai/bolt';
 	import { BigDecimal } from 'effect';
-	import { dec } from '../../lib/values.js';
 	import { Combobox, CustomView, Table, Tabs, TimeInput } from '@norbital-ai/ui';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
@@ -14,7 +13,6 @@
 		priceBookMonths,
 		priceBookRead,
 		priceBookRows,
-		priceText,
 		type PriceRow
 	} from '../../lib/price-book.js';
 
@@ -85,8 +83,6 @@
 	);
 	const days = $derived(monthDays(month));
 	const rows = $derived(book?.current ? priceBookRows(book.current, month) : []);
-	const weekday = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-	const weekdayOf = (day: string) => weekday[new Date(`${day}T00:00:00Z`).getUTCDay()];
 
 	let editing = $state<string | null>(null);
 	let draft = $state('');
@@ -98,7 +94,7 @@
 		error = null;
 		editing = keyOf(row, day);
 		const cell = row.cells[day];
-		draft = cell ? priceText(cell.floor_price) : '';
+		draft = cell ? BigDecimal.format(BigDecimal.fromStringUnsafe(cell.floor_price)) : '';
 	}
 	function cancel() {
 		editing = null;
@@ -112,11 +108,21 @@
 		if (value === '') return;
 		if (group === null || currency === null) return;
 		const existing = row.cells[day];
-		if (!/^\d+(\.\d+)?$/.test(value) || !BigDecimal.isPositive(dec(value))) {
+		if (
+			!/^\d+(\.\d+)?$/.test(value) ||
+			!BigDecimal.isPositive(BigDecimal.fromStringUnsafe(value))
+		) {
 			error = ctx.t('component.price_floor_positive');
 			return;
 		}
-		if (existing && BigDecimal.equals(dec(existing.floor_price), dec(value))) return;
+		if (
+			existing &&
+			BigDecimal.equals(
+				BigDecimal.fromStringUnsafe(existing.floor_price),
+				BigDecimal.fromStringUnsafe(value)
+			)
+		)
+			return;
 		const price = value;
 		error = null;
 		writing = key;
@@ -251,7 +257,7 @@
 		}}
 	>
 		{#snippet children(shown)}
-			<Stack gap="sm" size="fill" class="h-full min-h-0">
+			<Stack gap="sm" size="fill">
 				{#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 				<Scroll name="price-book" axis="both" size="fill" class="rounded-md border border-border">
 					<table class="w-max min-w-full border-separate border-spacing-0 text-sm">
@@ -277,7 +283,10 @@
 										]}
 									>
 										<span class="block text-[10px] font-normal text-muted-foreground"
-											>{weekdayOf(day)}</span
+											>{new Intl.DateTimeFormat(ctx.locale, {
+												weekday: 'narrow',
+												timeZone: 'UTC'
+											}).format(new Date(day))}</span
 										>
 										{Number(day.slice(-2))}
 									</th>
@@ -336,7 +345,7 @@
 													onclick={() => start(row, day)}
 												>
 													{#if cell}
-														{priceText(cell.floor_price)}
+														{BigDecimal.format(BigDecimal.fromStringUnsafe(cell.floor_price))}
 													{:else}
 														<span
 															class="text-muted-foreground opacity-0 group-hover/cell:opacity-100"
@@ -398,8 +407,6 @@
 	variant="full"
 >
 	<Tabs
-		orientation="vertical"
-		side="end"
 		class="[&_[data-view-controls]]:contents"
 		tabs={[
 			{

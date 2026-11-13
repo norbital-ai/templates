@@ -49,7 +49,7 @@ const cellXml = (
 	if (value === null || value === undefined) return '';
 	const numeric = column?.numeric ? number(value) : null;
 	if (numeric !== null && typeof value !== 'boolean')
-		return `<c r="${reference}"><v>${column?.scale === undefined ? numeric : numeric.toFixed(column.scale)}</v></c>`;
+		return `<c r="${reference}"><v>${column?.scale === undefined ? numeric : new Intl.NumberFormat('en', { useGrouping: false, minimumFractionDigits: column.scale, maximumFractionDigits: column.scale }).format(numeric)}</v></c>`;
 	const text = typeof value === 'boolean' ? (value ? 'TRUE' : 'FALSE') : String(value);
 	return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${xml(text)}</t></is></c>`;
 };

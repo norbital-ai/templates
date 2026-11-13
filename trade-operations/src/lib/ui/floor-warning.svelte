@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { type FormState } from '@norbital-ai/ui';
-	import { BigDecimal, Result } from 'effect';
+	import { format, type FormState } from '@norbital-ai/ui';
+	import { BigDecimal, Option } from 'effect';
 	import {
 		estimateFifoCost,
 		floorNetPrice,
@@ -9,7 +9,6 @@
 		inventoryCostRead,
 		purchaseLotCostRead
 	} from '../lot-cost.js';
-	import { dec, isCurrency, round, text } from '../values.js';
 
 	let {
 		form,
@@ -24,20 +23,27 @@
 		const product = form.id<'products'>('product'),
 			unit = String(form.row.unit ?? ''),
 			currency = String(form.row.currency ?? ''),
-			price = String(form.row.floor_price ?? '');
-		if (!product || !unit || !isCurrency(currency) || !price || !ctx.catalog?.stock_snapshots)
+			price = String(form.row.floor_price ?? ''),
+			tax_rate = String(form.row.tax_rate ?? '0'),
+			quantity = String(form.row.minimum_quantity ?? '0');
+		if (
+			!product ||
+			!unit ||
+			!Intl.supportedValuesOf('currency').includes(currency) ||
+			!price ||
+			!ctx.catalog?.stock_snapshots ||
+			[price, tax_rate, quantity].some((value) => Option.isNone(BigDecimal.fromString(value)))
+		)
 			return null;
-		return Result.getOrNull(
-			Result.try(() => ({
-				product,
-				unit,
-				currency,
-				price: dec(price),
-				tax_inclusive: form.row.tax_inclusive === true,
-				tax_rate: dec(String(form.row.tax_rate ?? '0')),
-				quantity: dec(String(form.row.minimum_quantity ?? '0'))
-			}))
-		);
+		return {
+			product,
+			unit,
+			currency,
+			price,
+			tax_inclusive: form.row.tax_inclusive === true,
+			tax_rate,
+			quantity
+		};
 	});
 	// the product's lots are read once per product; the comparison follows the edited price
 	const product = $derived(basis?.product ?? null);
@@ -49,7 +55,7 @@
 		item &&
 			ctx.catalog?.source_lot_costs &&
 			basis &&
-			BigDecimal.isPositive(basis.quantity) &&
+			BigDecimal.isPositive(BigDecimal.fromStringUnsafe(basis.quantity)) &&
 			warehouseGroup
 			? ctx.query(purchaseLotCostRead(item.source))
 			: null
@@ -82,9 +88,15 @@
 </script>
 
 {#if fifo && basis}<p role="status" class="text-sm text-muted-foreground">
-		{ctx.t('stock.fifo.title')} · {text(basis.quantity)}
+		{ctx.t('stock.fifo.title')} · {format({ kind: 'decimal', scale: 3 }, basis.quantity, {
+			locale: ctx.locale
+		})}
 		{basis.unit} · {basis.currency}
-		{text(round(fifo.unit_cost, 4))} / {basis.unit}
+		{format(
+			{ kind: 'decimal', scale: 4 },
+			BigDecimal.format(BigDecimal.round(fifo.unit_cost, { scale: 4 })),
+			{ locale: ctx.locale }
+		)} / {basis.unit}
 		{#if BigDecimal.isLessThan(floorNetPrice(basis), fifo.unit_cost)}
 			· {ctx.t('stock.fifo.below_floor')}{/if}
 	</p>{:else if lots?.error || costs?.error || purchase}<p

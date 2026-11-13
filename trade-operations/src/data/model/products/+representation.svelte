@@ -5,7 +5,6 @@
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
-	import { dec, div, text } from '../../../lib/values.js';
 	let {
 		view,
 		ctx
@@ -69,7 +68,24 @@
 				group: floor.group_code,
 				threshold: floor.minimum_quantity,
 				price: floor.tax_inclusive
-					? text(div(floor.floor_price, BigDecimal.sum(dec(1), div(floor.tax_rate, 100, 8)), 8))
+					? BigDecimal.format(
+							BigDecimal.round(
+								BigDecimal.divideUnsafe(
+									BigDecimal.fromStringUnsafe(floor.floor_price),
+									BigDecimal.sum(
+										BigDecimal.fromBigInt(1n),
+										BigDecimal.round(
+											BigDecimal.divideUnsafe(
+												BigDecimal.fromStringUnsafe(floor.tax_rate),
+												BigDecimal.fromBigInt(100n)
+											),
+											{ scale: 8 }
+										)
+									)
+								),
+								{ scale: 8 }
+							)
+						)
 					: floor.floor_price
 			}))
 			.reverse() ?? []
@@ -144,7 +160,7 @@
 					y={ctx.t('models.pricing_floors.fields.floor_price')}
 					kind="line"
 					interpolation="step"
-					title={`${ctx.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first && BigDecimal.isPositive(dec(first.threshold)) ? ` · ≥ ${first.threshold}` : ''}`}
+					title={`${ctx.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(first.threshold)) ? ` · ≥ ${first.threshold}` : ''}`}
 				/>
 			{/each}
 			{#if (sales?.loading || floors?.loading) && rows.length === 0 && rates.length === 0}

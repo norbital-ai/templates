@@ -10,6 +10,7 @@
 		type RecordView,
 		type ShowProps
 	} from '@norbital-ai/ui';
+	import { Stack } from '@norbital-ai/ui/layout';
 	let {
 		view,
 		ctx
@@ -28,20 +29,20 @@
 		/>{/if}
 {/snippet}
 {#snippet evidence()}
-	{#if view.mode !== 'create'}
-		<p>{ctx.t('component.monthly_commission_evidence')}</p>
-		<Table
-			{ctx}
-			of={view.record.snapshot}
-			key="commission_statement_items"
-			columns={[
-				{ field: 'number', label: label(ctx, 'orders', 'order') },
-				{ field: 'amount', label: label(ctx, 'orders', 'amount'), cell: amount }
-			]}
-			toolbar={{ new: false, export: true }}
-			on_open={(row) => open_record('orders', row.order)}
-		/>
-	{/if}
+	{#if view.mode !== 'create'}<Stack size="fill" gap="sm">
+			<p>{ctx.t('component.monthly_commission_evidence')}</p>
+			<Table
+				{ctx}
+				of={view.record.snapshot}
+				key="commission_statement_items"
+				columns={[
+					{ field: 'number', label: label(ctx, 'orders', 'order') },
+					{ field: 'amount', label: label(ctx, 'orders', 'amount'), cell: amount }
+				]}
+				toolbar={{ new: false, export: true }}
+				on_open={(row) => open_record('orders', row.order)}
+			/>
+		</Stack>{/if}
 {/snippet}
 {#if view.mode !== 'create'}
 	<RecordShell

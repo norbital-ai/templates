@@ -1,6 +1,5 @@
-import { BigDecimal } from 'effect';
+import { BigDecimal, DateTime } from 'effect';
 import { price } from '../../lib/commercial.js';
-import { dec, div, minorDigits, round, text } from '../../lib/values.js';
 import { currency, PlainDate, SourceRowInvalid } from './polling.js';
 
 type OrderLine = {
@@ -173,7 +172,7 @@ export function sourceEntryIds(payload: OrderPayload) {
 	)
 		return invalid('version', 'An amendment requires the complete current source version');
 	sourceInteger(previous.source_id, 'FInterID');
-	if (!BigDecimal.isPositive(dec(previous.source_exchange_rate)))
+	if (!BigDecimal.isPositive(BigDecimal.fromStringUnsafe(previous.source_exchange_rate)))
 		return invalid('currency', 'A positive previously observed exchange rate is required');
 	const sourceLines = new Map(
 		previous.lines.map((line) => [sourceInteger(line.entry, 'FEntryID'), line])
@@ -211,12 +210,13 @@ export function settlementDate(orderedOn: string, days: number, fromMonthEnd: bo
 	PlainDate(orderedOn);
 	if (!Number.isInteger(days) || days < 0 || days > 3660)
 		return invalid('payment_terms', 'Settlement credit days must be an integer between 0 and 3660');
-	const [year = 0, month = 0, day = 0] = orderedOn.split('-').map(Number);
+	const ordered = DateTime.makeUnsafe(orderedOn);
 	// Reference-ledger rule: positive month-end terms use next month-end; the day count is not added.
-	const date = fromMonthEnd
-		? new Date(Date.UTC(year, days === 0 ? month : month + 1, 0))
-		: new Date(Date.UTC(year, month - 1, day) + days * 86_400_000);
-	return date.toISOString().slice(0, 10);
+	return DateTime.formatIsoDateUtc(
+		fromMonthEnd
+			? DateTime.endOf(DateTime.add(ordered, { months: days === 0 ? 0 : 1 }), 'month')
+			: DateTime.add(ordered, { days })
+	);
 }
 const escape = (value: string) =>
 	value.replace(/[&<>"']/g, (character) => {
@@ -248,7 +248,7 @@ export function sourceOrderBatch(
 		return invalid('lines', 'A complete sales order requires between 1 and 200 mapped items');
 	PlainDate(payload.ordered_on);
 	if (bindings.packagingId !== '') sourceInteger(bindings.packagingId, 'packagingId');
-	const rate = dec(bindings.rate);
+	const rate = BigDecimal.fromStringUnsafe(bindings.rate);
 	if (!BigDecimal.isPositive(rate))
 		return invalid('currency', 'A positive source exchange rate is required');
 	const date = `${payload.ordered_on}T00:00:00`;
@@ -259,7 +259,11 @@ export function sourceOrderBatch(
 		FCurrencyID: sourceInteger(bindings.currencyId, 'FCurrencyID'),
 		FCustID: sourceInteger(bindings.customerId, 'FCustID'),
 		FDate: date,
-		FExchangeRate: text(rate),
+		FExchangeRate: new Intl.NumberFormat('en', {
+			useGrouping: false,
+			minimumFractionDigits: Math.max(0, rate.scale),
+			maximumFractionDigits: Math.max(0, rate.scale)
+		}).format(BigDecimal.format(rate) as Intl.StringNumericLiteral),
 		FDeptID: sourceInteger(bindings.departmentId, 'FDeptID'),
 		FEmpID: sourceInteger(bindings.employeeId, 'FEmpID'),
 		FBillerID: sourceInteger(bindings.billerId, 'FBillerID'),
@@ -290,13 +294,13 @@ export function sourceOrderBatch(
 	const rows = payload.lines.map((line, index) => {
 		const item = bindings.items[index];
 		if (item === undefined) return invalid('lines', 'Source item mapping is missing');
-		const quantity = dec(line.quantity);
-		const discount = dec(line.discount_pct);
-		const taxRate = dec(line.tax_rate);
-		const hundred = dec(100);
+		const quantity = BigDecimal.fromStringUnsafe(line.quantity);
+		const discount = BigDecimal.fromStringUnsafe(line.discount_pct);
+		const taxRate = BigDecimal.fromStringUnsafe(line.tax_rate);
+		const hundred = BigDecimal.fromBigInt(100n);
 		if (
 			!BigDecimal.isPositive(quantity) ||
-			BigDecimal.isNegative(dec(line.unit_price)) ||
+			BigDecimal.isNegative(BigDecimal.fromStringUnsafe(line.unit_price)) ||
 			BigDecimal.isNegative(discount) ||
 			BigDecimal.isGreaterThan(discount, hundred) ||
 			BigDecimal.isNegative(taxRate) ||
@@ -308,42 +312,117 @@ export function sourceOrderBatch(
 			line
 		);
 		if (
-			!BigDecimal.equals(dec(actual.net), dec(line.net)) ||
-			!BigDecimal.equals(dec(actual.tax), dec(line.tax)) ||
-			!BigDecimal.equals(dec(actual.total), dec(line.total))
+			!BigDecimal.equals(actual.net, BigDecimal.fromStringUnsafe(line.net)) ||
+			!BigDecimal.equals(actual.tax, BigDecimal.fromStringUnsafe(line.tax)) ||
+			!BigDecimal.equals(actual.total, BigDecimal.fromStringUnsafe(line.total))
 		)
 			return invalid('lines', 'The line amounts do not match its quantity, price and tax');
-		const discounted = div(
-			BigDecimal.multiply(dec(line.unit_price), BigDecimal.subtract(hundred, discount)),
-			hundred,
-			12
+		const discounted = BigDecimal.round(
+			BigDecimal.divideUnsafe(
+				BigDecimal.multiply(
+					BigDecimal.fromStringUnsafe(line.unit_price),
+					BigDecimal.subtract(hundred, discount)
+				),
+				hundred
+			),
+			{ scale: 12 }
 		);
-		const factor = BigDecimal.sum(dec(1), div(taxRate, hundred, 6));
-		const exclusive = payload.tax_inclusive ? div(discounted, factor, 8) : discounted;
+		const factor = BigDecimal.sum(
+			BigDecimal.fromBigInt(1n),
+			BigDecimal.round(BigDecimal.divideUnsafe(taxRate, hundred), { scale: 6 })
+		);
+		const exclusive = payload.tax_inclusive
+			? BigDecimal.round(BigDecimal.divideUnsafe(discounted, factor), { scale: 8 })
+			: discounted;
 		const inclusive = payload.tax_inclusive
 			? discounted
-			: round(BigDecimal.multiply(discounted, factor), 8);
+			: BigDecimal.round(BigDecimal.multiply(discounted, factor), { scale: 8 });
+		const standard = BigDecimal.round(BigDecimal.multiply(actual.total, rate), {
+			scale:
+				new Intl.NumberFormat('en', {
+					style: 'currency',
+					currency: bindings.baseCurrency
+				}).resolvedOptions().maximumFractionDigits ?? 2
+		});
 		return {
 			FEntryID: entries[index]?.entry_id ?? invalid('FEntryID', 'Source entry mapping is missing'),
 			FItemID: sourceInteger(item.itemId, 'FItemID'),
 			FUnitID: sourceInteger(item.unitId, 'FUnitID'),
-			FQty: text(quantity),
-			Fauxqty: text(quantity),
-			FAuxStockAwaitQty: text(quantity),
-			FComplexQty: text(quantity),
-			Fauxprice: text(exclusive),
-			FPrice: text(exclusive),
-			FAuxTaxPrice: text(inclusive),
-			FTaxPrice: text(inclusive),
-			FPriceDiscount: text(inclusive),
-			FAuxPriceDiscount: text(inclusive),
-			FCESS: text(taxRate),
-			FAmount: text(actual.net),
-			FAllAmount: text(actual.total),
-			FAllStdAmount: text(
-				round(BigDecimal.multiply(dec(actual.total), rate), minorDigits(bindings.baseCurrency))
-			),
-			FTaxAmt: text(actual.tax),
+			FQty: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: Math.max(0, quantity.scale),
+				maximumFractionDigits: Math.max(0, quantity.scale)
+			}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+			Fauxqty: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: Math.max(0, quantity.scale),
+				maximumFractionDigits: Math.max(0, quantity.scale)
+			}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+			FAuxStockAwaitQty: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: Math.max(0, quantity.scale),
+				maximumFractionDigits: Math.max(0, quantity.scale)
+			}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+			FComplexQty: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: Math.max(0, quantity.scale),
+				maximumFractionDigits: Math.max(0, quantity.scale)
+			}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+			Fauxprice: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: exclusive.scale,
+				maximumFractionDigits: exclusive.scale
+			}).format(BigDecimal.format(exclusive) as Intl.StringNumericLiteral),
+			FPrice: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: exclusive.scale,
+				maximumFractionDigits: exclusive.scale
+			}).format(BigDecimal.format(exclusive) as Intl.StringNumericLiteral),
+			FAuxTaxPrice: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: inclusive.scale,
+				maximumFractionDigits: inclusive.scale
+			}).format(BigDecimal.format(inclusive) as Intl.StringNumericLiteral),
+			FTaxPrice: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: inclusive.scale,
+				maximumFractionDigits: inclusive.scale
+			}).format(BigDecimal.format(inclusive) as Intl.StringNumericLiteral),
+			FPriceDiscount: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: inclusive.scale,
+				maximumFractionDigits: inclusive.scale
+			}).format(BigDecimal.format(inclusive) as Intl.StringNumericLiteral),
+			FAuxPriceDiscount: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: inclusive.scale,
+				maximumFractionDigits: inclusive.scale
+			}).format(BigDecimal.format(inclusive) as Intl.StringNumericLiteral),
+			FCESS: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: Math.max(0, taxRate.scale),
+				maximumFractionDigits: Math.max(0, taxRate.scale)
+			}).format(BigDecimal.format(taxRate) as Intl.StringNumericLiteral),
+			FAmount: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: actual.net.scale,
+				maximumFractionDigits: actual.net.scale
+			}).format(BigDecimal.format(actual.net) as Intl.StringNumericLiteral),
+			FAllAmount: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: actual.total.scale,
+				maximumFractionDigits: actual.total.scale
+			}).format(BigDecimal.format(actual.total) as Intl.StringNumericLiteral),
+			FAllStdAmount: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: standard.scale,
+				maximumFractionDigits: standard.scale
+			}).format(BigDecimal.format(standard) as Intl.StringNumericLiteral),
+			FTaxAmt: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: actual.tax.scale,
+				maximumFractionDigits: actual.tax.scale
+			}).format(BigDecimal.format(actual.tax) as Intl.StringNumericLiteral),
 			FDate: date,
 			FAdviceConsignDate: date,
 			FNote: '',

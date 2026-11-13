@@ -1,5 +1,4 @@
 import { model } from '../../../../../.norbital/models/order_lines.ts';
-import { dec, div, text, type DecimalLike } from '../../../../lib/values.js';
 import { logisticsLine } from '../../../../lib/logistics.js';
 import { type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
@@ -11,12 +10,11 @@ import {
 	validPrintValues
 } from '../../../../lib/print-details.js';
 const cells = ['quantity', 'unit_price', 'discount_pct', 'tax_rate'] as const;
-type Cell = DecimalLike;
 /** One line to price: its order and product, the cells the writer sent, and the stored line an update changes. */
 type Pricing = {
 	readonly order: Id<'orders'>;
 	readonly product: Id<'products'>;
-	readonly cells: { readonly [K in (typeof cells)[number]]?: Cell | null } & {
+	readonly cells: { readonly [K in (typeof cells)[number]]?: string | null } & {
 		readonly print_values?: StoredRow<'order_lines'>['print_values'];
 	};
 	readonly before: StoredRow<'order_lines'> | null;
@@ -93,21 +91,35 @@ const priced = Effect.fnUntraced(function* (
 			input.unit_price ??
 			old?.unit_price ??
 			(order.direction === 'sales' ? product.unit_price : null);
-		const discount_pct = input.discount_pct ?? old?.discount_pct ?? '0';
+		// the field's `default: 0` reaches the callback as a number, not its decimal text
+		const discount_pct = String(input.discount_pct ?? old?.discount_pct ?? '0');
 		const tax_rate = input.tax_rate ?? old?.tax_rate ?? product.tax_rate;
 		const unit = old?.unit ?? product.unit;
 		if (unit == null || unit.trim() === '')
 			return yield* ctx.refuse('errors.unit_mismatch', { field: 'product' });
 		if (tax_rate == null) return yield* ctx.refuse('errors.percentage', { field: 'tax_rate' });
-		if (quantity == null || BigDecimal.isLessThanOrEqualTo(dec(quantity), dec(0)))
+		if (
+			quantity == null ||
+			BigDecimal.isLessThanOrEqualTo(
+				BigDecimal.fromStringUnsafe(quantity),
+				BigDecimal.fromBigInt(0n)
+			)
+		)
 			return yield* ctx.refuse('errors.quantity_positive', { field: 'quantity' });
-		if (unit_price === null || unit_price === undefined || BigDecimal.isNegative(dec(unit_price)))
+		if (
+			unit_price === null ||
+			unit_price === undefined ||
+			BigDecimal.isNegative(BigDecimal.fromStringUnsafe(unit_price))
+		)
 			return yield* ctx.refuse('errors.price_required', { field: 'unit_price' });
 		if (
-			BigDecimal.isNegative(dec(discount_pct)) ||
-			BigDecimal.isGreaterThan(dec(discount_pct), dec(100)) ||
-			BigDecimal.isNegative(dec(tax_rate)) ||
-			BigDecimal.isGreaterThan(dec(tax_rate), dec(100))
+			BigDecimal.isNegative(BigDecimal.fromStringUnsafe(discount_pct)) ||
+			BigDecimal.isGreaterThan(
+				BigDecimal.fromStringUnsafe(discount_pct),
+				BigDecimal.fromBigInt(100n)
+			) ||
+			BigDecimal.isNegative(BigDecimal.fromStringUnsafe(tax_rate)) ||
+			BigDecimal.isGreaterThan(BigDecimal.fromStringUnsafe(tax_rate), BigDecimal.fromBigInt(100n))
 		)
 			return yield* ctx.refuse('errors.percentage');
 		const details =
@@ -124,35 +136,76 @@ const priced = Effect.fnUntraced(function* (
 					f.currency === order.currency &&
 					f.group_code === group &&
 					f.effective_on <= order.ordered_on &&
-					BigDecimal.isLessThanOrEqualTo(dec(f.minimum_quantity), dec(quantity))
+					BigDecimal.isLessThanOrEqualTo(
+						BigDecimal.fromStringUnsafe(f.minimum_quantity),
+						BigDecimal.fromStringUnsafe(quantity)
+					)
 			)
 			.sort(
 				(a, b) =>
 					b.effective_on.localeCompare(a.effective_on) ||
-					BigDecimal.Order(dec(b.minimum_quantity), dec(a.minimum_quantity))
+					BigDecimal.Order(
+						BigDecimal.fromStringUnsafe(b.minimum_quantity),
+						BigDecimal.fromStringUnsafe(a.minimum_quantity)
+					)
 			)[0];
 		if (floor && floor.unit !== unit) return yield* ctx.refuse('errors.unit_mismatch');
 		const floor_net = floor
 			? floor.tax_inclusive
-				? text(div(floor.floor_price, BigDecimal.sum(dec(1), div(floor.tax_rate, 100, 6)), 8))
+				? new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: 8,
+						maximumFractionDigits: 8
+					}).format(
+						BigDecimal.format(
+							BigDecimal.round(
+								BigDecimal.divideUnsafe(
+									BigDecimal.fromStringUnsafe(floor.floor_price),
+									BigDecimal.sum(
+										BigDecimal.fromBigInt(1n),
+										BigDecimal.round(
+											BigDecimal.divideUnsafe(
+												BigDecimal.fromStringUnsafe(floor.tax_rate),
+												BigDecimal.fromBigInt(100n)
+											),
+											{ scale: 6 }
+										)
+									)
+								),
+								{ scale: 8 }
+							)
+						) as Intl.StringNumericLiteral
+					)
 				: floor.floor_price
 			: null;
 		const amounts = price(order, { quantity, unit_price, discount_pct, tax_rate });
 		out.push({
 			source_entry_id,
-			quantity: text(quantity),
-			unit_price: text(unit_price),
-			discount_pct: text(discount_pct),
-			tax_rate: text(tax_rate),
+			quantity,
+			unit_price,
+			discount_pct,
+			tax_rate,
 			...(input.print_values !== undefined ? { print_values } : {}),
 			product_code: old?.product_code ?? product.external_code,
 			product_name: old?.product_name ?? product.name,
 			product_spec: old ? old.product_spec : product.spec,
 			unit,
 			currency: amounts.currency,
-			net: text(amounts.net),
-			tax: text(amounts.tax),
-			total: text(amounts.total),
+			net: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: amounts.net.scale,
+				maximumFractionDigits: amounts.net.scale
+			}).format(BigDecimal.format(amounts.net) as Intl.StringNumericLiteral),
+			tax: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: amounts.tax.scale,
+				maximumFractionDigits: amounts.tax.scale
+			}).format(BigDecimal.format(amounts.tax) as Intl.StringNumericLiteral),
+			total: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: amounts.total.scale,
+				maximumFractionDigits: amounts.total.scale
+			}).format(BigDecimal.format(amounts.total) as Intl.StringNumericLiteral),
 			floor_net,
 			floor_on: floor?.effective_on ?? null,
 			commission_basis_unit: old?.commission_basis_unit ?? product.commission_basis_unit,

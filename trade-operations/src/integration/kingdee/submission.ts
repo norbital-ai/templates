@@ -2,7 +2,6 @@ import { BigDecimal, Effect, Schema } from 'effect';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { type DatabaseContext, query, SourceRowInvalid } from './polling.js';
 import { sha256Hex } from '../../lib/commercial.js';
-import { dec, text } from '../../lib/values.js';
 import {
 	headerTypes,
 	itemTypes,
@@ -283,13 +282,16 @@ export const submitOrder = Effect.fnUntraced(function* (
 				return rows[0];
 			};
 			const sourceCurrency = one('currency');
-			const rate = dec(sourceCurrency.rate);
+			const rate = BigDecimal.fromStringUnsafe(sourceCurrency.rate);
 			if (
 				!BigDecimal.isPositive(rate) ||
-				(selected.denomination.base && !BigDecimal.equals(rate, dec(1)))
+				(selected.denomination.base && !BigDecimal.equals(rate, BigDecimal.fromBigInt(1n)))
 			)
 				return invalid('currency', 'Source exchange rate is invalid for this currency binding');
-			if (payload.previous && !BigDecimal.equals(rate, dec(payload.previous.source_exchange_rate)))
+			if (
+				payload.previous &&
+				!BigDecimal.equals(rate, BigDecimal.fromStringUnsafe(payload.previous.source_exchange_rate))
+			)
 				return invalid('currency', 'Source exchange rate changed since the previous observation');
 			if (
 				one('employee').id !== selected.person.employeeId ||
@@ -305,7 +307,11 @@ export const submitOrder = Effect.fnUntraced(function* (
 				settlementId: one('settlement').id,
 				currencyId: sourceCurrency.id,
 				baseCurrency: config.baseCurrency,
-				rate: text(rate),
+				rate: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: Math.max(0, rate.scale),
+					maximumFractionDigits: Math.max(0, rate.scale)
+				}).format(BigDecimal.format(rate) as Intl.StringNumericLiteral),
 				packagingId: config.packagingId ? sourceInteger(config.packagingId, 'packagingId') : '',
 				creditDays: selected.rule.creditDays,
 				fromMonthEnd: selected.rule.fromMonthEnd,

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Table, format, type RecordView } from '@norbital-ai/ui';
+	import { Bound } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { openCreate } from '../../../lib/ui/create-values.js';
 	let {
@@ -43,13 +44,15 @@
 			}}
 		/>{/if}{/snippet}
 
-{#snippet credit()}{#if id && !supplier}<Table
-			{ctx}
-			of="credit_snapshots"
-			where={{ party: { eq: id } }}
-			columns={['currency', 'credit_limit', 'credit_used', 'as_of']}
-			toolbar={{ new: false }}
-		/>{/if}{/snippet}
+{#snippet credit()}{#if id && !supplier}<Bound size="viewport"
+			><Table
+				{ctx}
+				of="credit_snapshots"
+				where={{ party: { eq: id } }}
+				columns={['currency', 'credit_limit', 'credit_used', 'as_of']}
+				toolbar={{ new: false }}
+			/></Bound
+		>{/if}{/snippet}
 <RecordForm
 	{ctx}
 	after_form={credit}

@@ -1,7 +1,6 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { Id, Row, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { dec, div, round, sum, text as decimalText, type D } from '../../lib/values.js';
 import { hash, sha256Hex } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
@@ -24,11 +23,11 @@ type SalesLine = {
 	readonly detailId: string;
 	readonly itemId: string;
 	readonly unit: string;
-	readonly quantity: D;
+	readonly quantity: BigDecimal.BigDecimal;
 	readonly lotNumber: string | null;
-	readonly netAmount: D | null;
-	readonly grossAmount: D | null;
-	readonly costAmount?: D | null;
+	readonly netAmount: BigDecimal.BigDecimal | null;
+	readonly grossAmount: BigDecimal.BigDecimal | null;
+	readonly costAmount?: BigDecimal.BigDecimal | null;
 	readonly localLine: LocalLine;
 	readonly upstream: { readonly fid: string; readonly entryId: string } | null;
 };
@@ -49,7 +48,7 @@ type SalesDocument = {
 	readonly status: 'issued' | 'void';
 	readonly owner: OwnedSales;
 	readonly lines: readonly SalesLine[];
-	readonly total: D | null;
+	readonly total: BigDecimal.BigDecimal | null;
 };
 type DocumentIssue = { readonly document: string; readonly column: string };
 type DocumentReview = {
@@ -407,7 +406,6 @@ const uniqueEntries = (lines: readonly SqlRow[]) => {
 export const kingdeeOrder = (family: SourceFamily) => {
 	const header = family.live;
 	const fid = exactId(header, 'fid');
-	const amount = (row: SqlRow, name: string) => decimalText(columns(row).decimal(name));
 	return {
 		fid,
 		uuid: text(header, 'uuid').toLowerCase(),
@@ -415,25 +413,28 @@ export const kingdeeOrder = (family: SourceFamily) => {
 		version: text(header, 'version'),
 		status: sourceStatus(header),
 		closed: header['closed'] != null && flag(header, 'closed'),
-		exchange_rate: amount(header, 'exchange_rate'),
+		exchange_rate: columns(header).decimalText('exchange_rate'),
 		currency: isoCurrency(header),
 		customer: exactId(header, 'customer_id'),
 		payment_terms: text(header, 'settlement'),
 		ordered_on: text(header, 'ordered_on'),
 		lines: uniqueEntries(family.lines.filter((line) => exactId(line, 'fid') === fid))
-			.map((line) => ({
-				entry: exactId(line, 'entry_id'),
-				detail: exactId(line, 'detail_id'),
-				item: exactId(line, 'item_id'),
-				unit: text(line, 'unit'),
-				quantity: amount(line, 'quantity'),
-				exclusive: amount(line, 'unit_price'),
-				inclusive: amount(line, 'unit_price_inclusive'),
-				tax_rate: amount(line, 'tax_rate'),
-				net: amount(line, 'net_amount'),
-				tax: amount(line, 'tax_amount'),
-				total: amount(line, 'gross_amount')
-			}))
+			.map((line) => {
+				const r = columns(line);
+				return {
+					entry: exactId(line, 'entry_id'),
+					detail: exactId(line, 'detail_id'),
+					item: exactId(line, 'item_id'),
+					unit: text(line, 'unit'),
+					quantity: r.decimalText('quantity'),
+					exclusive: r.decimalText('unit_price'),
+					inclusive: r.decimalText('unit_price_inclusive'),
+					tax_rate: r.decimalText('tax_rate'),
+					net: r.decimalText('net_amount'),
+					tax: r.decimalText('tax_amount'),
+					total: r.decimalText('gross_amount')
+				};
+			})
 			.sort((a, b) => Number(a.entry) - Number(b.entry))
 	};
 };
@@ -524,7 +525,7 @@ export const readOwnedSales = Effect.fnUntraced(function* (
 										detailId: entry.detail,
 										itemId: entry.item,
 										unit: entry.unit,
-										quantity: dec(entry.quantity),
+										quantity: BigDecimal.fromStringUnsafe(entry.quantity),
 										lotNumber: null,
 										netAmount: null,
 										grossAmount: null,
@@ -724,7 +725,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 						(linkedReturn &&
 							(!BigDecimal.isPositive(source.quantity) ||
 								BigDecimal.isGreaterThan(BigDecimal.abs(quantity), source.quantity))) ||
-						!BigDecimal.equals(round(quantity, 3), quantity)
+						!BigDecimal.equals(BigDecimal.round(quantity, { scale: 3 }), quantity)
 					)
 						return invalid(
 							'ICStockBillEntry',
@@ -741,7 +742,8 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 							'A blue invoice line has a negative amount requiring an explicit reversal mapping'
 						);
 					const costAmount = r.decimal('cost_amount', null);
-					const signed = (value: D) => (red ? BigDecimal.negate(BigDecimal.abs(value)) : value);
+					const signed = (value: BigDecimal.BigDecimal) =>
+						red ? BigDecimal.negate(BigDecimal.abs(value)) : value;
 					return {
 						entryId: exactId(entry, 'entry_id'),
 						detailId:
@@ -775,7 +777,10 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					status: flag(header, 'cancelled') ? 'void' : 'issued',
 					owner,
 					lines,
-					total: kind === 'invoice' ? sum(lines.flatMap((line) => line.grossAmount ?? [])) : null
+					total:
+						kind === 'invoice'
+							? BigDecimal.sumAll(lines.flatMap((line) => line.grossAmount ?? []))
+							: null
 				});
 			} catch (cause) {
 				if (!(cause instanceof SourceRowInvalid) || !issue(fid, cause.column, affected))
@@ -982,9 +987,9 @@ export const readTransactions = Effect.fnUntraced(function* (
 						order_line_id: string;
 						product_name: string;
 						unit: string;
-						quantity: D;
+						quantity: BigDecimal.BigDecimal;
 						lot_number: string | null;
-						net_amount: D | null;
+						net_amount: BigDecimal.BigDecimal | null;
 					}
 				>();
 				for (const line of document.lines) {
@@ -1024,11 +1029,29 @@ export const readTransactions = Effect.fnUntraced(function* (
 					status: document.status,
 					issued_on: document.issuedOn,
 					due_on: document.dueOn,
-					total: document.total === null ? null : decimalText(document.total),
+					total:
+						document.total === null
+							? null
+							: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: document.total.scale,
+									maximumFractionDigits: document.total.scale
+								}).format(BigDecimal.format(document.total) as Intl.StringNumericLiteral),
 					items: [...items.values()].map((item) => ({
 						...item,
-						quantity: decimalText(item.quantity),
-						net_amount: item.net_amount === null ? null : decimalText(item.net_amount)
+						quantity: new Intl.NumberFormat('en', {
+							useGrouping: false,
+							minimumFractionDigits: item.quantity.scale,
+							maximumFractionDigits: item.quantity.scale
+						}).format(BigDecimal.format(item.quantity) as Intl.StringNumericLiteral),
+						net_amount:
+							item.net_amount === null
+								? null
+								: new Intl.NumberFormat('en', {
+										useGrouping: false,
+										minimumFractionDigits: item.net_amount.scale,
+										maximumFractionDigits: item.net_amount.scale
+									}).format(BigDecimal.format(item.net_amount) as Intl.StringNumericLiteral)
 					})),
 					documents: [],
 					source_updated_at: graph.observedAt

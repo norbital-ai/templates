@@ -1,5 +1,4 @@
 import { BigDecimal } from 'effect';
-import { dec, minorDigits, round, text } from '../../lib/values.js';
 import { requireWriteAccount } from './sql.js';
 import { headerTypes, itemTypes, type OrderPayload, type SourceOrderBatch } from './order-batch.js';
 
@@ -86,6 +85,11 @@ export function previousOrderDocument(
 	previous: NonNullable<OrderPayload['previous']>,
 	baseCurrency: string
 ) {
+	const digits =
+		new Intl.NumberFormat('en', {
+			style: 'currency',
+			currency: baseCurrency
+		}).resolvedOptions().maximumFractionDigits ?? 2;
 	return `<previous>${previous.lines
 		.map((line) => {
 			const values = {
@@ -99,11 +103,20 @@ export function previousOrderDocument(
 				net: line.net,
 				tax: line.tax,
 				total: line.total,
-				standard_total: text(
-					round(
-						BigDecimal.multiply(dec(line.total), dec(previous.source_exchange_rate)),
-						minorDigits(baseCurrency)
-					)
+				standard_total: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: digits,
+					maximumFractionDigits: digits
+				}).format(
+					BigDecimal.format(
+						BigDecimal.round(
+							BigDecimal.multiply(
+								BigDecimal.fromStringUnsafe(line.total),
+								BigDecimal.fromStringUnsafe(previous.source_exchange_rate)
+							),
+							{ scale: digits }
+						)
+					) as Intl.StringNumericLiteral
 				)
 			};
 			return `<line ${Object.entries(values)

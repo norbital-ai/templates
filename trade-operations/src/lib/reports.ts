@@ -1,4 +1,4 @@
-import { BigDecimal, Effect, Option, Result, Schema, Stream } from 'effect';
+import { BigDecimal, DateTime, Duration, Effect, Option, Result, Schema, Stream } from 'effect';
 import {
 	commissionContext,
 	evaluateCommission,
@@ -18,7 +18,6 @@ import type {
 } from '@norbital-ai/bolt';
 import { hash } from './commercial.js';
 import { commercialSalesFields } from './sales-fact-fields.js';
-import { type D, dec, div, minorDigits, round, sum, text } from './values.js';
 /** The order fields the commission and report helpers read. */
 export const reportFields = [
 	'number',
@@ -92,7 +91,7 @@ function commissionLines(order: ReportOrder, actual?: readonly CommissionFact[])
 		const base = {
 			order_line: orderLine,
 			product: line?.product_name ?? '',
-			quantity: dec(rawQuantity),
+			quantity: rawQuantity,
 			basis_unit: rule?.basis_unit ?? '',
 			spread: null,
 			amount: null
@@ -104,19 +103,24 @@ function commissionLines(order: ReportOrder, actual?: readonly CommissionFact[])
 		)
 			return { ...base, reason: 'expression_error' as const };
 		if (!rule) return { ...base, reason: 'rule_missing' as const };
-		const quantity = text(fact ? BigDecimal.abs(dec(fact.quantity)) : line.quantity);
+		const quantity = fact
+			? BigDecimal.format(BigDecimal.abs(BigDecimal.fromStringUnsafe(fact.quantity)))
+			: line.quantity;
 		const factNet = fact?.net_amount;
 		if (fact && factNet == null) return { ...base, reason: 'expression_error' as const };
-		const net = text(factNet == null ? line.net : BigDecimal.abs(dec(factNet)));
-		const floorNet = line.floor_net === null ? null : text(line.floor_net);
+		const net =
+			factNet == null
+				? line.net
+				: BigDecimal.format(BigDecimal.abs(BigDecimal.fromStringUnsafe(factNet)));
+		const floorNet = line.floor_net;
 		const evaluated = Result.try(() => {
 			if (rule.engine_version && rule.engine_version !== COMMISSION_ENGINE)
 				throw new Error('Unknown commission engine');
 			const factor =
 				line.commission_factor !== null &&
-				BigDecimal.isPositive(dec(line.commission_factor)) &&
+				BigDecimal.isPositive(BigDecimal.fromStringUnsafe(line.commission_factor)) &&
 				line.commission_basis_unit === rule.basis_unit
-					? text(line.commission_factor)
+					? line.commission_factor
 					: null;
 			const context = commissionContext({
 				quantity,
@@ -140,14 +144,35 @@ function commissionLines(order: ReportOrder, actual?: readonly CommissionFact[])
 			);
 			const spread =
 				floorNet && factor
-					? round(div(BigDecimal.subtract(div(net, quantity, 18), dec(floorNet)), factor, 18), 8)
+					? BigDecimal.round(
+							BigDecimal.divideUnsafe(
+								BigDecimal.subtract(
+									BigDecimal.round(
+										BigDecimal.divideUnsafe(
+											BigDecimal.fromStringUnsafe(net),
+											BigDecimal.fromStringUnsafe(quantity)
+										),
+										{ scale: 18 }
+									),
+									BigDecimal.fromStringUnsafe(floorNet)
+								),
+								BigDecimal.fromStringUnsafe(factor)
+							),
+							{ scale: 8 }
+						)
 					: null;
 			return {
 				...base,
 				spread,
-				amount: round(
+				amount: BigDecimal.round(
 					fact?.kind === 'return' ? BigDecimal.negate(result.amount) : result.amount,
-					minorDigits(order.currency)
+					{
+						scale:
+							new Intl.NumberFormat('en', {
+								style: 'currency',
+								currency: order.currency
+							}).resolvedOptions().maximumFractionDigits ?? 2
+					}
 				),
 				reason: result.eligible ? ('resolved' as const) : ('ineligible' as const)
 			};
@@ -159,7 +184,8 @@ function commissionLines(order: ReportOrder, actual?: readonly CommissionFact[])
 					? ('expression_error' as const)
 					: !floorNet
 						? ('floor_missing' as const)
-						: line.commission_factor === null || !BigDecimal.isPositive(dec(line.commission_factor))
+						: line.commission_factor === null ||
+							  !BigDecimal.isPositive(BigDecimal.fromStringUnsafe(line.commission_factor))
 							? ('conversion_missing' as const)
 							: line.commission_basis_unit !== rule.basis_unit
 								? ('unit_mismatch' as const)
@@ -172,9 +198,21 @@ function commissionRows(orders: readonly ReportOrder[]) {
 	return orders.flatMap((order) =>
 		commissionLines(order).map(({ order_line, quantity, spread, amount, ...line }) => ({
 			...line,
-			quantity: text(quantity),
-			spread: spread && text(spread),
-			amount: amount && text(amount),
+			quantity,
+			spread:
+				spread &&
+				new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: 8,
+					maximumFractionDigits: 8
+				}).format(BigDecimal.format(spread) as Intl.StringNumericLiteral),
+			amount:
+				amount &&
+				new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: amount.scale,
+					maximumFractionDigits: amount.scale
+				}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral),
 			owner_name: '',
 			order: order.id,
 			number: order.number,
@@ -192,19 +230,37 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 	const unresolved_lines = lines.filter((line) => line.amount === null).length;
 	const amount = unresolved_lines
 		? null
-		: round(
-				sum(lines.flatMap((line) => (line.amount === null ? [] : [line.amount]))),
-				minorDigits(order.currency)
+		: BigDecimal.round(
+				BigDecimal.sumAll(lines.flatMap((line) => (line.amount === null ? [] : [line.amount]))),
+				{
+					scale:
+						new Intl.NumberFormat('en', {
+							style: 'currency',
+							currency: order.currency
+						}).resolvedOptions().maximumFractionDigits ?? 2
+				}
 			);
 	const snapshot = {
 		eligible: order.status === 'confirmed',
 		lines: lines.map((line) => ({
 			order_line: line.order_line,
 			product: line.product,
-			quantity: text(line.quantity),
+			quantity: line.quantity,
 			basis_unit: line.basis_unit,
-			spread: line.spread && text(line.spread),
-			amount: line.amount && text(line.amount),
+			spread:
+				line.spread &&
+				new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: 8,
+					maximumFractionDigits: 8
+				}).format(BigDecimal.format(line.spread) as Intl.StringNumericLiteral),
+			amount:
+				line.amount &&
+				new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: line.amount.scale,
+					maximumFractionDigits: line.amount.scale
+				}).format(BigDecimal.format(line.amount) as Intl.StringNumericLiteral),
 			reason: line.reason
 		}))
 	};
@@ -407,8 +463,10 @@ function bookedNet(
 	treatment: Row<'orders'>['freight_treatment']
 ) {
 	if (net === null) return null;
-	if (treatment !== 'deduct') return dec(net);
-	return freight === null ? null : BigDecimal.subtract(dec(net), dec(freight));
+	if (treatment !== 'deduct') return BigDecimal.fromStringUnsafe(net);
+	return freight === null
+		? null
+		: BigDecimal.subtract(BigDecimal.fromStringUnsafe(net), BigDecimal.fromStringUnsafe(freight));
 }
 /** Monthly sales and returns by currency and salesperson (an inverted range reads nothing). */
 export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
@@ -424,11 +482,11 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 			orderIds: Set<string>;
 			source_lines: number;
 			unresolved_lines: number;
-			net: D | null;
-			source_net: D | null;
-			tax: D | null;
-			total: D | null;
-			freight: D | null;
+			net: BigDecimal.BigDecimal | null;
+			source_net: BigDecimal.BigDecimal | null;
+			tax: BigDecimal.BigDecimal | null;
+			total: BigDecimal.BigDecimal | null;
+			freight: BigDecimal.BigDecimal | null;
 		}
 	>();
 	for (const source of salesFacts(answer, range)) {
@@ -453,11 +511,11 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 			orderIds: new Set<string>(),
 			source_lines: 0,
 			unresolved_lines: 0,
-			net: dec(0),
-			source_net: dec(0),
-			tax: dec(0),
-			total: dec(0),
-			freight: dec(0)
+			net: BigDecimal.fromBigInt(0n),
+			source_net: BigDecimal.fromBigInt(0n),
+			tax: BigDecimal.fromBigInt(0n),
+			total: BigDecimal.fromBigInt(0n),
+			freight: BigDecimal.fromBigInt(0n)
 		};
 		const net = source.net_amount,
 			tax = source.tax_amount,
@@ -468,28 +526,85 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 		if (net === null || tax === null || freight === null) group.unresolved_lines++;
 		group.net = group.net === null || booked === null ? null : BigDecimal.sum(group.net, booked);
 		group.source_net =
-			group.source_net === null || net === null ? null : BigDecimal.sum(group.source_net, dec(net));
-		group.tax = group.tax === null || tax === null ? null : BigDecimal.sum(group.tax, dec(tax));
+			group.source_net === null || net === null
+				? null
+				: BigDecimal.sum(group.source_net, BigDecimal.fromStringUnsafe(net));
+		group.tax =
+			group.tax === null || tax === null
+				? null
+				: BigDecimal.sum(group.tax, BigDecimal.fromStringUnsafe(tax));
 		group.freight =
 			group.freight === null || freight === null
 				? null
-				: BigDecimal.sum(group.freight, dec(freight));
+				: BigDecimal.sum(group.freight, BigDecimal.fromStringUnsafe(freight));
 		group.total =
 			group.total === null || net === null || tax === null
 				? null
-				: BigDecimal.sum(BigDecimal.sum(group.total, dec(net)), dec(tax));
+				: BigDecimal.sum(
+						BigDecimal.sum(group.total, BigDecimal.fromStringUnsafe(net)),
+						BigDecimal.fromStringUnsafe(tax)
+					);
 		groups.set(key, group);
 	}
 	return [...groups.values()]
-		.map(({ orderIds, ...row }) => ({
-			...row,
-			orders: orderIds.size,
-			net: row.net && text(round(row.net, minorDigits(row.currency))),
-			source_net: row.source_net && text(round(row.source_net, minorDigits(row.currency))),
-			tax: row.tax && text(round(row.tax, minorDigits(row.currency))),
-			total: row.total && text(round(row.total, minorDigits(row.currency))),
-			freight: row.freight && text(round(row.freight, minorDigits(row.currency)))
-		}))
+		.map(({ orderIds, ...row }) => {
+			const scale =
+				new Intl.NumberFormat('en', {
+					style: 'currency',
+					currency: row.currency
+				}).resolvedOptions().maximumFractionDigits ?? 2;
+			return {
+				...row,
+				orders: orderIds.size,
+				net:
+					row.net &&
+					new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: scale,
+						maximumFractionDigits: scale
+					}).format(
+						BigDecimal.format(BigDecimal.round(row.net, { scale })) as Intl.StringNumericLiteral
+					),
+				source_net:
+					row.source_net &&
+					new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: scale,
+						maximumFractionDigits: scale
+					}).format(
+						BigDecimal.format(
+							BigDecimal.round(row.source_net, { scale })
+						) as Intl.StringNumericLiteral
+					),
+				tax:
+					row.tax &&
+					new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: scale,
+						maximumFractionDigits: scale
+					}).format(
+						BigDecimal.format(BigDecimal.round(row.tax, { scale })) as Intl.StringNumericLiteral
+					),
+				total:
+					row.total &&
+					new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: scale,
+						maximumFractionDigits: scale
+					}).format(
+						BigDecimal.format(BigDecimal.round(row.total, { scale })) as Intl.StringNumericLiteral
+					),
+				freight:
+					row.freight &&
+					new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: scale,
+						maximumFractionDigits: scale
+					}).format(
+						BigDecimal.format(BigDecimal.round(row.freight, { scale })) as Intl.StringNumericLiteral
+					)
+			};
+		})
 		.sort(
 			(a, b) =>
 				b.period.localeCompare(a.period) ||
@@ -513,12 +628,20 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 			const treatment = order?.freight_treatment ?? null;
 			const denomination = order?.currency ?? source.currency;
 			const booked = treatment ? bookedNet(net, freight, treatment) : null;
-			const digits = minorDigits(denomination);
+			const digits =
+				new Intl.NumberFormat('en', {
+					style: 'currency',
+					currency: denomination
+				}).resolvedOptions().maximumFractionDigits ?? 2;
 			const legacyCost =
 				source.lot_number && source.unit_cost !== null
-					? BigDecimal.multiply(dec(source.unit_cost), dec(source.quantity))
+					? BigDecimal.multiply(
+							BigDecimal.fromStringUnsafe(source.unit_cost),
+							BigDecimal.fromStringUnsafe(source.quantity)
+						)
 					: null;
-			const bookedCost = source.booked_cost == null ? null : dec(source.booked_cost);
+			const bookedCost =
+				source.booked_cost == null ? null : BigDecimal.fromStringUnsafe(source.booked_cost);
 			const cost = bookedCost ?? legacyCost;
 			const costCurrency =
 				bookedCost !== null
@@ -526,6 +649,12 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					: legacyCost !== null
 						? denomination
 						: null;
+			const costDigits = costCurrency
+				? (new Intl.NumberFormat('en', {
+						style: 'currency',
+						currency: costCurrency
+					}).resolvedOptions().maximumFractionDigits ?? 2)
+				: null;
 			return [
 				{
 					order: order?.id ?? null,
@@ -534,9 +663,23 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					owner: order?.owner ?? null,
 					source_owner: dimensions ? sourceOwner(source) : null,
 					sold_price:
-						net === null || BigDecimal.isZero(dec(source.quantity))
+						net === null || BigDecimal.isZero(BigDecimal.fromStringUnsafe(source.quantity))
 							? null
-							: text(div(net, source.quantity, 8)),
+							: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: 8,
+									maximumFractionDigits: 8
+								}).format(
+									BigDecimal.format(
+										BigDecimal.round(
+											BigDecimal.divideUnsafe(
+												BigDecimal.fromStringUnsafe(net),
+												BigDecimal.fromStringUnsafe(source.quantity)
+											),
+											{ scale: 8 }
+										)
+									) as Intl.StringNumericLiteral
+								),
 					floor_net: line?.floor_net ?? null,
 					order_number: order?.number ?? '',
 					party_name: order?.party?.name ?? dimensions?.customer ?? '',
@@ -549,22 +692,65 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					unit: source.unit,
 					quantity: source.quantity,
 					lot_number: source.lot_number,
-					cost: cost !== null && costCurrency ? text(round(cost, minorDigits(costCurrency))) : null,
+					cost:
+						costDigits === null || cost === null
+							? null
+							: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: costDigits,
+									maximumFractionDigits: costDigits
+								}).format(
+									BigDecimal.format(
+										BigDecimal.round(cost, { scale: costDigits })
+									) as Intl.StringNumericLiteral
+								),
 					cost_currency: costCurrency,
 					margin:
 						cost !== null && costCurrency === denomination && booked !== null
-							? text(round(BigDecimal.subtract(booked, cost), digits))
+							? new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: digits,
+									maximumFractionDigits: digits
+								}).format(
+									BigDecimal.format(
+										BigDecimal.round(BigDecimal.subtract(booked, cost), { scale: digits })
+									) as Intl.StringNumericLiteral
+								)
 							: null,
 					currency: denomination,
 					freight_treatment: treatment,
 					source_net: net,
-					net: booked && text(round(booked, digits)),
+					net:
+						booked &&
+						new Intl.NumberFormat('en', {
+							useGrouping: false,
+							minimumFractionDigits: digits,
+							maximumFractionDigits: digits
+						}).format(
+							BigDecimal.format(
+								BigDecimal.round(booked, { scale: digits })
+							) as Intl.StringNumericLiteral
+						),
 					tax,
 					freight,
 					total:
 						net === null || tax === null
 							? null
-							: text(round(BigDecimal.sum(dec(net), dec(tax)), digits))
+							: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: digits,
+									maximumFractionDigits: digits
+								}).format(
+									BigDecimal.format(
+										BigDecimal.round(
+											BigDecimal.sum(
+												BigDecimal.fromStringUnsafe(net),
+												BigDecimal.fromStringUnsafe(tax)
+											),
+											{ scale: digits }
+										)
+									) as Intl.StringNumericLiteral
+								)
 				}
 			];
 		})
@@ -686,11 +872,10 @@ export const agingBuckets = [
 	'no_due_date'
 ] as const;
 const zero = '0';
-const add = (a: string, b: string) => text(BigDecimal.sum(dec(a), dec(b)));
 function agingBucket(due: PlainDate | null, cutoff: PlainDate): AgingBucket {
 	if (due === null) return 'no_due_date';
-	const days = Math.floor(
-		(Date.parse(cutoff + 'T00:00:00Z') - Date.parse(due + 'T00:00:00Z')) / 86400000
+	const days = Duration.toDays(
+		DateTime.distance(DateTime.makeUnsafe(due), DateTime.makeUnsafe(cutoff))
 	);
 	return AGING.find(([threshold]) => days <= threshold)?.[1] ?? 'over_90';
 }
@@ -707,28 +892,48 @@ const agingAccount = (
 });
 /** Open issued invoices by due date. Only linked source settlements reduce an invoice. */
 export function arAging(answer: AgingAnswer, as_of: PlainDate) {
-	const paidByInvoice = new Map<string, D>();
+	const paidByInvoice = new Map<string, BigDecimal.BigDecimal>();
 	for (const payment of answer.source_payments.rows)
 		if (payment.invoice) {
 			paidByInvoice.set(
 				payment.invoice,
-				BigDecimal.sum(paidByInvoice.get(payment.invoice) ?? dec(0), dec(payment.amount))
+				BigDecimal.sum(
+					paidByInvoice.get(payment.invoice) ?? BigDecimal.fromBigInt(0n),
+					BigDecimal.fromStringUnsafe(payment.amount)
+				)
 			);
 		}
 	return answer.transactions.rows.flatMap((invoice) => {
 		const order = invoice.order;
 		if (!order || invoice.total === null) return [];
-		const total = dec(invoice.total);
-		const raw = BigDecimal.subtract(total, paidByInvoice.get(invoice.id) ?? dec(0));
+		const total = BigDecimal.fromStringUnsafe(invoice.total);
+		const raw = BigDecimal.subtract(
+			total,
+			paidByInvoice.get(invoice.id) ?? BigDecimal.fromBigInt(0n)
+		);
 		if (BigDecimal.isZero(raw)) return [];
-		const balance = BigDecimal.isNegative(raw) ? zero : text(raw);
+		const balance = BigDecimal.isNegative(raw)
+			? zero
+			: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: raw.scale,
+					maximumFractionDigits: raw.scale
+				}).format(BigDecimal.format(raw) as Intl.StringNumericLiteral);
 		const credit =
 			BigDecimal.isNegative(total) && BigDecimal.isNegative(raw)
-				? text(BigDecimal.negate(raw))
+				? new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: raw.scale,
+						maximumFractionDigits: raw.scale
+					}).format(BigDecimal.format(BigDecimal.negate(raw)) as Intl.StringNumericLiteral)
 				: zero;
 		const overpaid =
 			!BigDecimal.isNegative(total) && BigDecimal.isNegative(raw)
-				? text(BigDecimal.negate(raw))
+				? new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: raw.scale,
+						maximumFractionDigits: raw.scale
+					}).format(BigDecimal.format(BigDecimal.negate(raw)) as Intl.StringNumericLiteral)
 				: zero;
 		return [
 			{
@@ -755,14 +960,22 @@ export function receivablesDetails(snapshots: readonly ReceivablesSnapshot[], as
 	return snapshots.flatMap((snapshot) =>
 		snapshot.entries.flatMap((entry) => {
 			if (!snapshot.source || entry.business_on > as_of) return [];
-			const amount = round(
-				sum([
-					entry.remaining,
-					...entry.settlements
-						.filter((settlement) => settlement.on > as_of)
-						.map((settlement) => settlement.amount)
-				]),
-				minorDigits(snapshot.currency)
+			const amount = BigDecimal.round(
+				BigDecimal.sumAll(
+					[
+						entry.remaining,
+						...entry.settlements
+							.filter((settlement) => settlement.on > as_of)
+							.map((settlement) => settlement.amount)
+					].map(BigDecimal.fromStringUnsafe)
+				),
+				{
+					scale:
+						new Intl.NumberFormat('en', {
+							style: 'currency',
+							currency: snapshot.currency
+						}).resolvedOptions().maximumFractionDigits ?? 2
+				}
 			);
 			if (BigDecimal.isZero(amount)) return [];
 			const receipt = entry.kind === 'receipt';
@@ -782,11 +995,30 @@ export function receivablesDetails(snapshots: readonly ReceivablesSnapshot[], as
 					due_on: receipt ? null : (entry.due_on ?? null),
 					settled_on: receipt ? entry.business_on : null,
 					as_of,
-					balance: receipt || BigDecimal.isNegative(amount) ? zero : text(amount),
+					balance:
+						receipt || BigDecimal.isNegative(amount)
+							? zero
+							: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: amount.scale,
+									maximumFractionDigits: amount.scale
+								}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral),
 					overpaid: zero,
 					credit:
-						!receipt && BigDecimal.isNegative(amount) ? text(BigDecimal.negate(amount)) : zero,
-					unapplied: receipt ? text(amount) : zero,
+						!receipt && BigDecimal.isNegative(amount)
+							? new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: amount.scale,
+									maximumFractionDigits: amount.scale
+								}).format(BigDecimal.format(BigDecimal.negate(amount)) as Intl.StringNumericLiteral)
+							: zero,
+					unapplied: receipt
+						? new Intl.NumberFormat('en', {
+								useGrouping: false,
+								minimumFractionDigits: amount.scale,
+								maximumFractionDigits: amount.scale
+							}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral)
+						: zero,
 					bucket: receipt ? ('unapplied' as const) : agingBucket(entry.due_on ?? null, as_of)
 				}
 			];
@@ -856,22 +1088,27 @@ type AgingEstimate = {
 
 /** Apply the SalesBridge estimate to complete account snapshots within one customer, ledger and currency. */
 export function estimateAging(details: readonly AgingDetail[]) {
-	const groups = new Map<string, { invoices: { row: AgingDetail; id: bigint }[]; available: D }>();
+	const groups = new Map<
+		string,
+		{ invoices: { row: AgingDetail; id: bigint }[]; available: BigDecimal.BigDecimal }
+	>();
 	for (const row of details) {
 		if (row.contact_id === null) continue;
 		const key = agingGroup(row);
-		const group = groups.get(key) ?? { invoices: [], available: dec(0) };
-		if (BigDecimal.isPositive(dec(row.balance)))
+		const group = groups.get(key) ?? { invoices: [], available: BigDecimal.fromBigInt(0n) };
+		if (BigDecimal.isPositive(BigDecimal.fromStringUnsafe(row.balance)))
 			group.invoices.push({ row, id: BigInt(row.contact_id) });
 		group.available = BigDecimal.sum(
-			BigDecimal.sum(group.available, dec(row.unapplied)),
-			dec(row.credit)
+			BigDecimal.sum(group.available, BigDecimal.fromStringUnsafe(row.unapplied)),
+			BigDecimal.fromStringUnsafe(row.credit)
 		);
 		groups.set(key, group);
 	}
 	const estimates = new Map<AgingDetail, AgingEstimate>();
 	for (const group of groups.values()) {
-		let available = BigDecimal.isNegative(group.available) ? dec(0) : group.available;
+		let available = BigDecimal.isNegative(group.available)
+			? BigDecimal.fromBigInt(0n)
+			: group.available;
 		group.invoices.sort((a, b) => {
 			if (a.row.due_on !== b.row.due_on) {
 				if (a.row.due_on === null) return 1;
@@ -881,19 +1118,39 @@ export function estimateAging(details: readonly AgingDetail[]) {
 			return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 		});
 		for (const { row: invoice } of group.invoices) {
-			const balance = dec(invoice.balance);
+			const balance = BigDecimal.fromStringUnsafe(invoice.balance);
 			const applied = BigDecimal.isLessThan(balance, available) ? balance : available;
 			available = BigDecimal.subtract(available, applied);
+			const remaining = BigDecimal.subtract(balance, applied);
 			estimates.set(invoice, {
-				estimated_applied: text(applied),
-				estimated_balance: text(BigDecimal.subtract(balance, applied))
+				estimated_applied: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: applied.scale,
+					maximumFractionDigits: applied.scale
+				}).format(BigDecimal.format(applied) as Intl.StringNumericLiteral),
+				estimated_balance: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: remaining.scale,
+					maximumFractionDigits: remaining.scale
+				}).format(BigDecimal.format(remaining) as Intl.StringNumericLiteral)
 			});
 		}
 	}
 	return details.map((row) => {
 		const estimate =
-			row.contact_id !== null && BigDecimal.isPositive(dec(row.credit))
-				? { estimated_applied: text(BigDecimal.negate(dec(row.credit))), estimated_balance: zero }
+			row.contact_id !== null && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(row.credit))
+				? {
+						estimated_applied: new Intl.NumberFormat('en', {
+							useGrouping: false,
+							minimumFractionDigits: BigDecimal.fromStringUnsafe(row.credit).scale,
+							maximumFractionDigits: BigDecimal.fromStringUnsafe(row.credit).scale
+						}).format(
+							BigDecimal.format(
+								BigDecimal.negate(BigDecimal.fromStringUnsafe(row.credit))
+							) as Intl.StringNumericLiteral
+						),
+						estimated_balance: zero
+					}
 				: estimates.get(row);
 		return { estimated_applied: null, estimated_balance: null, ...row, ...estimate };
 	});
@@ -934,26 +1191,56 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 			over_90: zero,
 			no_due_date: zero
 		};
-		summary.balance = add(summary.balance, row.balance);
-		summary.overpaid = add(summary.overpaid, row.overpaid);
-		summary.credit = add(summary.credit, row.credit);
-		summary.unapplied = add(summary.unapplied, row.unapplied);
-		if (row.estimated_balance != null)
-			summary.estimated_balance = add(summary.estimated_balance ?? zero, row.estimated_balance);
-		if (row.bucket !== 'unapplied')
-			summary[row.bucket] = add(summary[row.bucket], row.estimated_balance ?? row.balance);
+		for (const field of ['balance', 'overpaid', 'credit', 'unapplied'] as const) {
+			const total = BigDecimal.sum(
+				BigDecimal.fromStringUnsafe(summary[field]),
+				BigDecimal.fromStringUnsafe(row[field])
+			);
+			summary[field] = new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: total.scale,
+				maximumFractionDigits: total.scale
+			}).format(BigDecimal.format(total) as Intl.StringNumericLiteral);
+		}
+		if (row.estimated_balance != null) {
+			const total = BigDecimal.sum(
+				BigDecimal.fromStringUnsafe(summary.estimated_balance ?? zero),
+				BigDecimal.fromStringUnsafe(row.estimated_balance)
+			);
+			summary.estimated_balance = new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: total.scale,
+				maximumFractionDigits: total.scale
+			}).format(BigDecimal.format(total) as Intl.StringNumericLiteral);
+		}
+		if (row.bucket !== 'unapplied') {
+			const total = BigDecimal.sum(
+				BigDecimal.fromStringUnsafe(summary[row.bucket]),
+				BigDecimal.fromStringUnsafe(row.estimated_balance ?? row.balance)
+			);
+			summary[row.bucket] = new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: total.scale,
+				maximumFractionDigits: total.scale
+			}).format(BigDecimal.format(total) as Intl.StringNumericLiteral);
+		}
 		groups.set(group, summary);
 	}
 	return [...groups.values()]
-		.map((row) => ({
-			...row,
-			net: text(
-				[row.unapplied, row.overpaid, row.credit].reduce(
-					(net, amount) => BigDecimal.subtract(net, dec(amount)),
-					dec(row.balance)
-				)
-			)
-		}))
+		.map((row) => {
+			const net = [row.unapplied, row.overpaid, row.credit].reduce(
+				(net, amount) => BigDecimal.subtract(net, BigDecimal.fromStringUnsafe(amount)),
+				BigDecimal.fromStringUnsafe(row.balance)
+			);
+			return {
+				...row,
+				net: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: net.scale,
+					maximumFractionDigits: net.scale
+				}).format(BigDecimal.format(net) as Intl.StringNumericLiteral)
+			};
+		})
 		.sort(
 			(a, b) =>
 				a.party_name.localeCompare(b.party_name) ||

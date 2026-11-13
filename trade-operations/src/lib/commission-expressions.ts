@@ -1,12 +1,11 @@
 import { BigDecimal, Predicate, Result } from 'effect';
 import { compile, context, evaluate, formula, type Id, type ReadAnswer } from '@norbital-ai/bolt';
-import { type D, type DecimalLike, dec, div, minorDigits, round, text } from './values.js';
 
 export const DEFAULT_COMMISSION_EXPRESSION =
 	'basis_quantity * (rule.fixed_rate + max(spread, 0) * rule.spread_pct / 100)';
 export const COMMISSION_ENGINE = 'cel-decimal-v1';
 /** A CEL argument as a figure: a boxed decimal carries its `BigDecimal` as `value`. */
-const decimal = (value: unknown): D =>
+const decimal = (value: unknown): BigDecimal.BigDecimal =>
 	Predicate.hasProperty(value, 'value') && BigDecimal.isBigDecimal(value.value)
 		? value.value
 		: typeof value === 'bigint'
@@ -67,18 +66,30 @@ type CommissionFacts = {
 	}[];
 };
 export function commissionContext(values: CommissionFacts) {
-	const quantity = dec(values.quantity),
-		factor = values.factor ? dec(values.factor) : null;
-	const floor = values.floor_net === null ? null : dec(values.floor_net);
+	const quantity = BigDecimal.fromStringUnsafe(values.quantity),
+		factor = values.factor ? BigDecimal.fromStringUnsafe(values.factor) : null;
+	const floor = values.floor_net === null ? null : BigDecimal.fromStringUnsafe(values.floor_net);
 	return {
 		quantity,
-		net: dec(values.net),
+		net: BigDecimal.fromStringUnsafe(values.net),
 		floor_net: floor,
 		basis_quantity:
 			factor && BigDecimal.isPositive(factor) ? BigDecimal.multiply(quantity, factor) : null,
 		spread:
 			floor && factor && BigDecimal.isPositive(factor) && BigDecimal.isPositive(quantity)
-				? div(BigDecimal.subtract(div(values.net, quantity, 18), floor), factor, 18)
+				? BigDecimal.round(
+						BigDecimal.divideUnsafe(
+							BigDecimal.subtract(
+								BigDecimal.round(
+									BigDecimal.divideUnsafe(BigDecimal.fromStringUnsafe(values.net), quantity),
+									{ scale: 18 }
+								),
+								floor
+							),
+							factor
+						),
+						{ scale: 18 }
+					)
 				: null,
 		product: { code: values.product_code, name: values.product_name, unit: values.unit },
 		order: {
@@ -86,8 +97,16 @@ export function commissionContext(values: CommissionFacts) {
 			ordered_on: values.ordered_on,
 			party_code: values.party_code
 		},
-		rule: { fixed_rate: dec(values.fixed_rate), spread_pct: dec(values.spread_pct) },
-		params: Object.fromEntries(values.parameters.map((p): [string, D] => [p.name, dec(p.value)]))
+		rule: {
+			fixed_rate: BigDecimal.fromStringUnsafe(values.fixed_rate),
+			spread_pct: BigDecimal.fromStringUnsafe(values.spread_pct)
+		},
+		params: Object.fromEntries(
+			values.parameters.map((p): [string, BigDecimal.BigDecimal] => [
+				p.name,
+				BigDecimal.fromStringUnsafe(p.value)
+			])
+		)
 	};
 }
 type CommissionValues = ReturnType<typeof commissionContext>;
@@ -98,7 +117,7 @@ export const commissionFault = (source: string, result: 'bool' | 'money') =>
 export function evaluateCommission(eligibility: string, amount: string, values: CommissionValues) {
 	const eligible = compile(commission, eligibility, 'bool');
 	if ('error' in eligible) throw new Error(eligible.error);
-	if (!evaluate(eligible, values)) return { eligible: false, amount: dec(0) };
+	if (!evaluate(eligible, values)) return { eligible: false, amount: BigDecimal.fromBigInt(0n) };
 	const result = compile(commission, amount, 'money');
 	if ('error' in result) throw new Error(result.error);
 	return { eligible: true, amount: evaluate(result, values) };
@@ -113,10 +132,10 @@ export const previewRead = (rule: Id<'commission_rules'>) =>
 export function commissionPreview(
 	answer: ReadAnswer<ReturnType<typeof previewRead>>,
 	sample: {
-		quantity: DecimalLike;
-		net: DecimalLike;
-		floor_net?: DecimalLike | null;
-		factor?: DecimalLike | null;
+		quantity: string;
+		net: string;
+		floor_net?: string | null;
+		factor?: string | null;
 		product_code?: string | null;
 		unit?: string | null;
 		party_code?: string | null;
@@ -130,10 +149,10 @@ export function commissionPreview(
 			rule.eligibility_expression,
 			rule.amount_expression,
 			commissionContext({
-				quantity: text(sample.quantity),
-				net: text(sample.net),
-				floor_net: sample.floor_net == null ? null : text(sample.floor_net),
-				factor: sample.factor == null ? null : text(sample.factor),
+				quantity: sample.quantity,
+				net: sample.net,
+				floor_net: sample.floor_net ?? null,
+				factor: sample.factor ?? null,
 				product_code: sample.product_code ?? '',
 				product_name: '',
 				unit: sample.unit ?? '',
@@ -147,7 +166,13 @@ export function commissionPreview(
 		);
 		return {
 			currency: rule.currency,
-			amount: round(result.amount, minorDigits(rule.currency)),
+			amount: BigDecimal.round(result.amount, {
+				scale:
+					new Intl.NumberFormat('en', {
+						style: 'currency',
+						currency: rule.currency
+					}).resolvedOptions().maximumFractionDigits ?? 2
+			}),
 			reason: result.eligible ? ('resolved' as const) : ('ineligible' as const)
 		};
 	});

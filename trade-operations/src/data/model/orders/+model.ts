@@ -1,6 +1,5 @@
 import { model } from '../../../../.norbital/models/orders.ts';
 import { lineDeletes } from '../../../lib/order-review.js';
-import { text } from '../../../lib/values.js';
 import { logisticsDocument, logisticsLine, logisticsOrder } from '../../../lib/logistics.js';
 import { agreementTemplate, sealDocument } from '../../../lib/order-document.js';
 import { confirmationBasis } from '../../../lib/confirmation.js';
@@ -516,8 +515,8 @@ export default model({
 								effective_on: rule.effective_on,
 								currency: rule.currency,
 								basis_unit: rule.basis_unit ?? '',
-								fixed_rate: text(rule.fixed_rate),
-								spread_pct: text(rule.spread_pct)
+								fixed_rate: rule.fixed_rate,
+								spread_pct: rule.spread_pct
 							}
 						: null
 				});

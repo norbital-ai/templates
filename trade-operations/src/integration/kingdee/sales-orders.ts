@@ -2,7 +2,6 @@ import { BigDecimal, Effect } from 'effect';
 import type { Id, InstanceId, Row } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { dec, div, text as decimalText } from '../../lib/values.js';
 import { hash } from '../../lib/commercial.js';
 import type { SourceRowInvalid } from './polling.js';
 import {
@@ -38,23 +37,34 @@ const binding = (branch: string, fid: string, key: string) => `sales:${branch}:$
 const headerVersion = ({ lines: _, uuid: __, ...header }: KingdeeOrder) => hash(header);
 const lineVersion = ({ detail: _, ...line }: KingdeeLine) => hash(line);
 const effective = (line: Pick<Terms, 'unit_price' | 'discount_pct'>) =>
-	div(
-		BigDecimal.multiply(
-			dec(line.unit_price),
-			BigDecimal.subtract(dec(100), dec(line.discount_pct))
+	BigDecimal.round(
+		BigDecimal.divideUnsafe(
+			BigDecimal.multiply(
+				BigDecimal.fromStringUnsafe(line.unit_price),
+				BigDecimal.subtract(
+					BigDecimal.fromBigInt(100n),
+					BigDecimal.fromStringUnsafe(line.discount_pct)
+				)
+			),
+			BigDecimal.fromBigInt(100n)
 		),
-		100,
-		12
+		{ scale: 12 }
 	);
 const kingdeePrice = (line: KingdeeLine, inclusive: boolean) =>
-	dec(inclusive ? line.inclusive : line.exclusive);
+	BigDecimal.fromStringUnsafe(inclusive ? line.inclusive : line.exclusive);
 const sameLine = (line: Terms, entry: KingdeeLine, inclusive: boolean) =>
 	entry.item === line.product_code &&
 	entry.unit === line.unit &&
-	BigDecimal.equals(dec(entry.quantity), dec(line.quantity)) &&
+	BigDecimal.equals(
+		BigDecimal.fromStringUnsafe(entry.quantity),
+		BigDecimal.fromStringUnsafe(line.quantity)
+	) &&
 	BigDecimal.equals(kingdeePrice(entry, inclusive), effective(line)) &&
 	(['tax_rate', 'net', 'tax', 'total'] as const).every((field) =>
-		BigDecimal.equals(dec(entry[field]), dec(line[field]))
+		BigDecimal.equals(
+			BigDecimal.fromStringUnsafe(entry[field]),
+			BigDecimal.fromStringUnsafe(line[field])
+		)
 	);
 const attention = <P extends object>(page: P, issues: readonly string[]) =>
 	issues.length
@@ -179,8 +189,14 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 				product: productId,
 				source_entry_id: entry.entry,
 				quantity: entry.quantity,
-				unit_price: kept ? decimalText(dec(line.unit_price)) : decimalText(price),
-				discount_pct: kept ? decimalText(dec(line.discount_pct)) : '0',
+				unit_price: kept
+					? line.unit_price
+					: new Intl.NumberFormat('en', {
+							useGrouping: false,
+							minimumFractionDigits: price.scale,
+							maximumFractionDigits: price.scale
+						}).format(BigDecimal.format(price) as Intl.StringNumericLiteral),
+				discount_pct: kept ? line.discount_pct : '0',
 				tax_rate: entry.tax_rate,
 				product_code: entry.item,
 				product_name: line?.product_name ?? product?.name ?? entry.item,
@@ -300,13 +316,13 @@ export const pushOrder = Effect.fnUntraced(function* (
 				...(entry ? { source_entry_id: entry } : {}),
 				product_code: line.product_code,
 				unit: line.unit,
-				quantity: decimalText(dec(line.quantity)),
-				unit_price: decimalText(dec(line.unit_price)),
-				discount_pct: decimalText(dec(line.discount_pct)),
-				tax_rate: decimalText(dec(line.tax_rate)),
-				net: decimalText(dec(line.net)),
-				tax: decimalText(dec(line.tax)),
-				total: decimalText(dec(line.total))
+				quantity: line.quantity,
+				unit_price: line.unit_price,
+				discount_pct: line.discount_pct,
+				tax_rate: line.tax_rate,
+				net: line.net,
+				tax: line.tax,
+				total: line.total
 			};
 		})
 	};

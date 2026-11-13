@@ -4,7 +4,6 @@ import { BigDecimal, Effect } from 'effect';
 import { logisticsDocument, logisticsOrder } from '../../../../lib/logistics.js';
 import { readTransactions } from '../../../../integration/kingdee/order-source.js';
 import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
-import { dec } from '../../../../lib/values.js';
 
 const transactionItems = {
 	kind: 'object',
@@ -88,10 +87,15 @@ const settle = Effect.fnUntraced(function* (
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const first = value.items?.[0];
-		const reversal = first !== undefined && BigDecimal.isNegative(dec(first.quantity));
-		const factor = reversal ? -1 : 1;
+		const reversal =
+			first !== undefined && BigDecimal.isNegative(BigDecimal.fromStringUnsafe(first.quantity));
+		const factor = BigDecimal.fromBigInt(reversal ? -1n : 1n);
 		const priorQuantity = old?.items?.[0]?.quantity;
-		if (first && priorQuantity != null && reversal !== BigDecimal.isNegative(dec(priorQuantity)))
+		if (
+			first &&
+			priorQuantity != null &&
+			reversal !== BigDecimal.isNegative(BigDecimal.fromStringUnsafe(priorQuantity))
+		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (reversal && order.direction !== 'sales')
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
@@ -100,7 +104,9 @@ const settle = Effect.fnUntraced(function* (
 			value.status === 'issued' &&
 			(!value.issued_on ||
 				value.total == null ||
-				BigDecimal.isNegative(BigDecimal.multiply(dec(value.total), dec(factor))))
+				BigDecimal.isNegative(
+					BigDecimal.multiply(BigDecimal.fromStringUnsafe(value.total), factor)
+				))
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
@@ -122,10 +128,18 @@ const settle = Effect.fnUntraced(function* (
 				seen.has(`${item.order_line_id}/${item.lot_number ?? ''}`) ||
 				!line ||
 				line.unit !== item.unit ||
-				!BigDecimal.isPositive(BigDecimal.multiply(dec(item.quantity), dec(factor))) ||
+				!BigDecimal.isPositive(
+					BigDecimal.multiply(BigDecimal.fromStringUnsafe(item.quantity), factor)
+				) ||
 				(item.net_amount != null &&
-					BigDecimal.isNegative(BigDecimal.multiply(dec(item.net_amount), dec(factor)))) ||
-				(item.unit_price != null && !BigDecimal.equals(dec(item.unit_price), dec(line.unit_price)))
+					BigDecimal.isNegative(
+						BigDecimal.multiply(BigDecimal.fromStringUnsafe(item.net_amount), factor)
+					)) ||
+				(item.unit_price != null &&
+					!BigDecimal.equals(
+						BigDecimal.fromStringUnsafe(item.unit_price),
+						BigDecimal.fromStringUnsafe(line.unit_price)
+					))
 			)
 				yield* ctx.refuse('errors.evidence_sealed', { row: i });
 			seen.add(`${item.order_line_id}/${item.lot_number ?? ''}`);

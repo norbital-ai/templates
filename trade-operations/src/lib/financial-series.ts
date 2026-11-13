@@ -1,5 +1,4 @@
 import { BigDecimal } from 'effect';
-import { type D, type DecimalLike, dec, text } from './values.js';
 /** A total is unknown if any constituent transaction lacks its consumed-lot cost. */
 export function marginSeries(
 	rows: readonly {
@@ -7,8 +6,8 @@ export function marginSeries(
 		source_owner?: string | null;
 		owner_name: string;
 		currency: string;
-		net?: DecimalLike | null;
-		margin?: DecimalLike | null;
+		net?: string | null;
+		margin?: string | null;
 	}[]
 ) {
 	const groups = new Map<
@@ -16,7 +15,7 @@ export function marginSeries(
 		{
 			currency: string;
 			salesperson: string;
-			margin: D;
+			margin: BigDecimal.BigDecimal;
 			unknown: boolean;
 		}
 	>();
@@ -25,16 +24,16 @@ export function marginSeries(
 		const group = groups.get(key) ?? {
 			currency: row.currency,
 			salesperson: row.owner_name,
-			margin: dec(0),
+			margin: BigDecimal.fromBigInt(0n),
 			unknown: false
 		};
 		if (row.margin == null) group.unknown = true;
-		else group.margin = BigDecimal.sum(group.margin, dec(row.margin));
+		else group.margin = BigDecimal.sum(group.margin, BigDecimal.fromStringUnsafe(row.margin));
 		groups.set(key, group);
 	}
 	return [...groups.values()].map((row) => ({
 		currency: row.currency,
 		salesperson: row.salesperson,
-		margin: row.unknown ? null : text(row.margin)
+		margin: row.unknown ? null : BigDecimal.format(row.margin)
 	}));
 }

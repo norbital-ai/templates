@@ -2,15 +2,6 @@ import { BigDecimal, Effect } from 'effect';
 import type { CurrencyCode, StoredRow, Id } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
 import {
-	dec,
-	div,
-	minorDigits,
-	round,
-	sum,
-	text as decimalText,
-	type D
-} from '../../lib/values.js';
-import {
 	erpId,
 	readSalesGraph,
 	reviewedPage,
@@ -59,11 +50,11 @@ type FinancialLine = {
 	readonly entryId: string;
 	readonly detailId: string;
 	readonly unit: string;
-	readonly quantity: D;
+	readonly quantity: BigDecimal.BigDecimal;
 	readonly lotNumber: string | null;
-	readonly netAmount: D | null;
-	readonly grossAmount: D | null;
-	readonly costAmount?: D | null;
+	readonly netAmount: BigDecimal.BigDecimal | null;
+	readonly grossAmount: BigDecimal.BigDecimal | null;
+	readonly costAmount?: BigDecimal.BigDecimal | null;
 	readonly localLine: { readonly id: string };
 	readonly upstream: { readonly fid: string; readonly entryId: string } | null;
 };
@@ -99,7 +90,11 @@ type SalesFact = Pick<
 >;
 
 /** A red document reverses both quantity and money; every part must share one sign and tax may not exceed gross. */
-const signedAmounts = (quantity: D | null, net: D | null, gross: D | null): boolean => {
+const signedAmounts = (
+	quantity: BigDecimal.BigDecimal | null,
+	net: BigDecimal.BigDecimal | null,
+	gross: BigDecimal.BigDecimal | null
+): boolean => {
 	if (quantity !== null && BigDecimal.isZero(quantity)) return false;
 	if (net === null || gross === null) return true;
 	if (BigDecimal.isNegative(net) !== BigDecimal.isNegative(gross)) return false;
@@ -146,6 +141,7 @@ export function mapSalesFacts(
 				const billed = billedByDelivery.get(key) ?? [];
 				billed.push(line);
 				billedByDelivery.set(key, billed);
+				const tax = net !== null && gross !== null ? BigDecimal.subtract(gross, net) : null;
 				const external = `invoice:${invoice.fid}:${line.detailId}`;
 				const fact: SalesFact & { $id: string } = {
 					$id: external,
@@ -157,15 +153,32 @@ export function mapSalesFacts(
 					business_on: invoice.issuedOn,
 					source_updated_at: observed,
 					unit: line.unit,
-					quantity: decimalText(line.quantity),
+					quantity: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: line.quantity.scale,
+						maximumFractionDigits: line.quantity.scale
+					}).format(BigDecimal.format(line.quantity) as Intl.StringNumericLiteral),
 					currency: currency(invoice.currency),
 					lot_number: source.line.lotNumber,
 					unit_cost: null,
 					booked_cost: null,
 					booked_cost_currency: null,
-					net_amount: net === null ? null : decimalText(net),
+					net_amount:
+						net === null
+							? null
+							: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: net.scale,
+									maximumFractionDigits: net.scale
+								}).format(BigDecimal.format(net) as Intl.StringNumericLiteral),
 					tax_amount:
-						net !== null && gross !== null ? decimalText(BigDecimal.subtract(gross, net)) : null,
+						tax === null
+							? null
+							: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: tax.scale,
+									maximumFractionDigits: tax.scale
+								}).format(BigDecimal.format(tax) as Intl.StringNumericLiteral),
 					freight: null,
 					active: true
 				};
@@ -173,7 +186,10 @@ export function mapSalesFacts(
 			})
 		);
 	const billedQuantities = new Map(
-		[...billedByDelivery].map(([key, lines]) => [key, sum(lines.map((line) => line.quantity))])
+		[...billedByDelivery].map(([key, lines]) => [
+			key,
+			BigDecimal.sumAll(lines.map((line) => line.quantity))
+		])
 	);
 	const invoiced = invoiceFacts.map(({ key, fact, deliveryLine }) => {
 		const quantity = billedQuantities.get(key);
@@ -192,12 +208,23 @@ export function mapSalesFacts(
 			return fact;
 		return {
 			...fact,
-			booked_cost: decimalText(
-				div(
-					BigDecimal.multiply(deliveryLine.costAmount, dec(fact.quantity)),
-					deliveryLine.quantity,
-					10
-				)
+			booked_cost: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: 10,
+				maximumFractionDigits: 10
+			}).format(
+				BigDecimal.format(
+					BigDecimal.round(
+						BigDecimal.divideUnsafe(
+							BigDecimal.multiply(
+								deliveryLine.costAmount,
+								BigDecimal.fromStringUnsafe(fact.quantity)
+							),
+							deliveryLine.quantity
+						),
+						{ scale: 10 }
+					)
+				) as Intl.StringNumericLiteral
 			),
 			booked_cost_currency: costCurrency
 		};
@@ -216,16 +243,19 @@ export function mapSalesFacts(
 			const billed = billedByDelivery.get(`${delivery.fid}:${line.entryId}`) ?? [];
 			const complete =
 				billed.length > 0 &&
-				BigDecimal.equals(sum(billed.map((entry) => entry.quantity)), line.quantity) &&
+				BigDecimal.equals(
+					BigDecimal.sumAll(billed.map((entry) => entry.quantity)),
+					line.quantity
+				) &&
 				billed.every((entry) => entry.netAmount !== null && entry.grossAmount !== null);
 			// billed money when its invoices cover the line; an unbilled return keeps the signed money it carries
 			const net = complete
-				? sum(billed.flatMap((entry) => entry.netAmount ?? []))
+				? BigDecimal.sumAll(billed.flatMap((entry) => entry.netAmount ?? []))
 				: returned
 					? line.netAmount
 					: null;
 			const gross = complete
-				? sum(billed.flatMap((entry) => entry.grossAmount ?? []))
+				? BigDecimal.sumAll(billed.flatMap((entry) => entry.grossAmount ?? []))
 				: returned
 					? line.grossAmount
 					: null;
@@ -236,6 +266,7 @@ export function mapSalesFacts(
 				);
 			const external = `${returned ? 'return' : 'shipment'}:${delivery.fid}:${line.entryId}`;
 			const booked = costCurrency ? (line.costAmount ?? null) : null;
+			const tax = net !== null && gross !== null ? BigDecimal.subtract(gross, net) : null;
 			return {
 				$id: external,
 				external_code: external,
@@ -246,15 +277,39 @@ export function mapSalesFacts(
 				business_on: delivery.issuedOn,
 				source_updated_at: observed,
 				unit: line.unit,
-				quantity: decimalText(line.quantity),
+				quantity: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: line.quantity.scale,
+					maximumFractionDigits: line.quantity.scale
+				}).format(BigDecimal.format(line.quantity) as Intl.StringNumericLiteral),
 				currency: currency(delivery.currency),
 				lot_number: line.lotNumber,
 				unit_cost: null,
-				booked_cost: booked === null ? null : decimalText(booked),
+				booked_cost:
+					booked === null
+						? null
+						: new Intl.NumberFormat('en', {
+								useGrouping: false,
+								minimumFractionDigits: booked.scale,
+								maximumFractionDigits: booked.scale
+							}).format(BigDecimal.format(booked) as Intl.StringNumericLiteral),
 				booked_cost_currency: booked === null ? null : (costCurrency ?? null),
-				net_amount: net === null ? null : decimalText(net),
+				net_amount:
+					net === null
+						? null
+						: new Intl.NumberFormat('en', {
+								useGrouping: false,
+								minimumFractionDigits: net.scale,
+								maximumFractionDigits: net.scale
+							}).format(BigDecimal.format(net) as Intl.StringNumericLiteral),
 				tax_amount:
-					net !== null && gross !== null ? decimalText(BigDecimal.subtract(gross, net)) : null,
+					tax === null
+						? null
+						: new Intl.NumberFormat('en', {
+								useGrouping: false,
+								minimumFractionDigits: tax.scale,
+								maximumFractionDigits: tax.scale
+							}).format(BigDecimal.format(tax) as Intl.StringNumericLiteral),
 				freight: null,
 				active: delivery.status === 'issued'
 			};
@@ -342,7 +397,16 @@ export function mapPayments(
 				'FCheckAmount',
 				'The verified settlement amount is in base currency; foreign allocation requires a verified original-currency binding'
 			);
-		if (!BigDecimal.equals(round(amount, minorDigits(base)), amount))
+		if (
+			!BigDecimal.equals(
+				BigDecimal.round(amount, {
+					scale:
+						new Intl.NumberFormat('en', { style: 'currency', currency: base }).resolvedOptions()
+							.maximumFractionDigits ?? 2
+				}),
+				amount
+			)
+		)
 			return invalid('FCheckAmount', 'The settlement amount exceeds its currency precision');
 		const seen = new Set<string>();
 		for (const row of entries) {
@@ -396,7 +460,11 @@ export function mapPayments(
 			settled_on: settledOn,
 			source_updated_at: observed,
 			currency: base,
-			amount: decimalText(amount),
+			amount: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: amount.scale,
+				maximumFractionDigits: amount.scale
+			}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral),
 			active: true
 		});
 	}

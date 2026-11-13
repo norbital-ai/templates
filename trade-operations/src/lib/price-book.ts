@@ -1,7 +1,6 @@
 import type { CurrencyCode } from '@norbital-ai/bolt';
 import type { Id, ReadAnswer } from '@norbital-ai/bolt';
-import { BigDecimal } from 'effect';
-import { dec, text } from './values.js';
+import { BigDecimal, DateTime } from 'effect';
 
 /** A group's dated book in one currency, with the product identity each cell prices. */
 export const priceBookRead = (group: string, currency: CurrencyCode) =>
@@ -59,11 +58,11 @@ const cellOf = (row: Answer['pricing_floors']['rows'][number]): PriceCell => ({
 	id: row.id,
 	revision: row.revision,
 	effective_on: row.effective_on,
-	floor_price: text(row.floor_price),
+	floor_price: row.floor_price,
 	unit: row.unit,
 	tax_inclusive: row.tax_inclusive,
-	tax_rate: text(row.tax_rate),
-	minimum_quantity: text(row.minimum_quantity)
+	tax_rate: row.tax_rate,
+	minimum_quantity: row.minimum_quantity
 });
 
 /** Every month in the book, newest first. */
@@ -88,7 +87,9 @@ export function priceBookRows(answer: Answer, month: string): readonly PriceRow[
 			name: product.name,
 			unit: cell.unit,
 			minimum_quantity: cell.minimum_quantity,
-			band: BigDecimal.isPositive(dec(cell.minimum_quantity)) ? `≥ ${cell.minimum_quantity}` : '',
+			band: BigDecimal.isPositive(BigDecimal.fromStringUnsafe(cell.minimum_quantity))
+				? `≥ ${cell.minimum_quantity}`
+				: '',
 			cells: {},
 			latest: cell,
 			inMonth: false
@@ -105,22 +106,18 @@ export function priceBookRows(answer: Answer, month: string): readonly PriceRow[
 		.sort(
 			(a, b) =>
 				a.code.localeCompare(b.code) ||
-				BigDecimal.Order(dec(a.minimum_quantity), dec(b.minimum_quantity))
+				BigDecimal.Order(
+					BigDecimal.fromStringUnsafe(a.minimum_quantity),
+					BigDecimal.fromStringUnsafe(b.minimum_quantity)
+				)
 		);
 }
 
-/** The exact stored digits, trailing zeros dropped: 8450.1235 stays, 8450.0000 reads 8450. */
-export const priceText = (value: string): string => {
-	const exact = text(value);
-	return exact.includes('.') ? exact.replace(/0+$/, '').replace(/\.$/, '') : exact;
-};
-
 /** The day keys of one `YYYY-MM` month, in order. */
 export function monthDays(month: string): readonly string[] {
-	const [year = 0, number = 1] = month.split('-').map(Number);
-	const count = new Date(Date.UTC(year, number, 0)).getUTCDate();
+	const first = DateTime.makeUnsafe(`${month}-01`);
 	return Array.from(
-		{ length: count },
-		(_, index) => `${month}-${String(index + 1).padStart(2, '0')}`
+		{ length: DateTime.getPart(DateTime.endOf(first, 'month'), 'day') },
+		(_, days) => DateTime.formatIsoDateUtc(DateTime.add(first, { days }))
 	);
 }

@@ -1,7 +1,6 @@
 import { BigDecimal, Effect } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
-import { text as decimalText } from '../../lib/values.js';
 import { kingdeeInvoiceAnalysisAccount } from './configuration.js';
 import { exactId, flag, isoCurrency, nullableText, sourceDate, text } from './order-source.js';
 import {
@@ -96,6 +95,7 @@ function invoiceFact(row: SqlRow, observedAt: string) {
 			reason: 'Expected a dated invoice with a verified red or blue sign'
 		});
 	const r = columns(row);
+	const quantity = r.decimal('quantity');
 	const net = r.decimal('net', null);
 	const gross = r.decimal('gross', null);
 	// The measured type-86 entries carry money in FAmount while FAllAmount is zero.
@@ -110,10 +110,28 @@ function invoiceFact(row: SqlRow, observedAt: string) {
 		business_on,
 		source_updated_at: Instant(observedAt),
 		unit: nullableText(row, 'unit') ?? '',
-		quantity: decimalText(r.decimal('quantity')),
+		quantity: new Intl.NumberFormat('en', {
+			useGrouping: false,
+			minimumFractionDigits: quantity.scale,
+			maximumFractionDigits: quantity.scale
+		}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
 		currency: isoCurrency(row),
-		net_amount: net === null ? null : decimalText(net),
-		tax_amount: tax === null ? null : decimalText(tax),
+		net_amount:
+			net === null
+				? null
+				: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: net.scale,
+						maximumFractionDigits: net.scale
+					}).format(BigDecimal.format(net) as Intl.StringNumericLiteral),
+		tax_amount:
+			tax === null
+				? null
+				: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: tax.scale,
+						maximumFractionDigits: tax.scale
+					}).format(BigDecimal.format(tax) as Intl.StringNumericLiteral),
 		source_dimensions: {
 			customer: nullableText(row, 'customer'),
 			product: nullableText(row, 'product'),

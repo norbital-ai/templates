@@ -1,5 +1,4 @@
-import { Effect } from 'effect';
-import { addMonths, minorDigits, round, sum, text } from './values.js';
+import { BigDecimal, DateTime, Effect } from 'effect';
 import {
 	commissionCalculation,
 	commissionFactFields,
@@ -45,7 +44,10 @@ export const boardRead = (
 			where: {
 				active: { eq: true },
 				kind: { in: ['shipment', 'return'] },
-				business_on: { gte: period, lt: addMonths(period, 1) },
+				business_on: {
+					gte: period,
+					lt: DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(period), { months: 1 }))
+				},
 				order: { is: { direction: { eq: 'sales' }, ...(owner ? { owner: { eq: owner } } : {}) } }
 			},
 			fields: commissionFactFields,
@@ -112,7 +114,14 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 							order: order.id,
 							number: order.number,
 							calculation_hash: current.calculation_hash,
-							amount: current.amount === null ? null : text(current.amount),
+							amount:
+								current.amount === null
+									? null
+									: new Intl.NumberFormat('en', {
+											useGrouping: false,
+											minimumFractionDigits: current.amount.scale,
+											maximumFractionDigits: current.amount.scale
+										}).format(BigDecimal.format(current.amount) as Intl.StringNumericLiteral),
 							unresolved_lines: current.unresolved_lines,
 							awaiting_approval: false
 						}))
@@ -123,14 +132,29 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 				Effect.flatMap((snapshot) => {
 					const unresolved_lines = snapshot.reduce((n, row) => n + row.unresolved_lines, 0);
 					const awaiting_approval = snapshot.filter((row) => row.awaiting_approval).length;
+					const digits =
+						new Intl.NumberFormat('en', {
+							style: 'currency',
+							currency: group.currency
+						}).resolvedOptions().maximumFractionDigits ?? 2;
 					const amount =
 						unresolved_lines || awaiting_approval
 							? null
-							: text(
-									round(
-										sum(snapshot.flatMap((row) => (row.amount === null ? [] : [row.amount]))),
-										minorDigits(group.currency)
-									)
+							: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									minimumFractionDigits: digits,
+									maximumFractionDigits: digits
+								}).format(
+									BigDecimal.format(
+										BigDecimal.round(
+											BigDecimal.sumAll(
+												snapshot.flatMap((row) =>
+													row.amount === null ? [] : [BigDecimal.fromStringUnsafe(row.amount)]
+												)
+											),
+											{ scale: digits }
+										)
+									) as Intl.StringNumericLiteral
 								);
 					return hash({
 						owner: group.owner,
