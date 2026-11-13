@@ -5,7 +5,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Cause, Effect, Exit } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import { leftIn, type Accounts } from '../../src/lib/ledger/core.ts';
@@ -27,7 +26,6 @@ import {
 	storedQuery,
 	storedReader
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 // inside one version of the law the template holds (8 July to 30 November 2026)
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -92,8 +90,8 @@ const catalog = <M extends 'leave_catalog' | 'claim_catalog' | 'adhoc_catalog'>(
 const entry = (quantity: number, on: string) => ({
 	entity_id: ENTITY,
 	employment_id: CONTRACT,
-	quantity: decimalText(quantity),
-	incurred_on: plain_date(on)
+	quantity: String(quantity),
+	incurred_on: on
 });
 /** A manual adjustment as the profile sends it: signed days. */
 const adjust = (t: Kit, code: string, days: number, on: string) =>
@@ -107,9 +105,9 @@ const adjust = (t: Kit, code: string, days: number, on: string) =>
 						account: 'leave',
 						code,
 						measure: 'entitled',
-						amount: decimalText(Math.abs(days)),
+						amount: String(Math.abs(days)),
 						unit: 'DAY',
-						effective_on: plain_date(on),
+						effective_on: on,
 						note: 'keyed by hand'
 					}
 				]

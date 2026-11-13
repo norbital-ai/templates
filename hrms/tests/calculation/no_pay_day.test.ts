@@ -5,13 +5,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { pay, run } from '../amendment_kit.ts';
 import { ENTITY, catalogRow, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
@@ -36,8 +34,8 @@ const malaysia = (allowances: Record<string, { readonly amount: number }> = {}):
 		'2026-06-15'
 	);
 const whole = (date: string) => [
-	{ date: plain_date(date), part: 'AM' as const },
-	{ date: plain_date(date), part: 'PM' as const }
+	{ date, part: 'AM' as const },
+	{ date, part: 'PM' as const }
 ];
 const entry = (t: Kit, seed: Seed, days: ReturnType<typeof whole>) =>
 	t.as(t.admin).pipe(
@@ -177,7 +175,7 @@ describe('a no-pay amount settled by hand', () => {
 								employment_id: CONTRACT,
 								catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', code)),
 								description: 'No-pay leave settled by hand',
-								quantity: decimalText(quantity),
+								quantity: String(quantity),
 								incurred_on: '2026-06-10'
 							}
 						]

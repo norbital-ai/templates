@@ -3,8 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { instant, plain_date } from '../../src/lib/date.ts';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, pay, rostered, run } from '../amendment_kit.ts';
 import {
@@ -18,7 +17,6 @@ import {
 	workspace,
 	storedQuery
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const NOW = '2026-03-20T02:00:00.000Z';
 const MONTHS = ['2026-02', '2026-03'];
@@ -65,7 +63,7 @@ const overtimeKeyed = (t: Kit, date: string) =>
 	Effect.gen(function* () {
 		const { roster_entry } = yield* storedQuery(t, {
 			roster_entry: {
-				where: { work_date: { eq: plain_date(date) }, employment_id: { eq: FIRST } },
+				where: { work_date: { eq: date }, employment_id: { eq: FIRST } },
 				limit: 1
 			}
 		});
@@ -79,10 +77,16 @@ const overtimeKeyed = (t: Kit, date: string) =>
 							target: day,
 							set: {
 								actual_worked_intervals: [
-									{ start: instant(`${date}T00:00:00.000Z`), end: instant(`${date}T10:00:00.000Z`) }
+									{
+										start: DateTime.formatIso(DateTime.makeUnsafe(`${date}T00:00:00.000Z`)),
+										end: DateTime.formatIso(DateTime.makeUnsafe(`${date}T10:00:00.000Z`))
+									}
 								],
 								planned_overtime_intervals: [
-									{ start: instant(`${date}T08:00:00.000Z`), end: instant(`${date}T10:00:00.000Z`) }
+									{
+										start: DateTime.formatIso(DateTime.makeUnsafe(`${date}T08:00:00.000Z`)),
+										end: DateTime.formatIso(DateTime.makeUnsafe(`${date}T10:00:00.000Z`))
+									}
 								]
 							}
 						}
@@ -104,11 +108,11 @@ describe('what the company corrects', () => {
 						'holiday.create': [
 							{
 								entity_id: ENTITY,
-								date: plain_date(DAY),
+								date: DAY,
 								name: 'Declared late',
 								kind: 'PUBLIC_HOLIDAY',
 								given_to: 'EVERYONE',
-								published_at: instant('2026-03-19T00:00:00.000Z')
+								published_at: DateTime.formatIso(DateTime.makeUnsafe('2026-03-19T00:00:00.000Z'))
 							}
 						]
 					})
@@ -219,8 +223,8 @@ describe('a change that waits for approval', () => {
 									'claim_catalog',
 									catalogRow(from, 'claim_catalog', 'MEDICAL_CLAIM')
 								),
-								quantity: decimalText(quantity),
-								incurred_on: plain_date(DAY)
+								quantity: String(quantity),
+								incurred_on: DAY
 							}
 						]
 					})

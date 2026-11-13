@@ -4,14 +4,13 @@
 	 * contract. One button, because there is one rule: the first punch of the day is the arrival and every later
 	 * one moves the departure (`punchWork` through `roster_entry`, kind MANUAL, which a call-back or ad hoc day may use).
 	 */
-	import { Effect, FiberSet, type Fiber } from 'effect';
+	import { DateTime, Effect, FiberSet, type Fiber } from 'effect';
 	import { attach } from '@norbital-ai/ui/effect';
 	import Icon from '@iconify/svelte';
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { DescriptionHint, Button, Input } from '@norbital-ai/ui';
 	import { Center, Cluster, Frame, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { todayKey } from '../../lib/ui/format/calendar.js';
 	import { punchWork, type PunchResult } from './punch.js';
 	import { getErrorMessage } from '../../lib/payroll_engine/foundation.js';
 
@@ -28,7 +27,7 @@
 	} = $props();
 
 	const coversToday = (range: { readonly from: string; readonly to: string | null }) =>
-		range.from <= todayKey() && (range.to == null || range.to >= todayKey());
+		range.from <= ctx.clock().today && (range.to == null || range.to >= ctx.clock().today);
 
 	let term = $state('');
 	let chosenId = $state<Id<'employee_profile'> | null>(null);
@@ -97,10 +96,13 @@
 				: ctx.t('kiosk.manual_recorded', {
 						action:
 							outcome.status === 'in' ? ctx.t('kiosk.recorded_in') : ctx.t('kiosk.recorded_out'),
-						time: new Date(outcome.time ?? '').toLocaleTimeString(ctx.locale, {
-							hour: '2-digit',
-							minute: '2-digit'
-						})
+						time:
+							outcome.time === undefined
+								? '—'
+								: new Intl.DateTimeFormat(ctx.locale, {
+										hour: '2-digit',
+										minute: '2-digit'
+									}).format(DateTime.toDateUtc(DateTime.makeUnsafe(outcome.time)))
 					});
 	};
 

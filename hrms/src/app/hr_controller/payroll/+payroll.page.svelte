@@ -1,12 +1,9 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
-	import { EmptyState, Table } from '@norbital-ai/ui';
+	import { EmptyState, Table, format } from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
-	import { entityTimeZone } from '../../../lib/ui/scopes/create_scope.js';
-	import { paidOn } from '../../../lib/ui/format/calendar.js';
-	import { periodLabel } from '../../../lib/ui/payroll/pay_periods.js';
 	import RunCreate from '../../../lib/ui/payroll/run_create.svelte';
 	import { exportSalaryListing } from '../../../lib/export_format_configuration/salary_listing_download.js';
 	let { ctx }: { ctx: PageContext } = $props();
@@ -24,18 +21,26 @@
 					}
 				})
 	);
-	const zone = $derived(entityTimeZone(null, version?.current?.jurisdiction_settings.rows[0]));
+	const zone = $derived(version?.current?.jurisdiction_settings.rows[0]?.timezone ?? undefined);
 </script>
 
 {#snippet periodCell({ value }: { value: unknown })}
-	{periodLabel(String(value ?? ''), {
-		first: ctx.t('app.payroll.first_half'),
-		second: ctx.t('app.payroll.second_half')
-	})}
+	{@const key = String(value ?? '')}
+	{key.length === 10
+		? format({ kind: 'date' }, key, { locale: ctx.locale })
+		: format({ kind: 'date', precision: 'month' }, `${key.slice(0, 7)}-01`, {
+				locale: ctx.locale
+			})}{#if key.length === 9}
+		· {ctx.t(key.endsWith('1') ? 'app.payroll.first_half' : 'app.payroll.second_half')}{/if}
 {/snippet}
 
 {#snippet payDateCell({ row, value }: { row: { state: string }; value: unknown })}
-	{row.state === 'PAID' ? paidOn(value, zone) : ''}
+	{row.state === 'PAID'
+		? format({ kind: 'instant', precision: 'day' }, String(value), {
+				locale: ctx.locale,
+				...(zone === undefined ? {} : { zone })
+			})
+		: ''}
 {/snippet}
 
 <AppShell

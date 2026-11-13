@@ -1,6 +1,5 @@
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import type { Id } from '@norbital-ai/bolt';
-import { month_of, plain_date } from '../../date.js';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import type { PageContext } from '@norbital-ai/bolt/page';
 import {
@@ -54,7 +53,7 @@ export const runRosterImport = (
 					try: () => rosterMonth(grids),
 					catch: workbookImportError
 				});
-				const day = plain_date(`${month}-01`);
+				const day = `${month}-01`;
 				const scope = yield* ctx.query({
 					employee_contract: {
 						where: { entity_id: { eq: options.entity_id }, status: { eq: 'SEALED' } },
@@ -105,7 +104,12 @@ export const runRosterImport = (
 										employment_id: {
 											in: scope.employee_contract.rows.map((row) => row.id)
 										},
-										work_date: { gte: day, lte: month_of(day).to ?? day }
+										work_date: {
+											gte: day,
+											lte: DateTime.formatIsoDateUtc(
+												DateTime.endOf(DateTime.makeUnsafe(day), 'month')
+											)
+										}
 									},
 									fields: [
 										'employment_id',

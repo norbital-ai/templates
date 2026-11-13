@@ -5,9 +5,8 @@
 	 * the same details on hover or focus. Edited as a table of the field's list of objects.
 	 */
 	import type { CustomFieldView } from '@norbital-ai/bolt';
-	import { Badge, Editor, Icon, Tooltip, type UiContext } from '@norbital-ai/ui';
+	import { Badge, Editor, Icon, Tooltip, format, type UiContext } from '@norbital-ai/ui';
 	import { Bound, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { formatCalendarDate } from '../../../lib/ui/format/display_formatters.js';
 	import { REFERENCES_SHAPE } from '../../../lib/payroll_engine/references.js';
 
 	let { view, ctx }: { view: CustomFieldView<'references'>; ctx: UiContext } = $props();
@@ -37,7 +36,9 @@
 	{#if reference.effective_from}
 		<span
 			>{t('component.references_effective_from', {
-				date: formatCalendarDate(reference.effective_from)
+				date: format({ kind: 'date' }, reference.effective_from, {
+					locale: ctx.ui.bolt?.locale ?? 'en'
+				})
 			})}</span
 		>
 	{/if}

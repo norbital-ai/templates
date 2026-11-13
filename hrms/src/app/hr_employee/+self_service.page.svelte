@@ -15,9 +15,9 @@
 		Tabs,
 		set_ui_text,
 		ui_text,
-		type UiTextKey
+		type UiTextKey,
+		format
 	} from '@norbital-ai/ui';
-	import { formatTermsDates, formatNumeric } from '../../lib/ui/format/display_formatters.js';
 	import ClaimRequest from '../../lib/ui/person/claim_request.svelte';
 	import LeaveEntryForm from '../../lib/ui/person/leave_entry_form.svelte';
 	import WorkCalendar from '../../lib/ui/person/work_calendar.svelte';
@@ -99,8 +99,6 @@
 					}
 				})
 	);
-	const money = (value: unknown): string =>
-		formatNumeric(value, settings?.current?.jurisdiction_settings.rows[0]?.currency);
 	const needsChoice = $derived(active.length > 1 && employment == null);
 	const noEmployment = $derived(!employee.loading && !contracts?.loading && active.length === 0);
 	const needsGate = $derived(
@@ -126,7 +124,11 @@
 	value
 }: {
 	value: Row<'claim_catalog_entry'>['quantity'] | undefined;
-})}{#if value != null}{money(Number(value))}{:else}—{/if}{/snippet}
+})}{#if value != null}{@const currency =
+			settings?.current?.jurisdiction_settings.rows[0]?.currency}{format({ kind: 'money' }, value, {
+			locale: ctx.locale,
+			...(currency == null ? {} : { currency })
+		})}{:else}—{/if}{/snippet}
 
 {#snippet gate()}
 	{#if employee.error || contracts?.error}
@@ -330,7 +332,13 @@
 				<Stack gap="none" class="min-w-0">
 					<span class="text-sm font-semibold">{me.name}</span>
 					{#if contract}<span class="text-xs text-muted-foreground"
-							>{contract.employee_number} · {formatTermsDates(contract, ctx.t)}</span
+							>{contract.employee_number} · {format(
+								{ kind: 'period', of: 'date' },
+								contract.effective_range,
+								{
+									locale: ctx.locale
+								}
+							)}</span
 						>{/if}
 				</Stack>
 				<Button

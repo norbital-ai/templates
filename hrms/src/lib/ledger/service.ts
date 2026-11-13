@@ -1,5 +1,4 @@
-import { add_days, plain_date } from '../date.js';
-import { Effect } from 'effect';
+import { BigDecimal, DateTime, Effect } from 'effect';
 import type { CarriedWrites, EffectCtx, Id } from '@norbital-ai/bolt';
 import {
 	Refusal,
@@ -51,7 +50,6 @@ import {
 } from '../payroll_engine/registrations.js';
 import { chainOf, startsOf, versionOn, type Starts } from '../payroll_engine/contract_change.js';
 import { payPeriodOf } from '../payroll_engine/pay_cycle.js';
-import { decimalText } from '../payroll_engine/money.js';
 import {
 	carriedOf,
 	entitlementOf,
@@ -174,9 +172,11 @@ const ledgerRow = (balance: string, row: Movement): LedgerRow => ({
 	code: row.code,
 	period: row.period,
 	measure: row.measure,
-	amount: decimalText(row.amount),
+	amount: new Intl.NumberFormat('en', { useGrouping: false, maximumFractionDigits: 100 }).format(
+		`${row.amount}` as const
+	),
 	...(row.unit === undefined ? {} : { unit: row.unit }),
-	effective_on: plain_date(row.effective_on),
+	effective_on: row.effective_on,
 	source: row.source
 });
 
@@ -664,7 +664,9 @@ export const entitlementPlans = (
 		const window = windowOf(lookup);
 		const from = windowStart(window, on, subject.started);
 		const period = periodKey(subject.scope, window, on, subject.started);
-		const before = String(add_days(from, -1));
+		const before = DateTime.formatIsoDate(
+			DateTime.subtract(DateTime.makeUnsafe(from), { days: 1 })
+		);
 		const last =
 			before < subject.started
 				? undefined
@@ -1236,7 +1238,11 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 		const unopened = opened.has(row.code) && !row.period.includes('.E.');
 		if (measures === undefined && row.effective_on > today && !unopened) continue;
 		const remaining = leftIn(measures);
-		if (Number((remaining - amount).toFixed(8)) < 0)
+		if (
+			BigDecimal.isNegative(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(remaining - amount), { scale: 8 })
+			)
+		)
 			return yield* Effect.fail(new Refusal({ message: `${row.code}: insufficient balance.` }));
 	}
 });
@@ -1466,7 +1472,11 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 				const row = versionOn(versions, code, day);
 				if (row === undefined) return [];
 				const from = String(objectValue(row.effective_range).from);
-				const before = versionOn(versions, code, String(add_days(from, -1)));
+				const before = versionOn(
+					versions,
+					code,
+					DateTime.formatIsoDate(DateTime.subtract(DateTime.makeUnsafe(from), { days: 1 }))
+				);
 				return [String(row.id), ...(before === undefined ? [] : [String(before.id)])];
 			})
 		)

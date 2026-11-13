@@ -6,7 +6,7 @@ import Papa from 'papaparse';
 import type { PageContext } from '@norbital-ai/bolt/page';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { notify_outcome, toast } from '@norbital-ai/ui';
-import { getErrorMessage, formatNamedList } from '../../payroll_engine/foundation.js';
+import { getErrorMessage } from '../../payroll_engine/foundation.js';
 import { WorkbookRowsError, type Cell } from '../../payroll_engine/workbook_rows.js';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv';
@@ -132,7 +132,7 @@ const runSelectedWorkbook = Effect.fnUntraced(function* <P>(
 			overwritten.length === 0
 				? {}
 				: {
-						description: `${ctx.t('component.workbook_overwritten', { count: overwritten.length })}\n${formatNamedList(overwritten)}`,
+						description: `${ctx.t('component.workbook_overwritten', { count: overwritten.length })}\n${overwritten.join(', ')}`,
 						duration: FAILURE_TOAST_MS
 					}
 		);

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
 	let { ctx }: { ctx: PageContext } = $props();
 
@@ -20,23 +20,21 @@
 	description={ctx.t('app.settings.change_log_description')}
 	icon="lucide:history"
 >
-	<Stack gap="lg">
-		<Table
-			{ctx}
-			of="statutory_change"
-			key="statutory_change_log"
-			toolbar={{ new: false, title: ctx.t('app.settings.change_log') }}
-			columns={[
-				'jurisdiction_code',
-				'family',
-				'row_code',
-				'field_path',
-				{ field: 'old_value', cell: codeCell },
-				{ field: 'new_value', cell: codeCell },
-				'effective_from',
-				'applied_version_id',
-				'finding_id'
-			]}
-		/>
-	</Stack>
+	<Table
+		{ctx}
+		of="statutory_change"
+		key="statutory_change_log"
+		toolbar={{ new: false, title: ctx.t('app.settings.change_log') }}
+		columns={[
+			'jurisdiction_code',
+			'family',
+			'row_code',
+			'field_path',
+			{ field: 'old_value', cell: codeCell },
+			{ field: 'new_value', cell: codeCell },
+			'effective_from',
+			'applied_version_id',
+			'finding_id'
+		]}
+	/>
 </AppShell>

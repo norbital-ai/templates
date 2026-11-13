@@ -6,7 +6,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
@@ -24,7 +23,6 @@ import {
 	storedReader,
 	keyOf
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const NOW = '2026-10-20T02:00:00.000Z';
 const LEAVE = 'ANNUAL_LEAVE';
@@ -74,7 +72,7 @@ const contract = (
 									: {
 											effective_range: {
 												from: '2025-01-01',
-												to: to === null ? null : plain_date(to)
+												to: to === null ? null : to
 											},
 											reason: to === null ? 'Termination withdrawn' : 'Resignation'
 										}),
@@ -197,7 +195,7 @@ describe('the leave an exit settles', () => {
 							account: 'leave',
 							code: LEAVE,
 							measure: 'entitled',
-							amount: decimalText((yield* left(t)) + 1),
+							amount: String((yield* left(t)) + 1),
 							unit: 'DAY',
 							effective_on: '2026-10-02',
 							note: 'earned to the last day'

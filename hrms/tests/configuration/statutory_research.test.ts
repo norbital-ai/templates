@@ -6,7 +6,6 @@ import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import { WHOLE_ROW } from '../../src/lib/payroll_engine/statutory_change.ts';
 import { FAMILIES } from '../../src/lib/payroll_engine/statutory_research.ts';
@@ -167,11 +166,7 @@ const materialize = (t: Kit, target: string) =>
 		.as(t.admin)
 		.pipe(
 			Effect.andThen((admin) =>
-				admin.run(
-					'statutory_materialize',
-					{ code: 'MY', target: plain_date(target), merge: true },
-					JobResult
-				)
+				admin.run('statutory_materialize', { code: 'MY', target, merge: true }, JobResult)
 			)
 		);
 const merge = (t: Kit, target: string) =>

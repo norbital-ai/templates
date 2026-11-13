@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { payDateOf } from '../../src/lib/payroll_engine/pay_cycle.ts';
@@ -20,7 +19,6 @@ import {
 	keyOf,
 	current
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const TERMS = {
 	rate: { amount: 2800, unit: 'MONTHLY' },
@@ -215,7 +213,7 @@ describe('deleting a run', () => {
 								catalog_id: idOf('adhoc_catalog', bonus),
 								description: 'Bonus',
 								quantity: '500',
-								incurred_on: plain_date(incurred)
+								incurred_on: incurred
 							}
 						]
 					})
@@ -402,7 +400,7 @@ describe('what an off-cycle run may name', () => {
 		employment_id: FIRST,
 		catalog_id: idOf('adhoc_catalog', catalog(seed, 'adhoc_catalog', code)),
 		description: code,
-		quantity: decimalText(quantity),
+		quantity: String(quantity),
 		incurred_on: '2026-02-10'
 	});
 	/** An off-cycle run paying these entries, each named at the revision it was read. */

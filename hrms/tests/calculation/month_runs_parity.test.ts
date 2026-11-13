@@ -4,7 +4,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
@@ -18,7 +17,6 @@ import {
 	wholeDays,
 	workspace
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const SALARY = 8000;
@@ -84,8 +82,8 @@ const bonus = (t: Kit, seed: Seed, amount: number, on: string) =>
 					employment_id: CONTRACT,
 					catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', 'BONUS')),
 					description: 'Bonus',
-					quantity: decimalText(amount),
-					incurred_on: plain_date(on)
+					quantity: String(amount),
+					incurred_on: on
 				}
 			]
 		})

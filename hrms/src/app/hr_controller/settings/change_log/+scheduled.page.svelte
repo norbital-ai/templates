@@ -3,7 +3,6 @@
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { Button, Combobox, notify_outcome, Table, toast } from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { plain_date } from '../../../../lib/date.js';
 	import { Effect } from 'effect';
 	import { jurisdictionVersions } from '../jurisdiction_scope.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
@@ -86,7 +85,7 @@
 			/>
 		</div>
 	{/snippet}
-	<Stack gap="lg">
+	<Stack size="fill" gap="lg">
 		{#if releases.length > 0}
 			<Cluster gap="sm">
 				{#each releases as release (`${release.code} ${release.date}`)}
@@ -96,7 +95,7 @@
 							start(
 								ctx.run('statutory_materialize', {
 									code: release.code,
-									target: plain_date(release.date),
+									target: release.date,
 									merge: true
 								})
 							)}>{ctx.t('scheduled.merge', { ...release, count: String(release.count) })}</Button

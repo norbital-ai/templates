@@ -6,7 +6,6 @@ import type { PayrollExportRow } from './export_format.js';
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 const amount = (value: unknown): number =>
 	typeof value === 'number' && Number.isFinite(value) ? value : 0;
-const day = (value: unknown): number => Date.parse(`${String(value)}T00:00:00Z`);
 
 /** Resolve one run's payments for a file export: payslips, contracts and the run's currency. */
 export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reader, runId: string) {

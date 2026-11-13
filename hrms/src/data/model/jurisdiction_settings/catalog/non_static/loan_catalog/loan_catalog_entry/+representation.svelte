@@ -9,17 +9,15 @@
 		TimeInput,
 		confirm_action,
 		toast,
-		type RecordView,
-		type Value
+		type RecordView
 	} from '@norbital-ai/ui';
 	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { Bound, Cluster, Stack } from '@norbital-ai/ui/layout';
 	import type { Id, UpdateInput } from '@norbital-ai/bolt';
-	import { plain_date } from '../../../../../../../lib/date.js';
 	import { Effect } from 'effect';
 	import { untrack } from 'svelte';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { numberOf } from '../../../../../../../lib/payroll_engine/foundation.js';
-	import { decimalText } from '../../../../../../../lib/payroll_engine/money.js';
 	import LoanCreateFields from '../../../../../../../lib/ui/payroll/loan_create_fields.svelte';
 	import {
 		buildLoanSchedule,
@@ -41,13 +39,6 @@
 	let loaded = $state(false);
 	let busy = $state(false);
 	let reload = $state(0);
-
-	/** A decimal arrives as its exact text. */
-	const numeric = (value: unknown): number =>
-		typeof value === 'number' || typeof value === 'string' ? Number(value) : Number.NaN;
-	const day = (value: unknown): string => String(value ?? '').slice(0, 10);
-	const money = (value: Value): string | null =>
-		typeof value === 'number' || typeof value === 'string' ? decimalText(value) : null;
 
 	// One read when the record opens and after each write; a table's live query is not needed here.
 	$effect(() => {
@@ -74,7 +65,7 @@
 						id: row.id,
 						revision: row.revision,
 						amount: row.amount,
-						paid_on: row.paid_on == null ? null : day(row.paid_on),
+						paid_on: row.paid_on ?? null,
 						payroll_run_id: row.payroll_run_id ?? null
 					}));
 				} finally {
@@ -88,13 +79,13 @@
 		record === null
 			? null
 			: {
-					principal: numeric(record.quantity),
-					from: day(record.repayment_period.from),
-					to: day(record.repayment_period.to),
+					principal: Number(record.quantity),
+					from: record.repayment_period.from,
+					to: record.repayment_period.to ?? '',
 					repayments: rows.map((row) => ({
 						id: row.id,
-						amount: numeric(row.amount),
-						paid_on: day(row.paid_on),
+						amount: Number(row.amount),
+						paid_on: row.paid_on ?? '',
 						payroll_run_id: row.payroll_run_id
 					}))
 				}
@@ -156,7 +147,7 @@
 							employment_id: record.employment_id,
 							loan_id: record.id,
 							amount: '0',
-							paid_on: plain_date(schedule.from)
+							paid_on: schedule.from
 						}
 					]
 				})
@@ -202,8 +193,11 @@
 							entity_id: record.entity_id,
 							employment_id: record.employment_id,
 							loan_id: record.id,
-							amount: decimalText(row.amount),
-							paid_on: plain_date(row.paid_on)
+							amount: new Intl.NumberFormat('en', {
+								useGrouping: false,
+								maximumFractionDigits: 20
+							}).format(row.amount),
+							paid_on: row.paid_on
 						}))
 					});
 				toast.success(ctx.t('loan.generated'));
@@ -249,8 +243,11 @@
 						entity_id: loan.entity_id,
 						employment_id: loan.employment_id,
 						loan_id: loanId as Id<'loan_catalog_entry'>,
-						amount: decimalText(row.amount),
-						paid_on: plain_date(row.paid_on)
+						amount: new Intl.NumberFormat('en', {
+							useGrouping: false,
+							maximumFractionDigits: 20
+						}).format(row.amount),
+						paid_on: row.paid_on
 					}))
 				});
 			}).pipe(Effect.ignore)
@@ -261,7 +258,7 @@
 		const principal = numberOf(values.quantity) ?? 0;
 		const paid = rows
 			.filter((row) => row.payroll_run_id != null)
-			.reduce((total, row) => total + numeric(row.amount), 0);
+			.reduce((total, row) => total + Number(row.amount), 0);
 		return principal < paid
 			? [
 					{
@@ -284,8 +281,7 @@
 			readonly={rowLocked(row)}
 			disabled={busy}
 			on_change={(next) => {
-				const amount = money(next);
-				if (amount !== null) edit(row, { amount });
+				if (typeof next === 'string') edit(row, { amount: next });
 			}}
 		/>
 	</div>
@@ -297,11 +293,10 @@
 			{ctx}
 			of="date"
 			precision="month"
-			value={row.paid_on == null ? null : day(row.paid_on)}
+			value={row.paid_on}
 			readonly={rowLocked(row)}
 			disabled={busy}
-			on_change={(paid_on: string | null) =>
-				edit(row, { paid_on: paid_on == null ? null : plain_date(paid_on) })}
+			on_change={(paid_on: string | null) => edit(row, { paid_on })}
 		/>
 	</div>
 {/snippet}
@@ -348,65 +343,66 @@
 		>
 			{#snippet children(form)}<LoanCreateFields {ctx} {form} />{/snippet}
 		</Form>
-	{:else}
-		<Form
-			{ctx}
-			of="loan_catalog_entry"
-			mode="update"
-			id={record.id}
-			{record}
-			fields={['quantity', 'repayment_period', 'evidence_file']}
-			validate={principalProblem}
-			class="h-auto! shrink-0"
-		/>
-		<section class="mt-4 grid gap-3" data-loan-repayments>
-			<div class="flex flex-wrap items-center justify-between gap-2">
-				<h3 class="font-medium">{ctx.t('loan.repayments')}</h3>
-				<div class="flex items-center gap-1">
-					{#if !isLocked()}<Button
+	{:else}<Stack gap="lg">
+			<Form
+				{ctx}
+				of="loan_catalog_entry"
+				mode="update"
+				id={record.id}
+				{record}
+				fields={['quantity', 'repayment_period', 'evidence_file']}
+				validate={principalProblem}
+				class="h-auto! shrink-0"
+			/>
+			<Stack gap="sm" data-loan-repayments>
+				<Cluster gap="sm" align="center" justify="between">
+					<h3 class="font-medium">{ctx.t('loan.repayments')}</h3>
+					<Cluster gap="xs" align="center">
+						{#if !isLocked()}<Button
+								size="icon"
+								variant="outline"
+								aria-label={ctx.t('loan.add_repayment')}
+								hint={ctx.t('loan.add_repayment_hint')}
+								disabled={busy}
+								onclick={add}
+							>
+								<Icon name="lucide:plus" class="size-4" />
+							</Button>{/if}
+						<Button
 							size="icon"
 							variant="outline"
-							aria-label={ctx.t('loan.add_repayment')}
-							hint={ctx.t('loan.add_repayment_hint')}
-							disabled={busy}
-							onclick={add}
+							aria-label={scheduleState === 'READY'
+								? ctx.t('loan.recalculate')
+								: ctx.t('loan.regenerate')}
+							hint={ctx.t('loan.schedule_hint')}
+							disabled={busy || isLocked() || scheduleState === 'NO_TERMS'}
+							onclick={regenerate}
 						>
-							<Icon name="lucide:plus" class="size-4" />
-						</Button>{/if}
-					<Button
-						size="icon"
-						variant="outline"
-						aria-label={scheduleState === 'READY'
-							? ctx.t('loan.recalculate')
-							: ctx.t('loan.regenerate')}
-						hint={ctx.t('loan.schedule_hint')}
-						disabled={busy || isLocked() || scheduleState === 'NO_TERMS'}
-						onclick={regenerate}
-					>
-						<Icon name="lucide:refresh-cw" class="size-4" />
-					</Button>
-				</div>
-			</div>
-			<div class="overflow-hidden rounded-md border">
-				<Table
-					{ctx}
-					of={rows}
-					key="loan-repayments-matrix"
-					layout="grid"
-					embedded
-					controlled
-					row_trailing={removeControl}
-					empty={repaymentsEmpty}
-					columns={[
-						{ field: 'amount', label: ctx.t('loan.repayment_amount'), cell: amountCell },
-						{ field: 'paid_on', label: ctx.t('loan.column_date'), cell: dateCell }
-					]}
-				/>
-			</div>
-			<div class="flex flex-wrap items-center gap-3">
-				{#each problems as problem}<span class="text-xs text-amber-700">{label(problem)}</span
-					>{/each}
-			</div>
-		</section>
+							<Icon name="lucide:refresh-cw" class="size-4" />
+						</Button>
+					</Cluster>
+				</Cluster>
+				<Bound class="rounded-md border">
+					<Table
+						{ctx}
+						of={rows}
+						key="loan-repayments-matrix"
+						layout="grid"
+						embedded
+						controlled
+						row_trailing={removeControl}
+						empty={repaymentsEmpty}
+						columns={[
+							{ field: 'amount', label: ctx.t('loan.repayment_amount'), cell: amountCell },
+							{ field: 'paid_on', label: ctx.t('loan.column_date'), cell: dateCell }
+						]}
+					/>
+				</Bound>
+				<Cluster gap="sm" align="center">
+					{#each problems as problem}<span class="text-xs text-amber-700">{label(problem)}</span
+						>{/each}
+				</Cluster>
+			</Stack>
+		</Stack>
 	{/if}
 </RecordShell>

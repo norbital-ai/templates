@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
-	import type { Value } from '@norbital-ai/bolt';
-	import { format_value, RecordShell, type RecordView } from '@norbital-ai/ui';
+	import { format, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import {
 		emptyPayslipBreakdown,
 		PayslipBreakdown
@@ -18,20 +17,6 @@
 			return emptyPayslipBreakdown;
 		}
 	});
-	const numberValue = (value: Value | undefined): number | null => {
-		if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-		if (typeof value === 'string') {
-			const number = Number(value);
-			return Number.isFinite(number) ? number : null;
-		}
-		return null;
-	};
-	const money = (value: Value | undefined) => {
-		const number = numberValue(value);
-		return number === null
-			? format_value(value, ctx.locale)
-			: new Intl.NumberFormat(ctx.locale, { maximumFractionDigits: 2 }).format(number);
-	};
 	// the period's own lines; what the payslip carries for earlier periods is shown apart, by the period it belongs to
 	const own = $derived(breakdown.lines.filter((line) => line.period === undefined));
 	const earnings = $derived(
@@ -49,8 +34,6 @@
 			)
 		].toSorted(([one], [other]) => one.localeCompare(other))
 	);
-	const signedMoney = (line: (typeof breakdown.lines)[number]) =>
-		`${line.direction === 'DEDUCT' ? '−' : '+'} ${money(line.amount)}`;
 
 	// What each line is, in the words of the catalogue row that posted it under the payslip's own law version. An
 	// employee reads five of the seven families; a family the reader cannot see leaves its lines by code.
@@ -118,7 +101,9 @@
 								</span>
 							{/if}
 						</span>
-						<span class="shrink-0 tabular-nums">{money(line.amount)}</span>
+						<span class="shrink-0 tabular-nums"
+							>{format({ kind: 'money' }, line.amount, { locale: ctx.locale })}</span
+						>
 					</li>
 				{/each}
 			</ul>
@@ -134,15 +119,21 @@
 			<section class="grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-3">
 				<div>
 					<p class="text-xs text-muted-foreground">Net pay</p>
-					<p class="text-2xl font-semibold tabular-nums">{money(record.net_pay)}</p>
+					<p class="text-2xl font-semibold tabular-nums">
+						{format({ kind: 'money' }, record.net_pay, { locale: ctx.locale })}
+					</p>
 				</div>
 				<div>
 					<p class="text-xs text-muted-foreground">Gross earnings</p>
-					<p class="text-lg font-medium tabular-nums">{money(record.gross_earnings ?? 0)}</p>
+					<p class="text-lg font-medium tabular-nums">
+						{format({ kind: 'money' }, record.gross_earnings ?? 0, { locale: ctx.locale })}
+					</p>
 				</div>
 				<div>
 					<p class="text-xs text-muted-foreground">Total deductions</p>
-					<p class="text-lg font-medium tabular-nums">{money(record.total_deductions)}</p>
+					<p class="text-lg font-medium tabular-nums">
+						{format({ kind: 'money' }, record.total_deductions, { locale: ctx.locale })}
+					</p>
 				</div>
 			</section>
 			{@render list(ctx.t('app.payroll.earnings'), earnings)}
@@ -165,7 +156,10 @@
 												>{ctx.t('app.payroll.adjustment_employer')}</span
 											>{/if}
 									</span>
-									<span class="shrink-0 tabular-nums">{signedMoney(line)}</span>
+									<span class="shrink-0 tabular-nums"
+										>{line.direction === 'DEDUCT' ? '−' : '+'}
+										{format({ kind: 'money' }, line.amount, { locale: ctx.locale })}</span
+									>
 								</li>
 							{/each}
 						</ul>

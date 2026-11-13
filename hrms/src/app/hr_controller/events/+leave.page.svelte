@@ -3,7 +3,6 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
-	import { plain_date } from '../../../lib/date.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState, Sheet, toast } from '@norbital-ai/ui';
 	import LeaveEntryForm from '../../../lib/ui/person/leave_entry_form.svelte';
@@ -91,7 +90,7 @@
 			employment_id: row.employment_id,
 			catalog_id: row.catalog_id,
 			leave_catalog_entry_day: row.days.map((day) => ({
-				incurred_on: plain_date(day.date),
+				incurred_on: day.date,
 				part: day.part
 			}))
 		}));

@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { type BigDecimal, Schema } from 'effect';
 
 /** Shared runtime contracts: plain JSON, money units, parties and expression context roots. */
 export const JsonObject = Schema.Record(Schema.String, Schema.Json);
@@ -31,6 +31,14 @@ const Rounding = Schema.Struct({
 	scale: Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 12 }))
 });
 export type Rounding = typeof Rounding.Type;
+/** HR's rounding modes as `BigDecimal.round` names them; TRUNCATE and DOWN both go toward zero. */
+export const ROUNDING_MODES = {
+	HALF_UP: 'half-from-zero',
+	HALF_EVEN: 'half-even',
+	UP: 'from-zero',
+	DOWN: 'to-zero',
+	TRUNCATE: 'to-zero'
+} as const satisfies Record<Rounding['mode'], BigDecimal.RoundingMode>;
 
 export type Phase = 'CALCULATION' | 'EXPORT';
 const CALCULATION_ROOTS = [

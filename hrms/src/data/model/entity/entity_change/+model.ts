@@ -1,6 +1,5 @@
 import { model } from '../../../../../.norbital/models/entity_change.ts';
-import { Schema } from 'effect';
-import { instant } from '../../../../lib/date.js';
+import { DateTime, Schema } from 'effect';
 import { entityChangeable } from '../../../../lib/payroll_engine/entity_change.js';
 import { jsonObject, type Json } from '../../../../lib/payroll_engine/foundation.js';
 import { objectValue } from '../../../../lib/payroll_engine/reads.js';
@@ -104,7 +103,10 @@ export default model({
 				yield* ctx.schedule(
 					'entity_materialize',
 					{},
-					{ at: instant(`${on}T00:00:00Z`), key: `entity_materialize:${on}` }
+					{
+						at: DateTime.formatIso(DateTime.makeUnsafe(`${on}T00:00:00Z`)),
+						key: `entity_materialize:${on}`
+					}
 				);
 		}
 	},
@@ -148,7 +150,10 @@ export default model({
 				yield* ctx.schedule(
 					'entity_materialize',
 					{},
-					{ at: instant(`${on}T00:00:00Z`), key: `entity_materialize:${on}` }
+					{
+						at: DateTime.formatIso(DateTime.makeUnsafe(`${on}T00:00:00Z`)),
+						key: `entity_materialize:${on}`
+					}
 				);
 		}
 	},

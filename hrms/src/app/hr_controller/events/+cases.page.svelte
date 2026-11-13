@@ -4,7 +4,6 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput, Row } from '@norbital-ai/bolt';
-	import { plain_date } from '../../../lib/date.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { EmptyState, RecordShell, Sheet, Table } from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
@@ -102,9 +101,9 @@
 			catalog_id: row.catalog_id,
 			kind: row.kind,
 			...(row.severity == null ? {} : { severity: row.severity }),
-			opened_on: plain_date(row.opened_on),
-			...(row.scheduled_on == null ? {} : { scheduled_on: plain_date(row.scheduled_on) }),
-			...(row.closed_on == null ? {} : { closed_on: plain_date(row.closed_on) }),
+			opened_on: row.opened_on,
+			...(row.scheduled_on == null ? {} : { scheduled_on: row.scheduled_on }),
+			...(row.closed_on == null ? {} : { closed_on: row.closed_on }),
 			inputs: row.inputs
 		}));
 	}

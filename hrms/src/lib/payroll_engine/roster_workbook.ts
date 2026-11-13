@@ -6,7 +6,6 @@
  */
 import { DateTime, Option } from 'effect';
 import type { Id, Instant, PlainDate } from '@norbital-ai/bolt';
-import { add_days, month_of, parse_instant, plain_date } from '../date.js';
 import {
 	type Cell,
 	cellDay,
@@ -258,9 +257,14 @@ const clockAt = (
 ): Clock | null => {
 	if (value == null || cellText(value) === '') return null;
 	if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value < 1) {
-		const minutes = Math.round(value * 1440) % 1440;
-		const time = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-		const instant = parse_instant(`${day} ${time}`, zone);
+		const time = DateTime.formatUtc(
+			DateTime.add(DateTime.makeUnsafe(0), { minutes: Math.round(value * 1440) % 1440 }),
+			{ locale: 'en', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
+		);
+		const instant = DateTime.makeZoned(`${day}T${time}`, {
+			timeZone: zone,
+			adjustForTimeZone: true
+		}).pipe(Option.map(DateTime.formatIso), Option.getOrNull);
 		if (instant == null) {
 			problems.push({ issue: `${column} cannot be read in ${zone}`, where });
 			return null;
@@ -270,15 +274,40 @@ const clockAt = (
 	const text = cellText(value);
 	const timeOnly = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(text);
 	if (timeOnly != null) {
-		const time = `${timeOnly[1]!.padStart(2, '0')}:${timeOnly[2]}`;
-		const instant = parse_instant(`${day} ${time}`, zone);
+		const hour = Number(timeOnly[1]),
+			minute = Number(timeOnly[2]);
+		const time = DateTime.formatUtc(DateTime.makeUnsafe({ hour, minute }), {
+			locale: 'en',
+			hour: '2-digit',
+			minute: '2-digit',
+			hourCycle: 'h23'
+		});
+		const instant =
+			hour > 23 || minute > 59
+				? null
+				: DateTime.makeZoned(`${day}T${time}`, { timeZone: zone, adjustForTimeZone: true }).pipe(
+						Option.map(DateTime.formatIso),
+						Option.getOrNull
+					);
 		if (instant == null) {
 			problems.push({ issue: `${column} is not a clock time`, where: `${where}: "${text}"` });
 			return null;
 		}
 		return { instant, explicitDate: false, time };
 	}
-	const instant = parse_instant(text, zone);
+	// an instant with its offset, or a wall time `YYYY-MM-DD HH:MM[:SS]` read in the zone
+	const wall = /^(\d{4}-\d{2}-\d{2})[T ]([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(text);
+	const instant = (
+		/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:?\d{2})$/i.test(text)
+			? DateTime.make(text)
+			: wall !== null &&
+				  Option.exists(DateTime.make(wall[1]!), (d) => DateTime.formatIsoDate(d) === wall[1])
+				? DateTime.makeZoned(`${wall[1]}T${wall[2]}:${wall[3]}:${wall[4] ?? '00'}`, {
+						timeZone: zone,
+						adjustForTimeZone: true
+					})
+				: Option.none()
+	).pipe(Option.map(DateTime.formatIso), Option.getOrNull);
 	if (instant == null) {
 		problems.push({
 			issue: `${column} is not a time (HH:MM) or a date and time`,
@@ -330,7 +359,13 @@ const intervalOf = (
 			});
 			return undefined;
 		}
-		const next = parse_instant(`${add_days(day, 1)} ${end.time ?? ''}`, zone);
+		const next =
+			end.time == null
+				? null
+				: DateTime.makeZoned(
+						`${DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(day), { days: 1 }))}T${end.time}`,
+						{ timeZone: zone, adjustForTimeZone: true }
+					).pipe(Option.map(DateTime.formatIso), Option.getOrNull);
 		if (next == null || Date.parse(next) <= Date.parse(start.instant)) {
 			problems.push({ issue: `${capital(endName)} is not after ${startName}`, where });
 			return undefined;
@@ -356,7 +391,7 @@ const overtimeDay = (row: RawRow, shift: RosterShift | null, zone: string): stri
 	)
 		return row.day;
 	return minutesOf(start.time) * 2 < minutesOf(shift.start_time) + minutesOf(shift.end_time)
-		? add_days(row.day, 1)
+		? DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(row.day), { days: 1 }))
 		: row.day;
 };
 
@@ -390,7 +425,9 @@ const shiftOf = (
 const intervals = (value: readonly RosterStoredInterval[] | null | undefined): string =>
 	JSON.stringify(
 		(value ?? []).map((interval) =>
-			[interval.start, interval.end].map((at) => Math.floor(Date.parse(at) / 60_000))
+			[interval.start, interval.end].map((at) =>
+				DateTime.toEpochMillis(DateTime.startOf(DateTime.makeUnsafe(at), 'minute'))
+			)
 		)
 	);
 
@@ -427,8 +464,7 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 	const { plan, work, month } = rowsOf(grids);
 	if (Option.isNone(DateTime.zoneMakeNamed(known.zone)))
 		throw new WorkbookRowsError(`The entity's time zone "${known.zone}" is not known.`);
-	const period = month_of(plain_date(`${month}-01`));
-	const last = period.to ?? period.from;
+	const last = DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(`${month}-01`), 'month'));
 	const stored = new Map(
 		known.entries.map((entry) => [
 			`${entry.employment_id}:${String(entry.work_date).slice(0, 10)}`,
@@ -451,7 +487,7 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 	const located = (rows: readonly RawRow[]) => {
 		const seen = new Map<string, number>();
 		return rows.flatMap((row) => {
-			if (row.day < period.from || row.day > last) {
+			if (row.day < `${month}-01` || row.day > last) {
 				problems.push({
 					issue: `Outside ${month}; import one month at a time`,
 					where: whereOf(row)
@@ -550,7 +586,7 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 	const rows: RosterImportRow[] = [];
 	const overwritten: string[] = [];
 	for (const { employment_id, number, day, entry, set } of days.values()) {
-		rows.push({ employment_id, work_date: plain_date(day), ...set });
+		rows.push({ employment_id, work_date: day, ...set });
 		if (entry === undefined) continue;
 		const replaced =
 			(set.shift_definition_id !== undefined && entry.shift_definition_id != null) ||

@@ -1,5 +1,5 @@
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import { Schema } from 'effect';
+import { DateTime, Option, Schema } from 'effect';
 import { PayslipBreakdown } from '../payroll_engine/payslip_breakdown.js';
 
 /**
@@ -34,13 +34,17 @@ export type Sheet = {
 	readonly people: readonly Person[];
 };
 
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 /** `2026-10` → `OCT 2026`, a half-month `2026-10-1` → `OCT 2026 1ST HALF`. */
 const monthOf = (period: string) => {
 	const match = /^(\d{4})-(\d{2})(?:-([12]))?$/.exec(period);
 	if (match === null) return period.toUpperCase();
 	const half = match[3] === undefined ? '' : match[3] === '1' ? ' 1ST HALF' : ' 2ND HALF';
-	return `${MONTHS[Number(match[2]) - 1] ?? match[2]} ${match[1]}${half}`;
+	const month = DateTime.formatUtc(DateTime.makeUnsafe(`${match[1]}-${match[2]}-01`), {
+		locale: 'en',
+		month: 'short',
+		year: 'numeric'
+	});
+	return `${month.toUpperCase()}${half}`;
 };
 const amount = (value: unknown): number => {
 	// a decimal reads as its exact text
@@ -324,12 +328,6 @@ const IDENTITY = [
 const FROZEN = 4;
 const HEAD = 4;
 
-const dateOf = (day: string) => {
-	const [year, month, date] = day.split('-').map(Number);
-	return year === undefined || month === undefined || date === undefined
-		? day
-		: new Date(Date.UTC(year, month - 1, date));
-};
 const sheetName = (sheet: Sheet, taken: Set<string>) => {
 	const base = `${monthOf(sheet.period)}${sheet.offCycle ? ' OFF-CYCLE' : ''}`
 		.replaceAll(/[\\/?*[\]:]/g, '-')
@@ -405,7 +403,13 @@ const addSheet = (
 		for (const [at, column] of IDENTITY.entries()) {
 			const value = column.value(person);
 			const cell = row.getCell(at + 1);
-			cell.value = 'date' in column && value !== '' ? dateOf(value) : value;
+			cell.value =
+				'date' in column && value !== ''
+					? DateTime.make(value).pipe(
+							Option.map(DateTime.toDateUtc),
+							Option.getOrElse(() => value)
+						)
+					: value;
 			if ('date' in column) cell.numFmt = 'd mmm yyyy';
 		}
 		for (const [at, column] of columns.entries()) {

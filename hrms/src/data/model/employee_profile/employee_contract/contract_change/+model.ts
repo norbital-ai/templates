@@ -1,5 +1,5 @@
 import { model } from '../../../../../../.norbital/models/contract_change.ts';
-import { instant } from '../../../../../lib/date.js';
+import { DateTime } from 'effect';
 import { changeable } from '../../../../../lib/payroll_engine/contract_change.js';
 
 const scheduled = (on: string, today: string) => on > today && on.endsWith('-01');
@@ -53,7 +53,10 @@ export default model({
 				yield* ctx.schedule(
 					'contract_materialize',
 					{},
-					{ at: instant(`${on}T00:00:00Z`), key: `contract_materialize:${on}` }
+					{
+						at: DateTime.formatIso(DateTime.makeUnsafe(`${on}T00:00:00Z`)),
+						key: `contract_materialize:${on}`
+					}
 				);
 		}
 	},
@@ -97,7 +100,10 @@ export default model({
 				yield* ctx.schedule(
 					'contract_materialize',
 					{},
-					{ at: instant(`${on}T00:00:00Z`), key: `contract_materialize:${on}` }
+					{
+						at: DateTime.formatIso(DateTime.makeUnsafe(`${on}T00:00:00Z`)),
+						key: `contract_materialize:${on}`
+					}
 				);
 		}
 	},

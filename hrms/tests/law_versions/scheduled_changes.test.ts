@@ -3,7 +3,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import { changesBetween, withChange } from '../../src/lib/payroll_engine/contract_change.ts';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
@@ -56,7 +55,7 @@ const file = (t: Kit, set: Partial<{ on: string; from: string; value: typeof bir
 					employee_id: PROFILE,
 					field_path: PATH,
 					new_value: set.value ?? birth,
-					effective_from: plain_date(set.from ?? '2026-02-01')
+					effective_from: set.from ?? '2026-02-01'
 				}
 			]
 		})

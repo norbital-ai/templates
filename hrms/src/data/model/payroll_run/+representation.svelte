@@ -2,6 +2,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
+	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Button,
 		Form,
@@ -54,21 +55,23 @@
 	};
 </script>
 
-{#snippet summary()}{#if record !== null}<div class="mb-2 flex justify-end gap-2">
-			{#if record.state === 'UNPAID'}<Button disabled={paying} onclick={markPaid}
-					>{ctx.t('app.payroll.mark_paid')}</Button
-				>{/if}
-			<Button variant="secondary" disabled={downloading} onclick={download}
-				>{ctx.t('app.payroll.export_listing')}</Button
-			>
-		</div>{/if}<Form
-		{ctx}
-		of="payroll_run"
-		mode={view.mode === 'create' ? 'create' : 'update'}
-		{...record === null
-			? { values: view.mode === 'create' ? view.values : {} }
-			: { id: record.id, record }}
-	/>{/snippet}
+{#snippet summary()}<Stack size="fill" gap="sm"
+		>{#if record !== null}<Cluster gap="sm" justify="end">
+				{#if record.state === 'UNPAID'}<Button disabled={paying} onclick={markPaid}
+						>{ctx.t('app.payroll.mark_paid')}</Button
+					>{/if}
+				<Button variant="secondary" disabled={downloading} onclick={download}
+					>{ctx.t('app.payroll.export_listing')}</Button
+				>
+			</Cluster>{/if}<Form
+			{ctx}
+			of="payroll_run"
+			mode={view.mode === 'create' ? 'create' : 'update'}
+			{...record === null
+				? { values: view.mode === 'create' ? view.values : {} }
+				: { id: record.id, record }}
+		/></Stack
+	>{/snippet}
 {#snippet payslips()}{#if record}<Table
 			{ctx}
 			of="payslip"
@@ -85,7 +88,7 @@
 				'employer_cost'
 			]}
 		/>{/if}{/snippet}
-{#snippet amended()}{#if record}<div class="grid gap-6">
+{#snippet amended()}{#if record}<Stack size="fill" gap="lg">
 			<Table
 				{ctx}
 				of="pay_amendment"
@@ -102,7 +105,7 @@
 				toolbar={{ new: false, delete: false, title: ctx.t('app.payroll.amended_waiting') }}
 				columns={['employee_id', 'pay_group_id', 'period']}
 			/>
-		</div>{/if}{/snippet}
+		</Stack>{/if}{/snippet}
 <RecordShell
 	{ctx}
 	of="payroll_run"

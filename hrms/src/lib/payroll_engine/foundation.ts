@@ -1,6 +1,4 @@
-import { BigDecimal, Data, Schema } from 'effect';
-import { add_months, date_period, each_day, is_plain_date } from '../date.js';
-import { toNumber } from './money.js';
+import { BigDecimal, Data, DateTime, Duration, Schema } from 'effect';
 export type Json = Schema.Json;
 export type JsonObject = { readonly [key: string]: Json };
 export type DynObject = Record<string, unknown>;
@@ -26,7 +24,7 @@ export class Refusal extends Data.TaggedError('Refusal')<{
 }> {}
 export const numberOf = (value: unknown): number | null =>
 	BigDecimal.isBigDecimal(value)
-		? toNumber(value)
+		? BigDecimal.toNumberUnsafe(value)
 		: typeof value === 'number' && Number.isFinite(value)
 			? value
 			: typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))
@@ -49,7 +47,7 @@ const DECIMAL_FIELDS = new Set([
 const DECIMAL_TEXT = /^-?\d+(\.\d+)?$/;
 export const jsonValues = (value: unknown): unknown =>
 	BigDecimal.isBigDecimal(value)
-		? toNumber(value)
+		? BigDecimal.toNumberUnsafe(value)
 		: Array.isArray(value)
 			? value.map(jsonValues)
 			: isDynObject(value)
@@ -79,27 +77,14 @@ export const getErrorMessage = (error: unknown): string =>
 		: isDynObject(error) && typeof error.message === 'string'
 			? error.message
 			: String(error);
-export const dateKey = (value: unknown): string => {
-	const v = String(value);
-	if (!is_plain_date(v)) throw new Refusal({ message: 'An actual ISO date is required.' });
-	return v;
-};
-export const calendarDateInTimeZone = (instant: Date, timezone: string): string =>
-	new Intl.DateTimeFormat('en-CA', {
-		timeZone: timezone,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit'
-	}).format(instant);
 export const completedMonths = (from: string, to: string): number => {
 	let n =
 		(Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 +
 		Number(to.slice(5, 7)) -
 		Number(from.slice(5, 7));
-	if (String(add_months(from, n)) > to) n--;
+	if (DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { months: n })) > to) n--;
 	return n;
 };
-export const formatNamedList = (items: readonly string[]): string => items.join(', ');
 
 export const decodeNumber = (value: unknown): number => {
 	const result = numberOf(value);
@@ -114,7 +99,12 @@ export const daysIn = (from: string, to: string): readonly string[] => {
 	const key = `${from}/${to}`;
 	const held = dayLists.get(key);
 	if (held !== undefined) return held;
-	const days = each_day(date_period(from, to)).map(String);
+	if (to < from) throw new RangeError(`period ends (${to}) before it starts (${from})`);
+	const start = DateTime.makeUnsafe(from);
+	const days = Array.from(
+		{ length: Duration.toDays(DateTime.distance(start, DateTime.makeUnsafe(to))) + 1 },
+		(_, i) => DateTime.formatIsoDate(DateTime.add(start, { days: i }))
+	);
 	if (dayLists.size >= 2_000) dayLists.clear();
 	dayLists.set(key, days);
 	return days;

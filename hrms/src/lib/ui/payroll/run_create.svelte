@@ -6,15 +6,12 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
-	import { Button, Combobox, notify_outcome, Sheet, Tabs, toast } from '@norbital-ai/ui';
+	import { Button, Combobox, format, notify_outcome, Sheet, Tabs, toast } from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import { add_months } from '../../date.js';
-	import { Effect } from 'effect';
+	import { DateTime, Effect } from 'effect';
 	import { jsonObject } from '../../payroll_engine/foundation.js';
 	import { cycleOn, cyclesIn } from '../../payroll_engine/pay_cycle.js';
-	import { todayKey } from '../format/calendar.js';
-	import { periodLabel } from './pay_periods.js';
 
 	let {
 		ctx,
@@ -22,7 +19,7 @@
 		open = $bindable(false)
 	}: { ctx: PageContext; companyId: Id<'entity'>; open?: boolean } = $props();
 
-	const today = String(todayKey());
+	const today = ctx.clock().today;
 	const known = $derived(
 		ctx.query({
 			pay_group: {
@@ -64,17 +61,29 @@
 	const latest = $derived(runs.map((run) => run.period).reduce((a, b) => (a > b ? a : b), ''));
 	const cycles = $derived(
 		Array.from({ length: 13 }, (_, back) =>
-			String(add_months(`${today.slice(0, 7)}-01`, -back)).slice(0, 7)
+			DateTime.formatIsoDateUtc(
+				DateTime.subtract(DateTime.startOf(DateTime.makeUnsafe(today), 'month'), { months: back })
+			).slice(0, 7)
 		)
 			.flatMap((month) => cyclesIn(schedule, month).toReversed())
 			.filter((cycle) => cycle.from <= today && cycle.key > latest)
 			.map((cycle) => ({
 				value: cycle.key,
-				label: periodLabel(cycle.key, {
-					first: ctx.t('app.payroll.first_half'),
-					second: ctx.t('app.payroll.second_half')
-				}),
-				description: `${cycle.from} – ${cycle.to}`
+				label:
+					cycle.key.length === 10
+						? format({ kind: 'date' }, cycle.key, { locale: ctx.locale })
+						: `${format({ kind: 'date', precision: 'month' }, `${cycle.key.slice(0, 7)}-01`, { locale: ctx.locale })}${
+								cycle.key.length === 9
+									? ` · ${ctx.t(cycle.key.endsWith('1') ? 'app.payroll.first_half' : 'app.payroll.second_half')}`
+									: ''
+							}`,
+				description: format(
+					{ kind: 'period', of: 'date' },
+					{ from: cycle.from, to: cycle.to },
+					{
+						locale: ctx.locale
+					}
+				)
 			}))
 	);
 	let cycle = $state<string | null>(null);

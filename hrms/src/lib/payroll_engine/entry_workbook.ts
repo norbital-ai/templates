@@ -4,9 +4,8 @@
  * version in force on the entry's day, duplicates and leave overlaps. Nothing is written from here.
  */
 import type { Id } from '@norbital-ai/bolt';
-import { Schema } from 'effect';
+import { DateTime, Duration, Option, Schema } from 'effect';
 import { JsonObject } from './contracts.js';
-import { add_days, is_plain_date } from '../date.js';
 import {
 	cellDay,
 	cellNumber,
@@ -298,7 +297,10 @@ const leaveSlots = (row: SheetRow, problems: Problem[]): LeaveDraft['days'] | nu
 			.map((part) => part.trim())
 			.filter((part) => part !== '')) {
 			const found = /^(\d{4}-\d{2}-\d{2})(?:\s*(?:\/|\s)\s*(AM|PM))?$/i.exec(token);
-			if (found == null || !is_plain_date(found[1]!)) {
+			if (
+				found == null ||
+				!Option.exists(DateTime.make(found[1]!), (d) => DateTime.formatIsoDate(d) === found[1])
+			) {
 				problems.push(`Row ${row.at}: "${token}" is not a date, optionally followed by AM or PM.`);
 				continue;
 			}
@@ -325,7 +327,9 @@ const leaveSlots = (row: SheetRow, problems: Problem[]): LeaveDraft['days'] | nu
 			problems.push(`Row ${row.at}: to ${to} is before from ${from}.`);
 			return null;
 		}
-		if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 366) {
+		if (
+			Duration.toDays(DateTime.distance(DateTime.makeUnsafe(from), DateTime.makeUnsafe(to))) > 366
+		) {
 			problems.push(`Row ${row.at}: ${from} to ${to} is longer than a year.`);
 			return null;
 		}
@@ -333,7 +337,11 @@ const leaveSlots = (row: SheetRow, problems: Problem[]): LeaveDraft['days'] | nu
 		if (fromPart === undefined) return null;
 		const toPart = partOf(cellText(row.cells.to_part), row.at, 'to part', problems);
 		if (toPart === undefined) return null;
-		for (let day: string = from; day <= to; day = add_days(day, 1)) {
+		for (
+			let day: string = from;
+			day <= to;
+			day = DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(day), { days: 1 }))
+		) {
 			const first = day === from ? (fromPart === 'PM' ? 'PM' : 'AM') : 'AM';
 			const last = day === to ? (toPart === 'AM' ? 'AM' : 'PM') : 'PM';
 			if (first === 'PM' && last === 'AM') continue;

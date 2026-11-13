@@ -8,8 +8,7 @@ import {
 	type TestOptions,
 	type TestPorts
 } from '@norbital-ai/bolt-cli/test';
-import { Effect, Predicate, Schema } from 'effect';
-import { add_days, month_of, plain_date } from '../src/lib/date.ts';
+import { DateTime, Effect, Predicate, Schema } from 'effect';
 import {
 	input_schema,
 	type Id,
@@ -401,7 +400,7 @@ export const leaveCreate = <
 	return {
 		...rest,
 		leave_catalog_entry_day: days.map((day) => ({
-			incurred_on: plain_date(String(day.date)),
+			incurred_on: String(day.date),
 			part: day.part
 		}))
 	};
@@ -417,8 +416,8 @@ export const catalogRow = (seed: ReturnType<typeof pack>, model: string, code: s
 /** The whole days as half-day slots. */
 export const wholeDays = (...dates: readonly string[]) =>
 	dates.flatMap((date) => [
-		{ date: plain_date(date), part: 'AM' as const },
-		{ date: plain_date(date), part: 'PM' as const }
+		{ date, part: 'AM' as const },
+		{ date, part: 'PM' as const }
 	]);
 /** One person's balance as stored, `account[family][code][period][measure]`: the first when `employee` is not named. */
 export const accountsIn = (t: Kit, employee?: string) =>
@@ -488,7 +487,7 @@ export const sealedLeave = (t: Kit) =>
  */
 export const sealEvents = (t: Kit, on: string, events: readonly JsonObject[], by = t.admin) =>
 	Effect.gen(function* () {
-		const from = String(month_of(on).from);
+		const from = DateTime.formatIsoDate(DateTime.startOf(DateTime.makeUnsafe(on), 'month'));
 		const admin = yield* t.as(by);
 		const stored = (status: 'SEALED' | 'DRAFT') =>
 			storedQuery(t, {
@@ -511,12 +510,12 @@ export const sealEvents = (t: Kit, on: string, events: readonly JsonObject[], by
 					events: events.map((event) => ({
 						...event,
 						kind: String(event.kind ?? ''),
-						on: plain_date(String(event.on ?? '')),
-						...(event.opened_on == null ? {} : { opened_on: plain_date(String(event.opened_on)) }),
-						...(event.ended_on == null ? {} : { ended_on: plain_date(String(event.ended_on)) })
+						on: String(event.on ?? ''),
+						...(event.opened_on == null ? {} : { opened_on: String(event.opened_on) }),
+						...(event.ended_on == null ? {} : { ended_on: String(event.ended_on) })
 					})),
 					service_started_on: held.service_started_on,
-					effective_range: { from: plain_date(from), to: null },
+					effective_range: { from, to: null },
 					signed_contract_period: held.signed_contract_period,
 					status: 'DRAFT',
 					reason: 'A dated fact changed'
@@ -530,7 +529,10 @@ export const sealEvents = (t: Kit, on: string, events: readonly JsonObject[], by
 				{
 					target: held,
 					set: {
-						effective_range: { from: held.effective_range.from, to: add_days(plain_date(from), -1) }
+						effective_range: {
+							from: held.effective_range.from,
+							to: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
+						}
 					}
 				}
 			]

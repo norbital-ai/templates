@@ -4,8 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { instant } from '../../src/lib/date.ts';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	EMPLOYMENT,
@@ -23,7 +22,6 @@ import {
 	claimAt
 } from '../amendment_kit.ts';
 import { ENTITY, accountsIn, catalogRow, workspace, storedQuery } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const NOW = '2026-03-20T02:00:00.000Z';
 /** A claim as stored now: a write targets it at its current revision. */
@@ -63,14 +61,14 @@ describe('a paid period corrected at its source', () => {
 							set: {
 								actual_worked_intervals: [
 									{
-										start: instant(`${OVERTIME_DAY}T00:00:00.000Z`),
-										end: instant(`${OVERTIME_DAY}T10:00:00.000Z`)
+										start: DateTime.formatIso(DateTime.makeUnsafe(`${OVERTIME_DAY}T00:00:00.000Z`)),
+										end: DateTime.formatIso(DateTime.makeUnsafe(`${OVERTIME_DAY}T10:00:00.000Z`))
 									}
 								],
 								planned_overtime_intervals: [
 									{
-										start: instant(`${OVERTIME_DAY}T08:00:00.000Z`),
-										end: instant(`${OVERTIME_DAY}T10:00:00.000Z`)
+										start: DateTime.formatIso(DateTime.makeUnsafe(`${OVERTIME_DAY}T08:00:00.000Z`)),
+										end: DateTime.formatIso(DateTime.makeUnsafe(`${OVERTIME_DAY}T10:00:00.000Z`))
 									}
 								]
 							}
@@ -242,7 +240,7 @@ describe('a paid period corrected at its source', () => {
 			for (const quantity of [200, 80, 120]) {
 				yield* (yield* t.as(t.admin)).act({
 					'claim_catalog_entry.update': [
-						{ target: yield* claimAt(t, made), set: { quantity: decimalText(quantity) } }
+						{ target: yield* claimAt(t, made), set: { quantity: String(quantity) } }
 					]
 				});
 				yield* t.run_due();

@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import { cycleOf, payDateOf } from '../../src/lib/payroll_engine/pay_cycle.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
@@ -184,7 +183,7 @@ const draft = (
 						family: held.family,
 						employee_extension_data: held.employee_extension_data,
 						service_started_on: held.service_started_on,
-						effective_range: { from: plain_date(from), to: null },
+						effective_range: { from, to: null },
 						status: 'DRAFT',
 						reason: 'Moved to another payroll'
 					}
@@ -203,7 +202,7 @@ const end = (t: Kit, held: Version, to: string) =>
 				'employee_contract.update': [
 					{
 						target: held,
-						set: { effective_range: { from: held.effective_range.from, to: plain_date(to) } }
+						set: { effective_range: { from: held.effective_range.from, to } }
 					}
 				]
 			})

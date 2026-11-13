@@ -1,9 +1,8 @@
-import { Effect } from 'effect';
+import { DateTime, Duration, Effect } from 'effect';
 import { queryRows, type Reader } from './reads.js';
 import { lawOn, startOf } from './registrations.js';
 import { isJsonObject, type Json } from './foundation.js';
 import type { JsonObject } from './contracts.js';
-import { add_days, month_of } from '../date.js';
 
 const minutes = (value: unknown): number => {
 	if (!Array.isArray(value)) return 0;
@@ -21,22 +20,16 @@ const minutes = (value: unknown): number => {
 				if (!isJsonObject(span)) continue;
 				const a = typeof span.start === 'string' ? Date.parse(span.start) : NaN;
 				const b = typeof span.end === 'string' ? Date.parse(span.end) : NaN;
-				if (Number.isFinite(a) && Number.isFinite(b) && b > a) pause += (b - a) / 60000;
+				if (Number.isFinite(a) && Number.isFinite(b) && b > a)
+					pause += Duration.toMinutes(Duration.millis(b - a));
 			}
-		total += Math.max(0, (end - start) / 60000 - pause);
+		total += Math.max(0, Duration.toMinutes(Duration.millis(end - start)) - pause);
 	}
 	return total;
 };
 
 const day = (value: unknown): string | null =>
 	typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
-
-const week = (date: string): string => {
-	const at = new Date(`${date}T00:00:00Z`);
-	const monday = new Date(at);
-	monday.setUTCDate(at.getUTCDate() - ((at.getUTCDay() + 6) % 7));
-	return monday.toISOString().slice(0, 10);
-};
 
 export type DayType = 'WORK' | 'REST' | 'OFF' | 'ABS';
 /** A roster day's type, as the run reads it: its shift's, and a day with no shift is a working day. */
@@ -102,7 +95,9 @@ export const dayFindings = (
 			totalOvertime.set(month, (totalOvertime.get(month) ?? 0) + overtime);
 		if (hours > 0) {
 			worked.add(date);
-			const key = week(date);
+			const key = DateTime.formatIsoDate(
+				DateTime.startOf(DateTime.makeUnsafe(date), 'week', { weekStartsOn: 1 })
+			);
 			workedByWeek.set(key, (workedByWeek.get(key) ?? 0) + 1);
 		}
 	}
@@ -110,7 +105,10 @@ export const dayFindings = (
 		(state, date) => {
 			const previous = state.last;
 			const next =
-				previous !== null && Date.parse(date) - Date.parse(previous) === 86_400_000
+				previous !== null &&
+				Duration.toDays(
+					DateTime.distance(DateTime.makeUnsafe(previous), DateTime.makeUnsafe(date))
+				) === 1
 					? state.run + 1
 					: 1;
 			return { last: date, run: next, longest: Math.max(state.longest, next) };
@@ -126,30 +124,33 @@ export const dayFindings = (
 		if (caps.daily_hours !== null && hours > caps.daily_hours)
 			findings.push({
 				code: 'roster.daily_hours',
-				message: `${date}: ${hours.toFixed(2)} worked hours exceed the ${caps.daily_hours}-hour daily limit.`
+				message: `${date}: ${new Intl.NumberFormat('en', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(hours)} worked hours exceed the ${caps.daily_hours}-hour daily limit.`
 			});
 		if (caps.daily_overtime_hours !== null && overtime > caps.daily_overtime_hours)
 			findings.push({
 				code: 'roster.daily_overtime',
-				message: `${date}: ${overtime.toFixed(2)} overtime hours exceed the ${caps.daily_overtime_hours}-hour daily overtime limit.`
+				message: `${date}: ${new Intl.NumberFormat('en', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(overtime)} overtime hours exceed the ${caps.daily_overtime_hours}-hour daily overtime limit.`
 			});
 		const month = date.slice(0, 7);
 		const monthly = totalOvertime.get(month) ?? 0;
 		if (caps.monthly_overtime_hours !== null && monthly > caps.monthly_overtime_hours)
 			findings.push({
 				code: 'roster.monthly_overtime',
-				message: `${month}: ${monthly.toFixed(2)} overtime hours exceed the ${caps.monthly_overtime_hours}-hour monthly limit.`
+				message: `${month}: ${new Intl.NumberFormat('en', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthly)} overtime hours exceed the ${caps.monthly_overtime_hours}-hour monthly limit.`
 			});
 		if (caps.consecutive_days !== null && consecutive > caps.consecutive_days)
 			findings.push({
 				code: 'roster.consecutive_days',
 				message: `${consecutive} consecutive worked days exceed the ${caps.consecutive_days}-day limit.`
 			});
-		const weekCount = workedByWeek.get(week(date)) ?? 0;
+		const monday = DateTime.formatIsoDate(
+			DateTime.startOf(DateTime.makeUnsafe(date), 'week', { weekStartsOn: 1 })
+		);
+		const weekCount = workedByWeek.get(monday) ?? 0;
 		if (caps.weekly_rest_days !== null && weekCount >= 7 - caps.weekly_rest_days + 1)
 			findings.push({
 				code: 'roster.weekly_rest',
-				message: `${week(date)}: ${weekCount} worked days leave fewer than ${caps.weekly_rest_days} rest day(s).`
+				message: `${monday}: ${weekCount} worked days leave fewer than ${caps.weekly_rest_days} rest day(s).`
 			});
 		return findings;
 	};
@@ -222,11 +223,15 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	// the whole months and weeks the batch touches: what its monthly and weekly counts read
 	const bounds = dates
 		.flatMap((date) => [
-			month_of(date).from,
-			month_of(date).to ?? date,
-			week(date),
-			add_days(week(date), 6),
-			add_days(date, -streak)
+			DateTime.formatIsoDate(DateTime.startOf(DateTime.makeUnsafe(date), 'month')),
+			DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(date), 'month')),
+			DateTime.formatIsoDate(
+				DateTime.startOf(DateTime.makeUnsafe(date), 'week', { weekStartsOn: 1 })
+			),
+			DateTime.formatIsoDate(
+				DateTime.endOf(DateTime.makeUnsafe(date), 'week', { weekStartsOn: 1 })
+			),
+			DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(date), { days: -streak }))
 		])
 		.map(String)
 		.sort();

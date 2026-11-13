@@ -1,4 +1,4 @@
-import { add_days, add_months, month_of, plain_date } from '../date.js';
+import { DateTime } from 'effect';
 import type { PlainDate } from '@norbital-ai/bolt';
 import { type JsonObject } from './foundation.js';
 
@@ -19,19 +19,27 @@ const PARTS: Readonly<Record<string, readonly number[]>> = {
 	TEN_DAY: [10, 20]
 };
 
-const pad = (day: number): string => String(day).padStart(2, '0');
-const lastDay = (date: string): string => String(month_of(date).to);
-
 /** The cycles a month holds. A weekly or daily schedule has none yet: it pays through an off-cycle run. */
 export const cyclesIn = (schedule: JsonObject, month: string): readonly PayCycle[] => {
 	const parts = PARTS[String(schedule.frequency)];
 	if (parts === undefined) return [];
 	const start = `${month}-01`;
-	if (parts.length === 0) return [{ key: month, from: start, to: lastDay(start) }];
-	const ends = [...parts.map((day) => `${month}-${pad(day)}`), lastDay(start)];
+	const last = DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(start), 'month'));
+	if (parts.length === 0) return [{ key: month, from: start, to: last }];
+	const ends = [
+		...parts.map((day) =>
+			DateTime.formatIsoDate(DateTime.setPartsUtc(DateTime.makeUnsafe(start), { day }))
+		),
+		last
+	];
 	return ends.map((to, index) => ({
 		key: `${month}-${index + 1}`,
-		from: index === 0 ? start : String(add_days(ends[index - 1] ?? start, 1)),
+		from:
+			index === 0
+				? start
+				: DateTime.formatIsoDate(
+						DateTime.add(DateTime.makeUnsafe(ends[index - 1] ?? start), { days: 1 })
+					),
 		to
 	}));
 };
@@ -49,14 +57,17 @@ export const payDateOf = (schedule: JsonObject, key: string): PlainDate => {
 	const part = Number(key.slice(8) || 1);
 	const day = Number(days[part - 1] ?? days.at(-1) ?? 0);
 	const first = key.slice(0, 7);
-	const end = lastDay(`${first}-01`);
-	const wanted = day > 0 ? `${first}-${pad(day)}` : end;
+	const end = DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(`${first}-01`), 'month'));
+	const wanted =
+		day > 0
+			? DateTime.formatIsoDate(DateTime.setPartsUtc(DateTime.makeUnsafe(`${first}-01`), { day }))
+			: end;
 	let date = wanted > end ? end : wanted;
 	const off = Array.isArray(schedule.non_working_weekdays) ? schedule.non_working_weekdays : [];
 	const step = schedule.business_day === 'PREVIOUS' ? -1 : schedule.business_day === 'NEXT' ? 1 : 0;
-	while (step !== 0 && off.includes(new Date(`${date}T00:00:00Z`).getUTCDay()))
-		date = String(add_days(date, step));
-	return plain_date(date);
+	while (step !== 0 && off.includes(DateTime.getPartUtc(DateTime.makeUnsafe(date), 'weekDay')))
+		date = DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(date), { days: step }));
+	return date;
 };
 
 /**
@@ -67,14 +78,14 @@ export const attendanceOf = (schedule: JsonObject, salary: PayWindow): PayWindow
 	const day = Number(schedule.pay_cutoff_day ?? 1);
 	if (day <= 1) return salary;
 	if (schedule.frequency === 'SEMI_MONTHLY') {
-		const to = String(add_days(salary.from, -1));
+		const to = DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(salary.from), { days: -1 }));
 		const cycle = cycleOn(schedule, to);
 		return cycle === undefined ? salary : { from: cycle.from, to: cycle.to };
 	}
-	const before = String(add_days(`${salary.from.slice(0, 7)}-01`, -1)).slice(0, 7);
+	const cutoff = DateTime.setPartsUtc(DateTime.makeUnsafe(salary.from), { day });
 	return {
-		from: `${before}-${pad(day)}`,
-		to: String(add_days(`${salary.from.slice(0, 7)}-${pad(day)}`, -1))
+		from: DateTime.formatIsoDate(DateTime.subtract(cutoff, { months: 1 })),
+		to: DateTime.formatIsoDate(DateTime.subtract(cutoff, { days: 1 }))
 	};
 };
 
@@ -84,16 +95,17 @@ export const payPeriodOf = (date: string, schedule: JsonObject): string => {
 	const dayOf = Number(date.slice(8, 10));
 	const frequency = String(schedule.frequency ?? 'MONTHLY');
 	const cutoff = Number(schedule.pay_cutoff_day ?? 1);
-	const shifted = (value: string, by: number) => add_months(`${value}-01`, by).slice(0, 7);
+	const next = DateTime.formatIsoDate(
+		DateTime.add(DateTime.startOf(DateTime.makeUnsafe(date), 'month'), { months: 1 })
+	).slice(0, 7);
 	if (frequency === 'TEN_DAY')
 		return cutoff <= 1
 			? `${month}-${Math.ceil(dayOf / 10)}`
 			: dayOf < cutoff
 				? `${month}-1`
-				: `${shifted(month, 1)}-1`;
-	if (frequency !== 'SEMI_MONTHLY')
-		return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;
+				: `${next}-1`;
+	if (frequency !== 'SEMI_MONTHLY') return cutoff > 1 && dayOf >= cutoff ? next : month;
 	const part = dayOf <= 15 ? 1 : 2;
 	if (cutoff <= 1) return `${month}-${part}`;
-	return part === 1 ? `${month}-2` : `${shifted(month, 1)}-1`;
+	return part === 1 ? `${month}-2` : `${next}-1`;
 };

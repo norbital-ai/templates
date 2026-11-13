@@ -1,7 +1,6 @@
 import { model } from '../../../../.norbital/models/payroll_run.ts';
-import { plain_date } from '../../../lib/date.js';
+import { BigDecimal } from 'effect';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
-import { decimalText } from '../../../lib/payroll_engine/money.js';
 import { attendanceOf, cycleOf, payDateOf } from '../../../lib/payroll_engine/pay_cycle.js';
 import { idOf } from '../../../lib/payroll_engine/reads.js';
 
@@ -277,7 +276,7 @@ export default model({
 							group: group.name
 						}
 					});
-				const pay_date = plain_date(offCycle ? ctx.today : payDateOf(schedule, row.period));
+				const pay_date = offCycle ? ctx.today : payDateOf(schedule, row.period);
 				const settings = known.jurisdiction_settings.rows.find(
 					(entry) => entry.code === version.settings_code && on(entry.effective_range, pay_date)
 				);
@@ -303,7 +302,7 @@ export default model({
 						period: row.period,
 						kind: offCycle ? ('OFF_CYCLE' as const) : ('ON_CYCLE' as const),
 						settings_id: settings.id,
-						salary_coverage: { from: plain_date(cycle.from), to: plain_date(cycle.to) },
+						salary_coverage: { from: cycle.from, to: cycle.to },
 						pay_date
 					},
 					code: settings.code,
@@ -387,15 +386,38 @@ export default model({
 					employee_id: idOf('employee_profile', slip.employee_id),
 					employment_id: idOf('employee_contract', slip.employment_id),
 					entity_id: idOf('entity', slip.entity_id),
-					basic_earnings: decimalText(slip.basic_earnings),
-					gross_earnings: decimalText(slip.gross_earnings),
-					net_pay: decimalText(slip.net_pay),
-					total_deductions: decimalText(slip.total_deductions),
-					employer_cost: decimalText(slip.employer_cost),
+					basic_earnings: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						maximumFractionDigits: 20
+					}).format(slip.basic_earnings),
+					gross_earnings: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						maximumFractionDigits: 20
+					}).format(slip.gross_earnings),
+					net_pay: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						maximumFractionDigits: 20
+					}).format(slip.net_pay),
+					total_deductions: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						maximumFractionDigits: 20
+					}).format(slip.total_deductions),
+					employer_cost: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						maximumFractionDigits: 20
+					}).format(slip.employer_cost),
 					period: slip.period,
-					ordinary_wages: decimalText(slip.ordinary_wages),
-					employee_statutory: decimalText(slip.employee_statutory),
-					tax_withheld: decimalText(slip.tax_withheld),
+					ordinary_wages: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						maximumFractionDigits: 20
+					}).format(slip.ordinary_wages),
+					employee_statutory: BigDecimal.format(
+						BigDecimal.fromNumberUnsafe(slip.employee_statutory)
+					),
+					tax_withheld: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						maximumFractionDigits: 20
+					}).format(slip.tax_withheld),
 					breakdown: slip.breakdown
 				}));
 				// what the run seals is linked at the revision it read: a row changed since is a conflict
@@ -493,7 +515,7 @@ export default model({
 						entity_id: row.entity_id,
 						employee_id: idOf('employee_profile', employee),
 						employment_id: idOf('employee_contract', slip.employment_id),
-						title: `Recover ${owed.toFixed(2)} outside payroll: the last payslip (${row.period}) ended at zero and no later run pays this person`,
+						title: `Recover ${new Intl.NumberFormat('en', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }).format(owed)} outside payroll: the last payslip (${row.period}) ended at zero and no later run pays this person`,
 						occurrence_key
 					});
 				}

@@ -1,6 +1,5 @@
-import { add_months } from './date.js';
 import type { EffectCtx } from '@norbital-ai/bolt';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import type { Json, JsonObject } from './payroll_engine/foundation.js';
 import { queryAllRows, type Reader } from './payroll_engine/reads.js';
 import { exitsIn, isExitDuty } from './dependants.js';
@@ -138,7 +137,9 @@ export const findings = (rows: Workspace, today: string): readonly Finding[] => 
 			});
 	}
 
-	const since = String(add_months(today, -WATCHED_MONTHS));
+	const since = DateTime.formatIsoDate(
+		DateTime.add(DateTime.makeUnsafe(today), { months: -WATCHED_MONTHS })
+	);
 	const watched = new Set(
 		(rows.payroll_run ?? [])
 			.filter((run) => run.state !== 'PAID' || String(run.pay_date) >= since)
@@ -214,7 +215,13 @@ export const verify = Effect.fn('integrity.verify')(function* (read: Reader, tod
 						is: {
 							or: [
 								{ state: { eq: 'UNPAID' } },
-								{ pay_date: { gte: String(add_months(today, -WATCHED_MONTHS)) } }
+								{
+									pay_date: {
+										gte: DateTime.formatIsoDate(
+											DateTime.add(DateTime.makeUnsafe(today), { months: -WATCHED_MONTHS })
+										)
+									}
+								}
 							]
 						}
 					}

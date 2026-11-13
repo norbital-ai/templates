@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Effect } from 'effect';
+	import { DateTime, Duration, Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
 	import {
 		DescriptionHint,
@@ -16,7 +16,8 @@
 		toast,
 		notify_outcome,
 		open_record,
-		type RecordView
+		type RecordView,
+		format
 	} from '@norbital-ai/ui';
 	import { Stack, Cluster } from '@norbital-ai/ui/layout';
 	import BalanceAdjustment from '../../../lib/ui/person/balance_adjustment.svelte';
@@ -24,8 +25,6 @@
 	import BalanceOverview from '../../../lib/ui/person/balance_overview.svelte';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
-	import { add_days, plain_date } from '../../../lib/date.js';
-	import { formatTermsDates } from '../../../lib/ui/format/display_formatters.js';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 
 	let { view, ctx }: { view: RecordView<'employee_profile'>; ctx: PageContext } = $props();
@@ -95,7 +94,9 @@
 					{
 						id: row.id,
 						entity: entity.name,
-						period: formatTermsDates(row, t),
+						period: format({ kind: 'period', of: 'date' }, row.effective_range, {
+							locale: ctx.locale
+						}),
 						from: String(row.effective_range.from),
 						to: row.effective_range.to == null ? null : String(row.effective_range.to),
 						sealed: row.status === 'SEALED',
@@ -121,16 +122,20 @@
 			};
 			const earlier = ordered.slice(index + 1).find((other) => other.sealed);
 			if (!row.sealed || earlier === undefined || earlier.to === null) return [item];
-			const from = add_days(plain_date(earlier.to), 1);
-			const to = add_days(plain_date(row.from), -1);
-			if (String(from) > String(to)) return [item];
-			const days = Math.round((Date.parse(String(to)) - Date.parse(String(from))) / 86_400_000) + 1;
+			const from = DateTime.add(DateTime.makeUnsafe(earlier.to), { days: 1 });
+			const to = DateTime.subtract(DateTime.makeUnsafe(row.from), { days: 1 });
+			if (DateTime.isGreaterThan(from, to)) return [item];
+			const days = Duration.toDays(DateTime.distance(from, to)) + 1;
 			return [
 				item,
 				{
 					id: `gap:${String(row.id)}`,
 					gap: true,
-					period: formatTermsDates({ effective_range: { from: String(from), to: String(to) } }, t),
+					period: format(
+						{ kind: 'period', of: 'date' },
+						{ from: DateTime.formatIsoDateUtc(from), to: DateTime.formatIsoDateUtc(to) },
+						{ locale: ctx.locale }
+					),
 					status: t('contract.gap'),
 					detail: t('contract.gap_detail', { days })
 				}
@@ -245,7 +250,7 @@
 	>{/snippet}
 {#snippet casesTab()}{#if record}{#if entityIds.length === 0}<EmptyState
 				title={t('app.cases.title')}
-			/>{:else}<Stack gap="sm"
+			/>{:else}<Stack size="fill" gap="sm"
 				><DescriptionHint text={t('v2.cases_entity_scope')} /><Table
 					{ctx}
 					of="workplace_case_catalog_entry"

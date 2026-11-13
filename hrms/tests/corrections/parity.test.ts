@@ -6,8 +6,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { add_days, instant, plain_date } from '../../src/lib/date.ts';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
@@ -170,7 +169,7 @@ const factsFrom = (from: string, facts: Facts) => (t: Kit) =>
 					family: facts.family ?? held.family,
 					employee_extension_data: facts.employee_extension_data ?? held.employee_extension_data,
 					service_started_on: held.service_started_on,
-					effective_range: { from: plain_date(from), to: null },
+					effective_range: { from, to: null },
 					status: 'DRAFT',
 					reason: 'A fact corrected'
 				}
@@ -185,7 +184,7 @@ const factsFrom = (from: string, facts: Facts) => (t: Kit) =>
 					set: {
 						effective_range: {
 							from: held.effective_range.from,
-							to: add_days(plain_date(from), -1)
+							to: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
 						}
 					}
 				}
@@ -399,7 +398,7 @@ const clocked = (): Seed => {
 const punched = (date: string) => (t: Kit) =>
 	Effect.gen(function* () {
 		const { roster_entry } = yield* storedQuery(t, {
-			roster_entry: { where: { work_date: { eq: plain_date(date) } }, limit: 1 }
+			roster_entry: { where: { work_date: { eq: date } }, limit: 1 }
 		});
 		const [day] = roster_entry.rows;
 		assert.ok(day !== undefined);
@@ -409,7 +408,10 @@ const punched = (date: string) => (t: Kit) =>
 					target: day,
 					set: {
 						actual_worked_intervals: [
-							{ start: instant(`${date}T00:00:00.000Z`), end: instant(`${date}T08:00:00.000Z`) }
+							{
+								start: DateTime.formatIso(DateTime.makeUnsafe(`${date}T00:00:00.000Z`)),
+								end: DateTime.formatIso(DateTime.makeUnsafe(`${date}T08:00:00.000Z`))
+							}
 						]
 					}
 				}
@@ -448,7 +450,7 @@ describe('a leave day corrected after the exit payslip was paid', () => {
 					{
 						target,
 						set: {
-							effective_range: { from: held.effective_range.from, to: plain_date(LAST) },
+							effective_range: { from: held.effective_range.from, to: LAST },
 							reason: 'Resignation'
 						}
 					}

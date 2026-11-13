@@ -1,5 +1,4 @@
-import { add_days, plain_date } from '../../../../lib/date.js';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { type EffectCtx } from '@norbital-ai/bolt';
 import { model } from '../../../../../.norbital/models/employee_contract.ts';
 import { assertFactsHold } from '../../../../lib/ledger/service.js';
@@ -293,7 +292,7 @@ const overlongShift = Effect.fnUntraced(function* (
 			if (minutes !== null && minutes > hours * 60)
 				return {
 					code: String(shift.code),
-					lasts: Math.round((minutes / 60) * 100) / 100,
+					lasts: new Intl.NumberFormat('en', { maximumFractionDigits: 2 }).format(minutes / 60),
 					hours
 				};
 		}
@@ -370,7 +369,9 @@ const startsMidMonth = Effect.fnUntraced(function* (
 		}
 	});
 	return mid.some((row) => {
-		const before = String(add_days(plain_date(row.effective_range.from), -1));
+		const before = DateTime.formatIsoDateUtc(
+			DateTime.add(DateTime.makeUnsafe(row.effective_range.from), { days: -1 })
+		);
 		return held.some((other) => {
 			const { to } = objectValue(other.effective_range);
 			return other.employee_id === row.employee_id && (typeof to !== 'string' || to >= before);
@@ -489,7 +490,9 @@ const reachOf = (
 		{
 			...next,
 			effective_range: {
-				from: continues(earlier) ? String(add_days(plain_date(earlier), 1)) : earlier,
+				from: continues(earlier)
+					? DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(earlier), { days: 1 }))
+					: earlier,
 				to: later
 			}
 		}
@@ -814,7 +817,6 @@ export default model({
 					return match === null ? max : Math.max(max, Number(match[1] ?? 0));
 				}, 0) + 1;
 			const assigned = new Map<string, string>();
-			const reference = (value: number) => `HR-${String(value).padStart(4, '0')}`;
 			return {
 				sets: rows.map((row) => {
 					if (row.employee_number != null && row.employee_number !== '') return row;
@@ -824,7 +826,7 @@ export default model({
 						return { ...row, employee_number: heldNumber };
 					const assignedNumber = assigned.get(employee);
 					if (assignedNumber !== undefined) return { ...row, employee_number: assignedNumber };
-					const number = reference(next++);
+					const number = `HR-${new Intl.NumberFormat('en', { minimumIntegerDigits: 4, useGrouping: false }).format(next++)}`;
 					assigned.set(employee, number);
 					return { ...row, employee_number: number };
 				}),
@@ -943,14 +945,16 @@ export default model({
 					changes.flatMap((change) =>
 						reachOf(change, (day) =>
 							successors.has(
-								`${String(change.before.employee_id)}/${String(add_days(plain_date(day), 1))}`
+								`${String(change.before.employee_id)}/${DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(day), { days: 1 }))}`
 							)
 						).flatMap(({ effective_range }) => {
 							const employee = String(change.before.employee_id);
 							const touched = { employee, from: effective_range.from, to: effective_range.to };
 							// a version sealed the day after another ended takes the exit away from that last day: a
 							// payslip that settled it is worked out again
-							const before = String(add_days(plain_date(effective_range.from), -1));
+							const before = DateTime.formatIsoDateUtc(
+								DateTime.add(DateTime.makeUnsafe(effective_range.from), { days: -1 })
+							);
 							return change.before.status !== 'SEALED' && change.set.status === 'SEALED'
 								? [touched, { employee, from: before, to: before, soft: true }]
 								: [touched];

@@ -4,13 +4,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import { viewOf } from '../../src/lib/ledger/core.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { ENTITY, accountsIn, catalogRow, pack, storedQuery, uuid, workspace } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 type Seed = ReturnType<typeof pack>;
@@ -46,8 +44,8 @@ const enter = (t: Kit, seed: Seed, code: string, quantity: number, on: string) =
 					employment_id: CONTRACT,
 					catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', code)),
 					description: code,
-					quantity: decimalText(quantity),
-					incurred_on: plain_date(on)
+					quantity: String(quantity),
+					incurred_on: on
 				}
 			]
 		})

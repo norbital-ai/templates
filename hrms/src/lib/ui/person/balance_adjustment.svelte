@@ -6,7 +6,6 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Id, PlainDate } from '@norbital-ai/bolt';
-	import { plain_date } from '../../date.js';
 	import {
 		Button,
 		Combobox,
@@ -20,7 +19,6 @@
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import { versionOn } from '../../payroll_engine/contract_change.js';
-	import { decimalText } from '../../payroll_engine/money.js';
 
 	let {
 		ctx,
@@ -35,7 +33,7 @@
 	} = $props();
 	const t = ctx.t;
 	const clock = ctx.clock('day');
-	let date = $state<PlainDate>(plain_date(clock.today));
+	let date = $state<PlainDate>(clock.today);
 	let chosen = $state<string | null>(null);
 	let amount = $state<number | null>(null);
 	let note = $state('');
@@ -130,7 +128,10 @@
 							account,
 							code: chosen.slice(chosen.indexOf(':') + 1),
 							measure: account === 'claim' ? 'limit' : 'entitled',
-							amount: decimalText(Math.abs(amount)),
+							amount: new Intl.NumberFormat('en', {
+								useGrouping: false,
+								maximumFractionDigits: 20
+							}).format(Math.abs(amount)),
 							unit,
 							effective_on: date,
 							note: note.trim()
@@ -170,7 +171,7 @@
 				kind={{ kind: 'date' }}
 				value={date}
 				disabled={saving}
-				on_change={(next) => next != null && (date = plain_date(String(next)))}
+				on_change={(next) => next != null && (date = String(next))}
 			/>
 		</label>
 		<label class="grid gap-1" for="balance-adjust-row">

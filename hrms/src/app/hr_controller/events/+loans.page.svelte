@@ -3,14 +3,12 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput } from '@norbital-ai/bolt';
-	import { plain_date } from '../../../lib/date.js';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState, RecordShell, Sheet } from '@norbital-ai/ui';
 	import SealedBadge from '../../../lib/ui/payroll/sealed_badge.svelte';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { numberOf } from '../../../lib/payroll_engine/foundation.js';
-	import { decimalText } from '../../../lib/payroll_engine/money.js';
 	import {
 		parseLoanSheet,
 		parseRepaymentSheet
@@ -107,10 +105,13 @@
 			entity_id: row.entity_id,
 			employment_id: row.employment_id,
 			catalog_id: row.catalog_id,
-			quantity: decimalText(row.quantity),
+			quantity: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				maximumFractionDigits: 20
+			}).format(row.quantity),
 			repayment_period: {
-				from: plain_date(row.repayment_from),
-				to: plain_date(row.repayment_to)
+				from: row.repayment_from,
+				to: row.repayment_to
 			}
 		}));
 	}
@@ -141,8 +142,10 @@
 			entity_id: row.entity_id,
 			employment_id: row.employment_id,
 			loan_id: row.loan_id,
-			amount: decimalText(row.amount),
-			paid_on: plain_date(row.paid_on)
+			amount: new Intl.NumberFormat('en', { useGrouping: false, maximumFractionDigits: 20 }).format(
+				row.amount
+			),
+			paid_on: row.paid_on
 		}));
 	}
 
@@ -193,43 +196,39 @@
 	icon="lucide:landmark"
 >
 	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
-	{#if scope.id === null}<EmptyState title={ctx.t('app.events.empty_scope')} />{:else}<Stack
-			gap="lg"
-		>
-			<Table
-				{ctx}
-				of="loan_catalog_entry"
-				key="loans"
-				where={{ entity_id: { eq: scope.id } }}
-				toolbar={{
-					new: () => (creating = true),
-					title: ctx.t('app.loans.title'),
-					actions: [
-						{
-							run: importLoans,
-							icon: 'lucide:file-spreadsheet',
-							name: ctx.t('holiday_calendar.import_spreadsheet'),
-							disabled: () =>
-								importingLoans || held?.current == null ? ctx.t('component.loading') : null
-						},
-						{
-							run: importRepayments,
-							icon: 'lucide:file-spreadsheet',
-							name: ctx.t('v2.import_repayments'),
-							disabled: () =>
-								importingRepayments || held?.current == null ? ctx.t('component.loading') : null
-						}
-					]
-				}}
-				columns={[
-					'employment_id',
-					'catalog_id',
-					'quantity',
-					'repayment_period',
-					{ field: 'payroll_run_id', cell: sealCell }
-				]}
-			/>
-		</Stack>{/if}
+	{#if scope.id === null}<EmptyState title={ctx.t('app.events.empty_scope')} />{:else}<Table
+			{ctx}
+			of="loan_catalog_entry"
+			key="loans"
+			where={{ entity_id: { eq: scope.id } }}
+			toolbar={{
+				new: () => (creating = true),
+				title: ctx.t('app.loans.title'),
+				actions: [
+					{
+						run: importLoans,
+						icon: 'lucide:file-spreadsheet',
+						name: ctx.t('holiday_calendar.import_spreadsheet'),
+						disabled: () =>
+							importingLoans || held?.current == null ? ctx.t('component.loading') : null
+					},
+					{
+						run: importRepayments,
+						icon: 'lucide:file-spreadsheet',
+						name: ctx.t('v2.import_repayments'),
+						disabled: () =>
+							importingRepayments || held?.current == null ? ctx.t('component.loading') : null
+					}
+				]
+			}}
+			columns={[
+				'employment_id',
+				'catalog_id',
+				'quantity',
+				'repayment_period',
+				{ field: 'payroll_run_id', cell: sealCell }
+			]}
+		/>{/if}
 </AppShell>
 {#if creating && scope.id !== null}<Sheet
 		open

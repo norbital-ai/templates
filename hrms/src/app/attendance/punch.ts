@@ -1,8 +1,6 @@
 import type { Id, Row } from '@norbital-ai/bolt';
 import type { PageContext } from '@norbital-ai/bolt/page';
-import { instant, plain_date } from '../../lib/date.js';
-import { Clock, Effect } from 'effect';
-import { calendarDateInTimeZone } from '../../lib/payroll_engine/foundation.js';
+import { Clock, DateTime, Effect } from 'effect';
 /** What a punch answers: the half of the day it wrote, or why nothing was written. */
 export type PunchResult = {
 	readonly status: 'in' | 'out' | 'blocked';
@@ -30,7 +28,7 @@ export const punchWork = Effect.fnUntraced(function* (
 	employment_id: Id<'employee_contract'>,
 	kind: 'FACE' | 'MANUAL'
 ) {
-	const capturedAt = new Date(yield* Clock.currentTimeMillis);
+	const capturedAt = yield* Clock.currentTimeMillis;
 	const assignment = yield* ctx.query({
 			employee_contract: {
 				output: 'kiosk',
@@ -62,7 +60,9 @@ export const punchWork = Effect.fnUntraced(function* (
 		}
 	});
 	const law = policies.jurisdiction_settings.rows.filter((s) => {
-		const d = calendarDateInTimeZone(capturedAt, s.timezone);
+		const d = DateTime.formatIsoDate(
+			DateTime.makeZonedUnsafe(capturedAt, { timeZone: s.timezone })
+		);
 		return (
 			s.effective_range.from <= d && (s.effective_range.to === null || s.effective_range.to >= d)
 		);
@@ -70,15 +70,17 @@ export const punchWork = Effect.fnUntraced(function* (
 	if (law.length !== 1)
 		throw new Error('Attendance requires one sealed effective jurisdiction time zone.');
 	const employers = policies.entity_profile_version.rows.filter((e) => {
-		const d = calendarDateInTimeZone(capturedAt, e.time_zone ?? law[0]!.timezone);
+		const d = DateTime.formatIsoDate(
+			DateTime.makeZonedUnsafe(capturedAt, { timeZone: e.time_zone ?? law[0]!.timezone })
+		);
 		return (
 			e.effective_range.from <= d && (e.effective_range.to === null || e.effective_range.to >= d)
 		);
 	});
 	if (employers.length !== 1)
 		throw new Error('Attendance requires one effective employer payroll version.');
-	const day = plain_date(
-		calendarDateInTimeZone(capturedAt, employers[0]!.time_zone ?? law[0]!.timezone)
+	const day = DateTime.formatIsoDate(
+		DateTime.makeZonedUnsafe(capturedAt, { timeZone: employers[0]!.time_zone ?? law[0]!.timezone })
 	);
 	const { roster_entry } = yield* ctx.query({
 		roster_entry: {
@@ -103,7 +105,7 @@ export const punchWork = Effect.fnUntraced(function* (
 				retryAfterMs: PUNCH_COOLDOWN_MS - elapsed
 			};
 	}
-	const time = instant(new Date(nowMs).toISOString());
+	const time = DateTime.formatIso(DateTime.makeUnsafe(nowMs));
 	if (row == null) {
 		const created = yield* ctx.act({
 			'roster_entry.create': [

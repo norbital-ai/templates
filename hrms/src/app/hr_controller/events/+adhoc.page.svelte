@@ -3,14 +3,12 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput } from '@norbital-ai/bolt';
-	import { plain_date } from '../../../lib/date.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState, RecordShell, Sheet } from '@norbital-ai/ui';
 	import SealedBadge from '../../../lib/ui/payroll/sealed_badge.svelte';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { numberOf } from '../../../lib/payroll_engine/foundation.js';
-	import { decimalText } from '../../../lib/payroll_engine/money.js';
 	import { parseAdhocSheet } from '../../../lib/payroll_engine/entry_workbook.js';
 	import {
 		runWorkbookImport,
@@ -90,9 +88,12 @@
 			employment_id: row.employment_id,
 			catalog_id: row.catalog_id,
 			description: row.description ?? '',
-			quantity: decimalText(row.quantity),
+			quantity: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				maximumFractionDigits: 20
+			}).format(row.quantity),
 			unit: 'MONEY',
-			incurred_on: plain_date(row.incurred_on)
+			incurred_on: row.incurred_on
 		}));
 	}
 

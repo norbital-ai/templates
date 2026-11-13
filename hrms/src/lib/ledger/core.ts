@@ -1,5 +1,5 @@
 import { settingsConstants } from '../payroll_engine/contracts.js';
-import { add_months } from '../date.js';
+import { BigDecimal, DateTime } from 'effect';
 import {
 	completedMonths,
 	isJsonObject,
@@ -39,8 +39,6 @@ export type Movement = Key & {
 };
 export type Accounts = Record<string, Record<string, Record<string, Record<string, number>>>>;
 
-// the ledger keeps fewer digits than a sum of floats: dust is neither a shortfall nor a movement
-const dust = (value: number) => Number(value.toFixed(8));
 const MEASURE_SET: ReadonlySet<string> = new Set(MEASURES);
 export const isMeasure = (value: unknown): value is Measure =>
 	typeof value === 'string' && MEASURE_SET.has(value);
@@ -80,7 +78,12 @@ export const diff = (
 	return [...new Set([...lines.keys(), ...nets.keys()])].flatMap((path) => {
 		const want = lines.get(path);
 		const held = nets.get(path);
-		const delta = dust((want?.amount ?? 0) - (held?.net ?? 0));
+		// the ledger keeps fewer digits than a sum of floats: dust is neither a shortfall nor a movement
+		const delta = BigDecimal.toNumberUnsafe(
+			BigDecimal.round(BigDecimal.fromNumberUnsafe((want?.amount ?? 0) - (held?.net ?? 0)), {
+				scale: 8
+			})
+		);
 		const key = want ?? held?.key;
 		if (delta === 0 || key === undefined) return [];
 		return [
@@ -111,7 +114,12 @@ export const apply = (accounts: Accounts, movements: readonly Movement[]): Accou
 			if (Object.keys(period).length === 0) delete code[row.period];
 			if (Object.keys(code).length === 0) delete family[row.code];
 			if (Object.keys(family).length === 0) delete next[row.account];
-		} else period[row.measure] = dust((period[row.measure] ?? 0) + signed(row));
+		} else
+			period[row.measure] = BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe((period[row.measure] ?? 0) + signed(row)), {
+					scale: 8
+				})
+			);
 	}
 	return next;
 };
@@ -216,18 +224,31 @@ export const windowStart = (window: Window, on: string, started: string): string
 	const months = () => completedMonths(started, on);
 	switch (window.kind) {
 		case 'YEAR': {
-			const year = Number(on.slice(0, 4));
-			const month = String(window.start_month).padStart(2, '0');
-			return `${on.slice(5, 7) >= month ? year : year - 1}-${month}-01`;
+			const at = DateTime.makeUnsafe(on);
+			return DateTime.formatIsoDate(
+				DateTime.makeUnsafe({
+					year:
+						DateTime.getPartUtc(at, 'year') -
+						(DateTime.getPartUtc(at, 'month') >= window.start_month ? 0 : 1),
+					month: window.start_month,
+					day: 1
+				})
+			);
 		}
 		case 'MONTH':
-			return `${on.slice(0, 7)}-01`;
+			return DateTime.formatIsoDate(DateTime.startOf(DateTime.makeUnsafe(on), 'month'));
 		case 'SERVICE_YEAR': {
 			const years = Math.max(0, Math.floor((months() - window.offset_months) / 12));
-			return String(add_months(started, window.offset_months + years * 12));
+			return DateTime.formatIsoDate(
+				DateTime.add(DateTime.makeUnsafe(started), { months: window.offset_months + years * 12 })
+			);
 		}
 		case 'BLOCK':
-			return String(add_months(started, Math.floor(months() / window.months) * window.months));
+			return DateTime.formatIsoDate(
+				DateTime.add(DateTime.makeUnsafe(started), {
+					months: Math.floor(months() / window.months) * window.months
+				})
+			);
 		case 'LIFETIME':
 			return started;
 		case 'EVENT':
@@ -305,15 +326,22 @@ export const nextWindow = (window: Window, on: string, started: string): string 
 	const from = windowStart(window, on, started);
 	switch (window.kind) {
 		case 'YEAR':
-			return String(add_months(from, 12));
+			return DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { months: 12 }));
 		case 'MONTH':
-			return String(add_months(from, 1));
+			return DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { months: 1 }));
 		case 'SERVICE_YEAR':
-			return on < String(add_months(started, window.offset_months))
-				? String(add_months(started, window.offset_months))
-				: String(add_months(from, 12));
+			return on <
+				DateTime.formatIsoDate(
+					DateTime.add(DateTime.makeUnsafe(started), { months: window.offset_months })
+				)
+				? DateTime.formatIsoDate(
+						DateTime.add(DateTime.makeUnsafe(started), { months: window.offset_months })
+					)
+				: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { months: 12 }));
 		case 'BLOCK':
-			return String(add_months(from, window.months));
+			return DateTime.formatIsoDate(
+				DateTime.add(DateTime.makeUnsafe(from), { months: window.months })
+			);
 		case 'LIFETIME':
 		case 'EVENT':
 			return undefined;
@@ -327,8 +355,14 @@ export const expired = (
 	today: string,
 	yearsHeld: number
 ): readonly Movement[] => {
-	const oldestMonth = String(add_months(`${today.slice(0, 7)}-01`, -MONTHS_HELD - 1));
-	const oldestYear = String(add_months(`${today.slice(0, 4)}-01-01`, -12 * yearsHeld));
+	const oldestMonth = DateTime.formatIsoDate(
+		DateTime.subtract(DateTime.startOf(DateTime.makeUnsafe(today), 'month'), {
+			months: MONTHS_HELD + 1
+		})
+	);
+	const oldestYear = DateTime.formatIsoDate(
+		DateTime.subtract(DateTime.startOf(DateTime.makeUnsafe(today), 'year'), { years: yearsHeld })
+	);
 	const moves: Movement[] = [];
 	for (const [account, codes] of Object.entries(accounts))
 		for (const [code, periods] of Object.entries(codes))
@@ -370,7 +404,11 @@ export const viewOf = (
 	payDate: string
 ): JsonObject => {
 	const year = periodKey(scope, { kind: 'YEAR', start_month: taxYearStart }, payDate, payDate);
-	const oldest = String(add_months(`${payDate.slice(0, 7)}-01`, -MONTHS_HELD)).slice(0, 7);
+	const oldest = DateTime.formatIsoDate(
+		DateTime.subtract(DateTime.startOf(DateTime.makeUnsafe(payDate), 'month'), {
+			months: MONTHS_HELD
+		})
+	).slice(0, 7);
 	const families = [
 		['pay', 'total'],
 		['statutory', 'paid']

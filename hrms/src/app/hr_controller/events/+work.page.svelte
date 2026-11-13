@@ -2,17 +2,18 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { EmptyState, TimeInput } from '@norbital-ai/ui';
-	import { month_of } from '../../../lib/date.js';
+	import { DateTime } from 'effect';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
-	import { todayKey } from '../../../lib/ui/format/calendar.js';
 	import MonthBoard from '../../../lib/ui/roster/month_board.svelte';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);
-	const today = todayKey();
+	const today = ctx.clock().today;
 	let month = $state<string>(String(today).slice(0, 7));
 	const from = $derived(`${month}-01`);
-	const to = $derived(String(month_of(from).to ?? from));
+	const to = $derived(
+		DateTime.formatIsoDateUtc(DateTime.endOf(DateTime.makeUnsafe(from), 'month'))
+	);
 </script>
 
 {#snippet board()}{#if scope.company !== null}<MonthBoard

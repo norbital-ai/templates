@@ -1,6 +1,6 @@
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { model } from '../../../../.norbital/models/jurisdiction_settings.ts';
-import { instant } from '../../../lib/date.js';
+import { DateTime } from 'effect';
 import { sealConfiguration } from '../../../lib/payroll_engine/sealing.js';
 import { rangeObject } from '../../../lib/payroll_engine/registrations.js';
 import { amendmentsOf, versionReach } from '../../../lib/amendments.js';
@@ -276,7 +276,10 @@ export default model({
 						'ledger',
 						{},
 						from > String(ctx.today)
-							? { at: instant(`${from}T00:00:00Z`), key: `ledger:${from}` }
+							? {
+									at: DateTime.formatIso(DateTime.makeUnsafe(`${from}T00:00:00Z`)),
+									key: `ledger:${from}`
+								}
 							: { key: 'ledger' }
 					);
 				}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Id } from '@norbital-ai/bolt';
-	import { plain_date } from '../../date.js';
 	import {
 		Field,
 		Form,
@@ -43,7 +42,7 @@
 		values={{
 			...(chosen === null ? {} : { employment_id: chosen }),
 			entity_id: companyId,
-			incurred_on: plain_date(clock.today)
+			incurred_on: clock.today
 		}}
 		submit={ctx.t('leave.submit')}
 		on_outcome={(outcome) => {

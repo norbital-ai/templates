@@ -439,8 +439,6 @@ export default messages({
 	'roster.person': 'Person',
 	'roster.public_holiday': 'Public holiday',
 	'roster.public_holiday_mark': 'PH',
-	'component.revision_from': 'from {start}',
-	'component.revision_between': '{start} – {end}',
 	'app.adhoc.title': 'Ad hoc',
 	'settings_version.seal': 'Seal version',
 	'settings_version.void': 'Void version',

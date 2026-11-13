@@ -4,21 +4,18 @@
 	 * derived from its employment contracts' ranges, never stored) and one profile per person employed there.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { AppShell, Columns, Split, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Columns, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { DescriptionHint, Chart, EmptyState, Table, Tabs } from '@norbital-ai/ui';
-	import { add_days } from '../../../lib/date.js';
-	import { todayKey } from '../../../lib/ui/format/calendar.js';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
-	import { decodeNumber } from '../../../lib/payroll_engine/foundation.js';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
+	import { BigDecimal, DateTime, Effect } from 'effect';
 	import { importDataRequest } from '../../../lib/ui/workbook/data_request_import.js';
 	let { ctx }: { ctx: PageContext } = $props();
 
 	const clock = ctx.clock('day');
 	const scope = companyScope(ctx);
-	const today = todayKey();
+	const today = $derived(String(clock.today));
 	const employee_contracts = $derived.by(() =>
 		scope.id == null
 			? null
@@ -46,7 +43,9 @@
 			if (
 				previous?.employee === row.employee_id &&
 				!previous.exit &&
-				(previous.end === '9999-12-31' || add_days(previous.end, 1) >= row.effective_range.from)
+				(previous.end === '9999-12-31' ||
+					DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(previous.end), { days: 1 })) >=
+						row.effective_range.from)
 			) {
 				previous.end = end;
 				previous.exit = row.status === 'VOID';
@@ -67,20 +66,22 @@
 	const HIRES = $derived(ctx.t('app.people.chart_hire_rate'));
 	// a rate in percent, one decimal: the chart's axis reads 4.2, not 0.042
 	const rate = (count: number, average: number) =>
-		average > 0 ? Math.round((count / average) * 1000) / 10 : 0;
+		average > 0
+			? BigDecimal.toNumberUnsafe(
+					BigDecimal.round(BigDecimal.fromNumberUnsafe((count / average) * 100), {
+						scale: 1,
+						mode: 'half-ceil'
+					})
+				)
+			: 0;
 	/** The last twelve payroll months: leavers and hires over the month's average headcount. */
 	const trend = $derived.by(() => {
-		const parts = today.split('-');
-		if (parts.length !== 3) return [];
-		const year = decodeNumber(parts[0]);
-		const month = decodeNumber(parts[1]);
+		const thisMonth = DateTime.startOf(DateTime.makeUnsafe(today), 'month');
 		return Array.from({ length: 12 }, (_, offset) => {
-			const first = new Date(Date.UTC(year, month - 12 + offset, 1));
-			const key = first.toISOString().slice(0, 7);
-			const start = `${key}-01`;
-			const end = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0))
-				.toISOString()
-				.slice(0, 10);
+			const first = DateTime.add(thisMonth, { months: offset - 11 });
+			const start = DateTime.formatIsoDateUtc(first);
+			const end = DateTime.formatIsoDateUtc(DateTime.endOf(first, 'month'));
+			const key = start.slice(0, 7);
 			const opening = ranges.filter((r) => r.start < start && r.end >= start).length;
 			const closing = ranges.filter((r) => r.start <= end && r.end >= end).length;
 			const average = (opening + closing) / 2;
@@ -93,16 +94,12 @@
 			};
 		});
 	});
-	const turnover = $derived(
-		trend.reduce((sum, m) => sum + decodeNumber(m[TURNOVER]), 0) / trend.length
-	);
+	const turnover = $derived(trend.reduce((sum, m) => sum + Number(m[TURNOVER]), 0) / trend.length);
 	let importing = $state(false);
 	function importRequest() {
 		importing = true;
 		fork(importDataRequest(ctx).pipe(Effect.ensuring(Effect.sync(() => (importing = false)))));
 	}
-	const percent = (n: number) =>
-		(n / 100).toLocaleString(ctx.locale, { style: 'percent', maximumFractionDigits: 1 });
 </script>
 
 {#snippet empty(message: string)}
@@ -130,7 +127,12 @@
 					<p class="text-xs font-medium text-muted-foreground">
 						{ctx.t('app.people.turnover_12m')}
 					</p>
-					<p class="text-section tabular-nums">{percent(turnover)}</p>
+					<p class="text-section tabular-nums">
+						{new Intl.NumberFormat(ctx.locale, {
+							style: 'percent',
+							maximumFractionDigits: 1
+						}).format(turnover / 100)}
+					</p>
 				</Stack>
 			</Columns>
 		{/if}
@@ -152,7 +154,16 @@
 {/snippet}
 
 {#snippet overview()}
-	<Split ratio="third" collapse="stack" collapse_at="narrow" gap="lg" start={summary} end={chart} />
+	<Scroll name={ctx.t('component.tab_overview')} size="fill" inset>
+		<Split
+			ratio="third"
+			collapse="stack"
+			collapse_at="narrow"
+			gap="lg"
+			start={summary}
+			end={chart}
+		/>
+	</Scroll>
 {/snippet}
 
 {#snippet profiles()}

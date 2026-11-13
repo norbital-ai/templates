@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { attach, fork } from '@norbital-ai/ui/effect';
-	import { Clock, Duration, Effect, Schedule, Schema } from 'effect';
+	import { Clock, DateTime, Duration, Effect, Schedule, Schema } from 'effect';
 	import type Human from '@vladmandic/human';
 	import type { ActInput, Id } from '@norbital-ai/bolt';
 	import { file_ref } from '@norbital-ai/bolt/page';
-	import { instant } from '../../date.js';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { DescriptionHint, Button, Icon, Spinner } from '@norbital-ai/ui';
 	import { Cluster, Columns, Frame, Grid, Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
@@ -351,7 +350,7 @@
 				return yield* Effect.fail(enrollmentFailed(ctx.t('face.upload_unavailable')));
 			const file = yield* canvasToFile(photo.canvas);
 			const facePhoto = yield* upload(file, 'employee_profile.face_photo');
-			const now = instant(new Date(yield* Clock.currentTimeMillis));
+			const now = DateTime.formatIso(DateTime.makeUnsafe(yield* Clock.currentTimeMillis));
 			const payload: ActInput<'employee_profile.update'> = [
 				{
 					target,
@@ -439,7 +438,9 @@
 					align="center"
 					class="text-meta {pose === target ? 'text-foreground' : ''}"
 					data-pose={pose}
-					data-pose-progress={done ? 1 : Math.round(progress * 100) / 100}
+					data-pose-progress={done
+						? 1
+						: new Intl.NumberFormat('en', { maximumFractionDigits: 2 }).format(progress)}
 				>
 					<svg viewBox="0 0 40 40" class="size-10" aria-hidden="true">
 						<circle

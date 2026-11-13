@@ -1,5 +1,6 @@
 import type { InputFields } from '@norbital-ai/bolt';
-import { fixed, money, type ExportFormat } from './export_format.js';
+import { BigDecimal } from 'effect';
+import { fixed, type ExportFormat } from './export_format.js';
 
 const schema = { line: { kind: 'text' } } as const satisfies InputFields;
 
@@ -16,7 +17,20 @@ export const ocbcFast = {
 				fixed('D', 1),
 				fixed(row.bank_code, 8),
 				fixed(row.bank_account_number, 20),
-				money(row.net_pay, 15),
+				// the amount in cents
+				fixed(
+					String(
+						BigDecimal.scale(
+							BigDecimal.round(BigDecimal.fromNumberUnsafe(row.net_pay), {
+								scale: 2,
+								mode: 'half-ceil'
+							}),
+							2
+						).value
+					),
+					15,
+					'right'
+				),
 				fixed(row.employee_name, 40),
 				fixed(row.employee_number, 20),
 				fixed(row.currency, 3)
@@ -34,7 +48,20 @@ export const metroBank = {
 				fixed('PAY', 3),
 				fixed(row.bank_code, 4),
 				fixed(row.bank_account_number, 18),
-				money(row.net_pay, 12),
+				// the amount in cents
+				fixed(
+					String(
+						BigDecimal.scale(
+							BigDecimal.round(BigDecimal.fromNumberUnsafe(row.net_pay), {
+								scale: 2,
+								mode: 'half-ceil'
+							}),
+							2
+						).value
+					),
+					12,
+					'right'
+				),
 				fixed(row.bank_account_name.toUpperCase(), 30),
 				fixed(row.employee_number, 12)
 			].join('')

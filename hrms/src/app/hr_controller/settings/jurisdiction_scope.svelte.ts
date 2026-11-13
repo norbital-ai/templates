@@ -1,6 +1,6 @@
 import type { Id } from '@norbital-ai/bolt';
 import type { PageContext } from '@norbital-ai/bolt/page';
-import type { ComboboxOption } from '@norbital-ai/ui';
+import { format, type ComboboxOption } from '@norbital-ai/ui';
 /**
  * The Settings app's scope: which law, and which version of it.
  *
@@ -9,13 +9,12 @@ import type { ComboboxOption } from '@norbital-ai/ui';
  * effective range with its state badge as the description. Only a version is an option: a lineage is a family of snapshots,
  * and "the MY settings" is not a thing the page can show.
  */
-import { formatSettingsRange } from '../../../lib/ui/format/display_formatters.js';
 import {
 	covers_day,
+	governed,
 	is_in_force_candidate,
 	newest_first
 } from '../../../lib/ui/scopes/settings_scope.js';
-import { todayKey } from '../../../lib/ui/format/calendar.js';
 
 /** What a selected node carries back to the page, so it never re-reads the tree to find it. */
 type JurisdictionScopeNode = Readonly<{
@@ -49,8 +48,10 @@ function lineages(versions: Versions): ReadonlyArray<readonly [string, Jurisdict
 }
 
 /** The version of a lineage in force today, else its newest. The page's default selection. */
-function defaultVersionOf(rows: readonly JurisdictionScopeRow[]): JurisdictionScopeRow | undefined {
-	const today = todayKey();
+function defaultVersionOf(
+	rows: readonly JurisdictionScopeRow[],
+	today: string
+): JurisdictionScopeRow | undefined {
 	return (
 		rows.find((row) => is_in_force_candidate(row) && covers_day(row.effective_range, today)) ??
 		rows[0]
@@ -63,7 +64,8 @@ function defaultVersionOf(rows: readonly JurisdictionScopeRow[]): JurisdictionSc
  */
 export function resolveJurisdictionScope(
 	versions: Versions,
-	selectedVersionId: Id<'jurisdiction_settings'> | null
+	selectedVersionId: Id<'jurisdiction_settings'> | null,
+	today: string
 ): JurisdictionScopeNode | null {
 	const all = lineages(versions);
 	if (selectedVersionId != null) {
@@ -74,7 +76,7 @@ export function resolveJurisdictionScope(
 	}
 	const first = all[0];
 	if (first === undefined) return null;
-	return { code: first[0], versionId: defaultVersionOf(first[1])?.id ?? null };
+	return { code: first[0], versionId: defaultVersionOf(first[1], today)?.id ?? null };
 }
 
 /**
@@ -82,10 +84,10 @@ export function resolveJurisdictionScope(
  * newest first, each named by its effective range with its state beside it, so the one in force reads at a glance.
  */
 export function jurisdictionOptions(
-	ctx: Pick<PageContext, 't'>,
+	ctx: Pick<PageContext, 't' | 'locale' | 'clock'>,
 	versions: Versions
 ): ComboboxOption<Id<'jurisdiction_settings'>>[] {
-	const today = todayKey();
+	const today = ctx.clock().today;
 	return lineages(versions).flatMap(([code, rows]) =>
 		rows.map((row) => {
 			const inForce = is_in_force_candidate(row) && covers_day(row.effective_range, today);
@@ -97,7 +99,9 @@ export function jurisdictionOptions(
 						: row.status === 'SEALED'
 							? (['lucide:lock', ctx.t('app.settings.version_sealed')] as const)
 							: (['lucide:pencil', ctx.t('app.settings.version_draft')] as const);
-			const range = formatSettingsRange(row.effective_range);
+			const range = format({ kind: 'period', of: 'date' }, governed(row.effective_range), {
+				locale: ctx.locale
+			});
 			return {
 				value: row.id,
 				label: range,

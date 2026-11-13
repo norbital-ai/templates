@@ -3,7 +3,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Caller, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
@@ -20,7 +19,6 @@ import {
 	current,
 	decimalNumber
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const NOW = '2026-02-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -90,8 +88,8 @@ const claimOf = (quantity: number) => ({
 	entity_id: ENTITY,
 	employment_id: CONTRACT,
 	catalog_id: CLAIM,
-	quantity: decimalText(quantity),
-	incurred_on: plain_date(DAY)
+	quantity: String(quantity),
+	incurred_on: DAY
 });
 const claim = (by: Caller, quantity: number) =>
 	by.act({ 'claim_catalog_entry.create': [claimOf(quantity)] }).pipe(
@@ -383,7 +381,7 @@ describe('requested changes', () => {
 					current(t, 'claim_catalog_entry', asked.id).pipe(
 						Effect.flatMap((target) =>
 							by.act({
-								'claim_catalog_entry.update': [{ target, set: { quantity: decimalText(quantity) } }]
+								'claim_catalog_entry.update': [{ target, set: { quantity: String(quantity) } }]
 							})
 						)
 					);

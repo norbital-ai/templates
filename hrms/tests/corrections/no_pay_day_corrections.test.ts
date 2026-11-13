@@ -4,7 +4,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, ownLines, pay, run } from '../amendment_kit.ts';
@@ -29,8 +28,8 @@ const seed = pack(
 	'2026-06-15'
 );
 const whole = (date: string) => [
-	{ date: plain_date(date), part: 'AM' as const },
-	{ date: plain_date(date), part: 'PM' as const }
+	{ date, part: 'AM' as const },
+	{ date, part: 'PM' as const }
 ];
 const entry = (t: Kit) =>
 	t.as(t.admin).pipe(

@@ -4,7 +4,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
@@ -158,7 +157,7 @@ describe('a birth on the contract', () => {
 						payroll: held.payroll,
 						bank: held.bank,
 						employee_extension_data: held.employee_extension_data,
-						events: [{ kind: BIRTH.kind, on: plain_date(BIRTH.on) }],
+						events: [{ kind: BIRTH.kind, on: BIRTH.on }],
 						service_started_on: held.service_started_on,
 						effective_range: { from: '2026-07-01', to: null },
 						signed_contract_period: held.signed_contract_period,

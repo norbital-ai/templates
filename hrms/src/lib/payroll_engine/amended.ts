@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { BigDecimal, DateTime, Effect } from 'effect';
 import {
 	accountsOf,
 	apply,
@@ -85,14 +85,18 @@ const net = (rows: readonly Wanted[]): Map<string, Wanted> => {
 	}
 	return held;
 };
-const dust = (value: number) => Number(value.toFixed(8));
 /** What takes `paid` to `due`, key by key. */
 const postingsBetween = (due: readonly Wanted[], paid: readonly Wanted[]): readonly Wanted[] => {
 	const wanted = net(due);
 	const had = net(paid);
 	return unique([...wanted.keys(), ...had.keys()]).flatMap((key) => {
 		const row = wanted.get(key) ?? had.get(key);
-		const amount = dust((wanted.get(key)?.amount ?? 0) - (had.get(key)?.amount ?? 0));
+		const amount = BigDecimal.toNumberUnsafe(
+			BigDecimal.round(
+				BigDecimal.fromNumberUnsafe((wanted.get(key)?.amount ?? 0) - (had.get(key)?.amount ?? 0)),
+				{ scale: 8 }
+			)
+		);
 		return row === undefined || amount === 0 ? [] : [{ ...row, amount }];
 	});
 };
@@ -128,8 +132,11 @@ const remainderLines = (
 	const was = by(paid);
 	return unique([...should.keys(), ...was.keys()]).flatMap((key) => {
 		const model = should.get(key)?.line ?? was.get(key)?.line;
-		const amount = Number(
-			((should.get(key)?.amount ?? 0) - (was.get(key)?.amount ?? 0)).toFixed(6)
+		const amount = BigDecimal.toNumberUnsafe(
+			BigDecimal.round(
+				BigDecimal.fromNumberUnsafe((should.get(key)?.amount ?? 0) - (was.get(key)?.amount ?? 0)),
+				{ scale: 6 }
+			)
 		);
 		if (model === undefined || amount === 0) return [];
 		return [
@@ -610,12 +617,17 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	const from = people.map(earliestOf).toSorted()[0] ?? ownFrom;
 	// a period reads its own tax year so far and a year of months: what was paid is rebuilt from the start of the tax
 	// year a year before the earliest, and everything older is read from the balance as it stands
-	const yearStarts = String(Number(settings?.tax_year_start_month ?? 1)).padStart(2, '0');
-	const yearBefore = Number(from.slice(0, 4)) - 1;
-	const paidFrom =
-		`${String(yearBefore)}-${yearStarts}-01` <= `${String(yearBefore)}${from.slice(4)}`
-			? `${String(yearBefore)}-${yearStarts}-01`
-			: `${String(yearBefore - 1)}-${yearStarts}-01`;
+	const yearBefore = DateTime.subtract(DateTime.makeUnsafe(from), { years: 1 });
+	const yearStarts = DateTime.makeUnsafe({
+		year: DateTime.getPartUtc(yearBefore, 'year'),
+		month: Number(settings?.tax_year_start_month ?? 1),
+		day: 1
+	});
+	const paidFrom = DateTime.formatIsoDate(
+		DateTime.isLessThanOrEqualTo(yearStarts, yearBefore)
+			? yearStarts
+			: DateTime.subtract(yearStarts, { years: 1 })
+	);
 	const before = paidRuns.filter((run) => String(run.pay_date) >= paidFrom);
 	const span = yield* loadSpan(
 		read,
@@ -897,7 +909,14 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 				owed.set(employee, (owed.get(employee) ?? 0) + of(now.payslips) - of(then.payslips));
 			}
 		}
-		return new Map([...owed].map(([employee, amount]) => [employee, Number(amount.toFixed(6))]));
+		return new Map(
+			[...owed].map(([employee, amount]) => [
+				employee,
+				BigDecimal.toNumberUnsafe(
+					BigDecimal.round(BigDecimal.fromNumberUnsafe(amount), { scale: 6 })
+				)
+			])
+		);
 	});
 
 	const attaches: Record<string, string[]> = {};
@@ -1025,7 +1044,6 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 							}
 						];
 			});
-	const money = (value: number) => Math.round(value * 1e12) / 1e12;
 	const deferred: string[] = [];
 	const payslips = [...result.payslips, ...bare].map((slip): CalculatedPayslip => {
 		const extra = lines.get(slip.employee_id) ?? [];
@@ -1040,7 +1058,12 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			mine
 				.filter((line) => line.direction === direction)
 				.reduce((total, line) => total + line.amount, 0);
-		const net = money(slip.net_pay + sum('ADD') - sum('DEDUCT'));
+		const net = BigDecimal.toNumberUnsafe(
+			BigDecimal.round(BigDecimal.fromNumberUnsafe(slip.net_pay + sum('ADD') - sum('DEDUCT')), {
+				scale: 12,
+				mode: 'half-ceil'
+			})
+		);
 		const recovery: Line[] = net < 0 ? [recoveryOf(slip, -net)] : [];
 		if (recovery.length > 0) deferred.push(slip.employee_id);
 		const statutoryOf = (kind: string) =>
@@ -1065,11 +1088,40 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		return {
 			...slip,
 			net_pay: Math.max(0, net),
-			total_deductions: money(Math.max(0, slip.total_deductions + sum('DEDUCT'))),
-			gross_earnings: money(Math.max(0, net) + Math.max(0, slip.total_deductions + sum('DEDUCT'))),
-			employer_cost: money(Math.max(0, slip.employer_cost + employer)),
-			employee_statutory: money(Math.max(0, slip.employee_statutory + statutoryOf('CONTRIBUTION'))),
-			tax_withheld: money(Math.max(0, slip.tax_withheld + statutoryOf('TAX'))),
+			total_deductions: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(
+					BigDecimal.fromNumberUnsafe(Math.max(0, slip.total_deductions + sum('DEDUCT'))),
+					{ scale: 12, mode: 'half-ceil' }
+				)
+			),
+			gross_earnings: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(
+					BigDecimal.fromNumberUnsafe(
+						Math.max(0, net) + Math.max(0, slip.total_deductions + sum('DEDUCT'))
+					),
+					{ scale: 12, mode: 'half-ceil' }
+				)
+			),
+			employer_cost: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, slip.employer_cost + employer)), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
+			employee_statutory: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(
+					BigDecimal.fromNumberUnsafe(
+						Math.max(0, slip.employee_statutory + statutoryOf('CONTRIBUTION'))
+					),
+					{ scale: 12, mode: 'half-ceil' }
+				)
+			),
+			tax_withheld: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(
+					BigDecimal.fromNumberUnsafe(Math.max(0, slip.tax_withheld + statutoryOf('TAX'))),
+					{ scale: 12, mode: 'half-ceil' }
+				)
+			),
 			breakdown: {
 				...slip.breakdown,
 				lines: [...slip.breakdown.lines, ...recovery, ...extra],

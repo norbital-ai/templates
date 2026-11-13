@@ -7,8 +7,7 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput } from '@norbital-ai/bolt';
-	import { plain_date } from '../../../lib/date.js';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
 	import {
 		parseEntityHolidaySheets,
@@ -38,10 +37,10 @@
 			});
 		return insert.map((row) => ({
 			entity_id: row.entity_id,
-			date: plain_date(row.date),
+			date: row.date,
 			name: row.name,
 			kind: row.kind,
-			...(row.replaces == null ? {} : { replaces: plain_date(row.replaces) })
+			...(row.replaces == null ? {} : { replaces: row.replaces })
 		}));
 	}
 
@@ -74,36 +73,34 @@
 	title={ctx.t('app.hr_controller.entities_title')}
 	description={ctx.t('app.hr_controller.entities_description')}
 >
-	<Stack gap="lg">
-		<Table
-			{ctx}
-			of="entity"
-			key="entity"
-			toolbar={{
-				title: ctx.t('app.hr_controller.entities_title'),
-				actions: [
-					{
-						run: importRequest,
-						icon: 'lucide:file-up',
-						name: ctx.t('data_request.import'),
-						description: ctx.t('data_request.import_description'),
-						disabled: () => (importing ? ctx.t('component.loading') : null)
-					},
-					{
-						run: importHolidays,
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('holiday_calendar.import_spreadsheet'),
-						description: ctx.t('holiday_calendar.import_spreadsheet_description'),
-						disabled: () => (importing ? ctx.t('component.loading') : null)
-					}
-				]
-			}}
-			order_by={{ name: 'asc' }}
-			columns={[
-				'name',
-				{ field: 'settings_code', label: ctx.t('component.settings_lineage') },
-				'payroll_versions'
-			]}
-		/>
-	</Stack>
+	<Table
+		{ctx}
+		of="entity"
+		key="entity"
+		toolbar={{
+			title: ctx.t('app.hr_controller.entities_title'),
+			actions: [
+				{
+					run: importRequest,
+					icon: 'lucide:file-up',
+					name: ctx.t('data_request.import'),
+					description: ctx.t('data_request.import_description'),
+					disabled: () => (importing ? ctx.t('component.loading') : null)
+				},
+				{
+					run: importHolidays,
+					icon: 'lucide:file-spreadsheet',
+					name: ctx.t('holiday_calendar.import_spreadsheet'),
+					description: ctx.t('holiday_calendar.import_spreadsheet_description'),
+					disabled: () => (importing ? ctx.t('component.loading') : null)
+				}
+			]
+		}}
+		order_by={{ name: 'asc' }}
+		columns={[
+			'name',
+			{ field: 'settings_code', label: ctx.t('component.settings_lineage') },
+			'payroll_versions'
+		]}
+	/>
 </AppShell>

@@ -4,7 +4,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import { isExit } from '../../src/lib/payroll_engine/contract_change.ts';
@@ -52,7 +51,7 @@ const end = (t: Kit, to: string) =>
 					{
 						target,
 						set: {
-							effective_range: { from: '2025-01-01', to: plain_date(to) },
+							effective_range: { from: '2025-01-01', to },
 							reason: 'Resignation'
 						}
 					}
@@ -231,9 +230,7 @@ const save = (
 								target: stored,
 								set: {
 									employee_extension_data: { ...stored.employee_extension_data, ...answers },
-									...(to === null
-										? {}
-										: { effective_range: { from: '2025-01-01', to: plain_date(to) } })
+									...(to === null ? {} : { effective_range: { from: '2025-01-01', to } })
 								}
 							}
 						]

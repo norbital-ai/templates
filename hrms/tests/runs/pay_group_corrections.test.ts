@@ -3,8 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { instant, plain_date } from '../../src/lib/date.ts';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, pay, rostered, run } from '../amendment_kit.ts';
 import { PAY_GROUP, current, storedQuery, uuid, workspace } from '../kit.ts';
@@ -37,7 +36,7 @@ describe('a change of pay group', () => {
 			const { roster_entry } = yield* storedQuery(t, {
 				roster_entry: {
 					where: {
-						work_date: { eq: plain_date(date) },
+						work_date: { eq: date },
 						employment_id: { eq: idOf('employee_contract', uuid(6)) }
 					},
 					limit: 1
@@ -51,10 +50,16 @@ describe('a change of pay group', () => {
 						target: day,
 						set: {
 							actual_worked_intervals: [
-								{ start: instant(`${date}T00:00:00.000Z`), end: instant(`${date}T10:00:00.000Z`) }
+								{
+									start: DateTime.formatIso(DateTime.makeUnsafe(`${date}T00:00:00.000Z`)),
+									end: DateTime.formatIso(DateTime.makeUnsafe(`${date}T10:00:00.000Z`))
+								}
 							],
 							planned_overtime_intervals: [
-								{ start: instant(`${date}T08:00:00.000Z`), end: instant(`${date}T10:00:00.000Z`) }
+								{
+									start: DateTime.formatIso(DateTime.makeUnsafe(`${date}T08:00:00.000Z`)),
+									end: DateTime.formatIso(DateTime.makeUnsafe(`${date}T10:00:00.000Z`))
+								}
 							]
 						}
 					}

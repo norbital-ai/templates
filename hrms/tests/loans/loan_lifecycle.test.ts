@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import {
 	buildLoanSchedule,
@@ -27,7 +26,6 @@ import {
 	current,
 	decimalNumber
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const NOW = '2026-08-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -77,8 +75,8 @@ const repay = (t: Kit, amount: number, date: string) =>
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
 					loan_id: LOAN,
-					amount: decimalText(amount),
-					paid_on: plain_date(date)
+					amount: String(amount),
+					paid_on: date
 				}
 			]
 		})
@@ -87,7 +85,7 @@ const change = (t: Kit, id: Repayment, amount: number) =>
 	Effect.gen(function* () {
 		const target = yield* current(t, 'loan_catalog_entry_repayment', id);
 		return yield* (yield* t.as(t.admin)).act({
-			'loan_catalog_entry_repayment.update': [{ target, set: { amount: decimalText(amount) } }]
+			'loan_catalog_entry_repayment.update': [{ target, set: { amount: String(amount) } }]
 		});
 	});
 const remove = (t: Kit, id: Repayment) =>
@@ -383,7 +381,7 @@ describe('a leaver’s loan', () => {
 						set: {
 							effective_range: {
 								from: '2025-01-01',
-								to: to === null ? null : plain_date(to)
+								to: to === null ? null : to
 							},
 							reason: to === null ? 'Ended in error' : 'Resignation'
 						}
@@ -451,8 +449,8 @@ describe('a leaver’s loan', () => {
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
 						loan_id: LOAN,
-						amount: decimalText(plan.proposed),
-						paid_on: plain_date(LAST),
+						amount: String(plan.proposed),
+						paid_on: LAST,
 						payment_reference: `${FINAL_SETTLEMENT} (partial)`
 					}
 				]
@@ -595,7 +593,7 @@ describe('a loan row with an eligibility rule', () => {
 						employment_id: CONTRACT,
 						catalog_id: idOf('loan_catalog', FESTIVE),
 						quantity: '1000',
-						repayment_period: { from: '2026-09-01', to: plain_date(to) }
+						repayment_period: { from: '2026-09-01', to }
 					}
 				]
 			})

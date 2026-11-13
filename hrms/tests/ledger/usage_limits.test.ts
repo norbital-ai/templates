@@ -27,7 +27,6 @@ import {
 	keyOf,
 	decimalNumber
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -58,7 +57,7 @@ const entry = (quantity: number) => ({
 	entity_id: ENTITY,
 	employment_id: CONTRACT,
 	catalog_id: CLAIM,
-	quantity: decimalText(quantity),
+	quantity: String(quantity),
 	incurred_on: '2026-11-03'
 });
 const claim = (t: Kit, ...amounts: readonly number[]) =>

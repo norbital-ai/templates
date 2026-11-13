@@ -1,4 +1,4 @@
-import { add_days, date_period, days } from '../date.js';
+import { DateTime, Duration } from 'effect';
 import { isDynObject, jsonObject, Refusal, stableJson } from './foundation.js';
 import type { DynObject, Json, JsonObject } from './foundation.js';
 
@@ -142,17 +142,31 @@ export const startsOf = (
 		.toSorted((left, right) => left.from.localeCompare(right.from))) {
 		const last = stints.at(-1);
 		// a version from the day after the last one ends continues its stint; a gap starts a new one
-		if (last !== undefined && (last.to === null || String(add_days(last.to, 1)) >= range.from))
+		if (
+			last !== undefined &&
+			(last.to === null ||
+				DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(last.to), { days: 1 })) >=
+					range.from)
+		)
 			last.to = range.to;
 		else stints.push(range);
 	}
 	const current = stints.at(-1)?.from ?? rangeOf(contract).from;
 	const earlier = cumulative
-		? stints
-				.slice(0, -1)
-				.reduce((total, stint) => total + days(date_period(stint.from, stint.to)), 0)
+		? stints.slice(0, -1).reduce(
+				(total, stint) =>
+					// only the newest stint is open
+					total +
+					Duration.toDays(
+						DateTime.distance(DateTime.makeUnsafe(stint.from), DateTime.makeUnsafe(stint.to!))
+					) +
+					1,
+				0
+			)
 		: 0;
-	const worked = String(add_days(current, -earlier));
+	const worked = DateTime.formatIsoDate(
+		DateTime.add(DateTime.makeUnsafe(current), { days: -earlier })
+	);
 	const credited = contract.service_started_on;
 	return {
 		service_started_on: typeof credited === 'string' && credited < worked ? credited : worked,

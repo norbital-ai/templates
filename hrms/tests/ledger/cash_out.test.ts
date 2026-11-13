@@ -6,7 +6,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect, Schema } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
@@ -28,7 +27,6 @@ import {
 	storedQuery,
 	decimalNumber
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 /** The half-day slots a leave entry holds. */
 const slotsOf = (t: Kit, entry: Id<'leave_catalog_entry'>) =>
@@ -92,9 +90,9 @@ const grant = (t: Kit, days: number, on = '2026-08-03') =>
 						account: 'leave',
 						code: IN_LIEU,
 						measure: 'entitled',
-						amount: decimalText(days),
+						amount: String(days),
 						unit: 'DAY',
-						effective_on: plain_date(on),
+						effective_on: on,
 						note: 'worked the holiday'
 					}
 				]

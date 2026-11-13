@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
-import { add_days, plain_date } from '../../src/lib/date.ts';
-import { Schema } from 'effect';
+import { DateTime, Schema } from 'effect';
 import { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { stableJson } from '../../src/lib/payroll_engine/foundation.ts';
 import { objectValue } from '../../src/lib/payroll_engine/reads.ts';
@@ -74,7 +73,11 @@ describe('jurisdiction lineage', () => {
 				const next = versions[index + 1];
 				const { to } = range(version.settings);
 				if (next === undefined) assert.equal(to, null);
-				else assert.equal(add_days(plain_date(String(to)), 1), range(next.settings).from);
+				else
+					assert.equal(
+						DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(String(to)), { days: 1 })),
+						range(next.settings).from
+					);
 			}
 		});
 

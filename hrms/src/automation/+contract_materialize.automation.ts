@@ -1,6 +1,5 @@
 import { automation, type EffectCtx } from '@norbital-ai/bolt';
-import { add_days, plain_date } from '../lib/date.js';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import type { JsonObject } from '../lib/payroll_engine/contracts.js';
 import { withChange, type ContractChange } from '../lib/payroll_engine/contract_change.js';
 import { getErrorMessage, jsonObject, Refusal } from '../lib/payroll_engine/foundation.js';
@@ -117,7 +116,7 @@ export default automation({
 							set: {
 								effective_range: {
 									from: fromOf(open),
-									to: String(add_days(plain_date(on), -1))
+									to: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(on), { days: -1 }))
 								},
 								reason
 							}

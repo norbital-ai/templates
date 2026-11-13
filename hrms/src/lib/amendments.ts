@@ -1,6 +1,5 @@
 import type { CarriedWrites } from '@norbital-ai/bolt';
-import { add_days } from './date.js';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { Refusal, type JsonObject } from './payroll_engine/foundation.js';
 import { attendanceOf } from './payroll_engine/pay_cycle.js';
 import { idOf, objectValue, queryRows, type Reader } from './payroll_engine/reads.js';
@@ -121,7 +120,12 @@ const RUN = {
 };
 /** A window may open a cycle before its salary period: payslips are read from two months before the earliest day. */
 const since = (touched: readonly Touched[]) =>
-	String(add_days(touched.map((touch) => touch.from).toSorted()[0] ?? '9999-12-31', -62));
+	DateTime.formatIsoDate(
+		DateTime.add(
+			DateTime.makeUnsafe(touched.map((touch) => touch.from).toSorted()[0] ?? '9999-12-31'),
+			{ days: -62 }
+		)
+	);
 
 /** The amendment rows a write on these people carries. */
 export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
@@ -290,7 +294,7 @@ export const versionReach = (
 	if (earlier === null) return [];
 	return [
 		{
-			from: String(add_days(earlier, 1)),
+			from: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(earlier), { days: 1 })),
 			to: was === null || now === null ? null : was < now ? now : was
 		}
 	];

@@ -2,6 +2,7 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { highlighted_line, Table, Tabs } from '@norbital-ai/ui';
+	import { Stack } from '@norbital-ai/ui/layout';
 
 	let {
 		ctx,
@@ -81,7 +82,7 @@
 {/snippet}
 
 {#snippet catalog()}
-	<section class="min-w-0 space-y-3">
+	<Stack size="fill" gap="sm">
 		<p class="max-w-4xl text-sm text-muted-foreground">{descriptions[selected]}</p>
 		{#if selected === 'allowance_catalog'}<Table
 				{ctx}
@@ -198,12 +199,11 @@
 				toolbar={{ new: draft, title: labels.work_event_catalog }}
 				columns={['code', 'description', { field: 'lookup', cell: jsonCell }]}
 			/>{/if}
-	</section>
+	</Stack>
 {/snippet}
 
 <Tabs
 	orientation="vertical"
-	class="min-h-[34rem]"
 	tabs={families.map((name) => ({ name, title: labels[name], body: catalog }))}
 	value={selected}
 	on_value_change={(next) => {

@@ -402,8 +402,6 @@ export default messages({
 	'roster.person': '人员',
 	'roster.public_holiday': '公共假日',
 	'roster.public_holiday_mark': 'PH',
-	'component.revision_from': '自 {start}',
-	'component.revision_between': '{start} – {end}',
 	'app.adhoc.title': '临时项目',
 	'settings_version.seal': '封存版本',
 	'models.statutory_change.label': '法定变更',

@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { BigDecimal, DateTime, Duration, Effect } from 'effect';
 import {
 	awardedMinutes,
 	holidaysForDay,
@@ -593,8 +593,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			const weekday = WEEKDAYS[dateWeekday(date)] ?? 'SUNDAY';
 			shiftId = String(weekly[weekday] ?? '');
 		} else if (rotation !== null && rotation.length > 0 && from !== '') {
-			const span = Math.round(
-				(Date.parse(`${date}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000
+			const span = Duration.toDays(
+				DateTime.distance(DateTime.makeUnsafe(from), DateTime.makeUnsafe(date))
 			);
 			shiftId = String(
 				objectValue(rotation[((span % rotation.length) + rotation.length) % rotation.length])
@@ -610,7 +610,10 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		return scheduled(row, { zone, ...(shift === undefined ? {} : { shift }) });
 	};
 	const scheduledHours = ({ spans, untimed }: ReturnType<typeof planOf>) =>
-		spans.reduce((total, span) => total + (span.end - span.start) / 3_600_000, untimed);
+		spans.reduce(
+			(total, span) => total + Duration.toHours(Duration.millis(span.end - span.start)),
+			untimed
+		);
 	const rosterDayTypes = new Map<string, Record<string, string>>();
 	for (const row of workRows) {
 		const owner = ownerOf(row);
@@ -1086,7 +1089,6 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		const deductions = result.lines
 			.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'DEDUCT')
 			.reduce((total, line) => total + line.amount, 0);
-		const money = (value: number) => Math.round(value * 1e12) / 1e12;
 		const subtotalValue = (code: unknown): number => {
 			if (typeof code !== 'string') return 0;
 			return result.subtotals.find((row) => row.code === code)?.value ?? 0;
@@ -1123,17 +1125,57 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			employee_id: employeeId,
 			employment_id: employmentId,
 			entity_id: companyId,
-			basic_earnings: money(result.subtotals[0]?.value ?? 0),
-			gross_earnings: money(result.net_pay + deductions),
-			net_pay: money(result.net_pay),
-			total_deductions: money(Math.max(0, deductions)),
+			basic_earnings: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(result.subtotals[0]?.value ?? 0), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
+			gross_earnings: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(result.net_pay + deductions), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
+			net_pay: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(result.net_pay), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
+			total_deductions: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, deductions)), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
 			// a run that settles an earlier over-charge can owe the employer back; the reported totals stop at zero
-			employer_cost: money(Math.max(0, result.employer_cost)),
+			employer_cost: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, result.employer_cost)), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
 			period: String(run.period ?? coverage.from.slice(0, 7)),
 			// a deduction entry can exceed the period's pay; reported wages stop at zero
-			ordinary_wages: money(Math.max(0, ordinary)),
-			employee_statutory: money(Math.max(0, employeeStatutory)),
-			tax_withheld: money(Math.max(0, taxWithheld)),
+			ordinary_wages: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, ordinary)), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
+			employee_statutory: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, employeeStatutory)), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
+			tax_withheld: BigDecimal.toNumberUnsafe(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, taxWithheld)), {
+					scale: 12,
+					mode: 'half-ceil'
+				})
+			),
 			breakdown: {
 				...breakdownOf(result),
 				// only what the payslip priced posts: a row whose payout did not apply leaves the balance as it is

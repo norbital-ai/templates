@@ -3,12 +3,10 @@
 import assert from 'node:assert/strict';
 import type { Id } from '@norbital-ai/bolt';
 import type { Kit } from '@norbital-ai/bolt-cli/test';
-import { instant, plain_date } from '../src/lib/date.ts';
-import { Effect, Schema } from 'effect';
+import { DateTime, Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import { ENTITY, WORK, catalogRow, pack, storedQuery, uuid } from './kit.ts';
-import { decimalText } from '../src/lib/payroll_engine/money.ts';
 
 export const dates = (month: string) => {
 	const last = new Date(
@@ -153,7 +151,7 @@ export const rostered = (months: readonly string[], overtime?: string, rate = 28
 export const overtimeKeyed = (t: Kit, date: string) =>
 	Effect.gen(function* () {
 		const { roster_entry } = yield* storedQuery(t, {
-			roster_entry: { where: { work_date: { eq: plain_date(date) } }, limit: 1 }
+			roster_entry: { where: { work_date: { eq: date } }, limit: 1 }
 		});
 		const [day] = roster_entry.rows;
 		assert.ok(day !== undefined);
@@ -163,10 +161,16 @@ export const overtimeKeyed = (t: Kit, date: string) =>
 					target: day,
 					set: {
 						actual_worked_intervals: [
-							{ start: instant(`${date}T00:00:00.000Z`), end: instant(`${date}T10:00:00.000Z`) }
+							{
+								start: DateTime.formatIso(DateTime.makeUnsafe(`${date}T00:00:00.000Z`)),
+								end: DateTime.formatIso(DateTime.makeUnsafe(`${date}T10:00:00.000Z`))
+							}
 						],
 						planned_overtime_intervals: [
-							{ start: instant(`${date}T08:00:00.000Z`), end: instant(`${date}T10:00:00.000Z`) }
+							{
+								start: DateTime.formatIso(DateTime.makeUnsafe(`${date}T08:00:00.000Z`)),
+								end: DateTime.formatIso(DateTime.makeUnsafe(`${date}T10:00:00.000Z`))
+							}
 						]
 					}
 				}
@@ -182,14 +186,14 @@ export const claimed = (t: Kit, from: ReturnType<typeof rostered>, quantity: num
 					entity_id: ENTITY,
 					employment_id: EMPLOYMENT,
 					catalog_id: idOf('claim_catalog', catalogRow(from, 'claim_catalog', 'MEDICAL_CLAIM')),
-					quantity: decimalText(quantity),
-					incurred_on: plain_date(on)
+					quantity: String(quantity),
+					incurred_on: on
 				}
 			]
 		});
 		yield* t.run_due();
 		const { claim_catalog_entry } = yield* storedQuery(t, {
-			claim_catalog_entry: { where: { incurred_on: { eq: plain_date(on) } }, limit: 10 }
+			claim_catalog_entry: { where: { incurred_on: { eq: on } }, limit: 10 }
 		});
 		const [made] = claim_catalog_entry.rows;
 		assert.ok(made !== undefined);
@@ -223,7 +227,7 @@ export const raisedFrom = (t: Kit, from: string, amount: number) =>
 					bank: held.bank,
 					employee_extension_data: held.employee_extension_data,
 					service_started_on: held.service_started_on,
-					effective_range: { from: plain_date(from), to: null },
+					effective_range: { from, to: null },
 					status: 'DRAFT',
 					reason: 'A raise'
 				}
@@ -243,7 +247,7 @@ export const raisedFrom = (t: Kit, from: string, amount: number) =>
 					set: {
 						effective_range: {
 							from: held.effective_range.from,
-							to: plain_date(before.toISOString().slice(0, 10))
+							to: before.toISOString().slice(0, 10)
 						}
 					}
 				}

@@ -1,3 +1,5 @@
+import { BigDecimal, DateTime } from 'effect';
+
 /**
  * A loan repayment schedule is a small state machine:
  * `NO_TERMS` (no positive principal or period) → `READY` (terms valid, nothing generated) →
@@ -78,26 +80,48 @@ export const loanRecovery = (input: {
 	readonly floorPercent: number;
 	readonly decimals: number;
 }): LoanRecovery => {
-	const minor = 10 ** input.decimals;
-	const units = (value: number) => Math.round(value * minor);
-	const maximum = Math.floor(
-		(Math.max(0, units(input.expectedPay)) * (100 - input.floorPercent)) / 100
+	// to the currency's minor unit: an amount rounds half up, the cap rounds down
+	const minor = { scale: input.decimals, mode: 'half-ceil' } as const;
+	const maximum = BigDecimal.round(
+		BigDecimal.divideUnsafe(
+			BigDecimal.multiply(
+				BigDecimal.max(
+					BigDecimal.round(BigDecimal.fromNumberUnsafe(input.expectedPay), minor),
+					BigDecimal.make(0n, 0)
+				),
+				BigDecimal.fromNumberUnsafe(100 - input.floorPercent)
+			),
+			BigDecimal.make(100n, 0)
+		),
+		{ scale: input.decimals, mode: 'floor' }
 	);
 	let left = maximum;
 	const allocations = input.loans
 		.toSorted((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
 		.map(({ id, outstanding }) => {
-			const owed = units(outstanding);
-			const final = Math.min(owed, left);
-			left -= final;
-			return { id, final: final / minor, remaining: (owed - final) / minor };
+			const owed = BigDecimal.round(BigDecimal.fromNumberUnsafe(outstanding), minor);
+			const final = BigDecimal.min(owed, left);
+			left = BigDecimal.subtract(left, final);
+			return {
+				id,
+				final: BigDecimal.toNumberUnsafe(final),
+				remaining: BigDecimal.toNumberUnsafe(BigDecimal.subtract(owed, final))
+			};
 		});
+	const proposed = BigDecimal.subtract(maximum, left);
 	return {
-		maximum: maximum / minor,
-		proposed: (maximum - left) / minor,
-		remaining:
-			(input.loans.reduce((total, loan) => total + units(loan.outstanding), 0) - (maximum - left)) /
-			minor,
+		maximum: BigDecimal.toNumberUnsafe(maximum),
+		proposed: BigDecimal.toNumberUnsafe(proposed),
+		remaining: BigDecimal.toNumberUnsafe(
+			BigDecimal.subtract(
+				BigDecimal.sumAll(
+					input.loans.map((loan) =>
+						BigDecimal.round(BigDecimal.fromNumberUnsafe(loan.outstanding), minor)
+					)
+				),
+				proposed
+			)
+		),
 		allocations
 	};
 };
@@ -115,8 +139,9 @@ export type LoanScheduleProblem =
 
 const month = (day: string) => day.slice(0, 7);
 const validDay = (day: string) => /^\d{4}-\d{2}-\d{2}$/.test(day);
+// a positive amount in whole cents
 const validMoney = (value: number) =>
-	Number.isFinite(value) && value > 0 && Math.round(value * 100) === value * 100;
+	Number.isFinite(value) && value > 0 && BigDecimal.fromNumberUnsafe(value).scale <= 2;
 
 export const loanScheduleState = (input: LoanScheduleInput): LoanScheduleState => {
 	if (
@@ -155,29 +180,15 @@ export const loanScheduleProblems = (input: LoanScheduleInput): readonly LoanSch
 		if (key < month(input.from) || key > month(input.to)) problems.push('outside');
 	}
 	if (problems.length === 0) {
-		const total = input.repayments.reduce((sum, row) => sum + row.amount, 0);
+		const total = BigDecimal.sumAll(
+			input.repayments.map((row) => BigDecimal.fromNumberUnsafe(row.amount))
+		);
+		const principal = BigDecimal.fromNumberUnsafe(input.principal);
 		const sealed = input.repayments.some((row) => row.payroll_run_id != null);
-		if (Math.round(total * 100) > Math.round(input.principal * 100) && sealed)
-			problems.push('sealed_exceeds');
-		else if (Math.round(total * 100) !== Math.round(input.principal * 100)) problems.push('total');
+		if (BigDecimal.isGreaterThan(total, principal) && sealed) problems.push('sealed_exceeds');
+		else if (!BigDecimal.equals(total, principal)) problems.push('total');
 	}
 	return [...new Set(problems)];
-};
-
-/** Monthly installments from the first month through the last, the remainder in the final months. */
-const monthsBetween = (from: string, to: string): string[] => {
-	const start = new Date(`${month(from)}-01T00:00:00Z`);
-	const end = `${month(to)}-01`;
-	const dates: string[] = [];
-	for (let index = 0; index <= 600; index++) {
-		const at = new Date(start);
-		at.setUTCMonth(at.getUTCMonth() + index);
-		const key = at.toISOString().slice(0, 10);
-		if (key > end) break;
-		dates.push(key);
-		if (key === end) break;
-	}
-	return dates;
 };
 
 /**
@@ -190,25 +201,45 @@ export const buildLoanSchedule = (
 	const problems = termsProblems(input);
 	if (problems.length > 0) throw new Error(`Loan terms are invalid: ${problems.join(', ')}.`);
 	const locked = input.repayments.filter((row) => row.payroll_run_id != null);
-	const lockedTotal = locked.reduce((sum, row) => sum + row.amount, 0);
-	if (Math.round(lockedTotal * 100) > Math.round(input.principal * 100))
+	const remaining = BigDecimal.subtract(
+		BigDecimal.fromNumberUnsafe(input.principal),
+		BigDecimal.sumAll(locked.map((row) => BigDecimal.fromNumberUnsafe(row.amount)))
+	);
+	if (BigDecimal.isNegative(remaining))
 		throw new Error('Sealed repayments exceed the principal amount.');
-	const remaining = Math.round((input.principal - lockedTotal) * 100);
 	const taken = new Set(locked.map((row) => month(row.paid_on)));
-	const dates = monthsBetween(input.from, input.to).filter((day) => !taken.has(month(day)));
-	if (remaining > 0 && dates.length === 0)
+	// monthly installments from the first month through the last, the remainder in the final months
+	const first = DateTime.startOf(DateTime.makeUnsafe(input.from), 'month');
+	const dates = Array.from({ length: 601 }, (_, index) =>
+		DateTime.formatIsoDate(DateTime.add(first, { months: index }))
+	).filter((day) => month(day) <= month(input.to) && !taken.has(month(day)));
+	if (BigDecimal.isPositive(remaining) && dates.length === 0)
 		throw new Error('The repayment period has no unpaid months.');
-	if (remaining === 0)
+	if (BigDecimal.isZero(remaining))
 		return {
 			create: [],
 			remove: input.repayments.flatMap((row) =>
 				row.payroll_run_id == null && row.id != null ? [row.id] : []
 			)
 		};
-	const base = Math.floor(remaining / dates.length);
-	const extra = remaining - base * dates.length;
+	// whole cents each, the cents left over one each on the last months
+	const base = BigDecimal.round(
+		BigDecimal.divideUnsafe(remaining, BigDecimal.make(BigInt(dates.length), 0)),
+		{ scale: 2, mode: 'floor' }
+	);
+	const extra = Number(
+		BigDecimal.scale(
+			BigDecimal.subtract(
+				remaining,
+				BigDecimal.multiply(base, BigDecimal.make(BigInt(dates.length), 0))
+			),
+			2
+		).value
+	);
 	const create = dates.map((day, index) => ({
-		amount: (base + (index >= dates.length - extra ? 1 : 0)) / 100,
+		amount: BigDecimal.toNumberUnsafe(
+			index >= dates.length - extra ? BigDecimal.sum(base, BigDecimal.make(1n, 2)) : base
+		),
 		paid_on: day,
 		payroll_run_id: null
 	}));

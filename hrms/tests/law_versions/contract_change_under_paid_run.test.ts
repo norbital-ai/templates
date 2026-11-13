@@ -2,7 +2,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import { pay, rostered } from '../amendment_kit.ts';
 import { storedQuery, workspace } from '../kit.ts';
@@ -29,7 +28,7 @@ describe('a contract change filed for a day a paid run covers', () => {
 						field_path: 'terms.rate.amount',
 						old_value: 2800,
 						new_value: 3000,
-						effective_from: plain_date(DAY)
+						effective_from: DAY
 					}
 				]
 			});

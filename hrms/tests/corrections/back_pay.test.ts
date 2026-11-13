@@ -5,8 +5,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { add_days, plain_date } from '../../src/lib/date.ts';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, dates, ownLines, pay, run } from '../amendment_kit.ts';
 import {
@@ -74,13 +73,13 @@ const raised = (t: Kit, amount: number, signed: string, from = '2026-02-01') =>
 					terms: {
 						...held.terms,
 						rate: { amount, unit: 'MONTHLY' },
-						signed_on: plain_date(signed)
+						signed_on: signed
 					},
 					payroll: held.payroll,
 					bank: held.bank,
 					employee_extension_data: held.employee_extension_data,
 					service_started_on: held.service_started_on,
-					effective_range: { from: plain_date(from), to: null },
+					effective_range: { from, to: null },
 					status: 'DRAFT',
 					reason: 'A raise'
 				}
@@ -99,7 +98,7 @@ const raised = (t: Kit, amount: number, signed: string, from = '2026-02-01') =>
 						set: {
 							effective_range: {
 								from: held.effective_range.from,
-								to: add_days(plain_date(from), -1)
+								to: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
 							}
 						}
 					}

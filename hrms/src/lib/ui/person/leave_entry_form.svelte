@@ -1,13 +1,11 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Effect } from 'effect';
+	import { DateTime, Effect } from 'effect';
 	import { watch } from 'runed';
-	import { date_period, each_day, month_of, plain_date } from '../../date.js';
 	import { Button, Combobox, confirm_action, notify_outcome, Picker, toast } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { todayKey } from '../format/calendar.js';
 	import { accountsOf, eventsOf, leftOn, unlimited } from '../../ledger/core.js';
 	import { isJsonObject, jsonObject } from '../../payroll_engine/foundation.js';
 	import { chainOf, startsOf, versionOn } from '../../payroll_engine/contract_change.js';
@@ -43,9 +41,8 @@
 	const editable = $derived(!locked);
 	const paid = paidPeriods(ctx);
 	const clock = ctx.clock('day');
-	const today = $derived(clock.today || todayKey());
-	const [year, month] = today.split('-').map(Number) as [number, number];
-	let at = $state(new Date(Date.UTC(year, month - 1, 1)));
+	const today = $derived(clock.today);
+	let at = $state(DateTime.startOf(DateTime.makeUnsafe(clock.today), 'month'));
 	let chosen = $state<Id<'employee_contract'> | null>(initialEmployment ?? null);
 	let catalog = $state<Id<'leave_catalog'> | null>(catalogId ?? null);
 	let sessions = $state<{ date: string; part: 'AM' | 'PM' }[]>([]);
@@ -82,7 +79,8 @@
 				date: String(row.incurred_on),
 				part: row.part
 			}));
-			if (sessions[0] !== undefined) at = new Date(`${sessions[0].date.slice(0, 7)}-01T00:00:00Z`);
+			if (sessions[0] !== undefined)
+				at = DateTime.startOf(DateTime.makeUnsafe(sessions[0].date), 'month');
 		}
 	);
 
@@ -218,17 +216,19 @@
 				suffix: isNoCap(row) ? '' : `${availableFor(row)} d`
 			}))
 	);
-	const monthKey = $derived(
-		`${at.getUTCFullYear()}-${String(at.getUTCMonth() + 1).padStart(2, '0')}`
+	const monthStart = $derived(DateTime.formatIsoDateUtc(at));
+	const monthEnd = $derived(DateTime.formatIsoDateUtc(DateTime.endOf(at, 'month')));
+	const dates = $derived(
+		Array.from({ length: DateTime.toPartsUtc(DateTime.endOf(at, 'month')).day }, (_, day) =>
+			DateTime.formatIsoDateUtc(DateTime.add(at, { days: day }))
+		)
 	);
-	const monthEnd = $derived(String(month_of(`${monthKey}-01`).to));
-	const dates = $derived(each_day(date_period(`${monthKey}-01`, monthEnd)).map(String));
 	const holidays = $derived(
 		ctx.query({
 			holiday: {
 				where: {
 					entity_id: { eq: entityId },
-					date: { gte: plain_date(`${monthKey}-01`), lte: plain_date(monthEnd) },
+					date: { gte: monthStart, lte: monthEnd },
 					published_at: { is_null: false },
 					employee_id: { is_null: true }
 				},
@@ -267,7 +267,8 @@
 						)
 				)
 	);
-	const weekend = (date: string) => [0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay());
+	const weekend = (date: string) =>
+		[0, 6].includes(DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay);
 	// an entry's days may run across the person's contract versions: any stint answers for its dates
 	const employed = (date: string) =>
 		(stints?.current?.employee_contract.rows ?? []).some(
@@ -311,7 +312,7 @@
 							employment_id: chosen,
 							catalog_id: catalog,
 							leave_catalog_entry_day: sessions.map((session) => ({
-								incurred_on: plain_date(session.date),
+								incurred_on: session.date,
 								part: session.part
 							}))
 						}
@@ -339,7 +340,7 @@
 									leave_catalog_entry_day: {
 										delete: remove,
 										create: add.map((session) => ({
-											incurred_on: plain_date(session.date),
+											incurred_on: session.date,
 											part: session.part
 										}))
 									}
@@ -396,14 +397,13 @@
 			)
 		);
 	};
-	const shiftMonth = (delta: number) =>
-		(at = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth() + delta, 1)));
+	const shiftMonth = (delta: number) => (at = DateTime.add(at, { months: delta }));
 	const monthLabel = $derived(
 		new Intl.DateTimeFormat(ctx.locale, {
 			month: 'long',
 			year: 'numeric',
 			timeZone: 'UTC'
-		}).format(at)
+		}).format(DateTime.toDateUtc(at))
 	);
 	const weekday = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 	const PARTS = ['AM', 'PM'] as const;
@@ -468,7 +468,7 @@
 				<div
 					class="flex min-h-24 flex-col border-b border-r p-1 text-xs last:border-r-0"
 					style:grid-column-start={index === 0
-						? new Date(`${date}T00:00:00Z`).getUTCDay() + 1
+						? DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay + 1
 						: undefined}
 					class:bg-muted={weekend(date) || holiday != null}
 					class:opacity-40={blocked(date)}

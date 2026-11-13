@@ -1,6 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
-import { add_days } from '../lib/date.js';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import type { JsonObject } from '../lib/payroll_engine/contracts.js';
 import { objectValue, queryAllRows, queryRows, valueText } from '../lib/payroll_engine/reads.js';
 import { jsonObject, Refusal, type Json } from '../lib/payroll_engine/foundation.js';
@@ -75,7 +74,11 @@ export default automation({
 				statutory_change: {
 					where: {
 						applied_version_id: { is_null: true },
-						effective_from: { lte: add_days(ctx.today, DUE_DAYS) },
+						effective_from: {
+							lte: DateTime.formatIsoDate(
+								DateTime.add(DateTime.makeUnsafe(ctx.today), { days: DUE_DAYS })
+							)
+						},
 						finding_id: { is: { status: { eq: 'CONFIRMED' } } }
 					},
 					fields: ['jurisdiction_code', 'effective_from'],

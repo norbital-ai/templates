@@ -1,8 +1,8 @@
 // The workbooks HR fills in: the roster's plan and work entries, each entry family's sheet and the holiday sheets, read
 // into their models' rows or refused whole, naming the row and the reason.
+import { DateTime } from 'effect';
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { instant } from '../../src/lib/date.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { WorkbookRowsError } from '../../src/lib/payroll_engine/workbook_rows.ts';
 import {
@@ -49,7 +49,10 @@ const rosterKnown = (entries: RosterKnown['entries'] = []): RosterKnown => ({
 	entries
 });
 
-const span = (start: string, end: string) => ({ start: instant(start), end: instant(end) });
+const span = (start: string, end: string) => ({
+	start: DateTime.formatIso(DateTime.makeUnsafe(start)),
+	end: DateTime.formatIso(DateTime.makeUnsafe(end))
+});
 
 const stored = (
 	over: Partial<RosterKnown['entries'][number]> & { readonly work_date: string }

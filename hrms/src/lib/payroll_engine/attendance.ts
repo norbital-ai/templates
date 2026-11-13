@@ -1,25 +1,6 @@
-import { add_days } from '../date.js';
+import { DateTime, Duration } from 'effect';
 import type { JsonObject } from './contracts.js';
 import { objectValue, valueText } from './reads.js';
-
-// a formatter is the costly part of a roster day, and a run prices thousands of them in one zone
-const formats = new Map<string, Intl.DateTimeFormat>();
-const formatIn = (zone: string): Intl.DateTimeFormat => {
-	const held = formats.get(zone);
-	if (held !== undefined) return held;
-	const format = new Intl.DateTimeFormat('en-CA', {
-		timeZone: zone,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit',
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit',
-		hourCycle: 'h23'
-	});
-	formats.set(zone, format);
-	return format;
-};
 
 /** `date` + clock time in an IANA zone, as epoch milliseconds. */
 // everyone on one shift shares its instants: a run works each out once
@@ -28,13 +9,9 @@ const instant = (date: string, time: string, zone: string): number => {
 	const key = `${zone} ${date} ${time}`;
 	const held = instants.get(key);
 	if (held !== undefined) return held;
-	const guess = Date.parse(`${date}T${time}:00Z`);
-	const shown = formatIn(zone)
-		.formatToParts(new Date(guess))
-		.filter((part) => part.type !== 'literal')
-		.map((part) => part.value);
-	const [year, month, day, hour, minute, second] = shown;
-	const found = guess - (Date.UTC(+year!, +month! - 1, +day!, +hour!, +minute!, +second!) - guess);
+	const found = DateTime.toEpochMillis(
+		DateTime.makeZonedUnsafe(`${date}T${time}:00`, { timeZone: zone, adjustForTimeZone: true })
+	);
 	if (instants.size >= 20_000) instants.clear();
 	instants.set(key, found);
 	return found;
@@ -58,7 +35,10 @@ export function scheduled(
 	if (variant == null || variant.start_time == null || variant.end_time == null)
 		return { spans: [], day_type, untimed };
 	const date = valueText(row, 'work_date');
-	const endDate = variant.ends_next_day === true ? String(add_days(date, 1)) : date;
+	const endDate =
+		variant.ends_next_day === true
+			? DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(date), { days: 1 }))
+			: date;
 	const start = instant(date, String(variant.start_time), data.zone);
 	const end = instant(endDate, String(variant.end_time), data.zone);
 	const pauses = (Array.isArray(variant.breaks) ? variant.breaks : [])
@@ -100,7 +80,10 @@ export const overlapSpans = (a: readonly Span[], b: readonly Span[]): readonly S
 	);
 
 export const spanMinutes = (spans: readonly Span[]): number =>
-	spans.reduce((total, span) => total + (span.end - span.start) / 60_000, 0);
+	spans.reduce(
+		(total, span) => total + Duration.toMinutes(Duration.millis(span.end - span.start)),
+		0
+	);
 
 /**
  * What the clock awards of planned overtime: all of it once the clock covers `fullPercent` of the

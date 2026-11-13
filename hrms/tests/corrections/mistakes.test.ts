@@ -6,8 +6,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { add_days, plain_date } from '../../src/lib/date.ts';
-import { Effect, Schema } from 'effect';
+import { DateTime, Effect, Schema } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
@@ -30,7 +29,6 @@ import {
 	current,
 	decimalNumber
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 // inside one version of the law the template holds (8 July to 30 November 2026), so no run changes law under a case
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -207,7 +205,7 @@ const draftOf = (t: Kit, held: Version, from: string, patch: Patch = {}) =>
 							family: patch.family ?? held.family,
 							employee_extension_data: held.employee_extension_data,
 							service_started_on: held.service_started_on,
-							effective_range: { from: plain_date(from), to: null },
+							effective_range: { from, to: null },
 							status: 'DRAFT',
 							reason: 'A new version'
 						}
@@ -229,7 +227,7 @@ const end = (t: Kit, held: Version, to: string | null, reason = 'Replaced') =>
 						set: {
 							effective_range: {
 								from: held.effective_range.from,
-								to: to === null ? null : plain_date(to)
+								to: to === null ? null : to
 							},
 							reason
 						}
@@ -257,7 +255,11 @@ const voided = (t: Kit, id: Id<'employee_contract'>, reason: string) =>
 const amend = (t: Kit, held: Version, from: string, patch: Patch) =>
 	Effect.gen(function* () {
 		const next = yield* draftOf(t, held, from, patch);
-		yield* end(t, held, String(add_days(plain_date(from), -1)));
+		yield* end(
+			t,
+			held,
+			DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
+		);
 		yield* seal(t, next);
 		yield* t.run_due();
 		return next;
@@ -320,8 +322,8 @@ const adhoc = (
 							employment_id: employment,
 							catalog_id: idOf('adhoc_catalog', rowOf('adhoc_catalog', code)),
 							description: code,
-							quantity: decimalText(quantity),
-							incurred_on: plain_date(on)
+							quantity: String(quantity),
+							incurred_on: on
 						}
 					]
 				})
@@ -349,8 +351,8 @@ const claim = (t: Kit, quantity: number, on: string) =>
 							entity_id: ENTITY,
 							employment_id: FIRST,
 							catalog_id: idOf('claim_catalog', rowOf('claim_catalog', 'MEDICAL_CLAIM')),
-							quantity: decimalText(quantity),
-							incurred_on: plain_date(on)
+							quantity: String(quantity),
+							incurred_on: on
 						}
 					]
 				})
@@ -418,7 +420,7 @@ describe('a contract ended by mistake', () => {
 							{
 								target: first,
 								set: {
-									effective_range: { from: first.effective_range.from, to: plain_date(LAST) },
+									effective_range: { from: first.effective_range.from, to: LAST },
 									final_pay_due_on: '2026-09-22',
 									reason: 'Resignation'
 								}
@@ -808,7 +810,7 @@ describe('a family fact sealed wrongly', () => {
 	const PATERNITY = 'PATERNITY_LEAVE';
 	const withChild = (first: Version, born: string): Version['family'] => [
 		...(first.family ?? []),
-		{ relation: 'CHILD', born_on: plain_date(born) }
+		{ relation: 'CHILD', born_on: born }
 	];
 	const grants = (t: Kit) =>
 		ledgerRows(t).pipe(
@@ -990,7 +992,7 @@ describe('an entry keyed wrongly', () => {
 								account: 'leave',
 								code: IN_LIEU,
 								measure: 'entitled',
-								amount: decimalText(days),
+								amount: String(days),
 								unit: 'DAY',
 								effective_on: '2026-11-02',
 								note

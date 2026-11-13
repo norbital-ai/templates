@@ -4,8 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { add_months, date_period, each_day, plain_date } from '../../src/lib/date.ts';
-import { Effect, Schema } from 'effect';
+import { DateTime, Duration, Effect, Schema } from 'effect';
 import { attendanceOf, cycleOf, payDateOf } from '../../src/lib/payroll_engine/pay_cycle.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
@@ -215,7 +214,13 @@ describe('a run after thirteen months of history', () => {
 	// its window: the half before it attended, up to the end of the half it pays
 	const WINDOW = { from: attendanceOf(ARREARS, cycle(PERIOD)).from, to: cycle(PERIOD).to };
 	const rosterOf = (from: string, to: string) =>
-		each_day(date_period(from, to))
+		Array.from(
+			{
+				length:
+					Duration.toDays(DateTime.distance(DateTime.makeUnsafe(from), DateTime.makeUnsafe(to))) + 1
+			},
+			(_, i) => DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: i }))
+		)
 			.map(String)
 			.map((date) =>
 				[0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay())
@@ -228,7 +233,9 @@ describe('a run after thirteen months of history', () => {
 		const seed = seedOf(30_000, [open], rosterOf('2025-01-16', WINDOW.to));
 		const settings = String(seed.entity_profile_version?.[0]?.input_schema_version_id);
 		const runs = Array.from({ length: 12 }, (_, month) =>
-			String(add_months('2025-02-01', month)).slice(0, 7)
+			DateTime.formatIsoDate(
+				DateTime.add(DateTime.makeUnsafe('2025-02-01'), { months: month })
+			).slice(0, 7)
 		)
 			.flatMap((month) => [`${month}-1`, `${month}-2`])
 			.map((key, index) => ({
@@ -370,7 +377,7 @@ describe('attendance a run has priced', () => {
 					'roster_entry.create': [
 						{
 							employment_id: CONTRACT,
-							work_date: plain_date(date),
+							work_date: date,
 							shift_definition_id: idOf('shift_definition', WORK)
 						}
 					]
@@ -419,7 +426,7 @@ describe('attendance a run has priced', () => {
 									employment_id: CONTRACT,
 									loan_id: idOf('loan_catalog_entry', LOAN),
 									amount: '100',
-									paid_on: plain_date(date)
+									paid_on: date
 								}
 							]
 						})

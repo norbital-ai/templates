@@ -4,8 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { add_days, plain_date } from '../../src/lib/date.ts';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
@@ -59,7 +58,9 @@ const seedOf = ({ started = '2024-01-01', gender = 'FEMALE', events = [] }: Pers
 type Seed = ReturnType<typeof seedOf>;
 const born = (...dates: readonly string[]) => dates.map((on) => ({ kind: 'CHILD_BIRTH', on }));
 const dates = (from: string, count: number) =>
-	Array.from({ length: count }, (_, index) => String(add_days(plain_date(from), index)));
+	Array.from({ length: count }, (_, index) =>
+		DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: index }))
+	);
 const take = (t: Kit, seed: Seed, code: string, days: readonly string[]) =>
 	t.as(t.admin).pipe(
 		Effect.flatMap((caller) =>

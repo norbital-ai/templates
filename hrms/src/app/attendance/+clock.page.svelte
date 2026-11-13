@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { createKioskSession } from './kiosk_session.svelte.js';
-	import { Clock, Data, Duration, Effect, Match, Result } from 'effect';
+	import { Clock, Data, DateTime, Duration, Effect, Match, Result } from 'effect';
 	import { watch } from 'runed';
 	/**
 	 * The attendance kiosk: a full-screen time clock for one legal entity. A live face held in the outline for two
@@ -39,7 +39,6 @@
 	import { readKioskSettings, writeKioskSettings } from './settings.ts';
 	import { browserNarratorPlatform, createKioskNarrator } from './voice.ts';
 	import { kioskVoiceLanguage, kioskCaptureRefusalPhrase, type KioskPhraseKey } from './phrases.ts';
-	import { todayKey } from '../../lib/ui/format/calendar.js';
 	import {
 		faceInsideSilhouette,
 		fitFrame,
@@ -338,7 +337,13 @@
 					title: punch.status === 'out' ? ctx.t('kiosk.recorded_out') : ctx.t('kiosk.recorded_in'),
 					detail: ctx.t('kiosk.recorded_detail', {
 						name: candidate.employeeName,
-						time: clockTime(punch.time)
+						time:
+							punch.time === undefined
+								? '—'
+								: new Intl.DateTimeFormat(ctx.locale, {
+										hour: '2-digit',
+										minute: '2-digit'
+									}).format(DateTime.toDateUtc(DateTime.makeUnsafe(punch.time)))
 					})
 				}),
 				blocked: ({ punch }) => blockedStatus(punch),
@@ -456,13 +461,6 @@
 	const boot = () => {
 		sessionId += 1;
 	};
-	const clockTime = (iso: string | undefined) =>
-		iso === undefined
-			? '—'
-			: new Date(iso).toLocaleTimeString(ctx.locale, {
-					hour: '2-digit',
-					minute: '2-digit'
-				});
 	const rejectFace = (
 		next: KioskStatus,
 		phrase: KioskPhraseKey | null,
@@ -612,7 +610,11 @@
 				fields: ['employee_number', 'entity_id', 'effective_range']
 			}
 		});
-		const day = todayKey(new Date(yield* Clock.currentTimeMillis));
+		const day = DateTime.formatIsoDate(
+			DateTime.makeZonedUnsafe(yield* Clock.currentTimeMillis, {
+				timeZone: DateTime.zoneMakeLocal()
+			})
+		);
 		const active = contracts.rows.find((row) => rangeCovers(row.effective_range, day));
 		if (active == null) return { status: 'unenrolled', employee: best } satisfies MatchResult;
 		return {

@@ -8,8 +8,7 @@
 		type CalendarView
 	} from '@norbital-ai/ui';
 	import { Cover } from '@norbital-ai/ui/layout';
-	import { add_days, date_period, each_day, month_of } from '../../date.js';
-	import { Schema } from 'effect';
+	import { DateTime, Duration, Schema } from 'effect';
 	import { JsonObject } from '../../payroll_engine/contracts.js';
 	import { scheduled, holidaysForDay } from '../../payroll_engine/attendance.js';
 	import { cycleShiftId } from '../roster/month_board.js';
@@ -29,17 +28,17 @@
 		>[];
 	} = $props();
 	const clock = ctx.clock('minute');
-	const initialDay = clock.today || new Date().toISOString().slice(0, 10);
-	let at = $state(new Date(`${initialDay}T12:00:00`));
+	let at = $state(new Date(`${clock.today}T12:00:00`));
 	let view = $state<CalendarView>('month');
-	const month = $derived(`${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}`);
-	const monthEnd = $derived.by(() => {
-		const end = month_of(`${month}-01`).to;
-		if (end == null) throw new Error('A calendar month requires its closing date.');
-		return end;
-	});
-	const from = $derived(add_days(`${month}-01`, -7));
-	const to = $derived(add_days(monthEnd, 7));
+	// the calendar's date is the viewer's wall time
+	const monthStart = $derived(
+		DateTime.startOf(DateTime.makeZonedUnsafe(at, { timeZone: DateTime.zoneMakeLocal() }), 'month')
+	);
+	const monthEnd = $derived(DateTime.formatIsoDate(DateTime.endOf(monthStart, 'month')));
+	const from = $derived(DateTime.formatIsoDate(DateTime.subtract(monthStart, { days: 7 })));
+	const to = $derived(
+		DateTime.formatIsoDate(DateTime.add(DateTime.endOf(monthStart, 'month'), { days: 7 }))
+	);
 	const versions = $derived(
 		ctx.query({
 			employee_contract: {
@@ -121,27 +120,19 @@
 		data.current?.jurisdiction_settings.rows.find((v) => covers(v.effective_range, date))
 			?.timezone ??
 		null;
-	const timeZone = $derived(zoneOn(`${month}-01`) ?? zoneOn(monthEnd));
+	const timeZone = $derived(zoneOn(DateTime.formatIsoDate(monthStart)) ?? zoneOn(monthEnd));
 	const stamp = (date: string) => new Date(`${date}T00:00:00`);
-	const local = (instant: number | string, zone: string): Date => {
-		const parts = new Map(
-			new Intl.DateTimeFormat('en-CA', {
-				timeZone: zone,
-				year: 'numeric',
-				month: '2-digit',
-				day: '2-digit',
-				hour: '2-digit',
-				minute: '2-digit',
-				second: '2-digit',
-				hourCycle: 'h23'
-			})
-				.formatToParts(new Date(instant))
-				.map((p) => [p.type, p.value])
+	// EventCalendar draws Dates in the viewer's zone and takes none: a zone's wall time as the viewer's
+	const local = (instant: number | string, zone: string): Date =>
+		DateTime.toDateUtc(
+			DateTime.makeZonedUnsafe(
+				DateTime.toParts(DateTime.makeZonedUnsafe(instant, { timeZone: zone })),
+				{
+					timeZone: DateTime.zoneMakeLocal(),
+					adjustForTimeZone: true
+				}
+			)
 		);
-		return new Date(
-			`${parts.get('year')}-${parts.get('month')}-${parts.get('day')}T${parts.get('hour')}:${parts.get('minute')}:${parts.get('second')}`
-		);
-	};
 	const presentation = $derived.by(() => {
 		const events: CalendarEvent[] = [];
 		if (loading || error || incomplete || timeZone == null || data.current == null)
@@ -178,7 +169,11 @@
 					part: String(child.part)
 				}))
 			}));
-			for (const date of each_day(date_period(from, to)).map(String)) {
+			const fromDay = DateTime.makeUnsafe(from);
+			const span = Duration.toDays(DateTime.distance(fromDay, DateTime.makeUnsafe(to))) + 1;
+			for (const date of Array.from({ length: span }, (_, day) =>
+				DateTime.formatIsoDateUtc(DateTime.add(fromDay, { days: day }))
+			)) {
 				if (
 					!(versions.current?.employee_contract.rows ?? []).some((c) =>
 						covers(c.effective_range, date)
@@ -195,7 +190,9 @@
 						id: `ph:${holiday.id}`,
 						title: `${ctx.t('roster.public_holiday')}: ${holiday.name}`,
 						start: stamp(date),
-						end: stamp(String(add_days(date, 1))),
+						end: stamp(
+							DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(date), { days: 1 }))
+						),
 						all_day: true,
 						color: 'var(--chart-4)'
 					});
@@ -224,7 +221,14 @@
 							id: `projected:${date}`,
 							title: ctx.t('roster.plan_projected'),
 							start: first == null ? stamp(date) : local(first.start, projectedZone),
-							end: last == null ? stamp(String(add_days(date, 1))) : local(last.end, projectedZone),
+							end:
+								last == null
+									? stamp(
+											DateTime.formatIsoDateUtc(
+												DateTime.add(DateTime.makeUnsafe(date), { days: 1 })
+											)
+										)
+									: local(last.end, projectedZone),
 							all_day: first == null,
 							color: 'var(--muted-foreground)'
 						});
@@ -239,7 +243,12 @@
 								? ctx.t('app.hr_employee.calendar_work')
 								: work.plan.day_type,
 						start: first == null ? stamp(date) : local(first.start, work.zone),
-						end: last == null ? stamp(String(add_days(date, 1))) : local(last.end, work.zone),
+						end:
+							last == null
+								? stamp(
+										DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(date), { days: 1 }))
+									)
+								: local(last.end, work.zone),
 						all_day: first == null,
 						color: work.plan.day_type === 'WORK' ? 'var(--chart-1)' : 'var(--muted-foreground)'
 					});
@@ -268,7 +277,9 @@
 						id: `leave:${id}:${index}`,
 						title: `${title} · ${day.part}`,
 						start: stamp(day.date),
-						end: stamp(String(add_days(day.date, 1))),
+						end: stamp(
+							DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(day.date), { days: 1 }))
+						),
 						all_day: true,
 						color: 'var(--chart-3)'
 					});

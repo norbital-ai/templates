@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect';
+import { DateTime, Effect, Schema } from 'effect';
 import type { EffectCtx } from '@norbital-ai/bolt';
 import { evaluate } from './expressions.js';
 import { Refusal, isJsonObject, jsonObject, type Json } from './foundation.js';
@@ -36,7 +36,10 @@ export const rangeObject = (value: unknown): JsonObject | undefined => {
 	// a stored daterange is half-open: its exclusive end is the day after the model's inclusive `to`
 	return {
 		from: match[1] || null,
-		to: match[2] ? addDays(match[2], -1) : null
+		to:
+			match[2] && /^\d{4}-\d{2}-\d{2}$/.test(match[2])
+				? DateTime.formatIsoDate(DateTime.subtract(DateTime.makeUnsafe(match[2]), { days: 1 }))
+				: null
 	};
 };
 
@@ -73,38 +76,6 @@ export const lawOn = Effect.fn('payroll.lawOn')(function* (
 /** A contract's first day, from a written row or its stored half-open range. */
 export const startOf = (row: JsonObject): unknown => rangeObject(row.effective_range)?.from;
 
-const dateText = (value: unknown): string | null =>
-	typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
-
-const monthStart = (value: unknown): string | null => {
-	const date = dateText(value);
-	return date === null ? null : `${date.slice(0, 7)}-01`;
-};
-const monthEnd = (value: unknown): string | null => {
-	const date = dateText(value);
-	if (date === null) return null;
-	const at = new Date(`${date.slice(0, 7)}-01T00:00:00Z`);
-	at.setUTCMonth(at.getUTCMonth() + 1);
-	at.setUTCDate(0);
-	return at.toISOString().slice(0, 10);
-};
-const addDays = (value: unknown, days: unknown): string | null => {
-	const date = dateText(value);
-	const count = Number(days);
-	if (date === null || !Number.isFinite(count)) return null;
-	const at = new Date(`${date}T00:00:00Z`);
-	at.setUTCDate(at.getUTCDate() + count);
-	return at.toISOString().slice(0, 10);
-};
-const addMonths = (value: unknown, months: unknown): string | null => {
-	const date = dateText(value);
-	const count = Number(months);
-	if (date === null || !Number.isFinite(count)) return null;
-	const at = new Date(`${date}T00:00:00Z`);
-	at.setUTCMonth(at.getUTCMonth() + count);
-	return at.toISOString().slice(0, 10);
-};
-
 /** Resolve the small expression language `reads` declarations use. */
 const expression = (source: string, data: Record<string, unknown>): Json => {
 	const text = source.trim();
@@ -119,15 +90,25 @@ const expression = (source: string, data: Record<string, unknown>): Json => {
 		const args = call[2]!.split(',').map((part) => part.trim());
 		const first = args[0] === undefined ? null : expression(args[0], data);
 		const second = args[1] === undefined ? null : expression(args[1], data);
+		const date =
+			typeof first === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(first)
+				? DateTime.makeUnsafe(first)
+				: null;
+		const count = Number(second);
+		if (date === null) return null;
 		switch (call[1]) {
 			case 'month_start':
-				return monthStart(first);
+				return DateTime.formatIsoDate(DateTime.startOf(date, 'month'));
 			case 'month_end':
-				return monthEnd(first);
+				return DateTime.formatIsoDate(DateTime.endOf(date, 'month'));
 			case 'add_days':
-				return addDays(first, second);
+				return Number.isFinite(count)
+					? DateTime.formatIsoDate(DateTime.add(date, { days: count }))
+					: null;
 			case 'add_months':
-				return addMonths(first, second);
+				return Number.isFinite(count)
+					? DateTime.formatIsoDate(DateTime.add(date, { months: count }))
+					: null;
 		}
 	}
 	return evaluate(`return ${text};`, 'CALCULATION', data, 'reads') as Json;

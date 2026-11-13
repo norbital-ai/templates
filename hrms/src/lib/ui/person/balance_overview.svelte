@@ -134,7 +134,7 @@
 		title={row.about === '' ? undefined : row.about}>{row.item}</span
 	>{/snippet}
 
-<Stack gap="lg">
+<Stack size="fill" gap="lg">
 	<Table
 		{ctx}
 		of={counted.filter((line) => line.current)}

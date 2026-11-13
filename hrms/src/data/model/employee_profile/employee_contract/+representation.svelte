@@ -24,9 +24,8 @@
 	} from '@norbital-ai/ui';
 	import { Cluster, Columns, Stack } from '@norbital-ai/ui/layout';
 	import { fork, run } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
+	import { BigDecimal, DateTime, Effect } from 'effect';
 	import { PAID_NOTE, paidPeriods } from '../../../../lib/ui/payroll/paid_period.svelte.js';
-	import { add_days, add_months, month_of, plain_date } from '../../../../lib/date.js';
 	import {
 		buildLoanSchedule,
 		FINAL_SETTLEMENT,
@@ -35,7 +34,6 @@
 		monthlyEquivalent
 	} from '../../../../lib/payroll_engine/loan_schedule.js';
 	import { isJsonObject, type JsonObject } from '../../../../lib/payroll_engine/foundation.js';
-	import { decimalText } from '../../../../lib/payroll_engine/money.js';
 	import type { Id, PlainDate } from '@norbital-ai/bolt';
 	import { contractCategories } from '../../../../lib/ui/person/contract_categories.js';
 	import ContractTermsEditor from '../../../../lib/ui/person/contract_terms_editor.svelte';
@@ -168,7 +166,11 @@
 		const from = value_object(range) && typeof range['from'] === 'string' ? range['from'] : today;
 		return lawOn(values['entity_id'], String(from))?.id ?? null;
 	};
-	const nextDay = $derived(lastDay === null ? null : add_days(lastDay, 1));
+	const nextDay = $derived(
+		lastDay === null
+			? null
+			: DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(lastDay), { days: 1 }))
+	);
 	/** The new version's law: the target entity's lineage in force on the day it starts. */
 	const targetSettings = $derived(
 		targetEntity === null ? null : (lawOn(targetEntity, nextDay ?? today)?.id ?? null)
@@ -259,18 +261,18 @@
 	/** The months a contract change can start: this one, if no run has taken it, and the year ahead. */
 	const months = $derived(
 		Array.from({ length: 13 }, (_, index) => {
-			const first = add_months(month_of(today).from, index);
-			return { value: first, label: first.slice(0, 7) };
+			const first = DateTime.add(DateTime.startOf(DateTime.makeUnsafe(today), 'month'), {
+				months: index
+			});
+			return {
+				value: DateTime.formatIsoDateUtc(first),
+				label: DateTime.formatIsoDateUtc(first).slice(0, 7)
+			};
 		})
 	);
 	const lastDayInvalid = $derived(
 		lastDay === null || (record !== null && lastDay < record.effective_range.from)
 	);
-	function amountOf(value: unknown): number {
-		if (typeof value === 'number') return value;
-		if (typeof value === 'string') return Number(value);
-		return 0;
-	}
 	const leaveDays = $derived(
 		latestLeft(
 			accountsOf(balance?.current?.employee_balance.rows[0]?.account),
@@ -291,10 +293,10 @@
 		for (const row of repayments) {
 			if (row.payroll_run_id == null) continue;
 			const key = String(row.loan_id);
-			paid.set(key, (paid.get(key) ?? 0) + amountOf(row.amount));
+			paid.set(key, (paid.get(key) ?? 0) + Number(row.amount ?? 0));
 		}
 		return loanRows
-			.map((row) => ({ row, amount: amountOf(row.quantity) - (paid.get(String(row.id)) ?? 0) }))
+			.map((row) => ({ row, amount: Number(row.quantity ?? 0) - (paid.get(String(row.id)) ?? 0) }))
 			.filter((item) => item.amount > 0.000001);
 	}
 	const outstandingLoans = $derived(
@@ -312,7 +314,7 @@
 	const rateEquivalent = $derived(record === null ? null : monthlyEquivalent(record.terms));
 	const expectedPay = $derived(
 		expectedPayEdit ??
-			(latestPayslip === undefined ? rateEquivalent : amountOf(latestPayslip.net_pay))
+			(latestPayslip === undefined ? rateEquivalent : Number(latestPayslip.net_pay ?? 0))
 	);
 	const recoveryBasis = $derived(
 		expectedPayEdit !== null
@@ -332,11 +334,6 @@
 			)?.final_pay_loan_floor_percent ?? 10
 		)
 	);
-	const decimals = (currency: unknown): number =>
-		new Intl.NumberFormat('en', {
-			style: 'currency',
-			currency: String(currency ?? 'USD')
-		}).resolvedOptions().maximumFractionDigits ?? 2;
 	const recovery = $derived(
 		expectedPay === null
 			? null
@@ -347,7 +344,11 @@
 					})),
 					expectedPay,
 					floorPercent,
-					decimals: decimals(currentSettings?.currency)
+					decimals:
+						new Intl.NumberFormat('en', {
+							style: 'currency',
+							currency: String(currentSettings?.currency ?? 'USD')
+						}).resolvedOptions().maximumFractionDigits ?? 2
 				})
 	);
 
@@ -425,13 +426,9 @@
 						? [
 								{
 									kind: item.kind,
-									on: plain_date(item.on),
-									...(typeof item.opened_on === 'string'
-										? { opened_on: plain_date(item.opened_on) }
-										: {}),
-									...(typeof item.ended_on === 'string'
-										? { ended_on: plain_date(item.ended_on) }
-										: {}),
+									on: item.on,
+									...(typeof item.opened_on === 'string' ? { opened_on: item.opened_on } : {}),
+									...(typeof item.ended_on === 'string' ? { ended_on: item.ended_on } : {}),
 									...(typeof item.allocated_days === 'number'
 										? { allocated_days: item.allocated_days }
 										: {})
@@ -452,11 +449,9 @@
 						? [
 								{
 									relation,
-									...(typeof item.born_on === 'string'
-										? { born_on: plain_date(item.born_on) }
-										: {}),
+									...(typeof item.born_on === 'string' ? { born_on: item.born_on } : {}),
 									...(typeof item.expected_on === 'string'
-										? { expected_on: plain_date(item.expected_on) }
+										? { expected_on: item.expected_on }
 										: {}),
 									...(typeof item.has_income === 'boolean' ? { has_income: item.has_income } : {}),
 									...(typeof item.disabled === 'boolean' ? { disabled: item.disabled } : {}),
@@ -500,7 +495,10 @@
 		step = 1;
 		changeError = null;
 		// only an exit keeps its own day: every other change starts on the first of a month
-		lastDay = kind === 'TERMINATE' ? today : month_of(today).to;
+		lastDay =
+			kind === 'TERMINATE'
+				? today
+				: DateTime.formatIsoDateUtc(DateTime.endOf(DateTime.makeUnsafe(today), 'month'));
 		finalPayDueOn = null;
 		exitGround = record.exit_ground ?? null;
 		encashLeave = record.encash_leave !== false;
@@ -590,10 +588,16 @@
 			loans: outstanding.map((item) => ({ id: String(item.row.id), outstanding: item.amount })),
 			expectedPay,
 			floorPercent,
-			decimals: decimals(currentSettings?.currency)
+			decimals:
+				new Intl.NumberFormat('en', {
+					style: 'currency',
+					currency: String(currentSettings?.currency ?? 'USD')
+				}).resolvedOptions().maximumFractionDigits ?? 2
 		});
 		await clearOpenSchedule(position);
-		const nextMonth = add_months(plain_date(`${String(day).slice(0, 7)}-01`), 1);
+		const nextMonth = DateTime.formatIsoDateUtc(
+			DateTime.add(DateTime.startOf(DateTime.makeUnsafe(day), 'month'), { months: 1 })
+		);
 		for (const item of outstanding) {
 			const share = plan.allocations.find((row) => row.id === String(item.row.id));
 			if (share === undefined) continue;
@@ -605,7 +609,10 @@
 								entity_id: current.entity_id,
 								employment_id: current.id,
 								loan_id: item.row.id,
-								amount: decimalText(share.final),
+								amount: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									maximumFractionDigits: 20
+								}).format(share.final),
 								paid_on: day,
 								payment_reference:
 									share.remaining > 0 ? `${FINAL_SETTLEMENT} (partial)` : FINAL_SETTLEMENT
@@ -621,14 +628,21 @@
 			const oldEnd = isJsonObject(period) && typeof period.to === 'string' ? period.to : '';
 			const end =
 				oldEnd.slice(0, 7) >= String(nextMonth).slice(0, 7)
-					? plain_date(oldEnd)
-					: add_months(nextMonth, 11);
+					? oldEnd
+					: DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(nextMonth), { months: 11 }));
 			const moved = await run(
 				ctx.act({
 					'loan_catalog_entry.update': [
 						{
 							target: { id: item.row.id, revision: item.row.revision },
-							set: { repayment_period: { from: add_days(day, 1), to: end } }
+							set: {
+								repayment_period: {
+									from: DateTime.formatIsoDateUtc(
+										DateTime.add(DateTime.makeUnsafe(day), { days: 1 })
+									),
+									to: end
+								}
+							}
 						}
 					]
 				})
@@ -647,8 +661,11 @@
 						entity_id: current.entity_id,
 						employment_id: current.id,
 						loan_id: item.row.id,
-						amount: decimalText(row.amount),
-						paid_on: plain_date(row.paid_on)
+						amount: new Intl.NumberFormat('en', {
+							useGrouping: false,
+							maximumFractionDigits: 20
+						}).format(row.amount),
+						paid_on: row.paid_on
 					}))
 				})
 			);
@@ -748,7 +765,10 @@
 								entity_id: current.entity_id,
 								employment_id: current.id,
 								loan_id: item.row.id,
-								amount: decimalText(item.amount),
+								amount: new Intl.NumberFormat('en', {
+									useGrouping: false,
+									maximumFractionDigits: 20
+								}).format(item.amount),
 								paid_on: day,
 								payment_reference: 'Transfer settlement'
 							}
@@ -762,13 +782,15 @@
 			if (targetCatalogId === undefined)
 				throw new Error('The target jurisdiction has no matching loan catalogue.');
 			const period = item.row.repayment_period;
-			const start = add_days(day, 1);
+			const start = DateTime.add(DateTime.makeUnsafe(day), { days: 1 });
 			const oldEnd =
 				period !== null && typeof period === 'object' && !Array.isArray(period)
 					? String(Reflect.get(period, 'to') ?? '')
 					: '';
 			const end =
-				oldEnd !== '' && oldEnd > String(start) ? plain_date(oldEnd) : add_months(start, 12);
+				oldEnd !== '' && oldEnd > DateTime.formatIsoDateUtc(start)
+					? oldEnd
+					: DateTime.formatIsoDateUtc(DateTime.add(start, { months: 12 }));
 			const created = await run(
 				ctx.act({
 					'loan_catalog_entry.create': [
@@ -776,8 +798,11 @@
 							entity_id: target.entityId,
 							employment_id: target.id,
 							catalog_id: targetCatalogId,
-							quantity: decimalText(item.amount),
-							repayment_period: { from: start, to: end }
+							quantity: new Intl.NumberFormat('en', {
+								useGrouping: false,
+								maximumFractionDigits: 20
+							}).format(item.amount),
+							repayment_period: { from: DateTime.formatIsoDateUtc(start), to: end }
 						}
 					]
 				})
@@ -788,25 +813,33 @@
 				row.model === 'loan_catalog_entry' ? [row.id] : []
 			)[0];
 			if (newLoanId === undefined) throw new Error('The replacement loan has no id.');
+			const last = DateTime.toPartsUtc(DateTime.makeUnsafe(end)),
+				first = DateTime.toPartsUtc(start);
 			const months = Math.max(
 				1,
-				Math.min(
-					120,
-					(Number(String(end).slice(0, 4)) - Number(String(start).slice(0, 4))) * 12 +
-						Number(String(end).slice(5, 7)) -
-						Number(String(start).slice(5, 7)) +
-						1
-				)
+				Math.min(120, (last.year - first.year) * 12 + last.month - first.month + 1)
 			);
-			const base = Math.floor((item.amount / months) * 100) / 100;
+			const amount = BigDecimal.fromNumberUnsafe(item.amount);
+			const base = BigDecimal.round(
+				BigDecimal.divideUnsafe(amount, BigDecimal.fromNumberUnsafe(months)),
+				{ scale: 2, mode: 'floor' }
+			);
 			const schedule = Array.from({ length: months }, (_, index) => ({
 				entity_id: target.entityId,
 				employment_id: target.id,
 				loan_id: newLoanId,
-				amount: decimalText(
-					index === months - 1 ? Math.round((item.amount - base * (months - 1)) * 100) / 100 : base
+				amount: BigDecimal.format(
+					index === months - 1
+						? BigDecimal.round(
+								BigDecimal.subtract(
+									amount,
+									BigDecimal.multiply(base, BigDecimal.fromNumberUnsafe(months - 1))
+								),
+								{ scale: 2, mode: 'half-ceil' }
+							)
+						: base
 				),
-				paid_on: add_months(start, index)
+				paid_on: DateTime.formatIsoDateUtc(DateTime.add(start, { months: index }))
 			}));
 			const scheduled = await run(ctx.act({ 'loan_catalog_entry_repayment.create': schedule }));
 			if (scheduled.kind !== 'committed')
@@ -1246,7 +1279,12 @@
 							disabled={changeSaving}
 							aria-label={t('contract.takes_effect')}
 							on_change={(next) =>
-								(lastDay = next === null ? null : add_days(plain_date(next), -1))}
+								(lastDay =
+									next === null
+										? null
+										: DateTime.formatIsoDateUtc(
+												DateTime.subtract(DateTime.makeUnsafe(next), { days: 1 })
+											))}
 						/>
 					</label>
 				{:else}
@@ -1261,7 +1299,7 @@
 							kind={{ kind: 'date' }}
 							value={lastDay}
 							disabled={changeSaving}
-							on_change={(next) => (lastDay = next == null ? null : plain_date(String(next)))}
+							on_change={(next) => (lastDay = next == null ? null : String(next))}
 						/>
 					</label>
 				{/if}
@@ -1513,7 +1551,7 @@
 							kind={{ kind: 'date' }}
 							value={finalPayDueOn}
 							disabled={changeSaving}
-							on_change={(next) => (finalPayDueOn = next == null ? null : plain_date(String(next)))}
+							on_change={(next) => (finalPayDueOn = next == null ? null : String(next))}
 						/>
 					</label>
 				{/if}

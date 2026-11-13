@@ -1,6 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
-import { add_days } from '../lib/date.js';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import type { JsonObject } from '../lib/payroll_engine/contracts.js';
 import { Refusal, stableJson, type Json } from '../lib/payroll_engine/foundation.js';
 import { objectValue, queryAllRows, valueText } from '../lib/payroll_engine/reads.js';
@@ -164,7 +163,14 @@ export default automation({
 						: [
 								{
 									target: predecessor,
-									set: { effective_range: { from: fromOf(predecessor), to: add_days(day, -1) } }
+									set: {
+										effective_range: {
+											from: fromOf(predecessor),
+											to: DateTime.formatIsoDate(
+												DateTime.add(DateTime.makeUnsafe(day), { days: -1 })
+											)
+										}
+									}
 								}
 							]),
 					{ target: draft, set: { status: 'SEALED' } }
@@ -346,7 +352,9 @@ export default automation({
 										set: {
 											effective_range: {
 												from: fromOf(baselineRow),
-												to: add_days(plan.effective_from, -1)
+												to: DateTime.formatIsoDate(
+													DateTime.add(DateTime.makeUnsafe(plan.effective_from), { days: -1 })
+												)
 											}
 										}
 									}

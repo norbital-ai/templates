@@ -1,4 +1,5 @@
 import type { MessageKey } from '@norbital-ai/bolt';
+import { DateTime, Duration } from 'effect';
 import { isJsonObject } from '../../payroll_engine/foundation.js';
 
 /** One worked interval as `roster_entry.actual_worked_intervals` stores it. */
@@ -100,23 +101,14 @@ export type Day = {
 
 export const dayKey = (employmentId: string, date: string): string => `${employmentId}:${date}`;
 
-export function addDays(date: string, days: number): string {
-	const stamp = new Date(`${date}T00:00:00Z`);
-	stamp.setUTCDate(stamp.getUTCDate() + days);
-	return stamp.toISOString().slice(0, 10);
-}
-
 /** Every `YYYY-MM-DD` from `from` to `to`, both inclusive. */
 export function datesBetween(from: string, to: string): string[] {
-	const dates: string[] = [];
-	for (let date = from; date <= to; date = addDays(date, 1)) dates.push(date);
-	return dates;
+	const first = DateTime.makeUnsafe(from);
+	return Array.from(
+		{ length: Math.max(0, Duration.toDays(DateTime.distance(first, DateTime.makeUnsafe(to))) + 1) },
+		(_, day) => DateTime.formatIsoDateUtc(DateTime.add(first, { days: day }))
+	);
 }
-
-export const isWeekend = (date: string): boolean => {
-	const day = new Date(`${date}T00:00:00Z`).getUTCDay();
-	return day === 0 || day === 6;
-};
 
 /** The stored intervals, or null when none were recorded (or the value is not a list of intervals). */
 export function intervalsOf(value: unknown): Interval[] | null {
@@ -174,7 +166,8 @@ export function workedMinutes(intervals: readonly Interval[] | null): number | n
 }
 
 /** `8.5h`: hours to two decimals, trimmed. */
-export const hoursLabel = (minutes: number): string => `${Math.round((minutes / 60) * 100) / 100}h`;
+export const hoursLabel = (minutes: number): string =>
+	`${new Intl.NumberFormat('en', { maximumFractionDigits: 2, useGrouping: false }).format(minutes / 60)}h`;
 
 const CLOCK = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const clockMinutes = (clock: string): number =>
@@ -218,14 +211,14 @@ export const cycleShiftId = (pattern: PatternRow | undefined, date: string): str
 	const cycle = pattern?.pattern?.cycle;
 	if (Array.isArray(cycle)) {
 		if (cycle.length === 0) return null;
-		const span = Math.round(
-			(Date.parse(`${date}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000
+		const span = Duration.toDays(
+			DateTime.distance(DateTime.makeUnsafe(from), DateTime.makeUnsafe(date))
 		);
 		const id = cycle[((span % cycle.length) + cycle.length) % cycle.length]?.shift_definition_id;
 		return id == null || id === '' ? null : String(id);
 	}
 	if (days == null) return null;
-	const id = days[WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()] ?? 'SUNDAY'];
+	const id = days[WEEKDAYS[DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay] ?? 'SUNDAY'];
 	return id == null || id === '' ? null : String(id);
 };
 
@@ -392,7 +385,9 @@ export function describeDay(day: Day, subject: string, timeZone: string, t: Tran
 				: t('roster.layer_clocked_window', {
 						first: clockStampOf(first.start, timeZone),
 						last: clockStampOf(day.intervals.at(-1)?.end ?? first.start, timeZone),
-						hours: Math.round((day.actualMinutes / 60) * 100) / 100
+						hours: new Intl.NumberFormat('en', { maximumFractionDigits: 2 }).format(
+							day.actualMinutes / 60
+						)
 					})
 		);
 	if (day.percent != null)

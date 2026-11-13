@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import { objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, ownLines, pay, run } from '../amendment_kit.ts';
@@ -113,7 +112,7 @@ const released = (t: Kit, on: string) =>
 		});
 		yield* (yield* t.as(t.admin)).run(
 			'statutory_materialize',
-			{ code: CODE, target: plain_date(on), merge: true },
+			{ code: CODE, target: on, merge: true },
 			JobResult
 		);
 		yield* t.run_due();

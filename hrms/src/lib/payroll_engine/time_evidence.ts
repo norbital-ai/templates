@@ -1,7 +1,6 @@
-import { add_days, is_plain_date, parse_instant } from '../date.js';
+import { BigDecimal, DateTime, Duration, Option } from 'effect';
 import { isJsonObject, Refusal, type JsonObject } from './foundation.js';
 import { objectValue, valueText } from './reads.js';
-import { sum } from './money.js';
 export interface TimeSpan {
 	readonly start: number;
 	readonly end: number;
@@ -9,21 +8,21 @@ export interface TimeSpan {
 // an instant is a stored ISO text with its offset, or the epoch milliseconds a run already worked out
 const instant = (value: unknown): number => {
 	if (typeof value === 'number' && Number.isFinite(value)) return value;
-	if (
-		typeof value !== 'string' ||
-		!/(Z|[+-]\d{2}:\d{2})$/.test(value) ||
-		!Number.isFinite(Date.parse(value))
-	)
+	const made =
+		typeof value === 'string' && /(Z|[+-]\d{2}:\d{2})$/.test(value)
+			? DateTime.make(value)
+			: Option.none();
+	if (Option.isNone(made))
 		throw new Refusal({
 			message: 'An interval requires actual instants with explicit UTC offsets.'
 		});
-	return Date.parse(value);
+	return DateTime.toEpochMillis(made.value);
 };
 export const elapsedMinutes = (start: unknown, end: unknown): number => {
 	const a = instant(start),
 		b = instant(end);
 	if (b < a) throw new Refusal({ message: 'An interval ends before it starts.' });
-	return (b - a) / 60000;
+	return Duration.toMinutes(Duration.millis(b - a));
 };
 // rows are decoded once where they are read: here only their shape is checked
 const rowsOf = (value: unknown): readonly JsonObject[] => {
@@ -50,7 +49,14 @@ export function intervalSpans(value: unknown, as_of?: unknown): readonly TimeSpa
 				(typeof row.break_minutes !== 'number' ||
 					!Number.isFinite(row.break_minutes) ||
 					row.break_minutes < 0 ||
-					row.break_minutes !== sum(breaks.map((b) => (b.end - b.start) / 60000)))
+					row.break_minutes !==
+						BigDecimal.toNumberUnsafe(
+							BigDecimal.sumAll(
+								breaks.map((b) =>
+									BigDecimal.fromNumberUnsafe(Duration.toMinutes(Duration.millis(b.end - b.start)))
+								)
+							)
+						))
 			)
 				throw new Refusal({
 					message: 'A break total must equal its original dated break intervals.'
@@ -68,22 +74,13 @@ export function intervalSpans(value: unknown, as_of?: unknown): readonly TimeSpa
 		});
 }
 export const intervalMinutes = (value: unknown, as_of?: unknown): number =>
-	sum(intervalSpans(value, as_of).map((s) => (s.end - s.start) / 60000));
-// a formatter is the costly part: one a zone, not one a call
-const dayFormats = new Map<string, Intl.DateTimeFormat>();
-const dayAt = (value: number, zone: string) => {
-	let format = dayFormats.get(zone);
-	if (format === undefined) {
-		format = new Intl.DateTimeFormat('en-CA', {
-			timeZone: zone,
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit'
-		});
-		dayFormats.set(zone, format);
-	}
-	return format.format(value);
-};
+	BigDecimal.toNumberUnsafe(
+		BigDecimal.sumAll(
+			intervalSpans(value, as_of).map((s) =>
+				BigDecimal.fromNumberUnsafe(Duration.toMinutes(Duration.millis(s.end - s.start)))
+			)
+		)
+	);
 // a night window's edges are the same for everyone who worked that date
 const clocks = new Map<string, number>();
 const clockAt = (date: string, time: string, zone: string) => {
@@ -92,10 +89,14 @@ const clockAt = (date: string, time: string, zone: string) => {
 	if (held !== undefined) return held;
 	if (!/^\d{2}:\d{2}$/.test(time))
 		throw new Refusal({ message: 'A local clock window requires HH:mm.' });
-	const parsed = parse_instant(`${date} ${time}`, zone);
-	if (parsed === null)
+	const parsed = DateTime.makeZoned(`${date}T${time}:00`, {
+		timeZone: zone,
+		adjustForTimeZone: true,
+		disambiguation: 'compatible'
+	});
+	if (Option.isNone(parsed))
 		throw new Refusal({ message: 'The local clock window cannot resolve its time zone.' });
-	const found = Date.parse(parsed);
+	const found = DateTime.toEpochMillis(parsed.value);
 	if (clocks.size >= 20_000) clocks.clear();
 	clocks.set(key, found);
 	return found;
@@ -109,20 +110,35 @@ export function clockWindowMinutes(
 ): number {
 	let total = 0;
 	for (const span of intervalSpans(value, as_of)) {
-		let date = String(add_days(dayAt(span.start, zone), -1));
-		for (let count = 0; date <= dayAt(span.end, zone); date = String(add_days(date, 1)), count++) {
+		const last = DateTime.formatIsoDate(DateTime.makeZonedUnsafe(span.end, { timeZone: zone }));
+		let day = DateTime.subtract(
+			DateTime.removeTime(DateTime.makeZonedUnsafe(span.start, { timeZone: zone })),
+			{ days: 1 }
+		);
+		for (
+			let count = 0, date = DateTime.formatIsoDate(day);
+			date <= last;
+			day = DateTime.add(day, { days: 1 }), date = DateTime.formatIsoDate(day), count++
+		) {
 			if (count > 370) throw new Refusal({ message: 'Split intervals spanning more than a year.' });
 			const start = clockAt(date, start_time, zone),
-				end = clockAt(start_time < end_time ? date : String(add_days(date, 1)), end_time, zone);
-			total += Math.max(0, Math.min(span.end, end) - Math.max(span.start, start)) / 60000;
+				end = clockAt(
+					start_time < end_time ? date : DateTime.formatIsoDate(DateTime.add(day, { days: 1 })),
+					end_time,
+					zone
+				);
+			total += Duration.toMinutes(
+				Duration.millis(Math.max(0, Math.min(span.end, end) - Math.max(span.start, start)))
+			);
 		}
 	}
 	return total;
 }
 export function dateWeekday(value: string): number {
-	if (!is_plain_date(value))
+	const day = DateTime.make(value);
+	if (Option.isNone(day) || DateTime.formatIsoDate(day.value) !== value)
 		throw new Refusal({ message: 'A weekday requires an actual calendar date.' });
-	return new Date(`${value}T00:00:00Z`).getUTCDay();
+	return DateTime.getPartUtc(day.value, 'weekDay');
 }
 export function addWorkingDays(
 	value: string,
@@ -132,7 +148,7 @@ export function addWorkingDays(
 	working_dates: readonly string[] = []
 ): string {
 	if (
-		!is_plain_date(value) ||
+		!Option.exists(DateTime.make(value), (d) => DateTime.formatIsoDate(d) === value) ||
 		!Number.isInteger(count) ||
 		Math.abs(count) > 1000 ||
 		(new Set(rest).size === 7 && working_dates.length === 0) ||
@@ -146,14 +162,20 @@ export function addWorkingDays(
 		holidays.map((h) => (typeof h === 'string' ? h : valueText(objectValue(h), 'date')))
 	);
 	const working = new Set(working_dates);
-	if (working_dates.some((d) => !is_plain_date(d)))
+	if (
+		working_dates.some(
+			(date) => !Option.exists(DateTime.make(date), (d) => DateTime.formatIsoDate(d) === date)
+		)
+	)
 		throw new Refusal({ message: 'Working-date exceptions require actual dates.' });
 	let day: string = value,
 		remaining = Math.abs(count);
 	for (let seen = 0; remaining > 0; seen++) {
 		if (seen > 10000)
 			throw new Refusal({ message: 'The business calendar cannot reach its deadline.' });
-		day = String(add_days(day, count < 0 ? -1 : 1));
+		day = DateTime.formatIsoDate(
+			DateTime.add(DateTime.makeUnsafe(day), { days: count < 0 ? -1 : 1 })
+		);
 		if (working.has(day) || (!rest.includes(dateWeekday(day)) && !dates.has(day))) remaining--;
 	}
 	return day;
@@ -162,5 +184,5 @@ export function addWorkingDays(
 export function addMinutes(value: string, count: number): string {
 	if (!Number.isFinite(count) || Math.abs(count) > 527040)
 		throw new Refusal({ message: 'An instant offset must be finite and within one year.' });
-	return new Date(instant(value) + count * 60000).toISOString();
+	return DateTime.formatIso(DateTime.add(DateTime.makeUnsafe(instant(value)), { minutes: count }));
 }

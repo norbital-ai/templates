@@ -7,11 +7,10 @@ import {
 	addMinutes
 } from './time_evidence.js';
 import { parse, type AnyNode, type Pattern, type Program } from 'acorn';
-import { BigDecimal, Schema } from 'effect';
+import { BigDecimal, DateTime, Duration, Option, Schema } from 'effect';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
-import { add_days, add_months, date_period, days, is_plain_date, month_of } from '../date.js';
-import { PHASE_ROOTS, type Phase } from './contracts.js';
+import { PHASE_ROOTS, ROUNDING_MODES, type Phase } from './contracts.js';
 import {
 	completedMonths,
 	getErrorMessage,
@@ -19,7 +18,6 @@ import {
 	Refusal,
 	stableJson
 } from './foundation.js';
-import { decimal, decimalText, ROUNDING_MODES, toNumber } from './money.js';
 
 const callable = Symbol('payroll expression callable');
 interface FunctionValue {
@@ -34,14 +32,23 @@ const bad = (message: string): never => {
 type Decimal = BigDecimal.BigDecimal;
 const isDecimal = BigDecimal.isBigDecimal;
 /** A value as text: a decimal keeps its own scale (`1.20`). */
-const show = (v: unknown): string => (isDecimal(v) ? decimalText(v) : String(v));
+const show = (v: unknown): string =>
+	isDecimal(v)
+		? new Intl.NumberFormat('en', {
+				useGrouping: false,
+				minimumFractionDigits: Math.max(0, v.scale),
+				maximumFractionDigits: Math.max(0, v.scale)
+			}).format(
+				Schema.decodeUnknownSync(Schema.TemplateLiteral([Schema.Number]))(BigDecimal.format(v))
+			)
+		: String(v);
 const numeric = (v: unknown): number =>
 	isDecimal(v)
-		? toNumber(v)
+		? BigDecimal.toNumberUnsafe(v)
 		: typeof v === 'number' && Number.isFinite(v)
 			? v
 			: bad('Expected an actual finite number.');
-const exact = (v: unknown): Decimal => (isDecimal(v) ? v : decimal(numeric(v)));
+const exact = (v: unknown): Decimal => (isDecimal(v) ? v : BigDecimal.fromNumberUnsafe(numeric(v)));
 /** `a / b` rounded to `scale`: an exact quotient to 100 digits, then rounded. */
 const divide = (a: Decimal, b: Decimal, scale: number, mode: BigDecimal.RoundingMode): Decimal =>
 	BigDecimal.round(BigDecimal.divideUnsafe(a, b), { scale, mode });
@@ -61,7 +68,7 @@ const compare = (a: unknown, b: unknown): number =>
 const truth = (v: unknown): boolean => (isDecimal(v) ? !BigDecimal.isZero(v) : Boolean(v));
 const materialise = (v: unknown): unknown =>
 	isDecimal(v)
-		? toNumber(v)
+		? BigDecimal.toNumberUnsafe(v)
 		: Array.isArray(v)
 			? v.map(materialise)
 			: isDynObject(v) && !isFunction(v)
@@ -85,7 +92,9 @@ const periodEnd = (value: unknown): string | null => {
 
 const date = (v: unknown): string => {
 	const value = text(v);
-	return is_plain_date(value) ? value : bad('Expected an actual ISO calendar date.');
+	return Option.exists(DateTime.make(value), (d) => DateTime.formatIsoDate(d) === value)
+		? value
+		: bad('Expected an actual ISO calendar date.');
 };
 const blocked = new Set(['__proto__', 'prototype', 'constructor', 'caller', 'callee', 'arguments']);
 const property = (v: unknown, key: string): unknown => {
@@ -273,16 +282,22 @@ class Interpreter {
 			}
 		}
 		if (numericValue(value)) {
-			if (key === 'toString' && (args.length === 0 || args[0] === 10))
-				return decimalText(exact(value));
+			if (key === 'toString' && (args.length === 0 || args[0] === 10)) return show(exact(value));
 			if (key === 'toFixed') {
 				const scale = args[0] === undefined ? 0 : numeric(args[0]);
 				if (!Number.isInteger(scale) || scale < 0 || scale > 12)
 					bad('Fixed decimal formatting supports 0–12 places.');
-				const [whole, fraction = ''] = decimalText(
-					BigDecimal.round(exact(value), { scale, mode: 'half-from-zero' })
-				).split('.');
-				return scale === 0 ? whole : `${whole}.${fraction.padEnd(scale, '0')}`;
+				return new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: scale,
+					maximumFractionDigits: scale,
+					roundingMode: 'halfExpand',
+					signDisplay: 'negative'
+				}).format(
+					Schema.decodeUnknownSync(Schema.TemplateLiteral([Schema.Number]))(
+						BigDecimal.format(exact(value))
+					)
+				);
 			}
 		}
 		if (typeof value === 'string') {
@@ -708,7 +723,7 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 	}),
 	sum: fn((a) => BigDecimal.sumAll(list(a[0]).map(exact))),
 	round: fn((a) => {
-		const step = a[1] === undefined ? decimal(1) : exact(a[1]);
+		const step = a[1] === undefined ? BigDecimal.make(1n, 0) : exact(a[1]);
 		if (!BigDecimal.isPositive(step)) bad('Rounding step must be positive.');
 		const mode = a[2] === undefined ? 'HALF_UP' : roundMode(a[2]);
 		return BigDecimal.multiply(divide(exact(a[0]), step, 0, ROUNDING_MODES[mode]), step);
@@ -725,7 +740,7 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 			const key = show(path(v, text(a[1]), undefined));
 			if (blocked.has(key)) bad('Unsafe group key.');
 			result[key] = BigDecimal.sum(
-				result[key] ?? decimal(0),
+				result[key] ?? BigDecimal.make(0n, 0),
 				exact(path(v, text(a[2]), undefined))
 			);
 		}
@@ -743,18 +758,34 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 	flatten: fn((a) => list(a[0]).flat()),
 	overlay: fn((a) => ({ ...object(a[0]), ...object(a[1]) })),
 	first: fn((a) => list(a[0])[0] ?? null),
-	add_days: fn((a) => String(add_days(date(a[0]), numeric(a[1])))),
-	add_months: fn((a) => String(add_months(date(a[0]), numeric(a[1])))),
-	add_years: fn((a) => String(add_months(date(a[0]), 12 * numeric(a[1])))),
-	month_start: fn((a) => String(month_of(date(a[0])).from)),
-	month_end: fn((a) => String(month_of(date(a[0])).to)),
+	add_days: fn((a) =>
+		DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(date(a[0])), { days: numeric(a[1]) }))
+	),
+	add_months: fn((a) => {
+		const months = numeric(a[1]);
+		if (!Number.isInteger(months))
+			throw new RangeError(`${months} is not a whole number of months`);
+		return DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(date(a[0])), { months }));
+	}),
+	add_years: fn((a) => {
+		const months = 12 * numeric(a[1]);
+		if (!Number.isInteger(months))
+			throw new RangeError(`${months} is not a whole number of months`);
+		return DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(date(a[0])), { months }));
+	}),
+	month_start: fn((a) =>
+		DateTime.formatIsoDate(DateTime.startOf(DateTime.makeUnsafe(date(a[0])), 'month'))
+	),
+	month_end: fn((a) =>
+		DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(date(a[0])), 'month'))
+	),
 	age_on: fn((a) => Math.floor(completedMonths(date(a[0]), date(a[1])) / 12)),
 	calendar_completed_months: fn((a) => completedMonths(date(a[0]), date(a[1]))),
-	calendar_distance_days: fn((a) => {
-		const from = date(a[0]),
-			to = date(a[1]);
-		return from <= to ? days(date_period(from, to)) - 1 : 1 - days(date_period(to, from));
-	}),
+	calendar_distance_days: fn((a) =>
+		Duration.toDays(
+			DateTime.distance(DateTime.makeUnsafe(date(a[0])), DateTime.makeUnsafe(date(a[1])))
+		)
+	),
 	bracket: fn((a) => {
 		const value = exact(a[0]),
 			bands = list(a[1]);
@@ -766,8 +797,8 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 		return bad('Bracket table does not cover its input.');
 	}),
 	ladder: fn((a) => {
-		let previous = decimal(0),
-			total = decimal(0);
+		let previous = BigDecimal.make(0n, 0),
+			total = BigDecimal.make(0n, 0);
 		const value = exact(a[0]);
 		if (BigDecimal.isNegative(value)) bad('Progressive base must be nonnegative.');
 		for (const b of list(a[1])) {

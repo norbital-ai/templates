@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Id } from '@norbital-ai/bolt';
-	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Button,
 		Combobox,
@@ -31,7 +31,11 @@
 	const all = jurisdictionVersions(ctx);
 	let chosen = $state<Id<'jurisdiction_settings'> | null>(null);
 	const scope = $derived(
-		resolveJurisdictionScope(all.current?.jurisdiction_settings.rows ?? [], chosen)
+		resolveJurisdictionScope(
+			all.current?.jurisdiction_settings.rows ?? [],
+			chosen,
+			ctx.clock().today
+		)
 	);
 	const version = $derived(
 		all.current?.jurisdiction_settings.rows.find((r) => r.id === scope?.versionId)
@@ -125,10 +129,9 @@
 			{#snippet children(view)}<LookupForm {ctx} {view} />{/snippet}
 		</RecordShell>{/if}{/snippet}
 
-{#snippet overview()}{#if version}<CalculationOverview
-			{ctx}
-			versionId={version.id}
-		/>{/if}{/snippet}
+{#snippet overview()}{#if version}<Scroll name="Calculation overview" size="fill" inset
+			><CalculationOverview {ctx} versionId={version.id} /></Scroll
+		>{/if}{/snippet}
 
 {#snippet catalog()}{#if version}<CatalogTabs {ctx} versionId={version.id} {draft} />{/if}{/snippet}
 
@@ -149,11 +152,13 @@
 			]}
 		/>{/if}{/snippet}
 
-{#snippet compare()}{#if version}<VersionCompare
-			{ctx}
-			versions={all.current?.jurisdiction_settings.rows ?? []}
-			current={version.id}
-		/>{/if}{/snippet}
+{#snippet compare()}{#if version}<Scroll name={ctx.t('settings_version.compare')} size="fill" inset
+			><VersionCompare
+				{ctx}
+				versions={all.current?.jurisdiction_settings.rows ?? []}
+				current={version.id}
+			/></Scroll
+		>{/if}{/snippet}
 
 {#snippet behaviour()}{#if version}<Table
 			{ctx}
@@ -178,6 +183,7 @@
 	title={ctx.t('app.settings.header_title')}
 	description={ctx.t('v2.settings_help')}
 	icon="lucide:settings-2"
+	variant="full"
 >
 	{#snippet actions()}
 		<div class="flex items-center gap-3">

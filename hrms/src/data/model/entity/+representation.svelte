@@ -10,11 +10,11 @@
 		RecordShell,
 		Sheet,
 		Table,
-		Tabs
+		Tabs,
+		format
 	} from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
-	import { formatTermsDates } from '../../../lib/ui/format/display_formatters.js';
 	import type { RecordView } from '@norbital-ai/ui';
 
 	let { view, ctx }: { view: RecordView<'entity'>; ctx: PageContext } = $props();
@@ -47,7 +47,7 @@
 			)
 			.map((row) => ({
 				id: row.id,
-				period: formatTermsDates(row, t),
+				period: format({ kind: 'period', of: 'date' }, row.effective_range, { locale: ctx.locale }),
 				status: statusText(row.status),
 				state: row.status,
 				detail: row.name

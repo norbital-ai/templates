@@ -3,7 +3,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import type { Accounts } from '../../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
@@ -60,8 +59,8 @@ const dates = (from: string, count: number) =>
 		at.setUTCDate(at.getUTCDate() + index);
 		return at.toISOString().slice(0, 10);
 	}).flatMap((date) => [
-		{ date: plain_date(date), part: 'AM' as const },
-		{ date: plain_date(date), part: 'PM' as const }
+		{ date, part: 'AM' as const },
+		{ date, part: 'PM' as const }
 	]);
 const take = (t: Kit, seed: Seed, code: string, from: string, count: number) =>
 	t.as(t.admin).pipe(

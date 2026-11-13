@@ -19,14 +19,3 @@ export const employmentLabel = (
 	if (name !== '' && number !== '') return `${name} (${number})`;
 	return name !== '' ? name : number !== '' ? number : '—';
 };
-
-/** The zone an entity counts its payroll windows and rostered days in: its own, else its governing version's
- * `timezone` (as the engine counts them), else the workspace's. */
-export const entityTimeZone = (
-	entity: { readonly time_zone?: string | null } | null | undefined,
-	version: { readonly timezone?: string | null } | null | undefined
-): string =>
-	entity?.time_zone ??
-	version?.timezone ??
-	// before the version answers: the viewer's zone, never a fixed one
-	Intl.DateTimeFormat().resolvedOptions().timeZone;

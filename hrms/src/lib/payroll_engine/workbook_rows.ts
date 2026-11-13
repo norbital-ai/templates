@@ -1,4 +1,4 @@
-import { is_plain_date } from '../date.js';
+import { DateTime, Option } from 'effect';
 
 /** A spreadsheet cell's value. */
 export type Cell = string | number | boolean | null;
@@ -97,7 +97,9 @@ export const cellNumber = (value: Cell | undefined): number | null => {
 /** A date cell: the native `YYYY-MM-DD` text, or the first day of a datetime cell. */
 export const cellDay = (value: Cell | undefined): string | null => {
 	const text = cellText(value).slice(0, 10);
-	return is_plain_date(text) ? text : null;
+	return Option.exists(DateTime.make(text), (d) => DateTime.formatIsoDate(d) === text)
+		? text
+		: null;
 };
 
 export const inRange = (

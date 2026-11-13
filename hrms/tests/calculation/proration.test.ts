@@ -9,7 +9,6 @@ import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { calculatePayroll, type PayrollInput } from '../../src/lib/payroll_engine/engine.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import { plain_date } from '../../src/lib/date.ts';
 import { ownLines, run } from '../amendment_kit.ts';
 import {
 	ENTITY,
@@ -385,8 +384,8 @@ describe('a contract version that starts inside the period', () => {
 							employment_id: idOf('employee_contract', employment),
 							catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
 							days: [
-								{ date: plain_date(date), part: 'AM' },
-								{ date: plain_date(date), part: 'PM' }
+								{ date, part: 'AM' },
+								{ date, part: 'PM' }
 							]
 						})
 					]

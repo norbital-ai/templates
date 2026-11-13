@@ -21,7 +21,7 @@
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}
 	/>{/snippet}
-{#snippet producers()}{#if record}<Stack gap="lg">
+{#snippet producers()}{#if record}<Stack size="fill" gap="lg">
 			{#each catalogs as model (model)}<Table
 					{ctx}
 					of={model}

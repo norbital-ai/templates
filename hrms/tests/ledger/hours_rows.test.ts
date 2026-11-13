@@ -23,7 +23,6 @@ import {
 	storedQuery,
 	decimalNumber
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const CODE = 'EMERGENCY_LEAVE';
 const BALANCE = idOf('employee_balance', uuid(5));
@@ -116,7 +115,7 @@ const adjust = (t: Kit, unit: 'DAY' | 'HOUR', amount: number) =>
 						account: 'leave',
 						code: CODE,
 						measure: 'entitled',
-						amount: decimalText(amount),
+						amount: String(amount),
 						unit,
 						effective_on: '2026-07-01',
 						note: 'overtime of 30 June taken as time off'

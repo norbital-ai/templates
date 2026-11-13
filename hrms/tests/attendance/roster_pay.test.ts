@@ -4,9 +4,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { date_period, each_day, instant, plain_date } from '../../src/lib/date.ts';
 import type { Instant } from '@norbital-ai/bolt';
-import { Effect, Schema } from 'effect';
+import { DateTime, Duration, Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
@@ -69,7 +68,15 @@ const month = (
 	over: Readonly<Record<string, Day | null>> = {},
 	until = '2026-02-28'
 ): readonly Day[] =>
-	each_day(date_period('2026-02-01', until))
+	Array.from(
+		{
+			length:
+				Duration.toDays(
+					DateTime.distance(DateTime.makeUnsafe('2026-02-01'), DateTime.makeUnsafe(until))
+				) + 1
+		},
+		(_, i) => DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe('2026-02-01'), { days: i }))
+	)
 		.map(String)
 		.flatMap((date) => {
 			const own = over[date];
@@ -196,7 +203,10 @@ const rosterOn = (t: Kit, date: string) =>
 		})
 	);
 const clockIn = (date: string, [from, to]: Span) => [
-	{ start: instant(at(date, from)), end: instant(at(date, to)) }
+	{
+		start: DateTime.formatIso(DateTime.makeUnsafe(at(date, from))),
+		end: DateTime.formatIso(DateTime.makeUnsafe(at(date, to)))
+	}
 ];
 const runsHeld = (t: Kit) =>
 	storedQuery(t, { payroll_run: { limit: 100 } }).pipe(Effect.map((got) => got.payroll_run.rows));
@@ -434,7 +444,7 @@ describe('one roster day a person', () => {
 							'roster_entry.create': [
 								{
 									employment_id: CONTRACT,
-									work_date: plain_date(DAY),
+									work_date: DAY,
 									shift_definition_id: idOf('shift_definition', WORK)
 								}
 							]
@@ -467,7 +477,7 @@ describe('a kiosk punch', () => {
 					'roster_entry.create': [
 						{
 							employment_id: CONTRACT,
-							work_date: plain_date(DAY),
+							work_date: DAY,
 							actual_worked_intervals: [...intervals]
 						}
 					]
@@ -499,7 +509,7 @@ describe('a kiosk punch', () => {
 			Effect.gen(function* () {
 				const absent = yield* paid(seed);
 				const t = yield* TestWorkspace;
-				yield* punch(t, [{ start: instant(at(DAY, '08:00')) }]);
+				yield* punch(t, [{ start: DateTime.formatIso(DateTime.makeUnsafe(at(DAY, '08:00'))) }]);
 				yield* run(t);
 				assert.deepEqual(yield* slipOf(t), absent);
 				// the run took the open punch with the day: it is closed only by taking the unpaid run back
@@ -568,8 +578,8 @@ describe('a work event', () => {
 						{
 							entity_id: ENTITY,
 							catalog_id: idOf('work_event_catalog', catalogRow(seed, 'work_event_catalog', code)),
-							from: plain_date(from),
-							to: plain_date(to),
+							from,
+							to,
 							...(employment === undefined
 								? {}
 								: { employment_id: idOf('employee_contract', employment) })

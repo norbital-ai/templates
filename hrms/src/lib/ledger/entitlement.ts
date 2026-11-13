@@ -1,4 +1,4 @@
-import { add_days } from '../date.js';
+import { BigDecimal, DateTime, Duration } from 'effect';
 import { evaluate } from '../payroll_engine/expressions.js';
 import { completedMonths, isJsonObject } from '../payroll_engine/foundation.js';
 import type { JsonObject } from '../payroll_engine/contracts.js';
@@ -72,18 +72,24 @@ const extraDays = (lookup: JsonObject, person: LeavePerson) =>
 const prorated = (lookup: JsonObject, person: LeavePerson, days: number) => {
 	const hours = Number(person.terms?.normal_hours_per_week ?? 0);
 	return lookup.part_time_pro_rata === true && person.partTime && hours > 0
-		? Math.round(((days * hours) / Number(lookup.full_time_weekly_hours)) * 100) / 100
+		? BigDecimal.toNumberUnsafe(
+				BigDecimal.round(
+					BigDecimal.fromNumberUnsafe((days * hours) / Number(lookup.full_time_weekly_hours)),
+					{ scale: 2, mode: 'half-ceil' }
+				)
+			)
 		: days;
 };
 /** The year someone first qualifies counts only the calendar days left in it, whole days only. */
 const firstYear = (lookup: JsonObject, person: LeavePerson, on: string, days: number) => {
 	const basis = Number(lookup.first_year_proration_days ?? 0);
 	if (basis === 0) return days;
-	const from = new Date(`${person.started}T00:00:00Z`);
-	from.setUTCMonth(from.getUTCMonth() + qualifying(lookup));
-	if (from.getUTCFullYear() !== Number(on.slice(0, 4))) return days;
-	const end = Date.UTC(from.getUTCFullYear(), 11, 31);
-	const left = Math.round((end - from.getTime()) / 86_400_000) + 1;
+	const from = DateTime.add(DateTime.makeUnsafe(person.started), { months: qualifying(lookup) });
+	if (DateTime.getPartUtc(from, 'year') !== DateTime.getPartUtc(DateTime.makeUnsafe(on), 'year'))
+		return days;
+	const left = Duration.toDays(
+		DateTime.distance(from, DateTime.add(DateTime.startOf(from, 'year'), { years: 1 }))
+	);
 	return Math.floor((days * left) / basis);
 };
 
@@ -131,7 +137,10 @@ export const entitlementOf = (
 	const first = bands[0];
 	// until the first band, a share of the first year by completed months, the day itself served; the band stays the day's
 	if (lookup.proration === 'COMPLETED_MONTHS' && first && months < first.service_months) {
-		const served = completedMonths(person.started, String(add_days(on, 1)));
+		const served = completedMonths(
+			person.started,
+			DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(on), { days: 1 }))
+		);
 		return served < qualifying(lookup)
 			? 0
 			: prorated(

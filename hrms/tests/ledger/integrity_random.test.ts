@@ -9,8 +9,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { JobResult, TestWorkspace, type Caller, type Kit } from '@norbital-ai/bolt-cli/test';
-import { add_months, plain_date } from '../../src/lib/date.ts';
-import { Effect, Schema } from 'effect';
+import { DateTime, Effect, Schema } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import { stableJson } from '../../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
@@ -33,7 +32,6 @@ import {
 	current,
 	storedReader
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const SEEDS =
 	process.env['HR_SEED'] === undefined ? [11, 23, 37, 41, 53] : [Number(process.env['HR_SEED'])];
@@ -113,7 +111,9 @@ const pick = <T>(w: World, items: readonly T[]) => items[Math.floor(w.next() * i
 const today = (w: World) => w.t.clock.now().slice(0, 10);
 /** A day of this month or the one before. */
 const day = (w: World) => {
-	const month = String(add_months(today(w), w.next() < 0.5 ? 0 : -1)).slice(0, 7);
+	const month = DateTime.formatIsoDate(
+		DateTime.add(DateTime.makeUnsafe(today(w)), { months: w.next() < 0.5 ? 0 : -1 })
+	).slice(0, 7);
 	return `${month}-${String(1 + Math.floor(w.next() * 28)).padStart(2, '0')}`;
 };
 const note = (w: World, text: string) => Effect.sync(() => void w.log.push(text));
@@ -152,8 +152,8 @@ const leaveOn = (w: World, by: Caller, code: string, employment = CONTRACT) =>
 const entryOf = (w: World, quantity: number) => ({
 	entity_id: ENTITY,
 	employment_id: CONTRACT,
-	quantity: decimalText(quantity),
-	incurred_on: plain_date(day(w))
+	quantity: String(quantity),
+	incurred_on: day(w)
 });
 const amount = (w: World) => pick(w, [10, 50, 200, 600, 1500]) ?? 10;
 const manual = (w: World, sign: 1 | -1) =>
@@ -168,9 +168,9 @@ const manual = (w: World, sign: 1 | -1) =>
 					account: 'leave',
 					code: 'ANNUAL_LEAVE',
 					measure: 'entitled',
-					amount: decimalText(days),
+					amount: String(days),
 					unit: 'DAY',
-					effective_on: plain_date(today(w)),
+					effective_on: today(w),
 					note: 'keyed by hand'
 				}
 			]
@@ -188,7 +188,7 @@ const exit = (w: World, to: string | null) =>
 					set: {
 						effective_range: {
 							from: '2025-01-01',
-							to: to === null ? null : plain_date(to)
+							to: to === null ? null : to
 						},
 						reason: to === null ? 'Termination withdrawn' : 'Resignation'
 					}
@@ -307,9 +307,7 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 				asked(
 					w,
 					yield* w.admin.act({
-						'claim_catalog_entry.update': [
-							{ target: row, set: { quantity: decimalText(quantity) } }
-						]
+						'claim_catalog_entry.update': [{ target: row, set: { quantity: String(quantity) } }]
 					})
 				);
 		}),
@@ -341,7 +339,7 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 			yield* note(w, `edit adhoc ${row?.id} ${quantity}`);
 			if (row !== undefined)
 				yield* w.admin.act({
-					'adhoc_catalog_entry.update': [{ target: row, set: { quantity: decimalText(quantity) } }]
+					'adhoc_catalog_entry.update': [{ target: row, set: { quantity: String(quantity) } }]
 				});
 		}),
 	(w) =>
@@ -355,7 +353,9 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 	(w) => manual(w, -1),
 	(w) =>
 		Effect.gen(function* () {
-			const period = String(add_months(today(w), -Math.floor(w.next() * 3))).slice(0, 7);
+			const period = DateTime.formatIsoDate(
+				DateTime.add(DateTime.makeUnsafe(today(w)), { months: -Math.floor(w.next() * 3) })
+			).slice(0, 7);
 			yield* note(w, `run ${period}`);
 			yield* w.admin.act({
 				'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]
@@ -400,7 +400,7 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 		}),
 	(w) =>
 		Effect.gen(function* () {
-			const next = `${String(add_months(today(w), 1))}${START.slice(10)}`;
+			const next = `${DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(today(w)), { months: 1 }))}${START.slice(10)}`;
 			yield* note(w, `clock ${next.slice(0, 10)}`);
 			if (next.slice(0, 7) <= LAST_MONTH) w.t.clock.set(next);
 		}),
@@ -414,7 +414,7 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 	(w) =>
 		exit(
 			w,
-			`${String(add_months(today(w), w.next() < 0.5 ? 0 : 1)).slice(0, 7)}-${String(1 + Math.floor(w.next() * 28)).padStart(2, '0')}`
+			`${DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(today(w)), { months: w.next() < 0.5 ? 0 : 1 })).slice(0, 7)}-${String(1 + Math.floor(w.next() * 28)).padStart(2, '0')}`
 		),
 	(w) => exit(w, null),
 	(w) => exit(w, null),
@@ -444,7 +444,9 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 	// a run made and deleted gives back exactly the ledger and the seals it took
 	(w) =>
 		Effect.gen(function* () {
-			const period = String(add_months(today(w), -Math.floor(w.next() * 3))).slice(0, 7);
+			const period = DateTime.formatIsoDate(
+				DateTime.add(DateTime.makeUnsafe(today(w)), { months: -Math.floor(w.next() * 3) })
+			).slice(0, 7);
 			yield* note(w, `run and delete ${period}`);
 			assert.deepEqual(yield* failures(w), []);
 			const before = yield* standing(w);
@@ -475,7 +477,7 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 						source: 'payroll_run:forged',
 						amount: '3',
 						unit: 'DAY',
-						effective_on: plain_date(today(w)),
+						effective_on: today(w),
 						note: 'forged'
 					}
 				]

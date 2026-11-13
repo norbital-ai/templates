@@ -1,6 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
-import { instant } from '../lib/date.js';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { raiseFindings } from '../lib/integrity.js';
 import { getErrorMessage } from '../lib/payroll_engine/foundation.js';
 import { raiseFailure, retire, syncEntitlements } from '../lib/ledger/service.js';
@@ -31,7 +30,7 @@ export default automation({
 				yield* ctx.schedule(
 					'ledger',
 					{},
-					{ at: instant(`${boundary}T00:00:00Z`), key: `ledger:${boundary}` }
+					{ at: DateTime.formatIso(DateTime.makeUnsafe(boundary)), key: `ledger:${boundary}` }
 				);
 			// the whole pass ends by checking the ledger against what it stands for
 			yield* raiseFindings(ctx);

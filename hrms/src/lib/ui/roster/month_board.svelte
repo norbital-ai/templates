@@ -5,10 +5,10 @@
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { plain_date } from '../../date.js';
 	import { cn, CustomView, open_record, RecordShell, Sheet } from '@norbital-ai/ui';
+	import { Scroll } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
+	import { DateTime, Effect } from 'effect';
 	import { downloadRosterWorkbook, runRosterImport } from '../workbook/roster_import.js';
 	import DayCell from './day_cell.svelte';
 	import {
@@ -17,7 +17,6 @@
 		dayKey,
 		describeDay,
 		intervalsOf,
-		isWeekend,
 		type Day,
 		type Person
 	} from './month_board.js';
@@ -87,7 +86,7 @@
 					roster_entry: {
 						where: {
 							employment_id: { in: [...ids] },
-							work_date: { gte: plain_date(from), lte: plain_date(to) }
+							work_date: { gte: from, lte: to }
 						},
 						fields: [
 							'employment_id',
@@ -117,7 +116,7 @@
 							entity_id: { eq: companyId },
 							published_at: { is_null: false },
 							employee_id: { is_null: true },
-							date: { gte: plain_date(from), lte: plain_date(to) }
+							date: { gte: from, lte: to }
 						},
 						fields: ['date', 'name'],
 						limit: 10000
@@ -354,7 +353,13 @@
 {/if}
 
 {#snippet board(rows: readonly BoardPerson[])}
-	<div class="max-h-[70vh] overflow-auto rounded-lg border bg-card">
+	<Scroll
+		name={ctx.t('roster.board_scroll_name')}
+		axis="both"
+		size="fill"
+		fade={false}
+		class="rounded-lg border bg-card"
+	>
 		<table
 			class="table-fixed border-separate border-spacing-0 text-left text-xs"
 			style:width={`${PERSON_REM + dates.length * DAY_REM}rem`}
@@ -383,7 +388,8 @@
 							title={holiday}
 							class={cn(
 								'sticky top-0 z-20 h-10 border-b bg-card text-center font-medium',
-								isWeekend(date) && 'bg-muted',
+								[0, 6].includes(DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay) &&
+									'bg-muted',
 								// a tint is an image over the solid colour: rows scroll beneath this header
 								(holiday != null || date === today) && 'bg-linear-to-b',
 								holiday != null && 'from-warning/10 to-warning/10',
@@ -393,7 +399,7 @@
 						>
 							<span class="block text-meta">
 								{holiday == null
-									? WEEKDAY_LETTERS[new Date(`${date}T00:00:00Z`).getUTCDay()]
+									? WEEKDAY_LETTERS[DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay]
 									: ctx.t('roster.public_holiday_mark')}
 							</span>
 							<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
@@ -445,7 +451,7 @@
 				{/each}
 			</tbody>
 		</table>
-	</div>
+	</Scroll>
 {/snippet}
 
 {#if creating != null}
@@ -468,7 +474,7 @@
 			]}
 			values={{
 				employment_id: creating.employmentId,
-				work_date: plain_date(creating.date)
+				work_date: creating.date
 			}}
 			on_done={() => (creating = null)}
 		/>

@@ -38,9 +38,6 @@ export const fixed = (value: string | number, width: number, align: 'left' | 'ri
 	return align === 'left' ? text.padEnd(width, ' ') : text.padStart(width, '0');
 };
 
-export const money = (value: number, width: number) =>
-	fixed(Math.round(value * 100), width, 'right');
-
 /** The exported employee reference: HR-<digits>-<entity name in snake case>. */
 export const employeeReference = (number: string, entity: string): string => {
 	const digits = /(\d+)\s*$/.exec(number)?.[1] ?? number.replace(/^HR-/, '');

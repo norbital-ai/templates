@@ -3,7 +3,6 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import type { ActInput } from '@norbital-ai/bolt';
-	import { plain_date } from '../../../lib/date.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState } from '@norbital-ai/ui';
 	import SealedBadge from '../../../lib/ui/payroll/sealed_badge.svelte';
@@ -11,7 +10,6 @@
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import ClaimRequest from '../../../lib/ui/person/claim_request.svelte';
 	import { numberOf } from '../../../lib/payroll_engine/foundation.js';
-	import { decimalText } from '../../../lib/payroll_engine/money.js';
 	import { parseClaimSheet } from '../../../lib/payroll_engine/entry_workbook.js';
 	import {
 		runWorkbookImport,
@@ -90,8 +88,11 @@
 			entity_id: row.entity_id,
 			employment_id: row.employment_id,
 			catalog_id: row.catalog_id,
-			quantity: decimalText(row.quantity),
-			incurred_on: plain_date(row.incurred_on)
+			quantity: new Intl.NumberFormat('en', {
+				useGrouping: false,
+				maximumFractionDigits: 20
+			}).format(row.quantity),
+			incurred_on: row.incurred_on
 		}));
 	}
 

@@ -1,10 +1,10 @@
 // The employer facts come from the sealed entity version in force on the relevant date, not the first row. A missing
 // covering version is a data problem: the rule refuses rather than defaulting.
 // Kept on VN: only VN's registered rules read the employer versions by date; no MY row selects one to vary.
+import { DateTime } from 'effect';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
-import { instant } from '../../src/lib/date.ts';
 import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { read } from '../kit.ts';
@@ -32,7 +32,10 @@ const employer = (region: string, from: string, to: string | null, rest = false)
 const worked = (date: string) => ({
 	work_date: date,
 	actual_worked_intervals: [
-		{ start: instant(`${date}T01:00:00.000Z`), end: instant(`${date}T09:00:00.000Z`) }
+		{
+			start: DateTime.formatIso(DateTime.makeUnsafe(`${date}T01:00:00.000Z`)),
+			end: DateTime.formatIso(DateTime.makeUnsafe(`${date}T09:00:00.000Z`))
+		}
 	]
 });
 

@@ -4,7 +4,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { plain_date } from '../../src/lib/date.ts';
 import { Effect } from 'effect';
 import { leftIn } from '../../src/lib/ledger/core.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
@@ -21,7 +20,6 @@ import {
 	workspace,
 	decimalNumber
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
@@ -57,9 +55,9 @@ const adjust = (
 						account: 'leave',
 						code,
 						measure: 'entitled',
-						amount: decimalText(Math.abs(days)),
+						amount: String(Math.abs(days)),
 						unit: 'DAY',
-						effective_on: plain_date(on),
+						effective_on: on,
 						note
 					}
 				]

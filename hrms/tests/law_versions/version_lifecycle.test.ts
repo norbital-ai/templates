@@ -6,8 +6,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { add_days, plain_date } from '../../src/lib/date.ts';
-import { Effect, Schema } from 'effect';
+import { DateTime, Effect, Schema } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
@@ -180,7 +179,7 @@ const draft = (
 					family: held.family,
 					employee_extension_data: held.employee_extension_data,
 					service_started_on: held.service_started_on,
-					effective_range: { from: plain_date(from), to: null },
+					effective_range: { from, to: null },
 					status: 'DRAFT',
 					reason: 'A new version'
 				}
@@ -198,7 +197,7 @@ const end = (t: Kit, held: Version, to: string) =>
 					{
 						target: held,
 						set: {
-							effective_range: { from: held.effective_range.from, to: plain_date(to) },
+							effective_range: { from: held.effective_range.from, to },
 							reason: 'Replaced'
 						}
 					}
@@ -221,7 +220,11 @@ const amend = (t: Kit, from: string) =>
 	Effect.gen(function* () {
 		const held = yield* openOf(t);
 		const next = yield* draft(t, held, from, raised(held));
-		yield* end(t, held, String(add_days(plain_date(from), -1)));
+		yield* end(
+			t,
+			held,
+			DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
+		);
 		yield* seal(t, next);
 		yield* t.run_due();
 		return next;

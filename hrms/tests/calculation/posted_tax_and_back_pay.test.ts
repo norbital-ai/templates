@@ -21,7 +21,6 @@ import {
 	workspace,
 	decimalNumber
 } from '../kit.ts';
-import { decimalText } from '../../src/lib/payroll_engine/money.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 /** No queued work failed and the ledger holds no hard finding. */
@@ -69,7 +68,7 @@ describe('a tax instalment posted to the tax scheme’s account', () => {
 								catalogRow(seed, 'adhoc_catalog', 'CP38_INSTALMENT')
 							),
 							description: 'Directed instalment',
-							quantity: decimalText(INSTALMENT),
+							quantity: String(INSTALMENT),
 							unit: 'MONEY',
 							incurred_on: '2026-02-01'
 						}
