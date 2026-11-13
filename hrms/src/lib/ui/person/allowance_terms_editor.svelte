@@ -1,10 +1,9 @@
 <script lang="ts">
 	/**
-	 * The contract's agreed allowances: one row per catalog item of this contract's settings version, its amount, and a
+	 * The contract's agreed allowances: one row per catalog item of this contract's law, its amount, and a
 	 * remove. The catalog row owns the allowance; the contract states only how
 	 * much.
 	 */
-	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Button,
 		Combobox,
@@ -14,36 +13,22 @@
 		value_object
 	} from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
-	import { idOf } from '../../payroll_engine/reads.js';
+	import type { Law } from '../../law.js';
+	import { isJsonObject } from '../../payroll_engine/foundation.js';
 
-	let {
-		ctx,
-		field,
-		versionId
-	}: { ctx: PageContext; field: FieldEditor; versionId: string | undefined } = $props();
-	const catalog = $derived(
-		typeof versionId === 'string'
-			? ctx.query({
-					allowance_catalog: {
-						where: { settings_id: { eq: idOf('jurisdiction_settings', versionId) } },
-						fields: ['code', 'lookup', 'conversion'],
-						limit: 1000
-					}
-				})
-			: null
-	);
+	let { field, law }: { field: FieldEditor; law: Law | undefined } = $props();
 	// a catalogue row whose conversion reads the agreed amount is stated on the contract; a formula row computes itself
 	const choices = $derived(
-		(catalog?.current?.allowance_catalog.rows ?? [])
+		(law?.rows.allowance_catalog ?? [])
 			.filter((row) => /allowances\.[A-Z0-9_]+/.test(String(row.conversion ?? '')))
-			.map((row) => {
-				const lookup = value_object(row.lookup) ? row.lookup : {};
-				return {
-					value: typeof lookup.allowance === 'string' ? lookup.allowance : row.code,
-					label: row.code,
-					description: row.code
-				};
-			})
+			.map((row) => ({
+				value:
+					isJsonObject(row.lookup) && typeof row.lookup.allowance === 'string'
+						? row.lookup.allowance
+						: String(row.code),
+				label: String(row.code),
+				description: String(row.code)
+			}))
 	);
 	const entries = $derived(
 		Object.entries(value_object(field.value) ? field.value : {}) as [string, Value][]

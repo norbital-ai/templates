@@ -12,7 +12,6 @@ import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { ownLines, pay, run, slip } from '../amendment_kit.ts';
 import {
 	ENTITY,
-	catalogRow,
 	ledgerRows,
 	pack,
 	storedQuery,
@@ -48,8 +47,7 @@ const malaysia = (amount: number) =>
 		},
 		{},
 		[],
-		[],
-		'2026-02-15'
+		[]
 	);
 
 describe('a tax instalment posted to the tax scheme’s account', () => {
@@ -63,10 +61,7 @@ describe('a tax instalment posted to the tax scheme’s account', () => {
 						{
 							entity_id: ENTITY,
 							employment_id: CONTRACT,
-							catalog_id: idOf(
-								'adhoc_catalog',
-								catalogRow(seed, 'adhoc_catalog', 'CP38_INSTALMENT')
-							),
+							catalog_code: 'CP38_INSTALMENT',
 							description: 'Directed instalment',
 							quantity: String(INSTALMENT),
 							unit: 'MONEY',

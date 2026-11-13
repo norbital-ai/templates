@@ -1,0 +1,10 @@
+[
+	{
+		"id": "1c79561d-1ba5-517d-a63c-f04c2d7028f7",
+		"code": "JP",
+		"name": "Japan",
+		"currency": "JPY",
+		"timezone": "Asia/Tokyo",
+		"tax_year_start_month": 1
+	}
+]

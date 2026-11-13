@@ -7,24 +7,15 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	catalogRow,
-	leaveCreate,
-	pack,
-	storedQuery,
-	uuid,
-	wholeDays,
-	workspace
-} from '../kit.ts';
+import { ENTITY, leaveCreate, pack, storedQuery, uuid, wholeDays, workspace } from '../kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const SALARY = 8000;
 const BONUS = 20_000;
 type Seed = ReturnType<typeof pack>;
 type Schedule = Seed[string][number][string];
-/** One person on 8,000 a month from `from`, on the law in force `on`. */
-const seedOf = (from: string, on = '2026-06-15'): Seed => {
+/** One person on 8,000 a month from `from`. */
+const seedOf = (from: string): Seed => {
 	const seed = pack(
 		'MY',
 		'Asia/Kuala_Lumpur',
@@ -38,8 +29,7 @@ const seedOf = (from: string, on = '2026-06-15'): Seed => {
 		},
 		{},
 		[],
-		[],
-		on
+		[]
 	);
 	return {
 		...seed,
@@ -73,14 +63,14 @@ const onCycle = (t: Kit, period: string) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
 	).pipe(Effect.andThen(settle(t)));
-const bonus = (t: Kit, seed: Seed, amount: number, on: string) =>
+const bonus = (t: Kit, amount: number, on: string) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({
 			'adhoc_catalog_entry.create': [
 				{
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
-					catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', 'BONUS')),
+					catalog_code: 'BONUS',
 					description: 'Bonus',
 					quantity: String(amount),
 					incurred_on: on
@@ -88,9 +78,9 @@ const bonus = (t: Kit, seed: Seed, amount: number, on: string) =>
 			]
 		})
 	);
-const offCycle = (t: Kit, seed: Seed, amount: number, period: string, on: string) =>
+const offCycle = (t: Kit, amount: number, period: string, on: string) =>
 	Effect.gen(function* () {
-		yield* bonus(t, seed, amount, on);
+		yield* bonus(t, amount, on);
 		const open = (yield* storedQuery(t, {
 			adhoc_catalog_entry: { where: { payroll_run_id: { is_null: true } }, limit: 1 }
 		})).adhoc_catalog_entry.rows[0];
@@ -138,7 +128,7 @@ const sameMonth = (
 	now: string,
 	order: 'before' | 'after'
 ) => {
-	const seed = seedOf(from, `${period}-15`);
+	const seed = seedOf(from);
 	const on = `${period}-10`;
 	const after = (pays: (t: Kit) => Effect.Effect<unknown, unknown>) =>
 		Effect.gen(function* () {
@@ -149,12 +139,12 @@ const sameMonth = (
 		}).pipe(Effect.provide(workspace({ seed, now })));
 	return Effect.gen(function* () {
 		const inside = yield* after((t) =>
-			bonus(t, seed, BONUS, on).pipe(Effect.andThen(onCycle(t, period)))
+			bonus(t, BONUS, on).pipe(Effect.andThen(onCycle(t, period)))
 		);
 		const split = yield* after((t) =>
 			order === 'before'
-				? offCycle(t, seed, BONUS, period, on).pipe(Effect.andThen(onCycle(t, period)))
-				: onCycle(t, period).pipe(Effect.andThen(offCycle(t, seed, BONUS, period, on)))
+				? offCycle(t, BONUS, period, on).pipe(Effect.andThen(onCycle(t, period)))
+				: onCycle(t, period).pipe(Effect.andThen(offCycle(t, BONUS, period, on)))
 		);
 		assert.ok(Object.keys(inside).length > 0);
 		assert.deepEqual(split, inside);
@@ -186,14 +176,14 @@ describe('a bonus in the month', () => {
 			}).pipe(Effect.provide(workspace({ seed, now: '2026-06-20T02:00:00.000Z' })));
 		return Effect.gen(function* () {
 			const inside = yield* after((t) =>
-				bonus(t, seed, BONUS / 2, '2026-06-10').pipe(
-					Effect.andThen(bonus(t, seed, BONUS / 2, '2026-06-11')),
+				bonus(t, BONUS / 2, '2026-06-10').pipe(
+					Effect.andThen(bonus(t, BONUS / 2, '2026-06-11')),
 					Effect.andThen(onCycle(t, '2026-06'))
 				)
 			);
 			const split = yield* after((t) =>
-				offCycle(t, seed, BONUS / 2, '2026-06', '2026-06-10').pipe(
-					Effect.andThen(offCycle(t, seed, BONUS / 2, '2026-06', '2026-06-11')),
+				offCycle(t, BONUS / 2, '2026-06', '2026-06-10').pipe(
+					Effect.andThen(offCycle(t, BONUS / 2, '2026-06', '2026-06-11')),
 					Effect.andThen(onCycle(t, '2026-06'))
 				)
 			);
@@ -208,10 +198,10 @@ describe('income tax on a bonus', () => {
 	// 83,000.07, its tax 6,170.01, a twelfth 514.16. With a 20,000 bonus (EPF 2,200 more, 83.63 a month left of the
 	// 4,000 relief) the income is 103,000.07 and its tax 10,150.01; less 12 × 514.16 the bonus adds 3,980.09.
 	it.live('is rounded once, on the amount deducted', () => {
-		const seed = seedOf('2026-01-01', '2026-01-15');
+		const seed = seedOf('2026-01-01');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* bonus(t, seed, BONUS, '2026-01-10');
+			yield* bonus(t, BONUS, '2026-01-10');
 			yield* onCycle(t, '2026-01');
 			assert.equal((yield* month(t, '2026-01'))['PCB.employee'], 514.16 + 3980.09);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-20T02:00:00.000Z' })));
@@ -244,14 +234,14 @@ describe('twice a month', () => {
 					)
 			)
 		);
-	const noPay = (t: Kit, seed: Seed, dates: readonly string[]) =>
+	const noPay = (t: Kit, dates: readonly string[]) =>
 		Effect.flatMap(t.as(t.admin), (caller) =>
 			caller.act({
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+						catalog_code: 'NPL',
 						days: wholeDays(...dates)
 					})
 				]
@@ -273,7 +263,7 @@ describe('twice a month', () => {
 					const halves = yield* Effect.gen(function* () {
 						const t = yield* TestWorkspace;
 						yield* onCycle(t, '2026-06-1');
-						if (missed.length > 0) yield* noPay(t, twice, missed);
+						if (missed.length > 0) yield* noPay(t, missed);
 						yield* onCycle(t, '2026-06-2');
 						return { owed: yield* month(t, '2026-06'), wages: yield* wages(t, '2026-06') };
 					}).pipe(Effect.provide(workspace({ seed: twice, now: NOW })));

@@ -11,7 +11,6 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	PAY_GROUP,
-	catalogRow,
 	ledgerRows,
 	pack,
 	uuid,
@@ -529,7 +528,6 @@ describe('a contract and its pay group', () => {
 
 describe('an off-cycle run and the pay groups', () => {
 	const seed = twoGroups();
-	const BONUS = idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', 'BONUS'));
 	const offCycle = (t: Kit, group: Id<'pay_group'>, entry: Id<'adhoc_catalog_entry'>) =>
 		Effect.all([t.as(t.admin), current(t, 'adhoc_catalog_entry', entry)])
 			.pipe(
@@ -570,7 +568,7 @@ describe('an off-cycle run and the pay groups', () => {
 						{
 							entity_id: ENTITY,
 							employment_id: SECOND,
-							catalog_id: BONUS,
+							catalog_code: 'BONUS',
 							description: 'Bonus',
 							quantity: '500',
 							incurred_on: '2026-02-10'

@@ -2,23 +2,12 @@
 // an off-cycle run's named entries, and everything back when an unpaid run is deleted. End to end through
 // `payroll_run.create`; the law pack is only the fixture, and a figure is the fixture's own input or another run's output.
 import assert from 'node:assert/strict';
-import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import {
-	ENTITY,
-	WORK,
-	accountsIn,
-	pack,
-	read,
-	uuid,
-	workspace,
-	storedQuery,
-	refusal
-} from '../kit.ts';
+import { ENTITY, WORK, accountsIn, pack, uuid, workspace, storedQuery, refusal } from '../kit.ts';
 
 const lines = Effect.fnUntraced(function* (t: Kit) {
 	yield* (yield* t.as(t.admin)).act({
@@ -55,13 +44,6 @@ describe('what a run takes', () => {
 		'a run prices only its own period: leave and claims dated elsewhere do not touch it',
 		() => {
 			const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(3120), {}, [], []);
-			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-			const unpaid = seed.leave_catalog?.find(
-				(row) => row.code === 'NPL' && row.settings_id === version
-			);
-			const claim = seed.claim_catalog?.find(
-				(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
-			);
 			const half = (date: string) => [
 				{ date, part: 'AM' },
 				{ date, part: 'PM' }
@@ -72,7 +54,7 @@ describe('what a run takes', () => {
 				claims: readonly (readonly [string, number])[]
 			) => ({
 				...seed,
-				leave_catalog_entry: [{ ...entry, id: uuid(200), catalog_id: String(unpaid?.id) }],
+				leave_catalog_entry: [{ ...entry, id: uuid(200), catalog_code: 'NPL' }],
 				leave_catalog_entry_day: days.flatMap(half).map((day, index) => ({
 					id: uuid(210 + index),
 					leave_entry_id: uuid(200),
@@ -82,7 +64,7 @@ describe('what a run takes', () => {
 				claim_catalog_entry: claims.map(([incurred_on, quantity], index) => ({
 					...entry,
 					id: uuid(201 + index),
-					catalog_id: String(claim?.id),
+					catalog_code: 'MEDICAL_CLAIM',
 					quantity,
 					incurred_on
 				}))
@@ -164,47 +146,53 @@ describe('what a run takes', () => {
 		});
 	});
 
-	it.live("a leave entry raised on one version still counts in another version's run", () => {
-		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(2800), {}, [], []);
-		const later = read(
-			join(process.cwd(), 'seed/public/jurisdiction/MY/version_3/leave_catalog.json')
-		).find((row) => row.code === 'NPL');
-		return run({
-			...seed,
-			pay_group: (seed.pay_group ?? []).map((row) => ({
-				...row,
-				payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
-			})),
-			leave_catalog_entry: [
-				{
-					id: uuid(300),
-					entity_id: ENTITY,
-					employment_id: uuid(6),
-					catalog_id: later?.id ?? '',
-					payroll_run_id: null
-				}
-			],
-			leave_catalog_entry_day: [
-				{ id: uuid(310), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'AM' },
-				{ id: uuid(311), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'PM' }
-			]
-		}).pipe(
-			Effect.map((paid) => {
-				// BASIC stays the contract salary; the unpaid day is the leave row's line
-				assert.equal(paid.BASIC, 2800);
-				assert.ok((paid.NPL ?? 0) > 0, JSON.stringify(paid));
-			})
-		);
-	});
+	it.live(
+		'a leave entry dated before a change of law still counts in the run that pays after it',
+		() => {
+			const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(2800), {}, [], []);
+			return run({
+				...seed,
+				pay_group: (seed.pay_group ?? []).map((row) => ({
+					...row,
+					payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
+				})),
+				// the row changes between the day taken and the pay date: the entry names it by code
+				jurisdiction_change: [
+					...(seed.jurisdiction_change ?? []),
+					{
+						id: uuid(320),
+						jurisdiction_code: 'MY',
+						effective_from: '2026-02-15',
+						law: { leave_catalog: { NPL: { description: 'No-pay leave, reworded' } } }
+					}
+				],
+				leave_catalog_entry: [
+					{
+						id: uuid(300),
+						entity_id: ENTITY,
+						employment_id: uuid(6),
+						catalog_code: 'NPL',
+						payroll_run_id: null
+					}
+				],
+				leave_catalog_entry_day: [
+					{ id: uuid(310), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'AM' },
+					{ id: uuid(311), leave_entry_id: uuid(300), incurred_on: '2026-02-10', part: 'PM' }
+				]
+			}).pipe(
+				Effect.map((paid) => {
+					// BASIC stays the contract salary; the unpaid day is the leave row's line
+					assert.equal(paid.BASIC, 2800);
+					assert.ok((paid.NPL ?? 0) > 0, JSON.stringify(paid));
+				})
+			);
+		}
+	);
 
 	it.live(
 		'a claim entered after its month was paid is carried by the next run for that month, once',
 		() => {
 			const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(2800), {}, [], []);
-			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-			const claim = (seed.claim_catalog ?? []).find(
-				(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
-			);
 			const month = (t: Kit, name: string) => {
 				return t.as(t.admin).pipe(
 					Effect.andThen((caller) =>
@@ -240,7 +228,7 @@ describe('what a run takes', () => {
 						{
 							entity_id: ENTITY,
 							employment_id: idOf('employee_contract', uuid(6)),
-							catalog_id: idOf('claim_catalog', String(claim?.id)),
+							catalog_code: 'MEDICAL_CLAIM',
 							quantity: '45',
 							incurred_on: '2026-01-20'
 						}
@@ -257,10 +245,6 @@ describe('what a run takes', () => {
 
 	it.live('an off-cycle run pays only the entries it names, and no salary', () => {
 		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(2800), {}, [], []);
-		const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-		const bonus = (seed.adhoc_catalog ?? []).find(
-			(row) => row.code === 'BONUS' && row.settings_id === version
-		);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* refusal(
@@ -278,7 +262,7 @@ describe('what a run takes', () => {
 					{
 						entity_id: ENTITY,
 						employment_id: idOf('employee_contract', uuid(6)),
-						catalog_id: idOf('adhoc_catalog', String(bonus?.id)),
+						catalog_code: 'BONUS',
 						description: 'Performance bonus',
 						quantity: '1000',
 						incurred_on: '2026-02-20'
@@ -326,10 +310,6 @@ describe('what a run takes', () => {
 				[{ date: '2026-02-10', shift: WORK, hours: 9, overtime: 1 }],
 				[]
 			);
-			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-			const claim = (seed.claim_catalog ?? []).find(
-				(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
-			);
 			const balance = (t: Kit) =>
 				accountsIn(t).pipe(
 					Effect.map((accounts) => accounts.pay?.['NET']?.['MY.Y.2026-01-01']?.['total'] ?? 0)
@@ -341,7 +321,7 @@ describe('what a run takes', () => {
 						{
 							entity_id: ENTITY,
 							employment_id: idOf('employee_contract', uuid(6)),
-							catalog_id: idOf('claim_catalog', String(claim?.id)),
+							catalog_code: 'MEDICAL_CLAIM',
 							quantity: '45',
 							incurred_on: '2026-02-12'
 						}
@@ -472,10 +452,6 @@ describe('what a run takes', () => {
 		'the first run seals a leave entry; a later run still takes its own dates from it',
 		() => {
 			const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(3120), {}, [], []);
-			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-			const unpaid = seed.leave_catalog?.find(
-				(row) => row.code === 'NPL' && row.settings_id === version
-			);
 			const entry = idOf('leave_catalog_entry', uuid(200));
 			const month = (t: Kit, name: string) => {
 				return t.as(t.admin).pipe(
@@ -525,7 +501,7 @@ describe('what a run takes', () => {
 									id: entry,
 									entity_id: ENTITY,
 									employment_id: uuid(6),
-									catalog_id: String(unpaid?.id)
+									catalog_code: 'NPL'
 								}
 							],
 							leave_catalog_entry_day: [

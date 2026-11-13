@@ -22,8 +22,7 @@ const base = pack(
 	},
 	{},
 	days.map((date) => ({ date, shift: WORK, hours: 8 })),
-	[],
-	`${MONTH}-15`
+	[]
 );
 const [contract] = base.employee_contract ?? [];
 const [day] = base.roster_entry ?? [];

@@ -61,7 +61,7 @@ export type ListingRead = {
 		readonly period: unknown;
 		readonly kind: unknown;
 		readonly entity_id?: { readonly name?: unknown } | null;
-		readonly settings_id?: { readonly currency?: unknown } | null;
+		readonly currency: unknown;
 	}[];
 	readonly slips: readonly {
 		readonly payroll_run_id: unknown;
@@ -102,7 +102,7 @@ export const sheetsOf = ({ runs, slips, versions }: ListingRead): readonly Sheet
 		.toSorted((a, b) => String(a.period).localeCompare(String(b.period)))
 		.map((run): Sheet => ({
 			company: text(run.entity_id?.name),
-			currency: text(run.settings_id?.currency),
+			currency: text(run.currency),
 			period: String(run.period),
 			offCycle: run.kind === 'OFF_CYCLE',
 			people: (byRun.get(run.id) ?? [])
@@ -133,7 +133,7 @@ export const sheetsOf = ({ runs, slips, versions }: ListingRead): readonly Sheet
 
 type Line = PayslipBreakdown['lines'][number];
 type Column = {
-	/** The band a column belongs to: a subtotal's id, or one of the listing's own totals. */
+	/** The band a column belongs to: a subtotal's code, or one of the listing's own totals. */
 	readonly band: string;
 	/** The group row's text above it: the subtotal's name, or empty for a total that stands alone. */
 	readonly group: string;
@@ -166,12 +166,12 @@ const keyOf = (line: Line) =>
  */
 const columnsOf = (sheet: Sheet): readonly Column[] => {
 	const kind = new Map<string, string>();
-	const chain: { id: string; name: string }[] = [];
+	const chain: { code: string; name: string }[] = [];
 	for (const person of sheet.people) {
 		for (const scheme of person.breakdown.statutory) kind.set(scheme.code, scheme.kind);
 		for (const point of person.breakdown.checkpoints)
-			if (!chain.some((known) => known.id === point.id))
-				chain.push({ id: point.id, name: point.name });
+			if (!chain.some((known) => known.code === point.code))
+				chain.push({ code: point.code, name: point.name });
 	}
 	const lines = new Map<string, Line>();
 	for (const person of sheet.people)
@@ -198,20 +198,20 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 				? 3
 				: 2;
 	const employee = [...lines].filter(([, line]) => line.party !== 'EMPLOYER');
-	const known = new Set(chain.map((band) => band.id));
+	const known = new Set(chain.map((band) => band.code));
 	const bands = [
 		...chain,
 		// a line on a subtotal no payslip reports closes nowhere: it still shows, in a band of its own
-		...[...new Set(employee.map(([, line]) => line.subtotal_id))]
-			.filter((id) => !known.has(id))
-			.map((id) => ({ id, name: '' }))
+		...[...new Set(employee.map(([, line]) => line.subtotal))]
+			.filter((code) => !known.has(code))
+			.map((code) => ({ code, name: '' }))
 	];
 	const columns: Column[] = [];
 	let grossPlaced = false,
 		painted = 0;
 	for (const band of bands) {
 		const own = employee
-			.filter(([, line]) => line.subtotal_id === band.id)
+			.filter(([, line]) => line.subtotal === band.code)
 			.toSorted(
 				([a, left], [b, right]) =>
 					rank(left) - rank(right) || size(b) - size(a) || a.localeCompare(b)
@@ -231,7 +231,7 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 		const [fill = BANDS[0][0], deep = BANDS[0][1]] = BANDS[painted++ % BANDS.length] ?? [];
 		const group = band.name.toUpperCase();
 		const close = (person: Person) =>
-			person.breakdown.checkpoints.find((point) => point.id === band.id)?.value ?? 0;
+			person.breakdown.checkpoints.find((point) => point.code === band.code)?.value ?? 0;
 		for (const [key, line] of own)
 			// a line that is its band's subtotal under the same name shows once, as the subtotal
 			if (!(
@@ -240,7 +240,7 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 				sheet.people.every((p) => sum(key)(p) === close(p))
 			))
 				columns.push({
-					band: band.id,
+					band: band.code,
 					group,
 					header: header(line),
 					fill,
@@ -248,10 +248,17 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 					value: sum(key)
 				});
 		if (band.name !== '')
-			columns.push({ band: band.id, group, header: group, fill: deep, total: true, value: close });
+			columns.push({
+				band: band.code,
+				group,
+				header: group,
+				fill: deep,
+				total: true,
+				value: close
+			});
 		if (own.some(([, line]) => line.source === STATUTORY && kind.get(line.code) === 'TAX'))
 			columns.push({
-				band: band.id,
+				band: band.code,
 				group,
 				header: 'TAX WITHHELD',
 				fill: deep,

@@ -12,13 +12,13 @@ import {
 	stableJson
 } from '../../../../lib/payroll_engine/foundation.js';
 import {
-	lawOn,
 	rangeObject,
 	startOf,
 	validateRegistered
 } from '../../../../lib/payroll_engine/registrations.js';
 import { idOf, objectValue, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
+import { lawOn } from '../../../../lib/law.js';
 import { reconcile } from '../../../../lib/dependants.js';
 
 /** What a writer may set; the contract number, seal stamps and the derived label are server-owned. */
@@ -305,21 +305,7 @@ const assertLaw = Effect.fnUntraced(function* (read: Reader, rows: readonly Json
 		read,
 		rows.map((row) => ({ entity: row.entity_id, on: startOf(row) }))
 	);
-	const ids = [
-		...new Set(law.flatMap((version) => (version === undefined ? [] : [String(version.id)])))
-	];
-	const { jurisdiction_settings: found = [] } =
-		ids.length === 0
-			? {}
-			: yield* queryRows(read, {
-					jurisdiction_settings: {
-						where: { id: { in: ids } },
-						fields: ['id', 'lookup', 'work_regions'],
-						limit: 10000
-					}
-				});
-	const byId = new Map(found.map((row) => [String(row.id), row]));
-	const versions = law.map((version) => byId.get(String(version?.id)));
+	const versions = law.map((found) => found?.settings);
 	const terms = assertTerms(
 		rows,
 		versions.map((version) => version?.lookup)

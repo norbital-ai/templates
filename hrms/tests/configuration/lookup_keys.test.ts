@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'vitest';
+import { LAW_ROWS } from '../../src/lib/law.ts';
+import { SEEDED } from './seeded.ts';
 
-const ROOT = 'seed/public/jurisdiction';
-const FILES = readdirSync(ROOT).flatMap((country) =>
-	readdirSync(join(ROOT, country)).flatMap((version) =>
-		readdirSync(join(ROOT, country, version)).map((file) => join(ROOT, country, version, file))
-	)
+/** Every row of every seeded law on each of its change dates, and the settings beside them: each may hold a lookup. */
+const ROWS: readonly Record<string, unknown>[] = SEEDED.flatMap(({ standing }) =>
+	standing.flatMap((law) => [law.settings, ...LAW_ROWS.flatMap((family) => law.rows[family])])
 );
 const sources = (dir: string): readonly string[] =>
 	readdirSync(dir).flatMap((name) => {
@@ -17,10 +17,6 @@ const sources = (dir: string): readonly string[] =>
 	});
 const isObject = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
-const rowsOf = (path: string): readonly Record<string, unknown>[] => {
-	const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
-	return (Array.isArray(value) ? value : [value]).filter(isObject);
-};
 /** Read by building the key, one per wage band. */
 const TABLES = new Set(['cpf_rates']);
 /** A row's named keys, and those of the objects directly under them. Deeper levels are tables, not settings. */
@@ -37,20 +33,16 @@ describe('catalog lookups', () => {
 		const code = sources('src')
 			.map((path) => readFileSync(path, 'utf8'))
 			.join('\n');
-		const expressions = FILES.flatMap((path) =>
-			rowsOf(path).flatMap((row) => [
-				...Object.entries(row).flatMap(([key, value]) =>
-					key === 'lookup' || key === 'references' || typeof value !== 'string' ? [] : [value]
-				),
-				...(isObject(row.lookup) && typeof row.lookup.entitlement === 'string'
-					? [row.lookup.entitlement]
-					: [])
-			])
-		).join('\n');
+		const expressions = ROWS.flatMap((row) => [
+			...Object.entries(row).flatMap(([key, value]) =>
+				key === 'lookup' || key === 'references' || typeof value !== 'string' ? [] : [value]
+			),
+			...(isObject(row.lookup) && typeof row.lookup.entitlement === 'string'
+				? [row.lookup.entitlement]
+				: [])
+		]).join('\n');
 		const read = new Set(`${code}\n${expressions}`.match(/[A-Za-z_][A-Za-z0-9_]*/g));
-		const declared = new Set(
-			FILES.flatMap((path) => rowsOf(path).flatMap((row) => keysOf(row.lookup)))
-		);
+		const declared = new Set(ROWS.flatMap((row) => keysOf(row.lookup)));
 		assert.deepEqual(
 			[...declared].filter((key) => !read.has(key)).toSorted(),
 			[],

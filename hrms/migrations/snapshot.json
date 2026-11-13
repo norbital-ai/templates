@@ -1,92 +1,11 @@
 {
 	"currency": null,
 	"tables": {
-		"adhoc_catalog": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"conversion": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"direction": {
-					"default": "ADD",
-					"kind": "enum",
-					"values": [
-						"ADD",
-						"DEDUCT"
-					]
-				},
-				"eligibility": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"off_cycle_eligible": {
-					"kind": "bool"
-				},
-				"party": {
-					"default": "EMPLOYEE",
-					"kind": "enum",
-					"values": [
-						"EMPLOYEE",
-						"EMPLOYER"
-					]
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "adhoc_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"inverse": "adhoc_catalog",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
-		},
 		"adhoc_catalog_entry": {
 			"audit": true,
 			"fields": {
-				"catalog_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "adhoc_catalog"
+				"catalog_code": {
+					"kind": "text"
 				},
 				"description": {
 					"kind": "text"
@@ -136,69 +55,7 @@
 					]
 				}
 			},
-			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_id.code + ' · ' + string(record.quantity)"
-		},
-		"allowance_catalog": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"conversion": {
-					"kind": "text",
-					"max": 65536
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"eligibility": {
-					"kind": "text",
-					"max": 65536
-				},
-				"include_in_rate": {
-					"default": false,
-					"kind": "bool"
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "allowance_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"inverse": "allowance_catalog",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
+			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_code + ' · ' + string(record.quantity)"
 		},
 		"approval_request": {
 			"fields": {
@@ -298,73 +155,11 @@
 				}
 			]
 		},
-		"claim_catalog": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"conversion": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"eligibility": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "claim_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"inverse": "claim_catalog",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
-		},
 		"claim_catalog_entry": {
 			"audit": true,
 			"fields": {
-				"catalog_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "claim_catalog"
+				"catalog_code": {
+					"kind": "text"
 				},
 				"employment_id": {
 					"inverse": "claim_catalog_entry",
@@ -411,7 +206,7 @@
 					]
 				}
 			},
-			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_id.code + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)"
+			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_code + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)"
 		},
 		"contract_change": {
 			"audit": true,
@@ -1162,17 +957,6 @@
 					"max": 100,
 					"min": 0
 				},
-				"input_schema_version_id": {
-					"inverse": "employer_payroll_versions",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "jurisdiction_settings",
-					"where": {
-						"status": {
-							"eq": "SEALED"
-						}
-					}
-				},
 				"name": {
 					"kind": "text"
 				},
@@ -1367,162 +1151,17 @@
 			},
 			"record_label": "record.name + ' · ' + string(record.date)"
 		},
-		"jurisdiction_settings": {
+		"jurisdiction": {
 			"audit": true,
 			"fields": {
 				"code": {
 					"kind": "text"
 				},
-				"conversions": {
-					"fields": {
-						"back_pay": {
-							"kind": "text",
-							"optional": true
-						},
-						"day": {
-							"fields": {
-								"basis": {
-									"kind": "enum",
-									"values": [
-										"CALENDAR_DAYS",
-										"WORKING_DAYS",
-										"YEAR",
-										"YEAR_REST_DAYS",
-										"HOUR",
-										"FIXED"
-									]
-								},
-								"days": {
-									"kind": "number",
-									"min": 0,
-									"optional": true
-								}
-							},
-							"kind": "object"
-						},
-						"hour": {
-							"fields": {
-								"basis": {
-									"kind": "enum",
-									"values": [
-										"CONTRACT_HOURS",
-										"CONTRACT_WEEKLY",
-										"FIXED"
-									]
-								},
-								"hours": {
-									"kind": "number",
-									"min": 0,
-									"optional": true
-								}
-							},
-							"kind": "object"
-						},
-						"proration": {
-							"kind": "enum",
-							"values": [
-								"CALENDAR_DAYS",
-								"WORKING_DAYS",
-								"DAY_RATE"
-							]
-						},
-						"rounding": {
-							"fields": {
-								"day_rate": {
-									"default": "RATE",
-									"kind": "enum",
-									"values": [
-										"RATE",
-										"AMOUNT"
-									]
-								},
-								"mode": {
-									"default": "HALF_UP",
-									"kind": "enum",
-									"values": [
-										"HALF_UP",
-										"HALF_EVEN",
-										"UP",
-										"DOWN",
-										"TRUNCATE"
-									]
-								},
-								"scale": {
-									"default": 2,
-									"kind": "int",
-									"max": 12,
-									"min": 0
-								}
-							},
-							"kind": "object"
-						}
-					},
-					"kind": "object"
-				},
 				"currency": {
 					"kind": "currency"
 				},
-				"effective_range": {
-					"kind": "period",
-					"of": "date"
-				},
-				"employee_extension_schema": {
-					"kind": "json",
-					"optional": true
-				},
-				"entity_extension_schema": {
-					"kind": "json",
-					"optional": true
-				},
-				"ledger": {
-					"fields": {
-						"ytd_scope": {
-							"default": "JURISDICTION",
-							"kind": "enum",
-							"values": [
-								"JURISDICTION",
-								"EMPLOYER"
-							]
-						}
-					},
-					"kind": "object"
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
 				"name": {
 					"kind": "text"
-				},
-				"reason": {
-					"kind": "text",
-					"optional": true
-				},
-				"status": {
-					"initial": "DRAFT",
-					"kind": "state",
-					"states": {
-						"DRAFT": {
-							"to": [
-								"SEALED",
-								"VOID"
-							]
-						},
-						"SEALED": {
-							"to": [
-								"VOID"
-							]
-						},
-						"VOID": {
-							"to": []
-						}
-					}
 				},
 				"tax_year_start_month": {
 					"kind": "int",
@@ -1532,72 +1171,35 @@
 				"timezone": {
 					"format": "zone",
 					"kind": "text"
-				},
-				"work_regions": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "text"
-						}
-					}
 				}
 			},
-			"locks": {
-				"sealed_version": {
-					"except": [
-						"effective_range",
-						"reason",
-						"status"
-					],
-					"where": {
-						"status": {
-							"eq": "SEALED"
-						}
-					}
-				},
-				"void_version": {
-					"where": {
-						"status": {
-							"eq": "VOID"
-						}
-					}
-				}
-			},
-			"no_overlap": [
+			"record_label": "record.name",
+			"unique": [
 				{
-					"key": [
+					"fields": [
 						"code"
 					],
-					"name": "sealed_range",
-					"period": "effective_range",
-					"where": {
-						"status": {
-							"eq": "SEALED"
-						}
-					}
+					"name": "code"
 				}
-			],
-			"record_label": "record.name"
+			]
 		},
-		"leave_catalog": {
+		"jurisdiction_change": {
 			"audit": true,
 			"fields": {
-				"code": {
+				"effective_from": {
+					"kind": "date"
+				},
+				"finding_id": {
+					"inverse": "law_changes",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"optional": true,
+					"to": "statutory_finding"
+				},
+				"jurisdiction_code": {
 					"kind": "text"
 				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"eligibility": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"lookup": {
-					"default": {},
+				"law": {
 					"kind": "json",
 					"shape": {
 						"kind": "record",
@@ -1605,54 +1207,15 @@
 							"kind": "json"
 						}
 					}
-				},
-				"paid_share": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"payout": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "leave_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"inverse": "leave_catalog",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
 				}
 			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
+			"record_label": "record.effective_from"
 		},
 		"leave_catalog_entry": {
 			"audit": true,
 			"fields": {
-				"catalog_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "leave_catalog"
+				"catalog_code": {
+					"kind": "text"
 				},
 				"employment_id": {
 					"inverse": "leave_catalog_entry",
@@ -1685,7 +1248,7 @@
 					"to": "payroll_run"
 				}
 			},
-			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_id.code"
+			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_code"
 		},
 		"leave_catalog_entry_day": {
 			"audit": true,
@@ -1811,68 +1374,11 @@
 			},
 			"record_label": "record.code + ' · ' + string(record.effective_on)"
 		},
-		"loan_catalog": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"eligibility": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "loan_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"inverse": "loan_catalog",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
-		},
 		"loan_catalog_entry": {
 			"audit": true,
 			"fields": {
-				"catalog_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "loan_catalog"
+				"catalog_code": {
+					"kind": "text"
 				},
 				"employment_id": {
 					"inverse": "loan_catalog_entry",
@@ -1913,7 +1419,7 @@
 					"of": "date"
 				}
 			},
-			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_id.code"
+			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_code"
 		},
 		"loan_catalog_entry_repayment": {
 			"audit": true,
@@ -2049,70 +1555,6 @@
 						"occurrence_key"
 					],
 					"name": "one_occurrence"
-				}
-			]
-		},
-		"overtime_catalog": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"conversion": {
-					"kind": "text",
-					"max": 65536
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"direction": {
-					"kind": "enum",
-					"values": [
-						"ADD",
-						"DEDUCT"
-					]
-				},
-				"eligibility": {
-					"kind": "text",
-					"max": 65536
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "overtime_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"inverse": "overtime_catalog",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "subtotal"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
 				}
 			]
 		},
@@ -2479,11 +1921,6 @@
 					"kind": "period",
 					"of": "date"
 				},
-				"settings_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "jurisdiction_settings"
-				},
 				"state": {
 					"initial": "UNPAID",
 					"kind": "state",
@@ -2593,11 +2030,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"settings_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "jurisdiction_settings"
-				},
 				"tax_withheld": {
 					"default": 0,
 					"kind": "decimal",
@@ -2619,163 +2051,6 @@
 						"entity_id"
 					],
 					"name": "run_person"
-				}
-			]
-		},
-		"registered_effect": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"condition": {
-					"kind": "text",
-					"max": 65536
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"effects": {
-					"kind": "text",
-					"max": 65536
-				},
-				"events": {
-					"kind": "enum",
-					"many": true,
-					"values": [
-						"create",
-						"update",
-						"delete",
-						"seal",
-						"exit"
-					]
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"name": {
-					"kind": "text"
-				},
-				"reads": {
-					"kind": "custom",
-					"of": "reads",
-					"optional": true
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "registered_effect",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"source_collection": {
-					"kind": "text"
-				},
-				"target_action": {
-					"kind": "enum",
-					"values": [
-						"create",
-						"update",
-						"delete"
-					]
-				},
-				"target_collection": {
-					"kind": "text"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
-		},
-		"registered_rule": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"condition": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"events": {
-					"kind": "enum",
-					"many": true,
-					"values": [
-						"create",
-						"update",
-						"delete"
-					]
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"order": {
-					"default": 0,
-					"kind": "int"
-				},
-				"reads": {
-					"kind": "custom",
-					"of": "reads",
-					"optional": true
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "registered_rule",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"target_collection": {
-					"kind": "text"
-				},
-				"validate": {
-					"kind": "text",
-					"max": 65536
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
 				}
 			]
 		},
@@ -3091,177 +2366,6 @@
 				}
 			]
 		},
-		"statutory_change": {
-			"audit": true,
-			"fields": {
-				"applied_version_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "jurisdiction_settings"
-				},
-				"baseline_version_id": {
-					"inverse": "statutory_changes",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "jurisdiction_settings"
-				},
-				"effective_from": {
-					"kind": "date",
-					"optional": true
-				},
-				"family": {
-					"kind": "text"
-				},
-				"field_path": {
-					"kind": "text"
-				},
-				"finding_id": {
-					"inverse": "changes",
-					"kind": "ref",
-					"on_delete": "cascade",
-					"to": "statutory_finding"
-				},
-				"jurisdiction_code": {
-					"kind": "text"
-				},
-				"new_value": {
-					"kind": "json",
-					"optional": true
-				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
-				"old_value": {
-					"kind": "json",
-					"optional": true
-				},
-				"row_code": {
-					"kind": "text",
-					"optional": true
-				}
-			},
-			"locks": {
-				"applied_change": {
-					"where": {
-						"applied_version_id": {
-							"is_null": false
-						}
-					}
-				}
-			},
-			"record_label": "record.field_path",
-			"unique": [
-				{
-					"fields": [
-						"finding_id",
-						"family",
-						"row_code",
-						"field_path",
-						"effective_from"
-					],
-					"name": "finding_path"
-				}
-			]
-		},
-		"statutory_contribution_catalog": {
-			"audit": true,
-			"fields": {
-				"assessed": {
-					"default": "EARNED",
-					"kind": "enum",
-					"values": [
-						"EARNED",
-						"PAID"
-					]
-				},
-				"balance_window": {
-					"default": "YEAR",
-					"kind": "enum",
-					"values": [
-						"MONTH",
-						"YEAR"
-					]
-				},
-				"code": {
-					"kind": "text"
-				},
-				"depends_on": {
-					"kind": "text",
-					"many": true,
-					"optional": true
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"eligibility": {
-					"kind": "text",
-					"max": 65536
-				},
-				"employee_amount": {
-					"kind": "text",
-					"max": 65536
-				},
-				"employer_amount": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"employer_cost_subtotal_id": {
-					"inverse": "statutory_employer_cost",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
-				},
-				"kind": {
-					"kind": "enum",
-					"values": [
-						"CONTRIBUTION",
-						"TAX"
-					]
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "statutory_contribution_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"inverse": "statutory_contribution_catalog",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "subtotal"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
-		},
 		"statutory_finding": {
 			"audit": true,
 			"fields": {
@@ -3307,12 +2411,8 @@
 					"initial": "PROPOSED",
 					"kind": "state",
 					"states": {
-						"APPLIED": {
-							"to": []
-						},
 						"CONFIRMED": {
 							"to": [
-								"APPLIED",
 								"REJECTED"
 							]
 						},
@@ -3360,10 +2460,7 @@
 				"decided_finding": {
 					"where": {
 						"status": {
-							"in": [
-								"APPLIED",
-								"REJECTED"
-							]
+							"eq": "REJECTED"
 						}
 					}
 				}
@@ -3466,52 +2563,6 @@
 						"url"
 					],
 					"name": "source_url"
-				}
-			]
-		},
-		"subtotal": {
-			"audit": true,
-			"fields": {
-				"balance_window": {
-					"default": "YEAR",
-					"kind": "enum",
-					"values": [
-						"MONTH",
-						"YEAR"
-					]
-				},
-				"calculation": {
-					"kind": "text",
-					"max": 65536,
-					"optional": true
-				},
-				"code": {
-					"kind": "text"
-				},
-				"name": {
-					"kind": "text"
-				},
-				"previous_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
-				},
-				"settings_id": {
-					"inverse": "subtotals",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				}
-			},
-			"record_label": "record.name",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
 				}
 			]
 		},
@@ -4930,10 +3981,8 @@
 		"work_event": {
 			"audit": true,
 			"fields": {
-				"catalog_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "work_event_catalog"
+				"catalog_code": {
+					"kind": "text"
 				},
 				"description": {
 					"kind": "text",
@@ -4971,122 +4020,11 @@
 			},
 			"record_label": "record.description"
 		},
-		"work_event_catalog": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "work_event_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
-		},
-		"workplace_case_catalog": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"description": {
-					"kind": "text",
-					"optional": true
-				},
-				"events": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"lookup": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "workplace_case_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				},
-				"subtotal_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "subtotal"
-				}
-			},
-			"record_label": "record.code",
-			"unique": [
-				{
-					"fields": [
-						"settings_id",
-						"code"
-					],
-					"name": "code_per_settings"
-				}
-			]
-		},
 		"workplace_case_catalog_entry": {
 			"audit": true,
 			"fields": {
-				"catalog_id": {
-					"inverse": "entries",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "workplace_case_catalog"
+				"catalog_code": {
+					"kind": "text"
 				},
 				"closed_on": {
 					"kind": "date",

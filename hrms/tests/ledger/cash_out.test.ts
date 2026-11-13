@@ -14,10 +14,10 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
 	leaveCreate,
 	ledgerRows,
 	measureOf,
+	lawWith,
 	pack,
 	syncAll,
 	uuid,
@@ -59,16 +59,12 @@ const TERMS = {
 	allowances: {}
 };
 type Seed = ReturnType<typeof pack>;
-/** The in-lieu row pays a flat amount a day, on every version of the law the pack holds. */
-const flat = (seed: Seed): Seed => ({
-	...seed,
-	leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-		row.code === IN_LIEU ? { ...row, payout: `return ${PAYOUT} * ctx.entry.quantity;` } : row
-	)
-});
-const seed = flat(pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], [], '2026-08-15'));
-const rowOf = (from: Seed, code: string) =>
-	idOf('leave_catalog', catalogRow(from, 'leave_catalog', code));
+/** The in-lieu row pays a flat amount a day, from the law's first day on. */
+const flat = (seed: Seed): Seed =>
+	lawWith(seed, {
+		leave_catalog: { [IN_LIEU]: { payout: `return ${PAYOUT} * ctx.entry.quantity;` } }
+	});
+const seed = flat(pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []));
 /** A business refusal's text: the passthrough key the ledger's refusals travel under. */
 const refused = <A, E>(effect: Effect.Effect<A, E>) =>
 	refusal(effect).pipe(
@@ -102,7 +98,6 @@ const grant = (t: Kit, days: number, on = '2026-08-03') =>
 /** A leave entry on a row, a cash-out unless told otherwise. */
 const enter = (
 	t: Kit,
-	from: Seed,
 	code: string,
 	dates: readonly string[],
 	options: { encashment?: boolean } = {}
@@ -113,7 +108,7 @@ const enter = (
 				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
-					catalog_id: rowOf(from, code),
+					catalog_code: code,
 					encashment: options.encashment ?? true,
 					days: wholeDays(...dates)
 				})
@@ -121,7 +116,7 @@ const enter = (
 		});
 		yield* t.run_due();
 	});
-const cashOut = (t: Kit, ...dates: readonly string[]) => enter(t, seed, IN_LIEU, dates);
+const cashOut = (t: Kit, ...dates: readonly string[]) => enter(t, IN_LIEU, dates);
 const run = (t: Kit, period: string) =>
 	t
 		.as(t.admin)
@@ -268,7 +263,7 @@ describe('a cash-out of days HR granted', () => {
 			// medical leave holds days after sync and declares no payout, so it is not cashable
 			const before = yield* held(t, 'MEDICAL_LEAVE');
 			assert.ok(before.entitled > 0);
-			assert.match(yield* refused(enter(t, seed, 'MEDICAL_LEAVE', ['2026-08-05'])), /payout|cash/i);
+			assert.match(yield* refused(enter(t, 'MEDICAL_LEAVE', ['2026-08-05'])), /payout|cash/i);
 			assert.deepEqual(yield* held(t, 'MEDICAL_LEAVE'), before);
 			assert.deepEqual(yield* entries(t), []);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
@@ -289,7 +284,7 @@ describe('a cash-out whose days fall past the run window', () => {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
 			yield* grant(t, 2);
-			yield* enter(t, late, IN_LIEU, ['2026-08-28', '2026-09-14']);
+			yield* enter(t, IN_LIEU, ['2026-08-28', '2026-09-14']);
 			yield* run(t, '2026-09');
 			assert.deepEqual(yield* paid(t), [['2026-09', 'ADD', 2 * PAYOUT, 2]]);
 			const [entry] = yield* entries(t);
@@ -392,7 +387,7 @@ describe('a day in lieu held both ways for one person and date', () => {
 			const holiday = yield* february(theirs, () => Effect.void);
 			const both = yield* february(theirs, (t) =>
 				grant(t, 1, '2026-02-02').pipe(
-					Effect.andThen(enter(t, theirs, IN_LIEU, [DAY], { encashment: false }))
+					Effect.andThen(enter(t, IN_LIEU, [DAY], { encashment: false }))
 				)
 			);
 			assert.deepEqual(holiday.lines, plain.lines);
@@ -405,7 +400,7 @@ describe('a day in lieu held both ways for one person and date', () => {
 		Effect.gen(function* () {
 			const plain = yield* february(base, () => Effect.void);
 			const both = yield* february(theirs, (t) =>
-				grant(t, 1, '2026-02-02').pipe(Effect.andThen(enter(t, theirs, IN_LIEU, [DAY])))
+				grant(t, 1, '2026-02-02').pipe(Effect.andThen(enter(t, IN_LIEU, [DAY])))
 			);
 			// the payout is the one new line; the schemes that count it as wages follow it, and nothing else appears
 			assert.deepEqual(

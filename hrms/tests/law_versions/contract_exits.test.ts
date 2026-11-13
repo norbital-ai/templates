@@ -10,7 +10,7 @@ import { isExit } from '../../src/lib/payroll_engine/contract_change.ts';
 import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
-	catalogRow,
+	lawAt,
 	pack,
 	sealEvents,
 	storedQuery,
@@ -31,7 +31,7 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-11-15');
+const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 
 /** The first contract as stored now: a write's target at its current revision. */
 const contract = (t: Kit) =>
@@ -284,8 +284,9 @@ describe('exit answers on a sealed contract', () => {
 
 	// someone engaged as a payee leaves the same way: the duty names the employment and the last day
 	it('an exit duty is keyed by its employment and last day, whatever the engagement', () => {
-		const id = catalogRow(seed, 'registered_effect', 'PERSONAL_DATA_DISPOSAL');
-		const row = (seed.registered_effect ?? []).find((effect) => effect.id === id);
+		const row = lawAt('MY', NOW.slice(0, 10)).rows.registered_effect.find(
+			(effect) => effect.code === 'PERSONAL_DATA_DISPOSAL'
+		);
 		const payee = {
 			id: 'contract-1',
 			entity_id: 'entity-1',

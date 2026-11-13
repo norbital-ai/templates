@@ -10,7 +10,8 @@ import {
 	ENTITY,
 	accountsIn,
 	current,
-	catalogRow,
+	lawAt,
+	lawWith,
 	measureOf,
 	pack,
 	sealedLeave,
@@ -36,20 +37,20 @@ const terms = {
 type Seed = ReturnType<typeof pack>;
 const DRAWS = 'EMERGENCY_LEAVE';
 const seedOf = (account: Accounts): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-10-01');
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 	return {
-		...seed,
-		leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-			row.code === DRAWS
-				? {
-						...row,
-						lookup: {
-							...objectValue(row.lookup),
-							accounts: [{ account: 'leave', code: 'ANNUAL_LEAVE', measure: 'used' }]
-						}
+		...lawWith(seed, {
+			leave_catalog: {
+				[DRAWS]: {
+					lookup: {
+						...objectValue(
+							lawAt('MY', '2026-10-01').rows.leave_catalog.find((row) => row.code === DRAWS)?.lookup
+						),
+						accounts: [{ account: 'leave', code: 'ANNUAL_LEAVE', measure: 'used' }]
 					}
-				: row
-		),
+				}
+			}
+		}),
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account }))
 	};
 };
@@ -62,7 +63,7 @@ const dates = (from: string, count: number) =>
 		{ date, part: 'AM' as const },
 		{ date, part: 'PM' as const }
 	]);
-const take = (t: Kit, seed: Seed, code: string, from: string, count: number) =>
+const take = (t: Kit, code: string, from: string, count: number) =>
 	t.as(t.admin).pipe(
 		Effect.flatMap((caller) =>
 			caller.act({
@@ -70,7 +71,7 @@ const take = (t: Kit, seed: Seed, code: string, from: string, count: number) =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+						catalog_code: code,
 						days: dates(from, count)
 					})
 				]
@@ -88,7 +89,7 @@ describe('a row that draws on another', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* take(t, seed, DRAWS, '2026-10-05', 2);
+				yield* take(t, DRAWS, '2026-10-05', 2);
 				yield* t.run_due();
 				assert.equal(yield* usedOf(t, 'ANNUAL_LEAVE'), 2);
 				yield* (yield* t.as(t.admin)).act({
@@ -128,7 +129,7 @@ describe('a row that draws on another', () => {
 	it.live('is refused past what the other row holds', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const refused = yield* Effect.flip(take(t, seed, DRAWS, '2026-10-05', 4));
+			const refused = yield* Effect.flip(take(t, DRAWS, '2026-10-05', 4));
 			assert.match(String(refused), /ANNUAL_LEAVE: insufficient balance/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);

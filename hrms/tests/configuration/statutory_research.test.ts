@@ -1,41 +1,24 @@
-// The research pipeline end to end: a scripted model answers, the real automations run over real sealed law from the
-// public seed, and the ledger shows what was detected, what was not, and what a person may do with it.
+// The research pipeline end to end: a scripted model answers, the real automation runs over the real law from the
+// public seed, and the ledger shows what was detected, what was not, and what a person may do with it. What research
+// files is a dated change of the law, in force only while its finding is confirmed.
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { WHOLE_ROW } from '../../src/lib/payroll_engine/statutory_change.ts';
-import { FAMILIES } from '../../src/lib/payroll_engine/statutory_research.ts';
-import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import { workspace, storedQuery, refusal } from '../kit.ts';
+import { lawOn } from '../../src/lib/law.ts';
+import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
+import { FAMILIES, WHOLE_ROW } from '../../src/lib/payroll_engine/statutory_research.ts';
+import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { lawAt, refusal, seedLaw, storedQuery, storedReader, workspace } from '../kit.ts';
 
 const NOW = '2026-11-05T02:00:00.000Z';
 const ENTITY = idOf('entity', '11111111-1111-4111-8111-111111111111');
-type Row = JsonObject;
-/** One jurisdiction's public law, as the release's base pack seeds it. */
-const law = (code: string) => {
-	const rows: { [model: string]: Row[] } = {
-		entity: [{ id: ENTITY, code: 'E1', name: 'Entity', settings_code: code }]
-	};
-	const root = join(process.cwd(), 'seed/public/jurisdiction', code);
-	for (const version of readdirSync(root))
-		for (const file of readdirSync(join(root, version))) {
-			const model = file.replace('.json', '');
-			const list: Row | Row[] = JSON.parse(readFileSync(join(root, version, file), 'utf8'));
-			(rows[model] ??= []).push(...(Array.isArray(list) ? list : [list]));
-		}
-	rows.entity = [
-		{
-			id: ENTITY,
-			name: 'Entity',
-			settings_code: code
-		}
-	];
-	rows.pay_group = [
+/** One jurisdiction's public law, as the release's base pack seeds it, and one company under it. */
+const law = (code: string) => ({
+	...seedLaw(code),
+	entity: [{ id: ENTITY, name: 'Entity', settings_code: code }],
+	pay_group: [
 		{
 			id: '11111111-1111-4111-8111-000000000008',
 			entity_id: ENTITY,
@@ -49,22 +32,32 @@ const law = (code: string) => {
 				pay_days: [25]
 			}
 		}
-	];
-	rows.entity_profile_version = [
+	],
+	entity_profile_version: [
 		{
 			id: '22222222-2222-4222-8222-222222222222',
 			entity_id: ENTITY,
 			name: 'Entity',
 			settings_code: code,
-			input_schema_version_id: rows.jurisdiction_settings?.[0]?.id ?? null,
 			effective_range: { from: '2025-01-01', to: null },
 			time_zone: 'Asia/Kuala_Lumpur',
 			entity_extension_data: {},
 			status: 'SEALED'
 		}
-	];
-	return rows;
-};
+	]
+});
+/** A value under these keys, wherever one of them is missing. */
+const at = (value: unknown, ...path: readonly string[]): unknown =>
+	path.reduce<unknown>((held, key) => (isJsonObject(held) ? held[key] : undefined), value);
+const EPF = ['statutory_contribution_catalog', 'EPF', 'lookup'] as const;
+/** The row's table as the fixture's law holds it today: a change to one value carries the rest of it. */
+const HELD_LOOKUP = at(
+	lawAt('MY', NOW.slice(0, 10)).rows.statutory_contribution_catalog.find(
+		(row) => row.code === 'EPF'
+	),
+	'lookup'
+);
+const HELD = at(HELD_LOOKUP, 'employee_rate');
 const answer = (value: unknown) => ({
 	content: JSON.stringify(value),
 	tool_calls: [],
@@ -73,10 +66,6 @@ const answer = (value: unknown) => ({
 });
 const found = (...findings: readonly object[]) => answer({ findings, new_sources: [] });
 const quiet = found();
-/** The rate the fixture's law holds today: research reports it as the old value, whatever it is. */
-const HELD = objectValue(
-	law('MY').statutory_contribution_catalog?.findLast((row) => row.code === 'EPF')?.lookup
-).employee_rate;
 const CITATION = 'Act A2001';
 const OFFICIAL = 'https://www.kwsp.gov.my/act-a2001.pdf';
 const finding = (over: object = {}) => ({
@@ -98,17 +87,36 @@ const rate = (over: object = {}) => ({
 const ledger = Effect.fnUntraced(function* (t: Kit) {
 	const got = yield* storedQuery(t, {
 		statutory_finding: { limit: 1000 },
-		statutory_change: { limit: 1000 },
-		statutory_source: { limit: 1000 },
-		jurisdiction_settings: { where: { code: { eq: 'MY' } }, limit: 1000 }
+		jurisdiction_change: { where: { finding_id: { is_null: false } }, limit: 1000 },
+		statutory_source: { limit: 1000 }
 	});
 	return {
 		findings: got.statutory_finding.rows,
-		changes: got.statutory_change.rows,
-		sources: got.statutory_source.rows,
-		versions: got.jurisdiction_settings.rows
+		changes: got.jurisdiction_change.rows.toSorted((left, right) =>
+			left.effective_from.localeCompare(right.effective_from)
+		),
+		sources: got.statutory_source.rows
 	};
 });
+/** The company's law as the workspace holds it on a day. */
+const lawOf = (t: Kit, on: string) =>
+	lawOn(storedReader(t), [{ entity: ENTITY, on }]).pipe(
+		Effect.map(([found]) => {
+			assert.ok(found !== undefined, `No law on ${on}`);
+			return found;
+		})
+	);
+/** The employee rate the workspace's law holds on a day. */
+const rateOn = (t: Kit, on: string) =>
+	lawOf(t, on).pipe(
+		Effect.map((found) =>
+			at(
+				found.rows.statutory_contribution_catalog.find((row) => row.code === 'EPF'),
+				'lookup',
+				'employee_rate'
+			)
+		)
+	);
 const scenario = (
 	turns: readonly ReturnType<typeof answer>[],
 	body: (t: Kit) => Effect.Effect<void, unknown>,
@@ -148,32 +156,19 @@ const research = (t: Kit, input: { code: string; family?: string } = { code: 'MY
 		Effect.andThen((admin) => admin.run('statutory_research', input, JobResult)),
 		Effect.andThen(t.run_due())
 	);
-/** A finding confirmed by an admin, at its stored revision. */
-const confirm = (t: Kit, id: Id<'statutory_finding'>) =>
+/** A finding a person decides, at its stored revision. */
+const decide = (t: Kit, id: Id<'statutory_finding'>, status: 'CONFIRMED' | 'REJECTED') =>
 	Effect.gen(function* () {
 		const { statutory_finding } = yield* storedQuery(t, {
 			statutory_finding: { where: { id: { eq: id } }, limit: 1 }
 		});
 		const admin = yield* t.as(t.admin);
-		return yield* admin.act({
-			'statutory_finding.update': [
-				{ target: first(statutory_finding.rows), set: { status: 'CONFIRMED' } }
-			]
+		yield* admin.act({
+			'statutory_finding.update': [{ target: first(statutory_finding.rows), set: { status } }]
 		});
-	});
-const materialize = (t: Kit, target: string) =>
-	t
-		.as(t.admin)
-		.pipe(
-			Effect.andThen((admin) =>
-				admin.run('statutory_materialize', { code: 'MY', target, merge: true }, JobResult)
-			)
-		);
-const merge = (t: Kit, target: string) =>
-	Effect.gen(function* () {
-		yield* materialize(t, target);
 		yield* t.run_due();
 	});
+const confirm = (t: Kit, id: Id<'statutory_finding'>) => decide(t, id, 'CONFIRMED');
 
 describe('statutory research', () => {
 	it.live('detects a changed rate, files it unconfirmed and dated on the law', () =>
@@ -186,10 +181,19 @@ describe('statutory research', () => {
 				assert.equal(findings[0]?.instrument_key, 'act-a2001');
 				assert.equal(changes.length, 1);
 				assert.equal(typeof HELD, 'number');
-				assert.equal(changes[0]?.old_value, HELD);
-				assert.equal(changes[0]?.new_value, 0.12);
+				assert.notEqual(HELD, 0.12);
+				assert.equal(changes[0]?.finding_id, findings[0]?.id);
 				assert.equal(changes[0]?.effective_from, '2027-03-01');
-				assert.equal(changes[0]?.family, 'statutory_contribution_catalog');
+				// the patch holds the row's whole table, with the one value changed
+				assert.deepEqual(changes[0]?.law, {
+					statutory_contribution_catalog: {
+						EPF: {
+							lookup: { ...(isJsonObject(HELD_LOOKUP) ? HELD_LOOKUP : {}), employee_rate: 0.12 }
+						}
+					}
+				});
+				// filed, not in force
+				assert.equal(yield* rateOn(t, '2027-03-01'), HELD);
 			})
 		)
 	);
@@ -216,7 +220,7 @@ describe('statutory research', () => {
 		)
 	);
 
-	it.live('never adds a value already in the version it lands on', () =>
+	it.live('never adds a value the law already holds on its date', () =>
 		scenario([found(finding()), answer({ changes: [rate({ new_value: HELD })] })], (t) =>
 			Effect.gen(function* () {
 				yield* research(t);
@@ -225,70 +229,63 @@ describe('statutory research', () => {
 		)
 	);
 
-	it.live('classifies a new scheme into its family and merges it into a new version', () =>
-		scenario(
-			[
-				found(
-					finding({
-						instrument: 'Act A2003',
-						title: 'New savings scheme',
-						fit: 'ROW',
-						source_quote: 'A savings scheme starts on 1 March 2027.'
+	it.live(
+		'classifies a new scheme into its family; confirmed, the law holds the row from its date',
+		() =>
+			scenario(
+				[
+					found(
+						finding({
+							instrument: 'Act A2003',
+							title: 'New savings scheme',
+							fit: 'ROW',
+							source_quote: 'A savings scheme starts on 1 March 2027.'
+						})
+					),
+					answer({
+						changes: [
+							{
+								row_code: 'NEW_SCHEME',
+								field_path: WHOLE_ROW,
+								new_value: {
+									description: 'A savings scheme',
+									kind: 'CONTRIBUTION',
+									depends_on: [],
+									subtotal: 'BASIC',
+									employer_cost_subtotal: 'BASIC',
+									lookup: { employee_rate: 0.12 },
+									eligibility: 'return true;',
+									employee_amount: 'return 0;',
+									employer_amount: 'return 0;'
+								},
+								effective_from: '2027-03-01'
+							}
+						]
 					})
-				),
-				answer({
-					changes: [
-						{
-							row_code: 'NEW_SCHEME',
-							field_path: WHOLE_ROW,
-							new_value: {
-								description: 'A savings scheme',
-								kind: 'CONTRIBUTION',
-								depends_on: [],
-								subtotal_id: 'BASIC',
-								employer_cost_subtotal_id: 'BASIC',
-								lookup: { employee_rate: 0.12 },
-								eligibility: 'return true;',
-								employee_amount: 'return 0;',
-								employer_amount: 'return 0;'
-							},
-							effective_from: '2027-03-01'
-						}
-					]
-				})
-			],
-			(t) =>
-				Effect.gen(function* () {
-					yield* research(t);
-					const before = yield* ledger(t);
-					const id = first(before.findings).id;
-					assert.equal(before.findings[0]?.fit, 'ROW');
-					assert.deepEqual(before.findings[0]?.families, ['statutory_contribution_catalog']);
-					yield* confirm(t, id);
-					yield* merge(t, '2027-03-01');
-					const after = yield* ledger(t);
-					const sealed = after.versions.find(
-						(row) => row.status === 'SEALED' && row.effective_range.from === '2027-03-01'
-					);
-					assert.ok(sealed, 'the release became a sealed version');
-					const row = yield* storedQuery(t, {
-						statutory_contribution_catalog: {
-							where: { settings_id: { eq: sealed.id }, code: { eq: 'NEW_SCHEME' } },
-							limit: 1
-						},
-						subtotal: {
-							where: { settings_id: { eq: sealed.id }, code: { eq: 'BASIC' } },
-							limit: 1
-						}
-					});
-					assert.equal(
-						row.statutory_contribution_catalog.rows[0]?.subtotal_id,
-						row.subtotal.rows[0]?.id
-					);
-					assert.equal(after.findings[0]?.status, 'APPLIED');
-					assert.equal(after.changes[0]?.applied_version_id, sealed.id);
-				})
-		)
+				],
+				(t) =>
+					Effect.gen(function* () {
+						const scheme = (on: string) =>
+							lawOf(t, on).pipe(
+								Effect.map((found) =>
+									found.rows.statutory_contribution_catalog.find((row) => row.code === 'NEW_SCHEME')
+								)
+							);
+						yield* research(t);
+						const before = yield* ledger(t);
+						const id = first(before.findings).id;
+						assert.equal(before.findings[0]?.fit, 'ROW');
+						assert.deepEqual(before.findings[0]?.families, ['statutory_contribution_catalog']);
+						assert.equal(yield* scheme('2027-03-01'), undefined);
+						yield* confirm(t, id);
+						const row = yield* scheme('2027-03-01');
+						assert.ok(row !== undefined, 'the law holds the new row');
+						// a row names its subtotal by code
+						assert.equal(row.subtotal, 'BASIC');
+						assert.equal(yield* scheme('2027-02-28'), undefined);
+						assert.equal((yield* ledger(t)).findings[0]?.status, 'CONFIRMED');
+					})
+			)
 	);
 
 	it.live('keeps what no family can hold out of the ledger of changes', () =>
@@ -348,7 +345,7 @@ describe('statutory research', () => {
 		)
 	);
 
-	it.live('never re-files law applied for a future date', () =>
+	it.live('never re-files law already in force from a future date', () =>
 		scenario(
 			[
 				found(finding()),
@@ -360,82 +357,77 @@ describe('statutory research', () => {
 				Effect.gen(function* () {
 					yield* research(t);
 					yield* confirm(t, first((yield* ledger(t)).findings).id);
-					yield* merge(t, '2027-03-01');
 					yield* research(t);
 					const { findings, changes } = yield* ledger(t);
 					assert.equal(findings.length, 2);
-					assert.equal(changes.length, 1, 'the sealed 2027 version already holds it');
+					assert.equal(changes.length, 1, 'the law already holds it from 2027-03-01');
 				})
 		)
 	);
 
-	it.live('chains a staged law and merges its releases in order', () =>
-		scenario(
-			[
-				found(finding()),
-				answer({
-					changes: [
-						rate({ new_value: 0.13, effective_from: '2027-07-01' }),
-						rate({ new_value: 0.12, effective_from: '2027-03-01' })
-					]
-				})
-			],
-			(t) =>
-				Effect.gen(function* () {
-					yield* research(t);
-					const { findings, changes } = yield* ledger(t);
-					const later = changes.find((row) => row.effective_from === '2027-07-01');
-					assert.equal(later?.old_value, 0.12);
-					yield* confirm(t, first(findings).id);
-					// the later release first: refused by its reason, whether the start or its run answers it
-					const early = yield* Effect.andThen(materialize(t, '2027-07-01'), t.run_due()).pipe(
-						Effect.match({
-							onFailure: String,
-							onSuccess: ({ failed }) => failed.map((run) => String(run.error)).join('\n')
-						})
-					);
-					assert.match(early, /out_of_order: merge the 2027-03-01 release before 2027-07-01/);
-					assert.equal(
-						(yield* ledger(t)).versions.filter((row) => row.effective_range.from > '2027-01-01')
-							.length,
-						0
-					);
-					yield* merge(t, '2027-03-01');
-					assert.equal((yield* ledger(t)).findings[0]?.status, 'CONFIRMED');
-					yield* merge(t, '2027-07-01');
-					const after = yield* ledger(t);
-					assert.equal(after.findings[0]?.status, 'APPLIED');
-					assert.equal(
-						after.versions.filter(
-							(row) => row.status === 'SEALED' && row.effective_range.from > '2027-01-01'
-						).length,
-						2
-					);
-				})
-		)
-	);
-
-	it.live('refuses to confirm without an official source, an undated change or no changes', () =>
-		scenario(
-			[
-				found(finding({ source_urls: ['https://example.com/news'] })),
-				answer({ changes: [rate({ effective_from: null })] })
-			],
-			(t) =>
-				Effect.gen(function* () {
-					yield* research(t);
-					const { findings } = yield* ledger(t);
-					const unofficial = yield* refusal(confirm(t, first(findings).id));
-					assert.equal(unofficial.key, 'errors.statutory_finding_official_source');
-					yield* (yield* t.as(t.admin)).act({
-						'statutory_finding.update': [
-							{ target: first(findings), set: { source_urls: [OFFICIAL] } }
+	it.live(
+		'chains a staged law: each step is its own change, and confirming the finding puts them all in force, each from its date',
+		() =>
+			scenario(
+				[
+					found(finding()),
+					answer({
+						changes: [
+							rate({ new_value: 0.13, effective_from: '2027-07-01' }),
+							rate({ new_value: 0.12, effective_from: '2027-03-01' })
 						]
-					});
-					const undated = yield* refusal(confirm(t, first(findings).id));
-					assert.equal(undated.key, 'errors.statutory_finding_changes_dated');
-				})
-		)
+					})
+				],
+				(t) =>
+					Effect.gen(function* () {
+						yield* research(t);
+						const { findings, changes } = yield* ledger(t);
+						assert.deepEqual(
+							changes.map((row) => [
+								row.finding_id,
+								row.effective_from,
+								at(row.law, ...EPF, 'employee_rate')
+							]),
+							[
+								[first(findings).id, '2027-03-01', 0.12],
+								[first(findings).id, '2027-07-01', 0.13]
+							]
+						);
+						assert.equal(yield* rateOn(t, '2027-07-01'), HELD);
+						yield* confirm(t, first(findings).id);
+						assert.equal(yield* rateOn(t, '2027-02-28'), HELD);
+						assert.equal(yield* rateOn(t, '2027-03-01'), 0.12);
+						assert.equal(yield* rateOn(t, '2027-06-30'), 0.12);
+						assert.equal(yield* rateOn(t, '2027-07-01'), 0.13);
+					})
+			)
+	);
+
+	it.live(
+		'refuses to confirm without an official source, or with no change drafted: an undated one is noted for a person to date',
+		() =>
+			scenario(
+				[
+					found(finding({ source_urls: ['https://example.com/news'] })),
+					answer({ changes: [rate({ effective_from: null })] })
+				],
+				(t) =>
+					Effect.gen(function* () {
+						yield* research(t);
+						const { findings, changes } = yield* ledger(t);
+						assert.deepEqual(changes, []);
+						assert.match(String(first(findings).notes), /Undated/);
+						const unofficial = yield* refusal(confirm(t, first(findings).id));
+						assert.equal(unofficial.key, 'errors.statutory_finding_official_source');
+						yield* (yield* t.as(t.admin)).act({
+							'statutory_finding.update': [
+								{ target: first(findings), set: { source_urls: [OFFICIAL] } }
+							]
+						});
+						const undrafted = yield* refusal(confirm(t, first(findings).id));
+						assert.equal(undrafted.key, 'errors.statutory_finding_changes_drafted');
+					})
+			)
 	);
 
 	it.live(
@@ -474,28 +466,22 @@ describe('statutory research', () => {
 			)
 	);
 
-	it.live('payroll refuses law confirmed but not merged', () =>
-		scenario(
-			// inside the sealed window: past it the run is refused for having no law at all
-			[found(finding()), answer({ changes: [rate({ effective_from: '2026-11-01' })] })],
-			(t) =>
+	it.live(
+		'a filed change is out of force until its finding is confirmed, and out again once it is rejected',
+		() =>
+			scenario([found(finding()), answer({ changes: [rate()] })], (t) =>
 				Effect.gen(function* () {
-					const run = () =>
-						t.as(t.admin).pipe(
-							Effect.andThen((admin) =>
-								admin.act({
-									'payroll_run.create': [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]
-								})
-							)
-						);
 					yield* research(t);
-					const { findings } = yield* ledger(t);
-					yield* confirm(t, first(findings).id);
-					const held = yield* refusal(run());
-					assert.equal(held.key, 'errors.payroll_run_merge_law');
-					assert.deepEqual(held.values, { code: 'MY', date: '2026-11-01' });
+					const { id } = first((yield* ledger(t)).findings);
+					assert.equal(yield* rateOn(t, '2027-03-01'), HELD);
+					yield* confirm(t, id);
+					assert.equal(yield* rateOn(t, '2027-03-01'), 0.12);
+					assert.equal(yield* rateOn(t, '2027-02-28'), HELD, 'from its date, not before');
+					yield* decide(t, id, 'REJECTED');
+					assert.equal(yield* rateOn(t, '2027-03-01'), HELD);
+					assert.equal((yield* ledger(t)).changes.length, 1, 'the change stays on file');
 				})
-		)
+			)
 	);
 
 	it.live('the Saturday cron watches and audits only jurisdictions in use', () =>

@@ -13,7 +13,7 @@ import {
 } from '../../src/lib/payroll_engine/roster_workbook.ts';
 import { ENTITY, WORK, pack, uuid, workspace, storedQuery } from '../kit.ts';
 
-const seed = pack('MY', 'Asia/Kuala_Lumpur', {}, {}, [], [], '2026-02-15');
+const seed = pack('MY', 'Asia/Kuala_Lumpur', {}, {}, [], []);
 const first = seed.employee_contract?.[0] ?? {};
 const others = Array.from({ length: 12 }, (_, index) => index + 1);
 const seeded = {
@@ -174,8 +174,7 @@ describe('roster workbook import', () => {
 						{},
 						{},
 						before.map((date) => ({ date, shift: WORK, hours: 8 })),
-						[],
-						'2026-03-03'
+						[]
 					),
 					now: '2026-03-20T02:00:00.000Z'
 				})

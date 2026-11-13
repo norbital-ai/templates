@@ -3,6 +3,7 @@
 import { DateTime } from 'effect';
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
+import { lawsOf } from '../../src/lib/law.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { WorkbookRowsError } from '../../src/lib/payroll_engine/workbook_rows.ts';
 import {
@@ -27,8 +28,36 @@ import {
 const entity = idOf('entity', '11111111-1111-4111-8111-111111111111');
 const employee = idOf('employee_contract', '22222222-2222-4222-8222-222222222222');
 const shift = idOf('shift_definition', '33333333-3333-4333-8333-333333333333');
-const settings = idOf('jurisdiction_settings', '77777777-7777-4777-8777-777777777777');
-const leaveCatalog = idOf('leave_catalog', '88888888-8888-4888-8888-888888888888');
+/** A law of the fixture's own: the catalogue rows the sheets below name, in force from the start of 2026. */
+const laws = lawsOf({
+	jurisdiction: [
+		{
+			id: '77777777-7777-4777-8777-777777777777',
+			code: 'MY',
+			name: 'Fixture',
+			currency: 'MYR',
+			timezone: 'Asia/Kuala_Lumpur',
+			tax_year_start_month: 1
+		}
+	],
+	jurisdiction_change: [
+		{
+			id: '88888888-8888-4888-8888-888888888888',
+			jurisdiction_code: 'MY',
+			effective_from: '2026-01-01',
+			law: {
+				leave_catalog: {
+					ANNUAL: { name: 'Annual' },
+					ANNUAL_LEAVE: { name: 'Annual leave' }
+				},
+				adhoc_catalog: { BPAYBS: { name: 'Back pay – basic' } },
+				claim_catalog: { MEDICAL: { name: 'Medical' } },
+				loan_catalog: { STAFF_LOAN: { name: 'Staff loan' } },
+				workplace_case_catalog: { ACCIDENT: { name: 'Accident' } }
+			}
+		}
+	]
+});
 
 type Cell = string | number | boolean | null;
 const grid = (rows: readonly (readonly Cell[])[]) => new Map([['Sheet1', rows]]);
@@ -421,12 +450,11 @@ describe('entry workbook', () => {
 								to: null
 							}
 						],
-						versions: [{ id: settings, code: 'MY', from: '2026-01-01', to: null }],
-						catalogs: [{ id: leaveCatalog, code: 'ANNUAL', settings_id: settings }],
+						laws,
 						existing: [
 							{
 								employment_id: employee,
-								catalog_id: leaveCatalog,
+								catalog_code: 'ANNUAL',
 								days: [{ date: '2026-03-05', part: 'AM' }]
 							}
 						]
@@ -453,8 +481,7 @@ describe('entry workbook', () => {
 						to: null
 					}
 				],
-				versions: [{ id: settings, code: 'MY', from: '2026-01-01', to: null }],
-				catalogs: [{ id: leaveCatalog, code: 'ANNUAL', settings_id: settings }],
+				laws,
 				existing: []
 			}
 		);
@@ -468,12 +495,11 @@ describe('entry workbook', () => {
 });
 
 describe('the one-workbook data request', () => {
-	const adhocCatalog = idOf('adhoc_catalog', '99999999-9999-4999-8999-999999999999');
 	const entityRow = { id: entity, name: 'Acme', code: 'ACME', settings_code: 'MY' };
 	const known = {
 		entity: entityRow,
 		employees: [{ id: employee, number: '1001', entity_id: entity, from: '2026-01-01', to: null }],
-		versions: [{ id: settings, code: 'MY', from: '2026-01-01', to: null }]
+		laws
 	};
 	const workbook = new Map<string, readonly (readonly Cell[])[]>([
 		['Read me', [['How to fill this in']]],
@@ -502,56 +528,29 @@ describe('the one-workbook data request', () => {
 	]);
 
 	it('reads each family from its own sheet, by the catalogue code', () => {
-		const leave = parseLeaveSheet(workbook, {
-			...known,
-			catalogs: [
-				{ id: leaveCatalog, code: 'ANNUAL_LEAVE', name: 'Annual leave', settings_id: settings }
-			],
-			existing: []
-		});
-		assert.equal(leave.rows[0]?.catalog_id, leaveCatalog);
-		const adhoc = parseAdhocSheet(workbook, {
-			...known,
-			catalogs: [
-				{ id: adhocCatalog, code: 'BPAYBS', name: 'Back pay – basic', settings_id: settings }
-			],
-			existing: []
-		});
+		const leave = parseLeaveSheet(workbook, { ...known, existing: [] });
+		assert.equal(leave.rows[0]?.catalog_code, 'ANNUAL_LEAVE');
+		const adhoc = parseAdhocSheet(workbook, { ...known, existing: [] });
 		assert.deepEqual(
-			adhoc.rows.map((row) => [row.catalog_id, row.quantity, row.description]),
-			[[adhocCatalog, 75, 'March']]
+			adhoc.rows.map((row) => [row.catalog_code, row.quantity, row.description]),
+			[['BPAYBS', 75, 'March']]
 		);
 	});
 });
 
 describe('the claim, loan, repayment and case sheets', () => {
-	const claimCatalog = idOf('claim_catalog', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-	const loanCatalog = idOf('loan_catalog', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-	const caseCatalog = idOf('workplace_case_catalog', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 	const loan = idOf('loan_catalog_entry', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 	const entityRow = { id: entity, name: 'Acme', code: 'ACME', settings_code: 'MY' };
 	const known = {
 		entity: entityRow,
 		employees: [{ id: employee, number: '1001', entity_id: entity, from: '2026-01-01', to: null }],
-		versions: [{ id: settings, code: 'MY', from: '2026-01-01', to: null }]
-	};
-	const claims = {
-		...known,
-		catalogs: [{ id: claimCatalog, code: 'MEDICAL', settings_id: settings }]
-	};
-	const loans = {
-		...known,
-		catalogs: [{ id: loanCatalog, code: 'STAFF_LOAN', settings_id: settings }]
+		laws
 	};
 	const lent = {
-		...loans,
-		loans: [{ id: loan, employment_id: employee, catalog_id: loanCatalog }]
-	};
-	const cases = {
 		...known,
-		entities: [entityRow],
-		catalogs: [{ id: caseCatalog, code: 'ACCIDENT', settings_id: settings }]
+		loans: [{ id: loan, employment_id: employee, catalog_code: 'STAFF_LOAN' }]
 	};
+	const cases = { ...known, entities: [entityRow] };
 	const CLAIM = ['employee_number', 'code', 'incurred_on', 'amount'];
 	const LOAN = ['employee_number', 'code', 'principal', 'repayment_from', 'repayment_to'];
 	const REPAYMENT = ['employee_number', 'loan_code', 'amount', 'paid_on'];
@@ -566,13 +565,13 @@ describe('the claim, loan, repayment and case sheets', () => {
 			['Workplace Cases', [CASE, ['1001', 'ACCIDENT', '2026-03-03', 'MINOR_INJURY', 'slipped']]]
 		]);
 		const own = { entity_id: entity, employment_id: employee };
-		assert.deepEqual(parseClaimSheet(workbook, { ...claims, existing: [] }).rows, [
-			{ ...own, catalog_id: claimCatalog, quantity: 80, incurred_on: '2026-03-02' }
+		assert.deepEqual(parseClaimSheet(workbook, { ...known, existing: [] }).rows, [
+			{ ...own, catalog_code: 'MEDICAL', quantity: 80, incurred_on: '2026-03-02' }
 		]);
-		assert.deepEqual(parseLoanSheet(workbook, { ...loans, existing: [] }).rows, [
+		assert.deepEqual(parseLoanSheet(workbook, { ...known, existing: [] }).rows, [
 			{
 				...own,
-				catalog_id: loanCatalog,
+				catalog_code: 'STAFF_LOAN',
 				quantity: 1200,
 				repayment_from: '2026-03-01',
 				repayment_to: '2026-08-31'
@@ -585,7 +584,7 @@ describe('the claim, loan, repayment and case sheets', () => {
 		assert.deepEqual(parseCaseSheet(workbook, { ...cases, existing: [] }).rows, [
 			{
 				...own,
-				catalog_id: caseCatalog,
+				catalog_code: 'ACCIDENT',
 				kind: 'ACCIDENT',
 				severity: 'MINOR_INJURY',
 				opened_on: '2026-03-03',
@@ -599,7 +598,7 @@ describe('the claim, loan, repayment and case sheets', () => {
 		throwsRows(
 			() =>
 				parseClaimSheet(sheet('Claims', CLAIM, good, ['1001', 'MEDICAL', '2026-03-03', 0]), {
-					...claims,
+					...known,
 					existing: []
 				}),
 			/Row 3: enter a claim amount above zero/
@@ -608,11 +607,11 @@ describe('the claim, loan, repayment and case sheets', () => {
 		throwsRows(
 			() =>
 				parseClaimSheet(sheet('Claims', CLAIM, good), {
-					...claims,
+					...known,
 					existing: [
 						{
 							employment_id: employee,
-							catalog_id: claimCatalog,
+							catalog_code: 'MEDICAL',
 							quantity: 80,
 							incurred_on: '2026-03-02',
 							description: null
@@ -625,7 +624,7 @@ describe('the claim, loan, repayment and case sheets', () => {
 			() =>
 				parseLoanSheet(
 					sheet('Loans', LOAN, ['1001', 'STAFF_LOAN', 1200, '2026-03-01', '2026-02-01']),
-					{ ...loans, existing: [] }
+					{ ...known, existing: [] }
 				),
 			/Row 2: the last repayment date 2026-02-01 is before 2026-03-01/
 		);
@@ -633,7 +632,7 @@ describe('the claim, loan, repayment and case sheets', () => {
 			() =>
 				parseRepaymentSheet(
 					sheet('Loan Repayments', REPAYMENT, ['1001', 'STAFF_LOAN', 200, '2026-03-25']),
-					{ ...loans, loans: [], existing: [] }
+					{ ...known, loans: [], existing: [] }
 				),
 			/Row 2: 1001 has no STAFF_LOAN loan/
 		);
@@ -643,7 +642,7 @@ describe('the claim, loan, repayment and case sheets', () => {
 					...cases,
 					existing: []
 				}),
-			/Row 2: "FLOOD" is not a workplace case catalogue of the MY version in force on 2026-03-03/
+			/Row 2: "FLOOD" is not a workplace case catalogue of the MY law in force on 2026-03-03/
 		);
 	});
 });

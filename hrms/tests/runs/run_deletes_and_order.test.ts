@@ -11,6 +11,7 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
+	lawAt,
 	ledgerRows,
 	pack,
 	uuid,
@@ -131,14 +132,6 @@ const ytdNet = (t: Kit) =>
 			)
 		)
 	);
-const catalog = (seed: Seed, family: string, code: string) => {
-	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-	const row = (seed[family] ?? []).find(
-		(candidate) => candidate.code === code && candidate.settings_id === version
-	);
-	assert.ok(row !== undefined, code);
-	return String(row.id);
-};
 const lines = (slip: { readonly breakdown: unknown } | undefined) =>
 	Schema.decodeUnknownSync(PayslipBreakdown)(slip?.breakdown).lines;
 
@@ -201,7 +194,6 @@ describe('deleting a run', () => {
 
 	it.live('a later off-cycle run for someone else counted nothing, so it blocks nothing', () => {
 		const seed = twoPeople();
-		const bonus = catalog(seed, 'adhoc_catalog', 'BONUS');
 		const entryFor = (t: Kit, employment: string, incurred: string) =>
 			t.as(t.admin).pipe(
 				Effect.flatMap((caller) =>
@@ -210,7 +202,7 @@ describe('deleting a run', () => {
 							{
 								entity_id: ENTITY,
 								employment_id: idOf('employee_contract', employment),
-								catalog_id: idOf('adhoc_catalog', bonus),
+								catalog_code: 'BONUS',
 								description: 'Bonus',
 								quantity: '500',
 								incurred_on: incurred
@@ -398,7 +390,7 @@ describe('what an off-cycle run may name', () => {
 	const adhoc = (code: string, quantity: number, entity: string = ENTITY) => ({
 		entity_id: idOf('entity', entity),
 		employment_id: FIRST,
-		catalog_id: idOf('adhoc_catalog', catalog(seed, 'adhoc_catalog', code)),
+		catalog_code: code,
 		description: code,
 		quantity: String(quantity),
 		incurred_on: '2026-02-10'
@@ -450,9 +442,8 @@ describe('what an off-cycle run may name', () => {
 	it.live('a recurring item is refused, not paid', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-			const recurring = (seed.adhoc_catalog ?? []).find(
-				(row) => row.settings_id === version && row.off_cycle_eligible === false
+			const recurring = lawAt('MY', '2026-02-10').rows.adhoc_catalog.find(
+				(row) => row.off_cycle_eligible === false
 			);
 			assert.ok(recurring !== undefined);
 			yield* (yield* t.as(t.admin)).act({

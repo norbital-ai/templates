@@ -46,7 +46,7 @@ export default policy({
 		},
 		// the kiosk output reads no leave
 		entity: { outputs: { kiosk: {} } },
-		jurisdiction_settings: { outputs: { kiosk: {} } },
+		jurisdiction: { outputs: { kiosk: {} } },
 		entity_profile_version: { outputs: { kiosk: {} } },
 		roster_entry: {
 			outputs: { kiosk: {} },

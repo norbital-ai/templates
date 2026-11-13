@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	EMPLOYMENT,
 	amendments,
@@ -22,12 +21,12 @@ import {
 	slip,
 	claimAt
 } from '../amendment_kit.ts';
-import { ENTITY, catalogRow, leaveCreate, wholeDays, workspace, storedQuery } from '../kit.ts';
+import { ENTITY, lawAt, leaveCreate, wholeDays, workspace, storedQuery } from '../kit.ts';
 
 type Seed = ReturnType<typeof rostered>;
 /** The schemes the fixture assesses in the month paid: no correction works them out again for an earlier period. */
-const PAID = (rostered([]).statutory_contribution_catalog ?? [])
-	.filter((row) => row.assessed === 'PAID')
+const PAID = lawAt('MY', '2026-02-01')
+	.rows.statutory_contribution_catalog.filter((row) => row.assessed === 'PAID')
 	.map((row) => String(row.code));
 /** What was paid in all, but the schemes assessed when paid: those are charged on the paying month, so they round apart. */
 const earned = (lines: Readonly<Record<string, number>>) =>
@@ -57,12 +56,12 @@ describe('what a correction reaches', () => {
 		const from = rostered(months, '2026-02-10');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* claimed(t, from, 120, '2026-02-12');
+			yield* claimed(t, 120, '2026-02-12');
 			yield* pay(t, '2026-02');
 			yield* pay(t, '2026-03');
 			const paid = [yield* slip(t, '2026-02'), yield* slip(t, '2026-03')];
 			// February is touched and put back: a claim keyed and deleted again
-			const extra = yield* claimed(t, from, 55, '2026-02-13');
+			const extra = yield* claimed(t, 55, '2026-02-13');
 			yield* (yield* t.as(t.admin)).act({
 				'claim_catalog_entry.delete': [{ target: yield* claimAt(t, extra) }]
 			});
@@ -185,7 +184,7 @@ describe('what a correction reaches', () => {
 		const from = rostered(['2026-02', '2026-03']);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const made = yield* claimed(t, from, 120, '2026-02-12');
+			const made = yield* claimed(t, 120, '2026-02-12');
 			yield* pay(t, '2026-02');
 			yield* (yield* t.as(t.admin)).act({
 				'claim_catalog_entry.update': [{ target: yield* claimAt(t, made), set: { quantity: '20' } }]
@@ -206,7 +205,7 @@ describe('what a correction reaches', () => {
 			const from = rostered([]);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const made = yield* claimed(t, from, 120, '2026-01-15');
+				const made = yield* claimed(t, 120, '2026-01-15');
 				for (const month of months.slice(0, -1)) yield* pay(t, month);
 				yield* (yield* t.as(t.admin)).act({
 					'claim_catalog_entry.delete': [{ target: yield* claimAt(t, made) }]
@@ -229,7 +228,7 @@ describe('what a correction reaches', () => {
 			const from = rostered([]);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const made = yield* claimed(t, from, 120, '2026-01-15');
+				const made = yield* claimed(t, 120, '2026-01-15');
 				yield* pay(t, '2026-01');
 				yield* pay(t, '2029-12');
 				yield* (yield* t.as(t.admin)).act({
@@ -257,7 +256,7 @@ describe('what a correction reaches', () => {
 						leaveCreate({
 							entity_id: ENTITY,
 							employment_id: EMPLOYMENT,
-							catalog_id: idOf('leave_catalog', catalogRow(from, 'leave_catalog', 'NPL')),
+							catalog_code: 'NPL',
 							days: wholeDays('2026-02-12')
 						})
 					]
@@ -355,7 +354,7 @@ describe('someone no on-cycle run pays any more', () => {
 					{
 						entity_id: ENTITY,
 						employment_id: EMPLOYMENT,
-						catalog_id: idOf('adhoc_catalog', catalogRow(from, 'adhoc_catalog', 'BONUS')),
+						catalog_code: 'BONUS',
 						description: 'Paid by mistake',
 						quantity: '400',
 						unit: 'MONEY',
@@ -394,7 +393,7 @@ describe('someone no on-cycle run pays any more', () => {
 					{
 						entity_id: ENTITY,
 						employment_id: EMPLOYMENT,
-						catalog_id: idOf('adhoc_catalog', catalogRow(from, 'adhoc_catalog', 'BONUS')),
+						catalog_code: 'BONUS',
 						description: 'Paid by mistake',
 						quantity: '4000',
 						unit: 'MONEY',

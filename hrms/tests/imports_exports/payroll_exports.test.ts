@@ -29,7 +29,7 @@ const terms = {
 	job_title: 'Engineer',
 	department: 'Operations'
 };
-const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-02-15');
+const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 
 describe('the salary listing', () => {
 	it.live('lays a run out as the listing, every figure its payslip’s', () =>
@@ -38,13 +38,13 @@ describe('the salary listing', () => {
 			yield* (yield* t.as(t.admin)).act({
 				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
 			});
-			const { payroll_run, payslip } = yield* storedQuery(t, {
+			const { payroll_run, payslip, jurisdiction } = yield* storedQuery(t, {
 				payroll_run: {
-					fields: ['period', 'kind', 'entity_id', 'settings_id'],
+					fields: ['period', 'kind', 'entity_id'],
 					limit: 10,
-					entity_id: { fields: ['name'] },
-					settings_id: { fields: ['currency'] }
+					entity_id: { fields: ['name', 'settings_code'] }
 				},
+				jurisdiction: { fields: ['code', 'currency'], limit: 1000 },
 				payslip: {
 					fields: [
 						'payroll_run_id',
@@ -71,8 +71,13 @@ describe('the salary listing', () => {
 			const { employee_contract } = yield* storedQuery(t, {
 				employee_contract: { fields: ['employee_id', 'effective_range'], limit: 100 }
 			});
+			// a run is paid in the currency of its company's jurisdiction
+			const currency = new Map(jurisdiction.rows.map((row) => [row.code, row.currency]));
 			const sheets = sheetsOf({
-				runs: payroll_run.rows,
+				runs: payroll_run.rows.map((run) => ({
+					...run,
+					currency: currency.get(run.entity_id?.settings_code ?? '')
+				})),
 				slips: payslip.rows,
 				versions: employee_contract.rows
 			});
@@ -174,8 +179,7 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 		{ ...terms, allowances: { MEAL_ALLOWANCE: { amount: 150 } } },
 		{},
 		[],
-		[],
-		'2026-10-15'
+		[]
 	);
 	it.live(
 		'one row a payslip, its net, its allowances and the contract’s bank as stored; each bank file lays it out once',

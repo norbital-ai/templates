@@ -58,7 +58,7 @@ Three rules.
 
 1. **Facts come from the version in force on the date.** Family, person details, events, statutory set-up, pay group. A dated row (roster day, leave, claim, ad hoc entry) is priced under the version in force on its date, whatever version it points at. Where two roster days of one person share a date, the one of the version covering that date counts.
 2. **Agreed terms come from the latest version signed by the period's pay date.** Rate, hours, days, agreed allowances: the contract's `terms`, by `terms.signed_on`. A version with no signed date counts as signed in time. So a raise signed later changes nothing in the periods before it.
-3. **What a later-signed version adds for earlier periods is back pay of the period it was signed in.** The run works it out (each earlier period's earnings with the version's terms, less its earnings without), puts the sum on the law's own back-pay row before it calculates, and that period's schemes price it with the formula they already have. It is never keyed and never stored. The law names the row in `jurisdiction_settings.conversions.back_pay`. A law that names none has no such case: a version there applies from its start.
+3. **What a later-signed version adds for earlier periods is back pay of the period it was signed in.** The run works it out (each earlier period's earnings with the version's terms, less its earnings without), puts the sum on the law's own back-pay row before it calculates, and that period's schemes price it with the formula they already have. It is never keyed and never stored. The law names the row in its `conversions.back_pay`. A law that names none has no such case: a version there applies from its start.
 
 What follows:
 
@@ -70,30 +70,31 @@ What follows:
 
 ## 4. What writes an amendment row
 
-| What HR does, dated in a period the person has a payslip for                                         | Rows written                                                                    |
-| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Adds, changes or deletes a roster day, leave day, claim, ad hoc entry or loan repayment              | That person, that period                                                        |
-| Moves one of those to another date                                                                   | The period it left and the period it joined                                     |
-| Seals, voids or replaces a contract version whose facts, or terms signed in time, reach paid periods | Every paid period it reaches                                                    |
-| Seals, voids or replaces a version signed after periods it reaches                                   | None while its signing period is unpaid; otherwise the signing period           |
-| Publishes or corrects a holiday, a work event or an employer version in paid time                    | Every person and paid period it reaches                                         |
-| Seals a corrective law version from its real date                                                    | Every person and paid period it reaches                                         |
-| Changes how a person's service counts (`cumulative_service`)                                         | Every period that person was paid for                                           |
-| The run defers a recovery                                                                            | That person, the run's own period                                               |
-| A filed `contract_change` reaches its day after a paid run already covers its date                   | None. The change stays filed and raises a task: move it to a month still to run |
-| Anything in a period not yet paid; a raise from next month                                           | None                                                                            |
+| What HR does, dated in a period the person has a payslip for                                         | Rows written                                                                                               |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Adds, changes or deletes a roster day, leave day, claim, ad hoc entry or loan repayment              | That person, that period                                                                                   |
+| Moves one of those to another date                                                                   | The period it left and the period it joined                                                                |
+| Seals, voids or replaces a contract version whose facts, or terms signed in time, reach paid periods | Every paid period it reaches                                                                               |
+| Seals, voids or replaces a version signed after periods it reaches                                   | None while its signing period is unpaid; otherwise the signing period                                      |
+| Publishes or corrects a holiday, a work event or an employer version in paid time                    | Every person and paid period it reaches                                                                    |
+| Writes, corrects, moves or deletes a change of law, or confirms or rejects its finding, in paid time | Every person and paid period the change reaches: from its date to the next change that sets the same value |
+| Changes how a person's service counts (`cumulative_service`)                                         | Every period that person was paid for                                                                      |
+| The run defers a recovery                                                                            | That person, the run's own period                                                                          |
+| A filed `contract_change` reaches its day after a paid run already covers its date                   | None. The change stays filed and raises a task: move it to a month still to run                            |
+| Anything in a period not yet paid; a raise from next month                                           | None                                                                                                       |
 
 - One open row serves a person and period, however many corrections.
 - An entry a paid payslip priced may be changed or deleted: the write carries its row. A deleted roster day is not a day off; the shift pattern takes over.
 - A record whose date moves loses its run seal (`payroll_run_id`), so the period it joins prices it.
 - A late claim or ad hoc entry dated in a period the person was paid for is that period's: it is carried and tagged. One dated in a period that paid the person nothing is priced by the next run as an ordinary line.
-- Contract, employer and law versions stay dated and frozen. A change is a new version from its real date; a wrong one is voided and replaced.
+- Contract and employer versions stay dated and frozen. A change is a new version from its real date; a wrong one is voided and replaced.
+- A change of law is a dated row from its real date. A wrong one is corrected, moved or deleted in place. A change to a row's `references`, `description` or `name`, or to an extension schema, writes no rows.
 - **A change of pay schedule writes no rows.** A pay group that has a paid run keeps its schedule. A company that starts paying monthly makes a monthly group and moves people to it by contract versions from the first of a month. Old periods keep their group and are worked out on its schedule; the run that pays the person now carries the difference.
 
 ## 5. The constraints
 
 1. **A paid payslip is never rewritten.**
-2. **No write reaches a paid period's inputs without its row in the same write.** One helper does it (`src/lib/amendments.ts`). `RUN_INPUTS` there lists every model a run reads with its rule: its write carries rows, it refuses a change paid periods were worked out on, it is a row of a sealed law version, or it prices nothing. A test fails when a run reads a model with no rule.
+2. **No write reaches a paid period's inputs without its row in the same write.** One helper does it (`src/lib/amendments.ts`). `RUN_INPUTS` there lists every model a run reads with its rule: its write carries rows, it refuses a change paid periods were worked out on, or it prices nothing. A test fails when a run reads a model with no rule.
 3. **Nothing of a person moves while an unpaid run holds them.** The run holds what it priced and everything dated before it; a record dated after its window is free. Delete the run first.
 4. **A row is carried by one run.** A run takes a row only while no run holds it; deleting an unpaid run frees its rows.
 5. **Net pay never goes below zero.**
@@ -126,7 +127,7 @@ One open row serves a person and period however many edits, which is why the row
 - Contributions land in the period earned, under that period's ceiling.
 - A cumulative tax, a yearly ceiling and a figure a later period worked out once from the year so far all end exact, also when the correction comes after the year has closed.
 - A set-up wrong over several months is collected month by month, with no lump and no double.
-- A raise sealed late pays each month's difference on every line, each month under its own law version.
+- A raise sealed late pays each month's difference on every line, each month under the law of its own pay date.
 - A raise signed later is back pay of the signing month, priced by the law's own row; changing or voiding it afterwards returns the contributions too.
 - A change of pay schedule leaves old periods exact.
 - A late-registered child corrects the tax of the months since, and the leave opens on the real birth date.
@@ -222,7 +223,7 @@ What the routine does to each dependant of an exit that no longer stands:
 
 Then, for an exit that stands (the new last day of a moved exit, or an exit raised again), the tasks the routine waived are opened again. None is raised twice.
 
-No law version carries a waiving effect. Exit tasks are waived by this routine, the same way for every jurisdiction.
+No law carries a waiving effect. Exit tasks are waived by this routine, the same way for every jurisdiction.
 
 ## 12. Invariants
 
@@ -283,7 +284,7 @@ The ledger and the exit routine:
 
 - `tests/ledger/integrity.test.ts`: a workspace worked through its real acts has no finding; each invariant, broken on purpose, yields exactly its finding; the check raises each finding once.
 - `tests/ledger/integrity_random.test.ts`: seeded random sequences of real acts, with the acts that try to break the ledger. `HR_SEED` replays one sequence and `HR_STEPS` lengthens it.
-- `tests/corrections/mistakes.test.ts`, `tests/ledger/cash_out.test.ts`, `tests/law_versions/version_lifecycle.test.ts`, `tests/loans/loan_lifecycle.test.ts`, `tests/runs/approvals.test.ts`, `tests/ledger/usage_limits.test.ts`: each act and its way back.
+- `tests/corrections/mistakes.test.ts`, `tests/ledger/cash_out.test.ts`, `tests/law_versions/version_lifecycle.test.ts`, `tests/law_versions/law_change_writes.test.ts`, `tests/law_versions/law_change_by_mistake.test.ts`, `tests/loans/loan_lifecycle.test.ts`, `tests/runs/approvals.test.ts`, `tests/ledger/usage_limits.test.ts`: each act and its way back.
 
 ## 15. States with no automatic way back
 
@@ -296,5 +297,4 @@ Each has its manual way out.
 | A fulfilled task whose cause was cancelled                                   | It keeps its record                                                               |
 | The contract page settles a leaver's loan in several acts and stops half way | HR regenerates the schedule from the loan form                                    |
 | The latest contract version voided before a replacement is drafted           | It reads as an exit until the replacement is drafted. Draft the replacement first |
-| A law version voided                                                         | No run can be made for its pay dates until the release is merged again            |
 | More amended periods than one run works out                                  | They wait, shown as waiting, and the next run takes them                          |

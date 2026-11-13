@@ -10,18 +10,18 @@
 
 	const scope = companyScope(ctx);
 	let creating = $state(false);
-	const version = $derived(
+	const jurisdiction = $derived(
 		scope.company == null
 			? null
 			: ctx.query({
-					jurisdiction_settings: {
+					jurisdiction: {
 						where: { code: { eq: scope.company.settings_code } },
 						fields: ['timezone'],
 						limit: 1
 					}
 				})
 	);
-	const zone = $derived(version?.current?.jurisdiction_settings.rows[0]?.timezone ?? undefined);
+	const zone = $derived(jurisdiction?.current?.jurisdiction.rows[0]?.timezone ?? undefined);
 </script>
 
 {#snippet periodCell({ value }: { value: unknown })}

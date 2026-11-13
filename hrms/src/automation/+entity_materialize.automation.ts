@@ -59,16 +59,6 @@ export default automation({
 						),
 					catch: (error) => new Refusal({ message: getErrorMessage(error) })
 				});
-				const { jurisdiction_settings: lineage = [] } = yield* queryRows(ctx.query, {
-					jurisdiction_settings: {
-						where: {
-							code: { eq: String(open.settings_code) },
-							status: { eq: 'SEALED' }
-						},
-						fields: ['effective_range'],
-						limit: 100
-					}
-				});
 				const reason = changes.flatMap((row) => row.notes ?? []).join(' · ') || 'Scheduled change';
 				const held = versions.find((row) => row.status === 'DRAFT' && fromOf(row) === on);
 				const created: JsonObject = {
@@ -79,8 +69,6 @@ export default automation({
 							representative_name: next.representative_name ?? null,
 							registered_address: next.registered_address ?? null,
 							settings_code: open.settings_code ?? null,
-							input_schema_version_id:
-								lineage.find((row) => covers(row, on))?.id ?? open.input_schema_version_id ?? null,
 							time_zone: next.time_zone ?? null,
 							final_pay_loan_floor_percent: next.final_pay_loan_floor_percent ?? 10,
 							overtime_full_award_percent: next.overtime_full_award_percent ?? 100,

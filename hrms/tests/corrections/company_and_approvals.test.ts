@@ -9,7 +9,6 @@ import { amendments, carriedFor, pay, rostered, run } from '../amendment_kit.ts'
 import {
 	ENTITY,
 	WORK,
-	catalogRow,
 	leaveCreate,
 	pack,
 	uuid,
@@ -209,7 +208,7 @@ describe('a change that waits for approval', () => {
 			]
 		};
 	};
-	const claimed = (t: Kit, from: Seed, quantity: number) =>
+	const claimed = (t: Kit, quantity: number) =>
 		t
 			.as(t.member(['employee'], { id: uuid(3) }))
 			.pipe(
@@ -219,10 +218,7 @@ describe('a change that waits for approval', () => {
 							{
 								entity_id: ENTITY,
 								employment_id: FIRST,
-								catalog_id: idOf(
-									'claim_catalog',
-									catalogRow(from, 'claim_catalog', 'MEDICAL_CLAIM')
-								),
+								catalog_code: 'MEDICAL_CLAIM',
 								quantity: String(quantity),
 								incurred_on: DAY
 							}
@@ -244,7 +240,7 @@ describe('a change that waits for approval', () => {
 			const lead = yield* t.as(yield* t.sign_in('lead@example.test'));
 			const payroll = yield* t.as(yield* t.sign_in('payroll@example.test'));
 			yield* pay(t, '2026-02');
-			const request = yield* claimed(t, from, 50);
+			const request = yield* claimed(t, 50);
 			assert.deepEqual(yield* amendments(t), [], 'a request amends nothing');
 			yield* lead.approvals.decide(request, { decision: 'approve' });
 			assert.deepEqual(yield* amendments(t), [], 'nor does a first step');
@@ -266,7 +262,7 @@ describe('a change that waits for approval', () => {
 			const t = yield* TestWorkspace;
 			const lead = yield* t.as(yield* t.sign_in('lead@example.test'));
 			yield* pay(t, '2026-02');
-			const request = yield* claimed(t, from, 50);
+			const request = yield* claimed(t, 50);
 			yield* lead.approvals.decide(request, { decision: 'reject', reason: 'No receipt' });
 			yield* t.run_due();
 			assert.deepEqual(yield* amendments(t), []);
@@ -280,7 +276,7 @@ describe('a change that waits for approval', () => {
 			yield* pay(t, '2026-02');
 			yield* run(t, '2026-03');
 			assert.match(
-				String(yield* Effect.flip(claimed(t, from, 50))),
+				String(yield* Effect.flip(claimed(t, 50))),
 				/holds this person and is not paid yet/
 			);
 		}).pipe(Effect.provide(workspace({ seed: from, now: NOW })));
@@ -296,7 +292,7 @@ describe('a change that waits for approval', () => {
 				const lead = yield* t.as(yield* t.sign_in('lead@example.test'));
 				const payroll = yield* t.as(yield* t.sign_in('payroll@example.test'));
 				yield* pay(t, '2026-02');
-				const request = yield* claimed(t, from, 50);
+				const request = yield* claimed(t, 50);
 				yield* lead.approvals.decide(request, { decision: 'approve' });
 				assert.match(
 					String(yield* Effect.flip(run(t, '2026-03'))),
@@ -322,7 +318,7 @@ describe('a change that waits for approval', () => {
 				yield* pay(t, '2026-02');
 				// February is amended by HR's own correction, and an employee's claim in it still waits
 				yield* overtimeKeyed(t, DAY);
-				const request = yield* claimed(t, from, 50);
+				const request = yield* claimed(t, 50);
 				assert.match(
 					String(yield* Effect.flip(run(t, '2026-03'))),
 					/Under approval: an entry this run would pay still waits for its decision\. Decide it, then run\./
@@ -353,7 +349,7 @@ describe('a change that waits for approval', () => {
 								leaveCreate({
 									entity_id: ENTITY,
 									employment_id: FIRST,
-									catalog_id: idOf('leave_catalog', catalogRow(from, 'leave_catalog', 'NPL')),
+									catalog_code: 'NPL',
 									days: wholeDays('2026-04-10')
 								})
 							]
@@ -372,7 +368,7 @@ describe('a change that waits for approval', () => {
 				assert.deepEqual(yield* amendments(t), [], 'April is not paid: nothing to amend');
 				// a request dated inside the unpaid run is refused when it is made, so no decision for it can come
 				assert.match(
-					String(yield* Effect.flip(claimed(t, from, 50))),
+					String(yield* Effect.flip(claimed(t, 50))),
 					/holds this person and is not paid yet/
 				);
 			}).pipe(Effect.provide(workspace({ seed: from, now: NOW })));

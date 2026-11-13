@@ -10,7 +10,6 @@ import { DateTime, Effect } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	EMPLOYMENT,
 	amendments,
@@ -24,8 +23,8 @@ import {
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
 	current,
+	lawAt,
 	leaveCreate,
 	ledgerRows,
 	measureOf,
@@ -39,13 +38,12 @@ import {
 
 type Seed = ReturnType<typeof rostered>;
 type Step<A> = (t: Kit) => Effect.Effect<A, unknown, never>;
-/** January is paid wrong; February's run carries the correction. One law version covers both. */
+/** January is paid wrong; February's run carries the correction. No change of law falls between them. */
 const MONTHS = ['2026-01', '2026-02'] as const;
 const at = (month: string) => `${month}-20T02:00:00.000Z`;
-const BASE = rostered([]);
 /** The schemes assessed in the month paid: carried pay is charged on the paying month by design, so they round apart. */
-const PAID = (BASE.statutory_contribution_catalog ?? [])
-	.filter((row) => row.assessed === 'PAID')
+const PAID = lawAt('MY', '2026-01-01')
+	.rows.statutory_contribution_catalog.filter((row) => row.assessed === 'PAID')
 	.map((row) => String(row.code));
 const earned = (lines: Readonly<Record<string, number>>) =>
 	Object.fromEntries(
@@ -262,7 +260,7 @@ const keyed = (t: Kit, code: string, dates: readonly string[]) =>
 				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: EMPLOYMENT,
-					catalog_id: idOf('leave_catalog', catalogRow(BASE, 'leave_catalog', code)),
+					catalog_code: code,
 					days: wholeDays(...dates)
 				})
 			]

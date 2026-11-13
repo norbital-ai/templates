@@ -15,7 +15,7 @@ import {
 	REST,
 	WORK,
 	accountsIn,
-	catalogRow,
+	lawWith,
 	leaveCreate,
 	measureOf,
 	pack,
@@ -251,7 +251,7 @@ describe('an absence, read from the roster by a real run', () => {
 								leaveCreate({
 									entity_id: ENTITY,
 									employment_id: CONTRACT,
-									catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+									catalog_code: 'NPL',
 									days: wholeDays(DAY)
 								})
 							]
@@ -540,44 +540,31 @@ describe('a work event', () => {
 	const ALLOWANCE = 'MEAL_ALLOWANCE';
 	const EVENT = 'EMPLOYER_SHUTDOWN';
 	// the fixture's own rule: its allowance pays 300 while an event of this code covers the period's as-of day
-	const heat = (people = 1): Seed => {
-		const seed = seedOf(month());
-		return withPeople(
-			{
-				...seed,
-				allowance_catalog: (seed.allowance_catalog ?? []).map((row) =>
-					row.code === ALLOWANCE
-						? {
-								...row,
-								eligibility: `return (ctx.work_events ?? []).some((event) => {
+	const heat = (people = 1): Seed =>
+		withPeople(
+			lawWith(seedOf(month()), {
+				allowance_catalog: {
+					[ALLOWANCE]: {
+						eligibility: `return (ctx.work_events ?? []).some((event) => {
   if (get(event, 'code', '') !== '${EVENT}') return false;
   const from = String(get(event, 'from', ''));
   const to = get(event, 'to', null);
   return from !== '' && from <= ctx.as_of && ctx.as_of <= String(to ?? from);
 });`,
-								conversion: 'return 300;'
-							}
-						: row
-				)
-			},
+						conversion: 'return 300;'
+					}
+				}
+			}),
 			people
 		);
-	};
-	const record = (
-		t: Kit,
-		seed: Seed,
-		code: string,
-		from: string,
-		to: string,
-		employment?: string
-	) =>
+	const record = (t: Kit, code: string, from: string, to: string, employment?: string) =>
 		t.as(t.admin).pipe(
 			Effect.flatMap((caller) =>
 				caller.act({
 					'work_event.create': [
 						{
 							entity_id: ENTITY,
-							catalog_id: idOf('work_event_catalog', catalogRow(seed, 'work_event_catalog', code)),
+							catalog_code: code,
 							from,
 							to,
 							...(employment === undefined
@@ -591,7 +578,7 @@ describe('a work event', () => {
 	const february = (seed: Seed, events: readonly (readonly [from: string, to: string])[]) =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			for (const [from, to] of events) yield* record(t, seed, EVENT, from, to);
+			for (const [from, to] of events) yield* record(t, EVENT, from, to);
 			yield* run(t);
 			return yield* slipOf(t);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
@@ -632,7 +619,7 @@ describe('a work event', () => {
 		const seed = heat(2);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* record(t, seed, EVENT, '2026-02-01', '2026-02-28', SECOND.contract);
+			yield* record(t, EVENT, '2026-02-01', '2026-02-28', SECOND.contract);
 			yield* run(t);
 			assert.equal(line(yield* slipOf(t), ALLOWANCE), 0);
 			assert.ok(line(yield* slipOf(t, '2026-02', SECOND.contract), ALLOWANCE) > 0);
@@ -645,21 +632,17 @@ describe('a work event', () => {
 			const CODE = 'PUBLIC_HOLIDAY_IN_LIEU';
 			const base = withPeople(seedOf([]), 2);
 			// a synthetic rule on the fixture's row: two days while the company records a shutdown
-			const seed: Seed = {
-				...base,
-				leave_catalog: (base.leave_catalog ?? []).map((row) =>
-					row.code === CODE
-						? {
-								...row,
-								lookup: {
-									unit: 'DAY',
-									entitlement:
-										'return (ctx.work_events ?? []).some((event) => event.code === "EMPLOYER_SHUTDOWN") ? 2 : 0;'
-								}
-							}
-						: row
-				)
-			};
+			const seed = lawWith(base, {
+				leave_catalog: {
+					[CODE]: {
+						lookup: {
+							unit: 'DAY',
+							entitlement:
+								'return (ctx.work_events ?? []).some((event) => event.code === "EMPLOYER_SHUTDOWN") ? 2 : 0;'
+						}
+					}
+				}
+			});
 			const entitled = (t: Kit, employee: string) =>
 				accountsIn(t, employee).pipe(
 					Effect.map((accounts) => measureOf(accounts, 'leave', CODE, 'entitled'))
@@ -669,11 +652,11 @@ describe('a work event', () => {
 				yield* syncAll(t);
 				assert.equal(yield* entitled(t, uuid(4)), 0);
 				assert.equal(yield* entitled(t, SECOND.employee), 0);
-				yield* record(t, seed, 'EMPLOYER_SHUTDOWN', '2026-02-02', '2026-02-06', SECOND.contract);
+				yield* record(t, 'EMPLOYER_SHUTDOWN', '2026-02-02', '2026-02-06', SECOND.contract);
 				yield* syncAll(t);
 				assert.equal(yield* entitled(t, uuid(4)), 0);
 				assert.equal(yield* entitled(t, SECOND.employee), 2);
-				yield* record(t, seed, 'EMPLOYER_SHUTDOWN', '2026-02-09', '2026-02-13');
+				yield* record(t, 'EMPLOYER_SHUTDOWN', '2026-02-09', '2026-02-13');
 				yield* syncAll(t);
 				yield* syncAll(t);
 				assert.equal(yield* entitled(t, uuid(4)), 2);
@@ -765,7 +748,7 @@ describe('a holiday and the days around it', () => {
 						leaveCreate({
 							entity_id: ENTITY,
 							employment_id: CONTRACT,
-							catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
+							catalog_code: 'MEDICAL_LEAVE',
 							days: wholeDays('2026-02-09', HOLIDAY, '2026-02-11')
 						})
 					]

@@ -43,19 +43,10 @@ export const READ_ALL = {
 	employee_contract: HISTORY,
 	contract_change: READ,
 	entity_change: READ,
-	jurisdiction_settings: HISTORY,
-	statutory_change: HISTORY,
+	jurisdiction: HISTORY,
+	jurisdiction_change: HISTORY,
 	statutory_finding: HISTORY,
 	statutory_source: HISTORY,
-	leave_catalog: READ,
-	claim_catalog: READ,
-	allowance_catalog: READ,
-	adhoc_catalog: READ,
-	loan_catalog: READ,
-	subtotal: READ,
-	statutory_contribution_catalog: READ,
-	registered_rule: READ,
-	registered_effect: READ,
 	leave_catalog_entry: HISTORY,
 	leave_catalog_entry_day: { ...READ, update: {} },
 	claim_catalog_entry: HISTORY,
@@ -68,9 +59,7 @@ export const READ_ALL = {
 	shift_definition: HISTORY,
 	shift_pattern: HISTORY,
 	roster_entry: HISTORY,
-	work_event_catalog: READ,
 	work_event: HISTORY,
-	workplace_case_catalog: HISTORY,
 	workplace_case_catalog_entry: HISTORY,
 	payroll_run: HISTORY,
 	payslip: HISTORY,
@@ -81,27 +70,11 @@ export const READ_ALL = {
 	sys_invitation: READ
 } as const;
 export const CONFIGURATION = {
-	jurisdiction_settings: {
-		...READ_ALL.jurisdiction_settings,
-		create: {},
-		update: { moves: 'all' }
-	},
-	statutory_change: { ...READ_ALL.statutory_change, create: {}, update: {} },
+	jurisdiction: { ...READ_ALL.jurisdiction, create: {}, update: {} },
+	jurisdiction_change: { ...READ_ALL.jurisdiction_change, create: {}, update: {}, delete: {} },
 	statutory_finding: { ...READ_ALL.statutory_finding, create: {}, update: { moves: 'all' } },
 	statutory_source: { ...READ_ALL.statutory_source, create: {}, update: { moves: 'all' } },
-	leave_catalog: { ...READ, create: {}, update: {}, delete: {} },
-	claim_catalog: { ...READ, create: {}, update: {}, delete: {} },
-	allowance_catalog: { ...READ, create: {}, update: {}, delete: {} },
-	adhoc_catalog: { ...READ, create: {}, update: {}, delete: {} },
-	loan_catalog: { ...READ, create: {}, update: {}, delete: {} },
-	overtime_catalog: { ...READ, create: {}, update: {}, delete: {} },
-	workplace_case_catalog: { ...READ, create: {}, update: {}, delete: {} },
-	work_event_catalog: { ...READ_ALL.work_event_catalog, create: {}, update: {}, delete: {} },
-	work_event: { ...READ_ALL.work_event, create: {}, update: {}, delete: {} },
-	subtotal: { ...READ, create: {}, update: {}, delete: {} },
-	statutory_contribution_catalog: { ...READ, create: {}, update: {}, delete: {} },
-	registered_rule: { ...READ, create: {}, update: {}, delete: {} },
-	registered_effect: { ...READ, create: {}, update: {}, delete: {} }
+	work_event: { ...READ_ALL.work_event, create: {}, update: {}, delete: {} }
 } as const;
 export const HR_OPERATIONS = {
 	entity: { ...READ_ALL.entity, create: {}, update: {} },
@@ -159,12 +132,6 @@ export const HR_OPERATIONS = {
 		create: {},
 		update: {}
 	},
-	workplace_case_catalog: {
-		...READ_ALL.workplace_case_catalog,
-		create: {},
-		update: { moves: 'all' },
-		delete: {}
-	},
 	payroll_run: {
 		...READ_ALL.payroll_run,
 		create: {},
@@ -173,4 +140,4 @@ export const HR_OPERATIONS = {
 	},
 	obligation: { ...READ_ALL.obligation, create: {}, update: { moves: 'all' }, delete: {} }
 } as const;
-export const PAYROLL_STARTS = ['statutory_research', 'statutory_materialize', 'ledger'] as const;
+export const PAYROLL_STARTS = ['statutory_research', 'ledger'] as const;

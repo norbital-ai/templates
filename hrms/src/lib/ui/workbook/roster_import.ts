@@ -70,10 +70,10 @@ export const runRosterImport = (
 						fields: ['effective_range', 'time_zone'],
 						limit: 10000
 					},
-					jurisdiction_settings: {
-						where: { code: { eq: options.settings_code }, status: { eq: 'SEALED' } },
-						fields: ['effective_range', 'timezone'],
-						limit: 10000
+					jurisdiction: {
+						where: { code: { eq: options.settings_code } },
+						fields: ['timezone'],
+						limit: 1
 					}
 				});
 				const zone =
@@ -82,17 +82,11 @@ export const runRosterImport = (
 						day,
 						(version) => version.effective_range,
 						(version) => version.time_zone
-					) ??
-					zoneOn(
-						scope.jurisdiction_settings.rows,
-						day,
-						(version) => version.effective_range,
-						(version) => version.timezone
-					);
+					) ?? scope.jurisdiction.rows[0]?.timezone;
 				if (zone == null)
 					return yield* Effect.fail(
 						workbookImportError(
-							`No sealed employer or jurisdiction version covers ${day}; the month's time zone is unknown.`
+							`Neither a sealed employer version covering ${day} nor the jurisdiction gives the month's time zone.`
 						)
 					);
 				const entries =

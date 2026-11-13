@@ -38,7 +38,6 @@
 		'name',
 		'effective_range',
 		'settings_code',
-		'input_schema_version_id',
 		'time_zone',
 		'registered_address',
 		'final_pay_loan_floor_percent',

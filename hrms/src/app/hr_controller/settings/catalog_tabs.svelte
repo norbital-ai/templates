@@ -1,17 +1,19 @@
 <script lang="ts">
-	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { highlighted_line, Table, Tabs } from '@norbital-ai/ui';
+	import { Tabs } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
+	import type { Law } from '../../../lib/law.js';
+	import { LAW_FAMILY_LABEL, type LawRowTarget } from '../../../lib/ui/settings/law_row.svelte';
+	import LawTable from '../../../lib/ui/settings/law_table.svelte';
 
 	let {
 		ctx,
-		versionId,
-		draft
+		law,
+		on_open
 	}: {
 		ctx: PageContext;
-		versionId: Id<'jurisdiction_settings'>;
-		draft: boolean;
+		law: Law;
+		on_open: (target: LawRowTarget) => void;
 	} = $props();
 
 	const families = [
@@ -25,19 +27,9 @@
 		'workplace_case_catalog',
 		'work_event_catalog'
 	] as const;
-	const labels: Record<(typeof families)[number], string> = {
-		allowance_catalog: 'Allowances',
-		overtime_catalog: 'Overtime and work',
-		statutory_contribution_catalog: 'Statutory contributions',
-		leave_catalog: 'Leave',
-		claim_catalog: 'Claims',
-		adhoc_catalog: 'Ad hoc',
-		loan_catalog: 'Loans',
-		workplace_case_catalog: 'Workplace cases',
-		work_event_catalog: 'Work events'
-	};
+	type Family = (typeof families)[number];
 	/** What each family configures, so the table is readable without opening a row. */
-	const descriptions: Record<(typeof families)[number], string> = {
+	const descriptions: Record<Family, string> = {
 		allowance_catalog:
 			'Recurring contractual additions. Each row states who is eligible, how the amount is calculated (a prorated amount reads the share of the period paid) and whether it counts toward the ordinary rate.',
 		overtime_catalog:
@@ -55,156 +47,75 @@
 		workplace_case_catalog:
 			'Workplace cases such as accidents, harassment or data breaches. Each row declares the events and the lookup that drives the case workflow.',
 		work_event_catalog:
-			'Event types such as a heat period, hurricane or epidemic. A work event references this row directly; the row itself is the type, with no separate category enum.'
+			'Event types such as a heat period, hurricane or epidemic. A work event names this row by its code; the row itself is the type, with no separate category enum.'
 	};
-	let selected = $state<(typeof families)[number]>('allowance_catalog');
-	const firstLine = (value: unknown): string =>
-		String(value ?? '')
-			.split('\n')
-			.map((line) => line.trim())
-			.find((line) => line !== '' && line !== '// js' && !line.startsWith('//')) ?? '';
+	const code = (field: string) => ({ field, as: 'code' }) as const;
+	const json = (field: string) => ({ field, as: 'json' }) as const;
+	const columns: Record<Family, readonly (string | ReturnType<typeof code | typeof json>)[]> = {
+		allowance_catalog: ['code', 'description', code('eligibility'), code('conversion'), 'subtotal'],
+		overtime_catalog: [
+			'code',
+			'description',
+			code('eligibility'),
+			code('conversion'),
+			'subtotal',
+			'direction'
+		],
+		statutory_contribution_catalog: [
+			'code',
+			'description',
+			'kind',
+			'depends_on',
+			code('employee_amount'),
+			code('employer_amount'),
+			'subtotal',
+			'employer_cost_subtotal'
+		],
+		leave_catalog: [
+			'code',
+			'description',
+			code('eligibility'),
+			code('paid_share'),
+			code('payout'),
+			'subtotal'
+		],
+		claim_catalog: ['code', 'description', code('eligibility'), code('conversion'), 'subtotal'],
+		adhoc_catalog: [
+			'code',
+			'description',
+			code('eligibility'),
+			code('conversion'),
+			'subtotal',
+			'direction',
+			'party'
+		],
+		loan_catalog: ['code', 'description', code('eligibility'), 'subtotal'],
+		workplace_case_catalog: ['code', 'description', json('events'), json('lookup')],
+		work_event_catalog: ['code', 'description', json('lookup')]
+	};
+	let selected = $state<Family>('allowance_catalog');
 </script>
-
-{#snippet codeCell({ value }: { value: unknown })}
-	<code
-		class="bg-muted block max-w-[18rem] truncate rounded-sm px-1.5 py-0.5 font-mono text-xs"
-		data-cel
-		>{#each highlighted_line(firstLine(value)) as token, i (i)}<span
-				class={token.class || undefined}>{token.text}</span
-			>{/each}</code
-	>
-{/snippet}
-
-{#snippet jsonCell({ value }: { value: unknown })}
-	<span class="block max-w-[18rem] truncate font-mono text-xs text-muted-foreground"
-		>{firstLine(JSON.stringify(value ?? {}))}</span
-	>
-{/snippet}
 
 {#snippet catalog()}
 	<Stack size="fill" gap="sm">
 		<p class="max-w-4xl text-sm text-muted-foreground">{descriptions[selected]}</p>
-		{#if selected === 'allowance_catalog'}<Table
+		{#key selected}
+			<LawTable
 				{ctx}
-				of="allowance_catalog"
-				key="allowance_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.allowance_catalog }}
-				columns={[
-					'code',
-					'description',
-					{ field: 'eligibility', cell: codeCell },
-					{ field: 'conversion', cell: codeCell },
-					'subtotal_id'
-				]}
+				name={selected}
+				title={LAW_FAMILY_LABEL[selected]}
+				rows={law.rows[selected]}
+				columns={columns[selected]}
+				on_open={(row) => on_open({ family: selected, code: row })}
+				on_new={() => on_open({ family: selected, code: null })}
 			/>
-		{:else if selected === 'overtime_catalog'}<Table
-				{ctx}
-				of="overtime_catalog"
-				key="overtime_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.overtime_catalog }}
-				columns={[
-					'code',
-					'description',
-					{ field: 'eligibility', cell: codeCell },
-					{ field: 'conversion', cell: codeCell },
-					'subtotal_id',
-					'direction'
-				]}
-			/>
-		{:else if selected === 'statutory_contribution_catalog'}<Table
-				{ctx}
-				of="statutory_contribution_catalog"
-				key="statutory_contribution_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.statutory_contribution_catalog }}
-				columns={[
-					'code',
-					'description',
-					'kind',
-					'depends_on',
-					{ field: 'employee_amount', cell: codeCell },
-					{ field: 'employer_amount', cell: codeCell },
-					'subtotal_id',
-					'employer_cost_subtotal_id'
-				]}
-			/>
-		{:else if selected === 'leave_catalog'}<Table
-				{ctx}
-				of="leave_catalog"
-				key="leave_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.leave_catalog }}
-				columns={[
-					'code',
-					'description',
-					{ field: 'eligibility', cell: codeCell },
-					{ field: 'paid_share', cell: codeCell },
-					{ field: 'payout', cell: codeCell },
-					'subtotal_id'
-				]}
-			/>
-		{:else if selected === 'claim_catalog'}<Table
-				{ctx}
-				of="claim_catalog"
-				key="claim_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.claim_catalog }}
-				columns={[
-					'code',
-					'description',
-					{ field: 'eligibility', cell: codeCell },
-					{ field: 'conversion', cell: codeCell },
-					'subtotal_id'
-				]}
-			/>
-		{:else if selected === 'adhoc_catalog'}<Table
-				{ctx}
-				of="adhoc_catalog"
-				key="adhoc_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.adhoc_catalog }}
-				columns={[
-					'code',
-					'description',
-					{ field: 'eligibility', cell: codeCell },
-					{ field: 'conversion', cell: codeCell },
-					'subtotal_id',
-					'direction',
-					'party'
-				]}
-			/>
-		{:else if selected === 'loan_catalog'}<Table
-				{ctx}
-				of="loan_catalog"
-				key="loan_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.loan_catalog }}
-				columns={['code', 'description', { field: 'eligibility', cell: codeCell }, 'subtotal_id']}
-			/>
-		{:else if selected === 'workplace_case_catalog'}<Table
-				{ctx}
-				of="workplace_case_catalog"
-				key="workplace_case_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.workplace_case_catalog }}
-				columns={['code', 'description', 'events', { field: 'lookup', cell: jsonCell }]}
-			/>
-		{:else}<Table
-				{ctx}
-				of="work_event_catalog"
-				key="work_event_catalog"
-				where={{ settings_id: { eq: versionId } }}
-				toolbar={{ new: draft, title: labels.work_event_catalog }}
-				columns={['code', 'description', { field: 'lookup', cell: jsonCell }]}
-			/>{/if}
+		{/key}
 	</Stack>
 {/snippet}
 
 <Tabs
 	orientation="vertical"
-	tabs={families.map((name) => ({ name, title: labels[name], body: catalog }))}
+	tabs={families.map((name) => ({ name, title: LAW_FAMILY_LABEL[name], body: catalog }))}
 	value={selected}
 	on_value_change={(next) => {
 		selected = families.find((family) => family === next) ?? selected;

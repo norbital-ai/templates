@@ -9,7 +9,8 @@ import { accountsOf, eventOn, eventsOf, periodOn } from '../ledger/core.js';
 export interface PayLine {
 	readonly code: string;
 	readonly label: string;
-	readonly subtotal_id: string;
+	/** The code of the subtotal the line posts to. */
+	readonly subtotal: string;
 	readonly amount: number;
 	readonly direction: Direction;
 	readonly party: Party;
@@ -22,10 +23,8 @@ export interface PayLine {
 }
 
 export interface SubtotalResult {
-	readonly id: string;
 	readonly code: string;
 	readonly name: string;
-	readonly previous_id?: string | null;
 	value: number;
 }
 
@@ -130,35 +129,35 @@ const period = (run: JsonObject): { from: string; to: string } => {
 };
 // one map a catalogue, not one for every person it prices
 const catalogMaps = new WeakMap<readonly JsonObject[], ReadonlyMap<string, JsonObject>>();
-const catalogById = (rows: readonly JsonObject[]): ReadonlyMap<string, JsonObject> => {
+const catalogByCode = (rows: readonly JsonObject[]): ReadonlyMap<string, JsonObject> => {
 	const held = catalogMaps.get(rows);
 	if (held !== undefined) return held;
-	const made = new Map(rows.map((row) => [id(row), row]));
+	const made = new Map(rows.map((row) => [text(row, 'code'), row]));
 	catalogMaps.set(rows, made);
 	return made;
 };
 
 /** The configured chain is the whole execution plan: no implicit BASE/EARNINGS/NET stages. */
 export function subtotalChain(rows: readonly JsonObject[]): readonly JsonObject[] {
-	const byId = new Map(rows.map((row) => [id(row), row]));
+	const byCode = new Map(rows.map((row) => [text(row, 'code'), row]));
 	const next = new Map<string, JsonObject>();
 	for (const row of rows) {
-		const previous = row.previous_id;
+		const previous = row.previous;
 		if (previous == null) continue;
-		if (typeof previous !== 'string' || !byId.has(previous))
+		if (typeof previous !== 'string' || !byCode.has(previous))
 			throw new Refusal({ message: `${text(row, 'code')}: predecessor is missing.` });
 		if (next.has(previous))
 			throw new Refusal({ message: 'Subtotals must form one linear chain, not a branch.' });
 		next.set(previous, row);
 	}
-	const first = rows.filter((row) => row.previous_id == null);
+	const first = rows.filter((row) => row.previous == null);
 	if (rows.length > 0 && first.length !== 1)
 		throw new Refusal({ message: 'A subtotal chain needs exactly one first checkpoint.' });
 	const ordered: JsonObject[] = [];
 	let current = first[0];
 	const seen = new Set<string>();
 	while (current !== undefined) {
-		const key = id(current);
+		const key = text(current, 'code');
 		if (seen.has(key)) throw new Refusal({ message: 'Subtotal chain contains a cycle.' });
 		seen.add(key);
 		ordered.push(current);
@@ -259,13 +258,17 @@ function line(input: {
 	return {
 		code: input.code,
 		label: input.label,
-		subtotal_id: id(input.subtotal),
+		subtotal: text(input.subtotal, 'code'),
 		amount: input.amount,
 		direction: input.direction ?? 'ADD',
 		party: input.party ?? 'EMPLOYEE',
 		incurred_on: input.incurred_on,
 		coverage: input.coverage,
-		source_id: { model: input.model, id: id(input.source) },
+		// a row of the law is named by its code
+		source_id: {
+			model: input.model,
+			id: typeof input.source.id === 'string' ? input.source.id : text(input.source, 'code')
+		},
 		...(input.quantity === undefined ? {} : { quantity: input.quantity }),
 		...(input.unit === undefined ? {} : { unit: input.unit }),
 		...(input.rate_code === undefined ? {} : { rate_code: input.rate_code })
@@ -322,9 +325,9 @@ export const paidShareOf = (row: JsonObject, context: () => object): number => {
 const unpaidByDate = (input: PayrollInput, share: SlotShare): Map<string, number> => {
 	const unpaid = new Map<string, number>();
 	const add = (date: string, days: number) => unpaid.set(date, (unpaid.get(date) ?? 0) + days);
-	const catalogs = catalogById(input.leave_catalog);
+	const catalogs = catalogByCode(input.leave_catalog);
 	for (const entry of input.entries.leave_catalog_entry ?? []) {
-		const row = catalogs.get(String(entry.catalog_id));
+		const row = catalogs.get(String(entry.catalog_code));
 		// an encashment takes no day off
 		if (row === undefined || !sharesPay(row) || entry.encashment === true) continue;
 		for (const slot of slotsOf(entry)) {
@@ -663,7 +666,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 	};
 	// the constants view: a row reads the jurisdiction's settings fields under ctx.lookup, then its own lookup
 	const settingsView: Lookup = settingsConstants(input.settings);
-	const leaveRows = catalogById(input.leave_catalog);
+	const leaveRows = catalogByCode(input.leave_catalog);
 	const leaveUsed = accountsOf({ leave: input.balance.leave }).leave ?? {};
 	const person = {
 		scope: String(input.settings.code),
@@ -683,7 +686,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			period = periodOn(lookup, person, slot.date);
 		// ponytail: a day posted after this run's window still counts as used; read those slots if a rule needs it exact
 		const after = (input.entries.leave_catalog_entry ?? [])
-			.filter((entry) => leaveRows.get(String(entry.catalog_id))?.code === code)
+			.filter((entry) => entry.catalog_code === code)
 			.flatMap(slotsOf)
 			.filter(
 				(other) => order(other) >= order(slot) && periodOn(lookup, person, other.date) === period
@@ -713,7 +716,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 	const unpaid = unpaidByDate(input, shareOf);
 	// the run's priced leave slots: a statutory base that counts a leave code's days reads them here
 	const leave = (input.entries.leave_catalog_entry ?? []).flatMap((entry) => {
-		const row = leaveRows.get(String(entry.catalog_id));
+		const row = leaveRows.get(String(entry.catalog_code));
 		if (row === undefined || entry.encashment === true) return [];
 		const code = String(row.code);
 		return slotsOf(entry).map((slot) => ({
@@ -842,9 +845,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 		as_of: coverage.to
 	});
 	const hasProrated = chain.some((row) => text(row, 'code') === 'PRORATED');
-	const paidBasicRow = chain.find((row) => text(row, 'code') === 'PAID_BASIC');
-	const paidBasicId = paidBasicRow === undefined ? undefined : id(paidBasicRow);
-	const hasPaidBasic = paidBasicId !== undefined;
+	const hasPaidBasic = chain.some((row) => text(row, 'code') === 'PAID_BASIC');
 	const openingPay =
 		salary === undefined
 			? 0
@@ -864,7 +865,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 
 	for (const subtotal of chain) {
 		const code = text(subtotal, 'code');
-		const previous = subtotal.previous_id;
+		const previous = subtotal.previous;
 		const previousValue = typeof previous === 'string' ? (values.get(previous) ?? 0) : 0;
 		const baseContext = {
 			...base(previousValue, settingsLookup),
@@ -878,7 +879,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 						chain.indexOf(subtotal) === 0 ? { ...baseContext, base_pay: openingPay } : baseContext,
 						`${code}.calculation`
 					);
-		computedBy.set(id(subtotal), computed);
+		computedBy.set(code, computed);
 		if (computed !== 0)
 			lines.push(
 				line({
@@ -895,7 +896,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			);
 		const subtotalLines: PayLine[] = [];
 		const producers = [...input.allowance, ...input.overtime].filter(
-			(row) => row.subtotal_id === id(subtotal) && input.run.kind !== 'OFF_CYCLE'
+			(row) => row.subtotal === code && input.run.kind !== 'OFF_CYCLE'
 		);
 		for (const producer of producers) {
 			const code = text(producer, 'code');
@@ -971,20 +972,20 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			}
 		] as const;
 		for (const group of catalogs) {
-			const byId = catalogById(group.rows);
+			const byCode = catalogByCode(group.rows);
 			for (const raw of group.entries) {
 				// a posted entry already reached a finalised payslip: never pay it again
 				if (raw.payroll_run_id != null) continue;
 				const entry = group.model === 'leave_catalog' ? leaveEntry(raw) : raw;
-				const catalog = byId.get(String(entry.catalog_id));
+				const catalog = byCode.get(String(entry.catalog_code));
 				if (catalog === undefined) continue;
 				// unpaid days come off the basic whatever the row's own subtotal (that one takes its payout): a statutory
 				// base reads the reduced amount, never a deduction after it
 				const home =
-					group.model === 'leave_catalog' && entry.encashment !== true && paidBasicId !== undefined
-						? paidBasicId
-						: catalog.subtotal_id;
-				if (home !== id(subtotal)) continue;
+					group.model === 'leave_catalog' && entry.encashment !== true && hasPaidBasic
+						? 'PAID_BASIC'
+						: catalog.subtotal;
+				if (home !== text(subtotal, 'code')) continue;
 				if (
 					input.run.kind === 'OFF_CYCLE' &&
 					(group.model !== 'adhoc_catalog' || catalog.off_cycle_eligible !== true)
@@ -1105,7 +1106,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			}
 		}
 
-		const loanCatalog = catalogById(input.loan_catalog);
+		const loanCatalog = catalogByCode(input.loan_catalog);
 		for (const repayment of input.entries.loan_catalog_entry_repayment ?? []) {
 			if (repayment.payroll_run_id != null) continue;
 			// an instalment is due in the run that covers its date; a later month's stays open
@@ -1113,16 +1114,8 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			const loan = (input.entries.loan_catalog_entry ?? []).find(
 				(row) => id(row) === repayment.loan_id
 			);
-			const catalog = loan === undefined ? undefined : loanCatalog.get(String(loan.catalog_id));
-			// a loan entry keeps its original catalog across a settings-version cutover; its stored subtotal id
-			// belongs to that version, so resolve the current chain's NET row when that id is not in this chain
-			const loanSubtotal =
-				catalog === undefined
-					? undefined
-					: (chain.find((row) => id(row) === String(catalog.subtotal_id)) ??
-						chain.find((row) => String(row.code) === 'NET'));
-			if (catalog === undefined || loanSubtotal === undefined || id(loanSubtotal) !== id(subtotal))
-				continue;
+			const catalog = loan === undefined ? undefined : loanCatalog.get(String(loan.catalog_code));
+			if (catalog === undefined || catalog.subtotal !== code) continue;
 			// loan recovery is on-cycle only; off-cycle runs pay one-off adjustments, not instalments
 			if (input.run.kind === 'OFF_CYCLE') continue;
 			const value = amount(repayment.amount ?? 0, 'repayment.amount');
@@ -1151,14 +1144,8 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 				computed +
 				subtotalLines.reduce((total, l) => total + signed(l.direction, l.amount), 0)
 		);
-		values.set(id(subtotal), value);
-		results.push({
-			id: id(subtotal),
-			code,
-			name: text(subtotal, 'name'),
-			previous_id: (subtotal.previous_id as string | null | undefined) ?? null,
-			value
-		});
+		values.set(code, value);
+		results.push({ code, name: text(subtotal, 'name'), value });
 		lines.push(...subtotalLines);
 	}
 
@@ -1169,20 +1156,20 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 	const withCarried = new Map(
 		results.map((r) => {
 			carriedSoFar += input.carried?.[r.code] ?? 0;
-			return [r.id, r.value + carriedSoFar] as const;
+			return [r.code, r.value + carriedSoFar] as const;
 		})
 	);
 	for (const scheme of statutoryOrder(input.statutory)) {
 		const code = text(scheme, 'code');
-		const subtotal = chain.find((row) => id(row) === scheme.subtotal_id);
+		const subtotal = chain.find((row) => row.code === scheme.subtotal);
 		if (subtotal === undefined)
-			throw new Refusal({ message: `${code}: its subtotal is not in this version.` });
+			throw new Refusal({ message: `${code}: its subtotal is not in this law.` });
 		const lookup = lookupOf(scheme);
 		const paidMonth = scheme.assessed === 'PAID' && input.carried !== undefined;
 		const context = {
-			...base((paidMonth ? withCarried : values).get(id(subtotal)) ?? 0, lookup),
+			...base((paidMonth ? withCarried : values).get(text(subtotal, 'code')) ?? 0, lookup),
 			subtotals: Object.fromEntries(
-				results.map((r) => [r.code, paidMonth ? (withCarried.get(r.id) ?? r.value) : r.value])
+				results.map((r) => [r.code, paidMonth ? (withCarried.get(r.code) ?? r.value) : r.value])
 			),
 			statutory: statutoryValues,
 			posted,
@@ -1222,13 +1209,12 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			employee_ytd: employeeYtd,
 			employer_ytd: employerYtd
 		});
-		const target = chain.find((row) => id(row) === subtotal.id);
-		if (target !== undefined && employee !== 0)
+		if (employee !== 0)
 			lines.push(
 				line({
 					code,
 					label: text(scheme, 'code'),
-					subtotal: target,
+					subtotal,
 					amount: Math.abs(employee),
 					direction: employee > 0 ? 'DEDUCT' : 'ADD',
 					party: 'EMPLOYEE',
@@ -1238,7 +1224,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 					model: 'statutory_contribution_catalog'
 				})
 			);
-		const employerTarget = chain.find((row) => id(row) === scheme.employer_cost_subtotal_id);
+		const employerTarget = chain.find((row) => row.code === scheme.employer_cost_subtotal);
 		if (employerTarget !== undefined && employer !== 0)
 			lines.push(
 				line({
@@ -1260,28 +1246,20 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 	const finalResults: SubtotalResult[] = [];
 	const linesBy = Map.groupBy(
 		lines.filter((l) => l.party === 'EMPLOYEE' && l.source_id.model !== 'employee_contract'),
-		(l) => l.subtotal_id
+		(l) => l.subtotal
 	);
 	for (const subtotal of chain) {
-		const previous = subtotal.previous_id;
+		const code = text(subtotal, 'code');
+		const previous = subtotal.previous;
 		const previousValue = typeof previous === 'string' ? (finalValues.get(previous) ?? 0) : 0;
 		const value = round(
 			input.settings,
 			previousValue +
-				(computedBy.get(id(subtotal)) ?? 0) +
-				(linesBy.get(id(subtotal)) ?? []).reduce(
-					(total, l) => total + signed(l.direction, l.amount),
-					0
-				)
+				(computedBy.get(code) ?? 0) +
+				(linesBy.get(code) ?? []).reduce((total, l) => total + signed(l.direction, l.amount), 0)
 		);
-		finalValues.set(id(subtotal), value);
-		finalResults.push({
-			id: id(subtotal),
-			code: text(subtotal, 'code'),
-			name: text(subtotal, 'name'),
-			previous_id: (subtotal.previous_id as string | null | undefined) ?? null,
-			value
-		});
+		finalValues.set(code, value);
+		finalResults.push({ code, name: text(subtotal, 'name'), value });
 	}
 	results.splice(0, results.length, ...finalResults);
 	const net = results.at(-1)?.value ?? 0;
@@ -1315,10 +1293,9 @@ const timeOffOf = (
 			? []
 			: (input.work?.days ?? []).filter((day) => Number(day.time_off_hours ?? 0) > 0);
 	if (owed.length === 0) return [];
-	// leave rows of every version are loaded (an old entry keeps its row): the run's own law names the taker
-	const takers = input.leave_catalog.filter((row) => lookupOf(row).overtime_as_time_off === true);
-	const own = takers.filter((row) => String(row.settings_id) === String(input.settings.id));
-	const [taker, ...more] = own.length > 0 ? own : takers;
+	const [taker, ...more] = input.leave_catalog.filter(
+		(row) => lookupOf(row).overtime_as_time_off === true
+	);
 	if (taker === undefined || more.length > 0 || lookupOf(taker).unit !== 'HOUR')
 		throw new Refusal({
 			message:

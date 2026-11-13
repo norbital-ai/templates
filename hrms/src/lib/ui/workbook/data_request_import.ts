@@ -2,6 +2,8 @@ import { Effect } from 'effect';
 import type { ActInput, Callable } from '@norbital-ai/bolt';
 import type { PageContext } from '@norbital-ai/bolt/page';
 import { notify_outcome } from '@norbital-ai/ui';
+import { lawsOf } from '../../law.js';
+import { jsonObject } from '../../payroll_engine/foundation.js';
 import { idOf } from '../../payroll_engine/reads.js';
 import {
 	jurisdictionOf,
@@ -31,17 +33,12 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 	const code = jurisdictionOf(grids);
 	const today = ctx.clock('day').today;
 	const held = yield* ctx.query({
-		jurisdiction_settings: {
-			where: { code: { eq: code }, status: { eq: 'SEALED' } },
-			fields: [
-				'code',
-				'timezone',
-				'lookup',
-				'effective_range',
-				'employee_extension_schema',
-				'entity_extension_schema'
-			],
-			limit: 1000
+		jurisdiction: { where: { code: { eq: code } }, limit: 1 },
+		jurisdiction_change: {
+			where: { jurisdiction_code: { eq: code } },
+			fields: ['jurisdiction_code', 'effective_from', 'finding_id', 'law'],
+			limit: 10000,
+			finding_id: { fields: ['status'] }
 		},
 		entity: { fields: ['name', 'code'], limit: 10000 },
 		entity_profile_version: { fields: ['entity_id', 'effective_range', 'status'], limit: 10000 },
@@ -55,47 +52,29 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 		},
 		shift_pattern: { fields: ['entity_id', 'code'], limit: 10000 }
 	});
-	const versions = held.jurisdiction_settings.rows;
-	const settings = versions.find(
-		(row) =>
-			row.effective_range.from <= today &&
-			(row.effective_range.to == null || today <= row.effective_range.to)
-	);
-	if (settings === undefined)
+	const law = lawsOf({
+		jurisdiction: held.jurisdiction.rows.map(jsonObject),
+		jurisdiction_change: held.jurisdiction_change.rows.map(jsonObject)
+	})(code, String(today));
+	if (law === undefined)
 		return yield* Effect.fail(
-			new WorkbookImportError({
-				message: `No sealed ${code} jurisdiction version is in force today.`,
-				detail: []
-			})
+			new WorkbookImportError({ message: `No ${code} law is in force today.`, detail: [] })
 		);
-	const facts = yield* ctx.query({
-		registered_rule: {
-			where: { settings_id: { eq: settings.id }, code: { eq: 'CONTRACT_CATEGORIES' } },
-			fields: ['lookup'],
-			limit: 1
-		},
-		allowance_catalog: {
-			where: { settings_id: { eq: settings.id } },
-			fields: ['code', 'lookup', 'eligibility', 'conversion'],
-			limit: 10000
-		}
-	});
+	const text = (value: unknown) => (typeof value === 'string' ? value : null);
 	const known: DataRequestKnown = {
 		settings: {
-			id: settings.id,
 			code,
-			timezone: settings.timezone,
-			lookup: settings.lookup,
-			employee_extension_schema: settings.employee_extension_schema,
-			entity_extension_schema: settings.entity_extension_schema
+			timezone: String(law.settings.timezone),
+			lookup: law.settings.lookup,
+			employee_extension_schema: law.settings.employee_extension_schema,
+			entity_extension_schema: law.settings.entity_extension_schema
 		},
-		ruleLookup: facts.registered_rule.rows[0]?.lookup,
-		allowances: facts.allowance_catalog.rows,
-		versions: versions.map((row) => ({
-			id: row.id,
-			code,
-			from: String(row.effective_range.from),
-			to: row.effective_range.to == null ? null : String(row.effective_range.to)
+		ruleLookup: law.rows.registered_rule.find((row) => row.code === 'CONTRACT_CATEGORIES')?.lookup,
+		allowances: law.rows.allowance_catalog.map((row) => ({
+			code: String(row.code),
+			lookup: row.lookup,
+			eligibility: text(row.eligibility),
+			conversion: text(row.conversion)
 		})),
 		entities: held.entity.rows.map((row) => ({
 			id: row.id,

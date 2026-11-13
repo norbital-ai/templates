@@ -1,6 +1,7 @@
 import { DateTime, Duration, Effect } from 'effect';
 import { queryRows, type Reader } from './reads.js';
-import { lawOn, startOf } from './registrations.js';
+import { startOf } from './registrations.js';
+import { lawReadOf, lawsOf } from '../law.js';
 import { isJsonObject, type Json } from './foundation.js';
 import type { JsonObject } from './contracts.js';
 
@@ -159,9 +160,9 @@ export const dayFindings = (
 /**
  * Roster-time warnings. A day sheet is accepted, but every cap it crosses is recorded on the entry
  * so the month board and the importer can show it before payroll runs. Every employment in the batch is read in one
- * wave: the contracts with every version's roster rules, the law each answers to, then the stored days of the months
- * and weeks the batch touches, reaching back as far as the longest consecutive run its laws check. The answer is
- * each supplied row's findings, in order.
+ * wave: the contracts with the law each answers to, then the stored days of the months and weeks the batch touches,
+ * reaching back as far as the longest consecutive run its laws check. The answer is each supplied row's findings, in
+ * order.
  */
 export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	read: Reader,
@@ -176,50 +177,46 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	});
 	const dates = supplied.flatMap((entry) => day(entry.work_date) ?? []);
 	if (groups.size === 0 || dates.length === 0) return findings;
-	// the roster rules of every version ride with the contracts; the law in force picks its own below
-	const { employee_contract: contracts = [], registered_rule: rules = [] } = yield* queryRows(
-		read,
-		{
-			employee_contract: {
-				where: { id: { in: [...groups.keys()] } },
-				fields: ['id', 'entity_id', 'effective_range'],
-				limit: 10000
-			},
-			registered_rule: {
-				where: { target_collection: { in: ['roster', 'roster_entry'] } },
-				fields: ['settings_id', 'lookup'],
-				limit: 10000
-			}
-		}
-	);
-	// the caps of the law in force on each sheet's first day
-	const asked = contracts.map((contract) => ({
-		employment: String(contract.id),
-		entity: contract.entity_id,
-		on: day(supplied[groups.get(String(contract.id))?.[0] ?? -1]?.work_date) ?? startOf(contract)
-	}));
-	const laws = yield* lawOn(read, asked);
-	const lawOf = new Map(
-		asked.flatMap(({ employment }, at) => {
-			const id = laws[at]?.id;
-			return typeof id === 'string' ? [[employment, id] as const] : [];
+	const got = yield* queryRows(read, {
+		employee_contract: {
+			where: { id: { in: [...groups.keys()] } },
+			fields: ['id', 'entity_id', 'effective_range'],
+			limit: 10000,
+			entity_id: { fields: ['settings_code'] }
+		},
+		...(yield* lawReadOf(read, { employee_contract: { some: { id: { in: [...groups.keys()] } } } }))
+	});
+	const laws = lawsOf(got);
+	// the caps of the law in force on each sheet's first day: its roster rule's
+	const capsOf = new Map(
+		(got.employee_contract ?? []).flatMap((contract) => {
+			const employment = String(contract.id);
+			const on = day(supplied[groups.get(employment)?.[0] ?? -1]?.work_date) ?? startOf(contract);
+			const law = laws(
+				isJsonObject(contract.entity_id) ? contract.entity_id.settings_code : undefined,
+				String(on)
+			);
+			return law === undefined
+				? []
+				: [
+						[
+							employment,
+							limits(
+								law.rows.registered_rule.find(
+									(rule) =>
+										(rule.target_collection === 'roster' ||
+											rule.target_collection === 'roster_entry') &&
+										isJsonObject(rule.lookup) &&
+										isJsonObject(rule.lookup.roster_warnings)
+								)?.lookup ?? {}
+							)
+						] as const
+					];
 		})
 	);
-	if (lawOf.size === 0) return findings;
-	const capsOf = (law: string) =>
-		limits(
-			rules.find(
-				(rule) =>
-					rule.settings_id === law &&
-					isJsonObject(rule.lookup) &&
-					isJsonObject(rule.lookup.roster_warnings)
-			)?.lookup ?? {}
-		);
+	if (capsOf.size === 0) return findings;
 	// a streak can start before the batch: reach back by the longest run any law in force checks
-	const streak = Math.max(
-		0,
-		...[...lawOf.values()].map((law) => capsOf(law).consecutive_days ?? 0)
-	);
+	const streak = Math.max(0, ...[...capsOf.values()].map((caps) => caps.consecutive_days ?? 0));
 	// the whole months and weeks the batch touches: what its monthly and weekly counts read
 	const bounds = dates
 		.flatMap((date) => [
@@ -246,7 +243,7 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	const { roster_entry: stored = [], shift_definition: shifts = [] } = yield* queryRows(read, {
 		roster_entry: {
 			where: {
-				employment_id: { in: [...lawOf.keys()] },
+				employment_id: { in: [...capsOf.keys()] },
 				work_date: { gte: bounds[0]!, lte: bounds.at(-1)! }
 			},
 			fields: [
@@ -277,9 +274,8 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 				: shiftOf.get(String(entry.shift_definition_id))
 		);
 	for (const [employment, indexes] of groups) {
-		const law = lawOf.get(employment);
-		if (law === undefined) continue;
-		const caps = capsOf(law);
+		const caps = capsOf.get(employment);
+		if (caps === undefined) continue;
 		// a supplied day replaces the stored one: an employment has one entry a day
 		const days = new Map(
 			stored

@@ -1,49 +1,6 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
 	'v2.subtotals': 'Subtotals',
-	'models.subtotal.label': 'Subtotals',
-	'models.subtotal.singular': 'Subtotal',
-	'models.subtotal.fields.settings_id': 'Jurisdiction version',
-	'models.subtotal.fields.code': 'Code',
-	'models.subtotal.fields.name': 'Name',
-	'models.subtotal.fields.order': 'Order',
-	'models.subtotal.fields.previous_id': 'Previous subtotal',
-	'models.subtotal.help.previous_id': 'An earlier subtotal in this version and financial channel.',
-	'models.statutory_contribution_catalog.fields.subtotal_id': 'Employee subtotal',
-	'models.statutory_contribution_catalog.fields.employer_cost_subtotal_id':
-		'Employer expense subtotal',
-	'models.jurisdiction_settings.fields.lookup': 'Constants and rates',
-	'models.jurisdiction_settings.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.leave_catalog.fields.lookup': 'Constants and rates',
-	'models.leave_catalog.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.claim_catalog.fields.lookup': 'Constants and rates',
-	'models.claim_catalog.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.allowance_catalog.fields.lookup': 'Constants and rates',
-	'models.allowance_catalog.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.adhoc_catalog.fields.lookup': 'Constants and rates',
-	'models.adhoc_catalog.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.loan_catalog.fields.lookup': 'Constants and rates',
-	'models.loan_catalog.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.statutory_contribution_catalog.fields.lookup': 'Constants and rates',
-	'models.statutory_contribution_catalog.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.registered_rule.fields.lookup': 'Constants and rates',
-	'models.registered_rule.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.registered_effect.fields.lookup': 'Constants and rates',
-	'models.registered_effect.help.lookup':
-		'Constants, rates and flat legal tables used by this definition.',
-	'models.leave_catalog.fields.subtotal_id': 'Posting subtotal',
-	'models.claim_catalog.fields.subtotal_id': 'Posting subtotal',
-	'models.allowance_catalog.fields.subtotal_id': 'Posting subtotal',
-	'models.adhoc_catalog.fields.subtotal_id': 'Posting subtotal',
-	'models.loan_catalog.fields.subtotal_id': 'Posting subtotal',
 	'models.obligation.fields.due_on': 'Due on',
 	'models.payroll_run.syncs.export.context.authority_payment_on': 'Intended authority payment date',
 	'models.payroll_run.syncs.export.context.authority_advice_code': 'Authority advice code',
@@ -138,28 +95,23 @@ export default messages({
 	'app.people.workforce': 'Workforce',
 	'app.people.workforce_description':
 		'Current status is derived from effective employment contracts, not a duplicated employee flag.',
-	'app.settings.catalogues': 'Catalog',
 	'app.settings.choose_jurisdiction': 'Choose a jurisdiction',
 	'app.settings.choose_jurisdiction_empty': 'Choose a jurisdiction.',
-	'app.settings.general': 'General',
 	'app.settings.header_description':
 		'Effective versions of payroll rules and catalogues. Each legal entity manages its own holiday calendar.',
 	'app.settings.header_title': 'Settings',
-	'settings_form.lookup': 'Lookup',
 	'app.settings.lookup': 'Lookup',
 	'app.settings.change_log_description':
 		'Dated configuration changes across every jurisdiction version.',
 	'app.settings.change_log': 'Change log',
 	'app.settings.holidays': 'Holidays',
 	'app.settings.jurisdiction': 'Jurisdiction',
-	'app.settings.version_draft': 'Draft',
 	'app.settings.version_in_force': 'In force',
-	'app.settings.version_sealed': 'Sealed',
-	'app.settings.version_voided': 'Voided',
 	'component.amount': 'Amount',
 	'component.references': 'References',
 	'component.references_effective_from': 'In force from {date}',
 	'component.catalogue_leave': 'Leave',
+	'component.catalogue_claim': 'Claim type',
 	'component.choose_legal_entity': 'Choose a legal entity',
 	'component.deductions': 'Deductions',
 	'component.gross': 'Gross',
@@ -172,6 +124,12 @@ export default messages({
 	'entity.tab_holidays': 'Holidays',
 	'entity.tab_pay_groups': 'Pay groups',
 	'app.payroll.pay_group': 'Pay group',
+	'models.jurisdiction.label': 'Jurisdictions',
+	'models.jurisdiction.singular': 'Jurisdiction',
+	'models.jurisdiction_change.label': 'Changes of law',
+	'models.jurisdiction_change.singular': 'Change of law',
+	'models.jurisdiction_change.fields.effective_from': 'In force from',
+	'models.jurisdiction_change.fields.law': 'What changes',
 	'models.pay_group.label': 'Pay groups',
 	'models.pay_group.singular': 'Pay group',
 	'contract.new': 'New contract',
@@ -420,7 +378,6 @@ export default messages({
 	'roster.download_workbook': 'Download workbook',
 	'app.payroll.separate_runs':
 		'These people were not employed in the same period. Pay them in separate runs.',
-	'settings_form.version': 'Version',
 	'settings_form.calendar': 'Currency and calendar',
 	'settings_form.employee_schema': 'Employee extension schema',
 	'settings_form.entity_schema': 'Entity extension schema',
@@ -440,11 +397,6 @@ export default messages({
 	'roster.public_holiday': 'Public holiday',
 	'roster.public_holiday_mark': 'PH',
 	'app.adhoc.title': 'Ad hoc',
-	'settings_version.seal': 'Seal version',
-	'settings_version.void': 'Void version',
-	'settings_version.void_title': 'Void {name}',
-	'settings_version.void_description':
-		'A voided version governs nothing from now on and is never unvoided. Seal a corrected version in its place.',
 	'settings_version.reason': 'Reason',
 	'component.cancel': 'Cancel',
 	'app.hr_controller.title': 'HR Controller',
@@ -473,15 +425,6 @@ export default messages({
 	'app.kiosk.description': 'Face-recognition time clock for the shop floor.',
 	'app.hr_employee.title': 'Employee Self-Service',
 	'app.hr_employee.description': 'Your schedule, leave, pay requests, loans, payslips and profile.',
-	'models.adhoc_catalog.label': 'Ad hoc catalogue',
-	'models.adhoc_catalog.singular': 'Ad hoc item',
-	'models.allowance_catalog.label': 'Allowance catalogue',
-	'models.allowance_catalog.singular': 'Allowance',
-	'models.allowance_catalog.fields.eligibility': 'Eligibility',
-	'models.allowance_catalog.fields.conversion': 'Payroll amount',
-	'models.allowance_catalog.fields.subtotal': 'Payroll boundary',
-	'models.claim_catalog.label': 'Claim catalogue',
-	'models.claim_catalog.singular': 'Claim type',
 	'models.entity.label': 'Legal entities',
 	'models.entity.singular': 'Legal entity',
 	'models.entity.fields.settings_code': 'Country payroll rules',
@@ -509,30 +452,35 @@ export default messages({
 	'models.holiday.fields.given_to.ONLY_IF_OFF_ON_REPLACED_DATE': 'Only if off on the replaced date',
 	'models.holiday.fields.published_at': 'Published',
 	'models.holiday.fields.employee_id': 'Only for',
-	'models.statutory_change.label': 'Statutory changes',
-	'models.statutory_change.singular': 'Statutory change',
 	'models.entity_profile_version.fields.final_pay_loan_floor_percent': 'Final-pay loan floor (%)',
 	'models.entity_profile_version.fields.overtime_full_award_percent': 'Full overtime threshold (%)',
 	'models.entity_profile_version.fields.pay_methods': 'Employer pay methods',
 	'settings_version.compare': 'Compare',
-	'settings_version.compare_from': 'From version',
-	'settings_version.compare_to': 'To version',
-	'settings_version.compare_empty': 'No earlier version to compare.',
+	'app.settings.changes': 'Changes',
+	'settings_form.conversions': 'Conversions',
+	'settings_form.ledger': 'Ledger',
+	'settings_form.work_regions': 'Work regions',
+	'settings_version.compare_change': 'Change',
+	'law_changes.whole': 'The whole law',
+	'law_changes.upcoming': 'Not yet in force',
+	'law_changes.not_confirmed': 'Not confirmed',
+	'law_changes.research': 'research finding, {status}',
+	'law_changes.removed': 'removed',
+	'law_save.title': 'Was it always so, or does it change from a date?',
+	'law_save.always': 'It was always so',
+	'law_save.from_date': 'It changes from this date',
+	'law_save.date': 'Changes from',
+	'law_save.save': 'Save',
+	'law_row.new': 'New',
+	'law_row.edit': 'Edit {code}',
+	'law_row.remove': 'Remove',
 	'app.settings.lineage': 'Lineage',
 	'app.settings.scheduled': 'Scheduled',
 	'app.settings.scheduled_description':
 		'Every change research found, to source or to data, and what is confirmed to merge.',
 	'scheduled.changes': 'Changes',
-	'scheduled.merge': 'Merge {code} · {date} · {count} changed',
 	'scheduled.research': 'Research now',
 	'scheduled.all': 'All jurisdictions',
-	'models.jurisdiction_settings.label': 'Settings versions',
-	'models.jurisdiction_settings.singular': 'Settings version',
-	'models.jurisdiction_settings.fields.effective_range': 'Effective period',
-	'models.leave_catalog.label': 'Leave catalogue',
-	'models.leave_catalog.singular': 'Leave type',
-	'models.loan_catalog.label': 'Loan catalogue',
-	'models.loan_catalog.singular': 'Loan type',
 	'models.payroll_run.label': 'Payroll runs',
 	'models.payroll_run.singular': 'Payroll run',
 	'models.payroll_run.fields.kind.ON_CYCLE': 'On-cycle',
@@ -540,8 +488,6 @@ export default messages({
 	'models.payroll_run.fields.pay_date': 'Pay date',
 	'models.payslip.label': 'Payslips',
 	'models.payslip.singular': 'Payslip',
-	'models.statutory_contribution_catalog.label': 'Statutory contributions',
-	'models.statutory_contribution_catalog.singular': 'Statutory contribution',
 	'models.roster_entry.label': 'Person-days',
 	'models.roster_entry.singular': 'Person-day',
 	'models.roster_entry.fields.overtime_as_time_off': 'Overtime as time off',
@@ -561,10 +507,6 @@ export default messages({
 	'models.workplace_case_catalog_entry.singular': 'Workplace case',
 	'models.shift_definition.label': 'Shift definitions',
 	'models.shift_definition.singular': 'Shift definition',
-	'models.registered_rule.label': 'Validations',
-	'models.registered_rule.singular': 'Validation',
-	'models.registered_effect.label': 'Registered effects',
-	'models.registered_effect.singular': 'Registered effect',
 	'models.shift_pattern.label': 'Shift patterns',
 	'models.shift_pattern.singular': 'Shift pattern',
 	'models.adhoc_catalog_entry.label': 'Ad hoc payments',
@@ -613,10 +555,6 @@ export default messages({
 	'references.effective_from': 'In force from',
 	'references.details': 'Reference details',
 	'references.open_official_text': 'Open the official text',
-	'models.jurisdiction_settings.fields.currency': 'Currency',
-	'models.jurisdiction_settings.fields.timezone': 'Time zone',
-	'models.jurisdiction_settings.fields.tax_year_start_month': 'Tax year starts in month',
-	'models.jurisdiction_settings.help.tax_year_start_month': '1 is January.',
 	'models.obligation.fields.title': 'Task',
 	'models.obligation.fields.state': 'Status',
 	'models.obligation.fields.fulfilled_on': 'Completed on',
@@ -714,38 +652,8 @@ export default messages({
 	'models.contract_change.fields.applied_version_id': 'Sealed in',
 	'models.contract_change.fields.notes': 'Notes',
 	// Bolt 0.0.26 migration: refusal keys, field help and captions moved out of the models
-	'errors.subtotal_previous_other_version':
-		'A subtotal can only follow another subtotal of the same version.',
-	'errors.subtotal_chain_branch':
-		'Subtotals must form one linear chain: two subtotals cannot follow the same one.',
-	'errors.subtotal_chain_cycle': 'Subtotal order cannot contain a cycle.',
-	'errors.jurisdiction_conversion_fixed_divisor':
-		'{code}: conversions.{arm} FIXED requires a positive {unit}.',
-	'errors.jurisdiction_conversion_divisor_fixed_only':
-		'{code}: conversions.{arm}.{unit} belongs only to FIXED.',
-	'errors.jurisdiction_create_draft_first':
-		'Create a draft before sealing a jurisdiction configuration.',
-	'errors.jurisdiction_sealed_shorten_only':
-		'A sealed version may only shorten its future effective period.',
-	'errors.jurisdiction_void_reason': 'Record why this configuration is void.',
-	'models.jurisdiction_settings.help.conversions.day.days':
-		'The divisor when the basis is FIXED (Malaysia 26, China 21.75, Thailand and Taiwan 30).',
-	'models.jurisdiction_settings.help.conversions.hour.hours':
-		'The divisor when the basis is FIXED (Indonesia 173, China 174).',
-	'models.jurisdiction_settings.help.conversions.rounding.day_rate':
-		'Where a day not paid or not employed is rounded. Rate: the day rate is rounded first, then multiplied by the days. Amount: the days are multiplied at the unrounded rate and only the amount is rounded.',
-	'models.jurisdiction_settings.help.conversions.back_pay':
-		'The ad hoc row that prices pay belonging to earlier periods in the period it is paid, by its code. With one named, a contract version signed after a period was paid changes nothing in that period, and what it adds is back pay of the period it was signed in. Left out, a version applies from its start.',
-	'models.jurisdiction_settings.help.work_regions':
-		'The work-region keys this jurisdiction recognises, mapped to their display names. A contract picks one key.',
-	'models.allowance_catalog.help.description':
-		'What this catalog row does: its rule, behaviour and any legal or operational note.',
-	'models.overtime_catalog.help.description':
-		'What this catalog row does: its rule, behaviour and any legal or operational note.',
-	'models.statutory_contribution_catalog.help.description':
-		'What this catalog row does: its rule, behaviour and any legal or operational note.',
-	'models.statutory_contribution_catalog.help.assessed':
-		'A correction of a paid period is charged in the month the pay was earned, or in the month it is paid.',
+	'errors.jurisdiction_paid_keeps':
+		'Companies under this law have paid runs. Its currency, time zone and tax year stay as those periods were worked out.',
 	'errors.loan_principal_below_repaid':
 		'The principal cannot be less than repayments already included in payroll. Enter a principal at or above that total.',
 	'errors.loan_paid_no_delete': 'A payroll run has paid this loan, so it cannot be deleted.',
@@ -785,7 +693,6 @@ export default messages({
 		'Confirming a finding needs an official https source.',
 	'errors.statutory_finding_quote': 'Confirming a finding needs its quoted source.',
 	'errors.statutory_finding_changes_drafted': 'Confirming a finding needs its changes drafted.',
-	'errors.statutory_finding_changes_dated': 'Confirming a finding needs every change dated.',
 	'errors.shift_pattern_one_shape': 'A shift pattern is either a weekday map or a cycle, not both.',
 	'errors.shift_pattern_paid':
 		'Paid periods follow this pattern. Make a new pattern from the date it changes.',
@@ -874,10 +781,8 @@ export default messages({
 	'errors.payroll_run_later_ran': '{later} has already run, so {period} cannot run after it.',
 	'errors.payroll_run_cycle_paid':
 		'{period} already paid {from} to {to} for {group}. Run the first cycle after it.',
-	'errors.payroll_run_no_law': 'No sealed {code} law covers {date}.',
+	'errors.payroll_run_no_law': 'No {code} law is in force on {date}.',
 	'errors.payroll_run_choose_pays': 'Choose what this run pays.',
-	'errors.payroll_run_merge_law':
-		'Merge the confirmed {code} law taking effect {date} before this run.',
 	'errors.payroll_run_not_in_group':
 		'Someone in this run is not paid by this pay group in its period: they are in another group, or were not employed. Run it for their own pay group, on the period of their last day.',
 	'errors.payroll_run_carry_takes_back':

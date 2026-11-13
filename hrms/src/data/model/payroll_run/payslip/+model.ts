@@ -13,11 +13,6 @@ export default model({
 			inverse: 'payslips',
 			on_delete: 'cascade'
 		},
-		settings_id: {
-			kind: 'ref',
-			to: 'jurisdiction_settings',
-			on_delete: 'restrict'
-		},
 		employee_id: { kind: 'ref', to: 'employee_profile', inverse: 'payslips' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'payslips' },
 		entity_id: { kind: 'ref', to: 'entity' },
@@ -43,14 +38,14 @@ export default model({
 			employment_id: { fields: 'all', employee_id: { fields: ['name'] } },
 			employee_id: { fields: ['name', 'user_id'] },
 			payroll_run_id: { fields: 'all' },
-			settings_id: { fields: ['code', 'currency'] }
+			// the payslip's law and currency are those of its company's jurisdiction
+			entity_id: { fields: ['settings_code'] }
 		}
 	},
 	create: {
 		columns: {
 			fields: [
 				'payroll_run_id',
-				'settings_id',
 				'employee_id',
 				'employment_id',
 				'entity_id',

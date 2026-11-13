@@ -28,7 +28,6 @@ export default model({
 		},
 		period: { kind: 'text' },
 		kind: { kind: 'enum', values: ['ON_CYCLE', 'OFF_CYCLE'], default: 'ON_CYCLE' },
-		settings_id: { kind: 'ref', to: 'jurisdiction_settings', on_delete: 'restrict' },
 		salary_coverage: { kind: 'period', of: 'date' },
 		pay_date: { kind: 'date' },
 		state: {
@@ -79,22 +78,13 @@ export default model({
 			fields: 'all',
 			payslips: { fields: 'all' },
 			entity_id: { fields: 'all' },
-			pay_group_id: { fields: 'all' },
-			settings_id: { fields: 'all' }
+			pay_group_id: { fields: 'all' }
 		}
 	},
 	create: {
 		// the rows a run prices and seals are linked through their `payroll_run_id`, as are the amended periods it carried
 		columns: {
-			fields: [
-				'entity_id',
-				'pay_group_id',
-				'period',
-				'kind',
-				'settings_id',
-				'salary_coverage',
-				'pay_date'
-			],
+			fields: ['entity_id', 'pay_group_id', 'period', 'kind', 'salary_coverage', 'pay_date'],
 			payslips: {
 				fields: [
 					'employee_id',
@@ -121,7 +111,7 @@ export default model({
 			amendments: { fields: [] }
 		},
 		// a company with one pay group needs none named
-		filled: { fields: ['pay_group_id', 'settings_id', 'salary_coverage', 'pay_date'] },
+		filled: { fields: ['pay_group_id', 'salary_coverage', 'pay_date'] },
 		transform: function* (changes, ctx) {
 			// the approving decision asks again only for what the run posts: its payslips stand
 			if (ctx.approving)
@@ -142,14 +132,11 @@ export default model({
 				},
 				entity_profile_version: {
 					where: { entity_id: { in: entityIds }, status: { eq: 'SEALED' } },
-					fields: ['entity_id', 'effective_range', 'settings_code'],
+					fields: ['entity_id', 'effective_range'],
 					limit: 10000
 				},
-				jurisdiction_settings: {
-					where: { status: { eq: 'SEALED' } },
-					fields: ['id', 'code', 'effective_range'],
-					limit: 10000
-				},
+				// a company's law is the jurisdiction it names, as it stands on the run's pay date
+				entity: { where: { id: { in: entityIds } }, fields: ['settings_code'], limit: 10000 },
 				// year-to-date only moves forward; a paid period worked out again is read off its own run
 				payroll_run: {
 					where: { entity_id: { in: entityIds } },
@@ -161,7 +148,6 @@ export default model({
 						'salary_coverage',
 						'run_number',
 						'pay_date',
-						'settings_id',
 						'state'
 					],
 					limit: 10000
@@ -277,14 +263,6 @@ export default model({
 						}
 					});
 				const pay_date = offCycle ? ctx.today : payDateOf(schedule, row.period);
-				const settings = known.jurisdiction_settings.rows.find(
-					(entry) => entry.code === version.settings_code && on(entry.effective_range, pay_date)
-				);
-				if (settings === undefined)
-					return yield* ctx.refuse('errors.payroll_run_no_law', {
-						row: index,
-						values: { code: version.settings_code, date: pay_date }
-					});
 				// the rows HR named for an off-cycle run, linked under their layer's name
 				const pays = new Set([...row.adhoc, ...row.claim].map((entry) => String(entry.id)));
 				// the open amendment rows HR named for an off-cycle run: it carries their people's earlier periods
@@ -301,11 +279,13 @@ export default model({
 						pay_group_id: group.id,
 						period: row.period,
 						kind: offCycle ? ('OFF_CYCLE' as const) : ('ON_CYCLE' as const),
-						settings_id: settings.id,
 						salary_coverage: { from: cycle.from, to: cycle.to },
 						pay_date
 					},
-					code: settings.code,
+					code: String(
+						known.entity.rows.find((entry) => String(entry.id) === String(row.entity_id))
+							?.settings_code
+					),
 					frame: offCycle
 						? { attendance: cycle, pays, carries }
 						: { attendance: attendanceOf(schedule, cycle) }
@@ -322,17 +302,12 @@ export default model({
 			const posting = [];
 			const deferred = [];
 			const owing = [];
-			for (const { id, row, code, frame } of runs) {
+			for (const [index, { id, row, code, frame }] of runs.entries()) {
 				const data = yield* loadRun(ctx.query, jsonObject(row), frame, code);
-				const unmerged = data.statutory_change?.find(
-					(entry) =>
-						entry.jurisdiction_code === code &&
-						typeof entry.effective_from === 'string' &&
-						entry.effective_from <= row.salary_coverage.to
-				);
-				if (unmerged !== undefined)
-					return yield* ctx.refuse('errors.payroll_run_merge_law', {
-						values: { code, date: String(unmerged.effective_from) }
+				if (data.law_settings?.[0] === undefined)
+					return yield* ctx.refuse('errors.payroll_run_no_law', {
+						row: index,
+						values: { code, date: row.pay_date }
 					});
 				const result = yield* amendedRun(
 					ctx.query,
@@ -341,7 +316,7 @@ export default model({
 						runs: known.payroll_run.rows.map((entry) => jsonObject(entry)),
 						groups: known.pay_group.rows.map((entry) => jsonObject(entry)),
 						amendments: known.pay_amendment.rows.map((entry) => jsonObject(entry)),
-						laws: known.jurisdiction_settings.rows.map((entry) => jsonObject(entry))
+						entities: known.entity.rows.map((entry) => jsonObject(entry))
 					}
 				);
 				// an off-cycle run seals what it pays: an entry with no payslip here would never be paid
@@ -382,7 +357,6 @@ export default model({
 					if (both) return yield* ctx.refuse('errors.payroll_run_moved_company');
 				}
 				const payslips = result.payslips.map((slip) => ({
-					settings_id: row.settings_id,
 					employee_id: idOf('employee_profile', slip.employee_id),
 					employment_id: idOf('employee_contract', slip.employment_id),
 					entity_id: idOf('entity', slip.entity_id),

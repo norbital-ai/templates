@@ -1,6 +1,6 @@
 // The share of a period a salary pays: by calendar days, the person's working days or a day rate, with the rate rounded
 // before or after it multiplies; a leaver's days employed; and a contract version starting inside the period. The
-// settings are the Malaysian fixture's, varied per test; every expected figure is worked from the test's own inputs.
+// law is the Malaysian fixture's, varied per test; every expected figure is worked from the test's own inputs.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
@@ -13,7 +13,7 @@ import { ownLines, run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	OFF,
-	catalogRow,
+	lawWith,
 	leaveCreate,
 	REST,
 	WORK,
@@ -46,15 +46,13 @@ const salary = (
 		},
 		settings,
 		subtotals: [
-			{ id: 'base', code: 'BASE', name: 'BASE', previous_id: null, settings_id: 'law' },
+			{ code: 'BASE', name: 'BASE', previous: null },
 			...(prorated
 				? [
 						{
-							id: 'prorated',
 							code: 'PRORATED',
 							name: 'PRORATED',
-							previous_id: 'base',
-							settings_id: 'law',
+							previous: 'BASE',
 							calculation: 'return -(ctx.proration_amount + ctx.abs_amount);'
 						}
 					]
@@ -117,11 +115,9 @@ const halfInput = (
 		settings: yearRestDays,
 		subtotals: [
 			{
-				id: 'base',
 				code: 'BASE',
 				name: 'BASE',
-				previous_id: null,
-				settings_id: 'law',
+				previous: null,
 				calculation: 'return ctx.base_pay / 2;'
 			}
 		],
@@ -130,10 +126,8 @@ const halfInput = (
 		statutory,
 		leave_catalog: [
 			{
-				id: 'leave',
 				code: 'UNPAID_LEAVE',
-				settings_id: 'law',
-				subtotal_id: 'base',
+				subtotal: 'BASE',
 				paid_share: '0'
 			}
 		],
@@ -157,7 +151,7 @@ const halfInput = (
 		entries:
 			halfDays.length === 0
 				? {}
-				: { leave_catalog_entry: [{ id: 'entry', catalog_id: 'leave', days: halfDays }] },
+				: { leave_catalog_entry: [{ id: 'entry', catalog_code: 'UNPAID_LEAVE', days: halfDays }] },
 		work: { days: absent.map((date) => ({ date, day_type: 'ABS' })) },
 		projected_days: sixDayMarch
 	};
@@ -195,10 +189,8 @@ describe('the proration basis', () => {
 				[],
 				[
 					{
-						id: 'scheme',
 						code: 'TEST',
-						settings_id: 'law',
-						subtotal_id: 'base',
+						subtotal: 'BASE',
 						employee_amount:
 							"return (ctx.leave ?? []).filter((slot) => slot.code === 'UNPAID_LEAVE').length / 2;",
 						employer_amount: 'return 0;'
@@ -262,15 +254,10 @@ describe('a leaver on a shift pattern', () => {
 		},
 		{},
 		[],
-		[],
-		'2026-06-15'
+		[]
 	);
 	const seed = {
-		...base,
-		jurisdiction_settings: (base.jurisdiction_settings ?? []).map((row) => ({
-			...row,
-			conversions: { ...objectValue(row.conversions), proration: 'WORKING_DAYS' }
-		})),
+		...lawWith(base, { conversions: { proration: 'WORKING_DAYS' } }),
 		shift_pattern: [
 			{
 				id: PATTERN,
@@ -336,8 +323,7 @@ describe('a contract version that starts inside the period', () => {
 			{},
 			// a roster makes every day it leaves out an absence: the salary case keeps none
 			overtimeOn === undefined ? [] : [{ date: overtimeOn, shift: WORK, hours: 10, overtime: 2 }],
-			[],
-			'2026-02-15'
+			[]
 		);
 		const [first] = seed.employee_contract ?? [];
 		assert.ok(first !== undefined);
@@ -376,13 +362,12 @@ describe('a contract version that starts inside the period', () => {
 		const noPayOn = (date: string, employment: string) =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const seed = raised();
 				yield* (yield* t.as(t.admin)).act({
 					'leave_catalog_entry.create': [
 						leaveCreate({
 							entity_id: ENTITY,
 							employment_id: idOf('employee_contract', employment),
-							catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+							catalog_code: 'NPL',
 							days: [
 								{ date, part: 'AM' },
 								{ date, part: 'PM' }

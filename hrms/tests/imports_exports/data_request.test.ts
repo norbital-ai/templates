@@ -1,6 +1,5 @@
 // The data-request sheets: flat columns for every jurisdiction, and filled rows back into the models.
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { WorkbookRowsError } from '../../src/lib/payroll_engine/workbook_rows.ts';
@@ -15,40 +14,35 @@ import {
 	type DataRequestKnown,
 	type SettingsFacts
 } from '../../src/lib/ui/workbook/data_request.ts';
+import { lawAt } from '../kit.ts';
 
 const TODAY = '2026-11-05';
+/** What the workbook reads of the law in force today. */
 const seed = (code: string) => {
-	const root = `seed/public/jurisdiction/${code}`;
-	const read = (version: string, file: string) =>
-		JSON.parse(readFileSync(`${root}/${version}/${file}.json`, 'utf8'));
-	const versions = readdirSync(root).map((version) => ({
-		version,
-		row: [read(version, 'jurisdiction_settings')].flat()[0]
+	const law = lawAt(code, TODAY);
+	const text = (value: unknown) => (typeof value === 'string' ? value : null);
+	const settings: SettingsFacts = {
+		code,
+		timezone: String(law.settings.timezone),
+		lookup: law.settings.lookup,
+		employee_extension_schema: law.settings.employee_extension_schema,
+		entity_extension_schema: law.settings.entity_extension_schema
+	};
+	const allowances: readonly AllowanceFacts[] = law.rows.allowance_catalog.map((row) => ({
+		code: String(row.code),
+		lookup: row.lookup,
+		eligibility: text(row.eligibility),
+		conversion: text(row.conversion)
 	}));
-	const current = versions
-		.filter(
-			({ row }) =>
-				row.effective_range.from <= TODAY &&
-				(row.effective_range.to == null || TODAY <= row.effective_range.to)
-		)
-		.toSorted((left, right) =>
-			String(right.row.effective_range.from).localeCompare(left.row.effective_range.from)
-		)[0];
-	assert.ok(current !== undefined);
-	const settings: SettingsFacts = { ...current.row, id: 'settings-now' };
-	const rule = read(current.version, 'registered_rule').find(
-		(row: { code: string }) => row.code === 'CONTRACT_CATEGORIES'
-	);
-	const allowances: readonly AllowanceFacts[] = read(current.version, 'allowance_catalog');
-	return { settings, ruleLookup: rule?.lookup, allowances };
+	return {
+		settings,
+		ruleLookup: law.rows.registered_rule.find((row) => row.code === 'CONTRACT_CATEGORIES')?.lookup,
+		allowances
+	};
 };
 
 const known = (over: Partial<DataRequestKnown> = {}): DataRequestKnown => ({
 	...seed('MY'),
-	versions: [
-		{ id: 'settings-old', code: 'MY', from: '2025-01-01', to: '2026-09-30' },
-		{ id: 'settings-now', code: 'MY', from: '2026-10-01', to: null }
-	],
 	entities: [],
 	entityVersions: [],
 	profiles: [],
@@ -169,7 +163,7 @@ describe('data request plan', () => {
 		assert.deepEqual(plan.entities, [{ name: 'Acme', code: 'ACME' }]);
 		const version = plan.versions[0]?.row;
 		assert.deepEqual(version?.effective_range, { from: '2026-01-01', to: null });
-		assert.equal(version?.input_schema_version_id, 'settings-old');
+		assert.equal(version?.settings_code, 'MY');
 		assert.deepEqual(plan.entitySchedules, [
 			{
 				name: 'Acme',

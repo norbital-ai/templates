@@ -6,7 +6,7 @@ import type { Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, WORK, catalogRow, pack, storedQuery, uuid } from './kit.ts';
+import { ENTITY, WORK, pack, storedQuery, uuid } from './kit.ts';
 
 export const dates = (month: string) => {
 	const last = new Date(
@@ -178,14 +178,14 @@ export const overtimeKeyed = (t: Kit, date: string) =>
 		});
 	});
 /** A medical claim HR keys for the person; answers its id. */
-export const claimed = (t: Kit, from: ReturnType<typeof rostered>, quantity: number, on: string) =>
+export const claimed = (t: Kit, quantity: number, on: string) =>
 	Effect.gen(function* () {
 		yield* (yield* t.as(t.admin)).act({
 			'claim_catalog_entry.create': [
 				{
 					entity_id: ENTITY,
 					employment_id: EMPLOYMENT,
-					catalog_id: idOf('claim_catalog', catalogRow(from, 'claim_catalog', 'MEDICAL_CLAIM')),
+					catalog_code: 'MEDICAL_CLAIM',
 					quantity: String(quantity),
 					incurred_on: on
 				}

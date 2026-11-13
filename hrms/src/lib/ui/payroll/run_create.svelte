@@ -12,6 +12,7 @@
 	import { DateTime, Effect } from 'effect';
 	import { jsonObject } from '../../payroll_engine/foundation.js';
 	import { cycleOn, cyclesIn } from '../../payroll_engine/pay_cycle.js';
+	import { pageLaws } from '../law.svelte.js';
 
 	let {
 		ctx,
@@ -38,8 +39,19 @@
 				where: { entity_id: { eq: companyId }, kind: { eq: 'ON_CYCLE' } },
 				fields: ['period', 'pay_group_id'],
 				limit: 10000
-			}
+			},
+			entity: { where: { id: { eq: companyId } }, fields: ['settings_code'], limit: 1 }
 		})
+	);
+	const code = $derived(known?.current?.entity.rows[0]?.settings_code);
+	const laws = pageLaws(ctx, () => (code === undefined ? [] : [code]));
+	// the ad hoc rows of the company's law today that an off-cycle run may pay
+	const offCycleCodes = $derived(
+		new Set(
+			(laws.on(code, String(today))?.rows.adhoc_catalog ?? []).flatMap((row) =>
+				row.off_cycle_eligible === true ? [String(row.code)] : []
+			)
+		)
 	);
 	const version = $derived(
 		known?.current?.entity_profile_version.rows.find(
@@ -90,7 +102,7 @@
 
 	const openEntry = {
 		where: { entity_id: { eq: companyId }, payroll_run_id: { is_null: true } },
-		fields: ['catalog_id', 'employment_id', 'quantity', 'revision'],
+		fields: ['catalog_code', 'employment_id', 'quantity', 'revision'],
 		limit: 10000
 	} as const;
 	const listed = $derived(
@@ -98,7 +110,6 @@
 			? ctx.query({
 					adhoc_catalog_entry: {
 						...openEntry,
-						catalog_id: { fields: ['code', 'off_cycle_eligible'] },
 						employment_id: {
 							fields: ['employee_number', 'employee_id', 'effective_range'],
 							employee_id: { fields: ['name'] }
@@ -114,18 +125,14 @@
 				adhoc: [{ id: row.id, revision: row.revision }]
 			}))
 		].flatMap(({ row, adhoc }) => {
-			const offCycle =
-				row.catalog_id !== null &&
-				'off_cycle_eligible' in row.catalog_id &&
-				row.catalog_id.off_cycle_eligible === true;
-			return row.employment_id != null && row.catalog_id !== null && offCycle
+			return row.employment_id != null && offCycleCodes.has(row.catalog_code)
 				? [
 						{
 							adhoc,
 							who: String(row.employment_id.id),
 							employed: row.employment_id.effective_range,
 							person: `${row.employment_id.employee_id?.name ?? ''} (${row.employment_id.employee_number})`,
-							what: row.catalog_id.code
+							what: row.catalog_code
 						}
 					]
 				: [];

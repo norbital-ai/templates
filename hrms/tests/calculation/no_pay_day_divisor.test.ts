@@ -5,13 +5,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { run, slip } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	REST,
 	WORK,
-	catalogRow,
+	lawWith,
 	leaveCreate,
 	pack,
 	uuid,
@@ -37,13 +37,9 @@ const malaysia = (
 	conversions: { readonly [key: string]: Seed[string][number][string] } = {},
 	days: Parameters<typeof pack>[4] = []
 ): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', agreed, {}, days, [], '2026-06-15');
+	const seed = lawWith(pack('MY', 'Asia/Kuala_Lumpur', agreed, {}, days, []), { conversions });
 	return {
 		...seed,
-		jurisdiction_settings: (seed.jurisdiction_settings ?? []).map((row) => ({
-			...row,
-			conversions: { ...objectValue(row.conversions), ...conversions }
-		})),
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
 			effective_range: { from: '2026-01-01', to: null }
@@ -59,7 +55,7 @@ const june = (seed: Seed, dates: readonly string[]) =>
 				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
-					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+					catalog_code: 'NPL',
 					days: wholeDays(...dates)
 				})
 			]

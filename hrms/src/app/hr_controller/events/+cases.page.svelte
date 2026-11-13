@@ -9,6 +9,7 @@
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
+	import { pageLaws } from '../../../lib/ui/law.svelte.js';
 	import { parseCaseSheet } from '../../../lib/payroll_engine/entry_workbook.js';
 	import {
 		runWorkbookImport,
@@ -17,6 +18,7 @@
 	let { ctx }: { ctx: PageContext } = $props();
 
 	const scope = companyScope(ctx);
+	const laws = pageLaws(ctx, () => scope.entities.map((row) => row.settings_code));
 	const t = ctx.t;
 	const caseName = listedKindNames(ctx, 'case_kinds');
 	let creating = $state<'workplace_case_catalog_entry' | null>(null);
@@ -27,12 +29,6 @@
 		scope.id == null
 			? null
 			: ctx.query({
-					jurisdiction_settings: {
-						where: { status: { eq: 'SEALED' } },
-						fields: ['code', 'effective_range'],
-						limit: 10000
-					},
-					workplace_case_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					workplace_case_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
 						fields: ['entity_id', 'employment_id', 'kind', 'opened_on'],
@@ -75,17 +71,7 @@
 				from: row.effective_range.from,
 				to: row.effective_range.to
 			})),
-			versions: current.jurisdiction_settings.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				from: row.effective_range.from,
-				to: row.effective_range.to
-			})),
-			catalogs: current.workplace_case_catalog.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				settings_id: row.settings_id
-			})),
+			laws: laws.on,
 			entities,
 			existing: current.workplace_case_catalog_entry.rows.map((row) => ({
 				entity_id: row.entity_id,
@@ -98,7 +84,7 @@
 		return parsed.rows.map((row) => ({
 			entity_id: row.entity_id,
 			employment_id: row.employment_id,
-			catalog_id: row.catalog_id,
+			catalog_code: row.catalog_code,
 			kind: row.kind,
 			...(row.severity == null ? {} : { severity: row.severity }),
 			opened_on: row.opened_on,
@@ -157,7 +143,8 @@
 						run: importCases,
 						icon: 'lucide:file-spreadsheet',
 						name: t('holiday_calendar.import_spreadsheet'),
-						disabled: () => (importing || held?.current == null ? t('component.loading') : null)
+						disabled: () =>
+							importing || held?.current == null || laws.loading ? t('component.loading') : null
 					}
 				]
 			}}

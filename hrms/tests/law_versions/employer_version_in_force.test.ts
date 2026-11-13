@@ -3,23 +3,21 @@
 // Kept on VN: only VN's registered rules read the employer versions by date; no MY row selects one to vary.
 import { DateTime } from 'effect';
 import assert from 'node:assert/strict';
-import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { read } from '../kit.ts';
+import { lawAt } from '../kit.ts';
 
-const VERSION = join(process.cwd(), 'seed/public/jurisdiction/VN/version_5');
-/** A registered rule's check, with its version's settings lookup under its own. */
+const LAW = lawAt('VN', '2026-12-31');
+/** A registered rule's check, with the law's shared lookup under its own. */
 const ruleOf = (code: string) => {
-	const rule = read(join(VERSION, 'registered_rule.json')).find((row) => row.code === code);
-	const [settings] = read(join(VERSION, 'jurisdiction_settings.json'));
+	const rule = LAW.rows.registered_rule.find((row) => row.code === code);
 	const validate = rule?.validate;
 	assert.ok(typeof validate === 'string', code);
 	return {
 		validate,
 		lookup: {
-			...(isJsonObject(settings?.lookup) ? settings.lookup : {}),
+			...(isJsonObject(LAW.settings.lookup) ? LAW.settings.lookup : {}),
 			...(isJsonObject(rule?.lookup) ? rule.lookup : {})
 		}
 	};

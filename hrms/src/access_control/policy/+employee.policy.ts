@@ -10,14 +10,13 @@ import {
 const claimColumns = [
 	'entity_id',
 	'employment_id',
-	'catalog_id',
+	'catalog_code',
 	'quantity',
 	'incurred_on',
 	'evidence_file'
 ] as const;
 const claimUpdateColumns = ['quantity', 'incurred_on', 'evidence_file'] as const;
-const leaveColumns = ['entity_id', 'employment_id', 'catalog_id', 'evidence_file'] as const;
-const SEALED_SETTINGS = { where: { settings_id: { is: { status: { eq: 'SEALED' } } } } } as const;
+const leaveColumns = ['entity_id', 'employment_id', 'catalog_code', 'evidence_file'] as const;
 export default policy({
 	description:
 		'Own identity and documents, admitted requests, work, loans, balances, immutable ledger and payslips. User identity is the linked member ID.',
@@ -50,14 +49,8 @@ export default policy({
 				}
 			}
 		},
-		jurisdiction_settings: {
-			outputs: { default: { where: { status: { eq: 'SEALED' } } } }
-		},
-		leave_catalog: { outputs: { default: SEALED_SETTINGS } },
-		claim_catalog: { outputs: { default: SEALED_SETTINGS } },
-		allowance_catalog: { outputs: { default: SEALED_SETTINGS } },
-		adhoc_catalog: { outputs: { default: SEALED_SETTINGS } },
-		loan_catalog: { outputs: { default: SEALED_SETTINGS } },
+		jurisdiction: { outputs: { default: {} } },
+		jurisdiction_change: { outputs: { default: {} } },
 		claim_catalog_entry: {
 			outputs: { default: { where: OWN } },
 			create: {

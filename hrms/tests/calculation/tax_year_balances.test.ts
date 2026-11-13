@@ -8,7 +8,7 @@ import { Effect, Schema } from 'effect';
 import { viewOf } from '../../src/lib/ledger/core.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, catalogRow, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, accountsIn, pack, storedQuery, uuid, workspace } from '../kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 type Seed = ReturnType<typeof pack>;
@@ -20,9 +20,9 @@ const terms = (amount: number) => ({
 	wage_payment_method: 'BANK',
 	allowances: {}
 });
-/** One person on `amount` a month from `from`, on the Malaysian law in force `on`. */
-const malaysia = (amount: number, on = '2026-06-15', from = '2025-01-01'): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(amount), {}, [], [], on);
+/** One person on `amount` a month from `from`, on the Malaysian law. */
+const malaysia = (amount: number, from = '2025-01-01'): Seed => {
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(amount), {}, [], []);
 	return {
 		...seed,
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
@@ -35,14 +35,14 @@ const run = (t: Kit, period: string) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
 	).pipe(Effect.andThen(t.run_due()));
-const enter = (t: Kit, seed: Seed, code: string, quantity: number, on: string) =>
+const enter = (t: Kit, code: string, quantity: number, on: string) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({
 			'adhoc_catalog_entry.create': [
 				{
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
-					catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', code)),
+					catalog_code: code,
 					description: code,
 					quantity: String(quantity),
 					incurred_on: on
@@ -180,13 +180,13 @@ describe('the tax year to date', () => {
 
 	it.live("a top-up paid a month late reaches the year's tax all the same", () => {
 		// joined in November: November and December are the tax year's only months
-		const seed = malaysia(6000, '2026-11-15', '2026-11-01');
+		const seed = malaysia(6000, '2026-11-01');
 		const pcb = (late: boolean) =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				if (!late) yield* enter(t, seed, 'BPAYBS', 30_000, '2026-11-10');
+				if (!late) yield* enter(t, 'BPAYBS', 30_000, '2026-11-10');
 				yield* run(t, '2026-11');
-				if (late) yield* enter(t, seed, 'BPAYBS', 30_000, '2026-12-10');
+				if (late) yield* enter(t, 'BPAYBS', 30_000, '2026-12-10');
 				yield* run(t, '2026-12');
 				const november = yield* taxed(t, '2026-11', 'PCB');
 				const december = yield* taxed(t, '2026-12', 'PCB');
@@ -205,10 +205,10 @@ describe('the tax year to date', () => {
 describe('a benefit', () => {
 	it.live('posts what sits above the checkpoint under it, under the year’s key', () => {
 		const BONUS = 20_000;
-		const seed = malaysia(10_000, '2026-03-15');
+		const seed = malaysia(10_000);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* enter(t, seed, 'BONUS', BONUS, '2026-03-10');
+			yield* enter(t, 'BONUS', BONUS, '2026-03-10');
 			yield* paid(t, '2026-03');
 			const tax = yield* taxed(t, '2026-03', 'PCB');
 			assert.ok(tax > 0);
@@ -232,8 +232,7 @@ describe('a benefit', () => {
 				terms(10_000_000),
 				{ pension_tax_history: { first_payment_year: 2026 } },
 				[],
-				[],
-				'2026-06-15'
+				[]
 			);
 			const seed: Seed = {
 				...base,
@@ -248,10 +247,10 @@ describe('a benefit', () => {
 			};
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* enter(t, seed, 'PENSION_LUMPSUM', PAID, '2026-03-10');
+				yield* enter(t, 'PENSION_LUMPSUM', PAID, '2026-03-10');
 				yield* paid(t, '2026-03');
 				const first = yield* taxed(t, '2026-03', TAX);
-				yield* enter(t, seed, 'PENSION_LUMPSUM', PAID, '2027-04-10');
+				yield* enter(t, 'PENSION_LUMPSUM', PAID, '2027-04-10');
 				yield* paid(t, '2027-04');
 				const second = yield* taxed(t, '2027-04', TAX);
 				// the same payment twice: only the first year's posting, read from the balance, can make the second differ
@@ -275,11 +274,11 @@ describe('a statutory row below zero with a refund route', () => {
 	it.live(
 		'pays the refund once on the run, and the balance holds what was withheld less what came back',
 		() => {
-			const seed = pack('ID', 'Asia/Jakarta', terms(10_000_000), {}, [], [], '2026-06-15');
+			const seed = pack('ID', 'Asia/Jakarta', terms(10_000_000), {}, [], []);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				// a one-month spike withholds at that month's high rate; December settles the year and comes back negative
-				yield* enter(t, seed, 'BONUS_THR', 200_000_000, '2026-10-10');
+				yield* enter(t, 'BONUS_THR', 200_000_000, '2026-10-10');
 				for (const period of ['2026-10', '2026-11', '2026-12']) yield* run(t, period);
 				const all = yield* slips(t);
 				const december = all.find((row) => row.period === '2026-12');

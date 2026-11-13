@@ -14,7 +14,6 @@ import {
 	OFF,
 	PAY_GROUP,
 	WORK,
-	catalogRow,
 	leaveCreate,
 	pack,
 	uuid,
@@ -97,7 +96,7 @@ const lineOf = (slip: PayslipBreakdown | undefined, code: string) =>
 	slip?.lines
 		.filter((line) => line.code === code)
 		.reduce((total, line) => total + line.amount, 0) ?? 0;
-const unpaidLeave = (t: Kit, seed: Seed, ...dates: readonly string[]) =>
+const unpaidLeave = (t: Kit, ...dates: readonly string[]) =>
 	t.as(t.admin).pipe(
 		Effect.andThen((caller) =>
 			caller.act({
@@ -105,7 +104,7 @@ const unpaidLeave = (t: Kit, seed: Seed, ...dates: readonly string[]) =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+						catalog_code: 'NPL',
 						days: wholeDays(...dates)
 					})
 				]
@@ -130,7 +129,7 @@ describe('leave in an arrears window', () => {
 		const seed = seedOf(30_000, [{ from: '2025-01-01', to: null }]);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* unpaidLeave(t, seed, '2026-01-07');
+			yield* unpaidLeave(t, '2026-01-07');
 			// the first half pays 1–15 January but attends 16–31 December: the 7th is not its own
 			yield* run(t, '2026-01-1');
 			assert.deepEqual((yield* sealedBy(t)).slots, [null, null]);
@@ -154,7 +153,7 @@ describe('a leaver', () => {
 			);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* unpaidLeave(t, seed, '2026-02-05');
+				yield* unpaidLeave(t, '2026-02-05');
 				yield* t.as(t.admin).pipe(
 					Effect.andThen((caller) =>
 						caller.act({
@@ -162,7 +161,7 @@ describe('a leaver', () => {
 								{
 									entity_id: ENTITY,
 									employment_id: CONTRACT,
-									catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', 'BPAYBS')),
+									catalog_code: 'BPAYBS',
 									description: 'Last half',
 									quantity: '1000',
 									incurred_on: '2026-02-11'
@@ -231,7 +230,6 @@ describe('a run after thirteen months of history', () => {
 	/** Every half from February 2025 to January 2026 has run and sealed the roster days it attended. */
 	const history = (): Seed => {
 		const seed = seedOf(30_000, [open], rosterOf('2025-01-16', WINDOW.to));
-		const settings = String(seed.entity_profile_version?.[0]?.input_schema_version_id);
 		const runs = Array.from({ length: 12 }, (_, month) =>
 			DateTime.formatIsoDate(
 				DateTime.add(DateTime.makeUnsafe('2025-02-01'), { months: month })
@@ -246,7 +244,6 @@ describe('a run after thirteen months of history', () => {
 					pay_group_id: PAY_GROUP,
 					period: key,
 					kind: 'ON_CYCLE',
-					settings_id: settings,
 					salary_coverage: { from: cycle(key).from, to: cycle(key).to },
 					pay_date: String(payDateOf(ARREARS, key)),
 					state: 'PAID'
@@ -267,7 +264,7 @@ describe('a run after thirteen months of history', () => {
 					id: uuid(900),
 					entity_id: ENTITY,
 					employment_id: uuid(6),
-					catalog_id: catalogRow(seed, 'leave_catalog', 'NPL'),
+					catalog_code: 'NPL',
 					payroll_run_id: sealer('2025-06-10')
 				}
 			],
@@ -306,7 +303,7 @@ describe('a run after thirteen months of history', () => {
 	const paid = (seed: Seed) =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* unpaidLeave(t, seed, '2026-01-20');
+			yield* unpaidLeave(t, '2026-01-20');
 			yield* run(t, PERIOD);
 			return yield* figures(t);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
@@ -316,18 +313,17 @@ describe('a run after thirteen months of history', () => {
 		return Effect.gen(function* () {
 			const read = yield* Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* unpaidLeave(t, seed, '2026-01-20');
+				yield* unpaidLeave(t, '2026-01-20');
 				const salary = cycle(PERIOD);
 				return yield* loadRun(
 					storedReader(t),
 					{
 						entity_id: ENTITY,
 						pay_group_id: PAY_GROUP,
-						settings_id: String(seed.entity_profile_version?.[0]?.input_schema_version_id),
 						salary_coverage: { from: salary.from, to: salary.to }
 					},
 					{ attendance: attendanceOf(ARREARS, salary) },
-					String(seed.jurisdiction_settings?.[0]?.code)
+					'MY'
 				);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 			const dates = (read.roster_entry ?? []).map((row) => String(row.work_date));
@@ -410,7 +406,7 @@ describe('attendance a run has priced', () => {
 						id: LOAN,
 						entity_id: ENTITY,
 						employment_id: uuid(6),
-						catalog_id: catalogRow(seed, 'loan_catalog', 'LOAN_RECOVERY_FESTIVE_ADVANCE'),
+						catalog_code: 'LOAN_RECOVERY_FESTIVE_ADVANCE',
 						quantity: 1000,
 						repayment_period: { from: '2026-01-01', to: '2026-06-30' }
 					}
@@ -483,10 +479,7 @@ describe('a claim entered after its run', () => {
 								{
 									entity_id: ENTITY,
 									employment_id: CONTRACT,
-									catalog_id: idOf(
-										'claim_catalog',
-										catalogRow(seed, 'claim_catalog', 'MEDICAL_CLAIM')
-									),
+									catalog_code: 'MEDICAL_CLAIM',
 									quantity: '500',
 									incurred_on: '2026-01-10'
 								}
@@ -556,7 +549,7 @@ describe('a ten-day schedule with a cutoff', () => {
 							)
 						);
 					yield* t.run_due();
-					yield* unpaidLeave(t, seed, day);
+					yield* unpaidLeave(t, day);
 					const { pay_amendment } = yield* storedQuery(t, { pay_amendment: { limit: 10 } });
 					assert.deepEqual(
 						pay_amendment.rows.map((row) => [row.period, row.payroll_run_id ?? null]),

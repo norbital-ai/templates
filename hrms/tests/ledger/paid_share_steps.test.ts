@@ -10,7 +10,8 @@ import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
-	catalogRow,
+	lawAt,
+	lawWith,
 	ledgerRows,
 	pack,
 	sealEvents,
@@ -45,35 +46,32 @@ const STEPS = [
 	{ until_month: null, unpaid_share: 0.75 }
 ];
 type Seed = ReturnType<typeof pack>;
+const LAW = lawAt('MY', '2026-06-15');
 const seedOf = (events: readonly JsonObject[] = []): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, { events }, [], [], '2026-06-15');
-	return {
-		...seed,
-		leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-			row.code === CODE
-				? {
-						...row,
-						lookup: {
-							...objectValue(row.lookup),
-							pay_steps: STEPS,
-							opened_by: { LONG_ILLNESS: { days: 0 } }
-						},
-						paid_share:
-							'if (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;'
-					}
-				: row
-		)
-	};
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, { events }, [], []);
+	return lawWith(seed, {
+		leave_catalog: {
+			[CODE]: {
+				lookup: {
+					...objectValue(LAW.rows.leave_catalog.find((row) => row.code === CODE)?.lookup),
+					pay_steps: STEPS,
+					opened_by: { LONG_ILLNESS: { days: 0 } }
+				},
+				paid_share:
+					'if (ctx.event == null) return 1;\nconst months = calendar_completed_months(ctx.event.on, ctx.as_of);\nreturn 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;'
+			}
+		}
+	});
 };
 const PLAIN = seedOf();
-const take = (t: Kit, seed: Seed, dates: readonly string[]) =>
+const take = (t: Kit, dates: readonly string[]) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: idOf('employee_contract', uuid(6)),
-					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', CODE)),
+					catalog_code: CODE,
 					days: wholeDays(...dates)
 				})
 			]
@@ -115,11 +113,8 @@ const refunded = (t: Kit, period: string) =>
 const JUNE = ['2026-06-09', '2026-06-10'];
 // the fixture's law takes an unpaid day off by its proration: the month's salary over June's 30 calendar days, or
 // else its day rate, a year's wage over the year's working days
-const settings = (PLAIN.jurisdiction_settings ?? []).find(
-	(row) => row.id === PLAIN.entity_profile_version?.[0]?.input_schema_version_id
-);
 const DAY =
-	objectValue(settings?.conversions).proration === 'CALENDAR_DAYS'
+	objectValue(LAW.settings.conversions).proration === 'CALENDAR_DAYS'
 		? terms.rate.amount / 30
 		: (terms.rate.amount * 12) / (52 * terms.normal_days_per_week);
 
@@ -127,7 +122,7 @@ describe('pay that steps down, on one row', () => {
 	it.live('a day with no fact is at full pay', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* take(t, PLAIN, JUNE);
+			yield* take(t, JUNE);
 			yield* t.run_due();
 			yield* run(t, '2026-06');
 			assert.equal(yield* taken(t), 0);
@@ -140,7 +135,7 @@ describe('pay that steps down, on one row', () => {
 			const ill = seedOf([{ kind: 'LONG_ILLNESS', on: started }]);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* take(t, ill, JUNE);
+				yield* take(t, JUNE);
 				yield* t.run_due();
 				yield* run(t, '2026-06');
 				near(yield* taken(t), 2 * DAY * share);
@@ -151,7 +146,7 @@ describe('pay that steps down, on one row', () => {
 		const ill = seedOf([event]);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* take(t, ill, JUNE);
+			yield* take(t, JUNE);
 			yield* t.run_due();
 			const next = yield* sealEvents(t, '2026-07-01', [event]);
 			const { employee_contract } = yield* storedQuery(t, {
@@ -164,7 +159,7 @@ describe('pay that steps down, on one row', () => {
 		const ill = seedOf([{ kind: 'LONG_ILLNESS', on: '2026-02-02', ended_on: '2026-05-29' }]);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* take(t, ill, JUNE);
+			yield* take(t, JUNE);
 			yield* t.run_due();
 			yield* run(t, '2026-06');
 			assert.equal(yield* taken(t), 0);
@@ -177,7 +172,7 @@ describe('pay that steps down, on one row', () => {
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
-				yield* take(t, ill, ['2026-06-09']);
+				yield* take(t, ['2026-06-09']);
 				yield* t.run_due();
 				yield* run(t, '2026-06');
 				const before = yield* taken(t);
@@ -214,10 +209,7 @@ describe('a workplace case', () => {
 					{
 						entity_id: ENTITY,
 						employment_id: idOf('employee_contract', uuid(6)),
-						catalog_id: idOf(
-							'workplace_case_catalog',
-							catalogRow(PLAIN, 'workplace_case_catalog', 'PERSONAL_DATA_BREACH')
-						),
+						catalog_code: 'PERSONAL_DATA_BREACH',
 						kind: 'PERSONAL_DATA_BREACH',
 						opened_on: '2026-03-02',
 						inputs: {}

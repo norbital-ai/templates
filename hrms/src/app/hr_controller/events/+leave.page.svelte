@@ -8,6 +8,7 @@
 	import LeaveEntryForm from '../../../lib/ui/person/leave_entry_form.svelte';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
+	import { pageLaws } from '../../../lib/ui/law.svelte.js';
 	import { parseLeaveSheet } from '../../../lib/payroll_engine/entry_workbook.js';
 	import { idOf } from '../../../lib/payroll_engine/reads.js';
 	import {
@@ -16,6 +17,7 @@
 	} from '../../../lib/ui/workbook/workbook_import.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);
+	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
 	let importing = $state(false);
 	let warnings: readonly string[] = [];
@@ -29,15 +31,9 @@
 						fields: ['employee_number', 'entity_id', 'effective_range'],
 						limit: 10000
 					},
-					jurisdiction_settings: {
-						where: { status: { eq: 'SEALED' } },
-						fields: ['code', 'effective_range'],
-						limit: 10000
-					},
-					leave_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					leave_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'catalog_id'],
+						fields: ['employment_id', 'catalog_code'],
 						limit: 10000,
 						leave_catalog_entry_day: { fields: ['incurred_on', 'part'] }
 					}
@@ -64,20 +60,10 @@
 				from: row.effective_range.from,
 				to: row.effective_range.to
 			})),
-			versions: current.jurisdiction_settings.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				from: row.effective_range.from,
-				to: row.effective_range.to
-			})),
-			catalogs: current.leave_catalog.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				settings_id: row.settings_id
-			})),
+			laws: laws.on,
 			existing: current.leave_catalog_entry.rows.map((row) => ({
 				employment_id: row.employment_id,
-				catalog_id: row.catalog_id,
+				catalog_code: row.catalog_code,
 				days: (row.leave_catalog_entry_day ?? []).map((child) => ({
 					date: String(child.incurred_on),
 					part: child.part
@@ -88,7 +74,7 @@
 		return parsed.rows.map((row) => ({
 			entity_id: row.entity_id,
 			employment_id: row.employment_id,
-			catalog_id: row.catalog_id,
+			catalog_code: row.catalog_code,
 			leave_catalog_entry_day: row.days.map((day) => ({
 				incurred_on: day.date,
 				part: day.part
@@ -129,11 +115,12 @@
 						run: importLeave,
 						icon: 'lucide:file-spreadsheet',
 						name: ctx.t('holiday_calendar.import_spreadsheet'),
-						disabled: () => (importing || held?.current == null ? ctx.t('component.loading') : null)
+						disabled: () =>
+							importing || held?.current == null || laws.loading ? ctx.t('component.loading') : null
 					}
 				]
 			}}
-			columns={['employment_id', 'catalog_id']}
+			columns={['employment_id', 'catalog_code']}
 		/>{/if}{/snippet}
 <AppShell
 	title={ctx.t('app.leave.title')}

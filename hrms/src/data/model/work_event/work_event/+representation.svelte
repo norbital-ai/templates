@@ -24,7 +24,7 @@
 		{#snippet children()}<Stack gap="md">
 				<Field {ctx} name="entity_id" />
 				<Field {ctx} name="employment_id" />
-				<CatalogField {ctx} of="work_event_catalog" />
+				<CatalogField {ctx} of="work_event_catalog" dated="from" />
 				{#each ['from', 'to', 'location', 'description', 'evidence_file'] as name (name)}<Field
 						{ctx}
 						{name}

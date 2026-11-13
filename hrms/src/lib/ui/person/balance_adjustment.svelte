@@ -18,7 +18,8 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
-	import { versionOn } from '../../payroll_engine/contract_change.js';
+	import { isJsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
+	import { pageLaws } from '../law.svelte.js';
 
 	let {
 		ctx,
@@ -38,72 +39,55 @@
 	let amount = $state<number | null>(null);
 	let note = $state('');
 	let saving = $state(false);
-	const law = ctx.query({
+	const contracts = ctx.query({
 		employee_contract: {
 			where: { employee_id: { eq: employeeId }, status: { eq: 'SEALED' } },
 			fields: ['effective_range', 'entity_id'],
 			limit: 1000,
 			entity_id: { fields: ['settings_code'] }
-		},
-		jurisdiction_settings: {
-			where: { status: { eq: 'SEALED' } },
-			fields: ['code', 'effective_range'],
-			limit: 2000
 		}
 	});
+	const laws = pageLaws(ctx, () => [
+		...new Set(
+			(contracts.current?.employee_contract.rows ?? []).flatMap(
+				(row) => row.entity_id?.settings_code ?? []
+			)
+		)
+	]);
 	/** The law of the contract in force on the date: its rows are the ones a balance can be adjusted on. */
-	const version = $derived.by(() => {
+	const law = $derived.by(() => {
 		const day = String(date);
-		const contract = (law.current?.employee_contract.rows ?? []).find(
+		const contract = (contracts.current?.employee_contract.rows ?? []).find(
 			(row) =>
 				String(row.effective_range.from) <= day &&
 				(row.effective_range.to == null || day <= String(row.effective_range.to))
 		);
-		return versionOn(
-			law.current?.jurisdiction_settings.rows ?? [],
-			contract?.entity_id?.settings_code,
-			day
-		)?.id;
+		return laws.on(contract?.entity_id?.settings_code, day);
 	});
-	const rows = $derived(
-		version === undefined
-			? null
-			: ctx.query({
-					leave_catalog: {
-						where: { settings_id: { eq: version } },
-						fields: ['code', 'description', 'lookup'],
-						order_by: { code: 'asc' },
-						limit: 1000
-					},
-					claim_catalog: {
-						where: { settings_id: { eq: version } },
-						fields: ['code', 'description'],
-						order_by: { code: 'asc' },
-						limit: 1000
-					}
-				})
-	);
+	const optionsOf = (family: 'leave' | 'claim', group: string) =>
+		(law?.rows[`${family}_catalog`] ?? [])
+			.map((row) => ({
+				value: `${family}:${String(row.code)}`,
+				label: String(row.code),
+				...(typeof row.description === 'string' ? { description: row.description } : {}),
+				group
+			}))
+			.toSorted((one, other) => one.label.localeCompare(other.label));
 	const options = $derived([
-		...(rows?.current?.leave_catalog.rows ?? []).map((row) => ({
-			value: `leave:${row.code}`,
-			label: row.code,
-			...(row.description == null ? {} : { description: row.description }),
-			group: t('balance.leave')
-		})),
-		...(rows?.current?.claim_catalog.rows ?? []).map((row) => ({
-			value: `claim:${row.code}`,
-			label: row.code,
-			...(row.description == null ? {} : { description: row.description }),
-			group: t('balance.claim')
-		}))
+		...optionsOf('leave', t('balance.leave')),
+		...optionsOf('claim', t('balance.claim'))
 	]);
+	const unitOf = (row: JsonObject | undefined) => {
+		const lookup = row?.lookup;
+		return isJsonObject(lookup) ? lookup.unit : undefined;
+	};
 	const account = $derived(chosen?.startsWith('claim:') ? 'claim' : 'leave');
 	/** A leave row counts in days, or in hours where its lookup says so. */
 	const unit = $derived(
 		account === 'claim'
 			? 'MONEY'
-			: (rows?.current?.leave_catalog.rows ?? []).find((row) => `leave:${row.code}` === chosen)
-						?.lookup.unit === 'HOUR'
+			: unitOf(law?.rows.leave_catalog.find((row) => `leave:${String(row.code)}` === chosen)) ===
+				  'HOUR'
 				? 'HOUR'
 				: 'DAY'
 	);
@@ -181,7 +165,7 @@
 				{options}
 				value={chosen}
 				disabled={saving}
-				loading={rows?.loading ?? law.loading}
+				loading={contracts.loading || laws.loading}
 				on_change={(next) => (chosen = next)}
 			/>
 		</label>

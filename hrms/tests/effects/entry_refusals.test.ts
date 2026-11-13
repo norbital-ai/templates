@@ -8,7 +8,6 @@ import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
-	catalogRow,
 	leaveCreate,
 	pack,
 	refusal,
@@ -27,9 +26,9 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-06-15');
+const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 const CASE = 'WORKPLACE_ACCIDENT';
-const LEAVE = idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL'));
+const LEAVE = 'NPL';
 const live = workspace({ seed, now: '2026-06-20T02:00:00.000Z' });
 const file = (t: Kit, inputs: JsonObject) =>
 	t.as(t.admin).pipe(
@@ -37,10 +36,7 @@ const file = (t: Kit, inputs: JsonObject) =>
 			admin.act({
 				'workplace_case_catalog_entry.create': [
 					{
-						catalog_id: idOf(
-							'workplace_case_catalog',
-							catalogRow(seed, 'workplace_case_catalog', CASE)
-						),
+						catalog_code: CASE,
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
 						kind: CASE,
@@ -74,7 +70,7 @@ describe('a leave entry', () => {
 			const refused = yield* refusal(
 				admin.act({
 					'leave_catalog_entry.create': [
-						{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: LEAVE }
+						{ entity_id: ENTITY, employment_id: CONTRACT, catalog_code: LEAVE }
 					]
 				})
 			);
@@ -90,7 +86,7 @@ describe('a leave entry', () => {
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: LEAVE,
+						catalog_code: LEAVE,
 						days: wholeDays('2026-06-01')
 					})
 				]

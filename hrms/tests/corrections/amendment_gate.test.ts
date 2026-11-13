@@ -7,7 +7,7 @@ import { describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { RUN_INPUTS } from '../../src/lib/amendments.ts';
 import { loadRun } from '../../src/lib/payroll_engine/run_calculation.ts';
-import { ENTITY, PAY_GROUP, uuid } from '../kit.ts';
+import { ENTITY, PAY_GROUP } from '../kit.ts';
 
 const models = (root: string): readonly string[] =>
 	readdirSync(root, { withFileTypes: true }).flatMap((entry) =>
@@ -39,7 +39,6 @@ describe('what a run reads', () => {
 				{
 					entity_id: ENTITY,
 					pay_group_id: PAY_GROUP,
-					settings_id: uuid(2),
 					kind: 'ON_CYCLE',
 					period: '2026-02',
 					pay_date: '2026-02-25',
@@ -60,7 +59,7 @@ describe('what a run reads', () => {
 	for (const [model, rule] of Object.entries(RUN_INPUTS)) {
 		if (rule === 'amends')
 			it(`${model}: its write carries the amendment rows`, () =>
-				assert.match(sourceOf(model), /amendments(For|Of)\(/));
+				assert.match(sourceOf(model), /amendments(For|Of)\(|lawWrite\(/));
 		if (rule === 'refuses')
 			it(`${model}: a change paid periods were worked out on is refused`, () =>
 				assert.match(sourceOf(model), /paidUnder\(|payroll_run_id: \{ is_null: false \}/));

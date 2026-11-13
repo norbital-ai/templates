@@ -92,10 +92,10 @@
 					limit: 10000
 				}
 			},
-			jurisdiction_settings: {
-				where: { code: { eq: company.settings_code }, status: { eq: 'SEALED' } },
-				fields: ['effective_range', 'timezone'],
-				limit: 10000
+			jurisdiction: {
+				where: { code: { eq: company.settings_code } },
+				fields: ['timezone'],
+				limit: 1
 			}
 		})
 	);
@@ -111,14 +111,13 @@
 			data.current?.shift_definition.next != null ||
 			data.current?.shift_pattern.next != null ||
 			data.current?.leave_catalog_entry.next != null ||
-			data.current?.jurisdiction_settings.next != null
+			data.current?.jurisdiction.next != null
 	);
 	const covers = (range: { from: string; to: string | null }, date: string) =>
 		range.from <= date && (range.to == null || range.to >= date);
 	const zoneOn = (date: string): string | null =>
 		employerVersions.find((v) => covers(v.effective_range, date))?.time_zone ??
-		data.current?.jurisdiction_settings.rows.find((v) => covers(v.effective_range, date))
-			?.timezone ??
+		data.current?.jurisdiction.rows[0]?.timezone ??
 		null;
 	const timeZone = $derived(zoneOn(DateTime.formatIsoDate(monthStart)) ?? zoneOn(monthEnd));
 	const stamp = (date: string) => new Date(`${date}T00:00:00`);
@@ -285,7 +284,7 @@
 					});
 				}
 			};
-			for (const row of leave) addLeave(row.id, row.catalog_id, row.days);
+			for (const row of leave) addLeave(row.id, row.catalog_code, row.days);
 			return { events, error: null };
 		} catch (cause) {
 			return { events: [], error: getErrorMessage(cause) };

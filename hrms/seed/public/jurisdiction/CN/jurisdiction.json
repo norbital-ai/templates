@@ -1,0 +1,10 @@
+[
+	{
+		"id": "5d21665a-f3b6-5f5c-91d7-aa75644f2ec6",
+		"code": "CN",
+		"name": "China",
+		"currency": "CNY",
+		"timezone": "Asia/Shanghai",
+		"tax_year_start_month": 1
+	}
+]

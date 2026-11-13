@@ -1,79 +1,54 @@
 <script lang="ts">
-	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Accordion, EmptyState, Icon, Popover } from '@norbital-ai/ui';
+	import { Accordion, Button, EmptyState, Icon, Popover } from '@norbital-ai/ui';
+	import { Cluster } from '@norbital-ai/ui/layout';
+	import type { Law } from '../../../lib/law.js';
+	import type { JsonObject } from '../../../lib/payroll_engine/foundation.js';
+	import type { LawRowTarget } from '../../../lib/ui/settings/law_row.svelte';
 
-	let { ctx, versionId }: { ctx: PageContext; versionId: Id<'jurisdiction_settings'> } = $props();
-	let open = $state<string[]>([]);
-	let initialized = $state(false);
+	let {
+		ctx,
+		law,
+		on_open
+	}: { ctx: PageContext; law: Law; on_open: (target: LawRowTarget) => void } = $props();
+	/** The checkpoints the viewer opened; until they choose, the first. */
+	let chosen = $state<string[] | null>(null);
 
-	const data = $derived(
-		ctx.query({
-			subtotal: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			allowance_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			overtime_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			statutory_contribution_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			leave_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			claim_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			adhoc_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			loan_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 },
-			workplace_case_catalog: { where: { settings_id: { eq: versionId } }, limit: 10000 }
-		})
+	const chain = $derived(
+		law.rows.subtotal.map((row): JsonObject & { readonly code: string } => ({
+			...row,
+			code: String(row.code)
+		}))
 	);
-
-	const chain = $derived.by(() => {
-		const rows = data.current?.subtotal.rows ?? [];
-		const first = rows.find((row) => row.previous_id == null);
-		if (first == null) return [];
-		const byPrevious = new Map(
-			rows.flatMap((row) => (row.previous_id == null ? [] : [[row.previous_id, row] as const]))
-		);
-		const ordered = [first];
-		while (ordered.length < rows.length) {
-			const next = byPrevious.get(ordered.at(-1)!.id);
-			if (next == null) break;
-			ordered.push(next);
-		}
-		return ordered;
-	});
-
-	$effect(() => {
-		if (!initialized && chain.length > 0) {
-			open = [chain[0]!.id];
-			initialized = true;
-		}
-	});
+	const open = $derived(chosen ?? chain.slice(0, 1).map((node) => node.code));
 
 	const producers = $derived.by(() => {
 		const families = [
-			['allowance_catalog', data.current?.allowance_catalog.rows ?? []],
-			['overtime_catalog', data.current?.overtime_catalog.rows ?? []],
-			['leave_catalog', data.current?.leave_catalog.rows ?? []],
-			['claim_catalog', data.current?.claim_catalog.rows ?? []],
-			['adhoc_catalog', data.current?.adhoc_catalog.rows ?? []],
-			['loan_catalog', data.current?.loan_catalog.rows ?? []],
-			['workplace_case_catalog', data.current?.workplace_case_catalog.rows ?? []]
+			'allowance_catalog',
+			'overtime_catalog',
+			'leave_catalog',
+			'claim_catalog',
+			'adhoc_catalog',
+			'loan_catalog',
+			'workplace_case_catalog'
 		] as const;
 		return new Map(
 			chain.map((node) => [
-				node.id,
-				families.flatMap(([model, rows]) =>
-					rows.filter((row) => row.subtotal_id === node.id).map((row) => ({ model, row }))
+				node.code,
+				families.flatMap((model) =>
+					law.rows[model].filter((row) => row.subtotal === node.code).map((row) => ({ model, row }))
 				)
 			])
 		);
 	});
 
-	const statutories = $derived.by(
-		() =>
-			new Map(
-				chain.map((node) => [
-					node.id,
-					(data.current?.statutory_contribution_catalog.rows ?? []).filter(
-						(row) => row.subtotal_id === node.id
-					)
-				])
-			)
+	const statutories = $derived(
+		new Map(
+			chain.map((node) => [
+				node.code,
+				law.rows.statutory_contribution_catalog.filter((row) => row.subtotal === node.code)
+			])
+		)
 	);
 
 	/** What a checkpoint holds, for the codes every chain shares; any other is its name. */
@@ -138,28 +113,33 @@
 		code === 'NET' ? 'net' : code === 'BASIC' ? 'base' : '+ additions';
 </script>
 
-{#if data.loading}
-	<div
-		class="h-40 animate-pulse rounded-lg bg-muted/40"
-		aria-label={ctx.t('component.loading')}
-	></div>
-{:else if data.error}
-	<p role="alert" class="text-sm text-destructive">{data.error.message}</p>
-{:else if chain.length === 0}
+{#if chain.length === 0}
 	<EmptyState title={ctx.t('v2.subtotals')} />
 {:else}
 	<div class="grid gap-2">
-		<p class="text-xs text-muted-foreground">
-			One linear chain, top to bottom. Every checkpoint can read all earlier values. Each catalogue
-			row shows whether it adds (+) or deducts (−), what it calculates, and when it applies.
-		</p>
-		<Accordion.Root type="multiple" bind:value={open} class="w-full">
-			{#each chain as node (node.id)}
-				<Accordion.Item value={node.id}>
+		<Cluster gap="sm" justify="between" align="center">
+			<p class="text-xs text-muted-foreground">
+				One linear chain, top to bottom. Every checkpoint can read all earlier values. Each
+				catalogue row shows whether it adds (+) or deducts (−), what it calculates, and when it
+				applies.
+			</p>
+			<Button variant="outline" onclick={() => on_open({ family: 'subtotal', code: null })}
+				>{ctx.t('law_row.new')}</Button
+			>
+		</Cluster>
+		<Accordion.Root
+			type="multiple"
+			bind:value={() => open, (next) => (chosen = next)}
+			class="w-full"
+		>
+			{#each chain as node (node.code)}
+				<Accordion.Item value={node.code}>
 					<div class="flex items-center gap-2">
 						<Accordion.Trigger class="min-w-0 flex-1 py-1.5">
 							<span class="flex w-full items-center gap-2">
-								<span class="min-w-0 flex-1 truncate text-sm font-medium">{node.name}</span>
+								<span class="min-w-0 flex-1 truncate text-sm font-medium"
+									>{textOf(node.name) || node.code}</span
+								>
 							</span>
 						</Accordion.Trigger>
 						<Popover.Root>
@@ -180,12 +160,20 @@
 							>{nodeDirection(node.code)}</span
 						>
 						<span class="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-							{(producers.get(node.id) ?? []).length + (statutories.get(node.id) ?? []).length}
+							{(producers.get(node.code) ?? []).length + (statutories.get(node.code) ?? []).length}
 						</span>
+						<Button
+							variant="ghost"
+							size="icon"
+							aria-label={ctx.t('law_row.edit', { code: node.code })}
+							onclick={() => on_open({ family: 'subtotal', code: node.code })}
+						>
+							<Icon name="lucide:pencil" class="size-3.5" />
+						</Button>
 					</div>
 					<Accordion.Content>
 						<div class="grid gap-1 pb-2">
-							{#each producers.get(node.id) ?? [] as producer (producer.model + producer.row.code)}
+							{#each producers.get(node.code) ?? [] as producer (producer.model + producer.row.code)}
 								<div class="flex items-start gap-2 rounded border px-2 py-2">
 									<span
 										class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border font-mono text-[11px] {directionOf(
@@ -246,9 +234,9 @@
 									</div>
 								</div>
 							{/each}
-							{#if (statutories.get(node.id) ?? []).length > 0}
+							{#if (statutories.get(node.code) ?? []).length > 0}
 								<div class="grid gap-1">
-									{#each statutories.get(node.id) ?? [] as scheme (scheme.code)}
+									{#each statutories.get(node.code) ?? [] as scheme (scheme.code)}
 										<div class="flex items-start gap-2 rounded border px-2 py-2">
 											<span
 												class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border border-destructive/30 bg-destructive/10 font-mono text-[11px] text-destructive"
@@ -293,7 +281,7 @@
 														</Popover.Content>
 													</Popover.Root>
 													<span class="ml-auto shrink-0 text-[10px] text-muted-foreground"
-														>{scheme.kind}</span
+														>{textOf(scheme.kind)}</span
 													>
 												</div>
 												{#if textOf(scheme.description) !== ''}
@@ -308,7 +296,7 @@
 									{/each}
 								</div>
 							{/if}
-							{#if (producers.get(node.id) ?? []).length === 0 && (statutories.get(node.id) ?? []).length === 0}
+							{#if (producers.get(node.code) ?? []).length === 0 && (statutories.get(node.code) ?? []).length === 0}
 								<p class="px-1 text-xs text-muted-foreground">
 									{node.code === 'BASIC'
 										? 'Contract salary is the checkpoint value.'

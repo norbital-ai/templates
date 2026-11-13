@@ -1,4 +1,4 @@
-// The life of a version: DRAFT → SEALED → VOID for a contract, an employer version and a law version; two sealed contracts
+// The life of a version: DRAFT → SEALED → VOID for a contract and an employer version; two sealed contracts
 // of one person never overlap; an unpaid run holds its people, a paid one is amended; and a move to another jurisdiction settles the old
 // leave and opens the new scope. Public law packs are only the fixture: every expected figure is one the test wrote or
 // the system itself produced.
@@ -8,12 +8,12 @@ import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect, Schema } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
-import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
+	lawAt,
 	pack,
 	syncAll,
 	uuid,
@@ -251,7 +251,7 @@ describe('two sealed contracts of one person', () => {
 		}).pipe(Effect.provide(workspace({ seed: base(), now: NOW })))
 	);
 
-	it.live('names only a work region its law version declares', () =>
+	it.live('names only a work region its law declares', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const held = yield* openOf(t);
@@ -260,12 +260,8 @@ describe('two sealed contracts of one person', () => {
 			);
 			assert.ok(refused._tag === 'ActRefused', String(refused));
 			assert.equal(refused.key, 'errors.employee_contract_work_region');
-			// a key the version declares is taken
-			const [declared] = (yield* storedQuery(t, {
-				jurisdiction_settings: { fields: ['work_regions'], limit: 100 }
-			})).jurisdiction_settings.rows.flatMap((row) =>
-				isJsonObject(row.work_regions) ? Object.keys(row.work_regions) : []
-			);
+			// a key the law declares on the contract's first day is taken
+			const [declared] = Object.keys(objectValue(lawAt('MY', '2026-04-01').settings.work_regions));
 			assert.ok(declared !== undefined);
 			yield* draft(t, held, '2026-04-01', { ...held.terms, work_region: declared });
 		}).pipe(Effect.provide(workspace({ seed: base(), now: NOW })))
@@ -598,7 +594,6 @@ describe('a void employer version', () => {
 						entity_id: held.entity_id,
 						name: held.name,
 						settings_code: held.settings_code,
-						input_schema_version_id: held.input_schema_version_id,
 						time_zone: held.time_zone,
 						entity_extension_data: held.entity_extension_data,
 						effective_range: { from: held.effective_range.from, to: null },
@@ -641,70 +636,6 @@ describe('a void employer version', () => {
 	});
 });
 
-describe('a void law version', () => {
-	const seed = base();
-	/** The MY version in force on a day, from the fixture's own rows. */
-	const lawOn = (day: string) => {
-		const row = (seed.jurisdiction_settings ?? []).find((version) => {
-			const range = version.effective_range;
-			return (
-				isJsonObject(range) &&
-				String(range.from) <= day &&
-				(range.to === null || day <= String(range.to))
-			);
-		});
-		assert.ok(row !== undefined, `No law on ${day}`);
-		return idOf('jurisdiction_settings', row.id);
-	};
-	const voided = (t: Kit, id: Id<'jurisdiction_settings'>, reason?: string) =>
-		Effect.all([t.as(t.admin), current(t, 'jurisdiction_settings', id)]).pipe(
-			Effect.flatMap(([caller, target]) =>
-				caller.act({
-					'jurisdiction_settings.update': [
-						{
-							target,
-							set: { status: 'VOID', ...(reason === undefined ? {} : { reason }) }
-						}
-					]
-				})
-			)
-		);
-
-	it.live('under a paid run: the run stands, and the next is refused by law and pay date', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const law = lawOn('2026-02-15');
-			yield* run(t, '2026-01');
-			const january = yield* runOf(t, '2026-01');
-			assert.equal(january.settings_id, law);
-			yield* pay(t, january.id);
-			yield* t.run_due();
-			assert.equal(keyOf(yield* Effect.flip(voided(t, law))), 'errors.jurisdiction_void_reason');
-			yield* voided(t, law, 'Sealed with the wrong table');
-			yield* t.run_due();
-			const after = yield* runOf(t, '2026-01');
-			assert.deepEqual([after.state, after.settings_id], ['PAID', law]);
-			assert.equal((yield* slipsOf(t, '2026-01')).length, 1);
-			const refused = yield* Effect.flip(run(t, '2026-02'));
-			assert.match(String(refused), /No sealed MY law covers 2026-02-\d\d/);
-			assert.equal((yield* runs(t)).length, 1);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
-	);
-
-	// Break-it: void the version a sealed successor follows.
-	it.live('a predecessor: the version in force still covers its runs', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* voided(t, lawOn('2025-12-15'), 'Superseded in error');
-			yield* t.run_due();
-			yield* run(t, '2026-02');
-			assert.equal((yield* runOf(t, '2026-02')).settings_id, lawOn('2026-02-15'));
-			assert.equal((yield* slipsOf(t, '2026-02')).length, 1);
-			assert.deepEqual(yield* failures(t), []);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
-	);
-});
-
 // transfer-semantics.md §3.1 and §4. The person moves from the Malaysian company to the Singapore one on 1 November:
 // Malaysia's annual leave has a `payout`, so Malaysia's last payslip pays out the days left and Singapore opens its own
 // keys.
@@ -734,8 +665,8 @@ describe('a transfer across jurisdictions, in one flow', () => {
 		'holiday',
 		'roster_entry'
 	]);
-	const my = pack('MY', 'Asia/Kuala_Lumpur', OFFICE, {}, [], [], '2026-11-15');
-	const sg = pack('SG', 'Asia/Singapore', OFFICE, {}, [], [], '2026-11-15');
+	const my = pack('MY', 'Asia/Kuala_Lumpur', OFFICE, {}, [], []);
+	const sg = pack('SG', 'Asia/Singapore', OFFICE, {}, [], []);
 	// both laws' public rows, and the Singapore company beside the Malaysian one
 	const seed: Seed = withCompany(
 		{

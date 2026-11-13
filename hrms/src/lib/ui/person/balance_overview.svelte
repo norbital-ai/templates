@@ -8,6 +8,8 @@
 	import { Button, Icon, Table } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { accountsOf, leftIn } from '../../ledger/core.js';
+	import { isJsonObject } from '../../payroll_engine/foundation.js';
+	import { pageLaws } from '../law.svelte.js';
 
 	let { ctx, account }: { ctx: PageContext; account: unknown } = $props();
 	const t = ctx.t;
@@ -26,7 +28,7 @@
 			: `${t(`balance.window.${kind}`)} ${kind === 'M' ? start.slice(0, 7) : start}`;
 	};
 	const accounts = $derived(accountsOf(account));
-	// the rows' words and units, from the sealed law of the countries the balance holds
+	// the rows' words and units, from today's law of the countries the balance holds
 	const scopes = $derived([
 		...new Set(
 			Object.values(accounts).flatMap((codes) =>
@@ -36,35 +38,28 @@
 			)
 		)
 	]);
-	const law = $derived(
-		ctx.query({
-			jurisdiction_settings: {
-				where: { code: { in: scopes }, status: { eq: 'SEALED' } },
-				fields: ['code', 'currency'],
-				limit: 1000,
-				leave_catalog: { fields: ['code', 'description', 'lookup'], limit: 1000 },
-				claim_catalog: { fields: ['code', 'description'], limit: 1000 },
-				statutory_contribution_catalog: { fields: ['code', 'description'], limit: 1000 },
-				subtotals: { fields: ['code', 'name'], limit: 1000 }
-			}
-		})
-	);
-	// ponytail: a code keeps one description and unit across versions here; read the window's own version if they ever differ
+	const laws = pageLaws(ctx, () => scopes);
+	// ponytail: every window reads today's law; read the window's own day if a code's description or unit ever changes
 	const known = $derived.by(() => {
 		const about = new Map<string, string>();
 		const hours = new Set<string>();
 		const currency = new Map<string, string>();
-		for (const version of law.current?.jurisdiction_settings.rows ?? []) {
-			currency.set(version.code, String(version.currency));
-			for (const row of version.leave_catalog) {
-				if (row.description) about.set(`leave/${row.code}`, row.description);
-				if (row.lookup.unit === 'HOUR') hours.add(row.code);
+		const described = (key: string, value: unknown) => {
+			if (typeof value === 'string' && value !== '') about.set(key, value);
+		};
+		for (const scope of scopes) {
+			const law = laws.on(scope, today);
+			if (law === undefined) continue;
+			currency.set(scope, String(law.settings.currency));
+			for (const row of law.rows.leave_catalog) {
+				described(`leave/${String(row.code)}`, row.description);
+				if (isJsonObject(row.lookup) && row.lookup.unit === 'HOUR') hours.add(String(row.code));
 			}
-			for (const row of version.claim_catalog)
-				if (row.description) about.set(`claim/${row.code}`, row.description);
-			for (const row of version.statutory_contribution_catalog)
-				if (row.description) about.set(`statutory/${row.code.split('.')[0]}`, row.description);
-			for (const row of version.subtotals) about.set(`pay/${row.code}`, row.name);
+			for (const row of law.rows.claim_catalog)
+				described(`claim/${String(row.code)}`, row.description);
+			for (const row of law.rows.statutory_contribution_catalog)
+				described(`statutory/${String(row.code).split('.')[0]}`, row.description);
+			for (const row of law.rows.subtotal) described(`pay/${String(row.code)}`, row.name);
 		}
 		return { about, hours, currency };
 	});

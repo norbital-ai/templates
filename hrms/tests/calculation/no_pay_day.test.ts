@@ -9,7 +9,7 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { pay, run } from '../amendment_kit.ts';
-import { ENTITY, catalogRow, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
@@ -30,14 +30,13 @@ const malaysia = (allowances: Record<string, { readonly amount: number }> = {}):
 		},
 		{},
 		[],
-		[],
-		'2026-06-15'
+		[]
 	);
 const whole = (date: string) => [
 	{ date, part: 'AM' as const },
 	{ date, part: 'PM' as const }
 ];
-const entry = (t: Kit, seed: Seed, days: ReturnType<typeof whole>) =>
+const entry = (t: Kit, days: ReturnType<typeof whole>) =>
 	t.as(t.admin).pipe(
 		Effect.andThen((caller) =>
 			caller.act({
@@ -45,7 +44,7 @@ const entry = (t: Kit, seed: Seed, days: ReturnType<typeof whole>) =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+						catalog_code: 'NPL',
 						days
 					})
 				]
@@ -75,7 +74,7 @@ describe('a no-pay day', () => {
 	const taken = (seed: Seed, days: ReturnType<typeof whole>) =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* entry(t, seed, days);
+			yield* entry(t, days);
 			yield* run(t, '2026-06');
 			return (yield* paid(t, '2026-06'))['NPL'] ?? 0;
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
@@ -86,7 +85,7 @@ describe('a no-pay day', () => {
 			const seed = malaysia({ SUA: { amount: ALLOWANCE } });
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* entry(t, seed, whole('2026-06-10'));
+				yield* entry(t, whole('2026-06-10'));
 				yield* run(t, '2026-06');
 				const { BASIC, NPL = 0, SUA = 0 } = yield* paid(t, '2026-06');
 				assert.equal(BASIC, SALARY);
@@ -110,7 +109,7 @@ describe('a no-pay day', () => {
 			};
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* entry(t, seed, whole('2026-06-10'));
+				yield* entry(t, whole('2026-06-10'));
 				yield* run(t, '2026-06');
 				const { BASIC, NPL = 0, SUA = 0 } = yield* paid(t, '2026-06');
 				assert.equal(BASIC, SALARY);
@@ -153,7 +152,7 @@ describe('a no-pay day', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* pay(t, '2026-06');
-			yield* entry(t, seed, whole('2026-06-29'));
+			yield* entry(t, whole('2026-06-29'));
 			yield* run(t, '2026-07');
 			assert.ok(((yield* paid(t, '2026-07'))['NPL'] ?? 0) < 0);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-07-20T02:00:00.000Z' })));
@@ -173,7 +172,7 @@ describe('a no-pay amount settled by hand', () => {
 							{
 								entity_id: ENTITY,
 								employment_id: CONTRACT,
-								catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', code)),
+								catalog_code: code,
 								description: 'No-pay leave settled by hand',
 								quantity: String(quantity),
 								incurred_on: '2026-06-10'

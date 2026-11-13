@@ -8,18 +8,10 @@ import {
 	type PayrollInput
 } from '../../src/lib/payroll_engine/engine.ts';
 
-const subtotal = (id: string, code: string, previous_id: string | null) => ({
-	id,
+const subtotal = (code: string, previous: string | null) => ({ code, name: code, previous });
+const catalog = (code: string, extra: Record<string, unknown> = {}) => ({
 	code,
 	name: code,
-	previous_id,
-	settings_id: 'law'
-});
-const catalog = (id: string, code: string, extra: Record<string, unknown> = {}) => ({
-	id,
-	code,
-	name: code,
-	settings_id: 'law',
 	...extra
 });
 const input = (): PayrollInput => ({
@@ -29,28 +21,28 @@ const input = (): PayrollInput => ({
 		pay_date: '2026-03-31',
 		salary_coverage: { from: '2026-03-01', to: '2026-03-31' }
 	},
-	settings: { id: 'law', code: 'MY', lookup: { working_days: 22 } },
+	settings: { code: 'MY', lookup: { working_days: 22 } },
 	subtotals: [
-		subtotal('base', 'BASE', null),
-		subtotal('gross', 'GROSS', 'base'),
-		subtotal('cpf', 'CPF', 'gross'),
-		subtotal('net', 'NET', 'cpf')
+		subtotal('BASE', null),
+		subtotal('GROSS', 'BASE'),
+		subtotal('CPF', 'GROSS'),
+		subtotal('NET', 'CPF')
 	],
 	allowance: [],
 	overtime: [],
 	statutory: [
-		catalog('cpf-scheme', 'CPF', {
-			subtotal_id: 'cpf',
-			employer_cost_subtotal_id: 'cpf',
+		catalog('CPF', {
+			subtotal: 'CPF',
+			employer_cost_subtotal: 'CPF',
 			eligibility: 'return true;',
 			employee_amount: 'return ctx.subtotals.GROSS * 0.2;',
 			employer_amount: 'return ctx.subtotals.GROSS * 0.17;'
 		})
 	],
 	leave_catalog: [
-		catalog('npl', 'NPL', { paid_share: '0' }),
-		catalog('annual', 'ANNUAL_LEAVE', {
-			subtotal_id: 'gross',
+		catalog('NPL', { paid_share: '0' }),
+		catalog('ANNUAL_LEAVE', {
+			subtotal: 'GROSS',
 			payout: 'return ctx.entry.quantity * 227.27;'
 		})
 	],
@@ -78,7 +70,7 @@ const input = (): PayrollInput => ({
 		leave_catalog_entry: [
 			{
 				id: 'npl-entry',
-				catalog_id: 'npl',
+				catalog_code: 'NPL',
 				days: [
 					{ date: '2026-03-05', part: 'AM' },
 					{ date: '2026-03-05', part: 'PM' },
@@ -88,7 +80,7 @@ const input = (): PayrollInput => ({
 			},
 			{
 				id: 'encash-entry',
-				catalog_id: 'annual',
+				catalog_code: 'ANNUAL_LEAVE',
 				encashment: true,
 				days: [
 					{ date: '2026-03-09', part: 'AM' },
@@ -129,14 +121,14 @@ describe('the subtotal chain', () => {
 		const value: PayrollInput = {
 			...base,
 			subtotals: [
-				subtotal('base', 'BASE', null),
-				subtotal('gross', 'GROSS', 'base'),
-				subtotal('final', 'FINAL_PAY', 'gross')
+				subtotal('BASE', null),
+				subtotal('GROSS', 'BASE'),
+				subtotal('FINAL_PAY', 'GROSS')
 			],
 			statutory: [],
 			leave_catalog: [
-				catalog('encash', 'ANNUAL_LEAVE', {
-					subtotal_id: 'final',
+				catalog('ANNUAL_LEAVE', {
+					subtotal: 'FINAL_PAY',
 					payout: 'return ctx.entry.quantity * 100;'
 				})
 			],
@@ -144,7 +136,7 @@ describe('the subtotal chain', () => {
 				leave_catalog_entry: [
 					{
 						id: 'encash-entry',
-						catalog_id: 'encash',
+						catalog_code: 'ANNUAL_LEAVE',
 						encashment: true,
 						days: Array.from({ length: 24 }, (_, index) => ({
 							date: '2026-03-09',
@@ -153,7 +145,7 @@ describe('the subtotal chain', () => {
 					},
 					{
 						id: 'posted-entry',
-						catalog_id: 'encash',
+						catalog_code: 'ANNUAL_LEAVE',
 						encashment: true,
 						payroll_run_id: 'run-earlier',
 						days: Array.from({ length: 24 }, (_, index) => ({
@@ -166,7 +158,7 @@ describe('the subtotal chain', () => {
 		};
 		const result = calculatePayroll(value);
 		const lines = result.lines.filter(
-			(row) => row.subtotal_id === 'final' && row.code === 'ANNUAL_LEAVE'
+			(row) => row.subtotal === 'FINAL_PAY' && row.code === 'ANNUAL_LEAVE'
 		);
 		assert.equal(lines.length, 1);
 		assert.equal(lines[0]?.amount, 1200);
@@ -188,8 +180,8 @@ describe('the subtotal chain', () => {
 				}
 			},
 			allowance: [
-				catalog('service', 'SERVICE', {
-					subtotal_id: 'gross',
+				catalog('SERVICE', {
+					subtotal: 'GROSS',
 					eligibility: 'return true;',
 					conversion:
 						"return ctx.subject.employment.effective_range.from === '2020-01-01' ? 100 : 0;"
@@ -207,8 +199,8 @@ describe('the subtotal chain', () => {
 		const value: PayrollInput = {
 			...base,
 			allowance: [
-				catalog('fixed', 'FIXED_ALLOWANCE', {
-					subtotal_id: 'gross',
+				catalog('FIXED_ALLOWANCE', {
+					subtotal: 'GROSS',
 					conversion: 'return 300 * ctx.paid_share;'
 				})
 			],
@@ -216,7 +208,7 @@ describe('the subtotal chain', () => {
 				leave_catalog_entry: [
 					{
 						id: 'npl-entry',
-						catalog_id: 'npl',
+						catalog_code: 'NPL',
 						days: [
 							{ date: '2026-03-05', part: 'AM' },
 							{ date: '2026-03-05', part: 'PM' },
@@ -255,10 +247,10 @@ describe('the subtotal chain', () => {
 			calculatePayroll({
 				...input(),
 				statutory: [],
-				leave_catalog: [catalog('leave', 'LEAVE', { subtotal_id: 'base', ...row })],
+				leave_catalog: [catalog('LEAVE', { subtotal: 'BASE', ...row })],
 				entries: {
 					leave_catalog_entry: [
-						{ id: 'leave-entry', catalog_id: 'leave', days: TWO_DAYS, ...extra }
+						{ id: 'leave-entry', catalog_code: 'LEAVE', days: TWO_DAYS, ...extra }
 					]
 				},
 				...over
@@ -306,9 +298,9 @@ describe('the subtotal chain', () => {
 				{ encashment: true },
 				{
 					statutory: [
-						catalog('levy', 'LEVY', {
-							subtotal_id: 'cpf',
-							employer_cost_subtotal_id: 'cpf',
+						catalog('LEVY', {
+							subtotal: 'CPF',
+							employer_cost_subtotal: 'CPF',
 							eligibility: 'return true;',
 							employee_amount: 'return 0;',
 							employer_amount: 'return (ctx.subtotals.BASE - ctx.encashment) * 0.01;'
@@ -376,8 +368,8 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 			statutory: [],
 			employed: [{ from: '2026-03-16', to: null }],
 			allowance: [
-				catalog('fixed', 'FIXED_ALLOWANCE', {
-					subtotal_id: 'gross',
+				catalog('FIXED_ALLOWANCE', {
+					subtotal: 'GROSS',
 					conversion: 'return 300 * ctx.paid_share;'
 				})
 			],
@@ -393,17 +385,17 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 			calculatePayroll({
 				...input(),
 				statutory: [
-					catalog('tax', 'TAX', {
-						subtotal_id: 'cpf',
-						employer_cost_subtotal_id: 'cpf',
+					catalog('TAX', {
+						subtotal: 'CPF',
+						employer_cost_subtotal: 'CPF',
 						eligibility: 'return true;',
 						employee_amount: "return 1000 - get(ctx.posted, 'FUND.employee', 0);",
 						employer_amount: 'return 0;'
 					})
 				],
 				adhoc_catalog: [
-					catalog('fund-adjustment', 'FUND_ADJUSTMENT', {
-						subtotal_id: 'net',
+					catalog('FUND_ADJUSTMENT', {
+						subtotal: 'NET',
 						direction: 'DEDUCT',
 						party: 'EMPLOYEE',
 						eligibility: 'return true;',
@@ -417,7 +409,7 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 				],
 				entries: {
 					adhoc_catalog_entry: [
-						{ id: 'entry', catalog_id: 'fund-adjustment', quantity, unit: 'MONEY' }
+						{ id: 'entry', catalog_code: 'FUND_ADJUSTMENT', quantity, unit: 'MONEY' }
 					]
 				}
 			});
@@ -438,13 +430,13 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 			...input(),
 			statutory: [],
 			claim_catalog: [
-				catalog('medical', 'MEDICAL', {
-					subtotal_id: 'net',
+				catalog('MEDICAL', {
+					subtotal: 'NET',
 					conversion: 'return ctx.entry.quantity;'
 				})
 			],
 			entries: {
-				claim_catalog_entry: [{ id: 'claim', catalog_id: 'medical', quantity: 80, unit: 'MONEY' }]
+				claim_catalog_entry: [{ id: 'claim', catalog_code: 'MEDICAL', quantity: 80, unit: 'MONEY' }]
 			}
 		}).lines.filter((row) => row.code === 'MEDICAL');
 		assert.deepEqual(
@@ -461,7 +453,7 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 				leave_catalog_entry: [
 					{
 						id: 'leave-1',
-						catalog_id: 'npl',
+						catalog_code: 'NPL',
 						days: [
 							{ date: '2026-03-05', part: 'AM' },
 							{ date: '2026-03-05', part: 'PM' }
@@ -489,7 +481,7 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 		assert.equal(result.statutory[0]?.employee_ytd, 2000);
 	});
 
-	it('accepts a subtotal the version declares and refuses an unknown one', () => {
+	it('accepts a subtotal the law declares and refuses an unknown one', () => {
 		const source = 'return ctx.subtotals.GROSS;';
 		checkExpression(source, 'CALCULATION');
 		checkExpression(source, 'CALCULATION', new Set(['GROSS']));
@@ -511,10 +503,10 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 		const value = (amount: number): PayrollInput => ({
 			...base,
 			statutory: [],
-			subtotals: [subtotal('base', 'BASE', null), subtotal('net', 'NET', 'base')],
-			loan_catalog: [catalog('staff-loan', 'STAFF_LOAN', { subtotal_id: 'net' })],
+			subtotals: [subtotal('BASE', null), subtotal('NET', 'BASE')],
+			loan_catalog: [catalog('STAFF_LOAN', { subtotal: 'NET' })],
 			entries: {
-				loan_catalog_entry: [{ id: 'loan-1', catalog_id: 'staff-loan' }],
+				loan_catalog_entry: [{ id: 'loan-1', catalog_code: 'STAFF_LOAN' }],
 				loan_catalog_entry_repayment: [
 					repayment('due', amount, '2026-03-15'),
 					repayment('later', 700, '2026-04-01')
@@ -536,18 +528,18 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 		const value: PayrollInput = {
 			...base,
 			subtotals: [
-				subtotal('base', 'BASIC', null),
-				subtotal('ow', 'ORDINARY_WAGES', 'base'),
-				subtotal('aw', 'ADDITIONAL_WAGES', 'ow'),
-				subtotal('gross', 'GROSS', 'aw'),
-				subtotal('final', 'FINAL_PAY', 'gross'),
-				subtotal('net', 'NET', 'final')
+				subtotal('BASIC', null),
+				subtotal('ORDINARY_WAGES', 'BASIC'),
+				subtotal('ADDITIONAL_WAGES', 'ORDINARY_WAGES'),
+				subtotal('GROSS', 'ADDITIONAL_WAGES'),
+				subtotal('FINAL_PAY', 'GROSS'),
+				subtotal('NET', 'FINAL_PAY')
 			],
 			leave_catalog: [],
 			claim_catalog: [],
 			adhoc_catalog: [
-				catalog('terminal', 'TERMINATION_BENEFIT', {
-					subtotal_id: 'final',
+				catalog('TERMINATION_BENEFIT', {
+					subtotal: 'FINAL_PAY',
 					direction: 'ADD',
 					party: 'EMPLOYEE',
 					conversion: 'return 20000;'
@@ -555,20 +547,20 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 			],
 			entries: {
 				adhoc_catalog_entry: [
-					{ id: 'terminal-entry', catalog_id: 'terminal', incurred_on: '2026-03-31' }
+					{ id: 'terminal-entry', catalog_code: 'TERMINATION_BENEFIT', incurred_on: '2026-03-31' }
 				]
 			},
 			statutory: [
-				catalog('si', 'SI', {
-					subtotal_id: 'net',
-					employer_cost_subtotal_id: 'net',
+				catalog('SI', {
+					subtotal: 'NET',
+					employer_cost_subtotal: 'NET',
 					eligibility: 'return true;',
 					employee_amount: 'return 500;',
 					employer_amount: 'return 0;'
 				}),
-				catalog('tax', 'TAX', {
+				catalog('TAX', {
 					kind: 'TAX',
-					subtotal_id: 'net',
+					subtotal: 'NET',
 					eligibility: 'return true;',
 					employee_amount: 'return ctx.base_pay * 0.1;',
 					employer_amount: 'return 0;'
@@ -600,7 +592,7 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 	it('evaluates arbitrary configured JavaScript at each checkpoint', () => {
 		const value = input();
 		const subtotals = value.subtotals.map((row) =>
-			row.id === 'base'
+			row.code === 'BASE'
 				? {
 						...row,
 						calculation: 'return ctx.subject.employment.terms.rate.amount / 22 * 20;'
@@ -611,40 +603,35 @@ return 1 - ctx.lookup.pay_steps.find((step) => step.until_month == null || month
 	});
 
 	it('orders statutory dependencies and rejects cycles', () => {
-		const a = catalog('a', 'A', { depends_on: ['B'] });
-		const b = catalog('b', 'B');
+		const a = catalog('A', { depends_on: ['B'] });
+		const b = catalog('B');
 		assert.deepEqual(
 			statutoryOrder([a, b]).map((row) => row.code),
 			['B', 'A']
 		);
 		assert.throws(
 			() =>
-				statutoryOrder([
-					catalog('a', 'A', { depends_on: ['B'] }),
-					catalog('b', 'B', { depends_on: ['A'] })
-				]),
+				statutoryOrder([catalog('A', { depends_on: ['B'] }), catalog('B', { depends_on: ['A'] })]),
 			/statutory dependency cycle/
 		);
 		assert.throws(
-			() => statutoryOrder([catalog('a', 'A', { depends_on: ['MISSING'] })]),
+			() => statutoryOrder([catalog('A', { depends_on: ['MISSING'] })]),
 			/MISSING: unknown statutory dependency/
 		);
 	});
 
 	it('rejects branched or cyclic subtotal chains', () => {
 		assert.throws(
-			() =>
-				subtotalChain([subtotal('a', 'A', null), subtotal('b', 'B', 'a'), subtotal('c', 'C', 'a')]),
+			() => subtotalChain([subtotal('A', null), subtotal('B', 'A'), subtotal('C', 'A')]),
 			/one linear chain, not a branch/
 		);
 		assert.throws(
-			() => subtotalChain([subtotal('a', 'A', 'b'), subtotal('b', 'B', 'a')]),
+			() => subtotalChain([subtotal('A', 'B'), subtotal('B', 'A')]),
 			/exactly one first checkpoint/
 		);
 		// a first checkpoint beside a closed loop: the walk from it never reaches the loop
 		assert.throws(
-			() =>
-				subtotalChain([subtotal('a', 'A', null), subtotal('b', 'B', 'c'), subtotal('c', 'C', 'b')]),
+			() => subtotalChain([subtotal('A', null), subtotal('B', 'C'), subtotal('C', 'B')]),
 			/Subtotal chain is disconnected/
 		);
 	});

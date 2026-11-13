@@ -8,7 +8,6 @@ import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
-	catalogRow,
 	leaveCreate,
 	pack,
 	syncAll,
@@ -70,7 +69,7 @@ const leave = (by: Caller, ...dates: readonly string[]) =>
 				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
-					catalog_id: idOf('leave_catalog', catalogRow(base, 'leave_catalog', 'MEDICAL_LEAVE')),
+					catalog_code: 'MEDICAL_LEAVE',
 					days: wholeDays(...dates)
 				})
 			]
@@ -83,11 +82,10 @@ const leave = (by: Caller, ...dates: readonly string[]) =>
 				return { request_id: asked.request_id, id: record.id };
 			})
 		);
-const CLAIM = idOf('claim_catalog', catalogRow(base, 'claim_catalog', 'MEDICAL_CLAIM'));
 const claimOf = (quantity: number) => ({
 	entity_id: ENTITY,
 	employment_id: CONTRACT,
-	catalog_id: CLAIM,
+	catalog_code: 'MEDICAL_CLAIM',
 	quantity: String(quantity),
 	incurred_on: DAY
 });
@@ -484,7 +482,7 @@ describe('a request and the balance', () => {
 				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
-					catalog_id: idOf('leave_catalog', catalogRow(base, 'leave_catalog', IN_LIEU)),
+					catalog_code: IN_LIEU,
 					days: wholeDays(date)
 				})
 			]

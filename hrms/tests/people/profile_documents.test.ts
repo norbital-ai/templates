@@ -8,7 +8,6 @@ import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
-	catalogRow,
 	pack,
 	syncAll,
 	uuid,
@@ -34,7 +33,7 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-11-15');
+const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 /** The profile as stored now: a write's target at its current revision. */
 const profile = (t: Kit) =>
 	storedQuery(t, { employee_profile: { where: { id: { eq: PROFILE } }, limit: 1 } }).pipe(
@@ -125,12 +124,12 @@ describe('a person asking for leave', () => {
 				const mine = { entity_id: ENTITY, employment_id: idOf('employee_contract', uuid(6)) };
 				const leave = leaveCreate({
 					...mine,
-					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
+					catalog_code: 'MEDICAL_LEAVE',
 					days: wholeDays('2026-11-03')
 				});
 				const claim = {
 					...mine,
-					catalog_id: idOf('claim_catalog', catalogRow(seed, 'claim_catalog', 'MEDICAL_CLAIM')),
+					catalog_code: 'MEDICAL_CLAIM',
 					quantity: '80',
 					incurred_on: '2026-11-03'
 				};

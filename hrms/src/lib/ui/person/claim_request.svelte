@@ -72,7 +72,7 @@
 							/>
 						{/snippet}
 					</Field>{/if}
-				<Field {ctx} name="catalog_id" editor={catalog} />
+				<Field {ctx} name="catalog_code" editor={catalog} />
 				<Field {ctx} name="incurred_on" />
 				<Field {ctx} name="quantity" />
 				<Field {ctx} name="evidence_file" />

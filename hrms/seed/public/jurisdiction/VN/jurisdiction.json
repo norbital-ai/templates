@@ -1,0 +1,10 @@
+[
+	{
+		"id": "3fcf815c-ef3a-51e4-984d-75f30512015b",
+		"code": "VN",
+		"name": "Vietnam",
+		"currency": "VND",
+		"timezone": "Asia/Ho_Chi_Minh",
+		"tax_year_start_month": 1
+	}
+]

@@ -11,7 +11,7 @@ import { amendments, carriedFor, dates, ownLines, pay, run } from '../amendment_
 import {
 	ENTITY,
 	WORK,
-	catalogRow,
+	lawAt,
 	leaveCreate,
 	pack,
 	uuid,
@@ -48,7 +48,7 @@ const seed = (): Seed =>
 		[]
 	);
 /** The law's own back-pay row, as the fixture pack names it, and the contribution read beside it. */
-const BACK_PAY = `${String(objectValue(seed().jurisdiction_settings?.[0]?.conversions).back_pay)}/EMPLOYEE`;
+const BACK_PAY = `${String(objectValue(lawAt('MY', '2026-02-01').settings.conversions).back_pay)}/EMPLOYEE`;
 const CONTRIBUTION = 'EPF/EMPLOYEE';
 /** A new version from `from` at a new rate, made the way HR makes one, with the day it was signed. */
 const raised = (t: Kit, amount: number, signed: string, from = '2026-02-01') =>
@@ -250,7 +250,7 @@ describe('a raise from a month already paid', () => {
 								{
 									entity_id: ENTITY,
 									employment_id: idOf('employee_contract', uuid(6)),
-									catalog_id: idOf('claim_catalog', catalogRow(from, 'claim_catalog', CLAIM)),
+									catalog_code: CLAIM,
 									quantity: '40',
 									incurred_on: '2026-02-12'
 								}
@@ -296,7 +296,7 @@ describe('a raise from a month already paid', () => {
 								leaveCreate({
 									entity_id: ENTITY,
 									employment_id: idOf('employee_contract', uuid(6)),
-									catalog_id: idOf('leave_catalog', catalogRow(from, 'leave_catalog', 'NPL')),
+									catalog_code: 'NPL',
 									days: wholeDays('2026-02-12')
 								})
 							]

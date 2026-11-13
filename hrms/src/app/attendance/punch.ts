@@ -48,10 +48,10 @@ export const punchWork = Effect.fnUntraced(function* (
 	if (company === undefined || employment === undefined)
 		throw new Error('Assign the person to a legal employer before recording attendance.');
 	const policies = yield* ctx.query({
-		jurisdiction_settings: {
+		jurisdiction: {
 			output: 'kiosk',
 			where: { code: { eq: company.settings_code } },
-			limit: 10000
+			limit: 1
 		},
 		entity_profile_version: {
 			output: 'kiosk',
@@ -59,19 +59,11 @@ export const punchWork = Effect.fnUntraced(function* (
 			limit: 10000
 		}
 	});
-	const law = policies.jurisdiction_settings.rows.filter((s) => {
-		const d = DateTime.formatIsoDate(
-			DateTime.makeZonedUnsafe(capturedAt, { timeZone: s.timezone })
-		);
-		return (
-			s.effective_range.from <= d && (s.effective_range.to === null || s.effective_range.to >= d)
-		);
-	});
-	if (law.length !== 1)
-		throw new Error('Attendance requires one sealed effective jurisdiction time zone.');
+	const law = policies.jurisdiction.rows[0];
+	if (law === undefined) throw new Error('Attendance requires the jurisdiction time zone.');
 	const employers = policies.entity_profile_version.rows.filter((e) => {
 		const d = DateTime.formatIsoDate(
-			DateTime.makeZonedUnsafe(capturedAt, { timeZone: e.time_zone ?? law[0]!.timezone })
+			DateTime.makeZonedUnsafe(capturedAt, { timeZone: e.time_zone ?? law.timezone })
 		);
 		return (
 			e.effective_range.from <= d && (e.effective_range.to === null || e.effective_range.to >= d)
@@ -80,7 +72,7 @@ export const punchWork = Effect.fnUntraced(function* (
 	if (employers.length !== 1)
 		throw new Error('Attendance requires one effective employer payroll version.');
 	const day = DateTime.formatIsoDate(
-		DateTime.makeZonedUnsafe(capturedAt, { timeZone: employers[0]!.time_zone ?? law[0]!.timezone })
+		DateTime.makeZonedUnsafe(capturedAt, { timeZone: employers[0]!.time_zone ?? law.timezone })
 	);
 	const { roster_entry } = yield* ctx.query({
 		roster_entry: {

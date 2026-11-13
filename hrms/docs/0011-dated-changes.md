@@ -1,6 +1,6 @@
 # RFC 0011: Dated changes, edited in place
 
-**Status: accepted by the owner on 2026-11-13, on the condition that it simplifies the codebase and the experience of HR. Not built.** Until it is, [section 0 of the architecture](0001-hrms-calculation-architecture.md#0-the-design-is-fixed) describes the source tree as it stands. Section 9 lists the section 0 text this replaces when the work lands.
+**Status: accepted by the owner on 2026-11-13, on the condition that it simplifies the codebase and the experience of HR. Being built in the order of section 11: the fold and the law have landed (steps 1 and 2); the company and the person have not.** [Section 0 of the architecture](0001-hrms-calculation-architecture.md#0-the-design-is-fixed) describes the source tree as it stands, so its text on contract and employer versions holds until steps 3 to 5 land. Section 9 lists the section 0 text each step replaces.
 
 ## 1. Why
 
@@ -65,6 +65,8 @@ Every value payroll reads is one of three kinds.
 | `jurisdiction`        | Plain | Code, name, currency, time zone, tax year start                                                                                                        |
 | `jurisdiction_change` | Dated | `jurisdiction_code`, `effective_from`, `finding_id` (optional), and `law`: for the first row the whole law as one document, for each later row a patch |
 
+An entry's field is `catalog_code`.
+
 - The law document is keyed by family, then by row code: `conversions`, `ledger`, `lookup`, `work_regions`, the two extension schemas, `subtotal`, the eight catalogue families, `registered_rule`, `registered_effect`. A row's fields are today's.
 - A patch has the same keys and holds only what changes. A field set to `null` is removed; a row set to `null` is removed. A table or an expression is replaced whole.
 - `jurisdiction_settings`, the twelve tables under it and `statutory_change` go.
@@ -115,9 +117,9 @@ In each case the next run pays or takes back the difference, and HR sees it befo
 
 ```text
 seed/public/jurisdiction/
-  MY.json      one `jurisdiction` row and its `jurisdiction_change` rows, oldest first
-  SG.json
-  ...
+  MY/jurisdiction.json          the `jurisdiction` row
+  MY/jurisdiction_change.json   its changes, oldest first
+  SG/...
 ```
 
 - The first change row is the whole law on 1 December 2025. Each later row is the patch a change in law made on its date. A change already enacted with a later date of effect is a row with that date.

@@ -12,7 +12,8 @@ import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
+	lawAt,
+	lawWith,
 	measureOf,
 	pack,
 	sealEvents,
@@ -41,22 +42,25 @@ const terms = (amount = 8000) => ({
 	wage_payment_method: 'BANK',
 	allowances: {}
 });
-const law = pack('MY', 'Asia/Kuala_Lumpur', terms(), {}, [], [], '2026-11-15');
 /** The claim row's yearly limit is the fixture's own, whatever the law pack holds. */
 const LIMIT = 1000;
-const seed: typeof law = {
-	...law,
-	claim_catalog: (law.claim_catalog ?? []).map((row) =>
-		row.code === 'MEDICAL_CLAIM'
-			? { ...row, lookup: { ...objectValue(row.lookup), annual_limit: LIMIT } }
-			: row
-	)
-};
-const CLAIM = idOf('claim_catalog', catalogRow(seed, 'claim_catalog', 'MEDICAL_CLAIM'));
+const seed = lawWith(pack('MY', 'Asia/Kuala_Lumpur', terms(), {}, [], []), {
+	claim_catalog: {
+		MEDICAL_CLAIM: {
+			lookup: {
+				...objectValue(
+					lawAt('MY', '2026-11-15').rows.claim_catalog.find((row) => row.code === 'MEDICAL_CLAIM')
+						?.lookup
+				),
+				annual_limit: LIMIT
+			}
+		}
+	}
+});
 const entry = (quantity: number) => ({
 	entity_id: ENTITY,
 	employment_id: CONTRACT,
-	catalog_id: CLAIM,
+	catalog_code: 'MEDICAL_CLAIM',
 	quantity: String(quantity),
 	incurred_on: '2026-11-03'
 });
@@ -189,7 +193,7 @@ describe('a run', () => {
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('with a slip that moved no money is not held up by it', () => {
-		const zero = pack('MY', 'Asia/Kuala_Lumpur', terms(0), {}, [], [], '2026-11-15');
+		const zero = pack('MY', 'Asia/Kuala_Lumpur', terms(0), {}, [], []);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t);
@@ -204,7 +208,6 @@ describe('a run', () => {
 });
 
 describe('what cannot be done to the ledger, an admin included', () => {
-	const MEDICAL = idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE'));
 	it.live('a leave entry with no slots is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -213,7 +216,7 @@ describe('what cannot be done to the ledger, an admin included', () => {
 					Effect.flatMap((caller) =>
 						caller.act({
 							'leave_catalog_entry.create': [
-								{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: MEDICAL }
+								{ entity_id: ENTITY, employment_id: CONTRACT, catalog_code: 'MEDICAL_LEAVE' }
 							]
 						})
 					)
@@ -226,7 +229,7 @@ describe('what cannot be done to the ledger, an admin included', () => {
 	const sick = (date: string, set: object = {}) => ({
 		entity_id: ENTITY,
 		employment_id: CONTRACT,
-		catalog_id: MEDICAL,
+		catalog_code: 'MEDICAL_LEAVE',
 		days: wholeDays(date),
 		...set
 	});

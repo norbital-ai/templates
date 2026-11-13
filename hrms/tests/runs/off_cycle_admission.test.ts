@@ -7,7 +7,7 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { pay } from '../amendment_kit.ts';
-import { ENTITY, catalogRow, pack, refusal, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, pack, refusal, storedQuery, uuid, workspace } from '../kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -27,8 +27,7 @@ const seedOf = (to: string | null = null): Seed => {
 		},
 		{},
 		[],
-		[],
-		'2026-06-15'
+		[]
 	);
 	return {
 		...seed,
@@ -38,14 +37,14 @@ const seedOf = (to: string | null = null): Seed => {
 		}))
 	};
 };
-const enter = (t: Kit, seed: Seed, item: string, quantity: number, on: string) =>
+const enter = (t: Kit, item: string, quantity: number, on: string) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({
 			'adhoc_catalog_entry.create': [
 				{
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
-					catalog_id: idOf('adhoc_catalog', catalogRow(seed, 'adhoc_catalog', item)),
+					catalog_code: item,
 					description: 'Correction',
 					quantity: String(quantity),
 					incurred_on: on
@@ -78,7 +77,7 @@ describe('an off-cycle run', () => {
 		const seed = seedOf();
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* enter(t, seed, 'NOTICE_INDEMNITY', 400, '2026-06-15');
+			yield* enter(t, 'NOTICE_INDEMNITY', 400, '2026-06-15');
 			const refused = yield* refusal(offCycle(t, '2026-06'));
 			assert.equal(refused.key, 'errors.payroll_run_below_zero');
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
@@ -111,7 +110,7 @@ describe('an off-cycle run', () => {
 		};
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* enter(t, seed, 'BONUS', 2000, '2026-06-10');
+			yield* enter(t, 'BONUS', 2000, '2026-06-10');
 			const refused = yield* refusal(offCycle(t, '2026-06'));
 			assert.equal(refused.key, 'errors.payroll_run_moved_company');
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
@@ -126,7 +125,7 @@ describe('a leaver with no further on-cycle run', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* pay(t, '2026-05');
-				yield* enter(t, seed, 'ADJ', 1000, '2026-05-25');
+				yield* enter(t, 'ADJ', 1000, '2026-05-25');
 				yield* offCycle(t, '2026-05');
 				const { payslip, payroll_run } = yield* storedQuery(t, {
 					payslip: { limit: 10 },
@@ -145,7 +144,7 @@ describe('a leaver with no further on-cycle run', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* pay(t, '2026-05');
-			yield* enter(t, seed, 'ADJ', 1000, '2026-05-25');
+			yield* enter(t, 'ADJ', 1000, '2026-05-25');
 			const refused = yield* refusal(offCycle(t, '2026-06'));
 			assert.equal(refused.key, 'errors.payroll_run_not_in_group');
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })))

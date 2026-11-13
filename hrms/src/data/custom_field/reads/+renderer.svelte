@@ -37,7 +37,7 @@
 			'ctx.entry.entity_id',
 			'ctx.entry.employment_id',
 			'ctx.entry.employee_id',
-			'ctx.entry.catalog_id',
+			'ctx.entry.catalog_code',
 			'ctx.entry.period',
 			'ctx.entry.payroll_run_id',
 			'ctx.subject.employment.id',

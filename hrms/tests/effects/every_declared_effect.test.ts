@@ -1,15 +1,23 @@
 // Every pack: each effect a pack declares on an entry or a run fires without failing its own expression, and every run
 // effect that raises a task looks for it first. A mechanism check across all packs, not a check of any one law.
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import type { CreateInput } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Option, Schema } from 'effect';
 import { periodKey, windowOf } from '../../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, read, uuid, workspace, leaveCreate, storedQuery } from '../kit.ts';
+import {
+	ENTITY,
+	lawAt,
+	pack,
+	seedLaw,
+	seededLaws,
+	uuid,
+	workspace,
+	leaveCreate,
+	storedQuery
+} from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -55,16 +63,12 @@ const EMPLOYEE: Record<string, Parameters<typeof pack>[3]> = {
 		}
 	}
 };
-const rowsOf = (seed: Seed, model: string) => {
-	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-	return (seed[model] ?? []).filter((row) => row.settings_id === version);
-};
 
 const seedOf = (code: string, zone: string): Seed => {
-	const seed = pack(code, zone, terms, EMPLOYEE[code] ?? {}, [], [], '2026-11-06');
+	const seed = pack(code, zone, terms, EMPLOYEE[code] ?? {}, [], []);
 	// every row has days in the window the entries below fall in
 	const leave = Object.fromEntries(
-		rowsOf(seed, 'leave_catalog').map((row) => [
+		lawAt(code, ON).rows.leave_catalog.map((row) => [
 			row.code,
 			{
 				[periodKey(code, windowOf(objectValue(row.lookup ?? {})), String(ON), '2025-01-01')]: {
@@ -112,18 +116,19 @@ describe('an entry raises what its effects declare', () => {
 	for (const [code, zone] of COUNTRIES)
 		it.live(code, () => {
 			const seed = seedOf(code, zone);
+			const law = lawAt(code, ON);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const admin = yield* t.as(t.admin);
 				const failed: string[] = [];
-				for (const row of rowsOf(seed, 'workplace_case_catalog'))
+				for (const row of law.rows.workplace_case_catalog)
 					yield* attempt(
 						t,
 						row.code,
 						admin.act({
 							'workplace_case_catalog_entry.create': [
 								{
-									catalog_id: idOf('workplace_case_catalog', String(row.id)),
+									catalog_code: String(row.code),
 									entity_id: ENTITY,
 									employment_id: CONTRACT,
 									kind: String(row.code),
@@ -134,7 +139,7 @@ describe('an entry raises what its effects declare', () => {
 						}),
 						failed
 					);
-				for (const row of rowsOf(seed, 'leave_catalog'))
+				for (const row of law.rows.leave_catalog)
 					yield* attempt(
 						t,
 						row.code,
@@ -143,7 +148,7 @@ describe('an entry raises what its effects declare', () => {
 								leaveCreate({
 									entity_id: ENTITY,
 									employment_id: CONTRACT,
-									catalog_id: idOf('leave_catalog', String(row.id)),
+									catalog_code: String(row.code),
 									days: [
 										{ date: ON, part: 'AM' },
 										{ date: ON, part: 'PM' }
@@ -153,7 +158,7 @@ describe('an entry raises what its effects declare', () => {
 						}),
 						failed
 					);
-				for (const row of rowsOf(seed, 'adhoc_catalog'))
+				for (const row of law.rows.adhoc_catalog)
 					yield* attempt(
 						t,
 						row.code,
@@ -162,7 +167,7 @@ describe('an entry raises what its effects declare', () => {
 								{
 									entity_id: ENTITY,
 									employment_id: CONTRACT,
-									catalog_id: idOf('adhoc_catalog', String(row.id)),
+									catalog_code: String(row.code),
 									description: 'Sweep',
 									quantity: '100',
 									incurred_on: ON
@@ -172,10 +177,8 @@ describe('an entry raises what its effects declare', () => {
 						failed
 					);
 				assert.deepEqual(failed, []);
-				const declared = (seed.registered_effect ?? []).some(
-					(row) =>
-						row.settings_id === seed.entity_profile_version?.[0]?.input_schema_version_id &&
-						row.source_collection === 'workplace_case_catalog_entry'
+				const declared = law.rows.registered_effect.some(
+					(row) => row.source_collection === 'workplace_case_catalog_entry'
 				);
 				const raised = (yield* storedQuery(t, { obligation: { limit: 1000 } })).obligation.rows;
 				if (declared) assert.ok(raised.length > 0, 'nothing raised');
@@ -187,7 +190,9 @@ describe('a month’s runs run every effect they declare', () => {
 	for (const [code, zone] of COUNTRIES)
 		it.live(code, () => {
 			const seed = seedOf(code, zone);
-			const refund = rowsOf(seed, 'adhoc_catalog').find((row) => row.code === 'STATUTORY_REFUND');
+			const refund = lawAt(code, ON).rows.adhoc_catalog.find(
+				(row) => row.code === 'STATUTORY_REFUND'
+			);
 			assert.ok(refund !== undefined);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -215,7 +220,7 @@ describe('a month’s runs run every effect they declare', () => {
 						{
 							entity_id: ENTITY,
 							employment_id: CONTRACT,
-							catalog_id: idOf('adhoc_catalog', String(refund.id)),
+							catalog_code: String(refund.code),
 							description: 'Sweep',
 							quantity: '100',
 							incurred_on: ON
@@ -234,15 +239,15 @@ describe('a month’s runs run every effect they declare', () => {
 
 describe('a run effect on every pack', () => {
 	it('looks for its own task first: raising one twice fails every effect after it', () => {
-		const root = 'seed/public/jurisdiction';
-		for (const country of readdirSync(root))
-			for (const version of readdirSync(join(root, country)))
-				for (const row of read(join(root, country, version, 'registered_effect.json')))
+		// a law as it stands on each day it changed: every effect it ever held
+		for (const country of seededLaws())
+			for (const change of seedLaw(country).jurisdiction_change)
+				for (const row of lawAt(country, String(change.effective_from)).rows.registered_effect)
 					if (row.source_collection === 'payroll_run' && row.target_collection === 'obligation')
 						assert.match(
 							`${String(row.condition)}${String(row.effects)}`,
 							/reads(\.obligation|, 'obligation'|\.obligation)/,
-							`${country} ${version} ${String(row.code)}`
+							`${country} ${String(change.effective_from)} ${String(row.code)}`
 						);
 	});
 });

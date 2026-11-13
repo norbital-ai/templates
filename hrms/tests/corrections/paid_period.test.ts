@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	EMPLOYMENT,
 	amendments,
@@ -21,7 +20,7 @@ import {
 	slip,
 	claimAt
 } from '../amendment_kit.ts';
-import { ENTITY, accountsIn, catalogRow, workspace, storedQuery } from '../kit.ts';
+import { ENTITY, accountsIn, lawAt, lawWith, workspace, storedQuery } from '../kit.ts';
 
 const NOW = '2026-03-20T02:00:00.000Z';
 /** A claim as stored now: a write targets it at its current revision. */
@@ -143,13 +142,15 @@ describe('a paid period corrected at its source', () => {
 					)
 				);
 			// every scheme worked out for the month it is earned in: one assessed when paid is charged on the paying month
-			const earnedIn = (from: Seed): Seed => ({
-				...from,
-				statutory_contribution_catalog: (from.statutory_contribution_catalog ?? []).map((row) => ({
-					...row,
-					assessed: 'EARNED'
-				}))
-			});
+			const earnedIn = (from: Seed): Seed =>
+				lawWith(from, {
+					statutory_contribution_catalog: Object.fromEntries(
+						lawAt('MY', '2026-02-01').rows.statutory_contribution_catalog.map((row) => [
+							String(row.code),
+							{ assessed: 'EARNED' }
+						])
+					)
+				});
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* pay(t, '2026-02');
@@ -178,7 +179,7 @@ describe('a paid period corrected at its source', () => {
 			const from = seed(false);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const made = yield* claimed(t, from, 120, '2026-02-12');
+				const made = yield* claimed(t, 120, '2026-02-12');
 				yield* pay(t, '2026-02');
 				yield* (yield* t.as(t.admin)).act({
 					'claim_catalog_entry.delete': [{ target: yield* claimAt(t, made) }]
@@ -207,7 +208,7 @@ describe('a paid period corrected at its source', () => {
 			const from = seed(false);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				const made = yield* claimed(t, from, 120, '2026-02-12');
+				const made = yield* claimed(t, 120, '2026-02-12');
 				yield* pay(t, '2026-02');
 				yield* (yield* t.as(t.admin)).act({
 					'claim_catalog_entry.update': [
@@ -235,7 +236,7 @@ describe('a paid period corrected at its source', () => {
 		const from = seed(false);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const made = yield* claimed(t, from, 120, '2026-02-12');
+			const made = yield* claimed(t, 120, '2026-02-12');
 			yield* pay(t, '2026-02');
 			for (const quantity of [200, 80, 120]) {
 				yield* (yield* t.as(t.admin)).act({
@@ -301,7 +302,7 @@ describe('a paid period corrected at its source', () => {
 						{
 							entity_id: ENTITY,
 							employment_id: EMPLOYMENT,
-							catalog_id: idOf('adhoc_catalog', catalogRow(from, 'adhoc_catalog', 'BONUS')),
+							catalog_code: 'BONUS',
 							description: 'Paid by mistake',
 							quantity: '4000',
 							unit: 'MONEY',
@@ -367,10 +368,7 @@ describe('a paid period corrected at its source', () => {
 						{
 							entity_id: ENTITY,
 							employment_id: EMPLOYMENT,
-							catalog_id: idOf(
-								'adhoc_catalog',
-								catalogRow(from, 'adhoc_catalog', 'NOTICE_INDEMNITY')
-							),
+							catalog_code: 'NOTICE_INDEMNITY',
 							description: 'Notice not served',
 							quantity: '5000',
 							unit: 'MONEY',

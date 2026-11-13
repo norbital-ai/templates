@@ -62,7 +62,7 @@ const terms = {
 	allowances: {},
 	shift_pattern_id: PATTERN
 };
-const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-11-15');
+const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 const map = {
 	MONDAY: LONG_SHIFT,
 	TUESDAY: LONG_SHIFT,

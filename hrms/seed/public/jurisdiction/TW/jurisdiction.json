@@ -1,0 +1,10 @@
+[
+	{
+		"id": "3ba2b70b-a954-5ced-a5a3-a78f58c6862f",
+		"code": "TW",
+		"name": "Taiwan",
+		"currency": "TWD",
+		"timezone": "Asia/Taipei",
+		"tax_year_start_month": 1
+	}
+]

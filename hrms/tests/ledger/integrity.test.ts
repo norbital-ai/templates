@@ -13,7 +13,6 @@ import {
 	ENTITY,
 	PAY_GROUP,
 	accountsIn,
-	catalogRow,
 	flat,
 	leaveCreate,
 	ledgerRows,
@@ -27,7 +26,7 @@ import {
 	storedReader
 } from '../kit.ts';
 
-// inside one version of the law the template holds (8 July to 30 November 2026)
+// between two changes of the law the template holds (8 July to 31 December 2026)
 const NOW = '2026-11-20T02:00:00.000Z';
 const TODAY = NOW.slice(0, 10);
 const YEAR = 'MY.Y.2026-01-01';
@@ -47,8 +46,7 @@ const seed = pack(
 	},
 	{},
 	[],
-	[],
-	'2026-08-15'
+	[]
 );
 type Seed = typeof seed;
 const holding = (account: Accounts, more: Seed = {}): Seed => ({
@@ -83,10 +81,6 @@ const check = (t: Kit) =>
 		Effect.andThen((admin) => admin.run('ledger', {}, JobResult)),
 		Effect.andThen(t.run_due())
 	);
-const catalog = <M extends 'leave_catalog' | 'claim_catalog' | 'adhoc_catalog'>(
-	model: M,
-	code: string
-) => idOf(model, catalogRow(seed, model, code));
 const entry = (quantity: number, on: string) => ({
 	entity_id: ENTITY,
 	employment_id: CONTRACT,
@@ -129,21 +123,21 @@ describe('a workspace worked through its real acts', () => {
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: catalog('leave_catalog', 'ANNUAL_LEAVE'),
+						catalog_code: 'ANNUAL_LEAVE',
 						days: wholeDays('2026-08-11')
 					})
 				]
 			});
 			yield* admin.act({
 				'claim_catalog_entry.create': [
-					{ ...entry(50, '2026-08-10'), catalog_id: catalog('claim_catalog', 'MEDICAL_CLAIM') }
+					{ ...entry(50, '2026-08-10'), catalog_code: 'MEDICAL_CLAIM' }
 				]
 			});
 			yield* admin.act({
 				'adhoc_catalog_entry.create': [
 					{
 						...entry(500, '2026-08-10'),
-						catalog_id: catalog('adhoc_catalog', 'BONUS'),
+						catalog_code: 'BONUS',
 						description: 'BONUS'
 					}
 				]
@@ -153,7 +147,7 @@ describe('a workspace worked through its real acts', () => {
 			// a claim keyed and taken back leaves its source at nothing
 			yield* admin.act({
 				'claim_catalog_entry.create': [
-					{ ...entry(20, '2026-09-10'), catalog_id: catalog('claim_catalog', 'MEDICAL_CLAIM') }
+					{ ...entry(20, '2026-09-10'), catalog_code: 'MEDICAL_CLAIM' }
 				]
 			});
 			const { claim_catalog_entry: claims } = yield* storedQuery(t, {
@@ -248,7 +242,6 @@ describe('a broken invariant yields exactly its finding', () => {
 						run_number: 1,
 						entity_id: ENTITY,
 						pay_group_id: PAY_GROUP,
-						settings_id: String(seed.entity_profile_version?.[0]?.input_schema_version_id),
 						period: '2026-10',
 						kind: 'ON_CYCLE',
 						salary_coverage: { from: '2026-10-01', to: '2026-10-31' },
@@ -261,7 +254,7 @@ describe('a broken invariant yields exactly its finding', () => {
 						id: uuid(721),
 						entity_id: ENTITY,
 						employment_id: uuid(6),
-						catalog_id: catalogRow(seed, 'claim_catalog', 'MEDICAL_CLAIM'),
+						catalog_code: 'MEDICAL_CLAIM',
 						quantity: 40,
 						incurred_on: '2026-10-05',
 						payroll_run_id: uuid(720)

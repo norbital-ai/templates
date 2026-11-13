@@ -48,18 +48,9 @@
 	/>
 	{#if record !== null}<Table
 			{ctx}
-			of="statutory_change"
+			of="jurisdiction_change"
 			key="finding_changes"
 			where={{ finding_id: { eq: record.id } }}
-			toolbar={{ new: record.status === 'PROPOSED' }}
-			columns={[
-				'family',
-				'row_code',
-				'field_path',
-				'old_value',
-				'new_value',
-				'effective_from',
-				'applied_version_id'
-			]}
+			columns={['effective_from', 'law']}
 		/>{/if}
 </RecordShell>

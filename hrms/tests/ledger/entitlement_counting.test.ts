@@ -9,7 +9,6 @@ import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
-	catalogRow,
 	pack,
 	syncAll,
 	uuid,
@@ -42,8 +41,7 @@ const seedOf = ({ started = '2024-01-01', gender = 'FEMALE', events = [] }: Pers
 		},
 		{ events },
 		[],
-		[],
-		'2026-11-15'
+		[]
 	);
 	return {
 		...seed,
@@ -55,13 +53,12 @@ const seedOf = ({ started = '2024-01-01', gender = 'FEMALE', events = [] }: Pers
 		}))
 	};
 };
-type Seed = ReturnType<typeof seedOf>;
 const born = (...dates: readonly string[]) => dates.map((on) => ({ kind: 'CHILD_BIRTH', on }));
 const dates = (from: string, count: number) =>
 	Array.from({ length: count }, (_, index) =>
 		DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: index }))
 	);
-const take = (t: Kit, seed: Seed, code: string, days: readonly string[]) =>
+const take = (t: Kit, code: string, days: readonly string[]) =>
 	t.as(t.admin).pipe(
 		Effect.flatMap((caller) =>
 			caller.act({
@@ -69,7 +66,7 @@ const take = (t: Kit, seed: Seed, code: string, days: readonly string[]) =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+						catalog_code: code,
 						days: wholeDays(...days)
 					})
 				]
@@ -116,7 +113,7 @@ describe('cumulative service', () => {
 				yield* syncAll(t);
 				// the current stint alone is short of the row's qualifying months
 				assert.ok(measureOf(yield* accountsIn(t), 'leave', 'PATERNITY_LEAVE', 'entitled') > 0);
-				yield* take(t, base, 'PATERNITY_LEAVE', ['2026-11-03']);
+				yield* take(t, 'PATERNITY_LEAVE', ['2026-11-03']);
 				assert.equal(yield* entries(t), 1);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 		}
@@ -128,7 +125,7 @@ describe('an unpaid-leave entry', () => {
 	const seed = seedOf({ started: '2024-11-01' });
 	const nine = dates('2026-11-23', 9);
 	const layer = workspace({ seed, now: NOW });
-	const unpaid = (t: Kit, days: readonly string[]) => take(t, seed, 'NPL', days);
+	const unpaid = (t: Kit, days: readonly string[]) => take(t, 'NPL', days);
 	it.live('deleted after its run is paid no longer counts against another entitlement', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -145,7 +142,7 @@ describe('an unpaid-leave entry', () => {
 			yield* t.run_due();
 			yield* (yield* t.as(t.admin)).act({ 'leave_catalog_entry.delete': [{ target: priced }] });
 			yield* t.run_due();
-			yield* take(t, seed, 'ANNUAL_LEAVE', nine);
+			yield* take(t, 'ANNUAL_LEAVE', nine);
 			assert.equal(yield* entries(t), 1);
 		}).pipe(Effect.provide(layer))
 	);

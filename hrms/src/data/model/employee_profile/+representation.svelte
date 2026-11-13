@@ -244,7 +244,7 @@
 				key="person-loans"
 				where={{ employment_id: { in: contractIds } }}
 				toolbar={{ new: false, title: t('models.loan_catalog_entry.label') }}
-				columns={['catalog_id', 'quantity', 'repayment_period']}
+				columns={['catalog_code', 'quantity', 'repayment_period']}
 			/>{/if}{/if}{/snippet}
 {#snippet caseCell({ value }: { value: string | undefined })}<span>{caseName(value ?? '')}</span
 	>{/snippet}

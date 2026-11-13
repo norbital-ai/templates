@@ -8,13 +8,7 @@ import { calculatePayroll, type PayrollInput } from '../../src/lib/payroll_engin
 import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { breakdownOf } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 
-const subtotal = (id: string, code: string, previous_id: string | null) => ({
-	id,
-	code,
-	name: code,
-	previous_id,
-	settings_id: 'law'
-});
+const subtotal = (code: string, previous: string | null) => ({ code, name: code, previous });
 const owing = (amount: number, lookup: object = {}): PayrollInput => ({
 	run: {
 		id: 'run',
@@ -22,22 +16,16 @@ const owing = (amount: number, lookup: object = {}): PayrollInput => ({
 		pay_date: '2026-12-25',
 		salary_coverage: { from: '2026-12-01', to: '2026-12-31' }
 	},
-	settings: { id: 'law', code: 'XX', lookup: { working_days: 22 } },
-	subtotals: [
-		subtotal('base', 'BASE', null),
-		subtotal('tax', 'TAX', 'base'),
-		subtotal('net', 'NET', 'tax')
-	],
+	settings: { code: 'XX', lookup: { working_days: 22 } },
+	subtotals: [subtotal('BASE', null), subtotal('TAX', 'BASE'), subtotal('NET', 'TAX')],
 	allowance: [],
 	overtime: [],
 	statutory: [
 		{
-			id: 'row',
 			code: 'WITHHOLDING',
 			name: 'WITHHOLDING',
-			settings_id: 'law',
 			kind: 'TAX',
-			subtotal_id: 'tax',
+			subtotal: 'TAX',
 			eligibility: 'return true;',
 			employee_amount: `return ${amount};`,
 			lookup: { ...lookup }

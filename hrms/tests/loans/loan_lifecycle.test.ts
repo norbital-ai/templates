@@ -16,7 +16,8 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
+	lawAt,
+	lawWith,
 	ledgerRows,
 	pack,
 	syncAll,
@@ -39,14 +40,16 @@ const TERMS = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const base = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], [], '2026-08-15');
+const FESTIVE = 'LOAN_RECOVERY_FESTIVE_ADVANCE';
+// no leave row pays out, so an exit here raises no cash-out request for a run to wait on
+const base = lawWith(pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []), {
+	leave_catalog: Object.fromEntries(
+		lawAt('MY', '2026-08-15').rows.leave_catalog.map((row) => [String(row.code), { payout: null }])
+	)
+});
 /** One loan of `principal`, to be repaid August to November. */
 const lent = (principal: number): ReturnType<typeof pack> => ({
 	...base,
-	// no leave row pays out, so an exit here raises no cash-out request for a run to wait on
-	leave_catalog: (base.leave_catalog ?? []).map((row) =>
-		Object.fromEntries(Object.entries(row).filter(([field]) => field !== 'payout'))
-	),
 	entity_profile_version: (base.entity_profile_version ?? []).map((row) => ({
 		...row,
 		final_pay_loan_floor_percent: FLOOR
@@ -56,7 +59,7 @@ const lent = (principal: number): ReturnType<typeof pack> => ({
 			id: LOAN,
 			entity_id: ENTITY,
 			employment_id: uuid(6),
-			catalog_id: catalogRow(base, 'loan_catalog', 'LOAN_RECOVERY_FESTIVE_ADVANCE'),
+			catalog_code: FESTIVE,
 			quantity: principal,
 			repayment_period: { from: '2026-08-01', to: '2026-11-30' }
 		}
@@ -575,15 +578,11 @@ describe('a leaver’s loan', () => {
 
 describe('a loan row with an eligibility rule', () => {
 	// synthetic: the row of the law in force is given a rule of this test's own, that a loan is repaid within 2026
-	const FESTIVE = catalogRow(base, 'loan_catalog', 'LOAN_RECOVERY_FESTIVE_ADVANCE');
-	const gated: ReturnType<typeof pack> = {
-		...seed,
-		loan_catalog: (seed.loan_catalog ?? []).map((row) =>
-			row.id === FESTIVE
-				? { ...row, eligibility: "return ctx.entry.repayment_period.to <= '2026-12-31';" }
-				: row
-		)
-	};
+	const gated = lawWith(seed, {
+		loan_catalog: {
+			[FESTIVE]: { eligibility: "return ctx.entry.repayment_period.to <= '2026-12-31';" }
+		}
+	});
 	const lend = (t: Kit, to: string) =>
 		Effect.flatMap(t.as(t.admin), (caller) =>
 			caller.act({
@@ -591,7 +590,7 @@ describe('a loan row with an eligibility rule', () => {
 					{
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: idOf('loan_catalog', FESTIVE),
+						catalog_code: FESTIVE,
 						quantity: '1000',
 						repayment_period: { from: '2026-09-01', to }
 					}

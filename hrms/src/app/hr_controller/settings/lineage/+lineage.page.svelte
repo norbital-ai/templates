@@ -1,171 +1,115 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import type { Id } from '@norbital-ai/bolt';
-	import { AppShell, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import {
-		Button,
-		Combobox,
-		EmptyState,
-		highlighted_line,
-		notify_outcome,
-		RecordShell,
-		Sheet,
-		Table,
-		Tabs,
-		Textarea,
-		toast
-	} from '@norbital-ai/ui';
-	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
-	import {
-		jurisdictionVersions,
-		jurisdictionOptions,
-		resolveJurisdictionScope
-	} from '../jurisdiction_scope.svelte.js';
+	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Combobox, Editor, EmptyState, Form, Section, Tabs } from '@norbital-ai/ui';
+	import { lawsOf } from '../../../../lib/law.js';
+	import { jsonObject, type JsonObject } from '../../../../lib/payroll_engine/foundation.js';
+	import LawBlock from '../../../../lib/ui/settings/law_block.svelte';
+	import LawChanges from '../../../../lib/ui/settings/law_changes.svelte';
+	import LawRow, { type LawRowTarget } from '../../../../lib/ui/settings/law_row.svelte';
+	import LawSave from '../../../../lib/ui/settings/law_save.svelte';
+	import { lawChain } from '../../../../lib/ui/settings/law_save.js';
+	import LawTable from '../../../../lib/ui/settings/law_table.svelte';
 	import CalculationOverview from '../calculation_overview.svelte';
 	import CatalogTabs from '../catalog_tabs.svelte';
+	import { jurisdictions } from '../jurisdiction_scope.svelte.js';
 	import VersionCompare from '../version_compare.svelte';
-	import SettingsForm from '../../../../lib/ui/settings/settings_form.svelte';
-	import LookupForm from '../../../../lib/ui/settings/lookup_form.svelte';
+
 	let { ctx }: { ctx: PageContext } = $props();
-	const all = jurisdictionVersions(ctx);
-	let chosen = $state<Id<'jurisdiction_settings'> | null>(null);
-	const scope = $derived(
-		resolveJurisdictionScope(
-			all.current?.jurisdiction_settings.rows ?? [],
-			chosen,
-			ctx.clock().today
-		)
-	);
-	const version = $derived(
-		all.current?.jurisdiction_settings.rows.find((r) => r.id === scope?.versionId)
-	);
-	const draft = $derived(version?.status === 'DRAFT');
-	let voiding = $state(false);
-	let voidReason = $state('');
-	let voidSaving = $state(false);
-	let starting = $state(false);
-	const firstLine = (value: unknown): string =>
-		String(value ?? '')
-			.split('\n')
-			.map((line) => line.trim())
-			.find((line) => line !== '' && line !== '// js' && !line.startsWith('//')) ?? '';
-	/** Payroll reads only what `statutory_materialize` seals, so sealing a draft runs as that automation. */
-	function seal(row: NonNullable<typeof version>) {
-		starting = true;
-		fork(
-			ctx
-				.run('statutory_materialize', {
-					code: row.code,
-					target: row.effective_range.from,
-					seal: row.id
-				})
-				.pipe(
-					Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
-					Effect.catch((error) =>
-						Effect.sync(() =>
-							toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
-						)
-					),
-					Effect.ensuring(Effect.sync(() => (starting = false)))
+	const all = jurisdictions(ctx);
+	const clock = ctx.clock('day');
+	let chosen = $state<string | null>(null);
+	let picked = $state<string | null>(null);
+	const day = $derived(picked ?? clock.today);
+	const heads = $derived(all.current?.jurisdiction.rows ?? []);
+	const head = $derived(heads.find((row) => row.code === chosen) ?? heads[0]);
+	const read = $derived(head === undefined ? null : lawChain(ctx, head.code));
+	const chain = $derived(read?.current?.jurisdiction_change.rows ?? []);
+	const law = $derived(
+		head === undefined
+			? undefined
+			: lawsOf({ jurisdiction: [jsonObject(head)], jurisdiction_change: chain.map(jsonObject) })(
+					head.code,
+					day
 				)
-		);
-	}
-	function beginVoid() {
-		voidReason = '';
-		voiding = true;
-	}
-	function voidVersion() {
-		if (version === undefined || voidSaving || voidReason.trim() === '') return;
-		const id = version.id;
-		const note = voidReason.trim();
-		voidSaving = true;
-		fork(
-			ctx
-				.act({
-					'jurisdiction_settings.update': [
-						{ target: { id, revision: version.revision }, set: { status: 'VOID', reason: note } }
-					]
-				})
-				.pipe(
-					Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
-					Effect.tap((outcome) =>
-						Effect.sync(() => {
-							if (outcome.kind === 'committed') voiding = false;
-						})
-					),
-					Effect.catch((error) =>
-						Effect.sync(() =>
-							toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
-						)
-					),
-					Effect.ensuring(Effect.sync(() => (voidSaving = false)))
-				)
-		);
-	}
+	);
+
+	let editing = $state<LawRowTarget | null>(null);
+	let saving = $state<{ patch: JsonObject; done: () => void } | null>(null);
+	const save = (patch: JsonObject, done: () => void) => {
+		if (Object.keys(patch).length === 0) return done();
+		saving = { patch, done };
+	};
+	const open = (target: LawRowTarget) => (editing = target);
+	const blocks = [
+		['conversions', 'settings_form.conversions'],
+		['ledger', 'settings_form.ledger'],
+		['work_regions', 'settings_form.work_regions'],
+		['employee_extension_schema', 'settings_form.employee_schema'],
+		['entity_extension_schema', 'settings_form.entity_schema']
+	] as const;
 </script>
 
-{#snippet codeCell({ value }: { value: unknown })}
-	<code
-		class="bg-muted block max-w-[16rem] truncate rounded-sm px-1.5 py-0.5 font-mono text-xs"
-		data-cel
-		>{#each highlighted_line(firstLine(value)) as token, i (i)}<span
-				class={token.class || undefined}>{token.text}</span
-			>{/each}</code
-	>
-{/snippet}
+{#snippet changes()}{#if head}<Scroll name={ctx.t('app.settings.changes')} size="fill" inset>
+			<Stack gap="sm">
+				<Section first name="settings_changes" title={ctx.t('app.settings.changes')}>
+					<LawChanges {ctx} {chain} today={clock.today} />
+				</Section>
+				<Section
+					name="settings_calendar"
+					title={ctx.t('settings_form.calendar')}
+					default_open={false}
+				>
+					<Form
+						{ctx}
+						of="jurisdiction"
+						id={head.id}
+						fields={['name', 'currency', 'timezone', 'tax_year_start_month']}
+					/>
+				</Section>
+				{#if law}
+					{#each blocks as [family, title] (family)}
+						<Section name="settings_{family}" title={ctx.t(title)} default_open={false}>
+							<LawBlock {ctx} {law} {family} {save} />
+						</Section>
+					{/each}
+				{/if}
+			</Stack>
+		</Scroll>{/if}{/snippet}
 
-{#snippet jsonCell({ value }: { value: unknown })}
-	<span class="block max-w-[16rem] truncate font-mono text-xs text-muted-foreground"
-		>{JSON.stringify(value ?? {})}</span
-	>
-{/snippet}
-
-{#snippet general()}{#if version}<RecordShell {ctx} of="jurisdiction_settings" id={version.id}>
-			{#snippet children(view)}<SettingsForm {ctx} {view} />{/snippet}
-		</RecordShell>{/if}{/snippet}
-
-{#snippet lookup()}{#if version}<RecordShell {ctx} of="jurisdiction_settings" id={version.id}>
-			{#snippet children(view)}<LookupForm {ctx} {view} />{/snippet}
-		</RecordShell>{/if}{/snippet}
-
-{#snippet overview()}{#if version}<Scroll name="Calculation overview" size="fill" inset
-			><CalculationOverview {ctx} versionId={version.id} /></Scroll
+{#snippet lookup()}{#if law}<Scroll name={ctx.t('app.settings.lookup')} size="fill" inset
+			><LawBlock {ctx} {law} family="lookup" {save} /></Scroll
 		>{/if}{/snippet}
 
-{#snippet catalog()}{#if version}<CatalogTabs {ctx} versionId={version.id} {draft} />{/if}{/snippet}
+{#snippet overview()}{#if law}<Scroll name="Calculation overview" size="fill" inset
+			><CalculationOverview {ctx} {law} on_open={open} /></Scroll
+		>{/if}{/snippet}
 
-{#snippet rules()}{#if version}<Table
+{#snippet catalog()}{#if law}<CatalogTabs {ctx} {law} on_open={open} />{/if}{/snippet}
+
+{#snippet rules()}{#if law}<LawTable
 			{ctx}
-			of="registered_rule"
-			key="rules"
-			where={{ settings_id: { eq: version.id } }}
-			toolbar={{ new: draft, title: 'Registered rules' }}
+			name="rules"
+			title="Registered rules"
+			rows={law.rows.registered_rule}
 			columns={[
 				'description',
 				'code',
 				'target_collection',
 				'events',
-				{ field: 'reads', cell: jsonCell },
-				{ field: 'condition', cell: codeCell },
-				{ field: 'validate', cell: codeCell }
+				{ field: 'reads', as: 'json' },
+				{ field: 'condition', as: 'code' },
+				{ field: 'validate', as: 'code' }
 			]}
+			on_open={(code) => open({ family: 'registered_rule', code })}
+			on_new={() => open({ family: 'registered_rule', code: null })}
 		/>{/if}{/snippet}
 
-{#snippet compare()}{#if version}<Scroll name={ctx.t('settings_version.compare')} size="fill" inset
-			><VersionCompare
-				{ctx}
-				versions={all.current?.jurisdiction_settings.rows ?? []}
-				current={version.id}
-			/></Scroll
-		>{/if}{/snippet}
-
-{#snippet behaviour()}{#if version}<Table
+{#snippet behaviour()}{#if law}<LawTable
 			{ctx}
-			of="registered_effect"
-			key="registered_effects"
-			where={{ settings_id: { eq: version.id } }}
-			toolbar={{ new: draft, title: 'Registered behaviour' }}
+			name="registered_effects"
+			title="Registered behaviour"
+			rows={law.rows.registered_effect}
 			columns={[
 				'description',
 				'code',
@@ -174,10 +118,16 @@
 				'events',
 				'target_collection',
 				'target_action',
-				{ field: 'condition', cell: codeCell },
-				{ field: 'effects', cell: codeCell }
+				{ field: 'condition', as: 'code' },
+				{ field: 'effects', as: 'code' }
 			]}
+			on_open={(code) => open({ family: 'registered_effect', code })}
+			on_new={() => open({ family: 'registered_effect', code: null })}
 		/>{/if}{/snippet}
+
+{#snippet compare()}<Scroll name={ctx.t('settings_version.compare')} size="fill" inset
+		><VersionCompare {ctx} {chain} on={day} /></Scroll
+	>{/snippet}
 
 <AppShell
 	title={ctx.t('app.settings.header_title')}
@@ -187,70 +137,48 @@
 >
 	{#snippet actions()}
 		<div class="flex items-center gap-3">
-			{#if version?.status === 'DRAFT'}
-				<Button disabled={starting} onclick={() => version && seal(version)}
-					>{ctx.t('settings_version.seal')}</Button
-				>
-			{/if}
-			{#if version?.status === 'SEALED' || version?.status === 'DRAFT'}
-				<Button variant="destructive" onclick={beginVoid}>{ctx.t('settings_version.void')}</Button>
-			{/if}
+			<Editor
+				{ctx}
+				name="law_on"
+				kind={{ kind: 'date' }}
+				value={day}
+				on_change={(next) => (picked = next == null ? null : String(next))}
+			/>
 			<Combobox
 				aria-label={ctx.t('app.settings.jurisdiction')}
 				class="min-w-72"
-				options={jurisdictionOptions(ctx, all.current?.jurisdiction_settings.rows ?? [])}
-				value={scope?.versionId ?? null}
+				options={heads.map((row) => ({
+					value: row.code,
+					label: row.name,
+					description: row.code,
+					keywords: `${row.code} ${row.name}`
+				}))}
+				value={head?.code ?? null}
 				on_change={(next) => (chosen = next)}
-			>
-				{#snippet badge()}
-					{#if version}<span
-							class="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide {version.status ===
-							'SEALED'
-								? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-								: version.status === 'VOID'
-									? 'border-destructive/40 bg-destructive/10 text-destructive'
-									: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'}"
-							>{version.status}</span
-						>{/if}
-				{/snippet}
-			</Combobox>
+			/>
 		</div>
 	{/snippet}
-	{#if version}<Tabs
-			tabs={[
-				{ name: 'general', title: ctx.t('app.settings.general'), body: general },
-				{ name: 'lookup', title: ctx.t('app.settings.lookup'), body: lookup },
-				{ name: 'overview', title: 'Calculation overview', body: overview },
-				{ name: 'catalog', title: 'Catalog', body: catalog },
-				{ name: 'rules', title: 'Registered rules', body: rules },
-				{ name: 'behaviour', title: 'Registered behaviour', body: behaviour },
-				{ name: 'compare', title: ctx.t('settings_version.compare'), body: compare }
-			]}
-		/>
+	{#if head}{#key head.code}<Tabs
+				tabs={[
+					{ name: 'changes', title: ctx.t('app.settings.changes'), body: changes },
+					{ name: 'lookup', title: ctx.t('app.settings.lookup'), body: lookup },
+					{ name: 'overview', title: 'Calculation overview', body: overview },
+					{ name: 'catalog', title: 'Catalog', body: catalog },
+					{ name: 'rules', title: 'Registered rules', body: rules },
+					{ name: 'behaviour', title: 'Registered behaviour', body: behaviour },
+					{ name: 'compare', title: ctx.t('settings_version.compare'), body: compare }
+				]}
+			/>{/key}
 	{:else}<EmptyState title={ctx.t('app.settings.choose_jurisdiction_empty')} />{/if}
 </AppShell>
 
-<Sheet
-	bind:open={voiding}
-	title={ctx.t('settings_version.void_title', { name: version?.name ?? '' })}
->
-	<Stack gap="md">
-		<p class="text-muted-foreground text-sm">{ctx.t('settings_version.void_description')}</p>
-		<label class="grid gap-1" for="settings-version-void-reason">
-			<span class="text-xs font-medium text-muted-foreground"
-				>{ctx.t('settings_version.reason')}</span
-			>
-			<Textarea id="settings-version-void-reason" bind:value={voidReason} disabled={voidSaving} />
-		</label>
-		<Cluster gap="sm" justify="end">
-			<Button variant="outline" disabled={voidSaving} onclick={() => (voiding = false)}
-				>{ctx.t('component.cancel')}</Button
-			>
-			<Button
-				variant="destructive"
-				disabled={voidSaving || voidReason.trim() === ''}
-				onclick={voidVersion}>{ctx.t('settings_version.void')}</Button
-			>
-		</Cluster>
-	</Stack>
-</Sheet>
+{#if law}
+	<LawRow {ctx} {law} bind:target={editing} {save} />
+	<LawSave
+		{ctx}
+		{law}
+		{chain}
+		bind:patch={() => saving?.patch ?? null, (next) => next === null && (saving = null)}
+		on_saved={() => saving?.done()}
+	/>
+{/if}

@@ -1,0 +1,10 @@
+[
+	{
+		"id": "d89704f6-edfc-56ea-920f-a3d9c2f6c9ea",
+		"code": "TH",
+		"name": "Thailand",
+		"currency": "THB",
+		"timezone": "Asia/Bangkok",
+		"tax_year_start_month": 1
+	}
+]

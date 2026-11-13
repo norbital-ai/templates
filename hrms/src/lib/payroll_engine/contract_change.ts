@@ -85,27 +85,6 @@ const rangeOf = (version: ChainVersion) => {
 	return { from: String(range.from), to: typeof range.to === 'string' ? range.to : null };
 };
 
-/**
- * The settings version a contract answers to on a day. A contract names no version: its entity's `settings_code` is the
- * lineage, and the day picks the sealed version in force; a day before the lineage's first version answers to that one.
- */
-export const versionOn = <V extends ChainVersion>(
-	versions: readonly V[],
-	code: unknown,
-	day: string
-): V | undefined => {
-	const lineage = versions
-		.filter((version) => version.code === code)
-		.toSorted((left, right) => rangeOf(left).from.localeCompare(rangeOf(right).from));
-	const first = lineage[0];
-	return (
-		lineage.find((version) => {
-			const { from, to } = rangeOf(version);
-			return from <= day && (to === null || day <= to);
-		}) ?? (first !== undefined && day < rangeOf(first).from ? first : undefined)
-	);
-};
-
 /** When a person's service began, and when their current unbroken stint did, as expressions read them. */
 export type Starts = {
 	readonly service_started_on: string;

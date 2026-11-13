@@ -51,7 +51,7 @@ type LeaveRow = {
 	readonly employment_id: string;
 	readonly employee?: string;
 	readonly days: readonly { readonly date: string; readonly part: string }[];
-	readonly catalog_id?: { readonly code?: string; readonly name?: string } | null;
+	readonly catalog_code?: string | null;
 };
 
 type HolidayRow = { readonly date: string; readonly name: string };
@@ -255,7 +255,7 @@ export function buildDays(input: {
 			if (!input.dates.includes(slot.date)) continue;
 			const key = dayKey(row.employee ?? row.employment_id, slot.date);
 			const before = leave.get(key) ?? { codes: new Set<string>(), parts: new Set<string>() };
-			const code = row.catalog_id?.code ?? row.catalog_id?.name;
+			const code = row.catalog_code;
 			if (code != null && code !== '') before.codes.add(code);
 			before.parts.add(slot.part);
 			leave.set(key, before);

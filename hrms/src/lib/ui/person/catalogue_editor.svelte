@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Combobox, use_form, type FieldEditor } from '@norbital-ai/ui';
+	import { isJsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
 	import { idOf } from '../../payroll_engine/reads.js';
+	import { pageLaws } from '../law.svelte.js';
 	let {
 		ctx,
 		family,
@@ -12,8 +14,8 @@
 		field: FieldEditor;
 	} = $props();
 	const form = use_form();
-	const selected = $derived(form?.get('catalog_id'));
-	const catalogId = $derived(typeof selected === 'string' ? selected : null);
+	const selected = $derived(form?.get('catalog_code'));
+	const catalogCode = $derived(typeof selected === 'string' ? selected : null);
 	const companyId = $derived(form?.get('entity_id'));
 	const employmentId = $derived(form?.get('employment_id'));
 	const incurredOn = $derived(form?.get('incurred_on'));
@@ -23,7 +25,7 @@
 			: ctx.query({
 					claim_catalog_entry: {
 						where: { employment_id: { eq: idOf('employee_contract', employmentId) } },
-						fields: ['catalog_id', 'quantity', 'incurred_on'],
+						fields: ['catalog_code', 'quantity', 'incurred_on'],
 						limit: 10000
 					}
 				})
@@ -40,68 +42,42 @@
 				})
 			: null
 	);
-	const catalogs = ctx.query({
-		leave_catalog: {
-			limit: 10000,
-			settings_id: { fields: ['code', 'status', 'effective_range'] }
-		},
-		claim_catalog: {
-			limit: 10000,
-			settings_id: { fields: ['code', 'status', 'effective_range'] }
-		},
-		adhoc_catalog: {
-			limit: 10000,
-			settings_id: { fields: ['code', 'status', 'effective_range'] }
-		},
-		loan_catalog: {
-			limit: 10000,
-			settings_id: { fields: ['code', 'status', 'effective_range'] }
-		}
-	});
-	const year = $derived(
-		typeof incurredOn === 'string'
-			? incurredOn.slice(0, 4)
-			: String(ctx.clock('day').today).slice(0, 4)
+	const code = $derived(company?.current?.entity.rows[0]?.settings_code);
+	const laws = pageLaws(ctx, () => (code === undefined ? [] : [code]));
+	const day = $derived(
+		typeof incurredOn === 'string' ? incurredOn : String(ctx.clock('day').today)
 	);
-	const usedFor = (catalogId: string) =>
+	const year = $derived(day.slice(0, 4));
+	const usedFor = (catalogCode: string) =>
 		(claims?.current?.claim_catalog_entry.rows ?? []).reduce(
 			(total, row) =>
-				row.catalog_id === catalogId && String(row.incurred_on).startsWith(year)
+				row.catalog_code === catalogCode && String(row.incurred_on).startsWith(year)
 					? total + Number(row.quantity ?? 0)
 					: total,
 			0
 		);
-	const remainingFor = (row: { readonly id: string; readonly lookup?: unknown }) => {
-		const limit = Number(
-			(row.lookup as { readonly annual_limit?: number } | undefined)?.annual_limit
-		);
-		return Number.isFinite(limit) && limit > 0 ? limit - usedFor(row.id) : null;
+	const remainingFor = (row: JsonObject) => {
+		const limit = Number(isJsonObject(row.lookup) ? row.lookup.annual_limit : undefined);
+		return Number.isFinite(limit) && limit > 0 ? limit - usedFor(String(row.code)) : null;
 	};
+	// the rows of the company's law in force on the entry's date
 	const choices = $derived(
-		(catalogs.current?.[family].rows ?? [])
-			.filter(
-				(c) =>
-					c.settings_id?.status === 'SEALED' &&
-					(company?.current?.entity.rows[0]?.settings_code === undefined ||
-						c.settings_id.code === company?.current?.entity.rows[0]?.settings_code)
-			)
-			.filter((c) => family !== 'claim_catalog' || remainingFor(c) !== 0)
+		(laws.on(code, day)?.rows[family] ?? []).filter(
+			(row) => family !== 'claim_catalog' || remainingFor(row) !== 0
+		)
 	);
 </script>
 
 <Combobox
 	id={field.id}
 	disabled={field.disabled}
-	value={catalogId}
-	options={choices.map((c) => ({
-		value: c.id,
-		label: c.code,
-		description:
-			c.settings_id === null
-				? ''
-				: `${c.settings_id.effective_range.from} – ${c.settings_id.effective_range.to ?? '…'}`,
-		...(family === 'claim_catalog' && remainingFor(c) != null
-			? { suffix: `${remainingFor(c)} left` }
+	value={catalogCode}
+	options={choices.map((row) => ({
+		value: String(row.code),
+		label: String(row.code),
+		description: typeof row.description === 'string' ? row.description : '',
+		...(family === 'claim_catalog' && remainingFor(row) != null
+			? { suffix: `${remainingFor(row)} left` }
 			: {})
 	}))}
 	on_change={(value) => field.on_change(value)}

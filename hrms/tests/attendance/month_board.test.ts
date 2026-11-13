@@ -101,7 +101,7 @@ describe('month board', () => {
 					employment_id: 'next',
 					employee: 'person',
 					days: [{ date: '2026-03-02', part: 'AM' }],
-					catalog_id: { code: 'AL' }
+					catalog_code: 'AL'
 				}
 			],
 			locked: new Set()

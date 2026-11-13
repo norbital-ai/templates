@@ -8,6 +8,7 @@
 	import SealedBadge from '../../../lib/ui/payroll/sealed_badge.svelte';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
+	import { pageLaws } from '../../../lib/ui/law.svelte.js';
 	import { numberOf } from '../../../lib/payroll_engine/foundation.js';
 	import {
 		parseLoanSheet,
@@ -19,6 +20,7 @@
 	} from '../../../lib/ui/workbook/workbook_import.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);
+	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
 	let importingLoans = $state(false);
 	let importingRepayments = $state(false);
@@ -34,15 +36,9 @@
 						fields: ['employee_number', 'entity_id', 'effective_range'],
 						limit: 10000
 					},
-					jurisdiction_settings: {
-						where: { status: { eq: 'SEALED' } },
-						fields: ['code', 'effective_range'],
-						limit: 10000
-					},
-					loan_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					loan_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'catalog_id', 'quantity', 'repayment_period'],
+						fields: ['employment_id', 'catalog_code', 'quantity', 'repayment_period'],
 						limit: 10000
 					},
 					loan_catalog_entry_repayment: {
@@ -74,12 +70,7 @@
 				from: row.effective_range.from,
 				to: row.effective_range.to
 			})),
-			versions: current.jurisdiction_settings.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				from: row.effective_range.from,
-				to: row.effective_range.to
-			}))
+			laws: laws.on
 		};
 	};
 
@@ -87,14 +78,9 @@
 		const { current, ...base } = party();
 		const parsed = parseLoanSheet(grids, {
 			...base,
-			catalogs: current.loan_catalog.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				settings_id: row.settings_id
-			})),
 			existing: current.loan_catalog_entry.rows.map((row) => ({
 				employment_id: row.employment_id,
-				catalog_id: row.catalog_id,
+				catalog_code: row.catalog_code,
 				quantity: numberOf(row.quantity) ?? 0,
 				from: row.repayment_period.from,
 				to: row.repayment_period.to
@@ -104,7 +90,7 @@
 		return parsed.rows.map((row) => ({
 			entity_id: row.entity_id,
 			employment_id: row.employment_id,
-			catalog_id: row.catalog_id,
+			catalog_code: row.catalog_code,
 			quantity: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				maximumFractionDigits: 20
@@ -120,15 +106,10 @@
 		const { current, ...base } = party();
 		const parsed = parseRepaymentSheet(grids, {
 			...base,
-			catalogs: current.loan_catalog.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				settings_id: row.settings_id
-			})),
 			loans: current.loan_catalog_entry.rows.map((row) => ({
 				id: row.id,
 				employment_id: row.employment_id,
-				catalog_id: row.catalog_id
+				catalog_code: row.catalog_code
 			})),
 			existing: current.loan_catalog_entry_repayment.rows.map((row) => ({
 				employment_id: row.employment_id,
@@ -210,20 +191,24 @@
 						icon: 'lucide:file-spreadsheet',
 						name: ctx.t('holiday_calendar.import_spreadsheet'),
 						disabled: () =>
-							importingLoans || held?.current == null ? ctx.t('component.loading') : null
+							importingLoans || held?.current == null || laws.loading
+								? ctx.t('component.loading')
+								: null
 					},
 					{
 						run: importRepayments,
 						icon: 'lucide:file-spreadsheet',
 						name: ctx.t('v2.import_repayments'),
 						disabled: () =>
-							importingRepayments || held?.current == null ? ctx.t('component.loading') : null
+							importingRepayments || held?.current == null || laws.loading
+								? ctx.t('component.loading')
+								: null
 					}
 				]
 			}}
 			columns={[
 				'employment_id',
-				'catalog_id',
+				'catalog_code',
 				'quantity',
 				'repayment_period',
 				{ field: 'payroll_run_id', cell: sealCell }

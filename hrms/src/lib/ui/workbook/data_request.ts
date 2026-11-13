@@ -48,7 +48,6 @@ export type SheetColumn = {
 	readonly parent?: string;
 };
 export type SettingsFacts = {
-	readonly id: string;
 	readonly code: string;
 	readonly timezone: string;
 	readonly lookup: unknown;
@@ -700,18 +699,11 @@ const rowsOf = (
 	return rows;
 };
 
-export type VersionRange = {
-	readonly id: string;
-	readonly code: string;
-	readonly from: string;
-	readonly to: string | null;
-};
 export type DataRequestKnown = {
-	/** The sealed version in force today: the one the workbook was built from. */
+	/** The law in force today: the one the workbook was built from. */
 	readonly settings: SettingsFacts;
 	readonly ruleLookup: unknown;
 	readonly allowances: readonly AllowanceFacts[];
-	readonly versions: readonly VersionRange[];
 	readonly entities: readonly {
 		readonly id: string;
 		readonly name: string;
@@ -849,12 +841,6 @@ const overlaps = (
 	right: { readonly from: string; readonly to: string | null }
 ): boolean => left.from <= (right.to ?? '9999-12-31') && right.from <= (left.to ?? '9999-12-31');
 
-/** A contract's jurisdiction version: the one in force on its start, else the earliest of the country. */
-const versionFor = (versions: readonly VersionRange[], day: string): string | undefined => {
-	const ordered = versions.toSorted((left, right) => left.from.localeCompare(right.from));
-	return (ordered.find((row) => overlaps(row, { from: day, to: day })) ?? ordered[0])?.id;
-};
-
 export const planDataRequest = (
 	grids: WorkbookSheetGrids,
 	known: DataRequestKnown
@@ -950,11 +936,7 @@ export const planDataRequest = (
 		}
 		versions.push({
 			company: row.key,
-			row: jsonObject({
-				...row.model,
-				settings_code: known.settings.code,
-				input_schema_version_id: versionFor(known.versions, row.from) ?? known.settings.id
-			})
+			row: jsonObject({ ...row.model, settings_code: known.settings.code })
 		});
 	}
 

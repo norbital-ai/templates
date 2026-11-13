@@ -1,4 +1,4 @@
-// An employer's own pay method stands only where it pays at least the law. A sealed law pack as the fixture, a synthetic
+// An employer's own pay method stands only where it pays at least the law. A law pack as the fixture, a synthetic
 // employee and a month, end to end through `payroll_run.create`: each method is judged against the same run without it,
 // never against a figure worked from the statute.
 import assert from 'node:assert/strict';
@@ -14,7 +14,6 @@ import {
 	ENTITY,
 	REST,
 	WORK,
-	catalogRow,
 	leaveCreate,
 	pack,
 	uuid,
@@ -351,7 +350,7 @@ describe('contribution split', () => {
 								leaveCreate({
 									entity_id: ENTITY,
 									employment_id: idOf('employee_contract', uuid(6)),
-									catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+									catalog_code: 'NPL',
 									days: wholeDays('2026-02-17', '2026-02-18', '2026-02-19')
 								})
 							]
@@ -444,8 +443,7 @@ describe('health insurance billed a month in arrears', () => {
 				},
 				{ work_region: 'Provinsi Aceh/Kabupaten Aceh Barat' },
 				[],
-				[],
-				'2026-03-15'
+				[]
 			),
 			{ entity_extension_data: { risk_class: 'I' }, pay_methods: { health_billing: billing } }
 		);

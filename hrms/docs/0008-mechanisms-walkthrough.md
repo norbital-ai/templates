@@ -2,7 +2,7 @@
 
 One invented example followed from setting up a company to an exit. Each step says what the HR user does, what the system writes, and where it shows. Structure is in [the architecture](0001-hrms-calculation-architecture.md); correcting any step is in [corrections and integrity](0007-corrections-and-integrity.md); each country's own figures are in [statutory coverage](0009-statutory-coverage.md).
 
-**The example.** A company called "Example Co" has one monthly payroll. It hires "the employee" on 3,000 a month. Every name and figure here is invented. To keep the arithmetic visible, the example's law version is assumed to say:
+**The example.** A company called "Example Co" has one monthly payroll. It hires "the employee" on 3,000 a month. Every name and figure here is invented. To keep the arithmetic visible, the example's law is assumed to say:
 
 - proration by calendar days, rounding to 2 places;
 - an annual leave row granting 14 days per service year, carrying one window, with a `payout`;
@@ -49,7 +49,7 @@ What to expect:
 | HR does                                                                                                                                | The system writes                                                                                                                                                                                                   | Where it shows                               |
 | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | Creates the person, or invites them and lets the accepted invitation create the profile                                                | An `employee_profile`                                                                                                                                                                                               | People                                       |
-| Drafts the contract: start 16 June, 3,000 monthly, normal hours and days, shift pattern, agreed allowances, the facts the law asks for | An `employee_contract` in `DRAFT`. The law's rules check the terms against the version in force on the first day (minimum wage, hours, category)                                                                    | People                                       |
+| Drafts the contract: start 16 June, 3,000 monthly, normal hours and days, shift pattern, agreed allowances, the facts the law asks for | An `employee_contract` in `DRAFT`. The law's rules check the terms against the law in force on the first day (minimum wage, hours, category)                                                                        | People                                       |
 | Adds the family: a spouse, a child with a date of birth                                                                                | `family` members on the contract. Every count a scheme reads comes from this list                                                                                                                                   | People                                       |
 | Seals the contract                                                                                                                     | `SEALED`. The law's effects raise the new-hire tasks. The `ledger` automation is scheduled for this person                                                                                                          | People; Obligations                          |
 | Nothing                                                                                                                                | The sync opens the person's `employee_balance` and posts each leave row's `entitled` and each limited claim row's `limit` for the current window. A child's birth date opens the leave rows that name `CHILD_BIRTH` | The employee profile's balance; self-service |
@@ -178,17 +178,17 @@ In June, the joining month, `PRORATED` was 1,500.00: 15 of 30 calendar days from
 
 **What it writes, in one write.**
 
-| Written                     | Detail                                                                                                      |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| The `payroll_run`, `UNPAID` | Company, pay group, period, the law version, salary coverage and pay date. None of these is typed           |
-| One `payslip` per person    | Totals and the breakdown as calculated: checkpoints, lines, statutory amounts                               |
-| The seals                   | `payroll_run_id` on every roster day, leave slot, claim, ad hoc entry and repayment it priced               |
-| The amendment rows it took  | `payroll_run_id` on each `pay_amendment` row it carried; one new row where a recovery is carried forward    |
-| Ledger rows                 | Each checkpoint as `pay/…/total`, each scheme as `statutory/…/paid`, for the year and where named the month |
+| Written                     | Detail                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| The `payroll_run`, `UNPAID` | Company, pay group, period, salary coverage and pay date. None of these is typed. The run prices on the law in force on its pay date |
+| One `payslip` per person    | Totals and the breakdown as calculated: checkpoints, lines, statutory amounts                                                        |
+| The seals                   | `payroll_run_id` on every roster day, leave slot, claim, ad hoc entry and repayment it priced                                        |
+| The amendment rows it took  | `payroll_run_id` on each `pay_amendment` row it carried; one new row where a recovery is carried forward                             |
+| Ledger rows                 | Each checkpoint as `pay/…/total`, each scheme as `statutory/…/paid`, for the year and where named the month                          |
 
 The law's run effects then raise the period's tasks: remittances, filings, payslip issue. See Obligations.
 
-**The run refuses**, and writes nothing, when: no sealed employer version or law covers it; a confirmed change of law for its period is not merged; a later cycle of the group has already run; the group already ran this period; an entry it would pay, or one in a period it works out again, still waits for approval; or a loan recovery would take someone below zero.
+**The run refuses**, and writes nothing, when: no sealed employer version covers its period; no law is in force on its pay date; a later cycle of the group has already run; the group already ran this period; an entry it would pay, or one in a period it works out again, still waits for approval; or a loan recovery would take someone below zero.
 
 **Off-cycle.** An off-cycle run is for what cannot wait: a bonus or severance. HR names the ad hoc entries it pays. Only their people get a payslip, and it pays no salary. Only rows marked `off_cycle_eligible` may be named; a recurring item is refused. Statutory schemes still apply, on the month's total, so the month owes the same as if the entry had gone on-cycle. A leaver's off-cycle run goes on the period of their last day, for their own pay group. An off-cycle run carries earlier periods only when HR names them; it never takes money back. It refuses an entry or amended period another run already took.
 
@@ -250,7 +250,7 @@ What to expect:
 - **The months after it in the same tax year are worked out again too,** so a yearly ceiling or a cumulative tax ends exact. A later tax year is left alone.
 - **Net pay never goes below zero.** If a correction takes back more than the month pays, the payslip ends at zero with a line "Recovery carried forward", and the next run takes the rest.
 - **While a run is unpaid, the people it holds cannot be corrected.** Delete the run, correct the record, and run again.
-- **Company-wide corrections** work the same way for everyone they reach: a holiday published late, an employer version or a law version sealed from its real date.
+- **Company-wide corrections** work the same way for everyone they reach: a holiday published late, an employer version sealed from its real date, or a change of law written, corrected, moved or deleted.
 - **A pay group that has paid keeps its schedule.** A new schedule is a new group, and people move to it from the first of a month.
 
 The whole rule, with what is refused, is in [corrections and integrity](0007-corrections-and-integrity.md).

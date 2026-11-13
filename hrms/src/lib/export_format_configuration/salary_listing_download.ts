@@ -11,14 +11,18 @@ const listingRead = Effect.fn('payroll.listingRead')(function* (
 	ctx: Pick<PageContext, 'query'>,
 	ids: readonly Id<'payroll_run'>[]
 ) {
-	const { payroll_run: runs, payslip: slips } = yield* ctx.query({
+	const {
+		payroll_run: runs,
+		payslip: slips,
+		jurisdiction: laws
+	} = yield* ctx.query({
 		payroll_run: {
 			where: { id: { in: [...ids] } },
-			fields: ['period', 'kind', 'entity_id', 'settings_id'],
+			fields: ['period', 'kind', 'entity_id'],
 			limit: 1000,
-			entity_id: { fields: ['name'] },
-			settings_id: { fields: ['currency'] }
+			entity_id: { fields: ['name', 'settings_code'] }
 		},
+		jurisdiction: { fields: ['code', 'currency'], limit: 1000 },
 		payslip: {
 			where: { payroll_run_id: { in: [...ids] } },
 			fields: [
@@ -54,7 +58,16 @@ const listingRead = Effect.fn('payroll.listingRead')(function* (
 			limit: 10000
 		}
 	});
-	return { runs: runs.rows, slips: slips.rows, versions: versions.rows };
+	// a run is paid in the currency of its company's jurisdiction
+	const currency = new Map(laws.rows.map((row) => [row.code, row.currency]));
+	return {
+		runs: runs.rows.map((run) => ({
+			...run,
+			currency: currency.get(run.entity_id?.settings_code ?? '')
+		})),
+		slips: slips.rows,
+		versions: versions.rows
+	};
 });
 
 /** Reads the selected runs and downloads their salary listing: one workbook, a sheet each. */

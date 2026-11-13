@@ -1,13 +1,39 @@
+import { inForce, type Change } from '../dated.js';
+import { LAW_DEPTH, LAW_ROWS } from '../law.js';
 import type { JsonObject } from './contracts.js';
-import { isDynObject, stableJson, type Json } from './foundation.js';
-import {
-	hostOf,
-	instrumentKey,
-	officialSource,
-	SETTINGS_FAMILY,
-	valueAt,
-	WHOLE_ROW
-} from './statutory_change.js';
+import { isDynObject, isJsonObject, stableJson, type Json } from './foundation.js';
+
+/** The law's own blocks as a finding's family; a change to one names no `row_code`. */
+export const SETTINGS_FAMILY = 'jurisdiction';
+/** A change's `field_path` when it adds or removes a whole catalogue row. */
+export const WHOLE_ROW = '$row';
+/** The blocks of a law that are not rows: a change with no `row_code` starts its path at one of them. */
+const BLOCKS = [
+	'conversions',
+	'ledger',
+	'lookup',
+	'work_regions',
+	'employee_extension_schema',
+	'entity_extension_schema'
+];
+/** A change never moves a row's code or its place in the chain. */
+const PROTECTED = new Set(['code', 'previous']);
+const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
+
+/** An official host: government, tax or social-security domains of the workspace's jurisdictions. */
+export const officialSource = (url: string): boolean => {
+	const parsed = URL.parse(url);
+	return parsed?.protocol === 'https:' && /\.(gov|go)(\.[a-z]{2})?$/.test(parsed.hostname);
+};
+/** The host a source lives on, empty for what is not a URL; sources move page by page, rarely host by host. */
+export const hostOf = (url: string): string => URL.parse(url)?.hostname ?? '';
+/** A citation as a stable key: the same instrument, however a run spells it, is one finding. */
+export const instrumentKey = (instrument: string): string =>
+	instrument
+		.toLowerCase()
+		.normalize('NFKD')
+		.replace(/[^\p{L}\p{N}]+/gu, '-')
+		.replace(/^-|-$/g, '');
 
 export const FAMILIES = [
 	'leave_catalog',
@@ -24,7 +50,7 @@ export const FAMILIES = [
 /** The taxonomy a finding is classified against: what each family holds, as research reads it. */
 export const FAMILY_NOTES: { readonly [family: string]: string } = {
 	[SETTINGS_FAMILY]:
-		'Jurisdiction-wide values and shapes: `lookup` constants, rounding, currency, tax year, the employee and entity extension schemas.',
+		'Jurisdiction-wide values and shapes: `lookup` constants, `conversions` and rounding, the ledger scope, work regions, the employee and entity extension schemas.',
 	leave_catalog: 'Statutory and contractual leave entitlements.',
 	claim_catalog: 'Reimbursable expense types.',
 	adhoc_catalog: 'One-off pay and deduction items.',
@@ -101,7 +127,7 @@ export const sortFindings = (
 	return { fresh: [...fresh.values()], merged: [...merged], decided };
 };
 
-/** The hosts a version's `references` cite and the ledger does not hold yet, as sources; only official ones start active. */
+/** The hosts a law's `references` cite and the ledger does not hold yet, as sources; only official ones start active. */
 export const referenceSources = (
 	rows: readonly JsonObject[],
 	held: readonly string[]
@@ -128,15 +154,6 @@ export const referenceSources = (
 	return [...hosts.values()];
 };
 
-/** A sealed version research can file a change against, with the one family it read. */
-export type ResearchVersion = {
-	readonly id: string;
-	readonly from: string;
-	readonly to: string | null;
-	readonly settings: JsonObject;
-	readonly rows: readonly JsonObject[];
-	readonly subtotals: readonly JsonObject[];
-};
 export type ReportedChange = {
 	readonly row_code?: string | null | undefined;
 	readonly field_path: string;
@@ -144,137 +161,153 @@ export type ReportedChange = {
 	readonly effective_from?: string | null | undefined;
 	readonly notes?: string | null | undefined;
 };
-export type KnownChange = {
-	readonly family: string;
-	readonly row_code: string | null;
-	readonly field_path: string;
-	readonly new_value: Json | null;
-	readonly effective_from: string | null;
-	/** Rejected or applied: it dedupes a report, but no later step stands on it. */
-	readonly settled: boolean;
-};
-export type PlannedChange = {
-	readonly family: string;
-	readonly row_code: string | null;
-	readonly field_path: string;
-	readonly old_value: Json | null;
-	readonly new_value: Json | null;
-	readonly effective_from: string | null;
-	readonly baseline_version_id: string;
-	readonly notes: string | null;
-};
+/** A patch of a law from a date: what one `jurisdiction_change` row holds. */
+export type DatedPatch = { readonly effective_from: string; readonly law: JsonObject };
 
-/** A new row names its subtotals by code; ids belong to one version. */
-const bound = (value: Json | null, version: ResearchVersion): Json | null => {
-	if (!isDynObject(value)) return value;
-	const out: { [key: string]: Json } = {};
-	for (const [key, field] of Object.entries(value)) {
-		const subtotal =
-			key === 'subtotal_id' || key === 'employer_cost_subtotal_id'
-				? version.subtotals.find((row) => row.code === field)
-				: undefined;
-		out[key] = (typeof subtotal?.id === 'string' ? subtotal.id : field) as Json;
+const step = (value: Json | undefined, key: string): Json | undefined =>
+	isJsonObject(value)
+		? Object.hasOwn(value, key)
+			? value[key]
+			: undefined
+		: Array.isArray(value) && /^\d+$/.test(key)
+			? value[Number(key)]
+			: undefined;
+const at = (value: Json | undefined, path: readonly string[]): Json | undefined =>
+	path.reduce(step, value);
+
+/** `held` with the value at `path` under it replaced, or taken away when `value` is null. */
+const replaced = (held: Json | undefined, path: readonly string[], value: Json): Json => {
+	const [key, ...rest] = path;
+	if (key === undefined) return value;
+	const last = rest.length === 0;
+	if (Array.isArray(held)) {
+		const copy: Json[] = [...held];
+		if (last && value === null) copy.splice(Number(key), 1);
+		else copy[Number(key)] = replaced(copy[Number(key)], rest, value);
+		return copy;
 	}
-	return out;
+	const { [key]: old, ...others } = isJsonObject(held) ? held : {};
+	return last && value === null ? others : { ...others, [key]: replaced(old, rest, value) };
+};
+/** A patch with `value` at `path`; a null stays, because in a patch it takes the value away. */
+const patched = (patch: JsonObject, path: readonly string[], value: Json): JsonObject => {
+	const [key = '', ...rest] = path;
+	const under = patch[key];
+	return {
+		...patch,
+		[key]: rest.length === 0 ? value : patched(isJsonObject(under) ? under : {}, rest, value)
+	};
 };
 
 /**
- * Turns what a run reported for one family into ledger rows, deterministically. A value already in the version in force
- * on its date, or sealed for later, is no change; one the ledger holds, in any state, is no second row. Each step reads
- * its `old_value` from the version it lands on and the steps before it there, so a staged law chains. Pure.
+ * Turns what a run reported for one family into the finding's patches, one per effective date, deterministically. A
+ * law is patched three keys deep (family, row code, field), so a deeper path carries its whole field with the one
+ * value changed, read from the law as it stands on that date with the finding's earlier steps: a staged law chains.
+ * A value the law already holds on its date, or a patch research already filed, is no change. A change the source
+ * does not date is no patch: it is named in `undated` for a person to date. Pure.
  */
 export const planChanges = ({
 	family,
-	versions,
+	chain,
+	drafted,
 	known,
-	reported,
-	today
+	reported
 }: {
 	readonly family: string;
-	readonly versions: readonly ResearchVersion[];
-	readonly known: readonly KnownChange[];
+	/** The law's changes in force. */
+	readonly chain: readonly Change[];
+	/** The patches this finding already holds. */
+	readonly drafted: readonly DatedPatch[];
+	/** The patches research filed under other findings, whatever their state. */
+	readonly known: readonly DatedPatch[];
 	readonly reported: readonly ReportedChange[];
-	readonly today: string;
 }) => {
-	// past the seeded window's end the last version still stands until a change is materialized
-	const last = versions.toSorted((left, right) => right.from.localeCompare(left.from))[0];
-	const versionOn = (date: string) =>
-		versions.find((row) => row.from <= date && (row.to === null || date <= row.to)) ??
-		(last !== undefined && date > last.from ? last : undefined);
-	const snapshotOf = (version: ResearchVersion) => ({
-		settings: version.settings,
-		rows: { [family]: version.rows }
-	});
-	const planned: PlannedChange[] = [];
+	const first = chain.map((row) => row.effective_from).toSorted()[0];
+	const patches = new Map(drafted.map((row) => [row.effective_from, row.law]));
+	const written = new Set<string>();
+	const proposed: string[] = [];
 	const skipped: string[] = [];
+	const undated: string[] = [];
 	const dated = (change: ReportedChange) =>
 		isDate(change.effective_from) ? change.effective_from : null;
 	for (const change of [...reported].toSorted((left, right) =>
 		(dated(left) ?? '').localeCompare(dated(right) ?? '')
 	)) {
 		const row_code = change.row_code == null || change.row_code === '' ? null : change.row_code;
-		const target = {
-			family: row_code === null ? SETTINGS_FAMILY : family,
-			row_code,
-			field_path: change.field_path
-		};
-		const effective_from = dated(change);
-		const label = `${target.family}/${row_code ?? 'settings'}/${change.field_path}`;
-		const version = versionOn(effective_from ?? today);
-		if (version === undefined) {
+		const whole = change.field_path === WHOLE_ROW;
+		const parts = whole ? [] : change.field_path.split('.');
+		const path = row_code === null ? parts : [family, row_code, ...parts];
+		const label = `${row_code === null ? SETTINGS_FAMILY : family}/${row_code ?? 'settings'}/${change.field_path}`;
+		const value = change.new_value ?? null;
+		const date = dated(change);
+		// undated law stays undated: the research date is never its effective date
+		if (date === null) {
+			undated.push(`${label}: ${stableJson(value)}${change.notes ? ` (${change.notes})` : ''}`);
+			continue;
+		}
+		const state = inForce(
+			[
+				...chain,
+				...[...patches].map(([effective_from, patch]) => ({
+					id: `drafted/${effective_from}`,
+					effective_from,
+					patch
+				}))
+			],
+			date,
+			LAW_DEPTH
+		).state;
+		const current = at(state, path);
+		const fits =
+			// a patch runs forward from the law's first change, never before it
+			first !== undefined &&
+			date > first &&
+			path.length >= 2 &&
+			!path.some((part) => part === '' || UNSAFE.has(part)) &&
+			(row_code === null
+				? BLOCKS.includes(path[0] ?? '')
+				: LAW_ROWS.some((rows) => rows === family) &&
+					(whole
+						? // a row is added or removed whole; the chain takes field changes only
+							family !== 'subtotal' &&
+							(value === null
+								? current !== undefined
+								: current === undefined && isJsonObject(value))
+						: !PROTECTED.has(parts[0] ?? '') && at(state, [family, row_code]) !== undefined));
+		if (!fits || (!whole && stableJson(current ?? null) === stableJson(value))) {
 			skipped.push(label);
 			continue;
 		}
-		const new_value =
-			change.field_path === WHOLE_ROW
-				? bound(change.new_value ?? null, version)
-				: (change.new_value ?? null);
-		const samePath = (other: {
-			readonly family: string;
-			readonly row_code: string | null;
-			readonly field_path: string;
-		}) =>
-			other.family === target.family &&
-			other.row_code === row_code &&
-			other.field_path === change.field_path;
-		const value = stableJson(new_value);
-		const scheduled = versions.filter((row) => row.from > version.from);
-		const held =
-			stableJson(valueAt(snapshotOf(version), target)) === value ||
-			(effective_from === null &&
-				scheduled.some((row) => stableJson(valueAt(snapshotOf(row), target)) === value)) ||
-			[...known, ...planned].some(
-				(other) =>
-					samePath(other) &&
-					stableJson(other.new_value) === value &&
-					(effective_from === null || other.effective_from === effective_from)
-			);
-		if (held) {
+		const leaf = path.slice(0, LAW_DEPTH);
+		const set: Json =
+			whole && isJsonObject(value)
+				? Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'code'))
+				: path.length > LAW_DEPTH
+					? replaced(at(state, leaf), path.slice(LAW_DEPTH), value)
+					: value;
+		if (
+			known.some((other) => {
+				const filed = at(other.law, leaf);
+				return (
+					other.effective_from === date &&
+					filed !== undefined &&
+					stableJson(filed) === stableJson(set)
+				);
+			})
+		) {
 			skipped.push(label);
 			continue;
 		}
-		const earlier = [...known.filter((other) => !other.settled), ...planned]
-			.filter(
-				(other) =>
-					samePath(other) &&
-					effective_from !== null &&
-					other.effective_from !== null &&
-					other.effective_from < effective_from &&
-					versionOn(other.effective_from)?.id === version.id
-			)
-			.toSorted((left, right) =>
-				String(right.effective_from).localeCompare(String(left.effective_from))
-			)[0];
-		planned.push({
-			...target,
-			old_value:
-				earlier === undefined ? valueAt(snapshotOf(version), target) : (earlier.new_value ?? null),
-			new_value,
-			// undated law stays undated: the research date is never its effective date
-			effective_from,
-			baseline_version_id: version.id,
-			notes: change.notes ?? null
-		});
+		patches.set(date, patched(patches.get(date) ?? {}, leaf, set));
+		written.add(date);
+		proposed.push(`${label}@${date}`);
 	}
-	return { planned: planned as readonly PlannedChange[], skipped };
+	return {
+		planned: [...patches].flatMap(([effective_from, law]): readonly DatedPatch[] =>
+			written.has(effective_from) ? [{ effective_from, law }] : []
+		),
+		proposed,
+		skipped,
+		undated
+	};
 };

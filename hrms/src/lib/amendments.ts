@@ -306,7 +306,6 @@ export const versionReach = (
  *
  * - `amends`: its write carries the amendment rows of the paid periods it touches.
  * - `refuses`: what paid periods were worked out on keeps its shape; a change is a new one.
- * - `sealed`: a row of a sealed law version. The version refuses its writes; a corrective version amends.
  * - `none`: read to know who is paid or what a balance holds, never to price a day.
  */
 export const RUN_INPUTS = {
@@ -319,19 +318,12 @@ export const RUN_INPUTS = {
 	holiday: 'amends',
 	work_event: 'amends',
 	entity_profile_version: 'amends',
-	jurisdiction_settings: 'amends',
+	// the law: a change written, moved or deleted, or put in or out of force by its finding, amends what it reaches
+	jurisdiction_change: 'amends',
+	jurisdiction: 'refuses',
 	pay_group: 'refuses',
 	shift_definition: 'refuses',
 	shift_pattern: 'refuses',
-	subtotal: 'sealed',
-	allowance_catalog: 'sealed',
-	overtime_catalog: 'sealed',
-	statutory_contribution_catalog: 'sealed',
-	leave_catalog: 'sealed',
-	claim_catalog: 'sealed',
-	adhoc_catalog: 'sealed',
-	loan_catalog: 'sealed',
-	work_event_catalog: 'sealed',
 	// the person: only how their service counts moves pay, and that amends every period they were paid for
 	employee_profile: 'amends',
 	// the running totals a payslip posts to: a run reads them, and postings move them. HR's manual row adjusts a
@@ -341,7 +333,5 @@ export const RUN_INPUTS = {
 	// the loan itself: its instalments are what a run deducts, and they amend
 	loan_catalog_entry: 'none',
 	// sealed by the run that saw it open; it prices nothing
-	workplace_case_catalog_entry: 'none',
-	// a law change confirmed but not merged stops a run; it prices nothing
-	statutory_change: 'none'
+	workplace_case_catalog_entry: 'none'
 } as const;

@@ -123,9 +123,8 @@
 					},
 					leave_catalog_entry: {
 						where: { employment_id: { in: [...ids] } },
-						fields: ['employment_id', 'catalog_id'],
+						fields: ['employment_id', 'catalog_code'],
 						limit: 10000,
-						catalog_id: { fields: ['code'] },
 						leave_catalog_entry_day: {
 							fields: ['incurred_on', 'part'],
 							limit: 10000

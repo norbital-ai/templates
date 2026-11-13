@@ -5,7 +5,6 @@ export default app({
 	description: 'app.settings.change_log_description',
 	icon: 'lucide:history',
 	pages: {
-		scheduled: { title: 'app.settings.scheduled', icon: 'lucide:calendar-clock' },
-		change_log: { title: 'app.settings.change_log', icon: 'lucide:history' }
+		scheduled: { title: 'app.settings.scheduled', icon: 'lucide:calendar-clock' }
 	}
 });

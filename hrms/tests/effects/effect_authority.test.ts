@@ -10,6 +10,8 @@ import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
+	lawAt,
+	lawWith,
 	leaveCreate,
 	pack,
 	sealEvents,
@@ -28,33 +30,25 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-03-15');
+const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 const LEAVE = 'ANNUAL_LEAVE';
 const contract = base.employee_contract?.[0];
-const leave = base.leave_catalog?.find(
-	(row) =>
-		row.code === LEAVE &&
-		row.settings_id === base.entity_profile_version?.[0]?.input_schema_version_id
-);
-assert.ok(contract !== undefined && leave !== undefined);
+assert.ok(contract !== undefined);
 /** A notice the law raises on every entry of one leave row, due on its first day. */
-const notice = (settings_id: string, index: number): JsonObject => ({
-	id: uuid(60 + index),
-	settings_id,
-	code: 'LEAVE_NOTICE',
+const notice: JsonObject = {
 	name: 'LEAVE_NOTICE',
 	lookup: {},
 	source_collection: 'leave_catalog_entry',
 	events: ['create'],
 	reads: {
-		leave_catalog: { where: { code: { eq: LEAVE } }, fields: ['id'], limit: 100 },
+		leave_catalog: { where: { code: { eq: LEAVE } }, fields: ['code'], limit: 100 },
 		leave_catalog_entry_day: {
 			where: { leave_entry_id: { eq: { var: 'ctx.entry.id' } } },
 			fields: ['incurred_on'],
 			limit: 100
 		}
 	},
-	condition: 'return ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);',
+	condition: 'return ctx.reads.leave_catalog.some((row) => row.code === ctx.entry.catalog_code);',
 	target_collection: 'obligation',
 	target_action: 'create',
 	effects: `return [{
@@ -64,7 +58,7 @@ const notice = (settings_id: string, index: number): JsonObject => ({
 	due_on: first(ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted()),
 	occurrence_key: 'LEAVE_NOTICE:' + ctx.entry.id
 }];`
-});
+};
 const staff = (id: number, name: string, team: string) => ({
 	id: uuid(id),
 	name,
@@ -73,11 +67,7 @@ const staff = (id: number, name: string, team: string) => ({
 	team
 });
 const seed = {
-	...base,
-	registered_effect: [
-		...(base.registered_effect ?? []),
-		...(base.jurisdiction_settings ?? []).map((row, index) => notice(String(row.id), index))
-	],
+	...lawWith(base, { registered_effect: { LEAVE_NOTICE: notice } }),
 	sys_user: [
 		...(base.sys_user ?? []),
 		staff(40, 'Lead', 'supervisor'),
@@ -92,7 +82,7 @@ const ask = (by: Caller, date: string) =>
 			leaveCreate({
 				entity_id: ENTITY,
 				employment_id: idOf('employee_contract', String(contract.id)),
-				catalog_id: idOf('leave_catalog', String(leave.id)),
+				catalog_code: LEAVE,
 				days: wholeDays(date)
 			})
 		]
@@ -174,27 +164,30 @@ describe("the law's effects on a leave entry", () => {
 
 describe("the law's effects on a contract version", () => {
 	const REGISTRATION = 'EPF_EMPLOYEE_REGISTRATION';
+	const registration = lawAt('MY', '2026-03-15').rows.registered_effect.find(
+		(row) => row.code === REGISTRATION
+	);
+	assert.ok(registration !== undefined);
+	const effects = String(registration.effects).replace(
+		`'MY:${REGISTRATION}:' + r.id`,
+		"'REGISTRATION:' + r.employee_id"
+	);
+	assert.notEqual(effects, registration.effects);
 	/** The registration task keyed by the person, not by the contract version. */
-	const byPerson = (row: JsonObject): JsonObject => {
-		if (row.code !== REGISTRATION) return row;
-		const effects = String(row.effects).replace(
-			`'MY:${REGISTRATION}:' + r.id`,
-			"'REGISTRATION:' + r.employee_id"
-		);
-		assert.notEqual(effects, row.effects);
-		return {
-			...row,
-			reads: {
-				obligation: {
-					where: { occurrence_key: { eq: { var: "'REGISTRATION:' + ctx.entry.employee_id" } } },
-					limit: 10
-				}
-			},
-			effects
-		};
-	};
 	const contracts = workspace({
-		seed: { ...base, registered_effect: (base.registered_effect ?? []).map(byPerson) },
+		seed: lawWith(base, {
+			registered_effect: {
+				[REGISTRATION]: {
+					reads: {
+						obligation: {
+							where: { occurrence_key: { eq: { var: "'REGISTRATION:' + ctx.entry.employee_id" } } },
+							limit: 10
+						}
+					},
+					effects
+				}
+			}
+		}),
 		now: '2026-03-20T02:00:00.000Z'
 	});
 	const keys = (t: Kit) =>

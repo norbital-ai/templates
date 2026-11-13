@@ -1,44 +1,16 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Editor, type FieldEditor, type Value, value_object } from '@norbital-ai/ui';
-	import { idOf } from '../../payroll_engine/reads.js';
+	import type { Law } from '../../law.js';
 	import { contractCategories } from './contract_categories.js';
 	import AllowanceTermsEditor from './allowance_terms_editor.svelte';
 
-	let {
-		ctx,
-		field,
-		versionId
-	}: { ctx: PageContext; field: FieldEditor; versionId: string | null } = $props();
-	const settings = $derived(
-		typeof versionId === 'string'
-			? ctx.query({
-					jurisdiction_settings: {
-						where: { id: { eq: idOf('jurisdiction_settings', versionId) } },
-						fields: ['lookup'],
-						limit: 1
-					}
-				})
-			: null
-	);
-	const rule = $derived(
-		typeof versionId === 'string'
-			? ctx.query({
-					registered_rule: {
-						where: {
-							settings_id: { eq: idOf('jurisdiction_settings', versionId) },
-							code: { eq: 'CONTRACT_CATEGORIES' }
-						},
-						fields: ['lookup', 'validate'],
-						limit: 1
-					}
-				})
-			: null
-	);
+	let { ctx, field, law }: { ctx: PageContext; field: FieldEditor; law: Law | undefined } =
+		$props();
 	const categories = $derived(
 		contractCategories(
-			settings?.current?.jurisdiction_settings.rows[0]?.lookup,
-			rule?.current?.registered_rule.rows[0]?.lookup
+			law?.settings.lookup,
+			law?.rows.registered_rule.find((row) => row.code === 'CONTRACT_CATEGORIES')?.lookup
 		)
 	);
 	const kind = $derived.by(() => {
@@ -91,19 +63,10 @@
 	});
 </script>
 
-<div
-	data-contract-terms
-	data-categories={JSON.stringify(categories)}
-	data-version={JSON.stringify(versionId)}
-	data-version-type={typeof versionId}
->
+<div data-contract-terms data-categories={JSON.stringify(categories)}>
 	<Editor {ctx} {...edited} />
 	<div class="mt-2">
 		<span class="text-sm font-medium">{ctx.t('contract.allowances')}</span>
-		<AllowanceTermsEditor
-			{ctx}
-			field={allowanceField}
-			versionId={typeof versionId === 'string' ? versionId : undefined}
-		/>
+		<AllowanceTermsEditor field={allowanceField} {law} />
 	</div>
 </div>

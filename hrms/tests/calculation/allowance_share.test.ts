@@ -7,7 +7,7 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { run } from '../amendment_kit.ts';
-import { ENTITY, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, lawAt, lawWith, pack, storedQuery, uuid, workspace } from '../kit.ts';
 
 const NOW = '2026-06-20T02:00:00.000Z';
 const ALLOWANCE = 300;
@@ -25,8 +25,7 @@ const seed: Seed = pack(
 	},
 	{},
 	[],
-	[],
-	'2026-06-15'
+	[]
 );
 const dated = (from: Seed, range: { from: string; to: string | null }): Seed => ({
 	...from,
@@ -58,14 +57,14 @@ const june = (from: Seed) =>
 describe('an allowance and the share of the period paid', () => {
 	const joiner = (prorate: boolean): Seed => {
 		const held = dated(seed, { from: '2026-06-16', to: null });
-		return {
-			...held,
-			allowance_catalog: (held.allowance_catalog ?? []).map((row) =>
-				row.code === 'SUA' && !prorate
-					? { ...row, conversion: String(row.conversion).replace(' * ctx.paid_share', '') }
-					: row
-			)
-		};
+		if (prorate) return held;
+		const row = lawAt('MY', '2026-06-15').rows.allowance_catalog.find((one) => one.code === 'SUA');
+		assert.ok(row !== undefined);
+		return lawWith(held, {
+			allowance_catalog: {
+				SUA: { conversion: String(row.conversion).replace(' * ctx.paid_share', '') }
+			}
+		});
 	};
 
 	it.live('read, a joiner’s allowance takes the days employed', () =>

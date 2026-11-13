@@ -7,8 +7,9 @@
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { accountsOf, eventsOf, leftOn, unlimited } from '../../ledger/core.js';
-	import { isJsonObject, jsonObject } from '../../payroll_engine/foundation.js';
-	import { chainOf, startsOf, versionOn } from '../../payroll_engine/contract_change.js';
+	import { isJsonObject, jsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
+	import { chainOf, startsOf } from '../../payroll_engine/contract_change.js';
+	import { pageLaws } from '../law.svelte.js';
 	import { PAID_NOTE, paidPeriods } from '../payroll/paid_period.svelte.js';
 
 	let {
@@ -16,7 +17,7 @@
 		entityId,
 		employmentId: initialEmployment,
 		entry = null,
-		catalogId = null,
+		catalogCode = null,
 		person = false,
 		locked = false,
 		onDone
@@ -26,7 +27,7 @@
 		employmentId?: Id<'employee_contract'> | null;
 		/** A filed entry: its half-days change in place. One a run paid may go too: the next run carries the difference. */
 		entry?: Id<'leave_catalog_entry'> | null;
-		catalogId?: Id<'leave_catalog'> | null;
+		catalogCode?: string | null;
 		/** Names the person the entry is for: the HR controller's view; self-service is already theirs. */
 		person?: boolean;
 		/** Shows a filed entry without changing it: self-service. */
@@ -44,7 +45,7 @@
 	const today = $derived(clock.today);
 	let at = $state(DateTime.startOf(DateTime.makeUnsafe(clock.today), 'month'));
 	let chosen = $state<Id<'employee_contract'> | null>(initialEmployment ?? null);
-	let catalog = $state<Id<'leave_catalog'> | null>(catalogId ?? null);
+	let catalog = $state<string | null>(catalogCode ?? null);
 	let sessions = $state<{ date: string; part: 'AM' | 'PM' }[]>([]);
 	let saving = $state(false);
 	// the filed entry's half-days
@@ -109,38 +110,10 @@
 	const contract = $derived(
 		(contracts.current?.employee_contract.rows ?? []).find((row) => row.id === chosen) ?? null
 	);
-	// leave is taken under the law in force today, in the lineage of the contract's entity
+	// leave is taken under the law in force today, of the contract's entity
 	const code = $derived(contract?.entity_id?.settings_code);
-	const versions = $derived(
-		code === undefined
-			? null
-			: ctx.query({
-					jurisdiction_settings: {
-						where: { code: { eq: code }, status: { eq: 'SEALED' } },
-						fields: ['id', 'code', 'effective_range'],
-						limit: 1000
-					}
-				})
-	);
-	const inForce = $derived(
-		versionOn(versions?.current?.jurisdiction_settings.rows ?? [], code, String(today))
-	);
-	const catalogs = $derived(
-		inForce == null
-			? null
-			: ctx.query({
-					leave_catalog: {
-						// a filed entry keeps its own leave type, even one of an earlier version
-						where:
-							fixedCatalog && catalogId != null
-								? { or: [{ settings_id: { eq: inForce.id } }, { id: { eq: catalogId } }] }
-								: { settings_id: { eq: inForce.id } },
-						fields: ['code', 'lookup'],
-						order_by: { code: 'asc' },
-						limit: 10000
-					}
-				})
-	);
+	const laws = pageLaws(ctx, () => (code === undefined ? [] : [code]));
+	const law = $derived(laws.on(code, String(today)));
 	// the person's stints, for the service start their windows count from
 	const stints = $derived(
 		contract?.employee_id == null
@@ -169,7 +142,7 @@
 		accountsOf(balance?.current?.employee_balance.rows[0]?.account ?? {})
 	);
 	const subject = $derived.by(() => {
-		if (contract === null || inForce === undefined) return null;
+		if (contract === null || law === undefined) return null;
 		const { chain, lineage } = chainOf(
 			(stints?.current?.employee_contract.rows ?? []).map(jsonObject)
 		);
@@ -177,7 +150,7 @@
 		return own === undefined
 			? null
 			: {
-					scope: String(inForce.code),
+					scope: law.code,
 					started: startsOf(own, chain, lineage, contract.employee_id?.cumulative_service === true)
 						.service_started_on,
 					events: eventsOf(jsonObject(contract))
@@ -186,15 +159,11 @@
 	const recordDays = $derived(
 		entry == null ? 0 : (captures?.current?.leave_catalog_entry_day.rows.length ?? 0) / 2
 	);
-	const availableFor = (row: {
-		readonly id: string;
-		readonly code: string;
-		readonly lookup?: unknown;
-	}) => {
+	const availableFor = (row: JsonObject) => {
 		const lookup = jsonObject(row.lookup ?? {});
 		if (unlimited(lookup)) return Infinity;
 		const target = Array.isArray(lookup.accounts) ? lookup.accounts.find(isJsonObject) : undefined;
-		const code = typeof target?.code === 'string' ? target.code : row.code;
+		const code = typeof target?.code === 'string' ? target.code : String(row.code);
 		const counted = jsonObject(catalogRows.find((item) => item.code === code)?.lookup ?? lookup);
 		const left =
 			subject === null ? 0 : leftOn(leaveAccount, 'leave', code, counted, subject, String(today));
@@ -202,17 +171,29 @@
 		const dayHours = counted.unit === 'HOUR' ? (contract?.terms.normal_hours_per_day ?? 0) : 0;
 		return (
 			(dayHours > 0 ? left / dayHours : left) +
-			(entry != null && catalogId === row.id ? recordDays : 0)
+			(entry != null && catalogCode === row.code ? recordDays : 0)
 		);
 	};
-	const isNoCap = (row: { readonly lookup?: unknown }) => unlimited(jsonObject(row.lookup ?? {}));
-	const catalogRows = $derived(catalogs?.current?.leave_catalog.rows ?? []);
+	const isNoCap = (row: JsonObject) => unlimited(jsonObject(row.lookup ?? {}));
+	const catalogRows = $derived.by(() => {
+		const rows = (law?.rows.leave_catalog ?? []).toSorted((one, other) =>
+			String(one.code).localeCompare(String(other.code))
+		);
+		if (catalogCode == null || rows.some((row) => row.code === catalogCode)) return rows;
+		// a filed entry keeps its own leave type, even one the law has since dropped: its row on the entry's first day
+		const first = captures?.current?.leave_catalog_entry_day.rows[0]?.incurred_on;
+		const own =
+			first == null
+				? undefined
+				: laws.on(code, String(first))?.rows.leave_catalog.find((row) => row.code === catalogCode);
+		return own === undefined ? rows : [...rows, own];
+	});
 	const catalogOptions = $derived(
 		catalogRows
 			.filter((row) => availableFor(row) > 0)
 			.map((row) => ({
-				value: row.id,
-				label: row.code,
+				value: String(row.code),
+				label: String(row.code),
 				suffix: isNoCap(row) ? '' : `${availableFor(row)} d`
 			}))
 	);
@@ -280,7 +261,7 @@
 	const isSealed = (date: string, part: 'AM' | 'PM') => sealed.has(`${date}:${part}`);
 	const selected = (date: string, part: 'AM' | 'PM') =>
 		sessions.some((row) => row.date === date && row.part === part);
-	const chosenCatalog = $derived(catalogRows.find((row) => row.id === catalog) ?? null);
+	const chosenCatalog = $derived(catalogRows.find((row) => row.code === catalog) ?? null);
 	const availableDays = $derived(chosenCatalog === null ? 0 : availableFor(chosenCatalog));
 	const selectedDays = $derived(sessions.length / 2);
 	const overLimit = $derived(selectedDays > availableDays);
@@ -310,7 +291,7 @@
 						{
 							entity_id: entityId,
 							employment_id: chosen,
-							catalog_id: catalog,
+							catalog_code: catalog,
 							leave_catalog_entry_day: sessions.map((session) => ({
 								incurred_on: session.date,
 								part: session.part

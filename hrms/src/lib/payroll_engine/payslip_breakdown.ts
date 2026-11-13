@@ -4,7 +4,6 @@ import type { PayrollResult } from './engine.js';
 export const PayslipBreakdown = Schema.Struct({
 	checkpoints: Schema.Array(
 		Schema.Struct({
-			id: Schema.String,
 			code: Schema.String,
 			name: Schema.String,
 			value: Schema.Number
@@ -14,7 +13,8 @@ export const PayslipBreakdown = Schema.Struct({
 		Schema.Struct({
 			code: Schema.String,
 			label: Schema.String,
-			subtotal_id: Schema.String,
+			/** The code of the subtotal the line posts to. */
+			subtotal: Schema.String,
 			amount: Schema.Number,
 			direction: Schema.String,
 			party: Schema.String,
@@ -90,12 +90,12 @@ export const emptyPayslipBreakdown: PayslipBreakdown = {
 };
 
 export const breakdownOf = (result: PayrollResult): PayslipBreakdown => ({
-	checkpoints: result.subtotals.map(({ id, code, name, value }) => ({ id, code, name, value })),
+	checkpoints: result.subtotals.map(({ code, name, value }) => ({ code, name, value })),
 	lines: result.lines.map(
-		({ code, label, subtotal_id, amount, direction, party, source_id, quantity, unit }) => ({
+		({ code, label, subtotal, amount, direction, party, source_id, quantity, unit }) => ({
 			code,
 			label,
-			subtotal_id,
+			subtotal,
 			amount,
 			direction,
 			party,

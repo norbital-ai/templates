@@ -1,11 +1,12 @@
 /**
  * The catalogue-entry workbooks: leave, claim, ad hoc, loan, loan repayment and workplace case. One file per family, one row per entry, judged here before the page's guarded
- * `*.create` call sees it: employee number and catalogue code, the dates the employment covers, the
- * version in force on the entry's day, duplicates and leave overlaps. Nothing is written from here.
+ * `*.create` call sees it: employee number, the dates the employment covers, the catalogue code in the company's law
+ * in force on the entry's day, duplicates and leave overlaps. Nothing is written from here.
  */
 import type { Id } from '@norbital-ai/bolt';
 import { DateTime, Duration, Option, Schema } from 'effect';
 import { JsonObject } from './contracts.js';
+import type { Law, LawFamily } from '../law.js';
 import {
 	cellDay,
 	cellNumber,
@@ -39,37 +40,26 @@ export type EntryEmployee = {
 	readonly from: string;
 	readonly to: string | null;
 };
-export type EntryVersion = {
-	readonly id: Id<'jurisdiction_settings'>;
-	readonly code: string;
-	readonly from: string;
-	readonly to: string | null;
-};
-export type EntryCatalog<C extends string> = {
-	readonly id: Id<C>;
-	readonly code: string;
-	readonly name?: string | null;
-	readonly settings_id: Id<'jurisdiction_settings'>;
-};
-/** A catalogue a cell names: by its code or its display name, whatever the case and punctuation. */
-const names = (catalog: { readonly code: string }, text: string) =>
-	normalToken(catalog.code) === normalToken(text);
+/** The law of a jurisdiction on a day: what `lawsOf(...)` answers. */
+export type EntryLaws = (settings_code: string, day: string) => Law | undefined;
+/** A code a cell names, whatever the case and punctuation. */
+const names = (code: string, text: string) => normalToken(code) === normalToken(text);
 
 export type ExistingLeave = {
 	readonly employment_id: Id<'employee_contract'>;
-	readonly catalog_id: Id<'leave_catalog'>;
+	readonly catalog_code: string;
 	readonly days: readonly { readonly date: string; readonly part: 'AM' | 'PM' }[];
 };
-export type ExistingPayment<C extends string> = {
+export type ExistingPayment = {
 	readonly employment_id: Id<'employee_contract'>;
-	readonly catalog_id: Id<C>;
+	readonly catalog_code: string;
 	readonly quantity: number;
 	readonly incurred_on: string;
 	readonly description: string | null;
 };
 export type ExistingLoan = {
 	readonly employment_id: Id<'employee_contract'>;
-	readonly catalog_id: Id<'loan_catalog'>;
+	readonly catalog_code: string;
 	readonly quantity: number;
 	readonly from: string;
 	readonly to: string | null;
@@ -83,7 +73,7 @@ export type ExistingRepayment = {
 export type LoanLookup = {
 	readonly id: Id<'loan_catalog_entry'>;
 	readonly employment_id: Id<'employee_contract'>;
-	readonly catalog_id: Id<'loan_catalog'>;
+	readonly catalog_code: string;
 };
 export type ExistingCase = {
 	readonly entity_id: Id<'entity'>;
@@ -95,13 +85,13 @@ export type ExistingCase = {
 export type LeaveDraft = {
 	readonly entity_id: Id<'entity'>;
 	readonly employment_id: Id<'employee_contract'>;
-	readonly catalog_id: Id<'leave_catalog'>;
+	readonly catalog_code: string;
 	readonly days: readonly { readonly date: string; readonly part: 'AM' | 'PM' }[];
 };
-export type PaymentDraft<C extends string> = {
+export type PaymentDraft = {
 	readonly entity_id: Id<'entity'>;
 	readonly employment_id: Id<'employee_contract'>;
-	readonly catalog_id: Id<C>;
+	readonly catalog_code: string;
 	readonly quantity: number;
 	readonly incurred_on: string;
 	readonly description?: string;
@@ -109,7 +99,7 @@ export type PaymentDraft<C extends string> = {
 export type LoanDraft = {
 	readonly entity_id: Id<'entity'>;
 	readonly employment_id: Id<'employee_contract'>;
-	readonly catalog_id: Id<'loan_catalog'>;
+	readonly catalog_code: string;
 	readonly quantity: number;
 	readonly repayment_from: string;
 	readonly repayment_to: string;
@@ -132,7 +122,7 @@ export type CaseSeverity =
 export type CaseDraft = {
 	readonly entity_id: Id<'entity'>;
 	readonly employment_id: Id<'employee_contract'>;
-	readonly catalog_id: Id<'workplace_case_catalog'>;
+	readonly catalog_code: string;
 	readonly kind: string;
 	readonly severity?: CaseSeverity;
 	readonly opened_on: string;
@@ -144,8 +134,8 @@ export type CaseDraft = {
 type Base = {
 	readonly entity: EntryEntity;
 	readonly employees: readonly EntryEmployee[];
-	readonly versions: readonly EntryVersion[];
 };
+type Dated = Base & { readonly laws: EntryLaws };
 
 const EMPLOYEE = ['employee_number', 'employee', 'employee_no'];
 const CODE = ['code', 'type', 'leave_type', 'claim_type', 'ad_hoc_type', 'adhoc_type', 'loan_type'];
@@ -206,43 +196,37 @@ const covers = (
 	range: { readonly from: string; readonly to: string | null }
 ): boolean => inRange(day, range);
 
-const versionOf = (
-	versions: readonly EntryVersion[],
+const lawOf = (
+	laws: EntryLaws,
 	settingsCode: string,
 	day: string,
 	at: number,
 	problems: Problem[]
-): EntryVersion | null => {
-	const version = versions
-		.filter((candidate) => candidate.code === settingsCode && covers(day, candidate))
-		.toSorted((left, right) => left.from.localeCompare(right.from))
-		.at(-1);
-	if (version == null)
-		problems.push(`Row ${at}: no sealed ${settingsCode} jurisdiction version covers ${day}.`);
-	return version ?? null;
+): Law | null => {
+	const law = laws(settingsCode, day);
+	if (law === undefined) problems.push(`Row ${at}: no ${settingsCode} law is in force on ${day}.`);
+	return law ?? null;
 };
 
-const catalogOf = <C extends string>(
-	catalogs: readonly EntryCatalog<C>[],
-	version: EntryVersion,
+/** The code of the catalogue row a cell names in a law. */
+const catalogOf = (
+	law: Law,
+	family: LawFamily,
 	code: string,
 	at: number,
 	nouns: string,
 	problems: Problem[]
-): EntryCatalog<C> | null => {
+): string | null => {
 	if (code === '') {
 		problems.push(`Row ${at}: enter the ${nouns} code.`);
 		return null;
 	}
-	const options = catalogs.filter((catalog) => catalog.settings_id === version.id);
-	const found = options.find((catalog) => names(catalog, code));
-	if (found != null) return found;
+	const options = law.rows[family].map((row) => String(row.code));
+	const found = options.find((option) => names(option, code));
+	if (found !== undefined) return found;
 	problems.push(
-		`Row ${at}: "${code}" is not a ${nouns} code of the ${version.code} version in force. Codes: ${
-			options
-				.map((catalog) => catalog.code)
-				.toSorted()
-				.join(', ') || '(none)'
+		`Row ${at}: "${code}" is not a ${nouns} code of the ${law.code} law in force on ${law.on}. Codes: ${
+			options.toSorted().join(', ') || '(none)'
 		}.`
 	);
 	return null;
@@ -367,21 +351,18 @@ const leaveSlots = (row: SheetRow, problems: Problem[]): LeaveDraft['days'] | nu
 
 export function parseLeaveSheet(
 	grids: WorkbookSheetGrids,
-	known: Base & {
-		readonly catalogs: readonly EntryCatalog<'leave_catalog'>[];
-		readonly existing: readonly ExistingLeave[];
-	}
+	known: Dated & { readonly existing: readonly ExistingLeave[] }
 ): SheetResult<LeaveDraft> {
 	const table = sheetTable(grids, LEAVE_COLUMNS, LEAVE_OPTIONAL, 'Leave');
 	const problems: Problem[] = [];
 	const warnings: string[] = [];
-	const codes = new Map(known.catalogs.map((catalog) => [catalog.id, catalog.code]));
 	const held = new Map<string, string>();
-	for (const entry of known.existing) {
-		const code = codes.get(entry.catalog_id) ?? '';
+	for (const entry of known.existing)
 		for (const slot of entry.days)
-			held.set(`${entry.employment_id}:${String(slot.date).slice(0, 10)}:${slot.part}`, code);
-	}
+			held.set(
+				`${entry.employment_id}:${String(slot.date).slice(0, 10)}:${slot.part}`,
+				entry.catalog_code
+			);
 	const seen = new Map<string, number>();
 	const rows: LeaveDraft[] = [];
 	let ignoredDescription = false;
@@ -404,11 +385,11 @@ export function parseLeaveSheet(
 			problems
 		);
 		if (employee == null) continue;
-		const version = versionOf(known.versions, known.entity.settings_code, first, row.at, problems);
-		if (version == null) continue;
+		const law = lawOf(known.laws, known.entity.settings_code, first, row.at, problems);
+		if (law == null) continue;
 		const catalog = catalogOf(
-			known.catalogs,
-			version,
+			law,
+			'leave_catalog',
 			cellText(row.cells.code),
 			row.at,
 			'leave',
@@ -438,7 +419,7 @@ export function parseLeaveSheet(
 		rows.push({
 			entity_id: employee.entity_id,
 			employment_id: employee.id,
-			catalog_id: catalog.id,
+			catalog_code: catalog,
 			days: slots
 		});
 	}
@@ -449,15 +430,12 @@ export function parseLeaveSheet(
 	return { rows, warnings };
 }
 
-const parsePayments = <C extends string>(
+const parsePayments = (
 	grids: WorkbookSheetGrids,
-	known: Base & {
-		readonly catalogs: readonly EntryCatalog<C>[];
-		readonly existing: readonly ExistingPayment<C>[];
-	},
+	known: Dated & { readonly existing: readonly ExistingPayment[] },
 	nouns: 'claim' | 'ad hoc',
 	descriptionRequired: boolean
-): SheetResult<PaymentDraft<C>> => {
+): SheetResult<PaymentDraft> => {
 	const table = sheetTable(
 		grids,
 		PAYMENT_COLUMNS,
@@ -470,7 +448,7 @@ const parsePayments = <C extends string>(
 		known.existing.map((entry) =>
 			same([
 				String(entry.employment_id),
-				String(entry.catalog_id),
+				entry.catalog_code,
 				String(entry.incurred_on).slice(0, 10),
 				String(entry.quantity),
 				entry.description ?? ''
@@ -478,7 +456,7 @@ const parsePayments = <C extends string>(
 		)
 	);
 	const seen = new Map<string, number>();
-	const rows: PaymentDraft<C>[] = [];
+	const rows: PaymentDraft[] = [];
 	let ignoredDescription = false;
 	for (const row of table.rows) {
 		const number = cellText(row.cells.employee_number);
@@ -504,11 +482,11 @@ const parsePayments = <C extends string>(
 		if (!descriptionRequired && description !== '') ignoredDescription = true;
 		const employee = employeeOn(known.employees, known.entity.name, number, day, row.at, problems);
 		if (employee == null) continue;
-		const version = versionOf(known.versions, known.entity.settings_code, day, row.at, problems);
-		if (version == null) continue;
+		const law = lawOf(known.laws, known.entity.settings_code, day, row.at, problems);
+		if (law == null) continue;
 		const catalog = catalogOf(
-			known.catalogs,
-			version,
+			law,
+			nouns === 'claim' ? 'claim_catalog' : 'adhoc_catalog',
 			cellText(row.cells.code),
 			row.at,
 			nouns,
@@ -517,7 +495,7 @@ const parsePayments = <C extends string>(
 		if (catalog == null) continue;
 		const key = same([
 			String(employee.id),
-			String(catalog.id),
+			catalog,
 			day,
 			String(quantity),
 			descriptionRequired ? description : ''
@@ -531,7 +509,7 @@ const parsePayments = <C extends string>(
 		rows.push({
 			entity_id: employee.entity_id,
 			employment_id: employee.id,
-			catalog_id: catalog.id,
+			catalog_code: catalog,
 			quantity,
 			incurred_on: day,
 			...(description === '' ? {} : { description })
@@ -548,26 +526,17 @@ const parsePayments = <C extends string>(
 
 export const parseClaimSheet = (
 	grids: WorkbookSheetGrids,
-	known: Base & {
-		readonly catalogs: readonly EntryCatalog<'claim_catalog'>[];
-		readonly existing: readonly ExistingPayment<'claim_catalog'>[];
-	}
-): SheetResult<PaymentDraft<'claim_catalog'>> => parsePayments(grids, known, 'claim', false);
+	known: Dated & { readonly existing: readonly ExistingPayment[] }
+): SheetResult<PaymentDraft> => parsePayments(grids, known, 'claim', false);
 
 export const parseAdhocSheet = (
 	grids: WorkbookSheetGrids,
-	known: Base & {
-		readonly catalogs: readonly EntryCatalog<'adhoc_catalog'>[];
-		readonly existing: readonly ExistingPayment<'adhoc_catalog'>[];
-	}
-): SheetResult<PaymentDraft<'adhoc_catalog'>> => parsePayments(grids, known, 'ad hoc', true);
+	known: Dated & { readonly existing: readonly ExistingPayment[] }
+): SheetResult<PaymentDraft> => parsePayments(grids, known, 'ad hoc', true);
 
 export function parseLoanSheet(
 	grids: WorkbookSheetGrids,
-	known: Base & {
-		readonly catalogs: readonly EntryCatalog<'loan_catalog'>[];
-		readonly existing: readonly ExistingLoan[];
-	}
+	known: Dated & { readonly existing: readonly ExistingLoan[] }
 ): SheetResult<LoanDraft> {
 	const table = sheetTable(grids, LOAN_COLUMNS, [], 'Loans');
 	const problems: Problem[] = [];
@@ -576,7 +545,7 @@ export function parseLoanSheet(
 		known.existing.map((entry) =>
 			same([
 				String(entry.employment_id),
-				String(entry.catalog_id),
+				entry.catalog_code,
 				String(entry.quantity),
 				entry.from,
 				entry.to ?? ''
@@ -612,18 +581,18 @@ export function parseLoanSheet(
 			warnings.push(
 				`Row ${row.at}: the repayment period ends after ${number}'s employment (${employee.to ?? 'open'}).`
 			);
-		const version = versionOf(known.versions, known.entity.settings_code, from, row.at, problems);
-		if (version == null) continue;
+		const law = lawOf(known.laws, known.entity.settings_code, from, row.at, problems);
+		if (law == null) continue;
 		const catalog = catalogOf(
-			known.catalogs,
-			version,
+			law,
+			'loan_catalog',
 			cellText(row.cells.code),
 			row.at,
 			'loan',
 			problems
 		);
 		if (catalog == null) continue;
-		const key = same([String(employee.id), String(catalog.id), String(quantity), from, to]);
+		const key = same([String(employee.id), catalog, String(quantity), from, to]);
 		const earlier = seen.get(key);
 		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
 		if (held.has(key)) problems.push(`Row ${row.at}: ${number} already has this loan.`);
@@ -632,7 +601,7 @@ export function parseLoanSheet(
 		rows.push({
 			entity_id: employee.entity_id,
 			employment_id: employee.id,
-			catalog_id: catalog.id,
+			catalog_code: catalog,
 			quantity,
 			repayment_from: from,
 			repayment_to: to
@@ -646,14 +615,12 @@ export function parseLoanSheet(
 export function parseRepaymentSheet(
 	grids: WorkbookSheetGrids,
 	known: Base & {
-		readonly catalogs: readonly EntryCatalog<'loan_catalog'>[];
 		readonly loans: readonly LoanLookup[];
 		readonly existing: readonly ExistingRepayment[];
 	}
 ): SheetResult<RepaymentDraft> {
 	const table = sheetTable(grids, REPAYMENT_COLUMNS, REPAYMENT_OPTIONAL, 'Loan Repayments');
 	const problems: Problem[] = [];
-	const catalogs = new Map(known.catalogs.map((catalog) => [catalog.id, catalog]));
 	const held = new Set(
 		known.existing.map((entry) =>
 			same([
@@ -702,10 +669,7 @@ export function parseRepaymentSheet(
 		if (loanId !== '' && loan == null)
 			problems.push(`Row ${row.at}: "${loanId}" is not ${number}'s loan.`);
 		if (loan == null && loanCode !== '') {
-			const matches = mine.filter((candidate) => {
-				const catalog = catalogs.get(candidate.catalog_id);
-				return catalog !== undefined && names(catalog, loanCode);
-			});
+			const matches = mine.filter((candidate) => names(candidate.catalog_code, loanCode));
 			if (matches.length === 1) loan = matches[0];
 			else if (matches.length === 0)
 				problems.push(`Row ${row.at}: ${number} has no ${loanCode} loan.`);
@@ -754,8 +718,7 @@ const inputsOf = (text: string, at: number, problems: Problem[]): JsonObject | n
 
 export function parseCaseSheet(
 	grids: WorkbookSheetGrids,
-	known: Base & {
-		readonly catalogs: readonly EntryCatalog<'workplace_case_catalog'>[];
+	known: Dated & {
 		readonly entities: readonly EntryEntity[];
 		readonly existing: readonly ExistingCase[];
 	}
@@ -824,22 +787,22 @@ export function parseCaseSheet(
 		);
 		if (entityId == null) continue;
 		const entity = known.entities.find((candidate) => candidate.id === entityId) ?? known.entity;
-		const version = versionOf(known.versions, entity.settings_code, opened, row.at, problems);
-		if (version == null) continue;
-		const options = known.catalogs.filter(
-			(catalog) => catalog.settings_id === version.id && names(catalog, kind)
-		);
-		if (options.length !== 1) {
+		const law = lawOf(known.laws, entity.settings_code, opened, row.at, problems);
+		if (law == null) continue;
+		const options = law.rows.workplace_case_catalog
+			.map((catalog) => String(catalog.code))
+			.filter((option) => names(option, kind));
+		const code = options[0];
+		if (code === undefined || options.length !== 1) {
 			problems.push(
 				options.length === 0
-					? `Row ${row.at}: "${kind}" is not a workplace case catalogue of the ${version.code} version in force on ${opened}.`
+					? `Row ${row.at}: "${kind}" is not a workplace case catalogue of the ${law.code} law in force on ${opened}.`
 					: `Row ${row.at}: "${kind}" names more than one workplace case catalogue on ${opened}.`
 			);
 			continue;
 		}
 		const inputs = inputsOf(cellText(row.cells.inputs), row.at, problems);
 		if (inputs == null) continue;
-		const code = options[0]!.code;
 		const key = same([String(entityId), String(employee.id), code, opened]);
 		const earlier = seen.get(key);
 		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
@@ -871,7 +834,7 @@ export function parseCaseSheet(
 		rows.push({
 			entity_id: entityId,
 			employment_id: employee.id,
-			catalog_id: options[0]!.id,
+			catalog_code: code,
 			kind: code,
 			...(severity === undefined ? {} : { severity }),
 			opened_on: opened,

@@ -4,17 +4,24 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = 'seed/public/jurisdiction';
-const versions = (code) =>
-	readdirSync(join(root, code))
-		.filter((name) => /^version_\d+$/.test(name))
-		.toSorted((left, right) => Number(left.slice(8)) - Number(right.slice(8)));
-const jurisdictions = readdirSync(root);
-const rows = (path) => {
-	const value = JSON.parse(readFileSync(path, 'utf8'));
-	return (Array.isArray(value) ? value : [value]).filter(
-		(row) => row !== null && typeof row === 'object' && !Array.isArray(row)
-	);
+const applied = (state, patch, depth) => {
+	const next = { ...state };
+	for (const [key, value] of Object.entries(patch)) {
+		if (value === null) delete next[key];
+		else if (depth > 1 && typeof value === 'object' && !Array.isArray(value))
+			next[key] = applied(next[key] ?? {}, value, depth - 1);
+		else next[key] = value;
+	}
+	return next;
 };
+// every law a jurisdiction ever held: its first change, then that with each later patch applied, oldest first
+// (the fold of src/lib/dated.ts, three keys deep)
+const laws = readdirSync(root).flatMap((code) => {
+	let law = {};
+	return JSON.parse(readFileSync(join(root, code, 'jurisdiction_change.json'), 'utf8'))
+		.toSorted((left, right) => left.effective_from.localeCompare(right.effective_from))
+		.map((row) => (law = applied(law, row.law, 3)));
+});
 
 const kind = (value) => {
 	if (typeof value === 'boolean') return 'bool';
@@ -75,10 +82,8 @@ const schema = (values) => {
 
 // tables.ts
 const tables = {};
-for (const code of jurisdictions)
-	for (const version of versions(code))
-		for (const row of rows(join(root, code, version, 'jurisdiction_settings.json')))
-			for (const [key, value] of Object.entries(row.lookup ?? {})) (tables[key] ??= []).push(value);
+for (const law of laws)
+	for (const [key, value] of Object.entries(law.lookup ?? {})) (tables[key] ??= []).push(value);
 writeFileSync(
 	'src/lib/payroll_engine/tables.ts',
 	[
@@ -99,33 +104,24 @@ writeFileSync(
 );
 
 // params.ts
-const families = {
-	allowance_catalog: 'allowance_catalog.json',
-	overtime_catalog: 'overtime_catalog.json',
-	statutory_contribution_catalog: 'statutory_contribution_catalog.json',
-	leave_catalog: 'leave_catalog.json',
-	claim_catalog: 'claim_catalog.json',
-	adhoc_catalog: 'adhoc_catalog.json',
-	loan_catalog: 'loan_catalog.json'
-};
+const families = [
+	'allowance_catalog',
+	'overtime_catalog',
+	'statutory_contribution_catalog',
+	'leave_catalog',
+	'claim_catalog',
+	'adhoc_catalog',
+	'loan_catalog'
+];
 const perCode = {};
-for (const [family, file] of Object.entries(families)) {
+for (const family of families) {
 	perCode[family] = {};
-	for (const code of jurisdictions)
-		for (const version of versions(code)) {
-			const path = join(root, code, version, file);
-			try {
-				readFileSync(path);
-			} catch {
-				continue;
-			}
-			for (const row of rows(path)) {
-				const lookup = row.lookup ?? {};
-				const name = String(row.code ?? '');
-				const held = (perCode[family][name] ??= { sets: [], values: {} });
-				held.sets.push(new Set(Object.keys(lookup)));
-				for (const [key, value] of Object.entries(lookup)) (held.values[key] ??= []).push(value);
-			}
+	for (const law of laws)
+		for (const [name, row] of Object.entries(law[family] ?? {})) {
+			const lookup = row.lookup ?? {};
+			const held = (perCode[family][name] ??= { sets: [], values: {} });
+			held.sets.push(new Set(Object.keys(lookup)));
+			for (const [key, value] of Object.entries(lookup)) (held.values[key] ??= []).push(value);
 		}
 }
 const paramLines = [

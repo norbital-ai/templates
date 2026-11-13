@@ -9,7 +9,8 @@ import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
+	lawAt,
+	lawWith,
 	ledgerRows,
 	measureOf,
 	pack,
@@ -39,20 +40,20 @@ type Seed = ReturnType<typeof pack>;
 /** EMERGENCY_LEAVE is varied to draw on ANNUAL_LEAVE's balance (`lookup.accounts`): a row that counts against another. */
 const DRAWS = 'EMERGENCY_LEAVE';
 const seedOf = (account: Accounts): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-08-15');
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 	return {
-		...seed,
-		leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-			row.code === DRAWS
-				? {
-						...row,
-						lookup: {
-							...objectValue(row.lookup),
-							accounts: [{ account: 'leave', code: 'ANNUAL_LEAVE', measure: 'used' }]
-						}
+		...lawWith(seed, {
+			leave_catalog: {
+				[DRAWS]: {
+					lookup: {
+						...objectValue(
+							lawAt('MY', '2026-08-15').rows.leave_catalog.find((row) => row.code === DRAWS)?.lookup
+						),
+						accounts: [{ account: 'leave', code: 'ANNUAL_LEAVE', measure: 'used' }]
 					}
-				: row
-		),
+				}
+			}
+		}),
 		// a married woman, so a birth opens leave
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
@@ -65,14 +66,14 @@ const seedOf = (account: Accounts): Seed => {
 const WINDOW = 'MY.S.2026-01-01';
 const HOLDS = seedOf({ leave: { ANNUAL_LEAVE: { [WINDOW]: { entitled: 12 } } } });
 const EMPTY = seedOf({});
-const take = (t: Kit, seed: Seed, code: string, ...dates: string[]) =>
+const take = (t: Kit, code: string, ...dates: string[]) =>
 	Effect.flatMap(t.as(t.admin), (admin) =>
 		admin.act({
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
-					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+					catalog_code: code,
 					days: wholeDays(...dates)
 				})
 			]
@@ -131,7 +132,7 @@ describe('a posting that runs again', () => {
 	it.live('a leave entry is posted once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* take(t, HOLDS, 'ANNUAL_LEAVE', '2026-09-08', '2026-09-09');
+			yield* take(t, 'ANNUAL_LEAVE', '2026-09-08', '2026-09-09');
 			yield* crashEach(t);
 			assert.equal(yield* used(t), 2);
 			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
@@ -140,7 +141,7 @@ describe('a posting that runs again', () => {
 	it.live('an entry an unpaid run priced is held under that run, and its posting stands', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* take(t, HOLDS, 'ANNUAL_LEAVE', '2026-09-08', '2026-09-09');
+			yield* take(t, 'ANNUAL_LEAVE', '2026-09-08', '2026-09-09');
 			yield* crashEach(t);
 			yield* price(t);
 			const admin = yield* t.as(t.admin);
@@ -167,7 +168,7 @@ describe('a posting that runs again', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* take(t, HOLDS, DRAWS, '2026-09-08');
+				yield* take(t, DRAWS, '2026-09-08');
 				yield* crashEach(t);
 				assert.equal(yield* used(t), 1);
 				assert.deepEqual(yield* leaveRows(t, DRAWS), []);
@@ -204,10 +205,10 @@ describe('a balance is its ledger', () => {
 			const t = yield* TestWorkspace;
 			const admin = yield* t.as(t.admin);
 			yield* syncAll(t);
-			yield* take(t, EMPTY, 'ANNUAL_LEAVE', '2026-08-04', '2026-08-05');
+			yield* take(t, 'ANNUAL_LEAVE', '2026-08-04', '2026-08-05');
 			yield* t.run_due();
 			const first = yield* firstEntry(t);
-			yield* take(t, EMPTY, 'ANNUAL_LEAVE', '2026-08-06');
+			yield* take(t, 'ANNUAL_LEAVE', '2026-08-06');
 			const { leave_catalog_entry: later } = yield* storedQuery(t, {
 				leave_catalog_entry: { limit: 2 }
 			});

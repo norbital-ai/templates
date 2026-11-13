@@ -1,5 +1,5 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
 	JobResult,
 	TestWorkspace,
@@ -24,6 +24,8 @@ import { accountsOf, type Accounts } from '../src/lib/ledger/core.ts';
 import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf, type Reader } from '../src/lib/payroll_engine/reads.ts';
+import { inForce } from '../src/lib/dated.ts';
+import { LAW_DEPTH, lawsOf, type Law } from '../src/lib/law.ts';
 
 /** One scoped real workspace over this template's source, seeded by the rows a test writes. */
 export const workspace = <P extends TestPorts = never>(
@@ -187,41 +189,63 @@ export const PAY_GROUP = uuid(8);
 export const WORK = uuid(11),
 	REST = uuid(12),
 	OFF = uuid(13);
-const constantsByDirectory = new Map<string, ReadonlyMap<string, JsonObject>>();
-/** The shared constants a version's settings row declares, keyed by settings id. */
-const sharedConstants = (path: string): ReadonlyMap<string, JsonObject> => {
-	const dir = dirname(path);
-	const held = constantsByDirectory.get(dir);
-	if (held !== undefined) return held;
-	const map = new Map<string, JsonObject>();
-	const settings = join(dir, 'jurisdiction_settings.json');
-	if (existsSync(settings)) {
-		const value: unknown = JSON.parse(readFileSync(settings, 'utf8'));
-		const rows = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
-			Array.isArray(value) ? value : [value]
-		);
-		for (const row of rows) {
-			const lookup = isJsonObject(row.lookup) ? row.lookup : {};
-			const constants = isJsonObject(lookup.constants) ? lookup.constants : {};
-			if (typeof row.id === 'string') map.set(row.id, constants);
-		}
-	}
-	constantsByDirectory.set(dir, map);
-	return map;
+const rowsOf = (path: string): readonly JsonObject[] =>
+	Schema.decodeUnknownSync(Schema.Array(JsonObject))(JSON.parse(readFileSync(path, 'utf8')));
+/** A jurisdiction's public seed: its row and its dated changes, oldest first. */
+export const seedLaw = (code: string) => {
+	const root = join(process.cwd(), 'seed/public/jurisdiction', code);
+	return {
+		jurisdiction: rowsOf(join(root, 'jurisdiction.json')),
+		jurisdiction_change: rowsOf(join(root, 'jurisdiction_change.json'))
+	};
 };
-export const read = (path: string): readonly JsonObject[] => {
-	const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
-	const rows = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
-		Array.isArray(value) ? value : [value]
+/** Every seeded jurisdiction's code. */
+export const seededLaws = (): readonly string[] =>
+	readdirSync(join(process.cwd(), 'seed/public/jurisdiction'));
+/** The seeded law of a jurisdiction as it stands on a day. */
+export const lawAt = (code: string, day: string): Law => {
+	const law = lawsOf(seedLaw(code))(code, day);
+	if (law === undefined) throw new Error(`No ${code} law on ${day}`);
+	return law;
+};
+/**
+ * A pack whose law holds these values from its first day on: the patch goes on the first change, and a later change
+ * that set the same field no longer does. `null` takes a row or a field away.
+ */
+export const lawWith = <P extends { readonly [model: string]: readonly JsonObject[] }>(
+	seed: P,
+	patch: JsonObject
+): P => {
+	const [first, ...later] = (seed.jurisdiction_change ?? []).toSorted((a, b) =>
+		String(a.effective_from).localeCompare(String(b.effective_from))
 	);
-	if (path.endsWith('jurisdiction_settings.json')) return rows;
-	const constants = sharedConstants(path);
-	return rows.map((row) => {
-		const id = typeof row.settings_id === 'string' ? row.settings_id : null;
-		const held = id === null ? undefined : constants.get(id);
-		if (held === undefined || !isJsonObject(row.lookup)) return row;
-		return { ...row, lookup: { ...held, ...row.lookup } };
-	});
+	if (first === undefined) throw new Error('The pack holds no law');
+	const lawOf = (row: JsonObject) => (isJsonObject(row.law) ? row.law : {});
+	const base = inForce(
+		[
+			{ id: 'a', effective_from: '1', patch: lawOf(first) },
+			{ id: 'b', effective_from: '2', patch }
+		],
+		'2',
+		LAW_DEPTH
+	).state;
+	const without = (law: JsonObject, named: JsonObject, depth: number): JsonObject =>
+		Object.fromEntries(
+			Object.entries(law).flatMap(([key, value]): [string, JsonObject[string]][] => {
+				const over = named[key];
+				if (over === undefined) return [[key, value]];
+				if (depth === 1 || !isJsonObject(over) || !isJsonObject(value)) return [];
+				const rest = without(value, over, depth - 1);
+				return Object.keys(rest).length === 0 ? [] : [[key, rest]];
+			})
+		);
+	return {
+		...seed,
+		jurisdiction_change: [
+			{ ...first, law: base },
+			...later.map((row) => ({ ...row, law: without(lawOf(row), patch, LAW_DEPTH) }))
+		]
+	};
 };
 type Day = {
 	readonly date: string;
@@ -230,17 +254,15 @@ type Day = {
 	readonly overtime?: number;
 };
 type Holiday = { readonly date: string; readonly kind: string };
-/** One jurisdiction's public law plus one employee, one roster and the holidays of a month, on the law `on` that day. */
+/** One jurisdiction's public law plus one employee, one roster and the holidays of a month. */
 export const pack = (
 	code: string,
 	zone: string,
 	terms: JsonObject,
 	extension: JsonObject,
 	days: readonly Day[],
-	holidays: readonly Holiday[],
-	on = '2026-02-15'
+	holidays: readonly Holiday[]
 ): { readonly [model: string]: readonly JsonObject[] } => {
-	const rows: { [model: string]: JsonObject[] } = {};
 	// ordinary hours are terms (B2): a test contract states its own, or works the ordinary week
 	terms = {
 		normal_hours_per_day: 8,
@@ -251,19 +273,6 @@ export const pack = (
 	const { events, work_region, family, nationality, birth_city, passport_number, ...statutory } =
 		extension;
 	terms = { ...terms, ...(work_region === undefined ? {} : { work_region }) };
-	const root = join(process.cwd(), 'seed/public/jurisdiction', code);
-	let settings = '';
-	for (const version of readdirSync(root))
-		for (const file of readdirSync(join(root, version))) {
-			const own = read(join(root, version, file));
-			(rows[file.replace('.json', '')] ??= []).push(...own);
-			for (const row of own) {
-				const { from, to } = Schema.decodeUnknownSync(
-					Schema.Struct({ from: Schema.String, to: Schema.NullOr(Schema.String) })
-				)(file === 'jurisdiction_settings.json' ? row.effective_range : { from: '9', to: '0' });
-				if (from <= on && (to === null || on <= to)) settings = String(row.id);
-			}
-		}
 	const instant = (date: string, hours: number) =>
 		new Date(Date.parse(`${date}T00:00:00.000Z`) + hours * 3_600_000).toISOString();
 	const shift = (id: string, name: string, variant: JsonObject) => ({
@@ -275,7 +284,7 @@ export const pack = (
 		variant
 	});
 	return {
-		...rows,
+		...seedLaw(code),
 		entity: [
 			{
 				id: ENTITY,
@@ -306,7 +315,6 @@ export const pack = (
 				entity_id: ENTITY,
 				name: 'Entity',
 				settings_code: code,
-				input_schema_version_id: settings,
 				effective_range: { from: '2025-01-01', to: null },
 				time_zone: zone,
 				entity_extension_data: {},
@@ -406,13 +414,6 @@ export const leaveCreate = <
 	};
 };
 
-/** A catalog row's id on the version in force on the pack's day. */
-export const catalogRow = (seed: ReturnType<typeof pack>, model: string, code: string): string => {
-	const version = seed.entity_profile_version?.[0]?.input_schema_version_id;
-	const row = (seed[model] ?? []).find((r) => r.code === code && r.settings_id === version);
-	if (row === undefined) throw new Error(`No ${code} on ${model}`);
-	return String(row.id);
-};
 /** The whole days as half-day slots. */
 export const wholeDays = (...dates: readonly string[]) =>
 	dates.flatMap((date) => [

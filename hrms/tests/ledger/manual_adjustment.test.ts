@@ -10,7 +10,6 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
 	leaveCreate,
 	ledgerRows,
 	measureOf,
@@ -33,7 +32,7 @@ const TERMS = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const seed = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], [], '2026-11-06');
+const seed = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
 type Member = ReturnType<Kit['member']>;
 const hrOf = (t: Kit) => t.member(['hr_controller']);
 /** A manual adjustment as the profile sends it: signed days, so a negative one takes away. */
@@ -83,7 +82,7 @@ const halfDay = (t: Kit, by: Member, part: 'AM' | 'PM') =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: idOf('employee_contract', uuid(6)),
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', IN_LIEU)),
+						catalog_code: IN_LIEU,
 						days: [{ date: '2026-11-04', part }]
 					})
 				]
@@ -156,7 +155,7 @@ describe('a manual balance adjustment', () => {
 		'lands in the window holding its date, and the closing settlement and carry keep it',
 		() => {
 			// a service year that closes inside the law the template holds: the second runs to 31 May 2026
-			const base = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], [], '2026-05-06');
+			const base = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
 			const closing = {
 				...base,
 				employee_contract: (base.employee_contract ?? []).map((row) => ({

@@ -21,6 +21,7 @@
 	import ClaimRequest from '../../lib/ui/person/claim_request.svelte';
 	import LeaveEntryForm from '../../lib/ui/person/leave_entry_form.svelte';
 	import WorkCalendar from '../../lib/ui/person/work_calendar.svelte';
+	import { pageLaws } from '../../lib/ui/law.svelte.js';
 	import FaceEnrollFlow from '../../lib/ui/person/face_enroll_flow.svelte';
 	let { ctx }: { ctx: PageContext } = $props();
 	const inheritedChrome = ui_text();
@@ -84,21 +85,11 @@
 	const employmentId = $derived(employment?.id ?? null);
 	const contract = $derived(employment ?? null);
 	const company = $derived(employment == null ? undefined : entityById.get(employment.entity_id));
-	const settings = $derived(
-		company == null
-			? null
-			: ctx.query({
-					jurisdiction_settings: {
-						where: {
-							code: { eq: company.settings_code },
-							status: { eq: 'SEALED' },
-							effective_range: { contains: today }
-						},
-						fields: ['currency'],
-						limit: 1
-					}
-				})
-	);
+	const laws = pageLaws(ctx, () => (company == null ? [] : [company.settings_code]));
+	const currency = $derived.by(() => {
+		const held = laws.on(company?.settings_code, String(today))?.settings.currency;
+		return typeof held === 'string' ? held : null;
+	});
 	const needsChoice = $derived(active.length > 1 && employment == null);
 	const noEmployment = $derived(!employee.loading && !contracts?.loading && active.length === 0);
 	const needsGate = $derived(
@@ -124,8 +115,7 @@
 	value
 }: {
 	value: Row<'claim_catalog_entry'>['quantity'] | undefined;
-})}{#if value != null}{@const currency =
-			settings?.current?.jurisdiction_settings.rows[0]?.currency}{format({ kind: 'money' }, value, {
+})}{#if value != null}{format({ kind: 'money' }, value, {
 			locale: ctx.locale,
 			...(currency == null ? {} : { currency })
 		})}{:else}—{/if}{/snippet}
@@ -239,7 +229,7 @@
 			}}
 			where={mine}
 			order_by={{ created_at: 'desc' }}
-			columns={[{ field: 'catalog_id', label: ctx.t('component.catalogue_leave') }]}
+			columns={[{ field: 'catalog_code', label: ctx.t('component.catalogue_leave') }]}
 		/>
 	</Cover>
 {/snippet}
@@ -265,7 +255,7 @@
 			where={mine}
 			order_by={{ incurred_on: 'desc' }}
 			columns={[
-				{ field: 'catalog_id', label: ctx.t('models.claim_catalog.singular') },
+				{ field: 'catalog_code', label: ctx.t('component.catalogue_claim') },
 				{ field: 'quantity', label: ctx.t('component.amount'), cell: amountCell },
 				{ field: 'incurred_on', label: ctx.t('component.incurred_on') }
 			]}
@@ -286,7 +276,7 @@
 			}}
 			where={mine}
 			order_by={{ created_at: 'desc' }}
-			columns={['catalog_id', { field: 'quantity', cell: amountCell }, 'repayment_period']}
+			columns={['catalog_code', { field: 'quantity', cell: amountCell }, 'repayment_period']}
 		/>
 	</Cover>
 {/snippet}

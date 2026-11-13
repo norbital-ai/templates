@@ -10,7 +10,8 @@ import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
+	lawAt,
+	lawWith,
 	ledgerRows,
 	measureOf,
 	pack,
@@ -59,16 +60,18 @@ const VARIED: Readonly<Record<string, JsonObject>> = {
 };
 type Seed = ReturnType<typeof pack>;
 const seedOf = (gender: string): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-06-15');
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
+	const rows = lawAt('MY', '2026-06-15').rows.leave_catalog;
 	return {
-		...seed,
-		leave_catalog: (seed.leave_catalog ?? []).map((row) => {
-			const varied = VARIED[String(row.code)];
-			if (varied === undefined) return row;
-			const lookup = Object.entries(objectValue(row.lookup)).filter(
-				([key]) => key !== 'entitlement'
-			);
-			return { ...row, lookup: { ...Object.fromEntries(lookup), ...varied } };
+		...lawWith(seed, {
+			leave_catalog: Object.fromEntries(
+				Object.entries(VARIED).map(([code, varied]) => {
+					const lookup = Object.entries(
+						objectValue(rows.find((row) => row.code === code)?.lookup)
+					).filter(([key]) => key !== 'entitlement');
+					return [code, { lookup: { ...Object.fromEntries(lookup), ...varied } }];
+				})
+			)
 		}),
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
@@ -79,14 +82,14 @@ const seedOf = (gender: string): Seed => {
 const WOMAN = seedOf('FEMALE');
 const MAN = seedOf('MALE');
 const BIRTH = { kind: 'CHILD_BIRTH', on: '2026-03-02' };
-const take = (t: Kit, seed: Seed, code: string, dates: readonly string[], employment = CONTRACT) =>
+const take = (t: Kit, code: string, dates: readonly string[], employment = CONTRACT) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
 					employment_id: employment,
-					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+					catalog_code: code,
 					days: wholeDays(...dates)
 				})
 			]
@@ -205,7 +208,7 @@ describe('a birth on the contract', () => {
 			const t = yield* TestWorkspace;
 			const expected = { kind: 'CHILD_BIRTH', on: '2026-03-02', opened_on: '2026-02-16' };
 			const version = yield* seal(t, '2026-02-01', expected);
-			yield* take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-02-16'], version);
+			yield* take(t, 'MATERNITY_LEAVE', ['2026-02-16'], version);
 			yield* t.run_due();
 			yield* seal(t, '2026-03-01', { ...expected, on: '2026-02-27' });
 			yield* syncAll(t);
@@ -222,7 +225,7 @@ describe('a birth on the contract', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const version = yield* seal(t, BIRTH.on, BIRTH);
-			yield* take(t, WOMAN, 'MATERNITY_LEAVE', [BIRTH.on], version);
+			yield* take(t, 'MATERNITY_LEAVE', [BIRTH.on], version);
 			yield* t.run_due();
 			const refused = yield* Effect.flip(seal(t, '2026-04-01', { ...BIRTH, on: '2026-03-04' }));
 			assert.match(String(refused), /Leave from/);
@@ -231,7 +234,7 @@ describe('a birth on the contract', () => {
 	it.live('refuses a day no fact opens, however far ahead', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const refused = yield* Effect.flip(take(t, WOMAN, 'MATERNITY_LEAVE', ['2027-02-01']));
+			const refused = yield* Effect.flip(take(t, 'MATERNITY_LEAVE', ['2027-02-01']));
 			assert.match(String(refused), /insufficient balance/);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
@@ -252,7 +255,7 @@ describe('a birth on the contract', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const version = yield* seal(t, BIRTH.on, BIRTH);
-			yield* take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-03-03'], version);
+			yield* take(t, 'MATERNITY_LEAVE', ['2026-03-03'], version);
 			yield* t.run_due();
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MATERNITY_LEAVE', 'used'), 1);
 			assert.equal(yield* Effect.isFailure(sealEvents(t, '2026-04-01', [])), true);
@@ -297,8 +300,8 @@ describe('two facts on one row', () => {
 				{ kind: 'CONFINEMENT', on: '2026-05-28' },
 				{ kind: 'CHILD_BIRTH', on: '2026-06-01' }
 			);
-			yield* take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-05-28', '2026-05-29'], version);
-			yield* take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-06-01'], version);
+			yield* take(t, 'MATERNITY_LEAVE', ['2026-05-28', '2026-05-29'], version);
+			yield* take(t, 'MATERNITY_LEAVE', ['2026-06-01'], version);
 			yield* t.run_due();
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
 				'MY.E.2026-05-28': { entitled: CONFINEMENT, used: 2 },
@@ -306,9 +309,7 @@ describe('two facts on one row', () => {
 			});
 			assert.match(
 				String(
-					yield* Effect.flip(
-						take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-05-20', '2026-05-21'], version)
-					)
+					yield* Effect.flip(take(t, 'MATERNITY_LEAVE', ['2026-05-20', '2026-05-21'], version))
 				),
 				/MATERNITY_LEAVE: insufficient balance/
 			);

@@ -42,13 +42,9 @@ import {
 	type Unit,
 	type Wanted
 } from './core.js';
-import {
-	lawOn,
-	startOf,
-	validateRegistered,
-	type Operation
-} from '../payroll_engine/registrations.js';
-import { chainOf, startsOf, versionOn, type Starts } from '../payroll_engine/contract_change.js';
+import { startOf, validateRegistered, type Operation } from '../payroll_engine/registrations.js';
+import { chainOf, startsOf, type Starts } from '../payroll_engine/contract_change.js';
+import { lawOn, lawRead, lawReadOf, lawsOf, type Law } from '../law.js';
 import { payPeriodOf } from '../payroll_engine/pay_cycle.js';
 import {
 	carriedOf,
@@ -286,12 +282,6 @@ export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function*
 			limit: 10000
 		}
 	});
-	const codes = [...new Set(rows.map((row) => String(row.code)))];
-	const catalog = {
-		where: { code: { in: codes }, settings_id: { is: { status: { eq: 'SEALED' } } } },
-		fields: ['settings_id', 'code', 'lookup'],
-		limit: 10000
-	};
 	const found = yield* queryRows(read, {
 		employee_contract: {
 			where: { employee_id: { in: uniqueIds(balances, 'employee_id') }, status: { eq: 'SEALED' } },
@@ -308,14 +298,11 @@ export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function*
 			entity_id: { fields: ['settings_code'] },
 			employee_id: { fields: ['cumulative_service'] }
 		},
-		jurisdiction_settings: {
-			where: { status: { eq: 'SEALED' } },
-			fields: ['code', 'effective_range'],
-			limit: 10000
-		},
-		leave_catalog: catalog,
-		claim_catalog: catalog
+		...(yield* lawReadOf(read, {
+			employee_contract: { some: { employee_id: { in: uniqueIds(balances, 'employee_id') } } }
+		}))
 	});
+	const laws = lawsOf(found);
 	const { chain, lineage, cumulative } = chainOf(found.employee_contract ?? []);
 	const balance = new Map(balances.map((row) => [String(row.id), row]));
 	const keys: { readonly period: PeriodKey; readonly source: string }[] = [];
@@ -333,15 +320,11 @@ export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function*
 		});
 		if (held === undefined || contract === undefined)
 			return yield* refuse(`No sealed contract of this person covers ${date}.`);
-		const version = versionOn(
-			found.jurisdiction_settings ?? [],
-			lineage.get(String(contract.entity_id)),
-			date
+		const law = laws(lineage.get(String(contract.entity_id)), date);
+		const target = law?.rows[row.account === 'claim' ? 'claim_catalog' : 'leave_catalog'].find(
+			(item) => item.code === row.code
 		);
-		const target = (found[row.account === 'claim' ? 'claim_catalog' : 'leave_catalog'] ?? []).find(
-			(item) => item.code === row.code && item.settings_id === version?.id
-		);
-		if (version === undefined || target === undefined)
+		if (law === undefined || target === undefined)
 			return yield* refuse(
 				`${String(row.code)} is not a ${String(row.account)} row of the law in force on ${date}.`
 			);
@@ -354,7 +337,7 @@ export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function*
 		const period = periodOn(
 			objectValue(target.lookup),
 			{
-				scope: String(version.code),
+				scope: law.code,
 				started: startsOf(contract, chain, lineage, cumulative.has(String(contract.employee_id)))
 					.service_started_on,
 				events: eventsOf(contract)
@@ -738,18 +721,13 @@ const personOf = (
 };
 
 type Entries = 'leave_catalog_entry' | 'claim_catalog_entry' | 'adhoc_catalog_entry';
-const CATALOG_OF = {
-	leave_catalog_entry: 'leave_catalog',
-	claim_catalog_entry: 'claim_catalog',
-	adhoc_catalog_entry: 'adhoc_catalog'
-} as const;
 /** Every row of the people who hold these contracts: a relation, so it needs no read of its own. */
 const sameEmployee = (ids: readonly string[]) => ({
 	employee_id: { is: { employee_contract: { some: { id: { in: ids } } } } }
 });
 /**
  * What a batch of entries reads, all in one request: the people's contracts, entries of this kind and balances, what
- * those entries posted, and the catalog rows and law the entries were made under. Every check and the posting read it.
+ * those entries posted, and the laws their companies answer to. Every check and the posting read it.
  */
 export type Known = {
 	readonly contract: ReadonlyMap<string, JsonObject>;
@@ -757,13 +735,10 @@ export type Known = {
 	readonly lineage: ReadonlyMap<string, string>;
 	/** The people whose service counts every stint (`cumulative_service`). */
 	readonly cumulative: ReadonlySet<string>;
-	readonly catalog: ReadonlyMap<string, JsonObject>;
-	readonly setting: ReadonlyMap<string, JsonObject>;
-	readonly rows: ReadonlyMap<string, readonly JsonObject[]>;
+	/** The law of a jurisdiction code as it stands on a day. */
+	readonly laws: (code: unknown, day: string) => Law | undefined;
 	readonly balance: ReadonlyMap<string, JsonObject>;
 	readonly entries: readonly JsonObject[];
-	/** Each stored entry's catalog code, whichever version of the law it was made under. */
-	readonly codes: ReadonlyMap<string, string>;
 	readonly posted: readonly JsonObject[];
 	readonly captures: ReadonlyMap<string, readonly JsonObject[]>;
 };
@@ -772,9 +747,8 @@ const known = Effect.fn('ledger.known')(function* (
 	model: Entries,
 	entries: readonly JsonObject[]
 ) {
-	const catalog = CATALOG_OF[model];
 	const people = sameEmployee(uniqueIds(entries, 'employment_id'));
-	const entered = { [catalog]: { some: { id: { in: uniqueIds(entries, 'catalog_id') } } } };
+	const laws = yield* lawReadOf(read, { employee_contract: { some: people } });
 	const found = yield* queryAllRows(read, {
 		employee_contract: {
 			where: people,
@@ -793,38 +767,19 @@ const known = Effect.fn('ledger.known')(function* (
 			entity_id: { fields: ['settings_code'] },
 			employee_id: { fields: ['cumulative_service'] }
 		},
-		[catalog]: {
-			where: { settings_id: { is: entered } },
-			fields: [
-				'code',
-				'lookup',
-				'settings_id',
-				...(model === LEAVE ? (['paid_share', 'payout'] as const) : [])
-			],
-			limit: 10000
-		},
-		jurisdiction_settings: {
-			where: entered,
-			fields: ['code', 'tax_year_start_month', 'lookup', 'ledger'],
-			limit: 100
-		},
+		...laws,
 		employee_balance: {
 			where: people,
 			fields: ['employee_id', 'account', 'revision'],
 			limit: 10000
 		},
-		[model]: {
-			where: { employment_id: { is: people } },
-			limit: 10000,
-			catalog_id: { fields: ['code'] }
-		},
+		[model]: { where: { employment_id: { is: people } }, limit: 10000 },
 		ledger_entry: {
 			where: { balance_id: { is: people }, source: { like: `${model}:%` } },
 			fields: FIELDS,
 			limit: 10000
 		}
 	});
-	const familyRows = found[catalog] ?? [];
 	const stored = found[model] ?? [];
 	// every slot of the person's entries
 	const captures =
@@ -842,17 +797,9 @@ const known = Effect.fn('ledger.known')(function* (
 		contract: new Map(chain.map((row) => [String(row.id), row])),
 		lineage,
 		cumulative,
-		catalog: new Map(familyRows.map((row) => [String(row.id), row])),
-		setting: new Map((found.jurisdiction_settings ?? []).map((row) => [String(row.id), row])),
-		rows: Map.groupBy(familyRows, (row) => String(row.settings_id)),
+		laws: lawsOf(found),
 		balance: new Map((found.employee_balance ?? []).map((row) => [String(row.employee_id), row])),
-		entries: stored.map((row) =>
-			jsonObject({
-				...row,
-				catalog_id: objectValue(row.catalog_id).id ?? row.catalog_id
-			})
-		),
-		codes: new Map(stored.map((row) => [String(row.id), String(objectValue(row.catalog_id).code)])),
+		entries: stored,
 		posted: found.ledger_entry ?? [],
 		captures: Map.groupBy(captures, (row) => String(row.leave_entry_id))
 	} satisfies Known;
@@ -875,6 +822,24 @@ export const entryRead = (
 		{ concurrency: 'unbounded' }
 	).pipe(Effect.map(([read]) => read));
 
+/**
+ * The law an entry answers to: its company's, in force on the entry's own day. That day is a claim's or an ad hoc
+ * entry's `incurred_on` and a leave entry's first slot; an entry with no slot posts nothing under any law.
+ */
+const lawOf = (known: Known, entry: JsonObject): Law | undefined => {
+	const contract = known.contract.get(String(entry.employment_id));
+	const day =
+		typeof entry.incurred_on === 'string'
+			? entry.incurred_on
+			: ((Array.isArray(entry.days) ? entry.days : (known.captures.get(String(entry.id)) ?? []))
+					.filter(isJsonObject)
+					.map((slot) => String(slot.date ?? slot.incurred_on))
+					.toSorted()[0] ?? '');
+	return contract === undefined
+		? undefined
+		: known.laws(known.lineage.get(String(contract.entity_id)), day);
+};
+
 /** What each entry should post, from what its batch read. A record that is gone is not here: its delete inverts it. */
 const entryPlans = (
 	known: Known,
@@ -894,12 +859,20 @@ const entryPlans = (
 	const inBatch = new Map<string, number>();
 	return entries.flatMap((entry) => {
 		const contract = known.contract.get(String(entry.employment_id));
-		const catalog = known.catalog.get(String(entry.catalog_id));
+		const law = lawOf(known, entry);
+		const familyRows = law?.rows[`${family}_catalog` as const] ?? [];
+		const catalog = familyRows.find((item) => item.code === entry.catalog_code);
 		const balance = known.balance.get(String(contract?.employee_id));
-		if (contract === undefined || catalog === undefined || balance === undefined) return [];
-		const settings = known.setting.get(String(catalog.settings_id));
+		if (
+			contract === undefined ||
+			law === undefined ||
+			catalog === undefined ||
+			balance === undefined
+		)
+			return [];
+		const settings = law.settings;
 		const subject = {
-			scope: String(settings?.code),
+			scope: law.code,
 			started: startsOf(
 				contract,
 				[...known.contract.values()],
@@ -907,11 +880,11 @@ const entryPlans = (
 				known.cumulative.has(String(contract.employee_id))
 			).service_started_on,
 			events: eventsOf(contract),
-			taxYearStart: Number(settings?.tax_year_start_month ?? 1)
+			taxYearStart: Number(settings.tax_year_start_month ?? 1)
 		};
 		const row = rowOfCatalog(catalog);
 		const rowOf = (code: string) => {
-			const found = known.rows.get(String(catalog.settings_id))?.find((item) => item.code === code);
+			const found = familyRows.find((item) => item.code === code);
 			return found === undefined ? undefined : rowOfCatalog(found);
 		};
 		// the child slots are the truth: a stored entry carries them in `captures`, a batch's own entry on `days`
@@ -956,7 +929,7 @@ const entryPlans = (
 					? claimWanted(entry, row, subject, left)
 					: adhocWanted(entry, row, {
 							...subject,
-							scope: totalsScope(settings ?? {}, entry.entity_id)
+							scope: totalsScope(settings, entry.entity_id)
 						});
 		if (family === 'claim')
 			for (const item of wanted) {
@@ -1018,46 +991,17 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 		: ((yield* queryRows(read, {
 				payslip: {
 					where: { payroll_run_id: { in: runs.map((run) => run.id) } },
-					fields: [
-						'payroll_run_id',
-						'employee_id',
-						'employment_id',
-						'entity_id',
-						'settings_id',
-						'breakdown'
-					],
+					fields: ['payroll_run_id', 'employee_id', 'employment_id', 'entity_id', 'breakdown'],
 					limit: 10000
 				}
 			})).payslip ?? []);
-	const {
-		jurisdiction_settings: settings = [],
-		subtotal: subtotals = [],
-		statutory_contribution_catalog: statutory = [],
-		leave_catalog: leaves = [],
-		employee_contract: contracts = [],
-		employee_balance: balances = [],
-		ledger_entry: posted = []
-	} = yield* queryAllRows(read, {
-		jurisdiction_settings: {
-			where: { id: { in: uniqueIds(slips, 'settings_id') } },
-			fields: ['code', 'tax_year_start_month', 'lookup', 'ledger'],
-			limit: 100
-		},
-		subtotal: {
-			where: { settings_id: { in: uniqueIds(slips, 'settings_id') } },
-			fields: ['settings_id', 'code', 'balance_window'],
+	const found = yield* queryAllRows(read, {
+		entity: {
+			where: { id: { in: uniqueIds(slips, 'entity_id') } },
+			fields: ['id', 'settings_code'],
 			limit: 10000
 		},
-		statutory_contribution_catalog: {
-			where: { settings_id: { in: uniqueIds(slips, 'settings_id') } },
-			fields: ['settings_id', 'code', 'balance_window'],
-			limit: 10000
-		},
-		leave_catalog: {
-			where: { settings_id: { in: uniqueIds(slips, 'settings_id') } },
-			fields: ['settings_id', 'code'],
-			limit: 10000
-		},
+		...(yield* lawReadOf(read, { id: { in: uniqueIds(slips, 'entity_id') } })),
 		employee_contract: {
 			where: { id: { in: uniqueIds(slips, 'employment_id') } },
 			fields: ['effective_range'],
@@ -1079,46 +1023,36 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 					}
 				})
 	});
+	const {
+		entity: entities = [],
+		employee_contract: contracts = [],
+		employee_balance: balances = [],
+		ledger_entry: posted = []
+	} = found;
 	const payDate = new Map(runs.map((run) => [run.id, run.pay_date]));
-	const setting = new Map(settings.map((row) => [String(row.id), row]));
 	const contract = new Map(contracts.map((row) => [String(row.id), row]));
 	const balance = new Map(balances.map((row) => [String(row.employee_id), String(row.id)]));
-	// the catalog rows own the posting window: a monthly checkpoint or scheme posts to the month as well as the year
-	const monthly = new Map<string, string[]>();
-	for (const row of subtotals)
-		if (row.balance_window === 'MONTH') {
-			const id = String(row.settings_id);
-			monthly.set(id, [...(monthly.get(id) ?? []), String(row.code)]);
-		}
-	for (const row of statutory)
-		if (row.balance_window === 'MONTH') {
-			const id = String(row.settings_id);
-			monthly.set(id, [
-				...(monthly.get(id) ?? []),
-				`${String(row.code)}.employee`,
-				`${String(row.code)}.employer`
-			]);
-		}
-	// the ledger write boundary: a payslip may only post a code its sealed version declares
-	const known = new Map<string, Set<string>>();
-	for (const row of [...subtotals, ...statutory]) {
-		const id = String(row.settings_id);
-		known.set(id, (known.get(id) ?? new Set()).add(String(row.code)));
-	}
-	const leaveCodes = new Set(leaves.map((row) => `${String(row.settings_id)}/${String(row.code)}`));
+	// a payslip answers to the law of its company on its run's pay date
+	const laws = lawsOf(found);
+	const lineage = new Map(entities.map((row) => [String(row.id), row.settings_code]));
+	const lawFor = (slip: JsonObject) =>
+		laws(lineage.get(String(slip.entity_id)), String(payDate.get(String(slip.payroll_run_id))));
+	const codesOf = (rows: readonly JsonObject[]) => rows.map((row) => String(row.code));
+	// the ledger write boundary: a payslip may only post a code its law declares
 	for (const slip of slips) {
-		const codes = known.get(String(slip.settings_id)) ?? new Set<string>();
+		const law = lawFor(slip);
+		const codes = new Set(
+			codesOf([...(law?.rows.subtotal ?? []), ...(law?.rows.statutory_contribution_catalog ?? [])])
+		);
+		const leaveCodes = new Set(codesOf(law?.rows.leave_catalog ?? []));
 		for (const key of ['checkpoints', 'statutory', 'time_off']) {
 			const rows = objectValue(slip.breakdown)[key];
 			for (const row of Array.isArray(rows) ? rows : [])
-				if (
-					isJsonObject(row) &&
-					!(key === 'time_off'
-						? leaveCodes.has(`${String(slip.settings_id)}/${String(row.code)}`)
-						: codes.has(String(row.code)))
-				)
+				if (isJsonObject(row) && !(key === 'time_off' ? leaveCodes : codes).has(String(row.code)))
 					return yield* Effect.fail(
-						new Refusal({ message: `${String(row.code)}: not a code of this sealed version.` })
+						new Refusal({
+							message: `${String(row.code)}: not a code of the law on this pay date.`
+						})
 					);
 		}
 	}
@@ -1128,10 +1062,20 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 	const plans = slips.flatMap((slip) => {
 		const balance_id = String(balance.get(String(slip.employee_id)));
 		const run = String(slip.payroll_run_id);
-		const own = setting.get(String(slip.settings_id));
+		const law = lawFor(slip);
 		const employment = contract.get(String(slip.employment_id));
-		if (own === undefined || employment === undefined) return [];
-		const byMonth = monthly.get(String(slip.settings_id)) ?? [];
+		if (law === undefined || employment === undefined) return [];
+		const own = law.settings;
+		// the catalog rows own the posting window: a monthly checkpoint or scheme posts to the month as well as the year
+		const monthly = (rows: readonly JsonObject[]) =>
+			codesOf(rows.filter((row) => row.balance_window === 'MONTH'));
+		const byMonth = [
+			...monthly(law.rows.subtotal),
+			...monthly(law.rows.statutory_contribution_catalog).flatMap((code) => [
+				`${code}.employee`,
+				`${code}.employer`
+			])
+		];
 		return [
 			{
 				source: `payroll_run:${run}`,
@@ -1204,8 +1148,8 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	if (plans.length === 0) return;
 	const limited = new Map<string, boolean>();
 	const opened = new Set<string>();
-	for (const rows of known.rows.values())
-		for (const row of rows) {
+	for (const entry of entries)
+		for (const row of lawOf(known, entry)?.rows.leave_catalog ?? []) {
 			limited.set(String(row.code), !unlimited(objectValue(row.lookup)));
 			if (Object.keys(openedBy(objectValue(row.lookup))).length > 0) opened.add(String(row.code));
 		}
@@ -1252,14 +1196,16 @@ export const assertCashable = Effect.fn('ledger.assertCashable')(function* (
 	known: Known,
 	entries: readonly JsonObject[]
 ) {
+	const rowOf = (entry: JsonObject) =>
+		lawOf(known, entry)?.rows.leave_catalog.find((item) => item.code === entry.catalog_code);
 	const bare = entries.find((entry) => {
-		const payout = known.catalog.get(String(entry.catalog_id))?.payout;
+		const payout = rowOf(entry)?.payout;
 		return entry.encashment === true && (typeof payout !== 'string' || payout.trim() === '');
 	});
 	if (bare !== undefined)
 		return yield* Effect.fail(
 			new Refusal({
-				message: `${String(known.catalog.get(String(bare.catalog_id))?.code ?? 'This leave')} has no payout, so its days cannot be cashed out. Take them as leave, or give the row a payout.`
+				message: `${String(rowOf(bare)?.code ?? 'This leave')} has no payout, so its days cannot be cashed out. Take them as leave, or give the row a payout.`
 			})
 		);
 });
@@ -1276,21 +1222,12 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 		read,
 		sealing.map((row) => ({ entity: row.entity_id, on: startOf(row) }))
 	);
-	const settingsIds = [
-		...new Set(law.flatMap((version) => (version === undefined ? [] : [String(version.id)])))
-	];
 	const {
-		leave_catalog: rows = [],
 		employee_balance: balances = [],
 		ledger_entry: manualRows = [],
 		entity_profile_version: employerRows = [],
 		employee_contract: stored = []
 	} = yield* queryRows(read, {
-		leave_catalog: {
-			where: { settings_id: { in: settingsIds } },
-			fields: ['settings_id', 'code', 'lookup'],
-			limit: 10000
-		},
 		employee_contract: {
 			where: { employee_id: { in: uniqueIds(sealing, 'employee_id') }, status: { eq: 'SEALED' } },
 			fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
@@ -1319,7 +1256,6 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 	});
 	const manual = manualOf(manualRows);
 	const employers = new Map(employerRows.map((row) => [String(row.entity_id), row]));
-	const rowsOf = Map.groupBy(rows, (row) => String(row.settings_id));
 	const balance = new Map(balances.map((row) => [String(row.employee_id), row]));
 	const held = chainOf(stored);
 	const lineage = new Map([
@@ -1330,7 +1266,6 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 		})
 	]);
 	for (const [index, contract] of sealing.entries()) {
-		const settingsId = String(law[index]?.id);
 		const starts = startsOf(
 			contract,
 			held.chain,
@@ -1345,7 +1280,7 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 		const own = balance.get(String(contract.employee_id));
 		const leave = accountsOf(own?.account).leave ?? {};
 		const added = manual.get(String(own?.id))?.leave ?? {};
-		for (const row of rowsOf.get(settingsId) ?? []) {
+		for (const row of law[index]?.rows.leave_catalog ?? []) {
 			const { code, lookup } = rowOfCatalog(row);
 			const grants = grantsOf(
 				lookup,
@@ -1435,14 +1370,9 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			fields: ['entity_id', 'effective_range', 'entity_extension_data'],
 			limit: 1000
 		},
-		jurisdiction_settings: {
-			where: { status: { eq: 'SEALED' } },
-			fields: ['code', 'effective_range'],
-			limit: 1000
-		},
-		work_event_catalog: { fields: ['id', 'code'], limit: 10000 },
+		...lawRead(),
 		work_event: {
-			fields: ['id', 'entity_id', 'employment_id', 'catalog_id', 'from', 'to', 'location'],
+			fields: ['id', 'entity_id', 'employment_id', 'catalog_code', 'from', 'to', 'location'],
 			limit: 10000
 		},
 		employee_balance: {
@@ -1457,53 +1387,21 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 		const { from, to } = objectValue(range);
 		return String(from) <= on && (typeof to !== 'string' || on <= to);
 	};
-	const versions = read.jurisdiction_settings ?? [];
-	// a contract's law is its entity's lineage in force on the day
+	// a contract's law is its entity's jurisdiction as it stands on the day
 	const lineage = new Map(
 		(read.entity ?? []).map((row) => [String(row.id), String(row.settings_code)])
 	);
-	const lawIn = (entity: unknown, on: string) =>
-		versionOn(versions, lineage.get(String(entity)), on);
-	// the law in force, and the version before it, which a window that just closed ends under
-	// ponytail: a window that closed under an older version stays as last synced; read further back if syncs lag that far
-	const ids = [
-		...new Set(
-			[...new Set(lineage.values())].flatMap((code) => {
-				const row = versionOn(versions, code, day);
-				if (row === undefined) return [];
-				const from = String(objectValue(row.effective_range).from);
-				const before = versionOn(
-					versions,
-					code,
-					DateTime.formatIsoDate(DateTime.subtract(DateTime.makeUnsafe(from), { days: 1 }))
-				);
-				return [String(row.id), ...(before === undefined ? [] : [String(before.id)])];
-			})
-		)
-	];
-	const { leave_catalog: leave = [], claim_catalog: claims = [] } = yield* queryAllRows(ctx.query, {
-		leave_catalog: {
-			where: { settings_id: { in: ids } },
-			fields: ['settings_id', 'code', 'lookup'],
-			limit: 1000
-		},
-		claim_catalog: {
-			where: { settings_id: { in: ids } },
-			fields: ['settings_id', 'code', 'lookup'],
-			limit: 1000
-		}
-	});
+	const laws = lawsOf(read);
+	const lawIn = (entity: unknown, on: string) => laws(lineage.get(String(entity)), on);
 	const entitled = (account: string, rows: readonly JsonObject[]) =>
-		rows.map((row) => ({
-			settings: String(row.settings_id),
-			account,
-			code: String(row.code),
-			lookup: objectValue(row.lookup)
-		}));
-	const rowsOf = Map.groupBy(
-		[...entitled('leave', leave), ...entitled('claim', claims)],
-		(row) => row.settings
-	);
+		rows.map((row) => ({ account, code: String(row.code), lookup: objectValue(row.lookup) }));
+	const rowsOf = (law: Law | undefined) =>
+		law === undefined
+			? []
+			: [
+					...entitled('leave', law.rows.leave_catalog),
+					...entitled('claim', law.rows.claim_catalog)
+				];
 	const current = new Map(
 		(read.employee_contract ?? [])
 			.filter((row) => covers(row.effective_range))
@@ -1514,21 +1412,14 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			)
 			.map((row) => [String(row.employee_id), row])
 	);
-	const workCatalog = new Map((read.work_event_catalog ?? []).map((row) => [String(row.id), row]));
-	const workEvents = (read.work_event ?? []).flatMap((row) => {
-		const catalog = workCatalog.get(String(row.catalog_id));
-		if (catalog === undefined) return [];
-		return [
-			{
-				code: String(catalog.code),
-				entity_id: String(row.entity_id),
-				employment_id: row.employment_id == null ? null : String(row.employment_id),
-				from: String(row.from),
-				to: row.to == null ? null : String(row.to),
-				location: row.location ?? null
-			}
-		];
-	});
+	const workEvents = (read.work_event ?? []).map((row) => ({
+		code: String(row.catalog_code),
+		entity_id: String(row.entity_id),
+		employment_id: row.employment_id == null ? null : String(row.employment_id),
+		from: String(row.from),
+		to: row.to == null ? null : String(row.to),
+		location: row.location ?? null
+	}));
 	const eventsFor = (contract: JsonObject) =>
 		workEvents.filter(
 			(event) =>
@@ -1546,12 +1437,12 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 	for (const balance of read.employee_balance ?? []) {
 		const contract = current.get(String(balance.employee_id));
 		if (contract === undefined) continue;
-		const version = lawIn(contract.entity_id, day);
-		const rows = rowsOf.get(String(version?.id)) ?? [];
+		const law = lawIn(contract.entity_id, day);
+		const rows = rowsOf(law);
 		const chain = chains.get(String(contract.employee_id)) ?? [];
 		const starts = startsOf(contract, chain, lineage, cumulative.has(String(contract.employee_id)));
 		const subject = {
-			scope: String(version?.code),
+			scope: String(law?.code),
 			started: starts.service_started_on,
 			events: eventsOf(contract)
 		};
@@ -1568,9 +1459,7 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 				// a window that closed settles under the law and the contract of its last day
 				({ code }, on) => {
 					const held = chain.find((row) => covers(row.effective_range, on)) ?? contract;
-					const row = rowsOf
-						.get(String(lawIn(held.entity_id, on)?.id))
-						?.find((item) => item.code === code);
+					const row = rowsOf(lawIn(held.entity_id, on)).find((item) => item.code === code);
 					return row === undefined ? undefined : { lookup: row.lookup, person: personOn(held, on) };
 				},
 				manual.get(String(balance.id))

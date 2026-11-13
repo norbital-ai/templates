@@ -9,13 +9,6 @@ export default model({
 		'Sealed employer data. A dated replacement changes future values; consumed historical values remain protected.',
 	record_label: 'record.name',
 	fields: {
-		input_schema_version_id: {
-			kind: 'ref',
-			to: 'jurisdiction_settings',
-			inverse: 'employer_payroll_versions',
-			on_delete: 'restrict',
-			where: { status: { eq: 'SEALED' } }
-		},
 		settings_code: {
 			kind: 'text'
 		},
@@ -121,8 +114,7 @@ export default model({
 	outputs: {
 		default: {
 			fields: 'all',
-			entity_id: { fields: 'all' },
-			input_schema_version_id: { fields: 'all' }
+			entity_id: { fields: 'all' }
 		},
 		kiosk: { fields: ['entity_id', 'effective_range', 'status', 'time_zone'] }
 	},
@@ -134,7 +126,6 @@ export default model({
 				'representative_name',
 				'effective_range',
 				'settings_code',
-				'input_schema_version_id',
 				'time_zone',
 				'registered_address',
 				'final_pay_loan_floor_percent',
@@ -181,7 +172,6 @@ export default model({
 				'representative_name',
 				'effective_range',
 				'settings_code',
-				'input_schema_version_id',
 				'time_zone',
 				'registered_address',
 				'final_pay_loan_floor_percent',

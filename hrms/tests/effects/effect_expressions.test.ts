@@ -1,30 +1,29 @@
 // What an effect or rule evaluates: its reads resolve their expressions, an expression falls back past a stored null, a
 // rule's validate holds an entry to its lookup bound, and the register-change trigger counts only what the register shows.
 import assert from 'node:assert/strict';
-import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { registerChanged } from '../../src/data/model/employee_profile/+model.ts';
 import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
 import { resolveRead } from '../../src/lib/payroll_engine/registrations.ts';
-import { read } from '../kit.ts';
+import { lawAt } from '../kit.ts';
 
 describe('an effect expression', () => {
 	it('resolves a compound read, so a retried effect finds its own obligation', () => {
-		const data = { entry: { id: 'row-1', entity_id: 'entity-1', catalog_id: 'catalog-1' } };
+		const data = { entry: { id: 'row-1', entity_id: 'entity-1', catalog_code: 'CODE_1' } };
 		assert.deepEqual(
 			resolveRead(
 				{
 					obligation: {
 						where: { occurrence_key: { eq: { var: "'MY:KEY:' + ctx.entry.entity_id" } } }
 					},
-					leave_catalog: { where: { id: { in: { var: '[ctx.entry.catalog_id]' } } } },
+					leave_catalog: { where: { code: { in: { var: '[ctx.entry.catalog_code]' } } } },
 					payslip: { where: { id: { eq: { var: 'ctx.entry.id' } } }, limit: 10 }
 				},
 				data
 			),
 			{
 				obligation: { where: { occurrence_key: { eq: 'MY:KEY:entity-1' } } },
-				leave_catalog: { where: { id: { in: ['catalog-1'] } } },
+				leave_catalog: { where: { code: { in: ['CODE_1'] } } },
 				payslip: { where: { id: { eq: 'row-1' } }, limit: 10 }
 			}
 		);
@@ -41,7 +40,7 @@ return r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 
 });
 
 describe("a registered rule's validate", () => {
-	const rule = read(join('seed/public/jurisdiction/MY/version_5', 'registered_rule.json')).find(
+	const rule = lawAt('MY', '2026-07-08').rows.registered_rule.find(
 		(row) => row.code === 'SHARED_STRUCTURED_EMPLOYEE_INPUTS'
 	);
 	assert.ok(rule !== undefined);

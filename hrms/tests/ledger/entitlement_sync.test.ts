@@ -9,7 +9,8 @@ import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
+	lawAt,
+	lawWith,
 	ledgerRows as allLedgerRows,
 	measureOf,
 	pack,
@@ -36,8 +37,8 @@ const terms = {
 	allowances: {}
 };
 type Seed = ReturnType<typeof pack>;
-const seedOf = (from: string, account: Accounts = {}, on = '2026-11-06'): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], on);
+const seedOf = (from: string, account: Accounts = {}): Seed => {
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 	return {
 		...seed,
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
@@ -48,16 +49,14 @@ const seedOf = (from: string, account: Accounts = {}, on = '2026-11-06'): Seed =
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account }))
 	};
 };
-/** The fixture row's own lookup: what the law in force grants is read from it, never typed here. */
-const lookupOf = (seed: Seed, code: string) => {
-	const id = catalogRow(seed, 'leave_catalog', code);
-	return objectValue((seed.leave_catalog ?? []).find((row) => row.id === id)?.lookup);
-};
+/** The fixture row's own lookup: what the law in force on the day grants is read from it, never typed here. */
+const lookupOf = (code: string, on = '2026-11-06') =>
+	objectValue(lawAt('MY', on).rows.leave_catalog.find((row) => row.code === code)?.lookup);
 /** The days the row's service bands give someone with this many completed months. */
-const band = (seed: Seed, code: string, months: number) => {
+const band = (code: string, months: number, on?: string) => {
 	const days = Schema.decodeUnknownSync(
 		Schema.Array(Schema.Struct({ service_months: Schema.Number, days: Schema.Number }))
-	)(lookupOf(seed, code).service_bands).findLast((item) => item.service_months <= months)?.days;
+	)(lookupOf(code, on).service_bands).findLast((item) => item.service_months <= months)?.days;
 	assert.ok(days !== undefined);
 	return days;
 };
@@ -69,7 +68,7 @@ const entitled = (t: Kit, code: string, employee?: string) =>
 	);
 const ledgerRows = (t: Kit) =>
 	allLedgerRows(t).pipe(Effect.map((rows) => rows.filter((row) => row.account === 'leave')));
-const take = (t: Kit, seed: Seed, code: string, date: string, as = t.admin) =>
+const take = (t: Kit, code: string, date: string, as = t.admin) =>
 	t.as(as).pipe(
 		Effect.andThen((caller) =>
 			caller.act({
@@ -77,7 +76,7 @@ const take = (t: Kit, seed: Seed, code: string, date: string, as = t.admin) =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+						catalog_code: code,
 						days: wholeDays(date)
 					})
 				]
@@ -93,12 +92,12 @@ describe('run by hand', () => {
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* compute(t);
-				assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band(seed, 'MEDICAL_LEAVE', SERVED));
+				assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band('MEDICAL_LEAVE', SERVED));
 				assert.equal(
 					yield* entitled(t, 'HOSPITALIZATION_LEAVE'),
-					lookupOf(seed, 'HOSPITALIZATION_LEAVE').grant_days
+					lookupOf('HOSPITALIZATION_LEAVE').grant_days
 				);
-				assert.equal(yield* entitled(t, 'ANNUAL_LEAVE'), band(seed, 'ANNUAL_LEAVE', SERVED));
+				assert.equal(yield* entitled(t, 'ANNUAL_LEAVE'), band('ANNUAL_LEAVE', SERVED));
 				const { leave = {} } = yield* accountsIn(t);
 				assert.equal(leave['UNPAID_LEAVE'], undefined);
 				assert.equal(leave['MATERNITY_LEAVE'], undefined);
@@ -130,11 +129,11 @@ describe('run by hand', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
-			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03');
+			yield* take(t, 'MEDICAL_LEAVE', '2026-11-03');
 			yield* t.run_due();
 			yield* compute(t);
 			const accounts = yield* accountsIn(t);
-			const owed = band(seed, 'MEDICAL_LEAVE', SERVED);
+			const owed = band('MEDICAL_LEAVE', SERVED);
 			assert.equal(measureOf(accounts, 'leave', 'MEDICAL_LEAVE', 'entitled'), owed);
 			assert.equal(measureOf(accounts, 'leave', 'MEDICAL_LEAVE', 'used'), 1);
 			assert.equal(
@@ -197,9 +196,9 @@ describe('run by hand', () => {
 			assert.deepEqual((yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'], {
 				'MY.S.2025-01-01': { entitled: 12, used: 5 },
 				// what the window left, 12 − 5, carries: the fixture row carries its grant in full
-				'MY.S.2026-01-01': { entitled: band(seed, 'ANNUAL_LEAVE', SERVED), carried: 12 - 5 }
+				'MY.S.2026-01-01': { entitled: band('ANNUAL_LEAVE', SERVED), carried: 12 - 5 }
 			});
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band(seed, 'MEDICAL_LEAVE', SERVED));
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band('MEDICAL_LEAVE', SERVED));
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -237,7 +236,7 @@ describe('run for one person', () => {
 				.run('ledger', { employees: [person] }, JobResult)
 				.pipe(Effect.andThen(t.run_due()));
 			yield* start;
-			const owed = band(seed, 'MEDICAL_LEAVE', SERVED);
+			const owed = band('MEDICAL_LEAVE', SERVED);
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', uuid(4)), owed);
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', OTHER), 0);
 			const once = (yield* ledgerRows(t)).length;
@@ -271,7 +270,7 @@ describe('a contract change', () => {
 				'employee_contract.update': [{ target: contract, set: { reason: 'Terms reviewed' } }]
 			});
 			yield* t.run_due();
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band(seed, 'MEDICAL_LEAVE', SERVED));
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band('MEDICAL_LEAVE', SERVED));
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -316,7 +315,7 @@ describe('the events that call it', () => {
 				'employee_contract.update': [{ target: contract, set: { status: 'SEALED' } }]
 			});
 			yield* t.run_due();
-			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', person.id), band(seed, 'MEDICAL_LEAVE', 0));
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', person.id), band('MEDICAL_LEAVE', 0));
 			assert.equal(yield* entitled(t, 'UNPAID_LEAVE', person.id), 0);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
@@ -324,8 +323,8 @@ describe('the events that call it', () => {
 	it.live('a paid run picks up a band reached since', () => {
 		const seed = seedOf('2024-10-15');
 		// 23 completed months on 1 October, 24 once the run for October is paid: the fixture row's next band
-		const before = band(seed, 'MEDICAL_LEAVE', 23);
-		const after = band(seed, 'MEDICAL_LEAVE', 24);
+		const before = band('MEDICAL_LEAVE', 23);
+		const after = band('MEDICAL_LEAVE', 24);
 		assert.notEqual(before, after);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -348,13 +347,16 @@ describe('the events that call it', () => {
 
 	it.live('1 January opens a new key, and the old window stays', () => {
 		// the one 1 January inside the law the template holds is 2026's
-		const seed = seedOf('2023-01-01', {}, '2025-12-06');
+		const seed = seedOf('2023-01-01');
 		// two completed years on 1 January 2025, three on the next
-		const [last, next] = [band(seed, 'MEDICAL_LEAVE', 24), band(seed, 'MEDICAL_LEAVE', 36)];
+		const [last, next] = [
+			band('MEDICAL_LEAVE', 24, '2025-12-06'),
+			band('MEDICAL_LEAVE', 36, '2025-12-06')
+		];
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
-			yield* take(t, seed, 'MEDICAL_LEAVE', '2025-12-03');
+			yield* take(t, 'MEDICAL_LEAVE', '2025-12-03');
 			yield* t.run_due();
 			t.clock.set('2026-01-01T02:00:00.000Z');
 			yield* compute(t);
@@ -379,7 +381,7 @@ describe('posting', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
-			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', t.member(['hr_controller']));
+			yield* take(t, 'MEDICAL_LEAVE', '2026-11-03', t.member(['hr_controller']));
 			yield* t.run_due();
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MEDICAL_LEAVE', 'used'), 1);
 			const [row] = (yield* ledgerRows(t)).filter((item) => item.measure === 'used');
@@ -396,7 +398,7 @@ describe('posting', () => {
 				const member = t.member(['hr_controller']);
 				const hr = yield* t.as(member);
 				yield* compute(t);
-				yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', member);
+				yield* take(t, 'MEDICAL_LEAVE', '2026-11-03', member);
 				yield* t.run_due();
 				const [entry] = (yield* storedQuery(t, { leave_catalog_entry: { limit: 1 } }))
 					.leave_catalog_entry.rows;
@@ -445,7 +447,7 @@ describe('posting', () => {
 
 describe('the family list on the contract', () => {
 	const family = (members: readonly JsonObject[]): Seed => {
-		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, { family: members }, [], [], '2026-11-15');
+		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, { family: members }, [], []);
 		return {
 			...seed,
 			employee_contract: (seed.employee_contract ?? []).map((row) => ({
@@ -463,7 +465,7 @@ describe('the family list on the contract', () => {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
 			// one child of the one birth: the whole grant its row states
-			const grant = Number(lookupOf(seed, 'PATERNITY_LEAVE').grant_days);
+			const grant = Number(lookupOf('PATERNITY_LEAVE', '2026-11-15').grant_days);
 			assert.ok(grant > 0);
 			assert.equal(yield* entitled(t, 'PATERNITY_LEAVE'), grant);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })));
@@ -476,23 +478,19 @@ describe('the family list on the contract', () => {
 				{ relation: 'CHILD', born_on: '2026-04-01', allocations: { PATERNITY_LEAVE: 3 } },
 				{ relation: 'CHILD', born_on: '2026-08-03', allocations: { PATERNITY_LEAVE: 2 } }
 			]);
-			const seed: Seed = {
-				...base,
-				leave_catalog: (base.leave_catalog ?? []).map((row) =>
-					row.code === 'PATERNITY_LEAVE'
-						? {
-								...row,
-								lookup: {
-									...objectValue(row.lookup),
-									window: 'EVENT',
-									opened_by: { CHILD_BIRTH: {} },
-									entitlement:
-										"const child = get(ctx.subject.employment, 'family', []).find((member) => member.relation === 'CHILD' && member.born_on === ctx.event.on);\nreturn Number(get(child, 'allocations.PATERNITY_LEAVE', 0));"
-								}
-							}
-						: row
-				)
-			};
+			const seed = lawWith(base, {
+				leave_catalog: {
+					PATERNITY_LEAVE: {
+						lookup: {
+							...lookupOf('PATERNITY_LEAVE', '2026-11-15'),
+							window: 'EVENT',
+							opened_by: { CHILD_BIRTH: {} },
+							entitlement:
+								"const child = get(ctx.subject.employment, 'family', []).find((member) => member.relation === 'CHILD' && member.born_on === ctx.event.on);\nreturn Number(get(child, 'allocations.PATERNITY_LEAVE', 0));"
+						}
+					}
+				}
+			});
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* compute(t);
@@ -501,11 +499,11 @@ describe('the family list on the contract', () => {
 					'MY.E.2026-04-01': { entitled: 3 },
 					'MY.E.2026-08-03': { entitled: 2 }
 				});
-				yield* take(t, seed, 'PATERNITY_LEAVE', '2026-08-03');
-				yield* take(t, seed, 'PATERNITY_LEAVE', '2026-08-04');
+				yield* take(t, 'PATERNITY_LEAVE', '2026-08-03');
+				yield* take(t, 'PATERNITY_LEAVE', '2026-08-04');
 				yield* t.run_due();
 				assert.match(
-					String(yield* Effect.flip(take(t, seed, 'PATERNITY_LEAVE', '2026-08-05'))),
+					String(yield* Effect.flip(take(t, 'PATERNITY_LEAVE', '2026-08-05'))),
 					/insufficient balance/
 				);
 			}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })));

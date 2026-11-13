@@ -10,7 +10,7 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
+	lawAt,
 	pack,
 	sealEvents,
 	uuid,
@@ -30,7 +30,7 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-06-15');
+const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 const seed: ReturnType<typeof pack> = {
 	...base,
 	employee_contract: (base.employee_contract ?? []).map((row) => ({
@@ -40,8 +40,8 @@ const seed: ReturnType<typeof pack> = {
 	}))
 };
 /** The days a birth opens: the fixture's own maternity row, keyed by the law's code and the event's date. */
-const maternity = (base.leave_catalog ?? []).find(
-	(row) => row.id === catalogRow(base, 'leave_catalog', 'MATERNITY_LEAVE')
+const maternity = lawAt('MY', '2026-06-15').rows.leave_catalog.find(
+	(row) => row.code === 'MATERNITY_LEAVE'
 );
 const GRANT = isJsonObject(maternity?.lookup) ? Number(maternity.lookup.grant_days) : NaN;
 const opened = (on: string) => ({ [`MY.E.${on}`]: { entitled: GRANT } });
@@ -386,8 +386,8 @@ describe('a fact keyed late', () => {
 	);
 });
 
-// the employer's own fixture: the law in force in January, the open employer version its only one
-const employer = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-01-15');
+// the employer's own fixture: the open employer version its only one
+const employer = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 const employerVersions = (t: Kit) =>
 	storedQuery(t, {
 		entity_profile_version: {

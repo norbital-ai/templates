@@ -5,8 +5,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
-import { ENTITY, pack, storedQuery, workspace } from '../kit.ts';
+import { ENTITY, lawWith, pack, storedQuery, workspace } from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const EFFECT = 'EPF_MONTHLY_CONTRIBUTION';
@@ -18,25 +17,23 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], '2026-11-06');
 /** The remittance effect raises its task only when a payslip of the run withholds the scheme. */
-const withheld = (row: JsonObject): JsonObject =>
-	row.code !== EFFECT
-		? row
-		: {
-				...row,
-				reads: {
-					payslip: {
-						where: { payroll_run_id: { eq: { var: 'ctx.entry.id' } } },
-						fields: ['breakdown'],
-						limit: 10000
-					}
-				},
-				condition: `return ctx.reads.payslip.some((slip) => get(slip.breakdown, 'statutory', []).some((row) => row.code === 'EPF' && (row.employee > 0 || row.employer > 0)));`
-			};
+const base = lawWith(pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []), {
+	registered_effect: {
+		[EFFECT]: {
+			reads: {
+				payslip: {
+					where: { payroll_run_id: { eq: { var: 'ctx.entry.id' } } },
+					fields: ['breakdown'],
+					limit: 10000
+				}
+			},
+			condition: `return ctx.reads.payslip.some((slip) => get(slip.breakdown, 'statutory', []).some((row) => row.code === 'EPF' && (row.employee > 0 || row.employer > 0)));`
+		}
+	}
+});
 const seedOf = (engagement: string) => ({
 	...base,
-	registered_effect: (base.registered_effect ?? []).map(withheld),
 	employee_contract: (base.employee_contract ?? []).map((row) => ({ ...row, engagement }))
 });
 const remittances = (engagement: string) =>

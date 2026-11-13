@@ -1,6 +1,6 @@
 {
 	"name": "@template/hrms",
-	"description": "HR and payroll workspace: sealed jurisdiction data, ledger-first balances and linear payroll",
+	"description": "HR and payroll workspace: dated law, ledger-first balances and linear payroll",
 	"version": "0.0.1",
 	"private": true,
 	"type": "module",
@@ -18,8 +18,8 @@
 		"@iconify/svelte": "^5.2.2",
 		"@internationalized/date": "^3.12.4",
 		"@noble/hashes": "2.0.1",
-		"@norbital-ai/bolt": "0.0.38",
-		"@norbital-ai/ui": "0.0.38",
+		"@norbital-ai/bolt": "0.0.40",
+		"@norbital-ai/ui": "0.0.40",
 		"@vladmandic/human": "3.3.6",
 		"acorn": "8.19.0",
 		"effect": "4.0.6",
@@ -32,7 +32,7 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "4.0.6",
-		"@norbital-ai/bolt-cli": "0.0.38",
+		"@norbital-ai/bolt-cli": "0.0.40",
 		"@sveltejs/vite-plugin-svelte": "7.3.1",
 		"@types/node": "26.6.5",
 		"@types/papaparse": "5.5.2",

@@ -7,7 +7,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, ownLines, pay, run } from '../amendment_kit.ts';
-import { ENTITY, catalogRow, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const SALARY = 3120;
@@ -24,8 +24,7 @@ const seed = pack(
 	},
 	{},
 	[],
-	[],
-	'2026-06-15'
+	[]
 );
 const whole = (date: string) => [
 	{ date, part: 'AM' as const },
@@ -39,7 +38,7 @@ const entry = (t: Kit) =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
-						catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'NPL')),
+						catalog_code: 'NPL',
 						days: whole('2026-06-10')
 					})
 				]

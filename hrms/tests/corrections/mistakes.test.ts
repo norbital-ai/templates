@@ -14,7 +14,7 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
+	lawWith,
 	leaveCreate,
 	ledgerRows,
 	measureOf,
@@ -30,7 +30,7 @@ import {
 	decimalNumber
 } from '../kit.ts';
 
-// inside one version of the law the template holds (8 July to 30 November 2026), so no run changes law under a case
+// after the last change of 2026 in the law the template holds (8 July), so no run changes law under a case
 const NOW = '2026-11-20T02:00:00.000Z';
 const RATE = 3120;
 const FLAT = 100;
@@ -53,15 +53,10 @@ const TERMS = {
 };
 type Seed = ReturnType<typeof pack>;
 /** One person under Malaysian law, and annual leave cashed out at a flat amount a day, so no statute's day rate is under test. */
-const malaysia = (terms: JsonObject = TERMS, extension: JsonObject = {}): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, extension, [], [], '2026-08-15');
-	return {
-		...seed,
-		leave_catalog: (seed.leave_catalog ?? []).map((row) =>
-			row.code === 'ANNUAL_LEAVE' ? { ...row, payout: `return ${FLAT} * ctx.entry.quantity;` } : row
-		)
-	};
-};
+const malaysia = (terms: JsonObject = TERMS, extension: JsonObject = {}): Seed =>
+	lawWith(pack('MY', 'Asia/Kuala_Lumpur', terms, extension, [], []), {
+		leave_catalog: { ANNUAL_LEAVE: { payout: `return ${FLAT} * ctx.entry.quantity;` } }
+	});
 /** A second person in the same company and payroll. */
 const twoPeople = (): Seed => {
 	const seed = malaysia();
@@ -298,8 +293,6 @@ const held = (t: Kit, code: string, employee: string = PERSON, family = 'leave')
 			used: measureOf(accounts, family, code, 'used')
 		}))
 	);
-const rowOf = (model: 'leave_catalog' | 'claim_catalog' | 'adhoc_catalog', code: string) =>
-	catalogRow(seed, model, code);
 const adhoc = (
 	t: Kit,
 	code: string,
@@ -320,7 +313,7 @@ const adhoc = (
 						{
 							entity_id: ENTITY,
 							employment_id: employment,
-							catalog_id: idOf('adhoc_catalog', rowOf('adhoc_catalog', code)),
+							catalog_code: code,
 							description: code,
 							quantity: String(quantity),
 							incurred_on: on
@@ -350,7 +343,7 @@ const claim = (t: Kit, quantity: number, on: string) =>
 						{
 							entity_id: ENTITY,
 							employment_id: FIRST,
-							catalog_id: idOf('claim_catalog', rowOf('claim_catalog', 'MEDICAL_CLAIM')),
+							catalog_code: 'MEDICAL_CLAIM',
 							quantity: String(quantity),
 							incurred_on: on
 						}
@@ -385,7 +378,7 @@ const leave = (
 						leaveCreate({
 							entity_id: ENTITY,
 							employment_id: options.employment ?? FIRST,
-							catalog_id: idOf('leave_catalog', rowOf('leave_catalog', code)),
+							catalog_code: code,
 							encashment: false,
 							days: wholeDays(...dates)
 						})

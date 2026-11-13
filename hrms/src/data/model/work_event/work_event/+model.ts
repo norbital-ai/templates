@@ -38,7 +38,7 @@ export default model({
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', optional: true },
-		catalog_id: { kind: 'ref', to: 'work_event_catalog', on_delete: 'restrict' },
+		catalog_code: { kind: 'text' },
 		from: { kind: 'date' },
 		to: { kind: 'date', optional: true },
 		location: { kind: 'text', optional: true },
@@ -53,7 +53,6 @@ export default model({
 	outputs: {
 		default: {
 			fields: 'all',
-			catalog_id: { fields: ['code'] },
 			entity_id: { fields: 'all' },
 			employment_id: { fields: 'all' }
 		}
@@ -63,7 +62,7 @@ export default model({
 			fields: [
 				'entity_id',
 				'employment_id',
-				'catalog_id',
+				'catalog_code',
 				'from',
 				'to',
 				'location',
@@ -88,7 +87,7 @@ export default model({
 		columns: {
 			fields: [
 				'employment_id',
-				'catalog_id',
+				'catalog_code',
 				'from',
 				'to',
 				'location',

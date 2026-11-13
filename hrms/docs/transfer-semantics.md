@@ -8,9 +8,9 @@ Reference: the rules for contract chains, transfers, voids and exits. The source
 
 - **Employment** — the continuous relationship between a person and the employer group. It owns
   one `employee_balance`.
-- **Contract** — dated terms for one entity and one jurisdiction version. A person has a chain of
+- **Contract** — dated terms for one entity under one jurisdiction. A person has a chain of
   contracts, not a balance per contract.
-- **Same-jurisdiction transfer** — the successor contract's `jurisdiction_settings.code` equals the
+- **Same-jurisdiction transfer** — the successor contract's jurisdiction code (its entity's `settings_code`) equals the
   predecessor's. Entity may change; the law does not.
 - **Cross-jurisdiction transfer** — the successor's jurisdiction code differs. The old employment
   under that law ends; a new employment under the new law begins.
@@ -19,8 +19,8 @@ Reference: the rules for contract chains, transfers, voids and exits. The source
 - **Termination** — the contract ends with no successor. This is an exit.
 - **Void** — a sealed record is cancelled with a reason. It is not a transfer and not a deletion.
 
-The comparison is always by **jurisdiction lineage code**, never by entity id and never by the
-version id (two versions of the same law are one jurisdiction).
+The comparison is always by **jurisdiction code**, never by entity id: a law is one jurisdiction
+whatever changes it has had.
 
 ## 2. Contract state machine
 
@@ -91,7 +91,7 @@ jurisdiction, and it never touches the ledger.
   Sealed repayments keep their original entity and employment. Payroll selects the open repayments
   by entity and `paid_on`.
 - **Cross-jurisdiction** — the old open schedule is deleted first, then for each outstanding loan:
-  - **TRANSFER**: when the target settings have a loan catalogue with the same code, create the
+  - **TRANSFER**: when the target law has a loan row with the same code, create the
     target loan and monthly schedule from the outstanding principal.
   - **SETTLE**: otherwise, or when the user checks **Settle from final pay instead of transferring**,
     create the settlement repayment.
@@ -101,7 +101,7 @@ jurisdiction, and it never touches the ledger.
   loan's period; one a paid run took stands.
 
 Silent carry is unsafe across jurisdictions: the new jurisdiction's payroll reads its own loan
-catalogue, so the old loan's `catalog_id` may not exist and the deduction silently stops.
+catalogue, so the old loan's `catalog_code` may name no row there and the deduction silently stops.
 
 ### 3.3 Service continuity
 
@@ -109,7 +109,7 @@ Service for leave bands is a property of the **employment**, not of the latest c
 promotion or transfer must not reset annual-leave service.
 
 Service is worked out from the person's contracts, never stored as a second date. With `employee_profile.cumulative_service` on, every
-stint under the same jurisdiction lineage counts, rehires included (an employer's practice, giving at least the
+stint under the same jurisdiction code counts, rehires included (an employer's practice, giving at least the
 statutory continuous service); off (the default), only the current unbroken stint counts. A replacement keeps its
 stint's start. A cross-jurisdiction replacement starts new statutory service.
 `employee_contract.service_started_on` is only an override for service credited from elsewhere. Sync and the payroll
@@ -118,7 +118,7 @@ current unbroken stint's start as `employment_started_on`, for statutes that cou
 
 ### 3.4 Exit
 
-An exit is read from the chain: a sealed version that ends with no successor of the same jurisdiction lineage. No
+An exit is read from the chain: a sealed version that ends with no successor under the same jurisdiction code. No
 separate record holds it. The contract's write raises the `exit` event when a save makes it true (or moves or cancels
 it); the law's exit duties are effects on that event, and the write's own effect keeps the exit's other tasks and loan in step. Each task is keyed by the exit (`exit:<contract id>:<last day>`), so a repeat is a no-op.
 A moved or cancelled exit is followed by one routine for every jurisdiction (`src/lib/dependants.ts`): it waives the
@@ -132,12 +132,11 @@ The save that ends the version, or moves its end, states its exit answers with i
 - **Same-jurisdiction transfer** — no final pay and no leave paid out. The successor's payroll continues
   the same balance.
 - **Cross-jurisdiction transfer** — the old entity runs its final payroll for the exit period. Leave
-  settlement (if any) is paid there. The new entity starts under its own settings; its first run
-  must not see the old contract, settings version or employer version.
-- **Voided records** — a voided contract is excluded from later runs. A voided employer or
-  jurisdiction version cannot cover a later run; the run refuses with
-  `No sealed entity version covers <period>` or `No sealed <code> law covers <pay date>`. Historical
-  payslips are not rewritten.
+  settlement (if any) is paid there. The new entity starts under its own law; its first run
+  must not see the old contract, law or employer version.
+- **Voided records** — a voided contract is excluded from later runs. A voided employer version
+  cannot cover a later run; the run refuses with `No sealed entity version covers <period>`.
+  Historical payslips are not rewritten.
 - **A period a run holds** — while a run is unpaid, nothing of its people moves: delete the run
   first. Once it is paid, a version may be sealed, ended or voided over its period. The write leaves
   an amendment row for each paid period it reaches and the next run carries the difference
@@ -149,8 +148,8 @@ The save that ends the version, or moves its end, states its exit answers with i
 
 1. Open the sealed contract. Its footer offers **Promotion**, **Life event**, **Transfer** and
    **Terminate**.
-2. The sheet captures the last day and the new terms; a transfer also takes the entity, the
-   jurisdiction settings and the target's statutory categories.
+2. The sheet captures the last day and the new terms; a transfer also takes the entity, its
+   jurisdiction and the target's statutory categories.
 3. Confirm. The sheet creates the dated `DRAFT` successor, carries, transfers or settles the loans,
    sets the predecessor's last day and seals the successor. A termination recovers the loans and
    sets the last day.

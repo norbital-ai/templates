@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { changesBetween, versionOn } from '../../../../lib/payroll_engine/contract_change.js';
+	import { changesBetween } from '../../../../lib/payroll_engine/contract_change.js';
 	import { accountsOf, latestLeft } from '../../../../lib/ledger/core.js';
 	import {
 		Button,
@@ -38,6 +38,8 @@
 	import { contractCategories } from '../../../../lib/ui/person/contract_categories.js';
 	import ContractTermsEditor from '../../../../lib/ui/person/contract_terms_editor.svelte';
 	import VersionFacts from '../../../../lib/ui/person/version_facts.svelte';
+	import { pageLaws } from '../../../../lib/ui/law.svelte.js';
+	import type { Law } from '../../../../lib/law.js';
 
 	type ChangeAction = 'PROMOTION' | 'LIFE_EVENT' | 'TRANSFER' | 'TERMINATE';
 	const RELATIONS = ['CHILD', 'SPOUSE', 'PARENT'] as const;
@@ -148,48 +150,25 @@
 			limit: 1000
 		}
 	});
-	const settings = ctx.query({
-		jurisdiction_settings: {
-			where: { status: { eq: 'SEALED' } },
-			fields: ['id', 'code', 'name', 'effective_range', 'currency'],
-			limit: 2000
-		}
-	});
+	const laws = pageLaws(ctx, () => null);
 	const codeOf = (entity: unknown) =>
 		(entities.current?.entity.rows ?? []).find((row) => row.id === entity)?.settings_code;
-	/** A contract names no version: the law is its entity's lineage in force on a day. */
-	const lawOn = (entity: unknown, day: string) =>
-		versionOn(settings.current?.jurisdiction_settings.rows ?? [], codeOf(entity), day);
+	/** A contract's law is its entity's jurisdiction as it stands on a day. */
+	const lawOn = (entity: unknown, day: string) => laws.on(codeOf(entity), day);
 	/** The law a contract form answers to: in force on the first day it states. */
 	const formLaw = (values: { readonly [name: string]: Value }) => {
 		const range = values['effective_range'];
 		const from = value_object(range) && typeof range['from'] === 'string' ? range['from'] : today;
-		return lawOn(values['entity_id'], String(from))?.id ?? null;
+		return lawOn(values['entity_id'], String(from));
 	};
 	const nextDay = $derived(
 		lastDay === null
 			? null
 			: DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(lastDay), { days: 1 }))
 	);
-	/** The new version's law: the target entity's lineage in force on the day it starts. */
-	const targetSettings = $derived(
-		targetEntity === null ? null : (lawOn(targetEntity, nextDay ?? today)?.id ?? null)
-	);
-	const targetConfiguration = $derived(
-		targetSettings === null
-			? null
-			: ctx.query({
-					jurisdiction_settings: {
-						where: { id: { eq: targetSettings } },
-						fields: ['lookup', 'employee_extension_schema'],
-						limit: 1
-					},
-					registered_rule: {
-						where: { settings_id: { eq: targetSettings }, code: { eq: 'CONTRACT_CATEGORIES' } },
-						fields: ['lookup'],
-						limit: 1
-					}
-				})
+	/** The new version's law: the target entity's jurisdiction as it stands on the day it starts. */
+	const targetLaw = $derived(
+		targetEntity === null ? undefined : lawOn(targetEntity, nextDay ?? today)
 	);
 	const balance = $derived(
 		record == null
@@ -240,7 +219,7 @@
 						? t('contract.ended')
 						: undefined
 	);
-	const currentSettings = $derived(
+	const currentLaw = $derived(
 		record === null ? undefined : lawOn(record.entity_id, record.effective_range.from)
 	);
 	const entityOptions = $derived(
@@ -347,7 +326,7 @@
 					decimals:
 						new Intl.NumberFormat('en', {
 							style: 'currency',
-							currency: String(currentSettings?.currency ?? 'USD')
+							currency: String(currentLaw?.settings.currency ?? 'USD')
 						}).resolvedOptions().maximumFractionDigits ?? 2
 				})
 	);
@@ -355,8 +334,8 @@
 	/** The target's allowed values; a value the old jurisdiction used is dropped, never submitted. */
 	const targetCategories = $derived(
 		contractCategories(
-			targetConfiguration?.current?.jurisdiction_settings.rows[0]?.lookup,
-			targetConfiguration?.current?.registered_rule.rows[0]?.lookup
+			targetLaw?.settings.lookup,
+			targetLaw?.rows.registered_rule.find((row) => row.code === 'CONTRACT_CATEGORIES')?.lookup
 		)
 	);
 	const categoryFields = $derived(
@@ -394,8 +373,7 @@
 		})
 	);
 	const targetExtensionSchema = $derived.by(() => {
-		const stored =
-			targetConfiguration?.current?.jurisdiction_settings.rows[0]?.employee_extension_schema;
+		const stored = targetLaw?.settings.employee_extension_schema;
 		return stored != null && is_json_schema(stored) ? stored : null;
 	});
 	/** The person's facts from their latest contract in the target jurisdiction; another jurisdiction's never carry over. */
@@ -480,13 +458,12 @@
 				? !lastDayInvalid
 				: !lastDayInvalid &&
 					targetEntity !== null &&
-					targetSettings !== null &&
+					targetLaw !== undefined &&
 					jobTitle.trim() !== '' &&
 					salaryAmount !== null &&
 					salaryAmount >= 0 &&
 					(!transferring ||
-						(targetConfiguration?.current != null &&
-							categoryFields.every((field) => field.values === undefined || field.value !== '')))
+						categoryFields.every((field) => field.values === undefined || field.value !== ''))
 	);
 
 	function beginChange(kind: ChangeAction) {
@@ -537,7 +514,7 @@
 		const held = await ctx.query({
 			loan_catalog_entry: {
 				where: { employment_id: { eq: current.id } },
-				fields: ['id', 'revision', 'catalog_id', 'quantity', 'repayment_period'],
+				fields: ['id', 'revision', 'catalog_code', 'quantity', 'repayment_period'],
 				limit: 10000
 			},
 			loan_catalog_entry_repayment: {
@@ -564,18 +541,6 @@
 		if (cleared.kind !== 'committed')
 			throw new Error('The open loan schedule could not be cleared.');
 	}
-	async function catalogCodes(outstanding: Awaited<ReturnType<typeof readLoans>>['outstanding']) {
-		const ids = [...new Set(outstanding.map((item) => item.row.catalog_id as Id<'loan_catalog'>))];
-		if (ids.length === 0) return new Map<string, string>();
-		const { loan_catalog } = await ctx.query({
-			loan_catalog: { where: { id: { in: ids } }, fields: ['id', 'code'], limit: 10000 }
-		});
-		return new Map(
-			loan_catalog.rows.flatMap((row) =>
-				typeof row.code === 'string' ? [[String(row.id), row.code] as const] : []
-			)
-		);
-	}
 	/**
 	 * A leaver's loans: final pay repays what `recovery` allows, the rest stays open on a recalibrated schedule from
 	 * the month after the last day, and HR gets a task and a notice to chase it.
@@ -591,7 +556,7 @@
 			decimals:
 				new Intl.NumberFormat('en', {
 					style: 'currency',
-					currency: String(currentSettings?.currency ?? 'USD')
+					currency: String(currentLaw?.settings.currency ?? 'USD')
 				}).resolvedOptions().maximumFractionDigits ?? 2
 		});
 		await clearOpenSchedule(position);
@@ -697,7 +662,7 @@
 		target: {
 			id: Id<'employee_contract'>;
 			entityId: Id<'entity'>;
-			settingsId: Id<'jurisdiction_settings'>;
+			law: Law;
 		},
 		day: PlainDate,
 		carry: boolean
@@ -733,29 +698,12 @@
 			return;
 		}
 		await clearOpenSchedule(position);
-		const oldCodes = await catalogCodes(outstanding);
-		const targetCatalogs = (
-			await ctx.query({
-				loan_catalog: {
-					where: { settings_id: { eq: target.settingsId } },
-					fields: ['id', 'code'],
-					limit: 10000
-				}
-			})
-		).loan_catalog.rows;
-		const targetByCode = new Map(
-			targetCatalogs.flatMap((row) =>
-				typeof row.code === 'string' ? [[row.code, row.id as Id<'loan_catalog'>] as const] : []
-			)
-		);
 		for (const item of outstanding) {
-			const oldCode = oldCodes.get(String(item.row.catalog_id)) ?? 'LOAN';
-			const targetCatalogId = targetByCode.get(oldCode);
-			const disposition = loanDisposition({
-				carry,
-				settle: settleLoans,
-				targetCatalog: targetCatalogId !== undefined
-			});
+			// the loan keeps its code where the target law has a row of it
+			const targetCatalog = target.law.rows.loan_catalog.some(
+				(row) => row.code === item.row.catalog_code
+			);
+			const disposition = loanDisposition({ carry, settle: settleLoans, targetCatalog });
 			if (disposition === 'CARRY') continue;
 			if (disposition === 'SETTLE') {
 				const settled = await run(
@@ -779,7 +727,7 @@
 					throw new Error('The outstanding loan could not be settled.');
 				continue;
 			}
-			if (targetCatalogId === undefined)
+			if (!targetCatalog)
 				throw new Error('The target jurisdiction has no matching loan catalogue.');
 			const period = item.row.repayment_period;
 			const start = DateTime.add(DateTime.makeUnsafe(day), { days: 1 });
@@ -797,7 +745,7 @@
 						{
 							entity_id: target.entityId,
 							employment_id: target.id,
-							catalog_id: targetCatalogId,
+							catalog_code: item.row.catalog_code,
 							quantity: new Intl.NumberFormat('en', {
 								useGrouping: false,
 								maximumFractionDigits: 20
@@ -884,11 +832,9 @@
 				}
 				return;
 			}
-			const target = targetSettings;
-			if (target === null)
-				throw new Error(
-					'No sealed law of the target company is in force when this version starts.'
-				);
+			const target = targetLaw;
+			if (target === undefined)
+				throw new Error('The target company has no law in force when this version starts.');
 			const baseTerms = { ...current.terms };
 			if (!sameJurisdiction) {
 				for (const field of categoryFields) Reflect.deleteProperty(baseTerms, field.name);
@@ -1005,7 +951,7 @@
 				{
 					id: createdId,
 					entityId: targetEntity ?? current.entity_id,
-					settingsId: target
+					law: target
 				},
 				day,
 				sameJurisdiction
@@ -1163,13 +1109,13 @@
 {#snippet extension(field: FieldEditor)}<VersionFacts
 		{ctx}
 		{field}
-		versionId={formLaw(field.form.values)}
+		law={formLaw(field.form.values)}
 		subject="EMPLOYEE"
 	/>{/snippet}
 {#snippet terms(field: FieldEditor)}<ContractTermsEditor
 		{ctx}
 		{field}
-		versionId={formLaw(field.form.values)}
+		law={formLaw(field.form.values)}
 	/>{/snippet}
 
 {#snippet details()}

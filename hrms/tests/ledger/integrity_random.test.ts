@@ -17,7 +17,6 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	accountsIn,
-	catalogRow,
 	flat,
 	leaveCreate,
 	ledgerRows,
@@ -36,7 +35,7 @@ import {
 const SEEDS =
 	process.env['HR_SEED'] === undefined ? [11, 23, 37, 41, 53] : [Number(process.env['HR_SEED'])];
 const STEPS = Number(process.env['HR_STEPS'] ?? 40);
-// one version of the law the template holds (8 July to 30 November 2026): the clock stays inside it
+// between two changes of the law the template holds (8 July to 31 December 2026): the clock stays inside it
 const START = '2026-08-05T02:00:00.000Z';
 const LAST_MONTH = '2026-11';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -55,8 +54,7 @@ const base = pack(
 	},
 	{},
 	[],
-	[],
-	'2026-08-15'
+	[]
 );
 const seed = {
 	...base,
@@ -77,10 +75,6 @@ const seed = {
 		{ id: uuid(42), name: 'Chief', email: 'chief@example.test', kind: 'staff', team: 'hr_manager' }
 	]
 };
-const catalog = <M extends 'leave_catalog' | 'claim_catalog' | 'adhoc_catalog'>(
-	model: M,
-	code: string
-) => idOf(model, catalogRow(base, model, code));
 
 /** mulberry32: a few lines, the same sequence for a seed everywhere. Its state can be put back, to draw the same again. */
 const random = (seed: number) => {
@@ -142,7 +136,7 @@ const leaveOn = (w: World, by: Caller, code: string, employment = CONTRACT) =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: employment,
-						catalog_id: catalog('leave_catalog', code),
+						catalog_code: code,
 						days: wholeDays(date)
 					})
 				]
@@ -292,9 +286,7 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 			asked(
 				w,
 				yield* by.act({
-					'claim_catalog_entry.create': [
-						{ ...entryOf(w, quantity), catalog_id: catalog('claim_catalog', 'MEDICAL_CLAIM') }
-					]
+					'claim_catalog_entry.create': [{ ...entryOf(w, quantity), catalog_code: 'MEDICAL_CLAIM' }]
 				})
 			);
 		}),
@@ -326,7 +318,7 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 				'adhoc_catalog_entry.create': [
 					{
 						...entryOf(w, quantity),
-						catalog_id: catalog('adhoc_catalog', 'BONUS'),
+						catalog_code: 'BONUS',
 						description: 'BONUS'
 					}
 				]
@@ -435,7 +427,7 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 					{
 						...entryOf(w, quantity),
 						employment_id: VOIDED,
-						catalog_id: catalog('adhoc_catalog', 'BONUS'),
+						catalog_code: 'BONUS',
 						description: 'BONUS'
 					}
 				]
@@ -503,7 +495,6 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 					'payslip.create': [
 						{
 							payroll_run_id: slip.payroll_run_id,
-							settings_id: slip.settings_id,
 							employee_id: slip.employee_id,
 							employment_id: slip.employment_id,
 							entity_id: slip.entity_id,

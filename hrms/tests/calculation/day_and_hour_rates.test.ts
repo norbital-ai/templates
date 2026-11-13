@@ -8,14 +8,12 @@ import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { payBasis } from '../../src/lib/payroll_engine/engine.ts';
-import { objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { ownLines, run } from '../amendment_kit.ts';
-import { WORK, catalogRow, pack, read, workspace } from '../kit.ts';
+import { WORK, lawAt, lawWith, pack, workspace } from '../kit.ts';
 
 describe('the day rate', () => {
 	it('carries an allowance in the rate, and none outside it', () => {
-		const [settings] = read('seed/public/jurisdiction/MY/version_5/jurisdiction_settings.json');
-		assert.ok(settings !== undefined);
+		const { settings } = lawAt('MY', '2026-07-08');
 		const rate = (amount: number, allowances: JsonObject) =>
 			payBasis(
 				{
@@ -75,19 +73,11 @@ describe('the hour rate', () => {
 			[{ date: '2026-02-02', shift: WORK, hours: 10, overtime: 2 }],
 			[]
 		);
-		const seed: ReturnType<typeof pack> = {
-			...base,
-			jurisdiction_settings: (base.jurisdiction_settings ?? []).map((row) => ({
-				...row,
-				conversions: { ...objectValue(row.conversions), hour: { basis: 'FIXED', hours: HOURS } }
-			}))
-		};
+		const seed = lawWith(base, { conversions: { hour: { basis: 'FIXED', hours: HOURS } } });
 		const { standard_premium } = Schema.decodeUnknownSync(
 			Schema.Struct({ standard_premium: Schema.Number })
 		)(
-			(seed.overtime_catalog ?? []).find(
-				(row) => row.id === catalogRow(seed, 'overtime_catalog', 'OVERTIME')
-			)?.lookup
+			lawAt('MY', '2026-02-25').rows.overtime_catalog.find((row) => row.code === 'OVERTIME')?.lookup
 		);
 		const cents = (value: number) => Math.round(value * 100) / 100;
 		return Effect.gen(function* () {

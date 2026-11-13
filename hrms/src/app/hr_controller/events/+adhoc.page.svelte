@@ -8,6 +8,7 @@
 	import SealedBadge from '../../../lib/ui/payroll/sealed_badge.svelte';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
+	import { pageLaws } from '../../../lib/ui/law.svelte.js';
 	import { numberOf } from '../../../lib/payroll_engine/foundation.js';
 	import { parseAdhocSheet } from '../../../lib/payroll_engine/entry_workbook.js';
 	import {
@@ -16,6 +17,7 @@
 	} from '../../../lib/ui/workbook/workbook_import.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);
+	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
 	let importing = $state(false);
 	let warnings: readonly string[] = [];
@@ -29,15 +31,9 @@
 						fields: ['employee_number', 'entity_id', 'effective_range'],
 						limit: 10000
 					},
-					jurisdiction_settings: {
-						where: { status: { eq: 'SEALED' } },
-						fields: ['code', 'effective_range'],
-						limit: 10000
-					},
-					adhoc_catalog: { fields: ['code', 'settings_id'], limit: 10000 },
 					adhoc_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'catalog_id', 'quantity', 'description', 'incurred_on'],
+						fields: ['employment_id', 'catalog_code', 'quantity', 'description', 'incurred_on'],
 						limit: 10000
 					}
 				})
@@ -63,20 +59,10 @@
 				from: row.effective_range.from,
 				to: row.effective_range.to
 			})),
-			versions: current.jurisdiction_settings.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				from: row.effective_range.from,
-				to: row.effective_range.to
-			})),
-			catalogs: current.adhoc_catalog.rows.map((row) => ({
-				id: row.id,
-				code: row.code,
-				settings_id: row.settings_id
-			})),
+			laws: laws.on,
 			existing: current.adhoc_catalog_entry.rows.map((row) => ({
 				employment_id: row.employment_id,
-				catalog_id: row.catalog_id,
+				catalog_code: row.catalog_code,
 				quantity: numberOf(row.quantity) ?? 0,
 				incurred_on: row.incurred_on,
 				description: row.description
@@ -86,7 +72,7 @@
 		return parsed.rows.map((row) => ({
 			entity_id: row.entity_id,
 			employment_id: row.employment_id,
-			catalog_id: row.catalog_id,
+			catalog_code: row.catalog_code,
 			description: row.description ?? '',
 			quantity: new Intl.NumberFormat('en', {
 				useGrouping: false,
@@ -139,13 +125,14 @@
 						run: importAdhoc,
 						icon: 'lucide:file-spreadsheet',
 						name: ctx.t('holiday_calendar.import_spreadsheet'),
-						disabled: () => (importing || held?.current == null ? ctx.t('component.loading') : null)
+						disabled: () =>
+							importing || held?.current == null || laws.loading ? ctx.t('component.loading') : null
 					}
 				]
 			}}
 			columns={[
 				'employment_id',
-				'catalog_id',
+				'catalog_code',
 				'description',
 				'quantity',
 

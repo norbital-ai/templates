@@ -15,10 +15,11 @@ import { isJsonObject, type JsonObject } from './foundation.js';
 import { attendanceOf, type PayWindow } from './pay_cycle.js';
 import { emptyPayslipBreakdown, type PayslipBreakdown } from './payslip_breakdown.js';
 import { objectValue, queryRows, type Reader } from './reads.js';
+import { lawsOf, type Law } from '../law.js';
 import {
 	calculateRun,
-	CALCULATION_FIELDS,
 	claimsAsPosted,
+	lawData,
 	withStints,
 	type CalculatedPayslip,
 	type RunData,
@@ -42,7 +43,7 @@ export const RECOVERY = 'RECOVERY_CARRIED';
 const recoveryOf = (slip: CalculatedPayslip, amount: number): Line => ({
 	code: RECOVERY,
 	label: 'Recovery carried forward',
-	subtotal_id: slip.breakdown.checkpoints.at(-1)?.id ?? '',
+	subtotal: slip.breakdown.checkpoints.at(-1)?.code ?? '',
 	amount,
 	direction: 'ADD',
 	party: 'EMPLOYEE',
@@ -143,7 +144,7 @@ const remainderLines = (
 			{
 				code: String(model.code),
 				label: String(model.label ?? model.code),
-				subtotal_id: String(model.subtotal_id),
+				subtotal: String(model.subtotal),
 				amount: Math.abs(amount),
 				direction: amount < 0 ? 'DEDUCT' : 'ADD',
 				party: String(model.party),
@@ -173,52 +174,21 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 	read: Reader,
 	entity: string,
 	people: readonly string[],
-	settings: readonly string[],
 	window: PayWindow,
 	paidFrom: string,
 	runs: readonly string[],
-	jurisdiction: string
+	/** The run's own read: a claim with no posting yet is limited as its law limits it. */
+	own: RunData
 ) {
-	const own = { entity_id: { eq: entity } };
+	const company = { entity_id: { eq: entity } };
 	const theirs = { employment_id: { is: { employee_id: { in: [...people] } } } };
 	const dated = { gte: window.from, lte: window.to };
-	const inVersions = { where: { settings_id: { in: [...settings] } }, limit: 10000 };
-	const inLaw = { settings_id: { is: { code: { eq: jurisdiction } } } };
 	const data = yield* queryRows(read, {
-		jurisdiction_settings: {
-			where: { id: { in: [...settings] } },
-			fields: [
-				'id',
-				'code',
-				'status',
-				'timezone',
-				'tax_year_start_month',
-				'lookup',
-				'conversions',
-				'ledger'
-			],
-			limit: 1000
-		},
-		subtotal: {
-			...inVersions,
-			fields: ['settings_id', 'balance_window', ...CALCULATION_FIELDS.subtotal]
-		},
-		allowance_catalog: { ...inVersions, fields: ['settings_id', ...CALCULATION_FIELDS.allowance] },
-		overtime_catalog: { ...inVersions, fields: ['settings_id', ...CALCULATION_FIELDS.overtime] },
-		statutory_contribution_catalog: {
-			...inVersions,
-			fields: ['settings_id', 'balance_window', ...CALCULATION_FIELDS.statutory]
-		},
-		leave_catalog: { where: inLaw, fields: CALCULATION_FIELDS.leave, limit: 10000 },
-		claim_catalog: { ...inVersions, fields: ['settings_id', ...CALCULATION_FIELDS.claim] },
-		adhoc_catalog: { ...inVersions, fields: ['settings_id', ...CALCULATION_FIELDS.adhoc] },
-		loan_catalog: { where: inLaw, fields: ['id', 'code', 'subtotal_id'], limit: 10000 },
-		work_event_catalog: { where: inLaw, limit: 10000 },
-		work_event: { where: own, limit: 10000 },
-		shift_definition: { where: own, limit: 10000 },
-		shift_pattern: { where: own, limit: 10000 },
-		holiday: { where: own, limit: 10000 },
-		entity_profile_version: { where: { ...own, status: { eq: 'SEALED' } }, limit: 10000 },
+		work_event: { where: company, limit: 10000 },
+		shift_definition: { where: company, limit: 10000 },
+		shift_pattern: { where: company, limit: 10000 },
+		holiday: { where: company, limit: 10000 },
+		entity_profile_version: { where: { ...company, status: { eq: 'SEALED' } }, limit: 10000 },
 		employee_contract: {
 			where: { employee_id: { in: [...people] }, status: { eq: 'SEALED' } },
 			limit: 10000
@@ -242,7 +212,6 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 				}
 			},
 			limit: 10000,
-			catalog_id: { fields: ['code'] },
 			leave_catalog_entry_day: {
 				fields: ['id', 'leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
 				limit: 10000
@@ -251,19 +220,13 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 		// what is dated in the span, and what a run of the span priced whatever its date
 		claim_catalog_entry: {
 			where: { ...theirs, or: [{ incurred_on: dated }, { payroll_run_id: { in: [...runs] } }] },
-			limit: 10000,
-			catalog_id: { fields: ['code'] }
+			limit: 10000
 		},
 		adhoc_catalog_entry: {
 			where: { ...theirs, or: [{ incurred_on: dated }, { payroll_run_id: { in: [...runs] } }] },
-			limit: 10000,
-			catalog_id: { fields: ['code'] }
+			limit: 10000
 		},
-		loan_catalog_entry: {
-			where: theirs,
-			limit: 10000,
-			catalog_id: { fields: ['code'] }
-		},
+		loan_catalog_entry: { where: theirs, limit: 10000 },
 		loan_catalog_entry_repayment: { where: { ...theirs, paid_on: dated }, limit: 10000 },
 		roster_entry: {
 			where: { ...theirs, work_date: dated },
@@ -322,12 +285,17 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 			limit: 10000
 		}
 	});
-	return yield* claimsAsPosted(read, withStints(data));
+	return yield* claimsAsPosted(read, {
+		...withStints(data),
+		law_settings: own.law_settings ?? [],
+		claim_catalog: own.claim_catalog ?? []
+	});
 });
 
-/** One paid period's own rows out of the span: its window, its law version, and the seals that belong to it. */
+/** One paid period's own rows out of the span: its window, the law of its pay date, and the seals that belong to it. */
 const sliceOf = (
 	span: RunData,
+	law: Law | undefined,
 	period: Period,
 	people: ReadonlySet<string>,
 	carriers: (employee: string) => ReadonlySet<string>,
@@ -335,9 +303,6 @@ const sliceOf = (
 	carriedBack: (employee: string, date: string) => boolean,
 	accounts: ReadonlyMap<string, Accounts>
 ): RunData => {
-	const settings = String(period.run.settings_id);
-	const inVersion = (model: string) =>
-		(span[model] ?? []).filter((row) => String(row.settings_id) === settings);
 	const contracts = (span.employee_contract ?? []).filter((row) =>
 		people.has(String(row.employee_id))
 	);
@@ -373,15 +338,7 @@ const sliceOf = (
 		});
 	return {
 		...span,
-		jurisdiction_settings: (span.jurisdiction_settings ?? []).filter(
-			(row) => String(row.id) === settings
-		),
-		subtotal: inVersion('subtotal'),
-		allowance_catalog: inVersion('allowance_catalog'),
-		overtime_catalog: inVersion('overtime_catalog'),
-		statutory_contribution_catalog: inVersion('statutory_contribution_catalog'),
-		claim_catalog: inVersion('claim_catalog'),
-		adhoc_catalog: inVersion('adhoc_catalog'),
+		...lawData(law),
 		pay_group: (span.pay_group ?? []).filter(
 			(row) => String(row.id) === String(period.run.pay_group_id)
 		),
@@ -413,28 +370,29 @@ const sliceOf = (
 				? [{ ...opened(row), leave_catalog_entry_day: days }]
 				: [];
 		}),
-		workplace_case_catalog_entry: [],
-		statutory_change: []
+		workplace_case_catalog_entry: []
 	};
 };
 
 /** What a paid payslip's own lines posted, as its run posted them. */
-const ownPostings = (span: RunData, run: JsonObject, breakdown: unknown): readonly Wanted[] => {
-	const settings = (span.jurisdiction_settings ?? []).find(
-		(row) => String(row.id) === String(run.settings_id)
-	);
-	if (settings === undefined) return [];
-	const monthly = (model: string, suffixes: readonly string[]) =>
-		(span[model] ?? [])
-			.filter(
-				(row) => String(row.settings_id) === String(settings.id) && row.balance_window === 'MONTH'
-			)
+const ownPostings = (
+	law: Law | undefined,
+	run: JsonObject,
+	breakdown: unknown
+): readonly Wanted[] => {
+	if (law === undefined) return [];
+	const monthly = (
+		family: 'subtotal' | 'statutory_contribution_catalog',
+		suffixes: readonly string[]
+	) =>
+		law.rows[family]
+			.filter((row) => row.balance_window === 'MONTH')
 			.flatMap((row) => suffixes.map((suffix) => `${String(row.code)}${suffix}`));
 	return payslipWanted(objectValue(breakdown), String(run.pay_date), {
-		scope: totalsScope(settings, run.entity_id),
+		scope: totalsScope(law.settings, run.entity_id),
 		started: String(run.pay_date),
 		events: [],
-		taxYearStart: Number(settings.tax_year_start_month ?? 1),
+		taxYearStart: Number(law.settings.tax_year_start_month ?? 1),
 		byMonth: [
 			...monthly('subtotal', ['']),
 			...monthly('statutory_contribution_catalog', ['.employee', '.employer'])
@@ -470,8 +428,8 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		readonly runs: readonly JsonObject[];
 		readonly groups: readonly JsonObject[];
 		readonly amendments: readonly JsonObject[];
-		/** Every sealed law version: a paid period is worked out on the one now in force on its pay date. */
-		readonly laws: readonly JsonObject[];
+		/** The companies of those runs: each names its law (`settings_code`). */
+		readonly entities: readonly JsonObject[];
 	}
 ) {
 	const offCycle = own.frame.pays !== undefined;
@@ -505,24 +463,12 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	const schedules = new Map(
 		known.groups.map((row) => [String(row.id), objectValue(row.payment_schedule)])
 	);
-	// a law version sealed since from its real date replaces the one a paid run was first worked out on
-	const lawOf = new Map(known.laws.map((row) => [String(row.id), row]));
-	const inForce = (run: JsonObject): string => {
-		const code = lawOf.get(String(run.settings_id))?.code;
-		const now = known.laws.find((row) => {
-			const { from, to } = rangeOf(row);
-			return (
-				row.code === code &&
-				from <= String(run.pay_date) &&
-				(to === null || to >= String(run.pay_date))
-			);
-		});
-		return String(now?.id ?? run.settings_id);
-	};
-	const runs: readonly JsonObject[] = known.runs.map((run) => ({
-		...run,
-		settings_id: inForce(run)
-	}));
+	// a paid period is worked out on the law now in force on its own pay date
+	const laws = lawsOf(own.data);
+	const lawCode = new Map(known.entities.map((row) => [String(row.id), row.settings_code]));
+	const lawFor = (run: JsonObject) =>
+		laws(lawCode.get(String(run.entity_id)), String(run.pay_date));
+	const { runs } = known;
 	const paidRuns = runs.filter((run) => run.kind === 'ON_CYCLE' && run.state === 'PAID');
 	const runAt = new Map(
 		paidRuns.map((run) => [`${String(run.pay_group_id)}/${String(run.period)}`, run])
@@ -548,7 +494,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			row.payroll_run_id == null && typeof row.incurred_on === 'string' && row.incurred_on < ownFrom
 	);
 	// a version signed since the last pay date that began before this period: it may owe back pay
-	const settings = (own.data.jurisdiction_settings ?? [])[0];
+	const settings = (own.data.law_settings ?? [])[0];
 	const paysBack = typeof objectValue(settings?.conversions).back_pay === 'string';
 	const signedLately =
 		!paysBack || offCycle
@@ -633,22 +579,19 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		read,
 		String(own.row.entity_id),
 		people,
-		unique([String(own.row.settings_id), ...runs.map((run) => String(run.settings_id))]),
 		{ from: `${from.slice(0, 8)}01` < from ? `${from.slice(0, 8)}01` : from, to: ownFrom },
 		paidFrom,
 		before.map((run) => String(run.id)),
-		String(settings?.code)
+		own.data
 	);
 	const spanData: RunData = { ...span, pay_group: known.groups };
 
 	const runOf = new Map(runs.map((run) => [String(run.id), run]));
 	const periodOfRun = (run: JsonObject): Period | undefined => {
 		const schedule = schedules.get(String(run.pay_group_id));
-		const settingsRow = (spanData.jurisdiction_settings ?? []).find(
-			(row) => String(row.id) === String(run.settings_id)
-		);
+		const law = lawFor(run);
 		const coverage = objectValue(run.salary_coverage);
-		if (schedule === undefined || settingsRow === undefined) return undefined;
+		if (schedule === undefined || law === undefined) return undefined;
 		const salary = { from: String(coverage.from), to: String(coverage.to) };
 		const attendance = attendanceOf(schedule, salary);
 		const payDate = String(run.pay_date);
@@ -661,8 +604,8 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			frame: { attendance },
 			closes: attendance.to > salary.to ? attendance.to : salary.to,
 			year: periodKey(
-				totalsScope(settingsRow, run.entity_id),
-				{ kind: 'YEAR', start_month: Number(settingsRow.tax_year_start_month ?? 1) },
+				totalsScope(law.settings, run.entity_id),
+				{ kind: 'YEAR', start_month: Number(law.settings.tax_year_start_month ?? 1) },
 				payDate,
 				payDate
 			)
@@ -809,7 +752,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		let built: Accounts = { pay: older(pay), statutory: older(statutory) };
 		let rest: Accounts = other;
 		for (const { slip, run, order } of slipsOf(employee)) {
-			const posted = ownPostings(spanData, run, slip.breakdown);
+			const posted = ownPostings(lawFor(run), run, slip.breakdown);
 			const money = posted.filter((row) => row.account === 'pay' || row.account === 'statutory');
 			if (order < at.order) built = apply(built, movements(money, 1));
 			else
@@ -857,6 +800,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		calculateRun(
 			sliceOf(
 				spanData,
+				lawFor(period.run),
 				period,
 				new Set(who),
 				carriersOf(period),
@@ -932,9 +876,6 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			row.assessed === 'PAID' ? [String(row.code)] : []
 		)
 	);
-	const checkpointCode = new Map(
-		(spanData.subtotal ?? []).map((row) => [String(row.id), String(row.code)])
-	);
 	const carriedPay = new Map<string, Record<string, number>>();
 	const kinds = new Map<string, string>();
 	const turns = unique([...again.values()].flat()).toSorted((a, b) =>
@@ -960,7 +901,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			const paidPostings = [
 				...(paidSlip === undefined
 					? []
-					: ownPostings(spanData, period.run, paidSlip.slip.breakdown)),
+					: ownPostings(lawFor(period.run), period.run, paidSlip.slip.breakdown)),
 				...later.flatMap(({ slip }) =>
 					carriedFor(slip.breakdown)
 						.filter((entry) => entry.run_id === period.id)
@@ -974,16 +915,16 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 				String(period.run.period)
 			).filter((line) => !paidMonth.has(line.code.replace(/_EMPLOYER$/, '')));
 			const postings = postingsBetween(
-				due === undefined ? [] : ownPostings(spanData, period.run, due),
+				due === undefined ? [] : ownPostings(lawFor(period.run), period.run, due),
 				paidPostings
 			).filter(
 				(row) => !(row.account === 'statutory' && paidMonth.has(row.code.split('.')[0] ?? ''))
 			);
 			const pay = carriedPay.get(employee) ?? {};
 			for (const line of remainder) {
-				const checkpoint = checkpointCode.get(line.subtotal_id);
+				const checkpoint = line.subtotal;
 				if (line.party !== 'EMPLOYEE' || line.source === 'statutory_contribution_catalog') continue;
-				if (checkpoint === undefined) continue;
+				if (checkpoint === '') continue;
 				pay[checkpoint] =
 					(pay[checkpoint] ?? 0) + (line.direction === 'DEDUCT' ? -line.amount : line.amount);
 			}

@@ -6,6 +6,17 @@
 		emptyPayslipBreakdown,
 		PayslipBreakdown
 	} from '../../../../lib/payroll_engine/payslip_breakdown.js';
+	import { pageLaws } from '../../../../lib/ui/law.svelte.js';
+
+	const FAMILIES = [
+		'allowance_catalog',
+		'leave_catalog',
+		'claim_catalog',
+		'adhoc_catalog',
+		'loan_catalog',
+		'overtime_catalog',
+		'statutory_contribution_catalog'
+	] as const;
 
 	let { view, ctx }: { view: RecordView<'payslip'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
@@ -35,42 +46,36 @@
 		].toSorted(([one], [other]) => one.localeCompare(other))
 	);
 
-	// What each line is, in the words of the catalogue row that posted it under the payslip's own law version. An
-	// employee reads five of the seven families; a family the reader cannot see leaves its lines by code.
-	const inLaw = $derived(
+	// What each line is, in the words of the catalogue row that posted it, under the law of the payslip's company on
+	// its run's pay date.
+	const owner = $derived(
 		record === null
 			? null
-			: ({
-					where: { settings_id: { eq: record.settings_id } },
-					fields: ['code', 'description'],
-					limit: 10000
-				} as const)
-	);
-	const entryFamilies = $derived(
-		inLaw === null
-			? null
 			: ctx.query({
-					allowance_catalog: inLaw,
-					leave_catalog: inLaw,
-					claim_catalog: inLaw,
-					adhoc_catalog: inLaw,
-					loan_catalog: inLaw
+					payslip: {
+						where: { id: { eq: record.id } },
+						fields: ['entity_id', 'payroll_run_id'],
+						limit: 1,
+						entity_id: { fields: ['settings_code'] },
+						payroll_run_id: { fields: ['pay_date'] }
+					}
 				})
 	);
-	const lawFamilies = $derived(
-		inLaw === null
-			? null
-			: ctx.query({ overtime_catalog: inLaw, statutory_contribution_catalog: inLaw })
+	const slip = $derived(owner?.current?.payslip.rows[0]);
+	const laws = pageLaws(ctx, () => (slip?.entity_id == null ? [] : [slip.entity_id.settings_code]));
+	const law = $derived(
+		slip?.entity_id == null || slip.payroll_run_id == null
+			? undefined
+			: laws.on(slip.entity_id.settings_code, String(slip.payroll_run_id.pay_date))
 	);
 	const descriptions = $derived(
-		new Map(
-			Object.entries({ ...entryFamilies?.current, ...lawFamilies?.current }).flatMap(
-				([family, page]) =>
-					page.rows.flatMap((row) =>
-						typeof row.description === 'string' && row.description.trim() !== ''
-							? [[`${family}:${row.code}`, row.description] as const]
-							: []
-					)
+		new Map<string, string>(
+			FAMILIES.flatMap((family) =>
+				(law?.rows[family] ?? []).flatMap((row) =>
+					typeof row.description === 'string' && row.description.trim() !== ''
+						? [[`${family}:${String(row.code)}`, row.description] as const]
+						: []
+				)
 			)
 		)
 	);
@@ -87,7 +92,7 @@
 	{#if lines.length > 0}<section>
 			<h3 class="text-xs font-medium text-muted-foreground">{title}</h3>
 			<ul class="mt-1 divide-y">
-				{#each lines as line (line.code + line.subtotal_id + line.amount)}
+				{#each lines as line (line.code + line.subtotal + line.amount)}
 					{@const description = describe(line)}
 					<li class="flex items-start justify-between gap-3 py-1.5 text-sm">
 						<span class="min-w-0">

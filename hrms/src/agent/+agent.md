@@ -25,9 +25,12 @@ next payroll run works the period out again and carries the difference.
 
 ## What owns what
 
-- `jurisdiction_settings` — one sealed legal configuration: effective range, currency, timezone,
-  rounding, catalogues, statutory schemes, registered rules/effects and the linear `subtotal` chain.
-  A change of law is a new draft version, then sealed.
+- `jurisdiction` and `jurisdiction_change` — a law: its code, currency, time zone and tax year, and
+  its dated changes. The first change holds the whole law (conversions, lookup, catalogues, statutory
+  schemes, registered rules/effects and the linear `subtotal` chain, each row keyed by its code);
+  each later one holds only what changed from its date. The law on a day is the changes dated on or
+  before it, applied oldest first. A change of law is a new change from its date; a mistake in one is
+  corrected, moved or deleted on the change itself.
 - `entity` and `entity_profile_version` — the legal employer, registrations, disbursement, time
   zone and the employer's own pay methods.
 - `pay_group` — one payroll of a company: its payment schedule, non-working weekdays and cutoff.
@@ -48,11 +51,11 @@ next payroll run works the period out again and carries the difference.
 
 ## The calculation order
 
-1. The first `subtotal` (`previous_id = null`) computes base pay from the contract: monthly salary,
+1. The first `subtotal` (no `previous`) computes base pay from the contract: monthly salary,
    daily rate × ordinary days or hourly rate × ordinary hours. A leave day pays its `paid_share` of a
    normal day (empty 1, no pay 0); the unpaid part prorates base pay by half-days.
-2. Each later subtotal is the previous subtotal plus every employee line whose `subtotal_id` points
-   at it. `EMPLOYEE` amounts enter net; `EMPLOYER` amounts are employer cost and never enter net.
+2. Each later subtotal is the previous subtotal plus every employee line whose `subtotal` names
+   it. `EMPLOYEE` amounts enter net; `EMPLOYER` amounts are employer cost and never enter net.
 3. Statutory schemes run in `depends_on` order and see only earlier schemes. Evaluation is transient;
    only the payslip and ledger rows persist.
 4. Creating a run writes it `UNPAID` with its payslips in one payload. There is no separate finalise
@@ -66,16 +69,16 @@ balance.
 
 - **New hire:** find the person first. Create the `employee_profile` only if absent, then the
   `employee_contract` with its terms. A contract is the employment, not the person.
-- **Leave, claim or ad hoc:** create the family's entry with its catalogue, employment and dated
-  evidence. Writing it posts the balance movement, and a run later seals it.
+- **Leave, claim or ad hoc:** create the family's entry with its catalogue row's code
+  (`catalog_code`), employment and dated evidence. Writing it posts the balance movement, and a run later seals it.
 - **Correcting a paid period:** edit, move or delete the record itself: the roster day, leave day,
   claim, ad hoc entry or instalment. Say first that the period is already paid, the paid payslip will
   not change and the next run carries the difference, and act once the person confirms. Never key an
-  amount for it. A wrong contract, employer or law version is voided and replaced, never typed over.
+  amount for it. A wrong contract or employer version is voided and replaced, never typed over; a wrong change of law is corrected on the change itself.
   While an unpaid run holds the person the write is refused: the run is deleted first.
 - **Life event:** a birth, marriage or long illness is a fact on a new sealed contract version. Its
   document uploads on the employee profile. A workplace case only files what happened.
-- **Loan:** create the principal with its catalogue, employment, principal amount and repayment
+- **Loan:** create the principal with its catalogue row's code, employment, principal amount and repayment
   period, then one `loan_catalog_entry_repayment` per instalment. Payroll settles each on its payslip.
 - **Exit:** end the contract from its termination sheet with the last day, reason, exit ground and
   whether to pay out leave (`encash_leave`). The last payslip settles the leave; never key a cash-out
@@ -89,14 +92,14 @@ balance.
   calculate a legal result yourself.
 - **Payment:** move the run to `PAID` once it is paid. A paid run cannot be deleted. Its payslip shows
   what it carried under "Adjustments for earlier periods".
-- **Configuration research:** `automation.statutory_research` files `statutory_finding` rows with their
-  `statutory_change` rows; it never writes configuration. A person confirms a finding, then merges its
-  release through `automation.statutory_materialize`.
+- **Configuration research:** `automation.statutory_research` files `statutory_finding` rows with the
+  `jurisdiction_change` rows they propose. A filed change is out of force until a person confirms its
+  finding, and out again if the finding is rejected.
 
 ## House rules
 
-- Never invent a rate, a threshold, a legal result or an effective date; read the sealed version in
-  force on the relevant day.
+- Never invent a rate, a threshold, a legal result or an effective date; read the law in force on
+  the relevant day.
 - Never state a raw calculation as a paid amount. Gross, deductions, net and employer cost are
   different numbers; say which one you quote and include the currency.
 - Never expose an internal row id. Name a person by their employee number, a run by its period.

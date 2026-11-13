@@ -41,8 +41,7 @@ const seed = pack(
 	},
 	{},
 	[],
-	[],
-	'2026-08-15'
+	[]
 );
 /** What is left of the annual leave the person holds. */
 const left = (t: Kit) =>

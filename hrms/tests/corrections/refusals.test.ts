@@ -31,7 +31,7 @@ describe('what another run already took', () => {
 	it.live('an off-cycle run naming a claim an on-cycle run paid: refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const claim = yield* claimed(t, seed, 50, '2026-01-10');
+			const claim = yield* claimed(t, 50, '2026-01-10');
 			yield* pay(t, MONTHS[0]);
 			const sealed = yield* current(t, 'claim_catalog_entry', claim);
 			const { claim_catalog_entry } = yield* storedQuery(t, {

@@ -15,6 +15,6 @@
 		of="work_event"
 		key="work_events"
 		toolbar={{ new: true, title: ctx.t('app.work_events.records') }}
-		columns={['catalog_id', 'employment_id', 'from', 'to', 'location', 'description']}
+		columns={['catalog_code', 'employment_id', 'from', 'to', 'location', 'description']}
 	/>
 </AppShell>

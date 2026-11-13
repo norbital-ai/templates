@@ -2,32 +2,24 @@
 
 <!-- coverage:head -->
 
-The tables in this document are derived from `seed/public/jurisdiction/**` by a script, not typed by hand: 49 sealed law versions of 9 jurisdictions were read. Each country is shown as its latest version; "Value changed" gives the dates inside the seeded window from which a row's values differ.
+The tables in this document are derived from `seed/public/jurisdiction/**` by a script, not typed by hand: the 49 dated changes of 9 jurisdictions were read. Each country is shown as its law stands after its last change; "Value changed" gives the dates inside the seeded window from which a row's values differ.
 
 <!-- coverage:head:end -->
 
-What law the public seed carries for each of its nine jurisdictions: the versions, the contributions and taxes, the leave types, the overtime rules, the other catalogue rows, and the rules and tasks the law registers. How these rows are used is in [the architecture](0001-hrms-calculation-architecture.md) and [the mechanisms, run through](0008-mechanisms-walkthrough.md).
+What law the public seed carries for each of its nine jurisdictions: the changes of law, the contributions and taxes, the leave types, the overtime rules, the other catalogue rows, and the rules and tasks the law registers. How these rows are used is in [the architecture](0001-hrms-calculation-architecture.md) and [the mechanisms, run through](0008-mechanisms-walkthrough.md).
 
 <!-- coverage:begin -->
 
 ## China (CN)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2025-12-31 | sealed |
-| 2       | 2026-01-01 | 2026-06-30 | sealed |
-| 3       | 2026-07-01 | 2026-08-14 | sealed |
-| 4       | 2026-08-15 | 2026-08-31 | sealed |
-| 5       | 2026-09-01 | open       | sealed |
+The whole law from 2025-12-01, then 4 later changes. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2026-01-01: rules `BUSINESS_CASE_DOCUMENT_REQUIRED`, `BUSINESS_CASE_SIGNED_CONSENT`, `BUSINESS_CASE_SUBJECT_AND_REFERENCE`, `CONTRACT_CATEGORIES`, `FIXED_TERM_REQUEST_DATES` and 20 more; settings `lookup`.
-- Version 3, from 2026-07-01: statutory `MAJOR_MEDICAL`, `MEDICAL`, `PENSION`, `UNEMPLOYMENT`; leave `SICK_LEAVE`; rules `RETIREMENT_AGE_REACHED`; effects `OVER_AGE_AGREEMENT`; settings `lookup`.
-- Version 4, from 2026-08-15: leave `SICK_LEAVE`.
-- Version 5, from 2026-09-01: statutory `MAJOR_MEDICAL`, `MEDICAL`; settings `lookup`.
+- From 2026-01-01: rules `BUSINESS_CASE_DOCUMENT_REQUIRED`, `BUSINESS_CASE_SIGNED_CONSENT`, `BUSINESS_CASE_SUBJECT_AND_REFERENCE`, `CONTRACT_CATEGORIES`, `FIXED_TERM_REQUEST_DATES` and 20 more; shared `lookup`.
+- From 2026-07-01: statutory `MAJOR_MEDICAL`, `MEDICAL`, `PENSION`, `UNEMPLOYMENT`; leave `SICK_LEAVE`; rules `RETIREMENT_AGE_REACHED`; effects `OVER_AGE_AGREEMENT`; shared `lookup`.
+- From 2026-08-15: leave `SICK_LEAVE`.
+- From 2026-09-01: statutory `MAJOR_MEDICAL`, `MEDICAL`; shared `lookup`.
 
 ### Conversions and subtotal chain
 
@@ -127,20 +119,13 @@ Roster warnings (`ROSTER_OVERTIME_DAILY`): daily hours 11; daily overtime hours 
 
 ## Indonesia (ID)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2025-12-31 | sealed |
-| 2       | 2026-01-01 | 2026-02-28 | sealed |
-| 3       | 2026-03-01 | 2026-10-27 | sealed |
-| 4       | 2026-10-28 | open       | sealed |
+The whole law from 2025-12-01, then 3 later changes. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2026-01-01: statutory `PPH21_DTP`; rules `SECTOR_MINIMUM_WAGE`; settings `lookup`.
-- Version 3, from 2026-03-01: statutory `JKK`, `JP`.
-- Version 4, from 2026-10-28: leave `JOINT_LEAVE`, `LONG_LEAVE`; ad hoc `PESANGON`, `UPMK`; rules `DAILY_MINIMUM_WAGE`, `HOURLY_MINIMUM_WAGE`, `MINIMUM_AGE`, `MINIMUM_WAGE_FLOOR`, `PKWT_MAXIMUM_TERM` and 1 more.
+- From 2026-01-01: statutory `PPH21_DTP`; rules `SECTOR_MINIMUM_WAGE`; shared `lookup`.
+- From 2026-03-01: statutory `JKK`, `JP`.
+- From 2026-10-28: leave `JOINT_LEAVE`, `LONG_LEAVE`; ad hoc `PESANGON`, `UPMK`; rules `DAILY_MINIMUM_WAGE`, `HOURLY_MINIMUM_WAGE`, `MINIMUM_AGE`, `MINIMUM_WAGE_FLOOR`, `PKWT_MAXIMUM_TERM` and 1 more.
 
 ### Conversions and subtotal chain
 
@@ -239,28 +224,17 @@ Roster warnings (`ROSTER_UNDER_13`): daily hours 8; daily overtime hours 4; mont
 
 ## Japan (JP)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2025-12-31 | sealed |
-| 2       | 2026-01-01 | 2026-02-28 | sealed |
-| 3       | 2026-03-01 | 2026-03-31 | sealed |
-| 4       | 2026-04-01 | 2026-06-30 | sealed |
-| 5       | 2026-07-01 | 2026-09-30 | sealed |
-| 6       | 2026-10-01 | 2026-11-30 | sealed |
-| 7       | 2026-12-01 | 2026-12-31 | sealed |
-| 8       | 2027-01-01 | open       | sealed |
+The whole law from 2025-12-01, then 7 later changes. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2026-01-01: statutory `INCOME_TAX`.
-- Version 3, from 2026-03-01: settings `lookup`.
-- Version 4, from 2026-04-01: statutory `CHILD_SUPPORT`, `CHILD_SUPPORT_BONUS`, `HEALTH_BONUS`, `INCOME_TAX`; ad hoc `NIGHT_MEAL_CASH`; settings `lookup`.
-- Version 5, from 2026-07-01: effects `DISABILITY_EMPLOYMENT_REPORT`.
-- Version 6, from 2026-10-01: effects `HARASSMENT_PREVENTION_2026_AMENDMENT`, `SHORT_TIME_COVERAGE`.
-- Version 7, from 2026-12-01: statutory `YEAR_END_ADJUSTMENT`.
-- Version 8, from 2027-01-01: statutory `INCOME_TAX`.
+- From 2026-01-01: statutory `INCOME_TAX`.
+- From 2026-03-01: shared `lookup`.
+- From 2026-04-01: statutory `CHILD_SUPPORT`, `CHILD_SUPPORT_BONUS`, `HEALTH_BONUS`, `INCOME_TAX`; ad hoc `NIGHT_MEAL_CASH`; shared `lookup`.
+- From 2026-07-01: effects `DISABILITY_EMPLOYMENT_REPORT`.
+- From 2026-10-01: effects `HARASSMENT_PREVENTION_2026_AMENDMENT`, `SHORT_TIME_COVERAGE`.
+- From 2026-12-01: statutory `YEAR_END_ADJUSTMENT`.
+- From 2027-01-01: statutory `INCOME_TAX`.
 
 ### Conversions and subtotal chain
 
@@ -361,24 +335,15 @@ Roster warnings (`ROSTER_DAILY_8H`): monthly overtime hours 45; consecutive days
 
 ## Malaysia (MY)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2025-12-31 | sealed |
-| 2       | 2026-01-01 | 2026-02-28 | sealed |
-| 3       | 2026-03-01 | 2026-05-31 | sealed |
-| 4       | 2026-06-01 | 2026-07-07 | sealed |
-| 5       | 2026-07-08 | 2026-12-31 | sealed |
-| 6       | 2027-01-01 | open       | sealed |
+The whole law from 2025-12-01, then 5 later changes. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2026-01-01: statutory `HRDF`.
-- Version 3, from 2026-03-01: ad hoc `ACCOMMODATION_RENT`.
-- Version 4, from 2026-06-01: statutory `PCB`, `SKBBK`, `SOCSO`; effects `SOCSO_EIS_MONTHLY_CONTRIBUTION`; settings `lookup`.
-- Version 5, from 2026-07-08: statutory `SKBBK`.
-- Version 6, from 2027-01-01: statutory `HRDF`.
+- From 2026-01-01: statutory `HRDF`.
+- From 2026-03-01: ad hoc `ACCOMMODATION_RENT`.
+- From 2026-06-01: statutory `PCB`, `SKBBK`, `SOCSO`; effects `SOCSO_EIS_MONTHLY_CONTRIBUTION`; shared `lookup`.
+- From 2026-07-08: statutory `SKBBK`.
+- From 2027-01-01: statutory `HRDF`.
 
 ### Conversions and subtotal chain
 
@@ -464,16 +429,11 @@ Roster warnings (`ROSTER_DAILY_TOTAL`): daily hours 12; daily overtime hours 4; 
 
 ## Philippines (PH)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2026-01-05 | sealed |
-| 2       | 2026-01-06 | open       | sealed |
+The whole law from 2025-12-01, then 1 later change. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2026-01-06: statutory `WTAX`; settings `lookup`.
+- From 2026-01-06: statutory `WTAX`; shared `lookup`.
 
 ### Conversions and subtotal chain
 
@@ -566,30 +526,18 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; consecutive days 6; weekly 
 
 ## Singapore (SG)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2025-12-31 | sealed |
-| 2       | 2026-01-01 | 2026-06-30 | sealed |
-| 3       | 2026-07-01 | 2026-08-31 | sealed |
-| 4       | 2026-09-01 | 2026-12-31 | sealed |
-| 5       | 2027-01-01 | 2027-06-30 | sealed |
-| 6       | 2027-07-01 | 2027-08-31 | sealed |
-| 7       | 2027-09-01 | 2027-12-31 | sealed |
-| 8       | 2028-01-01 | 2028-06-30 | sealed |
-| 9       | 2028-07-01 | open       | sealed |
+The whole law from 2025-12-01, then 8 later changes. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2026-01-01: leave `SHARED_PARENTAL_LEAVE`; settings `lookup`.
-- Version 3, from 2026-07-01: effects `LQS_WAGE_FLOOR`, `REEMPLOYMENT_OFFER`; settings `lookup`.
-- Version 4, from 2026-09-01: settings `lookup`.
-- Version 5, from 2027-01-01: settings `lookup`.
-- Version 6, from 2027-07-01: settings `lookup`.
-- Version 7, from 2027-09-01: settings `lookup`.
-- Version 8, from 2028-01-01: settings `lookup`.
-- Version 9, from 2028-07-01: settings `lookup`.
+- From 2026-01-01: leave `SHARED_PARENTAL_LEAVE`; shared `lookup`.
+- From 2026-07-01: effects `LQS_WAGE_FLOOR`, `REEMPLOYMENT_OFFER`; shared `lookup`.
+- From 2026-09-01: shared `lookup`.
+- From 2027-01-01: shared `lookup`.
+- From 2027-07-01: shared `lookup`.
+- From 2027-09-01: shared `lookup`.
+- From 2028-01-01: shared `lookup`.
+- From 2028-07-01: shared `lookup`.
 
 ### Conversions and subtotal chain
 
@@ -686,20 +634,13 @@ Roster warnings (`ROSTER_DAILY_12_HOURS`): daily hours 12; daily overtime hours 
 
 ## Thailand (TH)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2025-12-06 | sealed |
-| 2       | 2025-12-07 | 2025-12-31 | sealed |
-| 3       | 2026-01-01 | 2026-12-31 | sealed |
-| 4       | 2027-01-01 | open       | sealed |
+The whole law from 2025-12-01, then 3 later changes. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2025-12-07: statutory `PND1`; leave `CHILD_CARE_LEAVE`, `MATERNITY_LEAVE`, `PATERNITY_LEAVE`.
-- Version 3, from 2026-01-01: statutory `SSO`.
-- Version 4, from 2027-01-01: statutory `EWF`; workplace case `EQUIVALENT_WELFARE_BENEFICIARY_REQUEST`, `EQUIVALENT_WELFARE_EMPLOYMENT_END`, `EQUIVALENT_WELFARE_FIRST_WITHHOLDING`, `EQUIVALENT_WELFARE_INSPECTION_REQUEST`, `EQUIVALENT_WELFARE_SETUP`; effects `EWF_REMITTANCE`, `EWF_WELFARE_ACCOUNT_DISCLOSURE`, `EWF_WELFARE_ACCOUNT_INSPECTION`, `EWF_WELFARE_ACCOUNT_RETURN`, `EWF_WELFARE_BENEFICIARY_WITHDRAWAL` and 1 more.
+- From 2025-12-07: statutory `PND1`; leave `CHILD_CARE_LEAVE`, `MATERNITY_LEAVE`, `PATERNITY_LEAVE`.
+- From 2026-01-01: statutory `SSO`.
+- From 2027-01-01: statutory `EWF`; workplace case `EQUIVALENT_WELFARE_BENEFICIARY_REQUEST`, `EQUIVALENT_WELFARE_EMPLOYMENT_END`, `EQUIVALENT_WELFARE_FIRST_WITHHOLDING`, `EQUIVALENT_WELFARE_INSPECTION_REQUEST`, `EQUIVALENT_WELFARE_SETUP`; effects `EWF_REMITTANCE`, `EWF_WELFARE_ACCOUNT_DISCLOSURE`, `EWF_WELFARE_ACCOUNT_INSPECTION`, `EWF_WELFARE_ACCOUNT_RETURN`, `EWF_WELFARE_BENEFICIARY_WITHDRAWAL` and 1 more.
 
 ### Conversions and subtotal chain
 
@@ -785,22 +726,14 @@ Roster warnings (`NORMAL_HOURS`): daily hours 12; daily overtime hours 4; monthl
 
 ## Taiwan (TW)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2025-12-31 | sealed |
-| 2       | 2026-01-01 | 2026-03-31 | sealed |
-| 3       | 2026-04-01 | 2026-09-30 | sealed |
-| 4       | 2026-10-01 | 2026-12-31 | sealed |
-| 5       | 2027-01-01 | open       | sealed |
+The whole law from 2025-12-01, then 4 later changes. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2026-01-01: statutory `INCOME_TAX`, `LABOR_PENSION`, `OCC_INJURY`; leave `PARENTAL_LEAVE_BY_DAY`; rules `MINIMUM_WAGE_HOURLY`; effects `PARENTAL_LEAVE_INSURANCE_CONTINUATION`; settings `lookup`.
-- Version 3, from 2026-04-01: statutory `LABOR_PENSION_RESERVE`; effects `FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE`.
-- Version 4, from 2026-10-01: leave `MARRIAGE_LEAVE`; rules `MARRIAGE_LEAVE_DAYS`; effects `FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE`.
-- Version 5, from 2027-01-01: statutory `LI`; rules `MINIMUM_WAGE_HOURLY`; settings `lookup`.
+- From 2026-01-01: statutory `INCOME_TAX`, `LABOR_PENSION`, `OCC_INJURY`; leave `PARENTAL_LEAVE_BY_DAY`; rules `MINIMUM_WAGE_HOURLY`; effects `PARENTAL_LEAVE_INSURANCE_CONTINUATION`; shared `lookup`.
+- From 2026-04-01: statutory `LABOR_PENSION_RESERVE`; effects `FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE`.
+- From 2026-10-01: leave `MARRIAGE_LEAVE`; rules `MARRIAGE_LEAVE_DAYS`; effects `FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE`.
+- From 2027-01-01: statutory `LI`; rules `MINIMUM_WAGE_HOURLY`; shared `lookup`.
 
 ### Conversions and subtotal chain
 
@@ -906,24 +839,15 @@ Roster warnings (`ROSTER_DAILY_HOURS_CAP`): daily hours 12; daily overtime hours
 
 ## Vietnam (VN)
 
-### Law versions
+### Changes of law
 
-| Version | From       | To         | State  |
-| ------- | ---------- | ---------- | ------ |
-| 1       | 2025-12-01 | 2025-12-31 | sealed |
-| 2       | 2026-01-01 | 2026-04-14 | sealed |
-| 3       | 2026-04-15 | 2026-05-15 | sealed |
-| 4       | 2026-05-16 | 2026-06-30 | sealed |
-| 5       | 2026-07-01 | 2026-12-31 | sealed |
-| 6       | 2027-01-01 | open       | sealed |
+The whole law from 2025-12-01, then 5 later changes. Rows whose values differ from the law before each:
 
-Rows whose values differ from the version before:
-
-- Version 2, from 2026-01-01: statutory `PIT`, `PIT_PENSION_DEDUCTION`, `PIT_TAXABLE_INCOME`, `UI`; rules `HOURLY_MINIMUM_WAGE`, `MINIMUM_WAGE_FLOOR`; effects `DPD_BREACH_NOTIFICATION`, `DPD_CONSENT_AND_NOTICE`, `DPD_DELETION_ON_REQUEST`, `DPD_IMPACT_ASSESSMENT`, `DPD_SENSITIVE_DATA_PERSONNEL` and 8 more; settings `lookup`.
-- Version 3, from 2026-04-15: effects `PIT_WITHHOLDING_DECLARATION`.
-- Version 4, from 2026-05-16: statutory `UNION_FEE`; effects `UNION_FEE_REMITTANCE`.
-- Version 5, from 2026-07-01: statutory `PIT`, `PIT_PENSION_DEDUCTION`, `PIT_TAXABLE_INCOME`, `UNION_DUES`; leave `PUBLIC_HOLIDAY`; effects `DEPENDANT_TAX_REGISTRATION`, `PIT_TAX_REGISTRATION`; settings `lookup`.
-- Version 6, from 2027-01-01: rules `HOURLY_MINIMUM_WAGE`, `MINIMUM_WAGE_FLOOR`; settings `lookup`.
+- From 2026-01-01: statutory `PIT`, `PIT_PENSION_DEDUCTION`, `PIT_TAXABLE_INCOME`, `UI`; rules `HOURLY_MINIMUM_WAGE`, `MINIMUM_WAGE_FLOOR`; effects `DPD_BREACH_NOTIFICATION`, `DPD_CONSENT_AND_NOTICE`, `DPD_DELETION_ON_REQUEST`, `DPD_IMPACT_ASSESSMENT`, `DPD_SENSITIVE_DATA_PERSONNEL` and 8 more; shared `lookup`.
+- From 2026-04-15: effects `PIT_WITHHOLDING_DECLARATION`.
+- From 2026-05-16: statutory `UNION_FEE`; effects `UNION_FEE_REMITTANCE`.
+- From 2026-07-01: statutory `PIT`, `PIT_PENSION_DEDUCTION`, `PIT_TAXABLE_INCOME`, `UNION_DUES`; leave `PUBLIC_HOLIDAY`; effects `DEPENDANT_TAX_REGISTRATION`, `PIT_TAX_REGISTRATION`; shared `lookup`.
+- From 2027-01-01: rules `HOURLY_MINIMUM_WAGE`, `MINIMUM_WAGE_FLOOR`; shared `lookup`.
 
 ### Conversions and subtotal chain
 
@@ -1020,9 +944,9 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; mon
 
 ## How to read the tables
 
-- **Law versions.** A version exists because something changed on its first day. The seed starts on 1 December 2025, and versions are contiguous and sealed. A change already enacted is seeded in advance, so some versions start in the future (the latest on 2028-07-01). Each lineage's last version is open-ended.
+- **Changes of law.** The first change of a jurisdiction holds the whole law on 1 December 2025. Each later change is a patch dated the day a change in law took effect, and exists because something changed that day. A change already enacted is seeded in advance, so some changes are dated in the future (the latest on 2028-07-01). The law on a day is the changes dated on or before it, applied oldest first.
 - **Rounding.** Every law rounds the day rate before it multiplies the days, except the Philippines, which rounds only the amount (`rounding.day_rate: AMOUNT`).
-- **A run reads only its own law.** A payroll run reads the catalogues of its own jurisdiction's version, never another country's.
+- **A run reads only its own law.** A payroll run reads the catalogues of its own jurisdiction's law on its pay date, never another country's.
 - **Contributions and taxes.** "Employee" and "Employer" say whether the row computes that side. "Below zero" says what the row does when a month's figure comes out negative: `refund` pays a refund line because its statute has the employer repay; `stops` stops at zero and the next run nets it. "First reference on the row" is the first of the row's own `references`; the row holds the full list, with locators, quotes and links.
 - **Leave.** "Entitlement" is read from the row's `lookup`. "Own statutory test" means the row states its test as an expression. "A day taken" is the row's `paid_share`: full pay when empty, a stated share, or the row's rule; "cashable" means the row has a `payout`.
 - **Overtime.** "Numbers on the row" are the plain numbers in the row's `lookup`; the row's `conversion` holds the full rule.
@@ -1044,7 +968,7 @@ The seed carries no row for these, so nothing computes or enforces them.
 | PH           | No claim row carries a yearly limit, so a medical claim is not held to one                                                                                                 |
 | SG           | The Government's reimbursement of government-paid leave is not computed or recorded as money. An effect raises the task to claim it; the employee is paid by the leave row |
 | SG           | No row records the employer's recovery of work-injury medical costs from its insurer                                                                                       |
-| All          | A change of law not yet enacted is not seeded. Research files it as a finding and HR merges it as the next version once enacted                                            |
+| All          | A change of law not yet enacted is not seeded. Research files it as a finding with its dated changes, and they are in force once HR confirms the finding                   |
 
 Each row's legal sources (title, link, the quoted passage) are on the row itself, in its `references`.
 
@@ -1054,4 +978,4 @@ Each row's legal sources (title, link, the quoted passage) are on the row itself
 - **Legal values are proved by reconciliation.** Private data is run through the seed and reconciled, payslip line by payslip line, to real payrolls. That data and its record are kept outside this repository.
 - **Reconciled to real payrolls:** MY, ID, PH.
 - **Not reconciled to a real payroll:** CN, JP, SG, TH, TW, VN. Their rows are encoded from the statutes each row cites and are exercised only by the mechanism tests.
-- **Every row names its statute.** A reader can check a value against the row's `references` in Settings, or in the seed files under `seed/public/jurisdiction/<CODE>/version_<n>/`.
+- **Every row names its statute.** A reader can check a value against the row's `references` in Settings, or in the seed file `seed/public/jurisdiction/<CODE>/jurisdiction_change.json`.

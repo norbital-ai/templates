@@ -13,7 +13,8 @@ import {
 	ENTITY,
 	WORK,
 	accountsIn,
-	catalogRow,
+	lawAt,
+	lawWith,
 	leaveCreate,
 	ledgerRows,
 	measureOf,
@@ -42,26 +43,24 @@ const base = pack(
 		{ date: '2026-06-02', shift: WORK, hours: 10, overtime: 2 },
 		{ date: '2026-06-03', shift: WORK, hours: 10, overtime: 2 }
 	],
-	[],
-	'2026-06-15'
+	[]
 );
 /** The row takes overtime as time off, in hours; the first day's overtime is marked when `marked`. */
+const held = lawAt('MY', '2026-06-15').rows.leave_catalog.find((row) => row.code === CODE)?.lookup;
 const seedOf = (marked: boolean) => ({
-	...base,
-	leave_catalog: (base.leave_catalog ?? []).map((row) =>
-		row.code === CODE
-			? {
-					...row,
-					lookup: {
-						...(isJsonObject(row.lookup) ? row.lookup : {}),
-						unit: 'HOUR',
-						grant_days: 0,
-						window: 'SERVICE_YEAR',
-						overtime_as_time_off: true
-					}
+	...lawWith(base, {
+		leave_catalog: {
+			[CODE]: {
+				lookup: {
+					...(isJsonObject(held) ? held : {}),
+					unit: 'HOUR',
+					grant_days: 0,
+					window: 'SERVICE_YEAR',
+					overtime_as_time_off: true
 				}
-			: row
-	),
+			}
+		}
+	}),
 	roster_entry: (base.roster_entry ?? []).map((row) => ({
 		...row,
 		overtime_as_time_off: marked && row.work_date === '2026-06-02'
@@ -97,7 +96,7 @@ const halfDay = (t: Kit) =>
 					leaveCreate({
 						entity_id: ENTITY,
 						employment_id: idOf('employee_contract', uuid(6)),
-						catalog_id: idOf('leave_catalog', catalogRow(seedOf(true), 'leave_catalog', CODE)),
+						catalog_code: CODE,
 						days: [{ date: '2026-07-06', part: 'AM' }]
 					})
 				]

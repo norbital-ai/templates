@@ -1,8 +1,6 @@
 // Service runs from the current unbroken stint, or from every stint at the employer, rehires included, where the
 // profile's `cumulative_service` says so.
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
@@ -13,17 +11,14 @@ import {
 } from '../../src/lib/ledger/entitlement.ts';
 import { startsOf } from '../../src/lib/payroll_engine/contract_change.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import { accountsIn, pack, read, storedQuery, syncAll, uuid, workspace } from '../kit.ts';
+import { accountsIn, lawAt, pack, seedLaw, storedQuery, syncAll, uuid, workspace } from '../kit.ts';
 
 const annual = (code: string): LeaveRow => {
-	const root = join('seed/public/jurisdiction', code);
-	const version = readdirSync(root)
-		.filter((name) => /^version_\d+$/.test(name))
-		.toSorted((left, right) => Number(left.slice(8)) - Number(right.slice(8)))
-		.at(-1);
-	const row = read(join(root, String(version), 'leave_catalog.json')).find(
-		(item) => item.code === 'ANNUAL_LEAVE'
-	);
+	// the law as its last seeded change leaves it
+	const row = lawAt(
+		code,
+		String(seedLaw(code).jurisdiction_change.at(-1)?.effective_from)
+	).rows.leave_catalog.find((item) => item.code === 'ANNUAL_LEAVE');
 	assert.ok(row !== undefined);
 	return { code: 'ANNUAL_LEAVE', lookup: objectValue(row.lookup) };
 };
@@ -117,8 +112,7 @@ describe('service runs from the current stint, or every stint', () => {
 			{ rate: { amount: 3120, unit: 'MONTHLY' }, statutory_work_category: 'GENERAL' },
 			{},
 			[],
-			[],
-			'2026-11-06'
+			[]
 		);
 		// each stint records its own start, as replacements once copied it: no credit reaches back past the gap
 		const stints = (base.employee_contract ?? []).flatMap((held) => [
