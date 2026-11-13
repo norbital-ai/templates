@@ -6,7 +6,7 @@
 	"description": "A family office's book: every holding with its research, and a daily report with totals, allocation and one call per position, written by one agent.",
 	"visibility": "public",
 	"counts": {
-		"models": 3,
+		"models": 4,
 		"apps": 1,
 		"automations": 1
 	},
