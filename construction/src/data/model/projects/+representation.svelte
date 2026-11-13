@@ -14,7 +14,7 @@
 		Table,
 		type RecordView
 	} from '@norbital-ai/ui';
-	import { Bound, Column, Grid, Inline, Split, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Column, Grid, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { input_schema } from '@norbital-ai/bolt';
 	import { Schema } from 'effect';
 	import RecordForm from '../../../lib/record-form.svelte';
@@ -182,39 +182,43 @@
 {/snippet}
 
 {#snippet coordination()}
-	{#if id}<Stack gap="lg">
-			<Split ratio="wide" collapse="stack" start={model} end={pulse} />
-			<Stack gap="lg">
-				<Table
-					{ctx}
-					of="rfis"
-					toolbar={{ title: ctx.t('component.rfis') }}
-					where={{ project_id: { eq: id } }}
-					page_size={25}
-					columns={[
-						{ field: 'rfi_number', label: ctx.t('component.rfi') },
-						'title',
-						'priority',
-						'status',
-						{ field: 'due_date', label: ctx.t('component.due') }
-					]}
-				/>
-				<Table
-					{ctx}
-					of="defects"
-					toolbar={{ title: ctx.t('component.defects') }}
-					where={{ project_id: { eq: id } }}
-					page_size={25}
-					columns={[
-						{ field: 'defect_number', label: ctx.t('component.defect') },
-						'title',
-						'severity',
-						'status',
-						{ field: 'due_date', label: ctx.t('component.due') }
-					]}
-				/>
-			</Stack>
-		</Stack>{/if}
+	{#if id}<Scroll name="coordination" size="fill" inset
+			><Stack gap="lg">
+				<Split ratio="wide" collapse="stack" start={model} end={pulse} />
+				<Bound size="viewport"
+					><Table
+						{ctx}
+						of="rfis"
+						toolbar={{ title: ctx.t('component.rfis') }}
+						where={{ project_id: { eq: id } }}
+						page_size={25}
+						columns={[
+							{ field: 'rfi_number', label: ctx.t('component.rfi') },
+							'title',
+							'priority',
+							'status',
+							{ field: 'due_date', label: ctx.t('component.due') }
+						]}
+					/></Bound
+				>
+				<Bound size="viewport"
+					><Table
+						{ctx}
+						of="defects"
+						toolbar={{ title: ctx.t('component.defects') }}
+						where={{ project_id: { eq: id } }}
+						page_size={25}
+						columns={[
+							{ field: 'defect_number', label: ctx.t('component.defect') },
+							'title',
+							'severity',
+							'status',
+							{ field: 'due_date', label: ctx.t('component.due') }
+						]}
+					/></Bound
+				>
+			</Stack></Scroll
+		>{/if}
 {/snippet}
 
 {#snippet manpower()}
@@ -239,77 +243,83 @@
 {/snippet}
 
 {#snippet controls()}
-	{#if id}<Stack gap="lg">
-			<Grid minimum="compact">
-				<Stack class="border-b pb-3" gap="xs">
-					<p class="text-meta">{ctx.t('component.contract_value')}</p>
-					<p class="text-heading">
-						{#if record?.['contract_value'] != null}<Show
-								{ctx}
-								kind={money}
-								value={record['contract_value']}
-								row={record}
-							/>{:else}{ctx.t('component.not_set')}{/if}
-					</p>
-				</Stack>
-				{#each [['component.claimed', 'claimed_amount'], ['component.certified', 'certified_amount']] as const as [label, field] (field)}
+	{#if id}<Scroll name="controls" size="fill" inset
+			><Stack gap="lg">
+				<Grid minimum="compact">
 					<Stack class="border-b pb-3" gap="xs">
-						<p class="text-meta">{ctx.t(label)}</p>
+						<p class="text-meta">{ctx.t('component.contract_value')}</p>
 						<p class="text-heading">
-							{#each claims?.current?.rows ?? [] as total, i (i)}
-								{@const key = total.key}
-								{#if i > 0}
-									·
-								{/if}<Show
+							{#if record?.['contract_value'] != null}<Show
 									{ctx}
 									kind={money}
-									value={total.sum?.[field] ?? null}
-									row={{ currency: claimCurrency(key?.['currency'] ?? null) }}
-								/>
-							{:else}{ctx.t('component.no_value')}{/each}
+									value={record['contract_value']}
+									row={record}
+								/>{:else}{ctx.t('component.not_set')}{/if}
 						</p>
 					</Stack>
-				{/each}
-				<Stack class="border-b pb-3" gap="xs">
-					<p class="text-meta">{ctx.t('component.documents')}</p>
-					<p class="text-heading tabular-nums">
-						{documents?.current?.asset_documents.rows.length ?? 0}
-					</p>
-				</Stack>
-			</Grid>
-			<Stack gap="lg">
-				<Table
-					{ctx}
-					of="payment_claims"
-					toolbar={{ title: ctx.t('component.payment_claims') }}
-					where={{ project_id: { eq: id } }}
-					order_by={{ updated_at: 'desc' }}
-					columns={['claim_number', 'claim_type', 'status', 'claimed_amount']}
-				/>
-				<Table
-					{ctx}
-					of="asset_documents"
-					toolbar={{ title: ctx.t('component.project_documents') }}
-					where={{ project_id: { eq: id }, status: { in: ['draft', 'in_review', 'issued'] } }}
-					order_by={{ updated_at: 'desc' }}
-					columns={['title', 'document_number', 'version']}
-				/>
-			</Stack>
-			<Table
-				{ctx}
-				of="permits_to_work"
-				toolbar={{ title: ctx.t('component.permits_to_work') }}
-				where={{ project_id: { eq: id }, validity_range: { contains: day.today } }}
-				page_size={50}
-				columns={[
-					{ field: 'permit_number', label: ctx.t('component.permit') },
-					{ field: 'permit_type', label: ctx.t('component.type') },
-					'status',
-					{ field: 'validity_range', label: ctx.t('component.valid') },
-					{ field: 'approved_by', label: ctx.t('component.approved_by') }
-				]}
-			/>
-		</Stack>{/if}
+					{#each [['component.claimed', 'claimed_amount'], ['component.certified', 'certified_amount']] as const as [label, field] (field)}
+						<Stack class="border-b pb-3" gap="xs">
+							<p class="text-meta">{ctx.t(label)}</p>
+							<p class="text-heading">
+								{#each claims?.current?.rows ?? [] as total, i (i)}
+									{@const key = total.key}
+									{#if i > 0}
+										·
+									{/if}<Show
+										{ctx}
+										kind={money}
+										value={total.sum?.[field] ?? null}
+										row={{ currency: claimCurrency(key?.['currency'] ?? null) }}
+									/>
+								{:else}{ctx.t('component.no_value')}{/each}
+							</p>
+						</Stack>
+					{/each}
+					<Stack class="border-b pb-3" gap="xs">
+						<p class="text-meta">{ctx.t('component.documents')}</p>
+						<p class="text-heading tabular-nums">
+							{documents?.current?.asset_documents.rows.length ?? 0}
+						</p>
+					</Stack>
+				</Grid>
+				<Bound size="viewport"
+					><Table
+						{ctx}
+						of="payment_claims"
+						toolbar={{ title: ctx.t('component.payment_claims') }}
+						where={{ project_id: { eq: id } }}
+						order_by={{ updated_at: 'desc' }}
+						columns={['claim_number', 'claim_type', 'status', 'claimed_amount']}
+					/></Bound
+				>
+				<Bound size="viewport"
+					><Table
+						{ctx}
+						of="asset_documents"
+						toolbar={{ title: ctx.t('component.project_documents') }}
+						where={{ project_id: { eq: id }, status: { in: ['draft', 'in_review', 'issued'] } }}
+						order_by={{ updated_at: 'desc' }}
+						columns={['title', 'document_number', 'version']}
+					/></Bound
+				>
+				<Bound size="viewport"
+					><Table
+						{ctx}
+						of="permits_to_work"
+						toolbar={{ title: ctx.t('component.permits_to_work') }}
+						where={{ project_id: { eq: id }, validity_range: { contains: day.today } }}
+						page_size={50}
+						columns={[
+							{ field: 'permit_number', label: ctx.t('component.permit') },
+							{ field: 'permit_type', label: ctx.t('component.type') },
+							'status',
+							{ field: 'validity_range', label: ctx.t('component.valid') },
+							{ field: 'approved_by', label: ctx.t('component.approved_by') }
+						]}
+					/></Bound
+				>
+			</Stack></Scroll
+		>{/if}
 {/snippet}
 
 {#snippet projectFields()}

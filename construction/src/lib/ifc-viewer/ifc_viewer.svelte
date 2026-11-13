@@ -696,7 +696,8 @@
 								<Scroll
 									axis="both"
 									name="Selected element properties"
-									class="max-h-80 rounded-md bg-muted/50 p-3 text-micro wrap-break-word text-muted-foreground"
+									max="compact"
+									class="rounded-md bg-muted/50 p-3 text-micro wrap-break-word text-muted-foreground"
 								>
 									<Grid as="dl" tracks="minmax(6rem, 12rem) 1fr" gap="sm" row_gap="xs">
 										{#each item.properties as property (property.name)}
