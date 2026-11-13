@@ -4,70 +4,57 @@ import { expect, it as test } from '@effect/vitest';
 import { committed, confirm, draft, PRODUCT, SETTINGS, workspace } from './kit.js';
 import { quotationOf } from './reads.js';
 import { confirmationCheck, confirmationHash, confirmationRead } from '../src/lib/confirmation.js';
-test.live(
-	'quotation edits finalize the same order and line records, then pricing stays sealed',
-	() =>
-		Effect.gen(function* () {
-			const t = yield* workspace();
-			const as = yield* t.as(t.admin);
-			const own = yield* draft(t);
-			const before = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-				.orders.rows[0];
-			expect(before?.status).toBe('draft');
-			committed(
-				'orders',
-				yield* as.act({
-					'orders.update': [
-						{
-							target: yield* t.at('orders', own.order),
-							set: {
-								payment_terms: 'Net 60',
-								valid_from: '2026-08-01',
-								valid_until: '2026-12-31'
-							}
+test.live('quotation edits confirm the same order and line records', () =>
+	Effect.gen(function* () {
+		const t = yield* workspace();
+		const as = yield* t.as(t.admin);
+		const own = yield* draft(t);
+		const before = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+			.orders.rows[0];
+		expect(before?.status).toBe('draft');
+		committed(
+			'orders',
+			yield* as.act({
+				'orders.update': [
+					{
+						target: yield* t.at('orders', own.order),
+						set: {
+							payment_terms: 'Net 60',
+							valid_from: '2026-08-01',
+							valid_until: '2026-12-31'
 						}
-					]
-				})
-			);
-			committed(
-				'order_lines',
-				yield* as.act({
-					'order_lines.update': [
-						{ target: yield* t.at('order_lines', own.line), set: { unit_price: '3' } }
-					]
-				})
-			);
-			const quoted = yield* quotationOf(as, { order: own.order });
-			expect(quoted.number).toBe(before?.number);
-			expect(quoted.contract).toContain('Net 60');
-			expect(quoted.contract).toContain('2026-08-01 – 2026-12-31');
-			expect(quoted).not.toHaveProperty('seal_hash');
-			yield* confirm(t, own.order);
-			const after = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-				.orders.rows[0];
-			expect(after?.sealed_contract).toBe(quoted.contract);
-			expect(after?.id).toBe(before?.id);
-			expect(after?.number).toBe(before?.number);
-			expect(after?.sealed_contract).toContain('Net 60');
-			expect(after?.sealed_snapshot).toMatchObject({
-				valid_from: '2026-08-01',
-				valid_until: '2026-12-31',
-				lines: [expect.objectContaining({ id: own.line })]
-			});
-			expect(
-				yield* Effect.flip(
-					as.act({
-						'order_lines.update': [
-							{ target: yield* t.at('order_lines', own.line), set: { unit_price: '4' } }
-						]
-					})
-				)
-			).toMatchObject({ _tag: 'ActRefused' });
-			expect(
-				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
-					?.seal_hash
-			).toBe(after?.seal_hash);
-		})
+					}
+				]
+			})
+		);
+		committed(
+			'order_lines',
+			yield* as.act({
+				'order_lines.update': [
+					{ target: yield* t.at('order_lines', own.line), set: { unit_price: '3' } }
+				]
+			})
+		);
+		const quoted = yield* quotationOf(as, { order: own.order });
+		expect(quoted.number).toBe(before?.number);
+		expect(quoted.contract).toContain('Net 60');
+		expect(quoted.contract).toContain('2026-08-01 – 2026-12-31');
+		expect(quoted).not.toHaveProperty('seal_hash');
+		yield* confirm(t, own.order);
+		const after = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
+			.orders.rows[0];
+		expect(after).toMatchObject({
+			id: before?.id,
+			number: before?.number,
+			status: 'confirmed',
+			payment_terms: 'Net 60',
+			valid_from: '2026-08-01',
+			valid_until: '2026-12-31'
+		});
+		expect(
+			(yield* as.query({ order_lines: { where: { order: { eq: own.order } } } })).order_lines.rows
+		).toMatchObject([{ id: own.line }]);
+	})
 );
 test.live('contract validity rejects reversed dates including a partial edit', () =>
 	Effect.gen(function* () {
@@ -98,7 +85,7 @@ test.live('contract validity rejects reversed dates including a partial edit', (
 );
 
 test.live(
-	'drafts show the current net floor and an enforced floor protects the sealed commission basis',
+	'drafts show the current net floor and an enforced floor protects the commission basis',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
@@ -160,8 +147,6 @@ test.live(
 				})
 			);
 			yield* confirm(t, order);
-			expect((yield* read()).orders.rows[0]?.sealed_snapshot?.lines[0]?.floor_net).toBe(
-				'3.00000000'
-			);
+			expect(sameDecimal((yield* read()).orders.rows[0]?.lines[0]?.floor_net, '3')).toBe(true);
 		})
 );

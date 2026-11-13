@@ -1,8 +1,7 @@
 import { BigDecimal, Effect, Schema } from 'effect';
-import type { Id, SyncCtx } from '@norbital-ai/bolt';
+import type { Id, Row, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { dec, div, round, sum, text as decimalText, type D } from '../../lib/values.js';
-import { agreements, agreementFields } from '../../lib/agreements.js';
 import { hash, sha256Hex } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
@@ -19,8 +18,7 @@ import {
 } from './polling.js';
 
 export type OrderSourceContext = Pick<SyncCtx<'kingdee'>, 'query' | 'configuration' | 'request'>;
-type Agreement = ReturnType<typeof agreements>[number];
-type LocalLine = Agreement['snapshot']['lines'][number];
+type LocalLine = Pick<Row<'order_lines'>, 'id' | 'product_name'>;
 type SalesLine = {
 	readonly entryId: string;
 	readonly detailId: string;
@@ -36,15 +34,10 @@ type SalesLine = {
 };
 type OwnedSales = {
 	readonly fid: string;
-	readonly externalId: string;
 	readonly order: Id<'orders'>;
-	readonly seal: string;
 	readonly currency: string;
-	readonly version: number;
-	readonly uuid: string;
 	readonly status: 'draft' | 'issued' | 'void';
 	readonly reference: string;
-	readonly liveFid: string;
 	readonly lines: readonly SalesLine[];
 };
 type SalesDocument = {
@@ -275,61 +268,9 @@ FROM (${documentIds(kind)}) candidate
  ${kind === 'invoice' ? 'LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID' : ''}`
 });
 
-export type SealedSalesOwner = {
-	readonly order: Id<'orders'>;
-	readonly agreement: Pick<Agreement, 'version' | 'seal_hash'> &
-		Partial<Pick<Agreement, 'kingdee' | 'lifecycle' | 'ordered_on'>> & {
-			readonly snapshot: Pick<Agreement['snapshot'], 'currency' | 'lines' | 'tax_inclusive'> &
-				Partial<Pick<Agreement['snapshot'], 'party_code' | 'payment_terms'>>;
-		};
-};
-/** The initial FUUID is the only identity we can infer without an observed amendment. */
-export const sourceContractVersion = (agreement: {
-	readonly version: number;
-	readonly kingdee?: { readonly source_version: string } | null;
-}) => agreement.kingdee?.source_version ?? (agreement.version === 1 ? '000' : null);
-/** Pending new lines follow the writer's ordered allocation; accepted versions use captured bindings. */
-export function sourceContractLine<
-	L extends { readonly id: string; readonly source_entry_id?: string | null }
->(
-	version: {
-		readonly version: number;
-		readonly lifecycle?: string | null;
-		readonly write_target?: object | null;
-		readonly snapshot: { readonly lines: readonly L[] };
-		readonly kingdee?: {
-			readonly entries?:
-				readonly { readonly entry_id: string; readonly local_line_id: string }[] | null;
-		} | null;
-	},
-	entryIds: readonly string[],
-	position: string
-): L | undefined {
-	const mapping = version.kingdee?.entries?.find((entry) => entry.entry_id === position);
-	if (mapping) return version.snapshot.lines.find((line) => line.id === mapping.local_line_id);
-	const explicit = version.snapshot.lines.find((line) => line.source_entry_id === position);
-	if (explicit) return explicit;
-	if (
-		version.version > 1 &&
-		(version.lifecycle === 'pending' || (version.write_target && !version.kingdee))
-	) {
-		const bound = new Set(version.snapshot.lines.flatMap((line) => line.source_entry_id ?? []));
-		for (const entry of version.kingdee?.entries ?? []) bound.add(entry.entry_id);
-		const unboundEntries = entryIds
-			.filter((id) => !bound.has(id))
-			.sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0));
-		const unboundLines = version.snapshot.lines.filter(
-			(line) =>
-				!line.source_entry_id &&
-				!version.kingdee?.entries?.some((entry) => entry.local_line_id === line.id)
-		);
-		return unboundLines[unboundEntries.indexOf(position)];
-	}
-	return version.snapshot.lines[Number(position) - 1];
-}
 /** Families are discovered from an owned UUID first; a bill number alone never establishes ownership. */
 const salesFamilyProjection: NativeProjection = {
-	sql: `/* kingdee-contract-versions */
+	sql: `/* kingdee-sales-orders */
 SELECT ${padded('head.FInterID')} AS __key,${textId('head.FInterID')} AS fid,head.FBrNo AS branch,
  CONVERT(varchar(36),head.FUUID) AS uuid,head.FBillNo AS reference,cur.FNumber AS currency,
  head.FVersionNo AS version,head.FCancellation AS cancelled,head.FChangeMark AS archive,head.FClosed AS closed,
@@ -347,26 +288,28 @@ WHERE head.FBrNo=@branch AND EXISTS (
  SELECT 1 FROM dbo.SEOrder anchor WHERE anchor.FBrNo=head.FBrNo AND anchor.FBillNo=head.FBillNo
  AND anchor.FUUID IN ${ids})`
 };
+/** One owned SO family: its live header, every archived version, and their lines. */
+export type SourceFamily = {
+	readonly order: Id<'orders'>;
+	readonly reference: string;
+	readonly headers: readonly SqlRow[];
+	readonly live: SqlRow;
+	readonly lines: readonly SqlRow[];
+};
 export const readSourceOrderFamilies = Effect.fnUntraced(function* (
-	local: readonly SealedSalesOwner[],
+	owned: readonly { readonly order: Id<'orders'>; readonly uuid: string }[],
 	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } }
 ) {
 	const anchors = new Map<string, Id<'orders'>>();
-	for (const owner of local) {
-		const values: string[] = [];
-		if (owner.agreement.version === 1)
-			values.push(yield* sourceOrderUuid(owner.order, owner.agreement.seal_hash));
-		if (owner.agreement.kingdee?.source_uuid) values.push(owner.agreement.kingdee.source_uuid);
-		for (const raw of values) {
-			const uuid = raw.toLowerCase();
-			const prior = anchors.get(uuid);
-			if (prior && prior !== owner.order)
-				return yield* new SourceRowInvalid({
-					column: 'FUUID',
-					reason: 'An owned source UUID belongs to multiple local orders'
-				});
-			anchors.set(uuid, owner.order);
-		}
+	for (const owner of owned) {
+		const uuid = owner.uuid.toLowerCase();
+		const prior = anchors.get(uuid);
+		if (prior && prior !== owner.order)
+			return yield* new SourceRowInvalid({
+				column: 'FUUID',
+				reason: 'An owned source UUID belongs to multiple local orders'
+			});
+		anchors.set(uuid, owner.order);
 	}
 	const headers = yield* selectByIds(
 		ctx,
@@ -405,7 +348,7 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 		return yield* new SourceRowInvalid({
 			column: 'FOperDate',
 			reason:
-				'The Kingdee contract family changed while its complete lines were being read; retry the observation'
+				'The Kingdee SO family changed while its complete lines were being read; retry the observation'
 		});
 	return yield* checked(() => {
 		const references = new Map<string, Id<'orders'>>();
@@ -422,7 +365,7 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 		}
 		if (headers.some((header) => !references.has(text(header, 'reference'))))
 			invalid('FUUID', 'Kingdee returned a bill family without an owned UUID anchor');
-		return [...references].map(([reference, order]) => {
+		return [...references].map(([reference, order]): SourceFamily => {
 			const family = headers.filter((header) => text(header, 'reference') === reference);
 			const live = family.filter((header) => !flag(header, 'archive'));
 			if (live.length !== 1)
@@ -431,7 +374,7 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 			for (const header of family) {
 				const version = text(header, 'version');
 				if (!/^\d{3}$/.test(version) || versions.has(version))
-					invalid('FVersionNo', 'Kingdee contract versions are missing or ambiguous');
+					invalid('FVersionNo', 'Kingdee SO versions are missing or ambiguous');
 				versions.add(version);
 			}
 			const current = live[0];
@@ -448,180 +391,171 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 		});
 	});
 });
-/** Read each immutable local version against its actual current/archive source row. */
+const sourceStatus = (header: SqlRow): 'draft' | 'issued' | 'void' =>
+	flag(header, 'cancelled') && !flag(header, 'archive')
+		? 'void'
+		: sourceChecker(header) !== '0' && sourceDate(header, 'checked_on') !== null
+			? 'issued'
+			: 'draft';
+const uniqueEntries = (lines: readonly SqlRow[]) => {
+	const entries = lines.map((line) => exactId(line, 'entry_id'));
+	if (new Set(entries).size !== entries.length)
+		invalid('FEntryID', 'Kingdee SO entry identities are ambiguous');
+	return lines;
+};
+/** What Kingdee holds for one owned SO: its live header and lines. */
+export const kingdeeOrder = (family: SourceFamily) => {
+	const header = family.live;
+	const fid = exactId(header, 'fid');
+	const amount = (row: SqlRow, name: string) => decimalText(columns(row).decimal(name));
+	return {
+		fid,
+		uuid: text(header, 'uuid').toLowerCase(),
+		reference: family.reference,
+		version: text(header, 'version'),
+		status: sourceStatus(header),
+		closed: header['closed'] != null && flag(header, 'closed'),
+		exchange_rate: amount(header, 'exchange_rate'),
+		currency: isoCurrency(header),
+		customer: exactId(header, 'customer_id'),
+		payment_terms: text(header, 'settlement'),
+		ordered_on: text(header, 'ordered_on'),
+		lines: uniqueEntries(family.lines.filter((line) => exactId(line, 'fid') === fid))
+			.map((line) => ({
+				entry: exactId(line, 'entry_id'),
+				detail: exactId(line, 'detail_id'),
+				item: exactId(line, 'item_id'),
+				unit: text(line, 'unit'),
+				quantity: amount(line, 'quantity'),
+				exclusive: amount(line, 'unit_price'),
+				inclusive: amount(line, 'unit_price_inclusive'),
+				tax_rate: amount(line, 'tax_rate'),
+				net: amount(line, 'net_amount'),
+				tax: amount(line, 'tax_amount'),
+				total: amount(line, 'gross_amount')
+			}))
+			.sort((a, b) => Number(a.entry) - Number(b.entry))
+	};
+};
+export type KingdeeOrder = ReturnType<typeof kingdeeOrder>;
+/**
+ * Pairs each SO entry with its order line: by the line's `source_entry_id`, else (a line the writer sent but no read
+ * has bound yet) the unbound entries in ascending order against the unbound lines in id order, as the writer
+ * allocated them.
+ */
+export function pairLines<
+	L extends {
+		readonly id: string;
+		readonly source_entry_id: string | null;
+		readonly product_code: string;
+	}
+>(local: readonly L[], kingdee: readonly KingdeeOrder['lines'][number][]) {
+	const pairs = new Map<string, L>();
+	for (const line of local)
+		if (line.source_entry_id && kingdee.some((entry) => entry.entry === line.source_entry_id))
+			pairs.set(line.source_entry_id, line);
+	const unbound = local
+		.filter((line) => !line.source_entry_id)
+		.sort((a, b) => a.id.localeCompare(b.id));
+	const free = kingdee.filter((entry) => !pairs.has(entry.entry));
+	for (const [index, line] of unbound.entries()) {
+		const entry = free[index];
+		if (entry && entry.item === line.product_code) pairs.set(entry.entry, line);
+	}
+	return pairs;
+}
+/** The confirmed sales orders this ledger receives, with the FUUID each one's SO carries. */
+export const ownedSalesOrders = Effect.fnUntraced(function* (
+	instance: Id<'sys_integration'>,
+	ctx: Pick<OrderSourceContext, 'query'>
+) {
+	const { orders } = yield* ctx.query({
+		orders: {
+			where: { ledger: { eq: instance }, direction: { eq: 'sales' }, status: { eq: 'confirmed' } },
+			party: { fields: ['external_code'] },
+			lines: {}
+		}
+	});
+	const owned = orders.rows.flatMap((order) =>
+		order.write_target && order.source_order_key
+			? [{ ...order, source_order_key: order.source_order_key }]
+			: []
+	);
+	const anchors = yield* Effect.forEach(owned, (order) =>
+		sourceOrderUuid(order.id, order.source_order_key).pipe(
+			Effect.map((uuid) => ({ order: order.id, uuid }))
+		)
+	);
+	return { owned, anchors };
+});
+/** Each owned order's live SO, its entries paired with the order's lines. */
 export const readOwnedSales = Effect.fnUntraced(function* (
-	local: readonly SealedSalesOwner[],
+	owned: readonly {
+		readonly order: Id<'orders'>;
+		readonly uuid: string;
+		readonly currency: string;
+		readonly lines: readonly Pick<
+			Row<'order_lines'>,
+			'id' | 'source_entry_id' | 'product_code' | 'product_name'
+		>[];
+	}[],
 	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } }
 ) {
-	const families = yield* readSourceOrderFamilies(local, ctx);
-	return yield* checked(() => {
-		const mapped: OwnedSales[] = [];
-		for (const family of families) {
-			const owners = local.filter((owner) => owner.order === family.order);
-			const liveVersion = text(family.live, 'version');
-			if (!owners.some((owner) => sourceContractVersion(owner.agreement) === liveVersion))
-				return invalid(
-					'FVersionNo',
-					'Import the new Kingdee contract version before attributing its documents'
-				);
-			const claimed = new Set<string>();
-			for (const owner of owners) {
-				const { agreement } = owner;
-				const version = sourceContractVersion(agreement);
-				if (version === null) continue;
-				if (claimed.has(version))
-					return invalid('FVersionNo', 'Multiple agreement seals claim the same Kingdee version');
-				claimed.add(version);
-				const header = family.headers.find((header) => text(header, 'version') === version);
-				const fid = header ? exactId(header, 'fid') : agreement.kingdee?.source_id;
-				if (!fid) continue;
-				const matching = header
-					? family.lines.filter((entry) => exactId(entry, 'fid') === fid)
-					: [];
-				if (
-					header &&
-					(isoCurrency(header) !== agreement.snapshot.currency ||
-						(agreement.snapshot.party_code !== undefined &&
-							exactId(header, 'customer_id') !== agreement.snapshot.party_code) ||
-						(agreement.snapshot.payment_terms !== undefined &&
-							text(header, 'settlement') !== agreement.snapshot.payment_terms) ||
-						(agreement.ordered_on !== undefined &&
-							text(header, 'ordered_on') !== agreement.ordered_on))
-				)
-					return invalid(
-						'SEOrder',
-						'Kingdee commercial header differs from its immutable contract version'
-					);
-				if (
-					header &&
-					(matching.length !== agreement.snapshot.lines.length || matching.length === 0)
-				)
-					return invalid('SEOrderEntry', 'Owned source version has missing or additional lines');
-				const positions = new Set<string>();
-				const lines = header
-					? matching.map((entry): SalesLine => {
-							const position = exactId(entry, 'entry_id');
-							const line = sourceContractLine(
-								agreement,
-								matching.map((entry) => exactId(entry, 'entry_id')),
-								position
-							);
-							if (!line || positions.has(position))
-								return invalid(
-									'FEntryID',
-									'Source positions cannot identify an immutable contract line'
-								);
-							positions.add(position);
-							const r = columns(entry);
-							const effective = div(
-								BigDecimal.multiply(
-									dec(line.unit_price),
-									BigDecimal.subtract(dec(100), dec(line.discount_pct))
-								),
-								100,
-								12
-							);
-							if (
-								exactId(entry, 'item_id') !== line.product_code ||
-								text(entry, 'unit') !== line.unit ||
-								!BigDecimal.equals(r.decimal('quantity'), dec(line.quantity)) ||
-								!BigDecimal.equals(
-									r.decimal(
-										agreement.snapshot.tax_inclusive ? 'unit_price_inclusive' : 'unit_price'
-									),
-									effective
-								) ||
-								!BigDecimal.equals(r.decimal('tax_rate'), dec(line.tax_rate)) ||
-								!BigDecimal.equals(r.decimal('net_amount'), dec(line.net)) ||
-								!BigDecimal.equals(r.decimal('tax_amount'), dec(line.tax)) ||
-								!BigDecimal.equals(r.decimal('gross_amount'), dec(line.total))
-							)
-								return invalid(
-									'SEOrderEntry',
-									'Kingdee content differs from its immutable contract version'
-								);
-							return {
-								entryId: position,
-								detailId: exactId(entry, 'detail_id'),
-								itemId: exactId(entry, 'item_id'),
-								unit: line.unit,
-								quantity: r.decimal('quantity'),
-								lotNumber: null,
-								netAmount: null,
-								grossAmount: null,
-								localLine: line,
-								upstream: null
-							};
-						})
-					: agreement.snapshot.lines.map((line, index): SalesLine => {
-							const entry = agreement.kingdee?.entries?.find(
-								(entry) => entry.local_line_id === line.id
-							);
-							if (!entry)
-								return invalid(
-									'FEntryID',
-									'Missing archive history has no retained source line binding'
-								);
-							return {
-								entryId: entry.entry_id,
-								detailId: entry.detail_id,
-								itemId: line.product_code,
-								unit: line.unit,
-								quantity: dec(line.quantity),
-								lotNumber: null,
-								netAmount: null,
-								grossAmount: null,
-								localLine: line,
-								upstream: null
-							};
-						});
-				const archived = header ? flag(header, 'archive') : true;
-				const cancelled = header ? flag(header, 'cancelled') : false;
-				const approved = header
-					? sourceChecker(header) !== '0' && sourceDate(header, 'checked_on') !== null
-					: agreement.kingdee?.status === 'issued';
-				mapped.push({
-					fid,
-					liveFid: exactId(family.live, 'fid'),
-					externalId: `sales:${ctx.configuration.branchNo}:${fid}:${agreement.seal_hash}`,
-					order: owner.order,
-					seal: agreement.seal_hash,
-					currency: agreement.snapshot.currency,
-					version: agreement.version,
-					uuid: header
-						? text(header, 'uuid').toLowerCase()
-						: (agreement.kingdee?.source_uuid ?? ''),
-					status: cancelled && !archived ? 'void' : approved ? 'issued' : 'draft',
-					reference: family.reference,
-					lines
-				});
-			}
-		}
-		return {
-			orders: mapped,
-			ownership: [
-				...new Set(local.map((owner) => `${owner.order}:${owner.agreement.seal_hash}`))
-			].sort()
-		};
-	});
+	const families = yield* readSourceOrderFamilies(owned, ctx);
+	return yield* checked(() =>
+		families.flatMap((family): OwnedSales[] => {
+			const order = owned.find((row) => row.order === family.order);
+			if (!order) return [];
+			const source = kingdeeOrder(family);
+			const pairs = pairLines(order.lines, source.lines);
+			return [
+				{
+					fid: source.fid,
+					order: order.order,
+					currency: order.currency,
+					status: source.status,
+					reference: source.reference,
+					lines: source.lines.flatMap((entry): SalesLine[] => {
+						const line = pairs.get(entry.entry);
+						return line
+							? [
+									{
+										entryId: entry.entry,
+										detailId: entry.detail,
+										itemId: entry.item,
+										unit: entry.unit,
+										quantity: dec(entry.quantity),
+										lotNumber: null,
+										netAmount: null,
+										grossAmount: null,
+										localLine: line,
+										upstream: null
+									}
+								]
+							: [];
+					})
+				}
+			];
+		})
+	);
 });
-
 const graphOrders = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	ctx: OrderSourceContext
 ) {
-	const { orders } = yield* ctx.query({
-		orders: {
-			where: { ledger: { eq: instance }, direction: { eq: 'sales' } },
-			fields: [...agreementFields, 'direction']
-		}
-	});
-	return yield* readOwnedSales(
-		orders.rows.flatMap((order) =>
-			agreements(order).map((agreement) => ({ order: order.id, agreement }))
+	const { owned, anchors } = yield* ownedSalesOrders(instance, ctx);
+	return {
+		orders: yield* readOwnedSales(
+			owned.flatMap((order) => {
+				const anchor = anchors.find((row) => row.order === order.id);
+				return anchor
+					? [{ order: order.id, uuid: anchor.uuid, currency: order.currency, lines: order.lines }]
+					: [];
+			}),
+			ctx
 		),
-		ctx
-	);
+		ownership: anchors.map((anchor) => anchor.uuid).sort()
+	};
 });
 
 export const readSalesDocuments = Effect.fnUntraced(function* (
@@ -629,7 +563,11 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	kind: 'delivery' | 'invoice',
 	deliveries: readonly SalesDocument[] = [],
-	retained: readonly { readonly kind: string; readonly fid: string; readonly seal: string }[] = [],
+	retained: readonly {
+		readonly kind: string;
+		readonly fid: string;
+		readonly order: Id<'orders'>;
+	}[] = [],
 	costAccount?: string,
 	review?: DocumentReview
 ) {
@@ -638,7 +576,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	const sourceType = kind === 'delivery' ? 81 : 21;
 	const sources =
 		kind === 'delivery'
-			? orders.flatMap((order) => [order.fid, order.liveFid])
+			? orders.map((order) => order.fid)
 			: deliveries.map((delivery) => delivery.fid);
 	const headers = yield* selectByIds(ctx, documentHeaderProjection(kind), sources);
 	const pendingIds = yield* checked(() => {
@@ -670,17 +608,15 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 		const byFid = new Map(deliveries.map((delivery) => [delivery.fid, delivery]));
 		const rowsByFid = Map.groupBy(entries, (entry) => exactId(entry, 'fid'));
 		const pins = new Map(
-			retained.filter((pin) => pin.kind === kind).map((pin) => [pin.fid, pin.seal])
+			retained.filter((pin) => pin.kind === kind).map((pin) => [pin.fid, pin.order])
 		);
 		const byOrderFid = new Map<string, OwnedSales[]>();
-		for (const order of orders)
-			for (const fid of new Set([order.fid, order.liveFid])) {
-				const list = byOrderFid.get(fid) ?? [];
-				list.push(order);
-				byOrderFid.set(fid, list);
-			}
+		for (const order of orders) {
+			const list = byOrderFid.get(order.fid) ?? [];
+			list.push(order);
+			byOrderFid.set(order.fid, list);
+		}
 		const related = new Map<string, Set<Id<'orders'>>>();
-		const pinOrders = new Map(orders.map((order) => [order.seal, order.order]));
 		const issue = (fid: string, column: string, affected: ReadonlySet<Id<'orders'>>) => {
 			if (!review || !affected.size) return false;
 			for (const order of affected) review.held.add(order);
@@ -689,10 +625,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 		};
 		for (const fid of pending) {
 			const pinned = pins.get(fid);
-			const owner = pinOrders.get(pinned ?? '');
-			if (pinned && !owner)
-				return invalid('contractVersion', 'A retained document has no owned agreement');
-			if (owner) issue(fid, 'FCheckDate', new Set([owner]));
+			if (pinned) issue(fid, 'FCheckDate', new Set([pinned]));
 		}
 		const issued = headers.filter((header) => !pending.has(exactId(header, 'fid')));
 		// Delivery reversals can refer to an original delivery regardless of their physical ID order.
@@ -702,8 +635,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 			const rows = rowsByFid.get(fid) ?? [];
 			const pinned = pins.get(fid);
 			const affected = new Set<Id<'orders'>>();
-			const priorOrder = pinOrders.get(pinned ?? '');
-			if (priorOrder) affected.add(priorOrder);
+			if (pinned) affected.add(pinned);
 			if (review) {
 				for (const entry of rows) {
 					const sourceType = String(entry['source_type']);
@@ -751,7 +683,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					const candidates = direct
 						? (byOrderFid.get(sourceFid) ?? []).filter(
 								(candidate) =>
-									(!pinned || candidate.seal === pinned) &&
+									(!pinned || candidate.order === pinned) &&
 									candidate.lines.some(
 										(line) =>
 											line.entryId === sourceEntry && line.itemId === exactId(entry, 'item_id')
@@ -762,24 +694,24 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 							: [];
 					if (candidates.length !== 1)
 						return invalid(
-							'contractVersion',
-							'This source document has no unique contract-version lineage; retain the existing evidence and reconcile its version explicitly'
+							'FSourceInterId',
+							'This source document has no unique owned order; retain the existing evidence and reconcile it explicitly'
 						);
 					const order = candidates[0];
-					if (pinned && order?.seal !== pinned)
+					if (pinned && order?.order !== pinned)
 						return invalid(
-							'contractVersion',
-							'A retained physical document cannot move to another contract version'
+							'FSourceInterId',
+							'A retained physical document cannot move to another order'
 						);
 					const sourceLines = direct ? order?.lines : parent?.lines;
 					const matches = sourceLines?.filter((line) => line.entryId === sourceEntry) ?? [];
 					const source = matches[0];
 					if (!order || matches.length !== 1 || !source)
 						return invalid('FSourceEntryID', 'Document line has no unique owned source line');
-					if (owner && owner.externalId !== order.externalId)
+					if (owner && owner.order !== order.order)
 						return invalid(
 							'FSourceInterId',
-							'A multi-order source document cannot be attributed to one sealed order'
+							'A multi-order source document cannot be attributed to one order'
 						);
 					owner = order;
 					const r = columns(entry);
@@ -796,7 +728,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					)
 						return invalid(
 							'ICStockBillEntry',
-							'Source line item, unit or quantity is inconsistent with its original sealed line'
+							'Source line item, unit or quantity is inconsistent with its order line'
 						);
 					if (
 						kind === 'invoice' &&
@@ -830,7 +762,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 				if (!owner) return invalid('FInterID', 'Document has no owned order');
 				const docCurrency = kind === 'invoice' ? isoCurrency(header) : owner.currency;
 				if (docCurrency !== owner.currency)
-					return invalid('FCurrencyID', 'Invoice currency differs from the original sealed order');
+					return invalid('FCurrencyID', 'Invoice currency differs from its order');
 				const issuedOn = sourceDate(header, 'date');
 				if (!issuedOn || !sourceDate(header, 'checked_on'))
 					return invalid('FCheckDate', 'Owned document is not an issued, dated transaction');
@@ -882,7 +814,7 @@ export const ownershipSource = Effect.fnUntraced(function* (
 ) {
 	return `${scope}:${yield* sha256Hex(JSON.stringify(ownership))}`;
 });
-/** Read only records whose existing FUUID belongs to one local sealed order; never adopt ERP history by bill number. */
+/** Read only records whose existing FUUID belongs to one local order; never adopt ERP history by bill number. */
 export const readSalesGraph = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
@@ -891,23 +823,13 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 ) {
 	const decoded = yield* observation(ctx, cursor);
 	const owned = yield* graphOrders(instance, ctx);
-	const { ext_sales_orders: parents, transactions: retained } = yield* ctx.query({
-		ext_sales_orders: {
-			where: { source: { eq: instance } },
-			fields: ['order', 'agreement_hash', 'external_id']
-		},
-		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'seal_hash'] }
+	const orders = owned.orders;
+	const { transactions: retained } = yield* ctx.query({
+		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] }
 	});
-	const orders = owned.orders.map((order) => ({
-		...order,
-		externalId:
-			parents.rows.find(
-				(parent) => parent.order === order.order && parent.agreement_hash === order.seal
-			)?.external_id ?? order.externalId
-	}));
 	const pins = retained.rows.flatMap((row) => {
-		const match = /^(delivery|invoice):(\d+):/.exec(row.erp_id);
-		return match?.[1] && match[2] ? [{ kind: match[1], fid: match[2], seal: row.seal_hash }] : [];
+		const match = /^(delivery|invoice):(\d+)(?::|$)/.exec(row.erp_id);
+		return match?.[1] && match[2] ? [{ kind: match[1], fid: match[2], order: row.order }] : [];
 	});
 	const review: DocumentReview = { held: new Set(), issues: [] };
 	const delivery = yield* readSalesDocuments(
@@ -975,7 +897,7 @@ export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
 	reuseCompleted?: boolean
 ): Effect.fn.Return<SourcePage<R>, SourceRowInvalid> {
 	const previous = yield* verifyOwnedCursor(cursor, source);
-	// A newly approved local agreement starts a new authoritative listing, never finishes the previous scope.
+	// A newly owned order starts a new authoritative listing, never finishes the previous scope.
 	const current = previous?.source === source && !previous.finish ? previous : null;
 	const sorted = yield* checked(() => {
 		const result = [...rows].sort((a, b) => (a.$id < b.$id ? -1 : a.$id > b.$id ? 1 : 0));
@@ -1017,78 +939,34 @@ export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
 		}
 	};
 });
-export const readSalesOrders = Effect.fnUntraced(function* (
-	instance: Id<'sys_integration'>,
-	cursor: Json | null,
-	ctx: OrderSourceContext
-) {
-	const observed = yield* observation(ctx, cursor);
-	const owned = yield* graphOrders(instance, ctx);
-	const source = yield* ownershipSource(observed.scope, owned.ownership);
-	const { ext_sales_orders: existing } = yield* ctx.query({
-		ext_sales_orders: {
-			where: { source: { eq: instance } },
-			fields: ['external_id', 'order', 'agreement_hash']
-		}
-	});
-	const stable = owned.orders.map((order) => ({
-		...order,
-		externalId:
-			existing.rows.find((old) => old.order === order.order && old.agreement_hash === order.seal)
-				?.external_id ?? order.externalId
-	}));
-	const present = new Set(stable.map((order) => order.externalId));
-	const rows = stable.map((order) => ({
-		$id: order.externalId,
-		external_id: order.externalId,
-		order: order.order,
-		reference: order.reference,
-		agreement_hash: order.seal,
-		currency: currency(order.currency),
-		status: order.status,
-		source_updated_at: observed.observedAt
-	}));
-	const missing = existing.rows
-		.filter(
-			(order) =>
-				!present.has(order.external_id) && !stable.some((version) => version.order === order.order)
-		)
-		.map((order) => ({
-			$id: order.external_id,
-			external_id: order.external_id,
-			status: 'void' as const
-		}));
-	return yield* snapshotPage([...rows, ...missing], cursor, source);
-});
+/** A document's transaction id: `<kind>:<FInterID>`, or the id an earlier read gave it. */
+export const erpId = (existing: readonly string[], kind: string, fid: string) =>
+	existing.find((id) => id === `${kind}:${fid}` || id.startsWith(`${kind}:${fid}:`)) ??
+	`${kind}:${fid}`;
 export const readTransactions = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
 	const graph = yield* readSalesGraph(instance, cursor, ctx);
-	const { ext_sales_orders: parents, transactions: existing } = yield* ctx.query({
-		ext_sales_orders: {
-			where: { source: { eq: instance } },
-			fields: ['external_id', 'status', 'order', 'agreement_hash']
-		},
-		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] }
+	const { transactions: existing, orders } = yield* ctx.query({
+		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] },
+		orders: { where: { ledger: { eq: instance }, direction: { eq: 'sales' } }, fields: ['kingdee'] }
 	});
+	const known = existing.rows.map((row) => row.erp_id);
 	const documents = [
 		...graph.deliveries.map((document) => ({ kind: 'delivery' as const, document })),
 		...graph.invoices.map((document) => ({ kind: 'invoice' as const, document }))
 	];
+	// a document needs its order's SO read as issued; a void SO only voids documents already recorded
 	for (const { kind, document } of documents) {
-		const parent = parents.rows.find((row) => row.external_id === document.owner.externalId);
+		const status = orders.rows.find((order) => order.id === document.owner.order)?.kingdee?.status;
 		if (
-			!parent ||
-			parent.status === 'draft' ||
-			parent.order !== document.owner.order ||
-			parent.agreement_hash !== document.owner.seal ||
-			(parent.status === 'void' &&
+			!status ||
+			status === 'draft' ||
+			(status === 'void' &&
 				(document.status !== 'void' ||
-					!existing.rows.some(
-						(row) => row.erp_id === `${kind}:${document.fid}:${document.owner.seal}`
-					)))
+					!existing.rows.some((row) => row.erp_id === erpId(known, kind, document.fid))))
 		) {
 			graph.held.add(document.owner.order);
 			graph.issues.push({ document: `${kind} ${document.fid}`, column: 'SO counterpart' });
@@ -1098,12 +976,6 @@ export const readTransactions = Effect.fnUntraced(function* (
 		documents
 			.filter(({ document }) => !graph.held.has(document.owner.order))
 			.map(({ kind, document }) => {
-				const parent = parents.rows.find((row) => row.external_id === document.owner.externalId);
-				if (!parent)
-					return invalid(
-						'ext_sales_order',
-						'The owned order confirmation must sync before its documents'
-					);
 				const items = new Map<
 					string,
 					{
@@ -1124,9 +996,9 @@ export const readTransactions = Effect.fnUntraced(function* (
 					)
 						return invalid(
 							'FEntryID',
-							'Grouped source document rows disagree on their sealed line or unit'
+							'Grouped source document rows disagree on their order line or unit'
 						);
-					// A merged invoice can contain several deliveries of the same sealed line and lot.
+					// A merged invoice can contain several deliveries of the same order line and lot.
 					items.set(identity, {
 						order_line_id: line.localLine.id,
 						product_name: line.localLine.product_name,
@@ -1140,16 +1012,14 @@ export const readTransactions = Effect.fnUntraced(function* (
 							: line.netAmount
 					});
 				}
-				const erp_id = `${kind}:${document.fid}:${document.owner.seal}`;
+				const erp_id = erpId(known, kind, document.fid);
 				return {
 					$id: erp_id,
 					erp_id,
 					kind,
 					order: document.owner.order,
-					ext_sales_order: parent.id,
 					ext_purchase_order: null,
 					reference: document.reference,
-					seal_hash: document.owner.seal,
 					currency: currency(document.currency),
 					status: document.status,
 					issued_on: document.issuedOn,

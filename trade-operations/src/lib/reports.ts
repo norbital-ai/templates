@@ -1,13 +1,5 @@
 import { BigDecimal, Effect, Option, Result, Schema, Stream } from 'effect';
 import {
-	agreement,
-	agreements,
-	executableAgreement,
-	agreementFields,
-	withAgreement,
-	type AgreementOrder
-} from './agreements.js';
-import {
 	commissionContext,
 	evaluateCommission,
 	DEFAULT_COMMISSION_EXPRESSION,
@@ -29,18 +21,39 @@ import { commercialSalesFields } from './sales-fact-fields.js';
 import { type D, dec, div, minorDigits, round, sum, text } from './values.js';
 /** The order fields the commission and report helpers read. */
 export const reportFields = [
-	...agreementFields,
 	'number',
 	'direction',
+	'status',
 	'owner',
-	'currency'
+	'currency',
+	'ordered_on',
+	'freight_treatment',
+	'commission'
 ] as const;
-type CommissionOrder = AgreementOrder & Pick<Row<'orders'>, 'id' | 'direction' | 'currency'>;
+const reportLineFields = [
+	'product',
+	'product_code',
+	'product_name',
+	'unit',
+	'quantity',
+	'net',
+	'floor_net',
+	'commission_factor',
+	'commission_basis_unit'
+] as const;
+/** The order layers the commission and sales helpers read: its party's code and its lines. */
+export const reportLayers = {
+	party: { fields: ['external_code'] },
+	lines: { fields: reportLineFields }
+} as const;
+export type ReportOrder = Pick<Row<'orders'>, 'id' | (typeof reportFields)[number]> & {
+	readonly party: Pick<Row<'parties'>, 'external_code'> | null;
+	readonly lines: readonly Pick<Row<'order_lines'>, 'id' | (typeof reportLineFields)[number]>[];
+};
 export type CommissionFact = Pick<
 	Row<'source_sales_lines'>,
 	| 'id'
 	| 'order'
-	| 'seal_hash'
 	| 'order_line'
 	| 'kind'
 	| 'unit'
@@ -52,7 +65,6 @@ export type CommissionFact = Pick<
 >;
 export const commissionFactFields = [
 	'order',
-	'seal_hash',
 	'order_line',
 	'kind',
 	'unit',
@@ -62,31 +74,20 @@ export const commissionFactFields = [
 	'active',
 	'business_on'
 ] as const;
-function commissionLines(
-	record: CommissionOrder,
-	seal?: string,
-	actual?: readonly CommissionFact[]
-) {
-	const version = seal ? agreement(record, seal) : executableAgreement(record);
-	if (!version) return [];
-	const order = {
-		...withAgreement(record, version),
-		...(actual ? { status: 'confirmed' as const } : {})
-	};
-	if (!order.sealed_snapshot || order.direction !== 'sales' || order.status !== 'confirmed')
-		return [];
-	const snapshot = order.sealed_snapshot;
-	const rule = order.sealed_commission;
+/** Commission per line of a confirmed sales order: its quoted lines, or the `actual` source facts against them. */
+function commissionLines(order: ReportOrder, actual?: readonly CommissionFact[]) {
+	if (order.direction !== 'sales' || order.status !== 'confirmed') return [];
+	const rule = order.commission;
 	const entries = actual
 		? actual.map((fact) => ({
-				line: snapshot.lines.find((line) => line.id === fact.order_line),
+				line: order.lines.find((line) => line.id === fact.order_line),
 				fact
 			}))
-		: snapshot.lines.map((line) => ({ line, fact: undefined }));
+		: order.lines.map((line) => ({ line, fact: undefined }));
 	return entries.map(({ line, fact }) => {
 		const orderLine = line?.id ?? fact?.order_line;
 		const rawQuantity = fact?.quantity ?? line?.quantity;
-		if (orderLine === undefined || rawQuantity === undefined)
+		if (orderLine === undefined || orderLine === null || rawQuantity === undefined)
 			throw new Error('No commission source line');
 		const base = {
 			order_line: orderLine,
@@ -103,30 +104,31 @@ function commissionLines(
 		)
 			return { ...base, reason: 'expression_error' as const };
 		if (!rule) return { ...base, reason: 'rule_missing' as const };
-		const quantity = fact ? text(BigDecimal.abs(dec(fact.quantity))) : line.quantity;
+		const quantity = text(fact ? BigDecimal.abs(dec(fact.quantity)) : line.quantity);
 		const factNet = fact?.net_amount;
 		if (fact && factNet == null) return { ...base, reason: 'expression_error' as const };
-		const net = factNet == null ? line.net : text(BigDecimal.abs(dec(factNet)));
+		const net = text(factNet == null ? line.net : BigDecimal.abs(dec(factNet)));
+		const floorNet = line.floor_net === null ? null : text(line.floor_net);
 		const evaluated = Result.try(() => {
 			if (rule.engine_version && rule.engine_version !== COMMISSION_ENGINE)
 				throw new Error('Unknown commission engine');
 			const factor =
-				line.commission_factor &&
+				line.commission_factor !== null &&
 				BigDecimal.isPositive(dec(line.commission_factor)) &&
 				line.commission_basis_unit === rule.basis_unit
-					? line.commission_factor
+					? text(line.commission_factor)
 					: null;
 			const context = commissionContext({
 				quantity,
 				net,
-				floor_net: line.floor_net || null,
+				floor_net: floorNet,
 				factor,
 				product_code: line.product_code,
 				product_name: line.product_name,
 				unit: line.unit,
 				currency: order.currency,
 				ordered_on: order.ordered_on,
-				party_code: snapshot.party_code,
+				party_code: order.party?.external_code ?? '',
 				fixed_rate: rule.fixed_rate,
 				spread_pct: rule.spread_pct,
 				parameters: rule.parameters ?? []
@@ -137,11 +139,8 @@ function commissionLines(
 				context
 			);
 			const spread =
-				line.floor_net && factor
-					? round(
-							div(BigDecimal.subtract(div(net, quantity, 18), dec(line.floor_net)), factor, 18),
-							8
-						)
+				floorNet && factor
+					? round(div(BigDecimal.subtract(div(net, quantity, 18), dec(floorNet)), factor, 18), 8)
 					: null;
 			return {
 				...base,
@@ -158,9 +157,9 @@ function commissionLines(
 			const reason =
 				rule.amount_expression && rule.amount_expression !== DEFAULT_COMMISSION_EXPRESSION
 					? ('expression_error' as const)
-					: !line.floor_net
+					: !floorNet
 						? ('floor_missing' as const)
-						: !line.commission_factor || !BigDecimal.isPositive(dec(line.commission_factor))
+						: line.commission_factor === null || !BigDecimal.isPositive(dec(line.commission_factor))
 							? ('conversion_missing' as const)
 							: line.commission_basis_unit !== rule.basis_unit
 								? ('unit_mismatch' as const)
@@ -169,45 +168,27 @@ function commissionLines(
 		}
 	});
 }
-export type ReportOrder = Pick<Row<'orders'>, 'id' | (typeof reportFields)[number]>;
-function commissionRows(orders: readonly ReportOrder[], selectedVersion?: number | null) {
-	return orders.flatMap((record) => {
-		const version =
-			selectedVersion == null
-				? executableAgreement(record)
-				: agreements(record).find((v) => v.version === selectedVersion);
-		if (selectedVersion != null && !version) return [];
-		const order = version ? withAgreement(record, version) : record;
-		return commissionLines(order, version?.seal_hash).map(
-			({ order_line, quantity, spread, amount, ...line }) => ({
-				...line,
-				quantity: text(quantity),
-				spread: spread && text(spread),
-				amount: amount && text(amount),
-				owner_name: '',
-				order: order.id,
-				number: order.number,
-				owner: order.owner,
-				ordered_on: order.ordered_on,
-				currency: order.currency
-			})
-		);
-	});
+function commissionRows(orders: readonly ReportOrder[]) {
+	return orders.flatMap((order) =>
+		commissionLines(order).map(({ order_line, quantity, spread, amount, ...line }) => ({
+			...line,
+			quantity: text(quantity),
+			spread: spread && text(spread),
+			amount: amount && text(amount),
+			owner_name: '',
+			order: order.id,
+			number: order.number,
+			owner: order.owner,
+			ordered_on: order.ordered_on,
+			currency: order.currency
+		}))
+	);
 }
-export class AgreementUnavailable extends Schema.TaggedError<AgreementUnavailable>()(
-	'AgreementUnavailable',
-	{ message: Schema.String }
-) {}
 export const commissionCalculation = Effect.fnUntraced(function* (
-	record: CommissionOrder,
-	seal?: string,
+	order: ReportOrder,
 	actual?: readonly CommissionFact[]
 ) {
-	const version = seal ? agreement(record, seal) : executableAgreement(record);
-	if (seal && !version)
-		return yield* new AgreementUnavailable({ message: 'Approved contract version unavailable' });
-	const order = version ? withAgreement(record, version) : record;
-	const lines = commissionLines(order, seal, actual);
+	const lines = commissionLines(order, actual);
 	const unresolved_lines = lines.filter((line) => line.amount === null).length;
 	const amount = unresolved_lines
 		? null
@@ -216,8 +197,7 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 				minorDigits(order.currency)
 			);
 	const snapshot = {
-		seal_hash: order.seal_hash ?? '',
-		eligible: actual ? Boolean(version) : Boolean(executableAgreement(record)),
+		eligible: order.status === 'confirmed',
 		lines: lines.map((line) => ({
 			order_line: line.order_line,
 			product: line.product,
@@ -231,7 +211,7 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 	return {
 		calculation_hash: yield* hash({
 			snapshot,
-			rule: order.sealed_commission,
+			rule: order.commission,
 			...(actual ? { actual } : {})
 		}),
 		amount,
@@ -239,38 +219,38 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 		snapshot
 	};
 });
-/** The commission report's read: open and confirmed sales orders with their seals, and salesperson names. */
+/** The commission report's read: confirmed sales orders with their lines, and salesperson names. */
 export const commissionRead = {
 	orders: {
-		where: { direction: { eq: 'sales' }, status: { in: ['draft', 'confirmed'] } },
-		fields: reportFields
+		where: { direction: { eq: 'sales' }, status: { eq: 'confirmed' } },
+		fields: reportFields,
+		...reportLayers
 	},
 	sys_user: { output: 'directory', fields: ['name'] }
 } as const;
-/** Commission per sealed line of the read orders (one order when `order` is named), for a version or the executable one. */
+/** Commission per line of the read orders (one order when `order` is named). */
 export function commissionReport(
 	answer: ReadAnswer<typeof commissionRead>,
-	input: { order?: Id<'orders'> | null; version?: number | null } = {}
+	input: { order?: Id<'orders'> | null } = {}
 ) {
 	const names = new Map(answer.sys_user.rows.map((u) => [u.id, u.name]));
-	return commissionRows(
-		answer.orders.rows.filter((o) => !input.order || o.id === input.order),
-		input.version
-	).map((row) => ({ ...row, owner_name: names.get(row.owner) ?? '' }));
+	return commissionRows(answer.orders.rows.filter((o) => !input.order || o.id === input.order)).map(
+		(row) => ({ ...row, owner_name: names.get(row.owner) ?? '' })
+	);
 }
 /**
- * The sales read: active source sales lines, each with its sealed sales order (party name and line products), product
- * and salesperson names.
+ * The sales read: active source sales lines, each with its confirmed sales order (party name and lines), product and
+ * salesperson names.
  */
 export const salesRead = {
 	source_sales_lines: {
 		where: { active: { eq: true }, kind: { ne: 'invoice' } },
 		fields: [...commercialSalesFields, 'booked_cost', 'booked_cost_currency'],
 		order: {
-			where: { direction: { eq: 'sales' }, seal_hash: { is_null: false } },
-			fields: [...agreementFields, 'number', 'party', 'owner', 'currency'],
+			where: { direction: { eq: 'sales' }, status: { eq: 'confirmed' } },
+			fields: ['number', 'party', 'owner', 'currency', 'freight_treatment'],
 			party: { fields: ['name'] },
-			lines: { fields: ['product'] }
+			lines: { fields: ['product', 'product_name', 'floor_net'] }
 		}
 	},
 	products: { fields: ['name'] },
@@ -452,9 +432,7 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 		}
 	>();
 	for (const source of salesFacts(answer, range)) {
-		const record = source.order;
-		const version = record ? agreement(record, source.seal_hash) : undefined;
-		const order = record && version ? withAgreement(record, version) : undefined;
+		const order = source.order ?? undefined;
 		const dimensions = standalone(source);
 		if (!order && !dimensions) continue;
 		const denomination = order?.currency ?? source.currency;
@@ -520,18 +498,14 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 				(a.freight_treatment ?? '').localeCompare(b.freight_treatment ?? '')
 		);
 }
-/** Sales and returns per source line for the selected dates, priced against the seal each line names. */
+/** Sales and returns per source line for the selected dates, priced against its order line. */
 export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
-	const byProduct = new Map((answer.products?.rows ?? []).map((row) => [row.id, row.name]));
 	const byUser = new Map(answer.sys_user.rows.map((row) => [row.id, row.name]));
 	return salesFacts(answer, range)
 		.flatMap((source) => {
-			const record = source.order;
-			const version = record ? agreement(record, source.seal_hash) : undefined;
-			const order = record && version ? withAgreement(record, version) : undefined;
+			const order = source.order ?? undefined;
 			const dimensions = standalone(source);
 			if (!order && !dimensions) return [];
-			const sealed = version?.snapshot.lines.find((item) => item.id === source.order_line);
 			const line = order?.lines.find((row) => row.id === source.order_line);
 			const net = source.net_amount,
 				tax = source.tax_amount,
@@ -555,7 +529,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 			return [
 				{
 					order: order?.id ?? null,
-					product: answer.products?.rows.find((p) => p.id === sealed?.product)?.id ?? null,
+					product: answer.products?.rows.find((p) => p.id === line?.product)?.id ?? null,
 					party: order?.party?.id ?? null,
 					owner: order?.owner ?? null,
 					source_owner: dimensions ? sourceOwner(source) : null,
@@ -563,13 +537,10 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 						net === null || BigDecimal.isZero(dec(source.quantity))
 							? null
 							: text(div(net, source.quantity, 8)),
-					floor_net: sealed?.floor_net || null,
+					floor_net: line?.floor_net ?? null,
 					order_number: order?.number ?? '',
 					party_name: order?.party?.name ?? dimensions?.customer ?? '',
-					product_name:
-						sealed?.product_name ??
-						(line ? byProduct.get(line.product) : dimensions?.product) ??
-						'',
+					product_name: line?.product_name ?? dimensions?.product ?? '',
 					owner_name: (order ? byUser.get(order.owner) : dimensions?.employee) ?? '',
 					reference: source.reference,
 					external_code: source.external_code,

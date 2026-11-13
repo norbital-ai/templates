@@ -9,11 +9,11 @@ Trade Operations opens its own TDS session to the on-premises Kingdee SQL Server
 over the Alibaba link. Bolt schedules and executes SQL reads and authorized writes in that session.
 The Alibaba path carries TCP traffic. The SalesBridge Windows service, API, files and work queues
 are historical references. Deployment uses the SQL endpoint provided by the network operator.
-Operators create orders, approve terms, revise agreements and manage tasks in Trade Operations.
+Operators create orders, approve and change terms, and manage tasks in Trade Operations.
 The order form, approvals, documents and reports use the Trade Operations database. The link
 carries background replication of mapped table rows, including incoming fulfillment and
 accounting evidence. A work action completes against the local database, and an outbound write
-is a separate job. Staff can keep revising and approving orders while the link is unavailable.
+is a separate job. Staff can keep changing and approving orders while the link is unavailable.
 The outbox retains pending source writes for retry. The verified source writer creates a saved
 SO. Replicating the locally approved state as an audited SO still requires native Kingdee
 validation on a restored account set.
@@ -21,7 +21,7 @@ validation on a restored account set.
 ```text
 Kingdee SQL Server 2017  <-- TDS over the Alibaba network path -->  Trade Operations runtime
       SELECT current rows and rowversions  ----------------------->  ledger and sync state
-      initial SO and guarded amendments    <-----------------------  sealed agreement outbox
+      initial SO and guarded amendments    <-----------------------  confirmed order outbox
 ```
 
 Colony currently uses Bolt’s public-destination TCP guard for database integrations. It rejects a
@@ -110,9 +110,9 @@ SalesBridge's four reference exclusions (604, 605, 21556 and 21557) belong to it
 account. Other account sets start with an empty list. Finance and Commercial Managers can read
 the account snapshot. Sales and Procurement keep their existing order scope.
 
-Newly confirmed sales orders retain the configured account and branch with their delivery evidence.
-A sale first sealed without a write account stays local across revisions. Staff can revise and
-approve its terms with sync off. Adding an account later does not export the order. A write
+Newly confirmed sales orders retain the configured account and branch (`write_target`).
+A sale first confirmed without a write account stays local. Staff can change and approve its terms
+with sync off. Adding an account later does not export the order. A write
 authorized for a different account or branch cannot run against the new destination. Clear the field to stop outbound writes. Review old or unpinned queued
 orders individually before enabling writes. Both the lookup and the final SQL transaction check
 the destination identity before reading commercial bindings or mutating anything. A restored
@@ -156,9 +156,9 @@ and lock behavior in deployment acceptance. [SQL Server locking and row versioni
 
 Stock is an aggregate complete read of ICInventory by item, warehouse and batch. Unknown cost,
 commitments and source position remain null. Unknown product prices, tax and units are not
-invented; order entry requires the missing commercial values before sealing.
+invented; order entry requires the missing commercial values before confirming.
 
-Owned orders are anchored by their original `SEOrder.FUUID` and retained source binding. Archive
+Owned orders are anchored by the `SEOrder.FUUID` derived from the order and its `source_order_key`. Archive
 families are verified within the account set and branch; bill number alone is never ownership.
 Lines are fetched by captured `FInterID`, and complete owned-order reads also observe
 changes that do not bump the header. Delivery and invoice lineage follows the physical source
@@ -169,7 +169,7 @@ No document links or PDFs are fabricated from SQL rows. Unapproved new DOs/invoi
 approval; unauditing already retained evidence fails visibly instead of silently withdrawing it.
 Discovery returns only distinct document IDs. The reader then verifies headers and loads the
 complete lines of issued documents. A header missing after discovery fails that observation.
-An invoice may merge multiple deliveries of the same sealed line/lot; its local items aggregate
+An invoice may merge multiple deliveries of the same order line/lot; its local items aggregate
 quantity and net amount while financial facts retain exact upstream lineage.
 
 Financial reads discover distinct settlement IDs before loading the complete allocations, use verified invoice-to-receipt settlement links, and preserve missing facts as
@@ -196,7 +196,7 @@ bounded page as each issued delivery line. It stores the precise amount and its 
 on the shipment fact. An invoice fact carries the same amount prorated to its billed quantity, so
 Invoice date shows the cost in the invoice's month without counting the delivery twice. A source
 null stays unknown. Sales Analysis and its CSV present delivery cost in that currency. Margin
-requires compatible currency, billed net and any freight that the sealed terms deduct. Finance
+requires compatible currency, billed net and any freight that the order's freight treatment deducts. Finance
 and Commercial Managers read booked cost through Bolt's full output. The scoped Sales and
 Procurement output excludes the booked amount and denomination. The delivery document, receipts
 and quote floor use their existing fields.
@@ -296,84 +296,49 @@ Archive / Unarchive is reversible and local. It does not void the source SO, rel
 remove financial facts or stop incoming synchronization. There is one Remarks field; archiving
 does not require a separate reason.
 
-Each contract version retains its commercial snapshot, supporting files, published layout reference
-and seal. The document is generated from that version on demand. Sealing freezes that version. Order title and operational remarks can change
-without rewriting a sealed contract. A replacement draft copies the current terms into a new
-editor and keeps the previous sealed version. Local approval makes the new revision current in
-the order list, default PDF and commercial progress. The source SO has its own version and
-status. Pending replication, a source conflict or a source closure leaves staff free to revise
-and approve local terms. The worker waits for a verified source basis before changing the source
-SO. A change confined to local terms, such as delivery instructions or print details, needs no
-SQL amendment. Earlier versions remain available for their original documents.
-An interrupted draft setup is resumable. Editing and approval become available once its lines
-are fully copied. Copied lines retain explicit Kingdee entry identities when available.
+The order and its lines hold the terms; there are no contract versions. Native record history is
+the audit trail. A confirmed sales order is the two-way shadow of its Kingdee SO: the `orders`
+`kingdee` sync mirrors the SO header (`kingdee`: FInterID, bill number, version, audit/void and
+closed state, exchange rate; and currency, settlement and date), and the `order_lines` `kingdee`
+sync mirrors its entries (quantity, price, tax and amounts, bound by `source_entry_id`). Each read
+row carries a content hash as its `$version`; an unchanged SO is skipped, so a local change waiting
+in the outbox is not overwritten by the terms it replaces. A Kingdee change applies to the order
+directly; a sales rep's local change waits for a commercial manager, then writes the SO.
 
-If several local revisions accumulate before the worker takes the queued write, Bolt delivers
-the latest approved terms. Earlier approvals remain sealed in Trade Operations. If the source
-SO has yet to be created, the worker uses the original approval and its stable UUID to establish
-the source identity before sending an amendment. A receipt for an earlier write can arrive after
-another approval. The worker waits for that receipt's source evidence before building on it.
-Closing or changing the SO independently in Kingdee leaves its evidence visible and prevents
-an automatic overwrite. The upgrade restores the latest locally approved terms on orders that
-earlier versions had switched to a Kingdee snapshot. The repair preserves the existing seals,
-source links and queued jobs. An in-progress draft setup keeps its original copy basis.
+A write reads the live SO first. With no SO, it creates one; with an SO whose lines differ, it
+amends them against the lines just read. Kingdee keeps the SO header, so a change to customer,
+currency, date or settlement after confirmation is refused and rolled back. The SO must be audited
+and open before its lines change; until then the write waits and retries. Several local changes
+before the write runs are sent as one amendment of the latest terms.
 
-An initial sealed sales agreement creates an **unapproved** SEOrder and its SEOrderEntry rows.
+A confirmed sales order creates an **unapproved** SEOrder and its SEOrderEntry rows.
 One serializable SQL batch takes a transaction-owned application lock, allocates the numeric
 FInterID through ICMaxNum, and writes the complete header/line set. Existing FUUID provenance
-makes retry identity independent of the nonunique bill number. A retry verifies the immutable
+makes retry identity independent of the nonunique bill number. A retry verifies the written
 source header, line cardinality and financial values before acknowledging the existing order.
 A lost response therefore retries the same order rather than creating a duplicate.
 
-Amendments use the existing Kingdee SO lineage. The source batch verifies the expected previous
-version and terms under lock, preserves the previous source header/lines as an amendment archive,
-increments FVersionNo and updates the permitted live terms. Unsupported header changes and
-quantities below existing fulfillment are refused before committing. A newer source version is
-a conflict, never permission to overwrite a direct Kingdee edit. To attach a Kingdee amendment
-to the locally sealed revision, the reader requires the expected live ID and source version,
-that revision’s exact `ICOrderAlter.FChangeCauses` entry and matching source terms. An
-independent Kingdee revision is retained separately and raises a conflict even when its mapped
-terms match an awaiting local amendment. It does not displace the locally approved revision. The proof query returns only matching seals and runs only when a candidate source
-version exists. Delivery and invoice matching wait for that source version to be bound.
+Amendments use the existing Kingdee SO lineage. The source batch verifies the expected current
+version and lines under lock, preserves the previous source header/lines as an amendment archive,
+increments FVersionNo and updates the permitted live lines. Unsupported header changes and
+quantities below existing fulfillment are refused before committing. A newer source version than
+the one just read is a conflict, never permission to overwrite a direct Kingdee edit. Each
+amendment records a change cause naming the order and its target lines, so a replay after a lost
+response recognises its own amendment.
 
-Contract tracking is version-specific. It retains source account/branch, live and archive
-identifiers, Kingdee version, content fingerprint, available source change metadata and observed
-status events. A formal Kingdee amendment imports a new immutable version; known archive rows
-can backfill prior versions. A non-versioned change to sealed terms needs attention. Rowversion
-does not reconstruct overwritten intermediate edits, and missing source archives are recorded
-as unavailable history rather than invented versions or proof that the entire SO was voided.
-Source change timestamps are retained as the source's raw local value; observation timestamps
-are UTC instants. The connector does not invent a timezone or historical approval time.
+Deliveries and invoices attach to the order whose SO they reference and to the order line bound to
+their SO entry. Source change timestamps are retained as the source's raw local value; observation
+timestamps are UTC instants. The connector does not invent a timezone or historical approval time.
 
-Previously accepted DOs and invoices keep their original contract linkage when the live SO is
-amended. Source dates alone do not establish a contract version. An ambiguous first import or an
-invoice spanning contract versions needs attention; it must not be assigned to the newest terms.
-SQL imports create source term snapshots, not fabricated signed contract files.
-
-Supporting files remain readable through their original native upload ownership. A draft selects
-its own attachments while every sealed version retains its exact file list. The native form's
-current limit is 20 retained supporting files across an order; history is never trimmed to make
-room for a later upload.
-
-A failed delivery preserves the sealed local SO and its lines. Bolt keeps the frozen payload and
-idempotency key queued across a temporary SQL failure and retries roughly every minute while the
+A failed delivery preserves the local order and its lines. Bolt keeps the queued payload and
+idempotency key across a temporary SQL failure and retries roughly every minute while the
 verified connection is active. Inbound SQL reads retry on their usual schedule after a temporary
-failure. Restoring the network is sufficient for these failures. A rejected SQL write or invalid
-source mapping needs review. After fixing a source prerequisite for the same approved payload,
-use **Replay dead letters** in Settings → Integrations → Kingdee → Sync. Replay sends the
-original frozen payload again. For an invalid payload, approve corrected terms, then **Retire
-write** for the rejected entry. This retains its original payload, error, operator and retirement
-time, marks it skipped and releases later writes. It neither cancels an in-flight SQL request nor
-undoes an accepted remote write.
-
-An independent Kingdee amendment is a permanent conflict, not an endlessly retried prerequisite.
-Managers can **Adopt Kingdee terms**, making the observed open, audited source version Current
-without duplicating it or exporting a replacement; or **Revise from Kingdee**, copying those terms
-and stable entry IDs into a draft. The existing contract stays Current until the replacement is
-approved. The replacement retains its exact source basis. A stale selection is refused; a later
-native edit is checked again under the SQL writer's source-version guard. Retire the old rejected
-write after resolving it. Original seals, filed documents and transaction links remain intact.
-See the [manual probe matrix](0008-manual-probe-matrix.md) for both cases.
+failure. Restoring the network is sufficient for these failures. A refused SQL write rolls the
+local change back and names the reason on the record. Use **Replay dead letters** in Settings →
+Integrations → Kingdee → Sync after fixing a source prerequisite, or **Retire write** for a write
+that should not run. Retiring retains its original payload, error, operator and retirement time,
+marks it skipped and releases later writes. It neither cancels an in-flight SQL request nor undoes
+an accepted remote write.
 
 Bolt persists each inbound cursor in the workspace database. It commits the page, identity map and
 cursor in one transaction. The sales transaction feed records a fingerprint after a consistent
@@ -381,7 +346,7 @@ sweep and skips reapplying an unchanged listing when the rows are still present 
 listing during a paginated sweep forces another complete check. The feed keeps reading the scoped
 Kingdee tables because these documents have no single verified change marker across their joins.
 
-If a document poll runs before the SO approval mirror catches up, it reports `parentPending`
+If a document poll runs before the order's SO read catches up, it reports `parentPending`
 and preserves the cursor and existing evidence. The next poll resumes after that counterpart is
 issued; it does not attempt an invalid document upsert or reconcile rows as absent while waiting.
 
@@ -393,7 +358,7 @@ simulation tables or fabricate empty successful results.
 ## Local validation boundary
 
 Focused template tests cover SQL calls, mappings, fixed rowversion windows, continuation validation,
-immutable submissions, source lineage and financial ambiguity guards.
+verified submissions, source lineage and financial ambiguity guards.
 
 ### Disposable Docker probe for SQL Server 2017
 
@@ -441,14 +406,13 @@ permissions of the synthetic `trade_order_probe` database user. On SQL Server 20
 the probe verified one initial SO after a lost reply and parallel retries, a refusal on a
 foreign bill number or mismatching frozen line, direct read-back of the source family, and
 one in-place amendment plus one archive and change log after a second lost reply. It also
-verified that an unaudited SO refuses a new amendment. The read-back proof accepted the matching
-change log and rejected an incorrect seal, source version or live ID. The physical probe calls the template
+verified that an unaudited SO refuses a new amendment. The physical probe calls the template
 requests through a local TDS adapter. The application outbox and Alibaba route have separate
 acceptance checks. The joined Bolt probe covers the delivery, invoice and receipt projections on the same SQL Server 2017 fixture. Native Kingdee audit still requires a restored account set with desktop access.
 The probe also substituted a different write destination between lookup and submission. SQL
 rejected it before either the allocator or the order changed.
 
-The 27 October 2026 standalone acceptance run used a restricted login with neither `sysadmin`
+Under the earlier versioned-contract model, the 27 October 2026 standalone acceptance run used a restricted login with neither `sysadmin`
 nor `db_owner`. Application credential pairing, initial SO creation and a same-SO amendment were
 exercised against SQL Server 2019 with CDC disabled:
 

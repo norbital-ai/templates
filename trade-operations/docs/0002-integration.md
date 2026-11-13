@@ -24,8 +24,8 @@ The source system owns:
 
 Trade Operations owns:
 
-- the locally approved agreement, its versions, floors and commission basis;
-- what staff may see, approve, revise and archive;
+- the locally approved agreement, its floors and commission basis;
+- what staff may see, approve, change and archive;
 - the local projections needed to work and report.
 
 ## 2. Two directions
@@ -35,11 +35,11 @@ READ (poll)                                      WRITE (outbox)
 Kingdee tables -> verified page -> local table    local approval -> sys_outbox -> verified SQL -> Kingdee
      ^                                                        |
      |                                                        v
-     +------------------- observed source versions -----------+
+     +---------------- the SO read back onto the order ---------+
 ```
 
-Reads are the normal path. Writes are narrow: a confirmed sales order may be submitted, and a revision may be
-sent as an amendment. Supplier commitments are local and are never written to Kingdee by this starter.
+Reads are the normal path. Writes are narrow: a confirmed sales order creates its SO, and a later change to its
+lines amends it. Supplier commitments are local and are never written to Kingdee by this starter.
 
 ## 3. How a read works
 
@@ -116,14 +116,15 @@ read through an order, party, product, stock or report surface. The table name i
 | `source_receivables`       | `t_RP_Contact`, `t_RP_NewCheckInfo`, `t_RP_Plan_Ar`, `ICSale`, `t_Organization`                                                                            | 1 h, opt-in `receivablesAccount`                 | Analysis → AR aging                                    |
 | `source_sales_lines`       | deliveries `ICStockBill`/`ICStockBillEntry`; invoices `ICSale`/`ICSaleEntry`; linked to owned orders                                                       | scheduled, two syncs (`kingdee`, `invoice_only`) | Sales analysis, partner agreement fulfilment, reports  |
 | `source_payments`          | `t_rp_CheckEntry`, `t_RP_NewCheckInfo`, `t_RP_Contact`, `t_RP_NewReceiveBill`, `ICSale`                                                                    | 5 min; invoice must exist first                  | Order payments, AR aging                               |
-| `ext_sales_orders`         | `SEOrder` (owned families)                                                                                                                                 | 5 min                                            | Order General/Transactions source confirmation         |
 | `ext_purchase_orders`      | none — local supplier commitment                                                                                                                           | no sync                                          | Purchase order source confirmation                     |
 | `transactions`             | `ICStockBill`/`ICStockBillEntry` (deliveries), `ICSale`/`ICSaleEntry` (invoices), parent `SEOrder`                                                         | 5 min; parent order must be issued               | Order Transactions, AR aging, reports                  |
-| `orders`                   | `SEOrder`, `SEOrderEntry`, `ICOrderAlter`, `ICMaxNum`, `t_User`, `t_Item`, `t_ICItem`, `t_Organization`, `t_Settle`, `t_Emp`, `t_Department`, `t_Currency` | 1 min read + outbox write                        | Orders list, order record, revisions                   |
+| `orders`                   | `SEOrder`, `SEOrderEntry`, `ICOrderAlter`, `ICMaxNum`, `t_User`, `t_Item`, `t_ICItem`, `t_Organization`, `t_Settle`, `t_Emp`, `t_Department`, `t_Currency` | 1 min read + outbox write                        | Orders list, order record (SO header)                  |
 
-Local-only tables (never written by Kingdee): `order_lines`, `order_files`, `activities`, `contacts`,
-`salesperson_signatures`, `commercial_settings`, `document_templates`, `pricing_floors`,
-`commission_rules`, `commission_statements`.
+`order_lines` is the SO's lines: its `kingdee` sync reads `SEOrderEntry` every minute, and a line change writes
+the order's SO.
+
+Local-only tables (never written by Kingdee): `order_files`, `activities`, `contacts`, `commercial_settings`,
+`document_templates`, `pricing_floors`, `commission_rules`, `commission_statements`.
 
 The platform tables beside them carry the sync machinery, not business rows:
 

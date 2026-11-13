@@ -1,7 +1,6 @@
 import { BigDecimal, Result } from 'effect';
 import { type D, dec, div, sum } from './values.js';
-import { type Id, type ReadAnswer } from '@norbital-ai/bolt';
-import { confirmationBasis } from './agreements.js';
+import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
 import {
 	creditWarning,
 	currentFloors,
@@ -45,7 +44,7 @@ function draftOf(answer: QuotationAnswer, revision: number | null | undefined) {
 		return Result.fail('errors.check_changed' as const);
 	return Result.succeed({ doc, party: doc.party, config, template });
 }
-/** The current saved commercial terms of an unfinalized order, without a seal. */
+/** The current saved commercial terms of a draft order. */
 export function quotationExport(answer: QuotationAnswer, revision?: number | null) {
 	const draft = draftOf(answer, revision);
 	if (Result.isFailure(draft)) return Result.fail(draft.failure);
@@ -64,7 +63,7 @@ export function quotationExport(answer: QuotationAnswer, revision?: number | nul
 	});
 }
 /**
- * A draft's confirmation checks at `as_of` (credit freshness): the seal `basis` its acknowledgement hashes
+ * A draft's confirmation checks at `as_of` (credit freshness): the `basis` its acknowledgement hashes
  * (`confirmationHash`), the credit warning, gross, and the lines priced below average inventory cost. The order
  * update recomputes the same hash when it confirms.
  */
@@ -76,19 +75,18 @@ export function confirmationCheck(
 	if (Result.isFailure(draft)) return Result.fail(draft.failure);
 	const { doc, party, config, template } = draft.success;
 	if (!doc.lines.length) return Result.fail('errors.lines_required' as const);
-	if (doc.draft_setup) return Result.fail('errors.contract_setup' as const);
 	const lines = doc.lines;
 	const credit = answer.credit_snapshots.rows
 		.filter((v) => v.currency === doc.currency)
 		.sort((a, b) => b.as_of.localeCompare(a.as_of))[0];
 	const group = answer.warehouses.rows.find((w) => w.id === doc.warehouse)?.group_code;
 	const withFloors = currentFloors(doc, lines, answer.pricing_floors.rows, group);
-	const sealed = {
+	const terms = {
 		...snapshot(doc, party, withFloors, template.version),
 		...sealDocument(template)
 	};
 	return Result.succeed({
-		basis: confirmationBasis(doc.revision, sealed, config, template),
+		basis: confirmationBasis(doc.revision, terms, config, template),
 		...creditWarning(
 			doc,
 			sum(lines.map((l) => l.total)),
@@ -96,7 +94,7 @@ export function confirmationCheck(
 			input.as_of,
 			config.credit_fresh_minutes
 		),
-		gross: sealed.total,
+		gross: terms.total,
 		credit_as_of: credit?.as_of ?? null,
 		floors:
 			doc.direction === 'sales'
@@ -169,5 +167,43 @@ export function quotationFifoCosts(
 		};
 	});
 }
-/** The `check_hash` a confirmation sends: the hash of its seal basis. */
+/** The `check_hash` a confirmation sends: the hash of its basis. */
 export const confirmationHash = (check: { readonly basis: unknown }) => hash(check.basis);
+/** The exact approval acknowledgement shared by the order update and the confirmation check. */
+export function confirmationBasis(
+	revision: number,
+	terms: ReturnType<typeof snapshot> & { document_title: string },
+	settings: Pick<
+		Row<'commercial_settings'>,
+		| 'revision'
+		| 'freight_treatment'
+		| 'require_floor'
+		| 'credit_fresh_minutes'
+		| 'stock_fresh_minutes'
+	>,
+	template: Row<'document_templates'>
+) {
+	return {
+		revision,
+		terms,
+		settings: {
+			revision: settings.revision,
+			freight_treatment: settings.freight_treatment,
+			require_floor: settings.require_floor,
+			credit_fresh_minutes: settings.credit_fresh_minutes,
+			stock_fresh_minutes: settings.stock_fresh_minutes
+		},
+		template: {
+			id: template.id,
+			revision: template.revision,
+			locale: template.locale,
+			version: template.version,
+			title: template.title,
+			body: template.body,
+			contract_stamp: template.contract_stamp?.id ?? null,
+			layout: template.layout ?? null,
+			print_layout: template.print_layout?.id ?? null,
+			letterhead: template.letterhead?.id ?? null
+		}
+	};
+}

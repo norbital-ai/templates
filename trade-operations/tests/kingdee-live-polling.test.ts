@@ -6,9 +6,8 @@ import mssql from 'mssql';
 import { validate_database_request, type DatabaseRequest } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
-import { committed, confirm, revise, SETTINGS, workspace } from './kit.js';
+import { committed, confirm, SETTINGS, workspace } from './kit.js';
 import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
-import { agreements, currentAgreement } from '../src/lib/agreements.js';
 import { confirmationRead, quotationFifoCosts } from '../src/lib/confirmation.js';
 import { estimateFifoCost, inventoryCostRead, purchaseLotCostRead } from '../src/lib/lot-cost.js';
 import {
@@ -527,7 +526,7 @@ it.effect.skipIf(!password)(
 );
 
 it.effect.skipIf(!password)(
-	'keeps SQL Server 2017 delivery, invoice and receipt evidence on the original seal after an amendment',
+	'keeps SQL Server 2017 delivery, invoice and receipt evidence on its order after an amendment',
 	() =>
 		Effect.gen(function* () {
 			const { source, sql } = yield* probeDatabase('TradeLineageProbe');
@@ -698,7 +697,7 @@ it.effect.skipIf(!password)(
 			const synchronize = () =>
 				Effect.gen(function* () {
 					yield* t.pull('orders');
-					yield* t.pull('ext_sales_orders');
+					yield* t.pull('order_lines');
 					yield* t.pull('transactions');
 					yield* t.pull('source_sales_lines');
 					yield* t.pull('source_payments');
@@ -707,22 +706,12 @@ it.effect.skipIf(!password)(
 				as.query({
 					transactions: {
 						where: { order: { eq: order } },
-						fields: [
-							'reference',
-							'ext_sales_order',
-							'seal_hash',
-							'erp_id',
-							'issued_on',
-							'due_on',
-							'total',
-							'items'
-						]
+						fields: ['reference', 'erp_id', 'issued_on', 'due_on', 'total', 'items']
 					},
 					source_sales_lines: {
 						where: { order: { eq: order } },
 						fields: [
 							'external_code',
-							'seal_hash',
 							'kind',
 							'business_on',
 							'quantity',
@@ -734,7 +723,7 @@ it.effect.skipIf(!password)(
 					},
 					source_payments: {
 						where: { order: { eq: order } },
-						fields: ['reference', 'invoice', 'seal_hash', 'amount', 'settled_on']
+						fields: ['reference', 'invoice', 'amount', 'settled_on']
 					}
 				});
 			const beforeFirstInbound = requests;
@@ -769,13 +758,11 @@ it.effect.skipIf(!password)(
 			expect(Exit.isFailure(yield* Effect.exit(t.pull('source_sales_lines')))).toBe(true);
 			expect(yield* shipmentCost()).toEqual(booked);
 			yield* configureDeliveryCost(account);
-			const originalSeal = (yield* read()).seal_hash;
 			const before = yield* evidence();
 			expect(before.transactions.rows).toHaveLength(2);
 			expect(before.source_sales_lines.rows).toHaveLength(2);
 			const invoice = before.transactions.rows.find((row) => row.reference === 'INV-PROBE');
 			expect(invoice).toMatchObject({
-				seal_hash: originalSeal,
 				issued_on: '2026-11-02',
 				due_on: '2026-12-02',
 				items: [{ lot_number: 'LOT-01', order_line_id: line }]
@@ -784,31 +771,20 @@ it.effect.skipIf(!password)(
 			const payment = firstRow(before.source_payments.rows);
 			expect(payment).toMatchObject({
 				invoice: invoice?.id,
-				seal_hash: originalSeal,
 				settled_on: '2026-11-04'
 			});
 			expect(sameDecimal(payment.amount, '3')).toBe(true);
 
-			yield* revise(t, order);
 			yield* as.act({
 				'order_lines.update': [
 					{ target: yield* t.at('order_lines', line), set: { quantity: '12' } }
 				]
 			});
-			yield* confirm(t, order);
 			yield* t.deliver();
 			yield* synchronize();
 			yield* synchronize();
 			expect(yield* live()).toMatchObject({ fid: original.fid, version: '001' });
-			const amended = yield* read();
-			expect(currentAgreement(amended)).toMatchObject({
-				version: 2,
-				kingdee: { source_version: '001' }
-			});
-			expect(agreements(amended)[0]).toMatchObject({
-				seal_hash: originalSeal,
-				kingdee: { source_version: '000', archived: true }
-			});
+			expect((yield* read()).kingdee).toMatchObject({ fid: String(original.fid), version: '001' });
 			const after = yield* evidence();
 			expect(after.transactions.rows).toEqual(before.transactions.rows);
 			expect(after.source_sales_lines.rows).toEqual(before.source_sales_lines.rows);
@@ -816,20 +792,11 @@ it.effect.skipIf(!password)(
 			const connection = (active: boolean) =>
 				as.act({ 'sys_integration.update': [{ target: { id: instance }, set: { active } }] });
 			yield* connection(false);
-			for (const [version, quantity] of [
-				[3, 13],
-				[4, 14]
-			] as const) {
-				yield* revise(t, order);
+			for (const quantity of [13, 14]) {
 				yield* as.act({
 					'order_lines.update': [
 						{ target: yield* t.at('order_lines', line), set: { quantity: String(quantity) } }
 					]
-				});
-				yield* confirm(t, order);
-				expect(currentAgreement(yield* read())).toMatchObject({
-					version,
-					snapshot: { lines: [{ quantity: String(quantity) }] }
 				});
 				yield* t.deliver();
 				expect(yield* live()).toMatchObject({ fid: original.fid, version: '001' });
@@ -837,20 +804,14 @@ it.effect.skipIf(!password)(
 			expect(
 				yield* t.db.rows(Schema.Struct({ attempts: Schema.Number }), {
 					text: "SELECT attempts FROM sys_outbox WHERE record=$1 AND status='queued'",
-					params: [order]
+					params: [line]
 				})
 			).toEqual([{ attempts: 0 }]);
 			yield* connection(true);
 			yield* t.deliver();
 			yield* synchronize();
 			expect(yield* live()).toMatchObject({ fid: original.fid, version: '002' });
-			const resumed = yield* read();
-			expect(currentAgreement(resumed)).toMatchObject({
-				version: 4,
-				kingdee: { source_version: '002' }
-			});
-			expect(agreements(resumed)[2]).toMatchObject({ version: 3, lifecycle: 'superseded' });
-			expect(agreements(resumed)[2]?.kingdee).toBeUndefined();
+			expect((yield* read()).kingdee).toMatchObject({ version: '002' });
 			expect(yield* evidence()).toEqual(before);
 			const finance = yield* t.as(t.member(['finance']));
 			for (const [basis, month, date] of [
@@ -922,7 +883,7 @@ it.effect.skipIf(!password)(
 			yield* synchronize();
 			const withReturn = yield* evidence();
 			const returned = withReturn.transactions.rows.find((row) => row.reference === 'RETURN-PROBE');
-			expect(returned?.seal_hash).toBe(invoice?.seal_hash);
+			expect(returned?.reference).toBe('RETURN-PROBE');
 			expect(sameDecimal(returned?.items?.[0]?.quantity, '-1')).toBe(true);
 			for (const basis of ['delivery', 'invoice'] as const) {
 				const request = salesReadDuring({ from: null, to: null, basis }, false, 1);

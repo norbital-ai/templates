@@ -1,10 +1,5 @@
 import type { Id, Row, ModelName } from '@norbital-ai/bolt';
-import {
-	JobResult,
-	type NativeActAnswer,
-	type TestOptions,
-	type TestPorts
-} from '@norbital-ai/bolt-cli/test';
+import { type NativeActAnswer, type TestOptions, type TestPorts } from '@norbital-ai/bolt-cli/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { DatabaseRequest, type DatabaseResult, type BoltError } from '@norbital-ai/bolt/engine';
@@ -23,6 +18,7 @@ export function committed<C extends ModelName>(model: C, outcome: NativeActAnswe
 /** The models the `kingdee` sync reads. */
 export type Synced =
 	| 'orders'
+	| 'order_lines'
 	| 'parties'
 	| 'products'
 	| 'warehouses'
@@ -30,7 +26,6 @@ export type Synced =
 	| 'source_stock_commitments'
 	| 'source_lot_costs'
 	| 'credit_snapshots'
-	| 'ext_sales_orders'
 	| 'transactions'
 	| 'source_payments'
 	| 'source_sales_lines';
@@ -132,30 +127,4 @@ export const confirm = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
 			]
 		})
 	);
-});
-
-/** Start a replacement draft without mutating the current sealed contract. */
-export const revise = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const as = yield* t.as(t.admin);
-	// the revision the replacement observes: after the order's own queued syncs wrote back
-	yield* t.run_due();
-	const before = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
-		.rows[0];
-	if (!before) throw new Error('Current contract required');
-	const started = yield* as.run(
-		'orders_revise',
-		{ orders: [order], revision: before.revision },
-		JobResult
-	);
-	if (started.kind !== 'committed') throw new Error('Replacement must be admitted directly');
-	yield* t.run_due();
-	const [run] = yield* t.db.rows(
-		Schema.Struct({ state: Schema.String, error: Schema.NullOr(Schema.Json) }),
-		{
-			text: 'SELECT state, error FROM sys_run WHERE id = $1',
-			params: [started.output.id]
-		}
-	);
-	if (run?.state !== 'succeeded') throw new Error(JSON.stringify(run));
-	return order;
 });

@@ -3,41 +3,37 @@
 Create a draft in **Trade Configuration → Document templates**. Give it a name, language and
 version. Upload a UTF-8 HTML document in **Print layout HTML**, then set the status to
 **Published** and save. Select it in the order's **Document layout** field. Preview the draft,
-then record or approve the agreement. An approved revision keeps the published layout and
-its artwork. Change an approved layout by publishing another version and selecting it on a
-new order revision.
+then confirm the order. A confirmed order renders its current terms in its selected layout.
+Change a layout by publishing another version and selecting it on the order.
 
 Set the default in **Trade configuration → Documents → Defaults**. New orders
-start with that published record. Draft previews and sealed agreements use the order's selected
-layout, including its language. Changing the default affects new orders. Existing orders can
-select a different published layout while in draft. Fresh workspaces start with one commercial
-layout. On upgrade, the existing English contract default is assigned to open drafts that lacked
-a layout, and existing layout records and sealed terms are retained.
+start with that published record. Previews use the order's selected layout, including its
+language. Changing the default affects new orders. Fresh workspaces start with one commercial
+layout.
 
 Use inline print CSS and embed fonts and fixed decorative images as data URIs. Use
 `{{letterhead}}` and `{{stamp}}` inside quoted image sources for the tenant's separately
-uploaded PNG files. A stamp is available for a sealed local sales agreement. Hide missing
+uploaded PNG files. A stamp is available for a confirmed sales order. Hide missing
 artwork with CSS, for example `img[src=""] { display: none; }`. The HTML limit is 3 MiB and
 the limit per PNG is 512 KiB. The renderer loads neither remote URLs nor local files.
 Configure `CONVERT_CHROMIUM_EXECUTABLE` on the Convert service to enable this option.
 Regular text and commercial table layouts use the standard renderer. Order preview and download
-share one PDF generated from the selected saved version. The browser holds the PDF for the life
+share one PDF generated from the saved order. The browser holds the PDF for the life
 of the dialog. Bolt creates no file record, and the converter creates no queued job or retained
 result. Uploaded layouts, artwork and signed returns remain separately managed records.
 Turn on **Include company stamp** in the preview to see and download the stamped version.
 
-New agreements have no personal signature image. Use the company stamp for the seller's artwork,
-and file customer-signed or chopped copies on the appropriate agreement version. A historical seal
-that already captured artwork can still reproduce its prior output: its owner can choose
-**Include retained signature**. The `{{signature}}` placeholder is kept for those older layouts.
+Orders carry no personal signature image. Use the company stamp for the seller's artwork, and file
+customer-signed or chopped copies on the confirmed order. The `{{signature}}` placeholder renders
+empty in older layouts.
 
 SalesBridge applied the supplier's company chop and printed the salesperson's name. For orders
 classified as sales contracts, SalesBridge required the live original customer return to be
 acknowledged before Kingdee export. The company stamp was not a substitute for that return.
 The export wrote the sales order header and lines to Kingdee as an unapproved order; it did
 not send the returned file. When Kingdee order writes are configured, Trade Operations queues
-the order when the agreement is sealed locally. Filing a returned copy is evidence on that
-agreement version and does not trigger sync.
+the order when it is confirmed locally. Filing a returned copy is evidence on that order and does
+not trigger sync.
 
 ## Fields
 

@@ -22,7 +22,6 @@ export default model({
 				fields: {
 					order: { kind: 'text' },
 					number: { kind: 'text' },
-					seal_hash: { kind: 'text' },
 					calculation_hash: { kind: 'text' },
 					amount: { kind: 'text', optional: true },
 					unresolved_lines: { kind: 'int' },

@@ -11,6 +11,7 @@ import {
 	type D
 } from '../../lib/values.js';
 import {
+	erpId,
 	readSalesGraph,
 	reviewedPage,
 	selectByIds,
@@ -52,7 +53,6 @@ const text = (row: SqlRow, name: string): string => {
 };
 type Owner = {
 	readonly order: Id<'orders'>;
-	readonly seal: string;
 	readonly currency: string;
 };
 type FinancialLine = {
@@ -85,7 +85,6 @@ type SalesFact = Pick<
 	| 'reference'
 	| 'business_on'
 	| 'source_updated_at'
-	| 'seal_hash'
 	| 'unit'
 	| 'quantity'
 	| 'currency'
@@ -129,12 +128,11 @@ export function mapSalesFacts(
 				if (
 					!source ||
 					invoice.owner.order !== source.delivery.owner.order ||
-					invoice.owner.seal !== source.delivery.owner.seal ||
 					invoice.currency !== source.delivery.currency ||
 					line.localLine.id !== source.line.localLine.id ||
 					line.unit !== source.line.unit
 				)
-					return invalid('FSourceEntryID', 'Invoice evidence has no matching sealed delivery line');
+					return invalid('FSourceEntryID', 'Invoice evidence has no matching owned delivery line');
 				const net = line.netAmount;
 				const gross = line.grossAmount;
 				if (
@@ -158,7 +156,6 @@ export function mapSalesFacts(
 					reference: `${invoice.reference}/${line.entryId}`,
 					business_on: invoice.issuedOn,
 					source_updated_at: observed,
-					seal_hash: invoice.owner.seal,
 					unit: line.unit,
 					quantity: decimalText(line.quantity),
 					currency: currency(invoice.currency),
@@ -208,7 +205,7 @@ export function mapSalesFacts(
 	const shipmentFacts = deliveries.flatMap((delivery) =>
 		delivery.lines.map((line): SalesFact & { $id: string } => {
 			if (delivery.currency !== delivery.owner.currency || BigDecimal.isZero(line.quantity))
-				return invalid('FQty', 'An owned delivery requires a quantity and its sealed currency');
+				return invalid('FQty', 'An owned delivery requires a quantity and its order currency');
 			const returned = BigDecimal.isNegative(line.quantity);
 			if (
 				returned &&
@@ -248,7 +245,6 @@ export function mapSalesFacts(
 				reference: `${delivery.reference}/${line.entryId}`,
 				business_on: delivery.issuedOn,
 				source_updated_at: observed,
-				seal_hash: delivery.owner.seal,
 				unit: line.unit,
 				quantity: decimalText(line.quantity),
 				currency: currency(delivery.currency),
@@ -299,11 +295,10 @@ type PaymentFact = Pick<
 	| 'reference'
 	| 'settled_on'
 	| 'source_updated_at'
-	| 'seal_hash'
 	| 'currency'
 	| 'amount'
 	| 'active'
-> & { readonly invoiceExternalId: string; readonly $id: string };
+> & { readonly invoiceFid: string; readonly $id: string };
 
 /** A native check-header amount is attributable only when the complete header identifies one invoice and one receipt. */
 export function mapPayments(
@@ -329,7 +324,7 @@ export function mapPayments(
 		if (!invoice)
 			return invalid(
 				'FInvoiceID',
-				'A settlement header contains an invoice without one verified sealed owner'
+				'A settlement header contains an invoice without one verified owned order'
 			);
 		if (invoice.status === 'void')
 			return invalid(
@@ -395,12 +390,11 @@ export function mapPayments(
 			$id: external,
 			external_code: external,
 			order: invoice.owner.order,
-			invoiceExternalId: `invoice:${invoice.fid}:${invoice.owner.seal}`,
+			invoiceFid: invoice.fid,
 			kind: 'receipt',
 			reference: `${reference}/${checkId}`,
 			settled_on: settledOn,
 			source_updated_at: observed,
-			seal_hash: invoice.owner.seal,
 			currency: base,
 			amount: decimalText(amount),
 			active: true
@@ -419,7 +413,7 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 			where: {
 				ledger: { eq: instance },
 				direction: { eq: 'purchasing' },
-				seal_hash: { is_null: false }
+				status: { eq: 'confirmed' }
 			},
 			fields: ['status'],
 			limit: 1
@@ -462,14 +456,19 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 	const { transactions: invoices } = yield* ctx.query({
 		transactions: {
 			where: { source: { eq: instance }, kind: { eq: 'invoice' } },
-			fields: ['erp_id', 'order', 'seal_hash']
+			fields: ['erp_id', 'order']
 		}
 	});
 	const current = yield* checked(() =>
 		facts
-			.flatMap(({ invoiceExternalId, ...fact }) => {
-				const invoice = invoices.rows.find((candidate) => candidate.erp_id === invoiceExternalId);
-				if (!invoice || invoice.order !== fact.order || invoice.seal_hash !== fact.seal_hash) {
+			.flatMap(({ invoiceFid, ...fact }) => {
+				const erp = erpId(
+					invoices.rows.map((row) => row.erp_id),
+					'invoice',
+					invoiceFid
+				);
+				const invoice = invoices.rows.find((candidate) => candidate.erp_id === erp);
+				if (!invoice || invoice.order !== fact.order) {
 					graph.held.add(fact.order);
 					graph.issues.push({
 						document: `settlement ${fact.external_code}`,
@@ -525,15 +524,7 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 	const { source_sales_lines: previous } = yield* ctx.query({
 		source_sales_lines: {
 			where: { source: { eq: instance }, order: { is_null: false } },
-			fields: [
-				'external_code',
-				'order',
-				'order_line',
-				'seal_hash',
-				'source_updated_at',
-				'active',
-				'booked_cost_currency'
-			]
+			fields: ['external_code', 'order', 'source_updated_at', 'active', 'booked_cost_currency']
 		}
 	});
 	yield* checked(() => {
@@ -548,17 +539,8 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 					'baseCurrency',
 					'The verified denomination of retained delivery costs changed'
 				);
-			if (
-				old &&
-				(old.order !== fact.order ||
-					old.order_line !== fact.order_line ||
-					old.seal_hash !== fact.seal_hash ||
-					old.source_updated_at > fact.source_updated_at)
-			)
-				return invalid(
-					'FSourceEntryID',
-					'Source evidence cannot change its original sealed order or line'
-				);
+			if (old && (old.order !== fact.order || old.source_updated_at > fact.source_updated_at))
+				return invalid('FSourceEntryID', 'Source evidence cannot change its original order');
 		}
 	});
 	const present = new Set(facts.map((fact) => fact.external_code));

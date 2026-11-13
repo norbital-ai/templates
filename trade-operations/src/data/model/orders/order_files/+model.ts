@@ -1,12 +1,10 @@
 import { model } from '../../../../../.norbital/models/order_files.ts';
-import { agreement } from '../../../../lib/agreements.js';
 
 export default model({
-	description: 'Documents received after recording an agreement version',
+	description: 'Documents received after confirming an order',
 	record_label: 'record.title',
 	fields: {
 		order: { kind: 'ref', to: 'orders', inverse: 'filed_documents' },
-		seal_hash: { kind: 'text', hidden: true },
 		title: { kind: 'text' },
 		file: {
 			kind: 'file',
@@ -16,15 +14,14 @@ export default model({
 	},
 	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: { fields: ['order', 'seal_hash', 'title', 'file'] },
+		columns: { fields: ['order', 'title', 'file'] },
 		transform: function* (changes, ctx) {
 			const orders = yield* ctx.query.after('orders', {
 				id: { in: changes.map(({ after }) => after.order) }
 			});
 			for (const [index, { after: row }] of changes.entries()) {
 				const order = orders.find((candidate) => candidate.id === row.order);
-				const version = order && agreement(order, row.seal_hash);
-				if (!order || order.archived || !version || version.lifecycle === 'pending')
+				if (!order || order.archived || order.status !== 'confirmed')
 					return yield* ctx.refuse('errors.file_recorded_version', { row: index });
 				if (!row.title.trim())
 					return yield* ctx.refuse('errors.file_title_required', { row: index, field: 'title' });

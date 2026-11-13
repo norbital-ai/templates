@@ -24,13 +24,13 @@ boundary and its reliability rules.
 ```
 
 The workspace owns the commercial workflow. Kingdee owns source evidence and credit enforcement. The two meet
-at the read mirrors, the observed contract versions, and the verified sales-order write path.
+at the read mirrors and the two-way sales-order sync.
 
 ## 2. Application surfaces
 
 | App                    | Page(s)                                   | Owns                                                                                                   |
 | ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Operations → Orders    | Sales orders; Purchase orders             | Draft, approve, seal, revise, archive and read one agreement                                           |
+| Operations → Orders    | Sales orders; Purchase orders             | Draft, approve, confirm, change, archive and read one agreement                                        |
 | Operations → Partners  | Customers and suppliers                   | Parties, contacts, credit evidence, orders and agreement fulfilment                                    |
 | Operations → Warehouse | Products; Stock; Warehouses; Availability | Product master, lots, stock, warehouse groups and sellable quantities                                  |
 | Operations → Analysis  | Reports                                   | Sales, AR aging, credit, commission board and statements                                               |
@@ -46,30 +46,28 @@ The navigation is one shell; apps are capability-scoped. `operations` is the com
 `orders` is one record for a quotation, sales agreement or supplier commitment. `direction` is fixed at
 creation (`sales` or `purchasing`). `order_lines` are owned contract lines.
 
-A confirmed order carries a **version** in `contract_versions`; each version retains:
+The order and its lines hold the terms: header terms on `orders`, contract SKU, quantity, price, tax, floor
+and commission conversion on `order_lines`. There are no contract versions; native record history is the
+audit trail of every change. A confirmed order also keeps the commission rule in force when it was confirmed
+(`commission`), its freight treatment, and, for a sales order written to Kingdee, the account set and branch
+(`write_target`) and the SO as last read (`kingdee`).
 
-- the sealed header snapshot and line snapshot;
-- the layout and retained wording (`sealed_contract`, `sealed_snapshot`);
-- the commission rule, parameters, floor basis and conversion facts (`sealed_commission`);
-- the source binding when Kingdee issued or accepted the version (`kingdee`).
-
-`seal_hash` identifies a version. `currentAgreement` is the locally current version; `executableAgreement`
-is the version whose terms may be submitted. Kingdee may also report its own versions; those are evidence, not
-replacements for the locally approved terms.
+A confirmed sales order is the shadow of its Kingdee SO. The `orders` and `order_lines` `kingdee` syncs keep
+the two equal: confirmation creates the SO, a later line change amends it, and a Kingdee change updates the
+order and its lines. Kingdee keeps the SO header (customer, currency, date, settlement); only lines change
+after confirmation.
 
 ### Lifecycle
 
 ```text
-draft --(sales: approval; purchasing: record)--> confirmed/sealed
+draft --(sales: approval; purchasing: record)--> confirmed --(change: approval for sales)--> confirmed
   ^                                                   |
-  |                                                   +--> revision -> new draft -> approval -> current
-  |                                                   |
   +---------------------------------------------------+ archive (reversible)
 ```
 
 - Sales confirmation needs a Commercial Manager approval. Procurement records a local commitment directly.
-- Confirmed terms never return to draft. A revision starts from the current accepted terms.
-- `orders_revise` opens the replacement draft and copies the sealed lines one-to-one before editing is enabled.
+- A confirmed order never returns to draft. A sales rep's change to it or its lines waits for a Commercial
+  Manager; a Kingdee change applies directly.
 - Archive is reversible and keeps the agreement, history, source evidence and sync. It never voids the source.
 - `source_health` tells configuration holders when a ledger needs attention.
 
@@ -105,7 +103,7 @@ product · group_code · currency · effective_on · minimum_quantity
 ### Commission
 
 `commission_rules` are versioned CEL expressions, not code branches. A rule declares eligibility, the amount
-expression and named parameters. On confirmation the order seals the applicable rule, its expressions, engine
+expression and named parameters. On confirmation the order keeps the applicable rule, its expressions, engine
 version, currency, basis unit, fixed rate and spread.
 
 `commission_statements` is the one monthly salesperson review and approval workflow. There is no parallel
@@ -117,12 +115,11 @@ per-order acknowledgment table. The commission board and statement retain their 
 
 - title, locale, version and status;
 - the Markdown/HTML body and optional print CSS/HTML;
-- optional letterhead and company-stamp artwork, with read-only support for historical personal artwork.
+- optional letterhead and company-stamp artwork.
 
-A draft selects a published layout; a confirmed version retains the layout it used. Preview and download render
-the same PDF through `ctx.preview_pdf`. Supporting documents are attached to a draft or filed against a recorded
-version; `order_files` keeps received bytes with the relevant `seal_hash`. The company stamp is applied only when
-the layout is used on a sealed local sales agreement.
+An order selects a published layout. Preview and download render the order's current terms as one PDF through
+`ctx.preview_pdf`. Supporting documents are attached to the order; `order_files` keeps documents received after
+confirmation. The company stamp is applied only when the layout is used on a confirmed sales order.
 
 ## 6. Access control
 
@@ -131,7 +128,7 @@ Teams map to one policy each:
 | Team                | Policy          | Scope                                                          |
 | ------------------- | --------------- | -------------------------------------------------------------- |
 | Sales               | `sales`         | Own sales orders, lines, activities and files; own commission  |
-| Procurement         | `procurement`   | Supplier commitments and their revisions                       |
+| Procurement         | `procurement`   | Supplier commitments and their changes                         |
 | Commercial Managers | `manager`       | Both directions, approvals, commission statements              |
 | Finance             | `finance`       | Payments, invoices, credit, receivables and reports            |
 | Logistics           | `logistics`     | Operational quantities; commercial fields masked via an output |
@@ -139,15 +136,14 @@ Teams map to one policy each:
 
 Policies filter rows and choose read outputs; they never reshape a model. The `logistics` output removes
 commercial prices and totals while preserving quantities, dates and references. Direct permission executes; a
-matching policy's approval flow holds a provisional write when direct permission is absent. Sealed terms are
-protected by the order state and the sales policy, not by a UI rule alone.
+matching policy's approval flow holds a provisional write when direct permission is absent. A confirmed sales
+order's terms are protected by the sales policy's commercial review, not by a UI rule alone.
 
 ## 7. Automations and effects
 
-| Name            | Trigger              | Policy           | What it does                                                    |
-| --------------- | -------------------- | ---------------- | --------------------------------------------------------------- |
-| `orders_revise` | person or code       | `order_revision` | Opens a replacement draft from the current accepted terms       |
-| `source_health` | cron every 5 minutes | `configuration`  | Notifies configurators when a ledger connection needs attention |
+| Name            | Trigger              | Policy          | What it does                                                    |
+| --------------- | -------------------- | --------------- | --------------------------------------------------------------- |
+| `source_health` | cron every 5 minutes | `configuration` | Notifies configurators when a ledger connection needs attention |
 
 Models declare no post-commit effects. Ordinary writes, approvals and syncs own their own follow-up.
 
@@ -169,14 +165,13 @@ The model folder mirrors the owner. A child sits under its parent; only the leaf
 ```text
 commercial_settings/          commission_rules, document_templates
 commission_statements/
-orders/                       activities, order_files, order_lines, ext_sales_orders,
-                              ext_purchase_orders, source_payments, source_sales_lines, transactions
+orders/                       activities, order_files, order_lines, ext_purchase_orders,
+                              source_payments, source_sales_lines, transactions
 parties/                      contacts, credit_snapshots
 products/                     pricing_floors, stock_snapshots
 source_lot_costs/
 source_receivables/
 source_stock_commitments/
-salesperson_signatures/
 warehouses/
 ```
 
@@ -186,13 +181,13 @@ map is [`src/agent/AGENTS.md`](../src/agent/AGENTS.md); the workspace brief is
 
 ## 10. Invariants
 
-1. A confirmed agreement is sealed permanently; header and lines do not return to draft.
+1. An order holds its own terms; a confirmed order never returns to draft, and its history is the audit trail.
 2. Source confirmations, transactions, payments, receivables, stock and cost facts are read-only.
 3. There is one delivery/invoice ledger and one payment ledger; no parallel manual ledger.
 4. A remaining source commitment cannot be released locally while its external order is active.
 5. Missing source facts stay missing; never fill a price, cost, credit limit or exchange rate.
 6. Money and currency travel together.
 7. A price floor's unit must match the line unit; a missing compatible floor never becomes zero.
-8. A layout, floor and commission rule are retained by the version that used them, not re-read from today's config.
+8. A line keeps the floor it was priced against and an order the commission rule it was confirmed under, not today's config.
 
 Next: [integration](0002-integration.md) · [source reference](0003-source-reference.md)

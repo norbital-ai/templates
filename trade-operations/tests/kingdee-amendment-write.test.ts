@@ -18,14 +18,25 @@ const original = {
 	tax: '2.60',
 	total: '22.60'
 };
+const entry = (number: string) => ({
+	entry: number,
+	item: '301',
+	unit: 'kg',
+	quantity: '10',
+	exclusive: '2',
+	inclusive: '2.26',
+	tax_rate: '13',
+	net: '20',
+	tax: '2.60',
+	total: '22.60'
+});
 const account = '11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111';
 const amended: OrderPayload = {
 	order_id: 'order-a',
+	key: 'key-a',
 	reference: 'SO-A',
 	direction: 'sales',
 	write_target: { account, branch: '0' },
-	agreement_hash: 'seal-b',
-	version: 2,
 	owner_id: 'member-a',
 	ordered_on: '2026-10-26',
 	currency: 'CNY',
@@ -34,14 +45,11 @@ const amended: OrderPayload = {
 	payment_terms: 'NET30',
 	lines: [{ ...original, quantity: '12', net: '24', tax: '3.12', total: '27.12' }],
 	previous: {
-		binding_id: 'sales:0:9002:seal-a',
 		source_id: '9002',
 		source_uuid: '00000000-0000-8000-8000-000000000001',
 		source_version: '007',
 		source_exchange_rate: '1',
-		agreement_hash: 'seal-a',
-		tax_inclusive: false,
-		lines: [original]
+		lines: [entry('4')]
 	}
 };
 const { previous: _previous, ...withoutPrevious } = amended;
@@ -54,18 +62,16 @@ const configuration = {
 	currencyBindings: JSON.stringify({ CNY: { id: '1', base: true } }),
 	settlementRules: JSON.stringify({ NET30: { creditDays: 30, fromMonthEnd: false } })
 };
-const previousBindings = { rate: '1', baseCurrency: 'CNY' };
 
 it('preserves source entry identities when lines are reordered, removed or appended', () => {
-	const old = { ...original, id: 'line-removed', source_entry_id: '9' };
 	const previous = amended.previous;
-	if (!previous) throw new Error('Previous source proof required');
+	if (!previous) throw new Error('Previous source required');
 	const { source_entry_id: _entry, ...line } = original;
 	const inserted = { ...line, id: 'line-new' };
 	expect(
 		sourceEntryIds({
 			...amended,
-			previous: { ...previous, lines: [original, old] },
+			previous: { ...previous, lines: [entry('4'), entry('9')] },
 			lines: [inserted, original]
 		})
 	).toEqual([
@@ -74,9 +80,7 @@ it('preserves source entry identities when lines are reordered, removed or appen
 	]);
 });
 
-it('reuses a verified entry when an imported line receives a new native editor identity', () => {
-	const previous = amended.previous;
-	if (!previous) throw new Error('Previous source proof required');
+it('keeps a claimed entry under a new local identity and appends new lines', () => {
 	const { source_entry_id: _entry, ...line } = original;
 	expect(
 		sourceEntryIds({
@@ -106,32 +110,11 @@ it.each([
 	}
 });
 
-it('keeps a known local line attached to its original source entry', () => {
-	const previous = amended.previous;
-	if (!previous) throw new Error('Previous source proof required');
-	try {
-		sourceEntryIds({
-			...amended,
-			previous: {
-				...previous,
-				lines: [original, { ...original, id: 'other-line', source_entry_id: '9' }]
-			},
-			lines: [{ ...original, source_entry_id: '9' }]
-		});
-		throw new Error('Existing local identity must not be reassigned');
-	} catch (error) {
-		expect(error).toMatchObject({ _tag: 'SourceRowInvalid', column: 'FEntryID' });
-	}
-});
-
 it('refuses ambiguous source identities and exhausted Kingdee versions', () => {
 	const previous = amended.previous;
-	if (!previous) throw new Error('Previous source proof required');
+	if (!previous) throw new Error('Previous source required');
 	try {
-		sourceEntryIds({
-			...amended,
-			previous: { ...previous, lines: [original, { ...original, id: 'another-local-line' }] }
-		});
+		sourceEntryIds({ ...amended, previous: { ...previous, lines: [entry('4'), entry('4')] } });
 		throw new Error('Ambiguous source entries must be refused');
 	} catch (error) {
 		expect(error).toMatchObject({ _tag: 'SourceRowInvalid', column: 'FEntryID' });
@@ -142,11 +125,13 @@ it('refuses ambiguous source identities and exhausted Kingdee versions', () => {
 	expect(() => sourceEntryIds(withoutPrevious)).toThrow();
 });
 
-it('carries the prior commercial contents independently of the target', () => {
-	const document = previousOrderDocument(amended, previousBindings);
+it('carries the SO contents as read, independently of the target', () => {
+	const previous = amended.previous;
+	if (!previous) throw new Error('Previous source required');
+	const document = previousOrderDocument(previous, 'CNY');
 	expect(document).toContain('entry="4"');
 	expect(document).toContain('quantity="10"');
-	expect(document).toContain('inclusive="2.26000000"');
+	expect(document).toContain('inclusive="2.26"');
 	expect(document).not.toContain('quantity="12"');
 });
 
@@ -184,8 +169,8 @@ it.effect(
 					};
 				})
 			};
-			expect(yield* submitOrder(amended, 'order-a:seal-b', ctx)).toBe('sales:0:9002:seal-a');
-			expect(yield* submitOrder(amended, 'order-a:seal-b', ctx)).toBe('sales:0:9002:seal-a');
+			expect(yield* submitOrder(amended, ctx)).toBe('9002');
+			expect(yield* submitOrder(amended, ctx)).toBe('9002');
 			const writes = calls.filter(
 				(operation) => operation.op === 'call' && operation.arguments.stmt === sourceAmendmentSql
 			);
@@ -199,14 +184,14 @@ it.effect(
 				source_version: '007',
 				source_exchange_rate: '1',
 				correlation: amended.previous?.source_uuid,
-				previous_document: previousOrderDocument(amended, previousBindings)
+				previous_document: previousOrderDocument(amended.previous!, 'CNY')
 			});
 			expect(write.arguments.document).toContain('FEntryID="4"');
 			expect(write.arguments.correlation).not.toBe(
-				yield* sourceOrderUuid(amended.order_id, amended.agreement_hash)
+				yield* sourceOrderUuid(amended.order_id, amended.key)
 			);
 			ctx.configuration.billerId = '2';
-			expect(yield* submitOrder(amended, 'order-a:seal-b', ctx)).toBe('sales:0:9002:seal-a');
+			expect(yield* submitOrder(amended, ctx)).toBe('9002');
 			const replay = calls.at(-1);
 			if (replay?.op !== 'call') throw new Error('Replay write required');
 			expect(replay.arguments.change_cause).toBe(write.arguments.change_cause);
@@ -214,7 +199,7 @@ it.effect(
 		})
 );
 
-it.effect('refuses a missing source basis or changed tax basis before making a request', () =>
+it.effect('refuses a claimed entry without the SO read before making a request', () =>
 	Effect.gen(function* () {
 		let calls = 0;
 		const ctx = {
@@ -224,13 +209,10 @@ it.effect('refuses a missing source basis or changed tax basis before making a r
 				return { rows: [] };
 			})
 		};
-		expect(yield* Effect.flip(submitOrder(withoutPrevious, 'order-a:seal-b', ctx))).toMatchObject({
+		expect(yield* Effect.flip(submitOrder(withoutPrevious, ctx))).toMatchObject({
 			_tag: 'SourceRowInvalid',
-			column: 'version'
+			column: 'FEntryID'
 		});
-		expect(
-			yield* Effect.flip(submitOrder({ ...amended, tax_inclusive: true }, 'order-a:seal-b', ctx))
-		).toMatchObject({ _tag: 'SourceRowInvalid', column: 'tax_inclusive' });
 		expect(calls).toBe(0);
 	})
 );
@@ -265,14 +247,13 @@ it.effect('refuses foreign-exchange drift before submitting an amendment', () =>
 						currency: 'USD',
 						previous: { ...previous, source_exchange_rate: '7.1' }
 					},
-					'order-a:seal-b',
 					ctx
 				)
 			)
 		).toMatchObject({
 			_tag: 'SourceRowInvalid',
 			column: 'currency',
-			reason: 'Source exchange rate changed since the previous contract observation'
+			reason: 'Source exchange rate changed since the previous observation'
 		});
 		expect(calls).toBe(1);
 	})

@@ -13,16 +13,13 @@ const own = {
 } as const;
 export default policy({
 	description: 'sales commercial work scoped by order.',
-	capabilities: { apps: ['operations'], automations: ['orders_revise'] },
+	capabilities: { apps: ['operations'] },
 	grants: {
 		sys_user: {
 			outputs: { default: { where: { id: { eq: { var: 'requestor.id' } } } } }
 		},
 		source_stock_commitments: {
 			outputs: { default: {} }
-		},
-		ext_sales_orders: {
-			outputs: { default: { where: own, history: true } }
 		},
 		document_templates: {
 			outputs: { default: { where: { status: { eq: 'published' } } } }
@@ -86,7 +83,7 @@ export default policy({
 						: ctx.allow();
 				}
 			},
-			// a confirmation needs a commercial manager; any other edit of an unconfirmed order is direct
+			// a confirmation or a confirmed order's change needs a commercial manager; a draft edit is direct
 			update: {
 				verdict: function* (changes, ctx) {
 					return yield* reviewOrders(changes, ctx, ownSales(ctx), 'errors.sales_scope');
@@ -110,24 +107,32 @@ export default policy({
 			outputs: { default: { where: own, history: true } },
 			create: {
 				verdict: function* (changes, ctx) {
-					return (yield* ordersIn(
+					const scoped = yield* ordersIn(
 						ctx,
 						changes.map(({ after }) => after.order),
 						ownSales(ctx)
-					))
-						? ctx.allow()
-						: yield* ctx.refuse('errors.sales_scope');
+					);
+					// a confirmed order's lines change once a commercial manager agrees
+					return !scoped
+						? yield* ctx.refuse('errors.sales_scope')
+						: scoped.confirmed
+							? ctx.approve(commercialReview)
+							: ctx.allow();
 				}
 			},
 			update: {
 				verdict: function* (changes, ctx) {
-					return (yield* ordersIn(
+					const scoped = yield* ordersIn(
 						ctx,
 						changes.map((change) => change.before.order),
 						ownSales(ctx)
-					))
-						? ctx.allow()
-						: yield* ctx.refuse('errors.sales_scope');
+					);
+					// a confirmed order's lines change once a commercial manager agrees
+					return !scoped
+						? yield* ctx.refuse('errors.sales_scope')
+						: scoped.confirmed
+							? ctx.approve(commercialReview)
+							: ctx.allow();
 				}
 			},
 			delete: {
@@ -136,13 +141,17 @@ export default policy({
 						changes.map(({ before }) => before),
 						ctx
 					);
-					return (yield* ordersIn(
+					const scoped = yield* ordersIn(
 						ctx,
 						changes.map(({ before }) => before.order),
 						ownSales(ctx)
-					))
-						? ctx.allow()
-						: yield* ctx.refuse('errors.sales_scope');
+					);
+					// a confirmed order's lines change once a commercial manager agrees
+					return !scoped
+						? yield* ctx.refuse('errors.sales_scope')
+						: scoped.confirmed
+							? ctx.approve(commercialReview)
+							: ctx.allow();
 				}
 			}
 		},

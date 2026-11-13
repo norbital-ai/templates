@@ -1,11 +1,10 @@
 import { Effect } from 'effect';
-import { agreement, withAgreement } from './agreements.js';
 import { addMonths, minorDigits, round, sum, text } from './values.js';
 import {
-	AgreementUnavailable,
 	commissionCalculation,
 	commissionFactFields,
 	reportFields,
+	reportLayers,
 	reportPages,
 	type ReportReader,
 	type CommissionFact,
@@ -51,7 +50,7 @@ export const boardRead = (
 			},
 			fields: commissionFactFields,
 			limit,
-			order: { fields: reportFields }
+			order: { fields: reportFields, ...reportLayers }
 		}
 	}) as const;
 export const monthlyCommission = Effect.fnUntraced(function* (
@@ -79,20 +78,11 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 			fact.business_on.slice(0, 7) !== period.slice(0, 7)
 		)
 			continue;
-		const record = orders.find((order) => order.id === fact.order);
-		if (!record) continue;
-		const version = agreement(record, fact.seal_hash);
-		if (!version) continue;
-		const order = withAgreement(record, version);
-		if (order.direction !== 'sales') continue;
+		const order = orders.find((order) => order.id === fact.order);
+		if (!order || order.direction !== 'sales' || order.status !== 'confirmed') continue;
 		const key = `${order.owner}:${order.currency}`;
 		const group = groups.get(key) ?? { owner: order.owner, currency: order.currency, orders: [] };
-		if (
-			!group.orders.some(
-				(existing) => existing.id === order.id && existing.seal_hash === order.seal_hash
-			)
-		)
-			group.orders.push(order);
+		if (!group.orders.some((existing) => existing.id === order.id)) group.orders.push(order);
 		groups.set(key, group);
 	}
 	// Keep prior beneficiaries visible when their source facts were withdrawn or moved out of this month.
@@ -106,10 +96,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 		[...groups.values()],
 		(group) =>
 			Effect.forEach(
-				group.orders.sort(
-					(a, b) =>
-						a.id.localeCompare(b.id) || String(a.seal_hash).localeCompare(String(b.seal_hash))
-				),
+				group.orders.sort((a, b) => a.id.localeCompare(b.id)),
 				(order) => {
 					const actual = facts
 						.filter(
@@ -117,20 +104,13 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 								fact.active &&
 								fact.kind !== 'invoice' &&
 								fact.order === order.id &&
-								fact.seal_hash === order.seal_hash &&
 								fact.business_on.slice(0, 7) === period.slice(0, 7)
 						)
 						.sort((a, b) => a.id.localeCompare(b.id));
-					const seal = order.seal_hash;
-					if (seal === null)
-						return Effect.fail(
-							new AgreementUnavailable({ message: 'Commission order lacks its approved seal' })
-						);
-					return commissionCalculation(order, seal, actual).pipe(
+					return commissionCalculation(order, actual).pipe(
 						Effect.map((current) => ({
 							order: order.id,
 							number: order.number,
-							seal_hash: seal,
 							calculation_hash: current.calculation_hash,
 							amount: current.amount === null ? null : text(current.amount),
 							unresolved_lines: current.unresolved_lines,

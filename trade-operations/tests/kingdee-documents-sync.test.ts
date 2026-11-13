@@ -20,7 +20,7 @@ const acquire = (source: ReturnType<typeof kingdeeFixture>, clock: { at: string 
 			),
 		now: '2026-10-26T00:00:00Z'
 	});
-/** A sealed sale the writer submitted, its source mirror pulled before the SO approval. */
+/** A confirmed sale the writer submitted, its SO read before the SO approval. */
 const ownedSale = Effect.fnUntraced(function* () {
 	const source = kingdeeFixture();
 	const clock = { at: '2026-10-26T00:00:00.000Z' };
@@ -30,12 +30,12 @@ const ownedSale = Effect.fnUntraced(function* () {
 	yield* t.deliver();
 	const submission = [...source.submissions.values()].at(-1);
 	if (!submission) throw new Error('The native outbox must create a source sales order');
-	yield* t.pull('ext_sales_orders');
+	yield* t.pull('orders');
 	replaceHeader(source, 'SEOrder', submission.remote, { checker: '701', checked_on: '2026-10-26' });
-	const sealed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+	const confirmed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 		.rows[0];
-	if (!sealed?.seal_hash || !sealed.sealed_contract) throw new Error('Sealed agreement missing');
-	return { t, as, order, line, fid: submission.remote, sealed, source, clock };
+	if (!confirmed) throw new Error('Confirmed order missing');
+	return { t, as, order, line, fid: submission.remote, confirmed, source, clock };
 });
 function addDelivery(
 	source: ReturnType<typeof kingdeeFixture>,
@@ -114,10 +114,10 @@ function replaceHeader(
 }
 
 it.live(
-	'issued documents wait for the SO approval mirror, then synchronize read-only evidence without changing the sealed SO',
+	'issued documents wait for the SO approval read, then synchronize read-only evidence without changing the order',
 	() =>
 		Effect.gen(function* () {
-			const { t, as, order, line, fid, sealed, source, clock } = yield* ownedSale();
+			const { t, as, order, line, fid, confirmed, source, clock } = yield* ownedSale();
 			addDelivery(source, '20001', fid);
 			addDelivery(source, '20002', fid);
 			addDelivery(source, '20003', fid, '');
@@ -132,7 +132,7 @@ it.live(
 					.sys_integration.rows[0]
 			).toMatchObject({ status: { health: { state: 'attention', code: 'documentReview' } } });
 			clock.at = '2026-11-03T00:00:00.000Z';
-			yield* t.pull('ext_sales_orders');
+			yield* t.pull('orders');
 			yield* t.pull('transactions');
 			yield* t.pull('source_sales_lines');
 			const documents = (yield* as.query({ transactions: { where: { order: { eq: order } } } }))
@@ -152,7 +152,6 @@ it.live(
 			expect(invoice).toMatchObject({
 				status: 'issued',
 				currency: 'CNY',
-				seal_hash: sealed.seal_hash,
 				due_on: '2026-11-25'
 			});
 			expect(sameDecimal(invoice.total, '22.60')).toBe(true);
@@ -194,7 +193,6 @@ it.live(
 				facts.every(
 					(row) =>
 						row.order_line === line &&
-						row.seal_hash === sealed.seal_hash &&
 						sameDecimal(row.quantity, '5') &&
 						sameDecimal(row.net_amount, '10') === true &&
 						sameDecimal(row.tax_amount, '1.30') === true
@@ -204,9 +202,8 @@ it.live(
 				(yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0]
 			).toMatchObject({
 				status: 'confirmed',
-				seal_hash: sealed.seal_hash,
-				sealed_contract: sealed.sealed_contract,
-				contract_version: sealed.contract_version
+				payment_terms: confirmed.payment_terms,
+				total: confirmed.total
 			});
 		})
 );
@@ -214,7 +211,7 @@ it.live(
 it.live('holds premature and malformed settlements with the prior receipt, then reconciles', () =>
 	Effect.gen(function* () {
 		const { t, as, order, fid, source } = yield* ownedSale();
-		yield* t.pull('ext_sales_orders');
+		yield* t.pull('orders');
 		addDelivery(source, '22001', fid);
 		addInvoice(source, '32001', ['22001']);
 		const settle = (amount: string) => {
@@ -291,7 +288,7 @@ it.live('holds a mixed invoice and its prior evidence while an unrelated order a
 		replaceHeader(source, 'SEOrder', remote, { checker: '701', checked_on: '2026-10-26' });
 		addDelivery(source, '21001', fid);
 		addInvoice(source, '31001', ['21001']);
-		yield* t.pull('ext_sales_orders');
+		yield* t.pull('orders');
 		const pull = () =>
 			Effect.gen(function* () {
 				yield* t.pull('transactions');

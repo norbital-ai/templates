@@ -13,12 +13,7 @@ import {
 } from '../src/lib/confirmation.js';
 import { inventoryCost, inventoryCostRead } from '../src/lib/lot-cost.js';
 import { boardRead, commissionBoard, monthOf } from '../src/lib/monthly-commission.js';
-import {
-	agreementRead,
-	documentRead,
-	orderDocument,
-	sealedExport
-} from '../src/lib/order-document.js';
+import { documentRead, orderDocument } from '../src/lib/order-document.js';
 import {
 	agingRead,
 	arAging,
@@ -55,23 +50,12 @@ export const quotationOf = Effect.fnUntraced(function* (
 		quotationExport(yield* as.query(quotationRead(input.order)), input.revision)
 	);
 });
-export const documentOf = Effect.fnUntraced(function* (
-	as: Reader,
-	input: { order: Id<'orders'>; version?: number | null }
-) {
-	return yield* orderDocument(yield* as.query(documentRead(input.order)), {
-		version: input.version ?? null
-	});
-});
-export const sealedExportOf = Effect.fnUntraced(function* (
-	as: Reader,
-	input: { order: Id<'orders'> }
-) {
-	return yield* settled(sealedExport(yield* as.query(agreementRead(input.order))));
+export const documentOf = Effect.fnUntraced(function* (as: Reader, input: { order: Id<'orders'> }) {
+	return yield* orderDocument(yield* as.query(documentRead(input.order)));
 });
 export const commissionOf = Effect.fnUntraced(function* (
 	as: Reader,
-	input: { order?: Id<'orders'> | null; version?: number | null } = {}
+	input: { order?: Id<'orders'> | null } = {}
 ) {
 	return commissionReport(yield* as.query(commissionRead), input);
 });

@@ -1,7 +1,7 @@
+import type { Terms } from './commercial.js';
 import type { Row } from '@norbital-ai/bolt';
 import { minorDigits } from './values.js';
 
-type Snapshot = NonNullable<Row<'orders'>['sealed_snapshot']>;
 type Locale = Row<'document_templates'>['locale'];
 
 const labels = {
@@ -70,13 +70,8 @@ function paperAmount(value: string, currency: string) {
 	return decimals ? `${whole}.${decimals}` : (whole ?? '');
 }
 
-/** The published table layout projects only retained, customer-facing agreement fields. */
-export function commercialDocument(
-	seal: Snapshot,
-	locale: Locale,
-	reference: string,
-	date: string
-) {
+/** The published table layout projects only customer-facing order terms. */
+export function commercialDocument(seal: Terms, locale: Locale, reference: string, date: string) {
 	const label = labels[locale];
 	const parties = seal.direction === 'purchasing' ? label.supplier : label.customer;
 	const validity = [seal.valid_from, seal.valid_until].filter(Boolean).join(' – ');

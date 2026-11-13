@@ -2,19 +2,11 @@ import { model } from '../../../../../.norbital/models/ext_purchase_orders.ts';
 import { Effect } from 'effect';
 import { logisticsReceipt } from '../../../../lib/logistics.js';
 import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
-import { agreement, agreementFields } from '../../../../lib/agreements.js';
 type Header = Pick<
 	CreatedRow<'ext_purchase_orders'>,
-	| 'order'
-	| 'source'
-	| 'external_id'
-	| 'agreement_hash'
-	| 'currency'
-	| 'reference'
-	| 'status'
-	| 'source_updated_at'
+	'order' | 'source' | 'external_id' | 'currency' | 'reference' | 'status' | 'source_updated_at'
 >;
-/** A confirmation is evidence of this ledger's sealed purchase agreement and never moves once written. */
+/** A confirmation is evidence of this ledger's confirmed purchase order and never moves once written. */
 const settle = Effect.fnUntraced(function* (
 	rows: readonly {
 		readonly value: Header;
@@ -29,26 +21,22 @@ const settle = Effect.fnUntraced(function* (
 					in: rows.flatMap(({ value, old }) => [value.order, old?.order].flatMap((id) => id ?? []))
 				}
 			},
-			fields: [...agreementFields, 'direction', 'ledger']
+			fields: ['status', 'currency', 'direction', 'ledger']
 		}
 	});
 	for (const [i, { value, old }] of rows.entries()) {
 		if (!value.order) return yield* ctx.refuse('errors.order_not_confirmed', { row: i });
 		const order = orders.rows.find((row) => row.id === value.order);
-		if (!order || order.direction !== 'purchasing' || !agreement(order, value.agreement_hash))
+		if (!order || order.direction !== 'purchasing' || order.status !== 'confirmed')
 			return yield* ctx.refuse('errors.order_not_confirmed', { row: i });
 		if (order.ledger !== value.source)
 			return yield* ctx.refuse('errors.ledger_mismatch', { row: i });
-		if (
-			value.currency !== agreement(order, value.agreement_hash)?.snapshot.currency ||
-			!value.reference?.trim()
-		)
+		if (value.currency !== order.currency || !value.reference?.trim())
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
 			old &&
 			(value.order !== old.order ||
 				value.external_id !== old.external_id ||
-				value.agreement_hash !== old.agreement_hash ||
 				value.currency !== old.currency)
 		)
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
@@ -65,7 +53,6 @@ export default model({
 	fields: {
 		external_id: { kind: 'text', hidden: true },
 		reference: { kind: 'text' },
-		agreement_hash: { kind: 'text', hidden: true },
 		currency: { kind: 'currency' },
 		status: { kind: 'enum', values: ['draft', 'issued', 'void'] },
 		source_updated_at: { kind: 'instant', optional: true },

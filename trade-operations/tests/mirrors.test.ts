@@ -9,7 +9,7 @@ const now = '2026-10-10T00:00:00Z';
 
 // Physical SQL mapping and account isolation are covered by the Kingdee adapter tests.
 test.live(
-	'source-owned master refreshes preserve the existing local identity and sealed sales agreement',
+	'source-owned master refreshes preserve the existing local identity and confirmed sales terms',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();
@@ -86,8 +86,10 @@ test.live(
 				})
 			);
 			yield* confirm(t, order);
-			const sealed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
+			const confirmed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
 				.orders.rows[0];
+			const lines = (yield* as.query({ order_lines: { where: { order: { eq: order } } } }))
+				.order_lines.rows;
 			yield* businessRows(t, 'products', [
 				{
 					...sourceProduct,
@@ -101,11 +103,10 @@ test.live(
 			]);
 			expect(
 				(yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders.rows[0]
-			).toMatchObject({
-				seal_hash: sealed?.seal_hash,
-				sealed_snapshot: sealed?.sealed_snapshot,
-				sealed_contract: sealed?.sealed_contract
-			});
+			).toEqual(confirmed);
+			expect(
+				(yield* as.query({ order_lines: { where: { order: { eq: order } } } })).order_lines.rows
+			).toEqual(lines);
 			expect(
 				(yield* as.query({ parties: { where: { id: { eq: first.id } }, limit: 1 } })).parties
 					.rows[0]

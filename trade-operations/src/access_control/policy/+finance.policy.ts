@@ -9,9 +9,6 @@ export default policy({
 		source_stock_commitments: {
 			outputs: { default: {} }
 		},
-		ext_sales_orders: {
-			outputs: { default: { history: true } }
-		},
 		ext_purchase_orders: {
 			outputs: { default: { history: true } }
 		},

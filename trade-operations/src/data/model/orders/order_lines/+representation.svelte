@@ -92,14 +92,8 @@
 <RecordForm
 	{ctx}
 	{view}
-	readonly={header?.status !== 'draft' || Boolean(header?.archived || header?.draft_setup)}
-	readonly_reason={ctx.t(
-		header?.archived
-			? 'component.order_archived'
-			: header?.draft_setup
-				? 'errors.contract_setup'
-				: 'component.sealed'
-	)}
+	readonly={Boolean(header?.archived)}
+	readonly_reason={ctx.t('component.order_archived')}
 	editors={{ product, unit_price: unitPrice, print_values: printDetails }}
 	viewers={{ print_values: printDetailsView }}
 	sections={[

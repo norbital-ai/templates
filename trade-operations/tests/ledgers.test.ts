@@ -192,7 +192,7 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 					const state = Effect.fnUntraced(function* () {
 						return firstRow(
 							yield* t.db.rows(Outbox, {
-								text: "SELECT status,attempts,key,error,next_attempt_at::text,result IS NOT NULL AS submitted FROM sys_outbox WHERE model='orders' AND sync='orders.sync.kingdee' AND record=$1 ORDER BY seq",
+								text: "SELECT status,attempts,key,error,next_attempt_at::text,result IS NOT NULL AS submitted FROM sys_outbox WHERE model='orders' AND sync='orders.sync.kingdee' AND record=$1 ORDER BY seq DESC",
 								params: [own.order]
 							})
 						);
@@ -225,8 +225,14 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 							params: [own.order]
 						}
 					);
-					expect(identity).toEqual([
-						{ remote_id: `sales:0:${9002 + before}:${own.seal}`, remote_version: own.seal }
+					const key = (yield* (yield* t.as(t.admin)).query({
+						orders: { where: { id: { eq: own.order } }, limit: 1 }
+					})).orders.rows[0]?.source_order_key;
+					expect(identity).toMatchObject([
+						{
+							remote_id: `sales:0:${9002 + before}:${key}`,
+							remote_version: expect.stringMatching(/^[0-9a-f]{64}$/)
+						}
 					]);
 				})
 		);

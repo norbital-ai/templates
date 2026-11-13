@@ -18,13 +18,12 @@ export default model({
 		booked_cost: { kind: 'decimal', scale: 10, optional: true },
 		booked_cost_currency: { kind: 'currency', optional: true },
 		external_code: { kind: 'text' },
-		// The approved snapshot owns this identity; an editable draft row may be removed.
+		// the order line's id; a line removed later keeps its facts
 		order_line: { kind: 'text', hidden: true, optional: true },
 		kind: { kind: 'enum', values: ['shipment', 'return', 'invoice_only', 'invoice'] },
 		reference: { kind: 'text' },
 		business_on: { kind: 'date' },
 		source_updated_at: { kind: 'instant' },
-		seal_hash: { kind: 'text', hidden: true, optional: true },
 		unit: { kind: 'text' },
 		quantity: { kind: 'decimal', scale: 3 },
 		currency: { kind: 'currency' },
@@ -54,7 +53,7 @@ export default model({
 		commercial: { fields: commercialSalesFields, order }
 	},
 	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
-	// the sales reports price each line against its order's seal (its party, its lines' products)
+	// the sales reports price each line against its order (its party, its lines' products)
 	syncs: {
 		kingdee: {
 			with: 'kingdee',

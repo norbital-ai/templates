@@ -1,8 +1,7 @@
+import type { Terms } from './commercial.js';
 import { BigDecimal } from 'effect';
 import { dec, div, round, sum, text } from './values.js';
-import type { Row } from '@norbital-ai/bolt';
 
-type Seal = NonNullable<Row<'orders'>['sealed_snapshot']>;
 const kilograms = new Set(['kg', 'kgs', '公斤', '千克']);
 const tonnes = new Set(['t', 'mt', 'tonne', 'tonnes', '吨', '公吨']);
 const digits = '零壹贰叁肆伍陆柒捌玖';
@@ -45,7 +44,7 @@ function groupedWithPrecision(value: string, minimum: number) {
 	return grouped(retained ? `${whole}.${retained}` : whole);
 }
 
-export function printAmounts(seal: Seal) {
+export function printAmounts(seal: Terms) {
 	const lines = seal.lines.map((line) => {
 		const unit = line.unit.trim().toLowerCase();
 		const perTonne = kilograms.has(unit) ? 1000 : tonnes.has(unit) ? 1 : null;

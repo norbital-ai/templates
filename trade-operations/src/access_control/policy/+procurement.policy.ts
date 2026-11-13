@@ -3,7 +3,7 @@ import { lineDeletes, ordersIn, purchasing, reviewOrders } from '../../lib/order
 const own = { order: { is: { direction: { eq: 'purchasing' } } } } as const;
 export default policy({
 	description: 'procurement commercial work scoped by order.',
-	capabilities: { apps: ['operations'], automations: ['orders_revise'] },
+	capabilities: { apps: ['operations'] },
 	grants: {
 		source_stock_commitments: {
 			outputs: { default: {} }

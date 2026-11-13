@@ -31,7 +31,6 @@ const remote = {
 	stock_snapshots: 'external_code',
 	credit_snapshots: 'external_code',
 	source_sales_lines: 'external_code',
-	ext_sales_orders: 'external_id',
 	ext_purchase_orders: 'external_id',
 	transactions: 'erp_id',
 	source_payments: 'external_code'
@@ -72,26 +71,19 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 const retainedPurchaseOrder = Effect.fnUntraced(function* (
 	t: T,
 	input: Record<
-		| 'order'
-		| 'external_id'
-		| 'reference'
-		| 'agreement_hash'
-		| 'currency'
-		| 'status'
-		| 'source_updated_at',
+		'order' | 'external_id' | 'reference' | 'currency' | 'status' | 'source_updated_at',
 		string
 	>
 ) {
 	const id = fixtureId('ext_purchase_orders', randomUUID());
 	yield* t.db.write({
-		text: `INSERT INTO ext_purchase_orders (id, "order", external_id, reference, agreement_hash, currency, status, source_updated_at, source)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'kingdee')`,
+		text: `INSERT INTO ext_purchase_orders (id, "order", external_id, reference, currency, status, source_updated_at, source)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, 'kingdee')`,
 		params: [
 			id,
 			input.order,
 			input.external_id,
 			input.reference,
-			input.agreement_hash,
 			input.currency,
 			input.status,
 			input.source_updated_at
@@ -99,33 +91,47 @@ const retainedPurchaseOrder = Effect.fnUntraced(function* (
 	});
 	return id;
 });
+/**
+ * The order's issued counterpart: a sales order's Kingdee SO (written on the order as the `kingdee` sync reads it), a
+ * purchase order's retained supplier confirmation.
+ */
 export const sourceOrder = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
-	const agreement = (yield* (yield* t.as(t.admin)).query({
+	const confirmed = (yield* (yield* t.as(t.admin)).query({
 		orders: { where: { id: { eq: order } }, limit: 1 }
 	})).orders.rows[0];
-	if (typeof agreement?.seal_hash !== 'string' || typeof agreement.currency !== 'string')
-		throw new Error('Sealed agreement required');
-	const model: 'ext_sales_orders' | 'ext_purchase_orders' =
-		agreement.direction === 'sales' ? 'ext_sales_orders' : 'ext_purchase_orders';
+	if (confirmed?.status !== 'confirmed') throw new Error('A confirmed order is required');
 	const input = {
 		order,
 		external_id: randomUUID(),
 		reference: 'CONFIRMED',
-		agreement_hash: agreement.seal_hash,
-		currency: agreement.currency,
+		currency: confirmed.currency,
 		status: 'issued',
 		source_updated_at: '2026-10-10T00:00:00Z'
 	};
-	return {
-		id:
-			model === 'ext_sales_orders'
-				? writtenId(model, yield* sync(t, model, input))
-				: yield* retainedPurchaseOrder(t, input),
-		model,
-		input,
-		agreement
-	};
+	if (confirmed.direction === 'purchasing')
+		return {
+			id: yield* retainedPurchaseOrder(t, input),
+			model: 'ext_purchase_orders' as const,
+			input
+		};
+	yield* setSalesOrder(t, confirmed.source_order_key ?? '', 'issued');
+	return { id: null, model: 'orders' as const, input };
 });
+/** The Kingdee SO state the `kingdee` read writes on a sales order. */
+export const setSalesOrder = (t: T, key: string, status: 'draft' | 'issued' | 'void') =>
+	t.syncs.write('orders.sync.kingdee', [
+		{
+			source_order_key: key,
+			kingdee: {
+				fid: '9001',
+				reference: 'CONFIRMED',
+				version: '000',
+				status,
+				closed: false,
+				exchange_rate: '1'
+			}
+		}
+	]);
 export const sourceTransaction = Effect.fnUntraced(function* (
 	t: T,
 	own: {
@@ -140,10 +146,9 @@ export const sourceTransaction = Effect.fnUntraced(function* (
 	const input = {
 		erp_id: randomUUID(),
 		order: own.order,
-		[parent.model === 'ext_sales_orders' ? 'ext_sales_order' : 'ext_purchase_order']: parent.id,
+		...(parent.model === 'ext_purchase_orders' ? { ext_purchase_order: parent.id } : {}),
 		kind,
 		reference: kind === 'invoice' ? 'INV-1' : 'DO-1',
-		seal_hash: parent.input.agreement_hash,
 		currency: parent.input.currency,
 		status: 'issued',
 		issued_on: '2026-08-01',
@@ -179,7 +184,6 @@ export const sourcePayment = Effect.fnUntraced(function* (
 		kind: amount.startsWith('-') ? 'refund' : 'receipt',
 		amount,
 		currency: parent.input.currency,
-		seal_hash: parent.input.agreement_hash,
 		settled_on: '2026-10-09',
 		source_updated_at: '2026-10-10T00:00:00Z',
 		active: true,

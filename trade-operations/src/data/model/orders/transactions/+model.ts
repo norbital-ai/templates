@@ -5,7 +5,6 @@ import { logisticsDocument, logisticsOrder } from '../../../../lib/logistics.js'
 import { readTransactions } from '../../../../integration/kingdee/order-source.js';
 import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { dec } from '../../../../lib/values.js';
-import { agreement } from '../../../../lib/agreements.js';
 
 const transactionItems = {
 	kind: 'object',
@@ -35,11 +34,9 @@ type Evidence = Pick<
 	CreatedRow<'transactions'>,
 	| 'source'
 	| 'order'
-	| 'ext_sales_order'
 	| 'ext_purchase_order'
 	| 'kind'
 	| 'status'
-	| 'seal_hash'
 	| 'currency'
 	| 'items'
 	| 'documents'
@@ -47,22 +44,22 @@ type Evidence = Pick<
 	| 'total'
 	| 'source_updated_at'
 >;
-/** A delivery or invoice is evidence of its issued parent's sealed agreement and never moves once written. */
+/**
+ * A delivery or invoice is evidence of its order (a sales order's issued Kingdee SO, a purchase order's issued
+ * confirmation) and never moves once written.
+ */
 const settle = Effect.fnUntraced(function* (
 	rows: readonly { readonly value: Evidence; readonly old: StoredRow<'transactions'> | null }[],
 	ctx: WriteCtx<'transactions'>
 ) {
+	const orderIds = [...new Set(rows.flatMap(({ value }) => value.order ?? []))];
 	const {
 		orders: owners,
-		ext_sales_orders: sales,
+		order_lines: lines,
 		ext_purchase_orders: purchases
 	} = yield* ctx.query({
-		orders: {
-			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.order ?? []))] } }
-		},
-		ext_sales_orders: {
-			where: { id: { in: [...new Set(rows.flatMap(({ value }) => value.ext_sales_order ?? []))] } }
-		},
+		orders: { where: { id: { in: orderIds } } },
+		order_lines: { where: { order: { in: orderIds } }, fields: ['order', 'unit', 'unit_price'] },
 		ext_purchase_orders: {
 			where: {
 				id: { in: [...new Set(rows.flatMap(({ value }) => value.ext_purchase_order ?? []))] }
@@ -70,32 +67,24 @@ const settle = Effect.fnUntraced(function* (
 		}
 	});
 	for (const [i, { value, old }] of rows.entries()) {
-		if (
-			old &&
-			((old.ext_sales_order && value.ext_sales_order !== old.ext_sales_order) ||
-				(old.ext_purchase_order && value.ext_purchase_order !== old.ext_purchase_order))
-		)
-			yield* ctx.refuse('errors.evidence_sealed', { row: i });
-		if (!value.ext_sales_order && !value.ext_purchase_order)
-			yield* ctx.refuse('errors.evidence_sealed', { row: i });
-		if ((value.ext_sales_order && value.ext_purchase_order) || !value.order)
+		if (old?.ext_purchase_order && value.ext_purchase_order !== old.ext_purchase_order)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const order = owners.rows.find((row) => row.id === value.order);
-		if (order && order.ledger !== value.source)
-			yield* ctx.refuse('errors.ledger_mismatch', { row: i });
-		const version = order ? agreement(order, value.seal_hash) : undefined;
-		const parent = value.ext_sales_order
-			? sales.rows.find((row) => row.id === value.ext_sales_order)
-			: purchases.rows.find((row) => row.id === value.ext_purchase_order);
+		if (!order) return yield* ctx.refuse('errors.evidence_sealed', { row: i });
+		if (order.ledger !== value.source) yield* ctx.refuse('errors.ledger_mismatch', { row: i });
+		const parent =
+			order.direction === 'sales'
+				? value.ext_purchase_order
+					? undefined
+					: order.kingdee
+				: purchases.rows.find(
+						(row) => row.id === value.ext_purchase_order && row.order === value.order
+					);
 		if (
 			!parent ||
 			(parent.status !== 'issued' &&
 				!(parent.status === 'void' && value.status === 'void' && old)) ||
-			parent.order !== value.order ||
-			parent.agreement_hash !== value.seal_hash ||
-			!version ||
-			value.currency !== version.snapshot.currency ||
-			(value.ext_sales_order ? order?.direction !== 'sales' : order?.direction !== 'purchasing')
+			value.currency !== order.currency
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const first = value.items?.[0];
@@ -104,7 +93,8 @@ const settle = Effect.fnUntraced(function* (
 		const priorQuantity = old?.items?.[0]?.quantity;
 		if (first && priorQuantity != null && reversal !== BigDecimal.isNegative(dec(priorQuantity)))
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
-		if (reversal && !value.ext_sales_order) yield* ctx.refuse('errors.evidence_sealed', { row: i });
+		if (reversal && order.direction !== 'sales')
+			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
 			value.kind === 'invoice' &&
 			value.status === 'issued' &&
@@ -120,17 +110,14 @@ const settle = Effect.fnUntraced(function* (
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
 			old &&
-			(value.order !== old.order ||
-				value.kind !== old.kind ||
-				value.seal_hash !== old.seal_hash ||
-				value.currency !== old.currency)
+			(value.order !== old.order || value.kind !== old.kind || value.currency !== old.currency)
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (value.status === 'issued' && !value.items?.length)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const seen = new Set<string>();
 		for (const item of value.items ?? []) {
-			const line = version?.snapshot.lines.find((line) => line.id === item.order_line_id);
+			const line = lines.rows.find((line) => line.id === item.order_line_id);
 			if (
 				seen.has(`${item.order_line_id}/${item.lot_number ?? ''}`) ||
 				!line ||
@@ -156,13 +143,12 @@ const settle = Effect.fnUntraced(function* (
 	}
 });
 export default model({
-	description: 'Issued deliveries and invoices against an order agreement.',
+	description: 'Issued deliveries and invoices against an order.',
 	record_label: 'record.reference',
 	fields: {
 		erp_id: { kind: 'text', hidden: true },
 		kind: { kind: 'enum', values: ['invoice', 'delivery'] },
 		reference: { kind: 'text' },
-		seal_hash: { kind: 'text', hidden: true },
 		currency: { kind: 'currency' },
 		status: { kind: 'enum', values: ['issued', 'void'], default: 'issued' },
 		items: { kind: 'json', shape: transactionItems, optional: true },
@@ -172,12 +158,6 @@ export default model({
 		total: { kind: 'money', currency: 'currency', optional: true },
 		source_updated_at: { kind: 'instant', optional: true },
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
-		ext_sales_order: {
-			kind: 'ref',
-			to: 'ext_sales_orders',
-			inverse: 'transactions',
-			optional: true
-		},
 		ext_purchase_order: {
 			kind: 'ref',
 			to: 'ext_purchase_orders',

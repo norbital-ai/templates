@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { type RowIn, type ColumnsIn, Badge, Table, Tabs, Show } from '@norbital-ai/ui';
+	import { Table, Tabs } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { openCreate } from '../../../lib/ui/create-values.js';
@@ -57,32 +57,6 @@
 	let selectedOrder = $state<Id<'orders'> | null>(null);
 </script>
 
-<!-- a draft shows its lines' total; an agreed order its current contract's -->
-{#snippet orderTotal({
-	row,
-	value
-}: {
-	row: RowIn<'orders'>;
-	value: ColumnsIn<'orders'>['agreed_total'] | undefined;
-})}<Show
-		{ctx}
-		kind={{ kind: 'money', currency: 'currency' }}
-		value={(row.status !== 'draft' || row.draft_setup) && value != null ? value : row.total}
-		{row}
-	/>{/snippet}
-<!-- a seal an approval still holds is provisional (the row carries `$approval`), not yet sealed -->
-{#snippet orderStatus({
-	row,
-	value
-}: {
-	row: RowIn<'orders'>;
-	value: ColumnsIn<'orders'>['status'] | undefined;
-})}
-	{@const kind = ctx.catalog?.orders?.fields?.status}
-	{#if value === 'confirmed' && row.$approval != null}<Badge variant="outline"
-			>{ctx.t('component.contract_provisional')}</Badge
-		>{:else if kind}<Show {ctx} {kind} {value} {row} />{/if}
-{/snippet}
 {#snippet orders(direction: 'sales' | 'purchasing')}
 	<Table
 		{ctx}
@@ -93,17 +67,8 @@
 			'number',
 			'title',
 			'party',
-			{ field: 'status' as const, cell: orderStatus },
-			...(ctx.catalog?.orders?.fields?.agreed_total
-				? [
-						{
-							field: 'agreed_total' as const,
-							label: ctx.t('models.orders.fields.total'),
-							align: 'end' as const,
-							cell: orderTotal
-						}
-					]
-				: []),
+			'status',
+			...(ctx.catalog?.orders?.fields?.total ? (['total'] as const) : []),
 			'owner'
 		]}
 		toolbar={{
@@ -112,7 +77,7 @@
 			),
 			new: canCreate(direction) ? () => newOrder(direction) : false,
 			actions:
-				ctx.catalog?.document_templates && ctx.catalog?.orders?.fields?.sealed_snapshot
+				ctx.catalog?.document_templates && ctx.catalog?.orders?.fields?.total
 					? [
 							{
 								icon: 'lucide:eye',

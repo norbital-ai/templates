@@ -2,16 +2,13 @@ import { policy } from '@norbital-ai/bolt';
 import { draftOrders, lineDeletes } from '../../lib/order-review.js';
 export default policy({
 	description: 'Commercial manager with both sales and purchasing access.',
-	capabilities: { apps: ['operations'], automations: ['orders_revise'] },
+	capabilities: { apps: ['operations'] },
 	grants: {
 		source_lot_costs: {
 			outputs: { default: {} }
 		},
 		source_stock_commitments: {
 			outputs: { default: {} }
-		},
-		ext_sales_orders: {
-			outputs: { default: { history: true } }
 		},
 		ext_purchase_orders: {
 			outputs: { default: { history: true } }

@@ -18,11 +18,10 @@ import {
 const account = '11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111';
 const payload: OrderPayload = {
 	order_id: 'order-a',
+	key: 'key-a',
 	reference: "SO-';&<",
 	direction: 'sales',
 	write_target: { account, branch: '0' },
-	agreement_hash: 'seal-a',
-	version: 1,
 	owner_id: 'member-a',
 	ordered_on: '2026-10-26',
 	currency: 'USD',
@@ -126,7 +125,7 @@ it('projects the real sales header and all price/amount fields with precise fore
 	).toBe('448.777');
 });
 
-it('carries the approved discount into the source effective price and refuses inconsistent sealed amounts', () => {
+it('carries the approved discount into the source effective price and refuses inconsistent amounts', () => {
 	const line = {
 		...payload.lines[0],
 		id: 'line-a',
@@ -179,8 +178,8 @@ it('carries the approved discount into the source effective price and refuses in
 it.effect('uses only the existing RPC with stable provenance and bound data on retries', () =>
 	Effect.gen(function* () {
 		const ctx = context();
-		expect(yield* submitOrder(payload, 'order-a:seal-a', ctx)).toBe('sales:0:9002:seal-a');
-		expect(yield* submitOrder(payload, 'order-a:seal-a', ctx)).toBe('sales:0:9002:seal-a');
+		expect(yield* submitOrder(payload, ctx)).toBe('9002');
+		expect(yield* submitOrder(payload, ctx)).toBe('9002');
 		const writes = ctx.calls.filter(
 			(operation) => operation.op === 'call' && operation.arguments.stmt === sourceOrderSql
 		);
@@ -189,7 +188,7 @@ it.effect('uses only the existing RPC with stable provenance and bound data on r
 			if (operation.op !== 'call') throw new Error('RPC required');
 			expect(operation.transaction).toBe('serializable');
 			expect(operation.arguments.correlation).toBe(
-				yield* sourceOrderUuid(payload.order_id, payload.agreement_hash)
+				yield* sourceOrderUuid(payload.order_id, payload.key)
 			);
 			expect(operation.arguments.stmt).not.toContain(payload.reference);
 			expect(operation.arguments.document).toContain('SO-&apos;;&amp;&lt;');
@@ -217,7 +216,7 @@ it.effect('keeps unpinned and retargeted orders out of the SQL connection', () =
 		] as const) {
 			expect(
 				yield* Effect.flip(
-					submitOrder(order, 'order-a:seal-a', {
+					submitOrder(order, {
 						...ctx,
 						configuration: config
 					})
@@ -229,22 +228,23 @@ it.effect('keeps unpinned and retargeted orders out of the SQL connection', () =
 );
 
 it.effect(
-	'refuses unverified purchase/amendment writes and unmapped source IDs before network access',
+	'refuses unverified purchase writes, unread entries and unmapped source IDs before network access',
 	() =>
 		Effect.gen(function* () {
 			const ctx = context();
 			expect(
-				yield* Effect.flip(
-					submitOrder({ ...payload, direction: 'purchasing' }, 'order-a:seal-a', ctx)
-				)
+				yield* Effect.flip(submitOrder({ ...payload, direction: 'purchasing' }, ctx))
 			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'direction' });
 			expect(
-				yield* Effect.flip(submitOrder({ ...payload, version: 2 }, 'order-a:seal-a', ctx))
-			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'version' });
-			expect(
 				yield* Effect.flip(
-					submitOrder({ ...payload, party_code: 'customer-name' }, 'order-a:seal-a', ctx)
+					submitOrder(
+						{ ...payload, lines: payload.lines.map((line) => ({ ...line, source_entry_id: '1' })) },
+						ctx
+					)
 				)
+			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'FEntryID' });
+			expect(
+				yield* Effect.flip(submitOrder({ ...payload, party_code: 'customer-name' }, ctx))
 			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'party_code' });
 			expect(ctx.calls).toHaveLength(0);
 		})

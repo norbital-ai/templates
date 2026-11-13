@@ -12,7 +12,6 @@ import { SourceRowInvalid, type SqlRow } from '../src/integration/kingdee/pollin
 const observed = '2026-10-26T03:00:00.000Z';
 const owner = {
 	order: fixtureId('orders', '00000000-0000-4000-8000-000000000101'),
-	seal: 'approved-seal',
 	currency: 'CNY'
 };
 type Line = FinancialDocument['lines'][number];
@@ -24,7 +23,7 @@ const line = (set: Partial<Line> = {}): Line => ({
 	lotNumber: 'lot-A',
 	netAmount: null,
 	grossAmount: null,
-	localLine: { id: 'sealed-line-A' },
+	localLine: { id: 'line-A' },
 	upstream: null,
 	...set
 });
@@ -90,11 +89,10 @@ test('one settlement header spanning invoice lines contributes its amount once w
 		$id: 'receipt:100',
 		external_code: 'receipt:100',
 		order: owner.order,
-		invoiceExternalId: 'invoice:20:approved-seal',
+		invoiceFid: '20',
 		reference: 'RC30/100',
 		kind: 'receipt',
 		settled_on: '2026-10-26',
-		seal_hash: owner.seal,
 		currency: 'CNY',
 		active: true
 	});
@@ -252,7 +250,7 @@ test('invoice money is attributed to the precise delivery line instead of anothe
 	expect(facts).toHaveLength(3);
 	expect(facts[0]).toMatchObject({
 		external_code: 'shipment:10:1',
-		order_line: 'sealed-line-A',
+		order_line: 'line-A',
 		active: true
 	});
 	expect(sameDecimal(facts[0]?.net_amount, '100')).toBe(true);
@@ -314,9 +312,11 @@ test('an invoice carries its delivery line cost only for the billed quantity', (
 	expect(mapSalesFacts([costed], [partial], observed)[1]?.booked_cost).toBeNull();
 });
 
-test('invoice evidence cannot cross the original sealed order or line', () => {
+test('invoice evidence cannot cross its delivery order or line', () => {
 	for (const changed of [
-		invoice('10', { owner: { ...owner, seal: 'other-seal' } }),
+		invoice('10', {
+			owner: { ...owner, order: fixtureId('orders', '00000000-0000-4000-8000-000000000102') }
+		}),
 		invoice('10', { currency: 'USD' }),
 		invoice('10', {
 			lines: [line({ upstream: { fid: '10', entryId: '1' }, localLine: { id: 'another-line' } })]

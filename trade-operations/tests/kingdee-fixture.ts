@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Id } from '@norbital-ai/bolt';
 import { committed, confirm, type T } from './kit.js';
 import { fixtureId } from './test-runtime.js';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { sourceOrderSql } from '../src/integration/kingdee/submission.js';
@@ -141,30 +141,6 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		const statement = string(args.stmt, 'static SQL');
 		return yield* Effect.try({
 			try: (): DatabaseResult | null => {
-				if (statement.includes('kingdee-amendment-proofs')) {
-					const expected = Schema.decodeUnknownSync(
-						Schema.fromJsonString(
-							Schema.Array(
-								Schema.Struct({
-									seal: Schema.String,
-									sourceId: Schema.String,
-									sourceVersion: Schema.String,
-									cause: Schema.String
-								})
-							)
-						)
-					)(args.expected);
-					return {
-						rows: expected
-							.filter(({ sourceId, sourceVersion, cause }) =>
-								tables.ICOrderAlter?.some(
-									(log) =>
-										log.fid === sourceId && log.version === sourceVersion && log.cause === cause
-								)
-							)
-							.map(({ seal }) => ({ seal }))
-					};
-				}
 				if (statement === sourceAmendmentSql) {
 					const correlation = string(args.correlation, 'owned UUID');
 					const existing = submissions.get(correlation);
@@ -245,7 +221,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 					const hash = string(args.fingerprint, 'fingerprint');
 					let existing = submissions.get(correlation);
 					if (existing && existing.hash !== hash)
-						throw new Error('Source order differs from its sealed submission');
+						throw new Error('Source order differs from its submission');
 					if (!existing) {
 						const document = string(args.document, 'source document');
 						const header = attributes(/<header\s+([^>]*)\/>/.exec(document)?.[1] ?? '');
@@ -385,7 +361,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 							.filter((row) => {
 								if (typeof row.__key !== 'string' || row.__key <= after) return false;
 								if (table === 'SEOrder') {
-									if (statement.includes('kingdee-contract-versions')) {
+									if (statement.includes('kingdee-sales-orders')) {
 										const refs = new Set(
 											(tables.SEOrder ?? [])
 												.filter(
@@ -467,6 +443,8 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 			{ target: { id: instance }, set: { configuration: fixture.configuration(header.owner) } }
 		]
 	});
+	// the draft's own writes reach no ledger
+	yield* t.deliver();
 	return { order, line, party: party.id, product: product.id };
 });
 export const kingdeeSale = Effect.fnUntraced(function* (
@@ -476,11 +454,7 @@ export const kingdeeSale = Effect.fnUntraced(function* (
 ) {
 	const created = yield* kingdeeDraft(t, fixture, instance);
 	yield* confirm(t, created.order);
-	const sealed = (yield* (yield* t.as(t.admin)).query({
-		orders: { where: { id: { eq: created.order } }, limit: 1 }
-	})).orders.rows[0];
-	if (typeof sealed?.seal_hash !== 'string') throw new Error('A sealed sale is required');
-	return { ...created, seal: sealed.seal_hash };
+	return created;
 });
 
 /** Observe the real writer receipts and source approval of each order before starting a replacement. */

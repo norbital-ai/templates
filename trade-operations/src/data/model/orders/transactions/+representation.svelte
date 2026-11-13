@@ -26,7 +26,7 @@
 	{#if shown.mode !== 'create'}
 		<Stack gap="md">
 			<Grid as="dl" gap="md">
-				{#each ['order', 'ext_sales_order', 'ext_purchase_order'] as const as relation}
+				{#each ['order', 'ext_purchase_order'] as const as relation}
 					{@const value = shown.record[relation]}
 					{#if value}<div>
 							<dt class="text-xs font-medium text-muted-foreground">
@@ -35,11 +35,7 @@
 							<dd>
 								<RecordLink
 									{ctx}
-									of={relation === 'order'
-										? 'orders'
-										: relation === 'ext_sales_order'
-											? 'ext_sales_orders'
-											: 'ext_purchase_orders'}
+									of={relation === 'order' ? 'orders' : 'ext_purchase_orders'}
 									id={String(value)}
 								/>
 							</dd>

@@ -71,7 +71,7 @@ test('CEL decimals configure tiers, eligibility, caps and exact large monetary v
 });
 layer(shared(), { excludeTestServices: true })('configured commission', (test) => {
 	test.effect(
-		'configured expressions and parameters seal per SO; later rules cannot rewrite prior commission',
+		'configured expressions and parameters stay with each confirmed SO; later rules cannot rewrite its commission',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
@@ -125,9 +125,10 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 					})
 				).toMatchObject({ currency: 'SGD' });
 				yield* confirm(t, own.order);
-				const sealed = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
-					.orders.rows[0];
-				expect(sealed?.sealed_commission).toMatchObject({
+				const confirmed = (yield* as.query({
+					orders: { where: { id: { eq: own.order } }, limit: 1 }
+				})).orders.rows[0];
+				expect(confirmed?.commission).toMatchObject({
 					engine_version: 'cel-decimal-v1',
 					amount_expression: 'min(net * params.rate, params.cap)',
 					parameters: [
@@ -156,7 +157,7 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 				expect(
 					(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders
 						.rows[0]
-				).toEqual(sealed);
+				).toEqual(confirmed);
 				expect(
 					yield* Effect.flip(
 						as.act({
@@ -189,7 +190,7 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 			})
 	);
 	test.effect(
-		'a net percentage rule works on a sealed SO without optional floor or conversion facts',
+		'a net percentage rule works on a confirmed SO without optional floor or conversion facts',
 		() =>
 			Effect.gen(function* () {
 				// runs after the configured rule: this later-effective rule applies to the new SO only

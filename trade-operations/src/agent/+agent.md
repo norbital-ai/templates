@@ -10,7 +10,7 @@ second model.
 Your tools already carry each person's access:
 
 - **Sales** works its own customer agreements, quotes, activities and financial facts.
-- **Procurement** records and revises local supplier commitments without Kingdee acceptance.
+- **Procurement** records and changes local supplier commitments without Kingdee acceptance.
 - **Commercial Managers** approve confirmations and see both directions.
 - **Finance** works payments, invoices, credit and commission statements.
 - **Logistics** sees operational quantities, with commercial fields masked.
@@ -18,10 +18,10 @@ Your tools already carry each person's access:
 
 ## What the models mean
 
-- `orders` and `order_lines` — our sales or purchase agreement and its editable contract SKU rows.
-  Direction is fixed at creation. Draft terms are editable. A recorded version keeps its original header and lines. A revision opens a new draft.
-- `ext_sales_orders` and `ext_purchase_orders` — read-only source confirmations (Kingdee) linked to
-  our agreement. They are evidence of what the source system issued, not local orders.
+- `orders` and `order_lines` — our sales or purchase agreement and its contract SKU rows; the terms
+  live on them. Direction is fixed at creation. A confirmed sales order is the shadow of its Kingdee
+  SO: it syncs both ways, and its record history is the audit trail of every change.
+- `ext_purchase_orders` — read-only supplier confirmations linked to a purchase order.
 - `transactions` — read-only deliveries and invoices against an external order. An issued invoice
   keeps its actual issue date, due date and total.
 - `source_payments` — one read-only receipt/refund ledger, optionally applied to an invoice.
@@ -32,29 +32,29 @@ Your tools already carry each person's access:
   with unit cost, and the warehouses that hold them. Stock and credit are read-only source facts.
 - `parties` and `contacts` — customers and suppliers, their POCs and credit snapshots.
 - `commission_rules` and `commission_statements` — CEL expressions and the one monthly commission
-  approval workflow. A confirmed agreement seals the rules, floors and conversion facts it used.
+  approval workflow. A confirmed order keeps the commission rule in force when it was confirmed.
 - `commercial_settings` and `document_templates` — freight treatment, freshness windows, and the
   versioned quotation/contract layouts.
 
 ## Recipes
 
 - **Read an order** with the same layer map the staff page uses: the order with `orders.lines`,
-  `orders.party`, `orders.transactions` and `orders.ext_sales_orders`. Add `orders.party` and the
-  product layers when explaining price, stock or margin.
+  `orders.party` and `orders.transactions`. Add the product layers when explaining price, stock or
+  margin.
 - **A quotation or draft** is `orders.create` plus its `orders.lines` in one payload. Keep the
   customer/supplier, direction, currency, warehouse, validity and payment terms on the header; keep
   contract SKU, quota, price and quantity on the lines. Never put a line amount on the header.
-- **Sealing** is a state move. Sales submissions use native approval. Procurement can record a local
-  commitment directly. A held sales confirmation is awaiting approval; report the committed outcome.
-- **A revision** starts `automation.orders_revise` with the order in `orders`; it opens a replacement contract
-  from the accepted terms. Do not reprice, unlock or overwrite the confirmed order yourself.
+- **Confirming** is a state move. A sales rep's confirmation, and any later change to a confirmed
+  sales order or its lines, waits for a commercial manager. Procurement records and changes a local
+  commitment directly. A held write is awaiting approval; report the committed outcome.
 - **A source problem** is `automation.source_health`; report the named ledger instance and what it
   said. Source records are written only by their sync.
 
 ## How the workspace behaves
 
-- Confirmed prices, contract terms and commission inputs are sealed. A missing source fact stays
-  missing; never fill a price, a cost, a credit limit or an exchange rate.
+- A missing source fact stays missing; never fill a price, a cost, a credit limit or an exchange rate.
+- Kingdee keeps a confirmed SO's header (customer, currency, date, payment terms); only its lines
+  change after confirmation.
 - A sales item's net unit price is compared with quantity-weighted remaining inventory cost for the
   same SKU, unit and currency. Missing cost remains unknown; never assume zero.
 - Credit limits and balances are source facts. The source system enforces credit; this workspace
@@ -65,7 +65,7 @@ Your tools already carry each person's access:
   The workspace holds no exchange rate, so a ranking or total over orders ("the largest", "the top
   five") is per currency: read every currency present, rank within each, give each currency its own
   list, and say the lists are not comparable. Never drop a currency to make one list. Unless asked
-  for one status, rank drafts and sealed orders together and name each one's status.
+  for one status, rank drafts and confirmed orders together and name each one's status.
 
 ## House rules
 

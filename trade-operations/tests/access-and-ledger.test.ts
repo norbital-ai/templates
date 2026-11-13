@@ -4,7 +4,7 @@ import { expect, layer } from '@effect/vitest';
 import { direct } from './synced-kit.js';
 import { commissionRule, WEST } from './commission-kit.js';
 import { Trade, shared, draft, confirm } from './kit.js';
-import { commissionOf, confirmationOf, sealedExportOf } from './reads.js';
+import { commissionOf, confirmationOf, documentOf } from './reads.js';
 const rejects = (effect: Effect.Effect<unknown, unknown>, message?: string) =>
 	Effect.tryPromise({
 		try: () => expect(Effect.runPromise(effect)).rejects.toThrow(message),
@@ -62,7 +62,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 			})
 	);
 	test.effect(
-		'logistics reads quantities through its output but not prices; with sales it cannot calculate foreign sealed commission',
+		'logistics reads quantities through its output but not prices; with sales it cannot calculate foreign commission',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
@@ -93,12 +93,9 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 					orders: { output: 'logistics', where: { id: { eq: foreign.order } }, limit: 1 }
 				})).orders.rows[0];
 				expect(shipped).toMatchObject({ id: foreign.order, status: 'confirmed' });
-				expect(shipped).not.toHaveProperty('sealed_snapshot');
-				expect(shipped).not.toHaveProperty('sealed_contract');
-				yield* rejects(
-					sealedExportOf(actor, { order: foreign.order }),
-					'errors.order_not_confirmed'
-				);
+				expect(shipped).not.toHaveProperty('payment_terms');
+				expect(shipped).not.toHaveProperty('commission');
+				yield* rejects(documentOf(actor, { order: foreign.order }));
 				yield* rejects(confirmationOf(actor, { as_of: t.clock.now(), order: foreign.order }));
 				const personal = yield* draft(t, 'sales', fixtureId('sys_user', mixed.id), undefined, WEST);
 				yield* confirm(t, personal.order);

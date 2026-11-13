@@ -5,7 +5,7 @@ import { sourceOrder, sourcePayment, sourceTransaction } from './synced-kit.js';
 
 layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 	test.effect(
-		'archiving retains the sealed contract, issued transactions and active payments',
+		'archiving retains the confirmed terms, issued transactions and active payments',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
@@ -14,7 +14,7 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 				yield* confirm(t, own.order);
 				const before = (yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } }))
 					.orders.rows[0];
-				if (!before) throw new Error('Sealed contract required');
+				if (!before) throw new Error('Confirmed order required');
 				const parent = yield* sourceOrder(t, own.order);
 				const delivery = yield* sourceTransaction(t, own, parent, 'delivery');
 				const invoice = yield* sourceTransaction(t, own, parent);
@@ -23,9 +23,7 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 				const evidence = () =>
 					as.query({
 						transactions: { where: { id: { in: [delivery.id, invoice.id] } } },
-						source_payments: { where: { id: { eq: payment.id } } },
-						// a sales draft's counterpart is its source sales order
-						ext_sales_orders: { where: { order: { eq: own.order } } }
+						source_payments: { where: { id: { eq: payment.id } } }
 					});
 				const retained = yield* evidence();
 				committed(
@@ -40,9 +38,8 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 				).toMatchObject({
 					archived: true,
 					status: 'confirmed',
-					seal_hash: before.seal_hash,
-					sealed_contract: before.sealed_contract,
-					sealed_snapshot: before.sealed_snapshot
+					payment_terms: before.payment_terms,
+					total: before.total
 				});
 				expect(yield* evidence()).toEqual(retained);
 			})
@@ -117,8 +114,7 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 			).toMatchObject({
 				status: 'draft',
 				archived: false,
-				notes: 'Customer may resume later',
-				seal_hash: null
+				notes: 'Customer may resume later'
 			});
 		})
 	);

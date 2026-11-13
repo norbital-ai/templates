@@ -1,9 +1,8 @@
 import { firstRow, decimalText, sameDecimal } from './test-runtime.js';
 import { Effect } from 'effect';
 import { expect, layer } from '@effect/vitest';
-import { Trade, shared, draft, confirm, committed, revise, PRODUCT } from './kit.js';
+import { Trade, shared, draft, confirm, committed, PRODUCT } from './kit.js';
 import { sourceOrder, sourceTransaction, sync } from './synced-kit.js';
-import { agreements, currentAgreement } from '../src/lib/agreements.js';
 import { deliveredByLine, orderDeliveries } from '../src/lib/order-delivery.js';
 layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 	test.effect(
@@ -29,7 +28,7 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 						]
 					},
 					{ total: null },
-					{ ext_sales_order: null }
+					{ order: null }
 				])
 					expect(
 						yield* sync(t, 'transactions', [{ ...invoice.input, ...change }])
@@ -143,84 +142,33 @@ layer(shared(), { excludeTestServices: true })('transactions', (test) => {
 					items: [item(own.line, '-2')]
 				});
 				yield* sourceTransaction(t, own, parent, 'invoice', '7');
-				const order = firstRow(
-					(yield* as.query({ orders: { where: { id: { eq: own.order } } } })).orders.rows
-				);
-				const history = agreements(order);
-				const selected = firstRow(history);
 				const { transactions } = yield* as.query(orderDeliveries(own.order));
 				expect(transactions.total).toBe(2);
-				const quantities = deliveredByLine(selected, history, transactions.rows);
-				expect(quantities.get(own.line)).toEqual(decimalText('12'));
-				expect(quantities.get(other)).toEqual(decimalText('3'));
-				const changed = {
-					...selected,
-					snapshot: {
-						...selected.snapshot,
-						lines: selected.snapshot.lines.map((line) =>
-							line.id === own.line ? { ...line, product: 'different-sku' } : line
-						)
-					}
-				};
-				const changedQuantities = deliveredByLine(changed, history, transactions.rows);
-				expect(changedQuantities.get(own.line)).toBeUndefined();
-				expect(changedQuantities.get(other)).toEqual(decimalText('3'));
+				const quantities = deliveredByLine(transactions.rows);
+				expect(quantities.get(`${own.line}/kg`)).toEqual(decimalText('12'));
+				expect(quantities.get(`${other}/kg`)).toEqual(decimalText('3'));
+				expect(quantities.get(`${own.line}/t`)).toBeUndefined();
 			})
 	);
 
-	test.effect(
-		'a partial delivery counts on the amended line and the superseded contract keeps its own',
-		() =>
-			Effect.gen(function* () {
-				const t = yield* Trade,
-					own = yield* draft(t),
-					as = yield* t.as(t.admin);
-				const spare = committed(
-					'order_lines',
-					yield* as.act({
-						'order_lines.create': [
-							{
-								order: own.order,
-								product: PRODUCT,
-								quantity: '5',
-								unit_price: '2'
-							}
-						]
-					})
-				);
-				yield* confirm(t, own.order);
-				const parent = yield* sourceOrder(t, own.order);
-				yield* sourceTransaction(t, own, parent, 'delivery', '4');
-				yield* revise(t, own.order);
-				committed(
-					'order_lines',
-					yield* as.act({
-						'order_lines.update': [
-							{ target: yield* t.at('order_lines', own.line), set: { quantity: '12' } }
-						]
-					})
-				);
-				yield* as.act({ 'order_lines.delete': [{ target: yield* t.at('order_lines', spare) }] });
-				yield* confirm(t, own.order);
-				const order = firstRow(
-					(yield* as.query({ orders: { where: { id: { eq: own.order } } } })).orders.rows
-				);
-				const history = agreements(order);
-				const current = currentAgreement(order);
-				const original = history.find((version) => version.version === 1);
-				if (!current || !original) throw new Error('Both contract versions required');
-				expect(current.version).toBe(2);
-				expect(current.snapshot.lines.map((line) => line.id)).toEqual([own.line]);
-				expect(original.snapshot.lines.map((line) => line.id).sort()).toEqual(
-					[own.line, spare].sort()
-				);
-				const { transactions } = yield* as.query(orderDeliveries(own.order));
-				const amended = deliveredByLine(current, history, transactions.rows);
-				expect(amended.get(own.line)).toEqual(decimalText('4'));
-				expect(amended.get(spare)).toBeUndefined();
-				const superseded = deliveredByLine(original, history, transactions.rows);
-				expect(superseded.get(own.line)).toEqual(decimalText('4'));
-				expect(superseded.get(spare)).toBeUndefined();
-			})
+	test.effect('a delivery keeps counting on its line after the confirmed order changes', () =>
+		Effect.gen(function* () {
+			const t = yield* Trade,
+				own = yield* draft(t),
+				as = yield* t.as(t.admin);
+			yield* confirm(t, own.order);
+			const parent = yield* sourceOrder(t, own.order);
+			yield* sourceTransaction(t, own, parent, 'delivery', '4');
+			committed(
+				'order_lines',
+				yield* as.act({
+					'order_lines.update': [
+						{ target: yield* t.at('order_lines', own.line), set: { quantity: '12' } }
+					]
+				})
+			);
+			const { transactions } = yield* as.query(orderDeliveries(own.order));
+			expect(deliveredByLine(transactions.rows).get(`${own.line}/kg`)).toEqual(decimalText('4'));
+		})
 	);
 });

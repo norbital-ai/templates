@@ -71,8 +71,8 @@ const json = (value: string) =>
 	Effect.try({ try: (): unknown => JSON.parse(value), catch: failure });
 
 /** Existing ERP FUUID carries provenance; the namespace makes it independent of document numbering. */
-export const sourceOrderUuid = (orderId: string, sealHash: string) =>
-	sha256Hex(JSON.stringify(['norbital-kingdee-order-v1', orderId, sealHash])).pipe(
+export const sourceOrderUuid = (orderId: string, key: string) =>
+	sha256Hex(JSON.stringify(['norbital-kingdee-order-v1', orderId, key])).pipe(
 		Effect.map((digest) => {
 			const hex = `${digest.slice(0, 12)}8${digest.slice(13, 16)}${((Number.parseInt(digest[16] ?? '0', 16) & 3) | 8).toString(16)}${digest.slice(17, 32)}`;
 			return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
@@ -180,15 +180,14 @@ IF @remote IS NULL BEGIN
 END;
 IF (SELECT COUNT(*) FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))<>1 ${fail('Source correlation was not preserved')}
 IF EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND (ISNULL(FVersionNo,'')<>'000' OR ISNULL(FChangeMark,0)<>0)) ${fail('Source order is no longer the original unamended version')}
-IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND actual.FUUID=CAST(@correlation AS uniqueidentifier) AND ${immutableHeader.map((name) => (name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`)).join(' AND ')}) ${fail('Source order header differs from the sealed submission')}
-IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines) ${fail('Source order line count differs from the sealed submission')}
-IF EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${immutableItems.map((name) => `actual.${q(name)}=expected.${q(name)}`).join(' AND ')} AND ((expected.FEntrySelfS0172='' AND (actual.FEntrySelfS0172 IS NULL OR CONVERT(nvarchar(100),actual.FEntrySelfS0172) IN ('','0'))) OR (expected.FEntrySelfS0172<>'' AND ${sameText('actual.FEntrySelfS0172', 'expected.FEntrySelfS0172')})))) ${fail('Source order lines differ from the sealed submission')}
+IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND actual.FUUID=CAST(@correlation AS uniqueidentifier) AND ${immutableHeader.map((name) => (name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`)).join(' AND ')}) ${fail('Source order header differs from the submission')}
+IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines) ${fail('Source order line count differs from the submission')}
+IF EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${immutableItems.map((name) => `actual.${q(name)}=expected.${q(name)}`).join(' AND ')} AND ((expected.FEntrySelfS0172='' AND (actual.FEntrySelfS0172 IS NULL OR CONVERT(nvarchar(100),actual.FEntrySelfS0172) IN ('','0'))) OR (expected.FEntrySelfS0172<>'' AND ${sameText('actual.FEntrySelfS0172', 'expected.FEntrySelfS0172')})))) ${fail('Source order lines differ from the submission')}
 SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash;`;
 
-/** Creates one initial SO draft; the native outbox owns delivery and polling observes source approval. */
+/** Creates the SO as an unaudited draft, or amends its lines; polling observes source approval. */
 export const submitOrder = Effect.fnUntraced(function* (
 	payload: OrderPayload,
-	key: string,
 	ctx: DatabaseContext & { readonly configuration: unknown }
 ) {
 	if (payload.direction !== 'sales')
@@ -197,16 +196,6 @@ export const submitOrder = Effect.fnUntraced(function* (
 			reason: 'Purchase-order write semantics have not been verified'
 		});
 	yield* Effect.try({ try: () => sourceEntryIds(payload), catch: failure });
-	if (payload.previous && payload.previous.tax_inclusive !== payload.tax_inclusive)
-		return yield* new SourceRowInvalid({
-			column: 'tax_inclusive',
-			reason: 'An amendment cannot change the approved tax basis'
-		});
-	if (key !== `${payload.order_id}:${payload.agreement_hash}`)
-		return yield* new SourceRowInvalid({
-			column: '$key',
-			reason: 'Submission identity does not match the sealed agreement'
-		});
 	const target = kingdeeWriteTarget(ctx.configuration);
 	if (target === null)
 		return yield* new SourceRowInvalid({
@@ -220,7 +209,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 	)
 		return yield* new SourceRowInvalid({
 			column: 'writeAccount',
-			reason: 'The sealed order was not authorized for the configured Kingdee account and branch'
+			reason: 'The order was not authorized for the configured Kingdee account and branch'
 		});
 	const config = yield* decode(Configuration, ctx.configuration);
 	const people = yield* decode(Salespeople, yield* json(config.salespersonBindings));
@@ -249,7 +238,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				payload.lines.length > 200 ||
 				new Set(payload.lines.map((line) => line.id)).size !== payload.lines.length
 			)
-				return invalid('lines', 'A bounded complete set of unique sealed lines is required');
+				return invalid('lines', 'A bounded complete set of unique lines is required');
 			sourceInteger(payload.party_code, 'party_code');
 			for (const line of payload.lines) sourceInteger(line.product_code, 'product_code');
 			return { person, denomination, rule };
@@ -257,8 +246,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 		catch: failure
 	});
 	const correlation =
-		payload.previous?.source_uuid ??
-		(yield* sourceOrderUuid(payload.order_id, payload.agreement_hash));
+		payload.previous?.source_uuid ?? (yield* sourceOrderUuid(payload.order_id, payload.key));
 	const lookup = yield* query(ctx, {
 		op: 'call',
 		procedure: { schema: 'sys', name: 'sp_executesql' },
@@ -295,10 +283,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 			)
 				return invalid('currency', 'Source exchange rate is invalid for this currency binding');
 			if (payload.previous && !BigDecimal.equals(rate, dec(payload.previous.source_exchange_rate)))
-				return invalid(
-					'currency',
-					'Source exchange rate changed since the previous contract observation'
-				);
+				return invalid('currency', 'Source exchange rate changed since the previous observation');
 			if (
 				one('employee').id !== selected.person.employeeId ||
 				one('department').id !== selected.person.departmentId
@@ -320,7 +305,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				items: payload.lines.map((line) => {
 					const item = one('item', line.id);
 					if (item.unit_name !== line.unit)
-						return invalid('unit', 'The sealed unit does not match the source base unit');
+						return invalid('unit', 'The line unit does not match the source base unit');
 					return { itemId: item.id, unitId: item.unit_id };
 				})
 			};
@@ -338,7 +323,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 			reason: 'Source order exceeds its payload bound'
 		});
 	const previousDocument = payload.previous
-		? yield* Effect.try({ try: () => previousOrderDocument(payload, bindings), catch: failure })
+		? previousOrderDocument(payload.previous, bindings.baseCurrency)
 		: null;
 	if (previousDocument !== null && previousDocument.length > 262144)
 		return yield* new SourceRowInvalid({
@@ -348,7 +333,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 	const fingerprint = yield* sha256Hex(
 		payload.previous
 			? amendmentFingerprint(payload, batch)
-			: JSON.stringify({ key, header: batch.header, items: batch.items })
+			: JSON.stringify({ order: payload.order_id, header: batch.header, items: batch.items })
 	);
 	const result = yield* decode(
 		Receipt,
@@ -375,7 +360,10 @@ export const submitOrder = Effect.fnUntraced(function* (
 							source_version: payload.previous.source_version,
 							source_exchange_rate: payload.previous.source_exchange_rate,
 							biller: config.billerId,
-							change_cause: amendmentCause(payload.version, payload.agreement_hash)
+							change_cause: amendmentCause(
+								payload.reference,
+								yield* sha256Hex(JSON.stringify(payload.lines))
+							)
 						}
 					: {})
 			},
@@ -387,10 +375,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 	if (result.rows.length !== 1 || receipt === undefined || receipt.hash !== fingerprint)
 		return yield* new SourceRowInvalid({
 			column: '$receipt',
-			reason: 'Source receipt does not match the sealed submission'
+			reason: 'Source receipt does not match the submission'
 		});
-	return (
-		payload.previous?.binding_id ??
-		`sales:${config.branchNo}:${receipt.remote}:${payload.agreement_hash}`
-	);
+	return receipt.remote;
 });

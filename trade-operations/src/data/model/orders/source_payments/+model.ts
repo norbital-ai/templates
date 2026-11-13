@@ -4,7 +4,6 @@ import { readPaymentSource } from '../../../../integration/kingdee/financial-sou
 import { BigDecimal, Effect } from 'effect';
 import { dec } from '../../../../lib/values.js';
 import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
-import { agreement } from '../../../../lib/agreements.js';
 
 type Payment = Pick<
 	CreatedRow<'source_payments'>,
@@ -15,12 +14,11 @@ type Payment = Pick<
 	| 'kind'
 	| 'reference'
 	| 'source_updated_at'
-	| 'seal_hash'
 	| 'currency'
 	| 'amount'
 	| 'active'
 >;
-/** A payment applies to this ledger's sealed agreement (and its issued invoice) and never moves once written. */
+/** A payment applies to this ledger's confirmed order (and its issued invoice) and never moves once written. */
 const settle = Effect.fnUntraced(function* (
 	rows: readonly { readonly value: Payment; readonly old: StoredRow<'source_payments'> | null }[],
 	ctx: WriteCtx<'source_payments'>
@@ -46,11 +44,7 @@ const settle = Effect.fnUntraced(function* (
 		const order = orders.rows.find((row) => row.id === value.order);
 		if (order && order.ledger !== value.source)
 			return yield* ctx.refuse('errors.ledger_mismatch', { row: i });
-		if (
-			!order ||
-			!agreement(order, value.seal_hash) ||
-			value.currency !== agreement(order, value.seal_hash)?.snapshot.currency
-		)
+		if (!order || order.status !== 'confirmed' || value.currency !== order.currency)
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
 			old &&
@@ -58,7 +52,6 @@ const settle = Effect.fnUntraced(function* (
 				value.external_code !== old.external_code ||
 				value.reference !== old.reference ||
 				value.currency !== old.currency ||
-				value.seal_hash !== old.seal_hash ||
 				value.source_updated_at < old.source_updated_at)
 		)
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
@@ -74,8 +67,7 @@ const settle = Effect.fnUntraced(function* (
 						old?.invoice === value.invoice &&
 						value.active === false
 					)) ||
-				invoice.currency !== value.currency ||
-				invoice.seal_hash !== value.seal_hash
+				invoice.currency !== value.currency
 			)
 				return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		}
@@ -90,7 +82,6 @@ export default model({
 		reference: { kind: 'text' },
 		settled_on: { kind: 'date' },
 		source_updated_at: { kind: 'instant' },
-		seal_hash: { kind: 'text', hidden: true },
 		currency: { kind: 'currency' },
 		amount: { kind: 'money', currency: 'currency' },
 		active: { kind: 'bool', default: true },

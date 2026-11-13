@@ -73,7 +73,6 @@ const fields = {
 		'reference',
 		'business_on',
 		'source_updated_at',
-		'seal_hash',
 		'unit',
 		'quantity',
 		'currency',
@@ -153,7 +152,7 @@ export const businessRows = Effect.fnUntraced(function* (
 				if (model === 'source_sales_lines') {
 					if (typeof row.order_id !== 'string' || typeof row.order_line_id !== 'string')
 						throw new BusinessFixtureInvalid({
-							reason: 'Sales evidence requires the existing order and sealed line identities'
+							reason: 'Sales evidence requires the existing order and line identities'
 						});
 					value.order = row.order_id;
 					value.order_line = row.order_line_id;

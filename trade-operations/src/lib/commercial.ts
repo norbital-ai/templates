@@ -136,11 +136,9 @@ export function snapshot(
 		total: text(sum(lines.map((l) => l.total)))
 	};
 }
-export function contract(
-	template: string,
-	seal: NonNullable<Row<'orders'>['sealed_snapshot']>,
-	reference: string
-) {
+/** An order's commercial terms as its documents render them. */
+export type Terms = ReturnType<typeof snapshot>;
+export function contract(template: string, seal: Terms, reference: string) {
 	const values = {
 		number: reference,
 		reference,
@@ -205,7 +203,7 @@ export function creditWarning(
 				)));
 	return { warning: unavailable || adverse, unavailable };
 }
-/** Internal approval basis is refreshed until confirmation, then retained in the SO seal. */
+/** The floors the order's lines meet at confirmation. */
 export function currentFloors(
 	order: Pick<Row<'orders'>, 'currency' | 'ordered_on'>,
 	lines: readonly Row<'order_lines'>[],

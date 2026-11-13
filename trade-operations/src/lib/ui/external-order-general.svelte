@@ -8,7 +8,7 @@
 		view,
 		ctx
 	}: {
-		of: 'ext_sales_orders' | 'ext_purchase_orders';
+		of: 'ext_purchase_orders';
 		view: RecordView;
 		ctx: PageContext;
 	} = $props();

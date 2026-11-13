@@ -15,10 +15,6 @@ it.live(
 			yield* commissionRule(t);
 			const { sales, own } = yield* commissionSale(t);
 			const as = yield* t.as(t.admin);
-			const seal_hash = String(
-				(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
-					?.seal_hash
-			);
 			const fact = (active: boolean, source_updated_at: string) =>
 				businessRows(
 					t,
@@ -31,7 +27,6 @@ it.live(
 						reference,
 						business_on: '2026-10-10',
 						source_updated_at,
-						seal_hash,
 						unit: 'kg',
 						quantity: '500',
 						currency: 'SGD',

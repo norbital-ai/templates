@@ -14,7 +14,6 @@ import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { type OrderPayload } from '../../src/integration/kingdee/order-batch.js';
 import { readSourceOrderFamilies } from '../../src/integration/kingdee/order-source.js';
 import { submitOrder, sourceOrderUuid } from '../../src/integration/kingdee/submission.js';
-import { readAmendmentProofs } from '../../src/integration/kingdee/amendment.js';
 
 const password = process.env.MSSQL_SA_PASSWORD;
 assert.ok(password, 'Set MSSQL_SA_PASSWORD for the disposable Docker instance.');
@@ -62,8 +61,7 @@ const initial: OrderPayload = {
 	reference,
 	direction: 'sales',
 	write_target: { account, branch: '0' },
-	agreement_hash: 'initial',
-	version: 1,
+	key: 'initial',
 	owner_id: 'operator',
 	ordered_on: '2026-10-26',
 	currency: 'CNY',
@@ -72,7 +70,7 @@ const initial: OrderPayload = {
 	payment_terms: 'NET30',
 	lines: [line]
 };
-const correlation = await Effect.runPromise(sourceOrderUuid(orderId, initial.agreement_hash));
+const correlation = await Effect.runPromise(sourceOrderUuid(orderId, initial.key));
 
 async function execute(operation: DatabaseRequest): Promise<DatabaseResult> {
 	const compiled = compile_sql_server(
@@ -135,42 +133,14 @@ const database = (loseReceipt = false, replaceWriteAccount = false) => ({
 		})
 });
 const submit = (payload: OrderPayload, loseReceipt = false) =>
-	Effect.runPromise(
-		submitOrder(payload, `${payload.order_id}:${payload.agreement_hash}`, database(loseReceipt))
-	);
+	Effect.runPromise(submitOrder(payload, database(loseReceipt)));
 const nativeId = Schema.decodeUnknownSync(
 	Schema.declare<Id<'orders'>>((value): value is Id<'orders'> =>
 		Schema.is(input_schema({ kind: 'ref', to: 'orders' }))(value)
 	)
 )(orderId);
 const readFamilies = () =>
-	Effect.runPromise(
-		readSourceOrderFamilies(
-			[
-				{
-					order: nativeId,
-					agreement: {
-						version: initial.version,
-						seal_hash: initial.agreement_hash,
-						snapshot: {
-							currency: initial.currency,
-							tax_inclusive: initial.tax_inclusive,
-							lines: [
-								{
-									...line,
-									product_name: 'Fixture product',
-									floor_net: '',
-									commission_basis_unit: '',
-									commission_factor: ''
-								}
-							]
-						}
-					}
-				}
-			],
-			database()
-		)
-	);
+	Effect.runPromise(readSourceOrderFamilies([{ order: nativeId, uuid: correlation }], database()));
 const family = () =>
 	inspect
 		.request()
@@ -196,7 +166,7 @@ try {
 		inspect.request().query("SELECT FMaxNum FROM dbo.ICMaxNum WHERE FTableName='SEOrder'");
 	const beforeRefusal = (await allocator()).recordset;
 	await assert.rejects(
-		Effect.runPromise(submitOrder(initial, `${orderId}:initial`, database(false, true))),
+		Effect.runPromise(submitOrder(initial, database(false, true))),
 		/write account identity does not match/
 	);
 	assert.deepEqual((await allocator()).recordset, beforeRefusal);
@@ -214,8 +184,8 @@ try {
 			gross: '22.6000000000'
 		}
 	]);
-	const binding = `sales:0:${created.id}:initial`;
-	assert.deepEqual(await Promise.all([submit(initial), submit(initial)]), [binding, binding]);
+	const remote = String(created.id);
+	assert.deepEqual(await Promise.all([submit(initial), submit(initial)]), [remote, remote]);
 	assert.equal((await family()).recordset.length, 1);
 	const before = (await readFamilies()).find((family) => family.order === nativeId);
 	assert.deepEqual(
@@ -231,23 +201,33 @@ try {
 			...initial,
 			lines: [{ ...line, quantity: '11', net: '22', tax: '2.86', total: '24.86' }]
 		}),
-		/lines differ from the sealed submission/
+		/lines differ from the submission/
 	);
 
 	const amendment: OrderPayload = {
 		...initial,
-		version: 2,
-		agreement_hash: 'replacement',
-		lines: [{ ...line, quantity: '12', net: '24', tax: '3.12', total: '27.12' }],
+		lines: [
+			{ ...line, source_entry_id: '1', quantity: '12', net: '24', tax: '3.12', total: '27.12' }
+		],
 		previous: {
-			binding_id: binding,
 			source_id: String(created.id),
 			source_uuid: correlation,
 			source_version: '000',
 			source_exchange_rate: '1',
-			agreement_hash: 'initial',
-			tax_inclusive: false,
-			lines: [{ ...line, source_entry_id: '1' }]
+			lines: [
+				{
+					entry: '1',
+					item: line.product_code,
+					unit: line.unit,
+					quantity: line.quantity,
+					exclusive: line.unit_price,
+					inclusive: '2.26',
+					tax_rate: line.tax_rate,
+					net: line.net,
+					tax: line.tax,
+					total: line.total
+				}
+			]
 		}
 	};
 	await assert.rejects(submit(amendment), /no longer audited/);
@@ -260,7 +240,7 @@ try {
 			'UPDATE dbo.SEOrder SET FCheckerID=42,FCheckDate=GETDATE(),FStatus=1 WHERE FInterID=@id'
 		);
 	await assert.rejects(submit(amendment, true), /discarded the committed receipt/);
-	assert.equal(await submit(amendment), binding);
+	assert.equal(await submit(amendment), remote);
 	const [live, archive] = (await family()).recordset;
 	assert.equal((await family()).recordset.length, 2);
 	assert.deepEqual(
@@ -279,24 +259,6 @@ try {
 			'SELECT FChangeField AS field,FEChangeValue AS value FROM dbo.ICOrderAlter WHERE FInterID=@id'
 		);
 	assert.deepEqual(logs.recordset, [{ field: '数量', value: '12.0000000000' }]);
-	const proof = {
-		seal: amendment.agreement_hash,
-		version: amendment.version,
-		sourceId: String(live.id),
-		sourceVersion: '001'
-	};
-	assert.deepEqual(
-		await Effect.runPromise(
-			readAmendmentProofs(database(), [proof, { ...proof, seal: 'another-local-amendment' }])
-		),
-		new Set([proof.seal])
-	);
-	for (const mismatch of [{ sourceVersion: '000' }, { sourceId: String(archive.id) }]) {
-		assert.equal(
-			(await Effect.runPromise(readAmendmentProofs(database(), [{ ...proof, ...mismatch }]))).size,
-			0
-		);
-	}
 	const after = (await readFamilies()).find((family) => family.order === nativeId);
 	assert.deepEqual(
 		after?.headers.map(({ version, checker, archive }) => [version, checker, archive]),

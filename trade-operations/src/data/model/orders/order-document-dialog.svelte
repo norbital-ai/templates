@@ -13,16 +13,13 @@
 		documentRead,
 		orderDocument
 	} from '../../../lib/order-document.js';
-	import { contractSignatureRead } from '../../../lib/salesperson-signatures.js';
 
 	let {
 		order,
-		version = null,
 		on_close,
 		ctx
 	}: {
 		order: Id<'orders'>;
-		version?: number | null;
 		on_close: () => void;
 		ctx: PageContext;
 	} = $props();
@@ -31,32 +28,16 @@
 	let error = $state<string | null>(null);
 	let stampAvailable = $state(false);
 	let includeStamp = $state(false);
-	let signatureAvailable = $state(false);
-	let includeSignature = $state(false);
 	const loadPdf = attach(() => {
 		const request = documentRead(order);
-		const selectedVersion = version;
 		const stamp = includeStamp;
-		const withSignature = includeSignature;
-		const actor = ctx.actor;
 		return Effect.gen(function* () {
 			file = null;
 			error = null;
-			const document = yield* orderDocument(yield* ctx.query(request), {
-				version: selectedVersion
-			});
+			const document = yield* orderDocument(yield* ctx.query(request));
 			stampAvailable = document.stamp != null;
-			const signing = document.signing;
-			signatureAvailable = !!signing && actor?.kind === 'member' && actor.id === signing.owner;
-			const signature =
-				withSignature && signatureAvailable && signing
-					? (yield* ctx.query(contractSignatureRead(signing))).salesperson_signatures.rows[0]
-							?.signature?.png
-					: null;
-			if (withSignature && signatureAvailable && !signature)
-				return yield* Effect.fail(new Error('The retained signature is unavailable.'));
 			const source = yield* documentSource(
-				{ ...document, stamp: stamp ? document.stamp : null, signature: signature ?? null },
+				{ ...document, stamp: stamp ? document.stamp : null },
 				(asset) =>
 					HttpClient.get(ctx.file_url(asset)).pipe(
 						Effect.flatMap((response) => response.arrayBuffer),
@@ -96,20 +77,12 @@
 	<Dialog.Content class="sm:max-w-4xl">
 		<Dialog.Title>{ctx.t('component.preview_document')}</Dialog.Title>
 		<div {@attach loadPdf}>
-			{#if stampAvailable || signatureAvailable}
+			{#if stampAvailable}
 				<div class="mb-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-					{#if stampAvailable}
-						<label class="flex items-center gap-2">
-							<input type="checkbox" bind:checked={includeStamp} />
-							{ctx.t('component.include_company_stamp')}
-						</label>
-					{/if}
-					{#if signatureAvailable}
-						<label class="flex items-center gap-2">
-							<input type="checkbox" bind:checked={includeSignature} />
-							{ctx.t('component.include_sales_signature')}
-						</label>
-					{/if}
+					<label class="flex items-center gap-2">
+						<input type="checkbox" bind:checked={includeStamp} />
+						{ctx.t('component.include_company_stamp')}
+					</label>
 				</div>
 			{/if}
 			{#if file}

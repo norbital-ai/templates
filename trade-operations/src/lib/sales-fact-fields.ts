@@ -4,7 +4,6 @@ export const commercialSalesFields = [
 	'source_dimensions',
 	'currency',
 	'order_line',
-	'seal_hash',
 	'reference',
 	'external_code',
 	'business_on',

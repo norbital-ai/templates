@@ -3,12 +3,7 @@ import { dec, div, text, type DecimalLike } from '../../../../lib/values.js';
 import { logisticsLine } from '../../../../lib/logistics.js';
 import { type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
-import { agreement } from '../../../../lib/agreements.js';
-import {
-	contractEntryId,
-	draftLineMatches,
-	draftLineTarget
-} from '../../../../lib/contract-draft.js';
+import { pushOrder, readKingdeeOrderLines } from '../../../../integration/kingdee/sales-orders.js';
 import { price } from '../../../../lib/commercial.js';
 import {
 	printValueKind,
@@ -39,24 +34,20 @@ const priced = Effect.fnUntraced(function* (
 	const {
 		products,
 		pricing_floors: floors,
-		warehouses,
-		ext_sales_orders: salesOrders,
-		ext_purchase_orders: purchaseOrders
+		warehouses
 	} = yield* ctx.query({
 		products: { where: { id: { in: productIds } } },
 		pricing_floors: { where: { product: { in: productIds } } },
-		warehouses: {},
-		ext_sales_orders: {
-			where: { order: { in: lines.map((line) => line.order) } },
-			fields: ['order']
-		},
-		ext_purchase_orders: {
-			where: { order: { in: lines.map((line) => line.order) } },
-			fields: ['order']
-		}
+		warehouses: {}
 	});
-	const orders = yield* ctx.query.after('orders', { id: { in: lines.map((l) => l.order) } });
-	const out: Pick<
+	// an order created with its lines in the same act is read as the act leaves it
+	const ids = [...new Set(lines.map((l) => l.order))];
+	const stored = (yield* ctx.query({ orders: { where: { id: { in: ids } } } })).orders.rows;
+	const pending = ids.filter((id) => !stored.some((order) => order.id === id));
+	const orders = pending.length
+		? [...stored, ...(yield* ctx.query.after('orders', { id: { in: pending } }))]
+		: stored;
+	const out: (Pick<
 		StoredRow<'order_lines'>,
 		| 'source_entry_id'
 		| 'quantity'
@@ -66,7 +57,6 @@ const priced = Effect.fnUntraced(function* (
 		| 'product_code'
 		| 'product_name'
 		| 'product_spec'
-		| 'print_values'
 		| 'unit'
 		| 'currency'
 		| 'net'
@@ -76,7 +66,8 @@ const priced = Effect.fnUntraced(function* (
 		| 'floor_on'
 		| 'commission_basis_unit'
 		| 'commission_factor'
-	>[] = [];
+	> &
+		Partial<Pick<StoredRow<'order_lines'>, 'print_values'>>)[] = [];
 	for (const {
 		order: orderId,
 		product: productId,
@@ -86,14 +77,7 @@ const priced = Effect.fnUntraced(function* (
 	} of lines) {
 		const order = orders.find((o) => o.id === orderId);
 		const product = products.rows.find((p) => p.id === productId);
-		if (
-			!order ||
-			order.archived ||
-			order.status !== 'draft' ||
-			([...salesOrders.rows, ...purchaseOrders.rows].some((row) => row.order === orderId) &&
-				!order.contract_versions?.length)
-		)
-			return yield* ctx.refuse('errors.order_sealed');
+		if (!order || order.archived) return yield* ctx.refuse('errors.order_archived');
 		if (!product?.active) return yield* ctx.refuse('errors.product_inactive');
 		if (product.source !== order.ledger)
 			return yield* ctx.refuse('errors.ledger_mismatch', { field: 'product' });
@@ -101,13 +85,8 @@ const priced = Effect.fnUntraced(function* (
 			return yield* ctx.refuse('errors.currency_price');
 		const source_entry_id =
 			requestedEntry !== undefined ? requestedEntry : (old?.source_entry_id ?? null);
-		if (
-			!order.draft_setup &&
-			requestedEntry !== undefined &&
-			source_entry_id !== (old?.source_entry_id ?? null)
-		)
-			return yield* ctx.refuse('errors.evidence_sealed');
-		if (old?.source_entry_id && source_entry_id !== old.source_entry_id)
+		// only the Kingdee read binds a line to its SO entry
+		if (source_entry_id !== (old?.source_entry_id ?? null) && ctx.actor.kind !== 'system')
 			return yield* ctx.refuse('errors.evidence_sealed');
 		const quantity = input.quantity ?? old?.quantity;
 		const unit_price =
@@ -136,29 +115,6 @@ const priced = Effect.fnUntraced(function* (
 		if (details && !validPrintValues(details))
 			return yield* ctx.refuse('errors.print_values_invalid', { field: 'print_values' });
 		const print_values = details ? orderedPrintValues(details) : null;
-		let setupTarget;
-		if (order.draft_setup) {
-			const current = agreement(order, order.draft_setup);
-			setupTarget = current?.snapshot.lines.find((line) =>
-				source_entry_id ? contractEntryId(current, line) === source_entry_id : line.id === old?.id
-			);
-			if (
-				!current ||
-				current.seal_hash !== order.draft_setup ||
-				!setupTarget ||
-				!draftLineMatches(current, setupTarget, {
-					product: productId,
-					source_entry_id,
-					unit,
-					print_values,
-					quantity: text(quantity),
-					unit_price: text(unit_price),
-					discount_pct: text(discount_pct),
-					tax_rate: text(tax_rate)
-				})
-			)
-				return yield* ctx.refuse('errors.contract_setup');
-		}
 		const group = warehouses.rows.find((v) => v.id === order.warehouse)?.group_code;
 		const floor = floors.rows
 			.filter(
@@ -188,14 +144,10 @@ const priced = Effect.fnUntraced(function* (
 			unit_price: text(unit_price),
 			discount_pct: text(discount_pct),
 			tax_rate: text(tax_rate),
-			print_values,
-			product_code: setupTarget?.product_code ?? old?.product_code ?? product.external_code,
-			product_name: setupTarget?.product_name ?? old?.product_name ?? product.name,
-			product_spec: setupTarget
-				? (setupTarget.product_spec ?? null)
-				: old
-					? old.product_spec
-					: product.spec,
+			...(input.print_values !== undefined ? { print_values } : {}),
+			product_code: old?.product_code ?? product.external_code,
+			product_name: old?.product_name ?? product.name,
+			product_spec: old ? old.product_spec : product.spec,
 			unit,
 			currency: amounts.currency,
 			net: text(amounts.net),
@@ -351,5 +303,22 @@ export default model({
 		}
 	},
 	// a line delete is judged by its holders' policies (`lineDeletes` in `order-review.ts`)
-	delete: {}
+	delete: {},
+	syncs: {
+		// The Kingdee SO's lines: the read mirrors each entry, a write sends the whole order.
+		kingdee: {
+			with: 'kingdee',
+			every: '1min',
+			read: function* ({ cursor, instance }, ctx) {
+				return yield* readKingdeeOrderLines(instance, cursor, ctx);
+			},
+			write: function* ({ op, row, instance }, ctx) {
+				const written = yield* pushOrder(row.order, instance, ctx);
+				const entry = written?.lines.find((line) => line.line === row.id);
+				return op === 'delete' || !written || !entry
+					? null
+					: { $id: `${written.$id}:${entry.entry}`, $version: entry.$version };
+			}
+		}
+	}
 });

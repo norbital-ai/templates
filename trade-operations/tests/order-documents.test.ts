@@ -3,30 +3,19 @@ import { fixtureId, firstRow } from './test-runtime.js';
 import * as Base64 from 'effect/encoding/Base64';
 import { Schema, Effect, Layer, Result } from 'effect';
 import { expect, it, layer } from '@effect/vitest';
-import {
-	Trade,
-	draft,
-	confirm,
-	committed,
-	shared,
-	PRODUCT,
-	revise,
-	SETTINGS,
-	type T
-} from './kit.js';
+import { Trade, draft, confirm, committed, shared, PRODUCT, SETTINGS, type T } from './kit.js';
 import { Convert } from '@norbital-ai/bolt/engine';
 import { cnyInWords, printAmounts } from '../src/lib/print-amounts.js';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import {
 	documentRead,
 	documentSource,
-	orderDocument,
 	renderOrderDocument,
 	renderPrintLayout,
 	validateDocumentTemplate
 } from '../src/lib/order-document.js';
 import { documentOf } from './reads.js';
-import { contractSignatureRead } from '../src/lib/salesperson-signatures.js';
+import { snapshot } from '../src/lib/commercial.js';
 it('document templates keep agreement content and escape all substituted text', () => {
 	expect(() => validateDocumentTemplate('{title}')).toThrow();
 	expect(() => validateDocumentTemplate('{agreement} {unknown}')).toThrow();
@@ -129,44 +118,6 @@ const renderPreview = Effect.fnUntraced(function* (
 });
 
 layer(workspace, { excludeTestServices: true })('order documents', (test) => {
-	test.effect(
-		'new contracts omit personal artwork and historical exports retain their original image',
-		() =>
-			Effect.gen(function* () {
-				const t = yield* Trade;
-				const signer = t.member(['sales', 'own_signature']);
-				const owner = fixtureId('sys_user', signer.id);
-				const self = yield* t.as(signer);
-				const manager = yield* t.as(t.member(['manager', 'own_signature']));
-				const image =
-					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGMQ0Er5DwACigGewaDUQwAAAABJRU5ErkJggg==';
-				const retained = fixtureId('salesperson_signatures', randomUUID());
-				yield* t.db.write({
-					text: `INSERT INTO salesperson_signatures (id,owner,signature) VALUES ($1,$2,jsonb_build_object('png',$3::text))`,
-					params: [retained, owner, image]
-				});
-				const { order } = yield* draft(t, 'sales', owner);
-				yield* confirm(t, order);
-				expect((yield* documentOf(self, { order })).signing).toBeNull();
-
-				// Represent a version sealed by the prior release, which captured the image pointer.
-				yield* t.db.write({
-					text: `UPDATE orders SET contract_versions=jsonb_set(contract_versions,'{0,signature_version}',to_jsonb($2::text),true) WHERE id=$1`,
-					params: [order, retained]
-				});
-				const historical = yield* documentOf(self, { order });
-				expect(historical.signing).toEqual({ owner, version: retained });
-				const read = contractSignatureRead({ owner, version: retained });
-				expect((yield* manager.query(read)).salesperson_signatures.rows).toEqual([]);
-				const artwork = firstRow((yield* self.query(read)).salesperson_signatures.rows).signature;
-				const rendered = yield* renderPreview(t, {
-					...historical,
-					signature: artwork?.png ?? null
-				});
-				expect(rendered).toContain(`src="data:image/png;base64,${image}"`);
-			})
-	);
-
 	test.effect('Sales has a direct full record only for the signed-in system user', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
@@ -260,11 +211,10 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			expect(printed[0]).toContain('<b>21.80</b><p>Delivery by arrangement.</p>');
 			expect(printed[0]).toContain('0.010 t · 2,180.00 · Synthetic &amp; Co');
 			expect(printed[0]).toContain('BUY &lt;42&gt;\nNorth entrance');
-			const sealed = firstRow(
-				(yield* admin.query({ orders: { where: { id: { eq: order } } } })).orders.rows
-			).sealed_snapshot;
-			const lineBasis = sealed?.lines[0];
-			if (!sealed || !lineBasis) throw new Error('Expected the sealed print fixture');
+			const saved = firstRow((yield* admin.query(documentRead(order))).orders.rows);
+			if (!saved.party) throw new Error('Expected the saved print fixture');
+			const sealed = snapshot(saved, saved.party, saved.lines, '1');
+			const lineBasis = firstRow(sealed.lines);
 			const kg = { ...lineBasis, quantity: '81000.000', unit_price: '1.6532', unit: 'kg' };
 			expect(printAmounts({ ...sealed, lines: [kg] })).toMatchObject({
 				fields: { quantity_grouped: '81,000' },
@@ -276,9 +226,6 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				fields: { quantity_grouped: '' },
 				lines: [{}, { quantity_grouped: '1.25', unit_export: 'MT' }]
 			});
-			yield* revise(t, order);
-			const draftCopy = yield* documentOf(admin, { order });
-			expect(draftCopy.print).toEqual(document.print);
 			yield* admin.act({
 				'orders.update': [
 					{
@@ -295,11 +242,9 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					}
 				]
 			});
-			yield* confirm(t, order);
 			const next = yield* documentOf(admin, { order });
 			expect(next.print?.fields).toMatchObject({ detail_buyer_reference: 'BUY 43' });
 			expect(next.print?.lines[0]).toMatchObject({ detail_brand: '', quantity_tonnes: '0.020' });
-			expect((yield* documentOf(admin, { order, version: 1 })).print).toEqual(document.print);
 		})
 	);
 	test.effect('a published layout cannot be changed', () =>
@@ -324,7 +269,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 		})
 	);
 	test.effect(
-		'preview and PDF use the same sealed agreement; a later layout and logistics cannot change or export it',
+		'preview and PDF render the order in its own layout; a later default and logistics cannot change or export it',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
@@ -382,19 +327,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				yield* confirm(t, order);
 				const preview = yield* documentOf(admin, { order });
 				expect(preview.title).toBe(draftPreview.title);
-				const answer = yield* admin.query(documentRead(order));
-				const confirmed = firstRow(answer.orders.rows);
-				const legacy = (confirmed.contract_versions ?? []).map((version) => {
-					const { document_template_id: _layout, ...snapshot } = version.snapshot;
-					return { ...version, snapshot };
-				});
-				expect(
-					yield* orderDocument({
-						...answer,
-						orders: { ...answer.orders, rows: [{ ...confirmed, contract_versions: legacy }] },
-						document_templates: { ...answer.document_templates, rows: [] }
-					})
-				).toEqual(preview);
+				const confirmed = firstRow((yield* admin.query(documentRead(order))).orders.rows);
 				yield* admin.act({
 					'commercial_settings.update': [
 						{
@@ -413,7 +346,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(converted).toEqual([preview.html]);
 			})
 	);
-	test.effect('the published contract stamp is included only on its sealed sales contracts', () =>
+	test.effect('the published contract stamp is included only on confirmed sales contracts', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
 			const admin = yield* t.as(t.admin);
@@ -605,15 +538,12 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(converted[0]).toContain('Company letterhead');
 				expect(converted[0]).toContain('Retained terms.');
 				expect(converted[0]).not.toContain('A-120');
-				yield* revise(t, order);
 				yield* admin.act({
 					'orders.update': [
 						{ target: yield* t.at('orders', order), set: { document_template: nextLayout } }
 					]
 				});
-				yield* confirm(t, order);
 				expect((yield* documentOf(admin, { order })).html).toContain('Changed terms.');
-				expect(yield* documentOf(admin, { order, version: 1 })).toEqual(original);
 			})
 	);
 });

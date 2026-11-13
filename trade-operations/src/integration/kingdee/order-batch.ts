@@ -18,10 +18,10 @@ type OrderLine = {
 };
 export type OrderPayload = {
 	readonly order_id: string;
+	/** The order's `source_order_key`: with its id, the SO's FUUID. */
+	readonly key: string;
 	readonly reference: string;
 	readonly direction: 'sales' | 'purchasing';
-	readonly agreement_hash: string;
-	readonly version: number;
 	readonly owner_id: string;
 	readonly ordered_on: string;
 	readonly currency: string;
@@ -30,15 +30,24 @@ export type OrderPayload = {
 	readonly payment_terms: string;
 	readonly write_target?: { readonly account: string; readonly branch: string };
 	readonly lines: readonly OrderLine[];
+	/** The SO as Kingdee holds it, when this write amends its lines. */
 	readonly previous?: {
-		readonly binding_id: string;
 		readonly source_id: string;
 		readonly source_uuid: string;
 		readonly source_version: string;
 		readonly source_exchange_rate: string;
-		readonly agreement_hash: string;
-		readonly tax_inclusive: boolean;
-		readonly lines: readonly (OrderLine & { readonly source_entry_id: string })[];
+		readonly lines: readonly {
+			readonly entry: string;
+			readonly item: string;
+			readonly unit: string;
+			readonly quantity: string;
+			readonly exclusive: string;
+			readonly inclusive: string;
+			readonly tax_rate: string;
+			readonly net: string;
+			readonly tax: string;
+			readonly total: string;
+		}[];
 	};
 };
 export type SourceOrderBindings = {
@@ -140,15 +149,14 @@ export function sourceInteger(value: string, column: string): string {
 /** An amendment keeps existing entry identities and appends new ones; positions are never renumbered. */
 export function sourceEntryIds(payload: OrderPayload) {
 	if (
-		!Number.isInteger(payload.version) ||
-		payload.version < 1 ||
 		payload.lines.length === 0 ||
 		payload.lines.length > 200 ||
 		payload.lines.some((line) => line.id.trim() === '') ||
 		new Set(payload.lines.map((line) => line.id)).size !== payload.lines.length
 	)
-		return invalid('lines', 'A contract requires a bounded set of unique line identities');
-	if (payload.version === 1 && payload.previous === undefined) {
+		return invalid('lines', 'An order requires a bounded set of unique line identities');
+	const previous = payload.previous;
+	if (previous === undefined) {
 		if (payload.lines.some((line) => line.source_entry_id !== undefined))
 			return invalid('FEntryID', 'Existing source entries require the previous source basis');
 		return payload.lines.map((line, index) => ({
@@ -156,38 +164,25 @@ export function sourceEntryIds(payload: OrderPayload) {
 			entry_id: String(index + 1)
 		}));
 	}
-	const previous = payload.previous;
 	if (
-		previous === undefined ||
-		previous.binding_id.trim() === '' ||
-		previous.binding_id.length > 512 ||
 		!/^\d{3}$/.test(previous.source_version) ||
 		previous.source_version === '999' ||
-		!previous.agreement_hash ||
 		!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(previous.source_uuid) ||
 		previous.lines.length === 0 ||
-		previous.lines.length > 200 ||
-		new Set(previous.lines.map((line) => line.id)).size !== previous.lines.length
+		previous.lines.length > 200
 	)
-		return invalid(
-			'version',
-			'An amendment requires the complete previously observed source version'
-		);
+		return invalid('version', 'An amendment requires the complete current source version');
 	sourceInteger(previous.source_id, 'FInterID');
 	if (!BigDecimal.isPositive(dec(previous.source_exchange_rate)))
 		return invalid('currency', 'A positive previously observed exchange rate is required');
-	const existing = new Map(
-		previous.lines.map((line) => [line.id, sourceInteger(line.source_entry_id, 'FEntryID')])
-	);
-	if (new Set(existing.values()).size !== existing.size)
-		return invalid('FEntryID', 'The previous source entry identities are ambiguous');
 	const sourceLines = new Map(
-		previous.lines.map((line) => [sourceInteger(line.source_entry_id, 'FEntryID'), line])
+		previous.lines.map((line) => [sourceInteger(line.entry, 'FEntryID'), line])
 	);
+	if (sourceLines.size !== previous.lines.length)
+		return invalid('FEntryID', 'The previous source entry identities are ambiguous');
 	const used = new Set<string>();
-	let next = Math.max(...[...existing.values()].map(Number));
+	let next = Math.max(...[...sourceLines.keys()].map(Number));
 	return payload.lines.map((line) => {
-		const known = existing.get(line.id);
 		const explicit =
 			line.source_entry_id === undefined
 				? undefined
@@ -197,14 +192,11 @@ export function sourceEntryIds(payload: OrderPayload) {
 				'FEntryID',
 				'The claimed source entry is absent from the previous source basis'
 			);
-		if (explicit !== undefined && known !== undefined && explicit !== known)
-			return invalid('FEntryID', 'An existing local line cannot change its source entry identity');
-		const entry = explicit ?? known ?? sourceInteger(String(++next), 'FEntryID');
+		const entry = explicit ?? sourceInteger(String(++next), 'FEntryID');
 		const basis = sourceLines.get(entry);
 		if (
 			basis &&
-			(sourceInteger(basis.product_code, 'FItemID') !==
-				sourceInteger(line.product_code, 'FItemID') ||
+			(sourceInteger(basis.item, 'FItemID') !== sourceInteger(line.product_code, 'FItemID') ||
 				basis.unit !== line.unit)
 		)
 			return invalid('FEntryID', 'A source entry cannot be reassigned to another product or unit');
@@ -248,8 +240,6 @@ export function sourceOrderBatch(
 ): SourceOrderBatch {
 	if (payload.direction !== 'sales')
 		return invalid('direction', 'The purchase-order write mapping has not been verified');
-	if (!Number.isInteger(payload.version) || payload.version < 1)
-		return invalid('version', 'A positive contract version is required');
 	if (
 		payload.lines.length === 0 ||
 		payload.lines.length > 200 ||
@@ -322,7 +312,7 @@ export function sourceOrderBatch(
 			!BigDecimal.equals(dec(actual.tax), dec(line.tax)) ||
 			!BigDecimal.equals(dec(actual.total), dec(line.total))
 		)
-			return invalid('lines', 'The sealed line amounts do not match its quantity, price and tax');
+			return invalid('lines', 'The line amounts do not match its quantity, price and tax');
 		const discounted = div(
 			BigDecimal.multiply(dec(line.unit_price), BigDecimal.subtract(hundred, discount)),
 			hundred,

@@ -1,7 +1,8 @@
 import { Effect } from 'effect';
 import { layer } from '@effect/vitest';
 import type { NativeActAnswer } from '@norbital-ai/bolt-cli/test';
-import { CUSTOMER, Trade, shared, draft, committed } from './kit.js';
+import { CUSTOMER, Trade, shared, draft, confirm, committed } from './kit.js';
+import { confirmationOf } from './reads.js';
 import { fixtureId } from './test-runtime.js';
 const held = (outcome: NativeActAnswer) => {
 	if (outcome.kind !== 'pending_approval') throw new Error(JSON.stringify(outcome));
@@ -37,5 +38,60 @@ layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 			yield* Effect.flip(sales.approvals.decide(request, { decision: 'approve' }));
 			yield* manager.approvals.decide(request, { decision: 'approve' });
 		})
+	);
+
+	test.effect('a sales rep confirming an own order waits for a commercial manager', () =>
+		Effect.gen(function* () {
+			const { t, seller, sales, manager } = yield* people;
+			const { order } = yield* draft(t, 'sales', fixtureId('sys_user', seller.id));
+			const check = yield* confirmationOf(sales, { order, as_of: t.clock.now() });
+			const request = held(
+				yield* sales.act({
+					'orders.update': [
+						{
+							target: yield* t.at('orders', order),
+							set: { status: 'confirmed', check_hash: check.check_hash }
+						}
+					]
+				})
+			);
+			yield* Effect.flip(sales.approvals.decide(request, { decision: 'approve' }));
+			yield* manager.approvals.decide(request, { decision: 'approve' });
+		})
+	);
+
+	test.effect(
+		'a sales rep changing a confirmed order or its lines waits for a commercial manager',
+		() =>
+			Effect.gen(function* () {
+				const { t, seller, sales, manager } = yield* people;
+				const { order, line } = yield* draft(t, 'sales', fixtureId('sys_user', seller.id));
+				yield* confirm(t, order);
+				const terms = held(
+					yield* sales.act({
+						'orders.update': [
+							{ target: yield* t.at('orders', order), set: { payment_terms: 'Net 60' } }
+						]
+					})
+				);
+				yield* manager.approvals.decide(terms, { decision: 'approve' });
+				const quantity = held(
+					yield* sales.act({
+						'order_lines.update': [
+							{ target: yield* t.at('order_lines', line), set: { quantity: '12' } }
+						]
+					})
+				);
+				yield* manager.approvals.decide(quantity, { decision: 'approve' });
+				// remarks stay the rep's own
+				committed(
+					'orders',
+					yield* sales.act({
+						'orders.update': [
+							{ target: yield* t.at('orders', order), set: { notes: 'Called buyer' } }
+						]
+					})
+				);
+			})
 	);
 });

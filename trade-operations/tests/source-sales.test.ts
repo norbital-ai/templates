@@ -12,10 +12,10 @@ const fact = Effect.fnUntraced(function* (
 	order: Effect.Success<ReturnType<typeof draft>>,
 	external_code: string
 ) {
-	const sealed = (yield* (yield* t.as(t.admin)).query({
+	const confirmed = (yield* (yield* t.as(t.admin)).query({
 		orders: { where: { id: { eq: order.order } }, limit: 1 }
 	})).orders.rows[0];
-	expect(sealed?.seal_hash).toBeTruthy();
+	expect(confirmed?.status).toBe('confirmed');
 	return {
 		external_code,
 		order_id: order.order,
@@ -24,7 +24,6 @@ const fact = Effect.fnUntraced(function* (
 		reference: external_code,
 		business_on: '2026-09-15',
 		source_updated_at: stamp,
-		seal_hash: String(sealed?.seal_hash),
 		unit: 'kg',
 		quantity: '10',
 		currency: 'SGD',
@@ -163,7 +162,7 @@ it.live(
 					to: '2026-12-31'
 				})
 			).toEqual([]);
-			// the order captured its freight treatment when sealed: a later setting does not rewrite it
+			// the order captured its freight treatment when confirmed: a later setting does not rewrite it
 			committed(
 				'commercial_settings',
 				yield* as.act({

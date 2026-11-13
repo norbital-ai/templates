@@ -15,7 +15,6 @@ source_receivables/
 orders/
   activities/
   ext_purchase_orders/
-  ext_sales_orders/
   order_lines/
   source_payments/
   source_sales_lines/
@@ -35,8 +34,8 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 - Apps: `operations/analysis`, `operations/partners`, `operations/trade`, `operations/warehouse`, `trade_configuration`
 - Kiosks: none
-- Automations: `orders_revise`, `source_health`
-- Policies: `configuration`, `finance`, `logistics`, `manager`, `order_revision`, `procurement`, `sales`
+- Automations: `source_health`
+- Policies: `configuration`, `finance`, `logistics`, `manager`, `procurement`, `sales`
 - Custom fields: none
 - Integrations: `kingdee`
 
@@ -46,7 +45,8 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 ## Invariants
 
-- A confirmed agreement is sealed permanently; header and lines never return to draft.
+- An order holds its own terms; there are no contract versions. A confirmed sales order syncs both ways with its Kingdee SO (`orders` and `order_lines` `kingdee` syncs), and record history is its audit trail.
+- A confirmed order never returns to draft. A sales rep's change to it waits for a commercial manager.
 - Source confirmations, transactions, payments, receivables snapshots and stock facts are read-only.
 - There is one delivery/invoice ledger and one payment ledger; do not create a parallel one.
 - Money is a value and a currency together; never add or convert across currencies.

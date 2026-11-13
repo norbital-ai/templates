@@ -2,7 +2,6 @@ import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { dec, text, type D } from '../../lib/values.js';
-import { kingdeeAgreement } from '../../lib/agreements.js';
 import { sha256Hex } from '../../lib/commercial.js';
 import { kingdeeStockAvailabilityAccount } from './configuration.js';
 import { checked } from './order-source.js';
@@ -68,7 +67,7 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] },
 		orders: {
 			where: { ledger: { eq: instance }, direction: { eq: 'sales' } },
-			fields: ['contract_versions']
+			fields: ['kingdee', 'warehouse']
 		}
 	});
 	if (
@@ -82,10 +81,9 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 		});
 	const warehouses = new Map<string, string | null>();
 	for (const order of orders.rows) {
-		const version = kingdeeAgreement(order.contract_versions ?? []);
-		if (!version?.kingdee) continue;
-		const key = JSON.stringify([version.kingdee.branch, version.kingdee.live_source_id]);
-		warehouses.set(key, warehouses.has(key) ? null : version.snapshot.warehouse || null);
+		if (!order.kingdee) continue;
+		const key = JSON.stringify([ctx.configuration.branchNo, order.kingdee.fid]);
+		warehouses.set(key, warehouses.has(key) ? null : order.warehouse);
 	}
 	const warehouseDigest = yield* sha256Hex(JSON.stringify([...warehouses].sort()));
 	const current = yield* readChangedSnapshot(

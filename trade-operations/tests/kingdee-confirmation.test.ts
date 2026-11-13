@@ -4,7 +4,7 @@ import { committed, confirm, workspace } from './kit.js';
 import { kingdeeDraft, kingdeeFixture } from './kingdee-fixture.js';
 
 it.live(
-	'a draft remains local until its contract is sealed, and archiving does not drop its queued submission',
+	'a draft remains local until it is confirmed, and archiving does not drop its queued submission',
 	() =>
 		Effect.gen(function* () {
 			const fixture = kingdeeFixture();
@@ -14,10 +14,7 @@ it.live(
 			yield* t.deliver();
 			expect(fixture.submissions.size).toBe(0);
 			yield* confirm(t, own.order);
-			expect(
-				(yield* as.query({ ext_sales_orders: { where: { order: { eq: own.order } } } }))
-					.ext_sales_orders.rows
-			).toEqual([]);
+			expect(fixture.submissions.size).toBe(0);
 			committed(
 				'orders',
 				yield* as.act({

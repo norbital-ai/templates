@@ -16,35 +16,32 @@ Warehouse (SKUs, inventory and warehouses), and Analysis (reports). Trade Config
 Settings, Pricing Floors, Commission Rules and Document Templates.
 
 An order has General, Activities and Transactions. General holds its customer/supplier, owner,
-contract SKU, quota quantities, prices, credit/payment terms, validity and the sealed agreement.
-Activities contains follow-ups. Native History combines the revision scrubber with order, item, activity and source-record changes. Matching issued confirmations appear as record links in General. Transactions shows delivery orders and invoices against the agreed quota. Each transaction
+contract SKU, quota quantities, prices, credit/payment terms and validity, with the Kingdee SO state.
+Activities contains follow-ups. Native History combines the revision scrubber with order, item, activity and source-record changes; it is the order's audit trail. Transactions shows delivery orders and invoices against the agreed quota. Each transaction
 owns its documents. Partners has General, POC and Orders.
 
 Editable child tables use an explicit create form in a modal opened by a right-aligned
 `+ Model` toolbar button. Source-owned tables have no create button or editable form.
 The base pack supplies generic commercial settings and EN/ZH document layouts. To customise an
-output, publish a named layout in Document Templates and select it in the order draft. A recorded
-revision retains that layout, its wording and its artwork. Preview and Export PDF use the same
-generated file. The commercial table includes the saved item specification, quantity, price,
+output, publish a named layout in Document Templates and select it on the order. Preview and
+Export PDF render the saved order in that layout as one generated file. The commercial table includes the saved item specification, quantity, price,
 discount, tax and totals. Company letterhead and contract-stamp artwork are optional tenant PNGs.
-The stamp is applied when the layout is used on a sealed local sales agreement.
+The stamp is applied when the layout is used on a confirmed sales order.
 
 A published layout can also carry an optional **Print layout HTML** upload. It controls print
 CSS, typography and artwork placement. Use this when recreating an approved document or
 workbook. The [print layout guide](docs/0007-print-layouts.md) lists supported fields and the renderer
 configuration.
 
-Contract SKU, quota, prices, credit terms and validity belong to the agreement in General. The
-approved-version selector shows earlier terms, and native Actions previews or exports the selected
-version on demand. Attach supporting documents before recording the agreement. To keep a customer
-PO or signed return received later, select its recorded version and choose **File a document**.
-The filing retains the received bytes with that version while the agreement and order stay intact.
+Contract SKU, quota, prices, credit terms and validity belong to the order in General; History
+shows every earlier value. To keep a customer PO or signed return received later, add it under
+Filed documents on the confirmed order.
 
 Orders has Sales orders and Purchase orders views for the teams that use them. Supplier commitments can
 also start from the supplier record. Record a purchase commitment when the terms are worth retaining,
-revise it if quantities or prices change, and archive it if the purchase falls through. A recorded
-version preserves the terms from that point in time. The purchase action needs no Kingdee submission or
-commercial manager approval. Sales agreements use native Bolt commercial approval. Credit limits and
+change it if quantities or prices change, and archive it if the purchase falls through. The purchase
+action needs no Kingdee submission or commercial manager approval. A sales rep's confirmation, and any
+later change to a confirmed sales order, use native Bolt commercial approval. Credit limits and
 balances are read-only source facts, with credit enforcement owned by the source system.
 
 Stock rows represent remaining lots, including lot number and unit cost. Price warnings compare a sales item’s net unit price with quantity-weighted remaining inventory cost for the same SKU, unit and currency. Realized sales margins use the consumed lot’s captured cost; missing costs remain unknown. Aging combines unpaid invoices and unallocated receipts in one grid without pretending that a receipt has been allocated to an invoice.
@@ -64,12 +61,11 @@ history, permissions, approvals, Actions, kinds and runs are reused.
 
 ## Data model
 
-- `orders` / `order_lines`: our sales or purchase agreement and its editable contract SKU rows.
-  Confirmation seals that version permanently. Revision starts a separate draft on the same order
-  and approval makes it current even when the Kingdee link is off.
-  Read-only Kingdee SOs, deliveries and invoices retain that agreement seal.
-- `ext_sales_orders` / `ext_purchase_orders`: read-only source confirmations linked to our agreement.
-- `transactions`: read-only deliveries and invoices linked to the appropriate external order.
+- `orders` / `order_lines`: our sales or purchase agreement and its contract SKU rows, holding the
+  terms. A confirmed sales order is a two-way shadow of its Kingdee SO: confirmation creates the SO,
+  a later line change amends it, and a Kingdee change updates the order. Kingdee keeps the SO header.
+- `ext_purchase_orders`: read-only supplier confirmations linked to a purchase order.
+- `transactions`: read-only deliveries and invoices linked to their order.
   Issued invoices retain their actual issue date, due date and total; AR does not invent these values.
 - `source_payments`: one read-only receipt/refund ledger, optionally applied to an invoice transaction.
   Deposits remain separate, refunds reduce payments, withdrawn receipts remain inspectable and replay
@@ -77,16 +73,15 @@ history, permissions, approvals, Actions, kinds and runs are reused.
 - `source_sales_lines`: canonical financial reporting facts distinguishing shipments, returns and
   invoice-only revenue. This remains separate until verified source mappings provide equivalent
   transaction financial facts without counting shipment/invoice pairs twice.
-- `commission_rules`: dynamic CEL expressions and parameters. Each finalized agreement seals the
-  applicable expressions, engine version, floors and conversion facts.
+- `commission_rules`: dynamic CEL expressions and parameters. A confirmed order keeps the rule in
+  force when it was confirmed; its lines keep their floors and conversion facts.
 - `commission_statements`: the single retained monthly commission approval workflow. No extra
   per-order commission acknowledgment model or duplicate table.
 - `stock_snapshots`: source stock and reservation quantities. Projection subtracts our commitments
   only until a matching issued sales-order confirmation is included in the stock source position.
   Missing/stale source facts and unreconciled movements remain unavailable.
 
-There is one delivery/invoice ledger. Closure counts delivery items once and
-retains the original agreement seal and released quota. A remaining source commitment cannot be
+There is one delivery/invoice ledger. Closure counts delivery items once. A remaining source commitment cannot be
 released locally while its external order is still active; a matching synced void confirmation is
 required. Issued transactions or active payments prevent cancellation.
 
@@ -97,13 +92,13 @@ required. Issued transactions or active payments prevent cancellation.
 | `source_health` | every 5 minutes, over `kingdee` instances | Notifies configuration holders when a ledger connection needs attention |
 
 Order documents need no automation. The shared preview generates a PDF with `ctx.preview_pdf` and uses
-its file for both preview and download. The `orders` file export renders the same saved quotation or
-retained agreement. The price book opens a month matrix per warehouse group and currency with inline day-cell editing; the dated rows keep native Excel and CSV import/export with ledger-scoped SKU codes.
+its file for both preview and download. The `orders` file export renders the same saved order.
+The price book opens a month matrix per warehouse group and currency with inline day-cell editing; the dated rows keep native Excel and CSV import/export with ledger-scoped SKU codes.
 
 The custom [Kingdee integration](docs/0004-kingdee-implementation.md) lives in
 `src/integration/kingdee/`. It owns SQL Server rowversion polling and complete listings, source identity,
 ordered positions and header/item submission. Each source model declares a `kingdee` sync with a
-`read`; `orders` reads observed sales versions and writes verified sales submissions and supported amendments.
+`read`; `orders` and `order_lines` mirror the SO header and lines, and write the SO and its line amendments.
 Supplier commitments are local records.
 Bolt supplies the generic SQL Server request driver, sync scheduling, the outbox and its retries,
 ledger-scoped identity and atomic cursor/model writes.
@@ -148,7 +143,7 @@ bun run test    # bolt build, then bolt test (including tests/e2e)
 
 Final acceptance requires individually probing every page, order tab, representation, nested modal,
 picker, approval, report/export and integration surface in the final build. Check behavior and ease
-of use, role scope, sealed/draft states, English/Chinese, desktop/narrow screens, keyboard/touch and
+of use, role scope, confirmed/draft states, English/Chinese, desktop/narrow screens, keyboard/touch and
 light/dark appearance. Record evidence, fix confusing behavior and repeat the affected probes.
 Tests and mockups do not replace the manual acceptance gate.
 

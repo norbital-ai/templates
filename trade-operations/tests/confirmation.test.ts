@@ -3,7 +3,7 @@ import { expect, it as test } from '@effect/vitest';
 import { workspace as acquireWorkspace, fixtureId, sameDecimal } from './test-runtime.js';
 import { committed } from './kit.js';
 import { confirmationOf } from './reads.js';
-const sealingWorkspace = () =>
+const confirmationWorkspace = () =>
 	acquireWorkspace({
 		root: process.cwd(),
 		now: '2026-10-10T00:00:00Z',
@@ -71,16 +71,16 @@ const sealingWorkspace = () =>
 			]
 		}
 	});
-test.live('confirmation seals this SO and blocks all subsequent commercial edits', () =>
+test.live('confirmation keeps the terms on the order; its pricing basis stays fixed', () =>
 	Effect.gen(function* () {
-		const t = yield* sealingWorkspace();
+		const t = yield* confirmationWorkspace();
 		const as = yield* t.as(t.admin);
 		const order = committed(
 			'orders',
 			yield* as.act({
 				'orders.create': [
 					{
-						title: 'Sealed SO',
+						title: 'Confirmed SO',
 						direction: 'sales',
 						party: fixtureId('parties', '00000000-0000-4000-8000-000000000101'),
 						currency: 'SGD',
@@ -104,87 +104,46 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 				]
 			})
 		);
-		const check = yield* confirmationOf(as, {
-			as_of: t.clock.now(),
-			order
-		});
-		expect(check).toHaveProperty('check_hash');
-		const checked = check;
+		const check = yield* confirmationOf(as, { as_of: t.clock.now(), order });
 		committed(
 			'orders',
 			yield* as.act({
 				'orders.update': [
 					{
 						target: yield* t.at('orders', order),
-						set: { status: 'confirmed', check_hash: checked.check_hash }
+						set: { status: 'confirmed', check_hash: check.check_hash }
 					}
 				]
 			})
 		);
-		const before = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
-			.rows[0];
-		expect(before).toMatchObject({ status: 'confirmed', sealed_contract_version: '1' });
-		expect(before?.sealed_snapshot).toMatchObject({ total: '21.80', payment_terms: 'Net 30' });
-		expect(sameDecimal(before?.agreed_total, '21.80')).toBe(true);
-		expect(before?.sealed_contract).toContain('Net 30');
-		expect(before?.sealed_contract).toContain(before?.number);
-		expect(before?.sealed_contract).not.toContain(order);
+		const confirmed = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
+			.orders.rows[0];
+		expect(confirmed).toMatchObject({ status: 'confirmed', payment_terms: 'Net 30' });
+		expect(sameDecimal(confirmed?.total, '21.80')).toBe(true);
 		expect(
 			yield* Effect.flip(
 				as.act({
-					'orders.update': [
-						{ target: yield* t.at('orders', order), set: { payment_terms: 'Net 90' } }
-					]
+					'orders.update': [{ target: yield* t.at('orders', order), set: { currency: 'USD' } }]
 				})
 			)
-		).toMatchObject({ _tag: 'ActRefused' });
-		expect(
-			yield* Effect.flip(
-				as.act({
-					'order_lines.update': [
-						{ target: yield* t.at('order_lines', line), set: { unit_price: '99' } }
-					]
-				})
-			)
-		).toMatchObject({ _tag: 'ActRefused' });
-		expect(
-			yield* Effect.flip(
-				as.act({ 'order_lines.delete': [{ target: yield* t.at('order_lines', line) }] })
-			)
-		).toMatchObject({
-			_tag: 'ActRefused'
-		});
-		const nextTemplate = committed(
-			'document_templates',
-			yield* as.act({
-				'document_templates.create': [
-					{
-						locale: 'en',
-						version: '2',
-						title: 'New terms',
-						body: '{agreement}\nNew contract wording'
-					}
-				]
-			})
-		);
+		).toMatchObject({ _tag: 'ActRefused', key: 'errors.line_basis_locked' });
 		committed(
-			'document_templates',
+			'order_lines',
 			yield* as.act({
-				'document_templates.update': [
-					{ target: yield* t.at('document_templates', nextTemplate), set: { status: 'published' } }
+				'order_lines.update': [
+					{ target: yield* t.at('order_lines', line), set: { unit_price: '3' } }
 				]
 			})
 		);
-		const after = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+		const edited = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 			.rows[0];
-		expect(after?.seal_hash).toEqual(before?.seal_hash);
-		expect(after?.sealed_snapshot).toEqual(before?.sealed_snapshot);
-		expect(after?.sealed_contract).toEqual(before?.sealed_contract);
+		expect(edited).toMatchObject({ status: 'confirmed' });
+		expect(sameDecimal(edited?.total, '32.70')).toBe(true);
 	})
 );
 test.live('a credit acknowledgment cannot confirm changed pricing or another SO', () =>
 	Effect.gen(function* () {
-		const t = yield* sealingWorkspace();
+		const t = yield* confirmationWorkspace();
 		const as = yield* t.as(t.admin);
 		const createOrder = Effect.fnUntraced(function* (title: string) {
 			return committed(
@@ -285,24 +244,19 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 				]
 			})
 		);
-		expect(
-			(yield* as.query({ orders: { where: { id: { eq: first } }, limit: 1 } })).orders.rows[0]
-		).toMatchObject({
-			sealed_snapshot: { total: '32.70' }
-		});
+		const confirmed = (yield* as.query({ orders: { where: { id: { eq: first } }, limit: 1 } }))
+			.orders.rows[0];
+		expect(confirmed?.status).toBe('confirmed');
+		expect(sameDecimal(confirmed?.total, '32.70')).toBe(true);
 		expect(
 			(yield* as.query({ orders: { where: { id: { eq: second } }, limit: 1 } })).orders.rows[0]
-		).toMatchObject({
-			status: 'draft',
-			sealed_snapshot: null,
-			seal_hash: null
-		});
+		).toMatchObject({ status: 'draft' });
 	})
 );
 
 test.live('a draft with no lines is refused before any confirmation', () =>
 	Effect.gen(function* () {
-		const t = yield* sealingWorkspace();
+		const t = yield* confirmationWorkspace();
 		const as = yield* t.as(t.admin);
 		const order = committed(
 			'orders',
@@ -324,9 +278,9 @@ test.live('a draft with no lines is refused before any confirmation', () =>
 	})
 );
 
-test.live('commercial trade and shipping fields stay queryable and are retained by the seal', () =>
+test.live('commercial trade and shipping fields stay on the confirmed order', () =>
 	Effect.gen(function* () {
-		const t = yield* sealingWorkspace();
+		const t = yield* confirmationWorkspace();
 		const as = yield* t.as(t.admin);
 		const order = committed(
 			'orders',
@@ -391,7 +345,7 @@ test.live('commercial trade and shipping fields stay queryable and are retained 
 					'buyer_mobile',
 					'delivery_address',
 					'delivery_date',
-					'sealed_snapshot'
+					'status'
 				],
 				limit: 1
 			}
@@ -408,13 +362,8 @@ test.live('commercial trade and shipping fields stay queryable and are retained 
 			buyer_contact: 'Li Wei',
 			buyer_mobile: '+6590000000',
 			delivery_address: '1 Test Road, Singapore',
-			delivery_date: '2026-10-20'
-		});
-		expect(row?.sealed_snapshot).toMatchObject({
-			shipping_terms: 'FOB Shanghai',
-			place_of_delivery: 'Singapore',
-			buyer_contact: 'Li Wei',
-			delivery_address: '1 Test Road, Singapore'
+			delivery_date: '2026-10-20',
+			status: 'confirmed'
 		});
 	})
 );

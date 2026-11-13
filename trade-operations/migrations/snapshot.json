@@ -364,9 +364,6 @@
 							"order": {
 								"kind": "text"
 							},
-							"seal_hash": {
-								"kind": "text"
-							},
 							"unresolved_lines": {
 								"kind": "int"
 							}
@@ -598,10 +595,6 @@
 		"ext_purchase_orders": {
 			"audit": true,
 			"fields": {
-				"agreement_hash": {
-					"hidden": true,
-					"kind": "text"
-				},
 				"currency": {
 					"kind": "currency"
 				},
@@ -611,62 +604,6 @@
 				},
 				"order": {
 					"inverse": "ext_purchase_orders",
-					"kind": "ref",
-					"to": "orders"
-				},
-				"reference": {
-					"kind": "text"
-				},
-				"source": {
-					"kind": "ref",
-					"to": "sys_integration",
-					"where": {
-						"integration": {
-							"eq": "kingdee"
-						}
-					}
-				},
-				"source_updated_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"status": {
-					"kind": "enum",
-					"values": [
-						"draft",
-						"issued",
-						"void"
-					]
-				}
-			},
-			"record_label": "record.reference",
-			"unique": [
-				{
-					"fields": [
-						"source",
-						"external_id"
-					],
-					"import_key": true,
-					"name": "natural_key"
-				}
-			]
-		},
-		"ext_sales_orders": {
-			"audit": true,
-			"fields": {
-				"agreement_hash": {
-					"hidden": true,
-					"kind": "text"
-				},
-				"currency": {
-					"kind": "currency"
-				},
-				"external_id": {
-					"hidden": true,
-					"kind": "text"
-				},
-				"order": {
-					"inverse": "ext_sales_orders",
 					"kind": "ref",
 					"to": "orders"
 				},
@@ -723,10 +660,6 @@
 					"inverse": "filed_documents",
 					"kind": "ref",
 					"to": "orders"
-				},
-				"seal_hash": {
-					"hidden": true,
-					"kind": "text"
 				},
 				"title": {
 					"kind": "text"
@@ -870,11 +803,6 @@
 		"orders": {
 			"audit": true,
 			"fields": {
-				"agreed_total": {
-					"currency": "currency",
-					"kind": "money",
-					"optional": true
-				},
 				"archived": {
 					"default": false,
 					"kind": "bool"
@@ -893,138 +821,42 @@
 					"kind": "text",
 					"optional": true
 				},
-				"closure_snapshot": {
+				"commission": {
 					"hidden": true,
 					"kind": "json",
 					"optional": true,
 					"shape": {
 						"fields": {
-							"fulfilled": {
-								"kind": "text"
-							},
-							"order_line": {
-								"kind": "text"
-							},
-							"ordered": {
-								"kind": "text"
-							},
-							"product_name": {
-								"kind": "text"
-							},
-							"released": {
-								"kind": "text"
-							},
-							"unit": {
-								"kind": "text"
-							}
-						},
-						"kind": "object",
-						"many": true
-					}
-				},
-				"contract_version": {
-					"default": 1,
-					"kind": "int",
-					"min": 1
-				},
-				"contract_versions": {
-					"hidden": true,
-					"kind": "json",
-					"optional": true,
-					"shape": {
-						"fields": {
-							"approved_at": {
-								"kind": "instant"
-							},
-							"approved_by": {
-								"kind": "text"
-							},
-							"basis_seal": {
+							"amount_expression": {
 								"kind": "text",
 								"optional": true
 							},
-							"commission": {
-								"fields": {
-									"amount_expression": {
-										"kind": "text",
-										"optional": true
-									},
-									"basis_unit": {
-										"kind": "text"
-									},
-									"currency": {
-										"kind": "text"
-									},
-									"effective_on": {
-										"kind": "text"
-									},
-									"eligibility_expression": {
-										"kind": "text",
-										"optional": true
-									},
-									"engine_version": {
-										"kind": "text",
-										"optional": true
-									},
-									"fixed_rate": {
-										"kind": "text"
-									},
-									"parameters": {
-										"fields": {
-											"name": {
-												"kind": "text"
-											},
-											"value": {
-												"kind": "text"
-											}
-										},
-										"kind": "object",
-										"many": true,
-										"optional": true
-									},
-									"rule_id": {
-										"kind": "text"
-									},
-									"spread_pct": {
-										"kind": "text"
-									}
-								},
-								"kind": "object",
-								"optional": true
-							},
-							"contract": {
+							"basis_unit": {
 								"kind": "text"
 							},
-							"events": {
+							"currency": {
+								"kind": "text"
+							},
+							"effective_on": {
+								"kind": "text"
+							},
+							"eligibility_expression": {
+								"kind": "text",
+								"optional": true
+							},
+							"engine_version": {
+								"kind": "text",
+								"optional": true
+							},
+							"fixed_rate": {
+								"kind": "text"
+							},
+							"parameters": {
 								"fields": {
-									"actor": {
-										"kind": "text",
-										"optional": true
-									},
-									"at": {
-										"kind": "instant"
-									},
-									"key": {
+									"name": {
 										"kind": "text"
 									},
-									"kind": {
-										"kind": "text"
-									},
-									"source_changed_at": {
-										"kind": "text",
-										"optional": true
-									},
-									"source_changed_by": {
-										"kind": "text",
-										"optional": true
-									},
-									"source_id": {
-										"kind": "text"
-									},
-									"source_version": {
-										"kind": "text"
-									},
-									"status": {
+									"value": {
 										"kind": "text"
 									}
 								},
@@ -1032,351 +864,16 @@
 								"many": true,
 								"optional": true
 							},
-							"freight_treatment": {
-								"kind": "enum",
-								"values": [
-									"deduct",
-									"include"
-								]
-							},
-							"kingdee": {
-								"fields": {
-									"archived": {
-										"kind": "bool"
-									},
-									"binding_id": {
-										"kind": "text",
-										"optional": true
-									},
-									"branch": {
-										"kind": "text"
-									},
-									"closed": {
-										"kind": "bool",
-										"optional": true
-									},
-									"content_hash": {
-										"kind": "text"
-									},
-									"entries": {
-										"fields": {
-											"detail_id": {
-												"kind": "text"
-											},
-											"entry_id": {
-												"kind": "text"
-											},
-											"local_line_id": {
-												"kind": "text"
-											}
-										},
-										"kind": "object",
-										"many": true,
-										"optional": true
-									},
-									"exchange_rate": {
-										"kind": "text",
-										"optional": true
-									},
-									"live_source_id": {
-										"kind": "text"
-									},
-									"observed_at": {
-										"kind": "instant"
-									},
-									"source_changed_at": {
-										"kind": "text",
-										"optional": true
-									},
-									"source_changed_by": {
-										"kind": "text",
-										"optional": true
-									},
-									"source_id": {
-										"kind": "text"
-									},
-									"source_uuid": {
-										"kind": "text"
-									},
-									"source_version": {
-										"kind": "text"
-									},
-									"status": {
-										"kind": "enum",
-										"optional": true,
-										"values": [
-											"draft",
-											"issued",
-											"void"
-										]
-									}
-								},
-								"kind": "object",
-								"optional": true
-							},
-							"lifecycle": {
-								"kind": "enum",
-								"optional": true,
-								"values": [
-									"pending",
-									"current",
-									"superseded"
-								]
-							},
-							"ordered_on": {
-								"kind": "date"
-							},
-							"origin": {
-								"kind": "enum",
-								"optional": true,
-								"values": [
-									"local",
-									"kingdee"
-								]
-							},
-							"seal_hash": {
+							"rule_id": {
 								"kind": "text"
 							},
-							"signature_version": {
-								"kind": "ref",
-								"optional": true,
-								"to": "salesperson_signatures"
-							},
-							"snapshot": {
-								"fields": {
-									"buyer_contact": {
-										"kind": "text",
-										"optional": true
-									},
-									"buyer_mobile": {
-										"kind": "text",
-										"optional": true
-									},
-									"contract_version": {
-										"kind": "text"
-									},
-									"currency": {
-										"kind": "text"
-									},
-									"delivery_address": {
-										"kind": "text",
-										"optional": true
-									},
-									"delivery_date": {
-										"kind": "text",
-										"optional": true
-									},
-									"delivery_terms": {
-										"kind": "text"
-									},
-									"direction": {
-										"kind": "enum",
-										"values": [
-											"sales",
-											"purchasing"
-										]
-									},
-									"document_template_id": {
-										"kind": "text",
-										"optional": true
-									},
-									"document_title": {
-										"kind": "text",
-										"optional": true
-									},
-									"lines": {
-										"fields": {
-											"commission_basis_unit": {
-												"kind": "text"
-											},
-											"commission_factor": {
-												"kind": "text"
-											},
-											"discount_pct": {
-												"kind": "text"
-											},
-											"floor_net": {
-												"kind": "text"
-											},
-											"id": {
-												"kind": "text"
-											},
-											"net": {
-												"kind": "text"
-											},
-											"print_values": {
-												"fields": {
-													"key": {
-														"kind": "text"
-													},
-													"value": {
-														"kind": "text"
-													}
-												},
-												"kind": "object",
-												"many": true,
-												"optional": true
-											},
-											"product": {
-												"kind": "text",
-												"optional": true
-											},
-											"product_code": {
-												"kind": "text"
-											},
-											"product_name": {
-												"kind": "text"
-											},
-											"product_spec": {
-												"kind": "text",
-												"optional": true
-											},
-											"quantity": {
-												"kind": "text"
-											},
-											"source_entry_id": {
-												"kind": "text",
-												"optional": true
-											},
-											"tax": {
-												"kind": "text"
-											},
-											"tax_rate": {
-												"kind": "text"
-											},
-											"total": {
-												"kind": "text"
-											},
-											"unit": {
-												"kind": "text"
-											},
-											"unit_price": {
-												"kind": "text"
-											}
-										},
-										"kind": "object",
-										"many": true
-									},
-									"net": {
-										"kind": "text"
-									},
-									"order_id": {
-										"kind": "text"
-									},
-									"other_terms": {
-										"kind": "text",
-										"optional": true
-									},
-									"packaging": {
-										"kind": "text",
-										"optional": true
-									},
-									"party_code": {
-										"kind": "text"
-									},
-									"party_name": {
-										"kind": "text"
-									},
-									"payment_method": {
-										"kind": "text",
-										"optional": true
-									},
-									"payment_terms": {
-										"kind": "text"
-									},
-									"place_of_delivery": {
-										"kind": "text",
-										"optional": true
-									},
-									"place_of_loading": {
-										"kind": "text",
-										"optional": true
-									},
-									"print_values": {
-										"fields": {
-											"key": {
-												"kind": "text"
-											},
-											"value": {
-												"kind": "text"
-											}
-										},
-										"kind": "object",
-										"many": true,
-										"optional": true
-									},
-									"shipping_mark": {
-										"kind": "text",
-										"optional": true
-									},
-									"shipping_terms": {
-										"kind": "text",
-										"optional": true
-									},
-									"tax": {
-										"kind": "text"
-									},
-									"tax_inclusive": {
-										"kind": "bool"
-									},
-									"time_of_shipment": {
-										"kind": "text",
-										"optional": true
-									},
-									"title": {
-										"kind": "text",
-										"optional": true
-									},
-									"total": {
-										"kind": "text"
-									},
-									"valid_from": {
-										"kind": "text",
-										"optional": true
-									},
-									"valid_until": {
-										"kind": "text",
-										"optional": true
-									},
-									"warehouse": {
-										"kind": "text",
-										"optional": true
-									}
-								},
-								"kind": "object"
-							},
-							"supporting_documents": {
-								"accept": [
-									"application/pdf",
-									"image/jpeg",
-									"image/png",
-									"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-									"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-								],
-								"kind": "file",
-								"many": true,
-								"max": "20MiB",
-								"optional": true
-							},
-							"version": {
-								"kind": "int"
-							},
-							"write_target": {
-								"fields": {
-									"account": {
-										"kind": "text"
-									},
-									"branch": {
-										"kind": "text"
-									}
-								},
-								"kind": "object",
-								"optional": true
+							"spread_pct": {
+								"kind": "text"
 							}
 						},
-						"kind": "object",
-						"many": true
-					}
+						"kind": "object"
+					},
+					"was": "sealed_commission"
 				},
 				"currency": {
 					"kind": "currency"
@@ -1410,22 +907,6 @@
 						}
 					}
 				},
-				"draft_basis": {
-					"hidden": true,
-					"kind": "text",
-					"optional": true
-				},
-				"draft_document_ids": {
-					"hidden": true,
-					"kind": "text",
-					"many": true,
-					"optional": true
-				},
-				"draft_setup": {
-					"hidden": true,
-					"kind": "text",
-					"optional": true
-				},
 				"freight_treatment": {
 					"default": "deduct",
 					"kind": "enum",
@@ -1433,6 +914,39 @@
 						"deduct",
 						"include"
 					]
+				},
+				"kingdee": {
+					"hidden": true,
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"closed": {
+								"kind": "bool"
+							},
+							"exchange_rate": {
+								"kind": "text"
+							},
+							"fid": {
+								"kind": "text"
+							},
+							"reference": {
+								"kind": "text"
+							},
+							"status": {
+								"kind": "enum",
+								"values": [
+									"draft",
+									"issued",
+									"void"
+								]
+							},
+							"version": {
+								"kind": "text"
+							}
+						},
+						"kind": "object"
+					}
 				},
 				"ledger": {
 					"kind": "ref",
@@ -1463,43 +977,6 @@
 				"number": {
 					"kind": "seq",
 					"pattern": "TR-{yyyy}-{0000}"
-				},
-				"operational_contracts": {
-					"hidden": true,
-					"kind": "json",
-					"optional": true,
-					"shape": {
-						"fields": {
-							"current": {
-								"kind": "bool",
-								"optional": true
-							},
-							"lines": {
-								"fields": {
-									"id": {
-										"kind": "text"
-									},
-									"product": {
-										"kind": "text",
-										"optional": true
-									},
-									"quantity": {
-										"kind": "text"
-									},
-									"unit": {
-										"kind": "text"
-									}
-								},
-								"kind": "object",
-								"many": true
-							},
-							"seal_hash": {
-								"kind": "text"
-							}
-						},
-						"kind": "object",
-						"many": true
-					}
 				},
 				"ordered_on": {
 					"default": {
@@ -1559,291 +1036,6 @@
 					"many": true,
 					"optional": true
 				},
-				"seal_hash": {
-					"hidden": true,
-					"kind": "text",
-					"optional": true
-				},
-				"sealed_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"sealed_by": {
-					"hidden": true,
-					"kind": "text",
-					"optional": true
-				},
-				"sealed_commission": {
-					"hidden": true,
-					"kind": "json",
-					"optional": true,
-					"shape": {
-						"fields": {
-							"amount_expression": {
-								"kind": "text",
-								"optional": true
-							},
-							"basis_unit": {
-								"kind": "text"
-							},
-							"currency": {
-								"kind": "text"
-							},
-							"effective_on": {
-								"kind": "text"
-							},
-							"eligibility_expression": {
-								"kind": "text",
-								"optional": true
-							},
-							"engine_version": {
-								"kind": "text",
-								"optional": true
-							},
-							"fixed_rate": {
-								"kind": "text"
-							},
-							"parameters": {
-								"fields": {
-									"name": {
-										"kind": "text"
-									},
-									"value": {
-										"kind": "text"
-									}
-								},
-								"kind": "object",
-								"many": true,
-								"optional": true
-							},
-							"rule_id": {
-								"kind": "text"
-							},
-							"spread_pct": {
-								"kind": "text"
-							}
-						},
-						"kind": "object"
-					}
-				},
-				"sealed_contract": {
-					"hidden": true,
-					"kind": "text",
-					"optional": true
-				},
-				"sealed_contract_version": {
-					"hidden": true,
-					"kind": "text",
-					"optional": true
-				},
-				"sealed_snapshot": {
-					"hidden": true,
-					"kind": "json",
-					"optional": true,
-					"shape": {
-						"fields": {
-							"buyer_contact": {
-								"kind": "text",
-								"optional": true
-							},
-							"buyer_mobile": {
-								"kind": "text",
-								"optional": true
-							},
-							"contract_version": {
-								"kind": "text"
-							},
-							"currency": {
-								"kind": "text"
-							},
-							"delivery_address": {
-								"kind": "text",
-								"optional": true
-							},
-							"delivery_date": {
-								"kind": "text",
-								"optional": true
-							},
-							"delivery_terms": {
-								"kind": "text"
-							},
-							"direction": {
-								"kind": "enum",
-								"values": [
-									"sales",
-									"purchasing"
-								]
-							},
-							"document_template_id": {
-								"kind": "text",
-								"optional": true
-							},
-							"document_title": {
-								"kind": "text",
-								"optional": true
-							},
-							"lines": {
-								"fields": {
-									"commission_basis_unit": {
-										"kind": "text"
-									},
-									"commission_factor": {
-										"kind": "text"
-									},
-									"discount_pct": {
-										"kind": "text"
-									},
-									"floor_net": {
-										"kind": "text"
-									},
-									"id": {
-										"kind": "text"
-									},
-									"net": {
-										"kind": "text"
-									},
-									"print_values": {
-										"fields": {
-											"key": {
-												"kind": "text"
-											},
-											"value": {
-												"kind": "text"
-											}
-										},
-										"kind": "object",
-										"many": true,
-										"optional": true
-									},
-									"product": {
-										"kind": "text",
-										"optional": true
-									},
-									"product_code": {
-										"kind": "text"
-									},
-									"product_name": {
-										"kind": "text"
-									},
-									"product_spec": {
-										"kind": "text",
-										"optional": true
-									},
-									"quantity": {
-										"kind": "text"
-									},
-									"source_entry_id": {
-										"kind": "text",
-										"optional": true
-									},
-									"tax": {
-										"kind": "text"
-									},
-									"tax_rate": {
-										"kind": "text"
-									},
-									"total": {
-										"kind": "text"
-									},
-									"unit": {
-										"kind": "text"
-									},
-									"unit_price": {
-										"kind": "text"
-									}
-								},
-								"kind": "object",
-								"many": true
-							},
-							"net": {
-								"kind": "text"
-							},
-							"order_id": {
-								"kind": "text"
-							},
-							"other_terms": {
-								"kind": "text",
-								"optional": true
-							},
-							"packaging": {
-								"kind": "text",
-								"optional": true
-							},
-							"party_code": {
-								"kind": "text"
-							},
-							"party_name": {
-								"kind": "text"
-							},
-							"payment_method": {
-								"kind": "text",
-								"optional": true
-							},
-							"payment_terms": {
-								"kind": "text"
-							},
-							"place_of_delivery": {
-								"kind": "text",
-								"optional": true
-							},
-							"place_of_loading": {
-								"kind": "text",
-								"optional": true
-							},
-							"print_values": {
-								"fields": {
-									"key": {
-										"kind": "text"
-									},
-									"value": {
-										"kind": "text"
-									}
-								},
-								"kind": "object",
-								"many": true,
-								"optional": true
-							},
-							"shipping_mark": {
-								"kind": "text",
-								"optional": true
-							},
-							"shipping_terms": {
-								"kind": "text",
-								"optional": true
-							},
-							"tax": {
-								"kind": "text"
-							},
-							"tax_inclusive": {
-								"kind": "bool"
-							},
-							"time_of_shipment": {
-								"kind": "text",
-								"optional": true
-							},
-							"title": {
-								"kind": "text",
-								"optional": true
-							},
-							"total": {
-								"kind": "text"
-							},
-							"valid_from": {
-								"kind": "text",
-								"optional": true
-							},
-							"valid_until": {
-								"kind": "text",
-								"optional": true
-							},
-							"warehouse": {
-								"kind": "text",
-								"optional": true
-							}
-						},
-						"kind": "object"
-					}
-				},
 				"shipping_mark": {
 					"kind": "text",
 					"optional": true
@@ -1861,11 +1053,7 @@
 					"initial": "draft",
 					"kind": "state",
 					"states": {
-						"confirmed": {
-							"to": [
-								"draft"
-							]
-						},
+						"confirmed": {},
 						"draft": {
 							"to": [
 								"confirmed"
@@ -1917,61 +1105,21 @@
 					"kind": "ref",
 					"optional": true,
 					"to": "warehouses"
-				}
-			},
-			"locks": {
-				"confirmed": {
-					"except": [
-						"status",
-						"title",
-						"notes",
-						"archived",
-						"contract_versions",
-						"agreed_total",
-						"source_order_key",
-						"draft_setup",
-						"draft_basis",
-						"operational_contracts",
-						"check_hash",
-						"contract_version",
-						"sealed_at",
-						"sealed_by",
-						"sealed_snapshot",
-						"sealed_commission",
-						"sealed_contract",
-						"sealed_contract_version",
-						"seal_hash",
-						"freight_treatment",
-						"warehouse",
-						"ordered_on",
-						"document_template",
-						"print_values",
-						"currency",
-						"tax_inclusive",
-						"valid_from",
-						"valid_until",
-						"payment_terms",
-						"delivery_terms",
-						"shipping_terms",
-						"place_of_loading",
-						"place_of_delivery",
-						"packaging",
-						"shipping_mark",
-						"time_of_shipment",
-						"other_terms",
-						"payment_method",
-						"buyer_contact",
-						"buyer_mobile",
-						"delivery_address",
-						"delivery_date",
-						"logistics_handler",
-						"supporting_documents",
-						"draft_document_ids"
-					],
-					"where": {
-						"status": {
-							"eq": "confirmed"
-						}
+				},
+				"write_target": {
+					"hidden": true,
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"account": {
+								"kind": "text"
+							},
+							"branch": {
+								"kind": "text"
+							}
+						},
+						"kind": "object"
 					}
 				}
 			},
@@ -2265,36 +1413,6 @@
 			"key": "text",
 			"record_label": "record.user_id"
 		},
-		"salesperson_signatures": {
-			"audit": true,
-			"fields": {
-				"owner": {
-					"default": {
-						"var": "requestor.id"
-					},
-					"kind": "ref",
-					"to": "sys_user"
-				},
-				"signature": {
-					"fields": {
-						"png": {
-							"kind": "text",
-							"max": 174764
-						}
-					},
-					"kind": "object",
-					"optional": true
-				}
-			},
-			"indexes": [
-				{
-					"on": [
-						"owner"
-					]
-				}
-			],
-			"record_label": "record.owner.name"
-		},
 		"source_lot_costs": {
 			"audit": true,
 			"fields": {
@@ -2387,10 +1505,6 @@
 					"to": "orders"
 				},
 				"reference": {
-					"kind": "text"
-				},
-				"seal_hash": {
-					"hidden": true,
 					"kind": "text"
 				},
 				"settled_on": {
@@ -2576,11 +1690,6 @@
 				},
 				"reference": {
 					"kind": "text"
-				},
-				"seal_hash": {
-					"hidden": true,
-					"kind": "text",
-					"optional": true
 				},
 				"source": {
 					"kind": "ref",
@@ -4224,12 +3333,6 @@
 					"optional": true,
 					"to": "ext_purchase_orders"
 				},
-				"ext_sales_order": {
-					"inverse": "transactions",
-					"kind": "ref",
-					"optional": true,
-					"to": "ext_sales_orders"
-				},
 				"issued_on": {
 					"kind": "date",
 					"optional": true
@@ -4289,10 +3392,6 @@
 					"to": "orders"
 				},
 				"reference": {
-					"kind": "text"
-				},
-				"seal_hash": {
-					"hidden": true,
 					"kind": "text"
 				},
 				"source": {
