@@ -21,7 +21,8 @@ const touched = (
 
 export default model({
 	description: 'One repayment against a loan entry.',
-	record_label: "record.payment_reference != null ? record.payment_reference : ''",
+	record_label:
+		"record.employment_id.employee_number + ' · ' + string(record.amount) + (record.paid_on != null ? ' · ' + string(record.paid_on) : '')",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: {

@@ -501,7 +501,7 @@ export default model({
 		'Sealed employment terms. A dated replacement changes future terms; consumed historical terms remain protected.',
 	// a reference to a contract reads only its own fields: the person's name shows where the profile is read beside it
 	record_label:
-		"has(record.employee_id.name) ? record.employee_id.name + ' · ' + record.employee_number : record.employee_number",
+		"(has(record.employee_id.name) ? record.employee_id.name + ' · ' : '') + record.employee_number + ' · ' + string(record.effective_range.from)",
 	fields: {
 		employee_id: {
 			kind: 'ref',

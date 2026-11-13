@@ -26,7 +26,7 @@ export default model({
 	description:
 		'One observed public holiday of one legal entity on one day. Published individually. A published day corrected in paid time amends everyone the company paid for it. Imported from a spreadsheet or entered by hand.',
 	icon: 'lucide:calendar-x',
-	record_label: 'record.date',
+	record_label: "record.name + ' · ' + string(record.date)",
 	fields: {
 		date: {
 			kind: 'date'

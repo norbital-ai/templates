@@ -23,7 +23,8 @@ const touched = (
 export default model({
 	description:
 		'One roster day: its planned overtime, whether that overtime is taken as time off, and actual worked intervals. It is priced under the contract version in force on its date; the run that priced it is on the entry.',
-	record_label: 'record.work_date',
+	record_label:
+		"(has(record.employment_id.employee_number) ? record.employment_id.employee_number + ' · ' : '') + string(record.work_date)",
 	fields: {
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'roster_entry' },
 		payroll_run_id: {

@@ -16,7 +16,7 @@ import { exportRows } from '../../../lib/export_format_configuration/export_rows
 
 export default model({
 	description: 'One payroll execution over a company and covered period.',
-	record_label: 'string(record.run_number)',
+	record_label: "'Run ' + string(record.run_number) + ' · ' + record.period",
 	fields: {
 		run_number: { kind: 'seq' },
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'payroll_runs' },

@@ -5,7 +5,7 @@ import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 export default model({
 	description:
 		'One immutable movement of an employee balance: an amount added to or deducted from one account key.',
-	record_label: 'record.code',
+	record_label: "record.code + ' · ' + string(record.effective_on)",
 	fields: {
 		balance_id: { kind: 'ref', to: 'employee_balance', inverse: 'entries' },
 		operation: { kind: 'enum', values: ['ADD', 'DEDUCT'] },

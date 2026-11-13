@@ -649,7 +649,7 @@ export default messages({
 	'v2.patterns': 'Shift patterns',
 	'v2.work_help':
 		'Plan and validate the whole affected month. Actual attendance remains evidenced in dated revisions.',
-	'v2.balances': 'Entitlement and balances',
+	'v2.balances': 'Balances',
 	'balance.adjust': 'Adjust balance',
 	'balance.adjust_help':
 		'Adds to or takes from one leave row’s days or one claim row’s limit, in the window that holds the date. An adjustment cannot be edited or deleted: correct a mistake with an opposite one.',
@@ -660,20 +660,27 @@ export default messages({
 	'balance.money': 'Amount (negative takes away)',
 	'balance.note': 'Cause',
 	'balance.adjusted': 'Balance adjusted',
-	'balance.lines_help':
-		'One line per item and window. Choose a line to list the ledger rows that made it.',
-	'balance.account': 'Account',
 	'balance.item': 'Item',
 	'balance.window': 'Window',
 	'balance.entitled': 'Entitled or limit',
 	'balance.carried': 'Carried',
 	'balance.used': 'Used or paid',
 	'balance.left': 'Left',
+	'balance.overview': 'Balance overview',
+	'balance.overview_help':
+		'What is left today: each leave and claim row in the window in force. Hover an item for its rule.',
+	'balance.history': 'Earlier windows',
+	'balance.unit': 'Unit',
+	'balance.unit.DAY': 'days',
+	'balance.unit.HOUR': 'hours',
+	'balance.unit.MONEY': 'amount',
+	'balance.paid': 'Paid this window',
+	'balance.paid_help':
+		'Statutory contributions and pay totals the payslips paid. They are amounts paid, not balances left.',
+	'balance.paid_amount': 'Paid',
+	'balance.ledger_help':
+		'Every row that moved this balance, newest first. New adds HR’s manual adjustment.',
 	'balance.ledger': 'Ledger',
-	'balance.family.leave': 'Leave',
-	'balance.family.claim': 'Claims',
-	'balance.family.statutory': 'Statutory paid',
-	'balance.family.pay': 'Pay totals',
 	'balance.window.Y': 'Year from',
 	'balance.window.M': 'Month',
 	'balance.window.S': 'Service year from',

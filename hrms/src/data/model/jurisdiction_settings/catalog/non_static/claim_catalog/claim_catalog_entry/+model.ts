@@ -26,7 +26,7 @@ const touched = (
 export default model({
 	description: 'One claim against an employment.',
 	record_label:
-		"record.employment_id.employee_number + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)",
+		"record.employment_id.employee_number + ' · ' + record.catalog_id.code + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'claim_catalog_entry' },

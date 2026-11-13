@@ -145,10 +145,9 @@
 			? ctx.query({
 					pay_amendment: {
 						where: { pay_group_id: { eq: group.id }, payroll_run_id: { is_null: true } },
-						fields: ['employee_id', 'period', 'revision'],
+						fields: ['period', 'revision'],
 						order_by: { period: 'asc' },
-						limit: 10000,
-						employee_id: { fields: ['name'] }
+						limit: 10000
 					}
 				})
 			: null
@@ -157,7 +156,7 @@
 		(waitingRows?.current?.pay_amendment.rows ?? []).map((row) => ({
 			value: String(row.id),
 			link: { id: row.id, revision: row.revision },
-			label: `${row.employee_id?.name ?? ''} · ${row.period}`
+			label: row.$label ?? row.period
 		}))
 	);
 	let carried = $state<string[]>([]);

@@ -7,7 +7,7 @@ const scheduled = (on: string, today: string) => on > today && on.endsWith('-01'
 export default model({
 	description:
 		'One dated change to one contract field, filed ahead of its day: its old and new value. Knowledge only; payroll and the ledger read the sealed version it is materialized into.',
-	record_label: 'record.field_path',
+	record_label: "record.field_path + ' · ' + string(record.effective_from)",
 	fields: {
 		employee_id: {
 			kind: 'ref',

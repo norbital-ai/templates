@@ -4,7 +4,7 @@ import { writesLedger } from '../../../../lib/ledger/service.js';
 export default model({
 	description:
 		'One balance row per employee profile. Accounts are keyed by catalogue family (leave, claim, statutory contribution, …), then by account code, so the map is data rather than fixed columns.',
-	record_label: "'Balance'",
+	record_label: "has(record.employee_id.name) ? record.employee_id.name : 'Balance'",
 	fields: {
 		employee_id: { kind: 'ref', to: 'employee_profile' },
 		account: {

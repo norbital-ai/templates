@@ -136,7 +136,7 @@
 					]
 				}
 			},
-			"record_label": "record.employment_id.employee_number + ' · ' + string(record.quantity)"
+			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_id.code + ' · ' + string(record.quantity)"
 		},
 		"allowance_catalog": {
 			"audit": true,
@@ -411,7 +411,7 @@
 					]
 				}
 			},
-			"record_label": "record.employment_id.employee_number + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)"
+			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_id.code + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)"
 		},
 		"contract_change": {
 			"audit": true,
@@ -456,7 +456,7 @@
 					}
 				}
 			},
-			"record_label": "record.field_path"
+			"record_label": "record.field_path + ' · ' + string(record.effective_from)"
 		},
 		"employee_balance": {
 			"audit": true,
@@ -479,7 +479,7 @@
 					"to": "employee_profile"
 				}
 			},
-			"record_label": "'Balance'",
+			"record_label": "has(record.employee_id.name) ? record.employee_id.name : 'Balance'",
 			"unique": [
 				{
 					"fields": [
@@ -904,7 +904,7 @@
 					}
 				}
 			],
-			"record_label": "has(record.employee_id.name) ? record.employee_id.name + ' · ' + record.employee_number : record.employee_number",
+			"record_label": "(has(record.employee_id.name) ? record.employee_id.name + ' · ' : '') + record.employee_number + ' · ' + string(record.effective_range.from)",
 			"search": {
 				"text": [
 					"employee_number",
@@ -1116,7 +1116,7 @@
 					}
 				}
 			},
-			"record_label": "record.field_path",
+			"record_label": "record.field_path + ' · ' + string(record.effective_from)",
 			"unique": [
 				{
 					"fields": [
@@ -1365,7 +1365,7 @@
 					"optional": true
 				}
 			},
-			"record_label": "record.date"
+			"record_label": "record.name + ' · ' + string(record.date)"
 		},
 		"jurisdiction_settings": {
 			"audit": true,
@@ -1809,7 +1809,7 @@
 					]
 				}
 			},
-			"record_label": "record.code"
+			"record_label": "record.code + ' · ' + string(record.effective_on)"
 		},
 		"loan_catalog": {
 			"audit": true,
@@ -1913,7 +1913,7 @@
 					"of": "date"
 				}
 			},
-			"record_label": "record.employment_id.employee_number + ' · ' + string(record.recovered) + ' recovered'"
+			"record_label": "record.employment_id.employee_number + ' · ' + record.catalog_id.code"
 		},
 		"loan_catalog_entry_repayment": {
 			"audit": true,
@@ -1954,7 +1954,7 @@
 					"to": "payroll_run"
 				}
 			},
-			"record_label": "record.payment_reference != null ? record.payment_reference : ''"
+			"record_label": "record.employment_id.employee_number + ' · ' + string(record.amount) + (record.paid_on != null ? ' · ' + string(record.paid_on) : '')"
 		},
 		"obligation": {
 			"audit": true,
@@ -2140,7 +2140,7 @@
 					"kind": "text"
 				}
 			},
-			"record_label": "record.period",
+			"record_label": "(has(record.employee_id.name) ? record.employee_id.name + ' · ' : '') + record.period",
 			"unique": [
 				{
 					"fields": [
@@ -2508,7 +2508,7 @@
 					}
 				}
 			},
-			"record_label": "string(record.run_number)",
+			"record_label": "'Run ' + string(record.run_number) + ' · ' + record.period",
 			"unique": [
 				{
 					"fields": [
@@ -2610,7 +2610,7 @@
 					"scale": 12
 				}
 			},
-			"record_label": "string(record.net_pay)",
+			"record_label": "(has(record.employee_id.name) ? record.employee_id.name + ' · ' : '') + (record.period != null ? record.period : '')",
 			"unique": [
 				{
 					"fields": [
@@ -2907,7 +2907,7 @@
 					"kind": "date"
 				}
 			},
-			"record_label": "record.work_date",
+			"record_label": "(has(record.employment_id.employee_number) ? record.employment_id.employee_number + ' · ' : '') + string(record.work_date)",
 			"unique": [
 				{
 					"fields": [
@@ -5177,7 +5177,7 @@
 					}
 				}
 			},
-			"record_label": "record.kind"
+			"record_label": "record.kind + ' · ' + string(record.opened_on)"
 		}
 	},
 	"tz": "UTC"

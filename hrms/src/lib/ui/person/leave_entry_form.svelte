@@ -4,7 +4,7 @@
 	import { Effect } from 'effect';
 	import { watch } from 'runed';
 	import { date_period, each_day, month_of, plain_date } from '../../date.js';
-	import { Button, Combobox, confirm_action, notify_outcome, toast } from '@norbital-ai/ui';
+	import { Button, Combobox, confirm_action, notify_outcome, Picker, toast } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { todayKey } from '../format/calendar.js';
@@ -107,12 +107,6 @@
 				entity_id: { fields: ['settings_code'] }
 			}
 		})
-	);
-	const contractOptions = $derived(
-		(contracts.current?.employee_contract.rows ?? []).map((row) => ({
-			value: row.id,
-			label: `${row.employee_id?.name ?? ''} · ${row.employee_number} · ${row.effective_range.from} to ${row.effective_range.to ?? 'now'}`
-		}))
 	);
 	const contract = $derived(
 		(contracts.current?.employee_contract.rows ?? []).find((row) => row.id === chosen) ?? null
@@ -419,11 +413,11 @@
 	<div class="grid gap-3 sm:grid-cols-2">
 		{#if showPerson}<Stack gap="xs">
 				<span class="text-xs font-medium text-muted-foreground">Employment</span>
-				<Combobox
-					options={contractOptions}
+				<Picker
+					{ctx}
+					of="employee_contract"
+					where={{ entity_id: { eq: entityId }, status: { eq: 'SEALED' } }}
 					value={chosen}
-					placeholder="Select employment"
-					aria-label="Employment"
 					disabled={fixedEmployment}
 					on_change={(value) => {
 						chosen = value;

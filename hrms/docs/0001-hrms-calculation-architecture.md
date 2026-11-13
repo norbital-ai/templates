@@ -609,6 +609,6 @@ src/app/                HR controller apps, employee self-service
 - HR Controller holds Entities, People, Events, Payroll runs, Obligations, Formats and a Settings group. Settings has two apps: Lineage (one jurisdiction's versions, with Compare) and Change log (every jurisdiction's changes, with Scheduled for what is not merged yet).
 - A law version's tabs: General (its declared fields only), Lookup (the shared tables), Calculation overview, Catalog, Registered rules, Registered behaviour and Compare.
 - Events lists each entry family on its own page: leave, claims, ad hoc, loans, workplace cases, the work month board and work events.
-- An employee profile's tabs: Profile (face enrolment inside it), Employment contract, Loans, Workplace cases, and Entitlement and balances.
+- An employee profile's tabs: Profile (face enrolment inside it), Employment contract, Loans, Workplace cases, and Balances (a balance overview of what is left today, and the ledger where HR adds manual adjustments).
 - A rule's or effect's `reads` show the record id as a variable chip and the rest of the filter in the shared filter editor; every expression is a read-only code block.
 - A self-service leave or claim form hides the employment picker when the page already knows the employment.

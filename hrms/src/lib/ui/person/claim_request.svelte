@@ -3,9 +3,9 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { plain_date } from '../../date.js';
 	import {
-		Combobox,
 		Field,
 		Form,
+		Picker,
 		Sheet,
 		notify_outcome,
 		toast,
@@ -28,25 +28,6 @@
 	} = $props();
 	const clock = ctx.clock('day');
 	let chosen = $state<Id<'employee_contract'> | null>(fixedEmployment);
-	const contracts = $derived(
-		fixedEmployment !== null
-			? null
-			: ctx.query({
-					employee_contract: {
-						where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
-						fields: ['employee_number', 'employee_id'],
-						order_by: { employee_number: 'asc' },
-						limit: 10000,
-						employee_id: { fields: ['name'] }
-					}
-				})
-	);
-	const options = $derived(
-		(contracts?.current?.employee_contract.rows ?? []).map((row) => ({
-			value: row.id,
-			label: `${row.employee_id?.name ?? ''} · ${row.employee_number}`
-		}))
-	);
 </script>
 
 {#snippet catalog(field: FieldEditor)}<CatalogueEditor
@@ -78,12 +59,12 @@
 		{#snippet children()}<Stack gap="md">
 				{#if fixedEmployment === null}<Field {ctx} name="employment_id">
 						{#snippet editor(field)}
-							<Combobox
+							<Picker
+								{ctx}
+								of="employee_contract"
 								id={field.id}
-								{options}
+								where={{ entity_id: { eq: companyId }, status: { eq: 'SEALED' } }}
 								value={chosen}
-								placeholder="Select employment"
-								aria-label="Employment"
 								disabled={field.disabled}
 								on_change={(value) => {
 									chosen = value;

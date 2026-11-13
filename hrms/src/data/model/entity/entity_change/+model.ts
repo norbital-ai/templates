@@ -20,7 +20,7 @@ const at = (row: unknown, path: string): Json | null => {
 export default model({
 	description:
 		'One dated change to one employer version field, filed ahead of its day. Knowledge only; the seal materializes it into a sealed employer version.',
-	record_label: 'record.field_path',
+	record_label: "record.field_path + ' · ' + string(record.effective_from)",
 	fields: {
 		entity_id: {
 			kind: 'ref',

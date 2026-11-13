@@ -40,7 +40,7 @@ const missingInputs = Effect.fnUntraced(function* (read: Reader, entries: readon
 export default model({
 	description:
 		'Employer-scoped source data for one declared case variant, validated before acceptance and protected when captured by payroll.',
-	record_label: 'record.kind',
+	record_label: "record.kind + ' · ' + string(record.opened_on)",
 	fields: {
 		catalog_id: {
 			kind: 'ref',

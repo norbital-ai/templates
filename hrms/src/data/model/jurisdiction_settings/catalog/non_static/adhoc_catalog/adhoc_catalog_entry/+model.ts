@@ -25,7 +25,8 @@ const touched = (
 
 export default model({
 	description: 'One ad-hoc payment or deduction for an employment.',
-	record_label: "record.employment_id.employee_number + ' · ' + string(record.quantity)",
+	record_label:
+		"record.employment_id.employee_number + ' · ' + record.catalog_id.code + ' · ' + string(record.quantity)",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'adhoc_catalog_entry' },

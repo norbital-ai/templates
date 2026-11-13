@@ -4,7 +4,8 @@ export default model({
 	description:
 		'One paid pay period of one person to work out again. A record of a paid period that is corrected leaves this row in the same write; the next run that pays the person carries the difference and takes the row.',
 	icon: 'lucide:history',
-	record_label: 'record.period',
+	record_label:
+		"(has(record.employee_id.name) ? record.employee_id.name + ' · ' : '') + record.period",
 	fields: {
 		employee_id: { kind: 'ref', to: 'employee_profile', inverse: 'pay_amendments' },
 		pay_group_id: {

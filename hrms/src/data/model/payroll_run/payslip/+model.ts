@@ -4,7 +4,8 @@ import { tap } from '../../../../lib/payroll_engine/taps.js';
 export default model({
 	description:
 		'Per-employee payroll totals, read-only once written. Financial detail is recomputed from the subtotal chain, catalogue entries and ledger.',
-	record_label: 'string(record.net_pay)',
+	record_label:
+		"(has(record.employee_id.name) ? record.employee_id.name + ' · ' : '') + (record.period != null ? record.period : '')",
 	fields: {
 		payroll_run_id: {
 			kind: 'ref',

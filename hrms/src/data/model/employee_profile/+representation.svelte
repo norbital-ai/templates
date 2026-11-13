@@ -21,11 +21,11 @@
 	import { Stack, Cluster } from '@norbital-ai/ui/layout';
 	import BalanceAdjustment from '../../../lib/ui/person/balance_adjustment.svelte';
 	import BalanceLedger from '../../../lib/ui/person/balance_ledger.svelte';
+	import BalanceOverview from '../../../lib/ui/person/balance_overview.svelte';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
 	import { add_days, plain_date } from '../../../lib/date.js';
 	import { formatTermsDates } from '../../../lib/ui/format/display_formatters.js';
-	import { employeeReference } from '../../../lib/export_format_configuration/export_format.js';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 
 	let { view, ctx }: { view: RecordView<'employee_profile'>; ctx: PageContext } = $props();
@@ -59,14 +59,7 @@
 			: ctx.query({
 					employee_contract: {
 						where: { employee_id: { eq: record.id } },
-						fields: [
-							'employee_number',
-							'effective_range',
-							'entity_id',
-							'terms',
-							'engagement',
-							'status'
-						],
+						fields: ['effective_range', 'entity_id', 'terms', 'engagement', 'status'],
 						entity_id: { fields: ['name'] }
 					}
 				})
@@ -82,6 +75,7 @@
 					}
 				})
 	);
+	const held = $derived(balance?.current?.employee_balance.rows[0]);
 	const contractIds = $derived(
 		(contracts?.current?.employee_contract.rows ?? []).map((row) => row.id)
 	);
@@ -101,7 +95,6 @@
 					{
 						id: row.id,
 						entity: entity.name,
-						number: row.employee_number,
 						period: formatTermsDates(row, t),
 						from: String(row.effective_range.from),
 						to: row.effective_range.to == null ? null : String(row.effective_range.to),
@@ -124,7 +117,7 @@
 				id: String(row.id),
 				period: row.period,
 				status: row.status,
-				detail: `${row.entity} · ${employeeReference(row.number, row.entity)}`
+				detail: row.entity
 			};
 			const earlier = ordered.slice(index + 1).find((other) => other.sealed);
 			if (!row.sealed || earlier === undefined || earlier.to === null) return [item];
@@ -263,18 +256,25 @@
 					columns={[{ field: 'kind', cell: caseCell }, 'entity_id', 'opened_on', 'closed_on']}
 				/></Stack
 			>{/if}{/if}{/snippet}
-{#snippet finances()}{#if record}{@const held = balance?.current?.employee_balance.rows[0]}<Stack
-			gap="lg"
-			><Cluster justify="end"
-				><Button variant="outline" disabled={held === undefined} onclick={() => (adjusting = true)}
-					><Icon name="lucide:pencil" class="size-4" />{t('balance.adjust')}</Button
-				></Cluster
-			>{#if held !== undefined}<BalanceLedger
-					{ctx}
-					balanceId={held.id}
-					account={held.account}
-				/>{/if}</Stack
-		>{/if}{/snippet}
+{#snippet overviewTab()}{#if held}<BalanceOverview {ctx} account={held.account} />{/if}{/snippet}
+{#snippet ledgerTab()}{#if held}<BalanceLedger
+			{ctx}
+			balanceId={held.id}
+			onadjust={() => (adjusting = true)}
+		/>{/if}{/snippet}
+{#snippet finances()}{#if record}{#if held === undefined}<EmptyState
+				title={t('v2.balances')}
+			/>{:else}<Tabs
+				tabs={[
+					{
+						name: 'overview',
+						title: t('balance.overview'),
+						icon: 'lucide:scale',
+						body: overviewTab
+					},
+					{ name: 'ledger', title: t('balance.ledger'), icon: 'lucide:list', body: ledgerTab }
+				]}
+			/>{/if}{/if}{/snippet}
 {#snippet face()}{#if record}{@const faceStatus = record.face_enrollment_status ?? 'NONE'}<Cluster
 			gap="sm"
 			align="center"
@@ -342,10 +342,10 @@
 			]}
 		/>{/if}
 </RecordShell>
-{#if adjusting && record && balance?.current?.employee_balance.rows[0]}<BalanceAdjustment
+{#if adjusting && record && held}<BalanceAdjustment
 		{ctx}
 		employeeId={record.id}
-		balanceId={balance.current.employee_balance.rows[0].id}
+		balanceId={held.id}
 		onclose={() => (adjusting = false)}
 	/>{/if}
 {#if enrolling && record}<Sheet
