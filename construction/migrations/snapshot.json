@@ -488,7 +488,7 @@
 					"to": "workers"
 				}
 			},
-			"record_label": "record.assignment_code",
+			"record_label": "record.worker_id.worker_name + ' · ' + record.site_location_id.location_name",
 			"search": {
 				"text": [
 					"assignment_code"
@@ -599,13 +599,9 @@
 					"inverse": "jobs_certification_types",
 					"kind": "ref",
 					"to": "jobs"
-				},
-				"name": {
-					"kind": "text",
-					"optional": true
 				}
 			},
-			"record_label": "record.name"
+			"record_label": "record.job_id.job_title + ' · ' + record.certification_type_id.certification_name"
 		},
 		"jobs_site_locations": {
 			"audit": true,
@@ -615,17 +611,13 @@
 					"kind": "ref",
 					"to": "jobs"
 				},
-				"name": {
-					"kind": "text",
-					"optional": true
-				},
 				"site_location_id": {
 					"inverse": "jobs_site_locations",
 					"kind": "ref",
 					"to": "site_locations"
 				}
 			},
-			"record_label": "record.name"
+			"record_label": "record.job_id.job_title + ' · ' + record.site_location_id.location_name"
 		},
 		"payment_claims": {
 			"audit": true,
@@ -833,25 +825,17 @@
 					"kind": "ref",
 					"to": "certification_types"
 				},
-				"name": {
-					"kind": "text",
-					"optional": true
-				},
 				"permits_to_work_id": {
 					"inverse": "permits_to_work_certification_types",
 					"kind": "ref",
 					"to": "permits_to_work"
 				}
 			},
-			"record_label": "record.name"
+			"record_label": "record.permits_to_work_id.permit_number + ' · ' + record.certification_type_id.certification_name"
 		},
 		"permits_to_work_workers": {
 			"audit": true,
 			"fields": {
-				"name": {
-					"kind": "text",
-					"optional": true
-				},
 				"permits_to_work_id": {
 					"inverse": "permits_to_work_workers",
 					"kind": "ref",
@@ -863,7 +847,7 @@
 					"to": "workers"
 				}
 			},
-			"record_label": "record.name"
+			"record_label": "record.permits_to_work_id.permit_number + ' · ' + record.worker_id.worker_name"
 		},
 		"projects": {
 			"audit": true,
@@ -926,7 +910,7 @@
 					]
 				}
 			},
-			"record_label": "[record.project_number != null ? string(record.project_number) : '', record.project_name != null ? string(record.project_name) : ''].filter(part, part != '').join(' · ')",
+			"record_label": "record.project_number != null ? record.project_number + ' · ' + record.project_name : record.project_name",
 			"search": {
 				"text": [
 					"project_name",
@@ -1099,7 +1083,7 @@
 					"to": "projects"
 				}
 			},
-			"record_label": "[record.location_code != null ? string(record.location_code) : '', record.location_name != null ? string(record.location_name) : ''].filter(part, part != '').join(' · ')",
+			"record_label": "record.location_code != null ? record.location_code + ' · ' + record.location_name : record.location_name",
 			"search": {
 				"text": [
 					"location_code",
@@ -2584,7 +2568,7 @@
 					"optional": true
 				}
 			},
-			"record_label": "[record.worker_number != null ? string(record.worker_number) : '', record.worker_name != null ? string(record.worker_name) : ''].filter(part, part != '').join(' · ')",
+			"record_label": "record.worker_number != null ? record.worker_number + ' · ' + record.worker_name : record.worker_name",
 			"search": {
 				"text": [
 					"worker_name",

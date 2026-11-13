@@ -2,7 +2,7 @@ import { model } from '../../../../.norbital/models/commercial_settings.ts';
 import { type Id } from '@norbital-ai/bolt';
 export default model({
 	description: 'commercial settings',
-	record_label: 'record.code',
+	record_label: "'Commercial settings'",
 	fields: {
 		default_document_layout: {
 			kind: 'ref',

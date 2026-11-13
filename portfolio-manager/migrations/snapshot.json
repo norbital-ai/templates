@@ -349,7 +349,7 @@
 					"to": "sys_integration"
 				}
 			},
-			"record_label": "string(record.base_currency)"
+			"record_label": "'Portfolio settings'"
 		},
 		"report": {
 			"audit": true,
@@ -541,7 +541,7 @@
 					"scale": 2
 				}
 			},
-			"record_label": "string(record.for_date)",
+			"record_label": "'Portfolio report · ' + string(record.for_date)",
 			"search": {
 				"text": [
 					"headline",

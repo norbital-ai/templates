@@ -9,7 +9,7 @@ export default model({
 	description:
 		'The base currency, the benchmarks, and the paired account and chats the daily report is sent to.',
 	icon: 'lucide:settings',
-	record_label: 'string(record.base_currency)',
+	record_label: "'Portfolio settings'",
 	fields: {
 		base_currency: { kind: 'currency' },
 		report_via: { kind: 'ref', to: 'sys_integration', optional: true },

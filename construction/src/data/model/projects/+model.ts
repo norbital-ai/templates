@@ -17,7 +17,7 @@ export default model({
 	description: 'Construction projects and their operating context.',
 	icon: 'lucide:building-2',
 	record_label:
-		"[record.project_number != null ? string(record.project_number) : '', record.project_name != null ? string(record.project_name) : ''].filter(part, part != '').join(' · ')",
+		"record.project_number != null ? record.project_number + ' · ' + record.project_name : record.project_name",
 	fields: {
 		project_name: { kind: 'text' },
 		project_number: { kind: 'text', optional: true },

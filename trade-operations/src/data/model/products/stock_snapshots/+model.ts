@@ -9,7 +9,8 @@ import {
 import { projections } from '../../../../integration/kingdee/projections.js';
 export default model({
 	description: 'stock snapshots',
-	record_label: 'record.external_code',
+	record_label:
+		"record.product.name + ' · ' + record.warehouse.name + (record.lot_number != null ? ' · ' + record.lot_number : '')",
 	fields: {
 		lot_number: { kind: 'text', optional: true },
 		currency: { kind: 'currency', optional: true },

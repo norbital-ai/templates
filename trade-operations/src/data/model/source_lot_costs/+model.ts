@@ -4,7 +4,7 @@ import { readStockLotCosts } from '../../../integration/kingdee/stock-lot-costs.
 
 export default model({
 	description: 'Audited purchase receipt cost and first receipt date for on-hand lots.',
-	record_label: 'string(record.observed_at)',
+	record_label: 'record.source.name',
 	fields: {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		observed_at: { kind: 'instant' },
@@ -25,7 +25,7 @@ export default model({
 			}
 		}
 	},
-	outputs: { default: { fields: 'all' } },
+	outputs: { default: { fields: 'all', source: { fields: ['name'] } } },
 	constraints: { one_per_source: { unique: ['source'], import_key: true } },
 	syncs: {
 		kingdee: {

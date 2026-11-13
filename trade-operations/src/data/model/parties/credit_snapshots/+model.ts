@@ -2,7 +2,7 @@ import { model } from '../../../../../.norbital/models/credit_snapshots.ts';
 import { readCreditSource } from '../../../../integration/kingdee/financial-source.js';
 export default model({
 	description: 'credit snapshots',
-	record_label: 'record.external_code',
+	record_label: 'record.party.name',
 	fields: {
 		external_code: {
 			kind: 'text'

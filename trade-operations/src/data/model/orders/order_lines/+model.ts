@@ -211,8 +211,7 @@ const priced = Effect.fnUntraced(function* (
 });
 export default model({
 	description: 'order lines',
-	record_label:
-		"[record.product_name != null ? string(record.product_name) : '', record.quantity != null ? string(record.quantity) : ''].filter(part, part != '').join(' · ')",
+	record_label: "record.order.number + ' · ' + record.product_name",
 	fields: {
 		order: { kind: 'ref', to: 'orders', inverse: 'lines', owned: true },
 		line_key: { kind: 'text', optional: true, hidden: true },
@@ -292,12 +291,12 @@ export default model({
 		default: {
 			fields: 'all',
 			product: { fields: ['name', 'external_code'] },
-			order: { fields: ['ledger', 'direction'] }
+			order: { fields: ['number', 'ledger', 'direction'] }
 		},
 		logistics: {
 			fields: logisticsLine,
 			product: { fields: ['name', 'external_code'] },
-			order: { fields: ['ledger', 'direction'] }
+			order: { fields: ['number', 'ledger', 'direction'] }
 		}
 	},
 	constraints: {

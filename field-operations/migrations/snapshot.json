@@ -344,12 +344,9 @@
 				"source_key": {
 					"hidden": true,
 					"kind": "text"
-				},
-				"summary": {
-					"kind": "text"
 				}
 			},
-			"record_label": "record.summary",
+			"record_label": "record.source.kind == 'workspace_upload' ? 'Workspace upload' : (has(record.source.sent_at) ? record.source.sent_at : 'Message photo')",
 			"search": {
 				"indexes": {
 					"pdq": {

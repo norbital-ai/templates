@@ -4,7 +4,7 @@ import { readStockCommitments } from '../../../integration/kingdee/stock-commitm
 
 export default model({
 	description: 'Open sales quantities by product and warehouse from Kingdee.',
-	record_label: 'string(record.observed_at)',
+	record_label: 'record.source.name',
 	fields: {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		observed_at: { kind: 'instant' },

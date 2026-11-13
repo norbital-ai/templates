@@ -3,12 +3,14 @@ import { model } from '../../../../../../.norbital/models/booking_helpers.ts';
 export default model({
 	description: 'A preferred helper of a booking, ranked.',
 	icon: 'lucide:heart-handshake',
-	record_label: 'string(record.rank)',
+	record_label: "record.booking.number + ' · ' + record.helper.name",
 	fields: {
 		booking: { kind: 'ref', to: 'bookings', inverse: 'preferred_helpers', owned: true },
 		helper: { kind: 'ref', to: 'helpers', inverse: 'preferred_by' },
 		rank: { kind: 'int', min: 1, max: 5 }
 	},
 	constraints: { one_rank_per_helper: { unique: ['booking', 'helper'] } },
-	outputs: { default: { fields: 'all' } }
+	outputs: {
+		default: { fields: 'all', booking: { fields: ['number'] }, helper: { fields: ['name'] } }
+	}
 });

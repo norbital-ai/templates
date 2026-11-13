@@ -31,8 +31,7 @@ const valid = ({ eligibility, amount, parameters }: Expressions) =>
 	);
 export default model({
 	description: 'commission rules',
-	record_label:
-		"[record.currency != null ? string(record.currency) : '', record.effective_on != null ? string(record.effective_on) : ''].filter(part, part != '').join(' · ')",
+	record_label: "string(record.currency) + ' · ' + string(record.effective_on)",
 	fields: {
 		eligibility_expression: { kind: 'text', format: 'cel', default: 'true' },
 		amount_expression: { kind: 'text', format: 'cel', default: DEFAULT_COMMISSION_EXPRESSION },

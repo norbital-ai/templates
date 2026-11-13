@@ -33,7 +33,7 @@ export default model({
 		default: {
 			fields: 'all',
 			job_assignment_id: { fields: ['title'] },
-			evidence_id: { fields: ['summary'] }
+			evidence_id: { fields: ['source'] }
 		}
 	},
 	create: {

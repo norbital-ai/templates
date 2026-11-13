@@ -204,7 +204,7 @@
 					"min": 1
 				}
 			},
-			"record_label": "record.code",
+			"record_label": "'Commercial settings'",
 			"unique": [
 				{
 					"fields": [
@@ -287,7 +287,7 @@
 					"scale": 2
 				}
 			},
-			"record_label": "[record.currency != null ? string(record.currency) : '', record.effective_on != null ? string(record.effective_on) : ''].filter(part, part != '').join(' · ')",
+			"record_label": "string(record.currency) + ' · ' + string(record.effective_on)",
 			"search": {
 				"text": [
 					"basis_unit"
@@ -464,7 +464,7 @@
 					}
 				}
 			},
-			"record_label": "record.external_code",
+			"record_label": "record.party.name",
 			"search": {
 				"text": [
 					"party",
@@ -849,7 +849,7 @@
 					"scale": 4
 				}
 			},
-			"record_label": "[record.product_name != null ? string(record.product_name) : '', record.quantity != null ? string(record.quantity) : ''].filter(part, part != '').join(' · ')",
+			"record_label": "record.order.number + ' · ' + record.product_name",
 			"search": {
 				"text": [
 					"product",
@@ -2120,7 +2120,7 @@
 					"kind": "text"
 				}
 			},
-			"record_label": "[record.effective_on != null ? string(record.effective_on) : '', record.group_code != null ? string(record.group_code) : ''].filter(part, part != '').join(' · ')",
+			"record_label": "record.product.name + ' · ' + record.group_code + ' · ' + string(record.effective_on)",
 			"search": {
 				"text": [
 					"product",
@@ -2292,7 +2292,8 @@
 						"owner"
 					]
 				}
-			]
+			],
+			"record_label": "record.owner.name"
 		},
 		"source_lot_costs": {
 			"audit": true,
@@ -2340,7 +2341,7 @@
 					}
 				}
 			},
-			"record_label": "string(record.observed_at)",
+			"record_label": "record.source.name",
 			"unique": [
 				{
 					"fields": [
@@ -2499,7 +2500,7 @@
 					}
 				}
 			},
-			"record_label": "string(record.observed_at)",
+			"record_label": "record.source.name",
 			"unique": [
 				{
 					"fields": [
@@ -2684,7 +2685,7 @@
 					}
 				}
 			},
-			"record_label": "string(record.observed_at)",
+			"record_label": "record.source.name",
 			"unique": [
 				{
 					"fields": [
@@ -2752,7 +2753,7 @@
 					"to": "warehouses"
 				}
 			},
-			"record_label": "record.external_code",
+			"record_label": "record.product.name + ' · ' + record.warehouse.name + (record.lot_number != null ? ' · ' + record.lot_number : '')",
 			"search": {
 				"text": [
 					"product",

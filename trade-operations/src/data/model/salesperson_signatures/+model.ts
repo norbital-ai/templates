@@ -4,6 +4,7 @@ import { SIGNATURE_BASE64 } from '../../../lib/salesperson-signatures.js';
 export default model({
 	description: 'Personal artwork retained for previously sealed contracts.',
 	icon: 'lucide:signature',
+	record_label: 'record.owner.name',
 	fields: {
 		owner: { kind: 'ref', to: 'sys_user', default: { var: 'requestor.id' } },
 		signature: {
@@ -12,6 +13,6 @@ export default model({
 			optional: true
 		}
 	},
-	outputs: { default: { fields: 'all' } },
+	outputs: { default: { fields: 'all', owner: { fields: ['name'] } } },
 	indexes: { by_owner: { on: ['owner'] } }
 });

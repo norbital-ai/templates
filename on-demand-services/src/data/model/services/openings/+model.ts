@@ -6,7 +6,7 @@ import { model } from '../../../../../.norbital/models/openings.ts';
 export default model({
 	description: 'The open start times of one service on one day, as the booking portal offers them.',
 	icon: 'lucide:calendar-clock',
-	record_label: 'string(record.day)',
+	record_label: "record.service.name + ' · ' + string(record.day)",
 	fields: {
 		service: { kind: 'ref', to: 'services', inverse: 'openings', owned: true },
 		day: { kind: 'date' },

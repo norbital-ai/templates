@@ -20,7 +20,7 @@ const priceBook = {
 export default model({
 	description: 'pricing floors',
 	record_label:
-		"[record.effective_on != null ? string(record.effective_on) : '', record.group_code != null ? string(record.group_code) : ''].filter(part, part != '').join(' · ')",
+		"record.product.name + ' · ' + record.group_code + ' · ' + string(record.effective_on)",
 	fields: {
 		product: { kind: 'ref', to: 'products' },
 		// The native file import passes this through its write transform. It is never stored.

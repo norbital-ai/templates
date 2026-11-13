@@ -7,7 +7,7 @@ import { model } from '../../../../.norbital/models/drive_times.ts';
 export default model({
 	description: 'Google drive times between ~1 km squares, read by matching.',
 	icon: 'lucide:route',
-	record_label: 'string(record.minutes)',
+	record_label: 'record.leg',
 	fields: {
 		/** `<lat>,<lng>><lat>,<lng>`, each rounded to 0.01°. */
 		leg: { kind: 'text', hidden: true },

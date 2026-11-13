@@ -6,7 +6,7 @@ import { model } from '../../../../../../../.norbital/models/helper_warnings.ts'
 export default model({
 	description: 'A warning letter issued to a helper, with the visit it concerns.',
 	icon: 'lucide:file-warning',
-	record_label: 'record.reason',
+	record_label: "record.helper.name + ' · ' + string(record.issued_at)",
 	fields: {
 		helper: { kind: 'ref', to: 'helpers', inverse: 'warnings' },
 		visit: { kind: 'ref', to: 'visits', optional: true, on_delete: 'set_null' },

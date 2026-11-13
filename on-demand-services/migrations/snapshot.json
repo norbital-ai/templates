@@ -219,7 +219,7 @@
 					"min": 1
 				}
 			},
-			"record_label": "string(record.rank)",
+			"record_label": "record.booking.number + ' · ' + record.helper.name",
 			"unique": [
 				{
 					"fields": [
@@ -660,7 +660,7 @@
 					"min": 0
 				}
 			},
-			"record_label": "string(record.minutes)",
+			"record_label": "record.leg",
 			"unique": [
 				{
 					"fields": [
@@ -701,7 +701,7 @@
 					"period": "period"
 				}
 			],
-			"record_label": "record.reason"
+			"record_label": "record.helper.name + ' · ' + string(record.period.from)"
 		},
 		"helper_warnings": {
 			"audit": true,
@@ -747,7 +747,7 @@
 					]
 				}
 			],
-			"record_label": "record.reason",
+			"record_label": "record.helper.name + ' · ' + string(record.issued_at)",
 			"search": {
 				"text": [
 					"helper",
@@ -894,7 +894,7 @@
 					"many": true
 				}
 			},
-			"record_label": "string(record.day)",
+			"record_label": "record.service.name + ' · ' + string(record.day)",
 			"unique": [
 				{
 					"fields": [

@@ -12,7 +12,7 @@ export default model({
 		user: { kind: 'ref', to: 'sys_user', default: { var: 'requestor.id' } }
 	},
 	constraints: { one_per_user: { unique: ['user'], message: 'errors.already_subscribed' } },
-	outputs: { default: { fields: 'all' } },
+	outputs: { default: { fields: 'all', user: { fields: ['name'] } } },
 	create: { columns: { fields: ['user'] } },
 	delete: {}
 });

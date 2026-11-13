@@ -85,7 +85,7 @@ const certified = Effect.fnUntraced(function* (
 export default model({
 	description: 'Worker assignments tied to project jobs and site locations.',
 	icon: 'lucide:hard-hat',
-	record_label: 'record.assignment_code',
+	record_label: "record.worker_id.worker_name + ' · ' + record.site_location_id.location_name",
 	fields: {
 		assignment_code: { kind: 'text', optional: true },
 		role: { kind: 'text', optional: true },
@@ -105,6 +105,7 @@ export default model({
 	outputs: {
 		default: {
 			fields: 'all',
+			worker_id: { fields: ['worker_name'] },
 			site_location_id: { fields: ['project_id', 'location_code', 'location_name'] },
 			job_id: { fields: ['job_title'] }
 		}

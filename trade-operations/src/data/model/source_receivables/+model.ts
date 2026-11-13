@@ -5,7 +5,7 @@ import { receivableEntries } from '../../../lib/receivables.js';
 
 export default model({
 	description: 'Verified account-wide balances and dated movements for the receivables report.',
-	record_label: 'string(record.observed_at)',
+	record_label: 'record.source.name',
 	fields: {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		currency: { kind: 'currency' },

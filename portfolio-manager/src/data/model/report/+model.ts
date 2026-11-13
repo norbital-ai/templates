@@ -31,7 +31,7 @@ export default model({
 	description:
 		'The daily report: the totals computed from the book and the market, and one call per holding.',
 	icon: 'lucide:newspaper',
-	record_label: 'string(record.for_date)',
+	record_label: "'Portfolio report · ' + string(record.for_date)",
 	fields: {
 		for_date: { kind: 'date' },
 		base_currency: { kind: 'currency' },

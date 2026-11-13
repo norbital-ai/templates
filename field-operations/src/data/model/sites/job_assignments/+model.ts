@@ -95,7 +95,7 @@ export default model({
 		default: {
 			fields: 'all',
 			/** The photos filed on a job: so a reader (a controller, the WhatsApp envoy) sees what was sent for it. */
-			photo_evidence: { fields: ['photo', 'summary', 'flags', 'created_at'] },
+			photo_evidence: { fields: ['photo', 'source', 'flags', 'created_at'] },
 			site_id: {
 				fields: ['name', 'address', 'unit_number', 'site_code', 'client_name', 'site_key']
 			}

@@ -14,7 +14,7 @@ export default model({
 	description: 'Work fronts and delivery zones within a project.',
 	icon: 'lucide:map-pin',
 	record_label:
-		"[record.location_code != null ? string(record.location_code) : '', record.location_name != null ? string(record.location_name) : ''].filter(part, part != '').join(' · ')",
+		"record.location_code != null ? record.location_code + ' · ' + record.location_name : record.location_name",
 	fields: {
 		location_name: { kind: 'text' },
 		location_code: { kind: 'text', optional: true },

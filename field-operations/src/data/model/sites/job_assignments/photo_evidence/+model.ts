@@ -1,9 +1,5 @@
 import { model } from '../../../../../../.norbital/models/photo_evidence.ts';
-import {
-	photoSourceKey,
-	photoSummary,
-	uninspectedPhotoFacts
-} from '../../../../../lib/photo-integrity.js';
+import { photoSourceKey, uninspectedPhotoFacts } from '../../../../../lib/photo-integrity.js';
 const PROBE = { vector: { kind: 'number', many: true } } as const;
 /**
  * One photo filed against one job assignment, with its integrity facts. A photo is born
@@ -19,7 +15,8 @@ export default model({
 	description:
 		'One explicitly selected photo and its deterministic integrity facts, linked to one job assignment. Flags and similarity are evidence for a later AI or human judgement, never suspicion by themselves.',
 	icon: 'lucide:scan-search',
-	record_label: 'record.summary',
+	record_label:
+		"record.source.kind == 'workspace_upload' ? 'Workspace upload' : (has(record.source.sent_at) ? record.source.sent_at : 'Message photo')",
 	fields: {
 		job_assignment_id: {
 			kind: 'ref',
@@ -60,9 +57,7 @@ export default model({
 			]
 		},
 		/** Photos under other assignments this one duplicates. */
-		matched_evidence_ids: { kind: 'text', many: true, hidden: true },
-		/** The photo's title: where it came from. */
-		summary: { kind: 'text' }
+		matched_evidence_ids: { kind: 'text', many: true, hidden: true }
 	},
 	constraints: { source_key: { unique: ['source_key'] } },
 	indexes: {
@@ -93,8 +88,8 @@ export default model({
 			 */
 			job_assignment_id: { fields: ['title', 'site_id'] }
 		},
-		/** A contractor's view of their photos: the picture and its summary, never its forensic facts. */
-		contractor: { fields: ['job_assignment_id', 'photo', 'summary'] }
+		/** A contractor's view of their photos: the picture and where it came from, never its forensic facts. */
+		contractor: { fields: ['job_assignment_id', 'photo', 'source'] }
 	},
 	create: {
 		columns: { fields: ['job_assignment_id', 'photo'] },
@@ -111,7 +106,6 @@ export default model({
 					...row,
 					source,
 					source_key: photoSourceKey(source, String(row.photo.id)),
-					summary: photoSummary(source),
 					...uninspectedPhotoFacts()
 				};
 			});

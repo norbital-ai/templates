@@ -37,11 +37,6 @@ export const photoSourceKey = (source: PhotoSource, fileId: string): string =>
 	source.kind === 'message'
 		? `${source.integration}:${source.conversation_id}:${source.message_id}:${source.attachment_id}`
 		: `workspace:${fileId}`;
-/** The photo's title: where it came from. */
-export const photoSummary = (source: PhotoSource): string =>
-	source.kind === 'workspace_upload'
-		? 'Workspace upload'
-		: `From ${source.integration || 'a message'}${source.sent_at ? ` · ${source.sent_at.slice(0, 10)}` : ''}`;
 /** A PDQ hex digest as the 256-dim 0/1 vector `perceptual_embedding` stores. */
 export const hexToBinaryEmbedding = (hex: string): number[] =>
 	[...hex].flatMap((digit) =>

@@ -100,7 +100,6 @@
 				? 'errors.contract_setup'
 				: 'component.sealed'
 	)}
-	subtitle={['order']}
 	editors={{ product, unit_price: unitPrice, print_values: printDetails }}
 	viewers={{ print_values: printDetailsView }}
 	sections={[

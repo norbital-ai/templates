@@ -17,7 +17,7 @@ export default model({
 	description: 'Worker roster used for job assignment and compliance checks.',
 	icon: 'lucide:users',
 	record_label:
-		"[record.worker_number != null ? string(record.worker_number) : '', record.worker_name != null ? string(record.worker_name) : ''].filter(part, part != '').join(' · ')",
+		"record.worker_number != null ? record.worker_number + ' · ' + record.worker_name : record.worker_name",
 	fields: {
 		worker_name: { kind: 'text' },
 		worker_number: { kind: 'text', optional: true },

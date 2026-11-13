@@ -154,8 +154,7 @@ How the pieces work:
   declarations for the esm.sh-loaded viewer libraries (`ifc_viewer.runtime.d.ts`). It is mounted inside the
   project record when a linked `asset_documents` row carries an `ifc_model` document (or a
   `.ifc` URL); the sample model under `assets/ifc/` is what a freshly seeded tenant shows.
-- **Join names.** Each join model's `create.transform` and `update.transform` name the row by its
-  two sides' labels (one keyed read per write).
+- **Join labels.** Each join model's `record_label` reads its two sides one hop deep; nothing is stored.
 - **Custom types.** Parent-owned structured values use `project_address`, `site_coordinates`,
   `emergency_contact` and `permit_signatures`, each with one definition and a renderer. Money is a
   builtin: `{ kind: 'money', currency: 'currency' }` uses the row's currency field and native controls.
