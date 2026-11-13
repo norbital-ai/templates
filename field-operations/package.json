@@ -11,8 +11,8 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/bolt": "0.0.38",
-		"@norbital-ai/ui": "0.0.38",
+		"@norbital-ai/bolt": "0.0.40",
+		"@norbital-ai/ui": "0.0.40",
 		"effect": "4.0.6",
 		"fflate": "0.8.3",
 		"papaparse": "5.7.1",
@@ -22,7 +22,7 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "4.0.6",
-		"@norbital-ai/bolt-cli": "0.0.38",
+		"@norbital-ai/bolt-cli": "0.0.40",
 		"@sveltejs/vite-plugin-svelte": "7.3.1",
 		"@types/node": "26.6.5",
 		"@types/papaparse": "5.5.2",

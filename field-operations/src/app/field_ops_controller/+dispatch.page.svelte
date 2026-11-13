@@ -291,7 +291,7 @@
 			{#snippet end()}
 				<Stack gap="sm" size="fill">
 					{#if mappedSites.length > 0}
-						<!-- `isolate`: Leaflet's pane z-indexes stay below the record sheet -->
+						<!-- `isolate`: the map's control z-indexes stay below the record sheet -->
 						<div class="isolate">
 							<Map
 								{ctx}
