@@ -274,7 +274,6 @@ export default messages({
 	'component.more_actions': 'More actions',
 	'component.include_company_stamp': 'Include company stamp',
 	'component.include_sales_signature': 'Include retained signature',
-	'component.my_user_record': 'My user record',
 	'component.export_pdf': 'Export PDF',
 	'component.select_one_order': 'Select one order.',
 	'component.document_unavailable': 'Document unavailable. Check the published template and order.',

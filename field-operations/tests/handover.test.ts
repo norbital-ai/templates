@@ -66,7 +66,7 @@ it.live('bundles each selected site with its jobs and photos, as the starter rea
 		const json = [...put.entries()].find(([name]) => name.endsWith('.json'))?.[1];
 		expect(Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Json))(json)).toMatchObject({
 			schema: 'norbital.field_operations.interoperability.v2',
-			job_assignments: [{ title: 'Installation — Kismis' }]
+			job_assignments: [{ title: 'Installation — Sample Avenue' }]
 		});
 	})
 );

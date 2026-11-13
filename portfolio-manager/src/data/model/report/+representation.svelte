@@ -9,6 +9,7 @@
 		ReadonlyMarkdown,
 		RecordShell,
 		Table,
+		format,
 		type RecordView,
 		type ShowProps
 	} from '@norbital-ai/ui';
@@ -25,7 +26,13 @@
 	<RecordShell {ctx} of="report" mode="create" values={view.values} />
 {:else}
 	{@const report = view.record}
-	<RecordShell {ctx} of="report" mode={view.mode} id={report.id} subtitle={['for_date']}>
+	<RecordShell
+		{ctx}
+		of="report"
+		mode={view.mode}
+		id={report.id}
+		title={format({ kind: 'date' }, report.for_date, { locale: ctx.locale })}
+	>
 		<article class="flex max-w-prose flex-col gap-4">
 			<ReadonlyMarkdown value={`**${report.headline}**`} />
 			<section>

@@ -65,7 +65,7 @@ export const siteWithJob = Effect.fnUntraced(function* (
 			'sites.create': [
 				{
 					location: { lat: 1.34, lng: 103.77 },
-					address: `58 Kismis Avenue, Singapore ${++postal}`
+					address: `12 Sample Avenue, Singapore ${++postal}`
 				}
 			]
 		})
@@ -76,7 +76,7 @@ export const siteWithJob = Effect.fnUntraced(function* (
 			'job_assignments.create': [
 				{
 					site_id: site,
-					title: 'Installation — Kismis',
+					title: 'Installation — Sample Avenue',
 					scheduled_for: '2026-09-25',
 					description: 'Grab bars',
 					...over

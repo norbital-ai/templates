@@ -22,7 +22,7 @@ matter and blank cells are ignored.
 
 A site is matched by its code, or by its address and unit key: the postal code plus the unit (`#05-12`) when
 there is one, otherwise the address with its spelling normalised (`Ave`/`Avenue`, `Rd`/`Road`, …).
-So `58 Kismis Ave, S598235` and `58 Kismis Avenue, Singapore 598235` are the same site.
+So `12 Sample Ave, S100012` and `12 Sample Avenue, Singapore 100012` are the same site.
 Different units at the same location remain separate sites. An explicit `unit_number` takes
 precedence over a unit embedded in `site`; embedded units are stored separately from the location label.
 

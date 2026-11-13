@@ -168,7 +168,6 @@ export default messages({
 	'component.more_actions': '更多操作',
 	'component.include_company_stamp': '加盖公司印章',
 	'component.include_sales_signature': '添加保留的签名',
-	'component.my_user_record': '我的用户记录',
 	'component.export_pdf': '导出 PDF',
 	'component.select_one_order': '请选择一个订单。',
 	'component.document_unavailable': '文档无法生成，请检查模板和订单。',

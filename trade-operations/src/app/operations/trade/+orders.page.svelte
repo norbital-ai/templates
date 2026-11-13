@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { type RowIn, type ColumnsIn, Badge, Button, Table, Tabs, Show } from '@norbital-ai/ui';
+	import { type RowIn, type ColumnsIn, Badge, Table, Tabs, Show } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { openCreate } from '../../../lib/ui/create-values.js';
@@ -136,15 +136,6 @@
 	title={ctx.t('component.orders')}
 	variant="full"
 >
-	{#snippet actions()}
-		{#if actor?.teams.includes('sales')}
-			<Button
-				variant="ghost"
-				href={ctx.href('operations/trade', 'orders', { model: 'sys_user', id: actor.id })}
-				>{ctx.t('component.my_user_record')}</Button
-			>
-		{/if}
-	{/snippet}
 	{#if purchaseOnly}{@render purchases()}
 	{:else if showPurchase}
 		<Tabs

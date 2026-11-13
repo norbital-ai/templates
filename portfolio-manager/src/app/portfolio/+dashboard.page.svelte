@@ -1,7 +1,14 @@
 <script lang="ts">
 	/** The book at its latest report: totals, net assets over time, allocation and the calls. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Chart, EmptyState, Table } from '@norbital-ai/ui';
+	import {
+		Chart,
+		EmptyState,
+		ReadonlyMarkdown,
+		Table,
+		format,
+		type ShowProps
+	} from '@norbital-ai/ui';
 	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
 
@@ -9,7 +16,12 @@
 	const rows = $derived(reports.current?.report.rows ?? []);
 	const latest = $derived(rows[0]);
 	const trend = $derived(
-		rows.map((one) => ({ for_date: one.for_date, net_assets: one.net_assets })).reverse()
+		rows
+			.map((one) => ({
+				for_date: format({ kind: 'date' }, one.for_date, { locale: ctx.locale }),
+				net_assets: one.net_assets
+			}))
+			.reverse()
 	);
 	/** A stored decimal (a string) for reading: two places, the workspace's grouping. */
 	const money = (value: string | null) =>
@@ -20,6 +32,12 @@
 					maximumFractionDigits: 2
 				});
 </script>
+
+{#snippet analysis({ value }: { value: ShowProps['value'] })}
+	{#if typeof value === 'string'}<div class="line-clamp-3 max-w-md whitespace-normal">
+			<ReadonlyMarkdown {value} />
+		</div>{/if}
+{/snippet}
 
 <AppShell
 	title="Dashboard"
@@ -44,14 +62,14 @@
 					{/each}
 				</Grid>
 				<Grid minimum="panel">
-					<Chart
-						{ctx}
-						of={trend}
-						x="for_date"
-						y="net_assets"
-						kind="line"
-						title="Net assets over time"
-					/>
+					{#if trend.length > 1}<Chart
+							{ctx}
+							of={trend}
+							x="for_date"
+							y="net_assets"
+							kind="line"
+							title="Net assets over time"
+						/>{/if}
 					<Chart
 						{ctx}
 						of={latest.allocation ?? []}
@@ -66,7 +84,14 @@
 					of={latest.positions ?? []}
 					embedded
 					controlled
-					columns={['instrument', 'call', 'weight', 'change_pct', 'pnl', 'analysis']}
+					columns={[
+						'instrument',
+						'call',
+						'weight',
+						'change_pct',
+						'pnl',
+						{ field: 'analysis', label: 'Analysis', cell: analysis }
+					]}
 				/>
 			</Stack>
 		{/if}

@@ -5,6 +5,7 @@ export default app({
 	description:
 		'The book: every holding with its research, and the daily report computed from the book and the market.',
 	icon: 'lucide:briefcase',
+	banner: 'app-media/portfolio-banner.svg',
 	pages: {
 		dashboard: { title: 'Dashboard', icon: 'lucide:layout-dashboard' },
 		reports: { title: 'Reports', icon: 'lucide:newspaper' },

@@ -30,12 +30,12 @@ const siteRow = Effect.fnUntraced(function* (as: Caller, site: Id<'sites'>) {
 	);
 });
 it('a Singapore address is its postal code plus its unit, spelled one way', () => {
-	expect(siteKey('58 Kismis Avenue, Singapore 598235')).toBe('598235');
+	expect(siteKey('12 Sample Avenue, Singapore 100012')).toBe('100012');
 	expect(siteKey('Blk 460133 #5-12')).toBe('460133#05-12');
 	expect(siteKey('Blk 460133 #5-12', null)).toBe('460133');
-	expect(siteKey('Edelweiss 119 #02-06, Singapore')).toBe('EDELWEISS 119#02-06');
+	expect(siteKey('Sample Court 7 #02-06, Singapore')).toBe('SAMPLE COURT 7#02-06');
 	expect(siteKey('12  Block  Road Street Drive Avenue')).toBe('12 BLK RD ST DR AVE');
-	expect(siteKey('3 RIDGEWOOD CLOSE SINGAPORE 276694', '16-03')).toBe('276694#16-03');
+	expect(siteKey('3 SAMPLE CLOSE SINGAPORE 100003', '16-03')).toBe('100003#16-03');
 });
 layer(shared())('field-operations rules', (it) => {
 	it.effect('an address already filed is refused at its location', () =>
@@ -45,7 +45,7 @@ layer(shared())('field-operations rules', (it) => {
 			committed(
 				yield* as.act({
 					'sites.create': [
-						{ location: { lat: 1.34, lng: 103.77 }, address: '58 Kismis Ave, S598235' }
+						{ location: { lat: 1.34, lng: 103.77 }, address: '12 Sample Ave, S100012' }
 					]
 				})
 			);
@@ -55,7 +55,7 @@ layer(shared())('field-operations rules', (it) => {
 						'sites.create': [
 							{
 								location: { lat: 1.34, lng: 103.77 },
-								address: '58 Kismis Avenue, Singapore 598235'
+								address: '12 Sample Avenue, Singapore 100012'
 							}
 						]
 					})
@@ -96,14 +96,14 @@ layer(shared())('field-operations rules', (it) => {
 							target: yield* target(t, 'sites', site),
 							set: {
 								location: { lat: 1.35, lng: 103.78 },
-								address: 'Resolved map address, Singapore 598236'
+								address: 'Resolved map address, Singapore 100013'
 							}
 						}
 					]
 				})
 			);
 			expect(yield* siteRow(as, site)).toMatchObject({
-				name: 'Resolved map address, Singapore 598236',
+				name: 'Resolved map address, Singapore 100013',
 				unit_number: '05-12'
 			});
 		})

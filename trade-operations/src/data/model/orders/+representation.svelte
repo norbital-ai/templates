@@ -601,11 +601,6 @@
 {/snippet}
 {#snippet confirmationNotices(form: FormState)}
 	{#if checkRead && draftContract}
-		{#if form.dirty}
-			<p class="text-sm text-muted-foreground">
-				{ctx.t(purchase ? 'component.commitment_save_first' : 'component.seal_explanation')}
-			</p>
-		{/if}
 		{#if check && Result.isSuccess(check)}
 			{#if !purchaseCosts && check.success.below_inventory_cost.length}<p class="text-sm">
 					{ctx.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(', ')}
@@ -640,28 +635,27 @@
 					</details>
 				{/if}
 			{/if}
-		{:else}
-			<p>
-				{check && Result.isFailure(check)
-					? ctx.t(check.failure)
-					: (checkRead.error?.message ?? ctx.t('component.check_loading'))}
-			</p>
 		{/if}
 	{/if}
 {/snippet}
 {#snippet sealButton(form: FormState)}
 	{#if checkRead && draftContract}
+		{@const blocked = archived
+			? ctx.t('component.order_archived')
+			: form.dirty
+				? ctx.t(purchase ? 'component.commitment_save_first' : 'component.seal_explanation')
+				: check && Result.isFailure(check)
+					? ctx.t(check.failure)
+					: !check
+						? (checkRead.error?.message ?? ctx.t('component.check_loading'))
+						: null}
 		<Button
-			disabled={pending ||
-				archived ||
-				draftSetup ||
-				form.dirty ||
-				form.pending ||
-				!check ||
-				Result.isFailure(check)}
+			disabled={pending || form.pending || Boolean(blocked)}
+			aria-describedby={blocked ? 'seal-blocked' : undefined}
 			onclick={confirm}
 			>{ctx.t(purchase ? 'component.record_commitment' : 'component.confirm_seal')}</Button
 		>
+		{#if blocked}<span id="seal-blocked" class="text-xs text-muted-foreground">{blocked}</span>{/if}
 	{/if}
 {/snippet}
 {#snippet agreement()}
@@ -1224,10 +1218,18 @@
 		{/if}
 	</Cluster>
 {/snippet}
-{#snippet generalDetails()}{#if feedback}<p role="status" class="text-sm">
-			{feedback}
-		</p>{/if}{/snippet}
 {#snippet contractBody(form: FormState)}<Stack gap="md">
+		{#if feedback}<p
+				role={feedback === ctx.t('component.awaiting_approval') ? 'status' : 'alert'}
+				class={[
+					'rounded-md border px-3 py-2 text-sm font-medium',
+					feedback === ctx.t('component.awaiting_approval')
+						? 'border-info/50 bg-info/10 text-info'
+						: 'border-destructive/50 bg-destructive/10 text-destructive'
+				]}
+			>
+				{feedback}
+			</p>{/if}
 		{#if selectedContract}{@render contractControls()}{/if}
 		{@render confirmationNotices(form)}
 		{#if purchase && (draftContract || view.mode === 'create')}
@@ -1312,7 +1314,6 @@
 				]
 			: []
 	}}
-	after_form={generalDetails}
 	editors={{
 		party,
 		valid_from: validity,
