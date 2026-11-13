@@ -28,7 +28,7 @@
 		"id": "3d060c7e-bd89-50ed-ad92-448afc9d764e",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "7225ae94-db14-4df2-a759-748a0ba12640",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "EXEMPT_ALLOWANCES",
@@ -36,7 +36,7 @@
 		"id": "d613af19-ba4d-57be-86ca-cdd30fd751cb",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "3d060c7e-bd89-50ed-ad92-448afc9d764e",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "CHILDCARE",
@@ -44,7 +44,7 @@
 		"id": "ebcd5c62-e906-5a6d-bfc5-c4bd313677c3",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "d613af19-ba4d-57be-86ca-cdd30fd751cb",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "WAGE_ARREARS",
@@ -52,7 +52,7 @@
 		"id": "844e353a-65f1-5606-9a00-780e1ec40aa5",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "ebcd5c62-e906-5a6d-bfc5-c4bd313677c3",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "COMMISSION",
@@ -60,7 +60,7 @@
 		"id": "7f195a62-f234-566d-961d-2e33d00d867a",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "844e353a-65f1-5606-9a00-780e1ec40aa5",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "IRREGULAR_COMMISSION",
@@ -68,7 +68,7 @@
 		"id": "7accc666-d50e-5176-8b50-503a45da53af",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "7f195a62-f234-566d-961d-2e33d00d867a",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "AWARDS",
@@ -84,14 +84,15 @@
 		"id": "37b2e7c7-1bdd-5e95-9256-f19648b7f111",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "fe3835af-d1f3-5491-aa5b-75373637b972",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "INCENTIVE_OT",
 		"name": "Incentive (OT)",
 		"id": "cd46d8f6-5d06-4a45-a1b3-b47ed704d76a",
 		"previous_id": "37b2e7c7-1bdd-5e95-9256-f19648b7f111",
-		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1"
+		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ORDINARY_WAGES",
@@ -115,7 +116,7 @@
 		"id": "900b16ce-af52-540d-a384-8d13fd37895b",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "aa70e093-34ed-512b-93e2-aa48ad185c9f",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "OFFICIAL_TRAVEL",
@@ -123,7 +124,7 @@
 		"id": "5216c916-7d6d-5605-a4d2-73618e513936",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "900b16ce-af52-540d-a384-8d13fd37895b",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "FINAL_PAY",
@@ -131,7 +132,7 @@
 		"previous_id": "5216c916-7d6d-5605-a4d2-73618e513936",
 		"id": "291926eb-a844-54a8-ab65-6e3455c7007d",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ZAKAT",
@@ -139,7 +140,7 @@
 		"id": "4cfd8581-abd8-5361-8920-a0edaed3b19b",
 		"settings_id": "9efc01a3-d7af-5685-8857-02f361ec2bb1",
 		"previous_id": "291926eb-a844-54a8-ab65-6e3455c7007d",
-		"balance_window": "YEAR"
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "NET",

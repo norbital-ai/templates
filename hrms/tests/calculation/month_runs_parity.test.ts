@@ -202,6 +202,22 @@ describe('a bonus in the month', () => {
 	});
 });
 
+describe('income tax on a bonus', () => {
+	// The tax on the month's pay and the tax the bonus adds are each cut to the sen, and what is deducted is rounded up
+	// to five sen once. January, 8,000 a month, EPF 880: the year's income is 7,120 + 11 × (8,000 − 283.63) − 9,000 =
+	// 83,000.07, its tax 6,170.01, a twelfth 514.16. With a 20,000 bonus (EPF 2,200 more, 83.63 a month left of the
+	// 4,000 relief) the income is 103,000.07 and its tax 10,150.01; less 12 × 514.16 the bonus adds 3,980.09.
+	it.live('is rounded once, on the amount deducted', () => {
+		const seed = seedOf('2026-01-01', '2026-01-15');
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* bonus(t, seed, BONUS, '2026-01-10');
+			yield* onCycle(t, '2026-01');
+			assert.equal((yield* month(t, '2026-01'))['PCB.employee'], 514.16 + 3980.09);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-20T02:00:00.000Z' })));
+	});
+});
+
 describe('twice a month', () => {
 	const TWICE = {
 		frequency: 'SEMI_MONTHLY',
@@ -284,10 +300,14 @@ describe('twice a month', () => {
 							})
 						)
 					);
-					// contributions read the month to date; the pack's income tax reckons each payslip as a month's normal
-					// remuneration, so it is left out
+					// income tax is the month's too: the second run settles it on the month's wages. What the first run took
+					// on a full month is not handed back by the second, so a half on no-pay leave leaves the tax out
 					const contributions = (totals: Record<string, number>) =>
-						Object.fromEntries(Object.entries(totals).filter(([key]) => !key.startsWith('PCB.')));
+						Object.fromEntries(
+							Object.entries(totals).filter(
+								([key]) => missed.length === 0 || !key.startsWith('PCB.')
+							)
+						);
 					assert.ok(Object.keys(contributions(whole)).length > 0);
 					assert.deepEqual(contributions(halves.owed), contributions(whole));
 				});
