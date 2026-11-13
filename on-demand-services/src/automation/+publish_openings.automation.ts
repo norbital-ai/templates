@@ -1,8 +1,8 @@
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { automation, type CreateInput, type ActInput } from '@norbital-ai/bolt';
 import { targetOf } from '../lib/dispatch.js';
 import { loadPool } from '../lib/dispatch.js';
-import { add_days, openSlots, utc_of } from '../lib/matching.js';
+import { openSlots } from '../lib/matching.js';
 /** How far ahead the portal offers times. */
 const AHEAD = 14;
 /**
@@ -18,14 +18,20 @@ export default automation({
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
-		const days = Array.from({ length: AHEAD }, (_, i) => add_days(ctx.today, i));
+		const days = Array.from({ length: AHEAD }, (_, i) =>
+			DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(ctx.today), { days: i }))
+		);
 		const [{ services, openings: stored }, pool] = yield* Effect.all(
 			[
 				ctx.query({ services: { where: { active: { eq: true } } }, openings: {} }),
 				loadPool(
 					ctx,
-					new Date(utc_of(ctx.today, 0, ctx.tz)).toISOString(),
-					new Date(utc_of(add_days(ctx.today, AHEAD - 1), 0, ctx.tz)).toISOString()
+					DateTime.formatIso(
+						DateTime.makeZonedUnsafe(ctx.today, { timeZone: ctx.tz, adjustForTimeZone: true })
+					),
+					DateTime.formatIso(
+						DateTime.makeZonedUnsafe(days.at(-1)!, { timeZone: ctx.tz, adjustForTimeZone: true })
+					)
 				)
 			],
 			{ concurrency: 'unbounded' }

@@ -1,6 +1,6 @@
-import { Effect } from 'effect';
+import { DateTime, Duration, Effect } from 'effect';
 import type { ActInput, AutomationCtx, Id, Instant, Row, StartInput } from '@norbital-ai/bolt';
-import { dayOf, loadPool, settingsOf, targetOf, when } from './dispatch.js';
+import { dayOf, loadPool, settingsOf, targetOf } from './dispatch.js';
 import { rank, slotOf } from './matching.js';
 /**
  * A helper answers only for their own visits: the run is the system identity, so the member who started it (its
@@ -44,7 +44,6 @@ export function* declineShift(
 	if (updates.length > 0) yield* ctx.act({ 'visits.update': updates });
 }
 
-const HOUR = 3600000;
 export const customerNotice = Effect.fnUntraced(function* (
 	ctx: Pick<AutomationCtx, 'query'>,
 	v: {
@@ -110,12 +109,20 @@ export const planRebooking = Effect.fnUntraced(function* (
 	if (
 		!sameTime &&
 		!recovery &&
-		Date.parse(v.slot.start) - Date.parse(ctx.now) < free_change_hours * HOUR
+		DateTime.isLessThan(
+			DateTime.makeUnsafe(v.slot.start),
+			DateTime.add(DateTime.makeUnsafe(ctx.now), { hours: free_change_hours })
+		)
 	)
 		return yield* ctx.refuse('errors.customer_change_window', {
 			values: { hours: free_change_hours }
 		});
-	const slot = slotOf(start, (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60000);
+	const slot = slotOf(
+		start,
+		Duration.toMinutes(
+			DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end!))
+		)
+	);
 	const pool = yield* loadPool(ctx, start, start, [v.location]);
 	const eligible = pool.helpers.filter(
 		(h) => h.id !== v.unavailable_helper && (helper === undefined || h.id === helper)
@@ -141,8 +148,10 @@ export const planRebooking = Effect.fnUntraced(function* (
 	const notice = yield* customerNotice(
 		ctx,
 		v,
-		sameTime ? `A new helper for your visit on ${when(start, ctx.tz)}` : `Visit ${v.number} moved`,
-		`${best.name} will come for your visit ${v.number} on ${when(start, ctx.tz)}. Please contact us if this does not suit you.`
+		sameTime
+			? `A new helper for your visit on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(start))}`
+			: `Visit ${v.number} moved`,
+		`${best.name} will come for your visit ${v.number} on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(start))}. Please contact us if this does not suit you.`
 	);
 	return { update, notice };
 });

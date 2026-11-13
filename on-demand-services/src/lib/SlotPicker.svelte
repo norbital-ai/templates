@@ -3,7 +3,7 @@
 	 * Picking a visit's start: the available days as a swipeable strip (each with how many starts it has; a day
 	 * nobody can take is greyed), then the chosen day's starts by part of the day, each with when the visit would end.
 	 */
-	import { local_of } from './matching.js';
+	import { DateTime } from 'effect';
 	import { Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	type Day = {
 		readonly day: string;
@@ -34,10 +34,6 @@
 		onPick: (start: string | null) => void;
 		t: (key: SlotCopy) => string;
 	} = $props();
-	/** A calendar date's midnight UTC: date arithmetic that no time zone shifts. */
-	const at = (d: string) => Date.parse(`${d}T00:00:00Z`);
-	const fmt = (o: Intl.DateTimeFormatOptions, utc = false) =>
-		new Intl.DateTimeFormat(locale, { ...o, timeZone: utc ? 'UTC' : zone });
 	const starts = $derived(new Map(days.map((d) => [d.day, d.starts])));
 	const today = $derived(days[0]?.day ?? '');
 	let picked = $state<string | null>(null);
@@ -49,10 +45,13 @@
 	);
 	const month = $derived.by(() => {
 		if (days.length === 0) return '';
-		const f = fmt({ month: 'long', year: 'numeric' }, true);
-		const a = f.format(at(days[0]!.day)),
-			b = f.format(at(days.at(-1)!.day));
-		return a === b ? a : `${fmt({ month: 'long' }, true).format(at(days[0]!.day))} – ${b}`;
+		// a calendar date reads at UTC midnight, so no zone shifts its day
+		const f = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+		const a = f.format(new Date(days[0]!.day)),
+			b = f.format(new Date(days.at(-1)!.day));
+		return a === b
+			? a
+			: `${new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(new Date(days[0]!.day))} – ${b}`;
 	});
 	/** The day's starts by part of the day: morning, afternoon, evening. */
 	const PARTS: readonly {
@@ -67,17 +66,18 @@
 		PARTS.map((p, i) => ({
 			key: p.key,
 			starts: (starts.get(day) ?? []).filter((s) => {
-				const h = local_of(Date.parse(s), zone).ms_of_day / 3600000;
+				const h = DateTime.toParts(DateTime.makeZonedUnsafe(s, { timeZone: zone })).hour;
 				return h >= p.from && h < (PARTS[i + 1]?.from ?? 24);
 			})
 		})).filter((p) => p.starts.length > 0)
 	);
-	const time = (s: string) => fmt({ hour: 'numeric', minute: '2-digit' }).format(new Date(s));
-	const end = (s: string) => new Date(Date.parse(s) + minutes * 60000).toISOString();
+	const clock = $derived(
+		new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZone: zone })
+	);
 	const span = $derived(
 		value === null
 			? null
-			: `${fmt({ weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(value))} · ${time(value)} – ${time(end(value))}`
+			: `${new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: zone }).format(new Date(value))} · ${clock.format(new Date(value))} – ${clock.format(DateTime.toEpochMillis(DateTime.add(DateTime.makeUnsafe(value), { minutes })))}`
 	);
 </script>
 
@@ -92,9 +92,12 @@
 					type="button"
 					disabled={open === 0}
 					aria-pressed={d.day === day}
-					aria-label={fmt({ weekday: 'long', day: 'numeric', month: 'long' }, true).format(
-						at(d.day)
-					)}
+					aria-label={new Intl.DateTimeFormat(locale, {
+						weekday: 'long',
+						day: 'numeric',
+						month: 'long',
+						timeZone: 'UTC'
+					}).format(new Date(d.day))}
 					onclick={() => {
 						picked = d.day;
 						if (value !== null && !d.starts.includes(value)) onPick(null);
@@ -103,10 +106,14 @@
 				>
 					<Stack as="span" gap="none" align="center">
 						<span class="text-xs uppercase opacity-80"
-							>{fmt({ weekday: 'short' }, true).format(at(d.day))}</span
+							>{new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' }).format(
+								new Date(d.day)
+							)}</span
 						>
 						<span class="text-heading tabular-nums"
-							>{fmt({ day: 'numeric' }, true).format(at(d.day))}</span
+							>{new Intl.DateTimeFormat(locale, { day: 'numeric', timeZone: 'UTC' }).format(
+								new Date(d.day)
+							)}</span
 						>
 						<span class="text-xs tabular-nums opacity-80"
 							>{open === 0
@@ -121,7 +128,12 @@
 
 	<Stack gap="md">
 		<p class="text-sm font-semibold">
-			{fmt({ weekday: 'long', day: 'numeric', month: 'long' }, true).format(at(day))}
+			{new Intl.DateTimeFormat(locale, {
+				weekday: 'long',
+				day: 'numeric',
+				month: 'long',
+				timeZone: 'UTC'
+			}).format(new Date(day))}
 		</p>
 		{#each parts as part (part.key)}
 			<Stack gap="sm">
@@ -137,8 +149,12 @@
 							class="min-h-14 rounded-lg border bg-background px-2 py-1.5 text-center tabular-nums transition-colors hover:border-primary/60 hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
 						>
 							<Stack as="span" gap="none" align="center">
-								<span class="text-sm font-semibold">{time(s)}</span>
-								<span class="text-xs opacity-70">– {time(end(s))}</span>
+								<span class="text-sm font-semibold">{clock.format(new Date(s))}</span>
+								<span class="text-xs opacity-70"
+									>– {clock.format(
+										DateTime.toEpochMillis(DateTime.add(DateTime.makeUnsafe(s), { minutes }))
+									)}</span
+								>
 							</Stack>
 						</button>
 					{/each}

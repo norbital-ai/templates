@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 /**
  * The reads and writes around the matching rules, shared by the booking and recovery automations and the dispatch runs: loading the
  * pool a match runs over, and handing visits to another helper.
@@ -15,9 +15,6 @@ import {
 	type Where
 } from '@norbital-ai/bolt';
 import {
-	add_days,
-	local_of,
-	utc_of,
 	DEFAULTS,
 	improve,
 	lookups,
@@ -30,7 +27,6 @@ import {
 } from './matching.js';
 type Reads = Pick<AutomationCtx, 'query' | 'tz' | 'now'>;
 type Writes = Reads & Pick<AutomationCtx, 'act' | 'notify'>;
-const iso = (t: number): Instant => new Date(t).toISOString();
 /**
  * The workspace's one active shared account of `definition` (Settings → Connections): `null` when there is none, or more
  * than one to choose from, and then nothing is sent or requested through it.
@@ -70,21 +66,29 @@ export const settingsOf = Effect.fnUntraced(function* (ctx: Pick<AutomationCtx, 
 });
 /** The local day of an instant as a UTC span. */
 export function dayOf(instant: string, zone: string): Slot {
-	const { date } = local_of(Date.parse(instant), zone);
-	return { start: iso(utc_of(date, 0, zone)), end: iso(utc_of(add_days(date, 1), 0, zone)) };
+	const day = DateTime.startOf(DateTime.makeZonedUnsafe(instant, { timeZone: zone }), 'day');
+	return {
+		start: DateTime.formatIso(day),
+		end: DateTime.formatIso(DateTime.add(day, { days: 1 }))
+	};
 }
 /** The complete weeks covering `from` through `to`, a day's margin either side: what a match looks at. */
 function windowOf(from: string, to: string, zone: string) {
-	const first = local_of(Date.parse(from), zone).date;
-	const last = local_of(Date.parse(to), zone).date;
-	const weekday = (d: string) => (new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7;
-	const monday = add_days(first, -weekday(first));
-	const nextMonday = add_days(last, 7 - weekday(last));
+	const first = DateTime.subtract(
+		DateTime.startOf(DateTime.makeZonedUnsafe(from, { timeZone: zone }), 'week', {
+			weekStartsOn: 1
+		}),
+		{ days: 1 }
+	);
+	const last = DateTime.add(
+		DateTime.startOf(DateTime.makeZonedUnsafe(to, { timeZone: zone }), 'week', { weekStartsOn: 1 }),
+		{ days: 8 }
+	);
 	return {
-		start: iso(utc_of(add_days(monday, -1), 0, zone)),
-		end: iso(utc_of(add_days(nextMonday, 1), 0, zone)),
-		firstDay: add_days(monday, -1),
-		lastDay: add_days(nextMonday, 1)
+		start: DateTime.formatIso(first),
+		end: DateTime.formatIso(last),
+		firstDay: DateTime.formatIsoDate(first),
+		lastDay: DateTime.formatIsoDate(last)
 	};
 }
 /**
@@ -332,12 +336,6 @@ export const targetOf = <C extends string>(row: {
 }) => ({ id: row.id, revision: row.revision });
 /** The WhatsApp address of a phone number. */
 export const whatsapp = (phone: string) => `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
-export const when = (instant: string, zone: string) =>
-	new Intl.DateTimeFormat('en-SG', {
-		timeZone: zone,
-		dateStyle: 'medium',
-		timeStyle: 'short'
-	}).format(new Date(instant));
 /**
  * Hands each visit to the best helper free for it other than `away`, whose shift is then checked afresh. A customer who asked for particular helpers is told
  * who comes instead; one who did not is not. A visit nobody can take is left unassigned for dispatch. A visit written
@@ -382,8 +380,8 @@ export const planReassignment = Effect.fnUntraced(function* (
 			notices.push({
 				customer: v.booking.customer,
 				visit: v.id,
-				subject: `A new helper for your visit on ${when(v.slot.start, ctx.tz)}`,
-				body: `Your usual helper cannot make visit ${v.number} on ${when(v.slot.start, ctx.tz)}. ${names.get(best.helper)} will come instead at the same time. Reply to this email if that does not suit you.`
+				subject: `A new helper for your visit on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}`,
+				body: `Your usual helper cannot make visit ${v.number} on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}. ${names.get(best.helper)} will come instead at the same time. Reply to this email if that does not suit you.`
 			});
 	}
 	return { updates, notices, assigned: visits.length - unassigned, unassigned };
@@ -467,10 +465,11 @@ export const recommend = Effect.fnUntraced(function* (
  * the moves with `ActConflict`.
  */
 export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
-	const HOUR = 3600000;
 	const { free_change_hours } = yield* settingsOf(ctx);
-	const from = iso(Date.parse(ctx.now) + free_change_hours * HOUR);
-	const to = iso(Date.parse(ctx.now) + 14 * 24 * HOUR);
+	const from = DateTime.formatIso(
+		DateTime.add(DateTime.makeUnsafe(ctx.now), { hours: free_change_hours })
+	);
+	const to = DateTime.formatIso(DateTime.add(DateTime.makeUnsafe(ctx.now), { days: 14 }));
 	const { rows } = (yield* ctx.query({
 		visits: {
 			where: {
@@ -544,7 +543,7 @@ export const alertHelpers = Effect.fnUntraced(function* (
 				: [
 						{
 							title: 'Your route has a new assignment',
-							description: `${v.number}: ${when(v.slot.start, ctx.tz)}, ${v.address}. Open My Day to review your route.`,
+							description: `${v.number}: ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}, ${v.address}. Open My Day to review your route.`,
 							to: [{ user: v.helper!.user }],
 							link: { model: 'visits', id: v.id }
 						}
@@ -555,7 +554,9 @@ export const alertHelpers = Effect.fnUntraced(function* (
 	for (const v of [...rows].sort((a, b) => a.slot.start.localeCompare(b.slot.start))) {
 		const h = v.helper!;
 		const entry = byHelper.get(h.id) ?? { phone: h.phone, lines: [] };
-		entry.lines.push(`• ${v.number}: ${when(v.slot.start, ctx.tz)}, ${v.address}`);
+		entry.lines.push(
+			`• ${v.number}: ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}, ${v.address}`
+		);
 		byHelper.set(h.id, entry);
 	}
 	const account = byHelper.size === 0 ? null : yield* whatsappAccount(ctx);

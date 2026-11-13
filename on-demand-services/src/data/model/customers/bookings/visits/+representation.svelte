@@ -1,10 +1,16 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	/** A visit, and for dispatch the helpers who could take it instead, best match first, each one click away. */
-	import { type RecordSection, type RecordView, RecordShell, use_enum_text } from '@norbital-ai/ui';
+	import {
+		type RecordSection,
+		type RecordView,
+		format,
+		RecordShell,
+		use_enum_text
+	} from '@norbital-ai/ui';
 	import { Schema } from 'effect';
 	import Recovery from '../../../../../lib/Recovery.svelte';
-	import { excerpt, useWhen } from '../../../../../lib/summary.js';
+	import { excerpt } from '../../../../../lib/summary.js';
 	let {
 		view,
 		ctx
@@ -12,7 +18,6 @@
 		view: RecordView<'visits'>;
 		ctx: PageContext;
 	} = $props();
-	const when = useWhen(ctx);
 	const t = ctx.t;
 	const enumWord = use_enum_text(() => ctx);
 	const word = (field: 'attention' | 'shift_check', value: string) => enumWord(value, field);
@@ -77,9 +82,19 @@
 							const r = completionSummary(row);
 							return [
 								typeof r.completed_at === 'string'
-									? t('summary.completed', { at: when(r.completed_at) })
+									? t('summary.completed', {
+											at: format({ kind: 'instant' }, r.completed_at, {
+												locale: ctx.locale,
+												zone: ctx.tz
+											})
+										})
 									: typeof r.started_at === 'string'
-										? t('summary.started', { at: when(r.started_at) })
+										? t('summary.started', {
+												at: format({ kind: 'instant' }, r.started_at, {
+													locale: ctx.locale,
+													zone: ctx.tz
+												})
+											})
 										: t('summary.not_started'),
 								excerpt(typeof r.completion_notes === 'string' ? r.completion_notes : null)
 							]

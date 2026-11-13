@@ -1,8 +1,8 @@
 import { automation } from '@norbital-ai/bolt';
+import { DateTime } from 'effect';
 import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
-import { settingsOf, when } from '../lib/dispatch.js';
+import { settingsOf } from '../lib/dispatch.js';
 import { customerNotice } from '../lib/visit-recovery.js';
-const HOUR = 3600000;
 
 export default automation({
 	description:
@@ -22,15 +22,17 @@ export default automation({
 				set: {
 					status: 'cancelled',
 					attention: 'none',
-					late_cancellation:
-						Date.parse(v.slot.start) - Date.parse(ctx.now) < free_change_hours * HOUR
+					late_cancellation: DateTime.isLessThan(
+						DateTime.makeUnsafe(v.slot.start),
+						DateTime.add(DateTime.makeUnsafe(ctx.now), { hours: free_change_hours })
+					)
 				}
 			});
 			const notice = yield* customerNotice(
 				ctx,
 				v,
 				`Visit ${v.number} cancelled`,
-				`Your visit on ${when(v.slot.start, ctx.tz)} is cancelled.`
+				`Your visit on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))} is cancelled.`
 			);
 			if (notice !== null) notices.push(notice);
 		}

@@ -1,7 +1,6 @@
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
 import { settingsOf } from '../lib/dispatch.js';
-const MINUTE = 60000;
 /**
  * Every due visit gets its own read and write scope. A visit changed while Google times its drive cannot make another
  * visit's independent ETA check stale. Queued checks for the same visit coalesce until they run.
@@ -13,7 +12,6 @@ export default automation({
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
-		const now = Date.parse(ctx.now);
 		const settings = yield* settingsOf(ctx);
 		const { rows } = (yield* ctx.query({
 			visits: {
@@ -23,7 +21,11 @@ export default automation({
 					slot: {
 						overlaps: {
 							start: ctx.now,
-							end: new Date(now + settings.eta_check_lead_minutes * MINUTE).toISOString()
+							end: DateTime.formatIso(
+								DateTime.add(DateTime.makeUnsafe(ctx.now), {
+									minutes: settings.eta_check_lead_minutes
+								})
+							)
 						}
 					}
 				},
@@ -31,7 +33,7 @@ export default automation({
 			}
 		})).visits;
 		yield* Effect.forEach(
-			rows.filter((v) => Date.parse(v.slot.start) >= now),
+			rows.filter((v) => Date.parse(v.slot.start) >= Date.parse(ctx.now)),
 			(v) => ctx.schedule('eta_check', { visit: v.id }, { key: `eta-${v.id}` }),
 			{ concurrency: 'unbounded', discard: true }
 		);

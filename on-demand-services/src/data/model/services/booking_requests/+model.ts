@@ -1,7 +1,8 @@
+import { DateTime } from 'effect';
 import { model } from '../../../../../.norbital/models/booking_requests.ts';
 import { AREAS, REPEATS } from '../../../../lib/matching.js';
 /** How long a customer's checked times hold before booking must check them again. */
-const QUOTE_FRESH_MS = 15 * 60000;
+const QUOTE_FRESH = { minutes: 15 };
 /**
  * A booking asked for on the public portal. The `portal_intake` run books it when a helper is free at the time asked,
  * and otherwise leaves it for the desk to follow up. A request names the times its customer was shown: it is refused
@@ -86,7 +87,10 @@ export default model({
 					q.repeat !== (r.repeat ?? 'once') ||
 					!q.starts.includes(r.start) ||
 					q.checked_at === null ||
-					Date.parse(ctx.now) - Date.parse(q.checked_at) > QUOTE_FRESH_MS
+					DateTime.isGreaterThan(
+						DateTime.makeUnsafe(ctx.now),
+						DateTime.add(DateTime.makeUnsafe(q.checked_at), QUOTE_FRESH)
+					)
 				)
 					return yield* ctx.refuse('errors.availability_changed', {
 						field: 'start',

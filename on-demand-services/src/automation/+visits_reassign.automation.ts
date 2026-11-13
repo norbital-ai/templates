@@ -1,6 +1,6 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
-import { planReassignment, visitsToMove, when } from '../lib/dispatch.js';
+import { planReassignment, visitsToMove } from '../lib/dispatch.js';
 
 export default automation({
 	description:
@@ -44,8 +44,8 @@ export default automation({
 				notices.push({
 					customer: booking.customer,
 					visit: v.id,
-					subject: `A new helper for your visit on ${when(v.slot.start, ctx.tz)}`,
-					body: `${next?.name ?? 'Another helper'} will come for visit ${v.number} on ${when(v.slot.start, ctx.tz)} in place of your usual helper.`
+					subject: `A new helper for your visit on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}`,
+					body: `${next?.name ?? 'Another helper'} will come for visit ${v.number} on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))} in place of your usual helper.`
 				});
 		}
 		if (updates.length > 0)

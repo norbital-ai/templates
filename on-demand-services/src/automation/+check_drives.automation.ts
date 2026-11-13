@@ -1,4 +1,5 @@
 import { automation, type Id } from '@norbital-ai/bolt';
+import * as DateTime from 'effect/DateTime';
 import * as Effect from 'effect/Effect';
 import {
 	HELD_SHIFT,
@@ -15,8 +16,6 @@ import {
 	legsOf,
 	routes,
 	SETTLE_MINUTES,
-	DAY,
-	MINUTE,
 	type Busy,
 	type Point
 } from '../lib/matching.js';
@@ -40,11 +39,18 @@ export default automation({
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
-		const now = Date.parse(ctx.now);
-		const pool = yield* loadPool(ctx, ctx.now, new Date(now + AHEAD_DAYS * DAY).toISOString());
+		const now = DateTime.makeUnsafe(ctx.now);
+		const pool = yield* loadPool(
+			ctx,
+			ctx.now,
+			DateTime.formatIso(DateTime.add(now, { days: AHEAD_DAYS }))
+		);
 		const homes = new Map(pool.helpers.map((h) => [h.id, h.home_location]));
 		const days = routes(
-			{ ...pool, busy: pool.busy.filter((b) => Date.parse(b.slot.end) > now) },
+			{
+				...pool,
+				busy: pool.busy.filter((b) => DateTime.isGreaterThan(DateTime.makeUnsafe(b.slot.end), now))
+			},
 			ctx.tz
 		);
 		// the legs not timed yet, by origin square: one call each
@@ -78,13 +84,18 @@ export default automation({
 		for (const day of days) {
 			let last: Busy = day[0]!;
 			for (const b of day.slice(1)) {
-				const gap = Date.parse(b.slot.start) - Date.parse(last.slot.end);
-				const need = (driveMinutes(last.location, b.location, drive) + SETTLE_MINUTES) * MINUTE;
+				const start = DateTime.makeUnsafe(b.slot.start);
+				const reachable = DateTime.isGreaterThanOrEqualTo(
+					start,
+					DateTime.add(DateTime.makeUnsafe(last.slot.end), {
+						minutes: driveMinutes(last.location, b.location, drive) + SETTLE_MINUTES
+					})
+				);
 				if (b.planned === true) {
 					last = b;
 					continue;
 				}
-				if (gap >= need || Date.parse(b.slot.start) <= now) last = b;
+				if (reachable || DateTime.isLessThanOrEqualTo(start, now)) last = b;
 				else late.set(b.helper, [...(late.get(b.helper) ?? []), b.id]);
 			}
 		}

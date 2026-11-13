@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
+	import { DateTime, Effect } from 'effect';
 	import {
 		Button,
 		Combobox,
 		EmptyState,
+		format,
 		Icon,
 		Input,
 		Label,
@@ -78,7 +79,7 @@
 	const days = $derived.by(() => {
 		const by = new Map<string, string[]>();
 		for (const start of quoted?.starts ?? []) {
-			const day = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date(start));
+			const day = DateTime.formatIsoDate(DateTime.makeZonedUnsafe(start, { timeZone: zone }));
 			by.set(day, [...(by.get(day) ?? []), start]);
 		}
 		return [...by].map(([day, starts]) => ({ day, starts }));
@@ -119,19 +120,6 @@
 					}
 				});
 	});
-	const visitSpan = (
-		slot: {
-			start: string;
-			end: string | null;
-		} | null,
-		fallback: string
-	) => {
-		const from = slot?.start ?? fallback;
-		const to =
-			slot?.end ??
-			new Date(Date.parse(from) + (chosen?.duration_minutes ?? 60) * 60000).toISOString();
-		return `${when(from)} – ${time(to)}`;
-	};
 	/** What the confirmation lists: the visit, where, who comes (once matched) and the reference. */
 	const summary = $derived.by(() => {
 		const r = settledRow;
@@ -142,7 +130,18 @@
 			{
 				icon: 'lucide:calendar-clock',
 				label: t('app.portal.row_when'),
-				value: visitSpan(visit?.slot ?? null, r.start)
+				value: format(
+					{ kind: 'period', of: 'instant' },
+					visit?.slot ?? {
+						start: r.start,
+						end: DateTime.formatIso(
+							DateTime.add(DateTime.makeUnsafe(r.start), {
+								minutes: chosen?.duration_minutes ?? 60
+							})
+						)
+					},
+					{ locale: ctx.locale, zone }
+				)
 			},
 			{
 				icon: 'lucide:repeat',
@@ -166,19 +165,21 @@
 	function addToCalendar(reference: string) {
 		const slot = first?.current?.visits.rows[0]?.slot;
 		if (slot == null) return;
-		const stamp = (i: string) => i.replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 		const end =
 			slot.end ??
-			new Date(Date.parse(slot.start) + (chosen?.duration_minutes ?? 60) * 60000).toISOString();
+			DateTime.formatIso(
+				DateTime.add(DateTime.makeUnsafe(slot.start), { minutes: chosen?.duration_minutes ?? 60 })
+			);
 		const ics = [
 			'BEGIN:VCALENDAR',
 			'VERSION:2.0',
 			'PRODID:-//booking portal//EN',
 			'BEGIN:VEVENT',
 			`UID:${reference}@portal`,
-			`DTSTAMP:${stamp(new Date().toISOString())}`,
-			`DTSTART:${stamp(slot.start)}`,
-			`DTEND:${stamp(end)}`,
+			// iCalendar's basic UTC form: 20260102T030405Z
+			`DTSTAMP:${DateTime.formatIso(DateTime.nowUnsafe()).replace(/[-:]|\.\d{3}/g, '')}`,
+			`DTSTART:${slot.start.replace(/[-:]|\.\d{3}/g, '')}`,
+			`DTEND:${end.replace(/[-:]|\.\d{3}/g, '')}`,
 			`SUMMARY:${chosen?.name ?? ''}`,
 			`LOCATION:${address.replace(/[,;]/g, (c) => `\\${c}`)}`,
 			`DESCRIPTION:${reference}`,
@@ -198,21 +199,6 @@
 			address.trim() !== '' &&
 			(preference === 'any' || (helper !== null && !mismatch))
 	);
-	const time = (i: string) =>
-		new Intl.DateTimeFormat(ctx.locale, {
-			timeZone: zone,
-			hour: 'numeric',
-			minute: '2-digit'
-		}).format(new Date(i));
-	const when = (i: string) =>
-		new Intl.DateTimeFormat(ctx.locale, {
-			timeZone: zone,
-			weekday: 'long',
-			day: 'numeric',
-			month: 'long',
-			hour: 'numeric',
-			minute: '2-digit'
-		}).format(new Date(i));
 	function chooseTime() {
 		const phone = me?.phone,
 			selectedService = service;

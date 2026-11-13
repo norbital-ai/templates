@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { automation, type ActInput } from '@norbital-ai/bolt';
-import { whatsappAccount, targetOf, when, whatsapp } from '../lib/dispatch.js';
+import { whatsappAccount, targetOf, whatsapp } from '../lib/dispatch.js';
 const REASON = {
 	no_response: 'did not answer the shift check before your visit',
 	declined_without_mc: 'withdrew from your shift without a medical certificate'
@@ -33,13 +33,17 @@ export default automation({
 			const at =
 				w.visit === null
 					? 'your shift'
-					: `${when(w.visit.slot.start, ctx.tz)}, at ${w.visit.address} (visit ${w.visit.number})`;
+					: `${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(w.visit.slot.start))}, at ${w.visit.address} (visit ${w.visit.number})`;
 			const letter = yield* ctx.convert
 				.document(
 					{
 						markdown: [
 							'# Warning letter',
-							when(w.issued_at, ctx.tz),
+							new Intl.DateTimeFormat('en-SG', {
+								timeZone: ctx.tz,
+								dateStyle: 'medium',
+								timeStyle: 'short'
+							}).format(new Date(w.issued_at)),
 							`Dear ${helper.name},`,
 							`On ${at}, you ${REASON[w.reason]}. The visit had to be given to another helper at short notice.`,
 							`This is warning ${helper.warning_count} on your record. Please answer every shift check, and send a medical certificate whenever you cannot work for medical reasons.`,

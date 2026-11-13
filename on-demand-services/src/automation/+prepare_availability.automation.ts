@@ -1,15 +1,13 @@
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
 import { loadPool, learnLegs, targetOf } from '../lib/dispatch.js';
 import {
-	add_days,
 	availableSlots,
 	BOOKING_AHEAD,
 	legOf,
 	lookups,
 	occurrences,
-	type Point,
-	utc_of
+	type Point
 } from '../lib/matching.js';
 export default automation({
 	description:
@@ -51,9 +49,15 @@ export default automation({
 							.search(r.address)
 							.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as([]))));
 			const location = savedLocation ?? hits[0]?.point ?? null;
-			const days = Array.from({ length: 14 }, (_, i) => add_days(ctx.today, i));
-			const from = new Date(utc_of(days[0]!, 0, ctx.tz)).toISOString();
-			const last = new Date(utc_of(days.at(-1)!, 0, ctx.tz)).toISOString();
+			const days = Array.from({ length: 14 }, (_, i) =>
+				DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(ctx.today), { days: i }))
+			);
+			const from = DateTime.formatIso(
+				DateTime.makeZonedUnsafe(days[0]!, { timeZone: ctx.tz, adjustForTimeZone: true })
+			);
+			const last = DateTime.formatIso(
+				DateTime.makeZonedUnsafe(days.at(-1)!, { timeZone: ctx.tz, adjustForTimeZone: true })
+			);
 			const end = occurrences(last, r.repeat, BOOKING_AHEAD, ctx.tz).at(-1)!;
 			const pool = yield* loadPool(ctx, from, end, [location]);
 			const preferred = r.preference === 'preferred' && r.helper !== null ? [r.helper] : [];

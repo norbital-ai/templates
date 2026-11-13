@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	/** A notice sent to a customer: what it said and about which visit stay open; its delivery trail folds away. */
-	import { type RecordSection, type RecordView, RecordShell } from '@norbital-ai/ui';
-	import { useWhen } from '../../../../../../lib/summary.js';
+	import { type RecordSection, type RecordView, format, RecordShell } from '@norbital-ai/ui';
 	let {
 		view,
 		ctx
@@ -10,7 +9,6 @@
 		view: RecordView<'customer_notices'>;
 		ctx: PageContext;
 	} = $props();
-	const when = useWhen(ctx);
 	const t = ctx.t;
 	const sections: RecordSection[] = [
 		{
@@ -40,7 +38,12 @@
 			summary: (r) =>
 				r.sent_at == null
 					? t('summary.not_sent')
-					: t('summary.sent', { at: when(String(r.sent_at)) })
+					: t('summary.sent', {
+							at: format({ kind: 'instant' }, String(r.sent_at), {
+								locale: ctx.locale,
+								zone: ctx.tz
+							})
+						})
 		}
 	];
 </script>

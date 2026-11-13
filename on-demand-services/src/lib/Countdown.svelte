@@ -1,17 +1,23 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { DateTime, Duration } from 'effect';
 	let {
 		ctx,
 		start
 	}: {
-		ctx: Pick<PageContext, 'clock' | 't'>;
+		ctx: Pick<PageContext, 'clock' | 't' | 'locale'>;
 		start: string;
 	} = $props();
 	const clock = ctx.clock('minute');
-	const now = $derived(Date.parse(clock.now));
-	const minutes = $derived(Math.ceil(Math.abs(Date.parse(start) - now) / 60000));
-	const time = $derived(`${Math.floor(minutes / 60)}h ${minutes % 60}m`);
-	const overdue = $derived(Date.parse(start) <= now);
+	const now = $derived(DateTime.makeUnsafe(clock.now));
+	const minutes = $derived(
+		Math.ceil(Math.abs(Duration.toMinutes(DateTime.distance(now, DateTime.makeUnsafe(start)))))
+	);
+	const time = $derived.by(() => {
+		const left = Duration.minutes(minutes);
+		return `${new Intl.NumberFormat(ctx.locale, { style: 'unit', unit: 'hour', unitDisplay: 'narrow' }).format(Math.trunc(Duration.toHours(left)))} ${new Intl.NumberFormat(ctx.locale, { style: 'unit', unit: 'minute', unitDisplay: 'narrow' }).format(Duration.parts(left).minutes)}`;
+	});
+	const overdue = $derived(!DateTime.isLessThan(now, DateTime.makeUnsafe(start)));
 </script>
 
 <span

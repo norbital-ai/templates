@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { type RecordSection, type RecordView, RecordShell, Table } from '@norbital-ai/ui';
+	import { type RecordSection, type RecordView, format, RecordShell, Table } from '@norbital-ai/ui';
+	import { Stack } from '@norbital-ai/ui/layout';
 	/**
 	 * A customer's profile for the desk: their visits still to come (each with the cleaner it is planned with, or the one
 	 * proposed to cover, the shift check and the ETA), their past visits (done or cancelled, with the notes), the bookings
@@ -50,15 +51,6 @@
 			a.slot.start.localeCompare(b.slot.start)
 		)[0]
 	);
-	const when = (i: string) =>
-		new Intl.DateTimeFormat(ctx.locale, {
-			timeZone: zone,
-			weekday: 'short',
-			day: 'numeric',
-			month: 'short',
-			hour: 'numeric',
-			minute: '2-digit'
-		}).format(new Date(i));
 	const done = $derived(
 		(past?.current?.visits.rows ?? []).filter((v) => v.status === 'done').length
 	);
@@ -85,62 +77,62 @@
 </script>
 
 {#snippet upcoming()}
-	{#if record && upcomingWhere}
-		<p class="pb-2 text-sm text-muted-foreground">
-			{soonest === undefined
-				? t('app.customers.nothing_ahead')
-				: t('app.customers.next_visit', {
-						when: when(soonest.slot.start),
-						service: soonest.booking?.service?.name ?? '',
-						cleaner: soonest.helper?.name ?? t('app.customers.cleaner_tbc'),
-						count: next?.current?.visits.rows.length ?? 0
-					})}
-		</p>
-		<Table
-			{ctx}
-			of="visits"
-			key="customer-upcoming"
-			toolbar={{ title: t('app.customers.upcoming'), new: false }}
-			where={upcomingWhere}
-			order_by={{ number: 'asc' }}
-			columns={[
-				'number',
-				'slot',
-				'helper',
-				'proposed_helper',
-				'skill',
-				'status',
-				'shift_check',
-				'eta_minutes',
-				'attention'
-			]}
-		/>
-	{/if}
+	{#if record && upcomingWhere}<Stack size="fill" gap="sm">
+			<p class="text-sm text-muted-foreground">
+				{soonest === undefined
+					? t('app.customers.nothing_ahead')
+					: t('app.customers.next_visit', {
+							when: format({ kind: 'instant' }, soonest.slot.start, { locale: ctx.locale, zone }),
+							service: soonest.booking?.service?.name ?? '',
+							cleaner: soonest.helper?.name ?? t('app.customers.cleaner_tbc'),
+							count: next?.current?.visits.rows.length ?? 0
+						})}
+			</p>
+			<Table
+				{ctx}
+				of="visits"
+				key="customer-upcoming"
+				toolbar={{ title: t('app.customers.upcoming'), new: false }}
+				where={upcomingWhere}
+				order_by={{ number: 'asc' }}
+				columns={[
+					'number',
+					'slot',
+					'helper',
+					'proposed_helper',
+					'skill',
+					'status',
+					'shift_check',
+					'eta_minutes',
+					'attention'
+				]}
+			/>
+		</Stack>{/if}
 {/snippet}
 {#snippet history()}
-	{#if record && pastWhere}
-		<p class="pb-2 text-sm text-muted-foreground">
-			{t('app.customers.history_summary', { done, cancelled })}
-		</p>
-		<Table
-			{ctx}
-			of="visits"
-			key="customer-history"
-			toolbar={{ title: t('app.customers.history'), new: false }}
-			where={pastWhere}
-			order_by={{ number: 'desc' }}
-			columns={[
-				'number',
-				'slot',
-				'helper',
-				'skill',
-				'status',
-				'completed_at',
-				'completion_notes',
-				'late_cancellation'
-			]}
-		/>
-	{/if}
+	{#if record && pastWhere}<Stack size="fill" gap="sm">
+			<p class="text-sm text-muted-foreground">
+				{t('app.customers.history_summary', { done, cancelled })}
+			</p>
+			<Table
+				{ctx}
+				of="visits"
+				key="customer-history"
+				toolbar={{ title: t('app.customers.history'), new: false }}
+				where={pastWhere}
+				order_by={{ number: 'desc' }}
+				columns={[
+					'number',
+					'slot',
+					'helper',
+					'skill',
+					'status',
+					'completed_at',
+					'completion_notes',
+					'late_cancellation'
+				]}
+			/>
+		</Stack>{/if}
 {/snippet}
 {#snippet bookings()}
 	{#if record}<Table

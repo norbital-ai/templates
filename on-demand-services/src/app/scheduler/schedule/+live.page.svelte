@@ -8,18 +8,12 @@
 	 * watch last estimated. Both refresh as helpers report.
 	 */
 	import { AppShell, Split } from '@norbital-ai/ui/layout';
+	import { DateTime } from 'effect';
 	const zone = ctx.tz;
 	const t = ctx.t;
-	const HOUR = 3600000;
-	const time = (i: string) =>
-		new Intl.DateTimeFormat(ctx.locale, {
-			timeZone: zone,
-			hour: 'numeric',
-			minute: '2-digit'
-		}).format(new Date(i));
 	/** The under-way window moves with the clock, minute by minute. */
 	const clock = ctx.clock('minute');
-	const now = $derived(Date.parse(clock.now));
+	const now = $derived(DateTime.makeUnsafe(clock.now));
 	const ahead = $derived(
 		ctx.query({
 			visits: {
@@ -28,8 +22,8 @@
 					status: { in: ['scheduled', 'in_progress'] },
 					slot: {
 						overlaps: {
-							start: new Date(now - 6 * HOUR).toISOString(),
-							end: new Date(now + 8 * HOUR).toISOString()
+							start: DateTime.formatIso(DateTime.subtract(now, { hours: 6 })),
+							end: DateTime.formatIso(DateTime.add(now, { hours: 8 }))
 						}
 					}
 				},
@@ -39,7 +33,7 @@
 			}
 		})
 	);
-	const soon = $derived(new Date(now + 4 * HOUR).toISOString());
+	const soon = $derived(DateTime.formatIso(DateTime.add(now, { hours: 4 })));
 	/** Each helper's next stop: the visit under way, else the earliest still to start. */
 	const overlays = $derived.by(() => {
 		const next = new globalThis.Map<
@@ -48,7 +42,8 @@
 		>();
 		for (const v of ahead.current?.visits.rows ?? []) {
 			if (v.location === null || v.helper === null) continue;
-			if (v.status === 'scheduled' && Date.parse(v.slot.end!) < now) continue;
+			if (v.status === 'scheduled' && DateTime.isLessThan(DateTime.makeUnsafe(v.slot.end!), now))
+				continue;
 			const held = next.get(v.helper.id);
 			const sooner = (a: typeof v) => (a.status === 'in_progress' ? 0 : Date.parse(a.slot.start));
 			if (held === undefined || sooner(v) < sooner(held)) next.set(v.helper.id, v);
@@ -56,7 +51,7 @@
 		return [...next.values()].map((v) => ({
 			lat: v.location!.lat,
 			lng: v.location!.lng,
-			text: `${v.helper!.name.split(' ')[0]} → ${v.booking?.customer?.name ?? ''} · ${time(v.slot.start)}`,
+			text: `${v.helper!.name.split(' ')[0]} → ${v.booking?.customer?.name ?? ''} · ${new Intl.DateTimeFormat(ctx.locale, { timeZone: zone, hour: 'numeric', minute: '2-digit' }).format(new Date(v.slot.start))}`,
 			...(v.helper!.last_location === null ? {} : { from: v.helper!.last_location })
 		}));
 	});

@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	/** A helper's profile, with their upcoming visits, time off and warnings. */
-	import { type RecordSection, type RecordView, RecordShell, Table } from '@norbital-ai/ui';
-	import { useWhen } from '../../../lib/summary.js';
+	import { type RecordSection, type RecordView, format, RecordShell, Table } from '@norbital-ai/ui';
 	let {
 		view,
 		ctx
@@ -10,7 +9,6 @@
 		view: RecordView<'helpers'>;
 		ctx: PageContext;
 	} = $props();
-	const when = useWhen(ctx);
 	const t = ctx.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	// who they are, what they do and when they work stay open (dispatch reads them); the sign-in account and the map
@@ -37,7 +35,12 @@
 			summary: (r) =>
 				r.last_location_at == null
 					? t('summary.no_location')
-					: t('summary.last_seen', { at: when(String(r.last_location_at)) })
+					: t('summary.last_seen', {
+							at: format({ kind: 'instant' }, String(r.last_location_at), {
+								locale: ctx.locale,
+								zone: ctx.tz
+							})
+						})
 		}
 	];
 </script>

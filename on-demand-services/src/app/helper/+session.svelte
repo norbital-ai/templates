@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Effect, Clock, Queue, Schedule } from 'effect';
+	import { Effect, Clock, Duration, Queue, Schedule } from 'effect';
 	import { attach } from '@norbital-ai/ui/effect';
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
-	const EVERY_MS = 120000;
+	const EVERY = Duration.minutes(2);
 	const actor = ctx.actor;
 	const me = $derived(
 		actor?.kind === 'member'
@@ -69,7 +69,7 @@
 						continue;
 					}
 					const now = yield* Clock.currentTimeMillis;
-					if (now - sent < EVERY_MS) continue;
+					if (now - sent < Duration.toMillis(EVERY)) continue;
 					sent = now;
 					// the row as last read: its revision guards the write
 					const revision = helper?.id === id ? helper.revision : undefined;

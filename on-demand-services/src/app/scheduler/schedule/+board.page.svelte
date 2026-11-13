@@ -8,7 +8,7 @@
 	 * to the best match or cancel it. Open a visit for the helpers free to take it.
 	 */
 	import type { ListRow, Row } from '@norbital-ai/bolt';
-	import { add_days, utc_of } from '../../../lib/matching.js';
+	import { DateTime } from 'effect';
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	const zone = ctx.tz;
 	const t = ctx.t;
@@ -24,8 +24,14 @@
 	let day = $state<string>(clock.today);
 	/** The chosen workspace day, bounded by its two local midnights. */
 	const span = $derived({
-		start: new Date(utc_of(day, 0, zone)).toISOString(),
-		end: new Date(utc_of(add_days(day, 1), 0, zone)).toISOString()
+		start: DateTime.formatIso(
+			DateTime.makeZonedUnsafe(day, { timeZone: zone, adjustForTimeZone: true })
+		),
+		end: DateTime.formatIso(
+			DateTime.add(DateTime.makeZonedUnsafe(day, { timeZone: zone, adjustForTimeZone: true }), {
+				days: 1
+			})
+		)
 	});
 	const helpers = $derived(
 		ctx.query({
@@ -41,14 +47,11 @@
 		{ value: null, label: t('app.schedule.unassigned') },
 		...(helpers.current?.helpers.rows ?? []).map((h) => ({ value: h.id, label: h.name }))
 	]);
-	const time = (i: string | null) =>
-		i === null
-			? '—'
-			: new Intl.DateTimeFormat(ctx.locale, {
-					timeZone: zone,
-					hour: 'numeric',
-					minute: '2-digit'
-				}).format(new Date(i));
+	const clockTime = new Intl.DateTimeFormat(ctx.locale, {
+		timeZone: zone,
+		hour: 'numeric',
+		minute: '2-digit'
+	});
 	const where = $derived({ slot: { overlaps: span }, status: { ne: 'cancelled' as const } });
 	/** Who each of the day's visits is for, and what: one read beside the board's own, keyed by visit. */
 	const booked = $derived(
@@ -85,7 +88,9 @@
 	<Stack gap="xs">
 		<Cluster gap="xs" justify="between" align="center">
 			<p class="text-sm font-medium tabular-nums">
-				{time(row.slot.start)} – {time(row.slot.end)}
+				{clockTime.format(new Date(row.slot.start))} – {row.slot.end === null
+					? '—'
+					: clockTime.format(new Date(row.slot.end))}
 			</p>
 		</Cluster>
 		<p class="line-clamp-1 text-sm">{forWhom.get(row.id) ?? '—'}</p>

@@ -4,25 +4,20 @@
 		Button,
 		Combobox,
 		EmptyState,
+		format,
 		TimeInput,
 		Label,
 		RunStatus,
 		notify_outcome
 	} from '@norbital-ai/ui';
-	import { Effect } from 'effect';
+	import { DateTime, Duration, Effect } from 'effect';
 	import type { Id, Outcome } from '@norbital-ai/bolt';
 	import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from './SlotPicker.svelte';
 	import Countdown from './Countdown.svelte';
 	import { livePool } from './pool.svelte.js';
-	import {
-		candidatesFor,
-		dayList,
-		rebookingSlots,
-		rebookingWindow,
-		type Rematch
-	} from './slots.js';
+	import { candidatesFor, rebookingSlots, rebookingWindow, type Rematch } from './slots.js';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let {
 		ctx,
@@ -93,7 +88,11 @@
 	);
 	const clock = ctx.clock('minute');
 	// another time: the next fortnight's feasible starts, adjacent travel included
-	const fortnight = $derived(dayList(from, 14));
+	const fortnight = $derived(
+		Array.from({ length: 14 }, (_, i) =>
+			DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(from), { days: i }))
+		)
+	);
 	const ahead = livePool(
 		ctx,
 		() =>
@@ -178,16 +177,6 @@
 			})
 		);
 	}
-
-	const when = (at: string) =>
-		new Intl.DateTimeFormat(ctx.locale, {
-			timeZone: zone,
-			weekday: 'short',
-			day: 'numeric',
-			month: 'short',
-			hour: 'numeric',
-			minute: '2-digit'
-		}).format(new Date(at));
 </script>
 
 <Stack gap="lg">
@@ -198,7 +187,9 @@
 			<p class="text-heading">
 				{v.booking?.customer?.name ?? ''} · {v.booking?.service?.name ?? ''}
 			</p>
-			<p class="text-sm">{when(v.slot.start)} · {v.address}</p>
+			<p class="text-sm">
+				{format({ kind: 'instant' }, v.slot.start, { locale: ctx.locale, zone })} · {v.address}
+			</p>
 			<Countdown {ctx} start={v.slot.start} />
 			{#if v.unavailable_helper}<p class="text-sm text-muted-foreground">
 					{t('app.recovery.absent', { name: v.unavailable_helper.name })}
@@ -222,7 +213,12 @@
 					{:else if days === undefined}<p>{t('component.loading')}</p>
 					{:else}<SlotPicker
 							{days}
-							minutes={(Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60_000}
+							minutes={Duration.toMinutes(
+								DateTime.distance(
+									DateTime.makeUnsafe(v.slot.start),
+									DateTime.makeUnsafe(v.slot.end!)
+								)
+							)}
 							value={picked}
 							locale={ctx.locale}
 							{zone}

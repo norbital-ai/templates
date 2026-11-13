@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import type { AutomationCtx, StartInput } from '@norbital-ai/bolt';
-import { loadPool, when } from './dispatch.js';
+import { loadPool } from './dispatch.js';
 import { BOOKING_AHEAD, occurrences, planBooking } from './matching.js';
 
 /** Plan every occurrence before the booking, its children and its notice commit together. */
@@ -78,8 +78,8 @@ export const bookService = Effect.fnUntraced(function* (
 		'customer_notices.create': [
 			{
 				customer: customer.id,
-				subject: `Booking confirmed: ${service.name}, ${when(visits[0]!.slot.start, ctx.tz)}`,
-				body: `Your ${service.name} is booked for ${when(visits[0]!.slot.start, ctx.tz)}${repeats} at ${address}. We will message you if anything changes.`
+				subject: `Booking confirmed: ${service.name}, ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(visits[0]!.slot.start))}`,
+				body: `Your ${service.name} is booked for ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(visits[0]!.slot.start))}${repeats} at ${address}. We will message you if anything changes.`
 			}
 		]
 	});

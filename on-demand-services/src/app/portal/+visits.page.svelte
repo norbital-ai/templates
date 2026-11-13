@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Badge, EmptyState, Icon, Label, PhoneVerify } from '@norbital-ai/ui';
+	import { Badge, EmptyState, format, Icon, Label, PhoneVerify } from '@norbital-ai/ui';
 	/**
 	 * A customer's bookings (the policy scopes every read to their own record): the next visits with who is coming and how
 	 * far away they are, then what is done, then the messages sent about them. Unverified, the number is verified here.
@@ -41,15 +41,6 @@
 			.reverse()
 			.slice(0, 10)
 	);
-	const when = (i: string) =>
-		new Intl.DateTimeFormat(ctx.locale, {
-			timeZone: zone,
-			weekday: 'short',
-			day: 'numeric',
-			month: 'short',
-			hour: 'numeric',
-			minute: '2-digit'
-		}).format(new Date(i));
 </script>
 
 <Scroll name="my-visits" size="fill" inset>
@@ -77,7 +68,9 @@
 							<div class="rounded-xl border bg-card p-5">
 								<Stack gap="xs">
 									<Cluster gap="xs" justify="between" align="center">
-										<p class="font-semibold">{when(v.slot.start)}</p>
+										<p class="font-semibold">
+											{format({ kind: 'instant' }, v.slot.start, { locale: ctx.locale, zone })}
+										</p>
 										{#if v.status === 'in_progress'}
 											<Badge variant="info">{statusWord('in_progress')}</Badge>
 										{:else if v.eta_minutes !== null}
@@ -103,7 +96,10 @@
 						<Label>{t('app.portal.visits_done')}</Label>
 						{#each done as v (v.id)}
 							<Cluster gap="xs" justify="between">
-								<p class="text-sm">{when(v.slot.start)} · {v.booking?.service?.name ?? ''}</p>
+								<p class="text-sm">
+									{format({ kind: 'instant' }, v.slot.start, { locale: ctx.locale, zone })} · {v
+										.booking?.service?.name ?? ''}
+								</p>
 								<Badge variant="success">{statusWord('done')}</Badge>
 							</Cluster>
 						{/each}

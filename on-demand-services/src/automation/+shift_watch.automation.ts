@@ -1,4 +1,5 @@
 import { automation, type Id } from '@norbital-ai/bolt';
+import * as DateTime from 'effect/DateTime';
 import * as Effect from 'effect/Effect';
 import {
 	whatsappAccount,
@@ -7,11 +8,9 @@ import {
 	settingsOf,
 	targetOf,
 	visitsToMove,
-	when,
 	whatsapp
 } from '../lib/dispatch.js';
-import { local_of, type Slot } from '../lib/matching.js';
-const MINUTE = 60000;
+import type { Slot } from '../lib/matching.js';
 /**
  * The pre-shift check. Two hours before a helper's first visit of the day they are asked to confirm the day. No answer
  * within the hour, or a decline, and the day's visits receive replacement proposals for controller approval; a customer who asked for particular helpers is
@@ -26,8 +25,7 @@ export default automation({
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
-		const now = Date.parse(ctx.now);
-		const at = (m: number) => new Date(now + m * MINUTE).toISOString();
+		const now = DateTime.makeUnsafe(ctx.now);
 		const settings = yield* settingsOf(ctx);
 		// ask: the first unconfirmed visit of each helper's day that starts within the lead time
 		const { rows: soon } = (yield* ctx.query({
@@ -36,7 +34,14 @@ export default automation({
 					status: { eq: 'scheduled' },
 					helper: { is_null: false },
 					shift_check: { eq: 'not_due' },
-					slot: { overlaps: { start: ctx.now, end: at(settings.shift_check_lead_minutes) } }
+					slot: {
+						overlaps: {
+							start: ctx.now,
+							end: DateTime.formatIso(
+								DateTime.add(now, { minutes: settings.shift_check_lead_minutes })
+							)
+						}
+					}
 				},
 				fields: ['revision', 'number', 'slot', 'helper'],
 				order_by: { number: 'asc' },
@@ -45,7 +50,7 @@ export default automation({
 		})).visits;
 		const first = new Map<string, (typeof soon)[number]>();
 		for (const v of [...soon].sort((a, b) => a.slot.start.localeCompare(b.slot.start))) {
-			if (Date.parse(v.slot.start) < now) continue;
+			if (DateTime.isLessThan(DateTime.makeUnsafe(v.slot.start), now)) continue;
 			const key = `${v.helper!.id} ${dayOf(v.slot.start, ctx.tz).start}`;
 			if (!first.has(key)) first.set(key, v);
 		}
@@ -78,7 +83,7 @@ export default automation({
 				for (const v of ask)
 					yield* ctx.send(account, {
 						to: whatsapp(v.helper!.phone),
-						text: `Your first visit today, ${v.number}, starts at ${when(v.slot.start, ctx.tz)}. Open My Day to confirm you are coming, or tell us you cannot.`
+						text: `Your first visit today, ${v.number}, starts at ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}. Open My Day to confirm you are coming, or tell us you cannot.`
 					});
 		}
 		// no answer in time: treat as not coming
@@ -88,7 +93,11 @@ export default automation({
 					status: { eq: 'scheduled' },
 					helper: { is_null: false },
 					shift_check: { eq: 'asked' },
-					shift_asked_at: { lte: at(-settings.shift_reply_minutes) }
+					shift_asked_at: {
+						lte: DateTime.formatIso(
+							DateTime.subtract(now, { minutes: settings.shift_reply_minutes })
+						)
+					}
 				},
 				fields: ['helper', 'slot', 'mc']
 			}
@@ -152,7 +161,9 @@ export default automation({
 					slot: { overlaps: d.day }
 				})
 			)).visits;
-			const date = local_of(Date.parse(d.day.start), ctx.tz).date;
+			const date = DateTime.formatIsoDate(
+				DateTime.makeZonedUnsafe(d.day.start, { timeZone: ctx.tz })
+			);
 			const existing = (yield* ctx.query({
 				helper_time_off: {
 					where: { helper: { eq: d.helper }, period: { overlaps: { from: date, to: date } } },

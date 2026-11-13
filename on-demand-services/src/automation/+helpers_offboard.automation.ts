@@ -1,7 +1,8 @@
 import { automation } from '@norbital-ai/bolt';
+import { DateTime } from 'effect';
 import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
-import { loadPool, when, targetOf } from '../lib/dispatch.js';
-import { add_days, proposal, utc_of } from '../lib/matching.js';
+import { loadPool, targetOf } from '../lib/dispatch.js';
+import { proposal } from '../lib/matching.js';
 
 export default automation({
 	description:
@@ -21,7 +22,14 @@ export default automation({
 		for (const helper of targets) {
 			if (helper.status !== 'active')
 				return yield* ctx.refuse('errors.helper_already_left', { values: { name: helper.name } });
-			const after = new Date(utc_of(add_days(last_day, 1), 0, ctx.tz)).toISOString();
+			const after = DateTime.formatIso(
+				DateTime.add(
+					DateTime.makeZonedUnsafe(last_day, { timeZone: ctx.tz, adjustForTimeZone: true }),
+					{
+						days: 1
+					}
+				)
+			);
 			const { rows: later } = (yield* ctx.query({
 				visits: {
 					where: {
@@ -75,8 +83,8 @@ export default automation({
 					notices.push({
 						customer: v.booking.customer,
 						visit: v.id,
-						subject: `A change to your visit on ${when(v.slot.start, ctx.tz)}`,
-						body: `${helper.name} is no longer with us. For visit ${v.number} we propose ${names.get(found.helper)} on ${when(found.slot.start, ctx.tz)}. Reply to this email to accept or to ask for another time.`
+						subject: `A change to your visit on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}`,
+						body: `${helper.name} is no longer with us. For visit ${v.number} we propose ${names.get(found.helper)} on ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(found.slot.start))}. Reply to this email to accept or to ask for another time.`
 					});
 			}
 			helperUpdates.push({

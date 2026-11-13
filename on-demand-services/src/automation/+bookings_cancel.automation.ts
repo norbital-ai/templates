@@ -1,7 +1,7 @@
 import { automation } from '@norbital-ai/bolt';
+import { DateTime } from 'effect';
 import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
 import { settingsOf, targetOf } from '../lib/dispatch.js';
-const HOUR = 3600000;
 
 export default automation({
 	description:
@@ -27,7 +27,10 @@ export default automation({
 			})).visits;
 			const { free_change_hours } = yield* settingsOf(ctx);
 			const late = (start: string) =>
-				Date.parse(start) - Date.parse(ctx.now) < free_change_hours * HOUR;
+				DateTime.isLessThan(
+					DateTime.makeUnsafe(start),
+					DateTime.add(DateTime.makeUnsafe(ctx.now), { hours: free_change_hours })
+				);
 			updates.push(
 				...rows.map((v) => ({
 					target: targetOf(v),

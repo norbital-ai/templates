@@ -4,8 +4,8 @@
  * that act on a pick (`bookings_book`, `visits_rebook`, `visits_reassign`) recheck everything, so a preview is safe.
  */
 import type { Id, Instant, PlainDate } from '@norbital-ai/bolt';
+import { DateTime, Duration } from 'effect';
 import {
-	add_days,
 	availableSlots,
 	BOOKING_AHEAD,
 	occurrences,
@@ -13,14 +13,8 @@ import {
 	rank,
 	slotOf,
 	type Point,
-	type Pool,
-	utc_of
+	type Pool
 } from './matching.js';
-/** `days` local days from `from`. */
-export const dayList = (from: PlainDate, days: number): PlainDate[] =>
-	Array.from({ length: days }, (_, i) => add_days(from, i));
-const midnight = (day: PlainDate, zone: string): Instant =>
-	new Date(utc_of(day, 0, zone)).toISOString();
 /** The days a booking picker lists and the full recurring horizon its pool must cover. */
 export function bookingWindow(
 	input: {
@@ -31,11 +25,17 @@ export function bookingWindow(
 	},
 	zone: string
 ) {
-	const days = dayList(input.from, input.days);
-	const last = midnight(days.at(-1)!, zone);
+	const days = Array.from({ length: input.days }, (_, i) =>
+		DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(input.from), { days: i }))
+	);
+	const last = DateTime.formatIso(
+		DateTime.makeZonedUnsafe(days.at(-1)!, { timeZone: zone, adjustForTimeZone: true })
+	);
 	return {
 		days,
-		from: midnight(days[0]!, zone),
+		from: DateTime.formatIso(
+			DateTime.makeZonedUnsafe(days[0]!, { timeZone: zone, adjustForTimeZone: true })
+		),
 		to: occurrences(last, input.repeat, input.visits ?? BOOKING_AHEAD, zone).at(-1)!
 	};
 }
@@ -97,10 +97,16 @@ export type Rematch = {
 	readonly helper: Id<'helpers'> | null;
 	readonly unavailable_helper: Id<'helpers'> | null;
 };
-const minutesOf = (v: Rematch) => (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60000;
 /** The pool window of `rebookingSlots`: midnight of the first and of the last day. */
 export function rebookingWindow(days: readonly PlainDate[], zone: string) {
-	return { from: midnight(days[0]!, zone), to: midnight(days.at(-1)!, zone) };
+	return {
+		from: DateTime.formatIso(
+			DateTime.makeZonedUnsafe(days[0]!, { timeZone: zone, adjustForTimeZone: true })
+		),
+		to: DateTime.formatIso(
+			DateTime.makeZonedUnsafe(days.at(-1)!, { timeZone: zone, adjustForTimeZone: true })
+		)
+	};
 }
 /** Feasible replacement starts for a scheduled visit on each of `days`, adjacent travel included. */
 export function rebookingSlots(
@@ -115,7 +121,14 @@ export function rebookingSlots(
 		busy: pool.busy.filter((b) => b.id !== v.id),
 		helpers: pool.helpers.filter((h) => h.id !== v.unavailable_helper)
 	};
-	const need = { skill: v.skill, location: v.location, area: v.area, minutes: minutesOf(v) };
+	const need = {
+		skill: v.skill,
+		location: v.location,
+		area: v.area,
+		minutes: Duration.toMinutes(
+			DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end!))
+		)
+	};
 	const starts = new Map(days.map((d) => [d, new Set<Instant>()]));
 	for (const h of freed.helpers)
 		for (const d of openSlots(h, need, days, freed, zone, now))
@@ -129,7 +142,12 @@ export function rebookingSlots(
 export function candidatesFor(v: Rematch, start: Instant | undefined, pool: Pool, zone: string) {
 	const need = {
 		skill: v.skill,
-		slot: slotOf(start ?? v.slot.start, minutesOf(v)),
+		slot: slotOf(
+			start ?? v.slot.start,
+			Duration.toMinutes(
+				DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end!))
+			)
+		),
 		location: v.location,
 		area: v.area,
 		visit: v.id

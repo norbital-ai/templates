@@ -18,12 +18,12 @@
 	 * position is shared with the scheduler (at most every two minutes).
 	 */
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
+	import { DateTime, Duration, Effect } from 'effect';
 	import type { Id, Outcome } from '@norbital-ai/bolt';
 	import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
 	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
-	import { add_days, driveMinutes, type Point, utc_of } from '../../lib/matching.js';
+	import { driveMinutes, type Point } from '../../lib/matching.js';
 	const zone = ctx.tz;
 	const t = ctx.t;
 	const actor = ctx.actor;
@@ -46,8 +46,15 @@
 	const today = $derived(clock.today);
 	let selectedDay = $state<string>(clock.today);
 	const span = $derived({
-		start: new Date(utc_of(selectedDay, 0, zone)).toISOString(),
-		end: new Date(utc_of(add_days(selectedDay, 1), 0, zone)).toISOString()
+		start: DateTime.formatIso(
+			DateTime.makeZonedUnsafe(selectedDay, { timeZone: zone, adjustForTimeZone: true })
+		),
+		end: DateTime.formatIso(
+			DateTime.add(
+				DateTime.makeZonedUnsafe(selectedDay, { timeZone: zone, adjustForTimeZone: true }),
+				{ days: 1 }
+			)
+		)
 	});
 	/** A day's visits of this helper in `status`, with whom and what for. */
 	const dayRead = (
@@ -217,21 +224,11 @@
 		);
 	}
 	// ── formatting ──
-	const time = (i: string | null) =>
-		i === null
-			? '—'
-			: new Intl.DateTimeFormat(ctx.locale, {
-					timeZone: zone,
-					hour: 'numeric',
-					minute: '2-digit'
-				}).format(new Date(i));
-	const dayOf = (i: string) =>
-		new Intl.DateTimeFormat(ctx.locale, {
-			timeZone: zone,
-			weekday: 'long',
-			day: 'numeric',
-			month: 'short'
-		}).format(new Date(i));
+	const clockTime = new Intl.DateTimeFormat(ctx.locale, {
+		timeZone: zone,
+		hour: 'numeric',
+		minute: '2-digit'
+	});
 	const isToday = (_: string) => selectedDay === today;
 	const eta = (to: Point | null) => (here === null || to === null ? null : driveMinutes(here, to));
 	const directions = (v: (typeof visits)[number]) =>
@@ -253,7 +250,11 @@
 	<div class="rounded-xl border bg-card p-5">
 		<Stack gap="sm">
 			<Cluster gap="xs" justify="between" align="center">
-				<p class="text-heading tabular-nums">{time(v.slot.start)} – {time(v.slot.end)}</p>
+				<p class="text-heading tabular-nums">
+					{clockTime.format(new Date(v.slot.start))} – {v.slot.end === null
+						? '—'
+						: clockTime.format(new Date(v.slot.end))}
+				</p>
 				{#if v.status === 'in_progress'}
 					<Badge variant="info">{statusWord('in_progress')}</Badge>
 				{:else if next && isToday(v.slot.start) && minutes !== null}
@@ -263,7 +264,14 @@
 					>
 				{/if}
 			</Cluster>
-			{#if !isToday(v.slot.start)}<p class="text-meta">{dayOf(v.slot.start)}</p>{/if}
+			{#if !isToday(v.slot.start)}<p class="text-meta">
+					{new Intl.DateTimeFormat(ctx.locale, {
+						timeZone: zone,
+						weekday: 'long',
+						day: 'numeric',
+						month: 'short'
+					}).format(new Date(v.slot.start))}
+				</p>{/if}
 			{#if next && v.shift_check === 'confirmed'}<p class="text-meta">
 					{t('app.helper.day_confirmed')}
 				</p>{/if}
@@ -338,7 +346,9 @@
 							</p>
 							{#if asked.shift_check !== 'confirmed'}
 								<p class="text-sm text-muted-foreground">
-									{t('app.helper.confirm_body', { time: time(asked.slot.start) })}
+									{t('app.helper.confirm_body', {
+										time: clockTime.format(new Date(asked.slot.start))
+									})}
 								</p>
 								<Button
 									disabled={busy || !locationReady}
@@ -405,8 +415,12 @@
 													minutes: Math.max(
 														0,
 														Math.round(
-															(Date.parse(v.slot.start) - Date.parse(route[i - 1]!.slot.end!)) /
-																60_000
+															Duration.toMinutes(
+																DateTime.distance(
+																	DateTime.makeUnsafe(route[i - 1]!.slot.end!),
+																	DateTime.makeUnsafe(v.slot.start)
+																)
+															)
 														) - driveMinutes(route[i - 1]!.location, v.location)
 													)
 												})}
@@ -417,7 +431,10 @@
 										{#if state === 'done'}
 											<Cluster justify="between" gap="sm"
 												><p class="text-sm text-muted-foreground">
-													<span class="tabular-nums">{time(v.slot.start)}</span> · {v.address}
+													<span class="tabular-nums"
+														>{clockTime.format(new Date(v.slot.start))}</span
+													>
+													· {v.address}
 												</p>
 												<Badge variant="success">{statusWord('done')}</Badge></Cluster
 											>

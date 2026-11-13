@@ -10,30 +10,7 @@
  * (the `check_drives` run fetches every planned leg), else the straight-line estimate.
  */
 import type { Id, Instant, PlainDate, PlainTime } from '@norbital-ai/bolt';
-import { DateTime } from 'effect';
-/** `date` moved by `days` calendar days. */
-export const add_days = (date: PlainDate, days: number): PlainDate =>
-	DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(date), { days }));
-/** `date` moved by `months` calendar months (clamped to the month's last day). */
-export const add_months = (date: PlainDate, months: number): PlainDate =>
-	DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(date), { months }));
-/** The zone-local day and milliseconds into it of a UTC instant (ms). */
-export function local_of(at: number, zone: string): { date: PlainDate; ms_of_day: number } {
-	const local = DateTime.makeZonedUnsafe(at, { timeZone: zone });
-	const { hour, minute, second, millisecond } = DateTime.toParts(local);
-	return {
-		date: DateTime.formatIsoDate(local),
-		ms_of_day: ((hour * 60 + minute) * 60 + second) * 1000 + millisecond
-	};
-}
-/** The UTC instant (ms) of a zone-local wall time; a DST gap or fold resolves as Temporal's 'compatible'. */
-export const utc_of = (date: PlainDate, ms_of_day: number, zone: string): number =>
-	DateTime.toEpochMillis(
-		DateTime.makeZonedUnsafe(Date.parse(`${date}T00:00:00Z`) + ms_of_day, {
-			timeZone: zone,
-			adjustForTimeZone: true
-		})
-	);
+import { BigDecimal, DateTime, Duration } from 'effect';
 export const SKILLS = [
 	'home_cleaning',
 	'deep_cleaning',
@@ -135,17 +112,6 @@ type Candidate = {
 	readonly week_hours: number;
 };
 export type Refusal = 'left' | 'skill' | 'day' | 'hours' | 'time_off' | 'booked';
-export const MINUTE = 60000;
-export const DAY = 24 * 60 * MINUTE;
-const slotMinutes = (slot: Slot): number =>
-	(Date.parse(slot.end) - Date.parse(slot.start)) / MINUTE;
-const ms = Date.parse;
-const iso = (t: number): Instant => new Date(t).toISOString();
-/** Minutes into the day of an `HH:mm` wall time. */
-const minutesOf = (time: PlainTime) => {
-	const [h = '0', m = '0'] = String(time).split(':');
-	return parseInt(h, 10) * 60 + parseInt(m, 10);
-};
 /** The ~1 km square (0.01°) a point sits in. ponytail: one cached time per square pair; finer squares cost more lookups. */
 export const cellOf = (p: Point) => `${p.lat.toFixed(2)},${p.lng.toFixed(2)}`;
 /** The cache key of the drive from `a` to `b`, or `null` when an end is unknown or both share a square. */
@@ -171,50 +137,69 @@ export function driveMinutes(
 	const km = 2 * 6371 * Math.asin(Math.sqrt(h));
 	return Math.ceil((km / KMH) * 60);
 }
-/** The local day and minutes into it of an instant. */
-function local(instant: string, zone: string) {
-	const { date, ms_of_day } = local_of(ms(instant), zone);
-	return { date, minutes: ms_of_day / MINUTE };
-}
 /** The first hard requirement `helper` fails for `need`, or `null` when they may take it. */
 export function refusal(helper: Helper, need: Need, pool: Pool, zone: string): Refusal | null {
 	if (helper.status !== 'active') return 'left';
 	if (!helper.skills.includes(need.skill)) return 'skill';
-	const start = local(need.slot.start, zone);
-	const length = slotMinutes(need.slot);
-	const weekday = DAYS[new Date(`${start.date}T00:00:00Z`).getUTCDay()]!;
-	if (!helper.work_days.includes(weekday)) return 'day';
+	const local = DateTime.makeZonedUnsafe(need.slot.start, { timeZone: zone });
+	const parts = DateTime.toParts(local);
+	const date = DateTime.formatIsoDate(local);
+	const minutes = Duration.toMinutes({
+		hours: parts.hour,
+		minutes: parts.minute,
+		seconds: parts.second,
+		milliseconds: parts.millisecond
+	});
+	const length = Duration.toMinutes(
+		DateTime.distance(DateTime.makeUnsafe(need.slot.start), DateTime.makeUnsafe(need.slot.end))
+	);
+	if (!helper.work_days.includes(DAYS[parts.weekDay]!)) return 'day';
 	if (
-		start.minutes < minutesOf(helper.day_start) ||
-		start.minutes + length > minutesOf(helper.day_end)
+		minutes <
+			Duration.toMinutes(
+				DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${helper.day_start}Z`))
+			) ||
+		minutes + length >
+			Duration.toMinutes(
+				DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${helper.day_end}Z`))
+			)
 	)
 		return 'hours';
 	if (
 		pool.off.some(
 			(o) =>
 				o.helper === helper.id &&
-				o.period.from <= start.date &&
-				(o.period.to === null || start.date <= o.period.to)
+				o.period.from <= date &&
+				(o.period.to === null || date <= o.period.to)
 		)
 	)
 		return 'time_off';
-	const from = ms(need.slot.start),
-		to = ms(need.slot.end);
+	const from = DateTime.makeUnsafe(need.slot.start),
+		to = DateTime.makeUnsafe(need.slot.end);
 	for (const b of pool.busy) {
 		if (b.helper !== helper.id || b.id === need.visit) continue;
+		const start = DateTime.makeUnsafe(b.slot.start);
 		// the drive that matters is the one out of whichever visit comes first
-		const [first, second] =
-			ms(b.slot.start) < from ? [b.location, need.location] : [need.location, b.location];
-		const buffer = (driveMinutes(first, second, pool.drive) + SETTLE_MINUTES) * MINUTE;
-		if (from < ms(b.slot.end) + buffer && ms(b.slot.start) < to + buffer) return 'booked';
+		const [first, second] = DateTime.isLessThan(start, from)
+			? [b.location, need.location]
+			: [need.location, b.location];
+		const buffer = { minutes: driveMinutes(first, second, pool.drive) + SETTLE_MINUTES };
+		if (
+			DateTime.isLessThan(from, DateTime.add(DateTime.makeUnsafe(b.slot.end), buffer)) &&
+			DateTime.isLessThan(start, DateTime.add(to, buffer))
+		)
+			return 'booked';
 	}
 	return null;
 }
 /** The helper's own visits on the local day of `need`, other than `need` itself. */
 function sameDay(helper: Helper, need: Need, pool: Pool, zone: string): Busy[] {
-	const day = local(need.slot.start, zone).date;
+	const day = DateTime.formatIsoDate(DateTime.makeZonedUnsafe(need.slot.start, { timeZone: zone }));
 	return pool.busy.filter(
-		(b) => b.helper === helper.id && b.id !== need.visit && local(b.slot.start, zone).date === day
+		(b) =>
+			b.helper === helper.id &&
+			b.id !== need.visit &&
+			DateTime.formatIsoDate(DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone })) === day
 	);
 }
 /**
@@ -224,11 +209,11 @@ function sameDay(helper: Helper, need: Need, pool: Pool, zone: string): Busy[] {
 function detour(helper: Helper, need: Need, pool: Pool, zone: string): number {
 	const day = sameDay(helper, need, pool, zone);
 	const before = day
-		.filter((b) => ms(b.slot.end) <= ms(need.slot.start))
-		.sort((a, b) => ms(b.slot.end) - ms(a.slot.end))[0];
+		.filter((b) => Date.parse(b.slot.end) <= Date.parse(need.slot.start))
+		.sort((a, b) => Date.parse(b.slot.end) - Date.parse(a.slot.end))[0];
 	const after = day
-		.filter((b) => ms(b.slot.start) >= ms(need.slot.end))
-		.sort((a, b) => ms(a.slot.start) - ms(b.slot.start))[0];
+		.filter((b) => Date.parse(b.slot.start) >= Date.parse(need.slot.end))
+		.sort((a, b) => Date.parse(a.slot.start) - Date.parse(b.slot.start))[0];
 	const from = before === undefined ? helper.home_location : before.location;
 	const drive = (a: Point | null, b: Point | null) => driveMinutes(a, b, pool.drive);
 	if (after === undefined) return drive(from, need.location);
@@ -239,14 +224,31 @@ function detour(helper: Helper, need: Need, pool: Pool, zone: string): number {
 }
 /** Service and travel minutes in the local Monday-started week, normalized by hours actually available. */
 function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
-	const day = local(need.slot.start, zone).date;
-	const monday = add_days(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
-	const sunday = add_days(monday, 6);
+	const monday = DateTime.startOf(
+		DateTime.makeZonedUnsafe(need.slot.start, { timeZone: zone }),
+		'week',
+		{
+			weekStartsOn: 1
+		}
+	);
+	const sunday = DateTime.formatIsoDate(DateTime.add(monday, { days: 6 }));
 	const busy = pool.busy.filter((b) => {
-		const d = local(b.slot.start, zone).date;
-		return b.helper === helper.id && b.id !== need.visit && monday <= d && d <= sunday;
+		const d = DateTime.formatIsoDate(DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone }));
+		return (
+			b.helper === helper.id &&
+			b.id !== need.visit &&
+			DateTime.formatIsoDate(monday) <= d &&
+			d <= sunday
+		);
 	});
-	const service = busy.reduce((sum, b) => sum + slotMinutes(b.slot), 0);
+	const service = busy.reduce(
+		(sum, b) =>
+			sum +
+			Duration.toMinutes(
+				DateTime.distance(DateTime.makeUnsafe(b.slot.start), DateTime.makeUnsafe(b.slot.end))
+			),
+		0
+	);
 	const travel = routes({ ...pool, busy }, zone).reduce(
 		(sum, day) =>
 			sum +
@@ -256,18 +258,31 @@ function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
 			),
 		0
 	);
-	const days = Array.from({ length: 7 }, (_, i) => add_days(monday, i)).filter(
-		(d) =>
-			helper.work_days.includes(DAYS[new Date(`${d}T00:00:00Z`).getUTCDay()]!) &&
-			!pool.off.some(
-				(o) =>
-					o.helper === helper.id && o.period.from <= d && (o.period.to === null || d <= o.period.to)
-			)
+	const days = Array.from({ length: 7 }, (_, i) => DateTime.add(monday, { days: i })).filter(
+		(day) => {
+			const d = DateTime.formatIsoDate(day);
+			return (
+				helper.work_days.includes(DAYS[DateTime.toParts(day).weekDay]!) &&
+				!pool.off.some(
+					(o) =>
+						o.helper === helper.id &&
+						o.period.from <= d &&
+						(o.period.to === null || d <= o.period.to)
+				)
+			);
+		}
 	);
 	return {
 		service,
 		minutes: service + travel,
-		capacity: days.length * (minutesOf(helper.day_end) - minutesOf(helper.day_start))
+		capacity:
+			days.length *
+			Duration.toMinutes(
+				DateTime.distance(
+					DateTime.makeUnsafe(`1970-01-01T${helper.day_start}Z`),
+					DateTime.makeUnsafe(`1970-01-01T${helper.day_end}Z`)
+				)
+			)
 	};
 }
 /** Feasible helpers ranked by route insertion and marginal utilization; continuity never overrides feasibility. */
@@ -298,7 +313,13 @@ export function rank(
 		.map((h) => {
 			const drive = detour(h, need, pool, zone);
 			const load = weeklyLoad(h, need, pool, zone);
-			const added = slotMinutes(need.slot) + drive;
+			const added =
+				Duration.toMinutes(
+					DateTime.distance(
+						DateTime.makeUnsafe(need.slot.start),
+						DateTime.makeUnsafe(need.slot.end)
+					)
+				) + drive;
 			const balance =
 				(LOAD_BALANCE * ((load.minutes + added) ** 2 - load.minutes ** 2)) /
 				Math.max(1, load.capacity) ** 2;
@@ -308,7 +329,15 @@ export function rank(
 				score: -drive - balance + (h.id === keep ? CONTINUITY : 0),
 				drive_minutes: drive,
 				same_area: need.area !== null && h.home_area === need.area,
-				week_hours: Math.round(load.service / 6) / 10
+				week_hours: BigDecimal.toNumberUnsafe(
+					BigDecimal.round(
+						BigDecimal.fromNumberUnsafe(Duration.toHours(Duration.minutes(load.service))),
+						{
+							scale: 1,
+							mode: 'half-ceil'
+						}
+					)
+				)
 			};
 		})
 		.sort(
@@ -391,10 +420,12 @@ export function availableSlots(
 export function routes(pool: Pool, zone: string): Busy[][] {
 	const by = new Map<string, Busy[]>();
 	for (const b of pool.busy) {
-		const key = `${b.helper}|${local(b.slot.start, zone).date}`;
+		const key = `${b.helper}|${DateTime.formatIsoDate(DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone }))}`;
 		by.set(key, [...(by.get(key) ?? []), b]);
 	}
-	return [...by.values()].map((day) => day.sort((a, b) => ms(a.slot.start) - ms(b.slot.start)));
+	return [...by.values()].map((day) =>
+		day.sort((a, b) => Date.parse(a.slot.start) - Date.parse(b.slot.start))
+	);
 }
 /** The legs driven on a day: home to the first visit, then visit to visit. */
 export function legsOf(day: readonly Busy[], home: Point | null): [Point | null, Point | null][] {
@@ -475,20 +506,26 @@ function skillSimilarity(a: readonly string[], b: readonly string[]): number {
 }
 /** The start of every occurrence: the same local wall time each week, fortnight or month. */
 export function occurrences(start: string, repeat: string, count: number, zone: string): Instant[] {
-	const first = local_of(ms(start), zone);
+	const first = DateTime.makeZonedUnsafe(start, { timeZone: zone });
 	const n = repeat === 'once' ? 1 : count;
-	return Array.from({ length: n }, (_, i) => {
-		const date =
-			repeat === 'monthly'
-				? add_months(first.date, i)
-				: add_days(first.date, i * (repeat === 'fortnightly' ? 14 : 7));
-		return iso(utc_of(date, first.ms_of_day, zone));
-	});
+	return Array.from({ length: n }, (_, i) =>
+		DateTime.formatIso(
+			DateTime.makeZonedUnsafe(
+				DateTime.toEpochMillis(
+					DateTime.add(
+						DateTime.makeUnsafe(DateTime.toParts(first)),
+						repeat === 'monthly' ? { months: i } : { days: i * (repeat === 'fortnightly' ? 14 : 7) }
+					)
+				),
+				{ timeZone: zone, adjustForTimeZone: true }
+			)
+		)
+	);
 }
 /** A slot of `minutes` from `start`. */
 export const slotOf = (start: string, minutes: number): Slot => ({
-	start: iso(ms(start)),
-	end: iso(ms(start) + minutes * MINUTE)
+	start: DateTime.formatIso(DateTime.makeUnsafe(start)),
+	end: DateTime.formatIso(DateTime.add(DateTime.makeUnsafe(start), { minutes }))
 });
 /**
  * The starts at which the helper could take `need`'s service on each of `days`, later than `now`: every half hour inside
@@ -510,23 +547,42 @@ export function openSlots(
 	starts: Instant[];
 }[] {
 	const QUARTER = 15;
-	const from = minutesOf(helper.day_start),
-		to = minutesOf(helper.day_end) - need.minutes;
+	const from = Duration.toMinutes(
+			DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${helper.day_start}Z`))
+		),
+		to =
+			Duration.toMinutes(
+				DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${helper.day_end}Z`))
+			) - need.minutes;
 	return days.map((day) => {
 		const candidates = new Set<number>();
 		for (let m = from; m <= to; m += 30) candidates.add(m);
 		for (const b of pool.busy) {
 			if (b.helper !== helper.id || b.id === need.visit) continue;
-			const start = local(b.slot.start, zone),
-				end = local(b.slot.end, zone);
-			if (end.date === day) {
+			const start = DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone }),
+				end = DateTime.makeZonedUnsafe(b.slot.end, { timeZone: zone });
+			if (DateTime.formatIsoDate(end) === day) {
+				const parts = DateTime.toParts(end);
 				const arrive =
-					end.minutes + driveMinutes(b.location, need.location, pool.drive) + SETTLE_MINUTES;
+					Duration.toMinutes({
+						hours: parts.hour,
+						minutes: parts.minute,
+						seconds: parts.second,
+						milliseconds: parts.millisecond
+					}) +
+					driveMinutes(b.location, need.location, pool.drive) +
+					SETTLE_MINUTES;
 				candidates.add(Math.ceil(arrive / QUARTER) * QUARTER);
 			}
-			if (start.date === day) {
+			if (DateTime.formatIsoDate(start) === day) {
+				const parts = DateTime.toParts(start);
 				const leave =
-					start.minutes -
+					Duration.toMinutes({
+						hours: parts.hour,
+						minutes: parts.minute,
+						seconds: parts.second,
+						milliseconds: parts.millisecond
+					}) -
 					driveMinutes(need.location, b.location, pool.drive) -
 					SETTLE_MINUTES -
 					need.minutes;
@@ -536,8 +592,19 @@ export function openSlots(
 		const starts: Instant[] = [];
 		for (const m of [...candidates].sort((a, b) => a - b)) {
 			if (m < from || m > to) continue;
-			const slot = slotOf(iso(utc_of(day, m * MINUTE, zone)), need.minutes);
-			if (ms(slot.start) > ms(now) && refusal(helper, { ...need, slot }, pool, zone) === null)
+			const slot = slotOf(
+				DateTime.formatIso(
+					DateTime.makeZonedUnsafe(DateTime.add(DateTime.makeUnsafe(day), { minutes: m }), {
+						timeZone: zone,
+						adjustForTimeZone: true
+					})
+				),
+				need.minutes
+			);
+			if (
+				Date.parse(slot.start) > Date.parse(now) &&
+				refusal(helper, { ...need, slot }, pool, zone) === null
+			)
 				starts.push(slot.start);
 		}
 		return { day, starts };
@@ -556,9 +623,14 @@ export function proposal(
 	helper: Id<'helpers'>;
 	slot: Slot;
 } | null {
-	const minutes = slotMinutes(need.slot);
+	const minutes = Duration.toMinutes(
+		DateTime.distance(DateTime.makeUnsafe(need.slot.start), DateTime.makeUnsafe(need.slot.end))
+	);
 	for (const shift of [0, -60, 60, -120, 120, 1440, 2880, 4320, 5760, 7200, 8640, 10080]) {
-		const slot = slotOf(iso(ms(need.slot.start) + shift * MINUTE), minutes);
+		const slot = slotOf(
+			DateTime.formatIso(DateTime.add(DateTime.makeUnsafe(need.slot.start), { minutes: shift })),
+			minutes
+		);
 		const found = rank({ ...need, slot }, pool, zone);
 		if (found.length === 0) continue;
 		const skills = new Map(pool.helpers.map((h) => [h.id, h.skills]));

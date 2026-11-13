@@ -1,8 +1,8 @@
 import type { Instant } from '@norbital-ai/bolt';
+import { DateTime } from 'effect';
 import { model } from '../../../../../../.norbital/models/visits.ts';
 import { alertHelpers } from '../../../../../lib/dispatch.js';
 import { AREAS, lookups, refusal, SKILLS, type Refusal } from '../../../../../lib/matching.js';
-const HOUR = 3600000;
 const WHY = {
 	left: 'errors.helper.left',
 	skill: 'errors.helper.skill',
@@ -195,8 +195,12 @@ export default model({
 			if (touched.length === 0) return changes.map(({ set }) => stamped(set, ctx.now));
 			const ids = [...new Set(touched)];
 			const starts = changes.map(({ after }) => Date.parse(after.slot.start));
-			const from = new Date(Math.min(...starts) - 2 * 24 * HOUR).toISOString();
-			const to = new Date(Math.max(...starts) + 2 * 24 * HOUR).toISOString();
+			const from = DateTime.formatIso(
+				DateTime.subtract(DateTime.makeUnsafe(Math.min(...starts)), { days: 2 })
+			);
+			const to = DateTime.formatIso(
+				DateTime.add(DateTime.makeUnsafe(Math.max(...starts)), { days: 2 })
+			);
 			const {
 				helpers,
 				visits: stored,

@@ -1,6 +1,6 @@
 import { Effect, Result } from 'effect';
 import { automation } from '@norbital-ai/bolt';
-import { targetOf, when } from '../lib/dispatch.js';
+import { targetOf } from '../lib/dispatch.js';
 import { bookService } from '../lib/booking.js';
 /**
  * A portal request becomes a booking on its own when a helper is free at the time asked. The customer is found by their
@@ -98,7 +98,7 @@ export default automation({
 					{
 						customer,
 						subject: `We received your booking request ${r.number}`,
-						body: `Thank you, ${r.name}. No helper is free at exactly ${when(r.start, ctx.tz)}, so our team will contact you shortly with the nearest available times.`
+						body: `Thank you, ${r.name}. No helper is free at exactly ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(r.start))}, so our team will contact you shortly with the nearest available times.`
 					}
 				]
 			});
