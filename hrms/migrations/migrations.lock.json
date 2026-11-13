@@ -1,0 +1,16 @@
+{
+	"snapshot": "d1b7c69ca706be85087b086ec04bf0f94500f1ea9620666c22dd0d84bf41f852",
+	"files": {
+		"0001_initial.sql": "0d634b1a5df90f070cc1633272d8cee931e9aa1edad640cd282a09e9264374e0",
+		"0002_schema.sql": "3f887b6185370adc370ef621d0ad37cf238f1d394c53768731b594ba6325191a",
+		"0003_runtime_functions.sql": "7664b0a8408592e7839bd96aee43425dbe4e1fa1a3f1dc071495b39cc9af78f9",
+		"0004_schema.sql": "14544b6a71822bf1a2f98368afd3127a88cb20b31acaefebe40b15ddd7980b2f"
+	},
+	"physical": {
+		"": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+		"0001_initial.sql": "525559acfc860e3288a8dcace7f734e29cbf3f6bab9b12780c3dfe67f1fa0183",
+		"0002_schema.sql": "2e64067c281fd4f0fcd51e1389f9ac741143f75217b12b8b60a4e1d6c6948192",
+		"0003_runtime_functions.sql": "d79dca6488f0f0860b85b467cd9ce2bc653045ace27dc4aed6b6d06d31f37e54",
+		"0004_schema.sql": "c896b2e9140f2642a951a9e7fccef73ee65fa33bb0a683b7e766c515adfe65bf"
+	}
+}

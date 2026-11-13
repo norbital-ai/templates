@@ -1,0 +1,308 @@
+[
+	{
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"references": [
+			{
+				"title": "Labor Code art.94(a)-(c); Omnibus Rules Book III Rule IV ss.2-4: no statute owes a day in lieu in the Philippines. A regular holiday is paid where it falls; work on it, or on a rest day, is priced by HOLIDAY_WORK and SPECIAL_HOLIDAY_WORK, and a holiday moved by proclamation is a calendar row. So the row grants nothing; a day the employer gives in place of a holiday comes only from HR's manual balance adjustment, and stands for that paid holiday (art.94(a)), so it is paid and not convertible to cash."
+			}
+		],
+		"lookup": {
+			"grant_days": 0
+		},
+		"subtotal_id": null,
+		"id": "0dac5715-2429-5a10-93de-20520b2ca979",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Days off in place of a holiday. The law grants none (grant 0 days); only HR's manual adjustments add days, each paid as a normal day and not paid out in cash."
+	},
+	{
+		"code": "VAWC_LEAVE",
+		"lookup": {
+			"grant_days": 10,
+			"window": "EVENT",
+			"opened_by": {
+				"VAWC": {}
+			}
+		},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Republic Act No. 9262 (Anti-Violence Against Women and Their Children Act of 2004), section 43: a woman employee who is a victim of violence is entitled to up to ten paid days of leave per event, not convertible to cash."
+			}
+		],
+		"id": "93632e01-79f9-55af-a90f-49734f450d41",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Up to ten paid days for a woman employee who is a victim of violence against women and their children. Not paid out in cash (RA 9262 s.43)."
+	},
+	{
+		"code": "MEDICAL_LEAVE",
+		"references": [
+			{
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. An employer that pays it sets this row's `paid_share` in its own Settings (empty is a full paid day).",
+				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+			},
+			{
+				"title": "Not required by law",
+				"locator": "Labor Code of the Philippines (PD 442) art. 95",
+				"quote": "No statute grants paid sick leave; art. 95 grants five days of service incentive leave. Sick days are unpaid by default. An employer that pays them by its own policy lists MEDICAL_LEAVE in its pay methods (paid_leave); that pays more than the law and is not a legal requirement."
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"id": "98d51a56-1647-52e2-9403-05baea68bda4",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Sick leave an employer may grant. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
+		"paid_share": "0"
+	},
+	{
+		"code": "PATERNITY_LEAVE",
+		"lookup": {
+			"grant_days": 7,
+			"max_events": 4,
+			"window": "EVENT",
+			"eligibility": {
+				"gender": "MALE",
+				"marital_status": "MARRIED"
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {},
+				"PREGNANCY_TERMINATION": {}
+			},
+			"entitlement": "// RA 8187 s.2: seven days with full pay for the first four deliveries of the spouse; delivery includes childbirth or any miscarriage.\nconst deliveries = get(ctx.subject.employment, 'events', []).filter(\n\t(event) => Object.hasOwn(ctx.lookup.opened_by, event.kind) && event.on <= ctx.event.on\n);\nreturn deliveries.length <= ctx.lookup.max_events ? ctx.lookup.grant_days : 0;"
+		},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Republic Act No. 8187, sections 2 and 3: a married male employee is entitled to seven paid days for each of the first four deliveries of, or miscarriages by, his lawful spouse; the leave is not convertible to cash. Republic Act No. 11210, section 6: the mother may allocate up to seven of her maternity days to the father, over and above this leave; those days stand on MATERNITY_ALLOCATION_LEAVE.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			}
+		],
+		"id": "1fa5090b-55af-5065-ba8d-90fb64762f11",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Seven paid days for a married male employee for each of the first four deliveries or miscarriages of his lawful wife. Not paid out in cash (RA 8187 ss.2–3)."
+	},
+	{
+		"code": "SPECIAL_LEAVE_FOR_WOMEN",
+		"lookup": {
+			"grant_days": 60,
+			"service_months": 6,
+			"window": "EVENT",
+			"eligibility": {
+				"gender": "FEMALE"
+			},
+			"opened_by": {
+				"GYNECOLOGICAL_SURGERY": {}
+			}
+		},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Republic Act No. 9710 (Magna Carta of Women), section 18, and DOLE Department Order No. 112-A, series of 2012: a woman employee with six months of service in the preceding twelve is entitled to up to two months (60 days) of paid leave following gynaecological surgery, not convertible to cash."
+			}
+		],
+		"id": "fd89dd3e-e2f1-54cc-8ae6-3515d6038b4d",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Up to two months (60 days) of paid leave after gynaecological surgery, for a woman with at least six months of service in the last twelve. Not paid out in cash (RA 9710 s.18)."
+	},
+	{
+		"code": "EMERGENCY_LEAVE",
+		"references": [
+			{
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. An employer that pays it sets this row's `paid_share` in its own Settings (empty is a full paid day).",
+				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+			},
+			{
+				"title": "Not required by law",
+				"locator": "Labor Code of the Philippines (PD 442) and its implementing rules",
+				"quote": "No statute grants paid emergency leave; the days are unpaid by default. An employer that pays them by its own policy lists EMERGENCY_LEAVE in its pay methods (paid_leave); that pays more than the law and is not a legal requirement."
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"id": "ff5621b2-777e-5ed2-8c82-388ce391de8b",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Emergency leave an employer may grant. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
+		"paid_share": "0"
+	},
+	{
+		"code": "ANNUAL_LEAVE",
+		"lookup": {
+			"grant_days": 5,
+			"per_months": 12,
+			"service_months": 12,
+			"window": "LIFETIME",
+			"entitlement": "// Labor Code art.95; Omnibus Rules Book III Rule V s.1: five days a year after one year of service. Outside it: an establishment\n// regularly employing fewer than ten, managerial staff, field personnel and task or contract workers; a kasambahay has ANNUAL_LEAVE_DOMESTIC.\nconst contract = ctx.subject.employment;\nif (get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) === true) return 0;\nif (['MANAGERIAL', 'FIELD_PERSONNEL', 'TASK_BASIS', 'DOMESTIC'].includes(get(contract, 'terms.statutory_work_category', ''))) return 0;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from', ctx.as_of));\nreturn calendar_completed_months(started, ctx.as_of) >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;"
+		},
+		"subtotal_id": "21f1581f-c665-54aa-9ed8-49423b0bc0d8",
+		"references": [
+			{
+				"title": "Labor Code, article 95, and DOLE Handbook on Workers' Statutory Monetary Benefits 2024, chapter 7 C-D: five paid days of service incentive leave per year after one year of service, accrued pro rata at five-twelfths of a day per completed month; unused days may be carried and commuted on separation at the then-current daily rate. Supreme Court, Rodriguez v. Park N Ride, G.R. No. 222980, 20 March 2017. Managerial employees, field personnel, task-basis workers and establishments regularly employing fewer than ten are excluded.",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
+			},
+			{
+				"title": "Labor Code art.95(b); Omnibus Rules Book III Rule V s.1; DOLE Handbook 2024 ch.7 §B",
+				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf",
+				"quote": "Read 2026-11-13. Service incentive leave excludes establishments \"regularly employing less than ten (10) employees\", managerial employees, field personnel and those engaged on task or contract basis, and kasambahays (covered by RA 10361 s.29)."
+			},
+			{
+				"title": "Revenue Regulations 29-2025 s.1, amending RR 2-98 s.2.78.1(A)(3)(a)",
+				"url": "https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025.pdf",
+				"locator": "s.1(a); s.3 effectivity (in force 6 January 2026)",
+				"quote": "Read 2026-11-13. \"Monetized unused vacation leave credits of private employees not exceeding twelve (12) days during the year\"."
+			}
+		],
+		"id": "fdf75737-76d5-518c-af33-e59d6bcf3722",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Service incentive leave: five paid days a year once a year of service is complete, carried over while unused, and paid out at the daily rate. None in an establishment regularly employing fewer than ten, nor for managerial staff, field personnel or task-basis workers (Labor Code art.95). A cash-out is tax-free up to 12 days a year.",
+		"payout": "// Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commuted to its money equivalent at the daily rate.\nreturn ctx.day_rate * ctx.entry.quantity;"
+	},
+	{
+		"code": "COMPASSIONATE_LEAVE",
+		"references": [
+			{
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. An employer that pays it sets this row's `paid_share` in its own Settings (empty is a full paid day)."
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"id": "6b7cda7f-20cd-5c7f-9416-818a75c6d3c9",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Compassionate leave an employer may grant, for example on a death in the family. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
+		"paid_share": "0"
+	},
+	{
+		"code": "MATERNITY_LEAVE",
+		"lookup": {
+			"grant_days": 105,
+			"solo_parent_days": 120,
+			"termination_days": 60,
+			"allocation_days": 7,
+			"window": "EVENT",
+			"opened_by": {
+				"CHILD_BIRTH": {},
+				"PREGNANCY_TERMINATION": {}
+			},
+			"entitlement": "// RA 11210 s.3: 105 days on a live birth, 15 more for a qualified solo parent, 60 on a miscarriage or emergency termination, at every instance.\n// s.6 and IRR Rule VIII: of a live birth's leave she may allocate up to seven days, and keeps the rest.\nif (ctx.event.kind === 'PREGNANCY_TERMINATION') return ctx.lookup.termination_days;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst full = get(facts, 'solo_parent', false) === true ? ctx.lookup.solo_parent_days : ctx.lookup.grant_days;\nconst birth = get(ctx.subject.employment, 'events', []).find((event) => event.kind === ctx.event.kind && event.on === ctx.event.on);\nreturn full - Math.min(Number(get(birth, 'allocated_days', 0)), ctx.lookup.allocation_days);"
+		},
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"references": [
+			{
+				"title": "Republic Act No. 11210, sections 3 and 5, and Republic Act No. 11861, sections 15 and 20: a pregnant female employee is entitled to 105 days for a live birth, 120 days when a qualified solo parent, and 60 days for miscarriage or emergency termination; up to seven days may be allocated to the child's father or an alternate caregiver. Payment is the SSS daily maternity benefit plus the employer's salary differential under section 5, not salary, so the leave itself is unpaid.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			},
+			{
+				"title": "Implementing Rules and Regulations of Republic Act No. 11210, Rule II: a miscarriage is a pregnancy loss before the 20th week of gestation, an emergency termination one on or after it, including stillbirth. Rule VIII: the option to allocate does not apply to either; the mother is paid for the period not allocated; the allocated days are over and above Republic Act No. 8187.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/irr_11210_2019.html"
+			}
+		],
+		"id": "d6e938c2-50f6-5592-bd57-b7b12a2792b1",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Maternity leave: 105 days for a live birth, 120 for a solo parent and 60 for a miscarriage or emergency termination (RA 11210 s.3). Salary is not paid for the days; the SSS maternity benefit and any salary differential are entered separately.",
+		"paid_share": "0"
+	},
+	{
+		"code": "HOSPITALIZATION_LEAVE",
+		"references": [
+			{
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. An employer that pays it sets this row's `paid_share` in its own Settings (empty is a full paid day)."
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"id": "bd23f88d-0c0e-5081-be8b-78e2b4751c38",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Leave for a stay in hospital that an employer may grant. No statute grants it, so by default the days are unpaid; an employer that pays it changes the paid share of this leave in its own settings.",
+		"paid_share": "0"
+	},
+	{
+		"code": "SOLO_PARENT_LEAVE",
+		"lookup": {
+			"grant_days": 7,
+			"service_months": 6,
+			"window": "CALENDAR_YEAR",
+			"entitlement": "// RA 8972 s.8 as amended by RA 11861: seven paid days a year after six months of service, for a solo parent holding a valid ID.\nconst contract = ctx.subject.employment;\nif (get(contract, 'employee_extension_data.solo_parent', false) !== true) return 0;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from', ctx.as_of));\nreturn calendar_completed_months(started, ctx.as_of) >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;"
+		},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Republic Act No. 8972 (Solo Parents' Welfare Act), section 8, as amended by Republic Act No. 11861 (Expanded Solo Parents Welfare Act): seven paid days per calendar year after six months of service, non-cumulative and not convertible to cash, on presentation of a Solo Parent Identification Card.",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/95472"
+			}
+		],
+		"id": "cf0a4622-5bed-5278-9d08-ee991768e526",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Seven paid days in each calendar year for a solo parent with at least six months of service. Unused days do not carry over and are not paid out (RA 8972 s.8 as amended by RA 11861)."
+	},
+	{
+		"code": "NPL",
+		"references": [
+			{
+				"title": "DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.2; Omnibus Rules Book III Rule IV s.2: no work, no pay."
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "796cf8e2-791d-432d-965a-a7cb9d88871c",
+		"id": "59ff4fe3-c2f1-5284-a541-ba4c3236a32c",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Leave without pay: no work, no pay. Each day taken reduces the period's basic pay by one day's pay.",
+		"paid_share": "0"
+	},
+	{
+		"code": "ANNUAL_LEAVE_DOMESTIC",
+		"lookup": {
+			"grant_days": 5,
+			"service_months": 12,
+			"window": "SERVICE_YEAR"
+		},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Republic Act No. 10361 (Batas Kasambahay), section 29: a domestic worker with one year of service is entitled to five paid days of service incentive leave; unused days are not cumulative, not carried over and not convertible to cash."
+			}
+		],
+		"id": "8feba631-bfb4-52f1-97d5-c2a9f8a3abc2",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Service incentive leave for a domestic worker: five paid days a year after one year of service. Unused days do not carry over and are not paid out (RA 10361 s.29)."
+	},
+	{
+		"code": "MATERNITY_LEAVE_EXTENSION",
+		"lookup": {
+			"grant_days": 30,
+			"window": "EVENT",
+			"opened_by": {
+				"BIRTH_EXTENSION": {}
+			}
+		},
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"references": [
+			{
+				"title": "Republic Act No. 11210, section 3: after the 105-day maternity leave the mother may extend her leave by up to 30 days without pay, on notice given at least 45 days before the leave ends.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			}
+		],
+		"id": "29e58329-e54c-58d8-9098-90accad4c966",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Up to 30 more days of maternity leave without pay after the 105 days, on notice given at least 45 days before the leave ends (RA 11210 s.3).",
+		"paid_share": "0"
+	},
+	{
+		"code": "MATERNITY_ALLOCATION_LEAVE",
+		"lookup": {
+			"grant_days": 7,
+			"window": "EVENT",
+			"opened_by": {
+				"MATERNITY_ALLOCATION": {}
+			},
+			"entitlement": "// RA 11210 s.6 and IRR Rule VIII s.1: the days the mother allocates, up to seven, over and above paternity leave under RA 8187.\nconst allocation = get(ctx.subject.employment, 'events', []).find(\n\t(event) => event.kind === ctx.event.kind && event.on === ctx.event.on\n);\nreturn Math.min(Number(get(allocation, 'allocated_days', ctx.lookup.grant_days)), ctx.lookup.grant_days);"
+		},
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Republic Act No. 11210, section 6: on written notice to both employers, the mother may allocate up to seven days of her maternity leave to the child's father or, if he is absent, deceased or incapacitated, to an alternate caregiver, over and above the father's paternity leave. This leave holds the allocated days of the father, married or not, and of the alternate caregiver.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			}
+		],
+		"id": "6bd69c60-8448-5728-a0c8-de9c6aa0b847",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"description": "Up to seven days of the mother's maternity leave that she allocates to the child's father or another caregiver, on top of paternity leave (RA 11210 s.6)."
+	}
+]
