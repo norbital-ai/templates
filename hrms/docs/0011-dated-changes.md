@@ -77,6 +77,7 @@ Every value payroll reads is one of three kinds.
 
 - **One fold, used three times.** `inForce(rows, day)` applies the change rows dated on or before `day`, oldest first, and remembers which row set each field. Person, company and law use the same function.
 - **A run folds once, at admit.** One law document for its pay date, one company state per company, one state per person. An amended earlier period folds for its own pay date in the same single further request it makes today.
+- **Formulas read what they read now.** The fold builds `ctx.subject.employment`, `ctx.subject.employer` and the law's rows in the shape the seeded expressions already use (`terms`, `family`, `payroll`, the statutory parameters, the first and last day), so no formula in the law is rewritten for this change. Renaming a context root is its own change.
 - **No stored checkpoint.** The folded state is derived and never written. A chain is a dozen rows at most.
 - **Forward only.** The base is the oldest row and patches run forward, so a correction to the base reaches every later day unless a later row set the same field. A reverse chain could not do that.
 - **Agreed terms and the signed date.** A `contract_terms` row signed after a period's pay date does not apply to that period. What it adds for earlier periods is back pay of the signing month, on the row the law names in `conversions.back_pay`. A law that names none applies the row from its date. Statutory parameters apply from their date; they have no signed date. This is today's rule; the row is now the raise itself.
@@ -92,7 +93,9 @@ Every value payroll reads is one of three kinds.
 - **Every write to a pay input writes its amendment rows in the same write.** The reach of a change row is from its date (the earlier of old and new, when it moves) to the next row that sets the same field, and only for fields payroll reads. So a corrected job title amends nothing, a corrected raise amends the months it governs, and a corrected plain field amends every paid period of its owner. One helper, the one in `src/lib/amendments.ts`.
 - **A person held by an unpaid run does not move.** Unchanged.
 - **The ledger syncs when an entitlement may have changed:** a change row written, in force today; or, for one dated ahead, on its day. This replaces the sync on seal and the three materialise schedules with one.
-- **Deleting.** A change row may be deleted; its reach is amended. A stint with a payslip is never deleted (open decision 2).
+- **Deleting.** A change row may be deleted; its reach is amended. A stint with a payslip is never deleted (decision 2).
+
+What HR no longer has to know: what a draft is and when to seal it; that a sealed record cannot be touched; how to void one and why it needs a reason; that a change for next month is filed as a different kind of record; that a version must be ended before its replacement can start; which version an entry was keyed against.
 
 What HR does about a mistake:
 
@@ -178,10 +181,10 @@ Source, then seed, then tests, per the refactor loop.
 5. Delete the change models, the materialise automations and the seal machinery. Rewrite the suites that name seal states (26 of 75 files).
 6. Docs: section 0 by the owner's words, then the model, seed and transfer documents.
 
-## 12. Open decisions
+## 12. Decisions
 
 1. **Sparse typed rows: settled.** A person's and a company's change row keeps typed optional fields, so the row's own form, filters and write checks stay Bolt's, and names what it takes away in `clears` (section 2). The alternative, an untyped patch like the law's, would need a hand-built editor for every field.
-2. **A stint that was wholly a mistake and has been paid.** With no void, proposed: HR deletes its change rows and sets its last day to its first; the next runs take back what was paid; the stint stays for its payslips.
+2. **A stint that was wholly a mistake and has been paid: settled.** HR deletes its change rows and sets its last day to the day before its first; it then covers no day, the next runs take back what was paid, and the stint stays for its payslips. A stint with no payslip is simply deleted.
 3. **How far "by code" goes: settled.** The law and everything inside it (catalogue rows, subtotals, rules, effects) is one stored document, so nothing in it has an id and every reference into it is a code. Records that are rows of their own (person, stint, company, pay group, shift, run, payslip) keep Bolt's references to each other.
-4. **Plain or dated, field by field.** Bank and nationality are listed as plain and dated respectively from how they move in practice; the owner settles the list.
-5. **Research.** Whether a finding still proposes several patches at several dates under one confirmation, as `statutory_change` rows do now.
+4. **Plain or dated, field by field: settled by one test.** A field is dated if it can truly change while the person is employed and a formula or the salary listing reads it: residency, marital status, nationality, work pass, scheme registrations and elections, and every agreed term. A field is plain if a different value can only mean the old one was wrong: date of birth, identity number, gender. Bank is plain: it decides where pay goes, not how much, so a change amends nothing.
+5. **Research: settled.** A finding may still carry several patches at several dates; each is its own `jurisdiction_change` row naming the finding, and confirming the finding puts them all in force, each from its date.
