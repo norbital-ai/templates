@@ -1,5 +1,13 @@
 import { policy } from '@norbital-ai/bolt';
-import { lineDeletes, memberOf, ordersIn, ownSales, reviewOrders } from '../../lib/order-review.js';
+import {
+	commercialReview,
+	draftOrders,
+	lineDeletes,
+	memberOf,
+	ordersIn,
+	ownSales,
+	reviewOrders
+} from '../../lib/order-review.js';
 const own = {
 	order: { is: { direction: { eq: 'sales' }, owner: { eq: { var: 'requestor.id' } } } }
 } as const;
@@ -49,9 +57,14 @@ export default policy({
 		commission_rules: {
 			outputs: { default: {} }
 		},
+		// a new contact at a customer or supplier waits for a commercial manager
 		contacts: {
 			outputs: { default: {} },
-			create: {},
+			create: {
+				verdict: function* (_changes, ctx) {
+					return ctx.approve(commercialReview);
+				}
+			},
 			update: {}
 		},
 		orders: {
@@ -79,6 +92,18 @@ export default policy({
 					return yield* reviewOrders(changes, ctx, ownSales(ctx), 'errors.sales_scope');
 				},
 				moves: 'all'
+			},
+			// an own draft is deleted once a commercial manager agrees
+			delete: {
+				verdict: function* (changes, ctx) {
+					const befores = changes.map(({ before }) => before);
+					const away = befores.findIndex((order) => !ownSales(ctx)(order));
+					if (away >= 0) return yield* ctx.refuse('errors.sales_scope', { row: away });
+					const sealed = draftOrders(befores);
+					return sealed >= 0
+						? yield* ctx.refuse('errors.order_sealed', { row: sealed })
+						: ctx.approve(commercialReview);
+				}
 			}
 		},
 		order_lines: {

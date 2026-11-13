@@ -60,10 +60,20 @@ export const reviewOrders = Effect.fnUntraced(function* (
 	);
 	const refused = changes.findIndex(({ set }, i) => sealed[i] && !changed(set).includes('status'));
 	if (refused >= 0) return yield* ctx.refuse('errors.order_sealed', { row: refused });
-	return managerApproval && sealed.some(Boolean)
-		? ctx.approve({ steps: [{ name: 'Commercial review', teams: ['commercial_managers'] }] })
-		: ctx.allow();
+	return managerApproval && sealed.some(Boolean) ? ctx.approve(commercialReview) : ctx.allow();
 });
+/** The commercial manager's review of a sales rep's write. */
+export const commercialReview = {
+	steps: [{ name: 'Commercial review', teams: ['commercial_managers'] }]
+} as const;
+/** Only an unarchived draft order that no contract version has sealed is deleted. */
+export const draftOrders = (
+	orders: readonly Pick<Row<'orders'>, 'status' | 'archived' | 'contract_versions'>[]
+) =>
+	orders.findIndex(
+		(order) =>
+			order.status !== 'draft' || order.archived || (order.contract_versions?.length ?? 0) > 0
+	);
 /**
  * Lines leave only a draft order that no confirmation or ledger order has fixed; while a replacement contract is set
  * up, only a line its current agreement does not carry. Every policy granting a line delete runs it (one batch read).

@@ -1254,6 +1254,8 @@ export default model({
 			);
 		}
 	},
+	// an own draft's delete is judged by its holders' policies; its lines go with it
+	delete: {},
 	syncs: {
 		// The line workbook: one row per line, matched by order number and the stable line key.
 		lines: {

@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-import { lineDeletes } from '../../lib/order-review.js';
+import { draftOrders, lineDeletes } from '../../lib/order-review.js';
 export default policy({
 	description: 'Commercial manager with both sales and purchasing access.',
 	capabilities: { apps: ['operations'], automations: ['orders_revise'] },
@@ -54,7 +54,15 @@ export default policy({
 		orders: {
 			outputs: { default: { history: true } },
 			create: {},
-			update: { moves: 'all' }
+			update: { moves: 'all' },
+			delete: {
+				verdict: function* (changes, ctx) {
+					const sealed = draftOrders(changes.map(({ before }) => before));
+					return sealed >= 0
+						? yield* ctx.refuse('errors.order_sealed', { row: sealed })
+						: ctx.allow();
+				}
+			}
 		},
 		order_lines: {
 			outputs: { default: { history: true } },
