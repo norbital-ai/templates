@@ -8,7 +8,8 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { accountsOf, eventsOf, leftOn, unlimited } from '../../ledger/core.js';
 	import { isJsonObject, jsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
-	import { chainOf, startsOf } from '../../payroll_engine/contract_change.js';
+	import { inForce } from '../../dated.js';
+	import { chainOf, startsOf, termsChange } from '../../person.js';
 	import { pageLaws } from '../law.svelte.js';
 	import { PAID_NOTE, paidPeriods } from '../payroll/paid_period.svelte.js';
 
@@ -24,7 +25,7 @@
 	}: {
 		ctx: PageContext;
 		entityId: Id<'entity'>;
-		employmentId?: Id<'employee_contract'> | null;
+		employmentId?: Id<'employment'> | null;
 		/** A filed entry: its half-days change in place. One a run paid may go too: the next run carries the difference. */
 		entry?: Id<'leave_catalog_entry'> | null;
 		catalogCode?: string | null;
@@ -44,7 +45,7 @@
 	const clock = ctx.clock('day');
 	const today = $derived(clock.today);
 	let at = $state(DateTime.startOf(DateTime.makeUnsafe(clock.today), 'month'));
-	let chosen = $state<Id<'employee_contract'> | null>(initialEmployment ?? null);
+	let chosen = $state<Id<'employment'> | null>(initialEmployment ?? null);
 	let catalog = $state<string | null>(catalogCode ?? null);
 	let sessions = $state<{ date: string; part: 'AM' | 'PM' }[]>([]);
 	let saving = $state(false);
@@ -85,32 +86,33 @@
 		}
 	);
 
-	const contracts = $derived(
+	const employments = $derived(
 		ctx.query({
-			employee_contract: {
-				where: { entity_id: { eq: entityId }, status: { eq: 'SEALED' } },
+			employment: {
+				where: { entity_id: { eq: entityId } },
 				fields: [
 					'employee_number',
 					'employee_id',
 					'entity_id',
 					'effective_range',
 					'service_started_on',
-					'employee_extension_data',
-					'events',
-					'family',
-					'terms'
+					'events'
 				],
 				order_by: { employee_number: 'asc' },
 				limit: 10000,
-				employee_id: { fields: ['name', 'cumulative_service'] },
-				entity_id: { fields: ['settings_code'] }
+				employee_id: {
+					fields: ['name', 'cumulative_service'],
+					dependants: { fields: ['relation', 'born_on'], limit: 1000 }
+				},
+				entity_id: { fields: ['settings_code'] },
+				terms: { fields: ['effective_from', 'normal_hours_per_day', 'clears'], limit: 10000 }
 			}
 		})
 	);
 	const contract = $derived(
-		(contracts.current?.employee_contract.rows ?? []).find((row) => row.id === chosen) ?? null
+		(employments.current?.employment.rows ?? []).find((row) => row.id === chosen) ?? null
 	);
-	// leave is taken under the law in force today, of the contract's entity
+	// leave is taken under the law in force today, of the stint's company
 	const code = $derived(contract?.entity_id?.settings_code);
 	const laws = pageLaws(ctx, () => (code === undefined ? [] : [code]));
 	const law = $derived(laws.on(code, String(today)));
@@ -119,9 +121,9 @@
 		contract?.employee_id == null
 			? null
 			: ctx.query({
-					employee_contract: {
-						where: { employee_id: { eq: contract.employee_id.id }, status: { eq: 'SEALED' } },
-						fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
+					employment: {
+						where: { employee_id: { eq: contract.employee_id.id } },
+						fields: ['employee_id', 'effective_range', 'entity_id', 'service_started_on'],
 						limit: 1000,
 						entity_id: { fields: ['settings_code'] }
 					}
@@ -143,9 +145,7 @@
 	);
 	const subject = $derived.by(() => {
 		if (contract === null || law === undefined) return null;
-		const { chain, lineage } = chainOf(
-			(stints?.current?.employee_contract.rows ?? []).map(jsonObject)
-		);
+		const { chain, lineage } = chainOf((stints?.current?.employment.rows ?? []).map(jsonObject));
 		const own = chain.find((row) => row.id === contract.id);
 		return own === undefined
 			? null
@@ -153,7 +153,12 @@
 					scope: law.code,
 					started: startsOf(own, chain, lineage, contract.employee_id?.cumulative_service === true)
 						.service_started_on,
-					events: eventsOf(jsonObject(contract))
+					events: eventsOf(
+						jsonObject({
+							events: contract.events ?? [],
+							family: contract.employee_id?.dependants ?? []
+						})
+					)
 				};
 	});
 	const recordDays = $derived(
@@ -167,8 +172,10 @@
 		const counted = jsonObject(catalogRows.find((item) => item.code === code)?.lookup ?? lookup);
 		const left =
 			subject === null ? 0 : leftOn(leaveAccount, 'leave', code, counted, subject, String(today));
-		// a row that counts in hours offers them as days of the contract's normal day
-		const dayHours = counted.unit === 'HOUR' ? (contract?.terms.normal_hours_per_day ?? 0) : 0;
+		// a row that counts in hours offers them as days of the agreed normal day
+		const agreed = inForce((contract?.terms ?? []).map(jsonObject).map(termsChange), String(today))
+			.state.normal_hours_per_day;
+		const dayHours = counted.unit === 'HOUR' && typeof agreed === 'number' ? agreed : 0;
 		return (
 			(dayHours > 0 ? left / dayHours : left) +
 			(entry != null && catalogCode === row.code ? recordDays : 0)
@@ -250,9 +257,9 @@
 	);
 	const weekend = (date: string) =>
 		[0, 6].includes(DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay);
-	// an entry's days may run across the person's contract versions: any stint answers for its dates
+	// an entry's days may run across the person's stints: any of them answers for its dates
 	const employed = (date: string) =>
-		(stints?.current?.employee_contract.rows ?? []).some(
+		(stints?.current?.employment.rows ?? []).some(
 			({ effective_range: range }) =>
 				String(range.from) <= date && (range.to == null || date <= String(range.to))
 		);
@@ -396,8 +403,8 @@
 				<span class="text-xs font-medium text-muted-foreground">Employment</span>
 				<Picker
 					{ctx}
-					of="employee_contract"
-					where={{ entity_id: { eq: entityId }, status: { eq: 'SEALED' } }}
+					of="employment"
+					where={{ entity_id: { eq: entityId } }}
 					value={chosen}
 					disabled={fixedEmployment}
 					on_change={(value) => {

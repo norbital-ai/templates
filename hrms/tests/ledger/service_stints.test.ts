@@ -9,8 +9,8 @@ import {
 	type LeavePerson,
 	type LeaveRow
 } from '../../src/lib/ledger/entitlement.ts';
-import { startsOf } from '../../src/lib/payroll_engine/contract_change.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { startsOf } from '../../src/lib/person.ts';
 import { accountsIn, lawAt, pack, seedLaw, storedQuery, syncAll, uuid, workspace } from '../kit.ts';
 
 const annual = (code: string): LeaveRow => {
@@ -37,10 +37,9 @@ const joiner = (started: string): LeavePerson => ({
 });
 
 describe('service runs from the current stint, or every stint', () => {
-	const contract = (id: string, entity: string, from: string, to: string | null) => ({
+	const stint = (id: string, entity: string, from: string, to: string | null) => ({
 		id,
 		employee_id: 'person',
-		status: 'SEALED',
 		entity_id: entity,
 		effective_range: { from, to }
 	});
@@ -49,15 +48,15 @@ describe('service runs from the current stint, or every stint', () => {
 		['my-2', 'MY'],
 		['sg-1', 'SG']
 	]);
-	const first = contract('a', 'my-1', '2017-08-03', '2025-06-29');
-	const rehired = contract('b', 'my-1', '2025-07-04', '2026-01-31');
-	const promoted = contract('c', 'my-2', '2026-02-01', null);
+	const first = stint('a', 'my-1', '2017-08-03', '2025-06-29');
+	const rehired = stint('b', 'my-1', '2025-07-04', '2026-01-31');
+	const promoted = stint('c', 'my-2', '2026-02-01', null);
 	const chain = [first, rehired, promoted];
 	const served = (
-		contract: Parameters<typeof startsOf>[0],
+		held: Parameters<typeof startsOf>[0],
 		stints: Parameters<typeof startsOf>[1] = chain,
 		cumulative = true
-	) => startsOf(contract, stints, lineage, cumulative).service_started_on;
+	) => startsOf(held, stints, lineage, cumulative).service_started_on;
 
 	it('a rehire takes back the service before the gap only where every stint counts', () => {
 		assert.equal(served(promoted), '2017-08-07');
@@ -69,10 +68,10 @@ describe('service runs from the current stint, or every stint', () => {
 		assert.equal(served(first, chain, false), '2017-08-03');
 	});
 
-	it('another jurisdiction, a void stint and a later credit do not move it; an earlier credit does', () => {
+	it('another jurisdiction, a stint that is gone and a later credit do not move it; an earlier credit does', () => {
 		const abroad = { ...first, entity_id: 'sg-1' };
 		assert.equal(served(promoted, [abroad, rehired, promoted]), '2025-07-04');
-		assert.equal(served(promoted, [{ ...first, status: 'VOID' }, rehired, promoted]), '2025-07-04');
+		assert.equal(served(promoted, [rehired, promoted]), '2025-07-04');
 		assert.equal(served({ ...promoted, service_started_on: '2025-07-04' }), '2017-08-07');
 		assert.equal(served({ ...promoted, service_started_on: '2015-01-01' }), '2015-01-01');
 		assert.equal(
@@ -114,8 +113,8 @@ describe('service runs from the current stint, or every stint', () => {
 			[],
 			[]
 		);
-		// each stint records its own start, as replacements once copied it: no credit reaches back past the gap
-		const stints = (base.employee_contract ?? []).flatMap((held) => [
+		// each stint records its own start, and holds the rows of its own first day: no credit reaches back past the gap
+		const employment = (base.employment ?? []).flatMap((held) => [
 			{
 				...held,
 				id: uuid(60),
@@ -128,12 +127,23 @@ describe('service runs from the current stint, or every stint', () => {
 				effective_range: { from: '2025-07-04', to: null }
 			}
 		]);
+		const dated = (model: 'contract_terms' | 'statutory_parameters', id: string) =>
+			(base[model] ?? []).flatMap((row) => [
+				{ ...row, id, employment_id: uuid(60), effective_from: '2017-08-03' },
+				{ ...row, effective_from: '2025-07-04' }
+			]);
 		const profiles = (base.employee_profile ?? []).map((row) => ({
 			...row,
 			cumulative_service: cumulative
 		}));
 		return workspace({
-			seed: { ...base, employee_profile: profiles, employee_contract: stints },
+			seed: {
+				...base,
+				employee_profile: profiles,
+				employment,
+				contract_terms: dated('contract_terms', uuid(61)),
+				statutory_parameters: dated('statutory_parameters', uuid(62))
+			},
 			now: '2026-11-06T02:00:00.000Z'
 		});
 	};

@@ -1,5 +1,5 @@
 // The share of a period a salary pays: by calendar days, the person's working days or a day rate, with the rate rounded
-// before or after it multiplies; a leaver's days employed; and a contract version starting inside the period. The
+// before or after it multiplies; a leaver's days employed; and a new stint starting inside the period. The
 // law is the Malaysian fixture's, varied per test; every expected figure is worked from the test's own inputs.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
@@ -8,7 +8,7 @@ import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { calculatePayroll, type PayrollInput } from '../../src/lib/payroll_engine/engine.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { ownLines, run } from '../amendment_kit.ts';
 import {
 	ENTITY,
@@ -279,9 +279,17 @@ describe('a leaver on a shift pattern', () => {
 				}
 			}
 		],
-		employee_contract: (base.employee_contract ?? []).map((row) => ({
+		employment: (base.employment ?? []).map((row) => ({
 			...row,
 			effective_range: { from: '2026-01-01', to: '2026-06-12' }
+		})),
+		contract_terms: (base.contract_terms ?? []).map((row) => ({
+			...row,
+			effective_from: '2026-01-01'
+		})),
+		statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
+			...row,
+			effective_from: '2026-01-01'
 		}))
 	};
 
@@ -305,7 +313,7 @@ describe('a leaver on a shift pattern', () => {
 	);
 });
 
-describe('a contract version that starts inside the period', () => {
+describe('a stint that starts inside the period', () => {
 	const terms = (amount: number) => ({
 		rate: { amount, unit: 'MONTHLY' },
 		statutory_work_category: 'MANUAL_LABOUR',
@@ -314,7 +322,7 @@ describe('a contract version that starts inside the period', () => {
 		wage_payment_method: 'BANK',
 		allowances: {}
 	});
-	/** One person paid 3,000 to 15 February and 3,600 from the 16th, with two overtime hours on one day if named. */
+	/** One person paid 3,000 to 15 February and, in a new stint, 3,600 from the 16th; two overtime hours on a day if named. */
 	const raised = (overtimeOn?: string) => {
 		const seed = pack(
 			'MY',
@@ -325,19 +333,27 @@ describe('a contract version that starts inside the period', () => {
 			overtimeOn === undefined ? [] : [{ date: overtimeOn, shift: WORK, hours: 10, overtime: 2 }],
 			[]
 		);
-		const [first] = seed.employee_contract ?? [];
-		assert.ok(first !== undefined);
+		const next = { from: '2026-02-16', to: null };
 		return {
 			...seed,
-			employee_contract: [
-				{ ...first, effective_range: { from: '2025-01-01', to: '2026-02-15' } },
+			employment: (seed.employment ?? []).flatMap((row) => [
+				{ ...row, effective_range: { from: '2025-01-01', to: '2026-02-15' } },
+				{ ...row, id: uuid(60), effective_range: next }
+			]),
+			contract_terms: (seed.contract_terms ?? []).flatMap((row) => [
+				row,
 				{
-					...first,
-					id: uuid(60),
-					effective_range: { from: '2026-02-16', to: null },
-					terms: { ...objectValue(first.terms), ...terms(3600) }
+					...row,
+					id: uuid(61),
+					employment_id: uuid(60),
+					effective_from: next.from,
+					rate: { amount: 3600, unit: 'MONTHLY' }
 				}
-			]
+			]),
+			statutory_parameters: (seed.statutory_parameters ?? []).flatMap((row) => [
+				row,
+				{ ...row, id: uuid(62), employment_id: uuid(60), effective_from: next.from }
+			])
 		};
 	};
 	const february = (overtimeOn?: string) =>
@@ -358,7 +374,7 @@ describe('a contract version that starts inside the period', () => {
 		})
 	);
 
-	it.live('prices a no-pay day by the version in force on its date', () => {
+	it.live('prices a no-pay day by the stint in force on its date', () => {
 		const noPayOn = (date: string, employment: string) =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -366,7 +382,7 @@ describe('a contract version that starts inside the period', () => {
 					'leave_catalog_entry.create': [
 						leaveCreate({
 							entity_id: ENTITY,
-							employment_id: idOf('employee_contract', employment),
+							employment_id: idOf('employment', employment),
 							catalog_code: 'NPL',
 							days: [
 								{ date, part: 'AM' },
@@ -390,7 +406,7 @@ describe('a contract version that starts inside the period', () => {
 		});
 	});
 
-	it.live('prices overtime by the version it was worked under', () =>
+	it.live('prices overtime by the stint it was worked under', () =>
 		Effect.gen(function* () {
 			const before = yield* february('2026-02-10');
 			const after = yield* february('2026-02-18');

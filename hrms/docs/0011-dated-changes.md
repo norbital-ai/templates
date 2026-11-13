@@ -1,6 +1,6 @@
 # RFC 0011: Dated changes, edited in place
 
-**Status: accepted by the owner on 2026-11-13, on the condition that it simplifies the codebase and the experience of HR. Being built in the order of section 11: the fold, the law and the company have landed (steps 1 to 3); the person has not.** [Section 0 of the architecture](0001-hrms-calculation-architecture.md#0-the-design-is-fixed) describes the source tree as it stands, so its text on contract versions holds until steps 4 and 5 land. Section 9 lists the section 0 text each step replaces.
+**Status: accepted by the owner on 2026-11-13, on the condition that it simplifies the codebase and the experience of HR. Being built in the order of section 11: built: the fold, the law, the company and the person (steps 1 to 5).** [Section 0 of the architecture](0001-hrms-calculation-architecture.md#0-the-design-is-fixed) carries the wording section 9 lists.
 
 ## 1. Why
 
@@ -34,13 +34,13 @@ Every value payroll reads is one of three kinds.
 
 ### Person
 
-| Model                  | Kind       | Holds                                                                                                                                                                                                                             |
-| ---------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `employee_profile`     | Plain      | Name, contact, documents, login, face enrolment, `cumulative_service`, and the person's fixed particulars: date of birth, identity number, gender, bank                                                                           |
-| `employment`           | Plain      | One stint with one company: `employee_id`, `entity_id`, employee number, engagement, first day, last day, `service_started_on`, and the exit answers (`exit_ground`, `encash_leave`, `final_pay_due_on`, `reason`)                |
-| `contract_terms`       | Dated      | `employment_id`, `effective_from`, `signed_on`, and any of the agreed terms: rate, normal hours and days, allowances, shift pattern, pay group, job title, department, work category, work region and the rest of today's `terms` |
-| `statutory_parameters` | Dated      | `employment_id`, `effective_from`, and any of what the law's formulas read of the person: residency, marital status, nationality, `statutory.<SCHEME>` and the other fields the jurisdiction's extension schema declares          |
-| `dependant`            | Self-dated | `employee_id`, relation, name, `born_on` or `expected_on`, `has_income`, `disabled`, `studying`, allocations                                                                                                                      |
+| Model                  | Kind       | Holds                                                                                                                                                                                                                                         |
+| ---------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `employee_profile`     | Plain      | Name, contact, documents, login, face enrolment, `cumulative_service`, and the person's fixed particulars: date of birth, identity number, gender, bank                                                                                       |
+| `employment`           | Plain      | One stint with one company: `employee_id`, `entity_id`, employee number, first day, last day, `service_started_on`, and the exit answers (`exit_ground`, `encash_leave`, `final_pay_due_on`, `reason`)                                        |
+| `contract_terms`       | Dated      | `employment_id`, `effective_from`, `signed_on`, and any of the agreed terms: engagement, rate, normal hours and days, allowances, shift pattern, pay group, job title, department, work category, work region and the rest of today's `terms` |
+| `statutory_parameters` | Dated      | `employment_id`, `effective_from`, and any of what the law's formulas read of the person: residency, marital status, nationality, `statutory.<SCHEME>` and the other fields the jurisdiction's extension schema declares                      |
+| `dependant`            | Self-dated | `employee_id`, relation, name, `born_on` or `expected_on`, `has_income`, `disabled`, `studying`, allocations                                                                                                                                  |
 
 - Every entry, payslip, obligation and ledger source that names `employment_id` names the stint. Today it names whichever sealed version was current when the row was written.
 - A rehire, and a move to another company, is a new stint. Stints of one person do not overlap; that one constraint stays.
@@ -186,7 +186,7 @@ Source, then seed, then tests, per the refactor loop.
 ## 12. Decisions
 
 1. **Sparse typed rows: settled.** A person's and a company's change row keeps typed optional fields, so the row's own form, filters and write checks stay Bolt's, and names what it takes away in `clears` (section 2). The alternative, an untyped patch like the law's, would need a hand-built editor for every field.
-2. **A stint that was wholly a mistake and has been paid: settled.** HR deletes its change rows and sets its last day to the day before its first; it then covers no day, the next runs take back what was paid, and the stint stays for its payslips. A stint with no payslip is simply deleted.
+2. **A stint that was wholly a mistake and has been paid: settled.** HR deletes its terms rows. With nothing agreed the stint pays nothing, the next runs take back what was paid, and the stint stays for its payslips. A stint with no payslip is simply deleted.
 3. **How far "by code" goes: settled.** The law and everything inside it (catalogue rows, subtotals, rules, effects) is one stored document, so nothing in it has an id and every reference into it is a code. Records that are rows of their own (person, stint, company, pay group, shift, run, payslip) keep Bolt's references to each other.
 4. **Plain or dated, field by field: settled by one test.** A field is dated if it can truly change while the person is employed and a formula or the salary listing reads it: residency, marital status, nationality, work pass, scheme registrations and elections, and every agreed term. A field is plain if a different value can only mean the old one was wrong: date of birth, identity number, gender. Bank is plain: it decides where pay goes, not how much, so a change amends nothing.
 5. **Research: settled.** A finding may still carry several patches at several dates; each is its own `jurisdiction_change` row naming the finding, and confirming the finding puts them all in force, each from its date.

@@ -1,20 +1,22 @@
-// A contract version signed after a period was paid changes nothing in that period: what it adds for it is back pay of
-// the period it was signed in, on the law's own back-pay row, priced by that period's schemes. A version that was
-// signed in time and only keyed late was due all along: its periods are worked out again. The fixture pack names its
-// back-pay row in `conversions.back_pay`; every figure is the test's own rates.
+// A change of terms signed after a period was paid changes nothing in that period: what it adds for it is back pay of
+// the period it was signed in, on the law's own back-pay row, priced by that period's schemes. One that was signed in
+// time and only keyed late was due all along: its periods are worked out again. A late-signed row corrected after its
+// signing month is paid (edited, moved or deleted) amends that month, and the back pay and its contributions follow.
+// The fixture pack names its back-pay row in `conversions.back_pay`; every figure is the test's own rates.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { DateTime, Effect } from 'effect';
+import { Effect } from 'effect';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, dates, ownLines, pay, run } from '../amendment_kit.ts';
 import {
+	EMPLOYMENT,
 	ENTITY,
 	WORK,
+	current,
 	lawAt,
 	leaveCreate,
 	pack,
-	uuid,
 	wholeDays,
 	workspace,
 	storedQuery
@@ -50,66 +52,47 @@ const seed = (): Seed =>
 /** The law's own back-pay row, as the fixture pack names it, and the contribution read beside it. */
 const BACK_PAY = `${String(objectValue(lawAt('MY', '2026-02-01').settings.conversions).back_pay)}/EMPLOYEE`;
 const CONTRIBUTION = 'EPF/EMPLOYEE';
-/** A new version from `from` at a new rate, made the way HR makes one, with the day it was signed. */
+const STINT = idOf('employment', EMPLOYMENT);
+/** A raise from `from`, keyed as HR keys one, with the day it was signed: one terms row. Answers its id. */
 const raised = (t: Kit, amount: number, signed: string, from = '2026-02-01') =>
 	Effect.gen(function* () {
-		const admin = yield* t.as(t.admin);
-		const { employee_contract } = yield* storedQuery(t, {
-			employee_contract: { where: { status: { eq: 'SEALED' } }, limit: 10 }
-		});
-		const held = employee_contract.rows
-			.toSorted((a, b) =>
-				String(a.effective_range.from).localeCompare(String(b.effective_range.from))
-			)
-			.at(-1);
-		assert.ok(held !== undefined);
-		yield* admin.act({
-			'employee_contract.create': [
+		yield* (yield* t.as(t.admin)).act({
+			'contract_terms.create': [
 				{
-					employee_id: held.employee_id,
-					entity_id: held.entity_id,
-					engagement: held.engagement,
-					employee_number: held.employee_number,
-					terms: {
-						...held.terms,
-						rate: { amount, unit: 'MONTHLY' },
-						signed_on: signed
-					},
-					payroll: held.payroll,
-					bank: held.bank,
-					employee_extension_data: held.employee_extension_data,
-					service_started_on: held.service_started_on,
-					effective_range: { from, to: null },
-					status: 'DRAFT',
-					reason: 'A raise'
+					employment_id: STINT,
+					effective_from: from,
+					signed_on: signed,
+					rate: { amount, unit: 'MONTHLY' }
 				}
 			]
 		});
-		const drafts = yield* storedQuery(t, {
-			employee_contract: { where: { status: { eq: 'DRAFT' } }, limit: 1 }
-		});
-		const [draft] = drafts.employee_contract.rows;
-		assert.ok(draft !== undefined);
-		if (held.effective_range.to === null)
-			yield* admin.act({
-				'employee_contract.update': [
-					{
-						target: held,
-						set: {
-							effective_range: {
-								from: held.effective_range.from,
-								to: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
-							}
-						}
-					}
-				]
-			});
-		yield* admin.act({
-			'employee_contract.update': [{ target: draft, set: { status: 'SEALED' } }]
-		});
 		yield* t.run_due();
-		return draft.id;
+		const { contract_terms } = yield* storedQuery(t, {
+			contract_terms: { where: { effective_from: { eq: from } }, limit: 1 }
+		});
+		const [made] = contract_terms.rows;
+		assert.ok(made !== undefined);
+		return made.id;
 	});
+/** The signing month, paid with the back pay a raise from February signed on 10 March owed; answers the raise. */
+const paidLate = (t: Kit) =>
+	Effect.gen(function* () {
+		yield* pay(t, '2026-02');
+		const raise = yield* raised(t, 9000, '2026-03-10');
+		yield* pay(t, '2026-03');
+		assert.equal((yield* ownLines(t, '2026-03'))[BACK_PAY], 9000 - 7500);
+		return raise;
+	});
+/** March is open to be worked out again. */
+const marchAmended = (t: Kit) =>
+	amendments(t).pipe(
+		Effect.map((rows) =>
+			assert.ok(
+				rows.some((row) => row.period === '2026-03' && row.payroll_run_id === null),
+				'the signing month is amended'
+			)
+		)
+	);
 
 describe('a raise from a month already paid', () => {
 	it.live(
@@ -152,34 +135,21 @@ describe('a raise from a month already paid', () => {
 	);
 
 	it.live(
-		'carried, then voided and replaced by a smaller one: the back pay and its contributions come back',
+		'carried, then edited to a smaller one: the back pay and its contributions come back',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* pay(t, '2026-02');
-				const first = yield* raised(t, 9000, '2026-03-10');
-				yield* pay(t, '2026-03');
-				const [sealed] = (yield* storedQuery(t, {
-					employee_contract: { where: { id: { eq: first } }, limit: 1 }
-				})).employee_contract.rows;
-				assert.ok(sealed !== undefined);
-				yield* t.as(t.admin).pipe(
-					Effect.andThen((caller) =>
-						caller.act({
-							'employee_contract.update': [
-								{ target: sealed, set: { status: 'VOID', reason: 'The wrong figure' } }
-							]
-						})
-					)
-				);
+				const raise = yield* paidLate(t);
+				yield* (yield* t.as(t.admin)).act({
+					'contract_terms.update': [
+						{
+							target: yield* current(t, 'contract_terms', raise),
+							set: { rate: { amount: 8000, unit: 'MONTHLY' } }
+						}
+					]
+				});
 				yield* t.run_due();
-				yield* raised(t, 8000, '2026-03-10');
-				assert.ok(
-					(yield* amendments(t)).some(
-						(row) => row.period === '2026-03' && row.payroll_run_id === null
-					),
-					'the signing month is amended'
-				);
+				yield* marchAmended(t);
 				yield* run(t, '2026-04');
 				const march = yield* carriedFor(t, '2026-04', '2026-03');
 				assert.equal(march['BASIC/EMPLOYEE'], -1000);
@@ -193,7 +163,58 @@ describe('a raise from a month already paid', () => {
 	);
 
 	it.live(
-		'two versions signed late, one after the other: each signing month pays its own back pay',
+		'carried, then moved to the month it was signed in: nothing is owed for February, and the back pay comes back',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const raise = yield* paidLate(t);
+				yield* (yield* t.as(t.admin)).act({
+					'contract_terms.update': [
+						{
+							target: yield* current(t, 'contract_terms', raise),
+							set: { effective_from: '2026-03-01' }
+						}
+					]
+				});
+				yield* t.run_due();
+				yield* marchAmended(t);
+				yield* run(t, '2026-04');
+				// March was signed by its own pay date: its salary stands, and it no longer answers for February
+				const march = yield* carriedFor(t, '2026-04', '2026-03');
+				assert.equal(march['BASIC/EMPLOYEE'], undefined);
+				assert.equal(march[BACK_PAY], -(9000 - 7500));
+				assert.ok(
+					(march[CONTRIBUTION] ?? 0) > 0,
+					'the contribution on the back pay taken back returns'
+				);
+				assert.deepEqual(yield* carriedFor(t, '2026-04', '2026-02'), {});
+				assert.equal((yield* ownLines(t, '2026-04'))['BASIC/EMPLOYEE'], 9000);
+			}).pipe(Effect.provide(workspace({ seed: seed(), now: '2026-04-20T02:00:00.000Z' })))
+	);
+
+	it.live(
+		'carried, then deleted: the raise and its back pay come back, with their contributions',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const raise = yield* paidLate(t);
+				yield* (yield* t.as(t.admin)).act({
+					'contract_terms.delete': [{ target: yield* current(t, 'contract_terms', raise) }]
+				});
+				yield* t.run_due();
+				yield* marchAmended(t);
+				yield* run(t, '2026-04');
+				const march = yield* carriedFor(t, '2026-04', '2026-03');
+				assert.equal(march['BASIC/EMPLOYEE'], -(9000 - 7500));
+				assert.equal(march[BACK_PAY], -(9000 - 7500));
+				assert.ok((march[CONTRIBUTION] ?? 0) > 0, 'the contribution on what is taken back returns');
+				assert.deepEqual(yield* carriedFor(t, '2026-04', '2026-02'), {});
+				assert.equal((yield* ownLines(t, '2026-04'))['BASIC/EMPLOYEE'], 7500);
+			}).pipe(Effect.provide(workspace({ seed: seed(), now: '2026-04-20T02:00:00.000Z' })))
+	);
+
+	it.live(
+		'two raises signed late, one after the other: each signing month pays its own back pay',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -219,7 +240,7 @@ describe('a raise from a month already paid', () => {
 				yield* pay(t, '2026-02');
 				yield* pay(t, '2026-03');
 				yield* raised(t, 9000, '2026-03-10');
-				// its facts reach both paid months, so both are worked out again; its terms reach only the one it was
+				// the row reaches both paid months, so both are worked out again; its terms apply only to the one it was
 				// signed for
 				assert.deepEqual((yield* amendments(t)).map((row) => row.period).toSorted(), [
 					'2026-02',
@@ -249,7 +270,7 @@ describe('a raise from a month already paid', () => {
 							'claim_catalog_entry.create': [
 								{
 									entity_id: ENTITY,
-									employment_id: idOf('employee_contract', uuid(6)),
+									employment_id: STINT,
 									catalog_code: CLAIM,
 									quantity: '40',
 									incurred_on: '2026-02-12'
@@ -295,7 +316,7 @@ describe('a raise from a month already paid', () => {
 							'leave_catalog_entry.create': [
 								leaveCreate({
 									entity_id: ENTITY,
-									employment_id: idOf('employee_contract', uuid(6)),
+									employment_id: STINT,
 									catalog_code: 'NPL',
 									days: wholeDays('2026-02-12')
 								})
@@ -322,12 +343,21 @@ describe('a raise from a month already paid', () => {
 
 	it.live('a hire signed after its first months: they are back pay of the signing month', () => {
 		const packed = seed();
+		// the stint and what the law is told start in February; what was agreed is signed in April
 		const from: Seed = {
 			...packed,
-			employee_contract: (packed.employee_contract ?? []).map((row) => ({
+			employment: (packed.employment ?? []).map((row) => ({
 				...row,
-				effective_range: { from: '2026-02-01', to: null },
-				terms: { ...TERMS, signed_on: '2026-04-10' }
+				effective_range: { from: '2026-02-01', to: null }
+			})),
+			contract_terms: (packed.contract_terms ?? []).map((row) => ({
+				...row,
+				effective_from: '2026-02-01',
+				signed_on: '2026-04-10'
+			})),
+			statutory_parameters: (packed.statutory_parameters ?? []).map((row) => ({
+				...row,
+				effective_from: '2026-02-01'
 			}))
 		};
 		return Effect.gen(function* () {

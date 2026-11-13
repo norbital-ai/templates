@@ -1,8 +1,7 @@
 <script lang="ts">
 	/**
-	 * The contract's agreed allowances: one row per catalog item of this contract's law, its amount, and a
-	 * remove. The catalog row owns the allowance; the contract states only how
-	 * much.
+	 * The agreed allowances: one row per catalog item of the stint's law, its amount, and a remove. The catalog row
+	 * owns the allowance; the terms state only how much.
 	 */
 	import {
 		Button,
@@ -16,8 +15,14 @@
 	import type { Law } from '../../law.js';
 	import { isJsonObject } from '../../payroll_engine/foundation.js';
 
-	let { field, law }: { field: FieldEditor; law: Law | undefined } = $props();
-	// a catalogue row whose conversion reads the agreed amount is stated on the contract; a formula row computes itself
+	let {
+		field,
+		law
+	}: {
+		field: Pick<FieldEditor, 'id' | 'value' | 'disabled' | 'on_change'>;
+		law: Law | undefined;
+	} = $props();
+	// a catalogue row whose conversion reads the agreed amount is stated in the terms; a formula row computes itself
 	const choices = $derived(
 		(law?.rows.allowance_catalog ?? [])
 			.filter((row) => /allowances\.[A-Z0-9_]+/.test(String(row.conversion ?? '')))

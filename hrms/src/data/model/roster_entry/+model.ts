@@ -26,7 +26,7 @@ export default model({
 	record_label:
 		"(has(record.employment_id.employee_number) ? record.employment_id.employee_number + ' · ' : '') + string(record.work_date)",
 	fields: {
-		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'roster_entry' },
+		employment_id: { kind: 'ref', to: 'employment', inverse: 'roster_entry' },
 		payroll_run_id: {
 			kind: 'ref',
 			to: 'payroll_run',

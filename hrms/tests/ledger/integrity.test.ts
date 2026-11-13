@@ -31,7 +31,7 @@ const NOW = '2026-11-20T02:00:00.000Z';
 const TODAY = NOW.slice(0, 10);
 const YEAR = 'MY.Y.2026-01-01';
 const BALANCE = uuid(5);
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
 const seed = pack(
 	'MY',
@@ -83,7 +83,7 @@ const check = (t: Kit) =>
 	);
 const entry = (quantity: number, on: string) => ({
 	entity_id: ENTITY,
-	employment_id: CONTRACT,
+	employment_id: EMPLOYMENT,
 	quantity: String(quantity),
 	incurred_on: on
 });
@@ -122,7 +122,7 @@ describe('a workspace worked through its real acts', () => {
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						catalog_code: 'ANNUAL_LEAVE',
 						days: wholeDays('2026-08-11')
 					})
@@ -274,7 +274,7 @@ describe('a broken invariant yields exactly its finding', () => {
 		holding(
 			{},
 			{
-				employee_contract: (seed.employee_contract ?? []).map((row) => ({
+				employment: (seed.employment ?? []).map((row) => ({
 					...row,
 					effective_range: { from: '2025-01-01', to: LAST }
 				})),

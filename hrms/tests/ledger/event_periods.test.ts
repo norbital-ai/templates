@@ -1,4 +1,4 @@
-// A birth, a marriage or a confinement is a dated fact on the sealed contract. Sealing triggers sync, a leave row names
+// A birth, a marriage or a confinement is a dated fact on the stint. Recording it triggers sync, a leave row names
 // the facts that open it, and each date is its own period: nothing refills, nothing stacks. The fixture's event rows
 // are varied to synthetic figures, so every number below comes from the rows the test writes.
 import assert from 'node:assert/strict';
@@ -15,7 +15,7 @@ import {
 	ledgerRows,
 	measureOf,
 	pack,
-	sealEvents,
+	recordEvents,
 	syncAll,
 	uuid,
 	wholeDays,
@@ -26,7 +26,7 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const terms = {
 	rate: { amount: 3120, unit: 'MONTHLY' },
 	statutory_work_category: 'NON_MANUAL',
@@ -73,16 +73,17 @@ const seedOf = (gender: string): Seed => {
 				})
 			)
 		}),
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
+		employee_profile: (seed.employee_profile ?? []).map((row) => ({ ...row, gender })),
+		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
 			...row,
-			payroll: { date_of_birth: '1990-01-01', gender, marital_status: 'MARRIED' }
+			marital_status: 'MARRIED'
 		}))
 	};
 };
 const WOMAN = seedOf('FEMALE');
 const MAN = seedOf('MALE');
 const BIRTH = { kind: 'CHILD_BIRTH', on: '2026-03-02' };
-const take = (t: Kit, code: string, dates: readonly string[], employment = CONTRACT) =>
+const take = (t: Kit, code: string, dates: readonly string[], employment = EMPLOYMENT) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({
 			'leave_catalog_entry.create': [
@@ -95,8 +96,9 @@ const take = (t: Kit, code: string, dates: readonly string[], employment = CONTR
 			]
 		})
 	);
-const seal = (t: Kit, from: string, ...events: readonly JsonObject[]) =>
-	sealEvents(t, from, events).pipe(Effect.tap(t.run_due()));
+/** The stint's events are now these; answers the stint. */
+const record = (t: Kit, ...events: readonly JsonObject[]) =>
+	recordEvents(t, events).pipe(Effect.tap(t.run_due()));
 const periodsOf = (t: Kit, code: string) =>
 	accountsIn(t).pipe(Effect.map((accounts) => accounts.leave?.[code] ?? {}));
 const movesOf = (t: Kit, code: string) =>
@@ -109,11 +111,11 @@ const movesOf = (t: Kit, code: string) =>
 		)
 	);
 
-describe('a birth on the contract', () => {
-	it.live('sealed, it opens what the leave rows give her, on the ledger too', () =>
+describe('a birth on the stint', () => {
+	it.live('recorded, it opens what the leave rows give her, on the ledger too', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* seal(t, BIRTH.on, BIRTH);
+			yield* record(t, BIRTH);
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
 				'MY.E.2026-03-02': { entitled: GRANT }
 			});
@@ -126,91 +128,49 @@ describe('a birth on the contract', () => {
 	it.live('for a father, the rows that are his', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* seal(t, BIRTH.on, BIRTH);
+			yield* record(t, BIRTH);
 			const accounts = yield* accountsIn(t);
 			assert.equal(measureOf(accounts, 'leave', 'MATERNITY_LEAVE', 'entitled'), 0);
 			assert.ok(measureOf(accounts, 'leave', 'PATERNITY_LEAVE', 'entitled') > 0);
 		}).pipe(Effect.provide(workspace({ seed: MAN, now: NOW })))
 	);
-	it.live('on a draft version, nothing moves until it seals, then once', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const admin = yield* t.as(t.admin);
-			const [held] = (yield* storedQuery(t, { employee_contract: { limit: 1 } })).employee_contract
-				.rows;
-			assert.ok(held !== undefined);
-			yield* admin.act({
-				'employee_contract.update': [
-					{
-						target: held,
-						set: {
-							effective_range: { from: held.effective_range.from, to: '2026-06-30' }
-						}
-					}
-				]
-			});
-			yield* admin.act({
-				'employee_contract.create': [
-					{
-						employee_id: held.employee_id,
-						entity_id: held.entity_id,
-						engagement: held.engagement,
-						employee_number: held.employee_number,
-						terms: held.terms,
-						payroll: held.payroll,
-						bank: held.bank,
-						employee_extension_data: held.employee_extension_data,
-						events: [{ kind: BIRTH.kind, on: BIRTH.on }],
-						service_started_on: held.service_started_on,
-						effective_range: { from: '2026-07-01', to: null },
-						signed_contract_period: held.signed_contract_period,
-						status: 'DRAFT',
-						reason: 'A child was born'
-					}
-				]
-			});
-			yield* t.run_due();
-			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {});
-			const draft = (yield* storedQuery(t, {
-				employee_contract: { where: { status: { eq: 'DRAFT' } }, limit: 1 }
-			})).employee_contract.rows[0];
-			assert.ok(draft !== undefined);
-			yield* admin.act({
-				'employee_contract.update': [{ target: draft, set: { status: 'SEALED' } }]
-			});
-			yield* t.run_due();
-			const sealed = (yield* storedQuery(t, {
-				employee_contract: { where: { id: { eq: draft.id } }, limit: 1 }
-			})).employee_contract.rows[0];
-			assert.ok(sealed !== undefined);
-			yield* admin.act({
-				'employee_contract.update': [{ target: sealed, set: { reason: 'Reviewed' } }]
-			});
-			yield* t.run_due();
-			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
-				['ADD', 'MY.E.2026-03-02', 'entitled', GRANT]
-			]);
-		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	it.live(
+		'nothing moves until it is recorded, then once: a later write to the stint adds nothing',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const admin = yield* t.as(t.admin);
+				yield* syncAll(t);
+				assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {});
+				yield* record(t, BIRTH);
+				const [held] = (yield* storedQuery(t, { employment: { limit: 1 } })).employment.rows;
+				assert.ok(held !== undefined);
+				yield* admin.act({ 'employment.update': [{ target: held, set: { reason: 'Reviewed' } }] });
+				yield* t.run_due();
+				assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
+					['ADD', 'MY.E.2026-03-02', 'entitled', GRANT]
+				]);
+			}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
 	it.live('a second birth is its own period: what is left does not stack', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* seal(t, BIRTH.on, BIRTH);
-			yield* seal(t, '2026-11-02', BIRTH, { kind: 'CHILD_BIRTH', on: '2026-11-02' });
+			yield* record(t, BIRTH);
+			yield* record(t, BIRTH, { kind: 'CHILD_BIRTH', on: '2026-11-02' });
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
 				'MY.E.2026-03-02': { entitled: GRANT },
 				'MY.E.2026-11-02': { entitled: GRANT }
 			});
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
-	it.live('leave before the date: a contract change moves it, and the window stays', () =>
+	it.live('leave before the date: a change on the stint moves it, and the window stays', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const expected = { kind: 'CHILD_BIRTH', on: '2026-03-02', opened_on: '2026-02-16' };
-			const version = yield* seal(t, '2026-02-01', expected);
-			yield* take(t, 'MATERNITY_LEAVE', ['2026-02-16'], version);
+			const stint = yield* record(t, expected);
+			yield* take(t, 'MATERNITY_LEAVE', ['2026-02-16'], stint);
 			yield* t.run_due();
-			yield* seal(t, '2026-03-01', { ...expected, on: '2026-02-27' });
+			yield* record(t, { ...expected, on: '2026-02-27' });
 			yield* syncAll(t);
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
 				'MY.E.2026-02-16': { entitled: GRANT, used: 1 }
@@ -224,10 +184,10 @@ describe('a birth on the contract', () => {
 	it.live('refuses to move a date from under days taken, until the window is kept', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const version = yield* seal(t, BIRTH.on, BIRTH);
-			yield* take(t, 'MATERNITY_LEAVE', [BIRTH.on], version);
+			const stint = yield* record(t, BIRTH);
+			yield* take(t, 'MATERNITY_LEAVE', [BIRTH.on], stint);
 			yield* t.run_due();
-			const refused = yield* Effect.flip(seal(t, '2026-04-01', { ...BIRTH, on: '2026-03-04' }));
+			const refused = yield* Effect.flip(record(t, { ...BIRTH, on: '2026-03-04' }));
 			assert.match(String(refused), /Leave from/);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
@@ -238,11 +198,11 @@ describe('a birth on the contract', () => {
 			assert.match(String(refused), /insufficient balance/);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
-	it.live('removed by a new version, sync takes back what it gave, once', () =>
+	it.live('taken off the stint, sync takes back what it gave, once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* seal(t, BIRTH.on, BIRTH);
-			yield* seal(t, '2026-04-01');
+			yield* record(t, BIRTH);
+			yield* record(t);
 			yield* syncAll(t);
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MATERNITY_LEAVE', 'entitled'), 0);
 			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
@@ -251,21 +211,21 @@ describe('a birth on the contract', () => {
 			]);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
-	it.live('a version removing it is refused while its days are in use', () =>
+	it.live('taking it off is refused while its days are in use', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const version = yield* seal(t, BIRTH.on, BIRTH);
-			yield* take(t, 'MATERNITY_LEAVE', ['2026-03-03'], version);
+			const stint = yield* record(t, BIRTH);
+			yield* take(t, 'MATERNITY_LEAVE', ['2026-03-03'], stint);
 			yield* t.run_due();
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MATERNITY_LEAVE', 'used'), 1);
-			assert.equal(yield* Effect.isFailure(sealEvents(t, '2026-04-01', [])), true);
+			assert.equal(yield* Effect.isFailure(recordEvents(t, [])), true);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
 	it.live('a complication on the same birth adds its days to that period', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* seal(t, BIRTH.on, BIRTH);
-			yield* seal(t, '2026-05-20', BIRTH, { kind: 'BIRTH_COMPLICATION', on: BIRTH.on });
+			yield* record(t, BIRTH);
+			yield* record(t, BIRTH, { kind: 'BIRTH_COMPLICATION', on: BIRTH.on });
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
 				'MY.E.2026-03-02': { entitled: GRANT + COMPLICATION }
 			});
@@ -281,7 +241,7 @@ describe('a birth on the contract', () => {
 	it.live('each fact opens only the rows that name it', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* seal(t, BIRTH.on, { kind: 'MARRIAGE', on: '2026-02-02' }, BIRTH);
+			yield* record(t, { kind: 'MARRIAGE', on: '2026-02-02' }, BIRTH);
 			const accounts = yield* accountsIn(t);
 			assert.equal(measureOf(accounts, 'leave', 'MATERNITY_LEAVE', 'entitled'), GRANT);
 			assert.equal(measureOf(accounts, 'leave', 'COMPASSIONATE_LEAVE', 'entitled'), MARRIAGE);
@@ -294,23 +254,20 @@ describe('two facts on one row', () => {
 	it.live('a day draws on the latest fact opened by then, and a day before any is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const version = yield* seal(
+			const stint = yield* record(
 				t,
-				'2026-05-28',
 				{ kind: 'CONFINEMENT', on: '2026-05-28' },
 				{ kind: 'CHILD_BIRTH', on: '2026-06-01' }
 			);
-			yield* take(t, 'MATERNITY_LEAVE', ['2026-05-28', '2026-05-29'], version);
-			yield* take(t, 'MATERNITY_LEAVE', ['2026-06-01'], version);
+			yield* take(t, 'MATERNITY_LEAVE', ['2026-05-28', '2026-05-29'], stint);
+			yield* take(t, 'MATERNITY_LEAVE', ['2026-06-01'], stint);
 			yield* t.run_due();
 			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
 				'MY.E.2026-05-28': { entitled: CONFINEMENT, used: 2 },
 				'MY.E.2026-06-01': { entitled: GRANT, used: 1 }
 			});
 			assert.match(
-				String(
-					yield* Effect.flip(take(t, 'MATERNITY_LEAVE', ['2026-05-20', '2026-05-21'], version))
-				),
+				String(yield* Effect.flip(take(t, 'MATERNITY_LEAVE', ['2026-05-20', '2026-05-21'], stint))),
 				/MATERNITY_LEAVE: insufficient balance/
 			);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))

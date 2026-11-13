@@ -1,15 +1,19 @@
 /**
  * The data-request workbook's Entity, Employment Profile and Employment Contract sheets: one flat, human-named column
- * per model field, and the plan that turns filled rows back into those models. A contract change is a duplicated row,
- * so a person or company may repeat with a later start; an empty end then closes on the day before that start.
+ * per model field, and the plan that turns filled rows back into those models. A change is a duplicated row dated when
+ * it applies: a company's becomes a dated change, and a person's with the same company becomes the terms and statutory
+ * parameters that differ from that date. A row with another company, or after a gap, is a new stint.
  */
 import { DateTime } from 'effect';
+import { inForce } from '../../dated.js';
 import {
 	isJsonObject,
 	jsonObject,
+	stableJson,
 	type Json,
 	type JsonObject
 } from '../../payroll_engine/foundation.js';
+import { PARAMETER_FIELDS, TERM_FIELDS, parametersChange, termsChange } from '../../person.js';
 import {
 	type Cell,
 	cellDay,
@@ -366,7 +370,7 @@ export const entityColumns = (
 	]);
 
 const extensionColumns = (schema: unknown): readonly SheetColumn[] =>
-	flatten(isJsonObject(schema) ? schema : {}, 'Country requirements', ['employee_extension_data']);
+	flatten(isJsonObject(schema) ? schema : {}, 'Country requirements', ['parameters', 'parameters']);
 
 export const profileColumns: readonly SheetColumn[] = [
 	column('Employee Number', 'text', ['$number'], '', {
@@ -379,7 +383,7 @@ export const profileColumns: readonly SheetColumn[] = [
 	column('Address', 'text', ['address'], '')
 ];
 
-/** The contract terms an allowance reads: `terms.allowances.<KEY>.amount`, by its catalogue's lookup or formula. */
+/** The agreed terms an allowance reads: `terms.allowances.<KEY>.amount`, by its catalogue's lookup or formula. */
 const allowanceKeys = (rows: readonly AllowanceFacts[]) => {
 	const held = new Map<string, string>();
 	for (const row of rows) {
@@ -404,8 +408,13 @@ export const contractColumns = (
 	allowances: readonly AllowanceFacts[]
 ): readonly SheetColumn[] => {
 	const categories = contractCategories(settings.lookup, ruleLookup);
-	const category = (label: string, name: string, values: readonly string[] | undefined) =>
-		column(label, values === undefined ? 'text' : 'enum', ['terms', name], WORK, {
+	const category = (
+		label: string,
+		root: 'terms' | 'parameters',
+		name: string,
+		values: readonly string[] | undefined
+	) =>
+		column(label, values === undefined ? 'text' : 'enum', [root, name], WORK, {
 			...(values === undefined ? {} : { values })
 		});
 	const held = allowanceKeys(allowances);
@@ -419,31 +428,31 @@ export const contractColumns = (
 			required: true,
 			help: 'The company on the Entity sheet.'
 		}),
-		column('Employment Type', 'enum', ['engagement'], WORK, {
+		column('Employment Type', 'enum', ['terms', 'engagement'], WORK, {
 			required: true,
 			values: ['EMPLOYEE', 'PART_TIME', 'CONTRACTOR', 'INTERN', 'APPRENTICE', 'CONSULTANT', 'PAYEE']
 		}),
 		column('Contract Start', 'date', ['effective_range', 'from'], WORK, {
 			required: true,
-			help: 'To record a change, duplicate the row, change what changed and set this to the change date.'
+			help: 'To record a change, duplicate the row, change what changed and set this to the change date: the first of a month.'
 		}),
 		column('Contract End', 'date', ['effective_range', 'to'], WORK, {
-			help: 'Leave empty while current. An older row with a later duplicate closes the day before it.'
+			help: 'The last day of employment. Leave empty while employed.'
 		}),
 		column('Service Start Date', 'date', ['service_started_on'], WORK, {
 			help: 'The date service began for leave and benefits.'
 		}),
-		column('Signed Contract From', 'date', ['signed_contract_period', 'from'], WORK),
-		column('Signed Contract To', 'date', ['signed_contract_period', 'to'], WORK),
+		column('Signed Contract From', 'date', ['terms', 'signed_contract_period', 'from'], WORK),
+		column('Signed Contract To', 'date', ['terms', 'signed_contract_period', 'to'], WORK),
 		column('Contract Signed On', 'date', ['terms', 'signed_on'], WORK),
 		column('Probation From', 'date', ['terms', 'probation_period', 'from'], WORK),
 		column('Probation To', 'date', ['terms', 'probation_period', 'to'], WORK),
 		column('Job Title', 'text', ['terms', 'job_title'], WORK),
 		column('Department', 'text', ['terms', 'department'], WORK),
-		category('Statutory Work Category', 'statutory_work_category', categories.statutory),
-		category('Work Classification', 'work_classification', categories.classification),
-		category('Residency Status', 'residency_status', categories.residency),
-		category('Work Authorisation', 'work_authorisation_category', categories.pass),
+		category('Statutory Work Category', 'terms', 'statutory_work_category', categories.statutory),
+		category('Work Classification', 'terms', 'work_classification', categories.classification),
+		category('Residency Status', 'parameters', 'residency_status', categories.residency),
+		category('Work Authorisation', 'parameters', 'work_authorisation_category', categories.pass),
 		column('Shift Pattern', 'pattern', ['$pattern'], WORK, {
 			help: 'A code on the Shift Patterns sheet.'
 		}),
@@ -487,18 +496,18 @@ export const contractColumns = (
 				{ help: `Monthly amount of ${title}. Leave empty if not paid.` }
 			);
 		}),
-		column('Date of Birth', 'date', ['payroll', 'date_of_birth'], 'Person'),
-		column('Identity Number', 'text', ['payroll', 'identity_number'], 'Person', {
+		column('Date of Birth', 'date', ['$profile', 'date_of_birth'], 'Person'),
+		column('Identity Number', 'text', ['$profile', 'identity_number'], 'Person', {
 			help: 'National ID or passport number, as issued.'
 		}),
 		...extensionColumns(settings.employee_extension_schema).filter(
 			(column) => column.path.at(-1) === 'registration_number'
 		),
-		column('Gender', 'enum', ['payroll', 'gender'], 'Person', { values: ['MALE', 'FEMALE'] }),
-		column('Marital Status', 'enum', ['payroll', 'marital_status'], 'Person', {
+		column('Gender', 'enum', ['$profile', 'gender'], 'Person', { values: ['MALE', 'FEMALE'] }),
+		column('Marital Status', 'enum', ['parameters', 'marital_status'], 'Person', {
 			values: ['SINGLE', 'MARRIED', 'SEPARATED', 'DIVORCED', 'WIDOWED']
 		}),
-		...bankColumns('Employee bank'),
+		...bankColumns('Employee bank', ['$profile']),
 		...extensionColumns(settings.employee_extension_schema).filter(
 			(column) => column.path.at(-1) !== 'registration_number'
 		)
@@ -710,14 +719,21 @@ export type DataRequestKnown = {
 		readonly phone: string | null;
 		readonly address: string | null;
 		readonly source_reference: string | null;
+		readonly date_of_birth: string | null;
+		readonly identity_number: string | null;
+		readonly gender: string | null;
+		readonly bank: Json;
 	}[];
-	readonly contracts: readonly {
+	/** Every stint held, with its dated rows as stored. */
+	readonly stints: readonly {
 		readonly id: string;
 		readonly employee_id: string;
+		readonly entity_id: string;
 		readonly employee_number: string;
 		readonly from: string;
 		readonly to: string | null;
-		readonly status: string;
+		readonly terms: readonly JsonObject[];
+		readonly parameters: readonly JsonObject[];
 	}[];
 	readonly patterns: readonly {
 		readonly id: string;
@@ -737,12 +753,15 @@ export type DataRequestPlan = {
 	readonly changes: readonly { readonly company: string; readonly row: JsonObject }[];
 	readonly profiles: readonly JsonObject[];
 	readonly profileUpdates: readonly { readonly target: string; readonly set: JsonObject }[];
-	readonly contracts: readonly {
+	/** Stints to create, each with its terms and statutory parameters nested, naming its company and person. */
+	readonly employments: readonly {
 		readonly company: string;
 		readonly number: string;
 		readonly row: JsonObject;
 	}[];
-	readonly sealContracts: readonly string[];
+	/** Dated rows to add to a stint already held. */
+	readonly terms: readonly { readonly employment: string; readonly row: JsonObject }[];
+	readonly parameters: readonly { readonly employment: string; readonly row: JsonObject }[];
 	readonly count: number;
 	readonly warnings: readonly string[];
 };
@@ -800,27 +819,36 @@ const registrationsOf = (
 		});
 	});
 
-type Dated = {
-	readonly key: string;
-	readonly from: string;
-	readonly at: number;
-	readonly model: Record<string, unknown>;
+const dayBefore = (day: string) =>
+	DateTime.formatIsoDateUtc(DateTime.subtract(DateTime.makeUnsafe(day), { days: 1 }));
+
+/** What a row states of these fields against what stood before it: the values that differ, and `clears` for those gone. */
+const differing = (fields: readonly string[], before: JsonObject, now: JsonObject): JsonObject => {
+	const clears = fields.filter((field) => now[field] === undefined && before[field] !== undefined);
+	return {
+		...Object.fromEntries(
+			fields.flatMap((field) => {
+				const value = now[field];
+				return value === undefined || stableJson(value) === stableJson(before[field] ?? null)
+					? []
+					: [[field, value]];
+			})
+		),
+		...(clears.length === 0 ? {} : { clears })
+	};
 };
-/** Rows of one key, oldest first; an empty end closes the day before the next row's start. */
-const closed = <R extends Dated>(rows: readonly R[]): readonly R[] => {
-	const ordered = rows.toSorted(
-		(left, right) => left.key.localeCompare(right.key) || left.from.localeCompare(right.from)
-	);
-	return ordered.map((row, index) => {
-		const next = ordered[index + 1];
-		const range = isJsonObject(row.model.effective_range) ? row.model.effective_range : {};
-		const to =
-			range.to ??
-			(next?.key === row.key
-				? DateTime.formatIsoDateUtc(DateTime.subtract(DateTime.makeUnsafe(next.from), { days: 1 }))
-				: null);
-		return { ...row, model: { ...row.model, effective_range: { from: row.from, to } } };
-	});
+
+/** A stint the sheet's rows land on: one held, or one this file creates. */
+type Standing = {
+	readonly number: string;
+	readonly company: string;
+	readonly stored?: string;
+	readonly at: number;
+	readonly from: string;
+	to: string | null;
+	stint: Record<string, unknown>;
+	readonly terms: JsonObject[];
+	readonly parameters: JsonObject[];
 };
 
 const overlaps = (
@@ -922,14 +950,13 @@ export const planDataRequest = (
 		changes.push({ company: key, row: jsonObject({ ...change, effective_from }) });
 	}
 
-	const contractOf = (number: string) =>
-		known.contracts.find((row) => row.employee_number === number);
+	const stintOf = (number: string) => known.stints.find((row) => row.employee_number === number);
 	const referenced = (number: string) =>
 		known.profiles.find(
-			(row) => row.id === contractOf(number)?.employee_id || row.source_reference === number
+			(row) => row.id === stintOf(number)?.employee_id || row.source_reference === number
 		);
-	const profiles: JsonObject[] = [];
-	const profileUpdates: { target: string; set: JsonObject }[] = [];
+	// what each sheet says of a person, by employee number: the Employment Contract sheet adds their fixed particulars
+	const people = new Map<string, Record<string, unknown>>();
 	const seenProfiles = new Map<string, number>();
 	for (const row of profileRows) {
 		const { $number, ...model } = modelOf(row, SHEETS.profile, problems);
@@ -941,31 +968,41 @@ export const planDataRequest = (
 			continue;
 		}
 		seenProfiles.set(number, row.at);
-		const held = referenced(number);
-		if (held === undefined) {
-			profiles.push(jsonObject({ ...model, source_reference: number }));
-			continue;
-		}
-		const changed = Object.entries(model).filter(
-			([key, value]) => Reflect.get(held, key) !== value
-		);
-		if (changed.length > 0)
-			profileUpdates.push({ target: held.id, set: jsonObject(Object.fromEntries(changed)) });
+		people.set(number, model);
 	}
 
 	const companies = new Set([...existingEntity.keys(), ...newEntities.keys()]);
-	const parsedContracts = contractRows.flatMap((row): readonly (Dated & { company: string })[] => {
+	const columns = contractColumns(known.settings, known.ruleLookup, known.allowances);
+	// a later row restates the stint: only the terms and parameters the sheet has a column for are compared
+	const stated = (root: string, fields: readonly string[], also: readonly string[] = []) => {
+		const named = new Set([
+			...columns.flatMap((column) => (column.path[0] === root ? [column.path[1]] : [])),
+			...also
+		]);
+		return fields.filter((field) => named.has(field));
+	};
+	const termFields = stated('terms', TERM_FIELDS, ['shift_pattern_id']);
+	const parameterFields = stated('parameters', PARAMETER_FIELDS);
+	const parsed = contractRows.flatMap((row) => {
 		const where = `${SHEETS.contract} row ${row.at}`;
-		const { $company, $pattern, ...model } = modelOf(row, SHEETS.contract, problems);
+		const {
+			$company,
+			$pattern,
+			$profile,
+			effective_range,
+			terms: sheetTerms,
+			parameters: sheetParameters,
+			...stint
+		} = modelOf(row, SHEETS.contract, problems);
 		const company = String($company ?? '');
-		const number = String(model.employee_number ?? '');
-		const range = isJsonObject(model.effective_range) ? model.effective_range : {};
+		const number = String(stint.employee_number ?? '');
+		const range = isJsonObject(effective_range) ? effective_range : {};
 		if (company === '' || number === '' || typeof range.from !== 'string') return [];
 		if (!companies.has(lower(company)))
 			problems.push(`${where}: no company named "${company}"; add it to the Entity sheet.`);
 		if (!seenProfiles.has(number) && referenced(number) === undefined)
 			problems.push(`${where}: ${number} is not on the Employment Profile sheet.`);
-		const terms = isJsonObject(model.terms) ? model.terms : {};
+		const agreed = isJsonObject(sheetTerms) ? sheetTerms : {};
 		const entityId = existingEntity.get(lower(company))?.id;
 		const pattern =
 			typeof $pattern === 'string' && $pattern !== ''
@@ -973,71 +1010,182 @@ export const planDataRequest = (
 				: undefined;
 		if (typeof $pattern === 'string' && $pattern !== '' && pattern === undefined)
 			problems.push(`${where}: "${$pattern}" is not a shift pattern of ${company}.`);
-		const bank = isJsonObject(model.bank) ? model.bank : undefined;
+		const particulars = isJsonObject($profile) ? $profile : {};
+		const bank = isJsonObject(particulars.bank) ? particulars.bank : undefined;
 		if (bank !== undefined && Object.keys(bank).length < 4)
 			problems.push(`${where}: enter the bank's name, code, account number and account name.`);
 		return [
 			{
-				key: number,
-				from: range.from,
 				at: row.at,
+				number,
 				company: lower(company),
-				model: {
-					...model,
-					terms: {
-						...terms,
-						...(pattern === undefined ? {} : { shift_pattern_id: pattern.id }),
-						...(isJsonObject(terms.probation_period)
-							? { probation_period: { to: null, ...terms.probation_period } }
-							: {})
-					},
-					...(isJsonObject(model.signed_contract_period)
-						? { signed_contract_period: { to: null, ...model.signed_contract_period } }
+				entityId,
+				from: range.from,
+				to: typeof range.to === 'string' ? range.to : null,
+				stint,
+				particulars,
+				terms: jsonObject({
+					...agreed,
+					...(pattern === undefined ? {} : { shift_pattern_id: pattern.id }),
+					...(isJsonObject(agreed.probation_period)
+						? { probation_period: { to: null, ...agreed.probation_period } }
 						: {}),
-					employee_extension_data: model.employee_extension_data ?? {}
-				}
+					...(isJsonObject(agreed.signed_contract_period)
+						? { signed_contract_period: { to: null, ...agreed.signed_contract_period } }
+						: {})
+				}),
+				parameters: jsonObject(isJsonObject(sheetParameters) ? sheetParameters : {})
 			}
 		];
 	});
 	const seenContracts = new Map<string, number>();
-	for (const row of parsedContracts) {
-		const key = `${row.key}|${row.from}`;
+	for (const row of parsed) {
+		const key = `${row.number}|${row.from}`;
 		const earlier = seenContracts.get(key);
 		if (earlier !== undefined)
 			problems.push(`${SHEETS.contract} row ${row.at}: repeats row ${earlier}.`);
 		seenContracts.set(key, row.at);
 	}
-	const contracts: { company: string; number: string; row: JsonObject }[] = [];
-	const sealContracts: string[] = [];
-	for (const row of closed(parsedContracts)) {
-		const held = known.contracts.filter(
-			(contract) => contract.employee_number === row.key && contract.status !== 'VOID'
-		);
-		const same = held.find((contract) => contract.from === row.from);
-		if (same?.status === 'DRAFT') {
-			sealContracts.push(same.id);
+	const created: Standing[] = [];
+	const terms: { employment: string; row: JsonObject }[] = [];
+	const parameters: { employment: string; row: JsonObject }[] = [];
+	for (const [number, rows] of Map.groupBy(parsed, (row) => row.number)) {
+		const held = known.stints.filter((stint) => stint.employee_number === number);
+		let current: Standing | undefined;
+		for (const row of rows.toSorted((left, right) => left.from.localeCompare(right.from))) {
+			const where = `${SHEETS.contract} row ${row.at}`;
+			// the person's fixed particulars are their latest row's
+			people.set(number, { ...people.get(number), ...row.particulars });
+			// a row continues the stint above it with the same company, unless that one ended earlier
+			let standing =
+				current !== undefined &&
+				current.stored === undefined &&
+				current.company === row.company &&
+				(current.to === null || current.to === dayBefore(row.from))
+					? current
+					: undefined;
+			const stored =
+				standing === undefined
+					? held.find(
+							(stint) =>
+								stint.entity_id === row.entityId &&
+								stint.from <= row.from &&
+								(stint.to === null || stint.to >= row.from)
+						)
+					: undefined;
+			if (stored !== undefined) {
+				standing = current =
+					current?.stored === stored.id
+						? current
+						: {
+								number,
+								company: row.company,
+								stored: stored.id,
+								at: row.at,
+								from: stored.from,
+								to: stored.to,
+								stint: {},
+								terms: [...stored.terms],
+								parameters: [...stored.parameters]
+							};
+				if (stored.from === row.from) {
+					warnings.push(`${where}: ${number} from ${row.from} is already recorded; skipped.`);
+					continue;
+				}
+			}
+			if (standing === undefined) {
+				if (current?.stored === undefined && current?.to != null && current.to >= row.from) {
+					problems.push(`${where}: ${number} starts before row ${current.at} ends.`);
+					continue;
+				}
+				// a move to another company ends the stint before it
+				if (current?.stored === undefined && current?.to === null) current.to = dayBefore(row.from);
+				const clash = held.find((stint) => overlaps(stint, row));
+				if (clash !== undefined)
+					problems.push(`${where}: ${number} overlaps the employment from ${clash.from}.`);
+				current = {
+					number,
+					company: row.company,
+					at: row.at,
+					from: row.from,
+					to: row.to,
+					stint: row.stint,
+					terms: [jsonObject({ effective_from: row.from, ...row.terms })],
+					parameters:
+						Object.keys(row.parameters).length === 0
+							? []
+							: [jsonObject({ effective_from: row.from, ...row.parameters })]
+				};
+				created.push(current);
+				continue;
+			}
+			const dated = (list: readonly JsonObject[]) =>
+				list.some((change) => change.effective_from === row.from);
+			if (dated(standing.terms) || dated(standing.parameters)) {
+				warnings.push(`${where}: ${number} from ${row.from} is already recorded; skipped.`);
+				continue;
+			}
+			if (!row.from.endsWith('-01')) {
+				problems.push(`${where}: a change starts on the first of a month.`);
+				continue;
+			}
+			const agreed = differing(
+				termFields,
+				inForce(standing.terms.map(termsChange), row.from).state,
+				row.terms
+			);
+			const told = differing(
+				parameterFields,
+				inForce(standing.parameters.map(parametersChange), row.from).state,
+				row.parameters
+			);
+			if (Object.keys(agreed).length > 0) {
+				const change = jsonObject({
+					effective_from: row.from,
+					...(row.terms.signed_on === undefined ? {} : { signed_on: row.terms.signed_on }),
+					...agreed
+				});
+				standing.terms.push(change);
+				if (standing.stored !== undefined) terms.push({ employment: standing.stored, row: change });
+			}
+			if (Object.keys(told).length > 0) {
+				const change = jsonObject({ effective_from: row.from, ...told });
+				standing.parameters.push(change);
+				if (standing.stored !== undefined)
+					parameters.push({ employment: standing.stored, row: change });
+			}
+			if (Object.keys(agreed).length === 0 && Object.keys(told).length === 0)
+				warnings.push(`${where}: ${number} from ${row.from} changes nothing; skipped.`);
+			if (standing.stored === undefined) {
+				standing.to = row.to;
+				standing.stint = { ...standing.stint, ...row.stint };
+			}
+		}
+	}
+	const employments = created.map((standing) => ({
+		company: standing.company,
+		number: standing.number,
+		row: jsonObject({
+			...standing.stint,
+			effective_range: { from: standing.from, to: standing.to },
+			terms: standing.terms,
+			...(standing.parameters.length === 0 ? {} : { parameters: standing.parameters })
+		})
+	}));
+
+	const profiles: JsonObject[] = [];
+	const profileUpdates: { target: string; set: JsonObject }[] = [];
+	for (const [number, model] of people) {
+		const held = referenced(number);
+		if (held === undefined) {
+			profiles.push(jsonObject({ ...model, source_reference: number }));
 			continue;
 		}
-		if (same !== undefined) {
-			warnings.push(
-				`${SHEETS.contract} row ${row.at}: ${row.key} from ${row.from} is already recorded; skipped.`
-			);
-			continue;
-		}
-		const range = isJsonObject(row.model.effective_range) ? row.model.effective_range : {};
-		const period = { from: row.from, to: typeof range.to === 'string' ? range.to : null };
-		const clash = held.find(
-			(contract) => contract.status === 'SEALED' && overlaps(contract, period)
+		const changed = Object.entries(model).filter(
+			([key, value]) => stableJson(Reflect.get(held, key) ?? null) !== stableJson(value)
 		);
-		if (clash !== undefined)
-			problems.push(
-				`${SHEETS.contract} row ${row.at}: ${row.key} overlaps the contract from ${clash.from}.`
-			);
-		contracts.push({
-			company: row.company,
-			number: row.key,
-			row: jsonObject({ ...row.model, status: 'DRAFT' })
-		});
+		if (changed.length > 0)
+			profileUpdates.push({ target: held.id, set: jsonObject(Object.fromEntries(changed)) });
 	}
 
 	if (problems.length > 0)
@@ -1047,8 +1195,9 @@ export const planDataRequest = (
 		changes.length +
 		profiles.length +
 		profileUpdates.length +
-		contracts.length +
-		sealContracts.length;
+		employments.length +
+		terms.length +
+		parameters.length;
 	if (count === 0 && warnings.length === 0)
 		throw new WorkbookRowsError(
 			'The Entity, Employment Profile and Employment Contract sheets have no rows.'
@@ -1059,8 +1208,9 @@ export const planDataRequest = (
 		changes,
 		profiles,
 		profileUpdates,
-		contracts,
-		sealContracts,
+		employments,
+		terms,
+		parameters,
 		count,
 		warnings
 	};

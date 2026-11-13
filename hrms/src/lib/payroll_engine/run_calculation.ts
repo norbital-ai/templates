@@ -25,9 +25,17 @@ import { Refusal, daysIn, isJsonObject } from './foundation.js';
 import { breakdownOf, type PayslipBreakdown } from './payslip_breakdown.js';
 import { accountsOf, latestWindow, totalsScope, viewOf } from '../ledger/core.js';
 import { claimLeft, claimWanted } from '../ledger/service.js';
-import { chainOf, isExit, startsOf } from './contract_change.js';
 import { lawRead, lawsOf, type Law } from '../law.js';
 import { employerOn } from '../company.js';
+import {
+	chainOf,
+	employmentOn,
+	isExit,
+	partsIn,
+	segmentsOf,
+	startsOf,
+	termsBy
+} from '../person.js';
 
 /** One payslip row the run's create transform attaches as a child. */
 
@@ -113,7 +121,7 @@ export const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
 			(posted.get(String(row.source)) ?? 0) +
 				(row.operation === 'DEDUCT' ? -1 : 1) * Number(row.amount ?? 0)
 		);
-	const contract = new Map((data.employee_contract ?? []).map((row) => [String(row.id), row]));
+	const contract = new Map((data.employment ?? []).map((row) => [String(row.id), row]));
 	const balance = new Map(
 		(data.employee_balance ?? []).map((row) => [String(row.employee_id), row])
 	);
@@ -154,8 +162,9 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	const [opens = attendance.from] = [attendance.from, String(coverage.from)].sort();
 	const closes = [attendance.to, String(coverage.to)].sort().at(-1) ?? attendance.to;
 	const own = { entity_id: { eq: companyId } };
-	// a run pays one pay group: its contracts and their roster, nobody else's
-	const paid = { ...own, pay_group_id: { eq: String(run.pay_group_id) } };
+	// a run pays one pay group: the stints whose terms name it, and their roster. Who it pays is whoever the group holds
+	// on the period's end
+	const paid = { ...own, terms: { some: { pay_group_id: { eq: String(run.pay_group_id) } } } };
 	// to the salary period's end: a leaver's last run pays what falls after its attendance, up to their last day
 	const window = { gte: attendance.from, lte: closes };
 	const unsealed = { payroll_run_id: { is_null: true } };
@@ -173,15 +182,14 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 		leave_catalog_entry_day: { some: unsealed },
 		encashment: { eq: true }
 	};
-	// the contracts in force in the window, and any an unpaid entry was raised on before it
-	const contract = {
+	// the stints in the window, and any an unpaid entry was raised on before it
+	const stint = {
 		...paid,
-		status: { eq: 'SEALED' },
 		or: [
 			{ effective_range: { overlaps: { from: opens, to: closes } } },
 			{ claim_catalog_entry: { some: unpaid } },
 			{ adhoc_catalog_entry: { some: unpaid } },
-			// a leave entry keeps the contract version it was raised on; its open slots still belong to this run
+			// a leave entry keeps the stint it was raised on; its open slots still belong to this run
 			{
 				leave_catalog_entry: {
 					some: { leave_catalog_entry_day: { some: { ...unsealed, incurred_on: window } } }
@@ -189,7 +197,6 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			},
 			{ leave_catalog_entry: { some: pendingLeave } },
 			{ loan_catalog_entry_repayment: { some: repaid } },
-			// a roster day keeps the version it was keyed under; the run prices it under the one in force on its date
 			{ roster_entry: { some: { work_date: window } } }
 		]
 	};
@@ -207,19 +214,23 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 		// the company: its plain fields, and every dated change, folded on the day each period is priced for
 		entity: { where: { id: { eq: companyId } }, limit: 1 },
 		entity_change: { where: own, limit: 10000 },
-		employee_contract: { where: contract, limit: 10000 },
+		// each stint with every dated row of it, its person and their dependants: how it stands on any day, a signed date
+		// included
+		employment: { where: stint, limit: 10000 },
+		contract_terms: { where: { employment_id: { is: stint } }, limit: 10000 },
+		statutory_parameters: { where: { employment_id: { is: stint } }, limit: 10000 },
+		dependant: { where: { employee_id: { is: { employment: { some: stint } } } }, limit: 10000 },
 		employee_profile: {
-			where: { employee_contract: { some: contract } },
+			where: { employment: { some: stint } },
 			limit: 10000,
-			employee_contract: {
-				where: { status: { eq: 'SEALED' } },
-				fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
+			employment: {
+				fields: ['id', 'employee_id', 'effective_range', 'entity_id', 'service_started_on'],
 				limit: 10000,
 				entity_id: { fields: ['settings_code'] }
 			}
 		},
 		employee_balance: {
-			where: { employee_id: { is: { employee_contract: { some: contract } } } },
+			where: { employee_id: { is: { employment: { some: stint } } } },
 			limit: 10000
 		},
 		// a leave with a slot in this window, or one still pending
@@ -261,30 +272,9 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			limit: 10000
 		}
 	});
-	// a version signed after this run's pay date keeps the terms that were signed in time: read those versions
-	const payDate = String(run.pay_date ?? coverage.to);
-	const lateFor = [
-		...new Set(
-			(data.employee_contract ?? []).flatMap((row) => {
-				const signed = objectValue(row.terms).signed_on;
-				return typeof signed === 'string' && signed > payDate ? [String(row.employee_id)] : [];
-			})
-		)
-	];
-	const earlier =
-		lateFor.length === 0
-			? {}
-			: yield* queryRows(read, {
-					employee_contract: {
-						where: { employee_id: { in: lateFor }, status: { eq: 'SEALED' } },
-						fields: ['id', 'employee_id', 'status', 'effective_range', 'terms'],
-						limit: 10000
-					}
-				});
 	return yield* claimsAsPosted(read, {
 		...withStints(data),
-		...lawData(lawsOf(data)(jurisdiction, payDate)),
-		contract_terms: earlier.employee_contract ?? []
+		...lawData(lawsOf(data)(jurisdiction, String(run.pay_date ?? coverage.to)))
 	});
 });
 
@@ -292,11 +282,15 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 export const lawData = (law: Law | undefined): RunData =>
 	law === undefined ? { law_settings: [] } : { ...law.rows, law_settings: [law.settings] };
 
-/** A contract carries the service start worked out from its stints, as windows and expressions read it. */
+/**
+ * The stints a run read, as it prices them: one row for each stretch of a stint between its changes, the stint as it
+ * stands in that stretch, `effective_range` the stretch. Each carries the service start worked out from the person's
+ * stints, as windows and expressions read it.
+ */
 export const withStints = (data: RunData): RunData => {
 	const { chain, lineage } = chainOf(
 		(data.employee_profile ?? []).flatMap((row) =>
-			Array.isArray(row.employee_contract) ? row.employee_contract.filter(isJsonObject) : []
+			Array.isArray(row.employment) ? row.employment.filter(isJsonObject) : []
 		)
 	);
 	const cumulative = new Set(
@@ -304,17 +298,24 @@ export const withStints = (data: RunData): RunData => {
 			row.cumulative_service === true ? [String(row.id)] : []
 		)
 	);
+	const profiles = (data.employee_profile ?? []).map((row) =>
+		Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'employment'))
+	);
 	return {
 		...data,
-		employee_profile: (data.employee_profile ?? []).map((row) =>
-			Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'employee_contract'))
-		),
-		employee_contract: (data.employee_contract ?? []).map((row) => ({
-			...row,
-			...startsOf(row, chain, lineage, cumulative.has(String(row.employee_id))),
-			// the employment ends with this version only at an exit: a later version of the lineage continues it
-			exit: isExit(row, chain, lineage)
-		}))
+		employee_profile: profiles,
+		employment: partsIn({ ...data, employee_profile: profiles }).flatMap((parts) => {
+			const { stint } = parts;
+			const starts = startsOf(stint, chain, lineage, cumulative.has(String(stint.employee_id)));
+			const exit = isExit(stint, chain, lineage);
+			return segmentsOf(parts).map((segment, index, segments) => ({
+				...employmentOn(parts, segment.from),
+				...starts,
+				effective_range: segment,
+				// the employment ends only at an exit, with the stint's last stretch
+				exit: exit && index === segments.length - 1
+			}));
+		})
 	};
 };
 
@@ -348,40 +349,32 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		return yield* Effect.fail(
 			new Refusal({ message: 'The run needs the law in force on its pay date.' })
 		);
-	// the law's own row for pay that belongs to earlier periods: without one, a version applies from its start
+	// the law's own row for pay that belongs to earlier periods: without one, terms apply from their date
 	const backPayCode = objectValue(settings.conversions).back_pay;
 	const backPayRow =
 		typeof backPayCode !== 'string'
 			? undefined
 			: (stored.adhoc_catalog ?? []).find((row) => row.code === backPayCode);
-	// agreed terms are the latest signed by the pay date; every other fact is the version's in force on the date
+	// agreed terms are those signed by the pay date; every other fact is the one in force on the date
 	const asOf = frame.termsAsOf ?? String(run.pay_date ?? to);
-	const signedOf = (row: JsonObject) => {
+	const late = (row: JsonObject) => {
 		const signed = objectValue(row.terms).signed_on;
-		return typeof signed === 'string' ? signed : '';
+		return backPayRow !== undefined && typeof signed === 'string' && signed > asOf;
 	};
-	const late = (row: JsonObject) =>
-		backPayRow !== undefined && signedOf(row) !== '' && signedOf(row) > asOf;
 	const startOf = (row: JsonObject) => String(objectValue(row.effective_range).from ?? '');
-	const signedInTime = [
-		...new Map(
-			[...(stored.contract_terms ?? []), ...(stored.employee_contract ?? [])].map((row) => [
-				String(row.id),
-				row
-			])
-		).values()
-	]
-		.filter((row) => row.status !== 'VOID' && !late(row))
-		.toSorted((left, right) => startOf(left).localeCompare(startOf(right)));
+	// a stretch of a stint: what stands on one set of terms and parameters, and so what a day is priced under
+	const stretchOf = (row: JsonObject) => `${String(row.id)}@${startOf(row)}`;
+	const stintOf = (stretch: string) => stretch.split('@')[0] ?? stretch;
 	const data: RunData = {
 		...stored,
-		employee_contract: (stored.employee_contract ?? []).flatMap((row) => {
+		employment: partsIn(stored).flatMap((parts) => {
+			const row = parts.stint;
 			if (!late(row)) return [row];
-			const agreed = signedInTime.findLast(
-				(version) => version.employee_id === row.employee_id && startOf(version) <= to
-			);
+			const agreed = termsBy(parts, asOf);
 			// nothing was signed in time: the period pays nothing of its own, and the signing period owes it as back pay
-			return agreed === undefined ? [] : [{ ...row, terms: agreed.terms ?? null }];
+			return agreed.terms.some((terms) => String(terms.effective_from) <= startOf(row))
+				? [{ ...row, terms: employmentOn(agreed, startOf(row)).terms ?? null }]
+				: [];
 		})
 	};
 	// the employer as this run sees it: the company as it stands on the salary period's last day, on the run's pay
@@ -391,7 +384,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		...employerOn((data.entity ?? [])[0] ?? {}, data.entity_change ?? [], to),
 		...(payGroup === undefined ? {} : { payment_schedule: payGroup.payment_schedule })
 	};
-	const covering = (data.employee_contract ?? []).filter(
+	const covering = (data.employment ?? []).filter(
 		(row) =>
 			covers(row.effective_range, from, to) &&
 			(frame.people === undefined || frame.people.has(String(row.employee_id)))
@@ -415,14 +408,14 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		roster_entry: [...sealing.roster_entry].map((id) => idOf('roster_entry', id))
 	});
 	if (covering.length === 0) return { payslips: [], attaches: sealed() };
-	// one payslip a person: a renewal inside the period pays on the contract in force at its end
+	// one payslip a person: the stint as it stands at the period's end, paid by the group that holds it then
 	const contracts = [
 		...new Map(
 			[...covering]
 				.toSorted((left, right) => startOf(left).localeCompare(startOf(right)))
 				.map((row) => [String(row.employee_id), row])
 		).values()
-	];
+	].filter((row) => String(row.pay_group_id) === String(run.pay_group_id));
 
 	const { pays } = frame;
 	// a leaver's last run is the one covering their last day: it also pays what falls after its attendance, up to then
@@ -434,7 +427,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		})
 	);
 	const employeeOf = new Map(
-		(data.employee_contract ?? []).map((row) => [String(row.id), String(row.employee_id)])
+		(data.employment ?? []).map((row) => [String(row.id), String(row.employee_id)])
 	);
 	const untilOf = (row: JsonObject) =>
 		until.get(employeeOf.get(String(row.employment_id)) ?? '') ?? end;
@@ -447,8 +440,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			// a paid period this run works out again prices its own late rows
 			frame.leftOut?.has(String(row.id)) !== true);
 	const employeeIds = [...new Set(contracts.map((row) => String(row.employee_id)))];
-	// every contract of the person answers for its entries by their dates, a run pays on the one in force
-	const answering = (data.employee_contract ?? []).filter((row) =>
+	// every stint of the person answers for its entries by their dates, a run pays on the one in force
+	const answering = (data.employment ?? []).filter((row) =>
 		employeeIds.includes(String(row.employee_id))
 	);
 	const profiles = new Map((data.employee_profile ?? []).map((row) => [String(row.id), row]));
@@ -457,37 +450,32 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	);
 
 	// a day rostered outside the person's employment (planned before an exit was known) is no absence and no pay
-	const answeringBy = Map.groupBy(
-		answering.filter((contract) => contract.status !== 'VOID'),
-		(contract) => String(contract.employee_id)
-	);
+	const answeringBy = Map.groupBy(answering, (contract) => String(contract.employee_id));
 	const versionOn = (person: string | undefined, date: string) =>
 		answeringBy
 			.get(String(person))
 			?.find((contract) => covers(contract.effective_range, date, date));
 	const employed = (row: JsonObject): boolean =>
 		versionOn(employeeOf.get(String(row.employment_id)), String(row.work_date)) !== undefined;
-	// a roster day is priced under the version in force on its date, whatever version it was keyed under
+	// a roster day is priced under the stretch in force on its date, whatever stint it was keyed under
 	const owners = new WeakMap<JsonObject, string>();
 	const ownerOf = (row: JsonObject): string => {
 		const held = owners.get(row);
 		if (held !== undefined) return held;
-		const owner = String(
-			versionOn(employeeOf.get(String(row.employment_id)), String(row.work_date))?.id ??
-				row.employment_id
-		);
+		const version = versionOn(employeeOf.get(String(row.employment_id)), String(row.work_date));
+		const owner = version === undefined ? String(row.employment_id) : stretchOf(version);
 		owners.set(row, owner);
 		return owner;
 	};
-	// one roster day a person and date: where two versions each hold one, the day keyed under the version in force wins
+	// one roster day a person and date: where two stints each hold one, the day keyed under the stint in force wins
 	const workRows = [
 		...new Map(
 			(data.roster_entry ?? [])
 				.filter((row) => due(row, row.work_date) && employed(row))
 				.toSorted(
 					(left, right) =>
-						Number(ownerOf(left) === String(left.employment_id)) -
-						Number(ownerOf(right) === String(right.employment_id))
+						Number(stintOf(ownerOf(left)) === String(left.employment_id)) -
+						Number(stintOf(ownerOf(right)) === String(right.employment_id))
 				)
 				.map((row) => [
 					`${employeeOf.get(String(row.employment_id))}/${String(row.work_date)}`,
@@ -553,7 +541,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		)
 	];
 	for (const [owner, days] of rosterDayTypes) {
-		const own = answering.find((row) => String(row.id) === owner);
+		const own = answering.find((row) => stretchOf(row) === owner);
 		if (own === undefined) continue;
 		for (const date of replaced) {
 			if (days[date] !== undefined) continue;
@@ -580,9 +568,9 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			)
 				leaveDays.add(`${employeeOf.get(String(entry.employment_id))}:${child.incurred_on}`);
 	}
-	// each day is priced at the rates of the contract version it was worked under
+	// each day is priced at the rates of the terms it was worked under
 	const termsOf = new Map(
-		(data.employee_contract ?? []).map((row) => [String(row.id), objectValue(row.terms)])
+		(data.employment ?? []).map((row) => [stretchOf(row), objectValue(row.terms)])
 	);
 	const workDays = new Map<string, JsonObject[]>();
 	for (const row of workRows) {
@@ -593,7 +581,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			holidays: data.holiday ?? [],
 			roster_day_types: rosterDayTypes.get(owner) ?? {},
 			roster_days: [],
-			employee: employeeOf.get(owner)
+			employee: employeeOf.get(stintOf(owner))
 		});
 		// a makeup workday never masks the holiday it makes up for: every other kind earns its premium
 		const holiday = holidays.find((row) => row.kind !== 'MAKEUP_WORKDAY') ?? holidays[0];
@@ -612,7 +600,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			plan.day_type === 'WORK' &&
 			clock.length === 0 &&
 			holiday === undefined &&
-			!leaveDays.has(`${employeeOf.get(owner)}:${date}`);
+			!leaveDays.has(`${employeeOf.get(stintOf(owner))}:${date}`);
 		days.push({
 			date,
 			terms: termsOf.get(owner) ?? null,
@@ -685,8 +673,10 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 				ordered[0];
 			if (row === undefined) continue;
 			const terms = objectValue(row.terms);
-			// a roster day changes the plan; a day with no roster entry follows the contract's pattern or ordinary week
-			const rostered = roster.get(`${String(row.id)}:${date}`);
+			// a roster day changes the plan; a day with no roster entry follows the contract's pattern or ordinary week. One
+			// rostered outside the employment is held under its stint
+			const rostered =
+				roster.get(`${stretchOf(row)}:${date}`) ?? roster.get(`${String(row.id)}:${date}`);
 			const rosteredShift =
 				rostered === undefined ? undefined : shifts.get(String(rostered.shift_definition_id));
 			if (rosteredShift !== undefined) {
@@ -700,7 +690,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		return days;
 	};
 
-	// each row list indexed once by contract, so a person reads only their own rows, in the list's order
+	// each row list indexed once by stint, so a person reads only their own rows, in the list's order
 	const indexed = new WeakMap<readonly JsonObject[], Map<string, number[]>>();
 	const ownRows = (rows: readonly JsonObject[] | undefined, ids: ReadonlySet<string>) => {
 		if (rows === undefined) return [];
@@ -764,7 +754,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		const workCatalog = new Map(
 			(data.work_event_catalog ?? []).map((row) => [String(row.code), row])
 		);
-		// an event for one person is theirs under every version of their contract; one for no one is everyone's
+		// an event for one person is theirs under every stint of theirs; one for no one is everyone's
 		const eventKeys = new Set([...(employmentsOf.get(employeeId) ?? []), 'null', 'undefined']);
 		const workEvents = ownRows(data.work_event, eventKeys).flatMap((row) => {
 			const catalog = workCatalog.get(String(row.catalog_code));
@@ -810,12 +800,12 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 								covers(row.effective_range, date, date)
 							);
 							if (contract === undefined) return false;
-							if (rosterDates.has(`${String(contract.id)}:${date}`)) return false;
+							if (rosterDates.has(`${stretchOf(contract)}:${date}`)) return false;
 							if (leaveDates.has(date)) return false;
 							if (
 								holidaysForDay(date, {
 									holidays: data.holiday ?? [],
-									roster_day_types: rosterDayTypes.get(String(contract.id)) ?? {},
+									roster_day_types: rosterDayTypes.get(stretchOf(contract)) ?? {},
 									roster_days: [],
 									employee: employeeId
 								}).length > 0
@@ -836,7 +826,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 							overtime_intervals: []
 						}));
 		const claims = entries(data.claim_catalog_entry).filter((row) => due(row, row.incurred_on));
-		// what a later-signed version adds for earlier periods is this period's back pay, on the law's own row
+		// what later-signed terms add for earlier periods is this period's back pay, on the law's own row
 		const owed = pays === undefined ? (frame.backPay?.get(employeeId) ?? 0) : 0;
 		const adhoc = [
 			...entries(data.adhoc_catalog_entry).filter((row) => due(row, row.incurred_on)),
@@ -864,7 +854,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 				row.paid_on <= lastAttended &&
 				frame.leftOut?.has(String(row.id)) !== true
 		);
-		// expressions read the employment, not the version: it ends with this version only at an exit
+		// expressions read the employment, not the stretch: it ends only at an exit
 		const { exit, ...version } = contract;
 		const range = objectValue(contract.effective_range);
 		// An exit settles its leave on the payslip that covers the last day, from the balance as that period saw it:
@@ -962,7 +952,9 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 						loan_catalog_entry_repayment: repayments
 					},
 					work: {
-						days: [...own].flatMap((id) => workDays.get(id) ?? []).concat(absences)
+						days: contractsOfEmployee
+							.flatMap((row) => workDays.get(stretchOf(row)) ?? [])
+							.concat(absences)
 					},
 					work_events: workEvents,
 					...(projected === undefined ? {} : { projected_days: projected }),

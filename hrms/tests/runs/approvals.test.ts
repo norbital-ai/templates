@@ -20,7 +20,7 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-02-20T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const STINT = idOf('employment', uuid(6));
 const DAY = '2026-02-10';
 const base = pack(
 	'MY',
@@ -68,7 +68,7 @@ const leave = (by: Caller, ...dates: readonly string[]) =>
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: STINT,
 					catalog_code: 'MEDICAL_LEAVE',
 					days: wholeDays(...dates)
 				})
@@ -84,7 +84,7 @@ const leave = (by: Caller, ...dates: readonly string[]) =>
 		);
 const claimOf = (quantity: number) => ({
 	entity_id: ENTITY,
-	employment_id: CONTRACT,
+	employment_id: STINT,
 	catalog_code: 'MEDICAL_CLAIM',
 	quantity: String(quantity),
 	incurred_on: DAY
@@ -481,7 +481,7 @@ describe('a request and the balance', () => {
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: STINT,
 					catalog_code: IN_LIEU,
 					days: wholeDays(date)
 				})

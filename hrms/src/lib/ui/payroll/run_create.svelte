@@ -191,7 +191,7 @@
 			create({ entity_id: companyId, pay_group_id: group.id, period: cycle, kind: 'ON_CYCLE' });
 	};
 	const runOffCycle = () => {
-		// a run pays the contracts in its period: a leaver is paid on the period of their last day
+		// a run pays the stints in its period: a leaver is paid on the period of their last day
 		const day = [today, ...paying.flatMap((row) => row.employed.to ?? [])]
 			.map(String)
 			.toSorted()[0];

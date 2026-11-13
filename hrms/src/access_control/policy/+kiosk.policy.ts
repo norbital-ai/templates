@@ -41,7 +41,7 @@ export default policy({
 				}
 			}
 		},
-		employee_contract: {
+		employment: {
 			outputs: { kiosk: {} }
 		},
 		// the kiosk output reads no leave

@@ -160,7 +160,7 @@ export const dayFindings = (
 /**
  * Roster-time warnings. A day sheet is accepted, but every cap it crosses is recorded on the entry
  * so the month board and the importer can show it before payroll runs. Every employment in the batch is read in one
- * wave: the contracts with the law each answers to, then the stored days of the months and weeks the batch touches,
+ * wave: the stints with the law each answers to, then the stored days of the months and weeks the batch touches,
  * reaching back as far as the longest consecutive run its laws check. The answer is each supplied row's findings, in
  * order.
  */
@@ -178,18 +178,18 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	const dates = supplied.flatMap((entry) => day(entry.work_date) ?? []);
 	if (groups.size === 0 || dates.length === 0) return findings;
 	const got = yield* queryRows(read, {
-		employee_contract: {
+		employment: {
 			where: { id: { in: [...groups.keys()] } },
 			fields: ['id', 'entity_id', 'effective_range'],
 			limit: 10000,
 			entity_id: { fields: ['settings_code'] }
 		},
-		...(yield* lawReadOf(read, { employee_contract: { some: { id: { in: [...groups.keys()] } } } }))
+		...(yield* lawReadOf(read, { employment: { some: { id: { in: [...groups.keys()] } } } }))
 	});
 	const laws = lawsOf(got);
 	// the caps of the law in force on each sheet's first day: its roster rule's
 	const capsOf = new Map(
-		(got.employee_contract ?? []).flatMap((contract) => {
+		(got.employment ?? []).flatMap((contract) => {
 			const employment = String(contract.id);
 			const on = day(supplied[groups.get(employment)?.[0] ?? -1]?.work_date) ?? startOf(contract);
 			const law = laws(

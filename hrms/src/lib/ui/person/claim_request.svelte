@@ -20,13 +20,13 @@
 		onclose
 	}: {
 		ctx: PageContext;
-		employmentId?: Id<'employee_contract'> | null;
+		employmentId?: Id<'employment'> | null;
 		companyId: Id<'entity'>;
 		onsaved: () => void;
 		onclose: () => void;
 	} = $props();
 	const clock = ctx.clock('day');
-	let chosen = $state<Id<'employee_contract'> | null>(fixedEmployment);
+	let chosen = $state<Id<'employment'> | null>(fixedEmployment);
 </script>
 
 {#snippet catalog(field: FieldEditor)}<CatalogueEditor
@@ -60,9 +60,9 @@
 						{#snippet editor(field)}
 							<Picker
 								{ctx}
-								of="employee_contract"
+								of="employment"
 								id={field.id}
-								where={{ entity_id: { eq: companyId }, status: { eq: 'SEALED' } }}
+								where={{ entity_id: { eq: companyId } }}
 								value={chosen}
 								disabled={field.disabled}
 								on_change={(value) => {

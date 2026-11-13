@@ -1,6 +1,6 @@
 // Two ways a law row is reached from outside the month's own chain: an ad hoc entry that posts to a statutory account
 // (a tax instalment the authority directs) counts as that scheme's amount withheld without entering the base the scheme
-// is worked out from; and a contract signed after its first month's pay date pays those days as back pay of the period
+// is worked out from; and terms signed after their first month's pay date pays those days as back pay of the period
 // it was signed in, on the row the law names in `conversions.back_pay`. Malaysia's law pack is the fixture; each figure
 // is the same run without the entry, or the test's own salary and dates.
 import assert from 'node:assert/strict';
@@ -8,7 +8,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { ownLines, pay, run, slip } from '../amendment_kit.ts';
 import {
 	ENTITY,
@@ -21,7 +21,7 @@ import {
 	decimalNumber
 } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 /** No queued work failed and the ledger holds no hard finding. */
 const ledgerWhole = (t: Kit) =>
 	Effect.gen(function* () {
@@ -60,7 +60,7 @@ describe('a tax instalment posted to the tax scheme’s account', () => {
 					'adhoc_catalog_entry.create': [
 						{
 							entity_id: ENTITY,
-							employment_id: CONTRACT,
+							employment_id: EMPLOYMENT,
 							catalog_code: 'CP38_INSTALMENT',
 							description: 'Directed instalment',
 							quantity: String(INSTALMENT),
@@ -122,11 +122,19 @@ describe('a joiner signed after the month’s pay date', () => {
 	const base = malaysia(SALARY);
 	const seed = {
 		...base,
-		employee_contract: (base.employee_contract ?? []).map((row) => ({
+		employment: (base.employment ?? []).map((row) => ({
 			...row,
 			effective_range: { from: '2026-02-23', to: null },
-			service_started_on: '2026-02-23',
-			terms: { ...objectValue(row.terms), signed_on: '2026-02-26' }
+			service_started_on: '2026-02-23'
+		})),
+		contract_terms: (base.contract_terms ?? []).map((row) => ({
+			...row,
+			effective_from: '2026-02-23',
+			signed_on: '2026-02-26'
+		})),
+		statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
+			...row,
+			effective_from: '2026-02-23'
 		}))
 	};
 

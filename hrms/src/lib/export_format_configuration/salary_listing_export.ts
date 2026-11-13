@@ -54,7 +54,10 @@ const amount = (value: unknown): number => {
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 const dayOf = (value: unknown) => (typeof value === 'string' ? value.slice(0, 10) : '');
 
-/** What the listing reads: the runs, their payslips (each with its contract) and the people's contract versions. */
+/**
+ * What the listing reads: the runs, their payslips (each with its stint as it stood at the period's end) and the
+ * people's stints.
+ */
 export type ListingRead = {
 	readonly runs: readonly {
 		readonly id: string;
@@ -78,22 +81,22 @@ export type ListingRead = {
 			readonly payroll?: { readonly identity_number?: unknown } | null;
 		} | null;
 	}[];
-	readonly versions: readonly {
+	readonly stints: readonly {
 		readonly employee_id: unknown;
 		readonly effective_range: { readonly from: unknown; readonly to?: unknown };
 	}[];
 };
 
 /** Each run's sheet, in period order, its people by employee code. */
-export const sheetsOf = ({ runs, slips, versions }: ListingRead): readonly Sheet[] => {
+export const sheetsOf = ({ runs, slips, stints }: ListingRead): readonly Sheet[] => {
 	const joined = new Map<string, string>();
 	const left = new Map<string, string>();
-	for (const [person, rows] of Map.groupBy(versions, (row) => String(row.employee_id))) {
+	for (const [person, rows] of Map.groupBy(stints, (row) => String(row.employee_id))) {
 		const ordered = rows.toSorted((a, b) =>
 			dayOf(a.effective_range.from).localeCompare(dayOf(b.effective_range.from))
 		);
 		joined.set(person, dayOf(ordered[0]?.effective_range.from));
-		// someone has left when their latest version ends
+		// someone has left when their latest stint ends
 		const to = ordered.at(-1)?.effective_range.to;
 		if (to != null) left.set(person, dayOf(to));
 	}

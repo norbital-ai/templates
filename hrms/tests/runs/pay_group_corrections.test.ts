@@ -6,7 +6,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, pay, rostered, run } from '../amendment_kit.ts';
-import { PAY_GROUP, current, storedQuery, uuid, workspace } from '../kit.ts';
+import { EMPLOYMENT, PAY_GROUP, current, storedQuery, uuid, workspace } from '../kit.ts';
 
 const GROUP_B = uuid(908);
 
@@ -14,19 +14,19 @@ describe('a change of pay group', () => {
 	/** The company pays monthly on group A to February, and on a second group from the first of March. */
 	const movedGroup = () => {
 		const seed = rostered(['2026-02', '2026-03']);
-		const [contract] = seed.employee_contract ?? [];
 		const [group] = seed.pay_group ?? [];
-		assert.ok(contract !== undefined && group !== undefined);
+		assert.ok(group !== undefined);
 		return {
 			...seed,
 			pay_group: [group, { ...group, id: GROUP_B, name: 'Monthly, from March' }],
-			employee_contract: [
-				{ ...contract, effective_range: { from: '2025-01-01', to: '2026-02-28' } },
+			// the move is a change of terms from the first of March: one row holding the new group
+			contract_terms: [
+				...(seed.contract_terms ?? []),
 				{
-					...contract,
 					id: uuid(907),
-					pay_group_id: GROUP_B,
-					effective_range: { from: '2026-03-01', to: null }
+					employment_id: EMPLOYMENT,
+					effective_from: '2026-03-01',
+					pay_group_id: GROUP_B
 				}
 			]
 		};
@@ -37,7 +37,7 @@ describe('a change of pay group', () => {
 				roster_entry: {
 					where: {
 						work_date: { eq: date },
-						employment_id: { eq: idOf('employee_contract', uuid(6)) }
+						employment_id: { eq: idOf('employment', EMPLOYMENT) }
 					},
 					limit: 1
 				}

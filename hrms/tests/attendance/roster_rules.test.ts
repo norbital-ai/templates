@@ -106,22 +106,16 @@ describe('a contract shift pattern', () => {
 	it.live('refuses a shift longer than its normal day', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const [held] = (yield* storedQuery(t, { employee_contract: { limit: 1 } })).employee_contract
-				.rows;
+			const [held] = (yield* storedQuery(t, { contract_terms: { limit: 1 } })).contract_terms.rows;
 			assert.ok(held !== undefined);
 			const admin = yield* t.as(t.admin);
 			const refused = yield* Effect.flip(
 				admin.act({
-					'employee_contract.update': [
-						{
-							target: held,
-							set: { terms: { ...held.terms, job_title: 'Changed' } }
-						}
-					]
+					'contract_terms.update': [{ target: held, set: { job_title: 'Changed' } }]
 				})
 			);
 			assert.ok(refused._tag === 'ActRefused');
-			assert.equal(refused.key, 'errors.employee_contract_shift_overlong');
+			assert.equal(refused.key, 'errors.contract_terms_shift_overlong');
 			assert.equal(refused.values?.hours, 8);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
 	);

@@ -12,7 +12,7 @@ export default model({
 	record_label: "record.employment_id.employee_number + ' · ' + record.catalog_code",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
-		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'loan_catalog_entry' },
+		employment_id: { kind: 'ref', to: 'employment', inverse: 'loan_catalog_entry' },
 		catalog_code: { kind: 'text' },
 		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, on_delete: 'set_null' },
 		quantity: { kind: 'decimal', scale: 12, min: 0 },

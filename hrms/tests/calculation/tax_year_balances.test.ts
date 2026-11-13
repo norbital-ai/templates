@@ -10,7 +10,7 @@ import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { ENTITY, accountsIn, pack, storedQuery, uuid, workspace } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 type Seed = ReturnType<typeof pack>;
 const terms = (amount: number) => ({
 	rate: { amount, unit: 'MONTHLY' },
@@ -25,9 +25,14 @@ const malaysia = (amount: number, from = '2025-01-01'): Seed => {
 	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(amount), {}, [], []);
 	return {
 		...seed,
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
+		employment: (seed.employment ?? []).map((row) => ({
 			...row,
 			effective_range: { from, to: null }
+		})),
+		contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: from })),
+		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+			...row,
+			effective_from: from
 		}))
 	};
 };
@@ -41,7 +46,7 @@ const enter = (t: Kit, code: string, quantity: number, on: string) =>
 			'adhoc_catalog_entry.create': [
 				{
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: EMPLOYMENT,
 					catalog_code: code,
 					description: code,
 					quantity: String(quantity),
@@ -240,9 +245,17 @@ describe('a benefit', () => {
 					...row,
 					statutory_parameters: { risk_class: 'I' }
 				})),
-				employee_contract: (base.employee_contract ?? []).map((row) => ({
+				employment: (base.employment ?? []).map((row) => ({
 					...row,
 					effective_range: { from: '2026-01-01', to: null }
+				})),
+				contract_terms: (base.contract_terms ?? []).map((row) => ({
+					...row,
+					effective_from: '2026-01-01'
+				})),
+				statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
+					...row,
+					effective_from: '2026-01-01'
 				}))
 			};
 			return Effect.gen(function* () {

@@ -33,8 +33,8 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 - A statutory scheme row says which month answers for carried pay (`assessed`). `EARNED`, the default: the scheme is worked out again for the earlier period and its difference is carried. `PAID`: the earlier period's charge stands, and the carried pay counts as wages of the month that pays it. Malaysia's SOCSO, EIS and SKBBK are `PAID`.
 - Net pay never goes below zero. What cannot be taken back is one line, "Recovery carried forward", and the next run takes the rest.
 - Nothing of a person moves while an unpaid run holds them. Delete the run first.
-- A paid payslip is never rewritten. A priced entry may be deleted. Contract versions stay dated and frozen: a change is a new version from its real date, and a wrong one is voided and replaced, never deleted. A change of law or of a company is a dated row from its real date; a wrong one is corrected, moved or deleted in place ([RFC 0011](0011-dated-changes.md)).
-- **The contract, by date.** Facts (family, events, statutory set-up, pay group) come from the version in force on the date; a dated row is priced under the version in force on its date. Agreed terms come from the latest version signed by the period's pay date. What a later-signed version adds for earlier periods is back pay of the period it was signed in, on the row the law names in `conversions.back_pay`. A law that names none applies a version from its start. A hire signed after its first months follows the same rule.
+- A paid payslip is never rewritten. A priced entry may be deleted. A change to a person's terms or statutory parameters, to a company or to a law is a dated row from its real date; a wrong one is corrected, moved or deleted in place ([RFC 0011](0011-dated-changes.md)).
+- **The employment, by date.** Facts (family, events, statutory parameters, pay group) are those in force on the date; a dated row is priced under the terms in force on its date. Agreed terms are the change rows signed by the period's pay date. What a later-signed row adds for earlier periods is back pay of the period it was signed in, on the row the law names in `conversions.back_pay`. A law that names none applies a row from its date. A hire signed after its first months follows the same rule.
 - The full description is in [corrections and integrity](0007-corrections-and-integrity.md).
 
 ### Leave rows
@@ -62,9 +62,9 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 
 ### Exits
 
-- An **exit** is a sealed contract version ending with no same-jurisdiction successor. No record copies it.
-- The contract's write raises `exit` for the law's exit duties and, in its own effect, keeps the exit's other tasks in step: it waives or reopens the exit's duty tasks and rebuilds a cancelled exit's loan schedule (owner, 2026-11-13). The last payslip settles the leave from the contract's `encash_leave`, which the termination form asks, checked by default; nothing waits for approval.
-- **The last payslip settles the leave.** Nothing is keyed, nothing waits for approval and no law effect raises a task for it. The contract carries HR's decision `encash_leave` (default on), set in the termination sheet and changeable on the ended contract.
+- An **exit** is a stint with a last day and no later stint of the person under the same law. No record copies it.
+- The stint's write raises `exit` for the law's exit duties and, in its own effect, keeps the exit's other tasks in step: it waives or reopens the exit's duty tasks and rebuilds a cancelled exit's loan schedule (owner, 2026-11-13). The last payslip settles the leave from the stint's `encash_leave`, which the termination form asks, checked by default; nothing waits for approval.
+- **The last payslip settles the leave.** Nothing is keyed, nothing waits for approval and no law effect raises a task for it. The stint carries HR's decision `encash_leave` (default on), set in the termination sheet and changeable on the ended stint.
 - The on-cycle run whose salary period holds the last day reads, for each leave row with a `payout`, what is left in its newest window as that period saw it. Days left are paid out, unless HR switched it off or the exit is a dismissal for misconduct. Days taken beyond what the last day earned are taken back at the same payout rate, whatever HR decided.
 - The payslip lists them under `cash_out`, and its own posting moves the row's `used` days, so the balance ends at zero. Deleting the run undoes it.
 - Changing the decision, moving the last day or cancelling the exit after that run is paid amends the period: the next run carries the difference and the days follow. Someone no on-cycle run pays any more is paid by an off-cycle run that carries their waiting periods. Such a run takes nothing back; one task names what they would owe.
@@ -146,7 +146,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 ### Payroll run and pay groups
 
 - Two kinds, and these are their names: **on-cycle payroll** and **off-cycle payroll**. `payroll_run` is thin: on-cycle takes the cycle, the entity from page scope; off-cycle takes who and what it is for.
-- A `pay_group` is one payroll of a company: its name and its schedule (frequency, pay days, cutoff). Every schedule is a group; the company carries none. A contract names its group (a move is a new version from the first of a month), and a run is for one group: company, group, cycle. Its attendance window, pay date and "a later cycle has run" are that group's. A company with one group needs none named. A group that has a paid run keeps its schedule: its name and pay day may change, what moves pay may not. A new schedule is a new group, and people move to it by contract versions from the first of a month.
+- A `pay_group` is one payroll of a company: its name and its schedule (frequency, pay days, cutoff). Every schedule is a group; the company carries none. A person's terms name their group (a move is a terms row from the first of a month), and a run is for one group: company, group, cycle. Its attendance window, pay date and "a later cycle has run" are that group's. A company with one group needs none named. A group that has a paid run keeps its schedule: its name and pay day may change, what moves pay may not. A new schedule is a new group, and people move to it by terms rows from the first of a month.
 - Off-cycle pays named ad hoc entries and bonus runs, with one-off lump sums such as severance. It may also carry the waiting earlier periods HR names, which is how someone who has left is paid what a correction owes them. Recurring items are on-cycle only: a tax instalment, zakat, rent, benefit in kind, allowance or overtime never runs off-cycle. Only ad hoc rows carry `off_cycle_eligible`; statutory schemes always apply.
 - Everything else derives from the pay group's schedule, cutoff day and the law in force; none of it is typed. `pay_date` is the day the schedule pays, and the calculation reads it. The date people see is the moment the run moved to `PAID`; it shows only then and is never typed.
 - A run is `UNPAID` or `PAID`, payment is per run, and a payslip has no status and is read-only forever.
@@ -169,7 +169,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 - All top-level settings sections are tabs (general, lookup, calculation overview, catalog, registered rules, registered behaviour, change log) with `More` only for overflow. The sidebar highlights the active child, never the group.
 - The calculation overview leads with the description; code, expression, eligibility and references sit behind its info control.
 - The profile is one screen with vertical sections. Face enrolment sits inside Profile; two columns where width allows; a nested vertical tab rail.
-- Selection is visible. A leave half-day is filled when selected, dimmed and blocked when unavailable. The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and sealing a contract version, ask before a save that reaches a paid period; the server writes the amendment row whatever a form asked. The payslip groups carried lines under "Adjustments for earlier periods", and the run lists the periods it carried and those waiting under "Earlier periods".
+- Selection is visible. A leave half-day is filled when selected, dimmed and blocked when unavailable. The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and a change to a person's terms, parameters, dependants or stint, ask before a save that reaches a paid period; the server writes the amendment row whatever a form asked. The payslip groups carried lines under "Adjustments for earlier periods", and the run lists the periods it carried and those waiting under "Earlier periods".
 
 ### Simplicity
 
@@ -182,15 +182,15 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 
 ## 1. The idea
 
-Everything the system knows about the law lives in **catalogues**, inside the jurisdiction's law, which changes by date. Everything that is true of a person lives on their sealed **contract**. Everything that happens once is an **entry** against a catalogue row. A payroll **run** reads these and works through one straight calculation, from pay down to net pay. The **ledger** records every movement of a balance, and the **balance** holds the running totals. A **rule** refuses a bad write; an **effect** raises a task after a good one. A mistake is corrected where it was recorded; a paid payslip is never rewritten, and the next run pays the difference.
+Everything the system knows about the law lives in **catalogues**, inside the jurisdiction's law, which changes by date. Everything that is true of a person lives on their profile and their **employment**: one stint with one company, with what was agreed and what the law is told of the person in rows that change by date. Everything that happens once is an **entry** against a catalogue row. A payroll **run** reads these and works through one straight calculation, from pay down to net pay. The **ledger** records every movement of a balance, and the **balance** holds the running totals. A **rule** refuses a bad write; an **effect** raises a task after a good one. A mistake is corrected where it was recorded; a paid payslip is never rewritten, and the next run pays the difference.
 
 Three owners hold everything:
 
-| Owner         | What it is                                                                                                   | Where it lives                                    | Who changes it                                           |
-| ------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | -------------------------------------------------------- |
-| The law       | One law per jurisdiction, changed by dated changes: catalogues, subtotal chain, conversions, rules, effects  | `seed/public/jurisdiction/**`, then the workspace | HR, by editing the law or confirming a researched change |
-| The company   | The entity, its dated changes and pay methods, its pay groups, holidays, shifts, and each person's contracts | The workspace's records                           | HR                                                       |
-| Template code | The models, the payroll engine, the ledger service, automations, policies and pages                          | `src/`                                            | Engineers, within section 0                              |
+| Owner         | What it is                                                                                                    | Where it lives                                    | Who changes it                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------- |
+| The law       | One law per jurisdiction, changed by dated changes: catalogues, subtotal chain, conversions, rules, effects   | `seed/public/jurisdiction/**`, then the workspace | HR, by editing the law or confirming a researched change |
+| The company   | The entity, its dated changes and pay methods, its pay groups, holidays, shifts, and each person's employment | The workspace's records                           | HR                                                       |
+| Template code | The models, the payroll engine, the ledger service, automations, policies and pages                           | `src/`                                            | Engineers, within section 0                              |
 
 The template code holds no country's rate, threshold or formula. A country's behaviour is data in its law.
 
@@ -198,13 +198,13 @@ The template code holds no country's rate, threshold or formula. A country's beh
 
 ```mermaid
 flowchart TD
-  person[employee_profile<br/>the person] --> contract[employee_contract<br/>sealed versions, each dated]
+  person[employee_profile<br/>the person] --> employment[employment<br/>one stint, its dated terms<br/>and statutory parameters]
   entity[entity<br/>the company] --> change[entity_change<br/>dated, pay methods]
   entity --> group[pay_group<br/>one payroll and its schedule]
   law[jurisdiction, jurisdiction_change<br/>the law on a day] --> rows[catalogue rows, subtotals,<br/>rules and effects]
-  contract --> entries[entries<br/>leave, claim, ad hoc,<br/>loan repayment, roster day]
+  employment --> entries[entries<br/>leave, claim, ad hoc,<br/>loan repayment, roster day]
   rows --> entries
-  contract --> run[payroll_run<br/>one pay group, one cycle]
+  employment --> run[payroll_run<br/>one pay group, one cycle]
   change --> run
   group --> run
   rows --> run
@@ -212,7 +212,7 @@ flowchart TD
   run --> payslip[payslip<br/>one per person, read-only]
   entries -- posting --> ledger[ledger_entry<br/>append-only]
   payslip -- posting --> ledger
-  contract -- sync --> ledger
+  employment -- sync --> ledger
   rows -- sync --> ledger
   ledger --> balance[employee_balance<br/>one row per person]
   balance --> run
@@ -225,9 +225,11 @@ Every fact has one owner. A value is read from its owner; it is not copied into 
 | `jurisdiction`, `jurisdiction_change` | Legal definitions, statutory schemes, conversions, rounding, the tax year                                                                                         | Employer operating hours, agreed pay                                 |
 | `entity`, `entity_change`             | Legal identity, registrations, bank, time zone, the jurisdiction code; by date, pay methods, the two percentages and the statutory data the law asks of a company | Employee pay terms, any pay schedule                                 |
 | `pay_group`                           | One payroll of a company: payment schedule, non-working weekdays, cutoff day                                                                                      | Anything else about the company                                      |
-| `employee_profile`                    | Name, contact, documents, login, face enrolment, whether every stint counts as service                                                                            | Standing payroll inputs                                              |
-| `employee_contract`                   | Agreed rate and its unit, normal hours and days, agreed allowances, family, dated events, exit terms, the pay group                                               | Statutory law                                                        |
-| `contract_change`                     | A dated change filed ahead of its day                                                                                                                             | Anything payroll or the ledger reads                                 |
+| `employee_profile`                    | Name, contact, documents, login, face enrolment, date of birth, identity number, gender, birth city, bank, whether every stint counts as service                  | Anything that changes by date                                        |
+| `employment`                          | One stint with one company: employee number, first and last day, credited service, the exit answers, dated events                                                 | What was agreed, what the law is told                                |
+| `contract_terms`                      | By date, what was agreed: engagement, rate and its unit, normal hours and days, agreed allowances, shift pattern, pay group, and the day it was signed            | Statutory law                                                        |
+| `statutory_parameters`                | By date, what the law is told of the person: residency, work pass, marital status, nationality and the fields the law's employee extension schema declares        | Agreed pay                                                           |
+| `dependant`                           | One member of a person's family, dated by its birth or expected date                                                                                              | Counts and flags a scheme reads: they are worked out                 |
 | Catalogue rows                        | Eligibility, conversion, target subtotal, lookup and the role fields its family declares                                                                          | Employee-specific amounts                                            |
 | Catalogue entries, `roster_entry`     | Dated employee activity and its evidence                                                                                                                          | Pay calculation results                                              |
 | `ledger_entry`, `employee_balance`    | Posted movements and their cumulative projection                                                                                                                  | Calculation inputs other than totals                                 |
@@ -235,7 +237,7 @@ Every fact has one owner. A value is read from its owner; it is not copied into 
 | `pay_amendment`                       | One paid period of one person to work out again, and the run that carried it                                                                                      | What changed, or any amount                                          |
 | `obligation`                          | A task or reminder raised by an event, with its state                                                                                                             | Money or balances                                                    |
 
-`employee_contract` has one lifecycle: `DRAFT → SEALED → VOID`. A sealed record is read-only except its dates and reason. A void needs a reason and is final. A law and a company have no lifecycle: their changes are edited, moved or deleted in place. A company's own fields are edited in place. The company on a day is the fold of its `entity_change` rows dated on or before it; a field no change has set holds its default. A run prices on the company as it stands on the last day of its salary period. Field-level detail is in [the model specification](0002-model-specification.md); contract chains, transfers and voids are in [transfer semantics](transfer-semantics.md).
+A person, a company and a law have no lifecycle. A plain field is edited in place, and a dated row is added, edited, moved or deleted. The employment on a day is the fold of the stint's `contract_terms` and `statutory_parameters` rows dated on or before it, with the profile's particulars and the person's dependants (`employmentOn` in `src/lib/person.ts`). A terms or parameters row is dated the first of a month, or the stint's first day; a stint's first and last days are real dates. Stints of one person do not overlap. The company on a day is the fold of its `entity_change` rows dated on or before it; a field no change has set holds its default. A run prices on the company as it stands on the last day of its salary period. Field-level detail is in [the model specification](0002-model-specification.md); stints, transfers and exits are in [transfer semantics](transfer-semantics.md).
 
 ### One owner per fact
 
@@ -249,7 +251,8 @@ Before a field is added, five questions decide whether it has a second owner. A 
 
 | Fact                                                   | Owner                                                 |
 | ------------------------------------------------------ | ----------------------------------------------------- |
-| What was agreed: rate, hours, allowances, facts        | `employee_contract`                                   |
+| What was agreed: rate, hours, allowances               | `contract_terms`                                      |
+| What the law is told of a person                       | `statutory_parameters`                                |
 | How this law converts: day, hour, proration, rounding  | The law's `conversions` block                         |
 | Whether an allowance is in the rate a day or hour uses | That `allowance_catalog` row (`include_in_rate`)      |
 | Whether an allowance line follows absence              | That row's `conversion`, by reading `ctx.paid_share`  |
@@ -283,16 +286,16 @@ flowchart LR
 
 ### How the law is chosen for a date
 
-| Reader                         | Law it uses                                                                                       |
-| ------------------------------ | ------------------------------------------------------------------------------------------------- |
-| A payroll run                  | The law of the entity's jurisdiction code on the run's pay date. It reads only that law's rows    |
-| The pay date itself            | On-cycle: the day the pay group's schedule pays that cycle. Off-cycle: the day the run is created |
-| A contract being saved         | The law in force on the contract's first day (rate, normal time, category, work region)           |
-| An entry being keyed           | The catalogue row picked, from the law in force on the day                                        |
-| An entry in a later run        | The row of the entry's `catalog_code` in the law the run prices on                                |
-| A paid period worked out again | The law as it stands now on that period's pay date, so a change corrected or dated back applies   |
-| HR's manual balance row        | The law in force for the person on the row's date                                                 |
-| The entitlement sync           | The rows in force on the day it runs. A change dated later syncs on its day                       |
+| Reader                                | Law it uses                                                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| A payroll run                         | The law of the entity's jurisdiction code on the run's pay date. It reads only that law's rows                           |
+| The pay date itself                   | On-cycle: the day the pay group's schedule pays that cycle. Off-cycle: the day the run is created                        |
+| A terms or parameters row being saved | The law in force on the row's date and on each later change date of its stint (rate, normal time, category, work region) |
+| An entry being keyed                  | The catalogue row picked, from the law in force on the day                                                               |
+| An entry in a later run               | The row of the entry's `catalog_code` in the law the run prices on                                                       |
+| A paid period worked out again        | The law as it stands now on that period's pay date, so a change corrected or dated back applies                          |
+| HR's manual balance row               | The law in force for the person on the row's date                                                                        |
+| The entitlement sync                  | The rows in force on the day it runs. A change dated later syncs on its day                                              |
 
 A run refuses when no law is in force on its pay date. A run and a payslip store no reference to the law: the pay date names it.
 
@@ -338,7 +341,7 @@ Notes:
 
 - Only ad hoc rows state a `direction` and a `party`. `party EMPLOYER` is employer cost and never enters net pay. A quantity below zero flips its entry's line.
 - A refund or charge decided outside the system is keyed on the generic `STATUTORY_REFUND` or `STATUTORY_ADJUSTMENT` row, which names the account it moves. A contribution that was wrong in a paid period needs no entry: correct the record and the next run carries the difference.
-- A leave entry is a list of dated half-day slots (`AM`, `PM`). Its quantity is the number of slots ÷ 2. A row that counts in hours takes half the contract's normal day for each slot.
+- A leave entry is a list of dated half-day slots (`AM`, `PM`). Its quantity is the number of slots ÷ 2. A row that counts in hours takes half the agreed normal day for each slot.
 - A claim on a row with a yearly limit pays what the limit leaves. The run pays what the ledger posted.
 - An entry carries `entity_id`, `employment_id`, `catalog_code`, evidence and an optional `payroll_run_id`. The run that pays it sets `payroll_run_id`. The entry may still be corrected: its write leaves an amendment row for the paid period.
 
@@ -346,7 +349,7 @@ Each family may read only its declared context roots. An expression is a determi
 
 | Root                                      | Holds                                                                               |
 | ----------------------------------------- | ----------------------------------------------------------------------------------- |
-| `ctx.subject`                             | The employee, the employment (contract) and the employer                            |
+| `ctx.subject`                             | The employee, the employment on the day and the employer                            |
 | `ctx.entry`                               | The catalogue entry and its quantity                                                |
 | `ctx.lookup`                              | The jurisdiction's shared lookup under the row's own                                |
 | `ctx.balances`                            | `ytd`, `statutory_contribution`, `month`, `years`                                   |
@@ -362,13 +365,13 @@ Each family may read only its declared context roots. An expression is a determi
 | `ctx.event`, `ctx.used`, `ctx.as_of`      | Leave: the fact that opened the row, days used before the slot, its date            |
 | `ctx.reads`, `ctx.before`, `ctx.after`    | Rules and effects: their declared reads and the row either side of a write          |
 
-The employment in `ctx.subject` carries `service_started_on` (the service start `cumulative_service` decides) and `employment_started_on` (the current unbroken stint's start).
+The employment in `ctx.subject` is the stint as it stands on the day (`employmentOn` in `src/lib/person.ts`): its own fields (`id`, `employee_number`, `effective_range`, the exit answers, `events`), `engagement`, `pay_group_id`, `terms` (the agreed terms in force, with `signed_on`, residency and the work pass), `payroll` (date of birth, identity number, gender, birth city, marital status, nationality, passport number), `family` (the person's dependants), `bank` and `employee_extension_data` (the `parameters` in force). It also carries `service_started_on` (the service start `cumulative_service` decides) and `employment_started_on` (the start of the current unbroken employment).
 
 ## 5. What the engine computes and what catalogues declare
 
 | The engine (template code)                                                     | The catalogue (law data)                                          |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| Which contracts, entries and roster days a run takes                           | Who a row applies to (`eligibility`)                              |
+| Which stints, entries and roster days a run takes                              | Who a row applies to (`eligibility`)                              |
 | `month_wage`, `day_rate`, `hour_rate`, calendar and working days, once per run | Which basis converts a month to a day and an hour (`conversions`) |
 | Joiner and leaver proration, absences, the unpaid part of leave                | The proration basis and each leave row's `paid_share`             |
 | Walking the subtotal chain in order; adding each row's lines to its subtotal   | The chain itself and each row's `subtotal`                        |
@@ -390,16 +393,16 @@ Each law declares one typed block:
 - `conversions.hour`: `CONTRACT_HOURS` (day ÷ contract normal hours), `CONTRACT_WEEKLY` (monthly × 12 ÷ (52 × contract hours a week)), or `FIXED` with its `hours`.
 - `conversions.proration`: `CALENDAR_DAYS`, `WORKING_DAYS` or `DAY_RATE`. `DAY_RATE` prices each missed day at `ctx.day_rate`, whether it is leave, an absence, a joiner's missing day or a leaver's.
 - `conversions.rounding`: `{ mode, scale, day_rate }`. The mode is `HALF_UP`, `HALF_EVEN`, `UP`, `DOWN` or `TRUNCATE`; the scale is 0 to 12. `day_rate` is `RATE` (the default: the day rate is rounded before it multiplies the days) or `AMOUNT` (only the amount is rounded). The Philippines uses `AMOUNT`.
-- `conversions.back_pay`: optional, the code of the ad hoc row that prices back pay. Named, a contract version signed after periods it reaches pays what it adds for them as back pay of the period it was signed in. Left out, a version applies from its start.
+- `conversions.back_pay`: optional, the code of the ad hoc row that prices back pay. Named, a terms row signed after periods it reaches pays what it adds for them as back pay of the period it was signed in. Left out, a row applies from its date.
 - `ledger.ytd_scope`: `JURISDICTION` or `EMPLOYER`. `EMPLOYER` restarts pay and statutory totals when a person changes employer.
 
-A contract states its rate as `MONTHLY`, `DAILY` or `HOURLY`. A daily or hourly contract's own rate already is its day or hour. On an overtime row, `ctx.hour_rate` is the higher of the jurisdiction's hour and the employer's `overtime_hour_basis` hour.
+The terms state the rate as `MONTHLY`, `DAILY` or `HOURLY`. A daily or hourly rate already is its day or hour. On an overtime row, `ctx.hour_rate` is the higher of the jurisdiction's hour and the employer's `overtime_hour_basis` hour.
 
 ### The chain
 
 ```mermaid
 flowchart LR
-  basic[BASIC<br/>contract pay] --> prorated[PRORATED<br/>less days not employed<br/>and absences]
+  basic[BASIC<br/>agreed pay] --> prorated[PRORATED<br/>less days not employed<br/>and absences]
   prorated --> paidbasic[PAID_BASIC<br/>less unpaid leave]
   paidbasic --> later[Later subtotals<br/>plus allowances, overtime,<br/>claims, ad hoc]
   later --> statutory[Statutory schemes<br/>in depends_on order]
@@ -407,7 +410,7 @@ flowchart LR
   net --> carried[Lines for<br/>earlier periods]
 ```
 
-1. **`BASIC`** is base pay from the contract: the monthly salary, the daily rate × working days, or the hourly rate × ordinary hours.
+1. **`BASIC`** is base pay from the terms in force: the monthly salary, the daily rate × working days, or the hourly rate × ordinary hours.
 2. **`PRORATED`** takes off days not employed and absences.
 3. **`PAID_BASIC`** takes off the unpaid part of leave: each slot's `(1 − paid_share)`, posted as an `NPL` line. Paid leave creates no line.
 4. **Each later subtotal** is the one before it plus every line whose row points at it: allowances, overtime, claims, ad hoc entries, cash-outs, back pay.
@@ -417,7 +420,7 @@ flowchart LR
 
 An allowance takes the same share as the salary when its conversion reads `ctx.paid_share`; otherwise it pays whole.
 
-A contract change starts on the 1st of a month, so a period normally has one version. A hire, a rehire and an exit keep their real dates. Only a seeded contract version can start inside a period. Then the period pays the first version's salary, and each later version adds the difference of its day rate for its own days. Overtime is priced under the version it was worked under.
+A terms or parameters row is dated the first of a month, or the stint's first day, so a month is priced on one set of terms. A stint's first and last days are real dates, and the period's proration pays those days. A roster day, and its overtime, is priced under the terms in force on its date.
 
 ### Month-to-date and year-to-date
 
@@ -455,7 +458,7 @@ Measures are `entitled`, `carried`, `used`, `limit`, `total` and `paid`. A perio
 | Month        | `M`    | Month totals                                            |
 | Service year | `S`    | Leave by anniversary, with an optional offset in months |
 | Block        | `B`    | A fixed block of months of service                      |
-| Event        | `E`    | Leave opened by a dated fact on the contract            |
+| Event        | `E`    | Leave opened by a dated fact of the person              |
 | Lifetime     | `L`    | A grant for the whole of service                        |
 
 What is left is never stored: `entitled + carried + limit − used`. A row with no figure has no limit.
@@ -488,16 +491,17 @@ Each source says what it should have posted, and the service writes only the dif
 
 The `ledger` automation works out what each person is owed for each leave or claim row and posts the difference from what was applied. Days already taken stay taken.
 
-| When                                                                             | Who is synced |
-| -------------------------------------------------------------------------------- | ------------- |
-| A contract is created or sealed                                                  | That person   |
-| A profile changes how service counts                                             | That person   |
-| A leave posting or manual row is dated in an earlier year                        | That person   |
-| A change of law is written, or its day comes; a finding is confirmed or rejected | Everyone      |
-| A company change is written, or its day comes                                    | Everyone      |
-| A run is marked paid                                                             | Everyone      |
-| The next day anyone's window turns                                               | Everyone      |
-| 1 January                                                                        | Everyone      |
+| When                                                                                   | Who is synced |
+| -------------------------------------------------------------------------------------- | ------------- |
+| A stint or a dependant is written; a terms or parameters row in force today is written | That person   |
+| A terms or parameters row dated ahead reaches its day                                  | Everyone      |
+| A profile changes how service counts, or its date of birth or gender is corrected      | That person   |
+| A leave posting or manual row is dated in an earlier year                              | That person   |
+| A change of law is written, or its day comes; a finding is confirmed or rejected       | Everyone      |
+| A company change is written, or its day comes                                          | Everyone      |
+| A run is marked paid                                                                   | Everyone      |
+| The next day anyone's window turns                                                     | Everyone      |
+| 1 January                                                                              | Everyone      |
 
 ```text
 EVENT                         APPLIED   DIFF   TAKEN   LEFT
@@ -517,7 +521,7 @@ A new window starts the balance again, because a new window is a new key:
 | `carry.statutory_grant_carries`      | Statutory days carry in full; company days above them up to a cap |
 | `per_months`                         | What was left + new; nothing lapses                               |
 
-The window that closed settles first, once, under the law and contract of its last day. A contract's `annual_leave_carry_limit_days` caps what it carries.
+The window that closed settles first, once, under the law and the terms of its last day. The agreed `annual_leave_carry_limit_days` caps what it carries.
 
 The row's `lookup` holds the rule:
 
@@ -528,7 +532,7 @@ The row's `lookup` holds the rule:
 | `eligibility`                                   | Gender, marital status or part-time only                             |
 | `proration: COMPLETED_MONTHS`                   | Before the first band, a share of the first year by completed months |
 | `part_time_pro_rata`, `part_time_service_bands` | A part-timer's share, or their own bands                             |
-| `extra_days`                                    | Days a class of work or a contract fact adds                         |
+| `extra_days`                                    | Days a class of work or a fact of the person adds                    |
 | `opened_by`                                     | The dated facts that open the row, each as its own event window      |
 | `entitlement`                                   | The row's own statutory test, as an expression                       |
 | `accounts`                                      | The entry draws on another row's account instead of its own          |
@@ -536,9 +540,9 @@ The row's `lookup` holds the rule:
 
 ### Dated facts open leave
 
-A birth, a marriage, a bereavement or a long illness is a fact about a person, so it lives on the sealed contract: a child in `family`, anything else in `events` (`kind`, `on`, optional `opened_on` and `ended_on`). Sealing the contract triggers sync, and each leave row whose `opened_by` names the kind opens for that event, in its own period. Days left from one birth do not stack onto the next. Two children born on one day are one birth.
+A birth, a marriage, a bereavement or a long illness is a fact about a person. A child is a `dependant`, dated by its birth or expected date. Anything else is an item in the stint's `events` (`kind`, `on`, optional `opened_on` and `ended_on`). Writing either triggers sync, and each leave row whose `opened_by` names the kind opens for that event, in its own period. Days left from one birth do not stack onto the next. Two children born on one day are one birth.
 
-A fact known ahead of its day is filed as a `contract_change`; nothing reads it until `contract_materialize` seals it into a new version on that day. A company change dated ahead is an `entity_change` row not yet in force: nothing materialises it.
+A fact keeps its real date: a child registered late opens its leave on the birth date. A terms row, a parameters row or a company change dated ahead is a row not yet in force. Nothing materialises it, and the ledger syncs on its day.
 
 ### Old periods
 
@@ -547,8 +551,9 @@ Sync takes old periods off the balance through dated movements: a month total mo
 ## 7. Rules, effects and tasks
 
 - A **registered rule** validates a write. It names a target model, the events (`create`, `update`, `delete`), its declared reads and a validation expression. It runs inside the target model's write and refuses with the rule's own message.
-- A **registered effect** runs after a commit. It names a source model, the events (`create`, `update`, `seal`, `exit`), its reads, a condition and an expression that returns the records to write. Every seeded effect creates an `obligation`.
-- An **obligation** is a task or reminder: entity, optional person and contract, title, optional due date, an `occurrence_key` that keeps it to one, and a state. `OPEN → FULFILLED` or `OPEN → WAIVED`; a waived task can be reopened; a fulfilled one keeps its record. It holds no money and posts nothing.
+- A **registered effect** runs after a commit. It names a source model, the events (`create`, `update`, `delete`, `exit`), its reads, a condition and an expression that returns the records to write. Every seeded effect creates an `obligation`.
+- An **obligation** is a task or reminder: entity, optional person and employment, title, optional due date, an `occurrence_key` that keeps it to one, and a state. `OPEN → FULFILLED` or `OPEN → WAIVED`; a waived task can be reopened; a fulfilled one keeps its record. It holds no money and posts nothing.
+- **The employment in a rule.** A rule or effect on `employment` runs on a write to a stint, to its `contract_terms` or to its `statutory_parameters`. Its entry is the employment on the written row's day: on the terms and parameters in force that day, with `effective_range` from the first day those terms stood to the stint's last day. `ctx.before` is the employment as it stood without the write, and is null for a hire. `exit` runs when a stint becomes an exit; its entry is the employment on the last day.
 - **The company in a rule.** A rule or effect on `entity_change` reads, as its entry, the folded company on the change's date. One on `entity` reads an update of the company's own fields. Every other rule reads the company through `ctx.subject.employer`, as it stands on the row's own day.
 
 A leave or claim entry's effects run in the `registered_effects` automation, under the system identity, once the entry is not waiting for approval. A check with a deadline ahead, such as a permit or a retirement date, sits on the payslip and runs at every run; its `occurrence_key` keeps it to one task. A run effect looks for its own task before raising it.
@@ -557,15 +562,14 @@ A leave or claim entry's effects run in the `registered_effects` automation, und
 
 All run as the system identity under their declared policy. Each is safe to run again.
 
-| Automation             | Started by                                                                                               | What it is for                                                                                                                                         |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ledger`               | A contract, profile, law or company change write; a run marked paid; each window boundary; 1 January; HR | Syncs entitlements, one run at a time. A whole-workspace pass also retires old periods, schedules the next boundary and ends with the integrity check. |
-| `registered_effects`   | A leave or claim entry written or posted; a new profile                                                  | Applies the law's effects for records whose writer cannot read the law                                                                                 |
-| `contract_materialize` | A filed `contract_change`                                                                                | Seals the changes whose day has come into one contract version per person and date. A change that cannot seal stays filed and raises a task            |
-| `statutory_research`   | Every Saturday at 03:00 UTC; HR                                                                          | Reads official sources and files proposed findings and their dated changes. A change is not in force until a person confirms its finding               |
-| `invitation_profile`   | Every minute while the workspace is in use                                                               | Creates one employee profile per accepted staff invitation and links it to the user                                                                    |
+| Automation           | Started by                                                                                                                                    | What it is for                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ledger`             | A write to a stint, its dated rows, a dependant, a profile, a law or a company change; a run marked paid; each window boundary; 1 January; HR | Syncs entitlements, one run at a time. A whole-workspace pass also retires old periods, schedules the next boundary and ends with the integrity check. |
+| `registered_effects` | A leave or claim entry written or posted; a new profile                                                                                       | Applies the law's effects for records whose writer cannot read the law                                                                                 |
+| `statutory_research` | Every Saturday at 03:00 UTC; HR                                                                                                               | Reads official sources and files proposed findings and their dated changes. A change is not in force until a person confirms its finding               |
+| `invitation_profile` | Every minute while the workspace is in use                                                                                                    | Creates one employee profile per accepted staff invitation and links it to the user                                                                    |
 
-`ledger`, `registered_effects` and `contract_materialize` hold `payroll_execution`. `statutory_research` holds `configuration_execution`. `invitation_profile` holds its own policy. A sync or follow-up that fails for good raises a task.
+`ledger` and `registered_effects` hold `payroll_execution`. `statutory_research` holds `configuration_execution`. `invitation_profile` holds its own policy. A sync or follow-up that fails for good raises a task.
 
 ## 9. Roles and approvals
 
@@ -603,17 +607,17 @@ src/lib/
     amended.ts          paid periods worked out again, and what a run carries for them
     expressions.ts      the expression interpreter and its helpers
     registrations.ts    rule and effect dispatch
-    contract_change.ts  contract chains, exits, dated changes
     pay_cycle.ts        cycles, pay dates, attendance windows
     loan_schedule.ts    loan schedules and final recovery
   law.ts                the law on a day: what a run, a write or a screen reads
+  person.ts             the employment on a day: the fold of a stint's dated rows, exits, service starts
   dated.ts              the fold of dated changes, the reach of a change, a correction
   amendments.ts         the amendment rows a write carries; every model a run reads and its rule
   dependants.ts         what an exit raised, moved or cancelled leaves behind
   integrity.ts          the ledger check
   export_format_configuration/  salary listing and bank files
 src/data/model/         the models, each with its write rules
-src/automation/         the six automations
+src/automation/         the four automations
 src/access_control/     teams and policies
 src/app/                HR controller apps, employee self-service
 ```
@@ -623,6 +627,7 @@ src/app/                HR controller apps, employee self-service
 - HR Controller holds Entities, People, Events, Payroll runs, Obligations, Formats and a Settings group. Settings has two apps: Lineage (one jurisdiction's law on a chosen day) and Change log (Scheduled: the findings research proposed and those confirmed, with a button that starts research).
 - Settings is one screen for a jurisdiction and a day. Its tabs: General (currency, calendar, conversions, ledger, work regions, extension schemas), Lookup (the shared tables), Calculation overview, Catalog, Registered rules, Registered behaviour and Change log (the timeline of the law's changes, and the research findings). Each shows the law in force on the chosen day. A change opens to show what it changed. Saving a value asks whether it was always so or changes from a date.
 - Events lists each entry family on its own page: leave, claims, ad hoc, loans, workplace cases, the work month board and work events.
-- An employee profile's tabs: Profile (face enrolment inside it), Employment contract, Loans, Workplace cases, and Balances (a balance overview of what is left today, and the ledger where HR adds manual adjustments).
+- An employee profile's tabs: Profile (face enrolment inside it), Contract (the stints, newest first, each a timeline of its terms from the hire to the last day), Statutory parameters (the same timeline of what the law is told), Family (the dependants), Events, Loans, Workplace cases, and Balances (a balance overview of what is left today, and the ledger where HR adds manual adjustments).
+- Each dated tab shows what is in force today above its timeline. A timeline row shows its date and only what it changed, and opens its own record to be edited, moved or deleted. Hire or Rehire, Transfer and Terminate are single sheets on the Contract tab, each one write.
 - A rule's or effect's `reads` show the record id as a variable chip and the rest of the filter in the shared filter editor; every expression is a read-only code block.
 - A self-service leave or claim form hides the employment picker when the page already knows the employment.

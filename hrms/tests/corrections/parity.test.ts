@@ -1,27 +1,30 @@
 // Every change that alters a paid month, corrected at its source after the month was paid, reconciles on the next
 // payslip: a history that paid January wrong, corrected the source and ran February has paid in all exactly what a
 // history that was right before January paid, line by line, and its leave ledger ends the same. Ledger work run again
-// changes nothing. The Malaysian pack is only the fixture; every figure compared is one the system produced.
+// changes nothing. So does any sequence of adds, edits, moves and deletes on the person's terms rows. The Malaysian
+// pack is only the fixture; every figure compared is one the system produced.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
-import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
-import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
+import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	EMPLOYMENT,
 	amendments,
 	carriedFor,
 	paidInAll,
 	pay,
+	raisedFrom,
 	rostered,
 	run,
 	slip
 } from '../amendment_kit.ts';
 import {
 	ENTITY,
+	PARAMETERS,
+	TERMS,
 	accountsIn,
 	current,
 	lawAt,
@@ -32,6 +35,7 @@ import {
 	storedQuery,
 	storedReader,
 	syncAll,
+	uuid,
 	wholeDays,
 	workspace
 } from '../kit.ts';
@@ -135,85 +139,56 @@ const parity = <A>(
 		)
 	);
 
-// ---- contract facts -------------------------------------------------------------------------------------------------
+// ---- the person's facts ---------------------------------------------------------------------------------------------
 
-const versions = (t: Kit) =>
-	storedQuery(t, { employee_contract: { limit: 100 } }).pipe(
-		Effect.map(({ employee_contract }) => employee_contract.rows)
-	);
-type Version = Effect.Success<ReturnType<typeof versions>>[number];
-type Facts = Partial<Pick<Version, 'family' | 'employee_extension_data' | 'terms'>>;
-/**
- * A sealed version is frozen: a fact is changed by a new version from its real date, the way HR makes one (the draft,
- * the open version ended the day before, the seal). Sealed over a paid month, its write amends that month.
- */
-const factsFrom = (from: string, facts: Facts) => (t: Kit) =>
-	Effect.gen(function* () {
-		const admin = yield* t.as(t.admin);
-		const held = (yield* versions(t)).find(
-			(row) => row.status === 'SEALED' && row.effective_range.to === null
-		);
-		assert.ok(held !== undefined, 'No open version');
-		yield* admin.act({
-			'employee_contract.create': [
-				{
-					employee_id: held.employee_id,
-					entity_id: held.entity_id,
-					engagement: held.engagement,
-					employee_number: held.employee_number,
-					terms: facts.terms ?? held.terms,
-					payroll: held.payroll,
-					bank: held.bank,
-					family: facts.family ?? held.family,
-					employee_extension_data: facts.employee_extension_data ?? held.employee_extension_data,
-					service_started_on: held.service_started_on,
-					effective_range: { from, to: null },
-					status: 'DRAFT',
-					reason: 'A fact corrected'
-				}
-			]
-		});
-		const draft = (yield* versions(t)).find((row) => row.status === 'DRAFT');
-		assert.ok(draft !== undefined, 'No draft version');
-		yield* admin.act({
-			'employee_contract.update': [
-				{
-					target: held,
-					set: {
-						effective_range: {
-							from: held.effective_range.from,
-							to: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
-						}
-					}
-				}
-			]
-		});
-		yield* admin.act({
-			'employee_contract.update': [{ target: draft, set: { status: 'SEALED' } }]
-		});
-		yield* t.run_due();
-	});
+/** The spouse the seed keys: the pack's first dependant. */
+const SPOUSE = idOf('dependant', uuid(40));
+const reliefs = (children: Readonly<Record<string, number>>) => ({ statutory: { PCB: children } });
 /** A married earner whose PCB the family and the declared child reliefs move. */
-const married = (
-	family: readonly JsonObject[],
-	children: Readonly<Record<string, number>>
-): Seed => {
+const married = (has_income: boolean, children: Readonly<Record<string, number>>): Seed => {
 	const base = rostered(MONTHS, undefined, 8000);
 	return {
 		...base,
-		employee_contract: (base.employee_contract ?? []).map((row) => ({
+		employee_profile: (base.employee_profile ?? []).map((row) => ({
 			...row,
-			payroll: { date_of_birth: '1985-01-01', gender: 'MALE', marital_status: 'MARRIED' },
-			family: [...family],
-			employee_extension_data: { statutory: { PCB: children } }
-		}))
+			date_of_birth: '1985-01-01'
+		})),
+		statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
+			...row,
+			marital_status: 'MARRIED',
+			parameters: reliefs(children)
+		})),
+		dependant: [{ id: SPOUSE, employee_id: uuid(4), relation: 'SPOUSE', has_income }]
 	};
 };
-const spouse = (has_income: boolean) => [{ relation: 'SPOUSE' as const, has_income }];
-const reliefs = (children: Readonly<Record<string, number>>) => ({ statutory: { PCB: children } });
+/** A dependant is corrected on its own row: whether the spouse has an income. */
+const spouseEarns = (has_income: boolean) => (t: Kit) =>
+	Effect.gen(function* () {
+		yield* (yield* t.as(t.admin)).act({
+			'dependant.update': [{ target: yield* current(t, 'dependant', SPOUSE), set: { has_income } }]
+		});
+		yield* t.run_due();
+	});
+/** What the law was told since the hire is corrected on the row that set it: the first parameters row. */
+const declared = (children: Readonly<Record<string, number>>) => (t: Kit) =>
+	Effect.gen(function* () {
+		yield* (yield* t.as(t.admin)).act({
+			'statutory_parameters.update': [
+				{
+					target: yield* current(
+						t,
+						'statutory_parameters',
+						idOf('statutory_parameters', PARAMETERS)
+					),
+					set: { parameters: reliefs(children) }
+				}
+			]
+		});
+		yield* t.run_due();
+	});
 const nothing = () => Effect.void;
 
-describe('a contract fact corrected after its month was paid', () => {
+describe('a fact of the person corrected after its month was paid', () => {
 	for (const [was, is] of [
 		[true, false],
 		[false, true]
@@ -221,8 +196,8 @@ describe('a contract fact corrected after its month was paid', () => {
 		it.live(
 			`spouse ${was ? 'with' : 'without'} income corrected to ${is ? 'with' : 'without'}: the next payslip carries the PCB difference`,
 			() => {
-				const right = factsFrom('2026-01-01', { family: spouse(is) });
-				return parity(married(spouse(was), {}), { wrong: nothing, correct: right, right });
+				const right = spouseEarns(is);
+				return parity(married(was, {}), { wrong: nothing, correct: right, right });
 			}
 		);
 
@@ -233,10 +208,8 @@ describe('a contract fact corrected after its month was paid', () => {
 		it.live(
 			`children corrected from ${was} to ${is}: the next payslip carries the difference`,
 			() => {
-				const right = factsFrom('2026-01-01', {
-					employee_extension_data: reliefs({ children_under_18_or_studying: is })
-				});
-				return parity(married(spouse(true), { children_under_18_or_studying: was }), {
+				const right = declared({ children_under_18_or_studying: is });
+				return parity(married(true, { children_under_18_or_studying: was }), {
 					wrong: nothing,
 					correct: right,
 					right
@@ -440,13 +413,15 @@ describe('a leave day corrected after the exit payslip was paid', () => {
 		);
 	const ended = (t: Kit) =>
 		Effect.gen(function* () {
-			const target = yield* current(t, 'employee_contract', EMPLOYMENT);
-			const [held] = (yield* versions(t)).filter((row) => row.id === EMPLOYMENT);
+			const { employment } = yield* storedQuery(t, {
+				employment: { where: { id: { eq: EMPLOYMENT } }, limit: 1 }
+			});
+			const [held] = employment.rows;
 			assert.ok(held !== undefined);
 			yield* (yield* t.as(t.admin)).act({
-				'employee_contract.update': [
+				'employment.update': [
 					{
-						target,
+						target: held,
 						set: {
 							effective_range: { from: held.effective_range.from, to: LAST },
 							reason: 'Resignation'
@@ -516,67 +491,20 @@ describe('a leave day corrected after the exit payslip was paid', () => {
 
 /** The Malaysian rows price `terms.allowances.<code>.amount` by the days employed and the paid share, and SUA is in the rate. */
 type Allowances = Readonly<Record<string, { readonly amount: number }>>;
-/** The seed with these agreed allowances on its one contract. */
+/** The seed with these agreed allowances on the hire's terms. */
 const allowing = (allowances: Allowances, base: Seed = rostered(MONTHS)): Seed => ({
 	...base,
-	employee_contract: (base.employee_contract ?? []).map((row) => ({
-		...row,
-		...(isJsonObject(row.terms) ? { terms: { ...row.terms, allowances } } : {})
-	}))
+	contract_terms: (base.contract_terms ?? []).map((row) => ({ ...row, allowances }))
 });
-const openVersion = (t: Kit) =>
-	versions(t).pipe(
-		Effect.map((rows) => {
-			const held = rows.find((row) => row.status === 'SEALED' && row.effective_range.to === null);
-			assert.ok(held !== undefined, 'No open version');
-			return held;
-		})
-	);
-/** The agreed allowances corrected by a version over the paid months, made the way HR makes one. */
+/** The agreed allowances were wrong since the hire: corrected on the row that set them, the first terms row. */
 const allowed = (allowances: Allowances) => (t: Kit) =>
-	openVersion(t).pipe(
-		Effect.flatMap((held) => factsFrom('2026-01-01', { terms: { ...held.terms, allowances } })(t))
-	);
-/**
- * The version itself replaced over its own days (mistakes.test.ts, 'a contract version sealed with a wrong term'). A
- * joiner's version starts mid-month, so no successor from the first can correct it, and a mid-month draft is refused
- * while a sealed version reaches the day before (employee_contract `startsMidMonth`): the wrong one is voided first,
- * then the replacement drafted and sealed. With no version left in between, nothing reads as an exit.
- */
-const replaced = (allowances: Allowances) => (t: Kit) =>
 	Effect.gen(function* () {
-		const admin = yield* t.as(t.admin);
-		const held = yield* openVersion(t);
-		yield* admin.act({
-			'employee_contract.update': [
-				{ target: held, set: { status: 'VOID', reason: 'Keyed with the wrong allowances' } }
-			]
-		});
-		yield* t.run_due();
-		yield* admin.act({
-			'employee_contract.create': [
+		yield* (yield* t.as(t.admin)).act({
+			'contract_terms.update': [
 				{
-					employee_id: held.employee_id,
-					entity_id: held.entity_id,
-					engagement: held.engagement,
-					employee_number: held.employee_number,
-					terms: { ...held.terms, allowances },
-					payroll: held.payroll,
-					bank: held.bank,
-					family: held.family,
-					employee_extension_data: held.employee_extension_data,
-					service_started_on: held.service_started_on,
-					effective_range: { from: held.effective_range.from, to: null },
-					status: 'DRAFT',
-					reason: 'The agreed allowances'
+					target: yield* current(t, 'contract_terms', idOf('contract_terms', TERMS)),
+					set: { allowances }
 				}
-			]
-		});
-		const draft = (yield* versions(t)).find((row) => row.status === 'DRAFT');
-		assert.ok(draft !== undefined, 'No draft version');
-		yield* admin.act({
-			'employee_contract.update': [
-				{ target: yield* current(t, 'employee_contract', draft.id), set: { status: 'SEALED' } }
 			]
 		});
 		yield* t.run_due();
@@ -630,21 +558,155 @@ describe('an agreed allowance corrected after its month was paid', () => {
 		}
 	);
 
-	// every Malaysian allowance row prices `amount × calendar days ÷ month days × ctx.paid_share`: a joiner's month
+	// every Malaysian allowance row prices `amount × calendar days ÷ month days × ctx.paid_share`: a joiner's month. The
+	// stint starts mid-month, and its first rows are dated its first day
 	const HIRED = '2026-01-12';
 	const joiner = (allowances: Allowances): Seed => {
 		const base = allowing(allowances);
 		return {
 			...base,
-			employee_contract: (base.employee_contract ?? []).map((row) => ({
+			employment: (base.employment ?? []).map((row) => ({
 				...row,
 				effective_range: { from: HIRED, to: null }
+			})),
+			contract_terms: (base.contract_terms ?? []).map((row) => ({ ...row, effective_from: HIRED })),
+			statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
+				...row,
+				effective_from: HIRED
 			})),
 			roster_entry: (base.roster_entry ?? []).filter((row) => String(row.work_date) >= HIRED)
 		};
 	};
 	it.live('a joiner’s first month: the added allowance takes the days employed, as B', () => {
-		const right = replaced(SUA(300));
+		const right = allowed(SUA(300));
 		return parity(joiner(NONE), { wrong: nothing, correct: right, right });
 	});
+});
+
+// ---- any sequence of changes to the terms ---------------------------------------------------------------------------
+
+/** January and February are paid before the terms move; March's run carries what they now owe. */
+const THREE = ['2026-01', '2026-02', '2026-03'] as const;
+const HIRE = '2025-01-01';
+/** The rate `rostered` hires on. */
+const RATE = 2800;
+const FIRSTS = ['2026-01-01', '2026-02-01', '2026-03-01'];
+type Change =
+	| { readonly kind: 'add' | 'edit'; readonly on: string; readonly amount: number }
+	| { readonly kind: 'move'; readonly on: string; readonly to: string }
+	| { readonly kind: 'delete'; readonly on: string };
+/**
+ * A sequence of changes to a person's rate rows, the same on every run of one `seed`, and the rate each date holds
+ * after them. The hire's row is only ever edited; a raise is added on a free first of a month, edited, moved to a free
+ * one or deleted.
+ */
+const sequence = (seed: number, length: number) => {
+	let state = seed;
+	const next = () => {
+		state = (state * 1664525 + 1013904223) % 4294967296;
+		return state / 4294967296;
+	};
+	const pick = <T>(items: readonly T[]) => items[Math.floor(next() * items.length)];
+	const rates = new Map([[HIRE, RATE]]);
+	const changes: Change[] = [];
+	while (changes.length < length) {
+		const kind = pick(['add', 'edit', 'move', 'delete'] as const);
+		const amount = 2600 + 50 * Math.floor(next() * 16);
+		const raise = pick([...rates.keys()].filter((on) => on !== HIRE));
+		const free = pick(FIRSTS.filter((on) => !rates.has(on)));
+		const held = pick([...rates.keys()]);
+		if (kind === 'add' && free !== undefined) {
+			rates.set(free, amount);
+			changes.push({ kind, on: free, amount });
+		} else if (kind === 'edit' && held !== undefined) {
+			rates.set(held, amount);
+			changes.push({ kind, on: held, amount });
+		} else if (kind === 'move' && raise !== undefined && free !== undefined) {
+			rates.set(free, rates.get(raise) ?? amount);
+			rates.delete(raise);
+			changes.push({ kind, on: raise, to: free });
+		} else if (kind === 'delete' && raise !== undefined) {
+			rates.delete(raise);
+			changes.push({ kind, on: raise });
+		}
+	}
+	return { changes, rates };
+};
+/** One change, made on the row itself. */
+const changed = (t: Kit, change: Change) =>
+	Effect.gen(function* () {
+		if (change.kind === 'add') return yield* raisedFrom(t, change.on, change.amount);
+		const { contract_terms } = yield* storedQuery(t, {
+			contract_terms: { where: { effective_from: { eq: change.on } }, limit: 1 }
+		});
+		const [target] = contract_terms.rows;
+		assert.ok(target !== undefined, `No terms row on ${change.on}`);
+		const admin = yield* t.as(t.admin);
+		if (change.kind === 'delete') yield* admin.act({ 'contract_terms.delete': [{ target }] });
+		else
+			yield* admin.act({
+				'contract_terms.update': [
+					{
+						target,
+						set:
+							change.kind === 'move'
+								? { effective_from: change.to }
+								: { rate: { amount: change.amount, unit: 'MONTHLY' } }
+					}
+				]
+			});
+		yield* t.run_due();
+	});
+
+describe('any sequence of changes to a paid person’s terms', () => {
+	// 11 ends where it began; 202 moves a raise between months and leaves one on each
+	for (const seed of [11, 47, 202])
+		it.live(
+			`sequence ${seed} of adds, edits, moves and deletes: every period has been paid what a never-wrong history pays`,
+			() => {
+				const { changes, rates } = sequence(seed, 6);
+				const from = rostered(THREE);
+				const now = at(THREE[2]);
+				return Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					yield* syncAll(t);
+					yield* pay(t, THREE[0]);
+					yield* pay(t, THREE[1]);
+					const paid = [yield* slip(t, THREE[0]), yield* slip(t, THREE[1])];
+					for (const change of changes) yield* changed(t, change);
+					const march = yield* run(t, THREE[2]);
+					assert.ok(
+						(yield* amendments(t)).every((row) => row.payroll_run_id === march.id),
+						'March took every row'
+					);
+					assert.deepEqual(
+						[yield* slip(t, THREE[0]), yield* slip(t, THREE[1])],
+						paid,
+						'the paid payslips stand'
+					);
+					yield* settledOnce(t);
+					return yield* outcome(t, THREE);
+				}).pipe(
+					Effect.provide(workspace({ seed: from, now })),
+					Effect.flatMap((corrected) =>
+						Effect.gen(function* () {
+							const t = yield* TestWorkspace;
+							yield* syncAll(t);
+							// the rows as the sequence left them, keyed before anything was paid
+							for (const [on, amount] of rates)
+								if (on !== HIRE) yield* changed(t, { kind: 'add', on, amount });
+								else if (amount !== RATE) yield* changed(t, { kind: 'edit', on, amount });
+							yield* pay(t, THREE[0]);
+							yield* pay(t, THREE[1]);
+							yield* run(t, THREE[2]);
+							assert.deepEqual(yield* amendments(t), []);
+							return yield* outcome(t, THREE);
+						}).pipe(
+							Effect.provide(workspace({ seed: from, now })),
+							Effect.map((never) => assert.deepEqual(corrected, never))
+						)
+					)
+				);
+			}
+		);
 });

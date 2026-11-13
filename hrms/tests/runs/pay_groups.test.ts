@@ -1,5 +1,5 @@
-// A company's payrolls. A run pays one pay group: its contracts, its schedule, its own order of cycles and its own
-// capture of the contracts it paid. Malaysia's public law is only the fixture; nothing here reads an amount.
+// A company's payrolls. A run pays one pay group: its people, its schedule, its own order of cycles and its own
+// capture of the stints it paid. Malaysia's public law is only the fixture; nothing here reads an amount.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
@@ -34,8 +34,8 @@ const TERMS = {
 };
 const A = idOf('pay_group', PAY_GROUP);
 const B = idOf('pay_group', uuid(808));
-const FIRST = idOf('employee_contract', uuid(6));
-const SECOND = idOf('employee_contract', uuid(906));
+const FIRST = idOf('employment', uuid(6));
+const SECOND = idOf('employment', uuid(906));
 const SISTER = idOf('entity', uuid(900));
 const SISTER_GROUP = idOf('pay_group', uuid(908));
 const MONTHLY = {
@@ -61,8 +61,17 @@ type Seed = ReturnType<typeof base>;
 const twoGroups = (schedule: typeof MONTHLY = MONTHLY): Seed => {
 	const seed = base();
 	const [group] = seed.pay_group ?? [];
-	const [contract] = seed.employee_contract ?? [];
-	assert.ok(group !== undefined && contract !== undefined);
+	const [profile] = seed.employee_profile ?? [];
+	const [stint] = seed.employment ?? [];
+	const [terms] = seed.contract_terms ?? [];
+	const [parameters] = seed.statutory_parameters ?? [];
+	assert.ok(
+		group !== undefined &&
+			profile !== undefined &&
+			stint !== undefined &&
+			terms !== undefined &&
+			parameters !== undefined
+	);
 	return {
 		...seed,
 		pay_group: [
@@ -75,16 +84,15 @@ const twoGroups = (schedule: typeof MONTHLY = MONTHLY): Seed => {
 		],
 		employee_profile: [
 			...(seed.employee_profile ?? []),
-			{ id: uuid(904), user_id: uuid(903), name: 'Second' }
+			{ ...profile, id: uuid(904), user_id: uuid(903), name: 'Second' }
 		],
 		employee_balance: [
 			...(seed.employee_balance ?? []),
 			{ id: uuid(905), employee_id: uuid(904), account: {} }
 		],
-		employee_contract: [
-			contract,
-			{ ...contract, id: SECOND, employee_id: uuid(904), employee_number: 'W2', pay_group_id: B }
-		]
+		employment: [stint, { ...stint, id: SECOND, employee_id: uuid(904), employee_number: 'W2' }],
+		contract_terms: [terms, { ...terms, id: uuid(914), employment_id: SECOND, pay_group_id: B }],
+		statutory_parameters: [parameters, { ...parameters, id: uuid(915), employment_id: SECOND }]
 	};
 };
 /** The two payrolls, and a sister company with its own. */
@@ -130,7 +138,7 @@ const runs = (t: Kit) =>
 	);
 const slips = (t: Kit) =>
 	storedQuery(t, { payslip: { limit: 100 } }).pipe(Effect.map((got) => got.payslip.rows));
-/** The contracts a group's run of a period paid. */
+/** The stints a group's run of a period paid. */
 const paidBy = (t: Kit, group: Id<'pay_group'>, period: string) =>
 	Effect.gen(function* () {
 		const ran = (yield* runs(t)).find((row) => row.pay_group_id === group && row.period === period);
@@ -140,7 +148,7 @@ const paidBy = (t: Kit, group: Id<'pay_group'>, period: string) =>
 			.map((slip) => slip.employment_id)
 			.sort();
 	});
-// each of these workspaces has run once, unpaid, when a contract is refused under it: the refusal names that run
+// each of these workspaces has run once, unpaid, when a change is refused under it: the refusal names that run
 const HELD = /Run 1 holds this person and is not paid yet/;
 const failures = (t: Kit) =>
 	storedQuery(t, { obligation: { limit: 500 } }).pipe(
@@ -148,77 +156,43 @@ const failures = (t: Kit) =>
 			obligation.rows.map((row) => row.title).filter((title) => /failed/i.test(title))
 		)
 	);
-const sealed = (t: Kit) =>
-	storedQuery(t, { employee_contract: { where: { status: { eq: 'SEALED' } }, limit: 100 } }).pipe(
-		Effect.map(({ employee_contract }) => employee_contract.rows)
-	);
-type Version = Effect.Success<ReturnType<typeof sealed>>[number];
-/** A draft successor of a sealed version from `from`, in a named group, one of another company or none. */
-const draft = (
-	t: Kit,
-	held: Version,
-	from: string,
-	group: Id<'pay_group'> | null,
-	entity: Id<'entity'> = ENTITY
-) =>
+/** A change of terms from the first of a month: the group that pays the person, or none (their group taken away). */
+const moveTo = (t: Kit, from: string, group: Id<'pay_group'> | null) =>
 	t.as(t.admin).pipe(
 		Effect.flatMap((caller) =>
 			caller.act({
-				'employee_contract.create': [
+				'contract_terms.create': [
 					{
-						employee_id: held.employee_id,
-						entity_id: entity,
-						...(group === null ? {} : { pay_group_id: group }),
-						engagement: held.engagement,
-						employee_number: held.employee_number,
-						terms: held.terms,
-						payroll: held.payroll,
-						bank: held.bank,
-						family: held.family,
-						employee_extension_data: held.employee_extension_data,
-						service_started_on: held.service_started_on,
-						effective_range: { from, to: null },
-						status: 'DRAFT',
-						reason: 'Moved to another payroll'
+						employment_id: FIRST,
+						effective_from: from,
+						...(group === null ? { clears: ['pay_group_id'] } : { pay_group_id: group })
 					}
 				]
 			})
 		)
 	);
-const drafts = (t: Kit) =>
-	storedQuery(t, { employee_contract: { where: { status: { eq: 'DRAFT' } }, limit: 100 } }).pipe(
-		Effect.map(({ employee_contract }) => employee_contract.rows)
+/** The terms rows dated a day. */
+const termsFrom = (t: Kit, from: string) =>
+	storedQuery(t, { contract_terms: { where: { effective_from: { eq: from } }, limit: 10 } }).pipe(
+		Effect.map(({ contract_terms }) => contract_terms.rows)
 	);
-const end = (t: Kit, held: Version, to: string) =>
-	t.as(t.admin).pipe(
-		Effect.flatMap((caller) =>
-			caller.act({
-				'employee_contract.update': [
-					{
-						target: held,
-						set: { effective_range: { from: held.effective_range.from, to } }
-					}
-				]
-			})
-		)
-	);
-const seal = (t: Kit, id: Id<'employee_contract'>) =>
-	Effect.all([t.as(t.admin), current(t, 'employee_contract', id)]).pipe(
-		Effect.flatMap(([caller, target]) =>
-			caller.act({ 'employee_contract.update': [{ target, set: { status: 'SEALED' } }] })
-		)
-	);
-const firstOf = (t: Kit) =>
-	sealed(t).pipe(
-		Effect.map((rows) => {
-			const held = rows.find((row) => row.id === FIRST);
-			assert.ok(held !== undefined);
-			return held;
-		})
-	);
+/** A stint given its last day. */
+const end = (t: Kit, stint: Id<'employment'>, to: string) =>
+	Effect.gen(function* () {
+		const { employment } = yield* storedQuery(t, {
+			employment: { where: { id: { eq: stint } }, limit: 1 }
+		});
+		const [held] = employment.rows;
+		assert.ok(held !== undefined);
+		return yield* (yield* t.as(t.admin)).act({
+			'employment.update': [
+				{ target: held, set: { effective_range: { from: held.effective_range.from, to } } }
+			]
+		});
+	});
 
 describe('a run pays one pay group', () => {
-	it.live('only the contracts naming it, and the other group’s same period still runs', () =>
+	it.live('only the people in it, and the other group’s same period still runs', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t, A, '2026-02');
@@ -430,51 +404,40 @@ describe('two schedules in one company', () => {
 	);
 });
 
-describe('a contract and its pay group', () => {
+describe('a person’s terms and their pay group', () => {
 	it.live('cannot name a group of another company', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const held = yield* firstOf(t);
-			const refused = yield* Effect.flip(draft(t, held, '2026-04-01', SISTER_GROUP));
-			assert.equal(keyOf(refused), 'errors.employee_contract_pay_group_other_company');
-			assert.deepEqual(yield* drafts(t), []);
+			const refused = yield* Effect.flip(moveTo(t, '2026-04-01', SISTER_GROUP));
+			assert.equal(keyOf(refused), 'errors.contract_terms_pay_group_other_company');
+			assert.deepEqual(yield* termsFrom(t, '2026-04-01'), []);
 		}).pipe(Effect.provide(workspace({ seed: withSister(), now: NOW })))
 	);
 
-	it.live('a draft may wait unnamed where there are two groups; sealing needs one', () =>
+	it.live('a change may not leave the person in no group; naming one moves them', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const held = yield* firstOf(t);
-			yield* draft(t, held, '2026-04-01', null);
-			const [waiting] = yield* drafts(t);
-			assert.ok(waiting !== undefined);
-			assert.equal(waiting.pay_group_id, null);
-			yield* end(t, held, '2026-03-31');
 			assert.equal(
-				keyOf(yield* Effect.flip(seal(t, waiting.id))),
-				'errors.employee_contract_choose_pay_group'
+				keyOf(yield* Effect.flip(moveTo(t, '2026-04-01', null))),
+				'errors.contract_terms_choose_pay_group'
 			);
+			assert.deepEqual(yield* termsFrom(t, '2026-04-01'), []);
 			// the way out the refusal names
-			yield* (yield* t.as(t.admin)).act({
-				'employee_contract.update': [{ target: waiting, set: { pay_group_id: B } }]
-			});
-			yield* seal(t, waiting.id);
-			const moved = (yield* sealed(t)).find((row) => row.id === waiting.id);
-			assert.equal(moved?.pay_group_id, B);
+			yield* moveTo(t, '2026-04-01', B);
+			assert.deepEqual(
+				(yield* termsFrom(t, '2026-04-01')).map((row) => row.pay_group_id),
+				[B]
+			);
 		}).pipe(Effect.provide(workspace({ seed: twoGroups(), now: NOW })))
 	);
 
-	it.live('an unpaid run holds its own people: A’s run holds A’s contracts, not B’s', () =>
+	it.live('an unpaid run holds its own people: A’s run holds A’s people, not B’s', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t, A, '2026-02');
-			const versions = yield* sealed(t);
-			const first = versions.find((row) => row.id === FIRST);
-			const second = versions.find((row) => row.id === SECOND);
-			assert.ok(first !== undefined && second !== undefined);
-			assert.match(String(yield* Effect.flip(end(t, first, '2026-02-13'))), HELD);
-			// B has not run February: its person's version may still end inside it
-			yield* end(t, second, '2026-02-13');
+			assert.match(String(yield* Effect.flip(end(t, FIRST, '2026-02-13'))), HELD);
+			// B has not run February: its person's stint may still end inside it
+			yield* end(t, SECOND, '2026-02-13');
 			yield* run(t, B, '2026-02');
 			assert.deepEqual(yield* paidBy(t, B, '2026-02'), [SECOND]);
 		}).pipe(Effect.provide(workspace({ seed: twoGroups(), now: NOW })))
@@ -485,35 +448,19 @@ describe('a contract and its pay group', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t, A, '2026-02');
-			const held = yield* firstOf(t);
-			// a draft reaches nothing; the version A's unpaid run priced cannot end under it
-			yield* draft(t, held, '2026-02-01', B);
-			const [moving] = yield* drafts(t);
-			assert.ok(moving !== undefined);
-			assert.match(String(yield* Effect.flip(end(t, held, '2026-01-31'))), HELD);
-			assert.match(
-				String(yield* Effect.flip(seal(t, moving.id))),
-				/overlaps another record|holds this person/
-			);
+			// the month A's unpaid run priced cannot move to B under it
+			assert.match(String(yield* Effect.flip(moveTo(t, '2026-02-01', B))), HELD);
+			assert.deepEqual(yield* termsFrom(t, '2026-02-01'), []);
 			yield* run(t, B, '2026-02');
 			assert.deepEqual(yield* paidBy(t, B, '2026-02'), [SECOND]);
 			// the way out: the move starts the first month neither payroll has paid them
-			yield* (yield* t.as(t.admin)).act({
-				'employee_contract.update': [
-					{
-						target: moving,
-						set: { effective_range: { from: '2026-03-01', to: null } }
-					}
-				]
-			});
-			yield* end(t, held, '2026-02-28');
-			yield* seal(t, moving.id);
+			yield* moveTo(t, '2026-03-01', B);
 			yield* t.run_due();
 			yield* run(t, B, '2026-03');
-			assert.deepEqual(yield* paidBy(t, B, '2026-03'), [SECOND, moving.id].sort());
+			assert.deepEqual(yield* paidBy(t, B, '2026-03'), [FIRST, SECOND].sort());
 			const periodOf = new Map((yield* runs(t)).map((row) => [row.id, row.period]));
 			const theirs = (yield* slips(t))
-				.filter((slip) => slip.employee_id === held.employee_id)
+				.filter((slip) => slip.employee_id === uuid(4))
 				.map((slip) => periodOf.get(slip.payroll_run_id))
 				.sort();
 			assert.deepEqual(theirs, ['2026-02', '2026-03']);

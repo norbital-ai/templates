@@ -1,5 +1,5 @@
 // An allowance whose conversion reads the share of the period paid falls with the salary for a joiner or leaver, and a
-// month split across contracts pays the agreed amount once between them. Malaysia's law pack is only the fixture.
+// month split across stints pays the agreed amount once between them. Malaysia's law pack is only the fixture.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
@@ -29,11 +29,55 @@ const seed: Seed = pack(
 );
 const dated = (from: Seed, range: { from: string; to: string | null }): Seed => ({
 	...from,
-	employee_contract: (from.employee_contract ?? []).map((row) => ({
+	employment: (from.employment ?? []).map((row) => ({
 		...row,
 		effective_range: range
+	})),
+	contract_terms: (from.contract_terms ?? []).map((row) => ({
+		...row,
+		effective_from: range.from
+	})),
+	statutory_parameters: (from.statutory_parameters ?? []).map((row) => ({
+		...row,
+		effective_from: range.from
 	}))
 });
+/** The stint ends on 15 June and a second of the same person starts the next day, on the same terms. */
+const split = (stint: Seed[string][number] = {}, terms: Seed[string][number] = {}): Seed => {
+	const held = dated(seed, { from: '2025-01-01', to: '2026-06-15' });
+	const next = { from: '2026-06-16', to: null };
+	return {
+		...held,
+		employment: [
+			...(held.employment ?? []),
+			...(held.employment ?? []).map((row) => ({
+				...row,
+				id: uuid(907),
+				effective_range: next,
+				...stint
+			}))
+		],
+		contract_terms: [
+			...(held.contract_terms ?? []),
+			...(held.contract_terms ?? []).map((row) => ({
+				...row,
+				id: uuid(909),
+				employment_id: uuid(907),
+				effective_from: next.from,
+				...terms
+			}))
+		],
+		statutory_parameters: [
+			...(held.statutory_parameters ?? []),
+			...(held.statutory_parameters ?? []).map((row) => ({
+				...row,
+				id: uuid(910),
+				employment_id: uuid(907),
+				effective_from: next.from
+			}))
+		]
+	};
+};
 /** Each payslip's SUA lines, summed. */
 const allowance = (t: Kit) =>
 	storedQuery(t, { payslip: { limit: 12 } }).pipe(
@@ -87,7 +131,7 @@ describe('an allowance and the share of the period paid', () => {
 	);
 });
 
-describe('an allowance across a month of contracts', () => {
+describe('an allowance across a month of stints', () => {
 	/** Each part is a share, and the parts make the agreed amount once. */
 	const shared = (parts: readonly number[]) => {
 		assert.ok(
@@ -110,24 +154,16 @@ describe('an allowance across a month of contracts', () => {
 		})
 	);
 
-	it.live('a new contract in the same company pays the whole month once', () => {
-		const contract = seed.employee_contract?.[0] ?? {};
-		return june({
-			...seed,
-			employee_contract: [
-				{ ...contract, effective_range: { from: '2025-01-01', to: '2026-06-15' } },
-				{ ...contract, id: uuid(907), effective_range: { from: '2026-06-16', to: null } }
-			]
-		}).pipe(Effect.map((paid) => assert.deepEqual(paid, [ALLOWANCE])));
-	});
+	it.live('a new stint in the same company pays the whole month once', () =>
+		june(split()).pipe(Effect.map((paid) => assert.deepEqual(paid, [ALLOWANCE])))
+	);
 
 	it.live('a transfer to a sister company pays each its share, once between them', () => {
 		const OTHER = idOf('entity', uuid(900));
-		const contract = seed.employee_contract?.[0] ?? {};
 		const [company = {}] = seed.entity ?? [];
 		const [change = {}] = seed.entity_change ?? [];
 		const moved: Seed = {
-			...seed,
+			...split({ entity_id: OTHER }, { pay_group_id: uuid(908) }),
 			entity: [...(seed.entity ?? []), { ...company, id: OTHER, code: 'E2', name: 'Sister' }],
 			entity_change: [
 				...(seed.entity_change ?? []),
@@ -137,16 +173,6 @@ describe('an allowance across a month of contracts', () => {
 			pay_group: [
 				...(seed.pay_group ?? []),
 				...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
-			],
-			employee_contract: [
-				{ ...contract, effective_range: { from: '2025-01-01', to: '2026-06-15' } },
-				{
-					...contract,
-					id: uuid(907),
-					entity_id: OTHER,
-					pay_group_id: uuid(908),
-					effective_range: { from: '2026-06-16', to: null }
-				}
 			]
 		};
 		return Effect.gen(function* () {

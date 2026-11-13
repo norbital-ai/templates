@@ -9,6 +9,8 @@
 	import { Scroll } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { DateTime, Effect } from 'effect';
+	import { isJsonObject, jsonObject } from '../../payroll_engine/foundation.js';
+	import { employmentOn, segmentsOf } from '../../person.js';
 	import { downloadRosterWorkbook, runRosterImport } from '../workbook/roster_import.js';
 	import DayCell from './day_cell.svelte';
 	import {
@@ -63,22 +65,23 @@
 	const PERSON_REM = 10;
 	const DAY_REM = 4.5;
 
-	let creating = $state<{ employmentId: Id<'employee_contract'>; date: string } | null>(null);
+	let creating = $state<{ employmentId: Id<'employment'>; date: string } | null>(null);
 
 	const companyId = $derived(company.id);
 	const dates = $derived(datesBetween(from, to));
-	const contracts = $derived(
+	const stints = $derived(
 		ctx.query({
-			employee_contract: {
-				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
-				fields: ['employee_id', 'employee_number', 'effective_range', 'terms'],
+			employment: {
+				where: { entity_id: { eq: companyId } },
+				fields: ['employee_id', 'employee_number', 'effective_range'],
 				order_by: { employee_number: 'asc' },
 				limit: 10000,
-				employee_id: { fields: ['name'] }
+				employee_id: { fields: ['name'] },
+				terms: { fields: ['effective_from', 'shift_pattern_id', 'clears'], limit: 10000 }
 			}
 		})
 	);
-	const ids = $derived((contracts.current?.employee_contract.rows ?? []).map((row) => row.id));
+	const ids = $derived((stints.current?.employment.rows ?? []).map((row) => row.id));
 	const data = $derived.by(() =>
 		ids.length === 0
 			? null
@@ -135,8 +138,8 @@
 	const zone = $derived(
 		ctx.query({ entity: { where: { id: { eq: companyId } }, fields: ['time_zone'], limit: 1 } })
 	);
-	const contractById = $derived(
-		new Map((contracts.current?.employee_contract.rows ?? []).map((row) => [String(row.id), row]))
+	const stintById = $derived(
+		new Map((stints.current?.employment.rows ?? []).map((row) => [String(row.id), row]))
 	);
 	const entriesByEmployment = $derived.by(() => {
 		const grouped = new Map<string, BoardEntry[]>();
@@ -162,14 +165,14 @@
 	const people = $derived.by(() => {
 		const byPerson = new Map<
 			string,
-			NonNullable<typeof contracts.current>['employee_contract']['rows'][number][]
+			NonNullable<typeof stints.current>['employment']['rows'][number][]
 		>();
-		for (const contract of contracts.current?.employee_contract.rows ?? []) {
-			const range = contract.effective_range;
+		for (const stint of stints.current?.employment.rows ?? []) {
+			const range = stint.effective_range;
 			// nobody stays on the board past the month they left
 			if (String(range.from) > to || (range.to != null && String(range.to) < from)) continue;
-			const employee = String(contract.employee_id?.id);
-			byPerson.set(employee, [...(byPerson.get(employee) ?? []), contract]);
+			const employee = String(stint.employee_id?.id);
+			byPerson.set(employee, [...(byPerson.get(employee) ?? []), stint]);
 		}
 		return [...byPerson]
 			.map(([employee, rows]): BoardPerson => {
@@ -177,15 +180,26 @@
 					String(left.effective_range.from).localeCompare(String(right.effective_range.from))
 				);
 				const latest = ordered.at(-1) ?? rows[0]!;
-				const spells = ordered.map((contract) => ({
-					id: String(contract.id),
-					from: String(contract.effective_range.from),
-					to: contract.effective_range.to == null ? null : String(contract.effective_range.to),
-					patternId:
-						contract.terms?.shift_pattern_id == null
-							? null
-							: String(contract.terms.shift_pattern_id)
-				}));
+				// a stint runs one shift pattern between its changes of terms
+				const spells = ordered.flatMap((stint) => {
+					const parts = {
+						stint: jsonObject({ id: stint.id, effective_range: stint.effective_range }),
+						terms: (stint.terms ?? []).map(jsonObject),
+						parameters: [],
+						profile: {},
+						dependants: []
+					};
+					return segmentsOf(parts).map((segment) => {
+						const agreed = employmentOn(parts, segment.from).terms;
+						const pattern = isJsonObject(agreed) ? agreed.shift_pattern_id : null;
+						return {
+							id: String(stint.id),
+							from: segment.from,
+							to: segment.to,
+							patternId: typeof pattern === 'string' ? pattern : null
+						};
+					});
+				});
 				const entries = spells.flatMap(({ id }) => entriesByEmployment.get(id) ?? []);
 				return {
 					...spells.at(-1)!,
@@ -228,16 +242,16 @@
 					date: String(child.incurred_on),
 					part: String(child.part)
 				})),
-				employee: String(contractById.get(String(row.employment_id))?.employee_id?.id)
+				employee: String(stintById.get(String(row.employment_id))?.employee_id?.id)
 			})),
 			locked,
 			today
 		})
 	);
 	const loading = $derived(
-		contracts.current === undefined || (ids.length > 0 && data?.current === undefined)
+		stints.current === undefined || (ids.length > 0 && data?.current === undefined)
 	);
-	const error = $derived(contracts.error?.message ?? data?.error?.message);
+	const error = $derived(stints.error?.message ?? data?.error?.message);
 
 	function openDay(day: Day, person: BoardPerson) {
 		if (!day.employed) return;
@@ -247,7 +261,7 @@
 		}
 		if (person.locked) return;
 		if (day.employmentId == null) return;
-		creating = { employmentId: day.employmentId as Id<'employee_contract'>, date: day.date };
+		creating = { employmentId: day.employmentId as Id<'employment'>, date: day.date };
 	}
 
 	let importing = $state(false);
@@ -301,7 +315,7 @@
 		{ctx}
 		of={people.map(({ id, number, name }) => ({ id, number, name }))}
 		fields={[
-			{ field: 'number', label: ctx.t('models.employee_contract.fields.employee_number') },
+			{ field: 'number', label: ctx.t('models.employment.fields.employee_number') },
 			{ field: 'name', label: ctx.t('roster.person') }
 		]}
 		key="roster-board"

@@ -16,7 +16,7 @@ import {
 	lawWith,
 	measureOf,
 	pack,
-	sealEvents,
+	recordEvents,
 	sealedLeave,
 	syncAll,
 	uuid,
@@ -30,7 +30,7 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const terms = (amount = 8000) => ({
 	rate: { amount, unit: 'MONTHLY' },
 	normal_hours_per_day: 8,
@@ -59,7 +59,7 @@ const seed = lawWith(pack('MY', 'Asia/Kuala_Lumpur', terms(), {}, [], []), {
 });
 const entry = (quantity: number) => ({
 	entity_id: ENTITY,
-	employment_id: CONTRACT,
+	employment_id: EMPLOYMENT,
 	catalog_code: 'MEDICAL_CLAIM',
 	quantity: String(quantity),
 	incurred_on: '2026-11-03'
@@ -216,7 +216,7 @@ describe('what cannot be done to the ledger, an admin included', () => {
 					Effect.flatMap((caller) =>
 						caller.act({
 							'leave_catalog_entry.create': [
-								{ entity_id: ENTITY, employment_id: CONTRACT, catalog_code: 'MEDICAL_LEAVE' }
+								{ entity_id: ENTITY, employment_id: EMPLOYMENT, catalog_code: 'MEDICAL_LEAVE' }
 							]
 						})
 					)
@@ -228,7 +228,7 @@ describe('what cannot be done to the ledger, an admin included', () => {
 	const OCTOBER = '2026-10-05';
 	const sick = (date: string, set: object = {}) => ({
 		entity_id: ENTITY,
-		employment_id: CONTRACT,
+		employment_id: EMPLOYMENT,
 		catalog_code: 'MEDICAL_LEAVE',
 		days: wholeDays(date),
 		...set
@@ -371,7 +371,7 @@ describe('the ledger automation', () => {
 	it.live('opens the balance of someone HR hires, who holds no write to it', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* sealEvents(t, '2026-11-01', [], t.member(['hr_controller']));
+			yield* recordEvents(t, [], t.member(['hr_controller']));
 			yield* t.run_due();
 			const { employee_balance } = yield* storedQuery(t, { employee_balance: { limit: 2 } });
 			assert.equal(employee_balance.rows.length, 1);

@@ -1,4 +1,4 @@
-// A person's documents sit on their profile, not on the sealed contract: HR or the person uploads them, the kiosk never
+// A person's documents sit on their profile, not on a stint: HR or the person uploads them, the kiosk never
 // sees them, and no one else may touch them. An employee reaches their own records only: a colleague's are not theirs
 // to read, so a write that names one is refused before any policy check runs.
 import assert from 'node:assert/strict';
@@ -105,13 +105,29 @@ describe('a person asking for leave', () => {
 			...(seed.employee_profile ?? []),
 			{ id: uuid(51), user_id: uuid(50), name: 'Colleague' }
 		],
-		employee_contract: [
-			...(seed.employee_contract ?? []),
-			...(seed.employee_contract ?? []).map((row) => ({
+		employment: [
+			...(seed.employment ?? []),
+			...(seed.employment ?? []).map((row) => ({
 				...row,
 				id: uuid(52),
 				employee_id: uuid(51),
 				employee_number: 'W2'
+			}))
+		],
+		contract_terms: [
+			...(seed.contract_terms ?? []),
+			...(seed.contract_terms ?? []).map((row) => ({
+				...row,
+				id: uuid(53),
+				employment_id: uuid(52)
+			}))
+		],
+		statutory_parameters: [
+			...(seed.statutory_parameters ?? []),
+			...(seed.statutory_parameters ?? []).map((row) => ({
+				...row,
+				id: uuid(54),
+				employment_id: uuid(52)
 			}))
 		]
 	};
@@ -121,7 +137,7 @@ describe('a person asking for leave', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
-				const mine = { entity_id: ENTITY, employment_id: idOf('employee_contract', uuid(6)) };
+				const mine = { entity_id: ENTITY, employment_id: idOf('employment', uuid(6)) };
 				const leave = leaveCreate({
 					...mine,
 					catalog_code: 'MEDICAL_LEAVE',
@@ -138,7 +154,7 @@ describe('a person asking for leave', () => {
 				const refusedText = <A, E>(effect: Effect.Effect<A, E>) =>
 					Effect.flip(effect).pipe(Effect.map(String));
 				// the colleague reads the company, never my employment: the link itself is refused
-				const UNREADABLE = /No readable employee_contract has this id/;
+				const UNREADABLE = /No readable employment has this id/;
 				assert.match(
 					yield* refusedText(other.act({ 'leave_catalog_entry.create': [leave] })),
 					UNREADABLE

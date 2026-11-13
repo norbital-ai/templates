@@ -130,7 +130,7 @@ const TERMS = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-export const EMPLOYMENT = idOf('employee_contract', uuid(6));
+export const EMPLOYMENT = idOf('employment', uuid(6));
 /** These months on the roster, eight hours a working day; `overtime` keys two more hours on one day. */
 export const rostered = (months: readonly string[], overtime?: string, rate = 2800) =>
 	pack(
@@ -208,53 +208,17 @@ export const claimAt = (t: Kit, id: Id<'claim_catalog_entry'>) =>
 			return row;
 		})
 	);
-/** A new contract version from `from` at a new rate, made the way HR makes one: a draft, the last version ended, the seal. */
+/** A raise from `from`, the first of a month: one terms row holding the new rate and nothing else. */
 export const raisedFrom = (t: Kit, from: string, amount: number) =>
 	Effect.gen(function* () {
-		const admin = yield* t.as(t.admin);
-		const { employee_contract } = yield* storedQuery(t, { employee_contract: { limit: 10 } });
-		const [held] = employee_contract.rows;
-		assert.ok(held !== undefined);
-		yield* admin.act({
-			'employee_contract.create': [
+		yield* (yield* t.as(t.admin)).act({
+			'contract_terms.create': [
 				{
-					employee_id: held.employee_id,
-					entity_id: held.entity_id,
-					engagement: held.engagement,
-					employee_number: held.employee_number,
-					terms: { ...held.terms, rate: { amount, unit: 'MONTHLY' } },
-					payroll: held.payroll,
-					bank: held.bank,
-					employee_extension_data: held.employee_extension_data,
-					service_started_on: held.service_started_on,
-					effective_range: { from, to: null },
-					status: 'DRAFT',
-					reason: 'A raise'
+					employment_id: EMPLOYMENT,
+					effective_from: from,
+					rate: { amount, unit: 'MONTHLY' }
 				}
 			]
-		});
-		const drafts = yield* storedQuery(t, {
-			employee_contract: { where: { status: { eq: 'DRAFT' } }, limit: 1 }
-		});
-		const [draft] = drafts.employee_contract.rows;
-		assert.ok(draft !== undefined);
-		const before = new Date(`${from}T00:00:00Z`);
-		before.setUTCDate(before.getUTCDate() - 1);
-		yield* admin.act({
-			'employee_contract.update': [
-				{
-					target: held,
-					set: {
-						effective_range: {
-							from: held.effective_range.from,
-							to: before.toISOString().slice(0, 10)
-						}
-					}
-				}
-			]
-		});
-		yield* admin.act({
-			'employee_contract.update': [{ target: draft, set: { status: 'SEALED' } }]
 		});
 		yield* t.run_due();
 	});

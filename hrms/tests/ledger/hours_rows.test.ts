@@ -95,7 +95,7 @@ const halfDay = (t: Kit) =>
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: idOf('employee_contract', uuid(6)),
+						employment_id: idOf('employment', uuid(6)),
 						catalog_code: CODE,
 						days: [{ date: '2026-07-06', part: 'AM' }]
 					})

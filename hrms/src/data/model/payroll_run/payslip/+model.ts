@@ -14,7 +14,7 @@ export default model({
 			on_delete: 'cascade'
 		},
 		employee_id: { kind: 'ref', to: 'employee_profile', inverse: 'payslips' },
-		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'payslips' },
+		employment_id: { kind: 'ref', to: 'employment', inverse: 'payslips' },
 		entity_id: { kind: 'ref', to: 'entity' },
 		basic_earnings: { kind: 'decimal', scale: 12, optional: true },
 		gross_earnings: { kind: 'decimal', scale: 12, optional: true },
@@ -35,7 +35,11 @@ export default model({
 	outputs: {
 		default: {
 			fields: 'all',
-			employment_id: { fields: 'all', employee_id: { fields: ['name'] } },
+			employment_id: {
+				fields: 'all',
+				employee_id: { fields: ['name', 'identity_number'] },
+				terms: { fields: 'all' }
+			},
 			employee_id: { fields: ['name', 'user_id'] },
 			payroll_run_id: { fields: 'all' },
 			// the payslip's law and currency are those of its company's jurisdiction

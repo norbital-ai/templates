@@ -28,14 +28,14 @@ describe('an effect expression', () => {
 			}
 		);
 	});
-	it('falls back past a stored null: a version with no registrations raises its task', () => {
-		const version = (registrations: unknown) => ({ status: 'SEALED', registrations });
+	it('falls back past a stored null: an employment with no registrations raises its task', () => {
+		const employment = (registrations: unknown) => ({ registrations });
 		const condition = `// js
 const r = ctx.entry;
-return r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 'scheme_code', '') === 'EPF');`;
+return !get(r, 'registrations', []).some((x) => get(x, 'scheme_code', '') === 'EPF');`;
 		const open = (entry: object) => evaluate(condition, 'CALCULATION', { entry }, 'condition');
-		assert.equal(open(version(null)), true);
-		assert.equal(open(version([{ scheme_code: 'EPF' }])), false);
+		assert.equal(open(employment(null)), true);
+		assert.equal(open(employment([{ scheme_code: 'EPF' }])), false);
 	});
 });
 

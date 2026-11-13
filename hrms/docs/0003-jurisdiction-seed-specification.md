@@ -90,7 +90,7 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 - Legal distinctions and dated exceptions are preserved. Splitting a formula across more fields does not count as simplification.
 - Minification, opaque helpers and copied orchestration are rejected.
 - Expressions carry statute citations, never working notes.
-- A rule or effect validates nothing the model's own write boundary already checks (a contract's rate, normal time, category, work region and shift length). Seed JSON holds law, not guards.
+- A rule or effect validates nothing the model's own write boundary already checks (the agreed rate, normal time, category, work region and shift length). Seed JSON holds law, not guards.
 - The extension schemas are authored in `src/lib/payroll_engine/extension_schema.json`, not in the seed. After a change to a lookup key or a row param, or to an extension field there, run `bun run registry:generate`: it rewrites `tables.ts` and `params.ts` from the seed and copies the extension schemas into each law's first change. `bolt check` does not; `tests/configuration/configuration_ownership.test.ts`, `tests/configuration/extension_fields.test.ts` and `tests/configuration/lookup_keys.test.ts` fail until they match.
 - A seed edit or audit across the law packs is one agent per jurisdiction, each with the same brief.
 
@@ -100,7 +100,7 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 - Static catalogues hold confirmed definitions and leave `subtotal` out when they create no pay line. Non-static catalogues own their entries, which name their row by `catalog_code`.
 - The law must hold on every change date: expressions parse and read only their family's roots, the chain is linear, statutory dependencies are acyclic, and every `subtotal` a row names is a subtotal of the law that day. A patch that removes a row also changes or removes every row that names it.
 - `conversions.rounding.day_rate` is `RATE` (the default) or `AMOUNT`. `RATE` rounds the day rate before it multiplies the days; `AMOUNT` rounds only the amount. The Philippines uses `AMOUNT`.
-- `conversions.back_pay` names the ad hoc row that prices back pay, where the law prices it apart from ordinary pay: Singapore names `ADDITIONAL_BACKPAY` and Indonesia `RETROACTIVE_PAY`. Every other law leaves it out, so a contract version there applies from its start.
+- `conversions.back_pay` names the ad hoc row that prices back pay, where the law prices it apart from ordinary pay: Singapore names `ADDITIONAL_BACKPAY` and Indonesia `RETROACTIVE_PAY`. Every other law leaves it out, so a terms row there applies from its date.
 - Seed no refund or adjustment row per scheme, and no effect for a contribution correction. A contribution wrong in a paid period is corrected at its source and the next run carries the difference. The generic `STATUTORY_REFUND` and `STATUTORY_ADJUSTMENT` rows hold a refund or charge decided outside the system. A row a statute's own procedure needs stays: Malaysia's `NO_PAY_ADJUSTMENT` and `NO_PAY_REFUND`, Japan's `SOCIAL_INSURANCE_ADJUSTMENT` and `SOCIAL_INSURANCE_REFUND`.
 - A tax row that counts what an ad hoc entry posts to a statutory account reads it as `ctx.posted.<SCHEME>.<employee|employer>` (Indonesia's `EMPLOYER_PAID_BENEFIT`, a benefit in kind).
 

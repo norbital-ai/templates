@@ -5,17 +5,9 @@ export default messages({
 	'models.payroll_run.syncs.export.context.authority_payment_on': 'Intended authority payment date',
 	'models.payroll_run.syncs.export.context.authority_advice_code': 'Authority advice code',
 	'models.entity.fields.code': 'Company code',
-	'contract.work_authorisation_category': 'Work authorisation category',
 	'models.claim_catalog_entry.fields.quantity': 'Units claimed',
 	'roster.not_scheduled': 'No work scheduled',
 	'roster.attendance_missing': 'No attendance',
-	'contract.draft': 'Draft',
-	'contract.sealed': 'Sealed',
-	'contract.voided': 'Voided',
-	'contract.gap': 'Not employed',
-	'contract.gap_detail': '{days} days between contracts',
-	'contract.seal': 'Seal contract',
-	'contract.void': 'Void contract',
 	'app.payroll.configured_description':
 		'Calculate payroll for the selected period, review payslips and record payment.',
 	'app.claims.title': 'Claims',
@@ -106,6 +98,42 @@ export default messages({
 	'component.loading_profile': 'Loading your profile',
 	'component.net': 'Net',
 	'person.tab_general': 'Profile',
+	'person.tab_contract': 'Contract',
+	'person.tab_family': 'Family',
+	'person.tab_events': 'Events',
+	'person.section_contact': 'Identity and contact',
+	'person.section_particulars': 'Particulars',
+	'person.section_documents': 'Documents',
+	'person.hire': 'Hire',
+	'person.rehire': 'Rehire',
+	'person.hired': 'Hired',
+	'person.last_day': 'Last day',
+	'person.signed_on': 'signed {date}',
+	'person.not_employed_today': 'Not employed today',
+	'person.stint_details': 'Employment details',
+	'person.company': 'Company',
+	'person.first_day': 'First day',
+	'person.service_started_on': 'Service credited from',
+	'person.move_first_day': 'Move first day',
+	'person.move_first_day_help': 'The first terms and statutory parameters move with the first day.',
+	'person.save': 'Save',
+	'person.delete_change': 'Delete change',
+	'person.delete_change_title': 'Delete this change?',
+	'person.delete_change_body':
+		'From its date, what it changed goes back to what the change before it set. Paid periods it reached are worked out again by the next payroll run.',
+	'person.delete_dependant': 'Delete dependant',
+	'person.delete_dependant_title': 'Delete this dependant?',
+	'person.delete_dependant_body':
+		'Paid periods that counted this dependant are worked out again by the next payroll run.',
+	'person.delete_stint': 'Delete employment',
+	'person.delete_stint_title': 'Delete this employment?',
+	'person.delete_stint_body':
+		'Its terms and statutory parameters go with it. An employment with a payslip or an entry cannot be deleted.',
+	'person.add_dependant': 'Add dependant',
+	'person.family_empty': 'No dependants yet',
+	'person.expected': 'Expected',
+	'person.events_empty': 'No events yet',
+	'person.edit_events': 'Edit events',
 	'models.entity_change.label': 'Company changes',
 	'models.entity_change.singular': 'Company change',
 	'models.entity_change.fields.statutory_parameters': 'Statutory parameters',
@@ -132,42 +160,17 @@ export default messages({
 	'models.jurisdiction_change.fields.law': 'What changes',
 	'models.pay_group.label': 'Pay groups',
 	'models.pay_group.singular': 'Pay group',
-	'contract.new': 'New contract',
-	'contract.promotion': 'Promotion',
-	'contract.life_event': 'Life event',
-	'contract.life_event_help':
-		'Record what happened under Life events, with the date it happened. Where leave starts first, give that day as Leave from, then change the date here when it is known. The contract changes from the first of the month below; the event keeps its own date.',
-	'contract.life_event_data': 'Employee data',
-	'contract.events': 'Life events',
-	'contract.family': 'Family',
 	'contract.transfer': 'Transfer',
 	'contract.terminate': 'Terminate',
-	'contract.open': 'Open',
 	'contract.ended': 'Ended',
-	'contract.read_only': 'Sealed contracts are read-only. Use Promotion, Transfer or Terminate.',
 	'contract.change_help':
-		'Choose when it applies and the replacement terms. The replacement is created first, then the current contract ends, then the replacement is sealed.',
-	'contract.continue': 'Continue',
-	'contract.back': 'Back',
-	'contract.confirm': 'Confirm',
-	'contract.confirm_changes': 'Confirm this change',
+		'Choose the month it applies from, the company and the terms there. This employment ends the day before, and the next starts on those terms.',
 	'contract.target_entity': 'Target entity',
-	'contract.next_job_title': 'Next job title',
-	'contract.department': 'Department',
-	'contract.salary': 'Salary',
-	'contract.salary_unit': 'Salary unit',
-	'contract.engagement_type': 'Employment type',
-	'contract.statutory_work_category': 'Statutory work category',
-	'contract.residency_status': 'Residency status',
-	'contract.work_classification': 'Work classification',
 	'contract.final_pay_due': 'Final pay due on',
 	'contract.encash_leave': 'Pay out the leave that is left',
-	'contract.encash_leave_off': 'Do not pay out leave',
-	'contract.encash_leave_on': 'Pay out leave',
 	'contract.leave_not_encashed':
 		'Leave left is not paid out. Leave taken beyond what was earned is still taken back.',
 	'contract.exit_ground': 'Exit ground',
-	'contract.exit_answers': 'Exit answers this jurisdiction reads',
 	'contract.leave_carry_preview': 'Leave: {days} days carry with the person.',
 	'contract.leave_settle_preview':
 		'Leave: {days} days settle in the old jurisdiction before the new contract starts.',
@@ -193,29 +196,14 @@ export default messages({
 		'Outstanding {outstanding}. Floor {floor}% of expected pay stays with the employee, so at most {maximum} is recovered: {proposed} now, {remaining} remaining.',
 	'contract.recovery_notice':
 		'{remaining} cannot be recovered from final pay. The loan stays open on a new schedule and HR is notified to chase it.',
-	'contract.recovery_confirm': 'Loans: {proposed} repaid from final pay; {remaining} stays open.',
 	'contract.loan_recovery_task': 'Recover loan balance {amount} from former employee {number}',
-	'contract.target_extension': 'Employee data for the target jurisdiction',
-	'contract.target_extension_none':
-		'The target jurisdiction declares no employee data; the current data is copied.',
 	'contract.allowances': 'Allowances',
-	'contract.unit_monthly': 'Monthly',
-	'contract.unit_daily': 'Daily',
-	'contract.unit_hourly': 'Hourly',
-	'contract.engagement_employee': 'Employee',
-	'contract.engagement_part_time': 'Part time',
-	'contract.engagement_contractor': 'Contractor',
-	'contract.engagement_consultant': 'Consultant',
-	'contract.engagement_intern': 'Intern',
 	'contract.termination_help':
-		'Set the last working day. Without a replacement contract this is an exit: encashable leave is paid in the final payroll.',
+		'Set the last working day. Without another employment under the same law this is an exit: encashable leave is paid in the final payroll.',
 	'contract.last_working_day': 'Last working day',
 	'contract.reason': 'Reason',
 	'contract.takes_effect': 'Takes effect from',
-	'contract.last_day_invalid': 'Choose a last day on or after the contract start.',
-	'contract.void_title': 'Void this contract?',
-	'contract.void_help':
-		'A voided contract no longer applies and cannot be unvoided. Record the reason.',
+	'contract.last_day_invalid': 'Choose a last day on or after the first day.',
 	'component.reference': 'Reference',
 	'app.hr_employee.calendar_work': 'Work',
 	'roster.plan_projected': 'Projected',
@@ -441,10 +429,10 @@ export default messages({
 	'models.employee_profile.fields.cumulative_service': 'Count every stint',
 	'models.employee_profile.help.cumulative_service':
 		'Service counts every stint at the employer, rehires included. Off, only the current unbroken stint counts: the statutory continuous service.',
-	'models.employee_contract.label': 'Employment contracts',
-	'models.employee_contract.singular': 'Employment contract',
-	'models.employee_contract.fields.employee_number': 'Employee number',
-	'models.employee_contract.fields.effective_range': 'Effective period',
+	'models.employment.label': 'Employments',
+	'models.employment.singular': 'Employment',
+	'models.employment.fields.employee_number': 'Employee number',
+	'models.employment.fields.effective_range': 'First and last day',
 	'models.holiday.label': 'Holidays',
 	'models.holiday.singular': 'Holiday',
 	'models.holiday.fields.given_to.EVERYONE': 'Everyone',
@@ -496,8 +484,8 @@ export default messages({
 	'models.obligation.fields.state.OPEN': 'Open',
 	'models.obligation.fields.state.FULFILLED': 'Completed',
 	'models.obligation.fields.state.WAIVED': 'Waived',
-	'models.employee_contract.fields.engagement.EMPLOYEE': 'Employee',
-	'models.employee_contract.fields.engagement.PAYEE': 'Payee (not employed)',
+	'models.contract_terms.fields.engagement.EMPLOYEE': 'Employee',
+	'models.contract_terms.fields.engagement.PAYEE': 'Payee (not employed)',
 	'models.workplace_case_catalog_entry.label': 'Workplace cases',
 	'models.workplace_case_catalog_entry.singular': 'Workplace case',
 	'models.shift_definition.label': 'Shift definitions',
@@ -635,17 +623,6 @@ export default messages({
 	'v2.suspend_face': 'Suspend face access',
 	'v2.reinstate_face': 'Reinstate face access',
 	'v2.face': 'Face enrolment',
-	'section.employment_history': 'Employment contract',
-	'section.scheduled_changes': 'Scheduled changes',
-	'models.contract_change.label': 'Contract changes',
-	'models.contract_change.singular': 'Contract change',
-	'models.contract_change.fields.employee_id': 'Employee',
-	'models.contract_change.fields.field_path': 'Field',
-	'models.contract_change.fields.old_value': 'From',
-	'models.contract_change.fields.new_value': 'To',
-	'models.contract_change.fields.effective_from': 'Takes effect',
-	'models.contract_change.fields.applied_version_id': 'Sealed in',
-	'models.contract_change.fields.notes': 'Notes',
 	// Bolt 0.0.26 migration: refusal keys, field help and captions moved out of the models
 	'errors.jurisdiction_paid_keeps':
 		'Companies under this law have paid runs. Its currency, time zone and tax year stay as those periods were worked out.',
@@ -665,11 +642,29 @@ export default messages({
 		'Only the ledger moves a balance, an admin included. Key an entry, or a manual adjustment on the employee profile.',
 	'errors.entity_change_clears':
 		'Only a dated field can be taken away: pay methods, the loan floor, the overtime threshold or the statutory parameters.',
-	'errors.contract_change_field_path':
-		'Only a contract term or fact can be scheduled; an entity move is a transfer.',
-	'errors.contract_change_effective_from':
-		'A scheduled change takes effect on the first of a month to come. One due now is a new contract version.',
-	'errors.contract_change_seal_applies': 'Only the seal applies a change.',
+	'errors.contract_terms_clears': 'Only an agreed term can be taken away.',
+	'errors.statutory_parameters_clears': 'Only a statutory parameter can be taken away.',
+	'errors.contract_terms_required':
+		'The first terms of a stint state the engagement and the normal hours a day, hours a week and days a week.',
+	'models.contract_terms.label': 'Contract terms',
+	'models.contract_terms.singular': 'Change of contract terms',
+	'models.contract_terms.fields.clears': 'Taken away from this date',
+	'models.contract_terms.help.effective_from':
+		'The day these terms start to apply: the first of a month, or the stint’s first day. A date after today is not yet in force.',
+	'models.contract_terms.help.clears':
+		'Names of the terms above that stop applying from this date. An empty field means unchanged.',
+	'models.statutory_parameters.label': 'Statutory parameters',
+	'models.statutory_parameters.singular': 'Change of statutory parameters',
+	'models.statutory_parameters.fields.parameters': 'Jurisdiction parameters',
+	'models.statutory_parameters.fields.clears': 'Taken away from this date',
+	'models.statutory_parameters.help.effective_from':
+		'The day these parameters start to apply: the first of a month, or the stint’s first day. A date after today is not yet in force.',
+	'models.statutory_parameters.help.clears':
+		'Names of the fields above that stop applying from this date. An empty field means unchanged.',
+	'models.dependant.label': 'Dependants',
+	'models.dependant.singular': 'Dependant',
+	'models.employee_profile.help.date_of_birth':
+		'A particular that never changes: correcting it works out every paid period of the person again.',
 	'errors.statutory_finding_starts_proposed': 'A statutory finding starts as proposed.',
 	'errors.statutory_finding_person_verifies': 'A person verifies a statutory finding.',
 	'errors.statutory_finding_structural':
@@ -774,74 +769,67 @@ export default messages({
 	'errors.payroll_run_already_attached':
 		'An entry or amended period it names is already attached to another payroll run.',
 	'errors.payroll_run_counted_later': 'A later run has already counted this one. Delete it first.',
-	'models.employee_contract.help.engagement':
+	'models.contract_terms.help.engagement':
 		'The contracted role. PAYEE is paid without employment (a commission agent), outside the headcount and separations.',
-	'models.employee_contract.help.effective_range':
-		'The dates this agreement applies. A replacement contract continues employment; ending it records a reason.',
-	'models.employee_contract.help.service_started_on':
+	'models.employment.help.effective_range':
+		'The first and last day of this stint with the company, open while employed. A rehire, and a move to another company, is a new stint; ending it records a reason.',
+	'models.employment.help.service_started_on':
 		'Only for service credited from elsewhere. Service is otherwise worked out from the stints under this jurisdiction: the current unbroken one, or every one, rehires included, where the profile counts every stint.',
-	'models.employee_contract.help.terms.signed_on':
-		'The actual date this employment agreement was signed.',
-	'models.employee_contract.help.terms.probation_period':
+	'models.contract_terms.help.signed_on': 'The actual date this employment agreement was signed.',
+	'models.contract_terms.help.probation_period':
 		'The original agreed probation dates. Salary amendments retain these dates; they do not start another probation.',
-	'models.employee_contract.help.terms.normal_hours_per_day':
+	'models.contract_terms.help.normal_hours_per_day':
 		'The ordinary hours of one working day. Every overtime, leave and statutory hour reads it.',
-	'models.employee_contract.help.terms.normal_hours_per_week':
-		'The ordinary hours of one working week.',
-	'models.employee_contract.help.terms.normal_days_per_week':
-		'The ordinary working days of one week.',
-	'models.employee_contract.help.terms.employer_bears_income_tax':
+	'models.contract_terms.help.normal_hours_per_week': 'The ordinary hours of one working week.',
+	'models.contract_terms.help.normal_days_per_week': 'The ordinary working days of one week.',
+	'models.contract_terms.help.employer_bears_income_tax':
 		'The agreement makes the employer bear the employee’s income tax. The jurisdiction formula determines any required gross-up.',
-	'models.employee_contract.help.terms.employee_borne_tax_items':
+	'models.contract_terms.help.employee_borne_tax_items':
 		'Where the employer bears the income tax: the agreed allowances whose tax the employee still pays, at their own rate.',
-	'models.employee_contract.help.terms.work_authorisation_expires_on':
+	'models.statutory_parameters.help.work_authorisation_expires_on':
 		'The day the work pass or permit ends, an extension included. Where the law ties a contribution to the pass (Malaysia: provident fund stops in its last two months), the rule reads this day.',
-	'models.employee_contract.help.terms.work_region':
+	'models.contract_terms.help.work_region':
 		'The worksite region key the jurisdiction minimum-wage tables use, where it differs from the employer region.',
-	'models.employee_contract.help.terms.worksite':
+	'models.contract_terms.help.worksite':
 		'The establishment or site the person works at, where the law applies thresholds by site.',
-	'models.employee_contract.help.terms.annual_leave_carry_limit_days':
+	'models.contract_terms.help.annual_leave_carry_limit_days':
 		'An agreed contractual limit for carrying annual leave into the next leave year.',
-	'models.employee_contract.help.terms.allowances':
+	'models.contract_terms.help.allowances':
 		'The agreed allowances, keyed by the catalog code; the catalog row carries how each behaves.',
-	'models.employee_contract.fields.payroll': 'Person details',
-	'models.employee_contract.help.events':
-		'Dated statutory events on this contract: illness, bereavement, marriage, work injury, confinement and similar. A child is a `family` member; termination is the contract status and reason.',
-	'models.employee_contract.help.family':
-		"The person's family. Every count or flag a scheme reads (dependants, a spouse's income, births) is worked out from this list. A child's `allocations` are HR's approved leave days for that child, keyed by leave code.",
-	'models.employee_contract.help.final_pay_due_on':
+	'models.employment.help.events':
+		'Dated statutory events in this stint: illness, bereavement, marriage, work injury, confinement and similar. A child is a dependant; termination is the stint’s last day and reason.',
+	'models.dependant.help.allocations':
+		"HR's approved leave days for this child, keyed by leave code.",
+	'models.employment.help.final_pay_due_on':
 		'The actual contractual date the final settlement becomes payable. This differs from the maximum statutory deadline and the run’s actual payment date.',
-	'models.employee_contract.help.reason': 'Why this record was voided or the employment ended.',
-	'models.employee_contract.help.encash_leave':
+	'models.employment.help.reason': 'Why the employment ended.',
+	'models.employment.help.encash_leave':
 		'At an exit, leave left on a row with a payout is paid out on the last payslip. Switch it off and it is not; leave taken beyond what the last day earned is taken back either way.',
-	'models.employee_contract.help.exit_ground':
+	'models.employment.help.exit_ground':
 		'The statutory ground for ending the employment. It decides severance eligibility and exit duties; reason carries the narrative.',
-	'models.employee_contract.help.employee_extension_data':
-		"The employee data the jurisdiction's employee extension schema declares.",
-	'models.employee_contract.help.payroll.nationality': 'ISO 3166-1 alpha-2 country code.',
-	'errors.employee_contract_rate_positive': 'The agreed rate must be more than zero.',
-	'errors.employee_contract_hours_per_day':
+	'models.statutory_parameters.help.parameters':
+		"The employee data the jurisdiction's employee extension schema declares. A change that sets it replaces it whole.",
+	'models.statutory_parameters.help.nationality': 'ISO 3166-1 alpha-2 country code.',
+	'errors.contract_terms_rate_positive': 'The agreed rate must be more than zero.',
+	'errors.contract_terms_hours_per_day':
 		'The normal hours a day must be within the jurisdiction’s contract limits.',
-	'errors.employee_contract_hours_per_week':
+	'errors.contract_terms_hours_per_week':
 		'The normal hours a week must be within the jurisdiction’s contract limits.',
-	'errors.employee_contract_days_allowed':
+	'errors.contract_terms_days_allowed':
 		'The normal days a week must be one the jurisdiction allows.',
-	'errors.employee_contract_days_per_week':
+	'errors.contract_terms_days_per_week':
 		'The normal days a week must be within the jurisdiction’s contract limits.',
-	'errors.employee_contract_choose_pay_group': 'Choose the pay group this person is paid in.',
-	'errors.employee_contract_pay_group_other_company': 'The pay group belongs to another company.',
-	'errors.employee_contract_shift_overlong':
+	'errors.contract_terms_choose_pay_group': 'Choose the pay group this person is paid in.',
+	'errors.contract_terms_pay_group_other_company': 'The pay group belongs to another company.',
+	'errors.contract_terms_shift_overlong':
 		"Shift {code} lasts {lasts}h, longer than the contract's {hours} normal hours per day.",
-	'errors.employee_contract_work_category':
+	'errors.contract_terms_work_category':
 		"Choose one of the jurisdiction's statutory work categories.",
-	'errors.employee_contract_work_region': "Choose one of the jurisdiction's declared work regions.",
-	'errors.employee_contract_mid_month':
-		'A contract changes from the first of a month. Date the event as it happened; the version starts on the first.',
-	'errors.employee_contract_exit_answers':
-		'A sealed contract adds its exit answers in the save that ends it or moves its end; the facts it holds change only by a new version.',
-	'errors.employee_contract_service_after_start':
-		'Service begins on or before the contract starts; it never starts after the version that records it.',
-	'errors.employee_contract_void_reason': 'Record why this contract is void.',
+	'errors.contract_terms_work_region': "Choose one of the jurisdiction's declared work regions.",
+	'errors.employment_change_date':
+		'A change to terms or statutory parameters is dated the first of a month, or the stint’s first day, and lies inside the stint. A stint’s first terms start on its first day: move them with it.',
+	'errors.employment_service_after_start':
+		'Service begins on or before the stint starts; it never starts after the stint that records it.',
 	'errors.employee_own_profile_documents': 'Upload documents to your own profile.',
 	'errors.employee_own_claim_submit': 'Submit a claim for your own employment.',
 	'errors.employee_own_claim_update': 'Update your own claim.',

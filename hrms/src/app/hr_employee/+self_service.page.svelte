@@ -54,24 +54,24 @@
 	const entityById = $derived(
 		new Map((employee.current?.entity.rows ?? []).map((row) => [row.id, row]))
 	);
-	const contracts = $derived(
+	const stints = $derived(
 		me == null
 			? null
 			: ctx.query({
-					employee_contract: {
-						where: { employee_id: { eq: me.id }, status: { eq: 'SEALED' } },
+					employment: {
+						where: { employee_id: { eq: me.id } },
 						limit: 10000
 					}
 				})
 	);
 	const active = $derived(
-		(contracts?.current?.employee_contract.rows ?? []).filter(
+		(stints?.current?.employment.rows ?? []).filter(
 			(row) =>
 				row.effective_range.from <= today &&
 				(row.effective_range.to == null || row.effective_range.to >= today)
 		)
 	);
-	let chosen = $state<Id<'employee_contract'> | null>(null);
+	let chosen = $state<Id<'employment'> | null>(null);
 	const employment = $derived(
 		active.length === 1 ? active[0] : active.find((row) => row.id === chosen)
 	);
@@ -79,7 +79,6 @@
 	let enrolling = $state(false);
 	let claiming = $state(false);
 	const employmentId = $derived(employment?.id ?? null);
-	const contract = $derived(employment ?? null);
 	const company = $derived(employment == null ? undefined : entityById.get(employment.entity_id));
 	const laws = pageLaws(ctx, () => (company == null ? [] : [company.settings_code]));
 	const currency = $derived.by(() => {
@@ -87,9 +86,9 @@
 		return typeof held === 'string' ? held : null;
 	});
 	const needsChoice = $derived(active.length > 1 && employment == null);
-	const noEmployment = $derived(!employee.loading && !contracts?.loading && active.length === 0);
+	const noEmployment = $derived(!employee.loading && !stints?.loading && active.length === 0);
 	const needsGate = $derived(
-		noEmployment || active.length > 1 || employee.error != null || contracts?.error != null
+		noEmployment || active.length > 1 || employee.error != null || stints?.error != null
 	);
 	const employmentLabel = (row: { entity_id: Id<'entity'>; employee_number: string }) =>
 		`${entityById.get(row.entity_id)?.name ?? ctx.t('app.hr_employee.company_fallback')}${ctx.t('app.hr_employee.employment_affiliation', { number: row.employee_number })}`;
@@ -99,7 +98,7 @@
 			? { id: { in: [] } }
 			: {
 					employment_id: {
-						in: (contracts?.current?.employee_contract.rows ?? [])
+						in: (stints?.current?.employment.rows ?? [])
 							.filter((row) => row.entity_id === employment?.entity_id)
 							.map((row) => row.id)
 					}
@@ -117,9 +116,9 @@
 		})}{:else}—{/if}{/snippet}
 
 {#snippet gate()}
-	{#if employee.error || contracts?.error}
+	{#if employee.error || stints?.error}
 		<p role="alert" class="text-sm text-destructive">
-			{employee.error?.message ?? contracts?.error?.message}
+			{employee.error?.message ?? stints?.error?.message}
 		</p>
 	{:else if noEmployment}
 		<Stack gap="none" class="rounded-xl border bg-card p-4">
@@ -173,7 +172,7 @@
 					aria-label={ctx.t('component.loading_profile')}
 				></div>
 			{:else if me != null}
-				{#if contract != null && company != null}<WorkCalendar {ctx} {contract} {company} />
+				{#if employment != null && company != null}<WorkCalendar {ctx} {employment} {company} />
 				{:else}<Stack gap="none" class="rounded-xl border bg-card p-4">
 						<p class="text-sm font-medium">{ctx.t('app.hr_employee.calendar_unavailable')}</p>
 						<p class="text-sm text-muted-foreground">
@@ -195,14 +194,14 @@
 
 {#snippet leave()}
 	<Cover gap="md" size="fill" {...needsGate ? { top: gate } : {}}>
-		{#if requesting && employmentId != null && contract?.entity_id != null}
+		{#if requesting && employmentId != null && employment?.entity_id != null}
 			<Sheet
 				open
 				on_open_change={(open) => !open && (requesting = false)}
 				title={ctx.t('app.hr_employee.my_leave_title')}
 				><LeaveEntryForm
 					{ctx}
-					entityId={contract.entity_id}
+					entityId={employment.entity_id}
 					{employmentId}
 					onDone={() => (requesting = false)}
 				/></Sheet
@@ -226,10 +225,10 @@
 {/snippet}
 {#snippet claims()}
 	<Cover gap="md" size="fill" {...needsGate ? { top: gate } : {}}>
-		{#if claiming && employmentId != null && contract != null}<ClaimRequest
+		{#if claiming && employmentId != null && employment != null}<ClaimRequest
 				{ctx}
 				{employmentId}
-				companyId={contract.entity_id}
+				companyId={employment.entity_id}
 				onsaved={() => (claiming = false)}
 				onclose={() => (claiming = false)}
 			/>{/if}
@@ -312,10 +311,10 @@
 			>
 				<Stack gap="none" class="min-w-0">
 					<span class="text-sm font-semibold">{me.name}</span>
-					{#if contract}<span class="text-xs text-muted-foreground"
-							>{contract.employee_number} · {format(
+					{#if employment}<span class="text-xs text-muted-foreground"
+							>{employment.employee_number} · {format(
 								{ kind: 'period', of: 'date' },
-								contract.effective_range,
+								employment.effective_range,
 								{
 									locale: ctx.locale
 								}

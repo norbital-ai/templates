@@ -10,6 +10,7 @@ import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { loadRun } from '../../src/lib/payroll_engine/run_calculation.ts';
 import {
+	EMPLOYMENT,
 	ENTITY,
 	OFF,
 	PAY_GROUP,
@@ -24,7 +25,7 @@ import {
 	decimalNumber
 } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const STINT = idOf('employment', EMPLOYMENT);
 type Seed = ReturnType<typeof pack>;
 const terms = (amount: number) => ({
 	rate: { amount, unit: 'MONTHLY' },
@@ -43,22 +44,27 @@ const ARREARS = {
 	pay_days: [15, 31],
 	pay_cutoff_day: 16
 };
+/** One person's stint over these days; `changes` are the firsts of months its terms are agreed again from. */
 const seedOf = (
 	amount: number,
-	ranges: readonly { readonly from: string; readonly to: string | null }[],
-	days: Parameters<typeof pack>[4] = []
+	effective_range: { readonly from: string; readonly to: string | null },
+	days: Parameters<typeof pack>[4] = [],
+	changes: readonly string[] = []
 ): Seed => {
 	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(amount), {}, days, []);
-	const [contract] = seed.employee_contract ?? [];
-	assert.ok(contract !== undefined);
 	return {
 		...seed,
 		pay_group: (seed.pay_group ?? []).map((row) => ({ ...row, payment_schedule: ARREARS })),
-		employee_contract: ranges.map((effective_range, index) => ({
-			...contract,
-			id: uuid(6 + index),
-			effective_range
-		}))
+		employment: (seed.employment ?? []).map((row) => ({ ...row, effective_range })),
+		contract_terms: [
+			...(seed.contract_terms ?? []),
+			...changes.map((effective_from, index) => ({
+				id: uuid(7 + index),
+				employment_id: EMPLOYMENT,
+				effective_from,
+				rate: { amount, unit: 'MONTHLY' }
+			}))
+		]
 	};
 };
 const run = (t: Kit, period: string) =>
@@ -103,7 +109,7 @@ const unpaidLeave = (t: Kit, ...dates: readonly string[]) =>
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: STINT,
 						catalog_code: 'NPL',
 						days: wholeDays(...dates)
 					})
@@ -126,7 +132,7 @@ const sealedBy = (t: Kit) =>
 
 describe('leave in an arrears window', () => {
 	it.live('is deducted by the run whose attendance holds it, and sealed by that run', () => {
-		const seed = seedOf(30_000, [{ from: '2025-01-01', to: null }]);
+		const seed = seedOf(30_000, { from: '2025-01-01', to: null });
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* unpaidLeave(t, '2026-01-07');
@@ -146,11 +152,9 @@ describe('a leaver', () => {
 	it.live(
 		'is paid everything up to the last day by the run covering it, and no later run seals it',
 		() => {
-			const seed = seedOf(
-				30_000,
-				[{ from: '2025-01-01', to: '2026-02-11' }],
-				[{ date: '2026-02-09', shift: WORK, hours: 10, overtime: 2 }]
-			);
+			const seed = seedOf(30_000, { from: '2025-01-01', to: '2026-02-11' }, [
+				{ date: '2026-02-09', shift: WORK, hours: 10, overtime: 2 }
+			]);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* unpaidLeave(t, '2026-02-05');
@@ -160,7 +164,7 @@ describe('a leaver', () => {
 							'adhoc_catalog_entry.create': [
 								{
 									entity_id: ENTITY,
-									employment_id: CONTRACT,
+									employment_id: STINT,
 									catalog_code: 'BPAYBS',
 									description: 'Last half',
 									quantity: '1000',
@@ -184,12 +188,9 @@ describe('a leaver', () => {
 	);
 });
 
-describe('a new contract version', () => {
+describe('a change of terms', () => {
 	it.live('is not an exit: the half before it withholds, never refunds', () => {
-		const seed = seedOf(60_000, [
-			{ from: '2025-01-01', to: '2026-01-31' },
-			{ from: '2026-02-01', to: null }
-		]);
+		const seed = seedOf(60_000, { from: '2025-01-01', to: null }, [], ['2026-02-01']);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t, '2026-01-1');
@@ -229,7 +230,7 @@ describe('a run after thirteen months of history', () => {
 	const open = { from: '2025-01-01', to: null };
 	/** Every half from February 2025 to January 2026 has run and sealed the roster days it attended. */
 	const history = (): Seed => {
-		const seed = seedOf(30_000, [open], rosterOf('2025-01-16', WINDOW.to));
+		const seed = seedOf(30_000, open, rosterOf('2025-01-16', WINDOW.to));
 		const runs = Array.from({ length: 12 }, (_, month) =>
 			DateTime.formatIsoDate(
 				DateTime.add(DateTime.makeUnsafe('2025-02-01'), { months: month })
@@ -336,7 +337,7 @@ describe('a run after thirteen months of history', () => {
 			);
 			assert.deepEqual(
 				yield* paid(seed),
-				yield* paid(seedOf(30_000, [open], rosterOf(WINDOW.from, WINDOW.to)))
+				yield* paid(seedOf(30_000, open, rosterOf(WINDOW.from, WINDOW.to)))
 			);
 		});
 	});
@@ -346,7 +347,7 @@ describe('attendance a run has priced', () => {
 	const NOW = '2026-02-20T02:00:00.000Z';
 	const LOAN = uuid(950);
 	const HELD = /Run 1 holds this person and is not paid yet/;
-	const seed = seedOf(30_000, [{ from: '2025-01-01', to: null }]);
+	const seed = seedOf(30_000, { from: '2025-01-01', to: null });
 	const pay = (t: Kit, period: string) =>
 		Effect.gen(function* () {
 			const ran = yield* runOf(t, period);
@@ -372,7 +373,7 @@ describe('attendance a run has priced', () => {
 				caller.act({
 					'roster_entry.create': [
 						{
-							employment_id: CONTRACT,
+							employment_id: STINT,
 							work_date: date,
 							shift_definition_id: idOf('shift_definition', WORK)
 						}
@@ -419,7 +420,7 @@ describe('attendance a run has priced', () => {
 							'loan_catalog_entry_repayment.create': [
 								{
 									entity_id: ENTITY,
-									employment_id: CONTRACT,
+									employment_id: STINT,
 									loan_id: idOf('loan_catalog_entry', LOAN),
 									amount: '100',
 									paid_on: date
@@ -453,12 +454,9 @@ describe('attendance a run has priced', () => {
 
 describe('a claim entered after its run', () => {
 	it.live(
-		'dated last month, on the contract before this one, is carried by the next run for its own period',
+		'dated last month, before the terms changed, is carried by the next run for its own period',
 		() => {
-			const seed = seedOf(30_000, [
-				{ from: '2025-01-01', to: '2026-01-31' },
-				{ from: '2026-02-01', to: null }
-			]);
+			const seed = seedOf(30_000, { from: '2025-01-01', to: null }, [], ['2026-02-01']);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* run(t, '2026-01-2');
@@ -478,7 +476,7 @@ describe('a claim entered after its run', () => {
 							'claim_catalog_entry.create': [
 								{
 									entity_id: ENTITY,
-									employment_id: CONTRACT,
+									employment_id: STINT,
 									catalog_code: 'MEDICAL_CLAIM',
 									quantity: '500',
 									incurred_on: '2026-01-10'
@@ -487,7 +485,7 @@ describe('a claim entered after its run', () => {
 						})
 					)
 				);
-				// the second half of February attends 1–15 February, where the January contract is not in force
+				// the second half of February attends 1–15 February, under the terms agreed from February
 				yield* run(t, '2026-02-2');
 				assert.deepEqual(
 					(yield* slipOf(t, '2026-02-2'))?.lines
@@ -512,7 +510,7 @@ describe('a ten-day schedule with a cutoff', () => {
 	// a run prices [previous cutoff, current cutoff − 1]: a no-pay day keyed in that window after the part is paid leaves
 	// that part to be worked out again, even when the day's calendar part is another
 	const tenDay = (cutoff: number): Seed => {
-		const seed = seedOf(30_000, [{ from: '2025-01-01', to: null }]);
+		const seed = seedOf(30_000, { from: '2025-01-01', to: null });
 		return {
 			...seed,
 			pay_group: (seed.pay_group ?? []).map((row) => ({

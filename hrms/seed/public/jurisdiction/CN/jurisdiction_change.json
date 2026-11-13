@@ -2488,7 +2488,7 @@
 				},
 				"SI_REGISTRATION": {
 					"name": "Social insurance registration of a new employee",
-					"description": "Raises social-insurance registration for a newly sealed employee within 30 days of the start date.",
+					"description": "Raises social-insurance registration for a new employee within 30 days of the start date.",
 					"lookup": {
 						"title": "Social insurance registration of a new employee",
 						"due_days": 30
@@ -2498,7 +2498,7 @@
 							"title": "社会保险法 第五十八条第一款: 用人单位应当自用工之日起三十日内为其职工向社会保险经办机构申请办理社会保险登记."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2518,14 +2518,14 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'SI_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst key = 'SI_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_REGISTRATION:' + row.id\n}];"
 				},
 				"HPF_DEPOSIT_REGISTRATION": {
 					"name": "Housing provident fund deposit registration",
-					"description": "Raises housing-provident-fund deposit registration for a newly sealed employee within 30 days.",
+					"description": "Raises housing-provident-fund deposit registration for a new employee within 30 days.",
 					"lookup": {
 						"title": "Housing provident fund deposit registration",
 						"due_days": 30
@@ -2535,7 +2535,7 @@
 							"title": "住房公积金管理条例 第十五条第一款: 单位录用职工的, 应当自录用之日起30日内向住房公积金管理中心办理缴存登记, 并办理职工住房公积金账户的设立或者转移手续."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2555,14 +2555,14 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'HPF_DEPOSIT_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst key = 'HPF_DEPOSIT_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'HPF_DEPOSIT_REGISTRATION:' + row.id\n}];"
 				},
 				"EMPLOYEE_ROSTER": {
 					"name": "Employee roster entry (职工名册)",
-					"description": "Raises the employee-roster entry for a newly sealed contract.",
+					"description": "Raises the employee-roster entry for a new employment.",
 					"lookup": {
 						"title": "Employee roster entry (职工名册)"
 					},
@@ -2571,7 +2571,7 @@
 							"title": "劳动合同法 第七条: 用人单位自用工之日起即与劳动者建立劳动关系; 用人单位应当建立职工名册备查; 劳动合同法实施条例 第八条 (名册内容)."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2591,7 +2591,7 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'EMPLOYEE_ROSTER:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst key = 'EMPLOYEE_ROSTER:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'EMPLOYEE_ROSTER:' + row.id\n}];"
@@ -2607,7 +2607,7 @@
 							"title": "劳动合同法 第五十条第一款: 用人单位应当在解除或者终止劳动合同时出具解除或者终止劳动合同的证明; 劳动合同法实施条例 第二十四条 (证明内容)."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2644,7 +2644,7 @@
 							"title": "劳动合同法 第五十条第一款: 并在十五日内为劳动者办理档案和社会保险关系转移手续."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2681,7 +2681,7 @@
 							"title": "住房公积金管理条例 第十五条第二款: 单位与职工终止劳动关系的, 单位应当自劳动关系终止之日起30日内向住房公积金管理中心办理变更登记, 并办理职工住房公积金账户转移或者封存手续."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2722,7 +2722,7 @@
 							"url": "https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2770,7 +2770,7 @@
 							"title": "劳动合同法 第五十条第三款: 用人单位对已经解除或者终止的劳动合同的文本, 至少保存二年备查."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2809,7 +2809,7 @@
 							"title": "劳动合同法 第四十一条第一款: 需要裁减人员二十人以上或者裁减不足二十人但占企业职工总数百分之十以上的, 用人单位提前三十日向工会或者全体职工说明情况, 听取工会或者职工的意见后, 裁减人员方案经向劳动行政部门报告, 可以裁减人员."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2893,7 +2893,7 @@
 							"url": "https://rsj.beijing.gov.cn/xxgk/2024zcwj/202406/W020240617387510280074.docx"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2913,7 +2913,7 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'EMPLOYMENT_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst key = 'EMPLOYMENT_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'EMPLOYMENT_REGISTRATION:' + row.id\n}];"
@@ -2930,7 +2930,7 @@
 							"title": "就业服务与就业管理规定 第六十二条第一款: 用人单位与职工终止或者解除劳动关系后, 应当于15日内办理登记手续."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3148,7 +3148,7 @@
 				},
 				"WRITTEN_CONTRACT_OVERDUE": {
 					"name": "No written labour contract one month after hire (double wages)",
-					"description": "Raises the double-wage exposure task for a sealed contract with no signed date, due one month after the start.",
+					"description": "Raises the double-wage exposure task for an employment with no signed date, due one month after the start.",
 					"lookup": {
 						"title": "No written labour contract one month after hire (double wages)"
 					},
@@ -3157,7 +3157,7 @@
 							"title": "劳动合同法 第十条第二款 (自用工之日起一个月内订立书面劳动合同); 第八十二条第一款: 用人单位自用工之日起超过一个月不满一年未与劳动者订立书面劳动合同的, 应当向劳动者每月支付二倍的工资; 劳动合同法实施条例 第六条."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3177,14 +3177,14 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (get(row.terms, 'signed_on', null) != null) return false;\nconst key = 'WRITTEN_CONTRACT_OVERDUE:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (get(row.terms, 'signed_on', null) != null) return false;\nconst key = 'WRITTEN_CONTRACT_OVERDUE:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_months(row.effective_range.from, 1),\n  occurrence_key: 'WRITTEN_CONTRACT_OVERDUE:' + row.id\n}];"
 				},
 				"DEEMED_OPEN_ENDED_CONTRACT": {
 					"name": "No written contract after one year: deemed open-ended",
-					"description": "Raises the deemed open-ended contract task for a sealed contract with no signed date, due one year after the start.",
+					"description": "Raises the deemed open-ended contract task for an employment with no signed date, due one year after the start.",
 					"lookup": {
 						"title": "No written contract after one year: deemed open-ended",
 						"offset_years": 1
@@ -3194,7 +3194,7 @@
 							"title": "劳动合同法 第十四条第三款: 用人单位自用工之日起满一年不与劳动者订立书面劳动合同的, 视为用人单位与劳动者已订立无固定期限劳动合同; 劳动合同法实施条例 第七条."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3214,7 +3214,7 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (get(row.terms, 'signed_on', null) != null) return false;\nconst key = 'DEEMED_OPEN_ENDED_CONTRACT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (get(row.terms, 'signed_on', null) != null) return false;\nconst key = 'DEEMED_OPEN_ENDED_CONTRACT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'DEEMED_OPEN_ENDED_CONTRACT:' + row.id\n}];"
@@ -3464,7 +3464,7 @@
 							"title": "Personal data of a former employee is kept to the end of the 10th year after the exit year — the longest retention of the records that need it: 税收征收管理法实施细则 第二十九条 (账簿、记账凭证、报表、完税凭证…其他有关涉税资料应当保存10年) https://fgk.chinatax.gov.cn/zcfgk/c100010/c5195082/content.html. Shorter: 劳动合同法 第五十条 (contract text 2 years), 保障农民工工资支付条例 第十五条 (wage ledger 3), 专项附加扣除 records 5. The payroll vouchers are accounting archives kept 30 years from the end of their year (会计档案管理办法 第十四条, ACCOUNTING_VOUCHER_RETENTION): the payslips keep their amounts after the personal data is deleted. 个人信息保护法 第十九条 (最短时间), 第四十七条 (保存期限届满应当删除) https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3491,7 +3491,7 @@
 				},
 				"PI_PROCESSING_NOTICE": {
 					"name": "Personal-information notice to the new employee",
-					"description": "Raises the personal-information notice for a newly sealed contract.",
+					"description": "Raises the personal-information notice for a new employment.",
 					"lookup": {
 						"title": "Personal-information notice to the new employee"
 					},
@@ -3501,7 +3501,7 @@
 							"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3521,14 +3521,14 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'PI_PROCESSING_NOTICE:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst key = 'PI_PROCESSING_NOTICE:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'PI_PROCESSING_NOTICE:' + row.id\n}];"
 				},
 				"SENSITIVE_PI_CONSENT": {
 					"name": "Separate consent and impact assessment for sensitive personal information",
-					"description": "Raises separate consent and an impact assessment for sensitive personal information on a sealed contract.",
+					"description": "Raises separate consent and an impact assessment for sensitive personal information on an employment.",
 					"lookup": {
 						"title": "Separate consent and impact assessment for sensitive personal information"
 					},
@@ -3538,7 +3538,7 @@
 							"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3558,7 +3558,7 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'SENSITIVE_PI_CONSENT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst key = 'SENSITIVE_PI_CONSENT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'SENSITIVE_PI_CONSENT:' + row.id\n}];"
@@ -3717,7 +3717,7 @@
 							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3737,7 +3737,7 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row.payroll, 'date_of_birth', null);\nif (born == null || born === '') return false;\nconst age = age_on(born, row.effective_range.from);\nif (age < ctx.lookup.min_age || age >= ctx.lookup.max_age) return false;\nconst key = 'JUVENILE_WORKER_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst born = get(row.payroll, 'date_of_birth', null);\nif (born == null || born === '') return false;\nconst age = age_on(born, row.effective_range.from);\nif (age < ctx.lookup.min_age || age >= ctx.lookup.max_age) return false;\nconst key = 'JUVENILE_WORKER_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'JUVENILE_WORKER_REGISTRATION:' + row.id\n}];"
@@ -3756,7 +3756,7 @@
 							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3776,7 +3776,7 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row.payroll, 'date_of_birth', null);\nif (born == null || born === '') return false;\nif (age_on(born, add_years(row.effective_range.from, ctx.lookup.offset_years)) >= ctx.lookup.max_age) return false;\nconst key = 'JUVENILE_WORKER_ANNUAL_CHECK:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst born = get(row.payroll, 'date_of_birth', null);\nif (born == null || born === '') return false;\nif (age_on(born, add_years(row.effective_range.from, ctx.lookup.offset_years)) >= ctx.lookup.max_age) return false;\nconst key = 'JUVENILE_WORKER_ANNUAL_CHECK:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'JUVENILE_WORKER_ANNUAL_CHECK:' + row.id\n}];"
@@ -3794,7 +3794,7 @@
 							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3814,7 +3814,7 @@
 							"limit": 1000
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (row.effective_range.to == null) return false;\nconst key = 'OPEN_ENDED_CONTRACT_RIGHT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.effective_range.to == null) return false;\nconst key = 'OPEN_ENDED_CONTRACT_RIGHT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'OPEN_ENDED_CONTRACT_RIGHT:' + row.id\n}];"
@@ -4099,20 +4099,9 @@
 								}
 							},
 							"limit": 1
-						},
-						"employee_contract": {
-							"where": {
-								"id": {
-									"eq": {
-										"var": "entry.employment_id"
-									}
-								}
-							},
-							"fields": ["service_started_on"],
-							"limit": 1
 						}
 					},
-					"condition": "const run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nconst key = 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + run.salary_coverage.from.slice(0, 4);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)) return false;\nconst service = calendar_completed_months(\n  get(first(ctx.reads.employee_contract), 'service_started_on', ctx.subject.employment.effective_range.from),\n  run.salary_coverage.from,\n);\nif (service < ctx.lookup.service_months) return false;\nconst reviews = get(\n  ctx.subject.employment.employee_extension_data,\n  'annual_leave_year_reviews',\n  [],\n);\nconst year = Number(run.salary_coverage.from.slice(0, 4));\nif (!Array.isArray(reviews)) return true;\nreturn reviews.filter((r) => Math.trunc(Number(r.year)) === year).length !== 1;",
+					"condition": "const run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nconst key = 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + run.salary_coverage.from.slice(0, 4);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)) return false;\nconst service = calendar_completed_months(\n  get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from),\n  run.salary_coverage.from,\n);\nif (service < ctx.lookup.service_months) return false;\nconst reviews = get(\n  ctx.subject.employment.employee_extension_data,\n  'annual_leave_year_reviews',\n  [],\n);\nconst year = Number(run.salary_coverage.from.slice(0, 4));\nif (!Array.isArray(reviews)) return true;\nreturn reviews.filter((r) => Math.trunc(Number(r.year)) === year).length !== 1;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + first(ctx.reads.payroll_run).salary_coverage.from.slice(0, 4)\n}];"
@@ -4121,7 +4110,7 @@
 			"registered_rule": {
 				"MINIMUM_WAGE_HOURLY": {
 					"description": "Checks that a part-time worker's hourly pay reaches the local hourly minimum, deriving the hourly equivalent from the agreed weekly hours when the contract states a monthly rate.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 3,
 					"condition": "if (ctx.entry.engagement !== 'PART_TIME') return false;\nconst rate = ctx.entry.terms.rate;\nif (rate == null) return false;\nreturn rate.unit === 'HOURLY' || rate.unit === 'MONTHLY';",
@@ -4130,7 +4119,7 @@
 				},
 				"PROBATION_LENGTH": {
 					"description": "Caps probation by the contract term and leaves no probation for part-time work or a contract shorter than three months.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 4,
 					"condition": "return get(ctx.entry.terms, 'probation_period', null) != null;",
@@ -4149,7 +4138,7 @@
 				},
 				"PROBATION_WAGE": {
 					"description": "Requires probation pay to reach 80% of the same post's wage or its minimum and never fall below the local monthly minimum wage.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 5,
 					"condition": "if (get(ctx.entry.terms, 'probation_period', null) == null) return false;\nconst rate = get(ctx.entry.terms, 'rate', null);\nif (rate == null) return false;\nreturn rate.unit === 'MONTHLY';",
@@ -4160,7 +4149,7 @@
 				},
 				"SI_WAIVER_VOID": {
 					"description": "Refuses a contract that records a waiver of social insurance, which is void.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 6,
 					"validate": "return get(ctx.entry.employee_extension_data, 'social_insurance_waived', false) !== true;",
@@ -4168,7 +4157,7 @@
 				},
 				"PART_TIME_HOURS": {
 					"description": "Keeps part-time terms within four hours a day and twenty-four hours a week.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 7,
 					"condition": "return ctx.entry.engagement === 'PART_TIME';",
@@ -4177,7 +4166,7 @@
 				},
 				"PART_TIME_PAY_CYCLE": {
 					"description": "Requires part-time pay to be settled at least every fifteen days.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 8,
 					"condition": "return ctx.entry.engagement === 'PART_TIME';",
@@ -4287,7 +4276,7 @@
 				},
 				"TERMINATION_PROTECTED": {
 					"description": "Refuses a contract end date inside a protected period for pregnancy, medical treatment or work injury.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 12,
 					"condition": "const end = get(ctx.entry.effective_range, 'to', null);\nif (end == null) return false;\nif (end === '') return false;\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
@@ -4296,7 +4285,7 @@
 				},
 				"RETIREMENT_AGE_REACHED": {
 					"description": "Refuses a contract whose start date is past the employee's statutory retirement age under the phased retirement table.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 13,
 					"condition": "const dob = get(ctx.entry.payroll, 'date_of_birth', null);\nif (dob == null) return false;\nif (dob === '') return false;\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
@@ -4422,30 +4411,30 @@
 					}
 				},
 				"PROBATION_ONCE": {
-					"description": "Allows one probation period only across the employee's sealed contracts.",
-					"target_collection": "employee_contract",
+					"description": "Allows one probation period only across the employee's employments and the terms dated within each.",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 22,
 					"condition": "return get(ctx.entry.terms, 'probation_period', null) != null;",
-					"validate": "const from = ctx.entry.terms.probation_period.from;\nconst prior = (ctx.reads.employee_contract ?? []).filter(\n  (c) =>\n    c.id !== get(ctx.entry, 'id', '') &&\n    c.status === 'SEALED' &&\n    get(c.terms, 'probation_period', null) != null,\n);\nreturn !prior.some((c) => c.terms.probation_period.from !== from);",
+					"validate": "const from = ctx.entry.terms.probation_period.from;\nconst prior = (ctx.reads.contract_terms ?? []).filter(\n  (r) =>\n    r.probation_period != null &&\n    !(\n      r.employment_id === get(ctx.entry, 'id', '') &&\n      r.effective_from === ctx.entry.effective_range.from\n    ),\n);\nreturn !prior.some((r) => r.probation_period.from !== from);",
 					"reads": {
-						"employee_contract": {
+						"contract_terms": {
 							"where": {
-								"employee_id": {
-									"eq": {
-										"var": "entry.employee_id"
+								"employment_id": {
+									"is": {
+										"employee_id": {
+											"eq": {
+												"var": "ctx.entry.employee_id"
+											}
+										}
 									}
 								}
 							},
 							"fields": [
-								"id",
-								"employee_id",
-								"effective_range",
+								"employment_id",
+								"effective_from",
 								"signed_contract_period",
-								"terms",
-								"employee_extension_data",
-								"payroll",
-								"status"
+								"probation_period"
 							],
 							"limit": 10000
 						}
@@ -4454,13 +4443,13 @@
 				},
 				"OPEN_ENDED_REQUIRED": {
 					"description": "Requires a recorded employee request before a further fixed-term contract after ten years' service or two prior fixed terms.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 23,
 					"condition": "return ctx.entry.signed_contract_period != null;",
-					"validate": "const prior = (ctx.reads.employee_contract ?? []).filter(\n  (c) => c.id !== get(ctx.entry, 'id', '') && c.status === 'SEALED',\n);\nconst earliest = prior\n  .map((c) => c.effective_range.from)\n  .concat([ctx.entry.effective_range.from])\n  .toSorted()[0];\nconst service = calendar_completed_months(earliest, ctx.entry.signed_contract_period.from);\nconst required =\n  service >= ctx.lookup.service_months ||\n  prior.filter((c) => c.signed_contract_period != null).length >=\n    ctx.lookup.prior_fixed_terms;\nif (!required) return true;\nreturn (ctx.reads.workplace_case_catalog_entry ?? []).some(\n  (c) =>\n    c.kind === 'FIXED_TERM_CONTRACT_REQUEST' &&\n    get(c, 'employment_id', null) === get(ctx.entry, 'id', '') &&\n    c.opened_on <= get(c.inputs, 'signed_on', '') &&\n    get(c.inputs, 'contract_start', '') === ctx.entry.signed_contract_period.from &&\n    get(c.inputs, 'contract_end', '') === ctx.entry.signed_contract_period.to,\n);",
+					"validate": "const fixed = (ctx.reads.contract_terms ?? []).filter(\n  (r) =>\n    r.signed_contract_period != null &&\n    !(\n      r.employment_id === get(ctx.entry, 'id', '') &&\n      r.signed_contract_period.from === ctx.entry.signed_contract_period.from &&\n      r.signed_contract_period.to === ctx.entry.signed_contract_period.to\n    ),\n);\nconst earliest = (ctx.reads.employment ?? [])\n  .map((c) => c.effective_range.from)\n  .concat([ctx.entry.effective_range.from])\n  .toSorted()[0];\nconst service = calendar_completed_months(earliest, ctx.entry.signed_contract_period.from);\nconst required =\n  service >= ctx.lookup.service_months ||\n  fixed.length >= ctx.lookup.prior_fixed_terms;\nif (!required) return true;\nreturn (ctx.reads.workplace_case_catalog_entry ?? []).some(\n  (c) =>\n    c.kind === 'FIXED_TERM_CONTRACT_REQUEST' &&\n    get(c, 'employment_id', null) === get(ctx.entry, 'id', '') &&\n    c.opened_on <= get(c.inputs, 'signed_on', '') &&\n    get(c.inputs, 'contract_start', '') === ctx.entry.signed_contract_period.from &&\n    get(c.inputs, 'contract_end', '') === ctx.entry.signed_contract_period.to,\n);",
 					"reads": {
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"employee_id": {
 									"eq": {
@@ -4468,15 +4457,26 @@
 									}
 								}
 							},
+							"fields": ["id", "effective_range"],
+							"limit": 10000
+						},
+						"contract_terms": {
+							"where": {
+								"employment_id": {
+									"is": {
+										"employee_id": {
+											"eq": {
+												"var": "ctx.entry.employee_id"
+											}
+										}
+									}
+								}
+							},
 							"fields": [
-								"id",
-								"employee_id",
-								"effective_range",
+								"employment_id",
+								"effective_from",
 								"signed_contract_period",
-								"terms",
-								"employee_extension_data",
-								"payroll",
-								"status"
+								"probation_period"
 							],
 							"limit": 10000
 						},
@@ -4491,7 +4491,7 @@
 				},
 				"CONTRACT_CATEGORIES": {
 					"description": "Requires the contract's statutory work category and residency status to use the declared codes.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 34,
 					"condition": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
@@ -4503,7 +4503,7 @@
 				},
 				"SHARED_STRUCTURED_EMPLOYEE_INPUTS": {
 					"description": "Validates the ranges and allowed codes of the structured employee extension fields.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 36,
 					"condition": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
@@ -4664,22 +4664,11 @@
 							},
 							"fields": ["id", "leave_entry_id", "incurred_on", "part", "payroll_run_id"],
 							"limit": 10000
-						},
-						"employee_contract": {
-							"where": {
-								"id": {
-									"eq": {
-										"var": "entry.employment_id"
-									}
-								}
-							},
-							"fields": ["employee_extension_data", "service_started_on"],
-							"limit": 1
 						}
 					},
 					"lookup": {},
 					"condition": "if (get(ctx.entry, 'encashment', false) === true) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.code === ctx.entry.catalog_code && row.code === 'ANNUAL_LEAVE');",
-					"validate": "// 职工带薪年休假条例 第四条第(二)至(五)项: 事假累计20天以上且不扣工资, 或病假累计满2、3、4个月的, 不享受当年年休假.\n// 企业职工带薪年休假实施办法 第八条: 已休年休假后年度内才出现上述情形的, 不享受下一年度的年休假.\nconst own = ctx.reads.leave_catalog.find((row) => row.code === ctx.entry.catalog_code);\nconst started = get(first(ctx.reads.employee_contract), 'service_started_on', ctx.subject.employment.effective_range.from);\nconst taken = (code, year) => sum(\n  ctx.reads.leave_catalog_entry\n    .filter((row) => row.catalog_code === code)\n    .map((row) => {\n      const dayCount = (ctx.reads.leave_catalog_entry_day ?? []).filter(\n        (child) => child.leave_entry_id === row.id && String(child.incurred_on).startsWith(year),\n      ).length / 2;\n      return dayCount;\n    })\n);\nconst barred = (year) => {\n  const months = calendar_completed_months(started, year + '-12-31');\n  const band = own.lookup.sick_leave_disqualification_days.filter((row) => row.service_months <= months).at(-1);\n  return taken('PERSONAL_LEAVE_PAID', year) >= own.lookup.paid_personal_leave_disqualification_days || (band != null && taken('SICK_LEAVE', year) >= band.days);\n};\nconst refused = get(ctx.entry, 'leave_catalog_entry_day', []).some((child) => {\n  const year = String(child.incurred_on).slice(0, 4);\n  const last = String(Number(year) - 1);\n  return barred(year) || (barred(last) && taken('ANNUAL_LEAVE', last) > 0);\n});\nif (refused) throw 'Personal or sick leave this year, or last year after annual leave was taken, forfeits annual leave.';\nreturn true;",
+					"validate": "// 职工带薪年休假条例 第四条第(二)至(五)项: 事假累计20天以上且不扣工资, 或病假累计满2、3、4个月的, 不享受当年年休假.\n// 企业职工带薪年休假实施办法 第八条: 已休年休假后年度内才出现上述情形的, 不享受下一年度的年休假.\nconst own = ctx.reads.leave_catalog.find((row) => row.code === ctx.entry.catalog_code);\nconst started = get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from);\nconst taken = (code, year) => sum(\n  ctx.reads.leave_catalog_entry\n    .filter((row) => row.catalog_code === code)\n    .map((row) => {\n      const dayCount = (ctx.reads.leave_catalog_entry_day ?? []).filter(\n        (child) => child.leave_entry_id === row.id && String(child.incurred_on).startsWith(year),\n      ).length / 2;\n      return dayCount;\n    })\n);\nconst barred = (year) => {\n  const months = calendar_completed_months(started, year + '-12-31');\n  const band = own.lookup.sick_leave_disqualification_days.filter((row) => row.service_months <= months).at(-1);\n  return taken('PERSONAL_LEAVE_PAID', year) >= own.lookup.paid_personal_leave_disqualification_days || (band != null && taken('SICK_LEAVE', year) >= band.days);\n};\nconst refused = get(ctx.entry, 'leave_catalog_entry_day', []).some((child) => {\n  const year = String(child.incurred_on).slice(0, 4);\n  const last = String(Number(year) - 1);\n  return barred(year) || (barred(last) && taken('ANNUAL_LEAVE', last) > 0);\n});\nif (refused) throw 'Personal or sick leave this year, or last year after annual leave was taken, forfeits annual leave.';\nreturn true;",
 					"references": [
 						{
 							"title": "职工带薪年休假条例 第四条; 企业职工带薪年休假实施办法 第八条."
@@ -5198,7 +5187,7 @@
 						"type": "object",
 						"title": "Statutory declarations",
 						"additionalProperties": false,
-						"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+						"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 						"properties": {
 							"IIT": {
 								"type": "object",
@@ -5407,7 +5396,7 @@
 						}
 					}
 				},
-				"description": "Additional local compliance employee facts on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+				"description": "Additional local compliance employee facts on the employment, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 			},
 			"ledger": {
 				"ytd_scope": "EMPLOYER"

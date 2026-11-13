@@ -16,14 +16,23 @@ export const registerChanged = <
 			before.name !== after.name || (before.address ?? null) !== (after.address ?? null)
 	);
 
+/** The plain fields a formula, a rule or the ledger reads. */
+const PRICED = ['cumulative_service', 'date_of_birth', 'gender'] as const;
+
 export default model({
 	description:
-		'One system identity for a person: name, contact details, documents, login and face enrolment. Standing payroll inputs belong to sealed employment contracts.',
+		'One system identity for a person: name, contact details, documents, login, face enrolment and the particulars that never change (date of birth, identity number, gender, bank). What changes by date belongs to their stints.',
 	icon: 'lucide:user',
 	record_label: 'record.name',
 	fields: {
 		source_reference: { kind: 'text', optional: true },
 		cumulative_service: { kind: 'bool', default: false },
+		// the person's fixed particulars: a different value can only mean the old one was wrong
+		date_of_birth: { kind: 'date', optional: true },
+		identity_number: { kind: 'text', optional: true },
+		gender: { kind: 'enum', values: ['MALE', 'FEMALE'], optional: true },
+		birth_city: { kind: 'text', optional: true },
+		bank: { kind: 'custom', of: 'bank', optional: true },
 		name: {
 			kind: 'text'
 		},
@@ -97,7 +106,13 @@ export default model({
 	outputs: {
 		default: {
 			fields: 'all',
-			employee_contract: { fields: 'all', entity_id: { fields: 'all' } }
+			employment: {
+				fields: 'all',
+				entity_id: { fields: 'all' },
+				terms: { fields: 'all' },
+				parameters: { fields: 'all' }
+			},
+			dependants: { fields: 'all' }
 		},
 		// the attendance kiosk: who may punch and their enrolled face
 		kiosk: {
@@ -118,6 +133,11 @@ export default model({
 				'name',
 				'source_reference',
 				'cumulative_service',
+				'date_of_birth',
+				'identity_number',
+				'gender',
+				'birth_city',
+				'bank',
 				'email',
 				'phone',
 				'address',
@@ -148,6 +168,11 @@ export default model({
 				'name',
 				'source_reference',
 				'cumulative_service',
+				'date_of_birth',
+				'identity_number',
+				'gender',
+				'birth_city',
+				'bank',
 				'email',
 				'phone',
 				'address',
@@ -163,8 +188,9 @@ export default model({
 			]
 		},
 		transform: function* (changes, ctx) {
-			// how service counts moves what every paid period of the person was worked out on
-			const counted = changes.filter((change) => change.changed('cumulative_service'));
+			// a particular a formula reads, and how service counts, were always so: every paid period of the person was
+			// worked out on them
+			const counted = changes.filter((change) => change.changed(...PRICED));
 			return {
 				sets: changes.map(({ set }) => set),
 				on_approved: yield* amendmentsFor(
@@ -178,10 +204,9 @@ export default model({
 			};
 		},
 		effect: function* (changes, ctx) {
-			// how service counts moves every service window and band: the person's entitlements sync again
-			const counted = changes.filter(
-				({ before, after }) => before.cumulative_service !== after.cumulative_service
-			);
+			// how service counts moves every service window and band, and a particular may move an entitlement: the
+			// person's entitlements sync again
+			const counted = changes.filter((change) => change.changed(...PRICED));
 			if (counted.length > 0)
 				yield* ctx.schedule('ledger', { employees: counted.map(({ after }) => after.id) });
 			// s.113 register particulars only: email, phone, user_id, face, documents and location are not

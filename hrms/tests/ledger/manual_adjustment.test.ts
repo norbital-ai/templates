@@ -81,7 +81,7 @@ const halfDay = (t: Kit, by: Member, part: 'AM' | 'PM') =>
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: idOf('employee_contract', uuid(6)),
+						employment_id: idOf('employment', uuid(6)),
 						catalog_code: IN_LIEU,
 						days: [{ date: '2026-11-04', part }]
 					})
@@ -158,10 +158,19 @@ describe('a manual balance adjustment', () => {
 			const base = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
 			const closing = {
 				...base,
-				employee_contract: (base.employee_contract ?? []).map((row) => ({
+				employment: (base.employment ?? []).map((row) => ({
 					...row,
 					service_started_on: '2024-06-01',
 					effective_range: { from: '2024-06-01', to: null }
+				})),
+				// the stint's first rows are dated with it
+				contract_terms: (base.contract_terms ?? []).map((row) => ({
+					...row,
+					effective_from: '2024-06-01'
+				})),
+				statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
+					...row,
+					effective_from: '2024-06-01'
 				}))
 			};
 			return Effect.gen(function* () {
@@ -231,14 +240,14 @@ describe('a manual balance adjustment', () => {
 			// self-service and a role without the HR policy
 			for (const by of [t.member(['employee'], { id: uuid(3) }), t.member(['hr_manager'])])
 				assert.match(yield* refused(adjust(t, by, IN_LIEU, 1)), /may not create ledger_entry/);
-			// a quarter day, no cause, a row the law in force does not hold, a date no contract covers
+			// a quarter day, no cause, a row the law in force does not hold, a date no employment covers
 			const shape = /A manual adjustment adds to or takes from/;
 			assert.match(yield* refused(adjust(t, hr, IN_LIEU, 0.25)), shape);
 			assert.match(yield* refused(adjust(t, hr, IN_LIEU, 1, ' ')), shape);
 			assert.match(yield* refused(adjust(t, hr, 'NOT_A_ROW', 1)), /not a leave row of the law/);
 			assert.match(
 				yield* refused(adjust(t, hr, IN_LIEU, 1, 'before hire', '2024-06-01')),
-				/No sealed contract/
+				/No employment of this person covers 2024-06-01/
 			);
 			// a typed period, source or another measure is not a manual adjustment
 			const typed = (set: { period?: string; source?: string; measure?: 'used' }) =>

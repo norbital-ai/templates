@@ -9,7 +9,7 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, ownLines, pay, run } from '../amendment_kit.ts';
 import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const STINT = idOf('employment', uuid(6));
 const SALARY = 3120;
 const seed = pack(
 	'MY',
@@ -37,7 +37,7 @@ const entry = (t: Kit) =>
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: STINT,
 						catalog_code: 'NPL',
 						days: whole('2026-06-10')
 					})

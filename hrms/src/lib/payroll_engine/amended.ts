@@ -64,9 +64,12 @@ const linesOf = (breakdown: unknown): readonly JsonObject[] => {
 	const lines = objectValue(breakdown).lines;
 	return Array.isArray(lines) ? lines.filter(isJsonObject) : [];
 };
+/** A terms row: the day it was signed, and the day it applies from. */
+const signedOn = (row: JsonObject) => textOf(row.signed_on);
+const fromOf = (row: JsonObject) => textOf(row.effective_from);
 const signedOf = (line: JsonObject) =>
 	(line.direction === 'DEDUCT' ? -1 : 1) * Number(line.amount ?? 0);
-/** The pay a period's lines give the person before any scheme: what a later-signed version changes. */
+/** The pay a period's lines give the person before any scheme: what later-signed terms change. */
 const earned = (breakdown: unknown): number =>
 	linesOf(breakdown)
 		.filter(
@@ -188,16 +191,15 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 		shift_definition: { where: company, limit: 10000 },
 		shift_pattern: { where: company, limit: 10000 },
 		holiday: { where: company, limit: 10000 },
-		employee_contract: {
-			where: { employee_id: { in: [...people] }, status: { eq: 'SEALED' } },
-			limit: 10000
-		},
+		employment: { where: { employee_id: { in: [...people] } }, limit: 10000 },
+		contract_terms: { where: theirs, limit: 10000 },
+		statutory_parameters: { where: theirs, limit: 10000 },
+		dependant: { where: { employee_id: { in: [...people] } }, limit: 10000 },
 		employee_profile: {
 			where: { id: { in: [...people] } },
 			limit: 10000,
-			employee_contract: {
-				where: { status: { eq: 'SEALED' } },
-				fields: ['employee_id', 'status', 'effective_range', 'entity_id'],
+			employment: {
+				fields: ['id', 'employee_id', 'effective_range', 'entity_id', 'service_started_on'],
 				limit: 10000,
 				entity_id: { fields: ['settings_code'] }
 			}
@@ -305,9 +307,7 @@ const sliceOf = (
 	carriedBack: (employee: string, date: string) => boolean,
 	accounts: ReadonlyMap<string, Accounts>
 ): RunData => {
-	const contracts = (span.employee_contract ?? []).filter((row) =>
-		people.has(String(row.employee_id))
-	);
+	const contracts = (span.employment ?? []).filter((row) => people.has(String(row.employee_id)));
 	const employeeOf = new Map(contracts.map((row) => [String(row.id), String(row.employee_id)]));
 	const { from } = period.frame.attendance;
 	const inside = (date: unknown) =>
@@ -344,8 +344,7 @@ const sliceOf = (
 		pay_group: (span.pay_group ?? []).filter(
 			(row) => String(row.id) === String(period.run.pay_group_id)
 		),
-		employee_contract: contracts,
-		contract_terms: contracts,
+		employment: contracts,
 		employee_profile: (span.employee_profile ?? []).filter((row) => people.has(String(row.id))),
 		employee_balance: (span.employee_balance ?? []).flatMap((row) => {
 			const held = accounts.get(String(row.employee_id));
@@ -480,11 +479,11 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			? known.amendments
 					.filter((row) => named.has(String(row.id)))
 					.map((row) => String(row.employee_id))
-			: (own.data.employee_contract ?? []).map((row) => String(row.employee_id))
+			: (own.data.employment ?? []).map((row) => String(row.employee_id))
 	);
 	// a late entry dated in a period the person may have been paid for is that period's, not this one's
 	const employeeOf = new Map(
-		(own.data.employee_contract ?? []).map((row) => [String(row.id), String(row.employee_id)])
+		(own.data.employment ?? []).map((row) => [String(row.id), String(row.employee_id)])
 	);
 	const ownFrom = own.frame.attendance.from;
 	const late = (
@@ -495,25 +494,25 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		(row) =>
 			row.payroll_run_id == null && typeof row.incurred_on === 'string' && row.incurred_on < ownFrom
 	);
-	// a version signed since the last pay date that began before this period: it may owe back pay
+	// terms signed since the last pay date that began before this period: they may owe back pay
 	const settings = (own.data.law_settings ?? [])[0];
 	const paysBack = typeof objectValue(settings?.conversions).back_pay === 'string';
 	const signedLately =
 		!paysBack || offCycle
 			? []
-			: [...(own.data.contract_terms ?? []), ...(own.data.employee_contract ?? [])].filter(
-					(row) => {
-						const signed = objectValue(row.terms).signed_on;
-						return (
-							typeof signed === 'string' &&
-							signed <= ownPayDate &&
-							// a version from before this period's salary days: the attendance window may already hold its first days
-							rangeOf(row).from < String(objectValue(own.row.salary_coverage).from) &&
-							// a contract signed in its own first pay period was never late for anything
-							signed > rangeOf(row).from
-						);
-					}
-				);
+			: (own.data.contract_terms ?? []).flatMap((row) => {
+					const signed = signedOn(row);
+					const employee = employeeOf.get(String(row.employment_id));
+					return employee !== undefined &&
+						signed !== '' &&
+						signed <= ownPayDate &&
+						// terms from before this period's salary days: the attendance window may already hold their first days
+						fromOf(row) < String(objectValue(own.row.salary_coverage).from) &&
+						// terms signed in their own first pay period were never late for anything
+						signed > fromOf(row)
+						? [{ employee, from: fromOf(row) }]
+						: [];
+				});
 	const open = known.amendments.filter(
 		(row) =>
 			row.payroll_run_id == null &&
@@ -523,7 +522,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	const candidates = unique([
 		...open.map((row) => String(row.employee_id)),
 		...late.flatMap((row) => employeeOf.get(String(row.employment_id)) ?? []),
-		...signedLately.map((row) => String(row.employee_id))
+		...signedLately.map((row) => row.employee)
 	]);
 	if (candidates.length === 0) return yield* plain();
 
@@ -545,9 +544,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			...late
 				.filter((row) => employeeOf.get(String(row.employment_id)) === employee)
 				.map((row) => String(row.incurred_on)),
-			...signedLately
-				.filter((row) => String(row.employee_id) === employee)
-				.map((row) => rangeOf(row).from)
+			...signedLately.filter((row) => row.employee === employee).map((row) => row.from)
 		].toSorted()[0] ?? ownFrom;
 	const ordered = candidates.toSorted((a, b) => earliestOf(a).localeCompare(earliestOf(b)));
 	const people: string[] = [];
@@ -622,8 +619,14 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			.filter(({ slip }) => String(slip.employee_id) === employee)
 			.toSorted((a, b) => a.order.localeCompare(b.order));
 	const versionsOf = (employee: string) =>
-		(spanData.employee_contract ?? []).filter(
-			(row) => String(row.employee_id) === employee && row.status !== 'VOID'
+		(spanData.employment ?? []).filter((row) => String(row.employee_id) === employee);
+	// the person's terms rows: each is signed on a day and applies from one
+	const stintOwner = new Map(
+		(spanData.employment ?? []).map((row) => [String(row.id), String(row.employee_id)])
+	);
+	const agreedOf = (employee: string) =>
+		(spanData.contract_terms ?? []).filter(
+			(row) => stintOwner.get(String(row.employment_id)) === employee
 		);
 	// one period a run, whoever asks: the people it is worked out again for are priced together
 	const periods = new Map(
@@ -635,7 +638,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			})
 	);
 	/**
-	 * The person's paid on-cycle periods, oldest first: those that paid them, and those their contract was in with
+	 * The person's paid on-cycle periods, oldest first: those that paid them, and those their stint was in with
 	 * nothing agreed yet (a hire signed after its first months), which a later period owes as back pay.
 	 */
 	const periodsOf = new Map(
@@ -660,7 +663,6 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			] as const;
 		})
 	);
-	const signedOn = (row: JsonObject) => textOf(objectValue(row.terms).signed_on);
 	const ownPeriod: Period = {
 		run: { ...own.row, id: own.id },
 		id: own.id,
@@ -713,13 +715,13 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			leftOut.add(String(row.id));
 			reach2(employee, start);
 		}
-		// a version's signing period owes the back pay: a period it reaches being amended amends that one too
-		for (const version of versionsOf(employee)) {
-			const signed = signedOn(version);
+		// the signing period of terms owes the back pay: a period they reach being amended amends that one too
+		for (const terms of agreedOf(employee)) {
+			const signed = signedOn(terms);
 			if (signed === '' || !paysBack) continue;
 			const signing = paid.find((period) => period.payDate >= signed);
 			const reaches = (again.get(employee) ?? []).some(
-				(period) => period.payDate < signed && period.closes >= rangeOf(version).from
+				(period) => period.payDate < signed && period.closes >= fromOf(terms)
 			);
 			if (signing !== undefined && reaches) reach2(employee, signing);
 		}
@@ -835,11 +837,11 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			const paid = periodsOf.get(employee) ?? [];
 			const earlier = paid.filter((period) => period.order < at.order);
 			const since = earlier.at(-1)?.payDate ?? '';
-			const signed = versionsOf(employee).filter(
+			const signed = agreedOf(employee).filter(
 				(row) => signedOn(row) > since && signedOn(row) <= at.payDate
 			);
 			if (!paysBack || signed.length === 0 || since === '') continue;
-			const first = signed.map((row) => rangeOf(row).from).toSorted()[0] ?? at.payDate;
+			const first = signed.map(fromOf).toSorted()[0] ?? at.payDate;
 			for (const period of earlier.filter((entry) => entry.closes >= first)) {
 				const ask = asks.get(`${period.id}/${since}`) ?? { period, since, who: [] };
 				ask.who.push(employee);
@@ -945,7 +947,6 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	const amended = new Set(people);
 	const ownData: RunData = {
 		...own.data,
-		contract_terms: [...(own.data.contract_terms ?? []), ...(spanData.employee_contract ?? [])],
 		employee_balance: (own.data.employee_balance ?? []).map((row) =>
 			amended.has(String(row.employee_id))
 				? { ...row, account: accountsAt(String(row.employee_id), ownPeriod) }

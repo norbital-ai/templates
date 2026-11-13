@@ -46,7 +46,7 @@ const known = (over: Partial<DataRequestKnown> = {}): DataRequestKnown => ({
 	entities: [],
 	entityChanges: [],
 	profiles: [],
-	contracts: [],
+	stints: [],
 	patterns: [],
 	...over
 });
@@ -157,7 +157,7 @@ describe('data request plan', () => {
 		'Employment Contract': [contract]
 	};
 
-	it('builds a company, a person and a contract in their model shapes', () => {
+	it('builds a company, a person and an employment in their model shapes', () => {
 		const plan = planDataRequest(workbook(sheets), known());
 		assert.deepEqual(plan.entities, [
 			{ name: 'Acme', code: 'ACME', settings_code: 'MY', time_zone: seed('MY').settings.timezone }
@@ -182,29 +182,38 @@ describe('data request plan', () => {
 		assert.deepEqual(isJsonObject(parameters) ? parameters.registrations : undefined, [
 			{ scheme_code: 'EPF', number: '0012345' }
 		]);
+		// the person's fixed particulars are the profile's, whichever sheet states them
 		assert.deepEqual(plan.profiles, [
-			{ name: 'Aisha', email: 'aisha@example.test', source_reference: 'A1' }
+			{ name: 'Aisha', email: 'aisha@example.test', gender: 'FEMALE', source_reference: 'A1' }
 		]);
-		const row = plan.contracts[0]?.row;
-		assert.equal(row?.engagement, 'PART_TIME');
-		assert.equal(row?.status, 'DRAFT');
-		assert.deepEqual(row?.payroll, { gender: 'FEMALE' });
-		assert.deepEqual(row?.terms, {
-			rate: { amount: 3000, unit: 'MONTHLY' },
-			statutory_work_category: 'NON_MANUAL',
-			residency_status: 'CITIZEN',
-			employer_bears_income_tax: true,
-			allowances: { MEAL_ALLOWANCE: { amount: 150 } }
-		});
-		assert.deepEqual(row?.employee_extension_data, {
-			paternity_confinements: [
-				{ event_id: 'E1', lifetime_number: 1, notification_requirement_met: true },
-				{ event_id: 'E2', lifetime_number: 2 }
-			]
-		});
+		// a hire is one stint with its first terms and what the law is told nested, each from its first day
+		const row = plan.employments[0]?.row;
+		assert.deepEqual(row?.effective_range, { from: '2026-03-01', to: null });
+		assert.deepEqual(row?.terms, [
+			{
+				effective_from: '2026-03-01',
+				engagement: 'PART_TIME',
+				rate: { amount: 3000, unit: 'MONTHLY' },
+				statutory_work_category: 'NON_MANUAL',
+				employer_bears_income_tax: true,
+				allowances: { MEAL_ALLOWANCE: { amount: 150 } }
+			}
+		]);
+		assert.deepEqual(row?.parameters, [
+			{
+				effective_from: '2026-03-01',
+				residency_status: 'CITIZEN',
+				parameters: {
+					paternity_confinements: [
+						{ event_id: 'E1', lifetime_number: 1, notification_requirement_met: true },
+						{ event_id: 'E2', lifetime_number: 2 }
+					]
+				}
+			}
+		]);
 	});
 
-	it('closes a duplicated contract row the day before its successor', () => {
+	it('reads a duplicated contract row as the change from its date', () => {
 		const plan = planDataRequest(
 			workbook({
 				...sheets,
@@ -215,20 +224,33 @@ describe('data request plan', () => {
 			}),
 			known()
 		);
-		assert.deepEqual(
-			plan.contracts.map(({ row }) => row.effective_range),
-			[
-				{ from: '2026-03-01', to: '2026-06-30' },
-				{ from: '2026-07-01', to: null }
-			]
-		);
+		// one stint, open; the second row is only what changed, from its date
+		const [employment, ...others] = plan.employments;
+		assert.deepEqual(others, []);
+		assert.deepEqual(employment?.row.effective_range, { from: '2026-03-01', to: null });
+		const terms = employment?.row.terms;
+		assert.ok(Array.isArray(terms));
+		assert.equal(terms.length, 2);
+		assert.deepEqual(terms[1], {
+			effective_from: '2026-07-01',
+			rate: { amount: 3500, unit: 'MONTHLY' }
+		});
 	});
 
-	it('skips what is recorded, seals what an interrupted import left, updates a profile', () => {
+	it('skips what is recorded, adds the change an interrupted import left, updates a profile', () => {
+		// what the first import wrote: the stint with its first rows, as stored
+		const hired = planDataRequest(workbook(sheets), known()).employments[0]?.row;
+		const stored = (rows: unknown, id: string) =>
+			(Array.isArray(rows) ? rows : [])
+				.filter(isJsonObject)
+				.map((row, index) => ({ ...row, id: `${id}${index}` }));
 		const plan = planDataRequest(
 			workbook({
 				'Employment Profile': [{ ...person, 'Full Name *': 'Aisha Binti' }],
-				'Employment Contract': [contract, { ...contract, 'Contract Start *': '2026-07-01' }]
+				'Employment Contract': [
+					contract,
+					{ ...contract, 'Contract Start *': '2026-07-01', 'Salary *': 3500 }
+				]
 			}),
 			known({
 				entities: [{ id: 'e1', name: 'Acme', code: 'ACME' }],
@@ -239,31 +261,35 @@ describe('data request plan', () => {
 						email: 'aisha@example.test',
 						phone: null,
 						address: null,
-						source_reference: 'A1'
+						source_reference: 'A1',
+						date_of_birth: null,
+						identity_number: null,
+						gender: 'FEMALE',
+						bank: null
 					}
 				],
-				contracts: [
+				stints: [
 					{
-						id: 'c1',
+						id: 's1',
 						employee_id: 'p1',
+						entity_id: 'e1',
 						employee_number: 'A1',
 						from: '2026-03-01',
-						to: '2026-06-30',
-						status: 'SEALED'
-					},
-					{
-						id: 'c2',
-						employee_id: 'p1',
-						employee_number: 'A1',
-						from: '2026-07-01',
 						to: null,
-						status: 'DRAFT'
+						terms: stored(hired?.terms, 't'),
+						parameters: stored(hired?.parameters, 'q')
 					}
 				]
 			})
 		);
-		assert.deepEqual(plan.contracts, []);
-		assert.deepEqual(plan.sealContracts, ['c2']);
+		assert.deepEqual(plan.employments, []);
+		assert.deepEqual(plan.terms, [
+			{
+				employment: 's1',
+				row: { effective_from: '2026-07-01', rate: { amount: 3500, unit: 'MONTHLY' } }
+			}
+		]);
+		assert.deepEqual(plan.parameters, []);
 		assert.deepEqual(plan.profileUpdates, [{ target: 'p1', set: { name: 'Aisha Binti' } }]);
 		assert.match(plan.warnings[0] ?? '', /already recorded/);
 	});
@@ -287,21 +313,23 @@ describe('data request plan', () => {
 			refused(() => planDataRequest(file, known()), problem);
 	});
 
-	it('refuses an overlap with a sealed contract', () => {
+	it('refuses an overlap with a stint held at another company', () => {
 		refused(
 			() =>
 				planDataRequest(
 					workbook({ 'Employment Contract': [{ ...contract, 'Contract Start *': '2026-04-01' }] }),
 					known({
 						entities: [{ id: 'e1', name: 'Acme', code: null }],
-						contracts: [
+						stints: [
 							{
-								id: 'c1',
+								id: 's1',
 								employee_id: 'p1',
+								entity_id: 'e2',
 								employee_number: 'A1',
 								from: '2026-03-01',
 								to: null,
-								status: 'SEALED'
+								terms: [],
+								parameters: []
 							}
 						],
 						profiles: [
@@ -311,12 +339,16 @@ describe('data request plan', () => {
 								email: null,
 								phone: null,
 								address: null,
-								source_reference: null
+								source_reference: null,
+								date_of_birth: null,
+								identity_number: null,
+								gender: null,
+								bank: null
 							}
 						]
 					})
 				),
-			/overlaps the contract from 2026-03-01/
+			/overlaps the employment from 2026-03-01/
 		);
 	});
 });

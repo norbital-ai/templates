@@ -12,14 +12,16 @@
 	import { JsonObject } from '../../payroll_engine/contracts.js';
 	import { scheduled, holidaysForDay } from '../../payroll_engine/attendance.js';
 	import { cycleShiftId } from '../roster/month_board.js';
-	import { getErrorMessage, jsonValues } from '../../payroll_engine/foundation.js';
+	import { inForce } from '../../dated.js';
+	import { termsChange } from '../../person.js';
+	import { getErrorMessage, jsonObject, jsonValues } from '../../payroll_engine/foundation.js';
 	let {
 		ctx,
-		contract,
+		employment,
 		company
 	}: {
 		ctx: PageContext;
-		contract: Row<'employee_contract'>;
+		employment: Pick<Row<'employment'>, 'employee_id'>;
 		company: Pick<Row<'entity'>, 'id' | 'name' | 'settings_code' | 'time_zone'>;
 	} = $props();
 	const clock = ctx.clock('minute');
@@ -34,19 +36,17 @@
 	const to = $derived(
 		DateTime.formatIsoDate(DateTime.add(DateTime.endOf(monthStart, 'month'), { days: 7 }))
 	);
-	const versions = $derived(
+	const stints = $derived(
 		ctx.query({
-			employee_contract: {
-				where: {
-					employee_id: { eq: contract.employee_id },
-					entity_id: { eq: company.id },
-					status: { eq: 'SEALED' }
-				},
-				limit: 10000
+			employment: {
+				where: { employee_id: { eq: employment.employee_id }, entity_id: { eq: company.id } },
+				fields: ['effective_range'],
+				limit: 10000,
+				terms: { fields: ['effective_from', 'shift_pattern_id', 'clears'], limit: 10000 }
 			}
 		})
 	);
-	const ids = $derived((versions.current?.employee_contract.rows ?? []).map((r) => r.id));
+	const ids = $derived((stints.current?.employment.rows ?? []).map((r) => r.id));
 	const holidays = $derived(
 		ctx.query({
 			holiday: {
@@ -95,12 +95,12 @@
 		})
 	);
 	const rosterDays = $derived(data.current?.roster_entry.rows ?? []);
-	const error = $derived(versions.error?.message ?? holidays.error?.message ?? data.error?.message);
+	const error = $derived(stints.error?.message ?? holidays.error?.message ?? data.error?.message);
 	const loading = $derived(
-		versions.current == null || holidays.current == null || data.current == null
+		stints.current == null || holidays.current == null || data.current == null
 	);
 	const incomplete = $derived(
-		versions.current?.employee_contract.next != null ||
+		stints.current?.employment.next != null ||
 			holidays.current?.holiday.next != null ||
 			data.current?.roster_entry.next != null ||
 			data.current?.shift_definition.next != null ||
@@ -134,7 +134,6 @@
 				Schema.Record(Schema.String, Schema.Array(JsonObject))
 			)(
 				jsonValues({
-					employee_contract: versions.current?.employee_contract.rows ?? [],
 					roster_entry: rosterDays,
 					shift_definition: data.current.shift_definition.rows,
 					holiday: holidays.current?.holiday.rows ?? []
@@ -166,11 +165,7 @@
 			for (const date of Array.from({ length: span }, (_, day) =>
 				DateTime.formatIsoDateUtc(DateTime.add(fromDay, { days: day }))
 			)) {
-				if (
-					!(versions.current?.employee_contract.rows ?? []).some((c) =>
-						covers(c.effective_range, date)
-					)
-				)
+				if (!(stints.current?.employment.rows ?? []).some((c) => covers(c.effective_range, date)))
 					continue;
 				const observed = holidaysForDay(date, {
 					holidays: native.holiday ?? [],
@@ -190,11 +185,12 @@
 					});
 				const work = plans.find((p) => p.date === date);
 				const absent = leave.some((row) => row.days.some((day) => day.date === date));
-				// no roster row yet: the contract valid that day projects its pattern
-				const valid = (versions.current?.employee_contract.rows ?? []).find((c) =>
+				// no roster row yet: the terms in force that day project their pattern
+				const valid = (stints.current?.employment.rows ?? []).find((c) =>
 					covers(c.effective_range, date)
 				);
-				const patternId = valid?.terms?.shift_pattern_id;
+				const patternId = inForce((valid?.terms ?? []).map(jsonObject).map(termsChange), date).state
+					.shift_pattern_id;
 				const projectedId =
 					work != null || patternId == null
 						? null

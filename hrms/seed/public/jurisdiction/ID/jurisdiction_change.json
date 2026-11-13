@@ -4865,7 +4865,7 @@
 							"locator": "art.15(1)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -4882,7 +4882,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_REGISTRATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS Ketenagakerjaan registration of a new worker',\n  due_on: add_days(ctx.entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key,\n}];"
@@ -4897,7 +4897,7 @@
 							"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -4914,7 +4914,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'BPJS_KESEHATAN_REGISTRATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS Kesehatan registration of a new worker',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];"
@@ -4933,7 +4933,7 @@
 							"locator": "art.21(5a)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -4950,7 +4950,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nreturn ctx.entry.status === 'SEALED';",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'PTKP_STATUS_AT_HIRE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PTKP status and tax identity of a new employee',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];"
@@ -4968,7 +4968,7 @@
 							"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -4995,7 +4995,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nreturn ctx.entry.status === 'SEALED' && ctx.entry.signed_contract_period != null;",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nreturn ctx.entry.signed_contract_period != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'PKWT_REGISTRATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PKWT registration with the ministry',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];"
@@ -5011,7 +5011,7 @@
 							"url": "https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -5028,7 +5028,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst term = get(ctx.entry, 'employee_extension_data', {});\nif (get(term, 'indonesia_work_months_planned', null) == null) return false;\nreturn get(term, 'dkptka_exempt', false) !== true;",
+					"condition": "const term = get(ctx.entry, 'employee_extension_data', {});\nif (get(term, 'indonesia_work_months_planned', null) == null) return false;\nreturn get(term, 'dkptka_exempt', false) !== true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'FOREIGN_WORKER_RPTKA_DKPTKA', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'RPTKA approval and DKPTKA payment for a foreign worker',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];"
@@ -5048,7 +5048,7 @@
 							"locator": "art.15(1)(b)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -5065,7 +5065,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nreturn ctx.entry.effective_range.to != null;",
+					"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (get(exit, 'termination_cause', null) == null) return false;\nreturn ctx.entry.effective_range.to != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'PPH21_BPA1_EXIT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Bukti potong 1721-A1 (BPA1) for a leaver',\n  due_on: month_end(add_months(ctx.entry.effective_range.to, 1)),\n  occurrence_key: key,\n}];"
@@ -5087,7 +5087,7 @@
 							"title": "PP 37/2021 art.20 as amended by PP 6/2025"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -5114,7 +5114,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nconst birth = get(ctx.entry, 'payroll.date_of_birth', null);\nconst cause = get(exit, 'termination_cause', null);\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (cause == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (get(exit, 'indonesia_work_months_planned', null) != null) return false;\nif (['VOLUNTARY_RESIGNATION', 'RETIREMENT', 'DEATH', 'LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY'].includes(cause)) return false;\nif (birth == null || birth === '') return true;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
+					"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nconst birth = get(ctx.entry, 'payroll.date_of_birth', null);\nconst cause = get(exit, 'termination_cause', null);\nif (cause == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (get(exit, 'indonesia_work_months_planned', null) != null) return false;\nif (['VOLUNTARY_RESIGNATION', 'RETIREMENT', 'DEATH', 'LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY'].includes(cause)) return false;\nif (birth == null || birth === '') return true;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'JKP_PHK_NOTIFICATION:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Termination notice to BPJS Ketenagakerjaan (JKP)',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];"
@@ -5130,7 +5130,7 @@
 							"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -5147,7 +5147,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nconst cause = get(exit, 'termination_cause', null);\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (cause == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn !['VOLUNTARY_RESIGNATION', 'DEATH'].includes(cause);",
+					"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nconst cause = get(exit, 'termination_cause', null);\nif (cause == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn !['VOLUNTARY_RESIGNATION', 'DEATH'].includes(cause);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'TERMINATION_REPORT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Report of a termination of employment',\n  due_on: ctx.entry.effective_range.to,\n  occurrence_key: key,\n}];"
@@ -5316,7 +5316,7 @@
 							},
 							"limit": 10000
 						},
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -5330,7 +5330,7 @@
 					"condition": "return true;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const profile = ctx.subject.employer;\nconst validUntil = get(profile, 'entity_extension_data.company_regulation_valid_until', null);\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nif (validUntil == null) return [];\nif (validUntil < ctx.entry.salary_coverage.from) return [];\nif (validUntil > ctx.entry.salary_coverage.to) return [];\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'COMPANY_REGULATION_RENEWAL', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Renewal of the company regulations (Peraturan Perusahaan)',\n  due_on: validUntil,\n  occurrence_key: key,\n}];"
+					"effects": "const profile = ctx.subject.employer;\nconst validUntil = get(profile, 'entity_extension_data.company_regulation_valid_until', null);\nconst onPayroll = (c) => {\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employment.filter(onPayroll).length;\nif (validUntil == null) return [];\nif (validUntil < ctx.entry.salary_coverage.from) return [];\nif (validUntil > ctx.entry.salary_coverage.to) return [];\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'COMPANY_REGULATION_RENEWAL', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Renewal of the company regulations (Peraturan Perusahaan)',\n  due_on: validUntil,\n  occurrence_key: key,\n}];"
 				},
 				"THR_PAYMENT": {
 					"description": "Raises the THR payment task seven days before a religious holiday when the holiday falls in or just after the pay window.",
@@ -5507,7 +5507,7 @@
 							"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -5524,7 +5524,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (ctx.entry.signed_contract_period == null) return false;\nif (ctx.entry.signed_contract_period.to == null) return false;\nreturn ctx.entry.effective_range.to != null;",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.signed_contract_period == null) return false;\nif (ctx.entry.signed_contract_period.to == null) return false;\nreturn ctx.entry.effective_range.to != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'PKWT_TERM_END_COMPENSATION', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PKWT period ended: pay its compensation',\n  due_on: ctx.entry.effective_range.to,\n  occurrence_key: key,\n}];"
@@ -5543,7 +5543,7 @@
 							"title": "UU 13/2003 art.45 as amended by UU 6/2023"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -5560,7 +5560,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst term = get(ctx.entry, 'employee_extension_data', {});\nif (get(term, 'indonesia_work_months_planned', null) == null) return false;\nreturn get(term, 'dkptka_exempt', false) !== true;",
+					"condition": "const term = get(ctx.entry, 'employee_extension_data', {});\nif (get(term, 'indonesia_work_months_planned', null) == null) return false;\nreturn get(term, 'dkptka_exempt', false) !== true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'FOREIGN_WORKER_COMPANION_TRAINING', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Foreign worker: companion, training and Indonesian language',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];"
@@ -5594,7 +5594,7 @@
 							},
 							"limit": 10000
 						},
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -5605,7 +5605,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "const month = String(ctx.entry.salary_coverage.from).slice(0, 7);\nif (!month.endsWith('-01')) return false;\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nreturn headcount >= ctx.lookup.employee_count_threshold;",
+					"condition": "const month = String(ctx.entry.salary_coverage.from).slice(0, 7);\nif (!month.endsWith('-01')) return false;\nconst onPayroll = (c) => {\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employment.filter(onPayroll).length;\nreturn headcount >= ctx.lookup.employee_count_threshold;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const month = String(ctx.entry.salary_coverage.from).slice(0, 7);\nconst year = month.slice(0, 4);\nconst key = occurrence_key(['ID', 'DISABILITY_QUOTA_REVIEW', ctx.entry.entity_id, year]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Disability employment quota review (internal)',\n  due_on: month_end(year + '-01-01'),\n  occurrence_key: key,\n}];"
@@ -5639,7 +5639,7 @@
 							},
 							"limit": 10000
 						},
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -5653,7 +5653,7 @@
 					"condition": "return true;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "if (get(ctx.subject.employer, 'entity_extension_data.lks_bipartit_formed_on', null) != null) return [];\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'LKS_BIPARTIT_FORMATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Bipartite cooperation body (LKS Bipartit)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];"
+					"effects": "if (get(ctx.subject.employer, 'entity_extension_data.lks_bipartit_formed_on', null) != null) return [];\nconst onPayroll = (c) => {\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employment.filter(onPayroll).length;\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'LKS_BIPARTIT_FORMATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Bipartite cooperation body (LKS Bipartit)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];"
 				},
 				"K3_SMK3_P2K3": {
 					"description": "Raises a one-time task to establish SMK3 and form P2K3 when the entity reaches 100 workers or declares high hazard.",
@@ -5693,7 +5693,7 @@
 							},
 							"limit": 10000
 						},
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -5707,7 +5707,7 @@
 					"condition": "return true;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const profile = ctx.subject.employer;\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nconst highHazard = get(profile, 'entity_extension_data.k3_high_hazard', false) === true;\nif (headcount < ctx.lookup.employee_count_threshold && !highHazard) return [];\nconst key = occurrence_key(['ID', 'K3_SMK3_P2K3', ctx.entry.entity_id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'SMK3 and P2K3 (one-time, threshold met)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];"
+					"effects": "const profile = ctx.subject.employer;\nconst onPayroll = (c) => {\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employment.filter(onPayroll).length;\nconst highHazard = get(profile, 'entity_extension_data.k3_high_hazard', false) === true;\nif (headcount < ctx.lookup.employee_count_threshold && !highHazard) return [];\nconst key = occurrence_key(['ID', 'K3_SMK3_P2K3', ctx.entry.entity_id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'SMK3 and P2K3 (one-time, threshold met)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];"
 				},
 				"WORKER_HEALTH_EXAMINATION": {
 					"description": "Raises an internal January reminder to run the annual health examination programme for workers; the statutory duty is per worker, not an entity filing.",
@@ -5785,7 +5785,7 @@
 							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -5802,13 +5802,13 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nreturn ctx.entry.status === 'SEALED';",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'WAGE_SCALE_NOTICE_AT_HIRE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Notify a new worker of their wage scale',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];"
 				},
 				"BPJS_KETENAGAKERJAAN_WAGE_CHANGE": {
-					"description": "Raises the BPJS Ketenagakerjaan wage-change report when a sealed contract changes the monthly rate.",
+					"description": "Raises the BPJS Ketenagakerjaan wage-change report when the monthly rate changes.",
 					"name": "BPJS Ketenagakerjaan wage-change report",
 					"lookup": {
 						"working_day_offset": 7
@@ -5820,7 +5820,7 @@
 							"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -5845,19 +5845,9 @@
 								}
 							},
 							"limit": 10000
-						},
-						"employee_contract": {
-							"where": {
-								"employee_id": {
-									"eq": {
-										"var": "ctx.entry.employee_id"
-									}
-								}
-							},
-							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.foreign_employee_minimum_months) return false;\nconst earlierSealed = (c) => {\n  if (c.id === ctx.entry.id) return false;\n  if (c.status !== 'SEALED') return false;\n  return c.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(earlierSealed)\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst before = get(previous, 'terms.rate.amount', null);\nif (before == null) return false;\nconst after = get(ctx.entry, 'terms.rate.amount', null);\nif (after == null) return false;\nreturn before !== after;",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.foreign_employee_minimum_months) return false;\nconst previous = ctx.before;\nif (previous == null) return false;\nconst before = get(previous, 'terms.rate.amount', null);\nif (before == null) return false;\nconst after = get(ctx.entry, 'terms.rate.amount', null);\nif (after == null) return false;\nreturn before !== after;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_WAGE_CHANGE', ctx.entry.entity_id, ctx.entry.employee_id, ctx.entry.effective_range.from, get(ctx.entry, 'terms.rate.amount', null)]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_WAGE_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];"
@@ -5875,7 +5865,7 @@
 							"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -5902,7 +5892,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nconst planned = get(exit, 'indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
+					"condition": "if (ctx.after == null) return false;\nif (ctx.entry.engagement === 'PAYEE') return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (get(exit, 'termination_cause', null) == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nconst planned = get(exit, 'indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'BPJS_KETENAGAKERJAAN_EXIT_REPORT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_EXIT_REPORT',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];"
@@ -6035,7 +6025,7 @@
 							"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -6060,19 +6050,9 @@
 								}
 							},
 							"limit": 10000
-						},
-						"employee_contract": {
-							"where": {
-								"employee_id": {
-									"eq": {
-										"var": "ctx.entry.employee_id"
-									}
-								}
-							},
-							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.foreign_employee_minimum_months) return false;\nconst earlierSealed = (c) => {\n  if (c.id === ctx.entry.id) return false;\n  if (c.status !== 'SEALED') return false;\n  return c.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(earlierSealed)\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst beforeMarital = get(previous, 'payroll.marital_status', null);\nconst afterMarital = get(ctx.entry, 'payroll.marital_status', null);\nconst beforeDependents = get(previous, 'family', []).length;\nconst afterDependents = get(ctx.entry, 'family', []).length;\nreturn beforeMarital !== afterMarital || beforeDependents !== afterDependents;",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.foreign_employee_minimum_months) return false;\nconst previous = ctx.before;\nif (previous == null) return false;\nconst beforeMarital = get(previous, 'payroll.marital_status', null);\nconst afterMarital = get(ctx.entry, 'payroll.marital_status', null);\nconst beforeDependents = get(previous, 'family', []).length;\nconst afterDependents = get(ctx.entry, 'family', []).length;\nreturn beforeMarital !== afterMarital || beforeDependents !== afterDependents;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE', ctx.entry.entity_id, ctx.entry.employee_id, ctx.entry.effective_range.from, get(ctx.entry, 'payroll.marital_status', null), get(ctx.entry, 'family', []).length]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];"
@@ -6095,7 +6075,7 @@
 							"locator": "art.28(11)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -6112,7 +6092,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.after == null) return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nreturn ctx.entry.effective_range.to != null;",
+					"condition": "if (ctx.after == null) return false;\nconst exit = get(ctx.entry, 'employee_extension_data', {});\nif (get(exit, 'termination_cause', null) == null) return false;\nreturn ctx.entry.effective_range.to != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'PERSONAL_DATA_DISPOSAL:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PERSONAL_DATA_DISPOSAL',\n  due_on: add_years(ctx.entry.effective_range.to.substring(0, 4) + ctx.lookup.annual_due_month_day, ctx.lookup.retention_years),\n  occurrence_key: key,\n}];"
@@ -6129,7 +6109,7 @@
 							"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -6146,7 +6126,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nif (ctx.entry.status !== 'SEALED') return false;\nconst exam = get(ctx.entry, 'employee_extension_data.pre_employment_exam_on', null);\nconst accepted = get(ctx.entry, 'employee_extension_data.pre_employment_exam_accepted', null);\nif (exam == null || exam === '' || accepted !== true) return true;\nconst from = ctx.entry.effective_range.from;\nreturn !(exam >= add_months(from, -ctx.lookup.advance_notice_months) && exam <= from);",
+					"condition": "if (ctx.entry.engagement === 'PAYEE') return false;\nconst exam = get(ctx.entry, 'employee_extension_data.pre_employment_exam_on', null);\nconst accepted = get(ctx.entry, 'employee_extension_data.pre_employment_exam_accepted', null);\nif (exam == null || exam === '' || accepted !== true) return true;\nconst from = ctx.entry.effective_range.from;\nreturn !(exam >= add_months(from, -ctx.lookup.advance_notice_months) && exam <= from);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'PRE_EMPLOYMENT_HEALTH_EXAMINATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PRE_EMPLOYMENT_HEALTH_EXAMINATION',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];"
@@ -6305,7 +6285,7 @@
 			"registered_rule": {
 				"MINIMUM_WAGE_FLOOR": {
 					"description": "Refuses a monthly contract whose basic wage plus fixed allowances is below the provincial or city minimum wage for the contract's worksite.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);",
 					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nreturn monthly >= ctx.lookup.by_region[region];\n",
@@ -6324,7 +6304,7 @@
 				},
 				"BASIC_WAGE_SHARE": {
 					"description": "Refuses a monthly contract whose basic wage is below 75% of the wage, with fixed allowances counted in the wage.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const rate = get(ctx.entry, 'terms.rate', null);\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nreturn monthly > 0;\n",
 					"validate": "const rate = get(ctx.entry, 'terms.rate', null);\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nreturn Number(get(rate, 'amount', 0)) >= ctx.lookup.minimum_share * monthly;\n",
@@ -6341,7 +6321,7 @@
 				},
 				"SECTOR_MINIMUM_WAGE": {
 					"description": "Refuses a monthly contract below the governor's sector minimum wage for the worksite's KBLI and declared sector condition.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nif (!['EMPLOYEE', 'CONTRACTOR'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nif (worksite === '') return false;\nconst covered = (key) => region === key || region.startsWith(key + '/');\nreturn Object.keys(ctx.lookup.by_sector).some(covered);",
 					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst job = get(ctx.entry, 'employee_extension_data.umsp_job_category', '');\nconst bySector = ctx.lookup.by_sector;\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nconst conditionMatches = (row) => {\n    const condition = get(row, 'condition', '');\n    if (condition === '') return true;\n    if (condition === 'HOTEL_STAR_3') return star === 3;\n    if (condition === 'HOTEL_STAR_4') return star === 4;\n    if (condition === 'HOTEL_STAR_5') return star === 5;\n    if (condition === 'HOTEL_4_5') return star >= ctx.lookup.hotel_stars_4_5_min;\n    if (condition === 'HOTEL_3_5') return star >= ctx.lookup.hotel_stars_3_5_min;\n    if (condition === 'BANK_PRIVATE_FOREX') return get(facts, 'umsp_bank_category', '') === 'PRIVATE_CONVENTIONAL_FOREX';\n    if (condition === 'BANK_SYARIAH_FOREX') return get(facts, 'umsp_bank_category', '') === 'SYARIAH_FOREX';\n    if (condition === 'RAYON_VISCOSE') return get(facts, 'umsp_rayon_viscose', false) === true;\n    if (condition === 'EXPORT') return get(facts, 'umsp_export_oriented', false) === true;\n    if (condition === 'ASSETS_1T') return get(facts, 'umsp_assets_over_1_trillion', false) === true;\n    if (condition === 'ASTRA') return get(facts, 'umsp_astra_group', false) === true;\n    if (condition === 'FREEPORT_AREA') return get(facts, 'umsp_freeport_area', false) === true;\n    if (condition === 'BUS_DRIVER_MECHANIC') return job === 'BUS_DRIVER_MECHANIC';\n    if (condition === 'CLASS_A_HOSPITAL_CARE') return get(facts, 'umsp_class_a_private_hospital', false) === true && ['NURSING_MIDWIFERY', 'MEDICAL_SUPPORT'].includes(job);\n    return false;\n};\nconst covered = (key) => region === key || region.startsWith(key + '/');\nconst underpaid = (row) => {\n    if (!worksite.startsWith(get(row, 'kbli', ''))) return false;\n    if (!conditionMatches(row)) return false;\n    return monthly < Number(get(row, 'monthly', 0));\n};\nreturn !Object.keys(bySector).some((key) => covered(key) && bySector[key].some(underpaid));\n",
@@ -6460,7 +6440,7 @@
 				},
 				"MINIMUM_WAGE_REGION_UNKNOWN": {
 					"description": "Requires the worksite region to be a seeded minimum-wage key, at locality level where one exists.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const entity = ctx.subject.employer;\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nreturn Object.keys(byRegion).length > 0;\n",
 					"validate": "const entity = ctx.subject.employer;\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (region === '') return false;\nif (!Object.hasOwn(byRegion, region)) return false;\nif (region.includes('/')) return true;\nreturn !Object.keys(byRegion).some((key) => key.startsWith(region + '/'));\n",
@@ -6482,7 +6462,7 @@
 				},
 				"DAILY_MINIMUM_WAGE": {
 					"description": "Refuses a daily rate below the monthly minimum wage divided by the statutory paid days for a five- or six-day week.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'DAILY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
 					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return false;\nconst divisor = Number(days) === 6 ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\nreturn Number(amount) >= Number(byRegion[region]) / divisor;\n",
@@ -6501,7 +6481,7 @@
 				},
 				"HOURLY_MINIMUM_WAGE": {
 					"description": "Refuses an hourly rate below the monthly minimum wage divided by the statutory monthly hours (126).",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'HOURLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
 					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\nreturn Number(amount) >= Number(byRegion[region]) / ctx.lookup.hours_divisor;\n",
@@ -6519,10 +6499,10 @@
 				},
 				"PKWT_MAXIMUM_TERM": {
 					"description": "Refuses a fixed-term contract whose signed term, counting from the first contract start, exceeds five years.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"employee_id": {
 									"eq": {
@@ -6533,7 +6513,7 @@
 						}
 					},
 					"condition": "if (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(ctx.entry, 'signed_contract_period.to', null) == null) return false;\nreturn get(ctx.entry, 'effective_range.from', '') !== '';",
-					"validate": "const from = get(ctx.entry, 'signed_contract_period.from', '');\nconst to = get(ctx.entry, 'signed_contract_period.to', '');\nconst effectiveTo = get(ctx.entry, 'effective_range.to', null);\nconst current = get(ctx.entry, 'effective_range.from', '');\nconst prior = get(ctx, 'reads.employee_contract', []).map((row) => get(row, 'effective_range.from', '')).filter((day) => day !== '');\nconst starts = prior.concat([current]);\nconst start = starts.reduce((left, right) => (left === '' || right < left ? right : left), '');\nconst end = add_days(add_years(start, ctx.lookup.maximum_years), -1);\nif (from === '') return false;\nif (to === '') return false;\nif (!(to <= end)) return false;\nreturn effectiveTo == null || effectiveTo <= end;\n",
+					"validate": "const from = get(ctx.entry, 'signed_contract_period.from', '');\nconst to = get(ctx.entry, 'signed_contract_period.to', '');\nconst effectiveTo = get(ctx.entry, 'effective_range.to', null);\nconst current = get(ctx.entry, 'effective_range.from', '');\nconst prior = get(ctx, 'reads.employment', []).map((row) => get(row, 'effective_range.from', '')).filter((day) => day !== '');\nconst starts = prior.concat([current]);\nconst start = starts.reduce((left, right) => (left === '' || right < left ? right : left), '');\nconst end = add_days(add_years(start, ctx.lookup.maximum_years), -1);\nif (from === '') return false;\nif (to === '') return false;\nif (!(to <= end)) return false;\nreturn effectiveTo == null || effectiveTo <= end;\n",
 					"order": 6,
 					"lookup": {
 						"maximum_years": 5
@@ -6551,7 +6531,7 @@
 				},
 				"PROBATION_RULES": {
 					"description": "Refuses probation longer than three months and probation on a fixed-term contract.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "return ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', '')) && get(ctx.entry, 'terms.probation_period', null) != null;",
 					"validate": "const from = get(ctx.entry, 'terms.probation_period.from', '');\nconst to = get(ctx.entry, 'terms.probation_period.to', '');\nif (from === '' || to === '') return false;\nif (get(ctx.entry, 'signed_contract_period.to', null) != null) return false;\nreturn to < add_months(from, ctx.lookup.maximum_months);\n",
@@ -6568,7 +6548,7 @@
 				},
 				"PKWT_WRITTEN_INDONESIAN": {
 					"description": "Requires every fixed-term contract to record that its signed agreement is in Indonesian and Latin script.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "if (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nreturn get(ctx.entry, 'signed_contract_period.to', null) != null;",
 					"validate": "return get(ctx.entry, 'employee_extension_data.written_in_indonesian', null) === true;",
@@ -6586,7 +6566,7 @@
 				},
 				"FOREIGN_WORKER_PERSONNEL_POSITION": {
 					"description": "Refuses a foreign worker declared to hold a personnel position.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const residency = get(ctx.entry, 'terms.residency_status', '');\nif (residency === '') return false;\nif (residency === 'CITIZEN') return false;\nreturn get(ctx.entry, 'employee_extension_data.personnel_position', null) != null;",
 					"validate": "return get(ctx.entry, 'employee_extension_data.personnel_position', false) !== true;",
@@ -6601,7 +6581,7 @@
 				},
 				"MINIMUM_AGE": {
 					"description": "Refuses a contract for a worker under 13 on the contract start date.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "if (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(ctx.entry, 'effective_range.from', '') !== '';",
 					"validate": "const born = get(ctx.entry, 'payroll.date_of_birth', '');\nconst start = get(ctx.entry, 'effective_range.from', '');\nreturn age_on(born, start) >= ctx.lookup.minimum_age_years;\n",
@@ -6619,7 +6599,7 @@
 				},
 				"CONTRACT_CATEGORIES": {
 					"description": "Requires the engagement, statutory work category and residency status to be declared values.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"validate": "if (!ctx.lookup.engagement.includes(get(ctx.entry, 'engagement', ''))) return false;\nif (!ctx.lookup.statutory_work_category.includes(get(ctx.entry, 'terms.statutory_work_category', ''))) return false;\nreturn ctx.lookup.residency_status.includes(get(ctx.entry, 'terms.residency_status', ''));\n",
 					"order": 13,
@@ -6639,7 +6619,7 @@
 				},
 				"SHARED_STRUCTURED_EMPLOYEE_INPUTS": {
 					"description": "Requires a worksite region for wage earners, a passport for foreign residents, and a birth city for non-residents.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"validate": "const residency = get(ctx.entry, 'terms.residency_status', '');\nconst wage = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''));\nconst text = (path) => String(get(ctx.entry, path, '')).trim();\nif (wage && text('terms.work_region') === '') return false;\nif (ctx.lookup.foreign_residency.includes(residency) && text('payroll.passport_number') === '') return false;\nif (residency === 'NON_RESIDENT' && text('payroll.birth_city') === '') return false;\nreturn true;\n",
 					"order": 15,
@@ -6679,19 +6659,8 @@
 					"description": "Refuses a roster day for a worker under 13; the same rule supplies the seeded daily and weekly work limits.",
 					"target_collection": "roster_entry",
 					"events": ["create", "update"],
-					"reads": {
-						"employee_contract": {
-							"where": {
-								"id": {
-									"eq": {
-										"var": "ctx.entry.employment_id"
-									}
-								}
-							}
-						}
-					},
-					"condition": "const contract = first(get(ctx, 'reads.employee_contract', []));\nconst born = get(contract, 'payroll.date_of_birth', '');\nreturn born !== '' && get(ctx.entry, 'work_date', '') !== '';",
-					"validate": "const contract = first(get(ctx, 'reads.employee_contract', []));\nconst born = get(contract, 'payroll.date_of_birth', '');\nconst day = get(ctx.entry, 'work_date', '');\nconst minimum = ctx.lookup.minimum_age_years;\nreturn day === '' || age_on(born, day) >= minimum;",
+					"condition": "const contract = ctx.subject.employment;\nconst born = get(contract, 'payroll.date_of_birth', '');\nreturn born !== '' && get(ctx.entry, 'work_date', '') !== '';",
+					"validate": "const contract = ctx.subject.employment;\nconst born = get(contract, 'payroll.date_of_birth', '');\nconst day = get(ctx.entry, 'work_date', '');\nconst minimum = ctx.lookup.minimum_age_years;\nreturn day === '' || age_on(born, day) >= minimum;",
 					"order": 11,
 					"lookup": {
 						"minimum_age_years": 13,
@@ -7199,7 +7168,7 @@
 						}
 					}
 				},
-				"description": "Additional Indonesian compliance facts on the sealed contract, stored as employee_extension_data. Current shared personal data remains structured. PPh21 uses a real contract covering 1 January or the new-resident arrival-month start; where no contract covers that date, a reviewed PTKP historical standing records the actual dated external facts. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+				"description": "Additional Indonesian compliance facts on the employment, stored as employee_extension_data. Current shared personal data remains structured. PPh21 uses a real contract covering 1 January or the new-resident arrival-month start; where no contract covers that date, a reviewed PTKP historical standing records the actual dated external facts. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 			},
 			"ledger": {
 				"ytd_scope": "JURISDICTION"

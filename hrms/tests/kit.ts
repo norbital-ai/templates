@@ -186,6 +186,10 @@ export const keyOf = (failure: { readonly _tag: string; readonly key?: string | 
 export const uuid = (n: number) => `11111111-1111-4111-8111-${String(n).padStart(12, '0')}`;
 export const ENTITY = idOf('entity', uuid(1));
 export const PAY_GROUP = uuid(8);
+/** The pack's one stint, its first terms row and its first parameters row. */
+export const EMPLOYMENT = uuid(6),
+	TERMS = uuid(14),
+	PARAMETERS = uuid(15);
 export const WORK = uuid(11),
 	REST = uuid(12),
 	OFF = uuid(13);
@@ -272,7 +276,20 @@ export const pack = (
 	};
 	const { events, work_region, family, nationality, birth_city, passport_number, ...statutory } =
 		extension;
-	terms = { ...terms, ...(work_region === undefined ? {} : { work_region }) };
+	// what the law is told of the person is its own dated family; the rest is what was agreed
+	const {
+		residency_status,
+		work_authorisation_category,
+		work_authorisation_expires_on,
+		...agreed
+	}: JsonObject = { ...terms, ...(work_region === undefined ? {} : { work_region }) };
+	const told = Object.fromEntries(
+		Object.entries({
+			residency_status,
+			work_authorisation_category,
+			work_authorisation_expires_on
+		}).filter(([, value]) => value !== undefined)
+	);
 	const instant = (date: string, hours: number) =>
 		new Date(Date.parse(`${date}T00:00:00.000Z`) + hours * 3_600_000).toISOString();
 	const shift = (id: string, name: string, variant: JsonObject) => ({
@@ -313,39 +330,62 @@ export const pack = (
 		// the company's dated values: none set, so the defaults hold from its first day
 		entity_change: [{ id: uuid(2), entity_id: ENTITY, effective_from: '2025-01-01' }],
 		sys_user: [{ id: uuid(3), name: 'Worker', email: 'worker@example.test', kind: 'staff' }],
-		employee_profile: [{ id: uuid(4), user_id: uuid(3), name: 'Worker' }],
-		employee_balance: [{ id: uuid(5), employee_id: uuid(4), account: {} }],
-		employee_contract: [
+		employee_profile: [
 			{
-				id: uuid(6),
-				employee_id: uuid(4),
-				entity_id: ENTITY,
-				pay_group_id: PAY_GROUP,
-				employee_number: 'W1',
-				engagement: 'EMPLOYEE',
-				status: 'SEALED',
-				effective_range: { from: '2025-01-01', to: null },
-				terms,
-				...(events === undefined ? {} : { events }),
-				...(family === undefined ? {} : { family }),
-				payroll: {
-					date_of_birth: '1990-01-01',
-					gender: 'MALE',
-					marital_status: 'SINGLE',
-					...(nationality === undefined ? {} : { nationality }),
-					...(birth_city === undefined ? {} : { birth_city }),
-					...(passport_number === undefined ? {} : { passport_number })
-				},
+				id: uuid(4),
+				user_id: uuid(3),
+				name: 'Worker',
+				date_of_birth: '1990-01-01',
+				gender: 'MALE',
+				...(birth_city === undefined ? {} : { birth_city }),
 				bank: {
 					bank_name: 'Bank',
 					bank_code: '001',
 					bank_account_number: '1',
 					bank_account_name: 'Worker'
-				},
-				employee_extension_data: statutory,
-				service_started_on: '2025-01-01'
+				}
 			}
 		],
+		employee_balance: [{ id: uuid(5), employee_id: uuid(4), account: {} }],
+		// one stint since 2025, its agreed terms and what the law is told of the person both from its first day
+		employment: [
+			{
+				id: EMPLOYMENT,
+				employee_id: uuid(4),
+				entity_id: ENTITY,
+				employee_number: 'W1',
+				effective_range: { from: '2025-01-01', to: null },
+				service_started_on: '2025-01-01',
+				...(events === undefined ? {} : { events })
+			}
+		],
+		contract_terms: [
+			{
+				id: TERMS,
+				employment_id: EMPLOYMENT,
+				effective_from: '2025-01-01',
+				engagement: 'EMPLOYEE',
+				pay_group_id: PAY_GROUP,
+				...agreed
+			}
+		],
+		statutory_parameters: [
+			{
+				id: PARAMETERS,
+				employment_id: EMPLOYMENT,
+				effective_from: '2025-01-01',
+				marital_status: 'SINGLE',
+				...told,
+				...(nationality === undefined ? {} : { nationality }),
+				...(passport_number === undefined ? {} : { passport_number }),
+				parameters: statutory
+			}
+		],
+		dependant: (Array.isArray(family) ? family : []).map((member, index) => ({
+			id: uuid(40 + index),
+			employee_id: uuid(4),
+			...(isJsonObject(member) ? member : {})
+		})),
 		shift_definition: [
 			shift(WORK, 'DAY', {
 				day_type: 'WORK',
@@ -368,7 +408,7 @@ export const pack = (
 		})),
 		roster_entry: days.map((day, index) => ({
 			id: uuid(100 + index),
-			employment_id: uuid(6),
+			employment_id: EMPLOYMENT,
 			work_date: day.date,
 			shift_definition_id: day.shift,
 			actual_worked_intervals:
@@ -473,66 +513,30 @@ export const sealedLeave = (t: Kit) =>
 	storedQuery(t, {
 		leave_catalog_entry: { where: { payroll_run_id: { is_null: false } }, limit: 1 }
 	}).pipe(Effect.map(({ leave_catalog_entry }) => held(leave_catalog_entry.rows).id));
-/**
- * A new contract version with these dated facts, the way HR makes one: a draft from the first of the month `on` falls in,
- * the last version ending the day before, and the seal, which triggers sync. It answers the new version's id.
- */
-export const sealEvents = (t: Kit, on: string, events: readonly JsonObject[], by = t.admin) =>
+/** The open stint's dated life events are now these, the way HR records them: on the stint, which triggers sync. */
+export const recordEvents = (t: Kit, events: readonly JsonObject[], by = t.admin) =>
 	Effect.gen(function* () {
-		const from = DateTime.formatIsoDate(DateTime.startOf(DateTime.makeUnsafe(on), 'month'));
 		const admin = yield* t.as(by);
-		const stored = (status: 'SEALED' | 'DRAFT') =>
-			storedQuery(t, {
-				employee_contract: { where: { status: { eq: status } }, limit: 100 }
-			}).pipe(Effect.map(({ employee_contract }) => employee_contract.rows));
-		const held = (yield* stored('SEALED')).find((row) => row.effective_range.to === null);
-		if (held === undefined) throw new Error('No open contract version');
+		const { employment } = yield* storedQuery(t, { employment: { limit: 100 } });
+		const held = employment.rows.find((row) => row.effective_range.to === null);
+		if (held === undefined) throw new Error('No open stint');
 		yield* admin.act({
-			'employee_contract.create': [
-				{
-					employee_id: held.employee_id,
-					entity_id: held.entity_id,
-					engagement: held.engagement,
-					employee_number: held.employee_number,
-					terms: held.terms,
-					payroll: held.payroll,
-					bank: held.bank,
-					family: held.family,
-					employee_extension_data: held.employee_extension_data,
-					events: events.map((event) => ({
-						...event,
-						kind: String(event.kind ?? ''),
-						on: String(event.on ?? ''),
-						...(event.opened_on == null ? {} : { opened_on: String(event.opened_on) }),
-						...(event.ended_on == null ? {} : { ended_on: String(event.ended_on) })
-					})),
-					service_started_on: held.service_started_on,
-					effective_range: { from, to: null },
-					signed_contract_period: held.signed_contract_period,
-					status: 'DRAFT',
-					reason: 'A dated fact changed'
-				}
-			]
-		});
-		const [draft] = yield* stored('DRAFT');
-		if (draft === undefined) throw new Error('No draft version');
-		yield* admin.act({
-			'employee_contract.update': [
+			'employment.update': [
 				{
 					target: held,
 					set: {
-						effective_range: {
-							from: held.effective_range.from,
-							to: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
-						}
+						events: events.map((event) => ({
+							...event,
+							kind: String(event.kind ?? ''),
+							on: String(event.on ?? ''),
+							...(event.opened_on == null ? {} : { opened_on: String(event.opened_on) }),
+							...(event.ended_on == null ? {} : { ended_on: String(event.ended_on) })
+						}))
 					}
 				}
 			]
 		});
-		yield* admin.act({
-			'employee_contract.update': [{ target: draft, set: { status: 'SEALED' } }]
-		});
-		return draft.id;
+		return held.id;
 	});
 /** Runs the `ledger` automation for everyone, and whatever it schedules. */
 export const syncAll = (t: Kit) =>

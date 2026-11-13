@@ -37,7 +37,7 @@ export default model({
 	record_label: 'record.description',
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
-		employment_id: { kind: 'ref', to: 'employee_contract', optional: true },
+		employment_id: { kind: 'ref', to: 'employment', optional: true },
 		catalog_code: { kind: 'text' },
 		from: { kind: 'date' },
 		to: { kind: 'date', optional: true },

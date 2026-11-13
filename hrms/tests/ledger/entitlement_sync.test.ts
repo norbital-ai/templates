@@ -8,6 +8,7 @@ import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
+	PAY_GROUP,
 	accountsIn,
 	lawAt,
 	lawWith,
@@ -24,7 +25,7 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const terms = {
 	rate: { amount: 3120, unit: 'MONTHLY' },
 	normal_hours_per_day: 8,
@@ -37,15 +38,24 @@ const terms = {
 	allowances: {}
 };
 type Seed = ReturnType<typeof pack>;
+/** The pack's stint, hired on `from`: its first rows are dated with it. */
+const hiredOn = (seed: Seed, from: string): Seed => ({
+	...seed,
+	employment: (seed.employment ?? []).map((row) => ({
+		...row,
+		service_started_on: from,
+		effective_range: { from, to: null }
+	})),
+	contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: from })),
+	statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+		...row,
+		effective_from: from
+	}))
+});
 const seedOf = (from: string, account: Accounts = {}): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
+	const seed = hiredOn(pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []), from);
 	return {
 		...seed,
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
-			...row,
-			service_started_on: from,
-			effective_range: { from, to: null }
-		})),
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account }))
 	};
 };
@@ -75,7 +85,7 @@ const take = (t: Kit, code: string, date: string, as = t.admin) =>
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						catalog_code: code,
 						days: wholeDays(date)
 					})
@@ -154,7 +164,7 @@ describe('run by hand', () => {
 		const base = seedOf('2023-01-01');
 		const seed: Seed = {
 			...base,
-			employee_contract: (base.employee_contract ?? []).map((row) => ({
+			employment: (base.employment ?? []).map((row) => ({
 				...row,
 				effective_range: { from: '2023-01-01', to: '2026-06-30' }
 			}))
@@ -208,7 +218,9 @@ describe('run for one person', () => {
 	const two = (): Seed => {
 		const seed = seedOf('2023-01-01');
 		const profile = seed.employee_profile?.[0] ?? {};
-		const contract = seed.employee_contract?.[0] ?? {};
+		const stint = seed.employment?.[0] ?? {};
+		const agreed = seed.contract_terms?.[0] ?? {};
+		const told = seed.statutory_parameters?.[0] ?? {};
 		const balance = seed.employee_balance?.[0] ?? {};
 		return {
 			...seed,
@@ -216,9 +228,17 @@ describe('run for one person', () => {
 				...(seed.employee_profile ?? []),
 				{ ...profile, id: OTHER, name: 'Other', user_id: null, email: 'other@example.test' }
 			],
-			employee_contract: [
-				...(seed.employee_contract ?? []),
-				{ ...contract, id: uuid(801), employee_id: OTHER, employee_number: 'W2' }
+			employment: [
+				...(seed.employment ?? []),
+				{ ...stint, id: uuid(801), employee_id: OTHER, employee_number: 'W2' }
+			],
+			contract_terms: [
+				...(seed.contract_terms ?? []),
+				{ ...agreed, id: uuid(803), employment_id: uuid(801) }
+			],
+			statutory_parameters: [
+				...(seed.statutory_parameters ?? []),
+				{ ...told, id: uuid(804), employment_id: uuid(801) }
 			],
 			employee_balance: [
 				...(seed.employee_balance ?? []),
@@ -248,12 +268,12 @@ describe('run for one person', () => {
 	});
 });
 
-describe('a contract change', () => {
+describe('a write to the stint', () => {
 	it.live('computes that person only', () => {
 		const base = seedOf('2023-01-01');
 		const seed: Seed = {
 			...base,
-			employee_contract: (base.employee_contract ?? []).map((row) => ({
+			employment: (base.employment ?? []).map((row) => ({
 				...row,
 				effective_range: { from: '2023-01-01', to: '2026-12-31' }
 			}))
@@ -261,13 +281,13 @@ describe('a contract change', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			assert.equal((yield* ledgerRows(t)).length, 0);
-			const [contract] = (yield* storedQuery(t, {
-				employee_contract: { where: { id: { eq: CONTRACT } }, limit: 1 }
-			})).employee_contract.rows;
-			assert.ok(contract !== undefined);
+			const [stint] = (yield* storedQuery(t, {
+				employment: { where: { id: { eq: EMPLOYMENT } }, limit: 1 }
+			})).employment.rows;
+			assert.ok(stint !== undefined);
 			const admin = yield* t.as(t.admin);
 			yield* admin.act({
-				'employee_contract.update': [{ target: contract, set: { reason: 'Terms reviewed' } }]
+				'employment.update': [{ target: stint, set: { reason: 'Terms reviewed' } }]
 			});
 			yield* t.run_due();
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), band('MEDICAL_LEAVE', SERVED));
@@ -276,43 +296,66 @@ describe('a contract change', () => {
 });
 
 describe('the events that call it', () => {
-	it.live('a newcomer has their leave once their contract seals', () => {
+	it.live('a newcomer has their leave once they are hired', () => {
 		const seed = seedOf('2023-01-01');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = yield* t.as(t.admin);
-			yield* admin.act({ 'employee_profile.create': [{ name: 'New', email: 'new@example.test' }] });
-			const person = (yield* storedQuery(t, {
-				employee_profile: { where: { name: { eq: 'New' } }, limit: 1 }
-			})).employee_profile.rows[0];
-			const [held] = (yield* storedQuery(t, { employee_contract: { limit: 1 } })).employee_contract
-				.rows;
-			assert.ok(person !== undefined && held !== undefined);
 			yield* admin.act({
-				'employee_contract.create': [
+				'employee_profile.create': [
 					{
-						employee_id: person.id,
-						entity_id: held.entity_id,
-						engagement: held.engagement,
-						employee_number: 'W2',
-						terms: held.terms,
-						payroll: held.payroll,
-						bank: held.bank,
-						employee_extension_data: held.employee_extension_data,
-						service_started_on: '2026-11-02',
-						effective_range: { from: '2026-11-02', to: null },
-						signed_contract_period: held.signed_contract_period,
-						status: 'DRAFT',
-						reason: 'Joined'
+						name: 'New',
+						email: 'new@example.test',
+						date_of_birth: '1990-01-01',
+						gender: 'MALE',
+						bank: {
+							bank_name: 'Bank',
+							bank_code: '001',
+							bank_account_number: '2',
+							bank_account_name: 'New'
+						}
 					}
 				]
 			});
-			const contract = (yield* storedQuery(t, {
-				employee_contract: { where: { employee_id: { eq: person.id } }, limit: 1 }
-			})).employee_contract.rows[0];
-			assert.ok(contract !== undefined);
+			const person = (yield* storedQuery(t, {
+				employee_profile: { where: { name: { eq: 'New' } }, limit: 1 }
+			})).employee_profile.rows[0];
+			assert.ok(person !== undefined);
+			// a hire is one write: the stint with its first terms and what the law is told
 			yield* admin.act({
-				'employee_contract.update': [{ target: contract, set: { status: 'SEALED' } }]
+				'employment.create': [
+					{
+						employee_id: person.id,
+						entity_id: ENTITY,
+						employee_number: 'W2',
+						service_started_on: '2026-11-02',
+						effective_range: { from: '2026-11-02', to: null },
+						reason: 'Joined',
+						terms: [
+							{
+								effective_from: '2026-11-02',
+								engagement: 'EMPLOYEE',
+								pay_group_id: idOf('pay_group', PAY_GROUP),
+								rate: { amount: 3120, unit: 'MONTHLY' },
+								normal_hours_per_day: 8,
+								normal_hours_per_week: 40,
+								normal_days_per_week: 5,
+								statutory_work_category: 'MANUAL_LABOUR',
+								work_classification: 'EA_COVERED',
+								wage_payment_method: 'BANK',
+								allowances: {}
+							}
+						],
+						parameters: [
+							{
+								effective_from: '2026-11-02',
+								residency_status: 'CITIZEN',
+								marital_status: 'SINGLE',
+								parameters: {}
+							}
+						]
+					}
+				]
 			});
 			yield* t.run_due();
 			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', person.id), band('MEDICAL_LEAVE', 0));
@@ -445,14 +488,14 @@ describe('posting', () => {
 	);
 });
 
-describe('the family list on the contract', () => {
+describe('the person’s dependants', () => {
 	const family = (members: readonly JsonObject[]): Seed => {
 		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, { family: members }, [], []);
 		return {
 			...seed,
-			employee_contract: (seed.employee_contract ?? []).map((row) => ({
+			statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
 				...row,
-				payroll: { date_of_birth: '1990-01-01', gender: 'MALE', marital_status: 'MARRIED' }
+				marital_status: 'MARRIED'
 			}))
 		};
 	};

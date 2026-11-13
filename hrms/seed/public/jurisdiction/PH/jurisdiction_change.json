@@ -3637,7 +3637,7 @@
 			},
 			"registered_effect": {
 				"raise-exit-pay": {
-					"description": "Raises the separation or retirement pay task when a sealed contract ends.",
+					"description": "Raises the separation or retirement pay task when an employment ends.",
 					"name": "Raise Exit Pay",
 					"lookup": {},
 					"references": [
@@ -3645,7 +3645,7 @@
 							"title": "Labor Code arts.297-302; DOLE Labor Advisory 06-20: separation or retirement pay and final pay on exit."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3676,8 +3676,8 @@
 							"title": "RA 11199 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333) s.24(a): each employer \"shall immediately report\" its employees subject to compulsory coverage, relieved of damages for a contingency within 30 days of employment; SSS, Employers — Duties (https://www.sss.gov.ph/employer-er/, checked 7 October 2026): report employees \"for coverage within 30 days from hiring date\"."
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -3691,7 +3691,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"SSS_EMPLOYEE_REPORT:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"SSS_EMPLOYEE_REPORT:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.engagement !== 'PAYEE';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"SSS_EMPLOYEE_REPORT:\" + ctx.entry.employee_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Report the new employee to SSS (R-1A)\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.from', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"SSS_EMPLOYEE_REPORT:\" + ctx.entry.employee_id\n\t}\n];"
@@ -3708,8 +3708,8 @@
 							"url": "https://www.philhealth.gov.ph/partners/employers/report.php"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -3723,7 +3723,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_EMPLOYEE_REPORT:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_EMPLOYEE_REPORT:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.engagement !== 'PAYEE';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_EMPLOYEE_REPORT:\" + ctx.entry.employee_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Report the new employee to PhilHealth (ER2)\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.from', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"PHILHEALTH_EMPLOYEE_REPORT:\" + ctx.entry.employee_id\n\t}\n];"
@@ -3740,8 +3740,8 @@
 							"url": "https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -3755,7 +3755,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_EMPLOYEE_REGISTRATION:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_EMPLOYEE_REGISTRATION:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.engagement !== 'PAYEE';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_EMPLOYEE_REGISTRATION:\" + ctx.entry.employee_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Register the new employee with Pag-IBIG\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.from', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"HDMF_EMPLOYEE_REGISTRATION:\" + ctx.entry.employee_id\n\t}\n];"
@@ -3772,8 +3772,8 @@
 							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -3787,7 +3787,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"BIR_EMPLOYEE_TIN_REGISTRATION:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"BIR_EMPLOYEE_TIN_REGISTRATION:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.engagement !== 'PAYEE';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"BIR_EMPLOYEE_TIN_REGISTRATION:\" + ctx.entry.employee_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Register a first-time employee with the BIR (Form 1902)\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.from', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"BIR_EMPLOYEE_TIN_REGISTRATION:\" + ctx.entry.employee_id\n\t}\n];"
@@ -3804,7 +3804,7 @@
 							"url": "https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3836,7 +3836,7 @@
 							"url": "https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3866,8 +3866,8 @@
 							"url": "https://naro.law.upd.edu.ph/issuances/7205"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -3881,7 +3881,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"ALIEN_EMPLOYMENT_PERMIT:\" + ctx.entry.id)) return false;\nif (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'terms.residency_status', null) === null) return false;\nreturn !['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(ctx.entry, 'terms.residency_status', ''));",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"ALIEN_EMPLOYMENT_PERMIT:\" + ctx.entry.id)) return false;\nif (get(ctx.entry, 'terms.residency_status', null) === null) return false;\nreturn !['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(ctx.entry, 'terms.residency_status', ''));",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"ALIEN_EMPLOYMENT_PERMIT:\" + ctx.entry.id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Alien Employment Permit before a foreign national starts work\",\n\t\tdue_on: get(ctx.entry, 'effective_range.from', null),\n\t\toccurrence_key: \"ALIEN_EMPLOYMENT_PERMIT:\" + ctx.entry.id\n\t}\n];"
@@ -3897,7 +3897,7 @@
 							"title": "Labor Code arts.298–299; DOLE Department Order 147-15; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.14 §E: served at least one month before the intended date of termination. Recorded default: the month counts back from the last day of work, so the duty is overdue when the exit is recorded later than that. Raised only when the exit records a `termination_cause`."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3929,7 +3929,7 @@
 							"url": "https://www.philhealth.gov.ph/partners/employers/report.php"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3959,8 +3959,8 @@
 							"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -3974,7 +3974,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_CONTRACT_AND_REGISTRY:\" + ctx.entry.id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_CONTRACT_AND_REGISTRY:\" + ctx.entry.id)) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"KASAMBAHAY_CONTRACT_AND_REGISTRY:\" + ctx.entry.id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Kasambahay written contract and barangay registration\",\n\t\tdue_on: get(ctx.entry, 'effective_range.from', null),\n\t\toccurrence_key: \"KASAMBAHAY_CONTRACT_AND_REGISTRY:\" + ctx.entry.id\n\t}\n];"
@@ -3989,8 +3989,8 @@
 							"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4004,7 +4004,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PROBATIONARY_STANDARDS:\" + ctx.entry.id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.probation_period', null) !== null;",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PROBATIONARY_STANDARDS:\" + ctx.entry.id)) return false;\nreturn get(ctx.entry, 'terms.probation_period', null) !== null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PROBATIONARY_STANDARDS:\" + ctx.entry.id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Make the regularisation standards known to a probationary employee\",\n\t\tdue_on: get(ctx.entry, 'terms.probation_period.from', null),\n\t\toccurrence_key: \"PROBATIONARY_STANDARDS:\" + ctx.entry.id\n\t}\n];"
@@ -4022,8 +4022,8 @@
 							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4037,7 +4037,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"COMPULSORY_RETIREMENT_AGE:\" + ctx.entry.employee_id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'payroll.date_of_birth', null) !== null;",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"COMPULSORY_RETIREMENT_AGE:\" + ctx.entry.employee_id)) return false;\nreturn get(ctx.entry, 'payroll.date_of_birth', null) !== null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"COMPULSORY_RETIREMENT_AGE:\" + ctx.entry.employee_id)) return [];\nconst mine = get(ctx.entry, 'employee_extension_data.mine_worker', null) !== null;\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: mine ? \"Compulsory retirement of a mine worker at sixty\" : \"Compulsory retirement at sixty-five\",\n\t\tdue_on: add_years(get(ctx.entry, 'payroll.date_of_birth', null), mine ? ctx.lookup.mine_worker_retirement_age : ctx.lookup.retirement_age),\n\t\toccurrence_key: \"COMPULSORY_RETIREMENT_AGE:\" + ctx.entry.employee_id\n\t}\n];"
@@ -4054,7 +4054,7 @@
 							"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -4084,8 +4084,8 @@
 							"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4099,7 +4099,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PROBATION_ENDS:\" + ctx.entry.id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.probation_period', null) !== null;",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PROBATION_ENDS:\" + ctx.entry.id)) return false;\nreturn get(ctx.entry, 'terms.probation_period', null) !== null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PROBATION_ENDS:\" + ctx.entry.id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Probation ends: regularise or end the employment\",\n\t\tdue_on: get(ctx.entry, 'terms.probation_period.to', null),\n\t\toccurrence_key: \"PROBATION_ENDS:\" + ctx.entry.id\n\t}\n];"
@@ -4115,7 +4115,7 @@
 							"title": "Labor Code art.292(b): written notice of the causes and ample opportunity to be heard; DOLE Department Order 147-15 s.5.1(a): the first notice gives \"at least five (5) calendar days\" to explain. Due five days before the dismissal takes effect."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -4145,8 +4145,8 @@
 							"url": "https://lawphil.net/statutes/repacts/ra2023/ra_11965_2023.html"
 						}
 					],
-					"source_collection": "employee_contract",
-					"events": ["create", "seal"],
+					"source_collection": "employment",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4160,7 +4160,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"CAREGIVER_CONTRACT:\" + ctx.entry.id)) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.statutory_work_category', null) === 'CAREGIVER';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"CAREGIVER_CONTRACT:\" + ctx.entry.id)) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'CAREGIVER';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"CAREGIVER_CONTRACT:\" + ctx.entry.id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Caregiver\\u2019s written employment contract\",\n\t\tdue_on: get(ctx.entry, 'effective_range.from', null),\n\t\toccurrence_key: \"CAREGIVER_CONTRACT:\" + ctx.entry.id\n\t}\n];"
@@ -4176,7 +4176,7 @@
 							"title": "NIRC s.235 as amended by RA 11976 (Ease of Paying Taxes Act) s.33 (https://lawphil.net/statutes/repacts/ra2024/ra_11976_2024.html, read 2026-10-07; officialgazette.gov.ph answers 403): books of accounts and other accounting records \"shall be preserved by them for a period of five (5) years reckoned from the day following the deadline in filing a return ... for the taxable year when the last entry was made\"; the exit year’s last payroll entry falls in the employer’s return for that year, due 15 April of the next year for a calendar-year taxpayer, so the records are kept to 15 April of the exit year + 6 — recorded as 31 December of the exit year + 6, which also covers a fiscal year ending by the following June. Longer than the Labor Code’s three years: Omnibus Rules Book III Rule X s.12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819): employment records \"preserved for at least three (3) years from the date of the last entry\", and Labor Code art.306 (money claims prescribe in three years). RA 10173 (Data Privacy Act) s.11(e) (https://lawphil.net/statutes/repacts/ra2012/ra_10173_2012.html; privacy.gov.ph answers 403): personal information is \"Retained only for as long as necessary for the fulfillment of the purposes for which the data was obtained or for the establishment, exercise or defense of legal claims ... or as provided by law\" — so it is disposed of after."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -5346,9 +5346,9 @@
 			"registered_rule": {
 				"PROBATION_PAST_SIX_MONTHS": {
 					"description": "Refuses a probationary period longer than six months from its start.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
-					"condition": "const terms = get(ctx.entry, 'terms', {});\nreturn get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(terms, 'probation_period', null) !== null;",
+					"condition": "const terms = get(ctx.entry, 'terms', {});\nreturn get(terms, 'probation_period', null) !== null;",
 					"validate": "const terms = get(ctx.entry, 'terms', {});\nconst probation = get(terms, 'probation_period', null);\nconst end = get(probation, 'to', null);\nreturn end !== null && end <= add_months(probation.from, ctx.lookup.maximum_months);",
 					"order": 6,
 					"lookup": {
@@ -5362,9 +5362,9 @@
 				},
 				"EBET_PROGRAM_RECORDED": {
 					"description": "Requires an intern or apprentice contract to name the registered EBET programme that matches the engagement.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
-					"condition": "const role = get(ctx.entry, 'engagement', null);\nreturn get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\t(role === 'INTERN' || role === 'APPRENTICE');",
+					"condition": "const role = get(ctx.entry, 'engagement', null);\nreturn (role === 'INTERN' || role === 'APPRENTICE');",
 					"validate": "const role = get(ctx.entry, 'engagement', null);\nconst program = get(get(ctx.entry, 'employee_extension_data', {}), 'ebet_program', null);\nreturn role === 'APPRENTICE'\n\t? program === ctx.lookup.apprenticeship_program\n\t: ctx.lookup.trainee_programs.includes(program);",
 					"order": 9,
 					"lookup": {
@@ -5379,9 +5379,9 @@
 				},
 				"WAGE_PAYMENT_PLACE": {
 					"description": "Refuses payment in a bar, club or gaming place unless the employee works there.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
-					"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(get(ctx.entry, 'employee_extension_data', {}), 'wage_payment_place', null) !== null;",
+					"condition": "return get(get(ctx.entry, 'employee_extension_data', {}), 'wage_payment_place', null) !== null;",
 					"validate": "const extension = get(ctx.entry, 'employee_extension_data', {});\nconst place = get(extension, 'wage_payment_place', null);\nreturn place !== ctx.lookup.prohibited_place ||\n\tget(extension, 'employed_at_payment_place', false) === true;",
 					"order": 12,
 					"lookup": {
@@ -5394,10 +5394,9 @@
 					]
 				},
 				"CONTRACT_CATEGORIES": {
-					"description": "Requires a declared statutory work category and residency status on every sealed contract.",
-					"target_collection": "employee_contract",
+					"description": "Requires a declared statutory work category and residency status on every employment.",
+					"target_collection": "employment",
 					"events": ["create", "update"],
-					"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
 					"validate": "const terms = get(ctx.entry, 'terms', null);\nif (terms === null) return false;\nreturn ctx.lookup.statutory_work_categories.includes(get(terms, 'statutory_work_category', null)) &&\n\tctx.lookup.residency_statuses.includes(get(terms, 'residency_status', null));",
 					"order": 23,
 					"lookup": {
@@ -5427,9 +5426,9 @@
 				},
 				"SHARED_FINAL_PAY_DEADLINE": {
 					"description": "Requires final pay on or after the last day and within thirty days of separation.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
-					"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(ctx.entry, 'final_pay_due_on', null) !== null;",
+					"condition": "return get(ctx.entry, 'final_pay_due_on', null) !== null;",
 					"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nif (end === null) return false;\nif (!(due >= end)) return false;\nreturn due <= add_days(end, ctx.lookup.final_pay_maximum_days);",
 					"order": 27,
 					"lookup": {
@@ -5518,10 +5517,9 @@
 				},
 				"MINIMUM_WAGE_FLOOR": {
 					"description": "Refuses a contract rate below the applicable regional or domestic minimum wage unless the employer is exempt.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"order": 25,
-					"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
 					"validate": "const employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst domestic = get(terms, 'statutory_work_category', '') === 'DOMESTIC';\nconst region = get(ctx.subject, 'employment.terms.work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\nconst start = get(ctx.entry, 'effective_range.from', '9999-12-31');\nconst rates = table.filter((entry) => entry.region === region && entry.from <= start);\nif (rates.length === 0) return false;\nconst floor = Number(rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0].monthly);\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nif (domestic && unit === 'MONTHLY') return amount + 0.005 >= floor;\nconst hours = Number(get(terms, 'normal_hours_per_day', 0));\n// DOLE ch.2: a day is the monthly wage × 12 ÷ the contract week's working days (365 − 52 rest days).\nconst daysPerYear = 365 - 52 * (7 - Number(get(terms, 'normal_days_per_week', 6)));\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: (amount * 12) / daysPerYear;\n// The table's monthly figure is the wage order's daily rate × 313 ÷ 12: the order fixes the day, whatever the work week.\nreturn daily + 0.005 >= (floor * 12) / 313;",
 					"lookup": {},
 					"references": [
@@ -5635,7 +5633,7 @@
 				"$schema": "https://json-schema.org/draft/2020-12/schema",
 				"type": "object",
 				"title": "PH employee extension data",
-				"description": "Additional compliance data on the sealed contract: previous-employer figures, statutory declarations, contract compliance and departure. Shared salary, allowances, work classifications, dates and work arrangements are native terms and contract fields.",
+				"description": "Additional compliance data on the employment: previous-employer figures, statutory declarations, contract compliance and departure. Shared salary, allowances, work classifications, dates and work arrangements are native terms and contract fields.",
 				"additionalProperties": false,
 				"properties": {
 					"previous_employer_taxable_compensation": {
@@ -5666,7 +5664,7 @@
 						"type": "object",
 						"title": "Statutory declarations",
 						"additionalProperties": false,
-						"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+						"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 						"properties": {
 							"SSS": {
 								"type": "object",

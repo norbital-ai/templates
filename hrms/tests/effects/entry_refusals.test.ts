@@ -17,7 +17,7 @@ import {
 	workspace
 } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const terms = {
 	rate: { amount: 5000, unit: 'MONTHLY' },
 	statutory_work_category: 'NON_MANUAL',
@@ -38,7 +38,7 @@ const file = (t: Kit, inputs: JsonObject) =>
 					{
 						catalog_code: CASE,
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						kind: CASE,
 						opened_on: '2026-06-10',
 						inputs
@@ -70,7 +70,7 @@ describe('a leave entry', () => {
 			const refused = yield* refusal(
 				admin.act({
 					'leave_catalog_entry.create': [
-						{ entity_id: ENTITY, employment_id: CONTRACT, catalog_code: LEAVE }
+						{ entity_id: ENTITY, employment_id: EMPLOYMENT, catalog_code: LEAVE }
 					]
 				})
 			);
@@ -85,7 +85,7 @@ describe('a leave entry', () => {
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						catalog_code: LEAVE,
 						days: wholeDays('2026-06-01')
 					})

@@ -31,8 +31,8 @@
 		scope.id == null
 			? null
 			: ctx.query({
-					employee_contract: {
-						where: { entity_id: { eq: scope.id }, status: { eq: 'SEALED' } },
+					employment: {
+						where: { entity_id: { eq: scope.id } },
 						fields: ['employee_number', 'entity_id', 'effective_range'],
 						limit: 10000
 					},
@@ -63,7 +63,7 @@
 				name: company.name,
 				settings_code: company.settings_code
 			},
-			employees: current.employee_contract.rows.map((row) => ({
+			employees: current.employment.rows.map((row) => ({
 				id: row.id,
 				number: row.employee_number,
 				entity_id: row.entity_id,

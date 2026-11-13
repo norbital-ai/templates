@@ -11,7 +11,7 @@ import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { pay, run } from '../amendment_kit.ts';
 import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
 const SALARY = 3120;
 const ALLOWANCE = 300;
@@ -43,7 +43,7 @@ const entry = (t: Kit, days: ReturnType<typeof whole>) =>
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						catalog_code: 'NPL',
 						days
 					})
@@ -171,7 +171,7 @@ describe('a no-pay amount settled by hand', () => {
 						'adhoc_catalog_entry.create': [
 							{
 								entity_id: ENTITY,
-								employment_id: CONTRACT,
+								employment_id: EMPLOYMENT,
 								catalog_code: code,
 								description: 'No-pay leave settled by hand',
 								quantity: String(quantity),

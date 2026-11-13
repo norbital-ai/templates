@@ -26,7 +26,7 @@ export default model({
 			changes: { fields: 'all' },
 			pay_groups: { fields: 'all' },
 			shift_definition: { fields: 'all' },
-			employee_contract: {
+			employment: {
 				fields: 'all',
 				employee_id: { fields: 'all' },
 				leave_catalog_entry: { fields: 'all' }
@@ -37,7 +37,7 @@ export default model({
 		},
 		kiosk: {
 			fields: ['name', 'settings_code', 'time_zone'],
-			employee_contract: {
+			employment: {
 				fields: ['employee_id', 'entity_id', 'employee_number', 'effective_range'],
 				employee_id: {
 					fields: [
@@ -110,13 +110,13 @@ export default model({
 						fields: ['id'],
 						limit: 1
 					},
-					employee_contract: {
+					employment: {
 						where: { entity_id: { eq: before.id } },
 						fields: ['id'],
 						limit: 1
 					}
 				});
-				if (used.entity_change.rows.length > 0 || used.employee_contract.rows.length > 0)
+				if (used.entity_change.rows.length > 0 || used.employment.rows.length > 0)
 					return yield* ctx.refuse('errors.entity_jurisdiction_linked', {
 						row,
 						field: 'settings_code'

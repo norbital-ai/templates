@@ -1105,8 +1105,8 @@
 					"kind": "TAX",
 					"depends_on": ["SI", "HI", "UI", "PIT_TAXABLE_INCOME", "PIT_PENSION_DEDUCTION"],
 					"eligibility": "// A recovery below zero still settles what the month withheld.\nreturn Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) !== 0;",
-					"employee_amount": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst pit = get(employment, 'employee_extension_data.statutory.PIT', {});\n// A recovery takes back income the memo row cannot hold below zero.\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0)) + Math.min(0, Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the sealed contract (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(pit, 'commitment_form', false) === true;\nconst borne = get(terms, 'employer_bears_income_tax', false) === true;\n// Circular 111/2013/TT-BTC art.7 and Annex 02: only the tax the employer bears is income; the allowances the contract leaves to the employee bear their own share at the month's rate.\nconst items = !borne || get(ctx.run, 'kind', '') === 'OFF_CYCLE' ? 0 : sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nif (borne && items === 0) return 0;\nconst taxed = borne ? Math.max(0, Math.min(items, remuneration)) : remuneration;\nif (residency === 'NON_RESIDENT') return taxed * ctx.lookup.non_resident_rate;\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return taxed * ctx.lookup.short_term_rate;\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(pit, 'dependants', 0));\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst income = before('PIT_TAXABLE_INCOME', 'employer') + Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst split = (base) => {\n\tlet employer = 0;\n\tlet employee = 0;\n\tfor (let index = 0; index < 20; index += 1) {\n\t\tconst tax = ladder(Math.max(0, base + employer), ctx.lookup.brackets);\n\t\temployee = items > 0 && income > 0 ? (tax * Math.min(items, income)) / (income + employer) : 0;\n\t\temployer = tax - employee;\n\t}\n\treturn { employer, employee };\n};\nif (borne) return split(assessable).employee - before('PIT', 'employee');\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\n// An excess is recorded on the payslip and credited in the annual finalisation.\nreturn ladder(assessable, ctx.lookup.brackets) - before('PIT', 'employee');",
-					"employer_amount": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst pit = get(employment, 'employee_extension_data.statutory.PIT', {});\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the sealed contract (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(pit, 'commitment_form', false) === true;\nif (get(terms, 'employer_bears_income_tax', false) !== true) return 0;\n// Circular 111/2013/TT-BTC art.7 and Annex 02: only the tax the employer bears is income; the allowances the contract leaves to the employee bear their own share at the month's rate.\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE' ? 0 : sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = Math.max(0, Math.min(items, remuneration));\nif (residency === 'NON_RESIDENT')\n\treturn ((remuneration - own) * ctx.lookup.non_resident_rate) / (1 - ctx.lookup.non_resident_rate);\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return ((remuneration - own) * ctx.lookup.short_term_rate) / (1 - ctx.lookup.short_term_rate);\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(pit, 'dependants', 0));\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst income = before('PIT_TAXABLE_INCOME', 'employer') + Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst split = (base) => {\n\tlet employer = 0;\n\tlet employee = 0;\n\tfor (let index = 0; index < 20; index += 1) {\n\t\tconst tax = ladder(Math.max(0, base + employer), ctx.lookup.brackets);\n\t\temployee = items > 0 && income > 0 ? (tax * Math.min(items, income)) / (income + employer) : 0;\n\t\temployer = tax - employee;\n\t}\n\treturn { employer, employee };\n};\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\nreturn Math.max(0, split(assessable).employer - before('PIT', 'employer'));",
+					"employee_amount": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst pit = get(employment, 'employee_extension_data.statutory.PIT', {});\n// A recovery takes back income the memo row cannot hold below zero.\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0)) + Math.min(0, Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the employment (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(pit, 'commitment_form', false) === true;\nconst borne = get(terms, 'employer_bears_income_tax', false) === true;\n// Circular 111/2013/TT-BTC art.7 and Annex 02: only the tax the employer bears is income; the allowances the contract leaves to the employee bear their own share at the month's rate.\nconst items = !borne || get(ctx.run, 'kind', '') === 'OFF_CYCLE' ? 0 : sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nif (borne && items === 0) return 0;\nconst taxed = borne ? Math.max(0, Math.min(items, remuneration)) : remuneration;\nif (residency === 'NON_RESIDENT') return taxed * ctx.lookup.non_resident_rate;\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return taxed * ctx.lookup.short_term_rate;\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(pit, 'dependants', 0));\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst income = before('PIT_TAXABLE_INCOME', 'employer') + Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst split = (base) => {\n\tlet employer = 0;\n\tlet employee = 0;\n\tfor (let index = 0; index < 20; index += 1) {\n\t\tconst tax = ladder(Math.max(0, base + employer), ctx.lookup.brackets);\n\t\temployee = items > 0 && income > 0 ? (tax * Math.min(items, income)) / (income + employer) : 0;\n\t\temployer = tax - employee;\n\t}\n\treturn { employer, employee };\n};\nif (borne) return split(assessable).employee - before('PIT', 'employee');\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\n// An excess is recorded on the payslip and credited in the annual finalisation.\nreturn ladder(assessable, ctx.lookup.brackets) - before('PIT', 'employee');",
+					"employer_amount": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst pit = get(employment, 'employee_extension_data.statutory.PIT', {});\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the employment (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(pit, 'commitment_form', false) === true;\nif (get(terms, 'employer_bears_income_tax', false) !== true) return 0;\n// Circular 111/2013/TT-BTC art.7 and Annex 02: only the tax the employer bears is income; the allowances the contract leaves to the employee bear their own share at the month's rate.\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE' ? 0 : sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = Math.max(0, Math.min(items, remuneration));\nif (residency === 'NON_RESIDENT')\n\treturn ((remuneration - own) * ctx.lookup.non_resident_rate) / (1 - ctx.lookup.non_resident_rate);\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return ((remuneration - own) * ctx.lookup.short_term_rate) / (1 - ctx.lookup.short_term_rate);\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(pit, 'dependants', 0));\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst income = before('PIT_TAXABLE_INCOME', 'employer') + Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst split = (base) => {\n\tlet employer = 0;\n\tlet employee = 0;\n\tfor (let index = 0; index < 20; index += 1) {\n\t\tconst tax = ladder(Math.max(0, base + employer), ctx.lookup.brackets);\n\t\temployee = items > 0 && income > 0 ? (tax * Math.min(items, income)) / (income + employer) : 0;\n\t\temployer = tax - employee;\n\t}\n\treturn { employer, employee };\n};\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\nreturn Math.max(0, split(assessable).employer - before('PIT', 'employer'));",
 					"balance_window": "MONTH",
 					"description": "Personal income tax withheld from pay. A resident's taxable income for the month, after insurance contributions and the personal (11,000,000 dong) and dependant (4,400,000 dong each) deductions, goes through the progressive rates; a non-resident pays 20%, and a short or casual engagement 10% on a payment of 2,000,000 dong or more."
 				},
@@ -1407,7 +1407,7 @@
 							"title": "Law on Employment 38/2013/QH13 art.44 (UI registered with SI)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -1421,7 +1421,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'SI_HI_UI_REGISTRATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];"
@@ -1566,7 +1565,7 @@
 							"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -1580,7 +1579,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'LABOUR_CONTRACT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];"
@@ -1602,7 +1600,7 @@
 							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -1616,7 +1614,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'LABOUR_MANAGEMENT_BOOK:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];"
@@ -2005,7 +2002,7 @@
 							"title": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.7 (special roles: 120 days / a quarter of the term) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.6"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2047,7 +2044,7 @@
 							"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2086,7 +2083,7 @@
 							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2134,7 +2131,7 @@
 							"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2174,7 +2171,7 @@
 							"title": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2188,7 +2185,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'PIT_TAX_REGISTRATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];"
@@ -2266,7 +2262,7 @@
 							"title": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2302,7 +2298,7 @@
 							"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=214840"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2316,7 +2312,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tget(ctx.entry.employee_extension_data, 'pass_type', null) != null\n);",
+					"condition": "return (\n\tget(ctx.entry.employee_extension_data, 'pass_type', null) != null\n);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'FOREIGN_WORK_PERMIT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];"
@@ -2392,7 +2388,7 @@
 							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2562,7 +2558,7 @@
 							"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2576,7 +2572,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'DPD_CONSENT_AND_NOTICE:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];"
@@ -2594,7 +2589,7 @@
 							"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2627,7 +2622,7 @@
 							"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2641,7 +2636,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'DPD_IMPACT_ASSESSMENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];"
@@ -2753,7 +2747,7 @@
 							"title": "Circular 111/2013/TT-BTC art.25(1)(c) and Decree 126/2020/NĐ-CP art.8(6)(d): a foreigner ending the contract finalises before exit."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2783,7 +2777,7 @@
 							"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.14(2)–(3): the employer trains workers in OSH on recruitment and before assigning a job; Decree 44/2016/NĐ-CP."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2797,7 +2791,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'OSH_INDUCTION_TRAINING:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];"
@@ -2868,7 +2861,7 @@
 							"url": "https://vanban.chinhphu.vn/?classid=1&docid=220059&pageid=27160&typegroupid=4"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2882,7 +2875,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'terms.work_authorisation_category', null) != null) return false;\nif (get(ctx.entry.employee_extension_data, 'pass_type', null) == null) return false;\nreturn ctx.entry.effective_range.from >= ctx.lookup.commencement;",
+					"condition": "if (get(ctx.entry, 'terms.work_authorisation_category', null) != null) return false;\nif (get(ctx.entry.employee_extension_data, 'pass_type', null) == null) return false;\nreturn ctx.entry.effective_range.from >= ctx.lookup.commencement;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];"
@@ -2996,7 +2989,7 @@
 							"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3030,7 +3023,7 @@
 							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3053,7 +3046,7 @@
 							}
 						}
 					},
-					"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (!(ctx.entry.effective_range.from >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nreturn get(ctx.entry.employee_extension_data, 'work_authorisation_application_submitted_on', null) == null;",
+					"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nif (!(ctx.entry.effective_range.from >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nreturn get(ctx.entry.employee_extension_data, 'work_authorisation_application_submitted_on', null) == null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'WORK_AUTHORISATION_APPLICATION_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.from, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];"
@@ -3073,7 +3066,7 @@
 							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3096,7 +3089,7 @@
 							}
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (!(ctx.entry.effective_range.from >= ctx.lookup.commencement)) return false;\nreturn get(ctx.entry, 'terms.work_authorisation_category', null) === 'EXEMPT_NOTIFICATION';",
+					"condition": "if (!(ctx.entry.effective_range.from >= ctx.lookup.commencement)) return false;\nreturn get(ctx.entry, 'terms.work_authorisation_category', null) === 'EXEMPT_NOTIFICATION';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'WORK_AUTHORISATION_EXEMPT_NOTICE_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.from, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];"
@@ -3232,7 +3225,7 @@
 							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["update"],
 					"reads": {
 						"obligation": {
@@ -3255,10 +3248,10 @@
 							}
 						}
 					},
-					"condition": "const changedOn = get(ctx.entry.employee_extension_data, 'work_location_change_on', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (changedOn == null) return false;\nif (!(changedOn >= ctx.lookup.commencement)) return false;\nreturn ['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(get(ctx.entry, 'terms.work_authorisation_category', null));",
+					"condition": "const changedOn = get(ctx.entry.employee_extension_data, 'work_location_change_on', null);\nif (changedOn == null) return false;\nif (!(changedOn >= ctx.lookup.commencement)) return false;\nreturn ['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(get(ctx.entry, 'terms.work_authorisation_category', null));",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const key = 'WORK_AUTHORISATION_LOCATION_NOTICE_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'work_location_change_on', null), -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];"
+					"effects": "const key = 'WORK_AUTHORISATION_LOCATION_NOTICE_393:' + ctx.entry.id + ':' + ctx.entry.effective_range.from;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'work_location_change_on', null), -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];"
 				},
 				"WORK_AUTHORISATION_INVALIDATION_RETURN_393": {
 					"name": "Return the invalidated work authorisation",
@@ -3275,7 +3268,7 @@
 							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["update"],
 					"reads": {
 						"obligation": {
@@ -3298,10 +3291,10 @@
 							}
 						}
 					},
-					"condition": "const invalidatedOn = get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null);\nif (ctx.entry.status !== 'SEALED') return false;\nconst category = get(ctx.entry, 'terms.work_authorisation_category', null);\nif (category !== 'PERMIT' && category !== 'EXEMPTION_CERTIFICATE') return false;\nif (invalidatedOn == null) return false;\nif (!(invalidatedOn >= ctx.lookup.commencement)) return false;\nreturn get(ctx.entry.employee_extension_data, 'work_authorisation_invalidation_ground', null) != null;",
+					"condition": "const invalidatedOn = get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null);\nconst category = get(ctx.entry, 'terms.work_authorisation_category', null);\nif (category !== 'PERMIT' && category !== 'EXEMPTION_CERTIFICATE') return false;\nif (invalidatedOn == null) return false;\nif (!(invalidatedOn >= ctx.lookup.commencement)) return false;\nreturn get(ctx.entry.employee_extension_data, 'work_authorisation_invalidation_ground', null) != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const key = 'WORK_AUTHORISATION_RETURN:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null), ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];"
+					"effects": "const key = 'WORK_AUTHORISATION_RETURN:' + ctx.entry.id + ':' + ctx.entry.effective_range.from;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'work_authorisation_invalidated_on', null), ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];"
 				},
 				"FOREIGN_WORKER_REPORT_393": {
 					"name": "Report the foreign-worker use",
@@ -3354,22 +3347,19 @@
 							"fields": ["employment_id"],
 							"limit": 10000
 						},
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
-								},
-								"status": {
-									"eq": "SEALED"
 								}
 							},
 							"fields": ["id", "employee_extension_data"],
 							"limit": 10000
 						}
 					},
-					"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst profile = ctx.subject.employer;\nif (!(today >= ctx.lookup.commencement)) return false;\n// One report for the employer: the run's first foreign worker raises it.\nconst foreign = get(ctx, 'reads.employee_contract', []).filter((row) => get(row.employee_extension_data, 'pass_type', null) != null).map((row) => row.id);\nconst paid = get(ctx, 'reads.payslip', []).map((row) => row.employment_id).filter((id) => foreign.includes(id)).toSorted();\nif (paid[0] !== ctx.entry.employment_id) return false;\nreturn !(get(profile, 'entity_extension_data.foreign_worker_database_available', false) === true);",
+					"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst profile = ctx.subject.employer;\nif (!(today >= ctx.lookup.commencement)) return false;\n// One report for the employer: the run's first foreign worker raises it.\nconst foreign = get(ctx, 'reads.employment', []).filter((row) => get(row.employee_extension_data, 'pass_type', null) != null).map((row) => row.id);\nconst paid = get(ctx, 'reads.payslip', []).map((row) => row.employment_id).filter((id) => foreign.includes(id)).toSorted();\nif (paid[0] !== ctx.entry.employment_id) return false;\nreturn !(get(profile, 'entity_extension_data.foreign_worker_database_available', false) === true);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const year = ctx.entry.period.substring(0, 4);\nconst due = ctx.entry.period.substring(5, 7) <= '05' ? year + ctx.lookup.half_year_due[0] : year + ctx.lookup.half_year_due[1];\nconst key = 'FOREIGN_WORKER_REPORT_393:' + ctx.entry.entity_id + ':' + due;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: due,\n\t\toccurrence_key: key\n\t}\n];"
@@ -3424,7 +3414,7 @@
 			"registered_rule": {
 				"MINIMUM_WAGE_FLOOR": {
 					"description": "Checks that a monthly contract wage is at least the regional minimum wage for the employer's region on the contract start date.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "// Only the monthly wage of the job is checked; part-time, intern and probation terms are outside it.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate === null) return false;\nif (rate.unit !== 'MONTHLY') return false;\nif (!(rate.amount > 0)) return false;\nif (['PART_TIME', 'INTERN'].includes(ctx.entry.engagement)) return false;\nreturn get(ctx.entry, 'terms.probation_period', null) === null;",
 					"validate": "const employer = ctx.subject.employer;\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.minimum_wage.by_region, region, null);\nreturn floor === null || ctx.entry.terms.rate.amount >= floor;",
@@ -3542,7 +3532,7 @@
 				},
 				"REGION_REQUIRED": {
 					"description": "Requires the company's parameters on the contract start date to record a minimum-wage region.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"validate": "const employer = ctx.subject.employer;\nreturn ['I', 'II', 'III', 'IV'].includes(get(employer, 'entity_extension_data.region', null));",
 					"order": 6,
@@ -3555,7 +3545,7 @@
 				},
 				"HOURLY_MINIMUM_WAGE": {
 					"description": "Checks an hourly or daily contract rate against the regional hourly minimum, converting a daily rate over the normal hours and days.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nreturn rate !== null && ['HOURLY', 'DAILY'].includes(rate.unit);",
 					"validate": "const employer = ctx.subject.employer;\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.hourly_by_region, region, null);\nif (floor === null) return true;\nconst rate = ctx.entry.terms.rate;\nif (rate.unit === 'HOURLY') return rate.amount >= floor;\n// A day converts to an hour over the normal hours of the day, or to a month over the normal days; either floor met is enough (art.4(3)).\nconst hours = Number(get(ctx.entry, 'terms.normal_hours_per_day', 0));\nif (!(hours > 0)) return false;\nif (rate.amount / hours >= floor) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 0));\nreturn (rate.amount * days * 52) / 12 >= get(ctx.lookup.minimum_wage.by_region, region, Infinity);",
@@ -3577,7 +3567,7 @@
 				},
 				"PROBATION_WAGE": {
 					"description": "Checks that a probation wage is at least 85% of the wage the job pays at the end of probation.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nif (get(ctx.entry, 'terms.probation_period', null) === null) return false;\nif (rate === null) return false;\nreturn get(ctx.entry, 'employee_extension_data.probation_job_wage_vnd', null) !== null;",
 					"validate": "const job = get(ctx.entry, 'employee_extension_data.probation_job_wage_vnd', null);\nreturn ctx.entry.terms.rate.amount >= ctx.lookup.share * job;",
@@ -3595,7 +3585,7 @@
 				},
 				"PROBATION_PERIOD": {
 					"description": "Checks the probation length against the statutory maximum for the job class.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "const period = get(ctx.entry, 'terms.probation_period', null);\nif (period === null) return false;\nif (period.to === null) return false;\nreturn get(ctx.entry, 'employee_extension_data.probation_class', null) !== null;",
 					"validate": "const period = ctx.entry.terms.probation_period;\nconst jobClass = get(ctx.entry, 'employee_extension_data.probation_class', null);\nif (jobClass === 'OTHER')\n\treturn period.to <= add_working_days(period.from, ctx.lookup.other_working_days - 1, [], [6, 0]);\nconst days = calendar_distance_days(period.from, period.to) + 1;\nif (jobClass === 'ENTERPRISE_MANAGER') return days <= ctx.lookup.enterprise_manager_days;\nif (jobClass === 'COLLEGE_OR_ABOVE') return days <= ctx.lookup.college_days;\nreturn days <= ctx.lookup.intermediate_days;",
@@ -3628,7 +3618,7 @@
 					},
 					"references": [
 						{
-							"title": "Labour Code 45/2019/QH14 art.137(1)(a): no night work, overtime or long business trips from the seventh month of pregnancy (sixth in remote areas), with no consent exception; art.137(1)(b): while raising a child under 12 months, night work and overtime need the employee's day-specific consent. Read on employee_contract.children (expected_on three months ahead, born_on) and the roster day's consent object.",
+							"title": "Labour Code 45/2019/QH14 art.137(1)(a): no night work, overtime or long business trips from the seventh month of pregnancy (sixth in remote areas), with no consent exception; art.137(1)(b): while raising a child under 12 months, night work and overtime need the employee's day-specific consent. Read on the employee's dependants (expected_on three months ahead, born_on) and the roster day's consent object.",
 							"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 						}
 					]
@@ -3821,7 +3811,7 @@
 					},
 					"references": [
 						{
-							"title": "Labour Code 2019 art.137(1): no overtime from the seventh month of pregnancy (estimated delivery within three months on employee_contract.children), with no consent exception; while raising a child under 12 months, overtime needs the day's consent.",
+							"title": "Labour Code 2019 art.137(1): no overtime from the seventh month of pregnancy (estimated delivery within three months on the employee's dependants), with no consent exception; while raising a child under 12 months, overtime needs the day's consent.",
 							"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 						}
 					]
@@ -3864,7 +3854,7 @@
 				},
 				"ANNUAL_SERVICE_EXIT_REVIEW": {
 					"description": "Checks that an exiting employee's annual-leave service review covers the exit year and any combining agreement for that employment.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["update"],
 					"reads": {
 						"workplace_case_catalog_entry": {
@@ -3902,7 +3892,7 @@
 				},
 				"CONTRACT_CATEGORIES": {
 					"description": "Requires a residency status and validates the contract's work classification and work-authorisation category against the jurisdiction lists.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "return ctx.entry.engagement !== 'PAYEE';",
 					"validate": "const residency = get(ctx.entry, 'terms.residency_status', null);\nconst category = get(ctx.entry, 'terms.statutory_work_category', null);\nif (residency === null) return false;\nif (!ctx.lookup.residency_status.includes(residency)) return false;\nreturn category === null || ctx.lookup.work_classification.includes(category);",
@@ -3915,7 +3905,7 @@
 				},
 				"SHARED_STRUCTURED_EMPLOYEE_INPUTS": {
 					"description": "Checks the bounds on structured employee inputs such as normal hours and normal days.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"validate": "return Object.keys(ctx.lookup.bounds).every((path) => {\n\tconst value = get(ctx.entry, path, null);\n\tconst bound = ctx.lookup.bounds[path];\n\tif (value === null) return get(bound, 'required', false) !== true;\n\tconst minimum = get(bound, 'minimum', null);\n\tconst maximum = get(bound, 'maximum', null);\n\tconst allowed = get(bound, 'allowed', null);\n\tif (minimum !== null && value < minimum) return false;\n\tif (maximum !== null && value > maximum) return false;\n\tif (allowed !== null && !allowed.includes(value)) return false;\n\treturn true;\n});",
 					"order": 27,
@@ -3935,7 +3925,7 @@
 				},
 				"SHARED_ORIGINAL_AGREEMENT_INTENT": {
 					"description": "Checks that the signed contract period is a real fixed term within the 36-month maximum.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"condition": "return ctx.entry.engagement !== 'PAYEE';",
 					"validate": "const agreement = get(ctx.entry, 'signed_contract_period', null);\nif (agreement === null) return false;\nif (agreement.to === null) return true;\nreturn (\n\tagreement.to >= agreement.from &&\n\tadd_days(agreement.to, 1) <= add_months(agreement.from, ctx.lookup.maximum_fixed_term_months)\n);",
@@ -4336,7 +4326,7 @@
 						"type": "object",
 						"title": "Statutory declarations",
 						"additionalProperties": false,
-						"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+						"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 						"properties": {
 							"SI": {
 								"type": "object",
@@ -4514,7 +4504,7 @@
 						"description": "Labour Code 45/2019/QH14 art.24(1): probation is agreed in the labour contract or in a separate probation contract. Law 41/2024/QH15 art.2(1)(a) insures a labour contract of one month or more, its probation clause included; only a separate probation contract is outside compulsory SI, HI, UI and the union fee. Unrecorded is a probation clause in the labour contract: insured from the first day."
 					}
 				},
-				"description": "Additional local compliance facts on the sealed contract. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+				"description": "Additional local compliance facts on the employment. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 			},
 			"ledger": {
 				"ytd_scope": "JURISDICTION"
@@ -4933,7 +4923,7 @@
 							"locator": "art.41(5)(b)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -5062,7 +5052,7 @@
 							"title": "Law on Personal Data Protection 91/2025/QH15 arts.9, 10, 19 (in force 1 January 2026, art.38(1)) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387); consents given under Decree 13/2023 remain valid (art.39(1))"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -5076,7 +5066,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'PDPL_CONSENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];"
@@ -5165,7 +5154,7 @@
 							"url": "https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -5201,7 +5190,7 @@
 							"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=216387"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -5215,7 +5204,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = 'PDPL_PROCESSING_START_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];"
@@ -6075,7 +6063,7 @@
 					"lookup": {}
 				},
 				"PIT": {
-					"employee_amount": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst pit = get(employment, 'employee_extension_data.statutory.PIT', {});\n// A recovery takes back income the memo row cannot hold below zero.\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0)) + Math.min(0, Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the sealed contract (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(pit, 'commitment_form', false) === true;\nconst borne = get(terms, 'employer_bears_income_tax', false) === true;\n// Decree 253/2026/NĐ-CP art.46(4)(c): only the tax the employer bears is income; the allowances the contract leaves to the employee bear their own share at the month's rate.\nconst items = !borne || get(ctx.run, 'kind', '') === 'OFF_CYCLE' ? 0 : sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nif (borne && items === 0) return 0;\nconst taxed = borne ? Math.max(0, Math.min(items, remuneration)) : remuneration;\nif (residency === 'NON_RESIDENT') return taxed * ctx.lookup.non_resident_rate;\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return taxed * ctx.lookup.short_term_rate;\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(pit, 'dependants', 0));\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst income = before('PIT_TAXABLE_INCOME', 'employer') + Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst split = (base) => {\n\tlet employer = 0;\n\tlet employee = 0;\n\tfor (let index = 0; index < 20; index += 1) {\n\t\tconst tax = ladder(Math.max(0, base + employer), ctx.lookup.brackets);\n\t\temployee = items > 0 && income > 0 ? (tax * Math.min(items, income)) / (income + employer) : 0;\n\t\temployer = tax - employee;\n\t}\n\treturn { employer, employee };\n};\nif (borne) return split(assessable).employee - before('PIT', 'employee');\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\nconst monthly = ladder(assessable, ctx.lookup.brackets) - before('PIT', 'employee');\nif (String(get(ctx.run, 'pay_date', ctx.as_of)).substring(5, 7) !== '12') return monthly;\nif (get(pit, 'finalisation_authorised', false) !== true) return monthly;\n// Decree 253/2026 arts.46, 48, 51: the year's income less twelve personal deductions, the dependants' months and the year's insurance and pension, on the annual column (the monthly bands × 12).\nconst paid = get(ctx.balances, 'statutory_contribution', {});\nconst held = (key) => (Object.hasOwn(paid, key) ? Number(paid[key]) : 0);\nconst months = 12;\nconst taxYear = String(get(ctx.run, 'pay_date', ctx.as_of)).substring(0, 4);\nconst monthsFrom = (from) => {\n\tif (from.substring(0, 4) > taxYear) return 0;\n\tif (from.substring(0, 4) < taxYear) return months;\n\treturn months + 1 - Number(from.substring(5, 7));\n};\nconst registered = get(pit, 'dependants_registered_from', []);\nconst dependantMonths =\n\tregistered.length === 0 ? dependants * months : sum(registered.map(monthsFrom));\nconst annual = Math.max(\n\t0,\n\theld('PIT_TAXABLE_INCOME.employer') +\n\t\tremuneration -\n\t\theld('PIT_PENSION_DEDUCTION.employer') -\n\t\tpension -\n\t\theld('SI.employee') -\n\t\theld('HI.employee') -\n\t\theld('UI.employee') -\n\t\tinsurance -\n\t\tmonths * ctx.lookup.personal_deduction -\n\t\tdependantMonths * ctx.lookup.dependant_deduction\n);\nconst due = months * ladder(annual / months, ctx.lookup.brackets);\nreturn due - held('PIT.employee');",
+					"employee_amount": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst pit = get(employment, 'employee_extension_data.statutory.PIT', {});\n// A recovery takes back income the memo row cannot hold below zero.\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0)) + Math.min(0, Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the employment (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(pit, 'commitment_form', false) === true;\nconst borne = get(terms, 'employer_bears_income_tax', false) === true;\n// Decree 253/2026/NĐ-CP art.46(4)(c): only the tax the employer bears is income; the allowances the contract leaves to the employee bear their own share at the month's rate.\nconst items = !borne || get(ctx.run, 'kind', '') === 'OFF_CYCLE' ? 0 : sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nif (borne && items === 0) return 0;\nconst taxed = borne ? Math.max(0, Math.min(items, remuneration)) : remuneration;\nif (residency === 'NON_RESIDENT') return taxed * ctx.lookup.non_resident_rate;\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return taxed * ctx.lookup.short_term_rate;\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(pit, 'dependants', 0));\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst income = before('PIT_TAXABLE_INCOME', 'employer') + Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst split = (base) => {\n\tlet employer = 0;\n\tlet employee = 0;\n\tfor (let index = 0; index < 20; index += 1) {\n\t\tconst tax = ladder(Math.max(0, base + employer), ctx.lookup.brackets);\n\t\temployee = items > 0 && income > 0 ? (tax * Math.min(items, income)) / (income + employer) : 0;\n\t\temployer = tax - employee;\n\t}\n\treturn { employer, employee };\n};\nif (borne) return split(assessable).employee - before('PIT', 'employee');\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\nconst monthly = ladder(assessable, ctx.lookup.brackets) - before('PIT', 'employee');\nif (String(get(ctx.run, 'pay_date', ctx.as_of)).substring(5, 7) !== '12') return monthly;\nif (get(pit, 'finalisation_authorised', false) !== true) return monthly;\n// Decree 253/2026 arts.46, 48, 51: the year's income less twelve personal deductions, the dependants' months and the year's insurance and pension, on the annual column (the monthly bands × 12).\nconst paid = get(ctx.balances, 'statutory_contribution', {});\nconst held = (key) => (Object.hasOwn(paid, key) ? Number(paid[key]) : 0);\nconst months = 12;\nconst taxYear = String(get(ctx.run, 'pay_date', ctx.as_of)).substring(0, 4);\nconst monthsFrom = (from) => {\n\tif (from.substring(0, 4) > taxYear) return 0;\n\tif (from.substring(0, 4) < taxYear) return months;\n\treturn months + 1 - Number(from.substring(5, 7));\n};\nconst registered = get(pit, 'dependants_registered_from', []);\nconst dependantMonths =\n\tregistered.length === 0 ? dependants * months : sum(registered.map(monthsFrom));\nconst annual = Math.max(\n\t0,\n\theld('PIT_TAXABLE_INCOME.employer') +\n\t\tremuneration -\n\t\theld('PIT_PENSION_DEDUCTION.employer') -\n\t\tpension -\n\t\theld('SI.employee') -\n\t\theld('HI.employee') -\n\t\theld('UI.employee') -\n\t\tinsurance -\n\t\tmonths * ctx.lookup.personal_deduction -\n\t\tdependantMonths * ctx.lookup.dependant_deduction\n);\nconst due = months * ladder(annual / months, ctx.lookup.brackets);\nreturn due - held('PIT.employee');",
 					"lookup": {
 						"non_resident_rate": 0.2,
 						"short_term_rate": 0.1,
@@ -6169,7 +6157,7 @@
 							"url": "https://xaydungchinhsach.chinhphu.vn/thue-thu-nhap-ca-nhan-doi-voi-thu-nhap-tu-tien-luong-tien-cong-119260703141953435.htm"
 						}
 					],
-					"employer_amount": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst pit = get(employment, 'employee_extension_data.statutory.PIT', {});\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the sealed contract (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(pit, 'commitment_form', false) === true;\nif (get(terms, 'employer_bears_income_tax', false) !== true) return 0;\n// Decree 253/2026/NĐ-CP art.46(4)(c): only the tax the employer bears is income; the allowances the contract leaves to the employee bear their own share at the month's rate.\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE' ? 0 : sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = Math.max(0, Math.min(items, remuneration));\nif (residency === 'NON_RESIDENT')\n\treturn ((remuneration - own) * ctx.lookup.non_resident_rate) / (1 - ctx.lookup.non_resident_rate);\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return ((remuneration - own) * ctx.lookup.short_term_rate) / (1 - ctx.lookup.short_term_rate);\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(pit, 'dependants', 0));\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst income = before('PIT_TAXABLE_INCOME', 'employer') + Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst split = (base) => {\n\tlet employer = 0;\n\tlet employee = 0;\n\tfor (let index = 0; index < 20; index += 1) {\n\t\tconst tax = ladder(Math.max(0, base + employer), ctx.lookup.brackets);\n\t\temployee = items > 0 && income > 0 ? (tax * Math.min(items, income)) / (income + employer) : 0;\n\t\temployer = tax - employee;\n\t}\n\treturn { employer, employee };\n};\nconst shares = split(assessable);\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\nconst monthly = Math.max(0, shares.employer - before('PIT', 'employer'));\nif (String(get(ctx.run, 'pay_date', ctx.as_of)).substring(5, 7) !== '12') return monthly;\nif (get(pit, 'finalisation_authorised', false) !== true) return monthly;\n// Decree 253/2026 arts.46, 48, 51: the year's income less twelve personal deductions, the dependants' months and the year's insurance and pension, on the annual column (the monthly bands × 12).\nconst paid = get(ctx.balances, 'statutory_contribution', {});\nconst held = (key) => (Object.hasOwn(paid, key) ? Number(paid[key]) : 0);\nconst months = 12;\nconst taxYear = String(get(ctx.run, 'pay_date', ctx.as_of)).substring(0, 4);\nconst monthsFrom = (from) => {\n\tif (from.substring(0, 4) > taxYear) return 0;\n\tif (from.substring(0, 4) < taxYear) return months;\n\treturn months + 1 - Number(from.substring(5, 7));\n};\nconst registered = get(pit, 'dependants_registered_from', []);\nconst dependantMonths =\n\tregistered.length === 0 ? dependants * months : sum(registered.map(monthsFrom));\nconst annual = Math.max(\n\t0,\n\theld('PIT_TAXABLE_INCOME.employer') +\n\t\tremuneration -\n\t\theld('PIT_PENSION_DEDUCTION.employer') -\n\t\tpension -\n\t\theld('SI.employee') -\n\t\theld('HI.employee') -\n\t\theld('UI.employee') -\n\t\tinsurance -\n\t\tmonths * ctx.lookup.personal_deduction -\n\t\tdependantMonths * ctx.lookup.dependant_deduction\n);\n// Art.46(4)(c): the year's income is the sum of the converted months, so the tax the employer bore is income. An excess here is the employer's to credit on the return.\nconst borne = held('PIT.employer');\n// Art.51: less the tax already withheld, the employee's own share included.\nconst withheld = held('PIT.employee') + shares.employee - before('PIT', 'employee');\nreturn Math.max(0, months * ladder((annual + borne + monthly) / months, ctx.lookup.brackets) - borne - withheld);",
+					"employer_amount": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst pit = get(employment, 'employee_extension_data.statutory.PIT', {});\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the employment (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(pit, 'commitment_form', false) === true;\nif (get(terms, 'employer_bears_income_tax', false) !== true) return 0;\n// Decree 253/2026/NĐ-CP art.46(4)(c): only the tax the employer bears is income; the allowances the contract leaves to the employee bear their own share at the month's rate.\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE' ? 0 : sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = Math.max(0, Math.min(items, remuneration));\nif (residency === 'NON_RESIDENT')\n\treturn ((remuneration - own) * ctx.lookup.non_resident_rate) / (1 - ctx.lookup.non_resident_rate);\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return ((remuneration - own) * ctx.lookup.short_term_rate) / (1 - ctx.lookup.short_term_rate);\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(pit, 'dependants', 0));\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst income = before('PIT_TAXABLE_INCOME', 'employer') + Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst split = (base) => {\n\tlet employer = 0;\n\tlet employee = 0;\n\tfor (let index = 0; index < 20; index += 1) {\n\t\tconst tax = ladder(Math.max(0, base + employer), ctx.lookup.brackets);\n\t\temployee = items > 0 && income > 0 ? (tax * Math.min(items, income)) / (income + employer) : 0;\n\t\temployer = tax - employee;\n\t}\n\treturn { employer, employee };\n};\nconst shares = split(assessable);\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\nconst monthly = Math.max(0, shares.employer - before('PIT', 'employer'));\nif (String(get(ctx.run, 'pay_date', ctx.as_of)).substring(5, 7) !== '12') return monthly;\nif (get(pit, 'finalisation_authorised', false) !== true) return monthly;\n// Decree 253/2026 arts.46, 48, 51: the year's income less twelve personal deductions, the dependants' months and the year's insurance and pension, on the annual column (the monthly bands × 12).\nconst paid = get(ctx.balances, 'statutory_contribution', {});\nconst held = (key) => (Object.hasOwn(paid, key) ? Number(paid[key]) : 0);\nconst months = 12;\nconst taxYear = String(get(ctx.run, 'pay_date', ctx.as_of)).substring(0, 4);\nconst monthsFrom = (from) => {\n\tif (from.substring(0, 4) > taxYear) return 0;\n\tif (from.substring(0, 4) < taxYear) return months;\n\treturn months + 1 - Number(from.substring(5, 7));\n};\nconst registered = get(pit, 'dependants_registered_from', []);\nconst dependantMonths =\n\tregistered.length === 0 ? dependants * months : sum(registered.map(monthsFrom));\nconst annual = Math.max(\n\t0,\n\theld('PIT_TAXABLE_INCOME.employer') +\n\t\tremuneration -\n\t\theld('PIT_PENSION_DEDUCTION.employer') -\n\t\tpension -\n\t\theld('SI.employee') -\n\t\theld('HI.employee') -\n\t\theld('UI.employee') -\n\t\tinsurance -\n\t\tmonths * ctx.lookup.personal_deduction -\n\t\tdependantMonths * ctx.lookup.dependant_deduction\n);\n// Art.46(4)(c): the year's income is the sum of the converted months, so the tax the employer bore is income. An excess here is the employer's to credit on the return.\nconst borne = held('PIT.employer');\n// Art.51: less the tax already withheld, the employee's own share included.\nconst withheld = held('PIT.employee') + shares.employee - before('PIT', 'employee');\nreturn Math.max(0, months * ladder((annual + borne + monthly) / months, ctx.lookup.brackets) - borne - withheld);",
 					"description": "Personal income tax withheld from pay. A resident's taxable income for the month, after insurance contributions and the personal (15,500,000 dong) and dependant (6,200,000 dong each) deductions, goes through the progressive rates; a non-resident pays 20%, and a short or casual engagement 10% on a payment of 5,000,000 dong or more."
 				},
 				"SI": {

@@ -1,5 +1,5 @@
 // An exit settles its leave on the payslip that covers the last day. Nothing is keyed and nothing waits for anyone:
-// what is left of a row with a payout is paid out unless HR declined it on the contract, and leave taken beyond what
+// what is left of a row with a payout is paid out unless HR declined it on the stint, and leave taken beyond what
 // the last day earned is taken back at the same rate. HR changes its mind where the fact stands (the decision, the
 // last day, the exit itself), and a period already paid is carried right by the next run. The Malaysian pack is only
 // the fixture; the figures are the pack's own.
@@ -12,6 +12,7 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, cents, pay, run, signed, slip } from '../amendment_kit.ts';
 import {
 	ENTITY,
+	PAY_GROUP,
 	accountsIn,
 	measureOf,
 	pack,
@@ -26,7 +27,7 @@ import {
 
 const NOW = '2026-10-20T02:00:00.000Z';
 const LEAVE = 'ANNUAL_LEAVE';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const BALANCE = idOf('employee_balance', uuid(5));
 const seed = pack(
 	'MY',
@@ -52,17 +53,17 @@ const left = (t: Kit) =>
 				measureOf(accounts, 'leave', LEAVE, 'used')
 		)
 	);
-/** The contract as HR ends it, or changes what it said when it ended it. */
-const contract = (
+/** The stint as HR ends it, or changes what it said when it ended it. */
+const ended = (
 	t: Kit,
 	set: { readonly to?: string | null; readonly [answer: string]: unknown }
 ) => {
 	const { to, ...answers } = set;
-	return Effect.all([t.as(t.admin), current(t, 'employee_contract', CONTRACT)])
+	return Effect.all([t.as(t.admin), current(t, 'employment', EMPLOYMENT)])
 		.pipe(
 			Effect.flatMap(([caller, target]) =>
 				caller.act({
-					'employee_contract.update': [
+					'employment.update': [
 						{
 							target,
 							set: {
@@ -144,7 +145,7 @@ describe('the leave an exit settles', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
-				yield* contract(t, { to: '2026-10-31' });
+				yield* ended(t, { to: '2026-10-31' });
 				// the exit's own sync has prorated the year to the last day: that is what is left to settle
 				const days = yield* left(t);
 				assert.ok(days > 0);
@@ -159,25 +160,23 @@ describe('the leave an exit settles', () => {
 		)
 	);
 
-	it.live(
-		'declined by HR on the contract, or a dismissal for misconduct: nothing is paid out',
-		() =>
-			at(
-				Effect.gen(function* () {
-					const t = yield* TestWorkspace;
-					yield* syncAll(t);
-					yield* contract(t, { to: '2026-10-31', encash_leave: false });
-					const days = yield* left(t);
-					const first = yield* run(t, '2026-10');
-					assert.deepEqual(yield* settled(t, '2026-10'), { paid: 0, days: [] });
-					assert.equal(yield* left(t), days);
-					// the same exit as a dismissal for misconduct, with HR's switch back on
-					yield* (yield* t.as(t.admin)).act({ 'payroll_run.delete': [{ target: first }] });
-					yield* contract(t, { encash_leave: true, exit_ground: 'MISCONDUCT_DISMISSAL' });
-					yield* run(t, '2026-10');
-					assert.deepEqual(yield* settled(t, '2026-10'), { paid: 0, days: [] });
-				})
-			)
+	it.live('declined by HR on the stint, or a dismissal for misconduct: nothing is paid out', () =>
+		at(
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				yield* ended(t, { to: '2026-10-31', encash_leave: false });
+				const days = yield* left(t);
+				const first = yield* run(t, '2026-10');
+				assert.deepEqual(yield* settled(t, '2026-10'), { paid: 0, days: [] });
+				assert.equal(yield* left(t), days);
+				// the same exit as a dismissal for misconduct, with HR's switch back on
+				yield* (yield* t.as(t.admin)).act({ 'payroll_run.delete': [{ target: first }] });
+				yield* ended(t, { encash_leave: true, exit_ground: 'MISCONDUCT_DISMISSAL' });
+				yield* run(t, '2026-10');
+				assert.deepEqual(yield* settled(t, '2026-10'), { paid: 0, days: [] });
+			})
+		)
 	);
 
 	it.live('leave taken beyond what the last day earned is taken back, whatever HR decided', () =>
@@ -202,7 +201,7 @@ describe('the leave an exit settles', () => {
 					]
 				});
 				assert.equal(yield* left(t), -1);
-				yield* contract(t, { to: '2026-10-31', encash_leave: false });
+				yield* ended(t, { to: '2026-10-31', encash_leave: false });
 				// the last day earns less of the year still
 				const over = yield* left(t);
 				assert.ok(over <= -1);
@@ -223,10 +222,10 @@ describe('the leave an exit settles', () => {
 					const t = yield* TestWorkspace;
 					yield* syncAll(t);
 					const days = yield* left(t);
-					yield* contract(t, { to: '2026-10-31', encash_leave: false });
+					yield* ended(t, { to: '2026-10-31', encash_leave: false });
 					yield* pay(t, '2026-10');
 					assert.deepEqual(yield* amendments(t), []);
-					yield* contract(t, { encash_leave: true });
+					yield* ended(t, { encash_leave: true });
 					assert.deepEqual(
 						(yield* amendments(t)).map((row) => [row.period, row.payroll_run_id]),
 						[['2026-10', null]]
@@ -245,7 +244,7 @@ describe('the leave an exit settles', () => {
 						'payroll_run.update': [{ target: offCycle, set: { state: 'PAID' } }]
 					});
 					yield* t.run_due();
-					yield* contract(t, { encash_leave: false });
+					yield* ended(t, { encash_leave: false });
 					assert.equal(
 						keyOf(yield* Effect.flip(carriedOffCycle(t))),
 						'errors.payroll_run_carry_takes_back'
@@ -263,11 +262,11 @@ describe('the leave an exit settles', () => {
 					const t = yield* TestWorkspace;
 					yield* syncAll(t);
 					const days = yield* left(t);
-					yield* contract(t, { to: '2026-10-31' });
+					yield* ended(t, { to: '2026-10-31' });
 					yield* pay(t, '2026-10');
 					const last = yield* settled(t, '2026-10');
 					assert.equal(yield* left(t), 0);
-					yield* contract(t, { to: null });
+					yield* ended(t, { to: null });
 					yield* run(t, '2026-11');
 					assert.equal(
 						(yield* carriedFor(t, '2026-11', '2026-10'))[`${LEAVE}/EMPLOYEE`],
@@ -282,46 +281,54 @@ describe('the leave an exit settles', () => {
 	);
 
 	it.live(
-		'the exit cancelled by a successor sealed after the last payslip is paid: the same as cancelling it',
+		'the exit cancelled by a stint from the next day, after the last payslip is paid: the same as cancelling it',
 		() =>
 			at(
 				Effect.gen(function* () {
 					const t = yield* TestWorkspace;
 					yield* syncAll(t);
 					const days = yield* left(t);
-					yield* contract(t, { to: '2026-10-31' });
+					yield* ended(t, { to: '2026-10-31' });
 					yield* pay(t, '2026-10');
 					const last = yield* settled(t, '2026-10');
 					assert.ok(last.paid > 0);
-					// a version from the next day continues the employment: the paid month-end is no exit any more
-					const [ended] = (yield* storedQuery(t, { employee_contract: { limit: 1 } }))
-						.employee_contract.rows;
-					assert.ok(ended !== undefined);
-					const admin = yield* t.as(t.admin);
-					yield* admin.act({
-						'employee_contract.create': [
+					// a stint from the next day continues the employment: the paid month-end is no exit any more
+					const [stint] = (yield* storedQuery(t, { employment: { limit: 1 } })).employment.rows;
+					assert.ok(stint !== undefined);
+					yield* (yield* t.as(t.admin)).act({
+						'employment.create': [
 							{
-								employee_id: ended.employee_id,
-								entity_id: ended.entity_id,
-								engagement: ended.engagement,
-								employee_number: ended.employee_number,
-								terms: ended.terms,
-								payroll: ended.payroll,
-								bank: ended.bank,
-								employee_extension_data: ended.employee_extension_data,
-								service_started_on: ended.service_started_on,
+								employee_id: stint.employee_id,
+								entity_id: stint.entity_id,
+								employee_number: stint.employee_number,
+								service_started_on: '2025-01-01',
 								effective_range: { from: '2026-11-01', to: null },
-								status: 'DRAFT',
-								reason: 'Rehired the next day'
+								reason: 'Rehired the next day',
+								terms: [
+									{
+										effective_from: '2026-11-01',
+										engagement: 'EMPLOYEE',
+										pay_group_id: idOf('pay_group', PAY_GROUP),
+										rate: { amount: 3120, unit: 'MONTHLY' },
+										normal_hours_per_day: 8,
+										normal_hours_per_week: 40,
+										normal_days_per_week: 5,
+										statutory_work_category: 'MANUAL_LABOUR',
+										work_classification: 'EA_COVERED',
+										wage_payment_method: 'BANK',
+										allowances: {}
+									}
+								],
+								parameters: [
+									{
+										effective_from: '2026-11-01',
+										residency_status: 'CITIZEN',
+										marital_status: 'SINGLE',
+										parameters: {}
+									}
+								]
 							}
 						]
-					});
-					const [draft] = (yield* storedQuery(t, {
-						employee_contract: { where: { status: { eq: 'DRAFT' } }, limit: 1 }
-					})).employee_contract.rows;
-					assert.ok(draft !== undefined);
-					yield* admin.act({
-						'employee_contract.update': [{ target: draft, set: { status: 'SEALED' } }]
 					});
 					yield* t.run_due();
 					assert.deepEqual(

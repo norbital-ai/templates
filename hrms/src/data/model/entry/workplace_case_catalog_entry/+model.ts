@@ -42,7 +42,7 @@ export default model({
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'workplace_case_catalog_entries' },
 		employment_id: {
 			kind: 'ref',
-			to: 'employee_contract',
+			to: 'employment',
 			inverse: 'workplace_case_catalog_entry',
 			on_delete: 'restrict'
 		},

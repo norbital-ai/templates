@@ -10,7 +10,7 @@ import { idOf, objectValue, queryRows, type Reader } from './payroll_engine/read
  * that has no open row yet. A write held for approval carries them in the approving decision, as it does its postings.
  */
 
-/** What a write touches: one person, by a contract version of theirs or by themself, from a day to a day. */
+/** What a write touches: one person, by a stint of theirs or by themself, from a day to a day. */
 export interface Touched {
 	readonly employment?: string;
 	readonly employee?: string;
@@ -142,13 +142,13 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		...new Set(touched.flatMap((touch) => (touch.employee === undefined ? [] : [touch.employee])))
 	];
 	const theirs = {
-		or: [{ id: { in: named } }, { employee_contract: { some: { id: { in: employments } } } }]
+		or: [{ id: { in: named } }, { employment: { some: { id: { in: employments } } } }]
 	};
 	const sealing = [
 		...new Set(touched.flatMap((touch) => (touch.run == null ? [] : [String(touch.run)])))
 	];
 	const known = yield* queryRows(read, {
-		employee_contract: {
+		employment: {
 			where: { id: { in: employments } },
 			fields: ['employee_id'],
 			limit: 10000
@@ -177,7 +177,7 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		}
 	});
 	const employeeOf = new Map(
-		(known.employee_contract ?? []).map((row) => [String(row.id), String(row.employee_id)])
+		(known.employment ?? []).map((row) => [String(row.id), String(row.employee_id)])
 	);
 	return yield* carried(
 		touched.flatMap((touch) => {
@@ -286,11 +286,15 @@ export const RUN_INPUTS = {
 	claim_catalog_entry: 'amends',
 	adhoc_catalog_entry: 'amends',
 	loan_catalog_entry_repayment: 'amends',
-	employee_contract: 'amends',
+	// the person in a company: the stint, what was agreed and what the law is told by date, and their family
+	employment: 'amends',
+	contract_terms: 'amends',
+	statutory_parameters: 'amends',
+	dependant: 'amends',
 	holiday: 'amends',
 	work_event: 'amends',
 	// the company: what it changes by date amends what the change reaches; its plain fields price no day, and the law
-	// it names stays once a contract or a change is linked
+	// it names stays once a stint or a change is linked
 	entity_change: 'amends',
 	entity: 'none',
 	// the law: a change written, moved or deleted, or put in or out of force by its finding, amends what it reaches
@@ -299,7 +303,8 @@ export const RUN_INPUTS = {
 	pay_group: 'refuses',
 	shift_definition: 'refuses',
 	shift_pattern: 'refuses',
-	// the person: only how their service counts moves pay, and that amends every period they were paid for
+	// the person: their date of birth, gender and how their service counts move pay, and amend every period they were
+	// paid for
 	employee_profile: 'amends',
 	// the running totals a payslip posts to: a run reads them, and postings move them. HR's manual row adjusts a
 	// balance as it stands from its own date; it asks no paid period to be worked out again

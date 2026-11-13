@@ -1,7 +1,7 @@
 // Random sequences of the real acts an HR user and an employee can take, on one small workspace a seed, with the acts
-// that try to break it mixed in: the same act twice in a row, an exit raised, moved and cancelled, entries on a void
-// contract, a run made and deleted, and direct writes to the ledger, the balance and a payslip by HR, the employee and
-// an administrator. After every step: no queued work failed, a refused act wrote nothing, the integrity check has no
+// that try to break it mixed in: the same act twice in a row, an exit raised, moved and cancelled, a run made and
+// deleted, and direct writes to the ledger, the balance and a payslip by HR, the employee and an administrator. After
+// every step: no queued work failed, a refused act wrote nothing, the integrity check has no
 // hard finding, the balance is what an independent sum of the ledger says, and the payslips hold (a paid one never
 // changes, each belongs to a run, each seal names a run, what a sealed entry pays is on payslips once). A refusal is an
 // expected answer; anything else an act fails with is not. The ledger and a payslip declare no update or delete, so
@@ -38,8 +38,7 @@ const STEPS = Number(process.env['HR_STEPS'] ?? 40);
 // between two changes of the law the template holds (8 July to 31 December 2026): the clock stays inside it
 const START = '2026-08-05T02:00:00.000Z';
 const LAST_MONTH = '2026-11';
-const CONTRACT = idOf('employee_contract', uuid(6));
-const VOIDED = idOf('employee_contract', uuid(7));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const BALANCE = idOf('employee_balance', uuid(5));
 const base = pack(
 	'MY',
@@ -58,17 +57,6 @@ const base = pack(
 );
 const seed = {
 	...base,
-	// an earlier version keyed in error and voided: nothing may be entered or paid on it
-	employee_contract: [
-		...(base.employee_contract ?? []),
-		{
-			...(base.employee_contract?.[0] ?? {}),
-			id: VOIDED,
-			status: 'VOID',
-			effective_range: { from: '2024-01-01', to: '2024-12-31' },
-			reason: 'Keyed in error'
-		}
-	],
 	sys_user: [
 		...(base.sys_user ?? []),
 		// an HR manager may decide any step of a held request
@@ -125,17 +113,17 @@ const stored = (w: World) =>
 		payroll_run: { limit: 1000 },
 		payslip: { limit: 1000 }
 	});
-const leaveOn = (w: World, by: Caller, code: string, employment = CONTRACT) =>
+const leaveOn = (w: World, by: Caller, code: string) =>
 	Effect.gen(function* () {
 		const date = day(w);
-		yield* note(w, `leave ${code} ${date}${employment === VOIDED ? ' on the void contract' : ''}`);
+		yield* note(w, `leave ${code} ${date}`);
 		asked(
 			w,
 			yield* by.act({
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: employment,
+						employment_id: EMPLOYMENT,
 						catalog_code: code,
 						days: wholeDays(date)
 					})
@@ -145,7 +133,7 @@ const leaveOn = (w: World, by: Caller, code: string, employment = CONTRACT) =>
 	});
 const entryOf = (w: World, quantity: number) => ({
 	entity_id: ENTITY,
-	employment_id: CONTRACT,
+	employment_id: EMPLOYMENT,
 	quantity: String(quantity),
 	incurred_on: day(w)
 });
@@ -171,14 +159,14 @@ const manual = (w: World, sign: 1 | -1) =>
 		});
 	});
 
-/** The last day goes on the contract, moves, or comes off. */
+/** The last day goes on the stint, moves, or comes off. */
 const exit = (w: World, to: string | null) =>
 	Effect.gen(function* () {
 		yield* note(w, to === null ? 'exit cancelled' : `exit ${to}`);
 		yield* w.admin.act({
-			'employee_contract.update': [
+			'employment.update': [
 				{
-					target: yield* current(w.t, 'employee_contract', CONTRACT),
+					target: yield* current(w.t, 'employment', EMPLOYMENT),
 					set: {
 						effective_range: {
 							from: '2025-01-01',
@@ -412,26 +400,9 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 	(w) => exit(w, null),
 	(w) =>
 		Effect.gen(function* () {
-			// the exit's follow-up runs in the contract write's own effect: settle what is due
+			// the exit's follow-up runs in the stint write's own effect: settle what is due
 			yield* note(w, 'exit follow-up settles');
 			yield* w.t.run_due();
-		}),
-	// a void contract takes no entry a run could pay
-	(w) => leaveOn(w, w.admin, 'ANNUAL_LEAVE', VOIDED),
-	(w) =>
-		Effect.gen(function* () {
-			const quantity = amount(w);
-			yield* note(w, `adhoc ${quantity} on the void contract`);
-			yield* w.admin.act({
-				'adhoc_catalog_entry.create': [
-					{
-						...entryOf(w, quantity),
-						employment_id: VOIDED,
-						catalog_code: 'BONUS',
-						description: 'BONUS'
-					}
-				]
-			});
 		}),
 	// a run made and deleted gives back exactly the ledger and the seals it took
 	(w) =>

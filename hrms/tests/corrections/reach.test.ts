@@ -37,6 +37,16 @@ const earned = (lines: Readonly<Record<string, number>>) =>
 	);
 /** A claim as stored now: a write targets it at its current revision. */
 const at = (month: string) => `${month}-20T02:00:00.000Z`;
+/** The pack's one stint over these days, its first terms and parameters on its first day. */
+const stinted = (seed: Seed, from: string, to: string): Seed => ({
+	...seed,
+	employment: (seed.employment ?? []).map((row) => ({ ...row, effective_range: { from, to } })),
+	contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: from })),
+	statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+		...row,
+		effective_from: from
+	}))
+});
 /** The same months paid on a seed that was never wrong, read the same way. */
 const neverWrong = <A>(
 	from: Seed,
@@ -145,40 +155,37 @@ describe('what a correction reaches', () => {
 		}
 	);
 
-	it.live(
-		'a day corrected under an earlier version is priced by the version in force on its date',
-		() => {
-			const months = ['2026-02', '2026-03', '2026-04'];
-			const read = (t: Kit) => paidInAll(t, ...months).pipe(Effect.map(earned));
-			return Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* pay(t, '2026-02');
-				yield* raisedFrom(t, '2026-03-01', 3300);
-				yield* pay(t, '2026-03');
-				// the roster day still points at the version that ended with February
-				yield* overtimeKeyed(t, '2026-02-10');
-				yield* run(t, '2026-04');
-				assert.ok(((yield* carriedFor(t, '2026-04', '2026-02'))['OVERTIME/EMPLOYEE'] ?? 0) > 0);
-				assert.deepEqual(yield* carriedFor(t, '2026-04', '2026-03'), {});
-				return yield* read(t);
-			}).pipe(
-				Effect.provide(workspace({ seed: rostered(months), now: at('2026-04') })),
-				Effect.flatMap((corrected) =>
-					Effect.gen(function* () {
-						const t = yield* TestWorkspace;
-						yield* raisedFrom(t, '2026-03-01', 3300);
-						yield* pay(t, '2026-02');
-						yield* pay(t, '2026-03');
-						yield* run(t, '2026-04');
-						return yield* read(t);
-					}).pipe(
-						Effect.provide(workspace({ seed: rostered(months, '2026-02-10'), now: at('2026-04') })),
-						Effect.map((never) => assert.deepEqual(corrected, never))
-					)
+	it.live('a day corrected under earlier terms is priced by the terms in force on its date', () => {
+		const months = ['2026-02', '2026-03', '2026-04'];
+		const read = (t: Kit) => paidInAll(t, ...months).pipe(Effect.map(earned));
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* pay(t, '2026-02');
+			yield* raisedFrom(t, '2026-03-01', 3300);
+			yield* pay(t, '2026-03');
+			// the roster day is February's, before the raise
+			yield* overtimeKeyed(t, '2026-02-10');
+			yield* run(t, '2026-04');
+			assert.ok(((yield* carriedFor(t, '2026-04', '2026-02'))['OVERTIME/EMPLOYEE'] ?? 0) > 0);
+			assert.deepEqual(yield* carriedFor(t, '2026-04', '2026-03'), {});
+			return yield* read(t);
+		}).pipe(
+			Effect.provide(workspace({ seed: rostered(months), now: at('2026-04') })),
+			Effect.flatMap((corrected) =>
+				Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					yield* raisedFrom(t, '2026-03-01', 3300);
+					yield* pay(t, '2026-02');
+					yield* pay(t, '2026-03');
+					yield* run(t, '2026-04');
+					return yield* read(t);
+				}).pipe(
+					Effect.provide(workspace({ seed: rostered(months, '2026-02-10'), now: at('2026-04') })),
+					Effect.map((never) => assert.deepEqual(corrected, never))
 				)
-			);
-		}
-	);
+			)
+		);
+	});
 
 	it.live('a paid claim lowered: the next run takes back the difference and nothing else', () => {
 		const from = rostered(['2026-02', '2026-03']);
@@ -290,14 +297,8 @@ describe('what a correction reaches', () => {
 });
 
 describe('someone no on-cycle run pays any more', () => {
-	/** The person's contract ended with February. */
-	const left = (from: Seed): Seed => ({
-		...from,
-		employee_contract: (from.employee_contract ?? []).map((row) => ({
-			...row,
-			effective_range: { from: '2026-01-01', to: '2026-02-28' }
-		}))
-	});
+	/** The person's stint ended with February. */
+	const left = (from: Seed): Seed => stinted(from, '2026-01-01', '2026-02-28');
 	const offCycle = (t: Kit) =>
 		Effect.gen(function* () {
 			const open = (yield* amendments(t)).filter((row) => row.payroll_run_id === null);
@@ -378,14 +379,7 @@ describe('someone no on-cycle run pays any more', () => {
 	});
 
 	it.live('what they still owe after their last payslip is one task for HR', () => {
-		const packed = rostered(['2026-02', '2026-03']);
-		const from: Seed = {
-			...packed,
-			employee_contract: (packed.employee_contract ?? []).map((row) => ({
-				...row,
-				effective_range: { from: '2026-01-01', to: '2026-03-31' }
-			}))
-		};
+		const from = stinted(rostered(['2026-02', '2026-03']), '2026-01-01', '2026-03-31');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* (yield* t.as(t.admin)).act({

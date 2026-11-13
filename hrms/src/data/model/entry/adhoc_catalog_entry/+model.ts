@@ -25,7 +25,7 @@ export default model({
 		"record.employment_id.employee_number + ' · ' + record.catalog_code + ' · ' + string(record.quantity)",
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
-		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'adhoc_catalog_entry' },
+		employment_id: { kind: 'ref', to: 'employment', inverse: 'adhoc_catalog_entry' },
 		catalog_code: { kind: 'text' },
 		payroll_run_id: {
 			kind: 'ref',

@@ -34,7 +34,7 @@ export type EntryEntity = {
 	readonly settings_code: string;
 };
 export type EntryEmployee = {
-	readonly id: Id<'employee_contract'>;
+	readonly id: Id<'employment'>;
 	readonly number: string;
 	readonly entity_id: Id<'entity'>;
 	readonly from: string;
@@ -46,51 +46,51 @@ export type EntryLaws = (settings_code: string, day: string) => Law | undefined;
 const names = (code: string, text: string) => normalToken(code) === normalToken(text);
 
 export type ExistingLeave = {
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly catalog_code: string;
 	readonly days: readonly { readonly date: string; readonly part: 'AM' | 'PM' }[];
 };
 export type ExistingPayment = {
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly catalog_code: string;
 	readonly quantity: number;
 	readonly incurred_on: string;
 	readonly description: string | null;
 };
 export type ExistingLoan = {
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly catalog_code: string;
 	readonly quantity: number;
 	readonly from: string;
 	readonly to: string | null;
 };
 export type ExistingRepayment = {
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly loan_id: Id<'loan_catalog_entry'>;
 	readonly amount: number;
 	readonly paid_on: string | null;
 };
 export type LoanLookup = {
 	readonly id: Id<'loan_catalog_entry'>;
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly catalog_code: string;
 };
 export type ExistingCase = {
 	readonly entity_id: Id<'entity'>;
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly kind: string;
 	readonly opened_on: string;
 };
 
 export type LeaveDraft = {
 	readonly entity_id: Id<'entity'>;
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly catalog_code: string;
 	readonly days: readonly { readonly date: string; readonly part: 'AM' | 'PM' }[];
 };
 export type PaymentDraft = {
 	readonly entity_id: Id<'entity'>;
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly catalog_code: string;
 	readonly quantity: number;
 	readonly incurred_on: string;
@@ -98,7 +98,7 @@ export type PaymentDraft = {
 };
 export type LoanDraft = {
 	readonly entity_id: Id<'entity'>;
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly catalog_code: string;
 	readonly quantity: number;
 	readonly repayment_from: string;
@@ -106,7 +106,7 @@ export type LoanDraft = {
 };
 export type RepaymentDraft = {
 	readonly entity_id: Id<'entity'>;
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly loan_id: Id<'loan_catalog_entry'>;
 	readonly amount: number;
 	readonly paid_on: string;
@@ -121,7 +121,7 @@ export type CaseSeverity =
 	| 'N/A';
 export type CaseDraft = {
 	readonly entity_id: Id<'entity'>;
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly catalog_code: string;
 	readonly kind: string;
 	readonly severity?: CaseSeverity;

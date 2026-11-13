@@ -1,5 +1,5 @@
-// Every pack: each effect a pack declares on an entry, a company or a run fires without failing its own expression, and
-// every run effect that raises a task looks for it first. A mechanism check across all packs, not a check of any one law.
+// Every pack: each effect a pack declares on an entry, a person's employment, a company or a run fires without failing
+// its own expression, and every run effect that raises a task looks for it first. A mechanism check across all packs, not a check of any one law.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { CreateInput } from '@norbital-ai/bolt';
@@ -9,6 +9,7 @@ import { periodKey, windowOf } from '../../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
+	PAY_GROUP,
 	current,
 	lawAt,
 	pack,
@@ -21,7 +22,8 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
+const HIRE = idOf('employee_profile', uuid(300));
 const ON = '2026-11-02';
 const terms = {
 	rate: { amount: 5000, unit: 'MONTHLY' },
@@ -131,7 +133,7 @@ describe('an entry raises what its effects declare', () => {
 								{
 									catalog_code: String(row.code),
 									entity_id: ENTITY,
-									employment_id: CONTRACT,
+									employment_id: EMPLOYMENT,
 									kind: String(row.code),
 									opened_on: ON,
 									inputs: {}
@@ -148,7 +150,7 @@ describe('an entry raises what its effects declare', () => {
 							'leave_catalog_entry.create': [
 								leaveCreate({
 									entity_id: ENTITY,
-									employment_id: CONTRACT,
+									employment_id: EMPLOYMENT,
 									catalog_code: String(row.code),
 									days: [
 										{ date: ON, part: 'AM' },
@@ -167,7 +169,7 @@ describe('an entry raises what its effects declare', () => {
 							'adhoc_catalog_entry.create': [
 								{
 									entity_id: ENTITY,
-									employment_id: CONTRACT,
+									employment_id: EMPLOYMENT,
 									catalog_code: String(row.code),
 									description: 'Sweep',
 									quantity: '100',
@@ -183,6 +185,124 @@ describe('an entry raises what its effects declare', () => {
 				);
 				const raised = (yield* storedQuery(t, { obligation: { limit: 1000 } })).obligation.rows;
 				if (declared) assert.ok(raised.length > 0, 'nothing raised');
+			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+		});
+});
+
+describe('a person’s employment raises what its effects declare', () => {
+	for (const [code, zone] of COUNTRIES)
+		it.live(code, () => {
+			const base = seedOf(code, zone);
+			const seed = {
+				...base,
+				employee_profile: [
+					...(base.employee_profile ?? []),
+					{ id: HIRE, name: 'Hire', date_of_birth: '1990-01-01', gender: 'MALE' }
+				]
+			};
+			const declared = lawAt(code, ON).rows.registered_effect.some(
+				(row) =>
+					row.source_collection === 'employment' &&
+					row.target_collection === 'obligation' &&
+					row.condition == null &&
+					Array.isArray(row.events) &&
+					row.events.includes('create')
+			);
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const admin = yield* t.as(t.admin);
+				const failed: string[] = [];
+				// a hire arrives whole: the stint with its first terms and what the law is told of the person
+				yield* attempt(
+					t,
+					'hire',
+					admin.act({
+						'employment.create': [
+							{
+								employee_id: HIRE,
+								entity_id: ENTITY,
+								effective_range: { from: ON, to: null },
+								terms: [
+									{
+										effective_from: ON,
+										engagement: 'EMPLOYEE',
+										pay_group_id: idOf('pay_group', PAY_GROUP),
+										rate: { amount: 5000, unit: 'MONTHLY' },
+										normal_hours_per_day: 8,
+										normal_hours_per_week: 40,
+										normal_days_per_week: 5,
+										statutory_work_category: 'NON_MANUAL',
+										work_classification: 'EA_COVERED',
+										wage_payment_method: 'BANK',
+										allowances: {}
+									}
+								],
+								parameters: [
+									{
+										effective_from: ON,
+										residency_status: 'CITIZEN',
+										marital_status: 'SINGLE',
+										parameters: EMPLOYEE[code] ?? {}
+									}
+								]
+							}
+						]
+					}),
+					failed
+				);
+				// what was agreed, and what the law is told, change from the first of a month
+				yield* attempt(
+					t,
+					'contract_terms',
+					admin.act({
+						'contract_terms.create': [
+							{
+								employment_id: EMPLOYMENT,
+								effective_from: '2026-11-01',
+								rate: { amount: 6000, unit: 'MONTHLY' }
+							}
+						]
+					}),
+					failed
+				);
+				yield* attempt(
+					t,
+					'statutory_parameters',
+					admin.act({
+						'statutory_parameters.create': [
+							{ employment_id: EMPLOYMENT, effective_from: '2026-11-01', marital_status: 'MARRIED' }
+						]
+					}),
+					failed
+				);
+				const { employment } = yield* storedQuery(t, { employment: { limit: 10 } });
+				const hired = employment.rows.find((row) => row.employee_id === HIRE);
+				// the stint ends: an exit
+				yield* attempt(
+					t,
+					'exit',
+					admin.act({
+						'employment.update': [
+							{
+								target: yield* current(t, 'employment', EMPLOYMENT),
+								set: {
+									effective_range: { from: '2025-01-01', to: '2026-11-30' },
+									exit_ground: 'RESIGNATION',
+									reason: 'Resignation'
+								}
+							}
+						]
+					}),
+					failed
+				);
+				assert.deepEqual(failed, []);
+				// a rule may refuse the bare hire; one that stands raised what its unconditional effects declare
+				const raised = (yield* storedQuery(t, { obligation: { limit: 1000 } })).obligation.rows;
+				if (declared && hired !== undefined)
+					assert.ok(
+						raised.some((row) => row.employment_id === hired.id),
+						'nothing raised'
+					);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 		});
 });
@@ -261,7 +381,7 @@ describe('a month’s runs run every effect they declare', () => {
 					'adhoc_catalog_entry.create': [
 						{
 							entity_id: ENTITY,
-							employment_id: CONTRACT,
+							employment_id: EMPLOYMENT,
 							catalog_code: String(refund.code),
 							description: 'Sweep',
 							quantity: '100',

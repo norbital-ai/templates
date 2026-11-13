@@ -13,7 +13,7 @@ A real jurisdiction's rows differ; the mechanism does not.
 
 ```mermaid
 flowchart LR
-  setup[Company, pay group,<br/>pay methods] --> hire[Hire:<br/>contract sealed]
+  setup[Company, pay group,<br/>pay methods] --> hire[Hire:<br/>stint and first terms]
   hire --> month[The month: roster, leave,<br/>claims, ad hoc, loans]
   month --> run[Payroll run<br/>UNPAID]
   run --> paid[Marked PAID]
@@ -24,7 +24,7 @@ flowchart LR
   balance --> run
   paid -- a correction --> amend[Amendment row]
   amend --> run
-  paid --> change[Contract change]
+  paid --> change[Change of terms]
   paid --> exit[Exit and final pay]
 ```
 
@@ -32,14 +32,14 @@ flowchart LR
 
 | HR does                                                                                                                                          | The system writes                                                                                                          | Where it shows        |
 | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| Creates the company and names its jurisdiction                                                                                                   | An `entity`. Once it has changes or contracts its jurisdiction cannot change                                               | Entities              |
+| Creates the company and names its jurisdiction                                                                                                   | An `entity`. Once it has changes or stints its jurisdiction cannot change                                                  | Entities              |
 | Fills the bank and the time zone, then adds a change from the company's first day with the employer details the law asks for and any pay methods | The entity's own fields and an `entity_change`. The law's rules check the change; its effects raise the registration tasks | Entities; Obligations |
 | Creates the pay group: monthly, pay day 25, cutoff day 1                                                                                         | A `pay_group` with its `payment_schedule`                                                                                  | Entities              |
 | Publishes the holiday calendar and defines shifts and shift patterns                                                                             | `holiday`, `shift_definition`, `shift_pattern` rows                                                                        | Entities              |
 
 What to expect:
 
-- **Pay group.** A pay group is one payroll: frequency (monthly, twice a month, every ten days), the pay day of each cycle, how a pay day on a non-working day moves, and the cutoff day. A company with one group never has to name it. A company with two names one on every sealed contract and every run.
+- **Pay group.** A pay group is one payroll: frequency (monthly, twice a month, every ten days), the pay day of each cycle, how a pay day on a non-working day moves, and the cutoff day. A company with one group never has to name it. A company with two names one in each person's terms and on every run.
 - **Cutoff.** With cutoff day 1, a cycle's attendance is its own salary days. With a later cutoff, a monthly cycle's attendance runs from last month's cutoff day to the day before this month's.
 - **Pay methods.** Five optional employer methods (the overtime hour, a rest-day multiple, night premium hours, the contribution split over two runs a month, benefits over their tax-free limit). Each applies only where it pays at least the law. Which rows read them in each country is in [statutory coverage](0009-statutory-coverage.md).
 - **A change later** is another `entity_change` from its date. One dated ahead is not in force until its day. A change may be edited, moved or deleted.
@@ -47,36 +47,35 @@ What to expect:
 
 ## 2. Hire
 
-| HR does                                                                                                                                | The system writes                                                                                                                                                                                                   | Where it shows                               |
-| -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Creates the person, or invites them and lets the accepted invitation create the profile                                                | An `employee_profile`                                                                                                                                                                                               | People                                       |
-| Drafts the contract: start 16 June, 3,000 monthly, normal hours and days, shift pattern, agreed allowances, the facts the law asks for | An `employee_contract` in `DRAFT`. The law's rules check the terms against the law in force on the first day (minimum wage, hours, category)                                                                        | People                                       |
-| Adds the family: a spouse, a child with a date of birth                                                                                | `family` members on the contract. Every count a scheme reads comes from this list                                                                                                                                   | People                                       |
-| Seals the contract                                                                                                                     | `SEALED`. The law's effects raise the new-hire tasks. The `ledger` automation is scheduled for this person                                                                                                          | People; Obligations                          |
-| Nothing                                                                                                                                | The sync opens the person's `employee_balance` and posts each leave row's `entitled` and each limited claim row's `limit` for the current window. A child's birth date opens the leave rows that name `CHILD_BIRTH` | The employee profile's balance; self-service |
+| HR does                                                                                                                                                                               | The system writes                                                                                                                                                                                                                                                                                                              | Where it shows                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| Creates the person, or invites them and lets the accepted invitation create the profile                                                                                               | An `employee_profile`, with the particulars that never change: date of birth, identity number, gender, bank                                                                                                                                                                                                                    | People                                       |
+| On the profile's Contract tab chooses Hire: first day 16 June, 3,000 monthly, normal hours and days, shift pattern, agreed allowances, and what the law asks to be told of the person | In one write: an `employment` from 16 June with its first `contract_terms` and `statutory_parameters` rows, both dated 16 June. The write checks the terms against the law in force that day (minimum wage, hours, category). The law's effects raise the new-hire tasks. The `ledger` automation is scheduled for this person | People; Obligations                          |
+| On the Family tab adds a spouse, and a child with a date of birth                                                                                                                     | `dependant` rows. Every count a scheme reads comes from them                                                                                                                                                                                                                                                                   | People                                       |
+| Nothing                                                                                                                                                                               | The sync opens the person's `employee_balance` and posts each leave row's `entitled` and each limited claim row's `limit` for the current window. A child's birth date opens the leave rows that name `CHILD_BIRTH`                                                                                                            | The employee profile's balance; self-service |
 
 What to expect:
 
-- **One open contract per person.** A draft may overlap the open contract; sealing it waits until that one has its last day. The overlap rule is the person's, so it covers a sister company too.
+- **One open stint per person.** A new stint waits until the open one has its last day. The overlap rule is the person's, so it covers a sister company too.
 - **Entitlement is a rule, not a number HR types.** The balance shows `entitled 14` because the row says 14 for this person in this window. If the row prorates a first year or counts service bands, the figure follows that rule.
-- **Service** runs from the current unbroken stint. With "count every stint" on the profile, earlier stints count too.
-- **A fact known ahead**, such as an expected birth, is filed as a `contract_change` and sealed on its day.
+- **Service** runs from the current unbroken employment. With "count every stint" on the profile, earlier stints count too.
+- **A change known ahead**, such as a raise from next month, is a terms row dated ahead: it is not in force until its day. An expected birth is a dependant with its expected date.
 
 ## 3. Roster, attendance and overtime
 
-| HR or the employee does                                                         | The system writes                                                                 | Where it shows |
-| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------- |
-| Nothing, for an office worker                                                   | Nothing. A day with no roster row is a day worked as the contract's pattern plans | —              |
-| Plans a shift worker's month, by hand or by importing the roster workbook       | One `roster_entry` per person and day: the shift, and any planned overtime        | Events → Work  |
-| Clocks in and out at the kiosk                                                  | `actual_worked_intervals` on that day's `roster_entry`                            | Events → Work  |
-| Marks planned overtime as time off instead of pay, where the law has such a row | `overtime_as_time_off` on the day                                                 | Events → Work  |
+| HR or the employee does                                                         | The system writes                                                                   | Where it shows |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------- |
+| Nothing, for an office worker                                                   | Nothing. A day with no roster row is a day worked as the agreed shift pattern plans | —              |
+| Plans a shift worker's month, by hand or by importing the roster workbook       | One `roster_entry` per person and day: the shift, and any planned overtime          | Events → Work  |
+| Clocks in and out at the kiosk                                                  | `actual_worked_intervals` on that day's `roster_entry`                              | Events → Work  |
+| Marks planned overtime as time off instead of pay, where the law has such a row | `overtime_as_time_off` on the day                                                   | Events → Work  |
 
 What the run will do with it:
 
 - **A supplied roster is the source of truth for that person's cycle.** A planned work day the roster leaves out, with no leave and no published holiday, is an absence. So is a planned work day with no clock. An absence comes off the basic at `PRORATED`; it has no line of its own.
 - **Overtime is paid only from the plan.** The clock verifies it and never creates it. A clock on a rest day with no planned overtime pays nothing. If the clock covers at least the employer's `overtime_full_award_percent` of the plan (100 by default), the whole plan is paid. Below that, the clocked time inside the plan is paid, rounded down to the half hour.
 - **Overtime taken as time off** pays nothing; the payslip posts the awarded hours to the law's hour-counted leave row.
-- **A holiday** applies by its date. Work on it pays the law's holiday row, not the rest-day row. A holiday that replaces one that fell on a rest day is given only to those off on the replaced date. Whether someone was off reads their roster for that date, or their contract's week where the roster has no row.
+- **A holiday** applies by its date. Work on it pays the law's holiday row, not the rest-day row. A holiday that replaces one that fell on a rest day is given only to those off on the replaced date. Whether someone was off reads their roster for that date, or their agreed week where the roster has no row.
 - **The roster's day type sets the overtime band**, not the weekday: a weekday rostered as a rest day and worked pays the rest-day row, and a Saturday rostered as a work day pays its planned overtime at the workday row.
 - **The law's roster rules** refuse a roster day that breaks them. Its roster warnings (daily hours, overtime caps, consecutive days, weekly rest) are worked out when the day is written and kept on the day as findings.
 - **Days rostered past a person's last day** are neither absences nor pay.
@@ -139,7 +138,7 @@ HR creates the on-cycle run for July, for Example Co's one pay group.
 flowchart TD
   create[HR creates the run] --> checks{Law and approvals<br/>in order?}
   checks -- no --> refused[Refused, nothing written]
-  checks -- yes --> read[Read everything once:<br/>contracts, entries, balance,<br/>open amendment rows]
+  checks -- yes --> read[Read everything once:<br/>stints, entries, balance,<br/>open amendment rows]
   read --> calc[One pass per person:<br/>the subtotal chain]
   calc --> carry[Earlier periods worked out again;<br/>differences tagged]
   carry --> write[One write: run, payslips,<br/>seals, ledger rows]
@@ -149,20 +148,20 @@ flowchart TD
 
 **What it takes.** Everything is read once, before any payslip.
 
-| Source                      | Taken when                                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Contracts                   | Sealed, of this pay group, in force in the period. One payslip per person, on the contract in force at the period's end  |
-| Roster days and leave slots | Dated in the run's attendance window                                                                                     |
-| Claims and ad hoc entries   | Not yet paid by any run, dated up to the period's end. One dated in a period the person was paid for goes to that period |
-| Loan repayments             | Dated in the attendance window                                                                                           |
-| Leave cash-outs             | Not yet paid, whatever their date. An exit's leave is no entry: the last payslip settles it from the balance             |
-| Earlier pay                 | The balance's totals for the tax year and the last twelve months                                                         |
-| Amended paid periods        | The open amendment rows of the people it pays, and those periods' records and payslips, through the tax year's end       |
+| Source                      | Taken when                                                                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Stints                      | Of this company, covering days of the period, whose terms name this pay group on the period's last day. One payslip per person and stint |
+| Roster days and leave slots | Dated in the run's attendance window                                                                                                     |
+| Claims and ad hoc entries   | Not yet paid by any run, dated up to the period's end. One dated in a period the person was paid for goes to that period                 |
+| Loan repayments             | Dated in the attendance window                                                                                                           |
+| Leave cash-outs             | Not yet paid, whatever their date. An exit's leave is no entry: the last payslip settles it from the balance                             |
+| Earlier pay                 | The balance's totals for the tax year and the last twelve months                                                                         |
+| Amended paid periods        | The open amendment rows of the people it pays, and those periods' records and payslips, through the tax year's end                       |
 
 **The subtotals, in order.** Suppose July has 31 days and the employee took one day of `NPL`.
 
 ```text
-BASIC        3,000.00   the contract salary
+BASIC        3,000.00   the agreed salary
 PRORATED     3,000.00   less days not employed and absences (none in July)
 PAID_BASIC   2,903.23   less the NPL line: 3,000 ÷ 31 for one day
 ...          + allowances, overtime, the 100 claim, the 1,000 bonus, each at the subtotal its row names
@@ -245,7 +244,7 @@ July is paid. HR finds that two hours of planned overtime on 14 July were never 
 What to expect:
 
 - **HR keys no amount** and picks no period. The correction is the record itself, with its real date.
-- **The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and sealing a contract version, ask first:** "This period is already paid". The paid payslip does not change, and the next run carries the difference.
+- **The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and a change to a person's terms, parameters, dependants or stint, ask first:** "This period is already paid". The paid payslip does not change, and the next run carries the difference.
 - **Any record of a paid month works the same way:** a roster day, a leave day, a claim, an ad hoc entry, a loan instalment. It can be added, changed, moved to another date or deleted.
 - **Many corrections of one month are one difference.** A change put back to what it was carries nothing.
 - **The months after it in the same tax year are worked out again too,** so a yearly ceiling or a cumulative tax ends exact. A later tax year is left alone.
@@ -260,13 +259,13 @@ The whole rule, with what is refused, is in [corrections and integrity](0007-cor
 
 Each person has one balance. What a person or HR reads:
 
-| Shown                    | Comes from                                                       |
-| ------------------------ | ---------------------------------------------------------------- |
-| Entitled                 | The sync, from the row's rule and the contract; HR's manual rows |
-| Carried                  | The sync, from the window before                                 |
-| Used                     | Leave and claim entries                                          |
-| Left                     | `entitled + carried + limit − used`, worked out, never stored    |
-| Pay and statutory totals | Payslips                                                         |
+| Shown                    | Comes from                                                             |
+| ------------------------ | ---------------------------------------------------------------------- |
+| Entitled                 | The sync, from the row's rule and the person's facts; HR's manual rows |
+| Carried                  | The sync, from the window before                                       |
+| Used                     | Leave and claim entries                                                |
+| Left                     | `entitled + carried + limit − used`, worked out, never stored          |
+| Pay and statutory totals | Payslips                                                               |
 
 Behind every figure is a list of ledger rows: an `ADD` or `DEDUCT` of an amount, on a date, naming the record that caused it. The balance is the sum of those rows and nothing else. An employee reads their own balance and ledger in self-service; HR reads them on the employee profile.
 
@@ -278,48 +277,49 @@ When the law changes an entitlement, the balance moves by the difference. If the
 
 Nothing is closed and nothing is typed.
 
-| When                                                                         | The system writes                                                                                                                                                    |
-| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The employee's service year turns (16 June next year)                        | The closing window settles once, under the law and contract of its last day. A new window opens with a new key: `entitled 14`, and `carried` by the row's carry rule |
-| A calendar-year row turns on 1 January                                       | The same, for everyone on that row                                                                                                                                   |
-| The first pay date of a new tax year                                         | The run reads an empty year: pay and statutory totals start again                                                                                                    |
-| A month total passes a year old; a year or service window passes three years | It leaves the balance through a dated ledger row. The ledger keeps every row                                                                                         |
+| When                                                                         | The system writes                                                                                                                                                     |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The employee's service year turns (16 June next year)                        | The closing window settles once, under the law and the terms of its last day. A new window opens with a new key: `entitled 14`, and `carried` by the row's carry rule |
+| A calendar-year row turns on 1 January                                       | The same, for everyone on that row                                                                                                                                    |
+| The first pay date of a new tax year                                         | The run reads an empty year: pay and statutory totals start again                                                                                                     |
+| A month total passes a year old; a year or service window passes three years | It leaves the balance through a dated ledger row. The ledger keeps every row                                                                                          |
 
 In the example, with 5 of 14 days left at the turn and a carry of one window, the new window shows `entitled 14, carried 5`. Without a carry rule the 5 days lapse.
 
 A tax row settles the year by its own law, inside the ordinary run: there is no year-end step.
 
-## 13. A contract change
+## 13. A change of terms
 
 The employee is promoted to 3,500 from 1 October.
 
-| HR does                                                             | The system writes                                                                                                                                                                                                            | Where it shows |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| Opens the sealed contract and chooses Promotion, with the new terms | Dated today or earlier: a new `DRAFT` version; the current version gets its last day, 30 September; the new one is sealed. Dated ahead: `contract_change` rows, sealed into a version by `contract_materialize` on 1 October | People         |
-| Nothing                                                             | The sync runs for this person. The balance, the service start and any loan carry on                                                                                                                                          | The balance    |
+| HR does                                                                                                     | The system writes                                                                                                                                                                         | Where it shows |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| On the Contract tab adds a change from 1 October: the new rate, the new job title and the day it was signed | One `contract_terms` row dated 1 October, holding only what changed. The write checks the employment as it stands from that day against the law. Dated ahead, the row is not yet in force | People         |
+| Nothing                                                                                                     | The sync runs for this person: at once for a row in force today, otherwise on its day. The stint, the balance, the service start and any loan carry on                                    | The balance    |
 
 What to expect:
 
-- **A change starts on the first of a month**, so a run never prices a month on two versions. A hire, a rehire and an exit keep their real dates.
+- **A change starts on the first of a month**, so a run never prices a month on two sets of terms. A hire, a rehire and an exit keep their real dates.
 - **Under an unpaid run nothing of the person changes.** Delete the run first.
-- **A change may start in a month already paid.** The version is sealed from its real date. If it was signed by that month's pay date, or has no signed date, the month is worked out again and the next run carries the difference on every line. If it was signed later, the paid months do not move: where the law names a back-pay row, the month it was signed in pays what it adds for them as one line of back pay, priced by the law's own rule.
-- **A change filed ahead lands in a paid month** when a run covering its date was paid before its day. It does not seal: it stays filed and raises a task. Move it to the first of a month still to run.
-- **A wrong version** is voided with a reason and replaced. Draft the replacement first.
-- **A transfer** to another company is the same act with a new entity. In the same jurisdiction the balance and loans carry on. To another jurisdiction it is an exit from the old law and a start under the new: see [transfer semantics](transfer-semantics.md).
-- **A life event**, such as a birth, is a new version carrying the fact; the leave it opens appears on the balance after the seal.
+- **A change may start in a month already paid.** The row takes its real date. If it was signed by that month's pay date, or has no signed date, the month is worked out again and the next run carries the difference on every line. If it was signed later, the paid months do not move: where the law names a back-pay row, the month it was signed in pays what it adds for them as one line of back pay, priced by the law's own rule.
+- **A wrong change** is edited, moved or deleted on its own row. A salary wrong since the hire is corrected on the first row, and every later month follows.
+- **A term payroll does not read**, such as a job title, reaches no paid period.
+- **What the law is told of the person**, such as a new residency or marital status, is a `statutory_parameters` row from the first of a month, on the Statutory parameters tab.
+- **A transfer** to another company is one sheet: it ends the stint and starts the next from the first of a month. Under the same law the balance and loans carry on. Under another law it is an exit from the old law and a start under the new: see [transfer semantics](transfer-semantics.md).
+- **A life event** keeps its real date: a birth is a dependant, and a marriage or a long illness an event on the stint. The leave it opens appears on the balance after the save.
 
 ## 14. An exit
 
 The employee resigns; the last day is 20 November.
 
-| HR does                                                                                           | The system writes                                                                                                                                                                        | Where it shows              |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Opens the contract and chooses Terminate: last day, reason, exit ground, whether to pay out leave | The sealed version ends on 20 November. With no successor in the same jurisdiction, that is an exit                                                                                      | People                      |
-| Nothing                                                                                           | The law's exit effects raise the exit duties, each keyed to this exit                                                                                                                    | Obligations                 |
-| Nothing                                                                                           | The sync prorates the leaving year's entitlement by the row's rule                                                                                                                       | The balance                 |
-| Confirms the loan settlement the Terminate sheet proposes                                         | A final settlement repayment, up to what the employer's final-pay floor leaves. The rest is rescheduled and one task asks HR to chase it                                                 | Events → Loans; Obligations |
-| Keys any notice pay or severance as ad hoc entries                                                | Ad hoc entries on the law's rows                                                                                                                                                         | Events → Ad hoc             |
-| Runs November                                                                                     | The final payslip: salary for 1 to 20 November, the leave left paid out at the row's `payout`, the loan settlement, the entries. Its posting takes the days, so the balance ends at zero | Payroll                     |
+| HR does                                                                                        | The system writes                                                                                                                                                                        | Where it shows              |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| On the Contract tab chooses Terminate: last day, reason, exit ground, whether to pay out leave | The stint ends on 20 November. With no later stint under the same law, that is an exit                                                                                                   | People                      |
+| Nothing                                                                                        | The law's exit effects raise the exit duties, each keyed to this exit                                                                                                                    | Obligations                 |
+| Nothing                                                                                        | The sync prorates the leaving year's entitlement by the row's rule                                                                                                                       | The balance                 |
+| Confirms the loan settlement the Terminate sheet proposes                                      | A final settlement repayment, up to what the employer's final-pay floor leaves. The rest is rescheduled and one task asks HR to chase it                                                 | Events → Loans; Obligations |
+| Keys any notice pay or severance as ad hoc entries                                             | Ad hoc entries on the law's rows                                                                                                                                                         | Events → Ad hoc             |
+| Runs November                                                                                  | The final payslip: salary for 1 to 20 November, the leave left paid out at the row's `payout`, the loan settlement, the entries. Its posting takes the days, so the balance ends at zero | Payroll                     |
 
 What to expect:
 

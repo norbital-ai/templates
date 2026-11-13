@@ -282,7 +282,7 @@
 					"type": "object",
 					"title": "Statutory declarations",
 					"additionalProperties": false,
-					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 					"properties": {
 						"IIT": {
 							"type": "object",
@@ -491,7 +491,7 @@
 					}
 				}
 			},
-			"description": "Additional local compliance employee facts on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional local compliance employee facts on the employment, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -911,7 +911,7 @@
 					}
 				}
 			},
-			"description": "Additional Indonesian compliance facts on the sealed contract, stored as employee_extension_data. Current shared personal data remains structured. PPh21 uses a real contract covering 1 January or the new-resident arrival-month start; where no contract covers that date, a reviewed PTKP historical standing records the actual dated external facts. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional Indonesian compliance facts on the employment, stored as employee_extension_data. Current shared personal data remains structured. PPh21 uses a real contract covering 1 January or the new-resident arrival-month start; where no contract covers that date, a reviewed PTKP historical standing records the actual dated external facts. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1084,7 +1084,7 @@
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"type": "object",
 			"title": "JP employee extension data",
-			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields.",
+			"description": "Additional local compliance data on the employment, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields.",
 			"additionalProperties": false,
 			"properties": {
 				"family_care_recipients": {
@@ -1103,7 +1103,7 @@
 					"type": "object",
 					"title": "Statutory declarations",
 					"additionalProperties": false,
-					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 					"properties": {
 						"HEALTH": {
 							"type": "object",
@@ -1897,7 +1897,7 @@
 					"type": "object",
 					"title": "Statutory declarations",
 					"additionalProperties": false,
-					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 					"properties": {
 						"EPF": {
 							"type": "object",
@@ -2163,7 +2163,7 @@
 					"description": "The recorded ground for the separation; statutory notices and final-pay exclusions read it."
 				}
 			},
-			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Payroll, agreed-term and departure details are top-level fields; life events stay in events and statutory declarations under statutory. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional local compliance data on the employment, stored as employee_extension_data. Payroll, agreed-term and departure details are top-level fields; life events stay in events and statutory declarations under statutory. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2228,7 +2228,7 @@
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"type": "object",
 			"title": "PH employee extension data",
-			"description": "Additional compliance data on the sealed contract: previous-employer figures, statutory declarations, contract compliance and departure. Shared salary, allowances, work classifications, dates and work arrangements are native terms and contract fields.",
+			"description": "Additional compliance data on the employment: previous-employer figures, statutory declarations, contract compliance and departure. Shared salary, allowances, work classifications, dates and work arrangements are native terms and contract fields.",
 			"additionalProperties": false,
 			"properties": {
 				"previous_employer_taxable_compensation": {
@@ -2259,7 +2259,7 @@
 					"type": "object",
 					"title": "Statutory declarations",
 					"additionalProperties": false,
-					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 					"properties": {
 						"SSS": {
 							"type": "object",
@@ -2711,7 +2711,7 @@
 					"type": "object",
 					"title": "Statutory declarations",
 					"additionalProperties": false,
-					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 					"properties": {
 						"CPF": {
 							"type": "object",
@@ -2860,7 +2860,7 @@
 					}
 				}
 			},
-			"description": "Additional local compliance facts on the sealed contract. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional local compliance facts on the employment. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2989,7 +2989,7 @@
 					"type": "object",
 					"title": "Statutory declarations",
 					"additionalProperties": false,
-					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 					"properties": {
 						"WCF": {
 							"type": "object",
@@ -3171,7 +3171,7 @@
 					}
 				}
 			},
-			"description": "Additional local compliance facts on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional local compliance facts on the employment, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3376,7 +3376,7 @@
 					"type": "object",
 					"title": "Statutory declarations",
 					"additionalProperties": false,
-					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 					"properties": {
 						"LI": {
 							"type": "object",
@@ -3574,7 +3574,7 @@
 					}
 				}
 			},
-			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional local compliance data on the employment, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3876,7 +3876,7 @@
 					"type": "object",
 					"title": "Statutory declarations",
 					"additionalProperties": false,
-					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 					"properties": {
 						"SI": {
 							"type": "object",
@@ -4054,7 +4054,7 @@
 					"description": "Labour Code 45/2019/QH14 art.24(1): probation is agreed in the labour contract or in a separate probation contract. Law 41/2024/QH15 art.2(1)(a) insures a labour contract of one month or more, its probation clause included; only a separate probation contract is outside compulsory SI, HI, UI and the union fee. Unrecorded is a probation clause in the labour contract: insured from the first day."
 				}
 			},
-			"description": "Additional local compliance facts on the sealed contract. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional local compliance facts on the employment. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

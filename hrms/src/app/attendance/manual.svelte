@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * The kiosk's manual tab: find a person of the selected entity by name and key one punch on their active
-	 * contract. One button, because there is one rule: the first punch of the day is the arrival and every later
+	 * The kiosk's manual tab: find a person of the selected entity by name and key one punch on their current
+	 * stint. One button, because there is one rule: the first punch of the day is the arrival and every later
 	 * one moves the departure (`punchWork` through `roster_entry`, kind MANUAL, which a call-back or ad hoc day may use).
 	 */
 	import { DateTime, Effect, FiberSet, type Fiber } from 'effect';
@@ -54,12 +54,11 @@
 		chosen === null || companyId == null
 			? null
 			: ctx.query({
-					employee_contract: {
+					employment: {
 						output: 'kiosk',
 						where: {
 							employee_id: { eq: chosen.id },
-							entity_id: { eq: companyId },
-							status: { eq: 'SEALED' }
+							entity_id: { eq: companyId }
 						},
 						fields: ['entity_id', 'employee_number', 'effective_range'],
 						limit: 1_000
@@ -67,7 +66,7 @@
 				})
 	);
 	const employments = $derived(
-		(employmentsQuery?.current?.employee_contract.rows ?? []).filter(
+		(employmentsQuery?.current?.employment.rows ?? []).filter(
 			(row) => row.entity_id === companyId && coversToday(row.effective_range)
 		)
 	);
@@ -121,7 +120,7 @@
 			yield* Effect.never;
 		})
 	);
-	const recordPunch = (employmentId: Id<'employee_contract'>) => {
+	const recordPunch = (employmentId: Id<'employment'>) => {
 		if (working || submit === null) return;
 		working = true;
 		onworkingchange(true);
@@ -229,7 +228,7 @@
 					{ctx.t('kiosk.no_active_contract_in_entity')}
 				</p>
 			{/if}
-			{#if employments.length > 1 || (employmentsQuery?.current?.employee_contract.rows?.length ?? 0) >= 1_000}
+			{#if employments.length > 1 || (employmentsQuery?.current?.employment.rows?.length ?? 0) >= 1_000}
 				<p role="alert" class="text-sm text-destructive">
 					{ctx.t('kiosk.contract_scope_conflict')}
 				</p>

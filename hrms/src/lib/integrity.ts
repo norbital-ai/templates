@@ -16,7 +16,7 @@ import {
 /**
  * What the ledger must always be, checked from outside its service. Hard findings: a balance figure that is not the sum
  * of its ledger rows (`H1`), a ledger source that still holds something and no longer exists (`H3`), an entry sealed
- * by a run that has no payslip for its person (`H6`), an open exit task on a contract that is no exit or whose last day
+ * by a run that has no payslip for its person (`H6`), an open exit task on a stint that is no exit or whose last day
  * moved (`H9`). A watch: an entitlement or what is left of it below zero (`W1`).
  * It reads and reports; it repairs nothing.
  */
@@ -146,7 +146,7 @@ export const findings = (rows: Workspace, today: string): readonly Finding[] => 
 			.map((run) => String(run.id))
 	);
 	const person = new Map(
-		(rows.employee_contract ?? []).map((row) => [String(row.id), String(row.employee_id)])
+		(rows.employment ?? []).map((row) => [String(row.id), String(row.employee_id)])
 	);
 	const paid = new Set(
 		(rows.payslip ?? []).map((row) => `${String(row.payroll_run_id)}/${String(row.employee_id)}`)
@@ -164,7 +164,7 @@ export const findings = (rows: Workspace, today: string): readonly Finding[] => 
 				});
 		}
 
-	const exits = exitsIn(rows.employee_contract ?? [], rows.entity ?? []);
+	const exits = exitsIn(rows.employment ?? [], rows.entity ?? []);
 	for (const task of rows.obligation ?? []) {
 		const key = String(task.occurrence_key);
 		const to = exits.get(String(task.employment_id));
@@ -229,8 +229,8 @@ export const verify = Effect.fn('integrity.verify')(function* (read: Reader, tod
 				fields: ['payroll_run_id', 'employee_id'],
 				limit: 10000
 			},
-			employee_contract: {
-				fields: ['id', 'employee_id', 'status', 'effective_range', 'entity_id'],
+			employment: {
+				fields: ['id', 'employee_id', 'effective_range', 'entity_id'],
 				limit: 10000
 			},
 			entity: { fields: ['id', 'settings_code'], limit: 10000 },

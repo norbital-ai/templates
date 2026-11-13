@@ -1,7 +1,6 @@
-import type { Id } from '@norbital-ai/bolt';
 import type { EffectCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { isExit } from './payroll_engine/contract_change.js';
+import { isExit } from './person.js';
 import {
 	getErrorMessage,
 	Refusal,
@@ -13,20 +12,16 @@ import { objectValue, queryRows } from './payroll_engine/reads.js';
 
 /**
  * What an exit leaves besides pay. The last payslip settles the leave itself (`run_calculation.ts`), so nothing is
- * raised for it. This routine keeps the rest in step with the contract: the tasks an exit raised, and a loan's final
- * settlement.
+ * raised for it. This routine keeps the rest in step with the person's stints: the tasks an exit raised, and a loan's
+ * final settlement.
  */
 const EXIT = 'exit:';
-/** A task an exit raised: a law's duty or the loan task (`…:<contract>:exit:<last day>` or `exit:<contract>:…:<last day>`). */
+/** A task an exit raised: a law's duty or the loan task (`…:<stint>:exit:<last day>` or `exit:<stint>:…:<last day>`). */
 export const isExitDuty = (key: string) => key.includes(':exit:') || key.startsWith(EXIT);
 
-const CHAIN = ['id', 'employee_id', 'status', 'effective_range', 'entity_id'];
-/** Every contract of the people who hold these contracts. */
-const chainsOf = (contracts: readonly string[]) => ({
-	employee_id: { is: { employee_contract: { some: { id: { in: [...contracts] } } } } }
-});
+const CHAIN = ['id', 'employee_id', 'effective_range', 'entity_id'];
 
-/** The contracts of these chains that are exits now, each with its last day. */
+/** The stints among these that are exits now, each with its last day. */
 export const exitsIn = (
 	chain: readonly JsonObject[],
 	entities: readonly JsonObject[]
@@ -40,22 +35,26 @@ export const exitsIn = (
 };
 
 /**
- * What the exits of these people's contract chains leave besides pay, kept in step with the chain as it now stands, in
+ * What the exits of these people's stints leave besides pay, kept in step with the stints as they now stand, in
  * two reads and one write, safe to repeat: a cancelled exit's loan still holding a final settlement no run took goes back to monthly instalments, and
  * open exit tasks that no longer stand, or answered an earlier last day, are waived; one this routine waived is reopened
  * when its exit stands again. A task HR waived for its own reason stays.
  */
 export const reconcile = Effect.fn('dependants.reconcile')(function* (
 	ctx: Pick<EffectCtx, 'act' | 'query'>,
-	employments: readonly Id<'employee_contract'>[]
+	employees: readonly string[]
 ) {
-	// the whole chain of each person: a task or loan hangs on the version whose exit it answered
-	const { employee_contract: contracts = [], entity: entities = [] } = yield* queryRows(ctx.query, {
-		employee_contract: { where: chainsOf(employments), fields: CHAIN, limit: 10000 },
+	// every stint of each person: a task or loan hangs on the stint whose exit it answered
+	const { employment: stints = [], entity: entities = [] } = yield* queryRows(ctx.query, {
+		employment: {
+			where: { employee_id: { in: [...new Set(employees)] } },
+			fields: CHAIN,
+			limit: 10000
+		},
 		entity: { fields: ['id', 'settings_code'], limit: 10000 }
 	});
-	if (contracts.length === 0) return;
-	const mine = { employment_id: { in: contracts.map((row) => String(row.id)) } };
+	if (stints.length === 0) return;
+	const mine = { employment_id: { in: stints.map((row) => String(row.id)) } };
 	const found = yield* queryRows(ctx.query, {
 		loan_catalog_entry: {
 			where: mine,
@@ -82,8 +81,8 @@ export const reconcile = Effect.fn('dependants.reconcile')(function* (
 			limit: 10000
 		}
 	});
-	const exits = exitsIn(contracts, entities);
-	const cancelled = new Set(contracts.map((row) => String(row.id)).filter((id) => !exits.has(id)));
+	const exits = exitsIn(stints, entities);
+	const cancelled = new Set(stints.map((row) => String(row.id)).filter((id) => !exits.has(id)));
 
 	// A cancelled exit's loan still holding the final settlement no run took goes back to monthly instalments.
 	const remove: string[] = [];

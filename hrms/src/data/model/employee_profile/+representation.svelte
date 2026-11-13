@@ -1,6 +1,10 @@
 <script lang="ts">
+	/**
+	 * A person: one screen with a vertical rail. Profile holds the plain fields, edited in place; each dated family
+	 * (Contract, Statutory, Family, Events) is its own tab, shown as a timeline, newest first.
+	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { DateTime, Duration, Effect } from 'effect';
+	import { Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
 	import {
 		DescriptionHint,
@@ -9,6 +13,7 @@
 		Field,
 		Icon,
 		RecordShell,
+		Section,
 		Table,
 		Tabs,
 		Button,
@@ -16,15 +21,18 @@
 		toast,
 		notify_outcome,
 		open_record,
-		type RecordView,
-		format
+		type RecordView
 	} from '@norbital-ai/ui';
-	import { Stack, Cluster } from '@norbital-ai/ui/layout';
+	import { Columns, Stack, Cluster } from '@norbital-ai/ui/layout';
 	import BalanceAdjustment from '../../../lib/ui/person/balance_adjustment.svelte';
 	import BalanceLedger from '../../../lib/ui/person/balance_ledger.svelte';
 	import BalanceOverview from '../../../lib/ui/person/balance_overview.svelte';
+	import DatedFamily from '../../../lib/ui/person/dated_family.svelte';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
-	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
+	import { personRead } from '../../../lib/ui/person/person_read.svelte.js';
+	import ProfileContract from '../../../lib/ui/person/profile_contract.svelte';
+	import ProfileEvents from '../../../lib/ui/person/profile_events.svelte';
+	import ProfileFamily from '../../../lib/ui/person/profile_family.svelte';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 
 	let { view, ctx }: { view: RecordView<'employee_profile'>; ctx: PageContext } = $props();
@@ -52,17 +60,7 @@
 				)
 		);
 	}
-	const contracts = $derived.by(() =>
-		record == null
-			? null
-			: ctx.query({
-					employee_contract: {
-						where: { employee_id: { eq: record.id } },
-						fields: ['effective_range', 'entity_id', 'terms', 'engagement', 'status'],
-						entity_id: { fields: ['name'] }
-					}
-				})
-	);
+	const read = personRead(ctx, () => record?.id ?? null);
 	const balance = $derived(
 		record == null
 			? null
@@ -75,174 +73,64 @@
 				})
 	);
 	const held = $derived(balance?.current?.employee_balance.rows[0]);
-	const contractIds = $derived(
-		(contracts?.current?.employee_contract.rows ?? []).map((row) => row.id)
-	);
-	const entityIds = $derived([
-		...new Set(
-			(contracts?.current?.employee_contract.rows ?? []).flatMap((row) =>
-				row.entity_id == null ? [] : [row.entity_id.id]
-			)
-		)
-	]);
-	const ordered = $derived(
-		(contracts?.current?.employee_contract.rows ?? [])
-			.flatMap((row) => {
-				const entity = row.entity_id;
-				if (entity == null) return [];
-				return [
-					{
-						id: row.id,
-						entity: entity.name,
-						period: format({ kind: 'period', of: 'date' }, row.effective_range, {
-							locale: ctx.locale
-						}),
-						from: String(row.effective_range.from),
-						to: row.effective_range.to == null ? null : String(row.effective_range.to),
-						sealed: row.status === 'SEALED',
-						status:
-							row.status === 'VOID'
-								? t('contract.voided')
-								: row.status === 'DRAFT'
-									? t('contract.draft')
-									: t('contract.sealed')
-					}
-				];
-			})
-			.toSorted((left, right) => right.from.localeCompare(left.from))
-	);
-	/** A rehire keeps one profile: the stretch between two sealed contracts shows as a gap in the history. */
-	const timeline = $derived(
-		ordered.flatMap((row, index) => {
-			const item = {
-				id: String(row.id),
-				period: row.period,
-				status: row.status,
-				detail: row.entity
-			};
-			const earlier = ordered.slice(index + 1).find((other) => other.sealed);
-			if (!row.sealed || earlier === undefined || earlier.to === null) return [item];
-			const from = DateTime.add(DateTime.makeUnsafe(earlier.to), { days: 1 });
-			const to = DateTime.subtract(DateTime.makeUnsafe(row.from), { days: 1 });
-			if (DateTime.isGreaterThan(from, to)) return [item];
-			const days = Duration.toDays(DateTime.distance(from, to)) + 1;
-			return [
-				item,
-				{
-					id: `gap:${String(row.id)}`,
-					gap: true,
-					period: format(
-						{ kind: 'period', of: 'date' },
-						{ from: DateTime.formatIsoDateUtc(from), to: DateTime.formatIsoDateUtc(to) },
-						{ locale: ctx.locale }
-					),
-					status: t('contract.gap'),
-					detail: t('contract.gap_detail', { days })
-				}
-			];
-		})
-	);
+	const stintIds = $derived(read.stints.map((stint) => stint.id));
+	const entityIds = $derived([...new Set(read.stints.map((stint) => stint.entity_id))]);
 </script>
 
-{#snippet general()}<div class="grid max-w-4xl gap-6">
-		<Form
+{#snippet general()}
+	<Form
+		{ctx}
+		of="employee_profile"
+		mode={view.mode === 'create' ? 'create' : 'update'}
+		{...record === null
+			? { values: view.mode === 'create' ? view.values : {} }
+			: { id: record.id, record }}
+		on_outcome={(outcome) => {
+			if (outcome.kind !== 'committed' || record) return;
+			const created = outcome.records.find((row) => row.model === 'employee_profile');
+			if (created) open_record('employee_profile', created.id);
+		}}
+		>{#snippet children()}
+			<Stack gap="md">
+				<Section name="person_contact" title={t('person.section_contact')} first>
+					<Columns count={2}>
+						{#each ['name', 'email', 'phone', 'location', 'address'] as name (name)}<Field
+								{ctx}
+								{name}
+							/>{/each}
+					</Columns>
+				</Section>
+				<Section name="person_particulars" title={t('person.section_particulars')}>
+					<Columns count={2}>
+						{#each ['date_of_birth', 'identity_number', 'gender', 'birth_city', 'bank', 'cumulative_service'] as name (name)}<Field
+								{ctx}
+								{name}
+							/>{/each}
+					</Columns>
+				</Section>
+				<Section name="person_documents" title={t('person.section_documents')}>
+					<Field {ctx} name="documents" />
+				</Section>
+				{#if record}{@render face()}{/if}
+			</Stack>
+		{/snippet}</Form
+	>
+{/snippet}
+{#snippet contractTab()}{#if record}<ProfileContract
 			{ctx}
-			of="employee_profile"
-			mode={view.mode === 'create' ? 'create' : 'update'}
-			{...record === null
-				? { values: view.mode === 'create' ? view.values : {} }
-				: { id: record.id, record }}
-			on_outcome={(outcome) => {
-				if (outcome.kind !== 'committed' || record) return;
-				const created = outcome.records.find((row) => row.model === 'employee_profile');
-				if (created) open_record('employee_profile', created.id);
-			}}
-			>{#snippet children()}
-				<div class="grid gap-6">
-					<section class="grid gap-3">
-						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-							Identity and contact
-						</h3>
-						<div class="grid gap-x-6 gap-y-4 @md:grid-cols-2">
-							{#each ['name', 'email', 'phone', 'location'] as name (name)}<Field
-									{ctx}
-									{name}
-								/>{/each}
-						</div>
-					</section>
-					<section class="grid gap-3">
-						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-							Address
-						</h3>
-						<Field {ctx} name="address" />
-					</section>
-					<section class="grid gap-3">
-						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-							Documents
-						</h3>
-						<Field {ctx} name="documents" />
-					</section>
-					<section class="grid gap-3">
-						<h3 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-							Service
-						</h3>
-						<Field {ctx} name="cumulative_service" />
-					</section>
-					{#if record}{@render face()}{/if}
-				</div>
-			{/snippet}</Form
-		>
-	</div>{/snippet}
-{#snippet historyTab()}{#if record}<Cluster justify="between" class="mb-4"
-			><h3 class="text-heading">{t('section.employment_history')}</h3>
-			<Button
-				size="icon"
-				variant="outline"
-				aria-label={t('contract.new')}
-				title={t('contract.new')}
-				onclick={() => open_record('employee_contract', 'new')}
-				><Icon name="lucide:plus" class="size-4" /></Button
-			></Cluster
-		>{#if contracts?.loading}<p class="text-meta">
-				{t('component.loading')}
-			</p>{:else if ordered.length === 0}<EmptyState
-				title={t('section.employment_history')}
-			/>{:else}<VersionTimeline
-				label={t('section.employment_history')}
-				items={timeline}
-				onOpen={(id) => open_record('employee_contract', id)}
-			/>{/if}{/if}{/snippet}
-{#snippet changesTab()}{#if record}<Table
-			{ctx}
-			of="contract_change"
-			key="person-contract-changes"
-			where={{ employee_id: { eq: record.id }, applied_version_id: { is_null: true } }}
-			toolbar={{ new: false, title: ctx.t('section.scheduled_changes') }}
-			columns={['effective_from', 'field_path', 'old_value', 'new_value', 'notes']}
+			person={record.id}
+			{read}
 		/>{/if}{/snippet}
-{#snippet contractsTab()}{#if record}<Tabs
-			tabs={[
-				{
-					name: 'history',
-					title: t('section.employment_history'),
-					icon: 'lucide:history',
-					body: historyTab
-				},
-				{
-					name: 'changes',
-					title: t('section.scheduled_changes'),
-					icon: 'lucide:calendar-clock',
-					body: changesTab
-				}
-			]}
-		/>{/if}{/snippet}
-{#snippet loansTab()}{#if record}{#if contractIds.length === 0}<EmptyState
+{#snippet statutoryTab()}<DatedFamily {ctx} of="statutory_parameters" {read} />{/snippet}
+{#snippet familyTab()}{#if record}<ProfileFamily {ctx} person={record.id} {read} />{/if}{/snippet}
+{#snippet eventsTab()}<ProfileEvents {ctx} {read} />{/snippet}
+{#snippet loansTab()}{#if record}{#if stintIds.length === 0}<EmptyState
 				title={t('models.loan_catalog_entry.label')}
 			/>{:else}<Table
 				{ctx}
 				of="loan_catalog_entry"
 				key="person-loans"
-				where={{ employment_id: { in: contractIds } }}
+				where={{ employment_id: { in: stintIds } }}
 				toolbar={{ new: false, title: t('models.loan_catalog_entry.label') }}
 				columns={['catalog_code', 'quantity', 'repayment_period']}
 			/>{/if}{/if}{/snippet}
@@ -322,14 +210,27 @@
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	{#if record === null}{@render general()}{:else}<Tabs
-			value="general"
+			orientation="vertical"
 			tabs={[
-				{ name: 'general', title: ctx.t('v2.profile'), icon: 'lucide:user-round', body: general },
+				{ name: 'general', title: t('v2.profile'), icon: 'lucide:user-round', body: general },
 				{
-					name: 'contracts',
-					title: ctx.t('section.employment_history'),
+					name: 'contract',
+					title: t('person.tab_contract'),
 					icon: 'lucide:file-signature',
-					body: contractsTab
+					body: contractTab
+				},
+				{
+					name: 'statutory',
+					title: t('models.statutory_parameters.label'),
+					icon: 'lucide:landmark',
+					body: statutoryTab
+				},
+				{ name: 'family', title: t('person.tab_family'), icon: 'lucide:users', body: familyTab },
+				{
+					name: 'events',
+					title: t('person.tab_events'),
+					icon: 'lucide:calendar-heart',
+					body: eventsTab
 				},
 				{
 					name: 'loans',

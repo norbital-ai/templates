@@ -7,7 +7,7 @@ import { raiseFailure, retire, syncEntitlements } from '../lib/ledger/service.js
 const ATTEMPTS = 8;
 
 /**
- * The ledger's sync, one run at a time: entitlements for `employees` when a contract changed or a late posting moved
+ * The ledger's sync, one run at a time: entitlements for `employees` when their employment changed or a late posting moved
  * what carried, or for everyone when the law, the year or an entity did. Posting is no part of it: a record's own write
  * carries what it posts. It writes only what differs, so running it again changes nothing.
  */

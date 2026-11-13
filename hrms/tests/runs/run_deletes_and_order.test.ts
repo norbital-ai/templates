@@ -33,13 +33,15 @@ const TERMS = {
 	allowances: {}
 };
 const OTHER = idOf('entity', uuid(900));
-const SECOND = idOf('employee_contract', uuid(906));
-const FIRST = idOf('employee_contract', uuid(6));
-const MOVED = idOf('employee_contract', uuid(907));
+const SECOND = idOf('employment', uuid(906));
+const FIRST = idOf('employment', uuid(6));
+const MOVED = idOf('employment', uuid(907));
 
 const base = () => pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
 type Seed = ReturnType<typeof base>;
-const contractOf = (seed: Seed) => seed.employee_contract?.[0] ?? {};
+const stintOf = (seed: Seed) => seed.employment?.[0] ?? {};
+const termsOf = (seed: Seed) => seed.contract_terms?.[0] ?? {};
+const parametersOf = (seed: Seed) => seed.statutory_parameters?.[0] ?? {};
 const companyOf = (seed: Seed) => seed.entity?.[0] ?? {};
 const changeOf = (seed: Seed) => seed.entity_change?.[0] ?? {};
 
@@ -54,20 +56,28 @@ const twoPeople = (): Seed => {
 		],
 		employee_profile: [
 			...(seed.employee_profile ?? []),
-			{ id: uuid(904), user_id: uuid(903), name: 'Second' }
+			{ ...(seed.employee_profile?.[0] ?? {}), id: uuid(904), user_id: uuid(903), name: 'Second' }
 		],
 		employee_balance: [
 			...(seed.employee_balance ?? []),
 			{ id: uuid(905), employee_id: uuid(904), account: {} }
 		],
-		employee_contract: [
-			...(seed.employee_contract ?? []),
+		employment: [
+			...(seed.employment ?? []),
 			{
-				...contractOf(seed),
+				...stintOf(seed),
 				id: SECOND,
 				employee_id: uuid(904),
 				employee_number: 'W2'
 			}
+		],
+		contract_terms: [
+			...(seed.contract_terms ?? []),
+			{ ...termsOf(seed), id: uuid(914), employment_id: SECOND }
+		],
+		statutory_parameters: [
+			...(seed.statutory_parameters ?? []),
+			{ ...parametersOf(seed), id: uuid(915), employment_id: SECOND }
 		]
 	};
 };
@@ -87,15 +97,29 @@ const moved = (): Seed => {
 			...(seed.pay_group ?? []),
 			...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
 		],
-		employee_contract: [
-			{ ...contractOf(seed), effective_range: { from: '2025-01-01', to: '2026-02-28' } },
+		// the stint with the first company ends with February; a new one with its sister starts the next day
+		employment: [
+			{ ...stintOf(seed), effective_range: { from: '2025-01-01', to: '2026-02-28' } },
 			{
-				...contractOf(seed),
+				...stintOf(seed),
 				id: MOVED,
 				entity_id: OTHER,
-				pay_group_id: uuid(908),
 				effective_range: { from: '2026-03-01', to: null }
 			}
+		],
+		contract_terms: [
+			...(seed.contract_terms ?? []),
+			{
+				...termsOf(seed),
+				id: uuid(914),
+				employment_id: MOVED,
+				effective_from: '2026-03-01',
+				pay_group_id: uuid(908)
+			}
+		],
+		statutory_parameters: [
+			...(seed.statutory_parameters ?? []),
+			{ ...parametersOf(seed), id: uuid(915), employment_id: MOVED, effective_from: '2026-03-01' }
 		]
 	};
 };
@@ -199,7 +223,7 @@ describe('deleting a run', () => {
 						'adhoc_catalog_entry.create': [
 							{
 								entity_id: ENTITY,
-								employment_id: idOf('employee_contract', employment),
+								employment_id: idOf('employment', employment),
 								catalog_code: 'BONUS',
 								description: 'Bonus',
 								quantity: '500',

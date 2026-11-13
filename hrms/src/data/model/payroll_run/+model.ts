@@ -321,7 +321,7 @@ export default model({
 					// the month's totals hold both companies: on-cycle, each stands alone
 					const { from, to } = row.salary_coverage;
 					const moved = yield* ctx.query({
-						employee_contract: {
+						employment: {
 							where: {
 								employee_id: {
 									in: result.payslips.map((slip) => idOf('employee_profile', slip.employee_id))
@@ -331,7 +331,7 @@ export default model({
 							limit: 10000
 						}
 					});
-					const both = moved.employee_contract.rows.some(
+					const both = moved.employment.rows.some(
 						({ entity_id, effective_range: range }) =>
 							entity_id !== row.entity_id &&
 							String(range.from) <= String(to) &&
@@ -341,7 +341,7 @@ export default model({
 				}
 				const payslips = result.payslips.map((slip) => ({
 					employee_id: idOf('employee_profile', slip.employee_id),
-					employment_id: idOf('employee_contract', slip.employment_id),
+					employment_id: idOf('employment', slip.employment_id),
 					entity_id: idOf('entity', slip.entity_id),
 					basic_earnings: new Intl.NumberFormat('en', {
 						useGrouping: false,
@@ -456,13 +456,18 @@ export default model({
 				const coveredTo = String(row.salary_coverage.to);
 				for (const employee of result.deferred) {
 					const slip = result.payslips.find((entry) => entry.employee_id === employee);
-					// a version ends the employment only at an exit: one that runs on, or ends later, is paid by a later run
-					const stays = (data.employee_contract ?? [])
-						.filter((contract) => String(contract.employee_id) === employee)
-						.some((contract) => {
-							const to = jsonObject(contract.effective_range).to;
-							return contract.exit !== true || to == null || String(to) > coveredTo;
-						});
+					// a stint ends the employment only at an exit, with its last stretch: one that runs on, or ends later, is
+					// paid by a later run
+					const stays = [
+						...new Map(
+							(data.employment ?? [])
+								.filter((contract) => String(contract.employee_id) === employee)
+								.map((contract) => [String(contract.id), contract])
+						).values()
+					].some((contract) => {
+						const to = jsonObject(contract.effective_range).to;
+						return contract.exit !== true || to == null || String(to) > coveredTo;
+					});
 					const owed = slip?.breakdown.lines.find((line) => line.code === RECOVERY)?.amount;
 					const occurrence_key = `recovery:${String(slip?.employment_id)}:${row.period}`;
 					if (slip === undefined || owed === undefined || stays) continue;
@@ -471,7 +476,7 @@ export default model({
 					owing.push({
 						entity_id: row.entity_id,
 						employee_id: idOf('employee_profile', employee),
-						employment_id: idOf('employee_contract', slip.employment_id),
+						employment_id: idOf('employment', slip.employment_id),
 						title: `Recover ${new Intl.NumberFormat('en', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }).format(owed)} outside payroll: the last payslip (${row.period}) ended at zero and no later run pays this person`,
 						occurrence_key
 					});

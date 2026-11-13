@@ -13,7 +13,10 @@ import {
 	sheetsOf,
 	workbookOf
 } from '../../src/lib/export_format_configuration/salary_listing_export.ts';
+import { inForce } from '../../src/lib/dated.ts';
+import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
+import { termsChange } from '../../src/lib/person.ts';
 import { ENTITY, pack, storedQuery, storedReader, workspace, decimalNumber } from '../kit.ts';
 
 const terms = {
@@ -40,7 +43,7 @@ describe('the salary listing', () => {
 			});
 			const { payroll_run, payslip, jurisdiction } = yield* storedQuery(t, {
 				payroll_run: {
-					fields: ['period', 'kind', 'entity_id'],
+					fields: ['period', 'kind', 'entity_id', 'salary_coverage'],
 					limit: 10,
 					entity_id: { fields: ['name', 'settings_code'] }
 				},
@@ -56,21 +59,18 @@ describe('the salary listing', () => {
 					],
 					limit: 100,
 					employment_id: {
-						fields: [
-							'employee_number',
-							'employee_id',
-							'terms',
-							'payroll',
-							'service_started_on',
-							'effective_range'
-						],
-						employee_id: { fields: ['name'] }
+						fields: ['employee_number', 'employee_id', 'service_started_on'],
+						employee_id: { fields: ['name', 'identity_number'] },
+						terms: { fields: ['effective_from', 'clears', 'job_title', 'department'] }
 					}
 				}
 			});
-			const { employee_contract } = yield* storedQuery(t, {
-				employee_contract: { fields: ['employee_id', 'effective_range'], limit: 100 }
+			const { employment } = yield* storedQuery(t, {
+				employment: { fields: ['employee_id', 'effective_range'], limit: 100 }
 			});
+			const closes = new Map(
+				payroll_run.rows.map((run) => [run.id, String(run.salary_coverage.to ?? '')])
+			);
 			// a run is paid in the currency of its company's jurisdiction
 			const currency = new Map(jurisdiction.rows.map((row) => [row.code, row.currency]));
 			const sheets = sheetsOf({
@@ -78,8 +78,26 @@ describe('the salary listing', () => {
 					...run,
 					currency: currency.get(run.entity_id?.settings_code ?? '')
 				})),
-				slips: payslip.rows,
-				versions: employee_contract.rows
+				// each payslip with its stint as it stood at the period's end
+				slips: payslip.rows.map((slip) => {
+					const stint = slip.employment_id;
+					if (stint == null) return { ...slip, employment_id: null };
+					const agreed = inForce(
+						stint.terms.map((row) => termsChange(jsonObject(row))),
+						closes.get(slip.payroll_run_id) ?? ''
+					).state;
+					return {
+						...slip,
+						employment_id: {
+							employee_number: stint.employee_number,
+							employee_id: stint.employee_id,
+							service_started_on: stint.service_started_on,
+							terms: { job_title: agreed.job_title, department: agreed.department },
+							payroll: { identity_number: stint.employee_id?.identity_number }
+						}
+					};
+				}),
+				stints: employment.rows
 			});
 			const [slip] = payslip.rows;
 			assert.ok(slip !== undefined);
@@ -182,7 +200,7 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 		[]
 	);
 	it.live(
-		'one row a payslip, its net, its allowances and the contract’s bank as stored; each bank file lays it out once',
+		'one row a payslip, its net, its allowances and the person’s bank as stored; each bank file lays it out once',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;

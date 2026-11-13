@@ -31,7 +31,7 @@ export type RosterStoredInterval = RosterInterval & {
 };
 
 export type RosterEmployee = {
-	readonly id: Id<'employee_contract'>;
+	readonly id: Id<'employment'>;
 	readonly number: string;
 	readonly entity_id: Id<'entity'>;
 	readonly from: string;
@@ -49,7 +49,7 @@ export type RosterShift = {
 	readonly ends_next_day?: boolean;
 };
 export type RosterStored = {
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly work_date: string;
 	readonly shift_definition_id: Id<'shift_definition'> | null;
 	readonly planned_overtime_intervals: readonly RosterStoredInterval[] | null;
@@ -75,7 +75,7 @@ export type RosterFields = {
 };
 /** One person-day the import writes: its key and what it changes; a stored day takes only those fields. */
 export type RosterImportRow = RosterFields & {
-	readonly employment_id: Id<'employee_contract'>;
+	readonly employment_id: Id<'employment'>;
 	readonly work_date: PlainDate;
 };
 export type RosterPlan = {
@@ -476,7 +476,7 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 	const days = new Map<
 		string,
 		{
-			readonly employment_id: Id<'employee_contract'>;
+			readonly employment_id: Id<'employment'>;
 			readonly number: string;
 			readonly day: string;
 			readonly entry: RosterStored | undefined;

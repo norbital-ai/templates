@@ -38,6 +38,41 @@ const terms = (salary: number) => ({
 	wage_payment_method: 'BANK',
 	allowances: {}
 });
+/**
+ * The pack's one stint ended on `to`, and a second with the same company from the next day `from` to `until`, on the
+ * same terms or at `amount`: a renewal. Each stint's first rows are dated its first day.
+ */
+const renewed = (
+	seed: Seed,
+	to: string,
+	from: string,
+	until: string | null = null,
+	amount?: number
+) => {
+	const [stint = {}] = seed.employment ?? [];
+	const [agreed = {}] = seed.contract_terms ?? [];
+	const [told = {}] = seed.statutory_parameters ?? [];
+	return {
+		employment: [
+			{ ...stint, effective_range: { from: '2025-01-01', to } },
+			{ ...stint, id: uuid(7), effective_range: { from, to: until } }
+		],
+		contract_terms: [
+			agreed,
+			{
+				...agreed,
+				id: uuid(16),
+				employment_id: uuid(7),
+				effective_from: from,
+				...(amount === undefined ? {} : { rate: { amount, unit: 'MONTHLY' } })
+			}
+		],
+		statutory_parameters: [
+			told,
+			{ ...told, id: uuid(17), employment_id: uuid(7), effective_from: from }
+		]
+	};
+};
 
 describe('what a run takes', () => {
 	it.live(
@@ -89,24 +124,15 @@ describe('what a run takes', () => {
 		}
 	);
 
-	it.live('a renewal inside the period is one payslip, on the contract in force at its end', () => {
+	it.live('a renewal inside the period is one payslip, on the stint in force at its end', () => {
 		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(3120), {}, [], []);
-		const first = seed.employee_contract?.[0] ?? {};
 		return run({
 			...seed,
-			employee_contract: [
-				{ ...first, effective_range: { from: '2025-01-01', to: '2026-02-15' } },
-				{
-					...first,
-					id: uuid(7),
-					effective_range: { from: '2026-02-16', to: null },
-					terms: { ...objectValue(first.terms), rate: { amount: 3380, unit: 'MONTHLY' } }
-				}
-			]
+			...renewed(seed, '2026-02-15', '2026-02-16', null, 3380)
 		}).pipe(Effect.map((paid) => assert.equal(paid.BASIC, 3380)));
 	});
 
-	it.live('overtime follows the attendance period, across a contract that ended in it', () => {
+	it.live('overtime follows the attendance period, across a stint that ended in it', () => {
 		// attendance runs from the 21st to the 20th: the first and last days are other cycles'
 		const inside = [
 			{ date: '2026-01-26', shift: WORK, hours: 10, overtime: 2 },
@@ -127,19 +153,15 @@ describe('what a run takes', () => {
 			...inside,
 			{ date: '2026-02-24', shift: WORK, hours: 12, overtime: 4 }
 		]);
-		const first = seed.employee_contract?.[0] ?? {};
 		return Effect.gen(function* () {
 			const split = yield* run({
 				...seed,
-				employee_contract: [
-					{ ...first, effective_range: { from: '2025-01-01', to: '2026-01-31' } },
-					{ ...first, id: uuid(7), effective_range: { from: '2026-02-01', to: null } }
-				],
+				...renewed(seed, '2026-01-31', '2026-02-01'),
 				roster_entry: (seed.roster_entry ?? []).map((row) =>
 					String(row.work_date) < '2026-02-01' ? row : { ...row, employment_id: uuid(7) }
 				)
 			});
-			// the same overtime as one contract holding only the window's two days
+			// the same overtime as one stint holding only the window's two days
 			const whole = yield* run(cutoff(inside));
 			assert.ok((whole.OVERTIME ?? 0) > 0, JSON.stringify(whole));
 			assert.equal(split.OVERTIME, whole.OVERTIME);
@@ -227,7 +249,7 @@ describe('what a run takes', () => {
 					'claim_catalog_entry.create': [
 						{
 							entity_id: ENTITY,
-							employment_id: idOf('employee_contract', uuid(6)),
+							employment_id: idOf('employment', uuid(6)),
 							catalog_code: 'MEDICAL_CLAIM',
 							quantity: '45',
 							incurred_on: '2026-01-20'
@@ -261,7 +283,7 @@ describe('what a run takes', () => {
 				'adhoc_catalog_entry.create': [
 					{
 						entity_id: ENTITY,
-						employment_id: idOf('employee_contract', uuid(6)),
+						employment_id: idOf('employment', uuid(6)),
 						catalog_code: 'BONUS',
 						description: 'Performance bonus',
 						quantity: '1000',
@@ -320,7 +342,7 @@ describe('what a run takes', () => {
 					'claim_catalog_entry.create': [
 						{
 							entity_id: ENTITY,
-							employment_id: idOf('employee_contract', uuid(6)),
+							employment_id: idOf('employment', uuid(6)),
 							catalog_code: 'MEDICAL_CLAIM',
 							quantity: '45',
 							incurred_on: '2026-02-12'
@@ -420,28 +442,27 @@ describe('what a run takes', () => {
 		}
 	);
 
-	it.live('a leaver is paid the days employed once, across a contract split', () => {
+	it.live('a leaver is paid the days employed once, across a renewal', () => {
 		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(1960), {}, [], []);
-		const first = seed.employee_contract?.[0] ?? {};
-		const leaving = (contracts: Seed[string]): Seed => ({
+		const leaving = (stints: Seed): Seed => ({
 			...seed,
 			pay_group: (seed.pay_group ?? []).map((row) => ({
 				...row,
 				payment_schedule: { ...objectValue(row.payment_schedule), non_working_weekdays: [] }
 			})),
-			employee_contract: contracts
+			...stints
 		});
 		return Effect.gen(function* () {
-			const split = yield* run(
-				leaving([
-					{ ...first, effective_range: { from: '2025-01-01', to: '2026-02-04' } },
-					{ ...first, id: uuid(7), effective_range: { from: '2026-02-05', to: '2026-02-10' } }
-				])
-			);
+			const split = yield* run(leaving(renewed(seed, '2026-02-04', '2026-02-05', '2026-02-10')));
 			const whole = yield* run(
-				leaving([{ ...first, effective_range: { from: '2025-01-01', to: '2026-02-10' } }])
+				leaving({
+					employment: (seed.employment ?? []).map((row) => ({
+						...row,
+						effective_range: { from: '2025-01-01', to: '2026-02-10' }
+					}))
+				})
 			);
-			// BASIC is the contract salary; the days not employed come off once, as for one contract to the same last day
+			// BASIC is the contract salary; the days not employed come off once, as for one stint to the same last day
 			assert.equal(split.BASIC, 1960);
 			assert.ok((split.PRORATED ?? 0) > 0, JSON.stringify(split));
 			assert.deepEqual(split, whole);

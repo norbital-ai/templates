@@ -19,7 +19,7 @@ import {
 	workspace
 } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
 type Seed = ReturnType<typeof pack>;
 const terms = (amount: number, unit = 'MONTHLY', days = 5) => ({
@@ -40,9 +40,17 @@ const malaysia = (
 	const seed = lawWith(pack('MY', 'Asia/Kuala_Lumpur', agreed, {}, days, []), { conversions });
 	return {
 		...seed,
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
+		employment: (seed.employment ?? []).map((row) => ({
 			...row,
 			effective_range: { from: '2026-01-01', to: null }
+		})),
+		contract_terms: (seed.contract_terms ?? []).map((row) => ({
+			...row,
+			effective_from: '2026-01-01'
+		})),
+		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+			...row,
+			effective_from: '2026-01-01'
 		}))
 	};
 };
@@ -54,7 +62,7 @@ const june = (seed: Seed, dates: readonly string[]) =>
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: EMPLOYMENT,
 					catalog_code: 'NPL',
 					days: wholeDays(...dates)
 				})

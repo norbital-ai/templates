@@ -5,6 +5,7 @@ import { notify_outcome } from '@norbital-ai/ui';
 import { lawsOf } from '../../law.js';
 import { jsonObject } from '../../payroll_engine/foundation.js';
 import { idOf } from '../../payroll_engine/reads.js';
+import { PARAMETER_FIELDS, TERM_FIELDS } from '../../person.js';
 import {
 	jurisdictionOf,
 	planDataRequest,
@@ -20,7 +21,6 @@ import {
 } from './workbook_import.js';
 
 type Ctx = Pick<PageContext, 't' | 'act' | 'query' | 'clock'>;
-type Target = { readonly id: string; readonly revision: number };
 
 /** Writes small enough for one guest budget; registered effects run once per written batch. */
 const BATCH = 25;
@@ -43,12 +43,24 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 		entity: { fields: ['name', 'code'], limit: 10000 },
 		entity_change: { fields: ['entity_id', 'effective_from'], limit: 10000 },
 		employee_profile: {
-			fields: ['name', 'email', 'phone', 'address', 'source_reference'],
+			fields: [
+				'name',
+				'email',
+				'phone',
+				'address',
+				'source_reference',
+				'date_of_birth',
+				'identity_number',
+				'gender',
+				'bank'
+			],
 			limit: 10000
 		},
-		employee_contract: {
-			fields: ['employee_id', 'employee_number', 'effective_range', 'status'],
-			limit: 10000
+		employment: {
+			fields: ['employee_id', 'entity_id', 'employee_number', 'effective_range'],
+			limit: 10000,
+			terms: { fields: ['effective_from', 'clears', ...TERM_FIELDS], limit: 10000 },
+			parameters: { fields: ['effective_from', 'clears', ...PARAMETER_FIELDS], limit: 10000 }
 		},
 		shift_pattern: { fields: ['entity_id', 'code'], limit: 10000 }
 	});
@@ -91,15 +103,21 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 			email: row.email ?? null,
 			phone: row.phone ?? null,
 			address: row.address ?? null,
-			source_reference: row.source_reference ?? null
+			source_reference: row.source_reference ?? null,
+			date_of_birth: row.date_of_birth ?? null,
+			identity_number: row.identity_number ?? null,
+			gender: row.gender ?? null,
+			bank: row.bank == null ? null : jsonObject(row.bank)
 		})),
-		contracts: held.employee_contract.rows.map((row) => ({
+		stints: held.employment.rows.map((row) => ({
 			id: row.id,
 			employee_id: row.employee_id,
+			entity_id: row.entity_id,
 			employee_number: row.employee_number,
 			from: String(row.effective_range.from),
 			to: row.effective_range.to == null ? null : String(row.effective_range.to),
-			status: row.status
+			terms: (row.terms ?? []).map(jsonObject),
+			parameters: (row.parameters ?? []).map(jsonObject)
 		})),
 		patterns: held.shift_pattern.rows
 	};
@@ -128,24 +146,6 @@ const write = Effect.fnUntraced(function* <const N extends string>(
 	}
 	return outcome.records;
 });
-const seal = Effect.fnUntraced(function* <const N extends string>(
-	ctx: Ctx,
-	callable: N extends Callable ? N : Callable,
-	targets: readonly Target[]
-) {
-	for (const group of batches(targets))
-		yield* write<N>(
-			ctx,
-			callable,
-			group.map((target) => ({ target, set: { status: 'SEALED' } }))
-		);
-});
-const created = (
-	records: readonly { readonly model: string; readonly id: string; readonly revision: number }[],
-	model: string
-): Target[] =>
-	records.filter((row) => row.model === model).map(({ id, revision }) => ({ id, revision }));
-
 const submit = Effect.fnUntraced(function* (ctx: Ctx, plan: DataRequestPlan) {
 	for (const group of batches(plan.entities)) yield* write(ctx, 'entity.create', group);
 	const { entity } = yield* ctx.query({ entity: { fields: ['name'], limit: 10000 } });
@@ -197,37 +197,39 @@ const submit = Effect.fnUntraced(function* (ctx: Ctx, plan: DataRequestPlan) {
 				set
 			}))
 		);
-	const { employee_profile, employee_contract } = yield* ctx.query({
+	const { employee_profile, employment } = yield* ctx.query({
 		employee_profile: { fields: ['source_reference'], limit: 10000 },
-		employee_contract: { fields: ['employee_id', 'employee_number'], limit: 10000 }
+		employment: { fields: ['employee_id', 'employee_number'], limit: 10000 }
 	});
 	const people = new Map(
 		employee_profile.rows.flatMap((row) =>
 			row.source_reference == null ? [] : [[row.source_reference, row.id] as const]
 		)
 	);
-	for (const row of employee_contract.rows) people.set(row.employee_number, row.employee_id);
-	const { employee_contract: draftContracts } = yield* ctx.query({
-		employee_contract: {
-			where: { id: { in: plan.sealContracts.map((id) => idOf('employee_contract', id)) } },
-			fields: ['revision'],
-			limit: 10000
-		}
-	});
-	const sealContracts: Target[] = [...draftContracts.rows];
-	for (const group of batches(plan.contracts)) {
-		const records = yield* write(
+	for (const row of employment.rows) people.set(row.employee_number, row.employee_id);
+	// a hire is one write: the stint with its terms and statutory parameters
+	for (const group of batches(plan.employments))
+		yield* write(
 			ctx,
-			'employee_contract.create',
+			'employment.create',
 			group.map(({ company, number, row }) => ({
 				...row,
 				entity_id: entityIds.get(company) ?? '',
 				employee_id: people.get(number) ?? ''
 			}))
 		);
-		sealContracts.push(...created(records, 'employee_contract'));
-	}
-	yield* seal(ctx, 'employee_contract.update', sealContracts);
+	for (const group of batches(plan.terms))
+		yield* write(
+			ctx,
+			'contract_terms.create',
+			group.map(({ employment: employment_id, row }) => ({ ...row, employment_id }))
+		);
+	for (const group of batches(plan.parameters))
+		yield* write(
+			ctx,
+			'statutory_parameters.create',
+			group.map(({ employment: employment_id, row }) => ({ ...row, employment_id }))
+		);
 	return { imported: plan.count, overwritten: [], warnings: plan.warnings };
 });
 

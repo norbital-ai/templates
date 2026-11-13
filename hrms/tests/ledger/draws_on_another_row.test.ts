@@ -22,7 +22,7 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-10-06T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const terms = {
 	rate: { amount: 8000, unit: 'MONTHLY' },
 	normal_hours_per_day: 8,
@@ -70,7 +70,7 @@ const take = (t: Kit, code: string, from: string, count: number) =>
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						catalog_code: code,
 						days: dates(from, count)
 					})

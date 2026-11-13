@@ -24,7 +24,10 @@ const base = pack(
 	days.map((date) => ({ date, shift: WORK, hours: 8 })),
 	[]
 );
-const [contract] = base.employee_contract ?? [];
+const [profile] = base.employee_profile ?? [];
+const [stint] = base.employment ?? [];
+const [terms] = base.contract_terms ?? [];
+const [parameters] = base.statutory_parameters ?? [];
 const [day] = base.roster_entry ?? [];
 const people = Array.from({ length: PEOPLE - 1 }, (_, at) => 1000 + at * 10);
 const seed = {
@@ -40,20 +43,28 @@ const seed = {
 	],
 	employee_profile: [
 		...(base.employee_profile ?? []),
-		...people.map((n) => ({ id: uuid(n + 1), user_id: uuid(n), name: `P${n}` }))
+		...people.map((n) => ({ ...profile, id: uuid(n + 1), user_id: uuid(n), name: `P${n}` }))
 	],
 	employee_balance: [
 		...(base.employee_balance ?? []),
 		...people.map((n) => ({ id: uuid(n + 2), employee_id: uuid(n + 1), account: {} }))
 	],
-	employee_contract: [
-		...(base.employee_contract ?? []),
+	employment: [
+		...(base.employment ?? []),
 		...people.map((n) => ({
-			...contract,
+			...stint,
 			id: uuid(n + 3),
 			employee_id: uuid(n + 1),
 			employee_number: `W${n}`
 		}))
+	],
+	contract_terms: [
+		...(base.contract_terms ?? []),
+		...people.map((n) => ({ ...terms, id: uuid(n + 4), employment_id: uuid(n + 3) }))
+	],
+	statutory_parameters: [
+		...(base.statutory_parameters ?? []),
+		...people.map((n) => ({ ...parameters, id: uuid(n + 5), employment_id: uuid(n + 3) }))
 	],
 	roster_entry: [
 		...(base.roster_entry ?? []),

@@ -14,21 +14,42 @@ import {
 import { ENTITY, WORK, pack, uuid, workspace, storedQuery } from '../kit.ts';
 
 const seed = pack('MY', 'Asia/Kuala_Lumpur', {}, {}, [], []);
-const first = seed.employee_contract?.[0] ?? {};
 const others = Array.from({ length: 12 }, (_, index) => index + 1);
 const seeded = {
 	...seed,
 	employee_profile: [
 		...(seed.employee_profile ?? []),
-		...others.map((index) => ({ id: uuid(300 + index), name: `Worker ${index + 1}` }))
-	],
-	employee_contract: [
-		...(seed.employee_contract ?? []),
 		...others.map((index) => ({
-			...first,
+			id: uuid(300 + index),
+			name: `Worker ${index + 1}`,
+			date_of_birth: '1990-01-01',
+			gender: 'MALE'
+		}))
+	],
+	// each a stint like the pack's own, on the same terms and parameters from its first day
+	employment: [
+		...(seed.employment ?? []),
+		...others.map((index) => ({
+			...seed.employment?.[0],
 			id: uuid(400 + index),
 			employee_id: uuid(300 + index),
 			employee_number: `W${index + 1}`
+		}))
+	],
+	contract_terms: [
+		...(seed.contract_terms ?? []),
+		...others.map((index) => ({
+			...seed.contract_terms?.[0],
+			id: uuid(500 + index),
+			employment_id: uuid(400 + index)
+		}))
+	],
+	statutory_parameters: [
+		...(seed.statutory_parameters ?? []),
+		...others.map((index) => ({
+			...seed.statutory_parameters?.[0],
+			id: uuid(600 + index),
+			employment_id: uuid(400 + index)
 		}))
 	]
 };
@@ -36,7 +57,7 @@ const known: RosterKnown = {
 	entity_name: 'Entity',
 	zone: 'Asia/Kuala_Lumpur',
 	employees: [uuid(6), ...others.map((index) => uuid(400 + index))].map((id, index) => ({
-		id: idOf('employee_contract', id),
+		id: idOf('employment', id),
 		number: `W${index + 1}`,
 		entity_id: ENTITY,
 		from: '2025-01-01',

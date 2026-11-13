@@ -21,7 +21,7 @@
 							"quote": "A shortfall in basic wages for an earlier wage period remains wages under s.2 and is paid under s.19(1), which requires payment not later than the seventh day after the last day of the wage period; it is back pay of basic wages, not a separate wage category."
 						}
 					],
-					"description": "Back pay owed for an earlier period under a contract version signed later, at the amount entered or computed by the run. Wages for EPF, SOCSO, EIS and HRD; PCB taxes it as additional remuneration in the month paid."
+					"description": "Back pay owed for an earlier period under terms signed later, at the amount entered or computed by the run. Wages for EPF, SOCSO, EIS and HRD; PCB taxes it as additional remuneration in the month paid."
 				},
 				"ADJ": {
 					"lookup": {},
@@ -1775,7 +1775,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:PUBLIC_HOLIDAY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish next year\\'s public holidays',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];"
 				},
 				"TERMS_PARTICULARS_ISSUE": {
-					"description": "Raises a task to issue written particulars when a contract is sealed.",
+					"description": "Raises a task to issue written particulars when an employment is recorded.",
 					"name": "TERMS_PARTICULARS_ISSUE",
 					"references": [
 						{
@@ -1783,7 +1783,7 @@
 							"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/1.%20EMPLOYMENT%20REGULATIONS%201957_0.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -1797,13 +1797,12 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:TERMS_PARTICULARS_ISSUE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue written particulars of employment',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];"
 				},
 				"EPF_EMPLOYEE_REGISTRATION": {
-					"description": "Raises a task to register a sealed contract employee with EPF by the middle of the following month.",
+					"description": "Raises a task to register an employee with EPF by the middle of the following month.",
 					"name": "EPF_EMPLOYEE_REGISTRATION",
 					"lookup": {
 						"offset_days": 15
@@ -1823,7 +1822,7 @@
 							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -1837,13 +1836,12 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYEE_REGISTRATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Register the employee with EPF',\n\tdue_on: add_days(month_end(r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
 				},
 				"SOCSO_EIS_EMPLOYEE_REGISTRATION": {
-					"description": "Raises a task to register a sealed contract employee with SOCSO and EIS within thirty days of the contract start.",
+					"description": "Raises a task to register an employee with SOCSO and EIS within thirty days of the contract start.",
 					"name": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
 					"lookup": {
 						"offset_days": 30
@@ -1859,7 +1857,7 @@
 							"url": "https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -1873,7 +1871,6 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYEE_REGISTRATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Register the employee with SOCSO and EIS',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -1895,7 +1892,7 @@
 							"url": "https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -1909,7 +1906,6 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:CP22_NEW_EMPLOYEE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify LHDN of a new employee (CP22)',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -1927,7 +1923,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -1941,13 +1937,13 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+					"condition": "const r = ctx.entry;\nreturn get(r.terms, 'residency_status', '') === 'FOREIGNER';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_EMPLOYEE_PARTICULARS:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Report foreign employee particulars',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
 				},
 				"CP22A_CESSATION_AND_WITHHOLDING": {
-					"description": "Raises a task to notify LHDN of a cessation and withholding (CP22A) thirty days before a sealed contract ends.",
+					"description": "Raises a task to notify LHDN of a cessation and withholding (CP22A) thirty days before an employment ends.",
 					"name": "CP22A_CESSATION_AND_WITHHOLDING",
 					"lookup": {
 						"advance_notice_days": 30
@@ -1963,7 +1959,7 @@
 							"url": "https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2031,7 +2027,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2051,7 +2047,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:TERMINATION_BENEFITS_FINAL_WAGES:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay final wages on termination',\n\tdue_on: get(r, 'final_pay_due_on', add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days)),\n\toccurrence_key: key\n}];"
 				},
 				"TERMINATION_BENEFIT_PAYMENT": {
-					"description": "Raises a task to pay statutory termination benefits for a sealed contract that ended after at least twelve months' service.",
+					"description": "Raises a task to pay statutory termination benefits for an employment that ended after at least twelve months' service.",
 					"name": "TERMINATION_BENEFIT_PAYMENT",
 					"lookup": {
 						"offset_days": 7,
@@ -2062,7 +2058,7 @@
 							"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 regs. 3-6, 11, 12 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf); Employment Act 1955 First Schedule paras 1A, 2(5); ss.13(2), 14(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2075,7 +2071,7 @@
 							},
 							"limit": 10
 						},
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"id": {
 									"eq": {
@@ -2087,7 +2083,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nconst held = first(get(ctx, 'reads.employee_contract', [])) ?? r;\nconst ground = get(held, 'exit_ground', get(held, 'employee_extension_data.exit_ground', ''));\nif (['RESIGNATION', 'RETIREMENT', 'EMPLOYEE_RETIREMENT', 'MISCONDUCT_DISMISSAL', 'TRANSFER', 'TRANSFER_TO_SUBSIDIARY'].includes(ground)) return false;\nif (get(held, 'employee_extension_data.misconduct_dismissal', false) === true) return false;\nconst started = get(held, 'service_started_on', r.effective_range.from);\nreturn calendar_completed_months(started, add_days(r.effective_range.to, 1)) >= ctx.lookup.service_months;",
+					"condition": "const r = ctx.entry;\nif (ctx.after == null) return false;\nconst held = first(get(ctx, 'reads.employment', [])) ?? r;\nconst ground = get(held, 'exit_ground', get(held, 'employee_extension_data.exit_ground', ''));\nif (['RESIGNATION', 'RETIREMENT', 'EMPLOYEE_RETIREMENT', 'MISCONDUCT_DISMISSAL', 'TRANSFER', 'TRANSFER_TO_SUBSIDIARY'].includes(ground)) return false;\nif (get(held, 'employee_extension_data.misconduct_dismissal', false) === true) return false;\nconst started = get(held, 'service_started_on', r.effective_range.from);\nreturn calendar_completed_months(started, add_days(r.effective_range.to, 1)) >= ctx.lookup.service_months;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:TERMINATION_BENEFIT_PAYMENT:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay statutory termination benefits',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -2105,7 +2101,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2146,7 +2142,7 @@
 							"url": "https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2174,7 +2170,7 @@
 							"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2188,7 +2184,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+					"condition": "const r = ctx.entry;\nreturn get(r.terms, 'residency_status', '') === 'FOREIGNER';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_LEVY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay the foreign worker levy',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];"
@@ -2513,7 +2509,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:HRD_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify HRD Corp of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
 				},
 				"MATERNITY_PROTECTION_REVIEW": {
-					"description": "Raises a review of maternity protection when a sealed contract of a pregnant employee ends.",
+					"description": "Raises a review of maternity protection when the employment of a pregnant employee ends.",
 					"name": "MATERNITY_PROTECTION_REVIEW",
 					"references": [
 						{
@@ -2522,7 +2518,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2542,7 +2538,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:MATERNITY_PROTECTION_REVIEW:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review maternity protection on an exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];"
 				},
 				"RETIREMENT_AGE_REVIEW": {
-					"description": "Raises a review when a sealed contract ends on retirement before the employee reaches sixty.",
+					"description": "Raises a review when an employment ends on retirement before the employee reaches sixty.",
 					"name": "RETIREMENT_AGE_REVIEW",
 					"lookup": {
 						"retirement_age": 60
@@ -2554,7 +2550,7 @@
 							"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/6.%20Minimum%20Retirement%20Age%20Act%202012.pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2725,14 +2721,14 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:TAX_RECORDS_RETENTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Retain tax records',\n\tdue_on: month_end(r.salary_coverage.from),\n\toccurrence_key: key\n}];"
 				},
 				"WORKERS_ACCOMMODATION_CERTIFICATE": {
-					"description": "Raises a task to obtain a workers' accommodation certificate when a sealed contract provides employer housing.",
+					"description": "Raises a task to obtain a workers' accommodation certificate when an employment provides employer housing.",
 					"name": "WORKERS_ACCOMMODATION_CERTIFICATE",
 					"references": [
 						{
 							"title": "Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) s.24D and its regulations."
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2746,7 +2742,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.employee_extension_data, 'employer_provided_accommodation', false) === true;",
+					"condition": "const r = ctx.entry;\nreturn get(r.employee_extension_data, 'employer_provided_accommodation', false) === true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:WORKERS_ACCOMMODATION_CERTIFICATE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Obtain a workers\\' accommodation certificate',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];"
@@ -2763,7 +2759,7 @@
 							"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2777,7 +2773,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'terms.residency_status', '') !== 'FOREIGNER') return false;\nreturn get(r, 'terms.work_authorisation_expires_on', null) != null;",
+					"condition": "const r = ctx.entry;\nif (get(r, 'terms.residency_status', '') !== 'FOREIGNER') return false;\nreturn get(r, 'terms.work_authorisation_expires_on', null) != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst expires = get(r, 'terms.work_authorisation_expires_on', '');\nconst key = 'MY:WORK_PASS_RENEWAL:' + r.id + ':' + expires;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Start work pass renewal (pass expires ' + expires + ')',\n\tdue_on: add_days(expires, -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];"
@@ -2800,7 +2796,7 @@
 							"locator": "s.82(1)(a)"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -2820,7 +2816,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:PERSONAL_DATA_DISPOSAL:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Dispose of personal data',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, ctx.lookup.retention_years),\n\toccurrence_key: key\n}];"
 				},
 				"CP58_AGENT_STATEMENT": {
-					"description": "Raises an annual CP58 statement task for a sealed payee engagement, due the following 31 March.",
+					"description": "Raises an annual CP58 statement task for a payee engagement, due the following 31 March.",
 					"name": "CP58_AGENT_STATEMENT",
 					"lookup": {
 						"annual_due": "-03-31"
@@ -2832,7 +2828,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2846,13 +2842,13 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && r.engagement === 'PAYEE';",
+					"condition": "const r = ctx.entry;\nreturn r.engagement === 'PAYEE';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:CP58_AGENT_STATEMENT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue a CP58 statement to an agent',\n\tdue_on: add_years(r.effective_range.from.substring(0, 4) + ctx.lookup.annual_due, 1),\n\toccurrence_key: key\n}];"
 				},
 				"PDPA_PRIVACY_NOTICE": {
-					"description": "Raises a task to give the PDPA privacy notice when a contract is sealed.",
+					"description": "Raises a task to give the PDPA privacy notice when an employment is recorded.",
 					"name": "PDPA s.7 privacy notice",
 					"references": [
 						{
@@ -2860,7 +2856,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -2874,7 +2870,6 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:PDPA_PRIVACY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Give the PDPA privacy notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];"
@@ -3071,7 +3066,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3085,7 +3080,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.terms, 'statutory_work_category', '') === 'DOMESTIC';",
+					"condition": "const r = ctx.entry;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.terms, 'statutory_work_category', '') === 'DOMESTIC';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a foreign domestic employee',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -3102,7 +3097,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3133,7 +3128,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -3164,7 +3159,7 @@
 							"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
 						}
 					],
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3178,7 +3173,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+					"condition": "const r = ctx.entry;\nreturn get(r.terms, 'residency_status', '') === 'FOREIGNER';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_MEDICAL_EXAMINATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Send a new foreign worker for a FOMEMA examination',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -3187,7 +3182,7 @@
 			"registered_rule": {
 				"MINIMUM_WAGE_MONTHLY": {
 					"description": "Checks that a monthly-rated employee's agreed salary is at least the RM1,700 monthly minimum wage.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"monthly_wage": 1700
@@ -3204,7 +3199,7 @@
 				},
 				"MINIMUM_WAGE_HOURLY_PART_TIME": {
 					"description": "Checks that a part-time employee's agreed rate, converted to an hourly equivalent, meets the RM8.72 hourly minimum.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"weeks_per_year": 52,
@@ -3227,7 +3222,7 @@
 				},
 				"LABOUR_ORDINANCE_TERRITORY": {
 					"description": "Rejects a Sabah or Sarawak worksite, which is governed by its own Labour Ordinance rather than the Employment Act.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"excluded": ["SABAH", "SARAWAK"]
@@ -3249,7 +3244,7 @@
 				},
 				"NORMAL_HOURS_WEEK": {
 					"description": "Checks that agreed normal weekly hours do not exceed 45, except for shift work averaged over three weeks.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"normal_hours_per_week": 45
@@ -3271,7 +3266,7 @@
 				},
 				"MINIMUM_WAGE_DAILY": {
 					"description": "Checks that a daily-rated employee's agreed rate meets the daily minimum wage for a four-, five- or six-day week.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"daily_four_day_week": 98.08,
@@ -3290,7 +3285,7 @@
 				},
 				"MINIMUM_WAGE_HOURLY": {
 					"description": "Checks that an hourly-rated employee's agreed rate is at least RM8.72 an hour.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"hourly_wage": 8.72
@@ -3307,7 +3302,7 @@
 				},
 				"WAGE_PAYMENT_METHOD": {
 					"description": "Requires wages to be paid into the employee's bank account unless a non-bank method has the Director General's approval.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"bank_methods": ["BANK"],
@@ -3412,7 +3407,7 @@
 				},
 				"CHILD_EMPLOYMENT": {
 					"description": "Requires a permitted employment category for a worker under fifteen.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"maximum_age": 15,
@@ -3435,7 +3430,7 @@
 				},
 				"CHILD_LIGHT_WORK_AGE": {
 					"description": "Requires a worker doing light family work to be at least thirteen.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"minimum_age": 13,
@@ -3453,7 +3448,7 @@
 				},
 				"MINOR_HAZARDOUS_WORK": {
 					"description": "Prohibits hazardous work for a child and requires personal supervision and training for a young person.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"maximum_age": 18,
@@ -3471,7 +3466,7 @@
 				},
 				"MINOR_PROHIBITED_EMPLOYMENT": {
 					"description": "Prohibits Fifth Schedule employment for anyone under eighteen.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"maximum_age": 18
@@ -3488,7 +3483,7 @@
 				},
 				"CONTRACT_CATEGORIES": {
 					"description": "Restricts the contract's statutory work category and residency status to the values this jurisdiction recognises.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"categories": {
@@ -3522,7 +3517,7 @@
 				},
 				"SHARED_STRUCTURED_EMPLOYEE_INPUTS": {
 					"description": "Checks the annual-leave carry limit against the jurisdiction's minimum.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"lookup": {
 						"annual_leave_carry_minimum": 0
@@ -3663,17 +3658,6 @@
 							"fields": ["code", "lookup"],
 							"limit": 1
 						},
-						"employee_contract": {
-							"where": {
-								"id": {
-									"eq": {
-										"var": "ctx.entry.employment_id"
-									}
-								}
-							},
-							"fields": ["service_started_on", "effective_range"],
-							"limit": 1
-						},
 						"employee_balance": {
 							"where": {
 								"employee_id": {
@@ -3758,7 +3742,7 @@
 						}
 					},
 					"condition": "if (get(ctx.entry, 'encashment', false) === true) return false;\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === 'ANNUAL_LEAVE';",
-					"validate": "const lookup = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst employment = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst yearOf = (date) => add_months(started, 12 * Math.max(0, Math.floor(calendar_completed_months(started, date) / 12)));\nconst dates = get(ctx.entry, 'leave_catalog_entry_day', [])\n\t.map((slot) => String(slot.incurred_on))\n\t.toSorted();\nconst years = dates.map(yearOf).filter((year, index, all) => all.indexOf(year) === index);\n// EA s.60E(1), second proviso: absent without permission and without reasonable excuse for more than ten per cent of the working days of the twelve months of continuous service in respect of which the leave accrues, the employee is not entitled to it.\nconst { weeks, max_absent_share, fallback_days_per_week } = lookup.absence_forfeiture;\nconst absence = ctx.reads.shift_definition.filter((row) => row.variant.day_type === 'ABS').map((row) => row.id);\nconst absent = ctx.reads.roster_entry.filter((row) => absence.includes(row.shift_definition_id)).map((row) => row.work_date);\nconst working = weeks * get(employment, 'terms.normal_days_per_week', fallback_days_per_week);\nfor (const year of years)\n\tif (absent.filter((date) => date >= year && date < add_months(year, 12)).length > working * max_absent_share)\n\t\tthrow 'Absent without leave on more than ' + max_absent_share * 100 + ' per cent of the working days of the service year beginning ' + year + ': no annual leave is due for it.';\nif (ctx.event.operation !== 'create') return true;\n// EA s.60E(3B): leave of absence without pay exceeding thirty days in the aggregate in any twelve months is disregarded in computing the length of service.\nconst unpaid = ctx.reads.leave_catalog_entry;\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst slotsOf = (id) => get(grouped, String(id), []);\nconst slots = unpaid\n\t.flatMap((row) => slotsOf(row.id).map((slot) => String(slot.incurred_on)))\n\t.filter((date) => date < dates.at(0))\n\t.toSorted();\nconst reach = 2 * lookup.service_unpaid_leave_ignored_after_days;\nlet until = '';\nlet disregarded = 0;\nfor (let at = 0; at < slots.length; at += 1) {\n\tif (at + reach < slots.length && slots.at(at + reach) < add_months(slots.at(at), 12)) until = add_months(slots.at(at), 12);\n\tif (slots.at(at) < until) disregarded += 1;\n}\nif (disregarded === 0) return true;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? lookup.part_time_service_bands : lookup.service_bands;\nconst [opening] = bands;\nconst due = (months) =>\n\tmonths < opening.service_months\n\t\t? Math.round((opening.days * months) / opening.service_months)\n\t\t: bands.filter((band) => band.service_months <= months).at(-1).days;\nconst periods = get(first(ctx.reads.employee_balance), 'account.leave.ANNUAL_LEAVE', {});\nfor (const year of years) {\n\tconst held = Object.hasOwn(periods, 'MY.S.' + year) ? periods['MY.S.' + year] : {};\n\tconst from = dates.find((date) => yearOf(date) === year);\n\tconst net = Math.max(0, calendar_completed_months(add_days(started, Math.floor(disregarded / 2)), from));\n\tconst left = Math.min(get(held, 'entitled', 0), due(net)) + get(held, 'carried', 0) - get(held, 'used', 0);\n\tif (dates.filter((date) => yearOf(date) === year).length / 2 > left)\n\t\tthrow 'Unpaid leave of more than ' + lookup.service_unpaid_leave_ignored_after_days + ' days does not count as service for annual leave: ' + left + ' days are left.';\n}\nreturn true;",
+					"validate": "const lookup = first(ctx.reads.leave_catalog).lookup;\nconst contract = ctx.subject.employment;\nconst employment = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst yearOf = (date) => add_months(started, 12 * Math.max(0, Math.floor(calendar_completed_months(started, date) / 12)));\nconst dates = get(ctx.entry, 'leave_catalog_entry_day', [])\n\t.map((slot) => String(slot.incurred_on))\n\t.toSorted();\nconst years = dates.map(yearOf).filter((year, index, all) => all.indexOf(year) === index);\n// EA s.60E(1), second proviso: absent without permission and without reasonable excuse for more than ten per cent of the working days of the twelve months of continuous service in respect of which the leave accrues, the employee is not entitled to it.\nconst { weeks, max_absent_share, fallback_days_per_week } = lookup.absence_forfeiture;\nconst absence = ctx.reads.shift_definition.filter((row) => row.variant.day_type === 'ABS').map((row) => row.id);\nconst absent = ctx.reads.roster_entry.filter((row) => absence.includes(row.shift_definition_id)).map((row) => row.work_date);\nconst working = weeks * get(employment, 'terms.normal_days_per_week', fallback_days_per_week);\nfor (const year of years)\n\tif (absent.filter((date) => date >= year && date < add_months(year, 12)).length > working * max_absent_share)\n\t\tthrow 'Absent without leave on more than ' + max_absent_share * 100 + ' per cent of the working days of the service year beginning ' + year + ': no annual leave is due for it.';\nif (ctx.event.operation !== 'create') return true;\n// EA s.60E(3B): leave of absence without pay exceeding thirty days in the aggregate in any twelve months is disregarded in computing the length of service.\nconst unpaid = ctx.reads.leave_catalog_entry;\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst slotsOf = (id) => get(grouped, String(id), []);\nconst slots = unpaid\n\t.flatMap((row) => slotsOf(row.id).map((slot) => String(slot.incurred_on)))\n\t.filter((date) => date < dates.at(0))\n\t.toSorted();\nconst reach = 2 * lookup.service_unpaid_leave_ignored_after_days;\nlet until = '';\nlet disregarded = 0;\nfor (let at = 0; at < slots.length; at += 1) {\n\tif (at + reach < slots.length && slots.at(at + reach) < add_months(slots.at(at), 12)) until = add_months(slots.at(at), 12);\n\tif (slots.at(at) < until) disregarded += 1;\n}\nif (disregarded === 0) return true;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? lookup.part_time_service_bands : lookup.service_bands;\nconst [opening] = bands;\nconst due = (months) =>\n\tmonths < opening.service_months\n\t\t? Math.round((opening.days * months) / opening.service_months)\n\t\t: bands.filter((band) => band.service_months <= months).at(-1).days;\nconst periods = get(first(ctx.reads.employee_balance), 'account.leave.ANNUAL_LEAVE', {});\nfor (const year of years) {\n\tconst held = Object.hasOwn(periods, 'MY.S.' + year) ? periods['MY.S.' + year] : {};\n\tconst from = dates.find((date) => yearOf(date) === year);\n\tconst net = Math.max(0, calendar_completed_months(add_days(started, Math.floor(disregarded / 2)), from));\n\tconst left = Math.min(get(held, 'entitled', 0), due(net)) + get(held, 'carried', 0) - get(held, 'used', 0);\n\tif (dates.filter((date) => yearOf(date) === year).length / 2 > left)\n\t\tthrow 'Unpaid leave of more than ' + lookup.service_unpaid_leave_ignored_after_days + ' days does not count as service for annual leave: ' + left + ' days are left.';\n}\nreturn true;",
 					"order": 901
 				},
 				"PATERNITY_QUALIFYING_SERVICE": {
@@ -3783,21 +3767,10 @@
 							},
 							"fields": ["code", "lookup"],
 							"limit": 1
-						},
-						"employee_contract": {
-							"where": {
-								"id": {
-									"eq": {
-										"var": "ctx.entry.employment_id"
-									}
-								}
-							},
-							"fields": ["service_started_on", "effective_range"],
-							"limit": 1
 						}
 					},
 					"condition": "return get(first(ctx.reads.leave_catalog), 'code', '') === 'PATERNITY_LEAVE';",
-					"validate": "// EA s.60FA(3)(a): employed by the same employer at least twelve months immediately before the leave commences.\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst from = get(ctx.entry, 'leave_catalog_entry_day', [])\n\t.map((slot) => String(slot.incurred_on))\n\t.toSorted()\n\t.at(0);\nconst needed = first(ctx.reads.leave_catalog).lookup.eligibility.min_service_months;\nif (calendar_completed_months(started, from) < needed)\n\tthrow 'Paternity leave needs ' + needed + ' months with this employer before it begins.';\nreturn true;",
+					"validate": "// EA s.60FA(3)(a): employed by the same employer at least twelve months immediately before the leave commences.\nconst contract = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst from = get(ctx.entry, 'leave_catalog_entry_day', [])\n\t.map((slot) => String(slot.incurred_on))\n\t.toSorted()\n\t.at(0);\nconst needed = first(ctx.reads.leave_catalog).lookup.eligibility.min_service_months;\nif (calendar_completed_months(started, from) < needed)\n\tthrow 'Paternity leave needs ' + needed + ' months with this employer before it begins.';\nreturn true;",
 					"order": 902
 				}
 			},
@@ -3994,7 +3967,7 @@
 						"type": "object",
 						"title": "Statutory declarations",
 						"additionalProperties": false,
-						"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+						"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 						"properties": {
 							"EPF": {
 								"type": "object",
@@ -4260,7 +4233,7 @@
 						"description": "The recorded ground for the separation; statutory notices and final-pay exclusions read it."
 					}
 				},
-				"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Payroll, agreed-term and departure details are top-level fields; life events stay in events and statutory declarations under statutory. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+				"description": "Additional local compliance data on the employment, stored as employee_extension_data. Payroll, agreed-term and departure details are top-level fields; life events stay in events and statutory declarations under statutory. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 			},
 			"ledger": {
 				"ytd_scope": "JURISDICTION"

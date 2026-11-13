@@ -14,7 +14,6 @@ import {
 	lawWith,
 	ledgerRows,
 	pack,
-	sealEvents,
 	syncAll,
 	uuid,
 	wholeDays,
@@ -70,7 +69,7 @@ const take = (t: Kit, dates: readonly string[]) =>
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
-					employment_id: idOf('employee_contract', uuid(6)),
+					employment_id: idOf('employment', uuid(6)),
 					catalog_code: CODE,
 					days: wholeDays(...dates)
 				})
@@ -141,18 +140,26 @@ describe('pay that steps down, on one row', () => {
 				near(yield* taken(t), 2 * DAY * share);
 			}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 		});
-	it.live('days taken in an illness do not stop the next version, which keeps it', () => {
+	it.live('days taken in an illness do not stop a later change of terms, which keeps it', () => {
 		const event = { kind: 'LONG_ILLNESS', on: '2026-02-02' };
 		const ill = seedOf([event]);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, JUNE);
 			yield* t.run_due();
-			const next = yield* sealEvents(t, '2026-07-01', [event]);
-			const { employee_contract } = yield* storedQuery(t, {
-				employee_contract: { where: { id: { eq: next } }, fields: ['status'], limit: 1 }
+			yield* (yield* t.as(t.admin)).act({
+				'contract_terms.create': [
+					{
+						employment_id: idOf('employment', uuid(6)),
+						effective_from: '2026-07-01',
+						job_title: 'Reviewed'
+					}
+				]
 			});
-			assert.equal(employee_contract.rows[0]?.status, 'SEALED');
+			const { contract_terms } = yield* storedQuery(t, {
+				contract_terms: { where: { effective_from: { eq: '2026-07-01' } }, limit: 1 }
+			});
+			assert.equal(contract_terms.rows.length, 1);
 		}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 	});
 	it.live('an ended illness ends the count: the next day is at full pay', () => {
@@ -208,7 +215,7 @@ describe('a workplace case', () => {
 				'workplace_case_catalog_entry.create': [
 					{
 						entity_id: ENTITY,
-						employment_id: idOf('employee_contract', uuid(6)),
+						employment_id: idOf('employment', uuid(6)),
 						catalog_code: 'PERSONAL_DATA_BREACH',
 						kind: 'PERSONAL_DATA_BREACH',
 						opened_on: '2026-03-02',

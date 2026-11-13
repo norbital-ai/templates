@@ -38,7 +38,7 @@
 				? ctx.query({
 						entity: {
 							where: {
-								employee_contract: { some: { id: { eq: idOf('employee_contract', employment) } } }
+								employment: { some: { id: { eq: idOf('employment', employment) } } }
 							},
 							fields: ['settings_code'],
 							limit: 1

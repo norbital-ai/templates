@@ -6,9 +6,9 @@
 	"description": "Multi-country HR and payroll: law as dated changes, an append-only ledger, a linear subtotal chain and statutory obligations.",
 	"visibility": "public",
 	"counts": {
-		"models": 28,
+		"models": 30,
 		"apps": 9,
-		"automations": 5
+		"automations": 4
 	},
 	"tags": ["HR", "Finance", "Approvals"],
 	"name_zh": "人力资源管理",

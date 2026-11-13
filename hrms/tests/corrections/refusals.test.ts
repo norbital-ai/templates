@@ -1,4 +1,4 @@
-// What a correction of a paid period may not do: start a contract version mid-month, or hand an off-cycle run what
+// What a correction of a paid period may not do: date a change of terms mid-month, or hand an off-cycle run what
 // another run already took.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
@@ -11,16 +11,16 @@ const MONTHS = ['2026-01', '2026-02'] as const;
 const NOW = '2026-02-20T02:00:00.000Z';
 const seed = rostered(MONTHS);
 
-describe('a contract version sealed over a paid month', () => {
-	// a successor version starts on the first of a month (employee_contract `startsMidMonth`); only seeded versions split
-	// a month. The refusal is the behaviour, before and after the month is paid.
-	it.live('from the 16th: refused, a version starts on the first, and nothing is amended', () =>
+describe('a change of terms over a paid month', () => {
+	// a terms row is dated the first of a month, or the stint's first day: a run never prices a month on two sets of
+	// terms. The refusal is the behaviour, before and after the month is paid.
+	it.live('from the 16th: refused, a change starts on the first, and nothing is amended', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* pay(t, MONTHS[0]);
 			assert.equal(
 				(yield* refusal(raisedFrom(t, '2026-01-16', 3300))).key,
-				'errors.employee_contract_mid_month'
+				'errors.employment_change_date'
 			);
 			assert.deepEqual(yield* amendments(t), []);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))

@@ -27,7 +27,7 @@ export default model({
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: {
 			kind: 'ref',
-			to: 'employee_contract',
+			to: 'employment',
 			inverse: 'loan_catalog_entry_repayment'
 		},
 		loan_id: {

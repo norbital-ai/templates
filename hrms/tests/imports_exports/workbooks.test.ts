@@ -26,7 +26,7 @@ import {
 } from '../../src/lib/ui/workbook/holiday_workbook.ts';
 
 const entity = idOf('entity', '11111111-1111-4111-8111-111111111111');
-const employee = idOf('employee_contract', '22222222-2222-4222-8222-222222222222');
+const employee = idOf('employment', '22222222-2222-4222-8222-222222222222');
 const shift = idOf('shift_definition', '33333333-3333-4333-8333-333333333333');
 /** A law of the fixture's own: the catalogue rows the sheets below name, in force from the start of 2026. */
 const laws = lawsOf({

@@ -59,7 +59,7 @@ describe('what a run reads', () => {
 	for (const [model, rule] of Object.entries(RUN_INPUTS)) {
 		if (rule === 'amends')
 			it(`${model}: its write carries the amendment rows`, () =>
-				assert.match(sourceOf(model), /amendments(For|Of)\(|lawWrite\(/));
+				assert.match(sourceOf(model), /amendments(For|Of)\(|lawWrite\(|datedWrite\(/));
 		if (rule === 'refuses')
 			it(`${model}: a change paid periods were worked out on is refused`, () =>
 				assert.match(sourceOf(model), /paidUnder\(|payroll_run_id: \{ is_null: false \}/));

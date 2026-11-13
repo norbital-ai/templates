@@ -48,7 +48,7 @@ const slotsOf = (t: Kit, entry: Id<'leave_catalog_entry'>) =>
 const NOW = '2026-08-20T02:00:00.000Z';
 const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
 const PAYOUT = 100;
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const BALANCE = idOf('employee_balance', uuid(5));
 const TERMS = {
 	rate: { amount: 3120, unit: 'MONTHLY' },
@@ -107,7 +107,7 @@ const enter = (
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: EMPLOYMENT,
 					catalog_code: code,
 					encashment: options.encashment ?? true,
 					days: wholeDays(...dates)

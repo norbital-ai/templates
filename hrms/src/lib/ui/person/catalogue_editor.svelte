@@ -24,7 +24,7 @@
 			? null
 			: ctx.query({
 					claim_catalog_entry: {
-						where: { employment_id: { eq: idOf('employee_contract', employmentId) } },
+						where: { employment_id: { eq: idOf('employment', employmentId) } },
 						fields: ['catalog_code', 'quantity', 'incurred_on'],
 						limit: 10000
 					}

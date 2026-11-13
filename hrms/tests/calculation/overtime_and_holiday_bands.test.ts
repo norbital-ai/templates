@@ -87,7 +87,7 @@ describe('a holiday on the roster', () => {
 	);
 	it.live('a holiday naming one person is theirs alone: a colleague works an ordinary day', () => {
 		const base = seed(WORK, 8);
-		const [contract] = base.employee_contract ?? [];
+		const [profile] = base.employee_profile ?? [];
 		const [day] = base.roster_entry ?? [];
 		const two = {
 			...base,
@@ -97,16 +97,24 @@ describe('a holiday on the roster', () => {
 			],
 			employee_profile: [
 				...(base.employee_profile ?? []),
-				{ id: uuid(904), user_id: uuid(903), name: 'Second' }
+				{ ...profile, id: uuid(904), user_id: uuid(903), name: 'Second' }
 			],
 			employee_balance: [
 				...(base.employee_balance ?? []),
 				{ id: uuid(905), employee_id: uuid(904), account: {} }
 			],
-			employee_contract: [
-				...(base.employee_contract ?? []),
-				{ ...contract, id: uuid(906), employee_id: uuid(904), employee_number: 'W2' }
-			],
+			employment: (base.employment ?? []).flatMap((row) => [
+				row,
+				{ ...row, id: uuid(906), employee_id: uuid(904), employee_number: 'W2' }
+			]),
+			contract_terms: (base.contract_terms ?? []).flatMap((row) => [
+				row,
+				{ ...row, id: uuid(908), employment_id: uuid(906) }
+			]),
+			statutory_parameters: (base.statutory_parameters ?? []).flatMap((row) => [
+				row,
+				{ ...row, id: uuid(909), employment_id: uuid(906) }
+			]),
 			roster_entry: [
 				...(base.roster_entry ?? []),
 				{ ...day, id: uuid(907), employment_id: uuid(906) }

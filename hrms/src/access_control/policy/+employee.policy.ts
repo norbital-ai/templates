@@ -36,16 +36,19 @@ export default policy({
 				}
 			}
 		},
-		employee_contract: { outputs: { default: { where: OWN_EMPLOYMENT } } },
+		employment: { outputs: { default: { where: OWN_EMPLOYMENT } } },
+		contract_terms: { outputs: { default: { where: OWN } } },
+		statutory_parameters: { outputs: { default: { where: OWN } } },
+		dependant: { outputs: { default: { where: { employee_id: { is: OWN_EMPLOYEE } } } } },
 		entity: {
 			outputs: {
-				self_service: { where: { employee_contract: { some: OWN_EMPLOYMENT } } }
+				self_service: { where: { employment: { some: OWN_EMPLOYMENT } } }
 			}
 		},
 		holiday: {
 			outputs: {
 				default: {
-					where: { entity_id: { is: { employee_contract: { some: OWN_EMPLOYMENT } } } }
+					where: { entity_id: { is: { employment: { some: OWN_EMPLOYMENT } } } }
 				}
 			}
 		},

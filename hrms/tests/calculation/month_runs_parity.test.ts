@@ -6,10 +6,10 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { ENTITY, leaveCreate, pack, storedQuery, uuid, wholeDays, workspace } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const SALARY = 8000;
 const BONUS = 20_000;
 type Seed = ReturnType<typeof pack>;
@@ -33,9 +33,14 @@ const seedOf = (from: string): Seed => {
 	);
 	return {
 		...seed,
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
+		employment: (seed.employment ?? []).map((row) => ({
 			...row,
 			effective_range: { from, to: null }
+		})),
+		contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: from })),
+		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+			...row,
+			effective_from: from
 		}))
 	};
 };
@@ -69,7 +74,7 @@ const bonus = (t: Kit, amount: number, on: string) =>
 			'adhoc_catalog_entry.create': [
 				{
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: EMPLOYMENT,
 					catalog_code: 'BONUS',
 					description: 'Bonus',
 					quantity: String(amount),
@@ -240,7 +245,7 @@ describe('twice a month', () => {
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						catalog_code: 'NPL',
 						days: wholeDays(...dates)
 					})
@@ -278,12 +283,9 @@ describe('twice a month', () => {
 							workspace({
 								seed: {
 									...once,
-									employee_contract: (once.employee_contract ?? []).map((row) => ({
+									contract_terms: (once.contract_terms ?? []).map((row) => ({
 										...row,
-										terms: {
-											...objectValue(row.terms),
-											rate: { amount: halves.wages, unit: 'MONTHLY' }
-										}
+										rate: { amount: halves.wages, unit: 'MONTHLY' }
 									}))
 								},
 								now: NOW
@@ -349,7 +351,7 @@ describe('a second salary in a pay month', () => {
 	/** The same person moves to a sister company on 16 June. */
 	const moved = (): Seed => {
 		const seed = seedOf('2026-04-01');
-		const contract = seed.employee_contract?.[0] ?? {};
+		const next = { from: '2026-06-16', to: null };
 		const [company = {}] = seed.entity ?? [];
 		const [change = {}] = seed.entity_change ?? [];
 		return {
@@ -364,16 +366,25 @@ describe('a second salary in a pay month', () => {
 				...(seed.pay_group ?? []),
 				...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
 			],
-			employee_contract: [
-				{ ...contract, effective_range: { from: '2026-04-01', to: '2026-06-15' } },
+			// the first stint ends, and a second starts the next day on the same terms
+			employment: (seed.employment ?? []).flatMap((row) => [
+				{ ...row, effective_range: { from: '2026-04-01', to: '2026-06-15' } },
+				{ ...row, id: uuid(907), entity_id: OTHER, effective_range: next }
+			]),
+			contract_terms: (seed.contract_terms ?? []).flatMap((row) => [
+				row,
 				{
-					...contract,
-					id: uuid(907),
-					entity_id: OTHER,
-					pay_group_id: uuid(908),
-					effective_range: { from: '2026-06-16', to: null }
+					...row,
+					id: uuid(909),
+					employment_id: uuid(907),
+					effective_from: next.from,
+					pay_group_id: uuid(908)
 				}
-			]
+			]),
+			statutory_parameters: (seed.statutory_parameters ?? []).flatMap((row) => [
+				row,
+				{ ...row, id: uuid(910), employment_id: uuid(907), effective_from: next.from }
+			])
 		};
 	};
 	const transfer = (t: Kit) =>
@@ -399,7 +410,7 @@ describe('a second salary in a pay month', () => {
 			const t = yield* TestWorkspace;
 			yield* transfer(t);
 			const { payslip } = yield* storedQuery(t, { payslip: { limit: 10 } });
-			// BASIC is each contract's salary; PRORATED is what its days employed leave of it
+			// BASIC is each stint's salary; PRORATED is what its days employed leave of it
 			const [first, second] = payslip.rows.map(
 				(row) =>
 					Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).checkpoints.find(

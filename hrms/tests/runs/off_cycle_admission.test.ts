@@ -7,9 +7,9 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { pay } from '../amendment_kit.ts';
-import { ENTITY, pack, refusal, storedQuery, uuid, workspace } from '../kit.ts';
+import { EMPLOYMENT, ENTITY, pack, refusal, storedQuery, uuid, workspace } from '../kit.ts';
 
-const CONTRACT = idOf('employee_contract', uuid(6));
+const STINT = idOf('employment', EMPLOYMENT);
 const JUNE = '2026-06-20T02:00:00.000Z';
 type Seed = ReturnType<typeof pack>;
 /** One person on 4,800 a month from January, to `to` if named. */
@@ -31,9 +31,17 @@ const seedOf = (to: string | null = null): Seed => {
 	);
 	return {
 		...seed,
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
+		employment: (seed.employment ?? []).map((row) => ({
 			...row,
 			effective_range: { from: '2026-01-01', to }
+		})),
+		contract_terms: (seed.contract_terms ?? []).map((row) => ({
+			...row,
+			effective_from: '2026-01-01'
+		})),
+		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+			...row,
+			effective_from: '2026-01-01'
 		}))
 	};
 };
@@ -43,7 +51,7 @@ const enter = (t: Kit, item: string, quantity: number, on: string) =>
 			'adhoc_catalog_entry.create': [
 				{
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: STINT,
 					catalog_code: item,
 					description: 'Correction',
 					quantity: String(quantity),
@@ -85,7 +93,9 @@ describe('an off-cycle run', () => {
 
 	it.live('in a transfer month is refused: on-cycle, each company stands alone', () => {
 		const base = seedOf();
-		const contract = base.employee_contract?.[0] ?? {};
+		const stint = base.employment?.[0] ?? {};
+		const [terms = {}] = base.contract_terms ?? [];
+		const [parameters = {}] = base.statutory_parameters ?? [];
 		const [company = {}] = base.entity ?? [];
 		const [change = {}] = base.entity_change ?? [];
 		const OTHER = idOf('entity', uuid(900));
@@ -96,14 +106,23 @@ describe('an off-cycle run', () => {
 				...(base.entity_change ?? []),
 				{ ...change, id: uuid(902), entity_id: OTHER }
 			],
-			employee_contract: [
-				{ ...contract, effective_range: { from: '2026-01-01', to: '2026-06-15' } },
+			// the stint with the first company ends mid-June, and a new one with its sister starts the next day
+			employment: [
+				{ ...stint, effective_range: { from: '2026-01-01', to: '2026-06-15' } },
 				{
-					...contract,
+					...stint,
 					id: uuid(907),
 					entity_id: OTHER,
 					effective_range: { from: '2026-06-16', to: null }
 				}
+			],
+			contract_terms: [
+				...(base.contract_terms ?? []),
+				{ ...terms, id: uuid(914), employment_id: uuid(907), effective_from: '2026-06-16' }
+			],
+			statutory_parameters: [
+				...(base.statutory_parameters ?? []),
+				{ ...parameters, id: uuid(915), employment_id: uuid(907), effective_from: '2026-06-16' }
 			]
 		};
 		return Effect.gen(function* () {

@@ -7,7 +7,7 @@ export default model({
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'obligations' },
 		employee_id: { kind: 'ref', to: 'employee_profile', optional: true },
-		employment_id: { kind: 'ref', to: 'employee_contract', optional: true },
+		employment_id: { kind: 'ref', to: 'employment', optional: true },
 		title: { kind: 'text' },
 		due_on: { kind: 'date', optional: true },
 		fulfilled_on: { kind: 'date', optional: true },

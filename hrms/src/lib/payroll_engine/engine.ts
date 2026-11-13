@@ -891,7 +891,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 					incurred_on: coverage.from,
 					coverage,
 					source: input.employment,
-					model: 'employee_contract'
+					model: 'employment'
 				})
 			);
 		const subtotalLines: PayLine[] = [];
@@ -1245,7 +1245,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 	const finalValues = new Map<string, number>();
 	const finalResults: SubtotalResult[] = [];
 	const linesBy = Map.groupBy(
-		lines.filter((l) => l.party === 'EMPLOYEE' && l.source_id.model !== 'employee_contract'),
+		lines.filter((l) => l.party === 'EMPLOYEE' && l.source_id.model !== 'employment'),
 		(l) => l.subtotal
 	);
 	for (const subtotal of chain) {

@@ -21,15 +21,20 @@ const NOW = '2026-03-20T02:00:00.000Z';
 const MONTHS = ['2026-02', '2026-03'];
 const base = () => rostered(MONTHS);
 type Seed = ReturnType<typeof base>;
-const FIRST = idOf('employee_contract', uuid(6));
+const FIRST = idOf('employment', uuid(6));
 const SECOND = uuid(906);
 const DAY = '2026-02-10';
 
 /** A second person in the same company, on the same roster. */
 const twoPeople = (): Seed => {
 	const seed = base();
-	const [contract] = seed.employee_contract ?? [];
-	assert.ok(contract !== undefined);
+	const [profile] = seed.employee_profile ?? [];
+	const [stint] = seed.employment ?? [];
+	const [terms] = seed.contract_terms ?? [];
+	const [parameters] = seed.statutory_parameters ?? [];
+	assert.ok(
+		profile !== undefined && stint !== undefined && terms !== undefined && parameters !== undefined
+	);
 	return {
 		...seed,
 		sys_user: [
@@ -38,15 +43,23 @@ const twoPeople = (): Seed => {
 		],
 		employee_profile: [
 			...(seed.employee_profile ?? []),
-			{ id: uuid(904), user_id: uuid(903), name: 'Second' }
+			{ ...profile, id: uuid(904), user_id: uuid(903), name: 'Second' }
 		],
 		employee_balance: [
 			...(seed.employee_balance ?? []),
 			{ id: uuid(905), employee_id: uuid(904), account: {} }
 		],
-		employee_contract: [
-			...(seed.employee_contract ?? []),
-			{ ...contract, id: SECOND, employee_id: uuid(904), employee_number: 'W2' }
+		employment: [
+			...(seed.employment ?? []),
+			{ ...stint, id: SECOND, employee_id: uuid(904), employee_number: 'W2' }
+		],
+		contract_terms: [
+			...(seed.contract_terms ?? []),
+			{ ...terms, id: uuid(914), employment_id: SECOND }
+		],
+		statutory_parameters: [
+			...(seed.statutory_parameters ?? []),
+			{ ...parameters, id: uuid(915), employment_id: SECOND }
 		],
 		roster_entry: [
 			...(seed.roster_entry ?? []),

@@ -21,7 +21,7 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 type Person = {
 	readonly started?: string;
 	readonly gender?: 'FEMALE' | 'MALE';
@@ -45,11 +45,18 @@ const seedOf = ({ started = '2024-01-01', gender = 'FEMALE', events = [] }: Pers
 	);
 	return {
 		...seed,
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
+		employee_profile: (seed.employee_profile ?? []).map((row) => ({ ...row, gender })),
+		employment: (seed.employment ?? []).map((row) => ({
 			...row,
 			service_started_on: started,
-			effective_range: { from: started, to: null },
-			payroll: { date_of_birth: '1990-01-01', gender, marital_status: 'MARRIED' }
+			effective_range: { from: started, to: null }
+		})),
+		// the stint's first rows are dated with it
+		contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: started })),
+		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+			...row,
+			effective_from: started,
+			marital_status: 'MARRIED'
 		}))
 	};
 };
@@ -65,7 +72,7 @@ const take = (t: Kit, code: string, days: readonly string[]) =>
 				'leave_catalog_entry.create': [
 					leaveCreate({
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						catalog_code: code,
 						days: wholeDays(...days)
 					})
@@ -95,16 +102,26 @@ describe('cumulative service', () => {
 			const base = seedOf({ started: '2025-11-10', gender: 'MALE', events: born('2026-11-02') });
 			const seed = {
 				...base,
-				employee_profile: [
-					{ id: uuid(4), user_id: uuid(3), name: 'Worker', cumulative_service: true }
-				],
-				employee_contract: (base.employee_contract ?? []).flatMap((row) => [
+				employee_profile: (base.employee_profile ?? []).map((row) => ({
+					...row,
+					cumulative_service: true
+				})),
+				// the stint before the rehire, with the rows of its own first day
+				employment: (base.employment ?? []).flatMap((row) => [
 					{
 						...row,
 						id: uuid(60),
 						service_started_on: '2024-01-02',
 						effective_range: { from: '2024-01-02', to: '2025-11-05' }
 					},
+					row
+				]),
+				contract_terms: (base.contract_terms ?? []).flatMap((row) => [
+					{ ...row, id: uuid(61), employment_id: uuid(60), effective_from: '2024-01-02' },
+					row
+				]),
+				statutory_parameters: (base.statutory_parameters ?? []).flatMap((row) => [
+					{ ...row, id: uuid(62), employment_id: uuid(60), effective_from: '2024-01-02' },
 					row
 				])
 			};

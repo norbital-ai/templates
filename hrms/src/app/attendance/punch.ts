@@ -25,12 +25,12 @@ const pending = (outcome: { readonly kind: string; readonly code?: string }) =>
  */
 export const punchWork = Effect.fnUntraced(function* (
 	ctx: Pick<PageContext, 'query' | 'act'>,
-	employment_id: Id<'employee_contract'>,
+	employment_id: Id<'employment'>,
 	kind: 'FACE' | 'MANUAL'
 ) {
 	const capturedAt = yield* Clock.currentTimeMillis;
 	const assignment = yield* ctx.query({
-			employee_contract: {
+			employment: {
 				output: 'kiosk',
 				where: { id: { eq: employment_id } },
 				fields: ['entity_id'],
@@ -38,13 +38,13 @@ export const punchWork = Effect.fnUntraced(function* (
 			},
 			entity: {
 				output: 'kiosk',
-				where: { employee_contract: { some: { id: { eq: employment_id } } } },
+				where: { employment: { some: { id: { eq: employment_id } } } },
 				fields: ['settings_code', 'time_zone'],
 				limit: 1
 			}
 		}),
 		company = assignment.entity.rows[0],
-		employment = assignment.employee_contract.rows[0];
+		employment = assignment.employment.rows[0];
 	if (company === undefined || employment === undefined)
 		throw new Error('Assign the person to a legal employer before recording attendance.');
 	const policies = yield* ctx.query({

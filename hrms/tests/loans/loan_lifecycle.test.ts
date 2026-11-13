@@ -29,7 +29,7 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-08-20T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const LOAN = idOf('loan_catalog_entry', uuid(300));
 const FLOOR = 40;
 const TERMS = {
@@ -76,7 +76,7 @@ const repay = (t: Kit, amount: number, date: string) =>
 			'loan_catalog_entry_repayment.create': [
 				{
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: EMPLOYMENT,
 					loan_id: LOAN,
 					amount: String(amount),
 					paid_on: date
@@ -368,7 +368,7 @@ describe('a loan', () => {
 	);
 });
 
-// The contract page settles a leaver's loans (`recoverLoans`, employee_contract/+representation.svelte): final pay
+// Ending a stint settles a leaver's loans (`recoverLoans`, src/lib/ui/person/stint_end.svelte): final pay
 // repays what `loanRecovery` allows under the entity's floor, the rest goes on a new schedule after the last day, and
 // HR gets one task. The page is not reachable from here, so the test sends the same acts in the same order. The exit
 // cancelled, the routine that follows it (docs/0007 §4) waives the task and puts an unpaid final settlement back on
@@ -378,9 +378,9 @@ describe('a leaver’s loan', () => {
 	const ends = (t: Kit, to: string | null) =>
 		Effect.gen(function* () {
 			return yield* (yield* t.as(t.admin)).act({
-				'employee_contract.update': [
+				'employment.update': [
 					{
-						target: yield* current(t, 'employee_contract', CONTRACT),
+						target: yield* current(t, 'employment', EMPLOYMENT),
 						set: {
 							effective_range: {
 								from: '2025-01-01',
@@ -395,10 +395,10 @@ describe('a leaver’s loan', () => {
 	const task = (plan: { readonly remaining: number }) => ({
 		entity_id: ENTITY,
 		employee_id: idOf('employee_profile', uuid(4)),
-		employment_id: CONTRACT,
+		employment_id: EMPLOYMENT,
 		title: `Recover ${plan.remaining} from W1`,
 		due_on: '2026-10-01',
-		occurrence_key: `LOAN_RECOVERY:${CONTRACT}:exit:${LAST}`
+		occurrence_key: `LOAN_RECOVERY:${EMPLOYMENT}:exit:${LAST}`
 	});
 	const tasks = (t: Kit) =>
 		storedQuery(t, { obligation: { limit: 200 } }).pipe(
@@ -408,7 +408,7 @@ describe('a leaver’s loan', () => {
 					.map((row) => [row.state, String(row.due_on)])
 			)
 		);
-	/** The loan scheduled and one month run, the contract ended, and the page's settlement of what is outstanding. */
+	/** The loan scheduled and one month run, the stint ended, and the page's settlement of what is outstanding. */
 	const settled = (t: Kit) =>
 		Effect.gen(function* () {
 			const admin = yield* t.as(t.admin);
@@ -449,7 +449,7 @@ describe('a leaver’s loan', () => {
 				'loan_catalog_entry_repayment.create': [
 					{
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						loan_id: LOAN,
 						amount: String(plan.proposed),
 						paid_on: LAST,
@@ -588,7 +588,7 @@ describe('a loan row with an eligibility rule', () => {
 				'loan_catalog_entry.create': [
 					{
 						entity_id: ENTITY,
-						employment_id: CONTRACT,
+						employment_id: EMPLOYMENT,
 						catalog_code: FESTIVE,
 						quantity: '1000',
 						repayment_period: { from: '2026-09-01', to }

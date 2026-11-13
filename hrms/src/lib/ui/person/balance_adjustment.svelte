@@ -39,9 +39,9 @@
 	let amount = $state<number | null>(null);
 	let note = $state('');
 	let saving = $state(false);
-	const contracts = ctx.query({
-		employee_contract: {
-			where: { employee_id: { eq: employeeId }, status: { eq: 'SEALED' } },
+	const stints = ctx.query({
+		employment: {
+			where: { employee_id: { eq: employeeId } },
 			fields: ['effective_range', 'entity_id'],
 			limit: 1000,
 			entity_id: { fields: ['settings_code'] }
@@ -49,20 +49,18 @@
 	});
 	const laws = pageLaws(ctx, () => [
 		...new Set(
-			(contracts.current?.employee_contract.rows ?? []).flatMap(
-				(row) => row.entity_id?.settings_code ?? []
-			)
+			(stints.current?.employment.rows ?? []).flatMap((row) => row.entity_id?.settings_code ?? [])
 		)
 	]);
-	/** The law of the contract in force on the date: its rows are the ones a balance can be adjusted on. */
+	/** The law of the stint covering the date: its rows are the ones a balance can be adjusted on. */
 	const law = $derived.by(() => {
 		const day = String(date);
-		const contract = (contracts.current?.employee_contract.rows ?? []).find(
+		const stint = (stints.current?.employment.rows ?? []).find(
 			(row) =>
 				String(row.effective_range.from) <= day &&
 				(row.effective_range.to == null || day <= String(row.effective_range.to))
 		);
-		return laws.on(contract?.entity_id?.settings_code, day);
+		return laws.on(stint?.entity_id?.settings_code, day);
 	});
 	const optionsOf = (family: 'leave' | 'claim', group: string) =>
 		(law?.rows[`${family}_catalog`] ?? [])
@@ -165,7 +163,7 @@
 				{options}
 				value={chosen}
 				disabled={saving}
-				loading={contracts.loading || laws.loading}
+				loading={stints.loading || laws.loading}
 				on_change={(next) => (chosen = next)}
 			/>
 		</label>

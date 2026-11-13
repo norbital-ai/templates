@@ -28,7 +28,7 @@ import {
 
 type Seed = ReturnType<typeof pack>;
 const NOW = '2026-02-20T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const TERMS = {
 	rate: { amount: 3120, unit: 'MONTHLY' },
 	normal_hours_per_day: 8,
@@ -95,9 +95,12 @@ const withPeople = (seed: Seed, count: number): Seed => {
 	const [user] = seed.sys_user ?? [];
 	const [profile] = seed.employee_profile ?? [];
 	const [balance] = seed.employee_balance ?? [];
-	const [contract] = seed.employee_contract ?? [];
+	const [stint] = seed.employment ?? [];
+	const [agreed] = seed.contract_terms ?? [];
+	const [told] = seed.statutory_parameters ?? [];
 	assert.ok(user !== undefined && profile !== undefined);
-	assert.ok(balance !== undefined && contract !== undefined);
+	assert.ok(balance !== undefined && stint !== undefined);
+	assert.ok(agreed !== undefined && told !== undefined);
 	const more = Array.from({ length: count - 1 }, (_, index) => index + 1);
 	const id = (person: number, part: number) => uuid(9000 + person * 10 + part);
 	return {
@@ -114,14 +117,22 @@ const withPeople = (seed: Seed, count: number): Seed => {
 			...(seed.employee_balance ?? []),
 			...more.map((n) => ({ ...balance, id: id(n, 5), employee_id: id(n, 4) }))
 		],
-		employee_contract: [
-			...(seed.employee_contract ?? []),
+		employment: [
+			...(seed.employment ?? []),
 			...more.map((n) => ({
-				...contract,
+				...stint,
 				id: id(n, 6),
 				employee_id: id(n, 4),
 				employee_number: `W${n + 1}`
 			}))
+		],
+		contract_terms: [
+			...(seed.contract_terms ?? []),
+			...more.map((n) => ({ ...agreed, id: id(n, 7), employment_id: id(n, 6) }))
+		],
+		statutory_parameters: [
+			...(seed.statutory_parameters ?? []),
+			...more.map((n) => ({ ...told, id: id(n, 8), employment_id: id(n, 6) }))
 		],
 		roster_entry: [
 			...(seed.roster_entry ?? []),
@@ -136,7 +147,7 @@ const withPeople = (seed: Seed, count: number): Seed => {
 	};
 };
 /** The second person `withPeople` adds. */
-const SECOND = { employee: uuid(9014), contract: uuid(9016) };
+const SECOND = { employee: uuid(9014), employment: uuid(9016) };
 
 const run = (t: Kit, period = '2026-02') =>
 	t
@@ -250,7 +261,7 @@ describe('an absence, read from the roster by a real run', () => {
 							'leave_catalog_entry.create': [
 								leaveCreate({
 									entity_id: ENTITY,
-									employment_id: CONTRACT,
+									employment_id: EMPLOYMENT,
 									catalog_code: 'NPL',
 									days: wholeDays(DAY)
 								})
@@ -410,13 +421,13 @@ describe('a roster the employment does not cover', () => {
 		const seed = seedOf(days);
 		return {
 			...seed,
-			employee_contract: (seed.employee_contract ?? []).map((row) => ({
+			employment: (seed.employment ?? []).map((row) => ({
 				...row,
 				effective_range: { from: '2025-01-01', to: LAST }
 			}))
 		};
 	};
-	// the month was planned before the exit was sealed: the days after it are still on the roster
+	// the month was planned before the exit was known: the days after it are still on the roster
 	const planned = month().map((day) =>
 		day.date <= LAST || day.shift !== WORK
 			? day
@@ -443,7 +454,7 @@ describe('one roster day a person', () => {
 						caller.act({
 							'roster_entry.create': [
 								{
-									employment_id: CONTRACT,
+									employment_id: EMPLOYMENT,
 									work_date: DAY,
 									shift_definition_id: idOf('shift_definition', WORK)
 								}
@@ -476,7 +487,7 @@ describe('a kiosk punch', () => {
 				caller.act({
 					'roster_entry.create': [
 						{
-							employment_id: CONTRACT,
+							employment_id: EMPLOYMENT,
 							work_date: DAY,
 							actual_worked_intervals: [...intervals]
 						}
@@ -567,9 +578,7 @@ describe('a work event', () => {
 							catalog_code: code,
 							from,
 							to,
-							...(employment === undefined
-								? {}
-								: { employment_id: idOf('employee_contract', employment) })
+							...(employment === undefined ? {} : { employment_id: idOf('employment', employment) })
 						}
 					]
 				})
@@ -619,10 +628,10 @@ describe('a work event', () => {
 		const seed = heat(2);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* record(t, EVENT, '2026-02-01', '2026-02-28', SECOND.contract);
+			yield* record(t, EVENT, '2026-02-01', '2026-02-28', SECOND.employment);
 			yield* run(t);
 			assert.equal(line(yield* slipOf(t), ALLOWANCE), 0);
-			assert.ok(line(yield* slipOf(t, '2026-02', SECOND.contract), ALLOWANCE) > 0);
+			assert.ok(line(yield* slipOf(t, '2026-02', SECOND.employment), ALLOWANCE) > 0);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 
@@ -652,7 +661,7 @@ describe('a work event', () => {
 				yield* syncAll(t);
 				assert.equal(yield* entitled(t, uuid(4)), 0);
 				assert.equal(yield* entitled(t, SECOND.employee), 0);
-				yield* record(t, 'EMPLOYER_SHUTDOWN', '2026-02-02', '2026-02-06', SECOND.contract);
+				yield* record(t, 'EMPLOYER_SHUTDOWN', '2026-02-02', '2026-02-06', SECOND.employment);
 				yield* syncAll(t);
 				assert.equal(yield* entitled(t, uuid(4)), 0);
 				assert.equal(yield* entitled(t, SECOND.employee), 2);
@@ -747,7 +756,7 @@ describe('a holiday and the days around it', () => {
 					'leave_catalog_entry.create': [
 						leaveCreate({
 							entity_id: ENTITY,
-							employment_id: CONTRACT,
+							employment_id: EMPLOYMENT,
 							catalog_code: 'MEDICAL_LEAVE',
 							days: wholeDays('2026-02-09', HOLIDAY, '2026-02-11')
 						})

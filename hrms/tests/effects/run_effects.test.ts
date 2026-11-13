@@ -34,7 +34,7 @@ const base = lawWith(pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []), {
 });
 const seedOf = (engagement: string) => ({
 	...base,
-	employee_contract: (base.employee_contract ?? []).map((row) => ({ ...row, engagement }))
+	contract_terms: (base.contract_terms ?? []).map((row) => ({ ...row, engagement }))
 });
 const remittances = (engagement: string) =>
 	Effect.gen(function* () {

@@ -1,6 +1,6 @@
 // The law's effects are raised under the system identity, once, and only once their record stands: a leave entry's
-// whoever keyed it and not while it waits for approval, a contract's once per person however many versions or writes
-// follow. A contract's exit effects fire on an exit, never on the version a pay bump closes. The fixture law's rows are
+// whoever keyed it and not while it waits for approval, an employment's once per person however many dated changes or
+// writes follow. An employment's exit effects fire on an exit, never on a pay bump. The fixture law's rows are
 // varied where a mechanism needs a shape it does not seed: a notice on a leave entry, a registration keyed by the person.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
@@ -14,7 +14,6 @@ import {
 	lawWith,
 	leaveCreate,
 	pack,
-	sealEvents,
 	syncAll,
 	uuid,
 	wholeDays,
@@ -32,8 +31,7 @@ const terms = {
 };
 const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 const LEAVE = 'ANNUAL_LEAVE';
-const contract = base.employee_contract?.[0];
-assert.ok(contract !== undefined);
+const EMPLOYMENT = idOf('employment', uuid(6));
 /** A notice the law raises on every entry of one leave row, due on its first day. */
 const notice: JsonObject = {
 	name: 'LEAVE_NOTICE',
@@ -81,7 +79,7 @@ const ask = (by: Caller, date: string) =>
 		'leave_catalog_entry.create': [
 			leaveCreate({
 				entity_id: ENTITY,
-				employment_id: idOf('employee_contract', String(contract.id)),
+				employment_id: EMPLOYMENT,
 				catalog_code: LEAVE,
 				days: wholeDays(date)
 			})
@@ -162,7 +160,7 @@ describe("the law's effects on a leave entry", () => {
 	);
 });
 
-describe("the law's effects on a contract version", () => {
+describe("the law's effects on an employment", () => {
 	const REGISTRATION = 'EPF_EMPLOYEE_REGISTRATION';
 	const registration = lawAt('MY', '2026-03-15').rows.registered_effect.find(
 		(row) => row.code === REGISTRATION
@@ -173,7 +171,7 @@ describe("the law's effects on a contract version", () => {
 		"'REGISTRATION:' + r.employee_id"
 	);
 	assert.notEqual(effects, registration.effects);
-	/** The registration task keyed by the person, not by the contract version. */
+	/** The registration task keyed by the person, not by the stint. */
 	const contracts = workspace({
 		seed: lawWith(base, {
 			registered_effect: {
@@ -196,36 +194,47 @@ describe("the law's effects on a contract version", () => {
 		);
 	const registrations = (all: readonly string[]) =>
 		all.filter((key) => key.startsWith('REGISTRATION:'));
+	/** A pay bump from the first of a month: one dated row of what was agreed. */
+	const bump = (t: Kit, from: string, amount: number) =>
+		t.as(t.admin).pipe(
+			Effect.andThen((admin) =>
+				admin.act({
+					'contract_terms.create': [
+						{ employment_id: EMPLOYMENT, effective_from: from, rate: { amount, unit: 'MONTHLY' } }
+					]
+				})
+			)
+		);
 
-	it.live('raises its duties once, and a second write of the same version raises nothing', () =>
+	it.live('raises its duties once, and a second write of the same change raises nothing', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* sealEvents(t, '2026-03-02', []);
+			yield* bump(t, '2026-03-01', 5500);
 			yield* settle(t);
 			const first = yield* keys(t);
 			assert.equal(registrations(first).length, 1);
 			assert.equal(new Set(first).size, first.length);
-			const { employee_contract } = yield* storedQuery(t, {
-				employee_contract: { where: { status: { eq: 'SEALED' } }, limit: 10 }
+			const { contract_terms } = yield* storedQuery(t, {
+				contract_terms: { where: { effective_from: { eq: '2026-03-01' } }, limit: 10 }
 			});
-			const version = employee_contract.rows.find((row) => row.effective_range.to === null);
-			assert.ok(version !== undefined);
+			const [change] = contract_terms.rows;
+			assert.ok(change !== undefined);
 			yield* (yield* t.as(t.admin)).act({
-				'employee_contract.update': [{ target: version, set: { reason: 'Details confirmed' } }]
+				'contract_terms.update': [{ target: change, set: { job_title: 'Details confirmed' } }]
 			});
 			yield* settle(t);
 			assert.deepEqual(yield* keys(t), first);
 		}).pipe(Effect.provide(contracts))
 	);
 
-	it.live('a later version of the same person raises nothing more and fails nothing', () =>
+	it.live('a later change of the same person raises nothing more and fails nothing', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* sealEvents(t, '2026-04-01', []);
+			yield* bump(t, '2026-04-01', 5500);
 			yield* settle(t);
 			const raised = registrations(yield* keys(t));
 			assert.equal(raised.length, 1);
-			yield* sealEvents(t, '2026-05-01', []);
+			yield* bump(t, '2026-05-01', 6000);
 			yield* settle(t);
 			const after = yield* keys(t);
 			assert.equal(new Set(after).size, after.length, 'each task once');
@@ -233,12 +242,12 @@ describe("the law's effects on a contract version", () => {
 		}).pipe(Effect.provide(contracts))
 	);
 
-	it.live('a pay bump fires no exit effect for the version it closes', () =>
+	it.live('a pay bump fires no exit effect: it ends no stint', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* sealEvents(t, '2026-03-02', []);
+			yield* bump(t, '2026-03-01', 5500);
 			yield* settle(t);
-			// every exit duty names its exit: none was raised for the version the bump closed
+			// every exit duty names its exit: none was raised for the terms the bump replaced
 			assert.deepEqual(
 				(yield* keys(t)).filter((key) => key.includes(':exit:')),
 				[]

@@ -6,13 +6,15 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { DateTime, Effect, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
+	EMPLOYMENT,
 	ENTITY,
+	TERMS as TERMS_ROW,
 	accountsIn,
 	lawWith,
 	leaveCreate,
@@ -34,8 +36,10 @@ import {
 const NOW = '2026-11-20T02:00:00.000Z';
 const RATE = 3120;
 const FLAT = 100;
-const FIRST = idOf('employee_contract', uuid(6));
-const SECOND = idOf('employee_contract', uuid(906));
+const FIRST = idOf('employment', EMPLOYMENT);
+const SECOND = idOf('employment', uuid(906));
+/** The row the hire's terms were keyed on. */
+const HIRED = idOf('contract_terms', TERMS_ROW);
 const PERSON = uuid(4);
 const OTHER_PERSON = uuid(904);
 const BALANCE = idOf('employee_balance', uuid(5));
@@ -57,7 +61,7 @@ const malaysia = (terms: JsonObject = TERMS, extension: JsonObject = {}): Seed =
 	lawWith(pack('MY', 'Asia/Kuala_Lumpur', terms, extension, [], []), {
 		leave_catalog: { ANNUAL_LEAVE: { payout: `return ${FLAT} * ctx.entry.quantity;` } }
 	});
-/** A second person in the same company and payroll. */
+/** A second person in the same company and payroll, on the same terms. */
 const twoPeople = (): Seed => {
 	const seed = malaysia();
 	return {
@@ -68,20 +72,33 @@ const twoPeople = (): Seed => {
 		],
 		employee_profile: [
 			...(seed.employee_profile ?? []),
-			{ id: OTHER_PERSON, user_id: uuid(903), name: 'Second' }
+			{
+				...(seed.employee_profile?.[0] ?? {}),
+				id: OTHER_PERSON,
+				user_id: uuid(903),
+				name: 'Second'
+			}
 		],
 		employee_balance: [
 			...(seed.employee_balance ?? []),
 			{ id: OTHER_BALANCE, employee_id: OTHER_PERSON, account: {} }
 		],
-		employee_contract: [
-			...(seed.employee_contract ?? []),
+		employment: [
+			...(seed.employment ?? []),
 			{
-				...(seed.employee_contract?.[0] ?? {}),
+				...(seed.employment?.[0] ?? {}),
 				id: SECOND,
 				employee_id: OTHER_PERSON,
 				employee_number: 'W2'
 			}
+		],
+		contract_terms: [
+			...(seed.contract_terms ?? []),
+			{ ...(seed.contract_terms?.[0] ?? {}), id: uuid(914), employment_id: SECOND }
+		],
+		statutory_parameters: [
+			...(seed.statutory_parameters ?? []),
+			{ ...(seed.statutory_parameters?.[0] ?? {}), id: uuid(915), employment_id: SECOND }
 		]
 	};
 };
@@ -166,105 +183,49 @@ const amendments = (t: Kit) =>
 const basicOf = (slip: { readonly breakdown: unknown }) =>
 	breakdown(slip).checkpoints.find((point) => point.code === 'BASIC')?.value;
 
-const contracts = (t: Kit, status: 'DRAFT' | 'SEALED' | 'VOID') =>
-	storedQuery(t, { employee_contract: { where: { status: { eq: status } }, limit: 100 } }).pipe(
-		Effect.map(({ employee_contract }) => employee_contract.rows)
-	);
-type Version = Effect.Success<ReturnType<typeof contracts>>[number];
-type Patch = { readonly terms?: Version['terms']; readonly family?: Version['family'] };
-/** One sealed version, by id. */
-const versionOf = (t: Kit, id: Id<'employee_contract'>) =>
-	contracts(t, 'SEALED').pipe(
-		Effect.map((rows) => {
-			const held = rows.find((row) => row.id === id);
-			assert.ok(held !== undefined, 'No such sealed version');
+/** A stint, as stored. */
+const stintOf = (t: Kit, id: Id<'employment'> = FIRST) =>
+	storedQuery(t, { employment: { where: { id: { eq: id } }, limit: 1 } }).pipe(
+		Effect.map(({ employment }) => {
+			const [held] = employment.rows;
+			assert.ok(held !== undefined, 'No such stint');
 			return held;
 		})
 	);
-/** A draft successor of `held` from `from`, on its terms and family or the ones given. */
-const draftOf = (t: Kit, held: Version, from: string, patch: Patch = {}) =>
+/** A raise from the first of a month, keyed as HR keys one: a terms row holding the new rate. Answers its id. */
+const raise = (t: Kit, from: string, amount: number, employment: Id<'employment'> = FIRST) =>
 	Effect.gen(function* () {
-		const before = new Set((yield* contracts(t, 'DRAFT')).map((row) => row.id));
-		yield* t.as(t.admin).pipe(
-			Effect.andThen((caller) =>
-				caller.act({
-					'employee_contract.create': [
-						{
-							employee_id: held.employee_id,
-							entity_id: held.entity_id,
-							engagement: held.engagement,
-							employee_number: held.employee_number,
-							terms: patch.terms ?? held.terms,
-							payroll: held.payroll,
-							bank: held.bank,
-							family: patch.family ?? held.family,
-							employee_extension_data: held.employee_extension_data,
-							service_started_on: held.service_started_on,
-							effective_range: { from, to: null },
-							status: 'DRAFT',
-							reason: 'A new version'
-						}
-					]
-				})
-			)
-		);
-		const made = (yield* contracts(t, 'DRAFT')).find((row) => !before.has(row.id));
-		assert.ok(made !== undefined, 'No draft version');
+		yield* (yield* t.as(t.admin)).act({
+			'contract_terms.create': [
+				{ employment_id: employment, effective_from: from, rate: { unit: 'MONTHLY', amount } }
+			]
+		});
+		yield* t.run_due();
+		const { contract_terms } = yield* storedQuery(t, {
+			contract_terms: {
+				where: { employment_id: { eq: employment }, effective_from: { eq: from } },
+				limit: 1
+			}
+		});
+		const [made] = contract_terms.rows;
+		assert.ok(made !== undefined, 'No raise');
 		return made.id;
 	});
-const end = (t: Kit, held: Version, to: string | null, reason = 'Replaced') =>
-	t.as(t.admin).pipe(
-		Effect.andThen((caller) =>
-			caller.act({
-				'employee_contract.update': [
-					{
-						target: held,
-						set: {
-							effective_range: {
-								from: held.effective_range.from,
-								to: to === null ? null : to
-							},
-							reason
-						}
-					}
-				]
-			})
-		)
-	);
-const seal = (t: Kit, id: Id<'employee_contract'>) =>
+/** A terms row's rate corrected on the row itself. */
+const rated = (t: Kit, row: Id<'contract_terms'>, amount: number) =>
 	Effect.gen(function* () {
-		const target = yield* current(t, 'employee_contract', id);
-		const admin = yield* t.as(t.admin);
-		return yield* admin.act({
-			'employee_contract.update': [{ target, set: { status: 'SEALED' } }]
+		yield* (yield* t.as(t.admin)).act({
+			'contract_terms.update': [
+				{
+					target: yield* current(t, 'contract_terms', row),
+					set: { rate: { unit: 'MONTHLY', amount } }
+				}
+			]
 		});
-	});
-const voided = (t: Kit, id: Id<'employee_contract'>, reason: string) =>
-	Effect.gen(function* () {
-		const target = yield* current(t, 'employee_contract', id);
-		const admin = yield* t.as(t.admin);
-		yield* admin.act({ 'employee_contract.update': [{ target, set: { status: 'VOID', reason } }] });
 		yield* t.run_due();
 	});
-/** A new version from the first of a month, the way HR makes one: the draft, the last version's end, the seal. */
-const amend = (t: Kit, held: Version, from: string, patch: Patch) =>
-	Effect.gen(function* () {
-		const next = yield* draftOf(t, held, from, patch);
-		yield* end(
-			t,
-			held,
-			DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { days: -1 }))
-		);
-		yield* seal(t, next);
-		yield* t.run_due();
-		return next;
-	});
-const rated = (held: Version, amount: number): Version['terms'] => ({
-	...held.terms,
-	rate: { unit: 'MONTHLY', amount }
-});
 
-/** The duties an exit raised on the first contract. */
+/** The duties an exit raised on the first stint. */
 const exitDuties = (t: Kit) =>
 	storedQuery(t, { obligation: { limit: 500 } }).pipe(
 		Effect.map(({ obligation }) =>
@@ -298,7 +259,7 @@ const adhoc = (
 	code: string,
 	quantity: number,
 	on: string,
-	employment: Id<'employee_contract'> = FIRST
+	employment: Id<'employment'> = FIRST
 ) =>
 	Effect.gen(function* () {
 		const before = new Set(
@@ -363,7 +324,7 @@ const leave = (
 	t: Kit,
 	code: string,
 	dates: readonly string[],
-	options: { readonly employment?: Id<'employee_contract'> } = {}
+	options: { readonly employment?: Id<'employment'> } = {}
 ) =>
 	Effect.gen(function* () {
 		const before = new Set(
@@ -398,18 +359,19 @@ const leave = (
 		return made.id;
 	});
 
-// 1. transfer-semantics.md §3.4: an exit is read from the chain, so undoing one is a write to the chain. One routine
-// then settles what the exit left (docs/0007 §4): its tasks are waived, the loan task with them. The leave is settled by
-// the last payslip itself, so nothing is keyed to withdraw; a paid one is amended, and the next run takes the money back.
-describe('a contract ended by mistake', () => {
+// 1. transfer-semantics.md §3.4: an exit is read from a person's stints, so undoing one is a write to the stint. One
+// routine then settles what the exit left (docs/0007 §4): its tasks are waived, the loan task with them. The leave is
+// settled by the last payslip itself, so nothing is keyed to withdraw; a paid one is amended, and the next run takes the
+// money back.
+describe('a stint ended by mistake', () => {
 	const LAST = '2026-09-15';
-	const ended = (t: Kit, first: Version) =>
+	const ended = (t: Kit, first: Effect.Success<ReturnType<typeof stintOf>>) =>
 		t
 			.as(t.admin)
 			.pipe(
 				Effect.andThen((caller) =>
 					caller.act({
-						'employee_contract.update': [
+						'employment.update': [
 							{
 								target: first,
 								set: {
@@ -431,7 +393,7 @@ describe('a contract ended by mistake', () => {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
 				const before = yield* held(t, 'ANNUAL_LEAVE');
-				const first = yield* versionOf(t, FIRST);
+				const first = yield* stintOf(t);
 				yield* ended(t, first);
 				// what the mistake moved: the exit duties, on the final pay date HR gave; no cash-out is keyed
 				const raised = (yield* exitDuties(t)).filter((row) => row.state === 'OPEN');
@@ -446,7 +408,7 @@ describe('a contract ended by mistake', () => {
 					'2026-09-22'
 				);
 				assert.deepEqual(yield* cashOuts(t), []);
-				// the loan task the contract page raises beside a leaver's recovery
+				// the loan task the profile raises beside a leaver's recovery
 				yield* t.as(t.admin).pipe(
 					Effect.andThen((caller) =>
 						caller.act({
@@ -464,11 +426,11 @@ describe('a contract ended by mistake', () => {
 					)
 				);
 
-				// the correction: the last day and the final pay date come off the version
+				// the correction: the last day and the final pay date come off the stint
 				yield* (yield* t.as(t.admin)).act({
-					'employee_contract.update': [
+					'employment.update': [
 						{
-							target: yield* current(t, 'employee_contract', FIRST),
+							target: yield* current(t, 'employment', FIRST),
 							set: {
 								effective_range: { from: first.effective_range.from, to: null },
 								final_pay_due_on: null,
@@ -478,7 +440,7 @@ describe('a contract ended by mistake', () => {
 					]
 				});
 				yield* t.run_due();
-				const reopened = yield* versionOf(t, FIRST);
+				const reopened = yield* stintOf(t);
 				assert.equal(reopened.effective_range.to, null);
 				assert.equal(reopened.final_pay_due_on ?? null, null);
 				const after = yield* exitDuties(t);
@@ -517,13 +479,13 @@ describe('a contract ended by mistake', () => {
 	// The unpaid final run is deleted first, then the exit moves. Paid, the run is the record: the exit
 	// is still corrected where it was recorded, and the next run carries what the month now owes.
 	it.live(
-		'after the final run is paid: the exit is reopened on the version itself; the paid payslip stands and the next run takes the pay-out back, carries the month and returns the days',
+		'after the final run is paid: the exit is reopened on the stint itself; the paid payslip stands and the next run takes the pay-out back, carries the month and returns the days',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
 				const before = yield* held(t, 'ANNUAL_LEAVE');
-				const first = yield* versionOf(t, FIRST);
+				const first = yield* stintOf(t);
 				yield* ended(t, first);
 				yield* run(t, '2026-09');
 				const final = yield* slipOf(t, '2026-09');
@@ -537,12 +499,12 @@ describe('a contract ended by mistake', () => {
 
 				// the paid run itself is never deleted
 				assert.match((yield* refusal(drop(t, '2026-09'))).message, /This record is locked/);
-				// the correction: the last day and the final pay date come off the version, and the write leaves the
+				// the correction: the last day and the final pay date come off the stint, and the write leaves the
 				// month to be worked out again
 				yield* (yield* t.as(t.admin)).act({
-					'employee_contract.update': [
+					'employment.update': [
 						{
-							target: yield* current(t, 'employee_contract', FIRST),
+							target: yield* current(t, 'employment', FIRST),
 							set: {
 								effective_range: { from: first.effective_range.from, to: null },
 								final_pay_due_on: null,
@@ -552,7 +514,7 @@ describe('a contract ended by mistake', () => {
 					]
 				});
 				yield* t.run_due();
-				assert.equal((yield* versionOf(t, FIRST)).effective_range.to, null);
+				assert.equal((yield* stintOf(t)).effective_range.to, null);
 				assert.deepEqual(yield* amendments(t), [['2026-09', null]]);
 				assert.deepEqual(
 					(yield* exitDuties(t)).filter((row) => row.state === 'OPEN'),
@@ -564,7 +526,7 @@ describe('a contract ended by mistake', () => {
 				assert.equal(Number(kept.net_pay), Number(final.net_pay));
 				assert.equal(signed(kept, 'ANNUAL_LEAVE'), cashed);
 
-				// the next run pays the person on the same contract, carries September and takes the row
+				// the next run pays the person on the same stint, carries September and takes the row
 				yield* run(t, '2026-10');
 				const october = yield* slipOf(t, '2026-10');
 				assert.equal(october.employment_id, FIRST);
@@ -677,116 +639,186 @@ describe('a paid run that needs an adjustment', () => {
 	);
 });
 
-// 3. A sealed version's terms stand: the correction is another version over the same days. A change filed ahead and
-// not yet sealed is edited or cancelled; a version under an unpaid run is freed by deleting the
-// run, and one a paid run took is replaced all the same: the next run carries the difference.
-describe('a contract version sealed with a wrong term', () => {
+// 3. A change of terms is a dated row, corrected where it stands: a wrong amount is edited, a wrong month moved, a row
+// keyed for the wrong person deleted, and a salary wrong since the hire edited on the first row. No correction reads as
+// an exit. A row a paid run priced is corrected all the same: the write amends the months it governs, and the next run
+// carries the difference.
+describe('a raise keyed wrongly', () => {
 	const WRONG = 5300;
 	const RIGHT = 3500;
+	const moved = (t: Kit, row: Id<'contract_terms'>, to: string) =>
+		Effect.gen(function* () {
+			yield* (yield* t.as(t.admin)).act({
+				'contract_terms.update': [
+					{ target: yield* current(t, 'contract_terms', row), set: { effective_from: to } }
+				]
+			});
+			yield* t.run_due();
+		});
+	const removed = (t: Kit, row: Id<'contract_terms'>) =>
+		Effect.gen(function* () {
+			yield* (yield* t.as(t.admin)).act({
+				'contract_terms.delete': [{ target: yield* current(t, 'contract_terms', row) }]
+			});
+			yield* t.run_due();
+		});
 
 	it.live(
-		'no run yet: the replacement is drafted first and the wrong version voided, so the chain never reads as an exit',
-		() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* syncAll(t);
-				const first = yield* versionOf(t, FIRST);
-				const wrong = yield* amend(t, first, '2026-09-01', { terms: rated(first, WRONG) });
-				const right = yield* draftOf(t, first, '2026-09-01', { terms: rated(first, RIGHT) });
-				yield* voided(t, wrong, `Keyed ${WRONG} for ${RIGHT}`);
-				yield* seal(t, right);
-				yield* t.run_due();
-				assert.deepEqual(yield* exitDuties(t), []);
-				assert.deepEqual(yield* cashOuts(t), []);
-				assert.deepEqual(
-					(yield* contracts(t, 'VOID')).map((row) => row.id),
-					[wrong]
-				);
-				yield* run(t, '2026-09');
-				const slip = yield* slipOf(t, '2026-09');
-				assert.deepEqual([slip.employment_id, basicOf(slip)], [right, RIGHT]);
-			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
-	);
-
-	// Break-it: the same correction in the other order. With the wrong version void and nothing after it, the version
-	// before it ends with no successor, which is what an exit is.
-	it.live(
-		'voided before its replacement exists: the version before it reads as an exit until the replacement is drafted, and its leave returns with it',
+		'the wrong amount, no run yet: the row is edited, nothing reads as an exit, and the run pays what stands',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
 				const before = yield* held(t, 'ANNUAL_LEAVE');
-				const first = yield* versionOf(t, FIRST);
-				const wrong = yield* amend(t, first, '2026-09-01', { terms: rated(first, WRONG) });
-				yield* voided(t, wrong, `Keyed ${WRONG} for ${RIGHT}`);
-				const raised = (yield* exitDuties(t)).filter((row) => row.state === 'OPEN');
-				assert.ok(raised.length > 0);
-				assert.ok(raised.every((row) => row.occurrence_key.endsWith(':exit:2026-08-31')));
+				const wrong = yield* raise(t, '2026-09-01', WRONG);
+				yield* rated(t, wrong, RIGHT);
+				assert.deepEqual(yield* exitDuties(t), []);
 				assert.deepEqual(yield* cashOuts(t), []);
-
-				const right = yield* draftOf(t, first, '2026-09-01', { terms: rated(first, RIGHT) });
-				yield* t.run_due();
-				assert.deepEqual(
-					(yield* exitDuties(t)).filter((row) => row.state === 'OPEN'),
-					[]
-				);
-				yield* seal(t, right);
-				yield* t.run_due();
-				const after = yield* held(t, 'ANNUAL_LEAVE');
-				assert.deepEqual(after, before);
+				assert.deepEqual(yield* amendments(t), []);
+				assert.deepEqual(yield* held(t, 'ANNUAL_LEAVE'), before);
 				yield* run(t, '2026-09');
 				const slip = yield* slipOf(t, '2026-09');
-				assert.deepEqual([slip.employment_id, basicOf(slip)], [right, RIGHT]);
+				assert.deepEqual([slip.employment_id, basicOf(slip)], [FIRST, RIGHT]);
 				assert.equal(signed(slip, 'ANNUAL_LEAVE'), 0);
 				yield* ledgerWhole(t);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
 	it.live(
-		'after a paid run took it: the version is replaced from its own first day, the paid payslip stands, and the next run carries the difference, once',
+		'the wrong amount, after a paid run took it: the row is edited, the paid payslip stands, and the next run carries the difference, once',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const LOW = 2500;
-				const first = yield* versionOf(t, FIRST);
-				const wrong = yield* amend(t, first, '2026-09-01', { terms: rated(first, LOW) });
+				const wrong = yield* raise(t, '2026-09-01', LOW);
 				yield* run(t, '2026-09');
 				yield* pay(t, '2026-09');
 				assert.deepEqual(yield* amendments(t), []);
 
-				// the correction, in the order that never reads as an exit: the replacement drafted, the wrong one voided
-				const right = yield* draftOf(t, first, '2026-09-01', { terms: rated(first, RIGHT) });
-				yield* voided(t, wrong, `Keyed ${LOW} for ${RIGHT}`);
-				yield* seal(t, right);
-				yield* t.run_due();
+				yield* rated(t, wrong, RIGHT);
+				assert.deepEqual(yield* exitDuties(t), []);
 				assert.deepEqual(yield* amendments(t), [['2026-09', null]]);
 				const september = yield* slipOf(t, '2026-09');
 				assert.deepEqual(
 					[september.employment_id, basicOf(september)],
-					[wrong, LOW],
+					[FIRST, LOW],
 					'the paid payslip is not rewritten'
 				);
 
 				yield* run(t, '2026-10');
 				const october = yield* slipOf(t, '2026-10');
-				assert.deepEqual([october.employment_id, basicOf(october)], [right, RIGHT]);
+				assert.deepEqual([october.employment_id, basicOf(october)], [FIRST, RIGHT]);
 				// September on the right term pays more than it did: the rest is on October's payslip, tagged with its month
 				assert.ok(
 					carriedFor(october, '2026-09').some(
 						(line) => line.party === 'EMPLOYEE' && line.direction === 'ADD' && line.amount > 0
 					)
 				);
+				assert.equal(carriedOf(october, '2026-09', 'BASIC'), RIGHT - LOW);
 				assert.deepEqual(yield* amendments(t), [['2026-09', (yield* runOf(t, '2026-10')).id]]);
 				yield* run(t, '2026-11');
 				assert.deepEqual(carriedFor(yield* slipOf(t, '2026-11'), '2026-09'), []);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
+
+	it.live(
+		'dated a month early, after that month is paid: the row is moved, and the next run takes the month’s raise back',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const early = yield* raise(t, '2026-09-01', RIGHT);
+				yield* run(t, '2026-09');
+				yield* pay(t, '2026-09');
+				assert.equal(basicOf(yield* slipOf(t, '2026-09')), RIGHT);
+
+				yield* moved(t, early, '2026-10-01');
+				assert.deepEqual(yield* exitDuties(t), []);
+				assert.deepEqual(yield* amendments(t), [['2026-09', null]]);
+				assert.equal(
+					basicOf(yield* slipOf(t, '2026-09')),
+					RIGHT,
+					'the paid payslip is not rewritten'
+				);
+
+				yield* run(t, '2026-10');
+				const october = yield* slipOf(t, '2026-10');
+				assert.equal(basicOf(october), RIGHT, 'October is the raise’s own month');
+				assert.equal(carriedOf(october, '2026-09', 'BASIC'), RATE - RIGHT);
+				assert.deepEqual(yield* amendments(t), [['2026-09', (yield* runOf(t, '2026-10')).id]]);
+			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+
+	it.live(
+		'keyed for the wrong person, after a paid run took it: the row is deleted and keyed on the right one, and the next run takes it back from one and pays the other',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const wrong = yield* raise(t, '2026-09-01', RIGHT, FIRST);
+				yield* run(t, '2026-09');
+				yield* pay(t, '2026-09');
+				assert.equal(basicOf(yield* slipOf(t, '2026-09')), RIGHT);
+				assert.equal(basicOf(yield* slipOf(t, '2026-09', OTHER_PERSON)), RATE);
+
+				yield* removed(t, wrong);
+				yield* raise(t, '2026-09-01', RIGHT, SECOND);
+				assert.deepEqual(yield* exitDuties(t), []);
+				// one open row each for the month both were paid
+				assert.deepEqual(yield* amendments(t), [
+					['2026-09', null],
+					['2026-09', null]
+				]);
+
+				yield* run(t, '2026-10');
+				const mine = yield* slipOf(t, '2026-10');
+				assert.equal(basicOf(mine), RATE);
+				assert.equal(carriedOf(mine, '2026-09', 'BASIC'), RATE - RIGHT);
+				const theirs = yield* slipOf(t, '2026-10', OTHER_PERSON);
+				assert.equal(basicOf(theirs), RIGHT);
+				assert.equal(carriedOf(theirs, '2026-09', 'BASIC'), RIGHT - RATE);
+			}).pipe(Effect.provide(workspace({ seed: twoPeople(), now: NOW })))
+	);
+
+	it.live(
+		'a salary wrong since the hire: the first row is edited, and every paid month follows on the next run',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* run(t, '2026-08');
+				yield* pay(t, '2026-08');
+				yield* run(t, '2026-09');
+				yield* pay(t, '2026-09');
+				assert.deepEqual(yield* amendments(t), []);
+
+				yield* rated(t, HIRED, RIGHT);
+				assert.deepEqual(yield* exitDuties(t), []);
+				assert.deepEqual((yield* amendments(t)).toSorted(), [
+					['2026-08', null],
+					['2026-09', null]
+				]);
+				assert.equal(
+					basicOf(yield* slipOf(t, '2026-08')),
+					RATE,
+					'the paid payslips are not rewritten'
+				);
+
+				yield* run(t, '2026-10');
+				const october = yield* slipOf(t, '2026-10');
+				assert.equal(basicOf(october), RIGHT);
+				assert.equal(carriedOf(october, '2026-08', 'BASIC'), RIGHT - RATE);
+				assert.equal(carriedOf(october, '2026-09', 'BASIC'), RIGHT - RATE);
+				const took = (yield* runOf(t, '2026-10')).id;
+				assert.deepEqual((yield* amendments(t)).toSorted(), [
+					['2026-08', took],
+					['2026-09', took]
+				]);
+			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
 });
 
-// 4. A family fact is read by sync (the leave it opens) and by the run (the reliefs it gives). The correction is a
-// version without it: sync posts the difference once, and a run already made keeps what it withheld.
-describe('a family fact sealed wrongly', () => {
+// 4. A dependant is read by sync (the leave it opens) and by the run (the reliefs it gives). A wrong one is deleted where
+// it was keyed: sync posts the difference once, a paid payslip keeps what it withheld, and the paid months it reached
+// are worked out again by the next run.
+describe('a dependant keyed wrongly', () => {
 	const father = (): Seed => {
 		const base = malaysia(
 			{ ...TERMS, rate: { amount: 6000, unit: 'MONTHLY' }, statutory_work_category: 'NON_MANUAL' },
@@ -794,17 +826,35 @@ describe('a family fact sealed wrongly', () => {
 		);
 		return {
 			...base,
-			employee_contract: (base.employee_contract ?? []).map((row) => ({
+			statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
 				...row,
-				payroll: { date_of_birth: '1990-01-01', gender: 'MALE', marital_status: 'MARRIED' }
+				marital_status: 'MARRIED'
 			}))
 		};
 	};
 	const PATERNITY = 'PATERNITY_LEAVE';
-	const withChild = (first: Version, born: string): Version['family'] => [
-		...(first.family ?? []),
-		{ relation: 'CHILD', born_on: born }
-	];
+	/** A child keyed on the person, by its birth date. Answers its id. */
+	const child = (t: Kit, born: string) =>
+		Effect.gen(function* () {
+			yield* (yield* t.as(t.admin)).act({
+				'dependant.create': [
+					{ employee_id: idOf('employee_profile', PERSON), relation: 'CHILD', born_on: born }
+				]
+			});
+			yield* t.run_due();
+			const { dependant } = yield* storedQuery(t, {
+				dependant: { where: { relation: { eq: 'CHILD' } }, limit: 1 }
+			});
+			const [made] = dependant.rows;
+			assert.ok(made !== undefined, 'No child');
+			return made.id;
+		});
+	const noChild = (t: Kit, id: Id<'dependant'>) =>
+		Effect.gen(function* () {
+			const target = yield* current(t, 'dependant', id);
+			const admin = yield* t.as(t.admin);
+			return yield* admin.act({ 'dependant.delete': [{ target }] });
+		});
 	const grants = (t: Kit) =>
 		ledgerRows(t).pipe(
 			Effect.map((rows) =>
@@ -816,20 +866,17 @@ describe('a family fact sealed wrongly', () => {
 		);
 
 	it.live(
-		'a child that does not exist: the next version takes back the leave it opened, once, and the tax a run withheld under it stands',
+		'a child that does not exist: deleting it takes back the leave it opened, once, and the paid payslip keeps the tax it withheld',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
 				assert.equal((yield* held(t, PATERNITY)).entitled, 0);
-				// paid: the new version's write amends from the old version's last day, which an unpaid run would hold
+				// paid: the child's write amends from its birth date, which an unpaid run would hold
 				yield* run(t, '2026-08');
 				yield* pay(t, '2026-08');
 				const august = Number((yield* slipOf(t, '2026-08')).tax_withheld);
-				const first = yield* versionOf(t, FIRST);
-				const wrong = yield* amend(t, first, '2026-09-01', {
-					family: withChild(first, '2026-08-10')
-				});
+				const wrong = yield* child(t, '2026-08-10');
 				yield* syncAll(t);
 				const given = (yield* held(t, PATERNITY)).entitled;
 				assert.ok(given > 0);
@@ -839,9 +886,13 @@ describe('a family fact sealed wrongly', () => {
 				// a dependant never raises the tax withheld
 				assert.ok(september <= august);
 
-				// the correction: a version without the child, from the first month no run holds
-				yield* amend(t, yield* versionOf(t, wrong), '2026-10-01', { family: first.family });
+				// the correction: the child is deleted where it was keyed, and both months it reached are open again
+				yield* noChild(t, wrong);
 				yield* syncAll(t);
+				assert.deepEqual((yield* amendments(t)).filter(([, taken]) => taken === null).toSorted(), [
+					['2026-08', null],
+					['2026-09', null]
+				]);
 				assert.equal((yield* held(t, PATERNITY)).entitled, 0);
 				const moved = yield* grants(t);
 				assert.equal(moved.length, 2);
@@ -865,30 +916,24 @@ describe('a family fact sealed wrongly', () => {
 	);
 
 	it.live(
-		'its leave already taken and paid: the correcting version is refused until the days are deleted where they were keyed, then it seals and the days are keyed as the leave they were',
+		'its leave already taken and paid: deleting the child is refused until the days are deleted where they were keyed, then it goes and the days are keyed as the leave they were',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
 				const annual = yield* held(t, 'ANNUAL_LEAVE');
-				const first = yield* versionOf(t, FIRST);
-				const wrong = yield* amend(t, first, '2026-09-01', {
-					family: withChild(first, '2026-09-07')
-				});
+				const wrong = yield* child(t, '2026-09-07');
 				yield* syncAll(t);
 				const DAYS = ['2026-09-08', '2026-09-09'];
-				const taken = yield* leave(t, PATERNITY, DAYS, { employment: wrong });
+				const taken = yield* leave(t, PATERNITY, DAYS);
 				assert.ok((yield* held(t, PATERNITY)).used > 0);
 				yield* run(t, '2026-09');
 				yield* pay(t, '2026-09');
 
-				// the correcting version is drafted and the wrong one given its last day, but it cannot seal
-				const held9 = yield* versionOf(t, wrong);
-				const right = yield* draftOf(t, held9, '2026-10-01', { family: first.family });
-				yield* end(t, held9, '2026-09-30');
-				assert.match((yield* refusal(seal(t, right))).message, /days taken stand on a fact/);
+				// the child cannot go while days taken stand on it
+				assert.match((yield* refusal(noChild(t, wrong))).message, /days taken stand on a fact/);
 				// the way out: the entry a paid run priced is deleted, which gives the days back and leaves the month to
-				// be worked out again; then the version seals
+				// be worked out again; then the child is deleted
 				yield* (yield* t.as(t.admin)).act({
 					'leave_catalog_entry.delete': [
 						{ target: yield* current(t, 'leave_catalog_entry', taken) }
@@ -897,16 +942,16 @@ describe('a family fact sealed wrongly', () => {
 				yield* t.run_due();
 				assert.equal((yield* held(t, PATERNITY)).used, 0);
 				assert.deepEqual(yield* amendments(t), [['2026-09', null]]);
-				yield* seal(t, right);
+				yield* noChild(t, wrong);
 				yield* t.run_due();
 				yield* syncAll(t);
 				assert.deepEqual(yield* held(t, PATERNITY), { entitled: 0, used: 0 });
 				// manual: the days off were real, so HR keys them on the leave they should have drawn
-				yield* leave(t, 'ANNUAL_LEAVE', DAYS, { employment: wrong });
+				yield* leave(t, 'ANNUAL_LEAVE', DAYS);
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, annual.used + DAYS.length);
-				// no dead end: the next month runs on the right version
+				// no dead end: the next month runs
 				yield* run(t, '2026-10');
-				assert.equal((yield* slipOf(t, '2026-10')).employment_id, right);
+				assert.equal((yield* slipOf(t, '2026-10')).employment_id, FIRST);
 			}).pipe(Effect.provide(workspace({ seed: father(), now: NOW })))
 	);
 });

@@ -5,12 +5,21 @@ import { Refusal, isJsonObject, jsonObject, type Json } from './foundation.js';
 import { JsonObject, settingsConstants } from './contracts.js';
 import { queryRows, type Reader } from './reads.js';
 import { programOf } from './programs.js';
-import { chainOf, startsOf } from './contract_change.js';
 import { LAW_ROWS, lawReadOf, lawsOf, type Law, type LawFamily } from '../law.js';
 import { employerOn } from '../company.js';
+import {
+	PROFILE_FIELDS,
+	STINT_FIELDS,
+	chainOf,
+	employmentOn,
+	partsIn,
+	startsOf,
+	type Parts,
+	type Starts
+} from '../person.js';
 import { ReadRequestJson } from '@norbital-ai/bolt/protocol';
 
-export type Operation = 'create' | 'update' | 'delete' | 'seal' | 'exit';
+export type Operation = 'create' | 'update' | 'delete' | 'exit';
 const CATALOG_OF: Readonly<Record<string, LawFamily>> = {
 	leave_catalog_entry: 'leave_catalog',
 	claim_catalog_entry: 'claim_catalog',
@@ -52,7 +61,7 @@ const refId = (value: unknown): string | undefined =>
 			? value.id
 			: undefined;
 
-/** A contract's first day, from a written row or its stored half-open range. */
+/** A ranged record's first day, from a written row or its stored half-open range. */
 export const startOf = (row: JsonObject): unknown => rangeObject(row.effective_range)?.from;
 
 /** A leave's first day, from the slots a written row carries. */
@@ -66,7 +75,7 @@ const firstSlot = (row: JsonObject): string | undefined =>
 		.toSorted()[0];
 /** The day a dated record is its own: it answers to the law in force then. A payslip's is its run's pay date. */
 const OWN_DAY: Readonly<Record<string, (row: JsonObject) => unknown>> = {
-	employee_contract: startOf,
+	employment: startOf,
 	entity: startOf,
 	entity_change: startOf,
 	payroll_run: (row) => row.pay_date,
@@ -136,20 +145,6 @@ export const resolveRead = (value: Json, data: Record<string, unknown>): Json =>
 	return value;
 };
 
-const SUBJECT_CONTRACT = [
-	'id',
-	'employee_number',
-	'employee_id',
-	'entity_id',
-	'effective_range',
-	'terms',
-	'payroll',
-	'engagement',
-	'events',
-	'family',
-	'employee_extension_data',
-	'exit_ground'
-] as const;
 /** What a subject reads of its company; `settings_code` names the law the same read looks up. */
 const SUBJECT_ENTITY = ['id', 'settings_code', 'time_zone'] as const;
 const SUBJECT_PAY_GROUP = ['entity_id', 'name', 'payment_schedule'] as const;
@@ -159,45 +154,93 @@ type Company = {
 	readonly changes: readonly JsonObject[];
 	readonly groups: readonly JsonObject[];
 };
+type Layer = { readonly [key: string]: Json };
+const whereOf = (layer: Layer): Layer => (isJsonObject(layer.where) ? layer.where : {});
+/** A stint as read: what says how it stands on a day, and when its person's service and unbroken employment began. */
+type Held = { readonly parts: Parts; readonly starts: Starts };
 type SubjectCache = {
-	contracts: Map<string, JsonObject>;
+	stints: Map<string, Held>;
 	employers: Map<string, Company>;
 	employees: Map<string, JsonObject>;
 };
+const SUBJECT_EMPLOYEE = ['id', 'name', 'email', 'phone', 'user_id'] as const;
 const idsIn = (values: readonly (string | undefined)[]): readonly string[] => [
 	...new Set(values.flatMap((value) => (value === undefined ? [] : [value])))
 ];
 /**
- * The subjects of a batch, as one request's layers: its contracts, the changes and pay groups of the employers its rows
- * name (`entities`, whose own rows the caller reads) and the contracts' people. `primeFrom` fills the cache from the
- * answer, and `subjectValue` then answers every row from it.
+ * The five roots that say how the stints matching `where` stand: every stint of their people (the starts count them
+ * all), the matching stints' dated rows, the people and their dependants. With no `where`, every stint.
+ */
+const stintLayers = (where?: Layer): Record<string, Layer> => {
+	const of = (filter: (matched: Layer) => Layer) =>
+		where === undefined ? {} : { where: filter(where) };
+	const person = (matched: Layer): Layer => ({ employment: { some: matched } });
+	const theirs = (matched: Layer): Layer => ({ employee_id: { is: person(matched) } });
+	const dated = (matched: Layer): Layer => ({ employment_id: { is: matched } });
+	return {
+		employment: {
+			...of(theirs),
+			fields: [...STINT_FIELDS],
+			entity_id: { fields: ['settings_code'] },
+			limit: 10000
+		},
+		contract_terms: { ...of(dated), limit: 10000 },
+		statutory_parameters: { ...of(dated), limit: 10000 },
+		employee_profile: {
+			...of(person),
+			fields: [...new Set([...PROFILE_FIELDS, ...SUBJECT_EMPLOYEE])],
+			limit: 10000
+		},
+		dependant: { ...of(theirs), limit: 10000 }
+	};
+};
+/** The stints an answer to `stintLayers` holds, by id. */
+const stintsIn = (found: Record<string, readonly JsonObject[]>): ReadonlyMap<string, Held> => {
+	const { chain, lineage } = chainOf(found.employment ?? []);
+	const stints = chain.map((row): JsonObject => ({
+		...row,
+		effective_range: rangeObject(row.effective_range) ?? null
+	}));
+	return new Map(
+		partsIn({ ...found, employment: stints }).map((parts) => [
+			String(parts.stint.id),
+			{
+				parts,
+				starts: startsOf(parts.stint, stints, lineage, parts.profile.cumulative_service === true)
+			}
+		])
+	);
+};
+/** A stint on a day as a rule, effect or declared read sees it: the employment in force, with its starts. */
+const stintOn = ({ parts, starts }: Held, day: string): JsonObject => ({
+	...employmentOn(parts, day),
+	...starts
+});
+/**
+ * The subjects of a batch, as one request's layers: its stints with all that says how each stands on a day, the changes
+ * and pay groups of the employers its rows name (`entities`, whose own rows the caller reads) and the stints' people.
+ * `primeFrom` fills the cache from the answer, and `subjectValue` then answers every row from it.
  */
 const subjectLayers = (rows: readonly JsonObject[], cache: SubjectCache) => {
-	const contracts = idsIn(rows.map((row) => refId(row.employment_id))).filter(
-		(id) => !cache.contracts.has(id)
+	const stints = idsIn(rows.map((row) => refId(row.employment_id))).filter(
+		(id) => !cache.stints.has(id)
 	);
-	const held = [...cache.contracts.values()];
+	const held = [...cache.stints.values()].map(({ parts }) => parts.stint);
 	const entities = idsIn([...rows, ...held].map((row) => refId(row.entity_id))).filter(
 		(id) => !cache.employers.has(id)
 	);
 	const employees = idsIn(held.map((row) => refId(row.employee_id))).filter(
 		(id) => !cache.employees.has(id)
 	);
-	// a person through their contract: employee_profile declares that layer
-	const through = { employee_contract: { some: { id: { in: [...contracts] } } } };
+	const own: Record<string, Layer> =
+		stints.length === 0 ? {} : stintLayers({ id: { in: [...stints] } });
+	// a person through their stint: employee_profile declares that layer
+	const through = own.employee_profile?.where;
 	const direct = employees.length === 0 ? undefined : { id: { in: [...employees] } };
 	const employee =
-		contracts.length === 0 ? direct : direct === undefined ? through : { or: [direct, through] };
+		through === undefined ? direct : direct === undefined ? through : { or: [direct, through] };
 	const layers = {
-		...(contracts.length === 0
-			? {}
-			: {
-					employee_contract: {
-						where: { id: { in: [...contracts] } },
-						fields: [...SUBJECT_CONTRACT],
-						limit: 10000
-					}
-				}),
+		...own,
 		...(entities.length === 0
 			? {}
 			: {
@@ -213,7 +256,7 @@ const subjectLayers = (rows: readonly JsonObject[], cache: SubjectCache) => {
 			: {
 					employee_profile: {
 						where: employee,
-						fields: ['id', 'name', 'email', 'phone', 'user_id'],
+						fields: [...new Set([...PROFILE_FIELDS, ...SUBJECT_EMPLOYEE])],
 						limit: 10000
 					}
 				})
@@ -246,11 +289,15 @@ const primeFrom = (
 	entities: readonly string[],
 	cache: SubjectCache
 ) => {
-	for (const row of found.employee_contract ?? []) cache.contracts.set(String(row.id), row);
+	for (const [id, stint] of stintsIn(found)) cache.stints.set(id, stint);
 	for (const [id, company] of companiesIn(found, entities)) cache.employers.set(id, company);
-	for (const row of found.employee_profile ?? []) cache.employees.set(String(row.id), row);
+	for (const row of found.employee_profile ?? [])
+		cache.employees.set(
+			String(row.id),
+			Object.fromEntries(SUBJECT_EMPLOYEE.map((field) => [field, row[field] ?? null]))
+		);
 };
-/** A day after every change: a row with no day of its own reads its company as it last stands. */
+/** A day after every change: a row with no day of its own reads its company and its employment as they last stand. */
 const LATEST = '9999-12-31';
 
 const subjectValue = Effect.fnUntraced(function* (
@@ -258,24 +305,13 @@ const subjectValue = Effect.fnUntraced(function* (
 	collection: string,
 	row: JsonObject,
 	cache: SubjectCache,
+	on: string,
 	needs: { employer: boolean; employee: boolean } = { employer: true, employee: true }
 ) {
-	let employment: JsonObject | undefined = collection === 'employee_contract' ? row : undefined;
-	const employmentId = refId(row.employment_id);
-	if (employment === undefined && employmentId !== undefined) {
-		employment = cache.contracts.get(employmentId);
-		if (employment === undefined) {
-			const found = yield* queryRows(read, {
-				employee_contract: {
-					where: { id: { eq: employmentId } },
-					fields: [...SUBJECT_CONTRACT],
-					limit: 1
-				}
-			});
-			employment = found.employee_contract?.[0];
-			if (employment !== undefined) cache.contracts.set(employmentId, employment);
-		}
-	}
+	// an employment is its own subject; another row's is the stint it names, as it stands on the row's own day
+	const held = cache.stints.get(String(refId(row.employment_id)));
+	const employment =
+		collection === 'employment' ? row : held === undefined ? undefined : stintOn(held, on);
 	const employerId = refId(employment?.entity_id) ?? refId(row.entity_id);
 	let employer: JsonObject | undefined;
 	if (needs.employer && typeof employerId === 'string') {
@@ -294,12 +330,8 @@ const subjectValue = Effect.fnUntraced(function* (
 			if (company !== undefined) cache.employers.set(employerId, company);
 		}
 		// the company as it stands on the row's own day
-		const day = OWN_DAY[collection]?.(row);
 		if (company !== undefined)
-			employer = withSchedule(
-				employerOn(company.entity, company.changes, typeof day === 'string' ? day : LATEST),
-				company.groups
-			);
+			employer = withSchedule(employerOn(company.entity, company.changes, on), company.groups);
 	}
 	const employeeId = refId(employment?.employee_id);
 	let employee: JsonObject | undefined;
@@ -320,59 +352,38 @@ const subjectValue = Effect.fnUntraced(function* (
 	return { employment: employment ?? {}, employer: employer ?? {}, employee: employee ?? {} };
 });
 
-type Layer = { readonly [key: string]: Json };
-const whereOf = (layer: Layer): Layer => (isJsonObject(layer.where) ? layer.where : {});
-const STINT = ['id', 'employee_id', 'status', 'effective_range', 'entity_id'];
-/** Worked out from the stints, never stored: a read asks for it as a field and gets it beside the service start. */
-const EMPLOYMENT_START = 'employment_started_on';
-/** A contract read that asks for service reads the person's stints beside it, in the same request. */
-const withStints = (layer: Layer): Record<string, Layer> =>
-	Array.isArray(layer.fields) &&
-	!layer.fields.includes('service_started_on') &&
-	!layer.fields.includes(EMPLOYMENT_START)
-		? { employee_contract: layer }
-		: {
-				employee_contract: {
-					...(Array.isArray(layer.fields)
-						? {
-								...layer,
-								fields: [
-									...new Set([
-										...layer.fields.filter((field) => field !== EMPLOYMENT_START),
-										'service_started_on',
-										...STINT
-									])
-								]
-							}
-						: layer),
-					employee_id: {
-						fields: ['id', 'cumulative_service'],
-						employee_contract: {
-							where: { status: { eq: 'SEALED' } },
-							fields: STINT,
-							entity_id: { fields: ['settings_code'] }
-						}
-					}
-				}
-			};
-/** A contract read with its stints carries the service and employment starts sync and the run work out, on its plain person id. */
-const serviced = (row: JsonObject): JsonObject => {
-	const person = row.employee_id;
-	if (!isJsonObject(person)) return row;
-	const stints = person.employee_contract;
-	const { chain, lineage } = chainOf(Array.isArray(stints) ? stints.filter(isJsonObject) : []);
-	const contract = { ...row, employee_id: person.id ?? null };
-	return { ...contract, ...startsOf(contract, chain, lineage, person.cumulative_service === true) };
+/** How a declared read names stints: one of these, by `eq`. */
+const STINT_KEYS = ['id', 'employee_id', 'entity_id'] as const;
+/** The one field and value a declared read of `employment` filters on; no field reads every stint. */
+const stintFilter = (layer: Layer) => {
+	const entries = Object.entries(whereOf(layer));
+	const first = entries[0];
+	if (first === undefined) return undefined;
+	const [field, test] = first;
+	const key = STINT_KEYS.find((name) => name === field);
+	if (
+		entries.length > 1 ||
+		key === undefined ||
+		!isJsonObject(test) ||
+		Object.keys(test).length !== 1 ||
+		!('eq' in test)
+	)
+		throw new Refusal({ message: 'employment: an employment is read by id, person or company.' });
+	return { key, value: refId(test.eq) };
 };
 /**
  * Every read a batch of rows declares, for every rule at once (`requests[rule][row]`), in as few requests as their roots
  * allow (a root reads once per request), all sent together. Rows that differ only by `eq` values gather into one `in`,
- * and the answer is dealt back by those values; a shape that cannot gather reads once per distinct layer.
+ * and the answer is dealt back by those values; a shape that cannot gather reads once per distinct layer. A read of
+ * `employment` never reaches its table alone: all of a batch's are one request for the stints they name, sent with the
+ * others, and each is answered with those stints as they stand on its reading row's own day (`on`), cut to its `fields`
+ * and `limit`.
  */
 const batchRead = Effect.fnUntraced(function* (
 	read: Reader,
 	requests: readonly (readonly JsonObject[])[],
-	cache: Map<string, readonly JsonObject[]>
+	cache: Map<string, readonly JsonObject[]>,
+	on: (rule: number, row: number) => string
 ) {
 	const needs = new Map<string, { readonly name: string; readonly layer: Layer }>();
 	const need = (name: string, layer: Layer) => {
@@ -384,6 +395,11 @@ const batchRead = Effect.fnUntraced(function* (
 		rows.map((): Record<string, readonly JsonObject[]> => ({}))
 	);
 	const deals: (() => void)[] = [];
+	const stints: {
+		readonly own: Record<string, readonly JsonObject[]>;
+		readonly layer: Layer;
+		readonly day: string;
+	}[] = [];
 	const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 	const eqOf = (layer: Layer, field: string): Json | undefined => {
 		const test = whereOf(layer)[field];
@@ -391,7 +407,13 @@ const batchRead = Effect.fnUntraced(function* (
 	};
 	for (const [rule, rows] of requests.entries()) {
 		const answer = answers[rule] ?? [];
+		for (const [index, request] of rows.entries()) {
+			const own = answer[index];
+			if (isJsonObject(request.employment) && own !== undefined)
+				stints.push({ own, layer: request.employment, day: on(rule, index) });
+		}
 		for (const name of new Set(rows.flatMap((request) => Object.keys(request)))) {
+			if (name === 'employment') continue;
 			const layers = rows.map((request) => {
 				const layer = request[name];
 				return isJsonObject(layer) ? layer : {};
@@ -458,24 +480,56 @@ const batchRead = Effect.fnUntraced(function* (
 	for (const [key, { name, layer }] of needs) {
 		let pack = packs.find((candidate) => !(name in candidate.request));
 		if (pack === undefined) packs.push((pack = { request: {}, keys: {} }));
-		Object.assign(
-			pack.request,
-			name === 'employee_contract' ? withStints(layer) : { [name]: layer }
-		);
+		pack.request[name] = layer;
 		pack.keys[name] = key;
 	}
-	const found = yield* Effect.forEach(
-		packs,
-		({ request }) => queryRows(read, Schema.decodeUnknownSync(ReadRequestJson)(request)),
+	const filters = stints.map(({ layer }) => stintFilter(layer));
+	// every stint if one read names none; else those any read names, and none where they name nothing
+	const named = filters.some((filter) => filter === undefined)
+		? undefined
+		: STINT_KEYS.flatMap((key) => {
+				const values = idsIn(
+					filters.map((filter) => (filter?.key === key ? filter.value : undefined))
+				);
+				return values.length === 0 ? [] : [{ [key]: { in: [...values] } }];
+			});
+	const [found, held] = yield* Effect.all(
+		[
+			Effect.forEach(
+				packs,
+				({ request }) => queryRows(read, Schema.decodeUnknownSync(ReadRequestJson)(request)),
+				{ concurrency: 'unbounded' }
+			),
+			stints.length === 0 || named?.length === 0
+				? Effect.succeed(stintsIn({}))
+				: queryRows(
+						read,
+						Schema.decodeUnknownSync(ReadRequestJson)(
+							stintLayers(named?.length === 1 ? named[0] : named && { or: named })
+						)
+					).pipe(Effect.map(stintsIn))
+		],
 		{ concurrency: 'unbounded' }
 	);
 	for (const [index, rows] of found.entries())
 		for (const [name, key] of Object.entries(packs[index]?.keys ?? {}))
-			cache.set(
-				key,
-				name === 'employee_contract' ? (rows[name] ?? []).map(serviced) : (rows[name] ?? [])
-			);
+			cache.set(key, rows[name] ?? []);
 	for (const deal of deals) deal();
+	for (const [nth, { own, layer, day }] of stints.entries()) {
+		const filter = filters[nth];
+		const fields = Array.isArray(layer.fields) ? layer.fields : undefined;
+		const rows = [...held.values()]
+			.filter((stint) => filter === undefined || stint.parts.stint[filter.key] === filter.value)
+			.map((stint) => {
+				const row = stintOn(stint, day);
+				return fields === undefined
+					? row
+					: Object.fromEntries(
+							Object.entries(row).filter(([key]) => key === 'id' || fields.includes(key))
+						);
+			});
+		own.employment = typeof layer.limit === 'number' ? rows.slice(0, layer.limit) : rows;
+	}
 	return answers;
 });
 
@@ -520,12 +574,15 @@ const usesGlobalLookup = (row: JsonObject): boolean => {
 	);
 };
 
+/** Whether a model's rows are dated records: each stands on one day of its own. */
+const datedIn = (collection: string) =>
+	OWN_DAY[collection] !== undefined || collection === 'payslip';
 /** Where a written row stands in the law: a company and a day. */
 type Place = { readonly entity: string; readonly on: string };
 /**
  * Where each written row stands, whatever its model. A dated record stands at its company on its own day. A record with
- * no day of its own stands where its contract starts, else where each of its person's contracts starts, else where each
- * of its company's changes starts. One read, and only for what the rows do not carry.
+ * no day of its own stands where its stint starts, else where each of its person's stints starts, else where each of
+ * its company's changes starts. One read, and only for what the rows do not carry.
  */
 const placesOf = Effect.fnUntraced(function* (
 	read: Reader,
@@ -533,27 +590,23 @@ const placesOf = Effect.fnUntraced(function* (
 	operation: Operation,
 	rows: readonly JsonObject[]
 ) {
-	const dated = OWN_DAY[collection] !== undefined || collection === 'payslip';
+	const dated = datedIn(collection);
 	const entityOf = (row: JsonObject) => refId(collection === 'entity' ? row.id : row.entity_id);
 	const personOf = (row: JsonObject) =>
 		refId(collection === 'employee_profile' ? row.id : row.employee_id);
-	const contractOf = (row: JsonObject) => refId(row.employment_id);
-	// a contract answers to the law of its first day; its exit, to the law of its last
+	const stintOf = (row: JsonObject) => refId(row.employment_id);
+	// an employment answers to the law of its segment's first day; its exit, to the law of its last day
 	const ownDay = (row: JsonObject) =>
-		operation === 'exit' && collection === 'employee_contract'
+		operation === 'exit' && collection === 'employment'
 			? (rangeObject(row.effective_range)?.to ?? startOf(row))
 			: OWN_DAY[collection]?.(row);
-	const contracts = idsIn(
-		rows.filter((row) => !dated || entityOf(row) === undefined).map(contractOf)
-	);
-	const people = dated
-		? []
-		: idsIn(rows.filter((row) => contractOf(row) === undefined).map(personOf));
+	const named = idsIn(rows.filter((row) => !dated || entityOf(row) === undefined).map(stintOf));
+	const people = dated ? [] : idsIn(rows.filter((row) => stintOf(row) === undefined).map(personOf));
 	const companies = dated
 		? []
 		: idsIn(
 				rows
-					.filter((row) => contractOf(row) === undefined && personOf(row) === undefined)
+					.filter((row) => stintOf(row) === undefined && personOf(row) === undefined)
 					.map(entityOf)
 			);
 	const leaves =
@@ -561,7 +614,7 @@ const placesOf = Effect.fnUntraced(function* (
 			? idsIn(rows.filter((row) => ownDay(row) === undefined).map((row) => refId(row.id)))
 			: [];
 	const runs = collection === 'payslip' ? idsIn(rows.map((row) => refId(row.payroll_run_id))) : [];
-	const byId = contracts.length === 0 ? undefined : { id: { in: [...contracts] } };
+	const byId = named.length === 0 ? undefined : { id: { in: [...named] } };
 	const byPerson = people.length === 0 ? undefined : { employee_id: { in: [...people] } };
 	const linked =
 		byId === undefined ? byPerson : byPerson === undefined ? byId : { or: [byId, byPerson] };
@@ -569,7 +622,7 @@ const placesOf = Effect.fnUntraced(function* (
 		...(linked === undefined
 			? {}
 			: {
-					employee_contract: {
+					employment: {
 						where: linked,
 						fields: ['id', 'employee_id', 'entity_id', 'effective_range'],
 						limit: 10000
@@ -605,8 +658,8 @@ const placesOf = Effect.fnUntraced(function* (
 	};
 	const found: Record<string, readonly JsonObject[]> =
 		Object.keys(request).length === 0 ? {} : yield* queryRows(read, request);
-	const contract = new Map((found.employee_contract ?? []).map((row) => [String(row.id), row]));
-	const stints = Map.groupBy(found.employee_contract ?? [], (row) => refId(row.employee_id));
+	const stint = new Map((found.employment ?? []).map((row) => [String(row.id), row]));
+	const stints = Map.groupBy(found.employment ?? [], (row) => refId(row.employee_id));
 	const changes = Map.groupBy(found.entity_change ?? [], (row) => refId(row.entity_id));
 	const slots = Map.groupBy(found.leave_catalog_entry_day ?? [], (row) =>
 		refId(row.leave_entry_id)
@@ -617,7 +670,7 @@ const placesOf = Effect.fnUntraced(function* (
 		return company !== undefined && typeof on === 'string' ? [{ entity: company, on }] : [];
 	};
 	return rows.map((row): readonly Place[] => {
-		const held = contract.get(String(contractOf(row)));
+		const held = stint.get(String(stintOf(row)));
 		if (collection === 'payslip') {
 			const paid = run.get(String(refId(row.payroll_run_id)));
 			return at(row.entity_id ?? paid?.entity_id, paid?.pay_date);
@@ -627,11 +680,11 @@ const placesOf = Effect.fnUntraced(function* (
 				entityOf(row) ?? held?.entity_id,
 				ownDay(row) ?? firstSlot({ days: slots.get(refId(row.id)) ?? [] })
 			);
-		if (contractOf(row) !== undefined)
+		if (stintOf(row) !== undefined)
 			return held === undefined ? [] : at(held.entity_id, startOf(held));
 		const person = personOf(row);
 		return person !== undefined
-			? (stints.get(person) ?? []).flatMap((stint) => at(stint.entity_id, startOf(stint)))
+			? (stints.get(person) ?? []).flatMap((own) => at(own.entity_id, startOf(own)))
 			: (changes.get(entityOf(row)) ?? []).flatMap((change) =>
 					at(change.entity_id, change.effective_from)
 				);
@@ -641,9 +694,9 @@ const placesOf = Effect.fnUntraced(function* (
 /** A law and the rows of a batch that stand under it, by their place in the batch. */
 type UnderLaw = { readonly law: Law; readonly at: number[] };
 /**
- * The laws a batch of written rows answers to, each with the rows under it, and the rows' subjects primed into the
- * cache: one read. A law is its company's jurisdiction as it stands on the row's day; rows on either side of a change
- * in the law stand under different laws.
+ * The laws a batch of written rows answers to, each with the rows under it, the day each row is its own (`on`; a row
+ * with none reads what last stands) and the rows' subjects primed into the cache: one read. A law is its company's
+ * jurisdiction as it stands on the row's day; rows on either side of a change in the law stand under different laws.
  */
 const lawsFor = Effect.fnUntraced(function* (
 	read: Reader,
@@ -655,18 +708,23 @@ const lawsFor = Effect.fnUntraced(function* (
 	// a law's rows are one object for every day between two changes
 	const groups = new Map<Law['rows'], UnderLaw>();
 	const places = yield* placesOf(read, collection, operation, rows);
+	const on = (index: number) =>
+		(datedIn(collection) ? places[index]?.[0]?.on : undefined) ?? LATEST;
 	const companies = idsIn(places.flatMap((own) => own.map(({ entity }) => entity)));
-	if (companies.length === 0) return [...groups.values()];
+	if (companies.length === 0) return { laws: [...groups.values()], on };
 	const subject = subjectLayers(rows, cache);
-	const first = yield* queryRows(read, {
-		entity: {
-			where: { id: { in: [...new Set([...companies, ...subject.entities])] } },
-			fields: [...SUBJECT_ENTITY],
-			limit: 10000
-		},
-		...(yield* lawReadOf(read, { id: { in: [...companies] } })),
-		...subject.layers
-	});
+	const first = yield* queryRows(
+		read,
+		Schema.decodeUnknownSync(ReadRequestJson)({
+			entity: {
+				where: { id: { in: [...new Set([...companies, ...subject.entities])] } },
+				fields: [...SUBJECT_ENTITY],
+				limit: 10000
+			},
+			...(yield* lawReadOf(read, { id: { in: [...companies] } })),
+			...subject.layers
+		})
+	);
 	primeFrom(first, subject.entities, cache);
 	const laws = lawsOf(first);
 	const code = new Map((first.entity ?? []).map((row) => [String(row.id), row.settings_code]));
@@ -678,7 +736,7 @@ const lawsFor = Effect.fnUntraced(function* (
 			if (!group.at.includes(index)) group.at.push(index);
 			groups.set(law.rows, group);
 		}
-	return [...groups.values()];
+	return { laws: [...groups.values()], on };
 });
 
 /** A law's rules or effects registered for a collection and operation. */
@@ -695,20 +753,22 @@ const registered = (
 /**
  * Every rule the law in force registers for this collection and operation validates the proposed rows, for the whole
  * batch in two reads: the law, its lookups and the rows' subjects together, then every rule's declared reads together.
+ * `before` holds each row as it stood without the write, none for a row that is new; without it a rule reads the row.
  */
 export const validateRegistered = Effect.fn('payroll.validateRegistered')(function* (
 	read: Reader,
 	collection: string,
 	operation: Operation,
-	rows: readonly JsonObject[]
+	rows: readonly JsonObject[],
+	before?: readonly (JsonObject | undefined)[]
 ) {
 	if (rows.length === 0) return;
-	const cache: SubjectCache = { contracts: new Map(), employers: new Map(), employees: new Map() };
-	const applied = (yield* lawsFor(read, collection, operation, rows, cache)).flatMap(
-		({ law, at }) =>
-			registered(law.rows.registered_rule, 'target_collection', collection, operation)
-				.toSorted((left, right) => Number(left.order ?? 0) - Number(right.order ?? 0))
-				.map((rule) => ({ rule, law, at }))
+	const cache: SubjectCache = { stints: new Map(), employers: new Map(), employees: new Map() };
+	const { laws, on } = yield* lawsFor(read, collection, operation, rows, cache);
+	const applied = laws.flatMap(({ law, at }) =>
+		registered(law.rows.registered_rule, 'target_collection', collection, operation)
+			.toSorted((left, right) => Number(left.order ?? 0) - Number(right.order ?? 0))
+			.map((rule) => ({ rule, law, at }))
 	);
 	if (applied.length === 0) return;
 	const source = applied
@@ -722,7 +782,8 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 		employee: source.includes('ctx.subject.employee')
 	};
 	const subjects: Record<string, unknown>[] = [];
-	for (const row of rows) subjects.push(yield* subjectValue(read, collection, row, cache, needs));
+	for (const [index, row] of rows.entries())
+		subjects.push(yield* subjectValue(read, collection, row, cache, on(index), needs));
 	const declared = applied.map(({ rule, law, at }) => {
 		const stated = isJsonObject(rule.reads) ? rule.reads : {};
 		return at.map((index) =>
@@ -736,7 +797,8 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 	const reads = yield* batchRead(
 		read,
 		declared.map((own) => own.map(({ stored }) => stored)),
-		readCache
+		readCache,
+		(rule, row) => on(applied[rule]?.at[row] ?? -1)
 	);
 	// a row stops at its first refusing rule, in rule order; the other rows go on
 	const refused = new Map<number, string>();
@@ -747,7 +809,7 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 			if (row === undefined || refused.has(index)) continue;
 			const context = {
 				entry: row,
-				before: row,
+				before: before === undefined ? row : (before[index] ?? null),
 				event: { operation, collection },
 				subject: subjects[index] ?? {},
 				reads: { ...reads[nth]?.[own], ...declared[nth]?.[own]?.held },
@@ -799,9 +861,10 @@ export const refuseIneligible = Effect.fn('payroll.refuseIneligible')(function* 
 ) {
 	const catalog = CATALOG_OF[collection];
 	if (catalog === undefined) return;
-	const cache: SubjectCache = { contracts: new Map(), employers: new Map(), employees: new Map() };
+	const cache: SubjectCache = { stints: new Map(), employers: new Map(), employees: new Map() };
 	// each row with the catalogue row its code names in its law, where that row has an eligibility rule
-	const gated = (yield* lawsFor(read, collection, 'create', rows, cache)).flatMap(({ law, at }) =>
+	const { laws, on } = yield* lawsFor(read, collection, 'create', rows, cache);
+	const gated = laws.flatMap(({ law, at }) =>
 		at.flatMap((index) => {
 			const row = rows[index];
 			const item = law.rows[catalog].find((held) => held.code === row?.catalog_code);
@@ -809,15 +872,15 @@ export const refuseIneligible = Effect.fn('payroll.refuseIneligible')(function* 
 				item !== undefined &&
 				typeof item.eligibility === 'string' &&
 				item.eligibility.trim() !== ''
-				? [{ row, item, law }]
+				? [{ row, item, law, day: on(index) }]
 				: [];
 		})
 	);
 	const roots = programOf(catalog)?.roots;
 	const refused: string[] = [];
-	for (const { row, item, law } of gated) {
+	for (const { row, item, law, day } of gated) {
 		const code = String(item.code ?? '');
-		const subject = yield* subjectValue(read, collection, row, cache);
+		const subject = yield* subjectValue(read, collection, row, cache, day);
 		const answer = evaluate(
 			String(item.eligibility),
 			'CALCULATION',
@@ -867,13 +930,13 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 		);
 	};
 	const entries = changes.map(written);
-	const cache: SubjectCache = { contracts: new Map(), employers: new Map(), employees: new Map() };
+	const cache: SubjectCache = { stints: new Map(), employers: new Map(), employees: new Map() };
 	// the effects the law in force registers, its lookups and the subjects of the rows: one read
-	const applied = (yield* lawsFor(ctx.query, collection, operation, entries, cache)).flatMap(
-		({ law, at }) =>
-			registered(law.rows.registered_effect, 'source_collection', collection, operation).map(
-				(effect) => ({ effect, law, at })
-			)
+	const { laws, on } = yield* lawsFor(ctx.query, collection, operation, entries, cache);
+	const applied = laws.flatMap(({ law, at }) =>
+		registered(law.rows.registered_effect, 'source_collection', collection, operation).map(
+			(effect) => ({ effect, law, at })
+		)
 	);
 	if (applied.length === 0) return;
 	const source = applied
@@ -887,8 +950,8 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 		employee: source.includes('subject.employee')
 	};
 	const subjects: { employment: JsonObject; employer: JsonObject; employee: JsonObject }[] = [];
-	for (const entry of entries)
-		subjects.push(yield* subjectValue(ctx.query, collection, entry, cache, needs));
+	for (const [index, entry] of entries.entries())
+		subjects.push(yield* subjectValue(ctx.query, collection, entry, cache, on(index), needs));
 	// every effect's declared reads for the whole batch, together
 	const declared = applied.map(({ effect, law, at }) => {
 		const stated = isJsonObject(effect.reads) ? effect.reads : {};
@@ -908,7 +971,8 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 	const allReads = yield* batchRead(
 		ctx.query,
 		declared.map((own) => own.map(({ stored }) => stored)),
-		new Map()
+		new Map(),
+		(rule, row) => on(applied[rule]?.at[row] ?? -1)
 	);
 	for (const [nth, { effect, law, at }] of applied.entries()) {
 		const code = String(effect.code ?? '');

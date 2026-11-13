@@ -349,7 +349,7 @@ describe('contribution split', () => {
 							'leave_catalog_entry.create': [
 								leaveCreate({
 									entity_id: ENTITY,
-									employment_id: idOf('employee_contract', uuid(6)),
+									employment_id: idOf('employment', uuid(6)),
 									catalog_code: 'NPL',
 									days: wholeDays('2026-02-17', '2026-02-18', '2026-02-19')
 								})
@@ -449,10 +449,18 @@ describe('health insurance billed a month in arrears', () => {
 		);
 		return {
 			...packed,
-			employee_contract: (packed.employee_contract ?? []).map((row) => ({
+			employment: (packed.employment ?? []).map((row) => ({
 				...row,
 				effective_range: { from: '2026-02-10', to: '2026-04-30' },
 				service_started_on: '2026-02-10'
+			})),
+			contract_terms: (packed.contract_terms ?? []).map((row) => ({
+				...row,
+				effective_from: '2026-02-10'
+			})),
+			statutory_parameters: (packed.statutory_parameters ?? []).map((row) => ({
+				...row,
+				effective_from: '2026-02-10'
 			}))
 		};
 	};

@@ -68,7 +68,7 @@
 	type Hint = 'move_closer' | 'no_face' | 'live_face_required';
 	type Candidate = Readonly<{
 		employeeName: string;
-		employmentId: Id<'employee_contract'>;
+		employmentId: Id<'employment'>;
 		employeeNumber: string;
 		companyId: Id<'entity'>;
 	}>;
@@ -92,7 +92,7 @@
 					readonly name: string;
 				};
 				readonly employment: {
-					readonly id: Id<'employee_contract'>;
+					readonly id: Id<'employment'>;
 					readonly employee_number: string;
 					readonly entity_id: Id<'entity'>;
 				};
@@ -568,7 +568,7 @@
 		day: string
 	): boolean => range.from <= day && (range.to == null || range.to >= day);
 	/**
-	 * The enrolled person nearest the probe, then their active contract in the entity. A cleared
+	 * The enrolled person nearest the probe, then their current stint with the entity. A cleared
 	 * face_embedding on the signed-in person's profile is not read: the read is over APPROVED rows only.
 	 */
 	const matchFace = Effect.fnUntraced(function* (
@@ -599,13 +599,12 @@
 		}
 		if (best == null || bestDistance > threshold)
 			return { status: 'unknown' } satisfies MatchResult;
-		const { employee_contract: contracts } = yield* ctx.query({
-			employee_contract: {
+		const { employment: stints } = yield* ctx.query({
+			employment: {
 				output: 'kiosk',
 				where: {
 					employee_id: { eq: best.id },
-					entity_id: { eq: requestedCompanyId },
-					status: { eq: 'SEALED' }
+					entity_id: { eq: requestedCompanyId }
 				},
 				fields: ['employee_number', 'entity_id', 'effective_range']
 			}
@@ -615,7 +614,7 @@
 				timeZone: DateTime.zoneMakeLocal()
 			})
 		);
-		const active = contracts.rows.find((row) => rangeCovers(row.effective_range, day));
+		const active = stints.rows.find((row) => rangeCovers(row.effective_range, day));
 		if (active == null) return { status: 'unenrolled', employee: best } satisfies MatchResult;
 		return {
 			status: 'match',

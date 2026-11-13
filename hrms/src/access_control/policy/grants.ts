@@ -7,13 +7,13 @@ export const OWN_EMPLOYMENT = { employee_id: { is: OWN_EMPLOYEE } } as const;
 export const OWN = { employment_id: { is: OWN_EMPLOYMENT } } as const;
 export const ownsEmployments = Effect.fn('policy.ownsEmployments')(function* (
 	ctx: Pick<Clock, 'actor'> & { readonly query: WorkspaceQuery['query'] },
-	values: readonly (Id<'employee_contract'> | null)[]
+	values: readonly (Id<'employment'> | null)[]
 ) {
 	if (ctx.actor.kind !== 'member' || values.some((v) => v === null)) return false;
 	const actorId = ctx.actor.id;
 	const ids = [...new Set(values.flatMap((v) => (v === null ? [] : [v])))],
 		got = yield* ctx.query({
-			employee_contract: {
+			employment: {
 				where: { id: { in: ids } },
 				fields: ['employee_id'],
 				limit: 10000,
@@ -21,9 +21,9 @@ export const ownsEmployments = Effect.fn('policy.ownsEmployments')(function* (
 			}
 		});
 	return (
-		got.employee_contract.next === null &&
-		got.employee_contract.rows.length === ids.length &&
-		got.employee_contract.rows.every((c) => c.employee_id?.user_id === actorId)
+		got.employment.next === null &&
+		got.employment.rows.length === ids.length &&
+		got.employment.rows.every((c) => c.employee_id?.user_id === actorId)
 	);
 });
 export const requestReview: ApprovalFlow = {
@@ -39,8 +39,10 @@ export const READ_ALL = {
 	entity: { outputs: { default: { history: true }, self_service: {} } },
 	pay_group: HISTORY,
 	employee_profile: HISTORY,
-	employee_contract: HISTORY,
-	contract_change: READ,
+	employment: HISTORY,
+	contract_terms: HISTORY,
+	statutory_parameters: HISTORY,
+	dependant: HISTORY,
 	entity_change: HISTORY,
 	jurisdiction: HISTORY,
 	jurisdiction_change: HISTORY,
@@ -79,13 +81,16 @@ export const HR_OPERATIONS = {
 	entity: { ...READ_ALL.entity, create: {}, update: {} },
 	pay_group: { ...READ_ALL.pay_group, create: {}, update: {} },
 	employee_profile: { ...READ_ALL.employee_profile, create: {}, update: {} },
-	contract_change: { ...READ_ALL.contract_change, create: {}, update: {}, delete: {} },
 	entity_change: { ...READ_ALL.entity_change, create: {}, update: {}, delete: {} },
-	employee_contract: {
-		...READ_ALL.employee_contract,
+	employment: { ...READ_ALL.employment, create: {}, update: {}, delete: {} },
+	contract_terms: { ...READ_ALL.contract_terms, create: {}, update: {}, delete: {} },
+	statutory_parameters: {
+		...READ_ALL.statutory_parameters,
 		create: {},
-		update: { moves: 'all' }
+		update: {},
+		delete: {}
 	},
+	dependant: { ...READ_ALL.dependant, create: {}, update: {}, delete: {} },
 	leave_catalog_entry: {
 		...READ_ALL.leave_catalog_entry,
 		create: {},

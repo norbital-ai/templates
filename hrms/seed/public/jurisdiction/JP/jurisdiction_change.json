@@ -4494,8 +4494,8 @@
 				},
 				"SOCIAL_INSURANCE_ACQUISITION": {
 					"name": "健康保険・厚生年金保険 被保険者資格取得届 (social insurance enrolment)",
-					"description": "Raises the social-insurance enrolment notification for a sealed contract.",
-					"source_collection": "employee_contract",
+					"description": "Raises the social-insurance enrolment notification for an employment.",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"holiday": {
@@ -4521,7 +4521,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_working_days(add_days(add_days(ctx.entry.effective_range.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'SOCIAL_INSURANCE_ACQUISITION', ctx.entry.id]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"健康保険・厚生年金保険 被保険者資格取得届 (social insurance enrolment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -4536,8 +4535,8 @@
 				},
 				"EMPLOYMENT_INSURANCE_ACQUISITION": {
 					"name": "雇用保険 被保険者資格取得届 (employment insurance enrolment)",
-					"description": "Raises the employment-insurance enrolment notification for a sealed contract.",
-					"source_collection": "employee_contract",
+					"description": "Raises the employment-insurance enrolment notification for an employment.",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"holiday": {
@@ -4563,7 +4562,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.effective_range.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'EMPLOYMENT_INSURANCE_ACQUISITION', ctx.entry.id]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"雇用保険 被保険者資格取得届 (employment insurance enrolment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -4578,8 +4576,8 @@
 				},
 				"WORKING_CONDITIONS_NOTICE": {
 					"name": "労働条件通知書の明示 (written working conditions)",
-					"description": "Raises the obligation to give the written working-conditions notice when the contract is sealed.",
-					"source_collection": "employee_contract",
+					"description": "Raises the obligation to give the written working-conditions notice when an employment is recorded.",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -4594,7 +4592,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = ctx.entry.effective_range.from;\nconst key = occurrence_key(['JP', 'WORKING_CONDITIONS_NOTICE', ctx.entry.id]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"労働条件通知書の明示 (written working conditions)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -4608,7 +4605,7 @@
 				"WORKER_REGISTER": {
 					"name": "労働者名簿の調製 (worker register)",
 					"description": "Raises the obligation to enter the worker in the worker register.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -4623,7 +4620,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = ctx.entry.effective_range.from;\nconst key = occurrence_key(['JP', 'WORKER_REGISTER', ctx.entry.id]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"労働者名簿の調製 (worker register)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -4637,7 +4633,7 @@
 				"SOCIAL_INSURANCE_LOSS": {
 					"name": "健康保険・厚生年金保険 被保険者資格喪失届 (social insurance exit)",
 					"description": "Raises the social-insurance loss notification on exit.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"holiday": {
@@ -4679,7 +4675,7 @@
 				"EMPLOYMENT_INSURANCE_LOSS": {
 					"name": "雇用保険 被保険者資格喪失届・離職証明書 (employment insurance exit and separation slip)",
 					"description": "Raises the employment-insurance loss and separation-slip notification on exit.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"holiday": {
@@ -4721,7 +4717,7 @@
 				"RESIDENT_TAX_TRANSFER": {
 					"name": "給与所得者異動届出書 (resident tax special collection change)",
 					"description": "Raises the resident-tax special-collection change notification on exit.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"holiday": {
@@ -4763,7 +4759,7 @@
 				"LEAVER_WITHHOLDING_SLIP": {
 					"name": "退職者の源泉徴収票の交付 (leaver's withholding slip)",
 					"description": "Raises the obligation to deliver the leaver's withholding slip within one month of exit.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -4792,7 +4788,7 @@
 				"FINAL_WAGES_ON_REQUEST": {
 					"name": "退職時の賃金の支払・金品の返還 (final wages on request)",
 					"description": "Raises the obligation to pay final wages and return property within seven days of a leaver's request.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -5475,10 +5471,10 @@
 				"ANNUAL_LEAVE_FIVE_DAY_DESIGNATION": {
 					"name": "年次有給休暇の時季指定 (5-day designated annual leave)",
 					"description": "Raises the obligation to designate five days of annual leave on each grant day.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"id": {
 									"eq": {
@@ -5501,10 +5497,9 @@
 							"limit": 10000
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const contract = first(ctx.reads.employee_contract) ?? ctx.entry;\nconst started = get(contract, 'service_started_on', ctx.entry.effective_range.from);\nconst months = calendar_completed_months(started, ctx.entry.effective_range.from);\nconst grant = add_months(started, ctx.lookup.grant_months + 12 * Math.max(0, Math.floor((months - ctx.lookup.grant_months) / 12)));\nconst due = add_days(add_months(grant, 12), -1);\nconst key = occurrence_key(['JP', 'ANNUAL_LEAVE_FIVE_DAY_DESIGNATION', ctx.entry.id, grant]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年次有給休暇の時季指定 (5-day designated annual leave)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+					"effects": "const contract = first(ctx.reads.employment) ?? ctx.entry;\nconst started = get(contract, 'service_started_on', ctx.entry.effective_range.from);\nconst months = calendar_completed_months(started, ctx.entry.effective_range.from);\nconst grant = add_months(started, ctx.lookup.grant_months + 12 * Math.max(0, Math.floor((months - ctx.lookup.grant_months) / 12)));\nconst due = add_days(add_months(grant, 12), -1);\nconst key = occurrence_key(['JP', 'ANNUAL_LEAVE_FIVE_DAY_DESIGNATION', ctx.entry.id, grant]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年次有給休暇の時季指定 (5-day designated annual leave)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 					"lookup": {
 						"grant_months": 6
 					},
@@ -5653,7 +5648,7 @@
 				"HEALTH_LOSS_AT_75": {
 					"name": "健康保険 資格喪失届（75歳到達） (health insurance loss at 75)",
 					"description": "Raises the health-insurance loss notification on the worker's 75th birthday.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"holiday": {
@@ -5679,7 +5674,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'payroll.date_of_birth', '') !== '';",
+					"condition": "return get(ctx.entry, 'payroll.date_of_birth', '') !== '';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_working_days(add_days(add_days(add_years(get(ctx.entry, 'payroll.date_of_birth', ''), ctx.lookup.age_years), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'HEALTH_LOSS_AT_75', ctx.entry.id, ctx.lookup.age_years]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"健康保険 資格喪失届（75歳到達） (health insurance loss at 75)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -5696,7 +5691,7 @@
 				"PENSION_AGE_70": {
 					"name": "厚生年金 70歳到達届・70歳以上被用者該当届 (pension loss at 70)",
 					"description": "Raises the pension loss and age-70 notification on the worker's 70th birthday.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"holiday": {
@@ -5722,7 +5717,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'payroll.date_of_birth', '') !== '';",
+					"condition": "return get(ctx.entry, 'payroll.date_of_birth', '') !== '';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_working_days(add_days(add_days(add_years(get(ctx.entry, 'payroll.date_of_birth', ''), ctx.lookup.age_years), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'PENSION_AGE_70', ctx.entry.id, ctx.lookup.age_years]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"厚生年金 70歳到達届・70歳以上被用者該当届 (pension loss at 70)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -5953,7 +5948,7 @@
 				"OLDER_WORKER_CONTINUATION_BENEFIT": {
 					"name": "高年齢雇用継続給付 受給資格確認・60歳到達時賃金証明書 (older worker continuation benefit)",
 					"description": "Raises the older-worker continuation benefit application when the contract records the election.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"holiday": {
@@ -5979,7 +5974,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(ctx.entry, 'employee_extension_data.older_worker_continuation_benefit', false) === true;",
+					"condition": "if (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(ctx.entry, 'employee_extension_data.older_worker_continuation_benefit', false) === true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_working_days(add_days(month_end(add_months(add_years(get(ctx.entry, 'payroll.date_of_birth', ''), ctx.lookup.age_years), ctx.lookup.period_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'OLDER_WORKER_CONTINUATION_BENEFIT', ctx.entry.id, ctx.lookup.age_years]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"高年齢雇用継続給付 受給資格確認・60歳到達時賃金証明書 (older worker continuation benefit)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -5996,7 +5991,7 @@
 				"SHORT_HOURS_CHILDCARE_BENEFIT": {
 					"name": "育児時短就業給付金 初回申請 (shortened-hours childcare benefit)",
 					"description": "Raises the shortened-hours childcare benefit application when the contract records the election.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"holiday": {
@@ -6022,7 +6017,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'employee_extension_data.childcare_short_hours', false) === true;",
+					"condition": "return get(ctx.entry, 'employee_extension_data.childcare_short_hours', false) === true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_working_days(add_days(add_days(month_start(add_months(ctx.entry.effective_range.from, ctx.lookup.date_offset_months)), -1), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'SHORT_HOURS_CHILDCARE_BENEFIT', ctx.entry.id, ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"育児時短就業給付金 初回申請 (shortened-hours childcare benefit)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -6155,7 +6150,7 @@
 				"RESIDENT_TAX_SPECIAL_COLLECTION_SWITCH": {
 					"name": "特別徴収への切替届出 (switch of resident tax to special collection)",
 					"description": "Raises the resident-tax special-collection switch notification when the contract records the employee's request.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"holiday": {
@@ -6181,7 +6176,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'employee_extension_data.resident_tax_special_collection_switch', false) === true;",
+					"condition": "return get(ctx.entry, 'employee_extension_data.resident_tax_special_collection_switch', false) === true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_working_days(add_days(month_end(ctx.entry.effective_range.from), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'RESIDENT_TAX_SPECIAL_COLLECTION_SWITCH', ctx.entry.id, ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"特別徴収への切替届出 (switch of resident tax to special collection)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -6240,7 +6235,7 @@
 				"NON_RENEWAL_NOTICE": {
 					"name": "雇止めの予告 (notice of non-renewal)",
 					"description": "Raises the non-renewal notice obligation before a fixed-term contract ends.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -6273,7 +6268,7 @@
 				"INDEFINITE_CONVERSION_NOTICE": {
 					"name": "無期転換申込権の明示 (indefinite conversion right)",
 					"description": "Raises the indefinite-conversion notice on the five-year anniversary of a fixed-term contract.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -6288,7 +6283,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst term = get(ctx.entry, 'signed_contract_period', null);\nreturn term != null && get(term, 'to', null) != null;",
+					"condition": "const term = get(ctx.entry, 'signed_contract_period', null);\nreturn term != null && get(term, 'to', null) != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_years(ctx.entry.effective_range.from, ctx.lookup.conversion_years);\nconst key = occurrence_key(['JP', 'INDEFINITE_CONVERSION_NOTICE', ctx.entry.id, ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"無期転換申込権の明示 (indefinite conversion right)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -6304,7 +6299,7 @@
 				"PART_TIME_TERMS_NOTICE": {
 					"name": "短時間・有期雇用労働者への特定事項の明示 (written specified terms for part-time and fixed-term workers)",
 					"description": "Raises the written specified-terms notice for a part-time or fixed-term employee.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -6319,7 +6314,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst engagement = get(ctx.entry, 'engagement', '');\nconst employeeLike = ['EMPLOYEE', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(engagement);\nconst partTime = engagement === 'PART_TIME';\nconst term = get(ctx.entry, 'signed_contract_period', null);\nconst fixedTerm = term != null && get(term, 'to', null) != null;\nreturn employeeLike && (partTime || fixedTerm);",
+					"condition": "const engagement = get(ctx.entry, 'engagement', '');\nconst employeeLike = ['EMPLOYEE', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(engagement);\nconst partTime = engagement === 'PART_TIME';\nconst term = get(ctx.entry, 'signed_contract_period', null);\nconst fixedTerm = term != null && get(term, 'to', null) != null;\nreturn employeeLike && (partTime || fixedTerm);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = ctx.entry.effective_range.from;\nconst key = occurrence_key(['JP', 'PART_TIME_TERMS_NOTICE', ctx.entry.id, ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"短時間・有期雇用労働者への特定事項の明示 (written specified terms for part-time and fixed-term workers)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -6333,10 +6328,10 @@
 				"ANNUAL_LEAVE_REGISTER": {
 					"name": "年次有給休暇管理簿 (annual leave register)",
 					"description": "Raises the obligation to record the annual-leave grant in the leave register.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"id": {
 									"eq": {
@@ -6359,10 +6354,9 @@
 							"limit": 10000
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const contract = first(ctx.reads.employee_contract) ?? ctx.entry;\nconst started = get(contract, 'service_started_on', ctx.entry.effective_range.from);\nconst months = calendar_completed_months(started, ctx.entry.effective_range.from);\nconst grant = add_months(started, ctx.lookup.grant_months + 12 * Math.max(0, Math.floor((months - ctx.lookup.grant_months) / 12)));\nconst key = occurrence_key(['JP', 'ANNUAL_LEAVE_REGISTER', ctx.entry.id, grant]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年次有給休暇管理簿 (annual leave register)\",\n\tdue_on: grant,\n\toccurrence_key: key\n}];",
+					"effects": "const contract = first(ctx.reads.employment) ?? ctx.entry;\nconst started = get(contract, 'service_started_on', ctx.entry.effective_range.from);\nconst months = calendar_completed_months(started, ctx.entry.effective_range.from);\nconst grant = add_months(started, ctx.lookup.grant_months + 12 * Math.max(0, Math.floor((months - ctx.lookup.grant_months) / 12)));\nconst key = occurrence_key(['JP', 'ANNUAL_LEAVE_REGISTER', ctx.entry.id, grant]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年次有給休暇管理簿 (annual leave register)\",\n\tdue_on: grant,\n\toccurrence_key: key\n}];",
 					"lookup": {
 						"grant_months": 6
 					},
@@ -6392,7 +6386,7 @@
 							"fields": ["id"],
 							"limit": 1
 						},
-						"employee_contract": {
+						"employment": {
 							"where": {
 								"employee_id": {
 									"eq": {
@@ -6499,7 +6493,7 @@
 					"condition": "return ctx.reads.obligation.length === 0;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "// 労働基準法 art.39(1)–(2): each grant day closes the six months or the year whose attendance it turns on.\nconst contracts = ctx.reads.employee_contract;\nconst contract = contracts.find((row) => row.id === ctx.entry.employment_id);\nconst leave = first(ctx.reads.leave_catalog);\nif (contract == null || leave == null) return [];\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst month = (date) => Number(date.substring(0, 4)) * 12 + Number(date.substring(5, 7));\nconst served = month(ctx.entry.period + '-01') - month(started);\nconst offset = leave.lookup.service_offset_months;\nif (served < offset || (served - offset) % 12 !== 0) return [];\nconst grant = add_months(started, served);\nconst events = get(ctx.subject.employment, 'events', []);\nif (events.some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return [];\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment, 'terms.normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst shifts = group_by(ctx.reads.shift_definition, 'id');\nconst roster = Object.fromEntries(ctx.reads.roster_entry.map((row) => [row.work_date, get(first(get(shifts, String(row.shift_definition_id), [])) ?? {}, 'variant.day_type', 'WORK')]));\nconst holidays = ctx.reads.holiday.map((row) => row.date);\n// art.39(10): leave the reads leave out counts as attended.\nconst own = ctx.reads.leave_catalog_entry.filter((entry) => contracts.some((row) => row.id === entry.employment_id));\nconst standing = own.map((entry) => entry.id);\nconst absences = group_by(ctx.reads.leave_catalog_entry_day.filter((day) => standing.includes(day.leave_entry_id)), 'incurred_on');\nconst from = served === offset ? started : add_months(grant, -12);\nlet working = 0;\nlet absent = 0;\nfor (let step = 0; step < calendar_distance_days(from, grant); step += 1) {\n\tconst date = add_days(from, step);\n\tconst type = get(roster, date, null);\n\tif (type == null ? off.includes(weekday(date)) || holidays.includes(date) : type !== 'WORK' && type !== 'ABS') continue;\n\tworking += 1;\n\tabsent += type === 'ABS' ? 1 : Math.min(1, get(absences, date, []).length / 2);\n}\nif (working - absent >= leave.lookup.attendance_ratio * working) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message + ' ' + (working - absent) + '/' + working + ' days recorded.',\n\tdue_on: grant,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_ATTENDANCE_REVIEW', ctx.entry.employee_id, ctx.entry.period])\n}];",
+					"effects": "// 労働基準法 art.39(1)–(2): each grant day closes the six months or the year whose attendance it turns on.\nconst contracts = ctx.reads.employment;\nconst contract = contracts.find((row) => row.id === ctx.entry.employment_id);\nconst leave = first(ctx.reads.leave_catalog);\nif (contract == null || leave == null) return [];\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst month = (date) => Number(date.substring(0, 4)) * 12 + Number(date.substring(5, 7));\nconst served = month(ctx.entry.period + '-01') - month(started);\nconst offset = leave.lookup.service_offset_months;\nif (served < offset || (served - offset) % 12 !== 0) return [];\nconst grant = add_months(started, served);\nconst events = get(ctx.subject.employment, 'events', []);\nif (events.some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return [];\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment, 'terms.normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst shifts = group_by(ctx.reads.shift_definition, 'id');\nconst roster = Object.fromEntries(ctx.reads.roster_entry.map((row) => [row.work_date, get(first(get(shifts, String(row.shift_definition_id), [])) ?? {}, 'variant.day_type', 'WORK')]));\nconst holidays = ctx.reads.holiday.map((row) => row.date);\n// art.39(10): leave the reads leave out counts as attended.\nconst own = ctx.reads.leave_catalog_entry.filter((entry) => contracts.some((row) => row.id === entry.employment_id));\nconst standing = own.map((entry) => entry.id);\nconst absences = group_by(ctx.reads.leave_catalog_entry_day.filter((day) => standing.includes(day.leave_entry_id)), 'incurred_on');\nconst from = served === offset ? started : add_months(grant, -12);\nlet working = 0;\nlet absent = 0;\nfor (let step = 0; step < calendar_distance_days(from, grant); step += 1) {\n\tconst date = add_days(from, step);\n\tconst type = get(roster, date, null);\n\tif (type == null ? off.includes(weekday(date)) || holidays.includes(date) : type !== 'WORK' && type !== 'ABS') continue;\n\tworking += 1;\n\tabsent += type === 'ABS' ? 1 : Math.min(1, get(absences, date, []).length / 2);\n}\nif (working - absent >= leave.lookup.attendance_ratio * working) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message + ' ' + (working - absent) + '/' + working + ' days recorded.',\n\tdue_on: grant,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_ATTENDANCE_REVIEW', ctx.entry.employee_id, ctx.entry.period])\n}];",
 					"lookup": {
 						"message": "Recorded attendance before this annual leave grant day is below the statutory ratio. Confirm it, and where it stands record ATTENDANCE_BELOW_RATIO on the grant day (労働基準法 art.39(1)–(2))."
 					},
@@ -6511,8 +6505,8 @@
 				},
 				"MY_NUMBER_COLLECTION": {
 					"name": "個人番号の提供の求め (My Number collection)",
-					"description": "Raises the obligation to request the employee's My Number when the contract is sealed.",
-					"source_collection": "employee_contract",
+					"description": "Raises the obligation to request the employee's My Number when an employment is recorded.",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -6527,7 +6521,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = ctx.entry.effective_range.from;\nconst key = occurrence_key(['JP', 'MY_NUMBER_COLLECTION', ctx.entry.id, ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"個人番号の提供の求め (My Number collection)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -6755,7 +6748,7 @@
 				"CARE_INFORMATION_AT_40": {
 					"name": "介護休業制度等の情報提供（40歳） (care leave information at 40)",
 					"description": "Raises the care-leave information notice in the year the worker turns 40.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -6770,7 +6763,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'payroll.date_of_birth', '') !== '';",
+					"condition": "return get(ctx.entry, 'payroll.date_of_birth', '') !== '';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_days(add_years(get(ctx.entry, 'payroll.date_of_birth', ''), ctx.lookup.age_years), -1);\nconst key = occurrence_key(['JP', 'CARE_INFORMATION_AT_40', ctx.entry.id, ctx.lookup.age_years]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"介護休業制度等の情報提供（40歳） (care leave information at 40)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -6826,7 +6819,7 @@
 				"RECORDS_RETENTION": {
 					"name": "労働関係書類の保存 (retention of employment records)",
 					"description": "Raises the employment-records retention reminder on exit.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -6914,8 +6907,8 @@
 				},
 				"HEALTH_CHECK_AT_HIRE": {
 					"name": "雇入時の健康診断 (health check at hire)",
-					"description": "Raises the health check at hire when a contract is sealed.",
-					"source_collection": "employee_contract",
+					"description": "Raises the health check at hire when an employment is recorded.",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -6930,7 +6923,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = ctx.entry.effective_range.from;\nconst key = occurrence_key(['JP', 'HEALTH_CHECK_AT_HIRE', ctx.entry.id, ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"雇入時の健康診断 (health check at hire)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -6944,7 +6936,7 @@
 				"PERIODIC_HEALTH_CHECK": {
 					"name": "定期健康診断 (annual health check)",
 					"description": "Raises the annual periodic health check on the hire anniversary.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -6959,7 +6951,6 @@
 							"limit": 1
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_days(add_months(ctx.entry.effective_range.from, ctx.lookup.check_months), -1);\nconst key = occurrence_key(['JP', 'PERIODIC_HEALTH_CHECK', ctx.entry.id, ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"定期健康診断 (annual health check)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -7205,7 +7196,7 @@
 				"PERSONAL_DATA_DISPOSAL": {
 					"name": "特定個人情報・個人データの廃棄 (disposal after retention)",
 					"description": "Raises the personal-data disposal reminder after the retention period following exit.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["exit"],
 					"reads": {
 						"obligation": {
@@ -7502,7 +7493,7 @@
 				"CONTINUED_EMPLOYMENT_CONFIRMATION": {
 					"name": "継続雇用の希望確認 (continued employment past the retirement age)",
 					"description": "Raises the continued-employment confirmation before the worker reaches the retirement age.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -7517,7 +7508,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(ctx.subject.employer, 'entity_extension_data.continued_employment_measure', '') !== '';",
+					"condition": "if (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(ctx.subject.employer, 'entity_extension_data.continued_employment_measure', '') !== '';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_days(add_years(get(ctx.entry, 'payroll.date_of_birth', ''), ctx.lookup.retirement_age), -1);\nconst key = occurrence_key(['JP', 'CONTINUED_EMPLOYMENT_CONFIRMATION', ctx.entry.id, ctx.lookup.retirement_age]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"継続雇用の希望確認 (continued employment past the retirement age)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -7533,7 +7524,7 @@
 				"INDUSTRIAL_HEALTH_STAFF": {
 					"name": "産業医・衛生管理者の選任 (industrial physician and health supervisor at 50 workers)",
 					"description": "Raises the industrial-physician and health-supervisor appointment reminder when the entity reaches fifty workers.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -7548,7 +7539,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst profile = ctx.subject.employer;\nif (!(Number(get(profile, 'entity_extension_data.regular_employee_count', 0)) >= ctx.lookup.employee_count_threshold)) return false;\nreturn get(profile, 'entity_extension_data.industrial_physician_appointed_on', '') === '';",
+					"condition": "const profile = ctx.subject.employer;\nif (!(Number(get(profile, 'entity_extension_data.regular_employee_count', 0)) >= ctx.lookup.employee_count_threshold)) return false;\nreturn get(profile, 'entity_extension_data.industrial_physician_appointed_on', '') === '';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = add_days(ctx.entry.effective_range.from, ctx.lookup.date_offset_days);\nconst key = occurrence_key(['JP', 'INDUSTRIAL_HEALTH_STAFF', ctx.entry.entity_id]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"産業医・衛生管理者の選任 (industrial physician and health supervisor at 50 workers)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -7565,7 +7556,7 @@
 				"MINOR_AGE_CERTIFICATE": {
 					"name": "年少者の証明書 (age certificate of a worker under 18)",
 					"description": "Raises the age-certificate obligation when a worker under 18 is hired.",
-					"source_collection": "employee_contract",
+					"source_collection": "employment",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -7580,7 +7571,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst birth = get(ctx.entry, 'payroll.date_of_birth', '');\nif (birth === '') return false;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
+					"condition": "const birth = get(ctx.entry, 'payroll.date_of_birth', '');\nif (birth === '') return false;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const due = ctx.entry.effective_range.from;\nconst key = occurrence_key(['JP', 'MINOR_AGE_CERTIFICATE', ctx.entry.id, ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年少者の証明書 (age certificate of a worker under 18)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
@@ -8809,7 +8800,7 @@
 			"registered_rule": {
 				"MINIMUM_WAGE_CONTRACT": {
 					"description": "Refuses a contract whose hourly, daily or monthly rate is below the regional minimum wage in force on the contract's first day.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"validate": "const terms = get(ctx.entry, 'terms', {});\nconst ext = get(ctx.entry, 'employee_extension_data', {});\nif (get(terms, 'work_classification', 'ORDINARY') === 'OFFICER') return true;\nconst rate = get(terms, 'rate', null);\nif (rate == null || rate.amount <= 0) return true;\nconst entity = ctx.subject.employer;\nconst entityExt = get(entity, 'entity_extension_data', {});\nconst region = get(ext, 'insured_office_region', get(entityExt, 'region', null));\nif (region == null) return false;\nlet band = null;\nfor (const row of ctx.lookup.minimum_wage) if (row.region === region && row.from <= ctx.entry.effective_range.from && (band == null || row.from > band.from)) band = row;\nif (band == null) return false;\nconst hoursPerYear = get(ext, 'normal_hours_per_year', null);\nif (!['HOURLY', 'DAILY'].includes(rate.unit) && ['VARIABLE', 'FLEX', 'DEEMED'].includes(get(entityExt, 'working_time_regime', 'STANDARD')) && hoursPerYear == null) return true;\nconst monthlyHours = hoursPerYear != null ? Number(hoursPerYear) / 12 : (get(terms, 'normal_hours_per_week', ctx.lookup.standard_weekly_hours) * ctx.lookup.weeks_per_month);\nconst floor = band.amount * (1 - get(ext, 'minimum_wage_reduction_rate', 0));\nif (rate.unit === 'HOURLY') return rate.amount >= floor;\nif (rate.unit === 'DAILY') return rate.amount / get(terms, 'normal_hours_per_day', ctx.lookup.standard_daily_hours) >= floor;\nreturn rate.amount / monthlyHours >= floor;",
 					"order": 15,
@@ -9891,17 +9882,6 @@
 							"fields": ["code", "lookup"],
 							"limit": 1
 						},
-						"employee_contract": {
-							"where": {
-								"id": {
-									"eq": {
-										"var": "ctx.entry.employment_id"
-									}
-								}
-							},
-							"fields": ["service_started_on", "effective_range"],
-							"limit": 1
-						},
 						"leave_catalog_entry": {
 							"where": {
 								"employment_id": {
@@ -9937,7 +9917,7 @@
 						}
 					},
 					"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code;",
-					"validate": "// 施行規則 art.24の4: a year's days taken in hours are capped, the year running from the grant day (労働基準法 art.39(4)).\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst yearOf = (date) => Math.floor((calendar_completed_months(started, date) - row.service_offset_months) / 12);\nconst held = ctx.reads.leave_catalog_entry;\nconst standing = held.filter((entry) => entry.id !== get(ctx.entry, 'id', null));\nconst slots = ctx.reads.leave_catalog_entry_day.filter((child) => standing.some((entry) => entry.id === child.leave_entry_id));\nconst days = [...slots.map((child) => child.incurred_on), ...ctx.entry.leave_catalog_entry_day.map((child) => child.incurred_on)];\nreturn ctx.entry.leave_catalog_entry_day.every((day) => days.filter((other) => yearOf(other) === yearOf(day.incurred_on)).length / 2 <= row.annual_days_cap);",
+					"validate": "// 施行規則 art.24の4: a year's days taken in hours are capped, the year running from the grant day (労働基準法 art.39(4)).\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst contract = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst yearOf = (date) => Math.floor((calendar_completed_months(started, date) - row.service_offset_months) / 12);\nconst held = ctx.reads.leave_catalog_entry;\nconst standing = held.filter((entry) => entry.id !== get(ctx.entry, 'id', null));\nconst slots = ctx.reads.leave_catalog_entry_day.filter((child) => standing.some((entry) => entry.id === child.leave_entry_id));\nconst days = [...slots.map((child) => child.incurred_on), ...ctx.entry.leave_catalog_entry_day.map((child) => child.incurred_on)];\nreturn ctx.entry.leave_catalog_entry_day.every((day) => days.filter((other) => yearOf(other) === yearOf(day.incurred_on)).length / 2 <= row.annual_days_cap);",
 					"order": 38,
 					"lookup": {
 						"catalog_code": "ANNUAL_LEAVE_HOURS"
@@ -9950,7 +9930,7 @@
 				},
 				"CONTRACT_CATEGORIES": {
 					"description": "Refuses a contract whose work classification, statutory work category, residency status or wage payment method is not permitted by the version.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"validate": "const terms = get(ctx.entry, 'terms', {});\nconst classification = get(terms, 'work_classification', null);\nif (classification != null && !ctx.lookup.work_classifications.includes(classification)) return false;\nconst category = get(terms, 'statutory_work_category', null);\nif (category != null && !ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst residency = get(terms, 'residency_status', null);\nif (residency != null && !ctx.lookup.residency_statuses.includes(residency)) return false;\nconst method = get(terms, 'wage_payment_method', null);\nif (method != null && !ctx.lookup.wage_payment_methods.includes(method)) return false;\nreturn true;",
 					"order": 39,
@@ -10096,7 +10076,7 @@
 				},
 				"MINIMUM_WAGE_HOURS_REQUIRED": {
 					"description": "Requires the contract's annual prescribed hours when a variable, flex or deemed schedule makes the monthly minimum-wage conversion impossible.",
-					"target_collection": "employee_contract",
+					"target_collection": "employment",
 					"events": ["create", "update"],
 					"validate": "const terms = get(ctx.entry, 'terms', {});\nif (get(terms, 'work_classification', 'ORDINARY') === 'OFFICER') return true;\nconst rate = get(terms, 'rate', null);\nif (rate == null || rate.amount <= 0) return true;\nif (rate.unit === 'HOURLY' || rate.unit === 'DAILY') return true;\nconst entity = ctx.subject.employer;\nconst entityExt = get(entity, 'entity_extension_data', {});\nconst regime = get(entityExt, 'working_time_regime', 'STANDARD');\nif (!['VARIABLE', 'FLEX', 'DEEMED'].includes(regime)) return true;\nconst annual = get(ctx.entry, 'employee_extension_data.normal_hours_per_year', null);\nreturn annual != null && Number(annual) > 0;",
 					"order": 42,
@@ -10418,7 +10398,7 @@
 				"$schema": "https://json-schema.org/draft/2020-12/schema",
 				"type": "object",
 				"title": "JP employee extension data",
-				"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields.",
+				"description": "Additional local compliance data on the employment, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields.",
 				"additionalProperties": false,
 				"properties": {
 					"family_care_recipients": {
@@ -10437,7 +10417,7 @@
 						"type": "object",
 						"title": "Statutory declarations",
 						"additionalProperties": false,
-						"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+						"description": "Employee registrations, exemptions and declared choices captured on this employment.",
 						"properties": {
 							"HEALTH": {
 								"type": "object",

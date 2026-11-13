@@ -7,6 +7,13 @@ type FormConfirm = NonNullable<FormProps['confirm']>;
 export const PAID_NOTE =
 	'The paid payslip does not change. The next payroll run works that period out again and carries the difference.';
 
+/** The question a save reaching a paid period asks first. */
+export const PAID_QUESTION = {
+	title: 'This period is already paid',
+	body: PAID_NOTE,
+	confirm_label: 'Save correction'
+};
+
 /** A reference as its id: a record holds the row it points at, a form its id. */
 const keyOf = (value: unknown): string =>
 	value !== null && typeof value === 'object' && 'id' in value ? String(value.id) : String(value);
@@ -48,11 +55,7 @@ export const paidPeriods = (ctx: Pick<PageContext, 'query'>) => {
 			const entity = company === undefined ? undefined : (values[company] ?? before[company]);
 			return priced() ||
 				dates.some((name) => covers(values[name], entity) || covers(before[name], entity))
-				? {
-						title: 'This period is already paid',
-						body: PAID_NOTE,
-						confirm_label: 'Save correction'
-					}
+				? PAID_QUESTION
 				: null;
 		};
 	return { covers, confirm };

@@ -14,7 +14,7 @@ import {
 	ledgerRows,
 	measureOf,
 	pack,
-	sealEvents,
+	recordEvents,
 	syncAll,
 	uuid,
 	wholeDays,
@@ -27,7 +27,7 @@ import {
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
-const CONTRACT = idOf('employee_contract', uuid(6));
+const EMPLOYMENT = idOf('employment', uuid(6));
 const terms = {
 	rate: { amount: 3120, unit: 'MONTHLY' },
 	statutory_work_category: 'NON_MANUAL',
@@ -55,14 +55,15 @@ const seedOf = (account: Accounts): Seed => {
 			}
 		}),
 		// a married woman, so a birth opens leave
-		employee_contract: (seed.employee_contract ?? []).map((row) => ({
+		employee_profile: (seed.employee_profile ?? []).map((row) => ({ ...row, gender: 'FEMALE' })),
+		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
 			...row,
-			payroll: { date_of_birth: '1990-01-01', gender: 'FEMALE', marital_status: 'MARRIED' }
+			marital_status: 'MARRIED'
 		})),
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account }))
 	};
 };
-// the service year the contract's start on 1 January 2025 reaches in 2026
+// the service year the stint's start on 1 January 2025 reaches in 2026
 const WINDOW = 'MY.S.2026-01-01';
 const HOLDS = seedOf({ leave: { ANNUAL_LEAVE: { [WINDOW]: { entitled: 12 } } } });
 const EMPTY = seedOf({});
@@ -72,7 +73,7 @@ const take = (t: Kit, code: string, ...dates: string[]) =>
 			'leave_catalog_entry.create': [
 				leaveCreate({
 					entity_id: ENTITY,
-					employment_id: CONTRACT,
+					employment_id: EMPLOYMENT,
 					catalog_code: code,
 					days: wholeDays(...dates)
 				})
@@ -153,10 +154,10 @@ describe('a posting that runs again', () => {
 			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
 	);
-	it.live('a sealed fact opens its days once', () =>
+	it.live('a recorded fact opens its days once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* sealEvents(t, '2026-09-02', [{ kind: 'CHILD_BIRTH', on: '2026-09-02' }]);
+			yield* recordEvents(t, [{ kind: 'CHILD_BIRTH', on: '2026-09-02' }]);
 			yield* crashEach(t);
 			const opened = measureOf(yield* accountsIn(t), 'leave', 'MATERNITY_LEAVE', 'entitled');
 			assert.ok(opened > 0);
@@ -216,12 +217,12 @@ describe('a balance is its ledger', () => {
 			assert.ok(second !== undefined);
 			yield* admin.act({ 'leave_catalog_entry.delete': [{ target: second }] });
 			yield* t.run_due();
-			yield* sealEvents(t, '2026-09-02', [
+			yield* recordEvents(t, [
 				{ kind: 'CHILD_BIRTH', on: '2026-09-02' },
 				{ kind: 'CHILD_BIRTH_NO_ALLOWANCE', on: '2026-09-03' }
 			]);
 			yield* t.run_due();
-			yield* sealEvents(t, '2026-10-01', [{ kind: 'CHILD_BIRTH', on: '2026-09-02' }]);
+			yield* recordEvents(t, [{ kind: 'CHILD_BIRTH', on: '2026-09-02' }]);
 			yield* t.run_due();
 			const pay = (period: string) =>
 				admin

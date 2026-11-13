@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * Workforce health for one legal entity (headcount in force today and twelve months of turnover and hire rate,
-	 * derived from its employment contracts' ranges, never stored) and one profile per person employed there.
+	 * derived from its stints' first and last days, never stored) and one profile per person employed there.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell, Columns, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
@@ -16,49 +16,26 @@
 	const clock = ctx.clock('day');
 	const scope = companyScope(ctx);
 	const today = $derived(String(clock.today));
-	const employee_contracts = $derived.by(() =>
+	const stints = $derived.by(() =>
 		scope.id == null
 			? null
 			: ctx.query({
-					employee_contract: {
-						where: {
-							entity_id: { eq: scope.id },
-							status: { eq: 'SEALED' }
-						},
-						fields: ['employee_id', 'effective_range', 'status']
+					employment: {
+						where: { entity_id: { eq: scope.id } },
+						fields: ['employee_id', 'effective_range'],
+						limit: 10000
 					}
 				})
 	);
-	// an open contract runs to the end of time
-	const ranges = $derived.by(() => {
-		const result: { employee: string; start: string; end: string; exit: boolean }[] = [];
-		const ordered = [...(employee_contracts?.current?.employee_contract.rows ?? [])].sort(
-			(a, b) =>
-				a.employee_id.localeCompare(b.employee_id) ||
-				a.effective_range.from.localeCompare(b.effective_range.from)
-		);
-		for (const row of ordered) {
-			const previous = result.at(-1),
-				end = String(row.effective_range.to ?? '9999-12-31');
-			if (
-				previous?.employee === row.employee_id &&
-				!previous.exit &&
-				(previous.end === '9999-12-31' ||
-					DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(previous.end), { days: 1 })) >=
-						row.effective_range.from)
-			) {
-				previous.end = end;
-				previous.exit = row.status === 'VOID';
-			} else
-				result.push({
-					employee: row.employee_id,
-					start: String(row.effective_range.from),
-					end,
-					exit: row.status === 'VOID'
-				});
-		}
-		return result;
-	});
+	// a hire is a stint's first day and a leaver its last; an open stint runs to the end of time
+	const ranges = $derived(
+		(stints?.current?.employment.rows ?? []).map((row) => ({
+			employee: row.employee_id,
+			start: String(row.effective_range.from),
+			end: String(row.effective_range.to ?? '9999-12-31'),
+			exit: row.effective_range.to != null
+		}))
+	);
 	const current = $derived(
 		new Set(ranges.filter((r) => r.start <= today && r.end >= today).map((r) => r.employee)).size
 	);
@@ -189,12 +166,12 @@
 					]
 				}}
 				where={{
-					employee_contract: {
+					employment: {
 						some: { entity_id: { eq: scope.id } }
 					}
 				}}
 				initial_filter={{
-					employee_contract: { some: { effective_range: { contains: clock.today } } }
+					employment: { some: { effective_range: { contains: clock.today } } }
 				}}
 				order_by={{ name: 'asc' }}
 				columns={['name', 'email', 'phone', 'face_enrollment_status']}

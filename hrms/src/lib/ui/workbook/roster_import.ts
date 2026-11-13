@@ -39,8 +39,8 @@ export const runRosterImport = (
 				});
 				const day = `${month}-01`;
 				const scope = yield* ctx.query({
-					employee_contract: {
-						where: { entity_id: { eq: options.entity_id }, status: { eq: 'SEALED' } },
+					employment: {
+						where: { entity_id: { eq: options.entity_id } },
 						fields: ['employee_number', 'entity_id', 'effective_range'],
 						limit: 10000
 					},
@@ -68,13 +68,13 @@ export const runRosterImport = (
 						)
 					);
 				const entries =
-					scope.employee_contract.rows.length === 0
+					scope.employment.rows.length === 0
 						? []
 						: (yield* ctx.query({
 								roster_entry: {
 									where: {
 										employment_id: {
-											in: scope.employee_contract.rows.map((row) => row.id)
+											in: scope.employment.rows.map((row) => row.id)
 										},
 										work_date: {
 											gte: day,
@@ -95,7 +95,7 @@ export const runRosterImport = (
 									limit: 10000
 								}
 							})).roster_entry.rows;
-				const employees: RosterEmployee[] = scope.employee_contract.rows.map((row) => ({
+				const employees: RosterEmployee[] = scope.employment.rows.map((row) => ({
 					id: row.id,
 					number: row.employee_number,
 					entity_id: row.entity_id,
