@@ -26,18 +26,7 @@ import {
 	type Read,
 	type Source
 } from '../lib/portfolio/market.ts';
-import {
-	computeMetrics,
-	costInBase,
-	dec,
-	isPosition,
-	lineValue,
-	money,
-	num,
-	percent,
-	round,
-	stored
-} from '../lib/portfolio/book.ts';
+import { computeMetrics, costInBase, isPosition, lineValue } from '../lib/portfolio/book.ts';
 
 /** How many dated P&L entries a line keeps, and how many of the largest lines are researched. */
 const PNL_DAYS = 90;
@@ -53,10 +42,6 @@ const WRITING = [
 	'5. Cut anything that does not change a decision on this book.',
 	'6. Never invent a figure, a headline or a source.'
 ].join('\n');
-
-/** A number read from a source (a price, a change) as the string a decimal field stores. */
-const read2 = (value: number | null, scale = 2) =>
-	value === null ? null : stored(num(value), scale);
 
 /** The report's record view rendered to PDF bytes: never stored, only attached. */
 type Rendered = Effect.Success<ReturnType<AutomationCtx['convert']['record']>>;
@@ -171,20 +156,47 @@ export default automation({
 			const perBase = row.currency === base ? 1 : rates.get(row.currency);
 			const value =
 				quote && perBase !== undefined
-					? round(
+					? BigDecimal.round(
 							BigDecimal.multiply(
-								BigDecimal.multiply(dec(row.quantity), num(quote.price)),
-								num(perBase)
-							)
+								BigDecimal.multiply(
+									BigDecimal.fromStringUnsafe(row.quantity),
+									BigDecimal.fromNumberUnsafe(quote.price)
+								),
+								BigDecimal.fromNumberUnsafe(perBase)
+							),
+							{ scale: 2, mode: 'half-from-zero' }
 						)
 					: lineValue(row);
 			const live: Live | null = quote
 				? {
-						live_price: stored(num(quote.price), 4),
-						live_change_pct: read2(quote.change_pct),
-						live_value_base: stored(value),
+						live_price: BigDecimal.format(
+							BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.price), {
+								scale: 4,
+								mode: 'half-from-zero'
+							})
+						),
+						live_change_pct:
+							quote.change_pct === null
+								? null
+								: BigDecimal.format(
+										BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.change_pct), {
+											scale: 2,
+											mode: 'half-from-zero'
+										})
+									),
+						live_value_base: BigDecimal.format(
+							BigDecimal.round(value, { scale: 2, mode: 'half-from-zero' })
+						),
 						price_updated_at: ctx.now,
-						volume_ratio: read2(quote.volume_ratio),
+						volume_ratio:
+							quote.volume_ratio === null
+								? null
+								: BigDecimal.format(
+										BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.volume_ratio), {
+											scale: 2,
+											mode: 'half-from-zero'
+										})
+									),
 						movement: movementOf(quote.volume_ratio)
 					}
 				: null;
@@ -194,7 +206,7 @@ export default automation({
 			book.map(({ row, value }) => ({
 				asset_class: row.asset_class,
 				value,
-				unrealised_pl: dec(row.unrealised_pl ?? '0')
+				unrealised_pl: BigDecimal.fromStringUnsafe(row.unrealised_pl ?? '0')
 			}))
 		);
 
@@ -240,8 +252,16 @@ export default automation({
 				continue;
 			}
 			const cost = costInBase(row);
-			const pnl = round(BigDecimal.subtract(value, cost));
-			const pnl_pct = percent(pnl, cost);
+			const pnl = BigDecimal.round(BigDecimal.subtract(value, cost), {
+				scale: 2,
+				mode: 'half-from-zero'
+			});
+			const pnl_pct = BigDecimal.isPositive(cost)
+				? BigDecimal.round(
+						BigDecimal.divideUnsafe(BigDecimal.multiply(pnl, BigDecimal.fromBigInt(100n)), cost),
+						{ scale: 2, mode: 'half-from-zero' }
+					)
+				: null;
 			const pages = reads.get(row.id) ?? [];
 			const name = row.symbol ?? row.instrument;
 			const sources = [QUOTE_SOURCE, ...pages.map(sourceOf)];
@@ -256,7 +276,7 @@ export default automation({
 									prompt: [
 										`Today is ${ctx.today}. The book is valued in ${base}.`,
 										`Holding: ${row.instrument} (${row.symbol ?? 'no ticker'}), ${row.asset_class}, ${row.currency}.`,
-										`Per [1]: cost ${base} ${money(cost)}, worth ${base} ${money(value)}, P&L ${base} ${money(pnl)}${pnl_pct === null ? '' : ` (${BigDecimal.format(pnl_pct)}%)`}.`,
+										`Per [1]: cost ${base} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(cost, { scale: 2, mode: 'half-from-zero' })))}, worth ${base} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(value, { scale: 2, mode: 'half-from-zero' })))}, P&L ${base} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(pnl, { scale: 2, mode: 'half-from-zero' })))}${pnl_pct === null ? '' : ` (${BigDecimal.format(pnl_pct)}%)`}.`,
 										row.research_direction ? `Research direction: ${row.research_direction}.` : '',
 										'Sources:',
 										`[1] ${QUOTE_SOURCE.publisher}: ${QUOTE_SOURCE.title}`,
@@ -290,7 +310,20 @@ export default automation({
 					? {
 							instrument: row.instrument,
 							symbol: row.symbol,
-							weight: stored(percent(value, metrics.total_assets) ?? BigDecimal.fromBigInt(0n)),
+							weight: BigDecimal.format(
+								BigDecimal.round(
+									(BigDecimal.isPositive(metrics.total_assets)
+										? BigDecimal.round(
+												BigDecimal.divideUnsafe(
+													BigDecimal.multiply(value, BigDecimal.fromBigInt(100n)),
+													metrics.total_assets
+												),
+												{ scale: 2, mode: 'half-from-zero' }
+											)
+										: null) ?? BigDecimal.fromBigInt(0n),
+									{ scale: 2, mode: 'half-from-zero' }
+								)
+							),
 							change_pct: live ? live.live_change_pct : row.live_change_pct,
 							call: call.call,
 							headline: call.headline,
@@ -300,8 +333,13 @@ export default automation({
 								`**Call:** ${call.call.toUpperCase()}. ${reason.text}`
 							].join('\n\n'),
 							confidence: call.confidence ?? null,
-							pnl: stored(pnl),
-							pnl_pct: pnl_pct === null ? null : stored(pnl_pct)
+							pnl: BigDecimal.format(BigDecimal.round(pnl, { scale: 2, mode: 'half-from-zero' })),
+							pnl_pct:
+								pnl_pct === null
+									? null
+									: BigDecimal.format(
+											BigDecimal.round(pnl_pct, { scale: 2, mode: 'half-from-zero' })
+										)
 						}
 					: null;
 			log.push(
@@ -319,8 +357,13 @@ export default automation({
 						...(row.pnl_history ?? []).filter((entry) => entry.date !== ctx.today),
 						{
 							date: ctx.today,
-							pnl: stored(pnl),
-							pnl_pct: pnl_pct === null ? null : stored(pnl_pct)
+							pnl: BigDecimal.format(BigDecimal.round(pnl, { scale: 2, mode: 'half-from-zero' })),
+							pnl_pct:
+								pnl_pct === null
+									? null
+									: BigDecimal.format(
+											BigDecimal.round(pnl_pct, { scale: 2, mode: 'half-from-zero' })
+										)
 						}
 					]
 						.sort((a, b) => a.date.localeCompare(b.date))
@@ -350,8 +393,21 @@ export default automation({
 			if (quote)
 				benchmarks.push({
 					instrument: one.name ?? one.symbol,
-					level: stored(num(quote.price)),
-					change_pct: read2(quote.change_pct)
+					level: BigDecimal.format(
+						BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.price), {
+							scale: 2,
+							mode: 'half-from-zero'
+						})
+					),
+					change_pct:
+						quote.change_pct === null
+							? null
+							: BigDecimal.format(
+									BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.change_pct), {
+										scale: 2,
+										mode: 'half-from-zero'
+									})
+								)
 				});
 		}
 		/** Every line of the book: its price where it is quoted, else its value in base. */
@@ -359,7 +415,14 @@ export default automation({
 			...benchmarks,
 			...book.map(({ row, live, value }) => ({
 				instrument: row.instrument,
-				level: live ? stored(dec(live.live_price)) : stored(value),
+				level: live
+					? BigDecimal.format(
+							BigDecimal.round(BigDecimal.fromStringUnsafe(live.live_price), {
+								scale: 2,
+								mode: 'half-from-zero'
+							})
+						)
+					: BigDecimal.format(BigDecimal.round(value, { scale: 2, mode: 'half-from-zero' })),
 				change_pct: live ? live.live_change_pct : null
 			}))
 		];
@@ -388,9 +451,12 @@ export default automation({
 		const existing = report.rows.find((one) => one.for_date === ctx.today);
 		const previous = report.rows.find((one) => one.for_date !== ctx.today);
 		const dayChange = previous
-			? round(BigDecimal.subtract(metrics.net_assets, dec(previous.net_assets)))
+			? BigDecimal.round(
+					BigDecimal.subtract(metrics.net_assets, BigDecimal.fromStringUnsafe(previous.net_assets)),
+					{ scale: 2, mode: 'half-from-zero' }
+				)
 			: null;
-		const totals = `net assets ${base} ${money(metrics.net_assets)}${dayChange === null ? '' : ` (${BigDecimal.isNegative(dayChange) ? '' : '+'}${money(dayChange)} since ${previous?.for_date})`}`;
+		const totals = `net assets ${base} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(metrics.net_assets, { scale: 2, mode: 'half-from-zero' })))}${dayChange === null ? '' : ` (${BigDecimal.isNegative(dayChange) ? '' : '+'}${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(dayChange, { scale: 2, mode: 'half-from-zero' })))} since ${previous?.for_date})`}`;
 
 		/** The lead and the market paragraph, cited from the market reads, the providers and the sections' sources. */
 		const leadSources = [
@@ -402,7 +468,7 @@ export default automation({
 					label: 'lead',
 					system: `You write the lead and the market paragraph of a daily portfolio report for the owner of the book.\n${WRITING}`,
 					prompt: [
-						`Today is ${ctx.today}. Per [1] and [2]: ${totals}; invested ${money(metrics.invested)}, cash ${money(metrics.cash)}, owed ${money(metrics.liabilities)}.`,
+						`Today is ${ctx.today}. Per [1] and [2]: ${totals}; invested ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(metrics.invested, { scale: 2, mode: 'half-from-zero' })))}, cash ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(metrics.cash, { scale: 2, mode: 'half-from-zero' })))}, owed ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(metrics.liabilities, { scale: 2, mode: 'half-from-zero' })))}.`,
 						`Per [1]: ${markets.map((one) => `${one.instrument} ${one.change_pct === null ? 'no change read' : `${one.change_pct}%`}`).join('; ')}.`,
 						'Sections in this report:',
 						sections
@@ -448,20 +514,41 @@ export default automation({
 			markets,
 			market_view: [dataLine, move?.text ?? ''].filter((part) => part.length > 0).join('\n\n'),
 			research_log: log.join('\n').slice(0, 8000),
-			net_assets: stored(metrics.net_assets),
-			invested: stored(metrics.invested),
-			cash: stored(metrics.cash),
-			liabilities: stored(metrics.liabilities),
-			unrealised_pl: stored(metrics.unrealised_pl),
-			day_change: dayChange === null ? null : stored(dayChange),
+			net_assets: BigDecimal.format(
+				BigDecimal.round(metrics.net_assets, { scale: 2, mode: 'half-from-zero' })
+			),
+			invested: BigDecimal.format(
+				BigDecimal.round(metrics.invested, { scale: 2, mode: 'half-from-zero' })
+			),
+			cash: BigDecimal.format(BigDecimal.round(metrics.cash, { scale: 2, mode: 'half-from-zero' })),
+			liabilities: BigDecimal.format(
+				BigDecimal.round(metrics.liabilities, { scale: 2, mode: 'half-from-zero' })
+			),
+			unrealised_pl: BigDecimal.format(
+				BigDecimal.round(metrics.unrealised_pl, { scale: 2, mode: 'half-from-zero' })
+			),
+			day_change:
+				dayChange === null
+					? null
+					: BigDecimal.format(BigDecimal.round(dayChange, { scale: 2, mode: 'half-from-zero' })),
 			allocation: metrics.allocation.map((one) => ({
 				label: one.label,
-				value: stored(one.value),
-				weight: stored(one.weight)
+				value: BigDecimal.format(BigDecimal.round(one.value, { scale: 2, mode: 'half-from-zero' })),
+				weight: BigDecimal.format(
+					BigDecimal.round(one.weight, { scale: 2, mode: 'half-from-zero' })
+				)
 			})),
 			fx_used: [...rates]
 				.filter(([code]) => code !== base && book.some(({ row }) => row.currency === code))
-				.map(([code, rate]) => ({ pair: `${code}/${base}`, rate: stored(num(rate), 6) })),
+				.map(([code, rate]) => ({
+					pair: `${code}/${base}`,
+					rate: BigDecimal.format(
+						BigDecimal.round(BigDecimal.fromNumberUnsafe(rate), {
+							scale: 6,
+							mode: 'half-from-zero'
+						})
+					)
+				})),
 			positions: sections,
 			sources
 		};

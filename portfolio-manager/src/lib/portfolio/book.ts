@@ -2,28 +2,6 @@ import { BigDecimal } from 'effect';
 
 type D = BigDecimal.BigDecimal;
 const ZERO = BigDecimal.fromBigInt(0n);
-const HUNDRED = BigDecimal.fromBigInt(100n);
-
-/** A stored decimal (a field's string) to compute with. */
-export const dec = (value: string): D => BigDecimal.fromStringUnsafe(value);
-/** A figure read as a number (a quote, a rate) to compute with. */
-export const num = (value: number): D => BigDecimal.fromNumberUnsafe(value);
-/** A figure rounded half away from zero to `scale` places. */
-export const round = (value: D, scale = 2): D =>
-	BigDecimal.round(value, { scale, mode: 'half-from-zero' });
-/** A figure as the string a decimal field stores, at `scale` places. */
-export const stored = (value: D, scale = 2): string => BigDecimal.format(round(value, scale));
-/** A figure for prose: two places, thousands grouped. */
-export const money = (value: D): string =>
-	BigDecimal.toNumberUnsafe(round(value)).toLocaleString('en-US', {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2
-	});
-/** `part` as a percentage of `whole`, or null when the whole is not positive. */
-export const percent = (part: D, whole: D, scale = 2): D | null =>
-	BigDecimal.isPositive(whole)
-		? round(BigDecimal.divideUnsafe(BigDecimal.multiply(part, HUNDRED), whole), scale)
-		: null;
 
 /** The statement fields of a holding the figures read. */
 export type Statement = {
@@ -34,17 +12,19 @@ export type Statement = {
 };
 
 /** What a line is worth now: its calculated value once the agent priced it, else the statement's. */
-export const lineValue = (row: Statement): D => dec(row.live_value_base ?? row.value_base);
+export const lineValue = (row: Statement): D =>
+	BigDecimal.fromStringUnsafe(row.live_value_base ?? row.value_base);
 
 /** What a line cost in base currency: its local cost at the statement's own rate. */
 export const costInBase = (row: Statement): D => {
-	const local = row.cost_value === null ? ZERO : dec(row.cost_value);
-	const market = dec(row.market_value);
-	const base = dec(row.value_base);
-	return round(
+	const local = row.cost_value === null ? ZERO : BigDecimal.fromStringUnsafe(row.cost_value);
+	const market = BigDecimal.fromStringUnsafe(row.market_value);
+	const base = BigDecimal.fromStringUnsafe(row.value_base);
+	return BigDecimal.round(
 		BigDecimal.isPositive(market) && BigDecimal.isPositive(base)
 			? BigDecimal.divideUnsafe(BigDecimal.multiply(local, base), market)
-			: local
+			: local,
+		{ scale: 2, mode: 'half-from-zero' }
 	);
 };
 
@@ -87,18 +67,30 @@ export const computeMetrics = (rows: readonly BookLine[]): Metrics => {
 	}
 	const total = BigDecimal.sum(cash, invested);
 	return {
-		total_assets: round(total),
-		invested: round(invested),
-		cash: round(cash),
-		liabilities: round(liabilities),
-		net_assets: round(BigDecimal.subtract(total, liabilities)),
-		unrealised_pl: round(unrealised),
+		total_assets: BigDecimal.round(total, { scale: 2, mode: 'half-from-zero' }),
+		invested: BigDecimal.round(invested, { scale: 2, mode: 'half-from-zero' }),
+		cash: BigDecimal.round(cash, { scale: 2, mode: 'half-from-zero' }),
+		liabilities: BigDecimal.round(liabilities, { scale: 2, mode: 'half-from-zero' }),
+		net_assets: BigDecimal.round(BigDecimal.subtract(total, liabilities), {
+			scale: 2,
+			mode: 'half-from-zero'
+		}),
+		unrealised_pl: BigDecimal.round(unrealised, { scale: 2, mode: 'half-from-zero' }),
 		allocation: [['cash', cash] as const, ...byClass]
 			.filter(([, value]) => !BigDecimal.isZero(value))
 			.map(([label, value]) => ({
 				label,
-				value: round(value),
-				weight: percent(value, total, 1) ?? ZERO
+				value: BigDecimal.round(value, { scale: 2, mode: 'half-from-zero' }),
+				weight:
+					(BigDecimal.isPositive(total)
+						? BigDecimal.round(
+								BigDecimal.divideUnsafe(
+									BigDecimal.multiply(value, BigDecimal.fromBigInt(100n)),
+									total
+								),
+								{ scale: 1, mode: 'half-from-zero' }
+							)
+						: null) ?? ZERO
 			}))
 			.sort((a, b) => BigDecimal.Order(b.value, a.value))
 	};

@@ -11,7 +11,7 @@
 	description="The currency the book is valued in, the benchmarks, the paired account and chats the daily report goes to, and the users subscribed to it. Keep one settings row."
 	icon="lucide:settings"
 >
-	<Stack gap="lg">
+	<Stack size="fill" gap="lg">
 		<Table
 			{ctx}
 			of="portfolio_settings"

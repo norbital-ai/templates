@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect';
+import { BigDecimal, Effect, Option, Schema } from 'effect';
 import type { AutomationCtx } from '@norbital-ai/bolt';
 
 /** Free, keyless sources the daily agent reads over plain HTTP. */
@@ -120,7 +120,6 @@ const Chart = Schema.Struct({
 const decodeChart = Schema.decodeUnknownOption(Schema.fromJsonString(Chart));
 const positive = (values: readonly (number | null)[] | undefined) =>
 	(values ?? []).filter((one): one is number => one !== null && one > 0);
-const round2 = (value: number) => Math.round(value * 100) / 100;
 
 /**
  * The last price, its change on the day, and the last complete session's volume against the twenty
@@ -142,8 +141,23 @@ export const parseQuote = (payload: string): Quote | null => {
 	const average = prior.length > 0 ? prior.reduce((a, b) => a + b, 0) / prior.length : 0;
 	return {
 		price,
-		change_pct: previous ? round2(((price - previous) / previous) * 100) : null,
-		volume_ratio: volume !== undefined && average > 0 ? round2(volume / average) : null
+		change_pct: previous
+			? BigDecimal.toNumberUnsafe(
+					BigDecimal.round(BigDecimal.fromNumberUnsafe(((price - previous) / previous) * 100), {
+						scale: 2,
+						mode: 'half-ceil'
+					})
+				)
+			: null,
+		volume_ratio:
+			volume !== undefined && average > 0
+				? BigDecimal.toNumberUnsafe(
+						BigDecimal.round(BigDecimal.fromNumberUnsafe(volume / average), {
+							scale: 2,
+							mode: 'half-ceil'
+						})
+					)
+				: null
 	};
 };
 

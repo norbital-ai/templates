@@ -6,7 +6,8 @@ import {
 	parseRates,
 	quoteSymbol
 } from '../src/lib/portfolio/market.ts';
-import { computeMetrics, costInBase, dec, stored } from '../src/lib/portfolio/book.ts';
+import { BigDecimal } from 'effect';
+import { computeMetrics, costInBase } from '../src/lib/portfolio/book.ts';
 
 it('reads tickers, a quote, a rate answer and a headline feed', () => {
 	expect(quoteSymbol('ACME UW')).toBe('ACME');
@@ -46,16 +47,32 @@ it('reads tickers, a quote, a rate answer and a headline feed', () => {
 
 it('adds the book up: cash and facilities apart from positions', () => {
 	const metrics = computeMetrics([
-		{ asset_class: 'equity', value: dec('13000'), unrealised_pl: dec('2000') },
-		{ asset_class: 'cash', value: dec('3000'), unrealised_pl: dec('0') },
-		{ asset_class: 'loan', value: dec('-2000'), unrealised_pl: dec('0') }
+		{
+			asset_class: 'equity',
+			value: BigDecimal.fromStringUnsafe('13000'),
+			unrealised_pl: BigDecimal.fromStringUnsafe('2000')
+		},
+		{
+			asset_class: 'cash',
+			value: BigDecimal.fromStringUnsafe('3000'),
+			unrealised_pl: BigDecimal.fromStringUnsafe('0')
+		},
+		{
+			asset_class: 'loan',
+			value: BigDecimal.fromStringUnsafe('-2000'),
+			unrealised_pl: BigDecimal.fromStringUnsafe('0')
+		}
 	]);
 	expect(
 		[metrics.invested, metrics.cash, metrics.liabilities, metrics.net_assets].map((one) =>
-			Number(stored(one))
+			Number(BigDecimal.format(BigDecimal.round(one, { scale: 2, mode: 'half-from-zero' })))
 		)
 	).toEqual([13000, 3000, 2000, 14000]);
-	expect(metrics.allocation.map((one) => Number(stored(one.weight, 1)))).toEqual([81.3, 18.8]);
+	expect(
+		metrics.allocation.map((one) =>
+			Number(BigDecimal.format(BigDecimal.round(one.weight, { scale: 1, mode: 'half-from-zero' })))
+		)
+	).toEqual([81.3, 18.8]);
 	expect(metrics.allocation.map((one) => one.label)).toEqual(['equity', 'cash']);
 	const cost = costInBase({
 		value_base: '1100',
@@ -63,7 +80,9 @@ it('adds the book up: cash and facilities apart from positions', () => {
 		cost_value: '800',
 		live_value_base: null
 	});
-	expect(Number(stored(cost))).toBe(880);
+	expect(
+		Number(BigDecimal.format(BigDecimal.round(cost, { scale: 2, mode: 'half-from-zero' })))
+	).toBe(880);
 });
 
 it('links every cited claim to its source and drops text that cites nothing', () => {

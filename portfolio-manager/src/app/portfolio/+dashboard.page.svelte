@@ -23,14 +23,6 @@
 			}))
 			.reverse()
 	);
-	/** A stored decimal (a string) for reading: two places, the workspace's grouping. */
-	const money = (value: string | null) =>
-		value === null
-			? '—'
-			: Number(value).toLocaleString(ctx.locale, {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2
-				});
 </script>
 
 {#snippet analysis({ value }: { value: ShowProps['value'] })}
@@ -57,7 +49,14 @@
 					{#each [['Net assets', latest.net_assets], ['Invested', latest.invested], ['Cash', latest.cash], ['Owed', latest.liabilities], ['Change on the day', latest.day_change]] as const as [title, value] (title)}
 						<div class="rounded-xl border p-4">
 							<p class="text-xs text-muted-foreground">{title}</p>
-							<p class="mt-1 text-xl font-semibold">{latest.base_currency} {money(value)}</p>
+							<p class="mt-1 text-xl font-semibold">
+								{value === null
+									? '—'
+									: format({ kind: 'money' }, value, {
+											locale: ctx.locale,
+											currency: latest.base_currency
+										})}
+							</p>
 						</div>
 					{/each}
 				</Grid>

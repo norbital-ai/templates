@@ -12,6 +12,7 @@
 		type RecordView,
 		type ShowProps
 	} from '@norbital-ai/ui';
+	import { Bound, Stack } from '@norbital-ai/ui/layout';
 	let { ctx, view }: { ctx: PageContext; view: RecordView<'report'> } = $props();
 	const t = ctx.t;
 </script>
@@ -32,21 +33,23 @@
 				<h2 class="font-semibold">{t('component.report_contents')}</h2>
 				<ReadonlyMarkdown value={report.summary} />
 			</section>
-			<section class="flex flex-col gap-2">
+			<Stack as="section" gap="sm">
 				<h2 class="font-semibold">{t('component.report_markets')}</h2>
-				<Table
-					{ctx}
-					of={report.markets ?? []}
-					key="report-markets"
-					columns={[
-						{ field: 'instrument', label: t('component.report_instrument') },
-						{ field: 'level', label: t('component.report_level') },
-						{ field: 'change_pct', label: t('component.report_change'), cell: move }
-					]}
-					toolbar={{ new: false }}
-				/>
+				<Bound size="viewport"
+					><Table
+						{ctx}
+						of={report.markets ?? []}
+						key="report-markets"
+						columns={[
+							{ field: 'instrument', label: t('component.report_instrument') },
+							{ field: 'level', label: t('component.report_level') },
+							{ field: 'change_pct', label: t('component.report_change'), cell: move }
+						]}
+						toolbar={{ new: false }}
+					/></Bound
+				>
 				{#if report.market_view}<ReadonlyMarkdown value={report.market_view} />{/if}
-			</section>
+			</Stack>
 			{#each report.positions ?? [] as item (item.instrument)}
 				<section class="flex flex-col gap-1">
 					<p class="text-muted-foreground text-xs uppercase">
