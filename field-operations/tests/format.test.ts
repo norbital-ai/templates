@@ -1,5 +1,6 @@
 import { expect, it } from '@effect/vitest';
-import { dayOf } from '../src/lib/format.js';
+import { Schema } from 'effect';
+import { input_schema } from '@norbital-ai/bolt';
 import { senderName } from '../src/lib/dispatch.js';
 it.each([
 	[null, null],
@@ -15,7 +16,7 @@ it.each([
 	[' 2026-10-12', null],
 	['2026-10-12 ', null]
 ] as const)('keeps native date validation for %s', (input, expected) => {
-	expect(dayOf(input)).toBe(expected);
+	expect(Schema.is(input_schema({ kind: 'date' }))(input) ? input : null).toBe(expected);
 });
 it('names a sender by its member, never by a raw provider identity', () => {
 	const members = [

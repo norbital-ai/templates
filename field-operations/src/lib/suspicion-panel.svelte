@@ -6,7 +6,7 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { FileRef, Id } from '@norbital-ai/bolt';
-	import { EmptyState, enum_text, Form } from '@norbital-ai/ui';
+	import { EmptyState, enum_text, Form, format } from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
@@ -149,7 +149,7 @@
 						<article class="rounded-md border p-2">
 							<p class="text-micro text-muted-foreground">
 								{t('component.shown_to_review_agent')} · {t('component.similar_photo_distance', {
-									distance: pair.distance.toFixed(3)
+									distance: format({ kind: 'number' }, pair.distance, { locale: ctx.locale })
 								})}
 							</p>
 							<Cluster gap="xs" align="center">

@@ -1,13 +1,14 @@
 import { DateTime, Effect, Schema, SchemaIssue } from 'effect';
-import type { StartInput } from '@norbital-ai/bolt';
-import { dayOf } from './format.js';
+import { input_schema, type StartInput } from '@norbital-ai/bolt';
 
 type Row = StartInput<'job_assignments_import_work_orders'>['rows'][number];
 const text = Schema.optionalKey(Schema.String);
 const decimal = Schema.optionalKey(Schema.FiniteFromString);
 /** A real calendar day as `YYYY-MM-DD`. */
 const day = Schema.String.check(
-	Schema.makeFilter((value: string) => dayOf(value) !== null || 'Not a calendar day')
+	Schema.makeFilter(
+		(value: string) => Schema.is(input_schema({ kind: 'date' }))(value) || 'Not a calendar day'
+	)
 );
 const WORK_ORDER_ROW = Schema.Struct({
 	site: Schema.String,

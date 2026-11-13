@@ -6,7 +6,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Id, Row } from '@norbital-ai/bolt';
 	import { enum_text, Section, Show, Table } from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Stack } from '@norbital-ai/ui/layout';
 	import Conversation from './conversation.svelte';
 	import SuspicionPanel from './suspicion-panel.svelte';
 	import PhotoDialog from './photo-dialog.svelte';
@@ -27,7 +27,7 @@
 	const matches = $derived(
 		basis.candidates.map((candidate) => ({
 			id: candidate.id,
-			distance: candidate.distance.toFixed(3),
+			distance: candidate.distance,
 			flags: candidate.flags
 				.map((flag) => enum_text(flag, { t: tk, model: 'photo_evidence', field: 'flags' }))
 				.join(', '),
@@ -67,17 +67,19 @@
 				true
 			)}{/if}
 	</Grid>
-	{#if matches.length > 0}<Table
-			{ctx}
-			of={matches}
-			key="closest-matches"
-			columns={[
-				{ field: 'distance', label: t('component.match_distance'), align: 'end' },
-				{ field: 'flags', label: t('component.match_flags') },
-				{ field: 'matched', label: t('component.match_photos'), align: 'end' }
-			]}
-			toolbar={{ new: false, title: t('component.closest_matches') }}
-		/>{/if}
+	{#if matches.length > 0}<Bound size="viewport"
+			><Table
+				{ctx}
+				of={matches}
+				key="closest-matches"
+				columns={[
+					{ field: 'distance', label: t('component.match_distance'), align: 'end' },
+					{ field: 'flags', label: t('component.match_flags') },
+					{ field: 'matched', label: t('component.match_photos'), align: 'end' }
+				]}
+				toolbar={{ new: false, title: t('component.closest_matches') }}
+			/></Bound
+		>{/if}
 	<SuspicionPanel {ctx} {job} on_open={show} findings={false} />
 	<Section
 		icon="lucide:messages-square"

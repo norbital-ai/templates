@@ -1,4 +1,5 @@
 import type { AutomationCtx, Duration, Instant, Point, ValueOf } from '@norbital-ai/bolt';
+import * as DateTime from 'effect/DateTime';
 import type * as Effect from 'effect/Effect';
 
 /** What `ctx.files.image(ref)` answers: a cached run's `files.image` has only that overload. */
@@ -64,7 +65,7 @@ export function imageFlags(
 		facts.exif.taken_at == null ? Number.NaN : Date.parse(String(facts.exif.taken_at));
 	if (
 		(!expected.includes(declared) && !UNDECLARED.has(declared)) ||
-		taken_at > Date.parse(String(now)) + 86400000
+		taken_at > DateTime.toEpochMillis(DateTime.add(DateTime.makeUnsafe(now), { days: 1 }))
 	)
 		flags.add('metadata_anomaly');
 	if (/photoshop|lightroom|gimp|snapseed|pixelmator/i.test(facts.exif.software ?? ''))

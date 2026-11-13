@@ -3,7 +3,7 @@
 	import { Effect, Option, Schema } from 'effect';
 	import { observe, run } from '@norbital-ai/ui/effect';
 	import { watch } from 'runed';
-	import type { ListRow } from '@norbital-ai/bolt';
+	import { input_schema, type ListRow } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Split, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Board,
@@ -16,7 +16,7 @@
 	} from '@norbital-ai/ui';
 	import Icon from '@iconify/svelte';
 	import { csvRecords } from '../../lib/csv.js';
-	import { dayOf, getErrorMessage } from '../../lib/format.js';
+	import { getErrorMessage } from '../../lib/format.js';
 	import { xlsxRecords } from '../../lib/xlsx.js';
 	import { decodeWorkOrders } from '../../lib/work-order-sheet.js';
 	class SheetFileUnavailable extends Schema.TaggedError<SheetFileUnavailable>()(
@@ -30,7 +30,7 @@
 	/** The day is in the URL, so opening a record (which re-renders the page) keeps it. */
 	let day = $state<string>(new URL(location.href).searchParams.get('day') ?? clock.today);
 	/** The day as a date; an unreadable one reads as today. */
-	const date = $derived(dayOf(day) ?? clock.today);
+	const date = $derived(Schema.is(input_schema({ kind: 'date' }))(day) ? day : clock.today);
 	watch(
 		() => day,
 		() => {

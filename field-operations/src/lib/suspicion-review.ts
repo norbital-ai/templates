@@ -20,6 +20,8 @@ import {
 	VISUAL_DUPLICATE_MAX_L2,
 	type PhotoFlag
 } from './photo-integrity.js';
+import * as BigDecimal from 'effect/BigDecimal';
+import * as DateTime from 'effect/DateTime';
 import * as Effect from 'effect/Effect';
 import * as Arr from 'effect/Array';
 import * as Predicate from 'effect/Predicate';
@@ -69,7 +71,7 @@ const MAX_CANDIDATE_IMAGE_BYTES = 1024 * 1024;
 const INSPECTIONS_PER_RUN = 50;
 /** A host refusal reason is audit copy, not a transcript. */
 const MAX_INSPECTION_FAILURE_REASON_CHARS = 500;
-const INSPECTION_CLAIM_LEASE_MS = 10 * 60_000;
+const INSPECTION_CLAIM_LEASE = { minutes: 10 };
 const SCENE_BACKFILL_PER_RUN = 1000;
 /** Raw job-site JPEGs can be a MiB each; keep a batch within the AI call's 20-second wall. */
 const SCENE_BATCH = 4;
@@ -404,7 +406,12 @@ function nominate<
 		if (previous === undefined || winner.distance < previous.distance)
 			winners.set(winner.candidate.id, {
 				...winner.candidate,
-				distance: Math.round(winner.distance * 1000) / 1000,
+				distance: BigDecimal.toNumberUnsafe(
+					BigDecimal.round(BigDecimal.fromNumberUnsafe(winner.distance), {
+						scale: 3,
+						mode: 'half-ceil'
+					})
+				),
 				matched_photo_ids: [probe]
 			});
 	}
@@ -431,7 +438,9 @@ const fileFactsOf = Effect.fnUntraced(function* (ctx: Ctx, ref: FileRef) {
 export const inspectPendingPhotos = Effect.fnUntraced(function* (ctx: Ctx) {
 	// ponytail: a claim held past this lease is taken as abandoned (its run died mid-inspection); an inspection that
 	// genuinely runs longer is repeated by the next run
-	const abandoned = new Date(Date.parse(ctx.now) - INSPECTION_CLAIM_LEASE_MS).toISOString();
+	const abandoned = DateTime.formatIso(
+		DateTime.subtract(DateTime.makeUnsafe(ctx.now), INSPECTION_CLAIM_LEASE)
+	);
 	const { photo_evidence: pending } = yield* ctx.query({
 		photo_evidence: {
 			where: { sha256: { eq: '' }, inspection_failed_at: { is_null: true } },
@@ -936,8 +945,8 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 });
 /** The next two-hour slot (00:00, 02:00, … UTC), when a review that did not complete is tried again. */
 export const nextRetrySlot = (now: Instant): Instant => {
-	const at = new Date(now);
-	at.setUTCMinutes(0, 0, 0);
-	at.setUTCHours(at.getUTCHours() - (at.getUTCHours() % 2) + 2);
-	return at.toISOString();
+	const hour = DateTime.startOf(DateTime.makeUnsafe(now), 'hour');
+	return DateTime.formatIso(
+		DateTime.add(hour, { hours: 2 - (DateTime.getPartUtc(hour, 'hour') % 2) })
+	);
 };

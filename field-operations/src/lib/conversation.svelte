@@ -9,7 +9,7 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { Button, EmptyState } from '@norbital-ai/ui';
 	import { Frame, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { dayIn, timeIn, weekdayIn } from './format.js';
+	import { DateTime, Duration } from 'effect';
 	import { senderName } from './dispatch.js';
 	type Photo = {
 		id: string;
@@ -184,13 +184,17 @@
 				!item.system &&
 				!last.system &&
 				last.sender === item.sender &&
-				dayIn(ctx.tz, last.sentAt) === dayIn(ctx.tz, item.sentAt) &&
-				Math.abs(Date.parse(item.sentAt) - Date.parse(last.sentAt)) <= 120000
+				DateTime.formatIsoDate(DateTime.makeZonedUnsafe(last.sentAt, { timeZone: ctx.tz })) ===
+					DateTime.formatIsoDate(DateTime.makeZonedUnsafe(item.sentAt, { timeZone: ctx.tz })) &&
+				Math.abs(Date.parse(item.sentAt) - Date.parse(last.sentAt)) <=
+					Duration.toMillis(Duration.minutes(2))
 			)
 				last.photos.push(...item.photos);
 			else grouped.push({ ...item, photos: [...item.photos] });
 		}
-		return Map.groupBy(grouped, (item) => dayIn(ctx.tz, item.sentAt));
+		return Map.groupBy(grouped, (item) =>
+			DateTime.formatIsoDate(DateTime.makeZonedUnsafe(item.sentAt, { timeZone: ctx.tz }))
+		);
 	});
 	let port = $state<HTMLElement | null>(null);
 	let pinned = $state(true);
@@ -216,7 +220,8 @@
 	<Scroll
 		bind:ref={port}
 		name={t('component.conversation')}
-		class="max-h-[min(70vh,40rem)] min-h-80 rounded-lg border bg-muted/25 p-3"
+		max="tall"
+		class="min-h-80 rounded-lg border bg-muted/25 p-3"
 		onscroll={() => port && (pinned = port.scrollHeight - port.scrollTop - port.clientHeight <= 24)}
 	>
 		{#if timeline.size === 0}
@@ -224,10 +229,24 @@
 		{/if}
 		<Stack as="ol" gap="sm">
 			{#each timeline as [day, items] (day)}
-				<li class="text-center text-meta">{weekdayIn(ctx.tz, locale, items[0]!.sentAt)}</li>
+				<li class="text-center text-meta">
+					{new Intl.DateTimeFormat(locale, {
+						timeZone: ctx.tz,
+						weekday: 'short',
+						day: 'numeric',
+						month: 'short',
+						year: 'numeric'
+					}).format(new Date(items[0]!.sentAt))}
+				</li>
 				{#each items as item (item.id)}
 					<li class="rounded-md border bg-card p-2" data-conversation-item>
-						<p class="text-meta">{item.sender} · {timeIn(ctx.tz, locale, item.sentAt)}</p>
+						<p class="text-meta">
+							{item.sender} · {new Intl.DateTimeFormat(locale, {
+								timeZone: ctx.tz,
+								hour: 'numeric',
+								minute: '2-digit'
+							}).format(new Date(item.sentAt))}
+						</p>
 						{#if item.text}<p class="text-sm whitespace-pre-wrap">{item.text}</p>{/if}
 						{#if item.photos.length > 0}
 							<Grid minimum="compact" gap="xs">
