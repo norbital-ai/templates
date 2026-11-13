@@ -39,7 +39,7 @@ export const punchWork = Effect.fnUntraced(function* (
 			entity: {
 				output: 'kiosk',
 				where: { employee_contract: { some: { id: { eq: employment_id } } } },
-				fields: ['settings_code'],
+				fields: ['settings_code', 'time_zone'],
 				limit: 1
 			}
 		}),
@@ -52,27 +52,12 @@ export const punchWork = Effect.fnUntraced(function* (
 			output: 'kiosk',
 			where: { code: { eq: company.settings_code } },
 			limit: 1
-		},
-		entity_profile_version: {
-			output: 'kiosk',
-			where: { entity_id: { eq: employment.entity_id }, status: { eq: 'SEALED' } },
-			limit: 10000
 		}
 	});
 	const law = policies.jurisdiction.rows[0];
 	if (law === undefined) throw new Error('Attendance requires the jurisdiction time zone.');
-	const employers = policies.entity_profile_version.rows.filter((e) => {
-		const d = DateTime.formatIsoDate(
-			DateTime.makeZonedUnsafe(capturedAt, { timeZone: e.time_zone ?? law.timezone })
-		);
-		return (
-			e.effective_range.from <= d && (e.effective_range.to === null || e.effective_range.to >= d)
-		);
-	});
-	if (employers.length !== 1)
-		throw new Error('Attendance requires one effective employer payroll version.');
 	const day = DateTime.formatIsoDate(
-		DateTime.makeZonedUnsafe(capturedAt, { timeZone: employers[0]!.time_zone ?? law.timezone })
+		DateTime.makeZonedUnsafe(capturedAt, { timeZone: company.time_zone ?? law.timezone })
 	);
 	const { roster_entry } = yield* ctx.query({
 		roster_entry: {

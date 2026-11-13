@@ -4,26 +4,11 @@ export default messages({
 	'models.obligation.fields.due_on': 'Due on',
 	'models.payroll_run.syncs.export.context.authority_payment_on': 'Intended authority payment date',
 	'models.payroll_run.syncs.export.context.authority_advice_code': 'Authority advice code',
-	'models.entity_profile_version.fields.statutory_units': 'Registered statutory units',
-	'models.entity_profile_version.fields.registrations': 'Scheme registration numbers',
 	'models.entity.fields.code': 'Company code',
 	'contract.work_authorisation_category': 'Work authorisation category',
 	'models.claim_catalog_entry.fields.quantity': 'Units claimed',
 	'roster.not_scheduled': 'No work scheduled',
 	'roster.attendance_missing': 'No attendance',
-	'employer_version.empty': 'No employer payroll versions yet',
-	'employer_version.new': 'New version',
-	'entity.schedule_change': 'Schedule change',
-	'employer_version.seal': 'Seal version',
-	'employer_version.void': 'Void version',
-	'employer_version.void_title': 'Void this payroll version?',
-	'employer_version.void_help':
-		'A voided version no longer applies and cannot be unvoided. Record the reason.',
-	'employer_version.read_only':
-		'Sealed payroll versions are read-only. Use Void to replace an incorrect version.',
-	'employer_version.plural': 'Employer payroll versions',
-	'models.entity_profile_version.label': 'Employer payroll versions',
-	'models.entity_profile_version.singular': 'Employer payroll version',
 	'contract.draft': 'Draft',
 	'contract.sealed': 'Sealed',
 	'contract.voided': 'Voided',
@@ -121,6 +106,21 @@ export default messages({
 	'component.loading_profile': 'Loading your profile',
 	'component.net': 'Net',
 	'person.tab_general': 'Profile',
+	'models.entity_change.label': 'Company changes',
+	'models.entity_change.singular': 'Company change',
+	'models.entity_change.fields.statutory_parameters': 'Statutory parameters',
+	'models.entity_change.fields.clears': 'Taken away from this date',
+	'models.entity_change.help.effective_from':
+		'The day these values start to apply. A date after today is not yet in force.',
+	'models.entity_change.help.clears':
+		'Names of the fields above that stop applying from this date. An empty field means unchanged.',
+	'entity.in_force_today': 'In force today',
+	'entity.changes_empty': 'No changes yet',
+	'entity.new_change': 'New change',
+	'entity_change.delete': 'Delete change',
+	'entity_change.delete_title': 'Delete this change?',
+	'entity_change.delete_body':
+		'Its values stop applying from its date. Paid periods it reached are worked out again by the next payroll run.',
 	'entity.tab_holidays': 'Holidays',
 	'entity.tab_pay_groups': 'Pay groups',
 	'app.payroll.pay_group': 'Pay group',
@@ -397,7 +397,6 @@ export default messages({
 	'roster.public_holiday': 'Public holiday',
 	'roster.public_holiday_mark': 'PH',
 	'app.adhoc.title': 'Ad hoc',
-	'settings_version.reason': 'Reason',
 	'component.cancel': 'Cancel',
 	'app.hr_controller.title': 'HR Controller',
 	'app.hr_controller.description':
@@ -452,13 +451,17 @@ export default messages({
 	'models.holiday.fields.given_to.ONLY_IF_OFF_ON_REPLACED_DATE': 'Only if off on the replaced date',
 	'models.holiday.fields.published_at': 'Published',
 	'models.holiday.fields.employee_id': 'Only for',
-	'models.entity_profile_version.fields.final_pay_loan_floor_percent': 'Final-pay loan floor (%)',
-	'models.entity_profile_version.fields.overtime_full_award_percent': 'Full overtime threshold (%)',
-	'models.entity_profile_version.fields.pay_methods': 'Employer pay methods',
+	'models.entity_change.fields.final_pay_loan_floor_percent': 'Final-pay loan floor (%)',
+	'models.entity_change.fields.overtime_full_award_percent': 'Full overtime threshold (%)',
+	'models.entity_change.fields.pay_methods': 'Employer pay methods',
 	'app.settings.changes': 'Changes',
 	'settings_form.conversions': 'Conversions',
 	'settings_form.ledger': 'Ledger',
 	'settings_form.work_regions': 'Work regions',
+	'law_changes.delete': 'Delete change',
+	'law_changes.delete_title': 'Delete this change of law?',
+	'law_changes.delete_body':
+		'The law reads as if this change was never made, and every paid period it reached is worked out again in the next run.',
 	'law_changes.whole': 'The whole law',
 	'law_changes.upcoming': 'Not yet in force',
 	'law_changes.not_confirmed': 'Not confirmed',
@@ -660,18 +663,8 @@ export default messages({
 	'models.pay_amendment.help.period': 'The paid cycle, as its run names it.',
 	'errors.employee_balance_ledger_only':
 		'Only the ledger moves a balance, an admin included. Key an entry, or a manual adjustment on the employee profile.',
-	'errors.entity_change_field_path':
-		'Only an employer fact can be scheduled: name, representative, address, time zone, loan floor, overtime award, pay methods, bank or extension data.',
-	'errors.entity_change_effective_from':
-		'A scheduled change takes effect on the first of a month to come. One due now is a new employer version.',
-	'errors.entity_change_no_open_version': 'No open employer version to change.',
-	'errors.entity_change_seal_applies': 'Only the seal applies a change.',
-	'models.entity_change.help.field_path':
-		'One of name, representative_name, registered_address, time_zone, final_pay_loan_floor_percent, overtime_full_award_percent, pay_methods, bank or entity_extension_data. A dotted path changes one nested value.',
-	'models.entity_change.help.new_value':
-		'The value that stands from the effective date, as JSON: a quoted string, a number, true/false, or an object.',
-	'models.entity_change.help.effective_from':
-		'The first day of a future month. The open employer version ends the day before it.',
+	'errors.entity_change_clears':
+		'Only a dated field can be taken away: pay methods, the loan floor, the overtime threshold or the statutory parameters.',
 	'errors.contract_change_field_path':
 		'Only a contract term or fact can be scheduled; an entity move is a transfer.',
 	'errors.contract_change_effective_from':
@@ -703,7 +696,7 @@ export default messages({
 	'errors.entity_code_blank':
 		'An entered company code must contain a nonblank business identifier. Enter the code, or leave the field empty.',
 	'errors.entity_jurisdiction_linked':
-		'This company has payroll versions or contracts linked to its jurisdiction. Create a separate company for a different jurisdiction.',
+		'This company has changes or contracts linked to its jurisdiction. Create a separate company for a different jurisdiction.',
 	'models.entity.fields.source_reference': 'Source reference',
 	'models.entity.help.code':
 		'The company’s stable business code for imports and cross-references. This is separate from its immutable record ID, name, jurisdiction and dated registration numbers.',
@@ -711,44 +704,40 @@ export default messages({
 		'The actual date the employer registered with the Employees Provident Fund. A missing date means not yet recorded, not unregistered.',
 	'models.entity.help.socso_registered_on':
 		'The actual date the employer registered with PERKESO; the single registration covers SOCSO and EIS. A missing date means not yet recorded, not unregistered.',
-	'models.entity_profile_version.help.representative_name':
+	'models.entity.help.representative_name':
 		'The responsible person the law names for filing and registration duties.',
-	'models.entity_profile_version.help.final_pay_loan_floor_percent':
+	'models.entity_change.help.final_pay_loan_floor_percent':
 		'The share of expected final pay that must remain after loan recovery.',
-	'models.entity_profile_version.help.overtime_full_award_percent':
+	'models.entity_change.help.overtime_full_award_percent':
 		'How much of planned overtime the clock must cover to pay all of it. Below this, the clocked time pays, rounded down to the half hour.',
-	'models.entity_profile_version.help.pay_methods':
+	'models.entity_change.help.pay_methods':
 		"The employer's own pay methods. Each applies only where it pays at least the law; otherwise the law stands.",
-	'models.entity_profile_version.fields.pay_methods.overtime_hour_basis': 'Overtime hour rate',
-	'models.entity_profile_version.help.pay_methods.overtime_hour_basis':
+	'models.entity_change.fields.pay_methods.overtime_hour_basis': 'Overtime hour rate',
+	'models.entity_change.help.pay_methods.overtime_hour_basis':
 		"What one overtime hour is priced on. Statutory: the hour rate the law works out. Contract weekly: the monthly wage × 12 ÷ (52 × the contract's weekly hours). It changes the overtime lines of a payslip.",
-	'models.entity_profile_version.fields.pay_methods.rest_day_hourly_multiplier':
-		'Rest-day hour multiple',
-	'models.entity_profile_version.help.pay_methods.rest_day_hourly_multiplier':
+	'models.entity_change.fields.pay_methods.rest_day_hourly_multiplier': 'Rest-day hour multiple',
+	'models.entity_change.help.pay_methods.rest_day_hourly_multiplier':
 		'Every hour worked on a rest day pays this multiple of the hour rate. Leave empty to pay what the law pays. It changes the rest-day work lines of a payslip.',
-	'models.entity_profile_version.fields.pay_methods.night_differential_basis':
-		'Night premium hours',
-	'models.entity_profile_version.help.pay_methods.night_differential_basis':
+	'models.entity_change.fields.pay_methods.night_differential_basis': 'Night premium hours',
+	'models.entity_change.help.pay_methods.night_differential_basis':
 		'Which hours earn the night premium. Worked: the hours worked inside the night window. Clock span: every clocked hour in the window, unpaid breaks and overtime included, at the ordinary hour rate. Whole night: a worked night shift earns eight full hours of premium at the day’s rate. It changes the night premium line of a payslip. Only the Philippines’ rows read it; it changes nothing in other countries.',
-	'models.entity_profile_version.fields.pay_methods.contribution_split':
+	'models.entity_change.fields.pay_methods.contribution_split':
 		'Contributions over two runs a month',
-	'models.entity_profile_version.help.pay_methods.contribution_split':
+	'models.entity_change.help.pay_methods.contribution_split':
 		'How a month’s contributions fall on the two payslips of a twice-monthly group. Even: half on each. First run: the whole month on the first payslip, on an estimate, and the second settles the month’s actual wages. Only the Philippines’ rows read it; it changes nothing in other countries.',
-	'models.entity_profile_version.fields.pay_methods.health_billing': 'Health insurance billing',
-	'models.entity_profile_version.help.pay_methods.health_billing':
+	'models.entity_change.fields.pay_methods.health_billing': 'Health insurance billing',
+	'models.entity_change.help.pay_methods.health_billing':
 		'Which payslip charges a month’s health insurance. Current: each month’s own payslip. Arrears: the next month’s, so the month someone joins charges nothing and their last payslip charges two months. Over an employment the same contributions are paid. Only Indonesia’s BPJS Kesehatan rows read it; it changes nothing in other countries.',
-	'models.entity_profile_version.fields.pay_methods.benefit_exclusion':
-		'Benefits over their tax-free limit',
-	'models.entity_profile_version.help.pay_methods.benefit_exclusion':
+	'models.entity_change.fields.pay_methods.benefit_exclusion': 'Benefits over their tax-free limit',
+	'models.entity_change.help.pay_methods.benefit_exclusion':
 		'How a benefit paid past its own tax-free limit is taxed. Pooled: the excess joins the yearly exclusion for bonuses and benefits. Excess taxed: it is taxed on the payslip of the month it is paid. The year’s last payslip settles either way, so only the month the tax is withheld changes. Only the Philippines’ rows read it; it changes nothing in other countries.',
-	'models.entity_profile_version.fields.pay_methods.paid_leave': 'Leave the company pays',
-	'models.entity_profile_version.help.pay_methods.paid_leave':
+	'models.entity_change.fields.pay_methods.paid_leave': 'Leave the company pays',
+	'models.entity_change.help.pay_methods.paid_leave':
 		'Leave codes the company pays in full by its own policy where the law leaves them unpaid, such as emergency leave. No statute requires it; it only ever pays more than the law. It changes the leave and no-pay lines of a payslip.',
-	'models.entity_profile_version.help.entity_extension_data':
+	'models.entity_change.help.statutory_parameters':
 		"The entity data the jurisdiction's entity extension schema declares.",
-	'models.entity_profile_version.help.time_zone':
+	'models.entity.help.time_zone':
 		"The zone this entity's payroll windows and rostered days are counted in.",
-	'errors.entity_profile_version_void_reason': 'Record why this version is void.',
 	'models.roster_entry.help.consent':
 		'The signed per-day consent for night work and overtime while raising a child under 12 months. Pregnancy never takes consent.',
 	'errors.ledger_entry_names_its_movement':
@@ -766,7 +755,6 @@ export default messages({
 	'errors.employee_profile_invitation_links':
 		'Only an accepted invitation links a profile to a login. Create the profile without a login; it is linked when the person accepts their invitation.',
 	'models.employee_profile.fields.source_reference': 'Source reference',
-	'errors.payroll_run_no_entity_version': 'No sealed entity version covers {period}.',
 	'errors.payroll_run_choose_group': 'Choose the pay group this run pays.',
 	'errors.payroll_run_group_other_company': 'The pay group belongs to another company.',
 	'errors.payroll_run_not_a_cycle': '{period} is not a pay cycle of {group}.',

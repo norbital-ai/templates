@@ -132,14 +132,8 @@
 					}
 				})
 	);
-	const versions = $derived(
-		ctx.query({
-			entity_profile_version: {
-				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
-				fields: ['effective_range', 'time_zone'],
-				limit: 10000
-			}
-		})
+	const zone = $derived(
+		ctx.query({ entity: { where: { id: { eq: companyId } }, fields: ['time_zone'], limit: 1 } })
 	);
 	const contractById = $derived(
 		new Map((contracts.current?.employee_contract.rows ?? []).map((row) => [String(row.id), row]))
@@ -165,8 +159,6 @@
 		}
 		return grouped;
 	});
-	const covers = (range: { readonly from: string; readonly to: string | null }, date: string) =>
-		String(range.from) <= date && (range.to == null || date <= String(range.to));
 	const people = $derived.by(() => {
 		const byPerson = new Map<
 			string,
@@ -214,18 +206,8 @@
 	const byId = $derived(new Map(people.map((person) => [person.id, person])));
 	const entries = $derived(people.flatMap((person) => person.entries));
 	const locked = $derived(new Set(people.filter((person) => person.locked).map((p) => p.id)));
-	const zoneOn = (date: string): string | null =>
-		(versions.current?.entity_profile_version.rows ?? []).find((row) =>
-			covers(
-				{
-					from: String(row.effective_range.from),
-					to: row.effective_range.to == null ? null : String(row.effective_range.to)
-				},
-				date
-			)
-		)?.time_zone ?? null;
 	const timeZone = $derived(
-		zoneOn(from) ?? zoneOn(to) ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+		zone.current?.entity.rows[0]?.time_zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
 	);
 	const holidayByDate = $derived(
 		new Map(

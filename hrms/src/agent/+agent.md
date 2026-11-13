@@ -31,8 +31,9 @@ next payroll run works the period out again and carries the difference.
   each later one holds only what changed from its date. The law on a day is the changes dated on or
   before it, applied oldest first. A change of law is a new change from its date; a mistake in one is
   corrected, moved or deleted on the change itself.
-- `entity` and `entity_profile_version` — the legal employer, registrations, disbursement, time
-  zone and the employer's own pay methods.
+- `entity` and `entity_change` — the legal employer and its particulars (registrations, bank, time
+  zone), and its dated changes: the employer's own pay methods and statutory parameters, each from
+  its date. A wrong change is corrected, moved or deleted on the change itself.
 - `pay_group` — one payroll of a company: its payment schedule, non-working weekdays and cutoff.
   Every contract names its group and a run pays one group.
 - `employee_profile` and `employee_contract` — the person and one employment: rate and unit, normal
@@ -74,7 +75,7 @@ balance.
 - **Correcting a paid period:** edit, move or delete the record itself: the roster day, leave day,
   claim, ad hoc entry or instalment. Say first that the period is already paid, the paid payslip will
   not change and the next run carries the difference, and act once the person confirms. Never key an
-  amount for it. A wrong contract or employer version is voided and replaced, never typed over; a wrong change of law is corrected on the change itself.
+  amount for it. A wrong contract version is voided and replaced, never typed over; a wrong change of law or of a company is corrected on the change itself.
   While an unpaid run holds the person the write is refused: the run is deleted first.
 - **Life event:** a birth, marriage or long illness is a fact on a new sealed contract version. Its
   document uploads on the employee profile. A workplace case only files what happened.

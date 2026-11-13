@@ -272,34 +272,6 @@ export const paidUnder = Effect.fn('payroll.paidUnder')(function* (
 	return runs.length > 0;
 });
 
-type Versioned = {
-	readonly status?: string | undefined;
-	readonly effective_range: { readonly from: string; readonly to: string | null };
-};
-/**
- * The days a write to a sealed, dated version reaches. A draft reaches nothing until it is sealed, and then all it
- * covers; a void takes back all it covered; a sealed version whose last day moves reaches the days that move.
- */
-export const versionReach = (
-	before: Versioned | undefined,
-	after: Versioned
-): readonly { readonly from: string; readonly to: string | null }[] => {
-	if (before === undefined || before.status !== 'SEALED')
-		return after.status === 'SEALED' ? [after.effective_range] : [];
-	if (after.status === 'VOID') return [before.effective_range];
-	const was = before.effective_range.to;
-	const now = after.effective_range.to;
-	if (was === now) return [];
-	const earlier = was === null || (now !== null && now < was) ? now : was;
-	if (earlier === null) return [];
-	return [
-		{
-			from: DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(earlier), { days: 1 })),
-			to: was === null || now === null ? null : was < now ? now : was
-		}
-	];
-};
-
 /**
  * Every model a run reads, and what a write to it does when it reaches a paid period. A model the run starts to read
  * is added here with its rule, or the gate test fails: nothing reaches a paid period's inputs unseen.
@@ -317,7 +289,10 @@ export const RUN_INPUTS = {
 	employee_contract: 'amends',
 	holiday: 'amends',
 	work_event: 'amends',
-	entity_profile_version: 'amends',
+	// the company: what it changes by date amends what the change reaches; its plain fields price no day, and the law
+	// it names stays once a contract or a change is linked
+	entity_change: 'amends',
+	entity: 'none',
 	// the law: a change written, moved or deleted, or put in or out of force by its finding, amends what it reaches
 	jurisdiction_change: 'amends',
 	jurisdiction: 'refuses',

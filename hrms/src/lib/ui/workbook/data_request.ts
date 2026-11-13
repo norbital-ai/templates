@@ -270,13 +270,13 @@ const column = (
 	options: Partial<Pick<SheetColumn, 'required' | 'values' | 'help' | 'item'>> = {}
 ): SheetColumn => ({ label, kind, path, group, required: false, help: '', ...options });
 
-const bankColumns = (group: string): readonly SheetColumn[] =>
+const bankColumns = (group: string, root: readonly string[] = []): readonly SheetColumn[] =>
 	(['Bank Name', 'Bank Code', 'Bank Account Number', 'Bank Account Name'] as const).map((label) =>
-		column(label, 'text', ['bank', label.toLowerCase().replaceAll(' ', '_')], group)
+		column(label, 'text', [...root, 'bank', label.toLowerCase().replaceAll(' ', '_')], group)
 	);
 
 const PAY = 'Pay schedule';
-/** Columns that feed `payment_schedule`, `registrations` or an entity row rather than one version field. */
+/** A company row: `$`-rooted columns feed the company, its pay schedule or its registrations; the rest are dated. */
 export const entityColumns = (
 	settings: SettingsFacts,
 	schemes: readonly string[]
@@ -289,19 +289,12 @@ export const entityColumns = (
 			required: true,
 			help: 'The name used across the HRMS.'
 		}),
-		column('Legal Name', 'text', ['name'], 'Company', {
+		column('Effective From', 'date', ['effective_from'], 'Company', {
 			required: true,
-			help: 'The registered name on this payroll version.'
+			help: "The date this row's pay and country details start: the company's first day. To record a change, duplicate the row and set this to the change date."
 		}),
-		column('Effective From', 'date', ['effective_range', 'from'], 'Company', {
-			required: true,
-			help: 'The date these company details start. To record a change, duplicate the row and set this to the change date.'
-		}),
-		column('Effective To', 'date', ['effective_range', 'to'], 'Company', {
-			help: 'Leave empty while current. An older row with a later duplicate closes the day before it.'
-		}),
-		column('Registered Address', 'text', ['registered_address'], 'Company'),
-		column('Time Zone', 'text', ['time_zone'], 'Company', {
+		column('Registered Address', 'text', ['$entity', 'registered_address'], 'Company'),
+		column('Time Zone', 'text', ['$entity', 'time_zone'], 'Company', {
 			help: `Normally ${settings.timezone}.`
 		}),
 		column('Pay Frequency', 'enum', ['$pay', 'frequency'], PAY, {
@@ -350,7 +343,7 @@ export const entityColumns = (
 		column('Final-Pay Loan Floor (%)', 'integer', ['final_pay_loan_floor_percent'], PAY, {
 			help: 'Share of expected final pay that stays with the employee after loan recovery. 10 if left empty.'
 		}),
-		...bankColumns('Company bank'),
+		...bankColumns('Company bank', ['$entity']),
 		...schemes.map((scheme) =>
 			column(
 				`${human(scheme)} Employer Number`,
@@ -368,7 +361,7 @@ export const entityColumns = (
 		...flatten(
 			isJsonObject(settings.entity_extension_schema) ? settings.entity_extension_schema : {},
 			'Country requirements',
-			['entity_extension_data']
+			['statutory_parameters']
 		)
 	]);
 
@@ -709,12 +702,7 @@ export type DataRequestKnown = {
 		readonly name: string;
 		readonly code: string | null;
 	}[];
-	readonly entityVersions: readonly {
-		readonly id: string;
-		readonly entity_id: string;
-		readonly from: string;
-		readonly status: string;
-	}[];
+	readonly entityChanges: readonly { readonly entity_id: string; readonly from: string }[];
 	readonly profiles: readonly {
 		readonly id: string;
 		readonly name: string;
@@ -738,15 +726,15 @@ export type DataRequestKnown = {
 	}[];
 };
 export type DataRequestPlan = {
-	readonly settingsCode: string;
-	readonly entities: readonly { readonly name: string; readonly code: string | null }[];
+	/** Companies to create, each with its plain fields. */
+	readonly entities: readonly JsonObject[];
 	readonly entitySchedules: readonly {
 		readonly name: string;
 		readonly payment_schedule: JsonObject;
 		readonly pay_cutoff_day: number;
 	}[];
-	/** Versions to write, each naming its company; `seal` holds drafts an interrupted import left. */
-	readonly versions: readonly { readonly company: string; readonly row: JsonObject }[];
+	/** Dated changes to write, each naming its company. */
+	readonly changes: readonly { readonly company: string; readonly row: JsonObject }[];
 	readonly profiles: readonly JsonObject[];
 	readonly profileUpdates: readonly { readonly target: string; readonly set: JsonObject }[];
 	readonly contracts: readonly {
@@ -754,7 +742,6 @@ export type DataRequestPlan = {
 		readonly number: string;
 		readonly row: JsonObject;
 	}[];
-	readonly sealVersions: readonly string[];
 	readonly sealContracts: readonly string[];
 	readonly count: number;
 	readonly warnings: readonly string[];
@@ -863,27 +850,44 @@ export const planDataRequest = (
 	);
 
 	const existingEntity = new Map(known.entities.map((row) => [lower(row.name), row]));
-	const newEntities = new Map<string, { name: string; code: string | null }>();
+	// a company is created from its earliest row: its plain fields are that row's
+	const newEntities = new Map<string, { readonly from: string; readonly row: JsonObject }>();
 	const entitySchedules = new Map<
 		string,
 		{ name: string; payment_schedule: JsonObject; pay_cutoff_day: number }
 	>();
-	const parsedVersions = entityRows.flatMap((row): readonly Dated[] => {
+	const seenChanges = new Map<string, number>();
+	const changes: { company: string; row: JsonObject }[] = [];
+	for (const row of entityRows) {
 		const where = `${SHEETS.entity} row ${row.at}`;
-		const { $entity, $pay, $registration, ...model } = modelOf(row, SHEETS.entity, problems);
+		const { $entity, $pay, $registration, effective_from, statutory_parameters, ...dated } =
+			modelOf(row, SHEETS.entity, problems);
 		const entity = isJsonObject($entity) ? $entity : {};
 		const name = String(entity.name ?? '');
-		if (name === '' || typeof model.name !== 'string') return [];
-		const range = isJsonObject(model.effective_range) ? model.effective_range : {};
-		if (typeof range.from !== 'string') return [];
-		if (!existingEntity.has(lower(name)) && !newEntities.has(lower(name)))
-			newEntities.set(lower(name), {
-				name,
-				code: typeof entity.code === 'string' ? entity.code : null
+		if (name === '' || typeof effective_from !== 'string') continue;
+		const key = lower(name);
+		const earlier = seenChanges.get(`${key}|${effective_from}`);
+		if (earlier !== undefined) problems.push(`${where}: repeats row ${earlier}.`);
+		seenChanges.set(`${key}|${effective_from}`, row.at);
+		const held = existingEntity.get(key);
+		const first = newEntities.get(key);
+		if (held === undefined && (first === undefined || effective_from < first.from))
+			newEntities.set(key, {
+				from: effective_from,
+				row: jsonObject({
+					name,
+					...(typeof entity.code === 'string' ? { code: entity.code } : {}),
+					settings_code: known.settings.code,
+					...(entity.registered_address === undefined
+						? {}
+						: { registered_address: entity.registered_address }),
+					time_zone: entity.time_zone ?? known.settings.timezone,
+					...(entity.bank === undefined ? {} : { bank: entity.bank })
+				})
 			});
 		const schedule = paySchedule(isJsonObject($pay) ? $pay : {}, where, problems);
 		if (schedule !== null)
-			entitySchedules.set(lower(name), {
+			entitySchedules.set(key, {
 				name,
 				payment_schedule: schedule,
 				pay_cutoff_day: Number(
@@ -895,49 +899,27 @@ export const planDataRequest = (
 			where,
 			problems
 		);
-		return [
-			{
-				key: lower(name),
-				from: range.from,
-				at: row.at,
-				model: {
-					...model,
-					entity_extension_data: {
-						...(isJsonObject(model.entity_extension_data) ? model.entity_extension_data : {}),
-						...(registrations.length === 0 ? {} : { registrations })
-					},
-					time_zone: model.time_zone ?? known.settings.timezone
-				}
-			}
-		];
-	});
-	const seenVersions = new Map<string, number>();
-	for (const row of parsedVersions) {
-		const key = `${row.key}|${row.from}`;
-		const earlier = seenVersions.get(key);
-		if (earlier !== undefined)
-			problems.push(`${SHEETS.entity} row ${row.at}: repeats row ${earlier}.`);
-		seenVersions.set(key, row.at);
-	}
-	const versions: { company: string; row: JsonObject }[] = [];
-	const sealVersions: string[] = [];
-	for (const row of closed(parsedVersions)) {
-		const entity = existingEntity.get(row.key);
-		const held = known.entityVersions.find(
-			(version) => version.entity_id === entity?.id && version.from === row.from
-		);
-		if (held?.status === 'DRAFT') {
-			sealVersions.push(held.id);
+		const parameters = {
+			...(isJsonObject(statutory_parameters) ? statutory_parameters : {}),
+			...(registrations.length === 0 ? {} : { registrations })
+		};
+		const change = {
+			...dated,
+			...(Object.keys(parameters).length === 0 ? {} : { statutory_parameters: parameters })
+		};
+		// a row with nothing dated only names the company
+		if (Object.keys(change).length === 0) continue;
+		if (
+			known.entityChanges.some(
+				(stored) => stored.entity_id === held?.id && stored.from === effective_from
+			)
+		) {
+			warnings.push(
+				`${SHEETS.entity} row ${row.at}: already recorded from ${effective_from}; skipped.`
+			);
 			continue;
 		}
-		if (held !== undefined) {
-			warnings.push(`${SHEETS.entity} row ${row.at}: already recorded from ${row.from}; skipped.`);
-			continue;
-		}
-		versions.push({
-			company: row.key,
-			row: jsonObject({ ...row.model, settings_code: known.settings.code })
-		});
+		changes.push({ company: key, row: jsonObject({ ...change, effective_from }) });
 	}
 
 	const contractOf = (number: string) =>
@@ -1062,25 +1044,22 @@ export const planDataRequest = (
 		throw new WorkbookRowsError(`The file has ${problems.length} problem(s).`, problems);
 	const count =
 		newEntities.size +
-		versions.length +
+		changes.length +
 		profiles.length +
 		profileUpdates.length +
 		contracts.length +
-		sealVersions.length +
 		sealContracts.length;
 	if (count === 0 && warnings.length === 0)
 		throw new WorkbookRowsError(
 			'The Entity, Employment Profile and Employment Contract sheets have no rows.'
 		);
 	return {
-		settingsCode: known.settings.code,
-		entities: [...newEntities.values()],
+		entities: [...newEntities.values()].map(({ row }) => row),
 		entitySchedules: [...entitySchedules.values()],
-		versions,
+		changes,
 		profiles,
 		profileUpdates,
 		contracts,
-		sealVersions,
 		sealContracts,
 		count,
 		warnings

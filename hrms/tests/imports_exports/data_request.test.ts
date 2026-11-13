@@ -44,7 +44,7 @@ const seed = (code: string) => {
 const known = (over: Partial<DataRequestKnown> = {}): DataRequestKnown => ({
 	...seed('MY'),
 	entities: [],
-	entityVersions: [],
+	entityChanges: [],
 	profiles: [],
 	contracts: [],
 	patterns: [],
@@ -60,7 +60,6 @@ const workbook = (sheets: Readonly<Record<string, readonly Row[]>>) =>
 const company = {
 	'Company Name *': 'Acme',
 	'Company Code': 'ACME',
-	'Legal Name *': 'Acme Sdn Bhd',
 	'Effective From *': '2026-01-01',
 	'Pay Frequency *': 'Monthly',
 	'Pay Days': '25',
@@ -160,10 +159,12 @@ describe('data request plan', () => {
 
 	it('builds a company, a person and a contract in their model shapes', () => {
 		const plan = planDataRequest(workbook(sheets), known());
-		assert.deepEqual(plan.entities, [{ name: 'Acme', code: 'ACME' }]);
-		const version = plan.versions[0]?.row;
-		assert.deepEqual(version?.effective_range, { from: '2026-01-01', to: null });
-		assert.equal(version?.settings_code, 'MY');
+		assert.deepEqual(plan.entities, [
+			{ name: 'Acme', code: 'ACME', settings_code: 'MY', time_zone: seed('MY').settings.timezone }
+		]);
+		const change = plan.changes[0];
+		assert.equal(change?.company, 'acme');
+		assert.equal(change?.row.effective_from, '2026-01-01');
 		assert.deepEqual(plan.entitySchedules, [
 			{
 				name: 'Acme',
@@ -177,10 +178,10 @@ describe('data request plan', () => {
 				pay_cutoff_day: 1
 			}
 		]);
-		assert.deepEqual(
-			(version?.entity_extension_data as { registrations?: unknown } | undefined)?.registrations,
-			[{ scheme_code: 'EPF', number: '0012345' }]
-		);
+		const parameters = change?.row.statutory_parameters;
+		assert.deepEqual(isJsonObject(parameters) ? parameters.registrations : undefined, [
+			{ scheme_code: 'EPF', number: '0012345' }
+		]);
 		assert.deepEqual(plan.profiles, [
 			{ name: 'Aisha', email: 'aisha@example.test', source_reference: 'A1' }
 		]);

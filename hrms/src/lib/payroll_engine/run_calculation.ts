@@ -27,6 +27,7 @@ import { accountsOf, latestWindow, totalsScope, viewOf } from '../ledger/core.js
 import { claimLeft, claimWanted } from '../ledger/service.js';
 import { chainOf, isExit, startsOf } from './contract_change.js';
 import { lawRead, lawsOf, type Law } from '../law.js';
+import { employerOn } from '../company.js';
 
 /** One payslip row the run's create transform attaches as a child. */
 
@@ -203,7 +204,9 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			fields: ['payment_schedule'],
 			limit: 1
 		},
-		entity_profile_version: { where: { ...own, status: { eq: 'SEALED' } }, limit: 10000 },
+		// the company: its plain fields, and every dated change, folded on the day each period is priced for
+		entity: { where: { id: { eq: companyId } }, limit: 1 },
+		entity_change: { where: own, limit: 10000 },
 		employee_contract: { where: contract, limit: 10000 },
 		employee_profile: {
 			where: { employee_contract: { some: contract } },
@@ -381,17 +384,11 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			return agreed === undefined ? [] : [{ ...row, terms: agreed.terms ?? null }];
 		})
 	};
-	const employerVersion = (data.entity_profile_version ?? []).find((row) =>
-		covers(row.effective_range, from, to)
-	);
-	if (employerVersion === undefined)
-		return yield* Effect.fail(
-			new Refusal({ message: 'No employer version covers the salary period.' })
-		);
-	// the employer as this run sees it: the sealed version, on the run's pay group's schedule
+	// the employer as this run sees it: the company as it stands on the salary period's last day, on the run's pay
+	// group's schedule
 	const payGroup = (data.pay_group ?? [])[0];
 	const employer: JsonObject = {
-		...employerVersion,
+		...employerOn((data.entity ?? [])[0] ?? {}, data.entity_change ?? [], to),
 		...(payGroup === undefined ? {} : { payment_schedule: payGroup.payment_schedule })
 	};
 	const covering = (data.employee_contract ?? []).filter(

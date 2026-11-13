@@ -1,11 +1,13 @@
-// A change filed ahead of its day is knowledge: nothing reads it until its day seals it into a new version, of the
-// contract or of the employer. A fact that arrives late goes straight onto a new contract version, dated when it happened.
+// A contract change filed ahead of its day is knowledge: nothing reads it until its day seals it into a new version. A
+// fact that arrives late goes straight onto a new contract version, dated when it happened. A company's change dated
+// ahead is a row not yet in force: its day makes nothing.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { changesBetween, withChange } from '../../src/lib/payroll_engine/contract_change.ts';
-import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
+import { companyOn } from '../../src/lib/company.ts';
+import { isJsonObject, jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
@@ -386,68 +388,34 @@ describe('a fact keyed late', () => {
 	);
 });
 
-// the employer's own fixture: the open employer version its only one
 const employer = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
-const employerVersions = (t: Kit) =>
+const companyChanges = (t: Kit) =>
 	storedQuery(t, {
-		entity_profile_version: {
-			where: { entity_id: { eq: ENTITY } },
-			fields: ['id', 'name', 'representative_name', 'effective_range', 'status'],
-			limit: 10
-		}
-	}).pipe(Effect.map(({ entity_profile_version }) => entity_profile_version.rows));
+		entity_change: { where: { entity_id: { eq: ENTITY } }, limit: 10 }
+	}).pipe(Effect.map(({ entity_change }) => entity_change.rows.map(jsonObject)));
 
-const fileEmployer = (t: Kit, field: string, value: string) =>
-	t.as(t.member(['hr_controller'])).pipe(
-		Effect.andThen((caller) =>
-			caller.act({
-				'entity_change.create': [
-					{
-						entity_id: ENTITY,
-						field_path: field,
-						new_value: value,
-						effective_from: '2026-02-01',
-						notes: 'Scheduled employer update'
-					}
-				]
-			})
-		)
-	);
-
-describe('an employer change filed ahead of its day', () => {
-	it.live('stays knowledge until its day, then merges into one sealed version', () =>
+describe('a company change dated ahead of its day', () => {
+	it.live('is a row not yet in force: its day makes no other row', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* fileEmployer(t, 'name', 'Renamed Sdn. Bhd.');
-			yield* fileEmployer(t, 'representative_name', 'New Representative');
+			yield* (yield* t.as(t.member(['hr_controller']))).act({
+				'entity_change.create': [
+					{ entity_id: ENTITY, effective_from: '2026-02-01', final_pay_loan_floor_percent: 25 }
+				]
+			});
 			yield* t.run_due();
-			assert.equal((yield* employerVersions(t)).length, 1);
+			const filed = yield* companyChanges(t);
+			assert.equal(filed.length, 2);
+			assert.equal(companyOn(filed, '2026-01-31').final_pay_loan_floor_percent, 10);
+			assert.equal(companyOn(filed, '2026-02-01').final_pay_loan_floor_percent, 25);
 
 			t.clock.set('2026-02-01T02:00:00.000Z');
 			yield* t.run_due();
-			const sealed = (yield* employerVersions(t)).filter((row) => row.status === 'SEALED');
-			assert.equal(sealed.length, 2);
-			const [old, next] = sealed.toSorted((left, right) =>
-				String(left.effective_range.from).localeCompare(String(right.effective_range.from))
-			);
-			assert.ok(old !== undefined && next !== undefined);
-			assert.equal(String(old.effective_range.to), '2026-01-31');
-			assert.equal(String(next.effective_range.from), '2026-02-01');
-			assert.equal(next.effective_range.to, null);
-			assert.equal(next.name, 'Renamed Sdn. Bhd.');
-			assert.equal(next.representative_name, 'New Representative');
-
-			const { entity_change } = yield* storedQuery(t, {
-				entity_change: { fields: ['applied_version_id'], limit: 10 }
-			});
-			assert.equal(entity_change.rows.length, 2);
-			assert.ok(
-				entity_change.rows.every((row) => String(row.applied_version_id) === String(next.id))
-			);
+			assert.deepEqual(yield* companyChanges(t), filed);
 		}).pipe(Effect.provide(workspace({ seed: employer, now: '2026-01-20T02:00:00.000Z' })))
 	);
 
-	it.live('refuses a field that is not an employer fact', () =>
+	it.live('refuses to take away a field that is not dated', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(
@@ -455,19 +423,14 @@ describe('an employer change filed ahead of its day', () => {
 					Effect.andThen((caller) =>
 						caller.act({
 							'entity_change.create': [
-								{
-									entity_id: ENTITY,
-									field_path: 'settings_code',
-									new_value: 'SG',
-									effective_from: '2026-02-01'
-								}
+								{ entity_id: ENTITY, effective_from: '2026-02-01', clears: ['settings_code'] }
 							]
 						})
 					)
 				)
 			);
 			assert.ok(refused._tag === 'ActRefused');
-			assert.equal(refused.key, 'errors.entity_change_field_path');
+			assert.equal(refused.key, 'errors.entity_change_clears');
 		}).pipe(Effect.provide(workspace({ seed: employer, now: '2026-01-20T02:00:00.000Z' })))
 	);
 });

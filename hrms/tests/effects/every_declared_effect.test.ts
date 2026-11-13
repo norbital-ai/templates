@@ -1,5 +1,5 @@
-// Every pack: each effect a pack declares on an entry or a run fires without failing its own expression, and every run
-// effect that raises a task looks for it first. A mechanism check across all packs, not a check of any one law.
+// Every pack: each effect a pack declares on an entry, a company or a run fires without failing its own expression, and
+// every run effect that raises a task looks for it first. A mechanism check across all packs, not a check of any one law.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { CreateInput } from '@norbital-ai/bolt';
@@ -9,6 +9,7 @@ import { periodKey, windowOf } from '../../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
+	current,
 	lawAt,
 	pack,
 	seedLaw,
@@ -79,9 +80,9 @@ const seedOf = (code: string, zone: string): Seed => {
 	);
 	return {
 		...seed,
-		entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+		entity_change: (seed.entity_change ?? []).map((row) => ({
 			...row,
-			...(EMPLOYER[code] === undefined ? {} : { entity_extension_data: EMPLOYER[code] })
+			...(EMPLOYER[code] === undefined ? {} : { statutory_parameters: EMPLOYER[code] })
 		})),
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({
 			...row,
@@ -184,6 +185,47 @@ describe('an entry raises what its effects declare', () => {
 				if (declared) assert.ok(raised.length > 0, 'nothing raised');
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 		});
+});
+
+describe('a company raises what its effects declare', () => {
+	for (const [code, zone] of COUNTRIES)
+		it.live(code, () =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const admin = yield* t.as(t.admin);
+				const failed: string[] = [];
+				// a dated change: its effects read the company it leaves on its day
+				yield* attempt(
+					t,
+					'entity_change',
+					admin.act({
+						'entity_change.create': [
+							{ entity_id: ENTITY, effective_from: ON, statutory_parameters: EMPLOYER[code] ?? {} }
+						]
+					}),
+					failed
+				);
+				// the company's particulars: their effects read the day of the write
+				yield* attempt(
+					t,
+					'entity',
+					admin.act({
+						'entity.update': [
+							{
+								target: yield* current(t, 'entity', ENTITY),
+								set: {
+									name: 'Renamed',
+									representative_name: 'Representative',
+									registered_address: 'Address'
+								}
+							}
+						]
+					}),
+					failed
+				);
+				assert.deepEqual(failed, []);
+			}).pipe(Effect.provide(workspace({ seed: seedOf(code, zone), now: NOW })))
+		);
 });
 
 describe('a month’s runs run every effect they declare', () => {

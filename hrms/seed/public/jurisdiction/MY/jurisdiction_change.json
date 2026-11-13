@@ -2194,7 +2194,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_LEVY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay the foreign worker levy',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];"
 				},
 				"EPF_EMPLOYER_REGISTRATION": {
-					"description": "Raises a task to confirm the employer's EPF registration when an entity profile is sealed.",
+					"description": "Raises a task to confirm the employer's EPF registration on the company's change.",
 					"name": "EPF_EMPLOYER_REGISTRATION",
 					"lookup": {},
 					"references": [
@@ -2208,8 +2208,8 @@
 							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/registration"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -2232,7 +2232,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'epf_registered_on', null) == null;",
+					"condition": "const employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'epf_registered_on', null) == null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: \"Confirm the employer's EPF registration\",\n\toccurrence_key: key\n}];"
@@ -2257,8 +2257,8 @@
 							"url": "https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -2271,7 +2271,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst facts = get(r, 'entity_extension_data', {});\nif (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return false;\nif (['COMPULSORY', 'OPTIONAL', 'DEREGISTERED'].includes(get(facts, 'hrd_registration_class', ''))) return false;\nconst liabilityOn = get(facts, 'hrd_registration_liability_on', null);\nreturn get(facts, 'hrd_registration_class', '') === 'NOT_REGISTERED' && typeof liabilityOn === 'string' && liabilityOn !== '';",
+					"condition": "const r = ctx.entry;\nconst facts = get(r, 'entity_extension_data', {});\nif (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return false;\nif (['COMPULSORY', 'OPTIONAL', 'DEREGISTERED'].includes(get(facts, 'hrd_registration_class', ''))) return false;\nconst liabilityOn = get(facts, 'hrd_registration_liability_on', null);\nreturn get(facts, 'hrd_registration_class', '') === 'NOT_REGISTERED' && typeof liabilityOn === 'string' && liabilityOn !== '';",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:HRD_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with HRD Corp',\n\tdue_on: add_days(get(r.entity_extension_data, 'hrd_registration_liability_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -2372,7 +2372,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:SOCSO_ACCIDENT_REPORT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Report a workplace accident to SOCSO',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
 				},
 				"SOCSO_EIS_EMPLOYER_REGISTRATION": {
-					"description": "Raises a task to confirm the employer's SOCSO and EIS registration when an entity profile is sealed.",
+					"description": "Raises a task to confirm the employer's SOCSO and EIS registration on the company's change.",
 					"name": "SOCSO_EIS_EMPLOYER_REGISTRATION",
 					"lookup": {},
 					"references": [
@@ -2391,8 +2391,8 @@
 							"url": "https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -2415,7 +2415,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "const r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nconst employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'socso_registered_on', null) == null;",
+					"condition": "const employer = get(ctx, 'reads.entity', [])[0] ?? {};\nreturn get(employer, 'socso_registered_on', null) == null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: \"Confirm the employer's SOCSO and EIS registration\",\n\toccurrence_key: key\n}];"
@@ -2432,8 +2432,8 @@
 							"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -2446,7 +2446,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+					"condition": "const r = ctx.entry;\nreturn get(r.entity_extension_data, 'ceased_on', null) != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:PERKESO_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify PERKESO of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -2462,8 +2462,8 @@
 							"title": "Employees Provident Fund Act 1991 (Act 452) s.41(3): within the period and in the manner prescribed by the Board (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); KWSP, Update & Maintain Records — Termination Of Operations: \"within 30 days\" by Form KWSP 6 (Form B) (https://www.kwsp.gov.my/en/employer/responsibilities/records), last updated 4 June 2026, read 2026-10-08."
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -2476,7 +2476,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+					"condition": "const r = ctx.entry;\nreturn get(r.entity_extension_data, 'ceased_on', null) != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:EPF_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify EPF of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -2493,8 +2493,8 @@
 							"url": "https://web.archive.org/web/20241207133132/https://hrdcorp.gov.my/faq"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -2507,7 +2507,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+					"condition": "const r = ctx.entry;\nreturn get(r.entity_extension_data, 'ceased_on', null) != null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:HRD_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify HRD Corp of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -2605,7 +2605,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:FLEXIBLE_WORKING_REPLY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Reply to a flexible working request',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
 				},
 				"SEXUAL_HARASSMENT_NOTICE": {
-					"description": "Raises a task to publish the sexual harassment notice when an entity profile is sealed.",
+					"description": "Raises a task to publish the sexual harassment notice on the company's change.",
 					"name": "SEXUAL_HARASSMENT_NOTICE",
 					"references": [
 						{
@@ -2614,8 +2614,8 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -2628,7 +2628,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED';",
+					"condition": "return true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_NOTICE:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish the sexual harassment notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];"
@@ -2880,7 +2880,7 @@
 					"effects": "const r = ctx.entry;\nconst key = 'MY:PDPA_PRIVACY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Give the PDPA privacy notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];"
 				},
 				"PDPA_DPO_APPOINTMENT": {
-					"description": "Raises a task to appoint and register a data protection officer when an entity profile requires one.",
+					"description": "Raises a task to appoint and register a data protection officer when the company's parameters require one.",
 					"name": "Appoint and register a data protection officer",
 					"lookup": {
 						"offset_days": 21
@@ -2890,8 +2890,8 @@
 							"title": "Personal Data Protection Act 2010 s.12A(1)–(4) as inserted by Act A1727, in force 1 June 2025 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Personal Data Protection Commissioner, Guideline on the Appointment of Data Protection Officer paras 4.2, 7.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DPO_ENG.pdf, read 2026-10-07)."
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -2904,7 +2904,7 @@
 							"limit": 10
 						}
 					},
-					"condition": "const r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'pdpa_dpo_required', false) === true;",
+					"condition": "const r = ctx.entry;\nreturn get(r.entity_extension_data, 'pdpa_dpo_required', false) === true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'MY:PDPA_DPO_APPOINTMENT:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Appoint and register a data protection officer',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];"
@@ -3327,7 +3327,7 @@
 				},
 				"WAGE_PERIOD": {
 					"description": "Checks that the employer's payment schedule does not cover more than one month.",
-					"target_collection": "entity_profile_version",
+					"target_collection": "entity_change",
 					"events": ["create", "update"],
 					"lookup": {
 						"maximum_months": 1
@@ -3542,8 +3542,8 @@
 					"order": 37
 				},
 				"HRD_LIABILITY_EVENT_DATE_REQUIRED": {
-					"description": "Requires a sealed employer that is HRD-compulsory or not registered to record the date its registration liability began.",
-					"target_collection": "entity_profile_version",
+					"description": "Requires an employer that is HRD-compulsory or not registered to record the date its registration liability began.",
+					"target_collection": "entity_change",
 					"events": ["create", "update"],
 					"lookup": {
 						"liability_classes": ["COMPULSORY", "NOT_REGISTERED"]
@@ -3555,7 +3555,7 @@
 							"url": "https://lom.agc.gov.my/"
 						}
 					],
-					"validate": "// PSMB Act 2001: a sealed compulsory or unregistered employer records when its liability began.\nif (get(ctx.entry, 'status', 'DRAFT') !== 'SEALED') return true;\nconst facts = get(ctx.entry, 'entity_extension_data', {});\nif (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return true;\nif (!ctx.lookup.liability_classes.includes(get(facts, 'hrd_registration_class', ''))) return true;\nreturn typeof get(facts, 'hrd_registration_liability_on', null) === 'string' && get(facts, 'hrd_registration_liability_on', '') !== '';",
+					"validate": "// PSMB Act 2001: a compulsory or unregistered employer records when its liability began.\nconst facts = get(ctx.entry, 'entity_extension_data', {});\nif (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return true;\nif (!ctx.lookup.liability_classes.includes(get(facts, 'hrd_registration_class', ''))) return true;\nreturn typeof get(facts, 'hrd_registration_liability_on', null) === 'string' && get(facts, 'hrd_registration_liability_on', '') !== '';",
 					"order": 39
 				},
 				"BUSINESS_CASE_SUBJECT_AND_REFERENCE": {
@@ -3820,7 +3820,7 @@
 				"type": "object",
 				"title": "MY entity extension data",
 				"additionalProperties": false,
-				"description": "Additional employer compliance data on the sealed employer version, stored as entity_extension_data; the CEL root `employer.entity_extension_data`.",
+				"description": "Additional employer compliance data in the company's parameters, read as entity_extension_data; the CEL root `employer.entity_extension_data`.",
 				"properties": {
 					"hrd_scope": {
 						"type": "string",

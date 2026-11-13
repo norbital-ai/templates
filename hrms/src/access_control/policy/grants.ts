@@ -38,11 +38,10 @@ const HISTORY = { outputs: { default: { history: true } } } as const;
 export const READ_ALL = {
 	entity: { outputs: { default: { history: true }, self_service: {} } },
 	pay_group: HISTORY,
-	entity_profile_version: HISTORY,
 	employee_profile: HISTORY,
 	employee_contract: HISTORY,
 	contract_change: READ,
-	entity_change: READ,
+	entity_change: HISTORY,
 	jurisdiction: HISTORY,
 	jurisdiction_change: HISTORY,
 	statutory_finding: HISTORY,
@@ -79,11 +78,6 @@ export const CONFIGURATION = {
 export const HR_OPERATIONS = {
 	entity: { ...READ_ALL.entity, create: {}, update: {} },
 	pay_group: { ...READ_ALL.pay_group, create: {}, update: {} },
-	entity_profile_version: {
-		...READ_ALL.entity_profile_version,
-		create: {},
-		update: { moves: 'all' }
-	},
 	employee_profile: { ...READ_ALL.employee_profile, create: {}, update: {} },
 	contract_change: { ...READ_ALL.contract_change, create: {}, update: {}, delete: {} },
 	entity_change: { ...READ_ALL.entity_change, create: {}, update: {}, delete: {} },

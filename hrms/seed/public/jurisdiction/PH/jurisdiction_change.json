@@ -4208,8 +4208,8 @@
 							"url": "https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["create", "seal"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4223,7 +4223,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn ctx.entry.status === 'SEALED';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"HDMF_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Register the employer with the Pag-IBIG Fund\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.from', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"HDMF_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id\n\t}\n];"
@@ -4237,8 +4237,8 @@
 							"title": "NIRC s.236(A) as amended by RA 11976 (EOPT; annual registration fee abolished): register \"on or before the commencement of business\"."
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["create", "seal"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4252,7 +4252,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"BIR_WITHHOLDING_AGENT_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn ctx.entry.status === 'SEALED';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"BIR_WITHHOLDING_AGENT_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"BIR_WITHHOLDING_AGENT_REGISTRATION:\" + ctx.entry.entity_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Register with the BIR as a withholding agent\",\n\t\tdue_on: get(ctx.entry, 'effective_range.from', null),\n\t\toccurrence_key: \"BIR_WITHHOLDING_AGENT_REGISTRATION:\" + ctx.entry.entity_id\n\t}\n];"
@@ -4266,8 +4266,8 @@
 							"title": "RA 11199 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333) s.24(a): each employer \"shall immediately report\" its employees subject to compulsory coverage, which presupposes the employer’s registration; SSS Employers — Duties (https://www.sss.gov.ph/employer-er/): \"Register with SSS and secure an ER ID Number\"."
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["create", "seal"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4281,7 +4281,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"SSS_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn ctx.entry.status === 'SEALED';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"SSS_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"SSS_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Register the employer with SSS (R-1)\",\n\t\tdue_on: get(ctx.entry, 'effective_range.from', null),\n\t\toccurrence_key: \"SSS_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id\n\t}\n];"
@@ -4296,8 +4296,8 @@
 							"url": "https://www.philhealth.gov.ph/partners/employers/report.php"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["create", "seal"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4311,7 +4311,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn ctx.entry.status === 'SEALED';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"PHILHEALTH_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Register the employer with PhilHealth (ER1)\",\n\t\tdue_on: get(ctx.entry, 'effective_range.from', null),\n\t\toccurrence_key: \"PHILHEALTH_EMPLOYER_REGISTRATION:\" + ctx.entry.entity_id\n\t}\n];"
@@ -4328,8 +4328,8 @@
 							"url": "https://car.dole.gov.ph/qms/"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["create", "seal"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4343,7 +4343,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"DOLE_ESTABLISHMENT_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn ctx.entry.status === 'SEALED';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"DOLE_ESTABLISHMENT_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"DOLE_ESTABLISHMENT_REGISTRATION:\" + ctx.entry.entity_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Register the establishment with the DOLE regional office (Rule 1020)\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.from', null), -ctx.lookup.days_before_operations),\n\t\toccurrence_key: \"DOLE_ESTABLISHMENT_REGISTRATION:\" + ctx.entry.entity_id\n\t}\n];"
@@ -4358,8 +4358,8 @@
 							"url": "https://lawphil.net/statutes/repacts/ra2012/ra_10173_2012.html"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["create", "seal"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4373,7 +4373,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"DPO_DESIGNATION:\" + ctx.entry.entity_id)) return false;\nreturn ctx.entry.status === 'SEALED';",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"DPO_DESIGNATION:\" + ctx.entry.entity_id)) return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"DPO_DESIGNATION:\" + ctx.entry.entity_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Designate the Data Protection Officer\",\n\t\tdue_on: get(ctx.entry, 'effective_range.from', null),\n\t\toccurrence_key: \"DPO_DESIGNATION:\" + ctx.entry.entity_id\n\t}\n];"
@@ -4390,8 +4390,8 @@
 							"url": "https://privacy.gov.ph/wp-content/uploads/2023/05/Circular-2022-04.pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["create", "seal"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -4405,7 +4405,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"NPC_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nif (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'entity_extension_data.processes_sensitive_pi_1000', null) === true) return true;\nif (get(ctx.entry, 'entity_extension_data.npc_processing_likely_risk', null) === true) return true;\nreturn get(ctx.entry, 'entity_extension_data.npc_automated_decisions_or_profiling', null) === true;",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"NPC_REGISTRATION:\" + ctx.entry.entity_id)) return false;\nif (get(ctx.entry, 'entity_extension_data.processes_sensitive_pi_1000', null) === true) return true;\nif (get(ctx.entry, 'entity_extension_data.npc_processing_likely_risk', null) === true) return true;\nreturn get(ctx.entry, 'entity_extension_data.npc_automated_decisions_or_profiling', null) === true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"NPC_REGISTRATION:\" + ctx.entry.entity_id)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Register the data processing systems and DPO with the NPC\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.from', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"NPC_REGISTRATION:\" + ctx.entry.entity_id\n\t}\n];"
@@ -4422,7 +4422,7 @@
 							"url": "https://privacy.gov.ph/wp-content/uploads/2023/05/Circular-2022-04.pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
+					"source_collection": "entity_change",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -4437,7 +4437,7 @@
 							"limit": 1
 						}
 					},
-					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"NPC_REGISTRATION_RENEWAL:\" + ctx.entry.entity_id + \":\" + String(Number(String(get(ctx.entry, 'entity_extension_data.npc_registered_on', '')).slice(0, 4)) + 1))) return false;\nreturn ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'entity_extension_data.npc_registered_on', null) !== null;",
+					"condition": "if (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === \"NPC_REGISTRATION_RENEWAL:\" + ctx.entry.entity_id + \":\" + String(Number(String(get(ctx.entry, 'entity_extension_data.npc_registered_on', '')).slice(0, 4)) + 1))) return false;\nreturn get(ctx.entry, 'entity_extension_data.npc_registered_on', null) !== null;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Renew the NPC registration (yearly)\",\n\t\tdue_on: add_days(add_years(get(ctx.entry, 'entity_extension_data.npc_registered_on', null), 1), -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"NPC_REGISTRATION_RENEWAL:\" + ctx.entry.entity_id + \":\" + String(Number(String(get(ctx.entry, 'entity_extension_data.npc_registered_on', '')).slice(0, 4)) + 1)\n\t}\n];"
@@ -5442,14 +5442,12 @@
 					]
 				},
 				"NPC_REGISTRATION_SCOPE_REVIEW_REQUIRED": {
-					"description": "Requires the three NPC registration-scope declarations on every sealed entity version.",
-					"target_collection": "entity_profile_version",
+					"description": "Requires the three NPC registration-scope declarations on every change to the company.",
+					"target_collection": "entity_change",
 					"events": ["create", "update"],
-					"condition": "return ctx.entry.status === ctx.lookup.sealed_status;",
 					"validate": "const facts = get(ctx.entry, 'entity_extension_data', {});\nreturn ctx.lookup.required_declarations.every((name) => get(facts, name, null) !== null);",
 					"order": 30,
 					"lookup": {
-						"sealed_status": "SEALED",
 						"required_declarations": [
 							"processes_sensitive_pi_1000",
 							"npc_processing_likely_risk",

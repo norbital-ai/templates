@@ -40,7 +40,8 @@ const MOVED = idOf('employee_contract', uuid(907));
 const base = () => pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
 type Seed = ReturnType<typeof base>;
 const contractOf = (seed: Seed) => seed.employee_contract?.[0] ?? {};
-const profileOf = (seed: Seed) => seed.entity_profile_version?.[0] ?? {};
+const companyOf = (seed: Seed) => seed.entity?.[0] ?? {};
+const changeOf = (seed: Seed) => seed.entity_change?.[0] ?? {};
 
 /** A second person in the same entity. */
 const twoPeople = (): Seed => {
@@ -76,13 +77,10 @@ const moved = (): Seed => {
 	const seed = base();
 	return {
 		...seed,
-		entity: [
-			...(seed.entity ?? []),
-			{ id: OTHER, code: 'E2', name: 'Sister', settings_code: 'MY' }
-		],
-		entity_profile_version: [
-			...(seed.entity_profile_version ?? []),
-			{ ...profileOf(seed), id: uuid(902), entity_id: OTHER, name: 'Sister' }
+		entity: [...(seed.entity ?? []), { ...companyOf(seed), id: OTHER, code: 'E2', name: 'Sister' }],
+		entity_change: [
+			...(seed.entity_change ?? []),
+			{ ...changeOf(seed), id: uuid(902), entity_id: OTHER }
 		],
 		// the sister company's own payroll, on the same schedule
 		pay_group: [

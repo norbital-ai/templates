@@ -393,7 +393,7 @@ describe('a clock the plan does not back', () => {
 				const seed = seedOf(days);
 				return {
 					...seed,
-					entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+					entity_change: (seed.entity_change ?? []).map((row) => ({
 						...row,
 						overtime_full_award_percent: 50
 					}))

@@ -3003,7 +3003,7 @@
 				},
 				"SI_UNIT_REGISTRATION": {
 					"name": "Employer social insurance registration",
-					"description": "Raises the employer's first social-insurance registration within 30 days of its first sealed profile.",
+					"description": "Raises the employer's first social-insurance registration within 30 days of the company's first change.",
 					"lookup": {
 						"title": "Employer social insurance registration",
 						"due_days": 30
@@ -3013,7 +3013,7 @@
 							"title": "社会保险法 第五十七条第一款: 用人单位应当自成立之日起三十日内凭营业执照、登记证书或者单位印章, 向当地社会保险经办机构申请办理社会保险登记."
 						}
 					],
-					"source_collection": "entity_profile_version",
+					"source_collection": "entity_change",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3032,7 +3032,7 @@
 							},
 							"limit": 10000
 						},
-						"entity_profile_version": {
+						"entity_change": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -3040,18 +3040,18 @@
 									}
 								}
 							},
-							"fields": ["entity_id", "effective_range", "status"],
+							"fields": ["effective_from"],
 							"limit": 100
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst earlier = (ctx.reads.entity_profile_version ?? []).some((version) =>\n  version.id !== row.id && version.status === 'SEALED' &&\n  version.effective_range.from < row.effective_range.from\n);\nif (earlier) return false;\nconst key = 'SI_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst earlier = (ctx.reads.entity_change ?? []).some((change) => change.effective_from < row.effective_range.from);\nif (earlier) return false;\nconst key = 'SI_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];"
 				},
 				"SI_UNIT_CHANGE_REGISTRATION": {
 					"name": "Employer social insurance change registration",
-					"description": "Raises social-insurance change registration within 30 days when a later employer profile seals.",
+					"description": "Raises social-insurance change registration within 30 days on a later change to the company.",
 					"lookup": {
 						"title": "Employer social insurance change registration",
 						"due_days": 30
@@ -3062,7 +3062,7 @@
 							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
-					"source_collection": "entity_profile_version",
+					"source_collection": "entity_change",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3081,7 +3081,7 @@
 							},
 							"limit": 10000
 						},
-						"entity_profile_version": {
+						"entity_change": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -3089,18 +3089,18 @@
 									}
 								}
 							},
-							"fields": ["entity_id", "effective_range", "status"],
+							"fields": ["effective_from"],
 							"limit": 100
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst earlier = (ctx.reads.entity_profile_version ?? []).some((version) =>\n  version.id !== row.id && version.status === 'SEALED' &&\n  version.effective_range.from < row.effective_range.from\n);\nif (!earlier) return false;\nconst key = 'SI_UNIT_CHANGE_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst earlier = (ctx.reads.entity_change ?? []).some((change) => change.effective_from < row.effective_range.from);\nif (!earlier) return false;\nconst key = 'SI_UNIT_CHANGE_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_UNIT_CHANGE_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];"
 				},
 				"HPF_UNIT_REGISTRATION": {
 					"name": "Employer housing provident fund registration",
-					"description": "Raises the employer's housing-provident-fund registration within 30 days of its first sealed profile.",
+					"description": "Raises the employer's housing-provident-fund registration within 30 days of the company's first change.",
 					"lookup": {
 						"title": "Employer housing provident fund registration",
 						"due_days": 30
@@ -3110,7 +3110,7 @@
 							"title": "住房公积金管理条例 第十四条第一款: 新设立的单位应当自设立之日起30日内向住房公积金管理中心办理住房公积金缴存登记, 并自登记之日起20日内, 为本单位职工办理住房公积金账户设立手续."
 						}
 					],
-					"source_collection": "entity_profile_version",
+					"source_collection": "entity_change",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3129,7 +3129,7 @@
 							},
 							"limit": 10000
 						},
-						"entity_profile_version": {
+						"entity_change": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -3137,11 +3137,11 @@
 									}
 								}
 							},
-							"fields": ["entity_id", "effective_range", "status"],
+							"fields": ["effective_from"],
 							"limit": 100
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst earlier = (ctx.reads.entity_profile_version ?? []).some((version) =>\n  version.id !== row.id && version.status === 'SEALED' &&\n  version.effective_range.from < row.effective_range.from\n);\nif (earlier) return false;\nconst key = 'HPF_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst earlier = (ctx.reads.entity_change ?? []).some((change) => change.effective_from < row.effective_range.from);\nif (earlier) return false;\nconst key = 'HPF_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'HPF_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];"
@@ -3612,7 +3612,7 @@
 				},
 				"CROSS_BORDER_HR_TRANSFER": {
 					"name": "Notice and separate consent for an HR transfer abroad",
-					"description": "Raises the notice and consent task when a later employer profile reports HR data going abroad.",
+					"description": "Raises the notice and consent task when a later change to the company reports HR data going abroad.",
 					"lookup": {
 						"title": "Notice and separate consent for an HR transfer abroad"
 					},
@@ -3626,7 +3626,7 @@
 							"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
 						}
 					],
-					"source_collection": "entity_profile_version",
+					"source_collection": "entity_change",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -3645,7 +3645,7 @@
 							},
 							"limit": 10000
 						},
-						"entity_profile_version": {
+						"entity_change": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -3653,11 +3653,11 @@
 									}
 								}
 							},
-							"fields": ["entity_id", "effective_range", "status"],
+							"fields": ["effective_from"],
 							"limit": 100
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst earlier = (ctx.reads.entity_profile_version ?? []).some((version) =>\n  version.id !== row.id && version.status === 'SEALED' &&\n  version.effective_range.from < row.effective_range.from\n);\nif (!earlier) return false;\nif (get(row.entity_extension_data, 'transfers_hr_data_abroad', false) !== true) return false;\nconst key = 'CROSS_BORDER_HR_TRANSFER:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nconst earlier = (ctx.reads.entity_change ?? []).some((change) => change.effective_from < row.effective_range.from);\nif (!earlier) return false;\nif (get(row.entity_extension_data, 'transfers_hr_data_abroad', false) !== true) return false;\nconst key = 'CROSS_BORDER_HR_TRANSFER:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'CROSS_BORDER_HR_TRANSFER:' + row.entity_id + ':' + row.effective_range.from\n}];"
@@ -4125,20 +4125,7 @@
 					"events": ["create", "update"],
 					"order": 3,
 					"condition": "if (ctx.entry.engagement !== 'PART_TIME') return false;\nconst rate = ctx.entry.terms.rate;\nif (rate == null) return false;\nreturn rate.unit === 'HOURLY' || rate.unit === 'MONTHLY';",
-					"validate": "const employer = (ctx.reads.entity_profile_version ?? []).find(\n  (v) =>\n    v.status === 'SEALED' &&\n    v.effective_range.from <= ctx.entry.effective_range.from &&\n    (v.effective_range.to == null || v.effective_range.to >= ctx.entry.effective_range.from),\n);\nconst ext = get(employer, 'entity_extension_data', {});\nconst terms = get(ctx.entry, 'terms', {});\nconst employerRegion = String(get(ext, 'region', ''));\nconst worksite = String(get(terms, 'work_region', ''));\n// the place of performance governs; the registered place is the fallback\nconst region = worksite !== '' ? worksite : employerRegion;\nconst regionRows = (ctx.lookup.minimum_wage_by_zone ?? []).filter((r) => r.region === region);\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(get(regionRows[0], 'default_zone', '1'))\n  : String(get(ext, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'hourly', 0));\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0)) ||\n  Number(get(terms, 'normal_hours_per_day', 8)) * Number(get(terms, 'normal_days_per_week', 5));\nconst monthlyHours = weekly * 52 / 12;\nconst hourly = get(rate, 'unit', 'HOURLY') === 'MONTHLY' ? amount / monthlyHours : amount;\nreturn floor > 0 && monthlyHours > 0 && hourly >= floor;",
-					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "entry.entity_id"
-									}
-								}
-							},
-							"fields": ["entity_extension_data", "effective_range", "status"],
-							"limit": 100
-						}
-					},
+					"validate": "const employer = ctx.subject.employer;\nconst ext = get(employer, 'entity_extension_data', {});\nconst terms = get(ctx.entry, 'terms', {});\nconst employerRegion = String(get(ext, 'region', ''));\nconst worksite = String(get(terms, 'work_region', ''));\n// the place of performance governs; the registered place is the fallback\nconst region = worksite !== '' ? worksite : employerRegion;\nconst regionRows = (ctx.lookup.minimum_wage_by_zone ?? []).filter((r) => r.region === region);\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(get(regionRows[0], 'default_zone', '1'))\n  : String(get(ext, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'hourly', 0));\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst weekly = Number(get(terms, 'normal_hours_per_week', 0)) ||\n  Number(get(terms, 'normal_hours_per_day', 8)) * Number(get(terms, 'normal_days_per_week', 5));\nconst monthlyHours = weekly * 52 / 12;\nconst hourly = get(rate, 'unit', 'HOURLY') === 'MONTHLY' ? amount / monthlyHours : amount;\nreturn floor > 0 && monthlyHours > 0 && hourly >= floor;",
 					"lookup": {}
 				},
 				"PROBATION_LENGTH": {
@@ -4166,20 +4153,7 @@
 					"events": ["create", "update"],
 					"order": 5,
 					"condition": "if (get(ctx.entry.terms, 'probation_period', null) == null) return false;\nconst rate = get(ctx.entry.terms, 'rate', null);\nif (rate == null) return false;\nreturn rate.unit === 'MONTHLY';",
-					"validate": "const employer = (ctx.reads.entity_profile_version ?? []).find(\n  (v) =>\n    v.status === 'SEALED' &&\n    v.effective_range.from <= ctx.entry.effective_range.from &&\n    (v.effective_range.to == null || v.effective_range.to >= ctx.entry.effective_range.from),\n);\nconst ext = ctx.entry.employee_extension_data ?? {};\nconst job = get(ext, 'job_salary', null);\nconst jobValue =\n  job == null ? null :\n  typeof job === 'number' ? job :\n  Number(get(job, 'value', job));\nconst post = get(ext, 'post_lowest_wage', null);\nconst rate = Number(ctx.entry.terms.rate.amount);\nconst comparable =\n  jobValue != null ? Number(jobValue) * ctx.lookup.probation_wage_share :\n  post != null ? Number(post) :\n  null;\nconst employerExt = get(employer, 'entity_extension_data', {});\nconst employerRegion = String(get(employerExt, 'region', ''));\nconst worksite = String(get(ctx.entry.terms, 'work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst regionRows = (ctx.lookup.minimum_wage_by_zone ?? []).filter((r) => r.region === region);\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(get(regionRows[0], 'default_zone', '1'))\n  : String(get(employerExt, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nif (comparable == null) return false;\nif (!(floor > 0)) return false;\nif (!(rate >= comparable)) return false;\nreturn rate >= floor;",
-					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "entry.entity_id"
-									}
-								}
-							},
-							"fields": ["entity_extension_data", "effective_range", "status"],
-							"limit": 100
-						}
-					},
+					"validate": "const employer = ctx.subject.employer;\nconst ext = ctx.entry.employee_extension_data ?? {};\nconst job = get(ext, 'job_salary', null);\nconst jobValue =\n  job == null ? null :\n  typeof job === 'number' ? job :\n  Number(get(job, 'value', job));\nconst post = get(ext, 'post_lowest_wage', null);\nconst rate = Number(ctx.entry.terms.rate.amount);\nconst comparable =\n  jobValue != null ? Number(jobValue) * ctx.lookup.probation_wage_share :\n  post != null ? Number(post) :\n  null;\nconst employerExt = get(employer, 'entity_extension_data', {});\nconst employerRegion = String(get(employerExt, 'region', ''));\nconst worksite = String(get(ctx.entry.terms, 'work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst regionRows = (ctx.lookup.minimum_wage_by_zone ?? []).filter((r) => r.region === region);\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(get(regionRows[0], 'default_zone', '1'))\n  : String(get(employerExt, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nif (comparable == null) return false;\nif (!(floor > 0)) return false;\nif (!(rate >= comparable)) return false;\nreturn rate >= floor;",
 					"lookup": {
 						"probation_wage_share": 0.8
 					}
@@ -4533,7 +4507,7 @@
 					"events": ["create", "update"],
 					"order": 36,
 					"condition": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
-					"validate": "const ext = ctx.entry.employee_extension_data ?? {};\nconst bad = (ctx.lookup.employee_fields ?? []).some((b) => {\n  const value = get(ext, b.field, null);\n  if (value == null) return false;\n  if (b.minimum != null && Number(value) < b.minimum) return true;\n  if (b.maximum != null && Number(value) > b.maximum) return true;\n  return b.integer === true && Number(value) !== Math.trunc(Number(value));\n});\nif (bad) return false;\nconst retirement = get(ext, 'retirement_category', null);\nif (retirement != null && !ctx.lookup.retirement_categories.includes(retirement)) return false;\nconst schemes = get(ext, 'si_exempt_schemes', []);\nif (!Array.isArray(schemes)) return true;\nreturn schemes.every((s) => ctx.lookup.si_exempt_schemes.includes(s));",
+					"validate": "const ext = ctx.entry.employee_extension_data ?? {};\nconst bad = (ctx.lookup.employee_fields ?? []).some((b) => {\n  const value = get(ext, b.field, null);\n  if (value == null) return false;\n  const minimum = get(b, 'minimum', null);\n  const maximum = get(b, 'maximum', null);\n  if (minimum != null && Number(value) < minimum) return true;\n  if (maximum != null && Number(value) > maximum) return true;\n  return get(b, 'integer', false) === true && Number(value) !== Math.trunc(Number(value));\n});\nif (bad) return false;\nconst retirement = get(ext, 'retirement_category', null);\nif (retirement != null && !ctx.lookup.retirement_categories.includes(retirement)) return false;\nconst schemes = get(ext, 'si_exempt_schemes', []);\nif (!Array.isArray(schemes)) return true;\nreturn schemes.every((s) => ctx.lookup.si_exempt_schemes.includes(s));",
 					"lookup": {
 						"employee_fields": [
 							{
@@ -4548,10 +4522,10 @@
 				},
 				"SHARED_STRUCTURED_ENTITY_INPUTS": {
 					"description": "Validates the ranges and allowed codes of the structured employer extension fields, including the minimum-wage zone.",
-					"target_collection": "entity_profile_version",
+					"target_collection": "entity_change",
 					"events": ["create", "update"],
 					"order": 37,
-					"validate": "const ext = ctx.entry.entity_extension_data ?? {};\nconst bad = (ctx.lookup.entity_fields ?? []).some((b) => {\n  const value = get(ext, b.field, null);\n  if (value == null) return false;\n  if (b.minimum != null && Number(value) < b.minimum) return true;\n  if (b.maximum != null && Number(value) > b.maximum) return true;\n  return b.integer === true && Number(value) !== Math.trunc(Number(value));\n});\nif (bad) return false;\nconst zone = get(ext, 'wage_zone', null);\nreturn zone == null || ctx.lookup.wage_zones.includes(zone);",
+					"validate": "const ext = ctx.entry.entity_extension_data ?? {};\nconst bad = (ctx.lookup.entity_fields ?? []).some((b) => {\n  const value = get(ext, b.field, null);\n  if (value == null) return false;\n  const minimum = get(b, 'minimum', null);\n  const maximum = get(b, 'maximum', null);\n  if (minimum != null && Number(value) < minimum) return true;\n  if (maximum != null && Number(value) > maximum) return true;\n  return get(b, 'integer', false) === true && Number(value) !== Math.trunc(Number(value));\n});\nif (bad) return false;\nconst zone = get(ext, 'wage_zone', null);\nreturn zone == null || ctx.lookup.wage_zones.includes(zone);",
 					"lookup": {
 						"entity_fields": [
 							{

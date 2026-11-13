@@ -1,6 +1,6 @@
 # RFC 0011: Dated changes, edited in place
 
-**Status: accepted by the owner on 2026-11-13, on the condition that it simplifies the codebase and the experience of HR. Being built in the order of section 11: the fold and the law have landed (steps 1 and 2); the company and the person have not.** [Section 0 of the architecture](0001-hrms-calculation-architecture.md#0-the-design-is-fixed) describes the source tree as it stands, so its text on contract and employer versions holds until steps 3 to 5 land. Section 9 lists the section 0 text each step replaces.
+**Status: accepted by the owner on 2026-11-13, on the condition that it simplifies the codebase and the experience of HR. Being built in the order of section 11: the fold, the law and the company have landed (steps 1 to 3); the person has not.** [Section 0 of the architecture](0001-hrms-calculation-architecture.md#0-the-design-is-fixed) describes the source tree as it stands, so its text on contract versions holds until steps 4 and 5 land. Section 9 lists the section 0 text each step replaces.
 
 ## 1. Why
 

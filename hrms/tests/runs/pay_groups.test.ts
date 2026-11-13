@@ -91,18 +91,13 @@ const twoGroups = (schedule: typeof MONTHLY = MONTHLY): Seed => {
 const withSister = (): Seed => {
 	const seed = twoGroups();
 	const [group] = seed.pay_group ?? [];
-	const [profile] = seed.entity_profile_version ?? [];
-	assert.ok(group !== undefined && profile !== undefined);
+	const [company] = seed.entity ?? [];
+	const [change] = seed.entity_change ?? [];
+	assert.ok(group !== undefined && company !== undefined && change !== undefined);
 	return {
 		...seed,
-		entity: [
-			...(seed.entity ?? []),
-			{ id: SISTER, code: 'E2', name: 'Sister', settings_code: 'MY' }
-		],
-		entity_profile_version: [
-			...(seed.entity_profile_version ?? []),
-			{ ...profile, id: uuid(902), entity_id: SISTER, name: 'Sister' }
-		],
+		entity: [...(seed.entity ?? []), { ...company, id: SISTER, code: 'E2', name: 'Sister' }],
+		entity_change: [...(seed.entity_change ?? []), { ...change, id: uuid(902), entity_id: SISTER }],
 		pay_group: [...(seed.pay_group ?? []), { ...group, id: SISTER_GROUP, entity_id: SISTER }]
 	};
 };

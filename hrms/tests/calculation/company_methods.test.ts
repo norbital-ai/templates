@@ -41,7 +41,7 @@ const slip = (seed: Seed, period: string, now: string) =>
 	}).pipe(Effect.provide(workspace({ seed, now })));
 const withEmployer = (seed: Seed, employer: JsonObject): Seed => ({
 	...seed,
-	entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+	entity_change: (seed.entity_change ?? []).map((row) => ({
 		...row,
 		...employer
 	}))
@@ -445,7 +445,7 @@ describe('health insurance billed a month in arrears', () => {
 				[],
 				[]
 			),
-			{ entity_extension_data: { risk_class: 'I' }, pay_methods: { health_billing: billing } }
+			{ statutory_parameters: { risk_class: 'I' }, pay_methods: { health_billing: billing } }
 		);
 		return {
 			...packed,

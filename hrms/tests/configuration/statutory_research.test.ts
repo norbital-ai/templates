@@ -17,7 +17,7 @@ const ENTITY = idOf('entity', '11111111-1111-4111-8111-111111111111');
 /** One jurisdiction's public law, as the release's base pack seeds it, and one company under it. */
 const law = (code: string) => ({
 	...seedLaw(code),
-	entity: [{ id: ENTITY, name: 'Entity', settings_code: code }],
+	entity: [{ id: ENTITY, name: 'Entity', settings_code: code, time_zone: 'Asia/Kuala_Lumpur' }],
 	pay_group: [
 		{
 			id: '11111111-1111-4111-8111-000000000008',
@@ -33,16 +33,11 @@ const law = (code: string) => ({
 			}
 		}
 	],
-	entity_profile_version: [
+	entity_change: [
 		{
 			id: '22222222-2222-4222-8222-222222222222',
 			entity_id: ENTITY,
-			name: 'Entity',
-			settings_code: code,
-			effective_range: { from: '2025-01-01', to: null },
-			time_zone: 'Asia/Kuala_Lumpur',
-			entity_extension_data: {},
-			status: 'SEALED'
+			effective_from: '2025-01-01'
 		}
 	]
 });

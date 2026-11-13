@@ -86,17 +86,15 @@ describe('an off-cycle run', () => {
 	it.live('in a transfer month is refused: on-cycle, each company stands alone', () => {
 		const base = seedOf();
 		const contract = base.employee_contract?.[0] ?? {};
-		const profile = base.entity_profile_version?.[0] ?? {};
+		const [company = {}] = base.entity ?? [];
+		const [change = {}] = base.entity_change ?? [];
 		const OTHER = idOf('entity', uuid(900));
 		const seed: Seed = {
 			...base,
-			entity: [
-				...(base.entity ?? []),
-				{ id: OTHER, code: 'E2', name: 'Sister', settings_code: 'MY' }
-			],
-			entity_profile_version: [
-				...(base.entity_profile_version ?? []),
-				{ ...profile, id: uuid(902), entity_id: OTHER, name: 'Sister' }
+			entity: [...(base.entity ?? []), { ...company, id: OTHER, code: 'E2', name: 'Sister' }],
+			entity_change: [
+				...(base.entity_change ?? []),
+				{ ...change, id: uuid(902), entity_id: OTHER }
 			],
 			employee_contract: [
 				{ ...contract, effective_range: { from: '2026-01-01', to: '2026-06-15' } },

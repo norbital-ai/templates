@@ -41,7 +41,7 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 			finding_id: { fields: ['status'] }
 		},
 		entity: { fields: ['name', 'code'], limit: 10000 },
-		entity_profile_version: { fields: ['entity_id', 'effective_range', 'status'], limit: 10000 },
+		entity_change: { fields: ['entity_id', 'effective_from'], limit: 10000 },
 		employee_profile: {
 			fields: ['name', 'email', 'phone', 'address', 'source_reference'],
 			limit: 10000
@@ -81,11 +81,9 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 			name: row.name,
 			code: row.code ?? null
 		})),
-		entityVersions: held.entity_profile_version.rows.map((row) => ({
-			id: row.id,
+		entityChanges: held.entity_change.rows.map((row) => ({
 			entity_id: row.entity_id,
-			from: String(row.effective_range.from),
-			status: row.status
+			from: row.effective_from
 		})),
 		profiles: held.employee_profile.rows.map((row) => ({
 			id: row.id,
@@ -149,16 +147,7 @@ const created = (
 	records.filter((row) => row.model === model).map(({ id, revision }) => ({ id, revision }));
 
 const submit = Effect.fnUntraced(function* (ctx: Ctx, plan: DataRequestPlan) {
-	for (const group of batches(plan.entities))
-		yield* write(
-			ctx,
-			'entity.create',
-			group.map((row) => ({
-				name: row.name,
-				...(row.code === null ? {} : { code: row.code }),
-				settings_code: plan.settingsCode
-			}))
-		);
+	for (const group of batches(plan.entities)) yield* write(ctx, 'entity.create', group);
 	const { entity } = yield* ctx.query({ entity: { fields: ['name'], limit: 10000 } });
 	const entityIds = new Map(entity.rows.map((row) => [row.name.trim().toLowerCase(), row.id]));
 	// the sheet states one pay schedule a company: its only pay group, made here when it has none. A company with
@@ -181,23 +170,12 @@ const submit = Effect.fnUntraced(function* (ctx: Ctx, plan: DataRequestPlan) {
 				{ target: { id: only.id, revision: only.revision }, set: { payment_schedule } }
 			]);
 	}
-	const { entity_profile_version: drafts } = yield* ctx.query({
-		entity_profile_version: {
-			where: { id: { in: plan.sealVersions.map((id) => idOf('entity_profile_version', id)) } },
-			fields: ['revision'],
-			limit: 10000
-		}
-	});
-	const sealVersions: Target[] = [...drafts.rows];
-	for (const group of batches(plan.versions)) {
-		const records = yield* write(
+	for (const group of batches(plan.changes))
+		yield* write(
 			ctx,
-			'entity_profile_version.create',
+			'entity_change.create',
 			group.map(({ company, row }) => ({ ...row, entity_id: entityIds.get(company) ?? '' }))
 		);
-		sealVersions.push(...created(records, 'entity_profile_version'));
-	}
-	yield* seal(ctx, 'entity_profile_version.update', sealVersions);
 
 	for (const group of batches(plan.profiles)) yield* write(ctx, 'employee_profile.create', group);
 	const { employee_profile: updated } = yield* ctx.query({

@@ -1,59 +1,103 @@
 <script lang="ts">
+	/**
+	 * A company: its plain fields, edited in place, and the timeline of its dated changes, newest first, under what is
+	 * in force today. A timeline row shows its date and only what it changed, and opens its own record.
+	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Button,
 		EmptyState,
 		Field,
 		Form,
-		Icon,
 		open_record,
 		RecordShell,
+		Section,
 		Sheet,
+		StructuredData,
 		Table,
 		Tabs,
-		format
+		format,
+		type FieldEditor,
+		type RecordView
 	} from '@norbital-ai/ui';
-	import { Cluster, Stack } from '@norbital-ai/ui/layout';
+	import { Stack } from '@norbital-ai/ui/layout';
+	import { COMPANY_FIELDS, companyOn } from '../../../lib/company.js';
+	import { isJsonObject, jsonObject } from '../../../lib/payroll_engine/foundation.js';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
-	import type { RecordView } from '@norbital-ai/ui';
+	import { pageLaws } from '../../../lib/ui/law.svelte.js';
+	import VersionFacts from '../../../lib/ui/person/version_facts.svelte';
 
 	let { view, ctx }: { view: RecordView<'entity'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
-	let scheduling = $state(false);
-	const versions = $derived(
+	const clock = ctx.clock('day');
+	const laws = pageLaws(ctx, () => (record === null ? [] : [record.settings_code]));
+	let adding = $state(false);
+	const changes = $derived(
 		record == null
 			? null
-			: ctx.query({
-					entity_profile_version: {
-						where: { entity_id: { eq: record.id } },
-						fields: ['name', 'effective_range', 'status'],
-						limit: 10000
-					}
-				})
+			: ctx.query({ entity_change: { where: { entity_id: { eq: record.id } }, limit: 10000 } })
 	);
-	const statusText = (status: string): string =>
-		t(
-			status === 'DRAFT'
-				? 'contract.open'
-				: status === 'VOID'
-					? 'contract.voided'
-					: 'contract.sealed'
-		);
-	const timeline = $derived(
-		(versions?.current?.entity_profile_version.rows ?? [])
-			.toSorted((left, right) =>
-				String(right.effective_range.from).localeCompare(String(left.effective_range.from))
+	const rows = $derived((changes?.current?.entity_change.rows ?? []).map(jsonObject));
+	const LABELS: Readonly<Record<string, Parameters<typeof t>[0]>> = {
+		pay_methods: 'models.entity_change.fields.pay_methods',
+		final_pay_loan_floor_percent: 'models.entity_change.fields.final_pay_loan_floor_percent',
+		overtime_full_award_percent: 'models.entity_change.fields.overtime_full_award_percent',
+		statutory_parameters: 'models.entity_change.fields.statutory_parameters'
+	};
+	const fieldLabel = (name: string) => {
+		const key = LABELS[name];
+		return key === undefined ? name : t(key);
+	};
+	/** Today's dated values under the names a change sets them by; a method no change has set is left out. */
+	const inForce = $derived.by(() => {
+		const { entity_extension_data, pay_methods, ...state } = companyOn(rows, clock.today);
+		return {
+			...(pay_methods == null ? {} : { pay_methods }),
+			...state,
+			statutory_parameters: entity_extension_data ?? {}
+		};
+	});
+	/** What one change sets: a plain value beside its name, a record by the keys it holds; then what it takes away. */
+	const summary = (row: (typeof rows)[number]): string =>
+		[
+			...COMPANY_FIELDS.flatMap((name) => {
+				const value = row[name];
+				if (value == null) return [];
+				return [
+					isJsonObject(value)
+						? `${fieldLabel(name)} (${Object.keys(value).join(', ')})`
+						: `${fieldLabel(name)}: ${String(value)}`
+				];
+			}),
+			...(Array.isArray(row['clears']) ? row['clears'] : []).map(
+				(name) => `${fieldLabel(String(name))}: ${t('law_changes.removed')}`
 			)
-			.map((row) => ({
-				id: row.id,
-				period: format({ kind: 'period', of: 'date' }, row.effective_range, { locale: ctx.locale }),
-				status: statusText(row.status),
-				state: row.status,
-				detail: row.name
+		].join(' · ');
+	const timeline = $derived(
+		rows
+			.map((row) => ({ row, from: String(row['effective_from']) }))
+			.toSorted((left, right) => right.from.localeCompare(left.from))
+			.map(({ row, from }) => ({
+				id: String(row['id']),
+				period: format({ kind: 'date' }, from, { locale: ctx.locale }),
+				status: from > clock.today ? t('law_changes.upcoming') : t('app.settings.version_in_force'),
+				detail: summary(row)
 			}))
 	);
 </script>
+
+{#snippet parameters(field: FieldEditor)}<VersionFacts
+		{ctx}
+		{field}
+		law={laws.on(
+			record?.settings_code,
+			typeof field.form.values['effective_from'] === 'string'
+				? field.form.values['effective_from']
+				: clock.today
+		)}
+		subject="EMPLOYER"
+	/>{/snippet}
 
 {#snippet general()}
 	<Form
@@ -70,7 +114,7 @@
 		}}
 	>
 		{#snippet children()}<Stack gap="md"
-				>{#each ['code', 'name', 'settings_code', 'epf_registered_on', 'socso_registered_on'] as name (name)}<Field
+				>{#each ['code', 'name', 'settings_code', 'representative_name', 'registered_address', 'time_zone', 'bank', 'epf_registered_on', 'socso_registered_on'] as name (name)}<Field
 						{ctx}
 						{name}
 					/>{/each}</Stack
@@ -78,71 +122,37 @@
 	</Form>
 {/snippet}
 
-{#snippet versionsOnly()}
+{#snippet changesTab()}
 	{#if record}
-		<Stack gap="sm">
-			<Cluster justify="between">
-				<h3 class="text-heading">{t('employer_version.plural')}</h3>
-				<Button
-					size="icon"
-					variant="outline"
-					aria-label={t('employer_version.new')}
-					title={t('employer_version.new')}
-					onclick={() => open_record('entity_profile_version', 'new')}
-					><Icon name="lucide:plus" class="size-4" /></Button
-				>
-			</Cluster>
-			{#if versions?.loading}
-				<p class="text-meta">{t('component.loading')}</p>
-			{:else if timeline.length === 0}
-				<EmptyState title={t('employer_version.empty')} />
-			{:else}
-				<VersionTimeline
-					label={t('employer_version.plural')}
-					items={timeline}
-					onOpen={(id) => open_record('entity_profile_version', id)}
-				/>
-			{/if}
+		<Stack gap="md">
+			<Section name="entity_in_force" title={t('entity.in_force_today')} first collapsible={false}>
+				<StructuredData {ctx} mode="view" value={inForce} />
+			</Section>
+			<Section
+				name="entity_changes"
+				title={t('app.settings.changes')}
+				collapsible={false}
+				actions={newChange}
+			>
+				{#if changes?.loading}
+					<p class="text-meta">{t('component.loading')}</p>
+				{:else if timeline.length === 0}
+					<EmptyState title={t('entity.changes_empty')} />
+				{:else}
+					<VersionTimeline
+						label={t('app.settings.changes')}
+						items={timeline}
+						onOpen={(id) => open_record('entity_change', id)}
+					/>
+				{/if}
+			</Section>
 		</Stack>
 	{/if}
 {/snippet}
 
-{#snippet changesOnly()}
-	{#if record}
-		<Table
-			{ctx}
-			of="entity_change"
-			key="entity-scheduled-changes"
-			where={{ entity_id: { eq: record.id }, applied_version_id: { is_null: true } }}
-			toolbar={{
-				title: t('section.scheduled_changes'),
-				new: () => (scheduling = true)
-			}}
-			columns={['effective_from', 'field_path', 'new_value', 'notes']}
-		/>
-	{/if}
-{/snippet}
-
-{#snippet versionsTab()}
-	{#if record}
-		<Tabs
-			tabs={[
-				{
-					name: 'versions',
-					title: t('employer_version.plural'),
-					icon: 'lucide:history',
-					body: versionsOnly
-				},
-				{
-					name: 'changes',
-					title: t('section.scheduled_changes'),
-					icon: 'lucide:calendar-clock',
-					body: changesOnly
-				}
-			]}
-		/>
-	{/if}
-{/snippet}
+{#snippet newChange()}<Button variant="outline" onclick={() => (adding = true)}
+		>{t('entity.new_change')}</Button
+	>{/snippet}
 
 {#snippet holidaysTab()}
 	{#if record}
@@ -189,7 +199,7 @@
 		<Tabs
 			tabs={[
 				{ name: 'general', title: t('person.tab_general'), body: general },
-				{ name: 'versions', title: t('employer_version.plural'), body: versionsTab },
+				{ name: 'changes', title: t('app.settings.changes'), body: changesTab },
 				{ name: 'pay_groups', title: t('entity.tab_pay_groups'), body: payGroupsTab },
 				{ name: 'holidays', title: t('entity.tab_holidays'), body: holidaysTab }
 			]}
@@ -198,20 +208,21 @@
 </RecordShell>
 
 {#if record !== null}
-	<Sheet bind:open={scheduling} title={t('entity.schedule_change')}>
+	<Sheet bind:open={adding} title={t('entity.new_change')}>
 		<Form
 			{ctx}
 			of="entity_change"
 			mode="create"
 			values={{ entity_id: record.id }}
 			on_outcome={(outcome) => {
-				if (outcome.kind === 'committed') scheduling = false;
+				if (outcome.kind === 'committed') adding = false;
 			}}
 		>
 			{#snippet children()}<Stack gap="md"
-					>{#each ['field_path', 'new_value', 'effective_from', 'notes'] as name (name)}<Field
+					>{#each ['effective_from', ...COMPANY_FIELDS] as name (name)}<Field
 							{ctx}
 							{name}
+							{...name === 'statutory_parameters' ? { editor: parameters } : {}}
 						/>{/each}</Stack
 				>{/snippet}
 		</Form>

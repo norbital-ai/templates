@@ -5153,7 +5153,7 @@
 					"effects": "const key = 'TERMINATION_REPORT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Report of a termination of employment',\n  due_on: ctx.entry.effective_range.to,\n  occurrence_key: key,\n}];"
 				},
 				"WLKP_ESTABLISHMENT_REPORT": {
-					"description": "Raises the first compulsory employment report (WLKP) within 30 days of the sealed entity version.",
+					"description": "Raises the first compulsory employment report (WLKP) within 30 days of the company's change.",
 					"name": "Compulsory employment report (WLKP) on establishment",
 					"lookup": {
 						"date_offset_days": 30
@@ -5168,7 +5168,7 @@
 							"title": "Permenaker 18/2017 as amended by Permenaker 4/2019"
 						}
 					],
-					"source_collection": "entity_profile_version",
+					"source_collection": "entity_change",
 					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
@@ -5185,7 +5185,7 @@
 							"limit": 10000
 						}
 					},
-					"condition": "return ctx.entry.status === 'SEALED';",
+					"condition": "return true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const key = occurrence_key(['ID', 'WLKP_ESTABLISHMENT_REPORT', ctx.entry.entity_id, 'ESTABLISHMENT', ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Compulsory employment report (WLKP) on establishment',\n  due_on: add_days(ctx.entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key,\n}];"
@@ -5217,7 +5217,7 @@
 							},
 							"limit": 10000
 						},
-						"entity_profile_version": {
+						"entity_change": {
 							"where": {
 								"entity_id": {
 									"eq": {
@@ -5225,13 +5225,14 @@
 									}
 								}
 							},
+							"fields": ["effective_from"],
 							"limit": 10000
 						}
 					},
-					"condition": "const coverage = ctx.entry.salary_coverage;\nconst inMonth = (v) => {\n  if (v.status !== 'SEALED') return false;\n  if (!(v.effective_range.from <= coverage.to)) return false;\n  return v.effective_range.to == null || v.effective_range.to >= coverage.from;\n};\nconst profile = first(ctx.reads.entity_profile_version.filter(inMonth));\nif (profile == null) return false;\nconst declared = get(profile, 'entity_extension_data.wlkp_first_reported_on', null);\nconst sealed = ctx.reads.entity_profile_version\n  .filter((v) => v.status === 'SEALED' && v.effective_range.from != null)\n  .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? -1 : 1));\nconst fulfilled = sealed\n  .map((v) => occurrence_key(['ID', 'WLKP_ESTABLISHMENT_REPORT', ctx.entry.entity_id, 'ESTABLISHMENT', v.effective_range.from]))\n  .flatMap((key) => ctx.reads.obligation.filter((o) => o.occurrence_key === key && o.state === 'FULFILLED' && o.fulfilled_on != null))\n  .map((o) => String(o.fulfilled_on))\n  .toSorted();\nconst reported = declared == null || declared === '' ? first(fulfilled) : String(declared);\nif (reported == null) return false;\nconst reportedMonth = Number(reported.slice(5, 7));\nconst reportedYear = Number(reported.slice(0, 4));\nconst year = Number(coverage.from.slice(0, 4));\nconst month = Number(coverage.from.slice(5, 7));\nconst dueYear = month >= reportedMonth ? year : year - 1;\nif (dueYear <= reportedYear) return false;\nconst key = occurrence_key(['ID', 'WLKP_ANNUAL_REPORT', ctx.entry.entity_id, dueYear]);\nreturn !ctx.reads.obligation.some((o) => o.occurrence_key === key);",
+					"condition": "const coverage = ctx.entry.salary_coverage;\nconst profile = ctx.subject.employer;\nconst declared = get(profile, 'entity_extension_data.wlkp_first_reported_on', null);\nconst changes = ctx.reads.entity_change.toSorted((a, b) => (a.effective_from < b.effective_from ? -1 : 1));\nconst fulfilled = changes\n  .map((v) => occurrence_key(['ID', 'WLKP_ESTABLISHMENT_REPORT', ctx.entry.entity_id, 'ESTABLISHMENT', v.effective_from]))\n  .flatMap((key) => ctx.reads.obligation.filter((o) => o.occurrence_key === key && o.state === 'FULFILLED' && o.fulfilled_on != null))\n  .map((o) => String(o.fulfilled_on))\n  .toSorted();\nconst reported = declared == null || declared === '' ? first(fulfilled) : String(declared);\nif (reported == null) return false;\nconst reportedMonth = Number(reported.slice(5, 7));\nconst reportedYear = Number(reported.slice(0, 4));\nconst year = Number(coverage.from.slice(0, 4));\nconst month = Number(coverage.from.slice(5, 7));\nconst dueYear = month >= reportedMonth ? year : year - 1;\nif (dueYear <= reportedYear) return false;\nconst key = occurrence_key(['ID', 'WLKP_ANNUAL_REPORT', ctx.entry.entity_id, dueYear]);\nreturn !ctx.reads.obligation.some((o) => o.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const coverage = ctx.entry.salary_coverage;\nconst inMonth = (v) => {\n  if (v.status !== 'SEALED') return false;\n  if (!(v.effective_range.from <= coverage.to)) return false;\n  return v.effective_range.to == null || v.effective_range.to >= coverage.from;\n};\nconst profile = first(ctx.reads.entity_profile_version.filter(inMonth));\nconst declared = profile == null ? null : get(profile, 'entity_extension_data.wlkp_first_reported_on', null);\nconst sealed = ctx.reads.entity_profile_version\n  .filter((v) => v.status === 'SEALED' && v.effective_range.from != null)\n  .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? -1 : 1));\nconst fulfilled = sealed\n  .map((v) => occurrence_key(['ID', 'WLKP_ESTABLISHMENT_REPORT', ctx.entry.entity_id, 'ESTABLISHMENT', v.effective_range.from]))\n  .flatMap((key) => ctx.reads.obligation.filter((o) => o.occurrence_key === key && o.state === 'FULFILLED' && o.fulfilled_on != null))\n  .map((o) => String(o.fulfilled_on))\n  .toSorted();\nconst reported = declared == null || declared === '' ? first(fulfilled) : String(declared);\nif (reported == null) return [];\nconst reportedMonth = Number(reported.slice(5, 7));\nconst reportedYear = Number(reported.slice(0, 4));\nconst year = Number(coverage.from.slice(0, 4));\nconst month = Number(coverage.from.slice(5, 7));\nconst dueYear = month >= reportedMonth ? year : year - 1;\nif (dueYear <= reportedYear) return [];\nconst key = occurrence_key(['ID', 'WLKP_ANNUAL_REPORT', ctx.entry.entity_id, dueYear]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Annual compulsory employment report (WLKP)',\n  due_on: month_end(dueYear + '-' + String(reportedMonth).padStart(2, '0') + '-01'),\n  occurrence_key: key,\n}];"
+					"effects": "const coverage = ctx.entry.salary_coverage;\nconst profile = ctx.subject.employer;\nconst declared = get(profile, 'entity_extension_data.wlkp_first_reported_on', null);\nconst changes = ctx.reads.entity_change.toSorted((a, b) => (a.effective_from < b.effective_from ? -1 : 1));\nconst fulfilled = changes\n  .map((v) => occurrence_key(['ID', 'WLKP_ESTABLISHMENT_REPORT', ctx.entry.entity_id, 'ESTABLISHMENT', v.effective_from]))\n  .flatMap((key) => ctx.reads.obligation.filter((o) => o.occurrence_key === key && o.state === 'FULFILLED' && o.fulfilled_on != null))\n  .map((o) => String(o.fulfilled_on))\n  .toSorted();\nconst reported = declared == null || declared === '' ? first(fulfilled) : String(declared);\nif (reported == null) return [];\nconst reportedMonth = Number(reported.slice(5, 7));\nconst reportedYear = Number(reported.slice(0, 4));\nconst year = Number(coverage.from.slice(0, 4));\nconst month = Number(coverage.from.slice(5, 7));\nconst dueYear = month >= reportedMonth ? year : year - 1;\nif (dueYear <= reportedYear) return [];\nconst key = occurrence_key(['ID', 'WLKP_ANNUAL_REPORT', ctx.entry.entity_id, dueYear]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Annual compulsory employment report (WLKP)',\n  due_on: month_end(dueYear + '-' + String(reportedMonth).padStart(2, '0') + '-01'),\n  occurrence_key: key,\n}];"
 				},
 				"WORK_ACCIDENT_REPORT": {
 					"description": "Raises the stage-I work-accident report to BPJS Ketenagakerjaan within 2 × 24 hours of the first recorded accident day.",
@@ -5315,16 +5316,6 @@
 							},
 							"limit": 10000
 						},
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							},
-							"limit": 10000
-						},
 						"employee_contract": {
 							"where": {
 								"entity_id": {
@@ -5339,7 +5330,7 @@
 					"condition": "return true;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const inMonth = (v) => {\n  if (v.status !== 'SEALED') return false;\n  if (!(v.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return v.effective_range.to == null || v.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst profile = first(ctx.reads.entity_profile_version.filter(inMonth));\nconst validUntil = profile == null ? null : get(profile, 'entity_extension_data.company_regulation_valid_until', null);\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nif (validUntil == null) return [];\nif (validUntil < ctx.entry.salary_coverage.from) return [];\nif (validUntil > ctx.entry.salary_coverage.to) return [];\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'COMPANY_REGULATION_RENEWAL', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Renewal of the company regulations (Peraturan Perusahaan)',\n  due_on: validUntil,\n  occurrence_key: key,\n}];"
+					"effects": "const profile = ctx.subject.employer;\nconst validUntil = get(profile, 'entity_extension_data.company_regulation_valid_until', null);\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nif (validUntil == null) return [];\nif (validUntil < ctx.entry.salary_coverage.from) return [];\nif (validUntil > ctx.entry.salary_coverage.to) return [];\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'COMPANY_REGULATION_RENEWAL', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Renewal of the company regulations (Peraturan Perusahaan)',\n  due_on: validUntil,\n  occurrence_key: key,\n}];"
 				},
 				"THR_PAYMENT": {
 					"description": "Raises the THR payment task seven days before a religious holiday when the holiday falls in or just after the pay window.",
@@ -5648,16 +5639,6 @@
 							},
 							"limit": 10000
 						},
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							},
-							"limit": 10000
-						},
 						"employee_contract": {
 							"where": {
 								"entity_id": {
@@ -5672,7 +5653,7 @@
 					"condition": "return true;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const inMonth = (v) => {\n  if (v.status !== 'SEALED') return false;\n  if (!(v.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return v.effective_range.to == null || v.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst profile = first(ctx.reads.entity_profile_version.filter(inMonth));\nif (profile == null || get(profile, 'entity_extension_data.lks_bipartit_formed_on', null) != null) return [];\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'LKS_BIPARTIT_FORMATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Bipartite cooperation body (LKS Bipartit)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];"
+					"effects": "if (get(ctx.subject.employer, 'entity_extension_data.lks_bipartit_formed_on', null) != null) return [];\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'LKS_BIPARTIT_FORMATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Bipartite cooperation body (LKS Bipartit)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];"
 				},
 				"K3_SMK3_P2K3": {
 					"description": "Raises a one-time task to establish SMK3 and form P2K3 when the entity reaches 100 workers or declares high hazard.",
@@ -5712,16 +5693,6 @@
 							},
 							"limit": 10000
 						},
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							},
-							"limit": 10000
-						},
 						"employee_contract": {
 							"where": {
 								"entity_id": {
@@ -5736,7 +5707,7 @@
 					"condition": "return true;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const inMonth = (v) => {\n  if (v.status !== 'SEALED') return false;\n  if (!(v.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return v.effective_range.to == null || v.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst profile = first(ctx.reads.entity_profile_version.filter(inMonth));\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nconst highHazard = profile != null && get(profile, 'entity_extension_data.k3_high_hazard', false) === true;\nif (headcount < ctx.lookup.employee_count_threshold && !highHazard) return [];\nconst key = occurrence_key(['ID', 'K3_SMK3_P2K3', ctx.entry.entity_id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'SMK3 and P2K3 (one-time, threshold met)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];"
+					"effects": "const profile = ctx.subject.employer;\nconst onPayroll = (c) => {\n  if (c.status !== 'SEALED') return false;\n  if (get(c, 'engagement', null) === 'PAYEE') return false;\n  if (!(c.effective_range.from <= ctx.entry.salary_coverage.to)) return false;\n  return c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from;\n};\nconst headcount = ctx.reads.employee_contract.filter(onPayroll).length;\nconst highHazard = get(profile, 'entity_extension_data.k3_high_hazard', false) === true;\nif (headcount < ctx.lookup.employee_count_threshold && !highHazard) return [];\nconst key = occurrence_key(['ID', 'K3_SMK3_P2K3', ctx.entry.entity_id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'SMK3 and P2K3 (one-time, threshold met)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];"
 				},
 				"WORKER_HEALTH_EXAMINATION": {
 					"description": "Raises an internal January reminder to run the annual health examination programme for workers; the statutory duty is per worker, not an entity filing.",
@@ -5949,14 +5920,14 @@
 							"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["create", "update"],
+					"source_collection": "entity",
+					"events": ["update"],
 					"reads": {
 						"obligation": {
 							"where": {
 								"entity_id": {
 									"eq": {
-										"var": "ctx.entry.entity_id"
+										"var": "ctx.entry.id"
 									}
 								},
 								"employee_id": {
@@ -5969,27 +5940,17 @@
 							"where": {
 								"entity_id": {
 									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							},
-							"limit": 10000
-						},
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
+										"var": "ctx.entry.id"
 									}
 								}
 							},
 							"limit": 10000
 						}
 					},
-					"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst earlierSealed = (v) => {\n  if (v.id === ctx.entry.id) return false;\n  if (v.status !== 'SEALED') return false;\n  return v.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = ctx.reads.entity_profile_version\n  .filter(earlierSealed)\n  .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1))[0];\nif (previous == null) return false;\nreturn previous.name !== ctx.entry.name ||\n  get(previous, 'registered_address', null) !== get(ctx.entry, 'registered_address', null);",
+					"condition": "if (ctx.before == null) return false;\nreturn ctx.before.name !== ctx.entry.name ||\n  get(ctx.before, 'registered_address', null) !== get(ctx.entry, 'registered_address', null);",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_ENTITY_CHANGE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'BPJS_KETENAGAKERJAAN_ENTITY_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];"
+					"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_ENTITY_CHANGE', ctx.entry.id, ctx.entry.name, get(ctx.entry, 'registered_address', null)]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_ENTITY_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];"
 				},
 				"PDP_BREACH_NOTICE": {
 					"description": "Raises the personal-data breach notification task when a breach case is opened.",
@@ -6346,22 +6307,8 @@
 					"description": "Refuses a monthly contract whose basic wage plus fixed allowances is below the provincial or city minimum wage for the contract's worksite.",
 					"target_collection": "employee_contract",
 					"events": ["create", "update"],
-					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								},
-								"status": {
-									"eq": "SEALED"
-								}
-							}
-						}
-					},
-					"condition": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);",
-					"validate": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nreturn monthly >= ctx.lookup.by_region[region];\n",
+					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);",
+					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nreturn monthly >= ctx.lookup.by_region[region];\n",
 					"order": 0,
 					"references": [
 						{
@@ -6396,22 +6343,8 @@
 					"description": "Refuses a monthly contract below the governor's sector minimum wage for the worksite's KBLI and declared sector condition.",
 					"target_collection": "employee_contract",
 					"events": ["create", "update"],
-					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								},
-								"status": {
-									"eq": "SEALED"
-								}
-							}
-						}
-					},
-					"condition": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nif (!['EMPLOYEE', 'CONTRACTOR'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nif (worksite === '') return false;\nconst covered = (key) => region === key || region.startsWith(key + '/');\nreturn Object.keys(ctx.lookup.by_sector).some(covered);",
-					"validate": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst job = get(ctx.entry, 'employee_extension_data.umsp_job_category', '');\nconst bySector = ctx.lookup.by_sector;\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nconst conditionMatches = (row) => {\n    const condition = get(row, 'condition', '');\n    if (condition === '') return true;\n    if (condition === 'HOTEL_STAR_3') return star === 3;\n    if (condition === 'HOTEL_STAR_4') return star === 4;\n    if (condition === 'HOTEL_STAR_5') return star === 5;\n    if (condition === 'HOTEL_4_5') return star >= ctx.lookup.hotel_stars_4_5_min;\n    if (condition === 'HOTEL_3_5') return star >= ctx.lookup.hotel_stars_3_5_min;\n    if (condition === 'BANK_PRIVATE_FOREX') return get(facts, 'umsp_bank_category', '') === 'PRIVATE_CONVENTIONAL_FOREX';\n    if (condition === 'BANK_SYARIAH_FOREX') return get(facts, 'umsp_bank_category', '') === 'SYARIAH_FOREX';\n    if (condition === 'RAYON_VISCOSE') return get(facts, 'umsp_rayon_viscose', false) === true;\n    if (condition === 'EXPORT') return get(facts, 'umsp_export_oriented', false) === true;\n    if (condition === 'ASSETS_1T') return get(facts, 'umsp_assets_over_1_trillion', false) === true;\n    if (condition === 'ASTRA') return get(facts, 'umsp_astra_group', false) === true;\n    if (condition === 'FREEPORT_AREA') return get(facts, 'umsp_freeport_area', false) === true;\n    if (condition === 'BUS_DRIVER_MECHANIC') return job === 'BUS_DRIVER_MECHANIC';\n    if (condition === 'CLASS_A_HOSPITAL_CARE') return get(facts, 'umsp_class_a_private_hospital', false) === true && ['NURSING_MIDWIFERY', 'MEDICAL_SUPPORT'].includes(job);\n    return false;\n};\nconst covered = (key) => region === key || region.startsWith(key + '/');\nconst underpaid = (row) => {\n    if (!worksite.startsWith(get(row, 'kbli', ''))) return false;\n    if (!conditionMatches(row)) return false;\n    return monthly < Number(get(row, 'monthly', 0));\n};\nreturn !Object.keys(bySector).some((key) => covered(key) && bySector[key].some(underpaid));\n",
+					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nif (!['EMPLOYEE', 'CONTRACTOR'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nif (worksite === '') return false;\nconst covered = (key) => region === key || region.startsWith(key + '/');\nreturn Object.keys(ctx.lookup.by_sector).some(covered);",
+					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst job = get(ctx.entry, 'employee_extension_data.umsp_job_category', '');\nconst bySector = ctx.lookup.by_sector;\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nconst conditionMatches = (row) => {\n    const condition = get(row, 'condition', '');\n    if (condition === '') return true;\n    if (condition === 'HOTEL_STAR_3') return star === 3;\n    if (condition === 'HOTEL_STAR_4') return star === 4;\n    if (condition === 'HOTEL_STAR_5') return star === 5;\n    if (condition === 'HOTEL_4_5') return star >= ctx.lookup.hotel_stars_4_5_min;\n    if (condition === 'HOTEL_3_5') return star >= ctx.lookup.hotel_stars_3_5_min;\n    if (condition === 'BANK_PRIVATE_FOREX') return get(facts, 'umsp_bank_category', '') === 'PRIVATE_CONVENTIONAL_FOREX';\n    if (condition === 'BANK_SYARIAH_FOREX') return get(facts, 'umsp_bank_category', '') === 'SYARIAH_FOREX';\n    if (condition === 'RAYON_VISCOSE') return get(facts, 'umsp_rayon_viscose', false) === true;\n    if (condition === 'EXPORT') return get(facts, 'umsp_export_oriented', false) === true;\n    if (condition === 'ASSETS_1T') return get(facts, 'umsp_assets_over_1_trillion', false) === true;\n    if (condition === 'ASTRA') return get(facts, 'umsp_astra_group', false) === true;\n    if (condition === 'FREEPORT_AREA') return get(facts, 'umsp_freeport_area', false) === true;\n    if (condition === 'BUS_DRIVER_MECHANIC') return job === 'BUS_DRIVER_MECHANIC';\n    if (condition === 'CLASS_A_HOSPITAL_CARE') return get(facts, 'umsp_class_a_private_hospital', false) === true && ['NURSING_MIDWIFERY', 'MEDICAL_SUPPORT'].includes(job);\n    return false;\n};\nconst covered = (key) => region === key || region.startsWith(key + '/');\nconst underpaid = (row) => {\n    if (!worksite.startsWith(get(row, 'kbli', ''))) return false;\n    if (!conditionMatches(row)) return false;\n    return monthly < Number(get(row, 'monthly', 0));\n};\nreturn !Object.keys(bySector).some((key) => covered(key) && bySector[key].some(underpaid));\n",
 					"order": 2,
 					"lookup": {
 						"hotel_stars_4_5_min": 4,
@@ -6529,22 +6462,8 @@
 					"description": "Requires the worksite region to be a seeded minimum-wage key, at locality level where one exists.",
 					"target_collection": "employee_contract",
 					"events": ["create", "update"],
-					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								},
-								"status": {
-									"eq": "SEALED"
-								}
-							}
-						}
-					},
-					"condition": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nreturn Object.keys(byRegion).length > 0;\n",
-					"validate": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (region === '') return false;\nif (!Object.hasOwn(byRegion, region)) return false;\nif (region.includes('/')) return true;\nreturn !Object.keys(byRegion).some((key) => key.startsWith(region + '/'));\n",
+					"condition": "const entity = ctx.subject.employer;\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nreturn Object.keys(byRegion).length > 0;\n",
+					"validate": "const entity = ctx.subject.employer;\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (region === '') return false;\nif (!Object.hasOwn(byRegion, region)) return false;\nif (region.includes('/')) return true;\nreturn !Object.keys(byRegion).some((key) => key.startsWith(region + '/'));\n",
 					"order": 3,
 					"references": [
 						{
@@ -6565,22 +6484,8 @@
 					"description": "Refuses a daily rate below the monthly minimum wage divided by the statutory paid days for a five- or six-day week.",
 					"target_collection": "employee_contract",
 					"events": ["create", "update"],
-					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								},
-								"status": {
-									"eq": "SEALED"
-								}
-							}
-						}
-					},
-					"condition": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'DAILY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
-					"validate": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return false;\nconst divisor = Number(days) === 6 ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\nreturn Number(amount) >= Number(byRegion[region]) / divisor;\n",
+					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'DAILY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
+					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return false;\nconst divisor = Number(days) === 6 ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\nreturn Number(amount) >= Number(byRegion[region]) / divisor;\n",
 					"order": 4,
 					"lookup": {},
 					"references": [
@@ -6598,22 +6503,8 @@
 					"description": "Refuses an hourly rate below the monthly minimum wage divided by the statutory monthly hours (126).",
 					"target_collection": "employee_contract",
 					"events": ["create", "update"],
-					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								},
-								"status": {
-									"eq": "SEALED"
-								}
-							}
-						}
-					},
-					"condition": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'HOURLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
-					"validate": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\nreturn Number(amount) >= Number(byRegion[region]) / ctx.lookup.hours_divisor;\n",
+					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'HOURLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
+					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\nreturn Number(amount) >= Number(byRegion[region]) / ctx.lookup.hours_divisor;\n",
 					"order": 5,
 					"lookup": {
 						"hours_divisor": 126
@@ -6757,10 +6648,9 @@
 					}
 				},
 				"SHARED_STRUCTURED_ENTITY_INPUTS": {
-					"description": "Requires the company registration number and a 15- or 16-digit tax registration number on a sealed entity profile.",
-					"target_collection": "entity_profile_version",
+					"description": "Requires the company registration number and a 15- or 16-digit tax registration number in the company's parameters.",
+					"target_collection": "entity_change",
 					"events": ["create", "update"],
-					"condition": "return get(ctx.entry, 'status', '') === 'SEALED';",
 					"validate": "const data = get(ctx.entry, 'entity_extension_data', {});\nconst bad = (value, bounds) => {\n    if (value == null) return get(bounds, 'required', false) === true;\n    const length = String(value).length;\n    if (get(bounds, 'minLength', null) != null && length < Number(bounds.minLength)) return true;\n    if (get(bounds, 'maxLength', null) != null && length > Number(bounds.maxLength)) return true;\n    if (get(bounds, 'integer', false) === true && Number(value) !== Math.trunc(Number(value))) return true;\n    if (get(bounds, 'minimum', null) != null && Number(value) < Number(bounds.minimum)) return true;\n    if (get(bounds, 'maximum', null) != null && Number(value) > Number(bounds.maximum)) return true;\n    const allowed = get(bounds, 'enum', null);\n    return allowed != null && !allowed.includes(value);\n};\nreturn (\n    !bad(get(data, 'registration_number', null), ctx.lookup.registration_number) &&\n    !bad(get(data, 'tax_registration_number', null), ctx.lookup.tax_registration_number)\n);\n",
 					"order": 16,
 					"lookup": {
@@ -6777,9 +6667,8 @@
 				},
 				"ESTABLISHMENT_EVENT_DATE_REQUIRED": {
 					"description": "Requires an establishment date when the entity declares its first worker or the start of operations.",
-					"target_collection": "entity_profile_version",
+					"target_collection": "entity_change",
 					"events": ["create", "update"],
-					"condition": "return get(ctx.entry, 'status', '') === 'SEALED';",
 					"validate": "const data = get(ctx.entry, 'entity_extension_data', {});\nconst triggers = ctx.lookup.triggers;\nconst hasTrigger = triggers.some((key) => get(data, key, null) != null);\nreturn !hasTrigger || get(data, 'established_on', null) != null;\n",
 					"order": 18,
 					"lookup": {
@@ -6979,7 +6868,7 @@
 						"type": "string",
 						"format": "date",
 						"title": "Date operations started",
-						"description": "The actual date this establishment began operating, distinct from incorporation and the employer version effective date."
+						"description": "The actual date this establishment began operating, distinct from incorporation and the date of the company's change."
 					},
 					"first_employed_on": {
 						"type": "string",
@@ -16571,7 +16460,7 @@
 			},
 			"registered_rule": {
 				"MINIMUM_WAGE_FLOOR": {
-					"condition": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (region === '') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);",
+					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (region === '') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);",
 					"lookup": {
 						"micro_small_share": 0.5
 					},
@@ -16593,24 +16482,24 @@
 						}
 					],
 					"description": "Refuses a monthly contract whose basic wage plus fixed allowances is below the provincial or city minimum wage for the contract's worksite, or below half of it for a micro or small enterprise (UU 27/2026 art.144).",
-					"validate": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\n// UU 27/2026 art.144: a micro or small enterprise may agree a wage of at least half the minimum wage\nconst share = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL' ? ctx.lookup.micro_small_share : 1;\nreturn monthly >= ctx.lookup.by_region[region] * share;\n"
+					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\n// UU 27/2026 art.144: a micro or small enterprise may agree a wage of at least half the minimum wage\nconst share = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL' ? ctx.lookup.micro_small_share : 1;\nreturn monthly >= ctx.lookup.by_region[region] * share;\n"
 				},
 				"HOURLY_MINIMUM_WAGE": {
-					"condition": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'HOURLY') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
+					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'HOURLY') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
 					"lookup": {
 						"hours_divisor": 126,
 						"micro_small_share": 0.5
 					},
 					"description": "Refuses an hourly rate below the monthly minimum wage divided by the statutory monthly hours (126); half of it for a micro or small enterprise (UU 27/2026 art.144).",
-					"validate": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\n// UU 27/2026 art.144: half the minimum for a micro or small enterprise\nconst share = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL' ? ctx.lookup.micro_small_share : 1;\nreturn Number(amount) >= (Number(byRegion[region]) * share) / ctx.lookup.hours_divisor;\n"
+					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\n// UU 27/2026 art.144: half the minimum for a micro or small enterprise\nconst share = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL' ? ctx.lookup.micro_small_share : 1;\nreturn Number(amount) >= (Number(byRegion[region]) * share) / ctx.lookup.hours_divisor;\n"
 				},
 				"DAILY_MINIMUM_WAGE": {
-					"condition": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'DAILY') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
+					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'DAILY') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
 					"lookup": {
 						"micro_small_share": 0.5
 					},
 					"description": "Refuses a daily rate below the monthly minimum wage divided by the statutory paid days for a five- or six-day week; half of it for a micro or small enterprise (UU 27/2026 art.144).",
-					"validate": "const entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return false;\nconst divisor = Number(days) === 6 ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\n// UU 27/2026 art.144: half the minimum for a micro or small enterprise\nconst share = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL' ? ctx.lookup.micro_small_share : 1;\nreturn Number(amount) >= (Number(byRegion[region]) * share) / divisor;\n"
+					"validate": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return false;\nconst divisor = Number(days) === 6 ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day;\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\n// UU 27/2026 art.144: half the minimum for a micro or small enterprise\nconst share = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL' ? ctx.lookup.micro_small_share : 1;\nreturn Number(amount) >= (Number(byRegion[region]) * share) / divisor;\n"
 				},
 				"MINIMUM_AGE": {
 					"lookup": {

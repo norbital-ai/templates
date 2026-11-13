@@ -133,10 +133,9 @@ The save that ends the version, or moves its end, states its exit answers with i
   the same balance.
 - **Cross-jurisdiction transfer** — the old entity runs its final payroll for the exit period. Leave
   settlement (if any) is paid there. The new entity starts under its own law; its first run
-  must not see the old contract, law or employer version.
-- **Voided records** — a voided contract is excluded from later runs. A voided employer version
-  cannot cover a later run; the run refuses with `No sealed entity version covers <period>`.
-  Historical payslips are not rewritten.
+  must not see the old contract, law or company.
+- **Voided records** — a voided contract is excluded from later runs. Historical payslips are not
+  rewritten.
 - **A period a run holds** — while a run is unpaid, nothing of its people moves: delete the run
   first. Once it is paid, a version may be sealed, ended or voided over its period. The write leaves
   an amendment row for each paid period it reaches and the next run carries the difference

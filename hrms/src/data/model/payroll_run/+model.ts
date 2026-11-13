@@ -130,11 +130,6 @@ export default model({
 					fields: ['entity_id', 'name', 'payment_schedule'],
 					limit: 10000
 				},
-				entity_profile_version: {
-					where: { entity_id: { in: entityIds }, status: { eq: 'SEALED' } },
-					fields: ['entity_id', 'effective_range'],
-					limit: 10000
-				},
 				// a company's law is the jurisdiction it names, as it stands on the run's pay date
 				entity: { where: { id: { in: entityIds } }, fields: ['settings_code'], limit: 10000 },
 				// year-to-date only moves forward; a paid period worked out again is read off its own run
@@ -189,20 +184,8 @@ export default model({
 			);
 			// an amended period HR named that is no longer open was carried by another run
 			const open = new Set(known.pay_amendment.rows.map(({ id }) => String(id)));
-			const on = (range: { from: string; to: string | null }, day: string) =>
-				range.from <= day && (range.to === null || day <= range.to);
 			const runs = [];
 			for (const [index, row] of input.entries()) {
-				const version = known.entity_profile_version.rows.find(
-					(entry) =>
-						String(entry.entity_id) === String(row.entity_id) &&
-						on(entry.effective_range, `${row.period.slice(0, 7)}-01`)
-				);
-				if (version === undefined)
-					return yield* ctx.refuse('errors.payroll_run_no_entity_version', {
-						row: index,
-						values: { period: row.period }
-					});
 				// the run's pay group: the one named, else the company's only one
 				const groups = known.pay_group.rows.filter(
 					(entry) => String(entry.entity_id) === String(row.entity_id)

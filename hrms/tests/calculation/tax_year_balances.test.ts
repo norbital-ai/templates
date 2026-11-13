@@ -236,9 +236,9 @@ describe('a benefit', () => {
 			);
 			const seed: Seed = {
 				...base,
-				entity_profile_version: (base.entity_profile_version ?? []).map((row) => ({
+				entity_change: (base.entity_change ?? []).map((row) => ({
 					...row,
-					entity_extension_data: { risk_class: 'I' }
+					statutory_parameters: { risk_class: 'I' }
 				})),
 				employee_contract: (base.employee_contract ?? []).map((row) => ({
 					...row,

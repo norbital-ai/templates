@@ -50,7 +50,7 @@ const base = lawWith(pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []), {
 /** One loan of `principal`, to be repaid August to November. */
 const lent = (principal: number): ReturnType<typeof pack> => ({
 	...base,
-	entity_profile_version: (base.entity_profile_version ?? []).map((row) => ({
+	entity_change: (base.entity_change ?? []).map((row) => ({
 		...row,
 		final_pay_loan_floor_percent: FLOOR
 	})),
@@ -430,9 +430,8 @@ describe('a leaver’s loan', () => {
 				held
 					.filter((row) => row.payroll_run_id != null)
 					.reduce((sum, row) => sum + (decimalNumber(row.amount) ?? 0), 0);
-			const [version] = (yield* storedQuery(t, { entity_profile_version: { limit: 1 } }))
-				.entity_profile_version.rows;
-			assert.equal(version?.final_pay_loan_floor_percent, FLOOR);
+			const [change] = (yield* storedQuery(t, { entity_change: { limit: 1 } })).entity_change.rows;
+			assert.equal(change?.final_pay_loan_floor_percent, FLOOR);
 			const plan = loanRecovery({
 				loans: [{ id: LOAN, outstanding }],
 				expectedPay: Number(august.net_pay),

@@ -3,13 +3,17 @@ import { model } from '../../../../.norbital/models/entity.ts';
 
 export default model({
 	description:
-		'One stable company identity. Sealed, dated employer payroll versions hold every payroll detail and its statutory validation link.',
+		'One company. Its own fields never change by date, so an edit is a correction; what changes from a date is an entity_change row.',
 	icon: 'lucide:building-2',
 	record_label: 'record.name',
 	fields: {
 		code: { kind: 'text', optional: true },
 		name: { kind: 'text' },
 		settings_code: { kind: 'text' },
+		representative_name: { kind: 'text', optional: true },
+		registered_address: { kind: 'text', optional: true },
+		time_zone: { kind: 'text', optional: true },
+		bank: { kind: 'custom', of: 'bank', optional: true },
 		source_reference: { kind: 'text', optional: true },
 		epf_registered_on: { kind: 'date', optional: true },
 		socso_registered_on: { kind: 'date', optional: true }
@@ -19,7 +23,7 @@ export default model({
 	outputs: {
 		default: {
 			fields: 'all',
-			payroll_versions: { fields: 'all' },
+			changes: { fields: 'all' },
 			pay_groups: { fields: 'all' },
 			shift_definition: { fields: 'all' },
 			employee_contract: {
@@ -29,11 +33,10 @@ export default model({
 			}
 		},
 		self_service: {
-			fields: ['name', 'settings_code'],
-			payroll_versions: { fields: ['entity_id', 'effective_range', 'status', 'time_zone'] }
+			fields: ['name', 'settings_code', 'time_zone']
 		},
 		kiosk: {
-			fields: ['name', 'settings_code'],
+			fields: ['name', 'settings_code', 'time_zone'],
 			employee_contract: {
 				fields: ['employee_id', 'entity_id', 'employee_number', 'effective_range'],
 				employee_id: {
@@ -56,6 +59,10 @@ export default model({
 				'code',
 				'name',
 				'settings_code',
+				'representative_name',
+				'registered_address',
+				'time_zone',
+				'bank',
 				'source_reference',
 				'epf_registered_on',
 				'socso_registered_on'
@@ -82,6 +89,10 @@ export default model({
 				'code',
 				'name',
 				'settings_code',
+				'representative_name',
+				'registered_address',
+				'time_zone',
+				'bank',
 				'source_reference',
 				'epf_registered_on',
 				'socso_registered_on'
@@ -94,7 +105,7 @@ export default model({
 					return yield* ctx.refuse('errors.entity_code_blank', { row, field: 'code' });
 				if (!change.changed('settings_code')) continue;
 				const used = yield* ctx.query({
-					entity_profile_version: {
+					entity_change: {
 						where: { entity_id: { eq: before.id } },
 						fields: ['id'],
 						limit: 1
@@ -105,7 +116,7 @@ export default model({
 						limit: 1
 					}
 				});
-				if (used.entity_profile_version.rows.length > 0 || used.employee_contract.rows.length > 0)
+				if (used.entity_change.rows.length > 0 || used.employee_contract.rows.length > 0)
 					return yield* ctx.refuse('errors.entity_jurisdiction_linked', {
 						row,
 						field: 'settings_code'
@@ -114,7 +125,16 @@ export default model({
 			return changes.map(({ set }) => (set.code == null ? set : { ...set, code: set.code.trim() }));
 		},
 		effect: function* (changes, ctx) {
-			yield* tap(ctx, 'update', 'entity', changes);
+			// a company's particulars change on the day they are written: its effects read that day as the row's first
+			yield* tap(
+				ctx,
+				'update',
+				'entity',
+				changes.map(({ before, after }) => ({
+					before,
+					after: { ...after, effective_range: { from: String(ctx.today), to: null } }
+				}))
+			);
 		}
 	}
 });

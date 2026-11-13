@@ -17,22 +17,6 @@ import {
 	workbookImportError
 } from './workbook_import.js';
 
-const zoneOn = <V>(
-	versions: readonly V[],
-	day: string,
-	rangeOf: (version: V) => { readonly from: string; readonly to: string | null },
-	zoneOf: (version: V) => string | null | undefined
-): string | null => {
-	const last = versions
-		.filter((version) => {
-			const range = rangeOf(version);
-			return range.from <= day && (range.to == null || day <= range.to);
-		})
-		.toSorted((left, right) => rangeOf(left).from.localeCompare(rangeOf(right).from))
-		.at(-1);
-	return last == null ? null : (zoneOf(last) ?? null);
-};
-
 /**
  * Reads one roster workbook for the scoped entity and writes what it changes as one import: a dry run first, whose
  * refusal lists every row the server refuses and writes nothing, then the import itself.
@@ -65,10 +49,10 @@ export const runRosterImport = (
 						fields: ['code', 'entity_id', 'effective_range', 'variant'],
 						limit: 10000
 					},
-					entity_profile_version: {
-						where: { entity_id: { eq: options.entity_id }, status: { eq: 'SEALED' } },
-						fields: ['effective_range', 'time_zone'],
-						limit: 10000
+					entity: {
+						where: { id: { eq: options.entity_id } },
+						fields: ['time_zone'],
+						limit: 1
 					},
 					jurisdiction: {
 						where: { code: { eq: options.settings_code } },
@@ -76,17 +60,11 @@ export const runRosterImport = (
 						limit: 1
 					}
 				});
-				const zone =
-					zoneOn(
-						scope.entity_profile_version.rows,
-						day,
-						(version) => version.effective_range,
-						(version) => version.time_zone
-					) ?? scope.jurisdiction.rows[0]?.timezone;
+				const zone = scope.entity.rows[0]?.time_zone ?? scope.jurisdiction.rows[0]?.timezone;
 				if (zone == null)
 					return yield* Effect.fail(
 						workbookImportError(
-							`Neither a sealed employer version covering ${day} nor the jurisdiction gives the month's time zone.`
+							"Neither the company nor its jurisdiction gives the month's time zone."
 						)
 					);
 				const entries =

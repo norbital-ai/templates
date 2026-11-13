@@ -16,16 +16,11 @@
 	let {
 		ctx,
 		contract,
-		company,
-		employerVersions
+		company
 	}: {
 		ctx: PageContext;
 		contract: Row<'employee_contract'>;
-		company: Pick<Row<'entity'>, 'id' | 'name' | 'settings_code'>;
-		employerVersions: readonly Pick<
-			Row<'entity_profile_version'>,
-			'id' | 'entity_id' | 'effective_range' | 'status' | 'time_zone'
-		>[];
+		company: Pick<Row<'entity'>, 'id' | 'name' | 'settings_code' | 'time_zone'>;
 	} = $props();
 	const clock = ctx.clock('minute');
 	let at = $state(new Date(`${clock.today}T12:00:00`));
@@ -115,11 +110,9 @@
 	);
 	const covers = (range: { from: string; to: string | null }, date: string) =>
 		range.from <= date && (range.to == null || range.to >= date);
-	const zoneOn = (date: string): string | null =>
-		employerVersions.find((v) => covers(v.effective_range, date))?.time_zone ??
-		data.current?.jurisdiction.rows[0]?.timezone ??
-		null;
-	const timeZone = $derived(zoneOn(DateTime.formatIsoDate(monthStart)) ?? zoneOn(monthEnd));
+	const timeZone = $derived(
+		company.time_zone ?? data.current?.jurisdiction.rows[0]?.timezone ?? null
+	);
 	const stamp = (date: string) => new Date(`${date}T00:00:00`);
 	// EventCalendar draws Dates in the viewer's zone and takes none: a zone's wall time as the viewer's
 	const local = (instant: number | string, zone: string): Date =>
@@ -150,7 +143,7 @@
 			const selected = rosterDays;
 			const plans = selected.map((row) => {
 				const date = String(row.work_date),
-					zone = zoneOn(date);
+					zone = timeZone;
 				if (zone == null) throw new Error(ctx.t('app.hr_employee.calendar_zone_missing'));
 				const shift = native.shift_definition?.find((s) => s.id === row.shift_definition_id);
 				return {
@@ -210,7 +203,7 @@
 								date
 							);
 				const projected = native.shift_definition?.find((s) => s.id === projectedId);
-				const projectedZone = zoneOn(date);
+				const projectedZone = timeZone;
 				if (projected != null && projectedZone != null && observed.length === 0 && !absent) {
 					const plan = scheduled({ work_date: date }, { zone: projectedZone, shift: projected });
 					const first = plan.spans[0],

@@ -46,12 +46,8 @@
 		employee_profile: { where: { user_id: { eq: { var: 'requestor.id' } } }, limit: 1 },
 		entity: {
 			output: 'self_service',
-			fields: ['name', 'settings_code'],
-			limit: 10000,
-			payroll_versions: {
-				fields: ['entity_id', 'effective_range', 'status', 'time_zone'],
-				where: { status: { eq: 'SEALED' } }
-			}
+			fields: ['name', 'settings_code', 'time_zone'],
+			limit: 10000
 		}
 	});
 	const me = $derived(employee.current?.employee_profile.rows[0] ?? null);
@@ -177,12 +173,7 @@
 					aria-label={ctx.t('component.loading_profile')}
 				></div>
 			{:else if me != null}
-				{#if contract != null && company != null}<WorkCalendar
-						{ctx}
-						{contract}
-						{company}
-						employerVersions={company.payroll_versions}
-					/>
+				{#if contract != null && company != null}<WorkCalendar {ctx} {contract} {company} />
 				{:else}<Stack gap="none" class="rounded-xl border bg-card p-4">
 						<p class="text-sm font-medium">{ctx.t('app.hr_employee.calendar_unavailable')}</p>
 						<p class="text-sm text-muted-foreground">

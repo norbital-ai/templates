@@ -290,7 +290,8 @@ export const pack = (
 				id: ENTITY,
 				code: 'E1',
 				name: 'Entity',
-				settings_code: code
+				settings_code: code,
+				time_zone: zone
 			}
 		],
 		// the company's one payroll: its schedule lives on the pay group
@@ -309,18 +310,8 @@ export const pack = (
 				}
 			}
 		],
-		entity_profile_version: [
-			{
-				id: uuid(2),
-				entity_id: ENTITY,
-				name: 'Entity',
-				settings_code: code,
-				effective_range: { from: '2025-01-01', to: null },
-				time_zone: zone,
-				entity_extension_data: {},
-				status: 'SEALED'
-			}
-		],
+		// the company's dated values: none set, so the defaults hold from its first day
+		entity_change: [{ id: uuid(2), entity_id: ENTITY, effective_from: '2025-01-01' }],
 		sys_user: [{ id: uuid(3), name: 'Worker', email: 'worker@example.test', kind: 'staff' }],
 		employee_profile: [{ id: uuid(4), user_id: uuid(3), name: 'Worker' }],
 		employee_balance: [{ id: uuid(5), employee_id: uuid(4), account: {} }],

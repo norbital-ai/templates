@@ -3704,9 +3704,6 @@
 								}
 							}
 						},
-						"entity_profile_version": {
-							"where": {}
-						},
 						"holiday": {
 							"where": {}
 						},
@@ -3714,7 +3711,7 @@
 							"where": {}
 						}
 					},
-					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).some((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (contract.status !== 'SEALED') return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''));\n});\nif (!active) return false;\nconst registered = get(ctx, 'reads.entity_profile_version', []).some((version) => {\n\tif (version.entity_id !== run.entity_id) return false;\n\tif (version.status !== 'SEALED') return false;\n\tif (!(version.effective_range.from <= run.salary_coverage.from)) return false;\n\tconst end = version.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn get(version, 'entity_extension_data.registrations', []).some((registration) => registration.scheme_code === 'CPF');\n});\nif (registered) return false;\nconst key = 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).some((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (contract.status !== 'SEALED') return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''));\n});\nif (!active) return false;\nconst registered = get(ctx.subject.employer, 'entity_extension_data.registrations', []).some((registration) => registration.scheme_code === 'CPF');\nif (registered) return false;\nconst key = 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id\n}];"
@@ -3878,12 +3875,9 @@
 									"is_null": false
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {}
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst years = age_on(born, row.effective_range.from);\nif (years < ctx.lookup.min_age || years >= ctx.lookup.max_age) return false;\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) => {\n\tif (version.entity_id !== row.entity_id) return false;\n\tif (version.status !== 'SEALED') return false;\n\tif (!(version.effective_range.from <= row.effective_range.from)) return false;\n\tconst end = version.effective_range.to;\n\treturn end == null || end >= row.effective_range.from;\n});\nif (profile == null || get(profile, 'entity_extension_data.industrial_undertaking', false) !== true) return false;\nconst key = 'SG:YOUNG_PERSON_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst years = age_on(born, row.effective_range.from);\nif (years < ctx.lookup.min_age || years >= ctx.lookup.max_age) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.industrial_undertaking', false) !== true) return false;\nconst key = 'SG:YOUNG_PERSON_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n\toccurrence_key: 'SG:YOUNG_PERSON_NOTIFICATION:' + row.id\n}];"
@@ -3917,7 +3911,7 @@
 					"effects": "const row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.to,\n\toccurrence_key: 'SG:MISCONDUCT_DUE_INQUIRY:' + row.id + ':exit:' + row.effective_range.to\n}];"
 				},
 				"PDPA_DATA_PROTECTION_OFFICER": {
-					"description": "Raise the data protection officer designation task when a sealed entity version records none.",
+					"description": "Raise the data protection officer designation task when the company's parameters record none.",
 					"name": "Designate a data protection officer",
 					"lookup": {
 						"title": "Designate a data protection officer"
@@ -3929,8 +3923,8 @@
 							"url": "https://sso.agc.gov.sg/Act/PDPA2012"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -3940,7 +3934,7 @@
 							}
 						}
 					},
-					"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (get(row, 'entity_extension_data.data_protection_officer_contact', '') !== '') return false;\nconst key = 'SG:PDPA_DATA_PROTECTION_OFFICER:' + row.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+					"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (get(row, 'entity_extension_data.data_protection_officer_contact', '') !== '') return false;\nconst key = 'SG:PDPA_DATA_PROTECTION_OFFICER:' + row.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:PDPA_DATA_PROTECTION_OFFICER:' + row.entity_id\n}];"
@@ -5549,7 +5543,7 @@
 				},
 				"SHARED_STRUCTURED_ENTITY_INPUTS": {
 					"description": "Require the entity registration number.",
-					"target_collection": "entity_profile_version",
+					"target_collection": "entity_change",
 					"events": ["create", "update"],
 					"order": 39,
 					"validate": "const extension = get(ctx.entry, 'entity_extension_data', {});\nconst limits = get(ctx.lookup, 'entity', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(extension, key, null);\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tif (typeof value === 'string') return value !== '';\n\tconst number = Number(value);\n\tif (get(rule, 'integer', false) === true && number !== Math.trunc(number)) return false;\n\tconst floor = get(rule, 'exclusive_minimum', null);\n\tif (floor !== null && !(number > floor)) return false;\n\tconst maximum = get(rule, 'maximum', null);\n\treturn maximum === null || number <= maximum;\n});",

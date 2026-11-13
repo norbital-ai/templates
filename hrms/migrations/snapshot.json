@@ -828,6 +828,11 @@
 		"entity": {
 			"audit": true,
 			"fields": {
+				"bank": {
+					"kind": "custom",
+					"of": "bank",
+					"optional": true
+				},
 				"code": {
 					"kind": "text",
 					"optional": true
@@ -839,6 +844,14 @@
 				"name": {
 					"kind": "text"
 				},
+				"registered_address": {
+					"kind": "text",
+					"optional": true
+				},
+				"representative_name": {
+					"kind": "text",
+					"optional": true
+				},
 				"settings_code": {
 					"kind": "text"
 				},
@@ -847,6 +860,10 @@
 					"optional": true
 				},
 				"source_reference": {
+					"kind": "text",
+					"optional": true
+				},
+				"time_zone": {
 					"kind": "text",
 					"optional": true
 				}
@@ -870,101 +887,31 @@
 		"entity_change": {
 			"audit": true,
 			"fields": {
-				"applied_version_id": {
-					"kind": "ref",
-					"on_delete": "restrict",
-					"optional": true,
-					"to": "entity_profile_version"
+				"clears": {
+					"kind": "text",
+					"many": true,
+					"optional": true
 				},
 				"effective_from": {
 					"kind": "date"
 				},
 				"entity_id": {
-					"inverse": "entity_changes",
+					"inverse": "changes",
 					"kind": "ref",
 					"on_delete": "cascade",
 					"to": "entity"
 				},
-				"field_path": {
-					"kind": "text"
-				},
-				"new_value": {
-					"kind": "json",
-					"optional": true
-				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
-				"old_value": {
-					"hidden": true,
-					"kind": "json",
-					"optional": true
-				}
-			},
-			"locks": {
-				"applied_change": {
-					"where": {
-						"applied_version_id": {
-							"is_null": false
-						}
-					}
-				}
-			},
-			"record_label": "record.field_path + ' · ' + string(record.effective_from)",
-			"unique": [
-				{
-					"fields": [
-						"entity_id",
-						"field_path",
-						"effective_from"
-					],
-					"name": "one_change"
-				}
-			]
-		},
-		"entity_profile_version": {
-			"audit": true,
-			"fields": {
-				"bank": {
-					"kind": "custom",
-					"of": "bank",
-					"optional": true
-				},
-				"effective_range": {
-					"kind": "period",
-					"of": "date"
-				},
-				"entity_extension_data": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"entity_id": {
-					"inverse": "payroll_versions",
-					"kind": "ref",
-					"on_delete": "restrict",
-					"to": "entity"
-				},
 				"final_pay_loan_floor_percent": {
-					"default": 10,
 					"kind": "int",
 					"max": 100,
-					"min": 0
-				},
-				"name": {
-					"kind": "text"
+					"min": 0,
+					"optional": true
 				},
 				"overtime_full_award_percent": {
-					"default": 100,
 					"kind": "int",
 					"max": 100,
-					"min": 1
+					"min": 1,
+					"optional": true
 				},
 				"pay_methods": {
 					"fields": {
@@ -1023,81 +970,27 @@
 					"kind": "object",
 					"optional": true
 				},
-				"reason": {
-					"kind": "text",
-					"optional": true
-				},
-				"registered_address": {
-					"kind": "text",
-					"optional": true
-				},
-				"representative_name": {
-					"kind": "text",
-					"optional": true
-				},
-				"settings_code": {
-					"kind": "text"
-				},
-				"status": {
-					"initial": "DRAFT",
-					"kind": "state",
-					"states": {
-						"DRAFT": {
-							"to": [
-								"SEALED"
-							]
-						},
-						"SEALED": {
-							"to": [
-								"VOID"
-							]
-						},
-						"VOID": {
-							"to": []
-						}
-					}
-				},
-				"time_zone": {
-					"kind": "text",
-					"optional": true
-				}
-			},
-			"locks": {
-				"sealed_version": {
-					"except": [
-						"effective_range",
-						"reason",
-						"status"
-					],
-					"where": {
-						"status": {
-							"eq": "SEALED"
-						}
-					}
-				},
-				"void_version": {
-					"where": {
-						"status": {
-							"eq": "VOID"
+				"statutory_parameters": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "record",
+						"of": {
+							"kind": "json"
 						}
 					}
 				}
 			},
-			"no_overlap": [
+			"record_label": "record.effective_from",
+			"unique": [
 				{
-					"key": [
-						"entity_id"
+					"fields": [
+						"entity_id",
+						"effective_from"
 					],
-					"name": "sealed_range",
-					"period": "effective_range",
-					"where": {
-						"status": {
-							"eq": "SEALED"
-						}
-					}
+					"name": "one_change"
 				}
-			],
-			"record_label": "record.name"
+			]
 		},
 		"holiday": {
 			"audit": true,

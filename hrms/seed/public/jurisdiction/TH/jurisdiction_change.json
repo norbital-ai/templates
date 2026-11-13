@@ -5407,24 +5407,12 @@
 									"is_null": true
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
 						}
 					},
 					"condition": "const entry = ctx.entry;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const entry = ctx.entry;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst online = get(facts, \"files_online\", false) === true;\nconst baseDue = add_days(month_end(entry.pay_date), ctx.lookup.date_offset_days);\nconst dueOn = online && baseDue <= ctx.lookup.online_effective_from ? add_days(month_end(entry.pay_date), ctx.lookup.online_offset_days) : baseDue;\nconst key = \"PND1_FILING\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"PND1 monthly withholding return\",\n  due_on: dueOn,\n  occurrence_key: key\n}];",
+					"effects": "const entry = ctx.entry;\nconst facts = get(ctx.subject.employer, \"entity_extension_data\", {});\nconst online = get(facts, \"files_online\", false) === true;\nconst baseDue = add_days(month_end(entry.pay_date), ctx.lookup.date_offset_days);\nconst dueOn = online && baseDue <= ctx.lookup.online_effective_from ? add_days(month_end(entry.pay_date), ctx.lookup.online_offset_days) : baseDue;\nconst key = \"PND1_FILING\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"PND1 monthly withholding return\",\n  due_on: dueOn,\n  occurrence_key: key\n}];",
 					"description": "Raises the monthly PND1 withholding return, due seven days after month-end or the 15th when filed online (Revenue Code s.52)."
 				},
 				"PVD_REMITTANCE": {
@@ -5507,21 +5495,9 @@
 									}
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
 						}
 					},
-					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"12\"].includes(month)) return false;\nconst at = entry.salary_coverage.from;\nconst on = (contract) => {\n\tconst from = get(contract, 'effective_range.from', null);\n\tconst to = get(contract, 'effective_range.to', null);\n\treturn from !== null && from <= at && (to === null || at <= to);\n};\nconst people = get(ctx, 'reads.employee_contract', []).filter(\n\t(contract) =>\n\t\tcontract.entity_id === entry.entity_id &&\n\t\tcontract.status === 'SEALED' &&\n\t\tcontract.engagement !== 'PAYEE' &&\n\t\ton(contract)\n);\nconst byEmployee = Object.fromEntries(\n\tpeople.map((contract) => [String(contract.employee_id), true])\n);\nconst headcount = Object.keys(byEmployee).length;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\";",
+					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"12\"].includes(month)) return false;\nconst at = entry.salary_coverage.from;\nconst on = (contract) => {\n\tconst from = get(contract, 'effective_range.from', null);\n\tconst to = get(contract, 'effective_range.to', null);\n\treturn from !== null && from <= at && (to === null || at <= to);\n};\nconst people = get(ctx, 'reads.employee_contract', []).filter(\n\t(contract) =>\n\t\tcontract.entity_id === entry.entity_id &&\n\t\tcontract.status === 'SEALED' &&\n\t\tcontract.engagement !== 'PAYEE' &&\n\t\ton(contract)\n);\nconst byEmployee = Object.fromEntries(\n\tpeople.map((contract) => [String(contract.employee_id), true])\n);\nconst headcount = Object.keys(byEmployee).length;\nconst facts = get(ctx.subject.employer, \"entity_extension_data\", {});\nreturn headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\";",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst key = \"SKILL_DEVELOPMENT_FUND_PAYMENT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Skill Development Fund contribution\",\n  due_on: month_end(add_months(entry.salary_coverage.from, ctx.lookup.date_offset_months)),\n  occurrence_key: key\n}];",
@@ -5552,24 +5528,12 @@
 									"is_null": true
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
 						}
 					},
 					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"02\"].includes(month)) return false;\nreturn true;",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const entry = ctx.entry;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst online = get(facts, \"files_online\", false) === true;\nconst dueOn = online && month_end(entry.salary_coverage.from) <= ctx.lookup.online_effective_from ? entry.salary_coverage.from.substring(0, 4) + ctx.lookup.annual_due : month_end(entry.salary_coverage.from);\nconst key = \"PND1_KOR_ANNUAL\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"PND1 Kor annual withholding return\",\n  due_on: dueOn,\n  occurrence_key: key\n}];",
+					"effects": "const entry = ctx.entry;\nconst facts = get(ctx.subject.employer, \"entity_extension_data\", {});\nconst online = get(facts, \"files_online\", false) === true;\nconst dueOn = online && month_end(entry.salary_coverage.from) <= ctx.lookup.online_effective_from ? entry.salary_coverage.from.substring(0, 4) + ctx.lookup.annual_due : month_end(entry.salary_coverage.from);\nconst key = \"PND1_KOR_ANNUAL\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"PND1 Kor annual withholding return\",\n  due_on: dueOn,\n  occurrence_key: key\n}];",
 					"description": "Raises the annual PND1 Kor withholding return in February, or by 8 March when filed online (Revenue Code s.58)."
 				},
 				"WITHHOLDING_CERTIFICATE_ANNUAL": {
@@ -5628,21 +5592,9 @@
 									"is_null": true
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
 						}
 					},
-					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) !== true;",
+					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst facts = get(ctx.subject.employer, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) !== true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst key = \"WCF_ANNUAL_CONTRIBUTION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Annual Workmen’s Compensation Fund contribution\",\n  due_on: month_end(entry.salary_coverage.from),\n  occurrence_key: key\n}];",
@@ -6062,8 +6014,8 @@
 							"url": "https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/21f9d80408a598636551a7c559cd7920.pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -6077,20 +6029,18 @@
 								}
 							}
 						},
-						"entity_profile_version": {
+						"entity_change": {
 							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
 								}
-							}
+							},
+							"fields": ["effective_from"]
 						}
 					},
-					"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst facts = get(entry, \"entity_extension_data\", {});\nconst firstEmployedOn = get(facts, \"first_employed_on\", null);\nconst isFirst = !get(ctx, \"reads.entity_profile_version\", []).some((v) => v.id !== entry.id && v.effective_range.from < entry.effective_range.from);\nif (!sealed) return false;\nif (firstEmployedOn === null) return false;\nreturn isFirst;",
+					"condition": "const entry = ctx.entry;\nconst facts = get(entry, \"entity_extension_data\", {});\nconst firstEmployedOn = get(facts, \"first_employed_on\", null);\nconst isFirst = !get(ctx, \"reads.entity_change\", []).some((v) => v.effective_from < entry.effective_range.from);\nif (firstEmployedOn === null) return false;\nreturn isFirst;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst facts = get(entry, \"entity_extension_data\", {});\nconst firstEmployedOn = get(facts, \"first_employed_on\", null);\nconst key = \"EMPLOYER_REGISTRATION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Employer registration with the Social Security Office\",\n  due_on: add_days(firstEmployedOn, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -6197,8 +6147,8 @@
 							"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2021/02/6-ประกาศกระทรวงแรงงาน-เรื่อง-ประเภท-ขนาดของกิจการ-ท้องที่ที่ให้นายจ้างจ่ายเงินสมทบฯ.pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -6212,20 +6162,18 @@
 								}
 							}
 						},
-						"entity_profile_version": {
+						"entity_change": {
 							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
 								}
-							}
+							},
+							"fields": ["effective_from"]
 						}
 					},
-					"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst facts = get(entry, \"entity_extension_data\", {});\nconst ceasedOn = get(facts, \"ceased_on\", null);\nconst latest = !get(ctx, \"reads.entity_profile_version\", []).some((v) => v.id !== entry.id && v.effective_range.from > entry.effective_range.from);\nif (!sealed) return false;\nif (ceasedOn === null) return false;\nreturn latest;",
+					"condition": "const entry = ctx.entry;\nconst facts = get(entry, \"entity_extension_data\", {});\nconst ceasedOn = get(facts, \"ceased_on\", null);\nconst latest = !get(ctx, \"reads.entity_change\", []).some((v) => v.effective_from > entry.effective_range.from);\nif (ceasedOn === null) return false;\nreturn latest;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst facts = get(entry, \"entity_extension_data\", {});\nconst ceasedOn = get(facts, \"ceased_on\", null);\nconst key = \"WCF_CLOSING_WAGE_STATEMENT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Workmen’s compensation closing wage statement\",\n  due_on: add_days(ceasedOn, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -6546,21 +6494,9 @@
 									}
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
 						}
 					},
-					"condition": "const entry = ctx.entry;\nif (entry.status !== 'SEALED') return false;\nconst at = entry.effective_range.from;\nconst on = (contract) => {\n\tconst from = get(contract, 'effective_range.from', null);\n\tconst to = get(contract, 'effective_range.to', null);\n\treturn from !== null && from <= at && (to === null || at <= to);\n};\nconst people = get(ctx, 'reads.employee_contract', []).filter(\n\t(contract) =>\n\t\tcontract.entity_id === entry.entity_id &&\n\t\tcontract.status === 'SEALED' &&\n\t\tcontract.engagement !== 'PAYEE' &&\n\t\ton(contract)\n);\nconst byEmployee = Object.fromEntries(\n\tpeople.map((contract) => [String(contract.employee_id), true])\n);\nconst headcount = Object.keys(byEmployee).length;\nif (headcount < ctx.lookup.employee_count_threshold) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.effective_range.from) return false;\n  return v.effective_range.to == null || entry.effective_range.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nif (get(facts, \"sdf_exemption\", \"NONE\") !== \"NONE\") return false;\nreturn get(facts, \"sdf_registration_reference\", \"\") === \"\";",
+					"condition": "const entry = ctx.entry;\nif (entry.status !== 'SEALED') return false;\nconst at = entry.effective_range.from;\nconst on = (contract) => {\n\tconst from = get(contract, 'effective_range.from', null);\n\tconst to = get(contract, 'effective_range.to', null);\n\treturn from !== null && from <= at && (to === null || at <= to);\n};\nconst people = get(ctx, 'reads.employee_contract', []).filter(\n\t(contract) =>\n\t\tcontract.entity_id === entry.entity_id &&\n\t\tcontract.status === 'SEALED' &&\n\t\tcontract.engagement !== 'PAYEE' &&\n\t\ton(contract)\n);\nconst byEmployee = Object.fromEntries(\n\tpeople.map((contract) => [String(contract.employee_id), true])\n);\nconst headcount = Object.keys(byEmployee).length;\nif (headcount < ctx.lookup.employee_count_threshold) return false;\nconst facts = get(ctx.subject.employer, \"entity_extension_data\", {});\nif (get(facts, \"sdf_exemption\", \"NONE\") !== \"NONE\") return false;\nreturn get(facts, \"sdf_registration_reference\", \"\") === \"\";",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst key = \"SKILL_DEVELOPMENT_REGISTRATION\" + \":\" + entry.entity_id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Skill Development Fund registration\",\n  due_on: entry.effective_range.from,\n  occurrence_key: key\n}];",
@@ -6603,21 +6539,9 @@
 									}
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
 						}
 					},
-					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst at = entry.salary_coverage.from;\nconst on = (contract) => {\n\tconst from = get(contract, 'effective_range.from', null);\n\tconst to = get(contract, 'effective_range.to', null);\n\treturn from !== null && from <= at && (to === null || at <= to);\n};\nconst people = get(ctx, 'reads.employee_contract', []).filter(\n\t(contract) =>\n\t\tcontract.entity_id === entry.entity_id &&\n\t\tcontract.status === 'SEALED' &&\n\t\tcontract.engagement !== 'PAYEE' &&\n\t\ton(contract)\n);\nconst byEmployee = Object.fromEntries(\n\tpeople.map((contract) => [String(contract.employee_id), true])\n);\nconst headcount = Object.keys(byEmployee).length;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\";",
+					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst at = entry.salary_coverage.from;\nconst on = (contract) => {\n\tconst from = get(contract, 'effective_range.from', null);\n\tconst to = get(contract, 'effective_range.to', null);\n\treturn from !== null && from <= at && (to === null || at <= to);\n};\nconst people = get(ctx, 'reads.employee_contract', []).filter(\n\t(contract) =>\n\t\tcontract.entity_id === entry.entity_id &&\n\t\tcontract.status === 'SEALED' &&\n\t\tcontract.engagement !== 'PAYEE' &&\n\t\ton(contract)\n);\nconst byEmployee = Object.fromEntries(\n\tpeople.map((contract) => [String(contract.employee_id), true])\n);\nconst headcount = Object.keys(byEmployee).length;\nconst facts = get(ctx.subject.employer, \"entity_extension_data\", {});\nreturn headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\";",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst key = \"SKILL_DEVELOPMENT_COURSE_CERTIFICATION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Skill Development Fund course certification\",\n  due_on: add_days(entry.salary_coverage.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -6680,21 +6604,9 @@
 									"is_null": true
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
 						}
 					},
-					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) === true;",
+					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst facts = get(ctx.subject.employer, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) === true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst key = \"WCF_INSTALMENT_DEPOSIT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Workmen’s Compensation Fund instalment deposit\",\n  due_on: month_end(entry.salary_coverage.from),\n  occurrence_key: key\n}];",
@@ -6723,21 +6635,9 @@
 									"is_null": true
 								}
 							}
-						},
-						"entity_profile_version": {
-							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
 						}
 					},
-					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\", \"04\", \"07\", \"10\"].includes(month)) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) === true;",
+					"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\", \"04\", \"07\", \"10\"].includes(month)) return false;\nconst facts = get(ctx.subject.employer, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) === true;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst key = \"WCF_INSTALMENT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Workmen’s Compensation Fund quarterly instalment\",\n  due_on: month_end(entry.salary_coverage.from),\n  occurrence_key: key\n}];",
@@ -6878,8 +6778,8 @@
 							"url": "https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf"
 						}
 					],
-					"source_collection": "entity_profile_version",
-					"events": ["update"],
+					"source_collection": "entity_change",
+					"events": ["create", "update"],
 					"reads": {
 						"obligation": {
 							"where": {
@@ -6893,20 +6793,18 @@
 								}
 							}
 						},
-						"entity_profile_version": {
+						"entity_change": {
 							"where": {
-								"status": {
-									"eq": "SEALED"
-								},
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
 								}
-							}
+							},
+							"fields": ["effective_from"]
 						}
 					},
-					"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst isFirst = !get(ctx, \"reads.entity_profile_version\", []).some((v) => v.id !== entry.id && v.effective_range.from < entry.effective_range.from);\nreturn sealed && isFirst;",
+					"condition": "const entry = ctx.entry;\nconst isFirst = !get(ctx, \"reads.entity_change\", []).some((v) => v.effective_from < entry.effective_range.from);\nreturn isFirst;",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const entry = ctx.entry;\nconst key = \"PDPA_PROCESSING_RECORDS\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Personal data processing records\",\n  due_on: entry.effective_range.from,\n  occurrence_key: key\n}];",
@@ -7291,7 +7189,7 @@
 					"description": "A PVD member's contribution rate must be 2-15 percent and the overtime-exempt category must be one the law allows (Provident Fund Act s.10; LPA s.65)."
 				},
 				"SHARED_STRUCTURED_ENTITY_INPUTS": {
-					"target_collection": "entity_profile_version",
+					"target_collection": "entity_change",
 					"events": ["create", "update"],
 					"lookup": {
 						"risk_class_digits": 5
@@ -7410,7 +7308,7 @@
 				"type": "object",
 				"title": "TH entity extension data",
 				"additionalProperties": false,
-				"description": "Additional local compliance inputs on the sealed entity profile, stored as entity_extension_data. The employer's minimum-wage area is one of the by_region keys of the jurisdiction lookup (Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024)); its WCF business code is the Social Security Office Table 1 code of the Ministry of Labour notification of 21 February 2019 (five digits such as 01111), which sets the base WCF rate.",
+				"description": "Additional local compliance inputs in the company's parameters, read as entity_extension_data. The employer's minimum-wage area is one of the by_region keys of the jurisdiction lookup (Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024)); its WCF business code is the Social Security Office Table 1 code of the Ministry of Labour notification of 21 February 2019 (five digits such as 01111), which sets the base WCF rate.",
 				"properties": {
 					"wcf_rate_percent": {
 						"type": "number",

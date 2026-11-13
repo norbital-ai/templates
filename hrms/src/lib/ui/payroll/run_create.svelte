@@ -29,12 +29,6 @@
 				order_by: { name: 'asc' },
 				limit: 100
 			},
-			entity_profile_version: {
-				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
-				fields: ['effective_range'],
-				order_by: { created_at: 'desc' },
-				limit: 100
-			},
 			payroll_run: {
 				where: { entity_id: { eq: companyId }, kind: { eq: 'ON_CYCLE' } },
 				fields: ['period', 'pay_group_id'],
@@ -51,11 +45,6 @@
 			(laws.on(code, String(today))?.rows.adhoc_catalog ?? []).flatMap((row) =>
 				row.off_cycle_eligible === true ? [String(row.code)] : []
 			)
-		)
-	);
-	const version = $derived(
-		known?.current?.entity_profile_version.rows.find(
-			({ effective_range: { from, to } }) => from <= today && (to === null || today <= to)
 		)
 	);
 	// the run is for one pay group: the company's only one is chosen for HR, several are a choice

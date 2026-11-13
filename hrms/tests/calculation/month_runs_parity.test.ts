@@ -350,16 +350,14 @@ describe('a second salary in a pay month', () => {
 	const moved = (): Seed => {
 		const seed = seedOf('2026-04-01');
 		const contract = seed.employee_contract?.[0] ?? {};
-		const profile = seed.entity_profile_version?.[0] ?? {};
+		const [company = {}] = seed.entity ?? [];
+		const [change = {}] = seed.entity_change ?? [];
 		return {
 			...seed,
-			entity: [
-				...(seed.entity ?? []),
-				{ id: OTHER, code: 'E2', name: 'Sister', settings_code: 'MY' }
-			],
-			entity_profile_version: [
-				...(seed.entity_profile_version ?? []),
-				{ ...profile, id: uuid(902), entity_id: OTHER, name: 'Sister' }
+			entity: [...(seed.entity ?? []), { ...company, id: OTHER, code: 'E2', name: 'Sister' }],
+			entity_change: [
+				...(seed.entity_change ?? []),
+				{ ...change, id: uuid(902), entity_id: OTHER }
 			],
 			// the sister company's own payroll, on the same schedule
 			pay_group: [

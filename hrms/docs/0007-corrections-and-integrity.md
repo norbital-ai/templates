@@ -70,24 +70,25 @@ What follows:
 
 ## 4. What writes an amendment row
 
-| What HR does, dated in a period the person has a payslip for                                         | Rows written                                                                                               |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Adds, changes or deletes a roster day, leave day, claim, ad hoc entry or loan repayment              | That person, that period                                                                                   |
-| Moves one of those to another date                                                                   | The period it left and the period it joined                                                                |
-| Seals, voids or replaces a contract version whose facts, or terms signed in time, reach paid periods | Every paid period it reaches                                                                               |
-| Seals, voids or replaces a version signed after periods it reaches                                   | None while its signing period is unpaid; otherwise the signing period                                      |
-| Publishes or corrects a holiday, a work event or an employer version in paid time                    | Every person and paid period it reaches                                                                    |
-| Writes, corrects, moves or deletes a change of law, or confirms or rejects its finding, in paid time | Every person and paid period the change reaches: from its date to the next change that sets the same value |
-| Changes how a person's service counts (`cumulative_service`)                                         | Every period that person was paid for                                                                      |
-| The run defers a recovery                                                                            | That person, the run's own period                                                                          |
-| A filed `contract_change` reaches its day after a paid run already covers its date                   | None. The change stays filed and raises a task: move it to a month still to run                            |
-| Anything in a period not yet paid; a raise from next month                                           | None                                                                                                       |
+| What HR does, dated in a period the person has a payslip for                                                       | Rows written                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Adds, changes or deletes a roster day, leave day, claim, ad hoc entry or loan repayment                            | That person, that period                                                                                   |
+| Moves one of those to another date                                                                                 | The period it left and the period it joined                                                                |
+| Seals, voids or replaces a contract version whose facts, or terms signed in time, reach paid periods               | Every paid period it reaches                                                                               |
+| Seals, voids or replaces a version signed after periods it reaches                                                 | None while its signing period is unpaid; otherwise the signing period                                      |
+| Publishes or corrects a holiday or a work event, or writes, edits, moves or deletes a company change, in paid time | Every person and paid period it reaches                                                                    |
+| Writes, corrects, moves or deletes a change of law, or confirms or rejects its finding, in paid time               | Every person and paid period the change reaches: from its date to the next change that sets the same value |
+| Changes how a person's service counts (`cumulative_service`)                                                       | Every period that person was paid for                                                                      |
+| The run defers a recovery                                                                                          | That person, the run's own period                                                                          |
+| A filed `contract_change` reaches its day after a paid run already covers its date                                 | None. The change stays filed and raises a task: move it to a month still to run                            |
+| Anything in a period not yet paid; a raise from next month                                                         | None                                                                                                       |
 
 - One open row serves a person and period, however many corrections.
 - An entry a paid payslip priced may be changed or deleted: the write carries its row. A deleted roster day is not a day off; the shift pattern takes over.
 - A record whose date moves loses its run seal (`payroll_run_id`), so the period it joins prices it.
 - A late claim or ad hoc entry dated in a period the person was paid for is that period's: it is carried and tagged. One dated in a period that paid the person nothing is priced by the next run as an ordinary line.
-- Contract and employer versions stay dated and frozen. A change is a new version from its real date; a wrong one is voided and replaced.
+- Contract versions stay dated and frozen. A change is a new version from its real date; a wrong one is voided and replaced.
+- A company change is a dated row from its real date. A wrong one is edited, moved or deleted in place. An edit to a company's own fields writes no rows.
 - A change of law is a dated row from its real date. A wrong one is corrected, moved or deleted in place. A change to a row's `references`, `description` or `name`, or to an extension schema, writes no rows.
 - **A change of pay schedule writes no rows.** A pay group that has a paid run keeps its schedule. A company that starts paying monthly makes a monthly group and moves people to it by contract versions from the first of a month. Old periods keep their group and are worked out on its schedule; the run that pays the person now carries the difference.
 

@@ -43,6 +43,7 @@ import {
 	type Wanted
 } from './core.js';
 import { startOf, validateRegistered, type Operation } from '../payroll_engine/registrations.js';
+import { employerOn } from '../company.js';
 import { chainOf, startsOf, type Starts } from '../payroll_engine/contract_change.js';
 import { lawOn, lawRead, lawReadOf, lawsOf, type Law } from '../law.js';
 import { payPeriodOf } from '../payroll_engine/pay_cycle.js';
@@ -691,7 +692,7 @@ const rowOfCatalog = (row: JsonObject): LeaveRow => ({
 	lookup: objectValue(row.lookup)
 });
 /**
- * The facts a leave row can read about a person, from their contract and their employer's sealed profile. Its rule reads
+ * The facts a leave row can read about a person, from their contract and their employer as it stands on the day. Its rule reads
  * the starts worked out from the stints as the contract's `service_started_on` and `employment_started_on`.
  */
 const personOf = (
@@ -1225,7 +1226,8 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 	const {
 		employee_balance: balances = [],
 		ledger_entry: manualRows = [],
-		entity_profile_version: employerRows = [],
+		entity: companies = [],
+		entity_change: companyChanges = [],
 		employee_contract: stored = []
 	} = yield* queryRows(read, {
 		employee_contract: {
@@ -1248,14 +1250,25 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 			fields: FIELDS,
 			limit: 10000
 		},
-		entity_profile_version: {
-			where: { entity_id: { in: uniqueIds(sealing, 'entity_id') }, status: { eq: 'SEALED' } },
-			fields: ['entity_id', 'entity_extension_data'],
+		entity: {
+			where: { id: { in: uniqueIds(sealing, 'entity_id') } },
+			fields: ['id', 'settings_code'],
 			limit: 10000
-		}
+		},
+		entity_change: { where: { entity_id: { in: uniqueIds(sealing, 'entity_id') } }, limit: 10000 }
 	});
 	const manual = manualOf(manualRows);
-	const employers = new Map(employerRows.map((row) => [String(row.entity_id), row]));
+	// each contract reads its employer as it stands on the contract's first day
+	const employerOf = (contract: JsonObject) => {
+		const entity = companies.find((row) => row.id === contract.entity_id);
+		return entity === undefined
+			? undefined
+			: employerOn(
+					entity,
+					companyChanges.filter((row) => row.entity_id === entity.id),
+					String(startOf(contract))
+				);
+	};
 	const balance = new Map(balances.map((row) => [String(row.employee_id), row]));
 	const held = chainOf(stored);
 	const lineage = new Map([
@@ -1282,11 +1295,7 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 		const added = manual.get(String(own?.id))?.leave ?? {};
 		for (const row of law[index]?.rows.leave_catalog ?? []) {
 			const { code, lookup } = rowOfCatalog(row);
-			const grants = grantsOf(
-				lookup,
-				subject,
-				personOf(contract, starts, employers.get(String(contract.entity_id)))
-			);
+			const grants = grantsOf(lookup, subject, personOf(contract, starts, employerOf(contract)));
 			for (const period of eventPeriods(leave[code], subject.scope)) {
 				const used = leave[code]?.[period]?.used ?? 0;
 				const grant = grants.get(period);
@@ -1365,11 +1374,7 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			fields: ['id'],
 			limit: 1000
 		},
-		entity_profile_version: {
-			where: { status: { eq: 'SEALED' } },
-			fields: ['entity_id', 'effective_range', 'entity_extension_data'],
-			limit: 1000
-		},
+		entity_change: { limit: 10000 },
 		...lawRead(),
 		work_event: {
 			fields: ['id', 'entity_id', 'employment_id', 'catalog_code', 'from', 'to', 'location'],
@@ -1428,10 +1433,13 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 		);
 	const chains = Map.groupBy(read.employee_contract ?? [], (row) => String(row.employee_id));
 	const cumulative = new Set((read.employee_profile ?? []).map((row) => String(row.id)));
-	const employerOn = (entity: unknown, on: string) =>
-		(read.entity_profile_version ?? []).find(
-			(row) => row.entity_id === entity && covers(row.effective_range, on)
-		);
+	const changesOf = Map.groupBy(read.entity_change ?? [], (row) => String(row.entity_id));
+	const employerAt = (entity: unknown, on: string) => {
+		const company = (read.entity ?? []).find((row) => row.id === entity);
+		return company === undefined
+			? undefined
+			: employerOn(company, changesOf.get(String(company.id)) ?? [], on);
+	};
 	const plans: Plan[] = [];
 	let boundary: string | undefined;
 	for (const balance of read.employee_balance ?? []) {
@@ -1447,7 +1455,7 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			events: eventsOf(contract)
 		};
 		const personOn = (held: JsonObject, on: string) =>
-			personOf(held, starts, employerOn(held.entity_id, on), eventsFor(held));
+			personOf(held, starts, employerAt(held.entity_id, on), eventsFor(held));
 		plans.push(
 			...entitlementPlans(
 				rows,

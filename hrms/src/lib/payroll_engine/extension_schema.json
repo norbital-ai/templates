@@ -1055,7 +1055,7 @@
 					"type": "string",
 					"format": "date",
 					"title": "Date operations started",
-					"description": "The actual date this establishment began operating, distinct from incorporation and the employer version effective date."
+					"description": "The actual date this establishment began operating, distinct from incorporation and the date of the company's change."
 				},
 				"first_employed_on": {
 					"type": "string",
@@ -2170,7 +2170,7 @@
 			"type": "object",
 			"title": "MY entity extension data",
 			"additionalProperties": false,
-			"description": "Additional employer compliance data on the sealed employer version, stored as entity_extension_data; the CEL root `employer.entity_extension_data`.",
+			"description": "Additional employer compliance data in the company's parameters, read as entity_extension_data; the CEL root `employer.entity_extension_data`.",
 			"properties": {
 				"hrd_scope": {
 					"type": "string",
@@ -3178,7 +3178,7 @@
 			"type": "object",
 			"title": "TH entity extension data",
 			"additionalProperties": false,
-			"description": "Additional local compliance inputs on the sealed entity profile, stored as entity_extension_data. The employer's minimum-wage area is one of the by_region keys of the jurisdiction lookup (Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024)); its WCF business code is the Social Security Office Table 1 code of the Ministry of Labour notification of 21 February 2019 (five digits such as 01111), which sets the base WCF rate.",
+			"description": "Additional local compliance inputs in the company's parameters, read as entity_extension_data. The employer's minimum-wage area is one of the by_region keys of the jurisdiction lookup (Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024)); its WCF business code is the Social Security Office Table 1 code of the Ministry of Labour notification of 21 February 2019 (five digits such as 01111), which sets the base WCF rate.",
 			"properties": {
 				"wcf_rate_percent": {
 					"type": "number",
@@ -3671,7 +3671,7 @@
 					"description": "勞動部 114年10月14日勞動福3字第1140153402A號令: from 2026-04-01 the employer may leave a blue-collar migrant worker with under ten years at the unit out of the §56(1) reserve wage total (其工資可不計入). Unrecorded: they stay in."
 				}
 			},
-			"description": "Additional local compliance data on the sealed entity profile, stored as entity_extension_data. The 職業災害保險 industry class is the 1–55 class of 勞工職業災害保險適用行業別及費率表, not a fact."
+			"description": "Additional local compliance data in the company's parameters, read as entity_extension_data. The 職業災害保險 industry class is the 1–55 class of 勞工職業災害保險適用行業別及費率表, not a fact."
 		}
 	},
 	"VN": {

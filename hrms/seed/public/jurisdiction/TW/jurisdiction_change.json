@@ -4261,33 +4261,24 @@
 							"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050002&flno=17"
 						}
 					],
-					"source_collection": "entity_profile_version",
+					"source_collection": "entity",
 					"events": ["update"],
 					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
-						},
 						"obligation": {
 							"where": {
 								"occurrence_key": {
 									"eq": {
-										"var": "'LI_UNIT_CHANGE:' + ctx.entry.id"
+										"var": "'LI_UNIT_CHANGE:' + ctx.entry.id + ':' + [ctx.entry.name, ctx.entry.representative_name, ctx.entry.registered_address].join('|')"
 									}
 								}
 							},
 							"limit": 1
 						}
 					},
-					"condition": "const versions = ctx.reads.entity_profile_version;\nconst from = ctx.entry.effective_range.from;\nconst earlier = versions.filter(\n\t(version) => version.id !== ctx.entry.id && get(version, 'effective_range.from', '') < from\n);\nconst previous = earlier.filter(\n\t(version) =>\n\t\t!earlier.some(\n\t\t\t(other) =>\n\t\t\t\tother.id !== version.id &&\n\t\t\t\tget(other, 'effective_range.from', '') > get(version, 'effective_range.from', '')\n\t\t)\n);\nif (previous.length !== 1) return false;\nif (get(previous[0], 'name', null) !== get(ctx.entry, 'name', null)) return true;\nif (get(previous[0], 'representative_name', null) !== get(ctx.entry, 'representative_name', null)) return true;\nreturn get(previous[0], 'registered_address', null) !== get(ctx.entry, 'registered_address', null);",
+					"condition": "if (ctx.before == null) return false;\nif (get(ctx.before, 'name', null) !== get(ctx.entry, 'name', null)) return true;\nif (get(ctx.before, 'representative_name', null) !== get(ctx.entry, 'representative_name', null)) return true;\nreturn get(ctx.before, 'registered_address', null) !== get(ctx.entry, 'registered_address', null);",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const key = 'LI_UNIT_CHANGE:' + ctx.entry.id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: 'Labour insurance unit change reported',\n\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.days),\n\toccurrence_key: key\n}];",
+					"effects": "const key = 'LI_UNIT_CHANGE:' + ctx.entry.id + ':' + [ctx.entry.name, ctx.entry.representative_name, ctx.entry.registered_address].join('|');\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.id,\n\ttitle: 'Labour insurance unit change reported',\n\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.days),\n\toccurrence_key: key\n}];",
 					"description": "Reports a change of the labour-insurance unit’s name or registered address within thirty days."
 				},
 				"NHI_UNIT_CHANGE": {
@@ -4301,33 +4292,24 @@
 							"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060002&flno=42"
 						}
 					],
-					"source_collection": "entity_profile_version",
+					"source_collection": "entity",
 					"events": ["update"],
 					"reads": {
-						"entity_profile_version": {
-							"where": {
-								"entity_id": {
-									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								}
-							}
-						},
 						"obligation": {
 							"where": {
 								"occurrence_key": {
 									"eq": {
-										"var": "'NHI_UNIT_CHANGE:' + ctx.entry.id"
+										"var": "'NHI_UNIT_CHANGE:' + ctx.entry.id + ':' + [ctx.entry.name, ctx.entry.representative_name, ctx.entry.registered_address].join('|')"
 									}
 								}
 							},
 							"limit": 1
 						}
 					},
-					"condition": "const versions = ctx.reads.entity_profile_version;\nconst from = ctx.entry.effective_range.from;\nconst earlier = versions.filter(\n\t(version) => version.id !== ctx.entry.id && get(version, 'effective_range.from', '') < from\n);\nconst previous = earlier.filter(\n\t(version) =>\n\t\t!earlier.some(\n\t\t\t(other) =>\n\t\t\t\tother.id !== version.id &&\n\t\t\t\tget(other, 'effective_range.from', '') > get(version, 'effective_range.from', '')\n\t\t)\n);\nif (previous.length !== 1) return false;\nif (get(previous[0], 'name', null) !== get(ctx.entry, 'name', null)) return true;\nif (get(previous[0], 'representative_name', null) !== get(ctx.entry, 'representative_name', null)) return true;\nreturn get(previous[0], 'registered_address', null) !== get(ctx.entry, 'registered_address', null);",
+					"condition": "if (ctx.before == null) return false;\nif (get(ctx.before, 'name', null) !== get(ctx.entry, 'name', null)) return true;\nif (get(ctx.before, 'representative_name', null) !== get(ctx.entry, 'representative_name', null)) return true;\nreturn get(ctx.before, 'registered_address', null) !== get(ctx.entry, 'registered_address', null);",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const key = 'NHI_UNIT_CHANGE:' + ctx.entry.id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: 'NHI unit change reported',\n\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.days),\n\toccurrence_key: key\n}];",
+					"effects": "const key = 'NHI_UNIT_CHANGE:' + ctx.entry.id + ':' + [ctx.entry.name, ctx.entry.representative_name, ctx.entry.registered_address].join('|');\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.id,\n\ttitle: 'NHI unit change reported',\n\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.days),\n\toccurrence_key: key\n}];",
 					"description": "Reports a change of the NHI unit’s name or registered address within fifteen days."
 				},
 				"SEXUAL_HARASSMENT_COMPLAINT_CHANNEL": {
@@ -4998,7 +4980,7 @@
 						"description": "勞動部 114年10月14日勞動福3字第1140153402A號令: from 2026-04-01 the employer may leave a blue-collar migrant worker with under ten years at the unit out of the §56(1) reserve wage total (其工資可不計入). Unrecorded: they stay in."
 					}
 				},
-				"description": "Additional local compliance data on the sealed entity profile, stored as entity_extension_data. The 職業災害保險 industry class is the 1–55 class of 勞工職業災害保險適用行業別及費率表, not a fact."
+				"description": "Additional local compliance data in the company's parameters, read as entity_extension_data. The 職業災害保險 industry class is the 1–55 class of 勞工職業災害保險適用行業別及費率表, not a fact."
 			},
 			"employee_extension_schema": {
 				"$schema": "https://json-schema.org/draft/2020-12/schema",

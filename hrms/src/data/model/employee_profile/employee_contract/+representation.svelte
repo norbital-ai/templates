@@ -33,7 +33,12 @@
 		loanRecovery,
 		monthlyEquivalent
 	} from '../../../../lib/payroll_engine/loan_schedule.js';
-	import { isJsonObject, type JsonObject } from '../../../../lib/payroll_engine/foundation.js';
+	import { companyOn } from '../../../../lib/company.js';
+	import {
+		isJsonObject,
+		jsonObject,
+		type JsonObject
+	} from '../../../../lib/payroll_engine/foundation.js';
 	import type { Id, PlainDate } from '@norbital-ai/bolt';
 	import { contractCategories } from '../../../../lib/ui/person/contract_categories.js';
 	import ContractTermsEditor from '../../../../lib/ui/person/contract_terms_editor.svelte';
@@ -200,9 +205,8 @@
 						fields: ['net_pay', 'period'],
 						limit: 10000
 					},
-					entity_profile_version: {
-						where: { entity_id: { eq: record.entity_id }, status: { eq: 'SEALED' } },
-						fields: ['effective_range', 'final_pay_loan_floor_percent'],
+					entity_change: {
+						where: { entity_id: { eq: record.entity_id } },
 						limit: 1000
 					}
 				})
@@ -304,13 +308,11 @@
 					? t('contract.recovery_basis_rate')
 					: t('contract.recovery_basis_none')
 	);
-	const covers = (range: { from: unknown; to?: unknown }, day: PlainDate) =>
-		String(range.from) <= day && (range.to == null || day <= String(range.to));
 	const floorPercent = $derived(
 		Number(
-			(loans?.current?.entity_profile_version.rows ?? []).find((row) =>
-				covers(row.effective_range, lastDay ?? today)
-			)?.final_pay_loan_floor_percent ?? 10
+			companyOn((loans?.current?.entity_change.rows ?? []).map(jsonObject), lastDay ?? today)[
+				'final_pay_loan_floor_percent'
+			]
 		)
 	);
 	const recovery = $derived(

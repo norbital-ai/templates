@@ -188,7 +188,6 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 		shift_definition: { where: company, limit: 10000 },
 		shift_pattern: { where: company, limit: 10000 },
 		holiday: { where: company, limit: 10000 },
-		entity_profile_version: { where: { ...company, status: { eq: 'SEALED' } }, limit: 10000 },
 		employee_contract: {
 			where: { employee_id: { in: [...people] }, status: { eq: 'SEALED' } },
 			limit: 10000
@@ -288,7 +287,10 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 	return yield* claimsAsPosted(read, {
 		...withStints(data),
 		law_settings: own.law_settings ?? [],
-		claim_catalog: own.claim_catalog ?? []
+		claim_catalog: own.claim_catalog ?? [],
+		// the run read its company and every change of it: each period folds them on its own last day
+		entity: own.entity ?? [],
+		entity_change: own.entity_change ?? []
 	});
 });
 

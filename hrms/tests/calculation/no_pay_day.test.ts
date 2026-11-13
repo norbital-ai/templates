@@ -102,7 +102,7 @@ describe('a no-pay day', () => {
 			const base = malaysia({ SUA: { amount: ALLOWANCE } });
 			const seed: Seed = {
 				...base,
-				entity_profile_version: (base.entity_profile_version ?? []).map((row) => ({
+				entity_change: (base.entity_change ?? []).map((row) => ({
 					...row,
 					pay_methods: { paid_leave: ['NPL'] }
 				}))

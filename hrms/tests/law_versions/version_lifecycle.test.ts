@@ -1,5 +1,5 @@
-// The life of a version: DRAFT → SEALED → VOID for a contract and an employer version; two sealed contracts
-// of one person never overlap; an unpaid run holds its people, a paid one is amended; and a move to another jurisdiction settles the old
+// The life of a contract version: DRAFT → SEALED → VOID; two sealed contracts of one person never overlap; a company
+// with no change in force runs on its defaults; an unpaid run holds its people, a paid one is amended; and a move to another jurisdiction settles the old
 // leave and opens the new scope. Public law packs are only the fixture: every expected figure is one the test wrote or
 // the system itself produced.
 import assert from 'node:assert/strict';
@@ -47,7 +47,6 @@ const PROFILE = idOf('employee_profile', uuid(4));
 const base = () => pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
 type Seed = ReturnType<typeof base>;
 const contractOf = (seed: Seed) => seed.employee_contract?.[0] ?? {};
-const employerOf = (seed: Seed) => seed.entity_profile_version?.[0] ?? {};
 const groupOf = (seed: Seed) => seed.pay_group?.[0] ?? {};
 
 /** A second person in the same company and payroll. */
@@ -73,13 +72,16 @@ const twoPeople = (): Seed => {
 		]
 	};
 };
-/** A second company under the law `code`, with its own payroll and the employer version given. */
-const withCompany = (seed: Seed, code: string, employer: Seed[string][number]): Seed => ({
+/** A second company under the law `code` in the time zone `zone`, with its own payroll and no dated value set. */
+const withCompany = (seed: Seed, code: string, zone: string): Seed => ({
 	...seed,
-	entity: [...(seed.entity ?? []), { id: OTHER, code: 'E2', name: 'Other', settings_code: code }],
-	entity_profile_version: [
-		...(seed.entity_profile_version ?? []),
-		{ ...employer, id: uuid(902), entity_id: OTHER, name: 'Other' }
+	entity: [
+		...(seed.entity ?? []),
+		{ id: OTHER, code: 'E2', name: 'Other', settings_code: code, time_zone: zone }
+	],
+	entity_change: [
+		...(seed.entity_change ?? []),
+		{ id: uuid(902), entity_id: OTHER, effective_from: '2025-01-01' }
 	],
 	pay_group: [...(seed.pay_group ?? []), { ...groupOf(seed), id: uuid(908), entity_id: OTHER }]
 });
@@ -280,7 +282,7 @@ describe('two sealed contracts of one person', () => {
 				yield* seal(t, next);
 				assert.equal((yield* openOf(t)).entity_id, OTHER);
 			}).pipe(
-				Effect.provide(workspace({ seed: withCompany(seed, 'MY', employerOf(seed)), now: NOW }))
+				Effect.provide(workspace({ seed: withCompany(seed, 'MY', 'Asia/Kuala_Lumpur'), now: NOW }))
 			);
 		}
 	);
@@ -537,102 +539,21 @@ describe('a void contract', () => {
 	});
 });
 
-describe('a void employer version', () => {
-	const EMPLOYER = idOf('entity_profile_version', uuid(2));
-	const voided = (t: Kit, id: Id<'entity_profile_version'>, reason?: string) =>
-		Effect.all([t.as(t.admin), current(t, 'entity_profile_version', id)]).pipe(
-			Effect.flatMap(([caller, target]) =>
-				caller.act({
-					'entity_profile_version.update': [
-						{
-							target,
-							set: { status: 'VOID', ...(reason === undefined ? {} : { reason }) }
-						}
-					]
-				})
-			)
-		);
-	const stored = (t: Kit) =>
-		storedQuery(t, { entity_profile_version: { limit: 10 } }).pipe(
-			Effect.map(({ entity_profile_version }) => entity_profile_version.rows)
-		);
-
-	it.live('under a paid run: the payslip stands, no later run uses it, a replacement does', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* run(t, '2026-01');
-			yield* pay(t, (yield* runOf(t, '2026-01')).id);
-			yield* t.run_due();
-			const [paid] = yield* slipsOf(t, '2026-01');
-			assert.ok(paid !== undefined);
-			assert.equal(
-				keyOf(yield* Effect.flip(voided(t, EMPLOYER))),
-				'errors.entity_profile_version_void_reason'
-			);
-			yield* voided(t, EMPLOYER, 'Wrong registration');
-			yield* t.run_due();
-			const [held] = yield* stored(t);
-			assert.ok(held !== undefined);
-			assert.equal(held.status, 'VOID');
-			assert.deepEqual(
-				(yield* slipsOf(t, '2026-01')).map((slip) => [slip.id, String(slip.net_pay)]),
-				[[paid.id, String(paid.net_pay)]]
-			);
-			assert.match(
-				String(yield* Effect.flip(run(t, '2026-02'))),
-				/No sealed entity version covers 2026-02/
-			);
-			// the void left the paid month to be worked out again
-			assert.deepEqual(
-				(yield* amendments(t)).map((row) => [row.period, row.payroll_run_id]),
-				[['2026-01', null]]
-			);
-			// the way out: a replacement for the dates the void one covered, drafted and sealed
-			yield* (yield* t.as(t.admin)).act({
-				'entity_profile_version.create': [
-					{
-						entity_id: held.entity_id,
-						name: held.name,
-						settings_code: held.settings_code,
-						time_zone: held.time_zone,
-						entity_extension_data: held.entity_extension_data,
-						effective_range: { from: held.effective_range.from, to: null },
-						status: 'DRAFT'
-					}
-				]
-			});
-			const made = (yield* stored(t)).find((row) => row.status === 'DRAFT');
-			assert.ok(made !== undefined);
-			yield* (yield* t.as(t.admin)).act({
-				'entity_profile_version.update': [{ target: made, set: { status: 'SEALED' } }]
-			});
-			yield* t.run_due();
-			yield* run(t, '2026-02');
-			assert.equal((yield* slipsOf(t, '2026-02')).length, 1);
-		}).pipe(Effect.provide(workspace({ seed: base(), now: NOW })))
-	);
-
-	// Break-it: void the version a sealed successor follows.
-	it.live('a predecessor: its own months no longer run, the successor’s do', () => {
+describe('a company before its first change', () => {
+	it.live('runs on the defaults: no change has to cover a period', () => {
 		const seed = base();
-		const chain: Seed = {
+		const later: Seed = {
 			...seed,
-			entity_profile_version: [
-				{ ...employerOf(seed), effective_range: { from: '2025-01-01', to: '2026-01-31' } },
-				{ ...employerOf(seed), id: uuid(902), effective_range: { from: '2026-02-01', to: null } }
-			]
+			entity_change: (seed.entity_change ?? []).map((row) => ({
+				...row,
+				effective_from: '2026-02-01'
+			}))
 		};
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* voided(t, EMPLOYER, 'Superseded in error');
-			yield* t.run_due();
-			assert.match(
-				String(yield* Effect.flip(run(t, '2026-01'))),
-				/No sealed entity version covers 2026-01/
-			);
-			yield* run(t, '2026-02');
-			assert.equal((yield* slipsOf(t, '2026-02')).length, 1);
-		}).pipe(Effect.provide(workspace({ seed: chain, now: NOW })));
+			yield* run(t, '2026-01');
+			assert.equal((yield* slipsOf(t, '2026-01')).length, 1);
+		}).pipe(Effect.provide(workspace({ seed: later, now: NOW })));
 	});
 });
 
@@ -656,7 +577,7 @@ describe('a transfer across jurisdictions, in one flow', () => {
 	const WORKSPACE = new Set([
 		'entity',
 		'pay_group',
-		'entity_profile_version',
+		'entity_change',
 		'sys_user',
 		'employee_profile',
 		'employee_balance',
@@ -678,7 +599,7 @@ describe('a transfer across jurisdictions, in one flow', () => {
 			)
 		},
 		'SG',
-		employerOf(sg)
+		'Asia/Singapore'
 	);
 	const cashOuts = (t: Kit) =>
 		storedQuery(t, {

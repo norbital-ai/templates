@@ -30,19 +30,20 @@ flowchart LR
 
 ## 1. Set up the company
 
-| HR does                                                                                              | The system writes                                                                                                      | Where it shows        |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| Creates the company and names its jurisdiction                                                       | An `entity`. Once it has versions or contracts its jurisdiction cannot change                                          | Entities              |
-| Fills the employer details the law asks for, the bank, the time zone and any pay methods, then seals | An `entity_profile_version`, `DRAFT` then `SEALED`. The law's rules check it; its effects raise the registration tasks | Entities; Obligations |
-| Creates the pay group: monthly, pay day 25, cutoff day 1                                             | A `pay_group` with its `payment_schedule`                                                                              | Entities              |
-| Publishes the holiday calendar and defines shifts and shift patterns                                 | `holiday`, `shift_definition`, `shift_pattern` rows                                                                    | Entities              |
+| HR does                                                                                                                                          | The system writes                                                                                                          | Where it shows        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| Creates the company and names its jurisdiction                                                                                                   | An `entity`. Once it has changes or contracts its jurisdiction cannot change                                               | Entities              |
+| Fills the bank and the time zone, then adds a change from the company's first day with the employer details the law asks for and any pay methods | The entity's own fields and an `entity_change`. The law's rules check the change; its effects raise the registration tasks | Entities; Obligations |
+| Creates the pay group: monthly, pay day 25, cutoff day 1                                                                                         | A `pay_group` with its `payment_schedule`                                                                                  | Entities              |
+| Publishes the holiday calendar and defines shifts and shift patterns                                                                             | `holiday`, `shift_definition`, `shift_pattern` rows                                                                        | Entities              |
 
 What to expect:
 
 - **Pay group.** A pay group is one payroll: frequency (monthly, twice a month, every ten days), the pay day of each cycle, how a pay day on a non-working day moves, and the cutoff day. A company with one group never has to name it. A company with two names one on every sealed contract and every run.
 - **Cutoff.** With cutoff day 1, a cycle's attendance is its own salary days. With a later cutoff, a monthly cycle's attendance runs from last month's cutoff day to the day before this month's.
 - **Pay methods.** Five optional employer methods (the overtime hour, a rest-day multiple, night premium hours, the contribution split over two runs a month, benefits over their tax-free limit). Each applies only where it pays at least the law. Which rows read them in each country is in [statutory coverage](0009-statutory-coverage.md).
-- **A change later** is a new sealed employer version, or an `entity_change` filed ahead and sealed on its day.
+- **A change later** is another `entity_change` from its date. One dated ahead is not in force until its day. A change may be edited, moved or deleted.
+- **The company screen** shows the company's own fields, what is in force today and one timeline of its changes.
 
 ## 2. Hire
 
@@ -136,7 +137,7 @@ HR creates the on-cycle run for July, for Example Co's one pay group.
 
 ```mermaid
 flowchart TD
-  create[HR creates the run] --> checks{Law, employer version,<br/>approvals in order?}
+  create[HR creates the run] --> checks{Law and approvals<br/>in order?}
   checks -- no --> refused[Refused, nothing written]
   checks -- yes --> read[Read everything once:<br/>contracts, entries, balance,<br/>open amendment rows]
   read --> calc[One pass per person:<br/>the subtotal chain]
@@ -188,7 +189,7 @@ In June, the joining month, `PRORATED` was 1,500.00: 15 of 30 calendar days from
 
 The law's run effects then raise the period's tasks: remittances, filings, payslip issue. See Obligations.
 
-**The run refuses**, and writes nothing, when: no sealed employer version covers its period; no law is in force on its pay date; a later cycle of the group has already run; the group already ran this period; an entry it would pay, or one in a period it works out again, still waits for approval; or a loan recovery would take someone below zero.
+**The run refuses**, and writes nothing, when: no law is in force on its pay date; a later cycle of the group has already run; the group already ran this period; an entry it would pay, or one in a period it works out again, still waits for approval; or a loan recovery would take someone below zero.
 
 **Off-cycle.** An off-cycle run is for what cannot wait: a bonus or severance. HR names the ad hoc entries it pays. Only their people get a payslip, and it pays no salary. Only rows marked `off_cycle_eligible` may be named; a recurring item is refused. Statutory schemes still apply, on the month's total, so the month owes the same as if the entry had gone on-cycle. A leaver's off-cycle run goes on the period of their last day, for their own pay group. An off-cycle run carries earlier periods only when HR names them; it never takes money back. It refuses an entry or amended period another run already took.
 
@@ -250,7 +251,7 @@ What to expect:
 - **The months after it in the same tax year are worked out again too,** so a yearly ceiling or a cumulative tax ends exact. A later tax year is left alone.
 - **Net pay never goes below zero.** If a correction takes back more than the month pays, the payslip ends at zero with a line "Recovery carried forward", and the next run takes the rest.
 - **While a run is unpaid, the people it holds cannot be corrected.** Delete the run, correct the record, and run again.
-- **Company-wide corrections** work the same way for everyone they reach: a holiday published late, an employer version sealed from its real date, or a change of law written, corrected, moved or deleted.
+- **Company-wide corrections** work the same way for everyone they reach: a holiday published late, a company change written from its real date, or a change of law written, corrected, moved or deleted.
 - **A pay group that has paid keeps its schedule.** A new schedule is a new group, and people move to it from the first of a month.
 
 The whole rule, with what is refused, is in [corrections and integrity](0007-corrections-and-integrity.md).

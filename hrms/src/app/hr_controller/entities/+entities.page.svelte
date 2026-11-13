@@ -97,10 +97,6 @@
 			]
 		}}
 		order_by={{ name: 'asc' }}
-		columns={[
-			'name',
-			{ field: 'settings_code', label: ctx.t('component.settings_lineage') },
-			'payroll_versions'
-		]}
+		columns={['name', { field: 'settings_code', label: ctx.t('component.settings_lineage') }]}
 	/>
 </AppShell>
