@@ -166,7 +166,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 ### Screens
 
 - A catalogue row's identity is `code` plus `description`. Saving a value of the law asks one question: was it always so, or does it change from a date?
-- All top-level settings sections are tabs (changes, lookup, calculation overview, catalog, registered rules, registered behaviour, compare) with `More` only for overflow. The sidebar highlights the active child, never the group.
+- All top-level settings sections are tabs (general, lookup, calculation overview, catalog, registered rules, registered behaviour, change log) with `More` only for overflow. The sidebar highlights the active child, never the group.
 - The calculation overview leads with the description; code, expression, eligibility and references sit behind its info control.
 - The profile is one screen with vertical sections. Face enrolment sits inside Profile; two columns where width allows; a nested vertical tab rail.
 - Selection is visible. A leave half-day is filled when selected, dimmed and blocked when unavailable. The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and sealing a contract version, ask before a save that reaches a paid period; the server writes the amendment row whatever a form asked. The payslip groups carried lines under "Adjustments for earlier periods", and the run lists the periods it carried and those waiting under "Earlier periods".
@@ -621,7 +621,7 @@ src/app/                HR controller apps, employee self-service
 ## 11. Screens
 
 - HR Controller holds Entities, People, Events, Payroll runs, Obligations, Formats and a Settings group. Settings has two apps: Lineage (one jurisdiction's law on a chosen day) and Change log (Scheduled: the findings research proposed and those confirmed, with a button that starts research).
-- A jurisdiction's tabs: Changes (the timeline of its changes), Lookup (the shared tables), Calculation overview, Catalog, Registered rules, Registered behaviour and Compare. Each shows the law in force on the chosen day. Compare shows what a change did. Saving a value asks whether it was always so or changes from a date.
+- Settings is one screen for a jurisdiction and a day. Its tabs: General (currency, calendar, conversions, ledger, work regions, extension schemas), Lookup (the shared tables), Calculation overview, Catalog, Registered rules, Registered behaviour and Change log (the timeline of the law's changes, and the research findings). Each shows the law in force on the chosen day. A change opens to show what it changed. Saving a value asks whether it was always so or changes from a date.
 - Events lists each entry family on its own page: leave, claims, ad hoc, loans, workplace cases, the work month board and work events.
 - An employee profile's tabs: Profile (face enrolment inside it), Employment contract, Loans, Workplace cases, and Balances (a balance overview of what is left today, and the ledger where HR adds manual adjustments).
 - A rule's or effect's `reads` show the record id as a variable chip and the rest of the filter in the shared filter editor; every expression is a read-only code block.

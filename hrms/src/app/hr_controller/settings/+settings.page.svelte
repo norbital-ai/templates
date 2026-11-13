@@ -1,19 +1,30 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Combobox, Editor, EmptyState, Form, Section, Tabs } from '@norbital-ai/ui';
-	import { lawsOf } from '../../../../lib/law.js';
-	import { jsonObject, type JsonObject } from '../../../../lib/payroll_engine/foundation.js';
-	import LawBlock from '../../../../lib/ui/settings/law_block.svelte';
-	import LawChanges from '../../../../lib/ui/settings/law_changes.svelte';
-	import LawRow, { type LawRowTarget } from '../../../../lib/ui/settings/law_row.svelte';
-	import LawSave from '../../../../lib/ui/settings/law_save.svelte';
-	import { lawChain } from '../../../../lib/ui/settings/law_save.js';
-	import LawTable from '../../../../lib/ui/settings/law_table.svelte';
-	import CalculationOverview from '../calculation_overview.svelte';
-	import CatalogTabs from '../catalog_tabs.svelte';
-	import { jurisdictions } from '../jurisdiction_scope.svelte.js';
-	import VersionCompare from '../version_compare.svelte';
+	import {
+		Combobox,
+		Editor,
+		EmptyState,
+		Form,
+		notify_outcome,
+		Section,
+		Table,
+		Tabs,
+		toast
+	} from '@norbital-ai/ui';
+	import { fork } from '@norbital-ai/ui/effect';
+	import { Effect } from 'effect';
+	import { lawsOf } from '../../../lib/law.js';
+	import { jsonObject, type JsonObject } from '../../../lib/payroll_engine/foundation.js';
+	import LawBlock from '../../../lib/ui/settings/law_block.svelte';
+	import LawChanges from '../../../lib/ui/settings/law_changes.svelte';
+	import LawRow, { type LawRowTarget } from '../../../lib/ui/settings/law_row.svelte';
+	import LawSave from '../../../lib/ui/settings/law_save.svelte';
+	import { lawChain } from '../../../lib/ui/settings/law_save.js';
+	import LawTable from '../../../lib/ui/settings/law_table.svelte';
+	import CalculationOverview from './calculation_overview.svelte';
+	import CatalogTabs from './catalog_tabs.svelte';
+	import { jurisdictions } from './jurisdiction_scope.svelte.js';
 
 	let { ctx }: { ctx: PageContext } = $props();
 	const all = jurisdictions(ctx);
@@ -41,6 +52,21 @@
 		saving = { patch, done };
 	};
 	const open = (target: LawRowTarget) => (editing = target);
+	let researching = $state(false);
+	function researchNow(code: string) {
+		researching = true;
+		fork(
+			ctx.run('statutory_research', { code }).pipe(
+				Effect.tap((outcome) => Effect.sync(() => notify_outcome(ctx, outcome))),
+				Effect.catch((error) =>
+					Effect.sync(() =>
+						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
+					)
+				),
+				Effect.ensuring(Effect.sync(() => (researching = false)))
+			)
+		);
+	}
 	const blocks = [
 		['conversions', 'settings_form.conversions'],
 		['ledger', 'settings_form.ledger'],
@@ -50,16 +76,9 @@
 	] as const;
 </script>
 
-{#snippet changes()}{#if head}<Scroll name={ctx.t('app.settings.changes')} size="fill" inset>
+{#snippet general()}{#if head}<Scroll name={ctx.t('app.settings.general')} size="fill" inset>
 			<Stack gap="sm">
-				<Section first name="settings_changes" title={ctx.t('app.settings.changes')}>
-					<LawChanges {ctx} {chain} today={clock.today} />
-				</Section>
-				<Section
-					name="settings_calendar"
-					title={ctx.t('settings_form.calendar')}
-					default_open={false}
-				>
+				<Section first name="settings_calendar" title={ctx.t('settings_form.calendar')}>
 					<Form
 						{ctx}
 						of="jurisdiction"
@@ -76,6 +95,37 @@
 				{/if}
 			</Stack>
 		</Scroll>{/if}{/snippet}
+
+{#snippet changed()}<Scroll name={ctx.t('app.settings.changes')} size="fill" inset
+		><LawChanges {ctx} {chain} today={clock.today} /></Scroll
+	>{/snippet}
+
+{#snippet research()}{#if head}<Table
+			{ctx}
+			of="statutory_finding"
+			key="statutory_findings"
+			where={{ jurisdiction_code: { eq: head.code }, status: { in: ['PROPOSED', 'CONFIRMED'] } }}
+			toolbar={{
+				new: true,
+				title: ctx.t('app.settings.research'),
+				actions: [
+					{
+						run: () => researchNow(head.code),
+						icon: 'lucide:search',
+						name: ctx.t('scheduled.research'),
+						disabled: () => (researching ? ctx.t('component.loading') : null)
+					}
+				]
+			}}
+			columns={['title', 'fit', 'status', 'families', 'announced_on', 'source_urls']}
+		/>{/if}{/snippet}
+
+{#snippet changeLog()}<Tabs
+		tabs={[
+			{ name: 'changes', title: ctx.t('app.settings.changes'), body: changed },
+			{ name: 'research', title: ctx.t('app.settings.research'), body: research }
+		]}
+	/>{/snippet}
 
 {#snippet lookup()}{#if law}<Scroll name={ctx.t('app.settings.lookup')} size="fill" inset
 			><LawBlock {ctx} {law} family="lookup" {save} /></Scroll
@@ -125,10 +175,6 @@
 			on_new={() => open({ family: 'registered_effect', code: null })}
 		/>{/if}{/snippet}
 
-{#snippet compare()}<Scroll name={ctx.t('settings_version.compare')} size="fill" inset
-		><VersionCompare {ctx} {chain} on={day} /></Scroll
-	>{/snippet}
-
 <AppShell
 	title={ctx.t('app.settings.header_title')}
 	description={ctx.t('v2.settings_help')}
@@ -160,13 +206,13 @@
 	{/snippet}
 	{#if head}{#key head.code}<Tabs
 				tabs={[
-					{ name: 'changes', title: ctx.t('app.settings.changes'), body: changes },
+					{ name: 'general', title: ctx.t('app.settings.general'), body: general },
 					{ name: 'lookup', title: ctx.t('app.settings.lookup'), body: lookup },
 					{ name: 'overview', title: 'Calculation overview', body: overview },
 					{ name: 'catalog', title: 'Catalog', body: catalog },
 					{ name: 'rules', title: 'Registered rules', body: rules },
 					{ name: 'behaviour', title: 'Registered behaviour', body: behaviour },
-					{ name: 'compare', title: ctx.t('settings_version.compare'), body: compare }
+					{ name: 'change_log', title: ctx.t('app.settings.change_log'), body: changeLog }
 				]}
 			/>{/key}
 	{:else}<EmptyState title={ctx.t('app.settings.choose_jurisdiction_empty')} />{/if}
