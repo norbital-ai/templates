@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { type RowIn, type ColumnsIn, Button, Table, Tabs, Show } from '@norbital-ai/ui';
+	import { type RowIn, type ColumnsIn, Badge, Button, Table, Tabs, Show } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { openCreate } from '../../../lib/ui/create-values.js';
@@ -70,6 +70,19 @@
 		value={(row.status !== 'draft' || row.draft_setup) && value != null ? value : row.total}
 		{row}
 	/>{/snippet}
+<!-- a seal an approval still holds is provisional (the row carries `$approval`), not yet sealed -->
+{#snippet orderStatus({
+	row,
+	value
+}: {
+	row: RowIn<'orders'>;
+	value: ColumnsIn<'orders'>['status'] | undefined;
+})}
+	{@const kind = ctx.catalog?.orders?.fields?.status}
+	{#if value === 'confirmed' && row.$approval != null}<Badge variant="outline"
+			>{ctx.t('component.contract_provisional')}</Badge
+		>{:else if kind}<Show {ctx} {kind} {value} {row} />{/if}
+{/snippet}
 {#snippet orders(direction: 'sales' | 'purchasing')}
 	<Table
 		{ctx}
@@ -80,7 +93,7 @@
 			'number',
 			'title',
 			'party',
-			'status',
+			{ field: 'status' as const, cell: orderStatus },
 			...(ctx.catalog?.orders?.fields?.agreed_total
 				? [
 						{

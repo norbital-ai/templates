@@ -62,6 +62,10 @@ Your tools already carry each person's access:
 - Closure counts delivery items once. A remaining source commitment cannot be released locally while
   its external order is still active; a matching synced void confirmation is required.
 - Money is a value and a currency together. Never add, compare or convert across currencies.
+  The workspace holds no exchange rate, so a ranking or total over orders ("the largest", "the top
+  five") is per currency: read every currency present, rank within each, give each currency its own
+  list, and say the lists are not comparable. Never drop a currency to make one list. Unless asked
+  for one status, rank drafts and sealed orders together and name each one's status.
 
 ## House rules
 
