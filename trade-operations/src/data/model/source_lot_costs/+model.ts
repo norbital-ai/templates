@@ -24,5 +24,7 @@ export default model('source_lot_costs', {
 		}
 	},
 	outputs: { default: { fields: 'all', source: { fields: ['name'] } } },
-	constraints: { one_per_source: { unique: ['source'], import_key: true } }
+	constraints: { one_per_source: { unique: ['source'], import_key: true } },
+	create: { fields: ['source', 'observed_at', 'currency', 'entries'] },
+	update: { fields: ['source', 'observed_at', 'currency', 'entries'] }
 });

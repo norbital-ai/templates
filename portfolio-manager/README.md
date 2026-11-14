@@ -68,7 +68,7 @@ quote provider). Market figures cite the data provider. Every cited source is ke
   Telegram). Clients subscribe themselves from Reports; owners add or remove anyone under Settings. The report keeps each
   chat message id in `deliveries`; the message's own status says whether it arrived.
 - **Benchmarks** — the indices the markets table leads with, by quote symbol (`^GSPC`, `^STI`).
-- **Zone** — the platform's workspace zone, `tz` in `src/+workspace.ts` (America/New_York here): the
+- **Zone** — the platform's workspace zone, `tz` in `src/+workspace.ts` (Asia/Singapore here): the
   cron and the report date follow it. It is the one setting that lives in source.
 
 ## Seed

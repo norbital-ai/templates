@@ -4,6 +4,7 @@ import { pushOrder, readKingdeeOrderLines } from '../../../../integration/kingde
 // The Kingdee SO's lines: the read mirrors each entry, a write sends the whole order.
 export default sync('order_lines', 'kingdee', {
 	with: 'kingdee',
+	policies: ['kingdee_sync'],
 	every: '1min',
 	read: function* ({ cursor, instance }, ctx) {
 		return yield* readKingdeeOrderLines(instance, cursor, ctx);

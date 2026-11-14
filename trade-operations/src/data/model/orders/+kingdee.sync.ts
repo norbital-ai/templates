@@ -4,6 +4,7 @@ import { sync } from '@norbital-ai/bolt';
 // The Kingdee SO: the read mirrors its header, the write creates it or amends its lines.
 export default sync('orders', 'kingdee', {
 	with: 'kingdee',
+	policies: ['kingdee_sync'],
 	every: '1min',
 	read: function* ({ cursor, instance }, ctx) {
 		return yield* readKingdeeOrders(instance, cursor, ctx);

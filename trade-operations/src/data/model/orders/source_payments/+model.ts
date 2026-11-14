@@ -99,7 +99,19 @@ export default model('source_payments', {
 	},
 	// the sync alone writes payments (no local columns); its rows pass through these checks
 	create: {
-		fields: [],
+		fields: [
+			'external_code',
+			'kind',
+			'reference',
+			'settled_on',
+			'source_updated_at',
+			'currency',
+			'amount',
+			'active',
+			'source',
+			'invoice',
+			'order'
+		],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ after }) => ({ value: after, old: null })),
@@ -109,7 +121,19 @@ export default model('source_payments', {
 		}
 	},
 	update: {
-		fields: [],
+		fields: [
+			'external_code',
+			'kind',
+			'reference',
+			'settled_on',
+			'source_updated_at',
+			'currency',
+			'amount',
+			'active',
+			'source',
+			'invoice',
+			'order'
+		],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, after }) => ({ value: after, old: before })),

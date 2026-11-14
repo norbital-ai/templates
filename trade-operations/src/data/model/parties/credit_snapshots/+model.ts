@@ -36,5 +36,29 @@ export default model('credit_snapshots', {
 		}
 	},
 	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
-	indexes: { search: { text: ['party', 'external_code'] } }
+	indexes: { search: { text: ['party', 'external_code'] } },
+	create: {
+		fields: [
+			'external_code',
+			'currency',
+			'credit_limit',
+			'credit_used',
+			'credit_hold',
+			'as_of',
+			'source',
+			'party'
+		]
+	},
+	update: {
+		fields: [
+			'external_code',
+			'currency',
+			'credit_limit',
+			'credit_used',
+			'credit_hold',
+			'as_of',
+			'source',
+			'party'
+		]
+	}
 });

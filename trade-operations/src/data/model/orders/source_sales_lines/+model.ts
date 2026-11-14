@@ -50,5 +50,53 @@ export default model('source_sales_lines', {
 		default: { fields: 'all', order },
 		commercial: { fields: commercialSalesFields, order }
 	},
-	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } }
+	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
+	create: {
+		fields: [
+			'lot_number',
+			'unit_cost',
+			'booked_cost',
+			'booked_cost_currency',
+			'external_code',
+			'order_line',
+			'kind',
+			'reference',
+			'business_on',
+			'source_updated_at',
+			'unit',
+			'quantity',
+			'currency',
+			'net_amount',
+			'tax_amount',
+			'freight',
+			'active',
+			'source',
+			'order',
+			'source_dimensions'
+		]
+	},
+	update: {
+		fields: [
+			'lot_number',
+			'unit_cost',
+			'booked_cost',
+			'booked_cost_currency',
+			'external_code',
+			'order_line',
+			'kind',
+			'reference',
+			'business_on',
+			'source_updated_at',
+			'unit',
+			'quantity',
+			'currency',
+			'net_amount',
+			'tax_amount',
+			'freight',
+			'active',
+			'source',
+			'order',
+			'source_dimensions'
+		]
+	}
 });

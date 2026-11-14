@@ -3,6 +3,7 @@ import { readCreditSource } from '../../../../integration/kingdee/financial-sour
 
 export default sync('credit_snapshots', 'kingdee', {
 	with: 'kingdee',
+	policies: ['kingdee_sync'],
 	read: function* () {
 		return yield* readCreditSource();
 	}

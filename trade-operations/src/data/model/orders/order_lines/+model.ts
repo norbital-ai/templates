@@ -8,6 +8,21 @@ import {
 	validPrintValues
 } from '../../../../lib/print-details.js';
 const cells = ['quantity', 'unit_price', 'discount_pct', 'tax_rate'] as const;
+// what `priced` derives; the Kingdee read names them, the transform overwrites them
+const derived = [
+	'product_code',
+	'product_name',
+	'product_spec',
+	'unit',
+	'currency',
+	'net',
+	'tax',
+	'total',
+	'floor_net',
+	'floor_on',
+	'commission_basis_unit',
+	'commission_factor'
+] as const;
 /** One line to price: its order and product, the cells the writer sent, and the stored line an update changes. */
 type Pricing = {
 	readonly order: Id<'orders'>;
@@ -285,8 +300,16 @@ export default model('order_lines', {
 	indexes: { search: { text: ['product', 'product_code'] } },
 	// a line created through its order's `'orders.lines'` layer runs this after the order's own `create.transform`
 	create: {
-		fields: ['order', 'line_key', 'product', ...cells, 'print_values', 'source_entry_id'],
-		filled: { fields: ['unit_price', 'tax_rate'] },
+		fields: [
+			'order',
+			'line_key',
+			'product',
+			...cells,
+			'print_values',
+			'source_entry_id',
+			...derived
+		],
+		filled: { fields: ['unit_price', 'tax_rate', ...derived] },
 		transform: function* (changes, ctx) {
 			const derived = yield* priced(
 				ctx,
@@ -306,7 +329,7 @@ export default model('order_lines', {
 		}
 	},
 	update: {
-		fields: [...cells, 'print_values', 'source_entry_id'],
+		fields: [...cells, 'print_values', 'source_entry_id', ...derived],
 		transform: function* (changes, ctx) {
 			const derived = yield* priced(
 				ctx,

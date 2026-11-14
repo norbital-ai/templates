@@ -4,6 +4,7 @@ import { readInvoiceAnalysis } from '../../../../integration/kingdee/invoice-ana
 
 export default sync('source_sales_lines', 'invoice_only', {
 	with: 'kingdee',
+	policies: ['kingdee_sync'],
 	read: function* ({ cursor, instance }, ctx) {
 		return fromSource(yield* readInvoiceAnalysis(instance, cursor, ctx), instance);
 	}

@@ -30,7 +30,7 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 - Apps: `helper`, `portal`, `scheduler/configurations`, `scheduler/customers`, `scheduler/helpers`, `scheduler/schedule`
 - Kiosks: none
 - Automations: `bookings_book`, `bookings_cancel`, `check_drives`, `deliver_notices`, `eta_check`, `eta_watch`, `helpers_offboard`, `portal_intake`, `prepare_availability`, `publish_openings`, `shift_watch`, `visits_accept_proposal`, `visits_cancel`, `visits_confirm_shift`, `visits_decline_shift`, `visits_reassign`, `visits_rebook`, `visits_recommend`, `visits_report_unavailable`, `visits_reschedule`, `warning_letter`
-- Policies: `customer`, `dispatch_automation`, `helper`, `helper_shift`, `operations`, `portal_visitor`
+- Policies: `customer`, `dispatch_automation`, `helper`, `helper_shift`, `notice_mail`, `operations`, `portal_visitor`
 - Custom fields: none
 - Integrations: `google_routes`
 

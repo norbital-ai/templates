@@ -37,5 +37,33 @@ export default model('parties', {
 	},
 	outputs: { default: { fields: 'all' } },
 	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
-	indexes: { search: { text: ['name', 'external_code'] } }
+	indexes: { search: { text: ['name', 'external_code'] } },
+	create: {
+		fields: [
+			'external_code',
+			'source_number',
+			'name',
+			'kind',
+			'currency',
+			'active',
+			'address',
+			'phone',
+			'source_updated_at',
+			'source'
+		]
+	},
+	update: {
+		fields: [
+			'external_code',
+			'source_number',
+			'name',
+			'kind',
+			'currency',
+			'active',
+			'address',
+			'phone',
+			'source_updated_at',
+			'source'
+		]
+	}
 });

@@ -25,5 +25,27 @@ export default model('warehouses', {
 	},
 	outputs: { default: { fields: 'all' } },
 	constraints: { source_code: { unique: ['source', 'external_code'], import_key: true } },
-	indexes: { search: { text: ['name', 'external_code', 'group_code'] } }
+	indexes: { search: { text: ['name', 'external_code', 'group_code'] } },
+	create: {
+		fields: [
+			'external_code',
+			'source_number',
+			'name',
+			'group_code',
+			'active',
+			'source_updated_at',
+			'source'
+		]
+	},
+	update: {
+		fields: [
+			'external_code',
+			'source_number',
+			'name',
+			'group_code',
+			'active',
+			'source_updated_at',
+			'source'
+		]
+	}
 });

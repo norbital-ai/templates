@@ -56,5 +56,38 @@ export default model('stock_snapshots', {
 	},
 	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
 	// availability names each snapshot's product and warehouse
-	indexes: { search: { text: ['product', 'warehouse', 'lot_number', 'external_code'] } }
+	indexes: { search: { text: ['product', 'warehouse', 'lot_number', 'external_code'] } },
+	create: {
+		fields: [
+			'lot_number',
+			'currency',
+			'unit_cost',
+			'external_code',
+			'unit',
+			'on_hand',
+			'erp_committed',
+			'as_of',
+			'orders_as_of',
+			'source',
+			'product',
+			'warehouse'
+		]
+	},
+	update: {
+		fields: [
+			'lot_number',
+			'currency',
+			'unit_cost',
+			'external_code',
+			'unit',
+			'on_hand',
+			'erp_committed',
+			'as_of',
+			'orders_as_of',
+			'source',
+			'product',
+			'warehouse'
+		]
+	},
+	delete: {}
 });

@@ -78,5 +78,42 @@ export default model('products', {
 		}
 	},
 	indexes: { search: { text: ['name', 'external_code'] } },
-	update: { fields: ['commission_factor', 'commission_basis_unit'] }
+	create: {
+		fields: [
+			'external_code',
+			'source_number',
+			'name',
+			'spec',
+			'producing_area',
+			'brand',
+			'brand_en',
+			'unit',
+			'currency',
+			'unit_price',
+			'tax_rate',
+			'active',
+			'source_updated_at',
+			'source'
+		]
+	},
+	update: {
+		fields: [
+			'commission_factor',
+			'commission_basis_unit',
+			'external_code',
+			'source_number',
+			'name',
+			'spec',
+			'producing_area',
+			'brand',
+			'brand_en',
+			'unit',
+			'currency',
+			'unit_price',
+			'tax_rate',
+			'active',
+			'source_updated_at',
+			'source'
+		]
+	}
 });

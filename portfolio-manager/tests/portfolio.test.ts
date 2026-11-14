@@ -165,7 +165,7 @@ it.layer(TestWorkspace.layer({ root, ports }))('the book', (it) => {
 it.layer(
 	TestWorkspace.layer({
 		root,
-		now: '2026-11-02T12:00:00.000Z',
+		now: '2026-11-01T23:00:00.000Z',
 		ports,
 		fakes: { ai: { cassette: { default: [hold, watch, lead, hold, watch, lead] } } }
 	})
@@ -176,7 +176,7 @@ it.layer(
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const owner = yield* t.as(t.member(['portfolio_manage']));
-				t.clock.set('2026-11-02T13:01:00.000Z');
+				t.clock.set('2026-11-02T00:01:00.000Z');
 				const { failed } = yield* t.run_due();
 				expect(failed).toEqual([]);
 

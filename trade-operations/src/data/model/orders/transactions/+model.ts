@@ -186,7 +186,22 @@ export default model('transactions', {
 	indexes: { search: { text: ['reference', 'kind'] } },
 	// the sync alone writes transactions (no local columns); its rows pass through these checks
 	create: {
-		fields: [],
+		fields: [
+			'erp_id',
+			'kind',
+			'reference',
+			'currency',
+			'status',
+			'items',
+			'documents',
+			'issued_on',
+			'due_on',
+			'total',
+			'source_updated_at',
+			'source',
+			'ext_purchase_order',
+			'order'
+		],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ after }) => ({ value: after, old: null })),
@@ -196,7 +211,22 @@ export default model('transactions', {
 		}
 	},
 	update: {
-		fields: [],
+		fields: [
+			'erp_id',
+			'kind',
+			'reference',
+			'currency',
+			'status',
+			'items',
+			'documents',
+			'issued_on',
+			'due_on',
+			'total',
+			'source_updated_at',
+			'source',
+			'ext_purchase_order',
+			'order'
+		],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, after }) => ({ value: after, old: before })),

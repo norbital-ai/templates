@@ -4,6 +4,7 @@ import { readStockCommitments } from '../../../integration/kingdee/stock-commitm
 
 export default sync('source_stock_commitments', 'kingdee', {
 	with: 'kingdee',
+	policies: ['kingdee_sync'],
 	every: '5min',
 	read: function* ({ instance, cursor }, ctx) {
 		return fromSource(yield* readStockCommitments(instance, cursor, ctx), instance);

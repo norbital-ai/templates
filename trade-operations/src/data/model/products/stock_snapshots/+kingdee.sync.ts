@@ -9,6 +9,7 @@ import { projections } from '../../../../integration/kingdee/projections.js';
 
 export default sync('stock_snapshots', 'kingdee', {
 	with: 'kingdee',
+	policies: ['kingdee_sync'],
 	read: function* ({ cursor, instance }, ctx) {
 		const own = { source: { eq: instance } };
 		const { products, warehouses } = yield* ctx.query({

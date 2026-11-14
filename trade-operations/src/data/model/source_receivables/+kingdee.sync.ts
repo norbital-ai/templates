@@ -4,6 +4,7 @@ import { readReceivables } from '../../../integration/kingdee/receivables.js';
 
 export default sync('source_receivables', 'kingdee', {
 	with: 'kingdee',
+	policies: ['kingdee_sync'],
 	every: '1h',
 	read: function* ({ instance, cursor }, ctx) {
 		return fromSource(yield* readReceivables(instance, cursor, ctx), instance);

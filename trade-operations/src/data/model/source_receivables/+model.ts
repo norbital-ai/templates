@@ -11,5 +11,7 @@ export default model('source_receivables', {
 		entries: { kind: 'json', shape: receivableEntries }
 	},
 	outputs: { default: { fields: 'all', source: { fields: ['name'] } } },
-	constraints: { one_per_source: { unique: ['source'], import_key: true } }
+	constraints: { one_per_source: { unique: ['source'], import_key: true } },
+	create: { fields: ['source', 'currency', 'observed_at', 'entries'] },
+	update: { fields: ['source', 'currency', 'observed_at', 'entries'] }
 });

@@ -5,7 +5,7 @@ import { workspace } from '@norbital-ai/bolt';
  * row's (USD without one).
  */
 export default workspace({
-	tz: 'America/New_York',
+	tz: 'Asia/Singapore',
 	locale: 'en-US',
 	currency: 'USD',
 	apps: ['portfolio'],

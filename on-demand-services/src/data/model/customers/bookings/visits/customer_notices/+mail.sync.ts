@@ -8,6 +8,7 @@ import { moves } from '../../../../../../lib/notice-delivery.js';
  */
 export default sync('customer_notices', 'mail', {
 	with: 'email',
+	policies: ['notice_mail'],
 	write: function* ({ op, row }, ctx) {
 		if (op !== 'create' || row.to_address === null) return null;
 		const $id = yield* ctx.send({

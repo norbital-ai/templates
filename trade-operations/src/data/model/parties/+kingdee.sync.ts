@@ -5,6 +5,7 @@ import { preserveSource } from '../../../integration/kingdee/reconciliation.js';
 
 export default sync('parties', 'kingdee', {
 	with: 'kingdee',
+	policies: ['kingdee_sync'],
 	every: '1min',
 	read: function* ({ cursor, instance }, ctx) {
 		return fromSource(
