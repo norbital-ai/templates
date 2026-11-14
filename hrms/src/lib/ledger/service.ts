@@ -1542,6 +1542,8 @@ export const syncLatePosted = Effect.fn('ledger.syncLatePosted')(function* (
 	ctx: Pick<EffectCtx, 'query' | 'schedule' | 'today'>,
 	sources: readonly string[]
 ) {
+	// an approval move runs the effect with no change list: nothing was written
+	if (sources.length === 0) return;
 	const { ledger_entry: posted = [] } = yield* queryRows(ctx.query, {
 		ledger_entry: {
 			where: { source: { in: [...sources] } },

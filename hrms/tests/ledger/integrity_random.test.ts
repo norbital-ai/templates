@@ -1,9 +1,11 @@
 // Random sequences of the real acts an HR user and an employee can take, on one small workspace a seed, with the acts
 // that try to break it mixed in: the same act twice in a row, an exit raised, moved and cancelled, a run made and
-// deleted, and direct writes to the ledger, the balance and a payslip by HR, the employee and an administrator. After
+// deleted, dated changes to the person's terms and parameters, the company and the law filed, edited and taken off,
+// and direct writes to the ledger, the balance and a payslip by HR, the employee and an administrator. After
 // every step: no queued work failed, a refused act wrote nothing, the integrity check has no
 // hard finding, the balance is what an independent sum of the ledger says, and the payslips hold (a paid one never
-// changes, each belongs to a run, each seal names a run, what a sealed entry pays is on payslips once). A refusal is an
+// changes, each belongs to a run, each seal names a run, what a sealed entry pays is on payslips once) and so do the
+// dated rows (one a day for a person or a company, none before its stint, each on a first of a month or the first day). A refusal is an
 // expected answer; anything else an act fails with is not. The ledger and a payslip declare no update or delete, so
 // those acts do not exist to try. Replay one sequence with HR_SEED=<n>, soak with HR_STEPS=<n>.
 import assert from 'node:assert/strict';
@@ -99,6 +101,72 @@ const stored = (w: World) =>
 		adhoc_catalog_entry: { limit: 1000 },
 		payroll_run: { limit: 1000 },
 		payslip: { limit: 1000 }
+	});
+/** The dated rows: the person's, the company's and the law's. */
+const dated = (w: World) =>
+	storedQuery(w.t, {
+		employment: { where: { id: { eq: EMPLOYMENT } }, limit: 1 },
+		contract_terms: { where: { employment_id: { eq: EMPLOYMENT } }, limit: 1000 },
+		statutory_parameters: { where: { employment_id: { eq: EMPLOYMENT } }, limit: 1000 },
+		entity_change: { where: { entity_id: { eq: ENTITY } }, limit: 1000 },
+		jurisdiction_change: { where: { jurisdiction_code: { eq: 'MY' } }, limit: 1000 }
+	});
+/** The first of last month, this one or the next. */
+const firstOf = (w: World) =>
+	`${DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(today(w)), { months: Math.floor(w.next() * 3) - 1 })).slice(0, 7)}-01`;
+/** A raise or new hours from a first of a month; where terms stand there already, they are edited. */
+const terms = (
+	w: World,
+	set: {
+		readonly rate?: { readonly amount: number; readonly unit: 'MONTHLY' };
+		readonly normal_hours_per_day?: number;
+	}
+) =>
+	Effect.gen(function* () {
+		const { by, name } = anyone(w);
+		const from = firstOf(w);
+		const held = (yield* dated(w)).contract_terms.rows.find((row) => row.effective_from === from);
+		yield* note(w, `terms ${from} ${JSON.stringify(set)} by ${name}`);
+		yield* held === undefined
+			? by.act({
+					'contract_terms.create': [{ employment_id: EMPLOYMENT, effective_from: from, ...set }]
+				})
+			: by.act({ 'contract_terms.update': [{ target: held, set }] });
+	});
+/** A marital status from a first of a month, filed or edited the same way. */
+const parameters = (w: World) =>
+	Effect.gen(function* () {
+		const { by, name } = anyone(w);
+		const from = firstOf(w);
+		const set = { marital_status: pick(w, ['SINGLE', 'MARRIED'] as const) ?? 'SINGLE' };
+		const held = (yield* dated(w)).statutory_parameters.rows.find(
+			(row) => row.effective_from === from
+		);
+		yield* note(w, `parameters ${from} ${set.marital_status} by ${name}`);
+		yield* held === undefined
+			? by.act({
+					'statutory_parameters.create': [
+						{ employment_id: EMPLOYMENT, effective_from: from, ...set }
+					]
+				})
+			: by.act({ 'statutory_parameters.update': [{ target: held, set }] });
+	});
+/** The dated rows hold: one a day in a family, and a person's on a first of a month or the first day, never before it. */
+const datedHold = (w: World) =>
+	Effect.gen(function* () {
+		const rows = yield* dated(w);
+		const from = rows.employment.rows[0]?.effective_range.from;
+		assert.ok(from !== undefined, 'the stint is gone');
+		// the law may change twice on one day (they apply in the order filed); nothing else may
+		for (const family of ['contract_terms', 'statutory_parameters', 'entity_change'] as const) {
+			const days = rows[family].rows.map((row) => row.effective_from);
+			assert.equal(new Set(days).size, days.length, `${family} holds two rows on one day`);
+		}
+		for (const family of ['contract_terms', 'statutory_parameters'] as const) {
+			const days = rows[family].rows.map((row) => row.effective_from);
+			for (const on of days)
+				assert.ok(on === from || (on > from && on.endsWith('-01')), `${family} row on ${on}`);
+		}
 	});
 const leaveOn = (w: World, by: Caller, code: string) =>
 	Effect.gen(function* () {
@@ -410,6 +478,66 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 			yield* w.admin.act({ 'payroll_run.delete': [{ target: made }] });
 			assert.deepEqual(yield* standing(w), before, 'a deleted run did not give back what it took');
 		}),
+	// dated changes: a raise, a status, how the company pays and what the law allows, filed, edited and taken off
+	(w) => terms(w, { rate: { amount: 3120 + amount(w), unit: 'MONTHLY' } }),
+	(w) => terms(w, { normal_hours_per_day: pick(w, [7, 8, 9]) ?? 8 }),
+	parameters,
+	// taken off again: any of them, the first day's included (a period may not be left empty)
+	(w) =>
+		Effect.gen(function* () {
+			const row = pick(w, (yield* dated(w)).contract_terms.rows);
+			yield* note(w, `delete terms ${row?.effective_from}`);
+			if (row !== undefined) yield* w.admin.act({ 'contract_terms.delete': [{ target: row }] });
+		}),
+	(w) =>
+		Effect.gen(function* () {
+			const row = pick(w, (yield* dated(w)).statutory_parameters.rows);
+			yield* note(w, `delete parameters ${row?.effective_from}`);
+			if (row !== undefined)
+				yield* w.admin.act({ 'statutory_parameters.delete': [{ target: row }] });
+		}),
+	(w) =>
+		Effect.gen(function* () {
+			const from = firstOf(w);
+			yield* note(w, `company change ${from}`);
+			yield* w.admin.act({
+				'entity_change.create': [
+					{
+						entity_id: ENTITY,
+						effective_from: from,
+						pay_methods: { overtime_hour_basis: 'CONTRACT_WEEKLY' }
+					}
+				]
+			});
+		}),
+	(w) =>
+		Effect.gen(function* () {
+			const row = pick(w, (yield* dated(w)).entity_change.rows);
+			yield* note(w, `delete company change ${row?.effective_from}`);
+			if (row !== undefined) yield* w.admin.act({ 'entity_change.delete': [{ target: row }] });
+		}),
+	(w) =>
+		Effect.gen(function* () {
+			const from = firstOf(w);
+			const limit = amount(w);
+			yield* note(w, `law change ${from} claim limit ${limit}`);
+			yield* w.admin.act({
+				'jurisdiction_change.create': [
+					{
+						jurisdiction_code: 'MY',
+						effective_from: from,
+						law: { claim_catalog: { MEDICAL_CLAIM: { lookup: { annual_limit: limit } } } }
+					}
+				]
+			});
+		}),
+	(w) =>
+		Effect.gen(function* () {
+			const row = pick(w, (yield* dated(w)).jurisdiction_change.rows);
+			yield* note(w, `delete law change ${row?.effective_from}`);
+			if (row !== undefined)
+				yield* w.admin.act({ 'jurisdiction_change.delete': [{ target: row }] });
+		}),
 	// direct writes: a ledger row forged as a run's, the balance set by hand, a payslip added to a run
 	(w) =>
 		Effect.gen(function* () {
@@ -466,14 +594,18 @@ const ACTIONS: readonly ((w: World) => Effect.Effect<void, unknown>)[] = [
 
 /** How many rows the ledger and the records that post to it hold. */
 const counts = (w: World) =>
-	Effect.all([ledgerRows(w.t), stored(w)]).pipe(
-		Effect.map(([ledger, rows]) => [
+	Effect.all([ledgerRows(w.t), stored(w), dated(w)]).pipe(
+		Effect.map(([ledger, rows, changes]) => [
 			ledger.length,
 			rows.leave_catalog_entry.rows.length,
 			rows.claim_catalog_entry.rows.length,
 			rows.adhoc_catalog_entry.rows.length,
 			rows.payroll_run.rows.length,
-			rows.payslip.rows.length
+			rows.payslip.rows.length,
+			changes.contract_terms.rows.length,
+			changes.statutory_parameters.rows.length,
+			changes.entity_change.rows.length,
+			changes.jurisdiction_change.rows.length
 		])
 	);
 const tagOf = (error: unknown) =>
@@ -531,6 +663,7 @@ describe('random sequences of real acts keep the ledger whole', () => {
 						assert.deepEqual(hard, []);
 						assert.deepEqual(flat(yield* accountsIn(t)), yield* projection(t));
 						yield* payslipsHold(w);
+						yield* datedHold(w);
 					}
 					// a sequence that was refused throughout proved nothing
 					assert.ok(committed >= STEPS / 4, `only ${committed} of ${STEPS} steps went through`);
