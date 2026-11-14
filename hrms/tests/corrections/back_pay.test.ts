@@ -19,30 +19,20 @@ import {
 	pack,
 	wholeDays,
 	workspace,
-	storedQuery
+	storedQuery,
+	packTerms
 } from '../kit.ts';
 
 /** A month's days but its weekends. */
 const weekdays = (month: string) =>
 	dates(month).filter((date) => ![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay()));
 
-const TERMS = {
-	rate: { amount: 7500, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 type Seed = ReturnType<typeof pack>;
 const seed = (): Seed =>
 	pack(
 		'MY',
 		'Asia/Kuala_Lumpur',
-		TERMS,
+		packTerms(7500),
 		{},
 		['2026-02', '2026-03', '2026-04']
 			.flatMap(weekdays)

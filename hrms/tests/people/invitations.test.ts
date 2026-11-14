@@ -5,24 +5,10 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { pack, uuid, workspace, storedQuery } from '../kit.ts';
+import { pack, uuid, workspace, storedQuery, packTerms } from '../kit.ts';
 
 const NOW = '2026-02-20T02:00:00.000Z';
-const base = pack(
-	'MY',
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 3120, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[]
-);
+const base = pack('MY', 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []);
 const user = (id: number, name: string) => ({
 	id: uuid(id),
 	name,

@@ -5,20 +5,12 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { ENTITY, lawWith, pack, storedQuery, workspace } from '../kit.ts';
+import { ENTITY, lawWith, pack, storedQuery, workspace, packTerms } from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const EFFECT = 'EPF_MONTHLY_CONTRIBUTION';
-const terms = {
-	rate: { amount: 5000, unit: 'MONTHLY' },
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 /** The remittance effect raises its task only when a payslip of the run withholds the scheme. */
-const base = lawWith(pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []), {
+const base = lawWith(pack('MY', 'Asia/Kuala_Lumpur', packTerms(5000), {}, [], []), {
 	registered_effect: {
 		[EFFECT]: {
 			reads: {

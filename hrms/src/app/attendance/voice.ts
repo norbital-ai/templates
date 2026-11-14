@@ -18,11 +18,8 @@ import {
 } from './phrases.js';
 
 /** Where one phrase's clip lives under the served `assets/`. */
-const kioskClipUrl = (
-	language: KioskVoiceLanguage,
-	key: KioskPhraseKey,
-	base: string = KIOSK_VOICE_BASE
-): string => `${base}${language}/${key}.${KIOSK_VOICE_CLIP_FORMAT}`;
+const kioskClipUrl = (language: KioskVoiceLanguage, key: KioskPhraseKey): string =>
+	`${KIOSK_VOICE_BASE}${language}/${key}.${KIOSK_VOICE_CLIP_FORMAT}`;
 
 /** How one clip playback ended. `missing` marks the URL so it is never fetched again. */
 type KioskClipOutcome = 'played' | 'missing' | 'stopped';
@@ -48,8 +45,6 @@ type KioskNarrator = Readonly<{
 	stop: () => void;
 	setLanguage: (language: KioskVoiceLanguage) => void;
 	setEnabled: (enabled: boolean) => void;
-	/** Clip URLs the platform reported missing; the fallback spoke them instead. */
-	readonly missing: ReadonlySet<string>;
 }>;
 
 /** A phrase that arrives when this many are already waiting evicts the oldest waiting one. */
@@ -115,8 +110,7 @@ export const createKioskNarrator = (
 		setEnabled: (next) => {
 			enabled = next;
 			if (!next) stop();
-		},
-		missing
+		}
 	};
 };
 

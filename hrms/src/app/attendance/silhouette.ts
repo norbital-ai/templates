@@ -31,10 +31,8 @@ type SilhouetteGeometry = Readonly<{
 	width: number;
 	height: number;
 	head: Readonly<{ cx: number; cy: number; rx: number; ry: number }>;
-	/** From the chin to the shoulder line: the neck gap, nothing is drawn across it. */
-	neck: Readonly<{ top: number; bottom: number }>;
 	/** Two shoulder strokes, from the neck outward and down past the bottom edge. */
-	shoulders: Readonly<{ path: string; top: number; bottom: number }>;
+	shoulders: Readonly<{ path: string; top: number }>;
 }>;
 
 const round = (value: number): number => Math.round(value * 100) / 100;
@@ -95,11 +93,6 @@ export const silhouetteGeometry = ({ width, height }: FrameSize): SilhouetteGeom
 		width: safeWidth,
 		height: safeHeight,
 		head: { cx: round(cx), cy: round(cy), rx: round(rx), ry: round(ry) },
-		neck: { top: round(chin), bottom: round(shoulderTop) },
-		shoulders: {
-			path: `${side(-1)} ${side(1)}`,
-			top: round(shoulderTop),
-			bottom: round(shoulderBottom)
-		}
+		shoulders: { path: `${side(-1)} ${side(1)}`, top: round(shoulderTop) }
 	};
 };

@@ -7,7 +7,18 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, leaveCreate, pack, storedQuery, uuid, wholeDays, workspace } from '../kit.ts';
+import {
+	ENTITY,
+	leaveCreate,
+	pack,
+	storedQuery,
+	uuid,
+	wholeDays,
+	workspace,
+	packTerms,
+	withSister,
+	stintOver
+} from '../kit.ts';
 
 const EMPLOYMENT = idOf('employment', uuid(6));
 const SALARY = 8000;
@@ -15,35 +26,8 @@ const BONUS = 20_000;
 type Seed = ReturnType<typeof pack>;
 type Schedule = Seed[string][number][string];
 /** One person on 8,000 a month from `from`. */
-const seedOf = (from: string): Seed => {
-	const seed = pack(
-		'MY',
-		'Asia/Kuala_Lumpur',
-		{
-			rate: { amount: SALARY, unit: 'MONTHLY' },
-			statutory_work_category: 'NON_MANUAL',
-			work_classification: 'EA_COVERED',
-			residency_status: 'CITIZEN',
-			wage_payment_method: 'BANK',
-			allowances: {}
-		},
-		{},
-		[],
-		[]
-	);
-	return {
-		...seed,
-		employment: (seed.employment ?? []).map((row) => ({
-			...row,
-			effective_range: { from, to: null }
-		})),
-		contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: from })),
-		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
-			...row,
-			effective_from: from
-		}))
-	};
-};
+const seedOf = (from: string): Seed =>
+	stintOver(pack('MY', 'Asia/Kuala_Lumpur', packTerms(SALARY), {}, [], []), from);
 const reschedule = (seed: Seed, payment_schedule: Schedule): Seed => ({
 	...seed,
 	pay_group: (seed.pay_group ?? []).map((row) => ({ ...row, payment_schedule }))
@@ -350,22 +334,11 @@ describe('a second salary in a pay month', () => {
 	const OTHER = idOf('entity', uuid(900));
 	/** The same person moves to a sister company on 16 June. */
 	const moved = (): Seed => {
-		const seed = seedOf('2026-04-01');
+		// the sister company has its own payroll, on the same schedule
+		const seed = withSister(seedOf('2026-04-01'));
 		const next = { from: '2026-06-16', to: null };
-		const [company = {}] = seed.entity ?? [];
-		const [change = {}] = seed.entity_change ?? [];
 		return {
 			...seed,
-			entity: [...(seed.entity ?? []), { ...company, id: OTHER, code: 'E2', name: 'Sister' }],
-			entity_change: [
-				...(seed.entity_change ?? []),
-				{ ...change, id: uuid(902), entity_id: OTHER }
-			],
-			// the sister company's own payroll, on the same schedule
-			pay_group: [
-				...(seed.pay_group ?? []),
-				...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
-			],
 			// the first stint ends, and a second starts the next day on the same terms
 			employment: (seed.employment ?? []).flatMap((row) => [
 				{ ...row, effective_range: { from: '2026-04-01', to: '2026-06-15' } },

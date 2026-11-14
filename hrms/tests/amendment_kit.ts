@@ -6,7 +6,7 @@ import type { Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, WORK, pack, storedQuery, uuid } from './kit.ts';
+import { ENTITY, WORK, current, pack, packTerms, storedQuery, uuid } from './kit.ts';
 
 export const dates = (month: string) => {
 	const last = new Date(
@@ -65,6 +65,14 @@ export const slip = (t: Kit, period: string, employee?: string) =>
 			breakdown: Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown)
 		};
 	});
+/** A run deleted. */
+export const dropped = (t: Kit, ran: { readonly id: Id<'payroll_run'> }) =>
+	Effect.gen(function* () {
+		yield* (yield* t.as(t.admin)).act({
+			'payroll_run.delete': [{ target: yield* current(t, 'payroll_run', ran.id) }]
+		});
+		yield* t.run_due();
+	});
 export const amendments = (t: Kit) =>
 	storedQuery(t, { pay_amendment: { limit: 1000 } }).pipe(
 		Effect.map(({ pay_amendment }) => pay_amendment.rows)
@@ -119,24 +127,13 @@ export const paidInAll = (t: Kit, ...periods: readonly string[]) =>
 	);
 
 // One person on the Malaysian pack, paid by the month: the fixture most of these tests correct.
-const TERMS = {
-	rate: { amount: 2800, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 45,
-	normal_days_per_week: 6,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 export const EMPLOYMENT = idOf('employment', uuid(6));
 /** These months on the roster, eight hours a working day; `overtime` keys two more hours on one day. */
 export const rostered = (months: readonly string[], overtime?: string, rate = 2800) =>
 	pack(
 		'MY',
 		'Asia/Kuala_Lumpur',
-		{ ...TERMS, rate: { amount: rate, unit: 'MONTHLY' } },
+		{ ...packTerms(rate, 'MANUAL_LABOUR'), normal_hours_per_week: 45, normal_days_per_week: 6 },
 		{},
 		months
 			.flatMap(working)

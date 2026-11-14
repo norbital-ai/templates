@@ -17,26 +17,18 @@ import {
 	workspace,
 	storedQuery,
 	keyOf,
-	current
+	current,
+	packTerms,
+	withSecond,
+	withSister,
+	endStint
 } from '../kit.ts';
 
 const NOW = '2026-03-20T02:00:00.000Z';
-const TERMS = {
-	rate: { amount: 2800, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 const A = idOf('pay_group', PAY_GROUP);
 const B = idOf('pay_group', uuid(808));
 const FIRST = idOf('employment', uuid(6));
 const SECOND = idOf('employment', uuid(906));
-const SISTER = idOf('entity', uuid(900));
 const SISTER_GROUP = idOf('pay_group', uuid(908));
 const MONTHLY = {
 	frequency: 'MONTHLY',
@@ -55,58 +47,22 @@ const SEMI_MONTHLY = {
 	pay_days: [15, 31]
 };
 
-const base = () => pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
+const base = () => pack('MY', 'Asia/Kuala_Lumpur', packTerms(2800, 'MANUAL_LABOUR'), {}, [], []);
 type Seed = ReturnType<typeof base>;
 /** One company, two payrolls: the first person is paid in A (Monthly), the second in B (Executives). */
 const twoGroups = (schedule: typeof MONTHLY = MONTHLY): Seed => {
-	const seed = base();
+	const seed = withSecond(base());
 	const [group] = seed.pay_group ?? [];
-	const [profile] = seed.employee_profile ?? [];
-	const [stint] = seed.employment ?? [];
-	const [terms] = seed.contract_terms ?? [];
-	const [parameters] = seed.statutory_parameters ?? [];
-	assert.ok(
-		group !== undefined &&
-			profile !== undefined &&
-			stint !== undefined &&
-			terms !== undefined &&
-			parameters !== undefined
-	);
+	assert.ok(group !== undefined);
 	return {
 		...seed,
 		pay_group: [
 			{ ...group, payment_schedule: MONTHLY },
 			{ ...group, id: B, name: 'Executives', payment_schedule: schedule }
 		],
-		sys_user: [
-			...(seed.sys_user ?? []),
-			{ id: uuid(903), name: 'Second', email: 'second@example.test', kind: 'staff' }
-		],
-		employee_profile: [
-			...(seed.employee_profile ?? []),
-			{ ...profile, id: uuid(904), user_id: uuid(903), name: 'Second' }
-		],
-		employee_balance: [
-			...(seed.employee_balance ?? []),
-			{ id: uuid(905), employee_id: uuid(904), account: {} }
-		],
-		employment: [stint, { ...stint, id: SECOND, employee_id: uuid(904), employee_number: 'W2' }],
-		contract_terms: [terms, { ...terms, id: uuid(914), employment_id: SECOND, pay_group_id: B }],
-		statutory_parameters: [parameters, { ...parameters, id: uuid(915), employment_id: SECOND }]
-	};
-};
-/** The two payrolls, and a sister company with its own. */
-const withSister = (): Seed => {
-	const seed = twoGroups();
-	const [group] = seed.pay_group ?? [];
-	const [company] = seed.entity ?? [];
-	const [change] = seed.entity_change ?? [];
-	assert.ok(group !== undefined && company !== undefined && change !== undefined);
-	return {
-		...seed,
-		entity: [...(seed.entity ?? []), { ...company, id: SISTER, code: 'E2', name: 'Sister' }],
-		entity_change: [...(seed.entity_change ?? []), { ...change, id: uuid(902), entity_id: SISTER }],
-		pay_group: [...(seed.pay_group ?? []), { ...group, id: SISTER_GROUP, entity_id: SISTER }]
+		contract_terms: (seed.contract_terms ?? []).map((row) =>
+			row.employment_id === SECOND ? { ...row, pay_group_id: B } : row
+		)
 	};
 };
 
@@ -177,19 +133,7 @@ const termsFrom = (t: Kit, from: string) =>
 		Effect.map(({ contract_terms }) => contract_terms.rows)
 	);
 /** A stint given its last day. */
-const end = (t: Kit, stint: Id<'employment'>, to: string) =>
-	Effect.gen(function* () {
-		const { employment } = yield* storedQuery(t, {
-			employment: { where: { id: { eq: stint } }, limit: 1 }
-		});
-		const [held] = employment.rows;
-		assert.ok(held !== undefined);
-		return yield* (yield* t.as(t.admin)).act({
-			'employment.update': [
-				{ target: held, set: { effective_range: { from: held.effective_range.from, to } } }
-			]
-		});
-	});
+const end = (t: Kit, stint: Id<'employment'>, to: string) => endStint(t, to, undefined, stint);
 
 describe('a run pays one pay group', () => {
 	it.live('only the people in it, and the other group’s same period still runs', () =>
@@ -227,7 +171,7 @@ describe('a run pays one pay group', () => {
 				'errors.payroll_run_group_other_company'
 			);
 			assert.equal((yield* runs(t)).length, 0);
-		}).pipe(Effect.provide(workspace({ seed: withSister(), now: NOW })))
+		}).pipe(Effect.provide(workspace({ seed: withSister(twoGroups()), now: NOW })))
 	);
 
 	it.live('the same group and period twice: the second is refused and moves nothing', () =>
@@ -411,7 +355,7 @@ describe('a person’s terms and their pay group', () => {
 			const refused = yield* Effect.flip(moveTo(t, '2026-04-01', SISTER_GROUP));
 			assert.equal(keyOf(refused), 'errors.contract_terms_pay_group_other_company');
 			assert.deepEqual(yield* termsFrom(t, '2026-04-01'), []);
-		}).pipe(Effect.provide(workspace({ seed: withSister(), now: NOW })))
+		}).pipe(Effect.provide(workspace({ seed: withSister(twoGroups()), now: NOW })))
 	);
 
 	it.live('a change may not leave the person in no group; naming one moves them', () =>

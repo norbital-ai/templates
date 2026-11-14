@@ -21,24 +21,15 @@ import {
 	storedQuery,
 	storedReader,
 	uuid,
-	workspace
+	workspace,
+	packTerms
 } from '../kit.ts';
 
 const PROFILE = idOf('employee_profile', uuid(4));
 const STINT = idOf('employment', EMPLOYMENT);
 const RATE = 3000;
 const RAISED = 3200;
-const terms = {
-	rate: { amount: RATE, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
+const terms = packTerms(RATE);
 const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 // a married woman employed since 2026: her stint and its first rows start that day
 const seed: ReturnType<typeof pack> = {

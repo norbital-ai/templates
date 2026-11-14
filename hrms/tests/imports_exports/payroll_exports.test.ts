@@ -17,21 +17,17 @@ import { inForce } from '../../src/lib/dated.ts';
 import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { termsChange } from '../../src/lib/person.ts';
-import { ENTITY, pack, storedQuery, storedReader, workspace, decimalNumber } from '../kit.ts';
+import {
+	ENTITY,
+	pack,
+	storedQuery,
+	storedReader,
+	workspace,
+	decimalNumber,
+	packTerms
+} from '../kit.ts';
 
-const terms = {
-	rate: { amount: 8000, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {},
-	job_title: 'Engineer',
-	department: 'Operations'
-};
+const terms = { ...packTerms(8000), job_title: 'Engineer', department: 'Operations' };
 const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 
 describe('the salary listing', () => {

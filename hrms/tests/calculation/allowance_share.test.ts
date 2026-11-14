@@ -7,7 +7,18 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { run } from '../amendment_kit.ts';
-import { ENTITY, lawAt, lawWith, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import {
+	ENTITY,
+	lawAt,
+	lawWith,
+	pack,
+	storedQuery,
+	uuid,
+	workspace,
+	packTerms,
+	withSister,
+	stintOver
+} from '../kit.ts';
 
 const NOW = '2026-06-20T02:00:00.000Z';
 const ALLOWANCE = 300;
@@ -15,36 +26,14 @@ type Seed = ReturnType<typeof pack>;
 const seed: Seed = pack(
 	'MY',
 	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 3120, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: { SUA: { amount: ALLOWANCE } }
-	},
+	{ ...packTerms(3120, 'MANUAL_LABOUR'), allowances: { SUA: { amount: ALLOWANCE } } },
 	{},
 	[],
 	[]
 );
-const dated = (from: Seed, range: { from: string; to: string | null }): Seed => ({
-	...from,
-	employment: (from.employment ?? []).map((row) => ({
-		...row,
-		effective_range: range
-	})),
-	contract_terms: (from.contract_terms ?? []).map((row) => ({
-		...row,
-		effective_from: range.from
-	})),
-	statutory_parameters: (from.statutory_parameters ?? []).map((row) => ({
-		...row,
-		effective_from: range.from
-	}))
-});
 /** The stint ends on 15 June and a second of the same person starts the next day, on the same terms. */
 const split = (stint: Seed[string][number] = {}, terms: Seed[string][number] = {}): Seed => {
-	const held = dated(seed, { from: '2025-01-01', to: '2026-06-15' });
+	const held = stintOver(seed, '2025-01-01', '2026-06-15');
 	const next = { from: '2026-06-16', to: null };
 	return {
 		...held,
@@ -100,7 +89,7 @@ const june = (from: Seed) =>
 
 describe('an allowance and the share of the period paid', () => {
 	const joiner = (prorate: boolean): Seed => {
-		const held = dated(seed, { from: '2026-06-16', to: null });
+		const held = stintOver(seed, '2026-06-16');
 		if (prorate) return held;
 		const row = lawAt('MY', '2026-06-15').rows.allowance_catalog.find((one) => one.code === 'SUA');
 		assert.ok(row !== undefined);
@@ -147,8 +136,8 @@ describe('an allowance across a month of stints', () => {
 	it.live('a joiner and a leaver pay their days', () =>
 		Effect.gen(function* () {
 			// one joins the day after the other leaves: between them the month is whole
-			const joiner = yield* june(dated(seed, { from: '2026-06-16', to: null }));
-			const leaver = yield* june(dated(seed, { from: '2025-01-01', to: '2026-06-15' }));
+			const joiner = yield* june(stintOver(seed, '2026-06-16'));
+			const leaver = yield* june(stintOver(seed, '2025-01-01', '2026-06-15'));
 			assert.equal(joiner.length + leaver.length, 2);
 			shared([...joiner, ...leaver]);
 		})
@@ -160,21 +149,8 @@ describe('an allowance across a month of stints', () => {
 
 	it.live('a transfer to a sister company pays each its share, once between them', () => {
 		const OTHER = idOf('entity', uuid(900));
-		const [company = {}] = seed.entity ?? [];
-		const [change = {}] = seed.entity_change ?? [];
-		const moved: Seed = {
-			...split({ entity_id: OTHER }, { pay_group_id: uuid(908) }),
-			entity: [...(seed.entity ?? []), { ...company, id: OTHER, code: 'E2', name: 'Sister' }],
-			entity_change: [
-				...(seed.entity_change ?? []),
-				{ ...change, id: uuid(902), entity_id: OTHER }
-			],
-			// the sister company's own payroll, on the same schedule
-			pay_group: [
-				...(seed.pay_group ?? []),
-				...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
-			]
-		};
+		// the sister company has its own payroll, on the same schedule
+		const moved = withSister(split({ entity_id: OTHER }, { pay_group_id: uuid(908) }));
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t, '2026-06');

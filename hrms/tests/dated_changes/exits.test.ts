@@ -19,47 +19,30 @@ import {
 	storedReader,
 	syncAll,
 	uuid,
-	workspace
+	workspace,
+	packTerms,
+	agreedTerms,
+	stintOf,
+	endStint
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const STINT = idOf('employment', EMPLOYMENT);
 const PROFILE = idOf('employee_profile', uuid(4));
-const agreed = {
-	rate: { amount: 3000, unit: 'MONTHLY' as const },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	wage_payment_method: 'BANK' as const,
-	allowances: {}
-};
-const terms = { ...agreed, residency_status: 'CITIZEN' };
+const agreed = agreedTerms(3000);
+const terms = packTerms(3000);
 const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
 
-/** The first stint as stored now: a write's target at its current revision. */
-const stint = (t: Kit) =>
-	storedQuery(t, { employment: { where: { id: { eq: STINT } }, limit: 1 } }).pipe(
-		Effect.map(({ employment }) => {
-			const [row] = employment.rows;
-			assert.ok(row !== undefined);
-			return row;
-		})
-	);
 /** The first stint's last day is `to`, with a reason. */
 const ending = (t: Kit, to: string) =>
-	stint(t).pipe(
+	stintOf(t).pipe(
 		Effect.map((target) => ({
 			target,
 			set: { effective_range: { from: '2025-01-01', to }, reason: 'Resignation' }
 		}))
 	);
 /** End the first stint on `to`, with a reason. */
-const end = (t: Kit, to: string) =>
-	Effect.all([t.as(t.admin), ending(t, to)]).pipe(
-		Effect.andThen(([caller, row]) => caller.act({ 'employment.update': [row] }))
-	);
+const end = (t: Kit, to: string) => endStint(t, to, 'Resignation');
 /** A new stint of the same person with the same company from `from`: its first terms and parameters on its first day. */
 const next = (from: string) => ({
 	employee_id: PROFILE,
@@ -138,7 +121,7 @@ describe('an exit', () => {
 				yield* end(t, '2026-10-31');
 				yield* (yield* t.as(t.admin)).act({
 					'employment.update': [
-						{ target: yield* stint(t), set: { reason: 'Resignation confirmed' } }
+						{ target: yield* stintOf(t), set: { reason: 'Resignation confirmed' } }
 					]
 				});
 				yield* t.run_due();

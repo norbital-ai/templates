@@ -4,14 +4,13 @@
 // expected figure is one the test chose or the system itself produced.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import type { Id } from '@norbital-ai/bolt';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import type { Json } from '../../src/lib/payroll_engine/foundation.ts';
 import { objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import { amendments, carriedFor, ownLines, pay, run } from '../amendment_kit.ts';
-import { current, lawAt, pack, refusal, storedQuery, workspace } from '../kit.ts';
+import { amendments, carriedFor, dropped, ownLines, pay, run } from '../amendment_kit.ts';
+import { lawAt, pack, refusal, storedQuery, workspace, packTerms } from '../kit.ts';
 
 const CODE = 'MY';
 const NOW = '2027-02-05T02:00:00.000Z';
@@ -20,21 +19,7 @@ const LINE = `${ROW}/EMPLOYEE`;
 const WAGE = 10_000;
 /** The first day the mistaken change is keyed for: the fixture's law has no change of its own on or after it. */
 const FROM = '2027-02-01';
-const SEED = pack(
-	CODE,
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: WAGE, unit: 'MONTHLY' },
-		statutory_work_category: 'NON_MANUAL',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[]
-);
+const SEED = pack(CODE, 'Asia/Kuala_Lumpur', packTerms(WAGE), {}, [], []);
 /** The row's table as the law in force holds it, its rate, and the one the mistaken change keys instead. */
 const LOOKUP = objectValue(
 	lawAt(CODE, NOW.slice(0, 10)).rows.statutory_contribution_catalog.find((row) => row.code === ROW)
@@ -157,14 +142,6 @@ const decided = (t: Kit, status: 'CONFIRMED' | 'REJECTED') =>
 		assert.deepEqual(others, []);
 		yield* (yield* t.as(t.admin)).act({
 			'statutory_finding.update': [{ target: finding, set: { status } }]
-		});
-		yield* t.run_due();
-	});
-/** The run of a period deleted. */
-const dropped = (t: Kit, ran: { readonly id: Id<'payroll_run'> }) =>
-	Effect.gen(function* () {
-		yield* (yield* t.as(t.admin)).act({
-			'payroll_run.delete': [{ target: yield* current(t, 'payroll_run', ran.id) }]
 		});
 		yield* t.run_due();
 	});

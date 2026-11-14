@@ -300,14 +300,7 @@ export default messages({
 	'kiosk.no_face': 'No face detected',
 	'kiosk.no_face_detail': 'Step in front of the camera and look at it.',
 	'kiosk.no_people_match': 'No employees match this search.',
-	'kiosk.not_a_work_day': 'Today is not a working day',
-	'kiosk.not_a_work_day_detail':
-		'Today is scheduled as {code}. Ask your supervisor if you are covering it.',
-	'kiosk.not_scheduled': 'Not scheduled today',
-	'kiosk.not_scheduled_detail':
-		'There is no shift on your roster for today, so attendance cannot be recorded. Ask your supervisor to roster the day.',
 	'kiosk.organization_fallback': 'Your organization',
-	'kiosk.organization_logo': '{name} logo',
 	'kiosk.preparing': 'Preparing attendance kiosk',
 	'kiosk.preparing_detail': 'Starting the camera and secure face matching…',
 	'kiosk.read_failed': 'Face could not be read',

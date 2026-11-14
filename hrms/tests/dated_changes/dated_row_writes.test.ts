@@ -12,6 +12,7 @@ import { Effect, Schema } from 'effect';
 import { verify } from '../../src/lib/integrity.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { amendments } from '../amendment_kit.ts';
 import {
 	EMPLOYMENT,
 	ENTITY,
@@ -29,22 +30,14 @@ import {
 	storedReader,
 	syncAll,
 	uuid,
-	workspace
+	workspace,
+	agreedTerms
 } from '../kit.ts';
 
 const NOW = '2026-03-20T02:00:00.000Z';
 const RATE = 2800;
 const RAISED = 3200;
-const AGREED = {
-	rate: { amount: RATE, unit: 'MONTHLY' as const },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	wage_payment_method: 'BANK' as const,
-	allowances: {}
-};
+const AGREED = agreedTerms(RATE, 'MANUAL_LABOUR');
 const FIRST = idOf('employment', EMPLOYMENT);
 const NEXT = idOf('employment', uuid(907));
 const FIRST_TERMS = idOf('contract_terms', TERMS);
@@ -118,10 +111,6 @@ const basicOf = (slip: { readonly breakdown: unknown } | undefined) =>
 	breakdown(slip).checkpoints.find((point) => point.code === 'BASIC')?.value;
 // the first run of a workspace: a write refused under it while it is unpaid is told so by its number
 const HELD = /Run 1 holds this person and is not paid yet/;
-const amendments = (t: Kit) =>
-	storedQuery(t, { pay_amendment: { limit: 100 } }).pipe(
-		Effect.map(({ pay_amendment }) => pay_amendment.rows)
-	);
 const failures = (t: Kit) =>
 	storedQuery(t, { obligation: { limit: 500 } }).pipe(
 		Effect.map(({ obligation }) =>

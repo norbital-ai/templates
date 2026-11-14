@@ -429,6 +429,117 @@ export const pack = (
 	};
 };
 
+type Seed = ReturnType<typeof pack>;
+/** What a Malaysian test contract agrees, as a write takes it: a monthly rate for the ordinary week, paid to the bank. */
+export const agreedTerms = (amount: number, statutory_work_category = 'NON_MANUAL') => ({
+	rate: { amount, unit: 'MONTHLY' as const },
+	normal_hours_per_day: 8,
+	normal_hours_per_week: 40,
+	normal_days_per_week: 5,
+	statutory_work_category,
+	work_classification: 'EA_COVERED',
+	wage_payment_method: 'BANK' as const,
+	allowances: {}
+});
+/** Those terms as `pack` takes them: with what the law is told of the person, a citizen. */
+export const packTerms = (amount: number, statutory_work_category?: string) => ({
+	...agreedTerms(amount, statutory_work_category),
+	residency_status: 'CITIZEN'
+});
+/** A model's rows and one more, like its first but for `row`. */
+const like = (seed: Seed, model: string, row: JsonObject): readonly JsonObject[] => [
+	...(seed[model] ?? []),
+	{ ...(seed[model]?.[0] ?? {}), ...row }
+];
+/**
+ * A second person in the pack's company and payroll, on the same terms: login `uuid(903)`, profile `uuid(904)`, balance
+ * `uuid(905)`, stint `uuid(906)` numbered W2, its terms `uuid(914)` and parameters `uuid(915)`; on the same roster, its
+ * days from `uuid(5000)`, when `rostered`.
+ */
+export const withSecond = (seed: Seed, rostered = false): Seed => {
+	const stint = uuid(906);
+	return {
+		...seed,
+		sys_user: [
+			...(seed.sys_user ?? []),
+			{ id: uuid(903), name: 'Second', email: 'second@example.test', kind: 'staff' }
+		],
+		employee_profile: like(seed, 'employee_profile', {
+			id: uuid(904),
+			user_id: uuid(903),
+			name: 'Second'
+		}),
+		employee_balance: [
+			...(seed.employee_balance ?? []),
+			{ id: uuid(905), employee_id: uuid(904), account: {} }
+		],
+		employment: like(seed, 'employment', {
+			id: stint,
+			employee_id: uuid(904),
+			employee_number: 'W2'
+		}),
+		contract_terms: like(seed, 'contract_terms', { id: uuid(914), employment_id: stint }),
+		statutory_parameters: like(seed, 'statutory_parameters', {
+			id: uuid(915),
+			employment_id: stint
+		}),
+		...(rostered
+			? {
+					roster_entry: [
+						...(seed.roster_entry ?? []),
+						...(seed.roster_entry ?? []).map((row, index) => ({
+							...row,
+							id: uuid(5000 + index),
+							employment_id: stint
+						}))
+					]
+				}
+			: {})
+	};
+};
+/** A sister company `uuid(900)`, its dated values `uuid(902)` and its own payroll `uuid(908)`, each like the pack's. */
+export const withSister = (seed: Seed): Seed => ({
+	...seed,
+	entity: like(seed, 'entity', { id: uuid(900), code: 'E2', name: 'Sister' }),
+	entity_change: like(seed, 'entity_change', { id: uuid(902), entity_id: uuid(900) }),
+	pay_group: like(seed, 'pay_group', { id: uuid(908), entity_id: uuid(900) })
+});
+/** The pack's stint over these days, its first terms and parameters on its first day. */
+export const stintOver = (seed: Seed, from: string, to: string | null = null): Seed => ({
+	...seed,
+	employment: (seed.employment ?? []).map((row) => ({ ...row, effective_range: { from, to } })),
+	contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: from })),
+	statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+		...row,
+		effective_from: from
+	}))
+});
+/** A stint as stored now (the pack's, unless named): a write's target at its current revision. */
+export const stintOf = (t: Kit, id: Id<'employment'> = idOf('employment', EMPLOYMENT)) =>
+	storedQuery(t, { employment: { where: { id: { eq: id } }, limit: 1 } }).pipe(
+		Effect.map(({ employment }) => {
+			const [held] = employment.rows;
+			if (held === undefined) throw new Error('No such stint');
+			return held;
+		})
+	);
+/** A stint's last day is `to`, or none again: the one write an exit, its move and its withdrawal are. */
+export const endStint = (t: Kit, to: string | null, reason?: string, id?: Id<'employment'>) =>
+	Effect.gen(function* () {
+		const held = yield* stintOf(t, id);
+		return yield* (yield* t.as(t.admin)).act({
+			'employment.update': [
+				{
+					target: held,
+					set: {
+						effective_range: { from: held.effective_range.from, to },
+						...(reason === undefined ? {} : { reason })
+					}
+				}
+			]
+		});
+	});
+
 /** A leave request carries `days`; the model stores them as owned child slots. */
 export const leaveCreate = <
 	T extends { readonly days: readonly { readonly date: string; readonly part: 'AM' | 'PM' }[] }

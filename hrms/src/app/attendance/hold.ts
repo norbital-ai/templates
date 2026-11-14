@@ -1,5 +1,5 @@
 import { KIOSK_CONFIRMATION_SECONDS, KIOSK_LIVE_MIN } from './config.js';
-import { KIOSK_MATCH_THRESHOLD } from './embed.js';
+import { faceDistance, KIOSK_MATCH_THRESHOLD } from './embed.js';
 
 export type KioskHold = Readonly<{
 	/** The first embedding of the hold: every later frame must still be this person. */
@@ -18,21 +18,8 @@ export type KioskHold = Readonly<{
  */
 const KIOSK_LIVE_SMOOTHING = 0.4;
 
-export const sameKioskPerson = (first: readonly number[], second: readonly number[]): boolean => {
-	if (first.length !== second.length) return false;
-	let firstNorm = 0;
-	let secondNorm = 0;
-	let dot = 0;
-	for (const [i, a] of first.entries()) {
-		const b = second[i];
-		if (b === undefined) return false;
-		firstNorm += a * a;
-		secondNorm += b * b;
-		dot += a * b;
-	}
-	const norm = firstNorm * secondNorm;
-	return Number.isFinite(norm) && norm > 0 && 1 - dot / Math.sqrt(norm) <= KIOSK_MATCH_THRESHOLD;
-};
+export const sameKioskPerson = (first: readonly number[], second: readonly number[]): boolean =>
+	faceDistance(first, second) <= KIOSK_MATCH_THRESHOLD;
 
 /**
  * Camera observations own the hold. A server response cannot start or extend it, and neither can

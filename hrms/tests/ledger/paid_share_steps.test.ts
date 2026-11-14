@@ -8,6 +8,7 @@ import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	lawAt,
@@ -19,24 +20,15 @@ import {
 	wholeDays,
 	workspace,
 	leaveCreate,
-	storedQuery
+	storedQuery,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const CODE = 'EMERGENCY_LEAVE';
 const near = (actual: number, expected: number) =>
 	assert.ok(Math.abs(actual - expected) < 0.01, `${actual} is not ${expected}`);
-const terms = {
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
+const terms = packTerms(3120);
 /** The unpaid share of each step, by the months the illness has run. */
 const STEPS = [
 	{ until_month: 4, unpaid_share: 0 },
@@ -76,10 +68,6 @@ const take = (t: Kit, dates: readonly string[]) =>
 			]
 		})
 	);
-const run = (t: Kit, period: string) =>
-	Effect.flatMap(t.as(t.admin), (caller) =>
-		caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-	).pipe(Effect.andThen(t.run_due()));
 const breakdowns = (t: Kit) =>
 	storedQuery(t, { payslip: { limit: 12 } }).pipe(
 		Effect.map(({ payslip }) =>

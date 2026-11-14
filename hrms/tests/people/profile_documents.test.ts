@@ -17,23 +17,13 @@ import {
 	query,
 	storedQuery,
 	refusal,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const PROFILE = idOf('employee_profile', uuid(4));
-const terms = {
-	rate: { amount: 8000, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
-const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
+const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
 /** The profile as stored now: a write's target at its current revision. */
 const profile = (t: Kit) =>
 	storedQuery(t, { employee_profile: { where: { id: { eq: PROFILE } }, limit: 1 } }).pipe(

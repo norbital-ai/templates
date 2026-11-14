@@ -17,21 +17,15 @@ import {
 	syncAll,
 	uuid,
 	workspace,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
 const YEAR = 'MY.Y.2026-01-01';
 const BALANCE = idOf('employee_balance', uuid(5));
-const TERMS = {
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
+const TERMS = packTerms(3120, 'MANUAL_LABOUR');
 const seed = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
 type Member = ReturnType<Kit['member']>;
 const hrOf = (t: Kit) => t.member(['hr_controller']);

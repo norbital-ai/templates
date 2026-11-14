@@ -25,7 +25,7 @@
 		Stack
 	} from '@norbital-ai/ui/layout';
 	import ManualTab from './manual.svelte';
-	import { punchWork, type PunchResult as PunchCommandResult } from './punch.js';
+	import { punchTime, punchWork, rangeCovers, type PunchResult } from './punch.js';
 	import {
 		createAnalyseCanvas,
 		drawVideoFrame,
@@ -35,7 +35,7 @@
 		unpaddedFaceBox
 	} from './face.ts';
 	import { KIOSK_CAPTURE_HEIGHT, KIOSK_CAPTURE_WIDTH } from './config.ts';
-	import { KIOSK_MATCH_THRESHOLD } from './embed.ts';
+	import { faceDistance, KIOSK_MATCH_THRESHOLD } from './embed.ts';
 	import { readKioskSettings, writeKioskSettings } from './settings.ts';
 	import { browserNarratorPlatform, createKioskNarrator } from './voice.ts';
 	import { kioskVoiceLanguage, kioskCaptureRefusalPhrase, type KioskPhraseKey } from './phrases.ts';
@@ -72,7 +72,6 @@
 		employeeNumber: string;
 		companyId: Id<'entity'>;
 	}>;
-	type PunchResult = PunchCommandResult;
 	/** What the kiosk's own face match answers. */
 	type MatchResult =
 		| {
@@ -117,9 +116,6 @@
 	const challengeLeft = $derived(phase._tag === 'challenge' ? kioskSecondsLeft(phase.hold) : 0);
 	let voiceEnabled = $state(settings.voiceEnabled);
 	let now = $state(new Date());
-	// Bolt gap: a page reads no organization identity, so the header shows the fallback name and initials.
-	const organizationName = '';
-	const organizationLogoUrl: string | null = null;
 	/** The cell the camera frame is given, measured; the frame is the video's ratio fitted inside it. */
 	let cell = $state<FrameSize>({ width: KIOSK_CAPTURE_WIDTH, height: KIOSK_CAPTURE_HEIGHT });
 	/** What the camera actually delivers: iOS rotates it with the tablet, so it is read off the video. */
@@ -195,9 +191,8 @@
 			? ctx.t('kiosk.entity_unknown')
 			: (companyById.get(candidate.companyId) ?? ctx.t('kiosk.entity_unknown'))
 	);
-	const organizationDisplayName = $derived(
-		organizationName.trim() || ctx.t('kiosk.organization_fallback')
-	);
+	// Bolt gap: a page reads no organization identity, so the header shows the fallback name and initials.
+	const organizationDisplayName = $derived(ctx.t('kiosk.organization_fallback'));
 	const organizationInitials = $derived(
 		organizationDisplayName
 			.split(/\s+/)
@@ -226,22 +221,6 @@
 				icon: 'lucide:clock',
 				title: ctx.t('offboarding.pending'),
 				detail: ctx.t('kiosk.pending_approval_detail')
-			};
-		// Not rostered today is not a failure and must not be dressed as one: the person did nothing
-		// wrong, and the only useful thing the screen can do is name the day's plan.
-		if (punch?.reason === 'not-scheduled')
-			return {
-				tone: 'warning',
-				icon: 'lucide:calendar-off',
-				title: ctx.t('kiosk.not_scheduled'),
-				detail: ctx.t('kiosk.not_scheduled_detail')
-			};
-		if (punch?.reason === 'not-a-work-day')
-			return {
-				tone: 'warning',
-				icon: 'lucide:calendar-off',
-				title: ctx.t('kiosk.not_a_work_day'),
-				detail: ctx.t('kiosk.not_a_work_day_detail', { code: punch.plannedCode ?? '—' })
 			};
 		if (punch?.reason === 'cooldown')
 			return {
@@ -345,13 +324,7 @@
 					title: punch.status === 'out' ? ctx.t('kiosk.recorded_out') : ctx.t('kiosk.recorded_in'),
 					detail: ctx.t('kiosk.recorded_detail', {
 						name: candidate.employeeName,
-						time:
-							punch.time === undefined
-								? '—'
-								: new Intl.DateTimeFormat(ctx.locale, {
-										hour: '2-digit',
-										minute: '2-digit'
-									}).format(DateTime.toDateUtc(DateTime.makeUnsafe(punch.time)))
+						time: punchTime(ctx.locale, punch.time)
 					})
 				}),
 				blocked: ({ punch }) => blockedStatus(punch),
@@ -481,7 +454,7 @@
 		scheduleResume();
 	};
 	/** Only a committed punch announces arrival/departure; the screen explains pending or refused writes. */
-	const acceptPunch = (result: PunchCommandResult) => {
+	const acceptPunch = (result: PunchResult) => {
 		if (tab !== 'scan' || phase._tag !== 'working') return;
 		const held = phase.candidate;
 		phase =
@@ -512,6 +485,16 @@
 			true
 		);
 	};
+	const failRead = (error: unknown) =>
+		rejectFace(
+			{
+				tone: 'error',
+				icon: 'lucide:triangle-alert',
+				title: ctx.t('kiosk.read_failed'),
+				detail: getErrorMessage(error)
+			},
+			'try_again'
+		);
 	/**
 	 * A reply for the hold that asked. An empty reply is not a verdict: the frame that produced the
 	 * probe may have been blurred or half-turned, so the hold simply asks again with its next
@@ -552,29 +535,6 @@
 			}
 		});
 	};
-	/** Cosine distance between two descriptors; `NaN` when either is unusable. */
-	const faceDistance = (left: readonly number[], right: readonly number[]): number => {
-		if (left.length === 0 || left.length !== right.length) return Number.NaN;
-		let dot = 0;
-		let leftNorm = 0;
-		let rightNorm = 0;
-		for (const [i, a] of left.entries()) {
-			const b = right[i];
-			if (b === undefined) return Number.NaN;
-			dot += a * b;
-			leftNorm += a * a;
-			rightNorm += b * b;
-		}
-		const norm = leftNorm * rightNorm;
-		return Number.isFinite(norm) && norm > 0 ? 1 - dot / Math.sqrt(norm) : Number.NaN;
-	};
-	const rangeCovers = (
-		range: {
-			readonly from: string;
-			readonly to: string | null;
-		},
-		day: string
-	): boolean => range.from <= day && (range.to == null || range.to >= day);
 	/**
 	 * The enrolled person nearest the probe, then their current stint with the entity. A cleared
 	 * face_embedding on the signed-in person's profile is not read: the read is over APPROVED rows only.
@@ -737,7 +697,6 @@
 			}
 			handles.unreadableSince = 0;
 			handles.absentSince = 0;
-			if (phase._tag === 'scan') phase = Phase.scan({ hint: null });
 			phase = Phase.challenge({ hold, candidate: hold.probe !== previousProbe ? null : candidate });
 			if (candidate === null && !handles.matchInFlight && kioskSecondsLeft(hold) === 0) {
 				// Two seconds of live frames, and the last reply named nobody.
@@ -769,15 +728,7 @@
 									handles.disposed
 								)
 									return;
-								rejectFace(
-									{
-										tone: 'error',
-										icon: 'lucide:triangle-alert',
-										title: ctx.t('kiosk.read_failed'),
-										detail: getErrorMessage(error)
-									},
-									'try_again'
-								);
+								failRead(error);
 							})
 						),
 						Effect.ensuring(
@@ -818,15 +769,7 @@
 			Effect.catch((error) =>
 				Effect.sync(() => {
 					if (handles.disposed || activeSession !== handles.scanSession) return;
-					rejectFace(
-						{
-							tone: 'error',
-							icon: 'lucide:triangle-alert',
-							title: ctx.t('kiosk.read_failed'),
-							detail: getErrorMessage(error)
-						},
-						'try_again'
-					);
+					failRead(error);
 				})
 			),
 			Effect.ensuring(
@@ -892,15 +835,7 @@
 	>
 		<Inline gap="sm">
 			<Inline justify="center" class="size-10 overflow-clip rounded-lg border bg-background">
-				{#if organizationLogoUrl !== null}
-					<img
-						src={organizationLogoUrl}
-						alt={ctx.t('kiosk.organization_logo', { name: organizationDisplayName })}
-						class="size-full object-contain p-1"
-					/>
-				{:else}
-					<span class="text-sm font-semibold">{organizationInitials}</span>
-				{/if}
+				<span class="text-sm font-semibold">{organizationInitials}</span>
 			</Inline>
 			<div class="min-w-0">
 				<p class="truncate text-heading">{organizationDisplayName}</p>

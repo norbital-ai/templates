@@ -4,25 +4,14 @@
 // company value that varies by date; the run is on the MY pack, and every expected figure is one the system produced.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
 import { employerOn } from '../../src/lib/company.ts';
 import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
 import { isJsonObject, type JsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { amendments, carriedFor, ownLines, pay, run, working } from '../amendment_kit.ts';
-import {
-	ENTITY,
-	WORK,
-	current,
-	lawAt,
-	pack,
-	refusal,
-	storedQuery,
-	uuid,
-	workspace
-} from '../kit.ts';
+import { amendments, carriedFor, dropped, ownLines, pay, run, working } from '../amendment_kit.ts';
+import { ENTITY, WORK, lawAt, pack, refusal, storedQuery, uuid, workspace } from '../kit.ts';
 
 const LAW = lawAt('VN', '2026-12-31');
 /** A registered rule's check, with the law's shared lookup under its own. */
@@ -205,14 +194,6 @@ const moved = (t: Kit, to: string) =>
 const deleted = (t: Kit) =>
 	Effect.gen(function* () {
 		yield* (yield* t.as(t.admin)).act({ 'entity_change.delete': [{ target: yield* filed(t) }] });
-		yield* t.run_due();
-	});
-/** The run of a period deleted. */
-const dropped = (t: Kit, ran: { readonly id: Id<'payroll_run'> }) =>
-	Effect.gen(function* () {
-		yield* (yield* t.as(t.admin)).act({
-			'payroll_run.delete': [{ target: yield* current(t, 'payroll_run', ran.id) }]
-		});
 		yield* t.run_due();
 	});
 /** What a period's own payslip paid for its overtime. */

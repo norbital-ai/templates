@@ -23,7 +23,8 @@ import {
 	wholeDays,
 	workspace,
 	storedQuery,
-	storedReader
+	storedReader,
+	packTerms
 } from '../kit.ts';
 
 // between two changes of the law the template holds (8 July to 31 December 2026)
@@ -33,21 +34,7 @@ const YEAR = 'MY.Y.2026-01-01';
 const BALANCE = uuid(5);
 const EMPLOYMENT = idOf('employment', uuid(6));
 const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
-const seed = pack(
-	'MY',
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 3120, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[]
-);
+const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []);
 type Seed = typeof seed;
 const holding = (account: Accounts, more: Seed = {}): Seed => ({
 	...seed,

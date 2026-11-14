@@ -1,9 +1,7 @@
 <script lang="ts">
 	/** Workplace case files of one legal entity: requests, incidents and changes its version lists. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
-	import type { ActInput, Row } from '@norbital-ai/bolt';
+	import type { Row } from '@norbital-ai/bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { EmptyState, RecordShell, Sheet, Table } from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
@@ -11,10 +9,7 @@
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';
 	import { parseCaseSheet } from '../../../lib/payroll_engine/entry_workbook.js';
-	import {
-		runWorkbookImport,
-		type WorkbookGrids
-	} from '../../../lib/ui/workbook/workbook_import.js';
+	import { entryImport } from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 
 	const scope = companyScope(ctx);
@@ -24,8 +19,6 @@
 		scope.entities.map((row) => row.settings_code)
 	);
 	let creating = $state<'workplace_case_catalog_entry' | null>(null);
-	let importing = $state(false);
-	let warnings: readonly string[] = [];
 
 	const held = $derived.by(() =>
 		scope.id == null
@@ -53,67 +46,38 @@
 		}))
 	);
 
-	function caseRows(grids: WorkbookGrids): ActInput<'workplace_case_catalog_entry.create'> {
-		const current = held?.current;
-		const company = scope.company;
-		const entityId = scope.id;
-		if (current == null || company == null || entityId == null)
-			throw new Error('Workplace case data is still loading.');
-		const parsed = parseCaseSheet(grids, {
-			entity: {
-				id: entityId,
-				code: company.code ?? null,
-				name: company.name,
-				settings_code: company.settings_code
-			},
-			employees: current.employment.rows.map((row) => ({
-				id: row.id,
-				number: row.employee_number,
-				entity_id: row.entity_id,
-				from: row.effective_range.from,
-				to: row.effective_range.to
-			})),
-			laws: laws.on,
-			entities,
-			existing: current.workplace_case_catalog_entry.rows.map((row) => ({
-				entity_id: row.entity_id,
-				employment_id: row.employment_id,
-				kind: row.kind,
-				opened_on: row.opened_on
-			}))
-		});
-		warnings = parsed.warnings;
-		return parsed.rows.map((row) => ({
-			entity_id: row.entity_id,
-			employment_id: row.employment_id,
-			catalog_code: row.catalog_code,
-			kind: row.kind,
-			...(row.severity == null ? {} : { severity: row.severity }),
-			opened_on: row.opened_on,
-			...(row.scheduled_on == null ? {} : { scheduled_on: row.scheduled_on }),
-			...(row.closed_on == null ? {} : { closed_on: row.closed_on }),
-			inputs: row.inputs
-		}));
-	}
-
-	function importCases() {
-		importing = true;
-		fork(
-			runWorkbookImport(ctx, {
-				action: 'workplace_case_catalog_entry.create',
-				recordLabel: t('app.cases.title').toLowerCase(),
-				buildPayload: caseRows,
-				importedCount: (payload) => payload.length,
-				warnings: () => warnings
-			}).pipe(
-				Effect.ensuring(
-					Effect.sync(() => {
-						importing = false;
-					})
-				)
-			)
-		);
-	}
+	const importCases = entryImport(ctx, scope, laws, {
+		action: 'workplace_case_catalog_entry.create',
+		label: () => t('app.cases.title'),
+		held: () => held?.current,
+		loading: 'Workplace case data is still loading.',
+		build: (grids, current, party) => {
+			const parsed = parseCaseSheet(grids, {
+				...party,
+				entities,
+				existing: current.workplace_case_catalog_entry.rows.map((row) => ({
+					entity_id: row.entity_id,
+					employment_id: row.employment_id,
+					kind: row.kind,
+					opened_on: row.opened_on
+				}))
+			});
+			return {
+				warnings: parsed.warnings,
+				rows: parsed.rows.map((row) => ({
+					entity_id: row.entity_id,
+					employment_id: row.employment_id,
+					catalog_code: row.catalog_code,
+					kind: row.kind,
+					...(row.severity == null ? {} : { severity: row.severity }),
+					opened_on: row.opened_on,
+					...(row.scheduled_on == null ? {} : { scheduled_on: row.scheduled_on }),
+					...(row.closed_on == null ? {} : { closed_on: row.closed_on }),
+					inputs: row.inputs
+				}))
+			};
+		}
+	});
 </script>
 
 {#snippet caseCell({
@@ -140,15 +104,7 @@
 			toolbar={{
 				title: t('app.cases.title'),
 				new: () => (creating = 'workplace_case_catalog_entry'),
-				actions: [
-					{
-						run: importCases,
-						icon: 'lucide:file-spreadsheet',
-						name: t('holiday_calendar.import_spreadsheet'),
-						disabled: () =>
-							importing || held?.current == null || laws.loading ? t('component.loading') : null
-					}
-				]
+				actions: [importCases(t('holiday_calendar.import_spreadsheet'))]
 			}}
 			columns={[{ field: 'kind', cell: caseCell }, 'opened_on', 'closed_on', 'payroll_run_id']}
 		/>

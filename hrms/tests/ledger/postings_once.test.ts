@@ -6,6 +6,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import type { Accounts } from '../../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	accountsIn,
@@ -23,19 +24,13 @@ import {
 	flat,
 	projection,
 	storedQuery,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
-const terms = {
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
+const terms = packTerms(3120);
 type Seed = ReturnType<typeof pack>;
 /** EMERGENCY_LEAVE is varied to draw on ANNUAL_LEAVE's balance (`lookup.accounts`): a row that counts against another. */
 const DRAWS = 'EMERGENCY_LEAVE';
@@ -102,12 +97,7 @@ const firstEntry = (t: Kit) =>
 		})
 	);
 /** A run that prices the entry's slots: while it is unpaid, it holds the entry. */
-const price = (t: Kit) =>
-	Effect.flatMap(t.as(t.admin), (admin) =>
-		admin.act({
-			'payroll_run.create': [{ entity_id: ENTITY, period: '2026-09', kind: 'ON_CYCLE' }]
-		})
-	).pipe(Effect.andThen(t.run_due()));
+const price = (t: Kit) => run(t, '2026-09');
 /** Lets each queued effect and posting finish its work, kills the host as it ends, then runs it again. */
 const crashEach = (t: Kit) =>
 	Effect.gen(function* () {

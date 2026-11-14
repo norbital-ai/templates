@@ -18,24 +18,15 @@ import {
 	uuid,
 	workspace,
 	leaveCreate,
-	storedQuery
+	storedQuery,
+	packTerms,
+	agreedTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
 const HIRE = idOf('employee_profile', uuid(300));
 const ON = '2026-11-02';
-const terms = {
-	rate: { amount: 5000, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 const COUNTRIES = [
 	['MY', 'Asia/Kuala_Lumpur'],
 	['SG', 'Asia/Singapore'],
@@ -68,7 +59,7 @@ const EMPLOYEE: Record<string, Parameters<typeof pack>[3]> = {
 };
 
 const seedOf = (code: string, zone: string): Seed => {
-	const seed = pack(code, zone, terms, EMPLOYEE[code] ?? {}, [], []);
+	const seed = pack(code, zone, packTerms(5000), EMPLOYEE[code] ?? {}, [], []);
 	// every row has days in the window the entries below fall in
 	const leave = Object.fromEntries(
 		lawAt(code, ON).rows.leave_catalog.map((row) => [
@@ -227,14 +218,7 @@ describe('a person’s employment raises what its effects declare', () => {
 										effective_from: ON,
 										engagement: 'EMPLOYEE',
 										pay_group_id: idOf('pay_group', PAY_GROUP),
-										rate: { amount: 5000, unit: 'MONTHLY' },
-										normal_hours_per_day: 8,
-										normal_hours_per_week: 40,
-										normal_days_per_week: 5,
-										statutory_work_category: 'NON_MANUAL',
-										work_classification: 'EA_COVERED',
-										wage_payment_method: 'BANK',
-										allowances: {}
+										...agreedTerms(5000)
 									}
 								],
 								parameters: [

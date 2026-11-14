@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { ENTITY, WORK, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, WORK, pack, storedQuery, uuid, workspace, packTerms } from '../kit.ts';
 
 const MONTH = '2026-03';
 const days = Array.from({ length: 31 }, (_, at) => `${MONTH}-${String(at + 1).padStart(2, '0')}`);
@@ -12,14 +12,7 @@ const PEOPLE = 34; // 34 × 31 = 1,054 roster days
 const base = pack(
 	'MY',
 	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 3120, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
+	packTerms(3120, 'MANUAL_LABOUR'),
 	{},
 	days.map((date) => ({ date, shift: WORK, hours: 8 })),
 	[]

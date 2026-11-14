@@ -18,18 +18,11 @@ import {
 	uuid,
 	wholeDays,
 	workspace,
-	storedQuery
+	storedQuery,
+	packTerms
 } from '../kit.ts';
 
-const terms = {
-	rate: { amount: 5000, unit: 'MONTHLY' },
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
-const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
+const base = pack('MY', 'Asia/Kuala_Lumpur', packTerms(5000), {}, [], []);
 const LEAVE = 'ANNUAL_LEAVE';
 const EMPLOYMENT = idOf('employment', uuid(6));
 /** A notice the law raises on every entry of one leave row, due on its first day. */

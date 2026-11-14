@@ -31,10 +31,8 @@ const KIOSK_PHRASES = {
 		zh: '没有有效任职，请联系人事。'
 	},
 	too_soon: { en: 'Too soon. Try again shortly.', zh: '请稍后再试。' },
-	no_shift_today: { en: 'You are not scheduled today.', zh: '您今天没有排班。' },
 	refused: { en: 'Not recorded. Please see your supervisor.', zh: '未记录，请联系主管。' },
 	unchanged: { en: 'Nothing changed.', zh: '没有变化。' },
-	face_lost: { en: 'Face lost. Try again.', zh: '人脸丢失，请重试。' },
 	try_again: { en: 'Something went wrong. Try again.', zh: '出错了，请重试。' },
 	engine_unavailable: {
 		en: 'Face scanning unavailable. Use manual entry.',
@@ -58,11 +56,5 @@ export const kioskVoiceLanguage = (locale: string): KioskVoiceLanguage =>
 
 /** Narration of actual native capture refusals, shared by the camera consumer and edge case tests. */
 export function kioskCaptureRefusalPhrase(reason: unknown): KioskPhraseKey {
-	return reason === 'not-scheduled' || reason === 'not-a-work-day'
-		? 'no_shift_today'
-		: reason === 'cooldown'
-			? 'too_soon'
-			: reason === 'refused'
-				? 'refused'
-				: 'unchanged';
+	return reason === 'cooldown' ? 'too_soon' : reason === 'refused' ? 'refused' : 'unchanged';
 }

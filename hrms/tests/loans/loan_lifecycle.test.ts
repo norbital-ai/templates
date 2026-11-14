@@ -13,6 +13,7 @@ import {
 } from '../../src/lib/payroll_engine/loan_schedule.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { pay, run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	accountsIn,
@@ -25,28 +26,28 @@ import {
 	workspace,
 	storedQuery,
 	current,
-	decimalNumber
+	decimalNumber,
+	packTerms,
+	endStint
 } from '../kit.ts';
 
 const NOW = '2026-08-20T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
 const LOAN = idOf('loan_catalog_entry', uuid(300));
 const FLOOR = 40;
-const TERMS = {
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 const FESTIVE = 'LOAN_RECOVERY_FESTIVE_ADVANCE';
 // no leave row pays out, so an exit here raises no cash-out request for a run to wait on
-const base = lawWith(pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []), {
-	leave_catalog: Object.fromEntries(
-		lawAt('MY', '2026-08-15').rows.leave_catalog.map((row) => [String(row.code), { payout: null }])
-	)
-});
+const base = lawWith(
+	pack('MY', 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []),
+	{
+		leave_catalog: Object.fromEntries(
+			lawAt('MY', '2026-08-15').rows.leave_catalog.map((row) => [
+				String(row.code),
+				{ payout: null }
+			])
+		)
+	}
+);
 /** One loan of `principal`, to be repaid August to November. */
 const lent = (principal: number): ReturnType<typeof pack> => ({
 	...base,
@@ -97,24 +98,6 @@ const remove = (t: Kit, id: Repayment) =>
 		return yield* (yield* t.as(t.admin)).act({
 			'loan_catalog_entry_repayment.delete': [{ target }]
 		});
-	});
-const run = (t: Kit, period: string) =>
-	Effect.flatMap(t.as(t.admin), (caller) =>
-		caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-	).pipe(Effect.andThen(t.run_due()));
-/** The period run and paid. */
-const pay = (t: Kit, period: string) =>
-	Effect.gen(function* () {
-		yield* run(t, period);
-		const { payroll_run } = yield* storedQuery(t, {
-			payroll_run: { where: { period: { eq: period } }, limit: 1 }
-		});
-		const [made] = payroll_run.rows;
-		assert.ok(made !== undefined);
-		yield* (yield* t.as(t.admin)).act({
-			'payroll_run.update': [{ target: made, set: { state: 'PAID' } }]
-		});
-		yield* t.run_due();
 	});
 /** The open amendment rows' periods. */
 const amended = (t: Kit) =>
@@ -409,22 +392,9 @@ describe('a loan', () => {
 describe('a leaver’s loan', () => {
 	const LAST = '2026-09-30';
 	const ends = (t: Kit, to: string | null) =>
-		Effect.gen(function* () {
-			return yield* (yield* t.as(t.admin)).act({
-				'employment.update': [
-					{
-						target: yield* current(t, 'employment', EMPLOYMENT),
-						set: {
-							effective_range: {
-								from: '2025-01-01',
-								to: to === null ? null : to
-							},
-							reason: to === null ? 'Ended in error' : 'Resignation'
-						}
-					}
-				]
-			});
-		}).pipe(Effect.andThen(t.run_due()));
+		endStint(t, to, to === null ? 'Ended in error' : 'Resignation').pipe(
+			Effect.andThen(t.run_due())
+		);
 	const task = (plan: { readonly remaining: number }) => ({
 		entity_id: ENTITY,
 		employee_id: idOf('employee_profile', uuid(4)),

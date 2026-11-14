@@ -14,7 +14,8 @@ import {
 	uuid,
 	wholeDays,
 	workspace,
-	storedQuery
+	storedQuery,
+	withSecond
 } from '../kit.ts';
 
 const NOW = '2026-03-20T02:00:00.000Z';
@@ -26,56 +27,12 @@ const SECOND = uuid(906);
 const DAY = '2026-02-10';
 
 /** A second person in the same company, on the same roster. */
-const twoPeople = (): Seed => {
-	const seed = base();
-	const [profile] = seed.employee_profile ?? [];
-	const [stint] = seed.employment ?? [];
-	const [terms] = seed.contract_terms ?? [];
-	const [parameters] = seed.statutory_parameters ?? [];
-	assert.ok(
-		profile !== undefined && stint !== undefined && terms !== undefined && parameters !== undefined
-	);
-	return {
-		...seed,
-		sys_user: [
-			...(seed.sys_user ?? []),
-			{ id: uuid(903), name: 'Second', email: 'second@example.test', kind: 'staff' }
-		],
-		employee_profile: [
-			...(seed.employee_profile ?? []),
-			{ ...profile, id: uuid(904), user_id: uuid(903), name: 'Second' }
-		],
-		employee_balance: [
-			...(seed.employee_balance ?? []),
-			{ id: uuid(905), employee_id: uuid(904), account: {} }
-		],
-		employment: [
-			...(seed.employment ?? []),
-			{ ...stint, id: SECOND, employee_id: uuid(904), employee_number: 'W2' }
-		],
-		contract_terms: [
-			...(seed.contract_terms ?? []),
-			{ ...terms, id: uuid(914), employment_id: SECOND }
-		],
-		statutory_parameters: [
-			...(seed.statutory_parameters ?? []),
-			{ ...parameters, id: uuid(915), employment_id: SECOND }
-		],
-		roster_entry: [
-			...(seed.roster_entry ?? []),
-			...(seed.roster_entry ?? []).map((row, index) => ({
-				...row,
-				id: uuid(5000 + index),
-				employment_id: SECOND
-			}))
-		]
-	};
-};
+const twoPeople = (): Seed => withSecond(base(), true);
 const OTHER = uuid(950);
 const OTHER_GROUP = uuid(951);
 /** The second person works for a sister company with its own payroll. */
 const twoCompanies = (months: readonly string[]): Seed => {
-	const from: Seed = { ...twoPeople(), ...sisterRoster(months) };
+	const from = withSecond(rostered(months), true);
 	const [company] = from.entity ?? [];
 	const [change] = from.entity_change ?? [];
 	const [group] = from.pay_group ?? [];
@@ -91,16 +48,6 @@ const twoCompanies = (months: readonly string[]): Seed => {
 		contract_terms: (from.contract_terms ?? []).map((row) =>
 			row.employment_id === SECOND ? { ...row, pay_group_id: OTHER_GROUP } : row
 		)
-	};
-};
-/** Both people on the roster for these months. */
-const sisterRoster = (months: readonly string[]): Pick<Seed, 'roster_entry'> => {
-	const roster = rostered(months).roster_entry ?? [];
-	return {
-		roster_entry: [
-			...roster,
-			...roster.map((row, index) => ({ ...row, id: uuid(5000 + index), employment_id: SECOND }))
-		]
 	};
 };
 const holiday = (entity: string, date: string) => ({
@@ -269,7 +216,7 @@ describe('what the company corrects', () => {
 		}).pipe(
 			Effect.provide(
 				workspace({
-					seed: { ...twoPeople(), ...sisterRoster(['2026-01', '2026-02', '2026-03']) },
+					seed: withSecond(rostered(['2026-01', '2026-02', '2026-03']), true),
 					now: NOW
 				})
 			)

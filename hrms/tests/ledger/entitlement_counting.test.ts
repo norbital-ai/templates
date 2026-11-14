@@ -7,6 +7,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	pack,
@@ -17,7 +18,8 @@ import {
 	accountsIn,
 	measureOf,
 	leaveCreate,
-	storedQuery
+	storedQuery,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -28,21 +30,7 @@ type Person = {
 	readonly events?: readonly JsonObject[];
 };
 const seedOf = ({ started = '2024-01-01', gender = 'FEMALE', events = [] }: Person) => {
-	const seed = pack(
-		'MY',
-		'Asia/Kuala_Lumpur',
-		{
-			rate: { amount: 8000, unit: 'MONTHLY' },
-			statutory_work_category: 'NON_MANUAL',
-			work_classification: 'EA_COVERED',
-			residency_status: 'CITIZEN',
-			wage_payment_method: 'BANK',
-			allowances: {}
-		},
-		{ events },
-		[],
-		[]
-	);
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), { events }, [], []);
 	return {
 		...seed,
 		employee_profile: (seed.employee_profile ?? []).map((row) => ({ ...row, gender })),
@@ -80,15 +68,6 @@ const take = (t: Kit, code: string, days: readonly string[]) =>
 			})
 		)
 	);
-const run = (t: Kit, period: string) =>
-	t
-		.as(t.admin)
-		.pipe(
-			Effect.flatMap((caller) =>
-				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-			)
-		)
-		.pipe(Effect.andThen(t.run_due()));
 /** How many leave entries the workspace holds. */
 const entries = (t: Kit) =>
 	storedQuery(t, { leave_catalog_entry: { fields: ['id'], limit: 10 } }).pipe(

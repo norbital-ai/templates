@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, pack, storedQuery, uuid, workspace, packTerms } from '../kit.ts';
 import { dayFindings, limits, type DayType } from '../../src/lib/payroll_engine/roster_warnings.ts';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 
@@ -50,19 +50,14 @@ describe('monthly overtime cap', () => {
 
 const LONG_SHIFT = idOf('shift_definition', uuid(20));
 const PATTERN = idOf('shift_pattern', uuid(21));
-const terms = {
-	rate: { amount: 60_000, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {},
-	shift_pattern_id: PATTERN
-};
-const base = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
+const base = pack(
+	'MY',
+	'Asia/Kuala_Lumpur',
+	{ ...packTerms(60_000), shift_pattern_id: PATTERN },
+	{},
+	[],
+	[]
+);
 const map = {
 	MONDAY: LONG_SHIFT,
 	TUESDAY: LONG_SHIFT,

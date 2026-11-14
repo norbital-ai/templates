@@ -9,7 +9,7 @@ import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { verify } from '../../src/lib/integrity.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { ownLines, pay } from '../amendment_kit.ts';
+import { ownLines, pay, run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	REST,
@@ -20,21 +20,15 @@ import {
 	wholeDays,
 	workspace,
 	storedQuery,
-	storedReader
+	storedReader,
+	packTerms
 } from '../kit.ts';
 
 type Seed = ReturnType<typeof pack>;
 const slip = (seed: Seed, period: string, now: string) =>
 	Effect.gen(function* () {
 		const t = yield* TestWorkspace;
-		yield* t
-			.as(t.admin)
-			.pipe(
-				Effect.andThen((caller) =>
-					caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-				)
-			);
-		yield* t.run_due();
+		yield* run(t, period);
 		const payslip = (yield* storedQuery(t, { payslip: { limit: 1 } })).payslip.rows[0];
 		assert.ok(payslip !== undefined, 'the run wrote a payslip');
 		return { payslip, breakdown: Schema.decodeUnknownSync(PayslipBreakdown)(payslip.breakdown) };
@@ -107,14 +101,7 @@ describe('employer pay methods', () => {
 						pack(
 							'MY',
 							'Asia/Kuala_Lumpur',
-							{
-								rate: { amount: SALARY, unit: 'MONTHLY' },
-								statutory_work_category: 'MANUAL_LABOUR',
-								work_classification: 'EA_COVERED',
-								residency_status: 'CITIZEN',
-								wage_payment_method: 'BANK',
-								allowances: {}
-							},
+							packTerms(SALARY, 'MANUAL_LABOUR'),
 							{},
 							[{ date: HOLIDAY, shift: WORK, hours: 5 }],
 							[{ date: HOLIDAY, kind: 'PUBLIC_HOLIDAY' }]
@@ -315,14 +302,7 @@ describe('contribution split', () => {
 				const t = yield* TestWorkspace;
 				const shares = (period: string) =>
 					Effect.gen(function* () {
-						yield* t.as(t.admin).pipe(
-							Effect.andThen((caller) =>
-								caller.act({
-									'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]
-								})
-							)
-						);
-						yield* t.run_due();
+						yield* run(t, period);
 						const { payslip, payroll_run } = yield* storedQuery(t, {
 							payslip: { limit: 2 },
 							payroll_run: { limit: 2 }
@@ -433,14 +413,7 @@ describe('health insurance billed a month in arrears', () => {
 			pack(
 				'ID',
 				'Asia/Jakarta',
-				{
-					rate: { amount: 10_000_000, unit: 'MONTHLY' },
-					statutory_work_category: 'NON_MANUAL',
-					work_classification: 'EA_COVERED',
-					residency_status: 'CITIZEN',
-					wage_payment_method: 'BANK',
-					allowances: {}
-				},
+				packTerms(10_000_000),
 				{ work_region: 'Provinsi Aceh/Kabupaten Aceh Barat' },
 				[],
 				[]

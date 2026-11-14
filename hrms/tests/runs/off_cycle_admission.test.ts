@@ -7,44 +7,24 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { pay } from '../amendment_kit.ts';
-import { EMPLOYMENT, ENTITY, pack, refusal, storedQuery, uuid, workspace } from '../kit.ts';
+import {
+	EMPLOYMENT,
+	ENTITY,
+	pack,
+	refusal,
+	storedQuery,
+	uuid,
+	workspace,
+	packTerms,
+	stintOver
+} from '../kit.ts';
 
 const STINT = idOf('employment', EMPLOYMENT);
 const JUNE = '2026-06-20T02:00:00.000Z';
 type Seed = ReturnType<typeof pack>;
 /** One person on 4,800 a month from January, to `to` if named. */
-const seedOf = (to: string | null = null): Seed => {
-	const seed = pack(
-		'MY',
-		'Asia/Kuala_Lumpur',
-		{
-			rate: { amount: 4800, unit: 'MONTHLY' },
-			statutory_work_category: 'NON_MANUAL',
-			work_classification: 'EA_COVERED',
-			residency_status: 'CITIZEN',
-			wage_payment_method: 'BANK',
-			allowances: {}
-		},
-		{},
-		[],
-		[]
-	);
-	return {
-		...seed,
-		employment: (seed.employment ?? []).map((row) => ({
-			...row,
-			effective_range: { from: '2026-01-01', to }
-		})),
-		contract_terms: (seed.contract_terms ?? []).map((row) => ({
-			...row,
-			effective_from: '2026-01-01'
-		})),
-		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
-			...row,
-			effective_from: '2026-01-01'
-		}))
-	};
-};
+const seedOf = (to: string | null = null): Seed =>
+	stintOver(pack('MY', 'Asia/Kuala_Lumpur', packTerms(4800), {}, [], []), '2026-01-01', to);
 const enter = (t: Kit, item: string, quantity: number, on: string) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({

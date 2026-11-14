@@ -8,38 +8,23 @@ import { Effect, Schema } from 'effect';
 import { viewOf } from '../../src/lib/ledger/core.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { pay, run } from '../amendment_kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	pack,
+	storedQuery,
+	uuid,
+	workspace,
+	packTerms,
+	stintOver
+} from '../kit.ts';
 
 const EMPLOYMENT = idOf('employment', uuid(6));
 type Seed = ReturnType<typeof pack>;
-const terms = (amount: number) => ({
-	rate: { amount, unit: 'MONTHLY' },
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-});
 /** One person on `amount` a month from `from`, on the Malaysian law. */
-const malaysia = (amount: number, from = '2025-01-01'): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(amount), {}, [], []);
-	return {
-		...seed,
-		employment: (seed.employment ?? []).map((row) => ({
-			...row,
-			effective_range: { from, to: null }
-		})),
-		contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: from })),
-		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
-			...row,
-			effective_from: from
-		}))
-	};
-};
-const run = (t: Kit, period: string) =>
-	Effect.flatMap(t.as(t.admin), (caller) =>
-		caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-	).pipe(Effect.andThen(t.run_due()));
+const malaysia = (amount: number, from = '2025-01-01'): Seed =>
+	stintOver(pack('MY', 'Asia/Kuala_Lumpur', packTerms(amount), {}, [], []), from);
 const enter = (t: Kit, code: string, quantity: number, on: string) =>
 	Effect.flatMap(t.as(t.admin), (caller) =>
 		caller.act({
@@ -98,19 +83,6 @@ const posted = (t: Kit, benefit: string, below: string, tax: string) =>
 			];
 		})
 	);
-/** A run paid: what is entered after it no longer waits on its review. */
-const paid = (t: Kit, period: string) =>
-	Effect.gen(function* () {
-		yield* run(t, period);
-		const [made] = (yield* storedQuery(t, {
-			payroll_run: { where: { period: { eq: period } }, limit: 1 }
-		})).payroll_run.rows;
-		assert.ok(made !== undefined);
-		yield* (yield* t.as(t.admin)).act({
-			'payroll_run.update': [{ target: made, set: { state: 'PAID' } }]
-		});
-		yield* t.run_due();
-	});
 const taxed = (t: Kit, period: string, code: string) =>
 	slips(t).pipe(
 		Effect.map(
@@ -214,7 +186,7 @@ describe('a benefit', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* enter(t, 'BONUS', BONUS, '2026-03-10');
-			yield* paid(t, '2026-03');
+			yield* pay(t, '2026-03');
 			const tax = yield* taxed(t, '2026-03', 'PCB');
 			assert.ok(tax > 0);
 			assert.deepEqual(yield* posted(t, 'ADDITIONAL_WAGES', 'ORDINARY_WAGES', 'PCB.employee'), [
@@ -234,7 +206,7 @@ describe('a benefit', () => {
 			const base = pack(
 				'ID',
 				'Asia/Jakarta',
-				terms(10_000_000),
+				packTerms(10_000_000),
 				{ pension_tax_history: { first_payment_year: 2026 } },
 				[],
 				[]
@@ -261,10 +233,10 @@ describe('a benefit', () => {
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* enter(t, 'PENSION_LUMPSUM', PAID, '2026-03-10');
-				yield* paid(t, '2026-03');
+				yield* pay(t, '2026-03');
 				const first = yield* taxed(t, '2026-03', TAX);
 				yield* enter(t, 'PENSION_LUMPSUM', PAID, '2027-04-10');
-				yield* paid(t, '2027-04');
+				yield* pay(t, '2027-04');
 				const second = yield* taxed(t, '2027-04', TAX);
 				// the same payment twice: only the first year's posting, read from the balance, can make the second differ
 				assert.ok(first > 0);
@@ -287,7 +259,7 @@ describe('a statutory row below zero with a refund route', () => {
 	it.live(
 		'pays the refund once on the run, and the balance holds what was withheld less what came back',
 		() => {
-			const seed = pack('ID', 'Asia/Jakarta', terms(10_000_000), {}, [], []);
+			const seed = pack('ID', 'Asia/Jakarta', packTerms(10_000_000), {}, [], []);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				// a one-month spike withholds at that month's high rate; December settles the year and comes back negative

@@ -6,6 +6,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import type { Accounts } from '../../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { pay } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	accountsIn,
@@ -18,26 +19,16 @@ import {
 	uuid,
 	workspace,
 	leaveCreate,
-	storedQuery
+	storedQuery,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-10-06T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
-const terms = {
-	rate: { amount: 8000, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 type Seed = ReturnType<typeof pack>;
 const DRAWS = 'EMERGENCY_LEAVE';
 const seedOf = (account: Accounts): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
 	return {
 		...lawWith(seed, {
 			leave_catalog: {
@@ -92,16 +83,7 @@ describe('a row that draws on another', () => {
 				yield* take(t, DRAWS, '2026-10-05', 2);
 				yield* t.run_due();
 				assert.equal(yield* usedOf(t, 'ANNUAL_LEAVE'), 2);
-				yield* (yield* t.as(t.admin)).act({
-					'payroll_run.create': [{ entity_id: ENTITY, period: '2026-10', kind: 'ON_CYCLE' }]
-				});
-				yield* t.run_due();
-				const [paying] = (yield* storedQuery(t, { payroll_run: { limit: 1 } })).payroll_run.rows;
-				assert.ok(paying !== undefined);
-				yield* (yield* t.as(t.admin)).act({
-					'payroll_run.update': [{ target: paying, set: { state: 'PAID' } }]
-				});
-				yield* t.run_due();
+				yield* pay(t, '2026-10');
 				const entry = yield* sealedLeave(t);
 				const { leave_catalog_entry_day } = yield* storedQuery(t, {
 					leave_catalog_entry_day: {

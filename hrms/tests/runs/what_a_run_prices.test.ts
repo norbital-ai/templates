@@ -7,7 +7,17 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, WORK, accountsIn, pack, uuid, workspace, storedQuery, refusal } from '../kit.ts';
+import {
+	ENTITY,
+	WORK,
+	accountsIn,
+	pack,
+	uuid,
+	workspace,
+	storedQuery,
+	refusal,
+	packTerms
+} from '../kit.ts';
 
 const lines = Effect.fnUntraced(function* (t: Kit) {
 	yield* (yield* t.as(t.admin)).act({
@@ -28,15 +38,9 @@ const run = (seed: Seed) =>
 	);
 type Seed = ReturnType<typeof pack>;
 const terms = (salary: number) => ({
-	rate: { amount: salary, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
+	...packTerms(salary, 'MANUAL_LABOUR'),
 	normal_hours_per_week: 48,
-	normal_days_per_week: 6,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
+	normal_days_per_week: 6
 });
 /**
  * The pack's one stint ended on `to`, and a second with the same company from the next day `from` to `until`, on the

@@ -6,6 +6,7 @@ import { TestWorkspace, type Caller, type Kit } from '@norbital-ai/bolt-cli/test
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	leaveCreate,
@@ -16,30 +17,14 @@ import {
 	workspace,
 	storedQuery,
 	current,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-02-20T02:00:00.000Z';
 const STINT = idOf('employment', uuid(6));
 const DAY = '2026-02-10';
-const base = pack(
-	'MY',
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 8000, unit: 'MONTHLY' },
-		normal_hours_per_day: 8,
-		normal_hours_per_week: 40,
-		normal_days_per_week: 5,
-		statutory_work_category: 'NON_MANUAL',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[]
-);
+const base = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
 const staff = (id: number, name: string, team: string) => ({
 	id: uuid(id),
 	name,
@@ -106,15 +91,6 @@ const posted = (t: Kit, model: string, id: string) =>
 const refusal = <A, E>(effect: Effect.Effect<A, E>) => Effect.flip(effect).pipe(Effect.map(String));
 const approve = (by: Caller, requestId: string) =>
 	by.approvals.decide(requestId, { decision: 'approve' });
-const run = (t: Kit, period: string) =>
-	t
-		.as(t.admin)
-		.pipe(
-			Effect.flatMap((caller) =>
-				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-			)
-		)
-		.pipe(Effect.andThen(t.run_due()));
 /** What a period's payslip pays on a code; nothing when it has no such line. */
 const paidOn = (t: Kit, period: string, code: string) =>
 	storedQuery(t, { payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(

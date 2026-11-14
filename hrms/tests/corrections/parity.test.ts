@@ -37,7 +37,8 @@ import {
 	syncAll,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	endStint
 } from '../kit.ts';
 
 type Seed = ReturnType<typeof rostered>;
@@ -411,26 +412,7 @@ describe('a leave day corrected after the exit payslip was paid', () => {
 					measureOf(accounts, 'leave', 'ANNUAL_LEAVE', 'used')
 			)
 		);
-	const ended = (t: Kit) =>
-		Effect.gen(function* () {
-			const { employment } = yield* storedQuery(t, {
-				employment: { where: { id: { eq: EMPLOYMENT } }, limit: 1 }
-			});
-			const [held] = employment.rows;
-			assert.ok(held !== undefined);
-			yield* (yield* t.as(t.admin)).act({
-				'employment.update': [
-					{
-						target: held,
-						set: {
-							effective_range: { from: held.effective_range.from, to: LAST },
-							reason: 'Resignation'
-						}
-					}
-				]
-			});
-			yield* t.run_due();
-		});
+	const ended = (t: Kit) => endStint(t, LAST, 'Resignation').pipe(Effect.andThen(t.run_due()));
 	const seed = rostered(['2026-02']);
 	const now = at('2026-03');
 

@@ -18,85 +18,40 @@ import {
 	workspace,
 	storedQuery,
 	keyOf,
-	current
+	current,
+	packTerms,
+	withSecond,
+	withSister
 } from '../kit.ts';
 
-const TERMS = {
-	rate: { amount: 2800, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 48,
-	normal_days_per_week: 6,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 const OTHER = idOf('entity', uuid(900));
 const SECOND = idOf('employment', uuid(906));
 const FIRST = idOf('employment', uuid(6));
 const MOVED = idOf('employment', uuid(907));
 
-const base = () => pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
+const base = () =>
+	pack(
+		'MY',
+		'Asia/Kuala_Lumpur',
+		{ ...packTerms(2800, 'MANUAL_LABOUR'), normal_hours_per_week: 48, normal_days_per_week: 6 },
+		{},
+		[],
+		[]
+	);
 type Seed = ReturnType<typeof base>;
 const stintOf = (seed: Seed) => seed.employment?.[0] ?? {};
 const termsOf = (seed: Seed) => seed.contract_terms?.[0] ?? {};
 const parametersOf = (seed: Seed) => seed.statutory_parameters?.[0] ?? {};
-const companyOf = (seed: Seed) => seed.entity?.[0] ?? {};
-const changeOf = (seed: Seed) => seed.entity_change?.[0] ?? {};
 
 /** A second person in the same entity. */
-const twoPeople = (): Seed => {
-	const seed = base();
-	return {
-		...seed,
-		sys_user: [
-			...(seed.sys_user ?? []),
-			{ id: uuid(903), name: 'Second', email: 'second@example.test', kind: 'staff' }
-		],
-		employee_profile: [
-			...(seed.employee_profile ?? []),
-			{ ...(seed.employee_profile?.[0] ?? {}), id: uuid(904), user_id: uuid(903), name: 'Second' }
-		],
-		employee_balance: [
-			...(seed.employee_balance ?? []),
-			{ id: uuid(905), employee_id: uuid(904), account: {} }
-		],
-		employment: [
-			...(seed.employment ?? []),
-			{
-				...stintOf(seed),
-				id: SECOND,
-				employee_id: uuid(904),
-				employee_number: 'W2'
-			}
-		],
-		contract_terms: [
-			...(seed.contract_terms ?? []),
-			{ ...termsOf(seed), id: uuid(914), employment_id: SECOND }
-		],
-		statutory_parameters: [
-			...(seed.statutory_parameters ?? []),
-			{ ...parametersOf(seed), id: uuid(915), employment_id: SECOND }
-		]
-	};
-};
+const twoPeople = (): Seed => withSecond(base());
 
 /** The same person moves to a sister company in the same jurisdiction on the first of March. */
 const moved = (): Seed => {
-	const seed = base();
+	// the sister company has its own payroll, on the same schedule
+	const seed = withSister(base());
 	return {
 		...seed,
-		entity: [...(seed.entity ?? []), { ...companyOf(seed), id: OTHER, code: 'E2', name: 'Sister' }],
-		entity_change: [
-			...(seed.entity_change ?? []),
-			{ ...changeOf(seed), id: uuid(902), entity_id: OTHER }
-		],
-		// the sister company's own payroll, on the same schedule
-		pay_group: [
-			...(seed.pay_group ?? []),
-			...(seed.pay_group ?? []).map((row) => ({ ...row, id: uuid(908), entity_id: OTHER }))
-		],
 		// the stint with the first company ends with February; a new one with its sister starts the next day
 		employment: [
 			{ ...stintOf(seed), effective_range: { from: '2025-01-01', to: '2026-02-28' } },

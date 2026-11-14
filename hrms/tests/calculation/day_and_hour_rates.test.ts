@@ -9,7 +9,7 @@ import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { payBasis } from '../../src/lib/payroll_engine/engine.ts';
 import { ownLines, run } from '../amendment_kit.ts';
-import { WORK, lawAt, lawWith, pack, workspace } from '../kit.ts';
+import { WORK, lawAt, lawWith, pack, workspace, packTerms } from '../kit.ts';
 
 describe('the day rate', () => {
 	it('carries an allowance in the rate, and none outside it', () => {
@@ -61,14 +61,7 @@ describe('the hour rate', () => {
 		const base = pack(
 			'MY',
 			'Asia/Kuala_Lumpur',
-			{
-				rate: { amount: SALARY, unit: 'MONTHLY' },
-				statutory_work_category: 'MANUAL_LABOUR',
-				work_classification: 'EA_COVERED',
-				residency_status: 'CITIZEN',
-				wage_payment_method: 'BANK',
-				allowances: {}
-			},
+			packTerms(SALARY, 'MANUAL_LABOUR'),
 			{},
 			[{ date: '2026-02-02', shift: WORK, hours: 10, overtime: 2 }],
 			[]

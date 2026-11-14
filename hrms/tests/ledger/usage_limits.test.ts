@@ -26,25 +26,15 @@ import {
 	storedQuery,
 	current,
 	keyOf,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
-const terms = (amount = 8000) => ({
-	rate: { amount, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-});
 /** The claim row's yearly limit is the fixture's own, whatever the law pack holds. */
 const LIMIT = 1000;
-const seed = lawWith(pack('MY', 'Asia/Kuala_Lumpur', terms(), {}, [], []), {
+const seed = lawWith(pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []), {
 	claim_catalog: {
 		MEDICAL_CLAIM: {
 			lookup: {
@@ -193,7 +183,7 @@ describe('a run', () => {
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('with a slip that moved no money is not held up by it', () => {
-		const zero = pack('MY', 'Asia/Kuala_Lumpur', terms(0), {}, [], []);
+		const zero = pack('MY', 'Asia/Kuala_Lumpur', packTerms(0), {}, [], []);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t);

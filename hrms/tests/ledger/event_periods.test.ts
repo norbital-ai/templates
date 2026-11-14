@@ -22,19 +22,12 @@ import {
 	workspace,
 	leaveCreate,
 	storedQuery,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
-const terms = {
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 const GRANT = 60;
 const COMPLICATION = 30;
 const CONFINEMENT = 5;
@@ -60,7 +53,7 @@ const VARIED: Readonly<Record<string, JsonObject>> = {
 };
 type Seed = ReturnType<typeof pack>;
 const seedOf = (gender: string): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(3120), {}, [], []);
 	const rows = lawAt('MY', '2026-06-15').rows.leave_catalog;
 	return {
 		...lawWith(seed, {

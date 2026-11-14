@@ -14,19 +14,12 @@ import {
 	storedQuery,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	packTerms
 } from '../kit.ts';
 
 const EMPLOYMENT = idOf('employment', uuid(6));
-const terms = {
-	rate: { amount: 5000, unit: 'MONTHLY' },
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
-const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], []);
+const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(5000), {}, [], []);
 const CASE = 'WORKPLACE_ACCIDENT';
 const LEAVE = 'NPL';
 const live = workspace({ seed, now: '2026-06-20T02:00:00.000Z' });

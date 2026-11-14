@@ -16,7 +16,8 @@ import {
 	pack,
 	uuid,
 	wholeDays,
-	workspace
+	workspace,
+	stintOver
 } from '../kit.ts';
 
 const EMPLOYMENT = idOf('employment', uuid(6));
@@ -36,24 +37,11 @@ const malaysia = (
 	agreed: ReturnType<typeof terms>,
 	conversions: { readonly [key: string]: Seed[string][number][string] } = {},
 	days: Parameters<typeof pack>[4] = []
-): Seed => {
-	const seed = lawWith(pack('MY', 'Asia/Kuala_Lumpur', agreed, {}, days, []), { conversions });
-	return {
-		...seed,
-		employment: (seed.employment ?? []).map((row) => ({
-			...row,
-			effective_range: { from: '2026-01-01', to: null }
-		})),
-		contract_terms: (seed.contract_terms ?? []).map((row) => ({
-			...row,
-			effective_from: '2026-01-01'
-		})),
-		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
-			...row,
-			effective_from: '2026-01-01'
-		}))
-	};
-};
+): Seed =>
+	stintOver(
+		lawWith(pack('MY', 'Asia/Kuala_Lumpur', agreed, {}, days, []), { conversions }),
+		'2026-01-01'
+	);
 /** June's payslip after these whole days of no-pay leave: the NPL line and the checkpoints. */
 const june = (seed: Seed, dates: readonly string[]) =>
 	Effect.gen(function* () {

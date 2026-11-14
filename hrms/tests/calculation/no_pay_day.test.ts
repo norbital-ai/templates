@@ -9,7 +9,7 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { pay, run } from '../amendment_kit.ts';
-import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace, packTerms } from '../kit.ts';
 
 const EMPLOYMENT = idOf('employment', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
@@ -20,14 +20,7 @@ const malaysia = (allowances: Record<string, { readonly amount: number }> = {}):
 	pack(
 		'MY',
 		'Asia/Kuala_Lumpur',
-		{
-			rate: { amount: SALARY, unit: 'MONTHLY' },
-			statutory_work_category: 'MANUAL_LABOUR',
-			work_classification: 'EA_COVERED',
-			residency_status: 'CITIZEN',
-			wage_payment_method: 'BANK',
-			allowances
-		},
+		{ ...packTerms(SALARY, 'MANUAL_LABOUR'), allowances },
 		{},
 		[],
 		[]

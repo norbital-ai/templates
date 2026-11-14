@@ -11,6 +11,7 @@ import { verify } from '../../src/lib/integrity.ts';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { run } from '../amendment_kit.ts';
 import {
 	EMPLOYMENT,
 	ENTITY,
@@ -29,7 +30,10 @@ import {
 	storedQuery,
 	storedReader,
 	current,
-	decimalNumber
+	decimalNumber,
+	packTerms,
+	withSecond,
+	stintOf
 } from '../kit.ts';
 
 // after the last change of 2026 in the law the template holds (8 July), so no run changes law under a case
@@ -44,17 +48,7 @@ const PERSON = uuid(4);
 const OTHER_PERSON = uuid(904);
 const BALANCE = idOf('employee_balance', uuid(5));
 const OTHER_BALANCE = idOf('employee_balance', uuid(905));
-const TERMS = {
-	rate: { amount: RATE, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
+const TERMS = packTerms(RATE, 'MANUAL_LABOUR');
 type Seed = ReturnType<typeof pack>;
 /** One person under Malaysian law, and annual leave cashed out at a flat amount a day, so no statute's day rate is under test. */
 const malaysia = (terms: JsonObject = TERMS, extension: JsonObject = {}): Seed =>
@@ -62,57 +56,9 @@ const malaysia = (terms: JsonObject = TERMS, extension: JsonObject = {}): Seed =
 		leave_catalog: { ANNUAL_LEAVE: { payout: `return ${FLAT} * ctx.entry.quantity;` } }
 	});
 /** A second person in the same company and payroll, on the same terms. */
-const twoPeople = (): Seed => {
-	const seed = malaysia();
-	return {
-		...seed,
-		sys_user: [
-			...(seed.sys_user ?? []),
-			{ id: uuid(903), name: 'Second', email: 'second@example.test', kind: 'staff' }
-		],
-		employee_profile: [
-			...(seed.employee_profile ?? []),
-			{
-				...(seed.employee_profile?.[0] ?? {}),
-				id: OTHER_PERSON,
-				user_id: uuid(903),
-				name: 'Second'
-			}
-		],
-		employee_balance: [
-			...(seed.employee_balance ?? []),
-			{ id: OTHER_BALANCE, employee_id: OTHER_PERSON, account: {} }
-		],
-		employment: [
-			...(seed.employment ?? []),
-			{
-				...(seed.employment?.[0] ?? {}),
-				id: SECOND,
-				employee_id: OTHER_PERSON,
-				employee_number: 'W2'
-			}
-		],
-		contract_terms: [
-			...(seed.contract_terms ?? []),
-			{ ...(seed.contract_terms?.[0] ?? {}), id: uuid(914), employment_id: SECOND }
-		],
-		statutory_parameters: [
-			...(seed.statutory_parameters ?? []),
-			{ ...(seed.statutory_parameters?.[0] ?? {}), id: uuid(915), employment_id: SECOND }
-		]
-	};
-};
+const twoPeople = (): Seed => withSecond(malaysia());
 const seed = malaysia();
 
-const run = (t: Kit, period: string) =>
-	t
-		.as(t.admin)
-		.pipe(
-			Effect.andThen((caller) =>
-				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-			)
-		)
-		.pipe(Effect.andThen(t.run_due()));
 const runOf = (t: Kit, period: string, kind: 'ON_CYCLE' | 'OFF_CYCLE' = 'ON_CYCLE') =>
 	storedQuery(t, { payroll_run: { limit: 100 } }).pipe(
 		Effect.map(({ payroll_run }) => {
@@ -183,15 +129,6 @@ const amendments = (t: Kit) =>
 const basicOf = (slip: { readonly breakdown: unknown }) =>
 	breakdown(slip).checkpoints.find((point) => point.code === 'BASIC')?.value;
 
-/** A stint, as stored. */
-const stintOf = (t: Kit, id: Id<'employment'> = FIRST) =>
-	storedQuery(t, { employment: { where: { id: { eq: id } }, limit: 1 } }).pipe(
-		Effect.map(({ employment }) => {
-			const [held] = employment.rows;
-			assert.ok(held !== undefined, 'No such stint');
-			return held;
-		})
-	);
 /** A raise from the first of a month, keyed as HR keys one: a terms row holding the new rate. Answers its id. */
 const raise = (t: Kit, from: string, amount: number, employment: Id<'employment'> = FIRST) =>
 	Effect.gen(function* () {

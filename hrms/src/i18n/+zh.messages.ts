@@ -277,13 +277,7 @@ export default messages({
 	'kiosk.no_face': '未检测到人脸',
 	'kiosk.no_face_detail': '请站到摄像头前并注视摄像头。',
 	'kiosk.no_people_match': '没有匹配此搜索的员工。',
-	'kiosk.not_a_work_day': '今天不是工作日',
-	'kiosk.not_a_work_day_detail': '今天的排班为 {code}。如需顶班，请联系主管确认。',
-	'kiosk.not_scheduled': '今天没有排班',
-	'kiosk.not_scheduled_detail':
-		'您今天的排班表上没有班次，因此无法记录考勤。请联系主管为该日排班。',
 	'kiosk.organization_fallback': '您的组织',
-	'kiosk.organization_logo': '{name} 标志',
 	'kiosk.preparing': '正在准备考勤打卡机',
 	'kiosk.preparing_detail': '正在启动摄像头和安全人脸匹配…',
 	'kiosk.read_failed': '无法读取人脸',

@@ -11,6 +11,7 @@ import { verify } from '../../src/lib/integrity.ts';
 import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { pay, run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	accountsIn,
@@ -25,7 +26,8 @@ import {
 	workspace,
 	refusal,
 	storedQuery,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 /** The half-day slots a leave entry holds. */
@@ -50,14 +52,7 @@ const IN_LIEU = 'PUBLIC_HOLIDAY_IN_LIEU';
 const PAYOUT = 100;
 const EMPLOYMENT = idOf('employment', uuid(6));
 const BALANCE = idOf('employee_balance', uuid(5));
-const TERMS = {
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
+const TERMS = packTerms(3120, 'MANUAL_LABOUR');
 type Seed = ReturnType<typeof pack>;
 /** The in-lieu row pays a flat amount a day, from the law's first day on. */
 const flat = (seed: Seed): Seed =>
@@ -117,29 +112,6 @@ const enter = (
 		yield* t.run_due();
 	});
 const cashOut = (t: Kit, ...dates: readonly string[]) => enter(t, IN_LIEU, dates);
-const run = (t: Kit, period: string) =>
-	t
-		.as(t.admin)
-		.pipe(
-			Effect.andThen((caller) =>
-				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-			)
-		)
-		.pipe(Effect.andThen(t.run_due()));
-/** The period run and paid. */
-const pay = (t: Kit, period: string) =>
-	Effect.gen(function* () {
-		yield* run(t, period);
-		const { payroll_run } = yield* storedQuery(t, {
-			payroll_run: { where: { period: { eq: period } }, limit: 1 }
-		});
-		const [made] = payroll_run.rows;
-		assert.ok(made !== undefined);
-		yield* (yield* t.as(t.admin)).act({
-			'payroll_run.update': [{ target: made, set: { state: 'PAID' } }]
-		});
-		yield* t.run_due();
-	});
 /** The open amendment rows' periods. */
 const amended = (t: Kit) =>
 	storedQuery(t, {

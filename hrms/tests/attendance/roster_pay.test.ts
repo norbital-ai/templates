@@ -9,6 +9,7 @@ import { DateTime, Duration, Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	OFF,
@@ -23,23 +24,13 @@ import {
 	uuid,
 	wholeDays,
 	workspace,
-	storedQuery
+	storedQuery,
+	packTerms
 } from '../kit.ts';
 
 type Seed = ReturnType<typeof pack>;
 const NOW = '2026-02-20T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
-const TERMS = {
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
 
 /** A clock time on a date in the fixture's zone (UTC+8), as an instant. */
 const at = (date: string, clock: string) => new Date(`${date}T${clock}:00+08:00`).toISOString();
@@ -84,7 +75,7 @@ const month = (
 			return [own ?? (weekend(date) ? { date, shift: OFF } : { date, shift: WORK, clock: SHIFT })];
 		});
 const seedOf = (days: readonly Day[], code = 'MY', zone = 'Asia/Kuala_Lumpur'): Seed => {
-	const seed = pack(code, zone, TERMS, {}, [], []);
+	const seed = pack(code, zone, packTerms(3120, 'MANUAL_LABOUR'), {}, [], []);
 	return {
 		...seed,
 		roster_entry: days.map((day, index) => rosterRow(uuid(1000 + index), uuid(6), day))
@@ -149,15 +140,6 @@ const withPeople = (seed: Seed, count: number): Seed => {
 /** The second person `withPeople` adds. */
 const SECOND = { employee: uuid(9014), employment: uuid(9016) };
 
-const run = (t: Kit, period = '2026-02') =>
-	t
-		.as(t.admin)
-		.pipe(
-			Effect.flatMap((caller) =>
-				caller.act({ 'payroll_run.create': [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }] })
-			)
-		)
-		.pipe(Effect.andThen(t.run_due()));
 /** One person's payslip of a period's run: net, checkpoints by code and lines, without the ids a workspace mints. */
 const slipOf = (t: Kit, period = '2026-02', employment: string = uuid(6)) =>
 	storedQuery(t, { payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
@@ -200,7 +182,7 @@ const paid = <E = never>(
 	Effect.gen(function* () {
 		const t = yield* TestWorkspace;
 		yield* first(t);
-		yield* run(t);
+		yield* run(t, '2026-02');
 		return yield* slipOf(t);
 	}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 const rosterOn = (t: Kit, date: string) =>
@@ -289,7 +271,7 @@ describe('an absence, read from the roster by a real run', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* run(t);
+				yield* run(t, '2026-02');
 				const before = yield* slipOf(t);
 				assert.ok(checkpoint(before, 'PRORATED') < checkpoint(before, 'BASIC'));
 				const sealed = yield* rosterOn(t, DAY);
@@ -313,7 +295,7 @@ describe('an absence, read from the roster by a real run', () => {
 				yield* t.run_due();
 				assert.equal((yield* rosterOn(t, DAY)).payroll_run_id ?? null, null);
 				yield* late();
-				yield* run(t);
+				yield* run(t, '2026-02');
 				const after = yield* slipOf(t);
 				assert.equal(checkpoint(after, 'PRORATED'), checkpoint(after, 'BASIC'));
 				assert.equal((yield* runsHeld(t)).length, 1);
@@ -326,7 +308,7 @@ describe('an absence, read from the roster by a real run', () => {
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* run(t);
+				yield* run(t, '2026-02');
 				const february = yield* slipOf(t);
 				const [first] = yield* runsHeld(t);
 				assert.ok(first !== undefined);
@@ -502,7 +484,7 @@ describe('a kiosk punch', () => {
 				const t = yield* TestWorkspace;
 				const written = yield* punch(t, clockIn(DAY, SHIFT));
 				assert.equal(written.kind, 'committed');
-				yield* run(t);
+				yield* run(t, '2026-02');
 				const [ran] = yield* runsHeld(t);
 				assert.equal((yield* rosterOn(t, DAY)).payroll_run_id, ran?.id);
 				return yield* slipOf(t);
@@ -521,7 +503,7 @@ describe('a kiosk punch', () => {
 				const absent = yield* paid(seed);
 				const t = yield* TestWorkspace;
 				yield* punch(t, [{ start: DateTime.formatIso(DateTime.makeUnsafe(at(DAY, '08:00'))) }]);
-				yield* run(t);
+				yield* run(t, '2026-02');
 				assert.deepEqual(yield* slipOf(t), absent);
 				// the run took the open punch with the day: it is closed only by taking the unpaid run back
 				const close = () =>
@@ -540,7 +522,7 @@ describe('a kiosk punch', () => {
 				yield* (yield* t.as(t.admin)).act({ 'payroll_run.delete': [{ target: first }] });
 				yield* t.run_due();
 				yield* close();
-				yield* run(t);
+				yield* run(t, '2026-02');
 				const closed = yield* slipOf(t);
 				assert.equal(checkpoint(closed, 'PRORATED'), checkpoint(closed, 'BASIC'));
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
@@ -588,7 +570,7 @@ describe('a work event', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			for (const [from, to] of events) yield* record(t, EVENT, from, to);
-			yield* run(t);
+			yield* run(t, '2026-02');
 			return yield* slipOf(t);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 
@@ -629,7 +611,7 @@ describe('a work event', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* record(t, EVENT, '2026-02-01', '2026-02-28', SECOND.employment);
-			yield* run(t);
+			yield* run(t, '2026-02');
 			assert.equal(line(yield* slipOf(t), ALLOWANCE), 0);
 			assert.ok(line(yield* slipOf(t, '2026-02', SECOND.employment), ALLOWANCE) > 0);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
@@ -689,7 +671,11 @@ describe('a holiday and the days around it', () => {
 		pack(
 			'MY',
 			'Asia/Kuala_Lumpur',
-			{ ...TERMS, normal_hours_per_week: daysPerWeek * 8, normal_days_per_week: daysPerWeek },
+			{
+				...packTerms(3120, 'MANUAL_LABOUR'),
+				normal_hours_per_week: daysPerWeek * 8,
+				normal_days_per_week: daysPerWeek
+			},
 			{},
 			days,
 			[]
@@ -762,7 +748,7 @@ describe('a holiday and the days around it', () => {
 						})
 					]
 				});
-				yield* run(t);
+				yield* run(t, '2026-02');
 				const onLeave = yield* slipOf(t);
 				assert.deepEqual(onLeave.checkpoints, plain.checkpoints);
 				assert.equal(net(onLeave), net(plain));

@@ -7,25 +7,11 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, ownLines, pay, run } from '../amendment_kit.ts';
-import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace, packTerms } from '../kit.ts';
 
 const STINT = idOf('employment', uuid(6));
 const SALARY = 3120;
-const seed = pack(
-	'MY',
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: SALARY, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[]
-);
+const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(SALARY, 'MANUAL_LABOUR'), {}, [], []);
 const whole = (date: string) => [
 	{ date, part: 'AM' as const },
 	{ date, part: 'PM' as const }

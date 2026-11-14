@@ -5,13 +5,22 @@ import { Clock, DateTime, Effect } from 'effect';
 export type PunchResult = {
 	readonly status: 'in' | 'out' | 'blocked';
 	readonly kind: 'FACE' | 'MANUAL';
-	readonly intervalIndex?: number;
 	readonly time?: string;
-	readonly cooldownMs?: number;
 	readonly reason?: string;
 	readonly retryAfterMs?: number;
-	readonly plannedCode?: string;
 };
+/** A punch's instant as the kiosk shows it, in the device's locale. */
+export const punchTime = (locale: string, time: string | undefined): string =>
+	time === undefined
+		? '—'
+		: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(
+				DateTime.toDateUtc(DateTime.makeUnsafe(time))
+			);
+/** Whether a stint's effective range holds the day. */
+export const rangeCovers = (
+	range: { readonly from: string; readonly to: string | null },
+	day: string
+): boolean => range.from <= day && (range.to == null || range.to >= day);
 /** One worked interval of the person-day, as the roster stores it. */
 type Interval = NonNullable<Row<'roster_entry'>['actual_worked_intervals']>[number];
 /** The window a second punch waits out, so one arrival is never written twice by a trailing frame. */
@@ -99,7 +108,7 @@ export const punchWork = Effect.fnUntraced(function* (
 				kind,
 				reason: pending(created) ? 'pendingApproval' : 'refused'
 			};
-		return { status: 'in' as const, kind, intervalIndex: 0, time };
+		return { status: 'in' as const, kind, time };
 	}
 	const next: Interval[] =
 		intervals.length === 0 || last?.end != null
@@ -121,7 +130,6 @@ export const punchWork = Effect.fnUntraced(function* (
 	return {
 		status: intervals.length === 0 || last?.end != null ? ('in' as const) : ('out' as const),
 		kind,
-		intervalIndex: Math.max(0, next.length - 1),
 		time
 	};
 });

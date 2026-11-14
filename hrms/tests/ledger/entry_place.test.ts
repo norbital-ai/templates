@@ -4,29 +4,12 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, leaveCreate, pack, uuid, wholeDays, workspace } from '../kit.ts';
+import { ENTITY, leaveCreate, pack, uuid, wholeDays, workspace, packTerms } from '../kit.ts';
 
 const NOW = '2026-10-06T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
 // the fixture's stint starts on 1 January 2025
-const seed = pack(
-	'MY',
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 8000, unit: 'MONTHLY' },
-		normal_hours_per_day: 8,
-		normal_hours_per_week: 40,
-		normal_days_per_week: 5,
-		statutory_work_category: 'NON_MANUAL',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[]
-);
+const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
 const own = { entity_id: ENTITY, employment_id: EMPLOYMENT };
 const refusal = (t: Kit, writes: Parameters<Effect.Success<ReturnType<Kit['as']>>['act']>[0]) =>
 	Effect.flatMap(t.as(t.admin), (caller) => Effect.flip(caller.act(writes))).pipe(

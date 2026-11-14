@@ -22,19 +22,12 @@ import {
 	workspace,
 	storedQuery,
 	storedReader,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const STINT = idOf('employment', EMPLOYMENT);
 type Seed = ReturnType<typeof pack>;
-const terms = (amount: number) => ({
-	rate: { amount, unit: 'MONTHLY' },
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-});
 // A twice-monthly schedule: two halves a month, each attending the half before it
 const ARREARS = {
 	frequency: 'SEMI_MONTHLY',
@@ -51,7 +44,7 @@ const seedOf = (
 	days: Parameters<typeof pack>[4] = [],
 	changes: readonly string[] = []
 ): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(amount), {}, days, []);
+	const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(amount, 'MANUAL_LABOUR'), {}, days, []);
 	return {
 		...seed,
 		pay_group: (seed.pay_group ?? []).map((row) => ({ ...row, payment_schedule: ARREARS })),

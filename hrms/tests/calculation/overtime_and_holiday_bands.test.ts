@@ -7,20 +7,15 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { awardedMinutes } from '../../src/lib/payroll_engine/attendance.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { ENTITY, REST, WORK, pack, uuid, workspace, storedQuery } from '../kit.ts';
+import { run } from '../amendment_kit.ts';
+import { ENTITY, REST, WORK, pack, uuid, workspace, storedQuery, packTerms } from '../kit.ts';
 
 const HOLIDAY = '2026-02-08';
 const SALARY = 3120;
 const terms = (daysPerWeek: number) => ({
-	rate: { amount: SALARY, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
+	...packTerms(SALARY, 'MANUAL_LABOUR'),
 	normal_hours_per_week: daysPerWeek * 8,
-	normal_days_per_week: daysPerWeek,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
+	normal_days_per_week: daysPerWeek
 });
 const seed = (shift: string, hours: number) =>
 	pack(
@@ -35,10 +30,7 @@ const seed = (shift: string, hours: number) =>
 const NOW = '2026-02-20T02:00:00.000Z';
 /** February's payslip lines of the one person, by code. */
 const lines = Effect.fnUntraced(function* (t: Kit) {
-	yield* (yield* t.as(t.admin)).act({
-		'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
-	});
-	yield* t.run_due();
+	yield* run(t, '2026-02');
 	const payslip = (yield* storedQuery(t, { payslip: { limit: 1 } })).payslip.rows[0];
 	const breakdown = Schema.decodeUnknownSync(PayslipBreakdown)(payslip?.breakdown);
 	return Object.fromEntries(breakdown.lines.map((line) => [line.code, line.amount]));
@@ -123,10 +115,7 @@ describe('a holiday on the roster', () => {
 		};
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* (yield* t.as(t.admin)).act({
-				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
-			});
-			yield* t.run_due();
+			yield* run(t, '2026-02');
 			const { payslip } = yield* storedQuery(t, { payslip: { limit: 10 } });
 			const linesOf = (employment: string) =>
 				Object.fromEntries(

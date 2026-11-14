@@ -1,8 +1,5 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
-	import type { ActInput } from '@norbital-ai/bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState, RecordShell, Sheet } from '@norbital-ai/ui';
 	import SealedBadge from '../../../lib/ui/payroll/sealed_badge.svelte';
@@ -14,18 +11,11 @@
 		parseLoanSheet,
 		parseRepaymentSheet
 	} from '../../../lib/payroll_engine/entry_workbook.js';
-	import {
-		runWorkbookImport,
-		type WorkbookGrids
-	} from '../../../lib/ui/workbook/workbook_import.js';
+	import { entryImport, plain } from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);
 	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
-	let importingLoans = $state(false);
-	let importingRepayments = $state(false);
-	let loanWarnings: readonly string[] = [];
-	let repaymentWarnings: readonly string[] = [];
 
 	const held = $derived.by(() =>
 		scope.id == null
@@ -49,124 +39,67 @@
 				})
 	);
 
-	const party = () => {
-		const current = held?.current;
-		const company = scope.company;
-		const entityId = scope.id;
-		if (current == null || company == null || entityId == null)
-			throw new Error('Employee and loan data is still loading.');
-		return {
-			current,
-			entity: {
-				id: entityId,
-				code: company.code ?? null,
-				name: company.name,
-				settings_code: company.settings_code
-			},
-			employees: current.employment.rows.map((row) => ({
-				id: row.id,
-				number: row.employee_number,
-				entity_id: row.entity_id,
-				from: row.effective_range.from,
-				to: row.effective_range.to
-			})),
-			laws: laws.on
-		};
-	};
+	const importLoans = entryImport(ctx, scope, laws, {
+		action: 'loan_catalog_entry.create',
+		label: () => ctx.t('app.loans.title'),
+		held: () => held?.current,
+		loading: 'Employee and loan data is still loading.',
+		build: (grids, current, party) => {
+			const parsed = parseLoanSheet(grids, {
+				...party,
+				existing: current.loan_catalog_entry.rows.map((row) => ({
+					employment_id: row.employment_id,
+					catalog_code: row.catalog_code,
+					quantity: numberOf(row.quantity) ?? 0,
+					from: row.repayment_period.from,
+					to: row.repayment_period.to
+				}))
+			});
+			return {
+				warnings: parsed.warnings,
+				rows: parsed.rows.map((row) => ({
+					entity_id: row.entity_id,
+					employment_id: row.employment_id,
+					catalog_code: row.catalog_code,
+					quantity: plain(row.quantity),
+					repayment_period: { from: row.repayment_from, to: row.repayment_to }
+				}))
+			};
+		}
+	});
 
-	function loanRows(grids: WorkbookGrids): ActInput<'loan_catalog_entry.create'> {
-		const { current, ...base } = party();
-		const parsed = parseLoanSheet(grids, {
-			...base,
-			existing: current.loan_catalog_entry.rows.map((row) => ({
-				employment_id: row.employment_id,
-				catalog_code: row.catalog_code,
-				quantity: numberOf(row.quantity) ?? 0,
-				from: row.repayment_period.from,
-				to: row.repayment_period.to
-			}))
-		});
-		loanWarnings = parsed.warnings;
-		return parsed.rows.map((row) => ({
-			entity_id: row.entity_id,
-			employment_id: row.employment_id,
-			catalog_code: row.catalog_code,
-			quantity: new Intl.NumberFormat('en', {
-				useGrouping: false,
-				maximumFractionDigits: 20
-			}).format(row.quantity),
-			repayment_period: {
-				from: row.repayment_from,
-				to: row.repayment_to
-			}
-		}));
-	}
-
-	function repaymentRows(grids: WorkbookGrids): ActInput<'loan_catalog_entry_repayment.create'> {
-		const { current, ...base } = party();
-		const parsed = parseRepaymentSheet(grids, {
-			...base,
-			loans: current.loan_catalog_entry.rows.map((row) => ({
-				id: row.id,
-				employment_id: row.employment_id,
-				catalog_code: row.catalog_code
-			})),
-			existing: current.loan_catalog_entry_repayment.rows.map((row) => ({
-				employment_id: row.employment_id,
-				loan_id: row.loan_id,
-				amount: numberOf(row.amount) ?? 0,
-				paid_on: row.paid_on == null ? null : String(row.paid_on)
-			}))
-		});
-		repaymentWarnings = parsed.warnings;
-		return parsed.rows.map((row) => ({
-			entity_id: row.entity_id,
-			employment_id: row.employment_id,
-			loan_id: row.loan_id,
-			amount: new Intl.NumberFormat('en', { useGrouping: false, maximumFractionDigits: 20 }).format(
-				row.amount
-			),
-			paid_on: row.paid_on
-		}));
-	}
-
-	function importLoans() {
-		importingLoans = true;
-		fork(
-			runWorkbookImport(ctx, {
-				action: 'loan_catalog_entry.create',
-				recordLabel: ctx.t('app.loans.title').toLowerCase(),
-				buildPayload: loanRows,
-				importedCount: (payload) => payload.length,
-				warnings: () => loanWarnings
-			}).pipe(
-				Effect.ensuring(
-					Effect.sync(() => {
-						importingLoans = false;
-					})
-				)
-			)
-		);
-	}
-
-	function importRepayments() {
-		importingRepayments = true;
-		fork(
-			runWorkbookImport(ctx, {
-				action: 'loan_catalog_entry_repayment.create',
-				recordLabel: ctx.t('v2.repayments').toLowerCase(),
-				buildPayload: repaymentRows,
-				importedCount: (payload) => payload.length,
-				warnings: () => repaymentWarnings
-			}).pipe(
-				Effect.ensuring(
-					Effect.sync(() => {
-						importingRepayments = false;
-					})
-				)
-			)
-		);
-	}
+	const importRepayments = entryImport(ctx, scope, laws, {
+		action: 'loan_catalog_entry_repayment.create',
+		label: () => ctx.t('v2.repayments'),
+		held: () => held?.current,
+		loading: 'Employee and loan data is still loading.',
+		build: (grids, current, party) => {
+			const parsed = parseRepaymentSheet(grids, {
+				...party,
+				loans: current.loan_catalog_entry.rows.map((row) => ({
+					id: row.id,
+					employment_id: row.employment_id,
+					catalog_code: row.catalog_code
+				})),
+				existing: current.loan_catalog_entry_repayment.rows.map((row) => ({
+					employment_id: row.employment_id,
+					loan_id: row.loan_id,
+					amount: numberOf(row.amount) ?? 0,
+					paid_on: row.paid_on == null ? null : String(row.paid_on)
+				}))
+			});
+			return {
+				warnings: parsed.warnings,
+				rows: parsed.rows.map((row) => ({
+					entity_id: row.entity_id,
+					employment_id: row.employment_id,
+					loan_id: row.loan_id,
+					amount: plain(row.amount),
+					paid_on: row.paid_on
+				}))
+			};
+		}
+	});
 </script>
 
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
@@ -186,24 +119,8 @@
 				new: () => (creating = true),
 				title: ctx.t('app.loans.title'),
 				actions: [
-					{
-						run: importLoans,
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('holiday_calendar.import_spreadsheet'),
-						disabled: () =>
-							importingLoans || held?.current == null || laws.loading
-								? ctx.t('component.loading')
-								: null
-					},
-					{
-						run: importRepayments,
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('v2.import_repayments'),
-						disabled: () =>
-							importingRepayments || held?.current == null || laws.loading
-								? ctx.t('component.loading')
-								: null
-					}
+					importLoans(ctx.t('holiday_calendar.import_spreadsheet')),
+					importRepayments(ctx.t('v2.import_repayments'))
 				]
 			}}
 			columns={[

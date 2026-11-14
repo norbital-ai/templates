@@ -21,22 +21,14 @@ import {
 	workspace,
 	leaveCreate,
 	storedQuery,
-	decimalNumber
+	decimalNumber,
+	packTerms,
+	agreedTerms
 } from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
-const terms = {
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-};
+const terms = packTerms(3120, 'MANUAL_LABOUR');
 type Seed = ReturnType<typeof pack>;
 /** The pack's stint, hired on `from`: its first rows are dated with it. */
 const hiredOn = (seed: Seed, from: string): Seed => ({
@@ -336,14 +328,7 @@ describe('the events that call it', () => {
 								effective_from: '2026-11-02',
 								engagement: 'EMPLOYEE',
 								pay_group_id: idOf('pay_group', PAY_GROUP),
-								rate: { amount: 3120, unit: 'MONTHLY' },
-								normal_hours_per_day: 8,
-								normal_hours_per_week: 40,
-								normal_days_per_week: 5,
-								statutory_work_category: 'MANUAL_LABOUR',
-								work_classification: 'EA_COVERED',
-								wage_payment_method: 'BANK',
-								allowances: {}
+								...agreedTerms(3120, 'MANUAL_LABOUR')
 							}
 						],
 						parameters: [

@@ -29,7 +29,8 @@ import {
 	query,
 	storedQuery,
 	current,
-	storedReader
+	storedReader,
+	packTerms
 } from '../kit.ts';
 
 const SEEDS =
@@ -40,21 +41,7 @@ const START = '2026-08-05T02:00:00.000Z';
 const LAST_MONTH = '2026-11';
 const EMPLOYMENT = idOf('employment', uuid(6));
 const BALANCE = idOf('employee_balance', uuid(5));
-const base = pack(
-	'MY',
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 3120, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[]
-);
+const base = pack('MY', 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []);
 const seed = {
 	...base,
 	sys_user: [

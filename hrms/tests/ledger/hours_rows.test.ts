@@ -9,6 +9,7 @@ import { Effect, Schema } from 'effect';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	WORK,
@@ -22,7 +23,8 @@ import {
 	uuid,
 	workspace,
 	storedQuery,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const CODE = 'EMERGENCY_LEAVE';
@@ -30,14 +32,7 @@ const BALANCE = idOf('employee_balance', uuid(5));
 const base = pack(
 	'MY',
 	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 3120, unit: 'MONTHLY' },
-		statutory_work_category: 'NON_MANUAL',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
+	packTerms(3120),
 	{},
 	[
 		{ date: '2026-06-02', shift: WORK, hours: 10, overtime: 2 },
@@ -68,20 +63,9 @@ const seedOf = (marked: boolean) => ({
 });
 const live = (marked: boolean) =>
 	workspace({ seed: seedOf(marked), now: '2026-07-01T02:00:00.000Z' });
-const runJune = (t: Kit) =>
-	t
-		.as(t.admin)
-		.pipe(
-			Effect.flatMap((caller) =>
-				caller.act({
-					'payroll_run.create': [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]
-				})
-			)
-		)
-		.pipe(Effect.andThen(t.run_due()));
 const overtimePaid = Effect.fnUntraced(function* () {
 	const t = yield* TestWorkspace;
-	yield* runJune(t);
+	yield* run(t, '2026-06');
 	const payslip = (yield* storedQuery(t, { payslip: { limit: 1 } })).payslip.rows[0];
 	const { lines } = Schema.decodeUnknownSync(PayslipBreakdown)(payslip?.breakdown);
 	return lines.find((line) => line.code === 'OVERTIME')?.amount ?? 0;
@@ -150,7 +134,7 @@ describe('overtime taken as time off', () => {
 	it.live('a half day off takes half the normal day in hours; HR adjusts the row in hours', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* runJune(t);
+			yield* run(t, '2026-06');
 			// 2 hours owed, a half day is 4
 			assert.match(String(yield* Effect.flip(halfDay(t))), /insufficient balance/);
 			assert.match(String(yield* Effect.flip(adjust(t, 'DAY', 0.5))), /hours where the row/);

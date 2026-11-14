@@ -21,7 +21,9 @@ import {
 	storedQuery,
 	uuid,
 	workspace,
-	decimalNumber
+	decimalNumber,
+	packTerms,
+	stintOver
 } from '../kit.ts';
 
 const days = (off: readonly number[]) =>
@@ -240,21 +242,17 @@ describe('a leaver on a shift pattern', () => {
 	// paid by working days: the days after the last day are still working days of the period, unpaid
 	const PATTERN = uuid(950);
 	const SALARY = 6600;
-	const base = pack(
-		'MY',
-		'Asia/Kuala_Lumpur',
-		{
-			rate: { amount: SALARY, unit: 'MONTHLY' },
-			statutory_work_category: 'NON_MANUAL',
-			work_classification: 'EA_COVERED',
-			residency_status: 'CITIZEN',
-			wage_payment_method: 'BANK',
-			allowances: {},
-			shift_pattern_id: PATTERN
-		},
-		{},
-		[],
-		[]
+	const base = stintOver(
+		pack(
+			'MY',
+			'Asia/Kuala_Lumpur',
+			{ ...packTerms(SALARY), shift_pattern_id: PATTERN },
+			{},
+			[],
+			[]
+		),
+		'2026-01-01',
+		'2026-06-12'
 	);
 	const seed = {
 		...lawWith(base, { conversions: { proration: 'WORKING_DAYS' } }),
@@ -278,19 +276,7 @@ describe('a leaver on a shift pattern', () => {
 					}
 				}
 			}
-		],
-		employment: (base.employment ?? []).map((row) => ({
-			...row,
-			effective_range: { from: '2026-01-01', to: '2026-06-12' }
-		})),
-		contract_terms: (base.contract_terms ?? []).map((row) => ({
-			...row,
-			effective_from: '2026-01-01'
-		})),
-		statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
-			...row,
-			effective_from: '2026-01-01'
-		}))
+		]
 	};
 
 	it.live('is paid the working days employed, not the calendar days', () =>
@@ -314,20 +300,12 @@ describe('a leaver on a shift pattern', () => {
 });
 
 describe('a stint that starts inside the period', () => {
-	const terms = (amount: number) => ({
-		rate: { amount, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	});
 	/** One person paid 3,000 to 15 February and, in a new stint, 3,600 from the 16th; two overtime hours on a day if named. */
 	const raised = (overtimeOn?: string) => {
 		const seed = pack(
 			'MY',
 			'Asia/Kuala_Lumpur',
-			terms(3000),
+			packTerms(3000, 'MANUAL_LABOUR'),
 			{},
 			// a roster makes every day it leaves out an absence: the salary case keeps none
 			overtimeOn === undefined ? [] : [{ date: overtimeOn, shift: WORK, hours: 10, overtime: 2 }],

@@ -18,7 +18,8 @@ import {
 	storedReader,
 	uuid,
 	workspace,
-	decimalNumber
+	decimalNumber,
+	packTerms
 } from '../kit.ts';
 
 const EMPLOYMENT = idOf('employment', uuid(6));
@@ -33,22 +34,7 @@ const ledgerWhole = (t: Kit) =>
 			[]
 		);
 	});
-const malaysia = (amount: number) =>
-	pack(
-		'MY',
-		'Asia/Kuala_Lumpur',
-		{
-			rate: { amount, unit: 'MONTHLY' },
-			statutory_work_category: 'NON_MANUAL',
-			work_classification: 'EA_COVERED',
-			residency_status: 'CITIZEN',
-			wage_payment_method: 'BANK',
-			allowances: {}
-		},
-		{},
-		[],
-		[]
-	);
+const malaysia = (amount: number) => pack('MY', 'Asia/Kuala_Lumpur', packTerms(amount), {}, [], []);
 
 describe('a tax instalment posted to the tax scheme’s account', () => {
 	const seed = malaysia(8227);

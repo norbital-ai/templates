@@ -21,7 +21,15 @@ import {
 	slip,
 	claimAt
 } from '../amendment_kit.ts';
-import { ENTITY, lawAt, leaveCreate, wholeDays, workspace, storedQuery } from '../kit.ts';
+import {
+	ENTITY,
+	lawAt,
+	leaveCreate,
+	wholeDays,
+	workspace,
+	storedQuery,
+	stintOver
+} from '../kit.ts';
 
 type Seed = ReturnType<typeof rostered>;
 /** The schemes the fixture assesses in the month paid: no correction works them out again for an earlier period. */
@@ -37,16 +45,6 @@ const earned = (lines: Readonly<Record<string, number>>) =>
 	);
 /** A claim as stored now: a write targets it at its current revision. */
 const at = (month: string) => `${month}-20T02:00:00.000Z`;
-/** The pack's one stint over these days, its first terms and parameters on its first day. */
-const stinted = (seed: Seed, from: string, to: string): Seed => ({
-	...seed,
-	employment: (seed.employment ?? []).map((row) => ({ ...row, effective_range: { from, to } })),
-	contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: from })),
-	statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
-		...row,
-		effective_from: from
-	}))
-});
 /** The same months paid on a seed that was never wrong, read the same way. */
 const neverWrong = <A>(
 	from: Seed,
@@ -298,7 +296,7 @@ describe('what a correction reaches', () => {
 
 describe('someone no on-cycle run pays any more', () => {
 	/** The person's stint ended with February. */
-	const left = (from: Seed): Seed => stinted(from, '2026-01-01', '2026-02-28');
+	const left = (from: Seed): Seed => stintOver(from, '2026-01-01', '2026-02-28');
 	const offCycle = (t: Kit) =>
 		Effect.gen(function* () {
 			const open = (yield* amendments(t)).filter((row) => row.payroll_run_id === null);
@@ -379,7 +377,7 @@ describe('someone no on-cycle run pays any more', () => {
 	});
 
 	it.live('what they still owe after their last payslip is one task for HR', () => {
-		const from = stinted(rostered(['2026-02', '2026-03']), '2026-01-01', '2026-03-31');
+		const from = stintOver(rostered(['2026-02', '2026-03']), '2026-01-01', '2026-03-31');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* (yield* t.as(t.admin)).act({

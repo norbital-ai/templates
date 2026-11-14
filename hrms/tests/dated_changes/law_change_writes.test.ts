@@ -11,25 +11,11 @@ import { lawOn } from '../../src/lib/law.ts';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { claimed } from '../amendment_kit.ts';
-import { ENTITY, lawAt, pack, storedQuery, storedReader, workspace } from '../kit.ts';
+import { ENTITY, lawAt, pack, storedQuery, storedReader, workspace, packTerms } from '../kit.ts';
 
 const CODE = 'MY';
 const NOW = '2026-08-20T02:00:00.000Z';
-const seed = pack(
-	CODE,
-	'Asia/Kuala_Lumpur',
-	{
-		rate: { amount: 3120, unit: 'MONTHLY' },
-		statutory_work_category: 'MANUAL_LABOUR',
-		work_classification: 'EA_COVERED',
-		residency_status: 'CITIZEN',
-		wage_payment_method: 'BANK',
-		allowances: {}
-	},
-	{},
-	[],
-	[]
-);
+const seed = pack(CODE, 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []);
 const CLAIM = 'MEDICAL_CLAIM';
 const SCHEME = 'EPF';
 const FIXTURE = lawAt(CODE, NOW.slice(0, 10));
