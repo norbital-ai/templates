@@ -1,7 +1,12 @@
 import { model } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
-import { attendanceOf, cycleOf, payDateOf } from '../../../lib/payroll_engine/pay_cycle.js';
+import {
+	attendanceOf,
+	cycleOf,
+	cycleStarted,
+	payDateOf
+} from '../../../lib/payroll_engine/pay_cycle.js';
 import { idOf } from '../../../lib/payroll_engine/reads.js';
 
 import { runPostings, syncLatePosted, undone } from '../../../lib/ledger/service.js';
@@ -181,6 +186,12 @@ export default model('payroll_run', {
 						values: { period: row.period, group: group.name }
 					});
 				const offCycle = row.kind === 'OFF_CYCLE';
+				if (!offCycle && !cycleStarted(cycle, String(ctx.today)))
+					return yield* ctx.refuse('errors.payroll_run_cycle_not_started', {
+						row: index,
+						field: 'period',
+						values: { period: row.period, from: cycle.from }
+					});
 				const prior = known.payroll_run.rows.filter(
 					(entry) => String(entry.pay_group_id) === String(group.id)
 				);

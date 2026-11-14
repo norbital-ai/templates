@@ -20,6 +20,16 @@ const touched = (
 		run: row.payroll_run_id ?? null
 	}));
 
+/** A day's findings: the registered rules it sits outside, then the caps it crosses. */
+const found = (
+	warned: readonly { readonly index: number; readonly code: string; readonly message: string }[],
+	findings: readonly (readonly { readonly code: string; readonly message: string }[])[],
+	index: number
+) => [
+	...warned.filter((row) => row.index === index).map(({ code, message }) => ({ code, message })),
+	...(findings[index] ?? [])
+];
+
 export default model('roster_entry', {
 	description:
 		'One roster day: its planned overtime, whether that overtime is taken as time off, and actual worked intervals. It is priced under the contract version in force on its date; the run that priced it is on the entry.',
@@ -114,7 +124,7 @@ export default model('roster_entry', {
 		],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
-			yield* validateRegistered(
+			const warned = yield* validateRegistered(
 				ctx.query,
 				'roster_entry',
 				'create',
@@ -125,7 +135,7 @@ export default model('roster_entry', {
 				rows.map((row) => jsonObject(row))
 			).pipe(refusing(ctx));
 			return {
-				sets: rows.map((row, index) => ({ ...row, findings: findings[index] ?? [] })),
+				sets: rows.map((row, index) => ({ ...row, findings: found(warned, findings, index) })),
 				on_approved: yield* amendmentsFor(ctx.query, touched(rows))
 			};
 		},
@@ -151,7 +161,7 @@ export default model('roster_entry', {
 		],
 		transform: function* (changes, ctx) {
 			if (sealOnly(changes)) return changes.map((change) => change.set);
-			yield* validateRegistered(
+			const warned = yield* validateRegistered(
 				ctx.query,
 				'roster_entry',
 				'update',
@@ -168,7 +178,7 @@ export default model('roster_entry', {
 					...(change.before.payroll_run_id != null && change.changed('work_date')
 						? { payroll_run_id: null }
 						: {}),
-					findings: findings[index] ?? []
+					findings: found(warned, findings, index)
 				})),
 				// a day that moves touches the period it left and the period it joined
 				on_approved: yield* amendmentsFor(ctx.query, [

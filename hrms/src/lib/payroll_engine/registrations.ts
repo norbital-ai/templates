@@ -840,7 +840,7 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 	rows: readonly JsonObject[],
 	before?: readonly (JsonObject | undefined)[]
 ) {
-	if (rows.length === 0) return;
+	if (rows.length === 0) return [];
 	const cache: SubjectCache = { stints: new Map(), employers: new Map(), employees: new Map() };
 	const { laws, on } = yield* lawsFor(read, collection, operation, rows, cache);
 	if (operation === 'create' || operation === 'update')
@@ -850,7 +850,7 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 			.toSorted((left, right) => Number(left.order ?? 0) - Number(right.order ?? 0))
 			.map((rule) => ({ rule, law, at }))
 	);
-	if (applied.length === 0) return;
+	if (applied.length === 0) return [];
 	const source = applied
 		.map(
 			({ rule }) =>
@@ -912,22 +912,22 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 			if (!truth(answer)) refused.set(index, code);
 		}
 	}
-	// every refused row, each named by its person and day, so a batch is fixed in one pass
-	if (refused.size > 0)
-		return yield* new Refusal({
-			message: [...refused]
-				.toSorted(([left], [right]) => left - right)
-				.map(([index, code]) => {
-					const key = [
-						pathValue(subjects[index], 'employment.employee_number'),
-						rows[index]?.work_date
-					]
-						.filter((part) => typeof part === 'string' && part !== '')
-						.join(' ');
-					return `${key === '' ? '' : `${key}: `}${code}: the row is refused by its registered rule.`;
-				})
-				.join('\n')
+	// owner, 2026-11-15: for now a rule that answers no warns and the write stands. Each warning names its row.
+	const warnings = [...refused]
+		.toSorted(([left], [right]) => left - right)
+		.map(([index, code]) => {
+			const key = [pathValue(subjects[index], 'employment.employee_number'), rows[index]?.work_date]
+				.filter((part) => typeof part === 'string' && part !== '')
+				.join(' ');
+			return {
+				index,
+				code,
+				message: `${key === '' ? '' : `${key}: `}${code}: outside its registered rule.`
+			};
 		});
+	if (warnings.length > 0)
+		yield* Effect.logWarning(warnings.map((warning) => warning.message).join('\n'));
+	return warnings;
 });
 
 /**

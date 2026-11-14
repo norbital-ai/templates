@@ -755,6 +755,8 @@ export default messages({
 	'errors.payroll_run_choose_group': 'Choose the pay group this run pays.',
 	'errors.payroll_run_group_other_company': 'The pay group belongs to another company.',
 	'errors.payroll_run_not_a_cycle': '{period} is not a pay cycle of {group}.',
+	'errors.payroll_run_cycle_not_started':
+		'{period} begins on {from}: a run is made once its cycle has begun.',
 	'errors.employment_no_law':
 		'No law is in force for this company: confirm its jurisdiction’s law first.',
 	'errors.payroll_run_later_ran': '{later} has already run, so {period} cannot run after it.',

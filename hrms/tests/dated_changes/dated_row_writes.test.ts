@@ -466,26 +466,29 @@ describe('a person under a run', () => {
 	);
 });
 
-// Break-it: a raise keyed ahead of its day, and the month it starts is run before that day comes.
-describe('a raise dated ahead and a run that got there first', () => {
+// Break-it: a raise keyed ahead of its day, and its month asked for before that month begins.
+describe('a raise dated ahead and a run asked for too early', () => {
 	const EARLY = '2026-01-20T02:00:00.000Z';
 	const reach = (t: Kit, instant: string) =>
 		Effect.sync(() => t.clock.set(instant)).pipe(Effect.andThen(t.run_due()));
 
-	it.live('the run prices the month by the row’s date: no day has to come first', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* raise(t, '2026-02-01');
-			yield* run(t, '2026-02');
-			const [slip, ...others] = yield* slipsOf(t, '2026-02');
-			assert.deepEqual(others, []);
-			assert.deepEqual([slip?.employment_id, basicOf(slip)], [FIRST, RAISED]);
-			// its day comes and makes nothing: no row, no task, and the payslip stands
-			yield* reach(t, '2026-02-01T01:00:00.000Z');
-			assert.equal((yield* termsRows(t)).length, 2);
-			assert.deepEqual(yield* failures(t), []);
-			assert.equal(basicOf((yield* slipsOf(t, '2026-02'))[0]), RAISED);
-		}).pipe(Effect.provide(workspace({ seed: base(), now: EARLY })))
+	it.live(
+		'the month is not run before it begins; on its first day it is priced by the row’s date',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* raise(t, '2026-02-01');
+				const early = yield* Effect.flip(run(t, '2026-02'));
+				assert.match(String(early), /2026-02 begins on 2026-02-01/);
+				// its day comes and makes nothing: no row, no task; the run then prices the raised rate
+				yield* reach(t, '2026-02-01T01:00:00.000Z');
+				assert.equal((yield* termsRows(t)).length, 2);
+				assert.deepEqual(yield* failures(t), []);
+				yield* run(t, '2026-02');
+				const [slip, ...others] = yield* slipsOf(t, '2026-02');
+				assert.deepEqual(others, []);
+				assert.deepEqual([slip?.employment_id, basicOf(slip)], [FIRST, RAISED]);
+			}).pipe(Effect.provide(workspace({ seed: base(), now: EARLY })))
 	);
 
 	it.live('moved to the next month before the run, it starts there', () =>
@@ -497,6 +500,7 @@ describe('a raise dated ahead and a run that got there first', () => {
 			yield* (yield* t.as(t.admin)).act({
 				'contract_terms.update': [{ target: filed, set: { effective_from: '2026-03-01' } }]
 			});
+			yield* reach(t, '2026-02-01T01:00:00.000Z');
 			yield* run(t, '2026-02');
 			yield* pay(t, (yield* runOf(t, '2026-02')).id);
 			yield* reach(t, '2026-03-01T01:00:00.000Z');

@@ -11,7 +11,7 @@
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { DateTime, Effect } from 'effect';
 	import { jsonObject } from '../../payroll_engine/foundation.js';
-	import { cycleOn, cyclesIn } from '../../payroll_engine/pay_cycle.js';
+	import { cycleOn, cycleStarted, cyclesIn } from '../../payroll_engine/pay_cycle.js';
 	import { pageLaws } from '../law.svelte.js';
 
 	let {
@@ -67,7 +67,7 @@
 			).slice(0, 7)
 		)
 			.flatMap((month) => cyclesIn(schedule, month).toReversed())
-			.filter((cycle) => cycle.from <= today && cycle.key > latest)
+			.filter((cycle) => cycleStarted(cycle, today) && cycle.key > latest)
 			.map((cycle) => ({
 				value: cycle.key,
 				label:

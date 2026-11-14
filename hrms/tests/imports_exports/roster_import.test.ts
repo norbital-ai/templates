@@ -119,31 +119,33 @@ const stored = (t: Kit) =>
 	);
 
 describe('roster workbook import', () => {
-	it.live('a refused row writes nothing, and the dry run names every refused row', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const plan = workbook('W3 2026-02-03', 'W8 2026-02-02');
-			const preview = yield* Effect.flip(importing(t, plan, true));
-			assert.equal(preview._tag, 'ActRefused');
-			assert.deepEqual(preview.message.split('\n').toSorted(), [
-				'W3 2026-02-03: ROSTER_DAILY_TOTAL: the row is refused by its registered rule.',
-				'W8 2026-02-02: ROSTER_DAILY_TOTAL: the row is refused by its registered rule.'
-			]);
-			assert.equal(yield* stored(t), 0);
-			// the write itself is all or nothing
-			yield* Effect.flip(importing(t, plan, false));
-			assert.equal(yield* stored(t), 0);
-		}).pipe(Effect.provide(workspace({ seed: seeded, now: '2026-02-20T02:00:00.000Z' })))
-	);
-
-	it.live('a day beyond the daily limit stands when it records its ground', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const plan = workbook('W3 2026-02-03');
-			const consent = { night_work: false, overtime: true, reference: 'EA s.60A(2)(d)' };
-			yield* importing(t, { ...plan, rows: plan.rows.map((row) => ({ ...row, consent })) }, false);
-			assert.equal(yield* stored(t), plan.rows.length);
-		}).pipe(Effect.provide(workspace({ seed: seeded, now: '2026-02-20T02:00:00.000Z' })))
+	it.live(
+		'a day outside a registered rule is written with its warning, and one that records its ground has none',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const plan = workbook('W3 2026-02-03', 'W8 2026-02-02');
+				yield* importing(t, plan, false);
+				const warned = () =>
+					storedQuery(t, { roster_entry: { limit: 10000 } }).pipe(
+						Effect.map(({ roster_entry }) =>
+							roster_entry.rows
+								.filter((row) => JSON.stringify(row.findings).includes('ROSTER_DAILY_TOTAL'))
+								.map((row) => String(row.work_date))
+								.toSorted()
+						)
+					);
+				assert.equal(yield* stored(t), plan.rows.length);
+				assert.deepEqual(yield* warned(), ['2026-02-02', '2026-02-03']);
+				// the same days with their ground on record: imported again, the warning goes
+				const consent = { night_work: false, overtime: true, reference: 'EA s.60A(2)(d)' };
+				yield* importing(
+					t,
+					{ ...plan, rows: plan.rows.map((row) => ({ ...row, consent })) },
+					false
+				);
+				assert.deepEqual(yield* warned(), []);
+			}).pipe(Effect.provide(workspace({ seed: seeded, now: '2026-02-20T02:00:00.000Z' })))
 	);
 
 	it.live('a clean workbook writes every row in one act; importing it again updates them', () =>

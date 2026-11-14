@@ -24,6 +24,9 @@ export const working = (month: string) =>
 /** An on-cycle run for a period, unpaid. A company with several pay groups names the one it pays. */
 export const run = (t: Kit, period: string, group?: string, entity: string = ENTITY) =>
 	Effect.gen(function* () {
+		// an on-cycle run is made once its cycle has begun: a test that runs a month ahead is taken to its first day
+		const begins = `${period.slice(0, 7)}-01T02:00:00.000Z`;
+		if (t.clock.now() < begins) t.clock.set(begins);
 		yield* (yield* t.as(t.admin)).act({
 			'payroll_run.create': [
 				{

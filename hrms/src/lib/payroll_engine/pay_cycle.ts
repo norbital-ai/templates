@@ -44,6 +44,10 @@ export const cyclesIn = (schedule: JsonObject, month: string): readonly PayCycle
 	}));
 };
 
+/** An on-cycle run is made once its cycle has begun: a cycle wholly ahead has no day to pay yet. */
+export const cycleStarted = (cycle: { readonly from: string }, today: string): boolean =>
+	cycle.from <= today;
+
 export const cycleOf = (schedule: JsonObject, key: string): PayCycle | undefined =>
 	cyclesIn(schedule, key.slice(0, 7)).find((cycle) => cycle.key === key);
 
