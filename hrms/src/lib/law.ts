@@ -21,8 +21,13 @@ export const LAW_ROWS = [
 ] as const;
 export type LawFamily = (typeof LAW_ROWS)[number];
 
-/** A law document is read three keys deep: family, row code, field. Below that a value is replaced whole. */
-export const LAW_DEPTH = 3;
+/**
+ * A law document is read three keys deep: family, row code, field. A row's `lookup` is read one key deeper, so a change
+ * names only the lookup keys it changes. Below that a value is replaced whole.
+ */
+export const LAW_DEPTH = (path: readonly string[]): boolean =>
+	path.length < 3 ||
+	(path.length === 3 && path[2] === 'lookup' && LAW_ROWS.some((rows) => rows === path[0]));
 
 /**
  * A law as it stands on a day. `settings` is the jurisdiction with the law's own blocks (`conversions`, `ledger`,

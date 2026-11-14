@@ -6591,13 +6591,9 @@
 						}
 					],
 					"lookup": {
-						"minimum_wage_floor_share": 0.8,
-						"medical_period_max_months": 24,
-						"opened_by": {
-							"ILLNESS": {
-								"days": 0
-							}
-						}
+						"shanghai_scale_first_months": null,
+						"shanghai_scale_first": null,
+						"shanghai_scale_later": null
 					},
 					"description": "The law sets a floor of 80% of the local minimum wage; `sick_pay_share` records a higher share agreed by contract, collective contract or handbook. An ILLNESS event starts the count of a medical period.",
 					"paid_share": "// 劳部发〔1995〕309号 第59条: 病假工资不低于最低工资的80%. 昆明市工资支付条例 第二十七条: 按有关规定支付. An agreed higher share binds.\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst day = ctx.work.days.find((row) => row.date === ctx.as_of);\nif (day == null ? off.includes(weekday(ctx.as_of)) : !['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'))) return 1;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst employerRegion = String(get(ext, 'region', ''));\nconst worksite = String(get(ctx.subject.employment.terms, 'work_region', ''));\nconst region = worksite !== '' ? worksite : employerRegion;\nconst zones = ctx.lookup.minimum_wage_by_zone.filter((row) => row.region === region);\nif (zones.length === 0 || !(ctx.month_wage > 0)) return 1;\nconst zone = worksite !== '' && worksite !== employerRegion\n  ? String(zones[0].default_zone)\n  : String(get(ext, 'wage_zone', zones[0].default_zone));\nconst least = (ctx.lookup.minimum_wage_floor_share * zones.find((row) => row.zone === zone).monthly) / ctx.month_wage;\nconst agreed = Number(get(ctx.subject.employment, 'employee_extension_data.sick_pay_share', 0));\nreturn Math.min(1, Math.max(agreed, least));"

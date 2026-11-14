@@ -621,7 +621,8 @@ export const ROW_PARAMS = {
 		}),
 		PIT_TAXABLE_INCOME: Schema.Struct({
 			housing_exempt_ratio: Schema.Number,
-			meal_allowance_cap: Schema.Union([Schema.Null, Schema.Number])
+			// absent until the statute fixes one: a lookup key holds a value or is not there
+			meal_allowance_cap: Schema.optional(Schema.Number)
 		}),
 		PND1: Schema.Struct({
 			child_allowance: Schema.Number,

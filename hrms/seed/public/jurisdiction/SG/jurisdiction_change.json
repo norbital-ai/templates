@@ -6920,13 +6920,7 @@
 						}
 					],
 					"lookup": {
-						"window": "EVENT",
-						"grant_days": 70,
-						"opened_by": {
-							"CHILD_BIRTH": {}
-						},
-						"eligibility_months": 3,
-						"entitlement": "// Child leave is a shared pool: 10 weeks from 1 April 2026, 6 weeks before. Each parent defaults to half;\n// an HR-approved transfer is the child's own allocation under the leave catalogue code.\nconst birth = String(get(ctx, 'event.on', ctx.as_of));\nconst allocated = get(get(ctx.subject.employment, 'family', []).find((member) => member.relation === 'CHILD' && get(member, 'born_on', null) === birth), 'allocations.SHARED_PARENTAL_LEAVE', null);\nif (allocated != null) return Number(allocated);\nreturn (birth >= '2026-04-01' ? 70 : 42) / 2;"
+						"grant_days": 70
 					}
 				}
 			},
@@ -7100,23 +7094,12 @@
 				},
 				"LQS_WAGE_FLOOR": {
 					"lookup": {
-						"title": "Pay under the Local Qualifying Salary",
-						"monthly_floor": 1800,
-						"hourly_floor": 10.5,
-						"weeks_per_year": 52,
-						"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"],
-						"full_time_weekly_hours": 44,
-						"full_time_minimum_hours": 35
+						"monthly_floor": 1800
 					}
 				},
 				"REEMPLOYMENT_OFFER": {
 					"lookup": {
-						"title": "Re-employment offer",
-						"effective_date": "1963-07-01",
-						"revised_age": 64,
-						"prior_age": 63,
-						"advance_months": 6,
-						"offer_months": 3
+						"revised_age": 64
 					},
 					"references": [
 						{

@@ -4716,8 +4716,6 @@
 				},
 				"HRDF": {
 					"lookup": {
-						"compulsory_rate": 0.01,
-						"optional_rate": 0.005,
 						"education_schedule_exempt": true
 					},
 					"references": [
@@ -5008,90 +5006,7 @@
 				},
 				"SOCSO": {
 					"lookup": {
-						"new_entrant_senior_age": 55,
-						"employee_rate": 0.005,
-						"employer_rate": 0.0175,
-						"employer_only_rate": 0.0125,
-						"table_step": 0.1,
-						"employee_bands": [
-							{
-								"up_to": 30,
-								"amount": 0.1
-							},
-							{
-								"up_to": 50,
-								"amount": 0.2
-							},
-							{
-								"up_to": 70,
-								"amount": 0.3
-							},
-							{
-								"up_to": 100,
-								"amount": 0.4
-							},
-							{
-								"up_to": 140,
-								"amount": 0.6
-							},
-							{
-								"up_to": 200,
-								"amount": 0.85
-							}
-						],
-						"employer_bands": [
-							{
-								"up_to": 30,
-								"amount": 0.4
-							},
-							{
-								"up_to": 50,
-								"amount": 0.7
-							},
-							{
-								"up_to": 70,
-								"amount": 1.1
-							},
-							{
-								"up_to": 100,
-								"amount": 1.5
-							},
-							{
-								"up_to": 140,
-								"amount": 2.1
-							},
-							{
-								"up_to": 200,
-								"amount": 2.95
-							}
-						],
-						"senior_bands": [
-							{
-								"up_to": 30,
-								"amount": 0.3
-							},
-							{
-								"up_to": 50,
-								"amount": 0.5
-							},
-							{
-								"up_to": 70,
-								"amount": 0.8
-							},
-							{
-								"up_to": 100,
-								"amount": 1.1
-							},
-							{
-								"up_to": 140,
-								"amount": 1.5
-							},
-							{
-								"up_to": 200,
-								"amount": 2.1
-							}
-						],
-						"below_zero": "REFUND"
+						"half_step": null
 					}
 				}
 			}
@@ -5105,37 +5020,7 @@
 			"statutory_contribution_catalog": {
 				"SKBBK": {
 					"lookup": {
-						"total_rate": 0.0125,
-						"own_rate": 0.005,
-						"round_to_half_step": true,
-						"released_exclusion": true,
-						"bands": [
-							{
-								"up_to": 30,
-								"amount": 0.2
-							},
-							{
-								"up_to": 50,
-								"amount": 0.3
-							},
-							{
-								"up_to": 70,
-								"amount": 0.5
-							},
-							{
-								"up_to": 100,
-								"amount": 0.65
-							},
-							{
-								"up_to": 140,
-								"amount": 0.9
-							},
-							{
-								"up_to": 200,
-								"amount": 1.25
-							}
-						],
-						"below_zero": "REFUND"
+						"released_exclusion": true
 					},
 					"references": [
 						{
@@ -5208,8 +5093,6 @@
 			"statutory_contribution_catalog": {
 				"HRDF": {
 					"lookup": {
-						"compulsory_rate": 0.01,
-						"optional_rate": 0.005,
 						"education_schedule_exempt": false
 					},
 					"eligibility": "const employment = ctx.subject.employment;\n// Act 612 s.2: \"pekerja\" leaves out a domestic servant and \"upah\" (f) an apprentice's allowance.\nif (['PAYEE', 'PART_TIME', 'APPRENTICE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.statutory_work_category', '') === 'DOMESTIC') return false;\nif (get(employment, 'terms.residency_status', '') !== 'CITIZEN') return false;\nconst employer = ctx.subject.employer;\nif (get(employer, 'entity_extension_data.hrd_scope', '') === 'OUT_OF_SCOPE') return false;\n// HRD Corp Circular 01/2026: January to December 2026 wages stay exempt when paid in 2027.\nif (ctx.lookup.education_schedule_exempt === true || String(ctx.run.salary_coverage.from) <= '2026-12-31') {\n const schedule = get(employer, 'entity_extension_data.hrd_education_schedule_code', 'NONE');\n if (schedule !== '' && schedule !== 'NONE') return false;\n}\nreturn true;",

@@ -284,9 +284,9 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button, CodeEditor, Combobox, Editor, Label, Section, Sheet } from '@norbital-ai/ui';
 	import { Cluster, Columns, Stack } from '@norbital-ai/ui/layout';
-	import type { Law } from '../../law.js';
+	import { LAW_DEPTH, type Law } from '../../law.js';
 	import type { Json, JsonObject } from '../../payroll_engine/foundation.js';
-	import { patchOf } from './law_save.js';
+	import { patchOf } from '../../dated.js';
 
 	let {
 		ctx,
@@ -331,7 +331,8 @@
 		save(
 			patchOf(
 				{ [family]: held === undefined ? {} : { [code]: fields(held) } },
-				{ [family]: { [code]: fields(value) } }
+				{ [family]: { [code]: fields(value) } },
+				LAW_DEPTH
 			),
 			close
 		);

@@ -64,7 +64,7 @@ law
 How changes fold into the law on a day is in [the architecture](0001-hrms-calculation-architecture.md#3-the-law-by-date). In the seed:
 
 - The first change is the whole law on 1 December 2025. Each later change has the same keys and holds only what changes.
-- A patch states the whole new value of a field, never a part of it: a table or an expression is replaced whole. A field or a row set to `null` is removed.
+- A patch states the whole new value of a field, never a part of it: an expression or a list of citations is replaced whole. A field or a row set to `null` is removed. The one exception is a row's `lookup`, patched key by key: a change names only the lookup keys it changes (each key's value whole) and sets a key to `null` to remove it.
 - A change exists only because something changed that day.
 - A change already enacted with a later date of effect is seeded in advance, as its own change from that date.
 - A change not yet enacted is not seeded. Research files it as a `statutory_finding` with its `jurisdiction_change` rows, and it is in force once a person confirms the finding.

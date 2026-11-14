@@ -8021,14 +8021,7 @@
 						}
 					],
 					"lookup": {
-						"window": "EVENT",
-						"grant_days": 60,
-						"eligibility": {
-							"gender": "FEMALE"
-						},
-						"opened_by": {
-							"CHILD_BIRTH": {}
-						}
+						"grant_days": 60
 					},
 					"description": "Maternity leave: the first 60 days of each pregnancy at full pay from the employer (LPA s.59 as amended by Act No. 9)."
 				},
@@ -8059,28 +8052,7 @@
 			"statutory_contribution_catalog": {
 				"SSO": {
 					"lookup": {
-						"rate": 0.05,
-						"relief_percent": 3,
-						"minimum_wage_base": 1650,
-						"maximum_wage_base": 17500,
-						"minimum_age": 15,
-						"maximum_age": 60,
-						"rounding_unit": 1,
-						"relief_regions": [
-							"TRANG",
-							"NAKHON_SI_THAMMARAT",
-							"NARATHIWAT",
-							"PATTANI",
-							"PHATTHALUNG",
-							"YALA",
-							"SONGKHLA",
-							"SONGKHLA_HAT_YAI",
-							"SATUN",
-							"SURAT_THANI",
-							"SURAT_THANI_KO_SAMUI"
-						],
-						"relief_from": "2025-12-01",
-						"relief_to": "2026-05-31"
+						"maximum_wage_base": 17500
 					},
 					"references": [
 						{

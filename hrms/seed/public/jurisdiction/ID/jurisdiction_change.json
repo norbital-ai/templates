@@ -7667,8 +7667,6 @@
 				},
 				"SECTOR_MINIMUM_WAGE": {
 					"lookup": {
-						"hotel_stars_4_5_min": 4,
-						"hotel_stars_3_5_min": 3,
 						"by_sector": {
 							"Provinsi Papua Tengah/Kabupaten Mimika": [
 								{
@@ -16150,145 +16148,7 @@
 			"statutory_contribution_catalog": {
 				"PPH21_DTP": {
 					"lookup": {
-						"tax_year": 2026,
-						"monthly_regular_income_ceiling": 10000000,
-						"daily_average_income_ceiling": 500000,
-						"eligible_klu": [
-							"13111",
-							"13112",
-							"13113",
-							"13121",
-							"13122",
-							"13123",
-							"13131",
-							"13132",
-							"13133",
-							"13134",
-							"13911",
-							"13912",
-							"13913",
-							"13921",
-							"13922",
-							"13923",
-							"13924",
-							"13925",
-							"13926",
-							"13929",
-							"13930",
-							"13941",
-							"13942",
-							"13991",
-							"13992",
-							"13993",
-							"13994",
-							"13995",
-							"13996",
-							"13999",
-							"14111",
-							"14112",
-							"14120",
-							"14131",
-							"14132",
-							"14200",
-							"14301",
-							"14302",
-							"14303",
-							"15111",
-							"15112",
-							"15113",
-							"15114",
-							"15121",
-							"15122",
-							"15123",
-							"15129",
-							"15201",
-							"15202",
-							"15203",
-							"15209",
-							"31001",
-							"31002",
-							"31003",
-							"31004",
-							"31009",
-							"49425",
-							"50113",
-							"50122",
-							"55110",
-							"55120",
-							"55130",
-							"55191",
-							"55192",
-							"55193",
-							"55194",
-							"55199",
-							"55900",
-							"56101",
-							"56102",
-							"56103",
-							"56104",
-							"56109",
-							"56210",
-							"56290",
-							"56301",
-							"56302",
-							"56303",
-							"56304",
-							"56306",
-							"68112",
-							"68120",
-							"70201",
-							"79111",
-							"79119",
-							"79121",
-							"79129",
-							"79911",
-							"79912",
-							"79921",
-							"79922",
-							"79990",
-							"82301",
-							"82302",
-							"90030",
-							"90040",
-							"91022",
-							"91024",
-							"91029",
-							"93111",
-							"93112",
-							"93113",
-							"93114",
-							"93115",
-							"93116",
-							"93119",
-							"93191",
-							"93193",
-							"93195",
-							"93211",
-							"93219",
-							"93221",
-							"93222",
-							"93223",
-							"93224",
-							"93229",
-							"93231",
-							"93239",
-							"93241",
-							"93242",
-							"93243",
-							"93244",
-							"93245",
-							"93246",
-							"93249",
-							"93291",
-							"93292",
-							"93293",
-							"93294",
-							"93299",
-							"96121",
-							"96122",
-							"96129"
-						],
-						"below_zero": "REFUND"
+						"tax_year": 2026
 					},
 					"references": [
 						{
@@ -16311,13 +16171,9 @@
 			"statutory_contribution_catalog": {
 				"JKK": {
 					"lookup": {
-						"risk_rates": {
-							"I": 0.0024,
-							"II": 0.0054,
-							"III": 0.0089,
-							"IV": 0.0127,
-							"V": 0.0174
-						}
+						"reduced_risk_rates": null,
+						"labour_intensive_industries": null,
+						"reduced_through": null
 					},
 					"references": [
 						{
@@ -16356,11 +16212,7 @@
 				},
 				"JP": {
 					"lookup": {
-						"employee_rate": 0.01,
-						"employer_rate": 0.02,
-						"monthly_salary_ceiling": 11086300,
-						"ordinary_retirement_age_years": 59,
-						"maximum_continued_coverage_age_years": 62
+						"monthly_salary_ceiling": 11086300
 					},
 					"references": [
 						{
@@ -16456,7 +16308,6 @@
 				"HOURLY_MINIMUM_WAGE": {
 					"condition": "const entity = ctx.subject.employer;\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'terms.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'HOURLY') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
 					"lookup": {
-						"hours_divisor": 126,
 						"micro_small_share": 0.5
 					},
 					"description": "Refuses an hourly rate below the monthly minimum wage divided by the statutory monthly hours (126); half of it for a micro or small enterprise (UU 27/2026 art.144).",
@@ -16515,14 +16366,7 @@
 				},
 				"ROSTER_UNDER_13": {
 					"lookup": {
-						"minimum_age_years": 15,
-						"roster_warnings": {
-							"daily_hours": 8,
-							"daily_overtime_hours": 4,
-							"monthly_overtime_hours": 78,
-							"consecutive_days": 6,
-							"weekly_rest_days": 1
-						}
+						"minimum_age_years": 15
 					},
 					"references": [
 						{
@@ -16651,44 +16495,6 @@
 				},
 				"PESANGON": {
 					"lookup": {
-						"schedule": [
-							{
-								"up_to": 11,
-								"amount": 1
-							},
-							{
-								"up_to": 23,
-								"amount": 2
-							},
-							{
-								"up_to": 35,
-								"amount": 3
-							},
-							{
-								"up_to": 47,
-								"amount": 4
-							},
-							{
-								"up_to": 59,
-								"amount": 5
-							},
-							{
-								"up_to": 71,
-								"amount": 6
-							},
-							{
-								"up_to": 83,
-								"amount": 7
-							},
-							{
-								"up_to": 95,
-								"amount": 8
-							},
-							{
-								"up_to": null,
-								"amount": 9
-							}
-						],
 						"cause_multiplier": {
 							"MERGER_CONSOLIDATION_SEPARATION": 1,
 							"MERGER_EMPLOYER_UNWILLING": 2,
@@ -16708,27 +16514,7 @@
 							"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY": 2,
 							"RETIREMENT": 2,
 							"DEATH": 2
-						},
-						"pesangon_causes": [
-							"MERGER_CONSOLIDATION_SEPARATION",
-							"MERGER_EMPLOYER_UNWILLING",
-							"ACQUISITION",
-							"ACQUISITION_TERMS_CHANGE_REJECTED",
-							"EFFICIENCY_ACTUAL_LOSS",
-							"EFFICIENCY_PREVENT_LOSS",
-							"CLOSURE_LOSS",
-							"CLOSURE_NO_LOSS",
-							"FORCE_MAJEURE_CLOSURE",
-							"FORCE_MAJEURE_NO_CLOSURE",
-							"DEBT_SUSPENSION_LOSS",
-							"DEBT_SUSPENSION_NO_LOSS",
-							"BANKRUPTCY",
-							"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT",
-							"VIOLATION_AFTER_WARNINGS",
-							"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY",
-							"RETIREMENT",
-							"DEATH"
-						]
+						}
 					},
 					"references": [
 						{
@@ -16757,65 +16543,6 @@
 				},
 				"UPMK": {
 					"lookup": {
-						"schedule": [
-							{
-								"up_to": 35,
-								"amount": 0
-							},
-							{
-								"up_to": 71,
-								"amount": 2
-							},
-							{
-								"up_to": 107,
-								"amount": 3
-							},
-							{
-								"up_to": 143,
-								"amount": 4
-							},
-							{
-								"up_to": 179,
-								"amount": 5
-							},
-							{
-								"up_to": 215,
-								"amount": 6
-							},
-							{
-								"up_to": 251,
-								"amount": 7
-							},
-							{
-								"up_to": 287,
-								"amount": 8
-							},
-							{
-								"up_to": null,
-								"amount": 10
-							}
-						],
-						"upmk_causes": [
-							"MERGER_CONSOLIDATION_SEPARATION",
-							"MERGER_EMPLOYER_UNWILLING",
-							"ACQUISITION",
-							"ACQUISITION_TERMS_CHANGE_REJECTED",
-							"EFFICIENCY_ACTUAL_LOSS",
-							"EFFICIENCY_PREVENT_LOSS",
-							"CLOSURE_LOSS",
-							"CLOSURE_NO_LOSS",
-							"FORCE_MAJEURE_CLOSURE",
-							"FORCE_MAJEURE_NO_CLOSURE",
-							"DEBT_SUSPENSION_LOSS",
-							"DEBT_SUSPENSION_NO_LOSS",
-							"BANKRUPTCY",
-							"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT",
-							"VIOLATION_AFTER_WARNINGS",
-							"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY",
-							"RETIREMENT",
-							"DEATH",
-							"DETENTION_NO_LOSS"
-						],
 						"cause_multiplier": {
 							"MERGER_CONSOLIDATION_SEPARATION": 1,
 							"MERGER_EMPLOYER_UNWILLING": 1,

@@ -1,4 +1,4 @@
-import { inForce, type Change } from '../dated.js';
+import { inForce, leafLength, opens, patchOf, type Change } from '../dated.js';
 import { LAW_DEPTH, LAW_ROWS } from '../law.js';
 import type { JsonObject } from './contracts.js';
 import { isDynObject, isJsonObject, stableJson, type Json } from './foundation.js';
@@ -278,13 +278,16 @@ export const planChanges = ({
 			skipped.push(label);
 			continue;
 		}
-		const leaf = path.slice(0, LAW_DEPTH);
+		const leaf = path.slice(0, leafLength(LAW_DEPTH, path));
 		const set: Json =
 			whole && isJsonObject(value)
 				? Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'code'))
-				: path.length > LAW_DEPTH
-					? replaced(at(state, leaf), path.slice(LAW_DEPTH), value)
-					: value;
+				: path.length > leaf.length
+					? replaced(at(state, leaf), path.slice(leaf.length), value)
+					: // a value the fold reads key by key is stated as what changes in it, a key gone as `null`
+						isJsonObject(value) && opens(LAW_DEPTH, leaf)
+						? patchOf(isJsonObject(current) ? current : {}, value, LAW_DEPTH, leaf)
+						: value;
 		if (
 			known.some((other) => {
 				const filed = at(other.law, leaf);

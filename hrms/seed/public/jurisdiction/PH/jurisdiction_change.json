@@ -7010,139 +7010,7 @@
 			"statutory_contribution_catalog": {
 				"WTAX": {
 					"lookup": {
-						"nonresident_rate": 0.25,
-						"monthly_tax": [
-							{
-								"up_to": 20833,
-								"rate": 0
-							},
-							{
-								"up_to": 33333,
-								"rate": 0.15
-							},
-							{
-								"up_to": 66667,
-								"rate": 0.2
-							},
-							{
-								"up_to": 166667,
-								"rate": 0.25
-							},
-							{
-								"up_to": 666667,
-								"rate": 0.3
-							},
-							{
-								"up_to": null,
-								"rate": 0.35
-							}
-						],
-						"semi_monthly_tax": [
-							{
-								"up_to": 10417,
-								"rate": 0
-							},
-							{
-								"up_to": 16667,
-								"rate": 0.15
-							},
-							{
-								"up_to": 33333,
-								"rate": 0.2
-							},
-							{
-								"up_to": 83333,
-								"rate": 0.25
-							},
-							{
-								"up_to": 333333,
-								"rate": 0.3
-							},
-							{
-								"up_to": null,
-								"rate": 0.35
-							}
-						],
-						"weekly_tax": [
-							{
-								"up_to": 4808,
-								"rate": 0
-							},
-							{
-								"up_to": 7692,
-								"rate": 0.15
-							},
-							{
-								"up_to": 15385,
-								"rate": 0.2
-							},
-							{
-								"up_to": 38462,
-								"rate": 0.25
-							},
-							{
-								"up_to": 153846,
-								"rate": 0.3
-							},
-							{
-								"up_to": null,
-								"rate": 0.35
-							}
-						],
-						"daily_tax": [
-							{
-								"up_to": 685,
-								"rate": 0
-							},
-							{
-								"up_to": 1096,
-								"rate": 0.15
-							},
-							{
-								"up_to": 2192,
-								"rate": 0.2
-							},
-							{
-								"up_to": 5479,
-								"rate": 0.25
-							},
-							{
-								"up_to": 21918,
-								"rate": 0.3
-							},
-							{
-								"up_to": null,
-								"rate": 0.35
-							}
-						],
 						"overtime_meal_minimum_wage_share": 0.3,
-						"annual_tax": [
-							{
-								"up_to": 250000,
-								"rate": 0
-							},
-							{
-								"up_to": 400000,
-								"rate": 0.15
-							},
-							{
-								"up_to": 800000,
-								"rate": 0.2
-							},
-							{
-								"up_to": 2000000,
-								"rate": 0.25
-							},
-							{
-								"up_to": 8000000,
-								"rate": 0.3
-							},
-							{
-								"up_to": null,
-								"rate": 0.35
-							}
-						],
-						"annual_bonus_and_other_benefits": 90000,
 						"de_minimis": [
 							{
 								"subtotal": "DE_MINIMIS_RICE",
@@ -7199,10 +7067,7 @@
 								"ceiling": 0,
 								"ceiling_days": 12
 							}
-						],
-						"night_window_start": "22:00",
-						"night_window_end": "06:00",
-						"below_zero": "REFUND"
+						]
 					},
 					"references": [
 						{

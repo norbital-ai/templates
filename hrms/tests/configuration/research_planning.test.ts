@@ -58,12 +58,12 @@ const step = (
 });
 
 describe('statutory research planning', () => {
-	it('dates a patch on the law and carries the whole field as the law holds it on that date', () => {
+	it('dates a patch on the law and names only the lookup key it changes', () => {
 		assert.deepEqual(plan([step('rate', 2, '2026-12-01')]).planned, [
-			{ effective_from: '2026-12-01', law: scheme({ rate: 2, floor: 10 }) }
+			{ effective_from: '2026-12-01', law: scheme({ rate: 2 }) }
 		]);
 		assert.deepEqual(plan([step('rate', 4, '2027-08-01')]).planned, [
-			{ effective_from: '2027-08-01', law: scheme({ rate: 4, floor: 20 }) }
+			{ effective_from: '2027-08-01', law: scheme({ rate: 4 }) }
 		]);
 	});
 
@@ -100,7 +100,7 @@ describe('statutory research planning', () => {
 		assert.deepEqual(planned, [
 			{
 				effective_from: '2027-01-01',
-				law: { [FAMILY]: { EPF: { lookup: { rate: 2, floor: 10 }, employee_amount: 2 } } }
+				law: { [FAMILY]: { EPF: { lookup: { rate: 2 }, employee_amount: 2 } } }
 			},
 			{ effective_from: '2027-06-01', law: { [FAMILY]: { SOCSO: { employee_amount: 3 } } } }
 		]);
@@ -141,16 +141,16 @@ describe('statutory research planning', () => {
 		assert.deepEqual(
 			plan([step('floor', 11, '2027-03-01'), step('rate', 2, '2026-12-01')]).planned,
 			[
-				{ effective_from: '2026-12-01', law: scheme({ rate: 2, floor: 10 }) },
-				{ effective_from: '2027-03-01', law: scheme({ rate: 2, floor: 11 }) }
+				{ effective_from: '2026-12-01', law: scheme({ rate: 2 }) },
+				{ effective_from: '2027-03-01', law: scheme({ floor: 11 }) }
 			]
 		);
-		const drafted = [{ effective_from: '2026-12-01', law: scheme({ rate: 2, floor: 10 }) }];
+		const drafted = [{ effective_from: '2026-12-01', law: scheme({ rate: 2 }) }];
 		assert.deepEqual(plan([step('floor', 11, '2027-03-01')], { drafted }).planned, [
-			{ effective_from: '2027-03-01', law: scheme({ rate: 2, floor: 11 }) }
+			{ effective_from: '2027-03-01', law: scheme({ floor: 11 }) }
 		]);
 		assert.deepEqual(plan([step('floor', 21, '2027-08-01')], { drafted }).planned, [
-			{ effective_from: '2027-08-01', law: scheme({ rate: 3, floor: 21 }) }
+			{ effective_from: '2027-08-01', law: scheme({ floor: 21 }) }
 		]);
 	});
 
@@ -181,7 +181,7 @@ describe('statutory research planning', () => {
 			[
 				{
 					effective_from: on,
-					law: { ...scheme({ rate: 1, new_key: 5 }), lookup: { ceiling: 200 } }
+					law: { ...scheme({ new_key: 5, floor: null }), lookup: { ceiling: 200 } }
 				}
 			]
 		);

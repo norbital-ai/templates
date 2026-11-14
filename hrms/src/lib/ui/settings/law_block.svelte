@@ -3,9 +3,9 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button, StructuredData } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
-	import type { Law } from '../../law.js';
+	import { LAW_DEPTH, type Law } from '../../law.js';
 	import { isJsonObject, type Json, type JsonObject } from '../../payroll_engine/foundation.js';
-	import { patchOf } from './law_save.js';
+	import { patchOf } from '../../dated.js';
 	import LookupSections from './lookup_sections.svelte';
 
 	let {
@@ -31,7 +31,7 @@
 	const block = (value: Json | undefined): JsonObject => (isJsonObject(value) ? value : {});
 	const held = $derived(block(law.settings[family]));
 	const value = $derived(draft === undefined ? held : block(draft));
-	const patch = $derived(patchOf({ [family]: held }, { [family]: value }));
+	const patch = $derived(patchOf({ [family]: held }, { [family]: value }, LAW_DEPTH));
 	const dirty = $derived(Object.keys(patch).length > 0);
 </script>
 

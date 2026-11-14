@@ -19,29 +19,75 @@ export interface Change {
 /** Where a value sits in the folded state: its keys joined, as `subtotal/GROSS/expression` or `rate`. */
 const SEP = '/';
 
-/** The values a patch names, by path. A patch is read `depth` keys deep; below that a value is replaced whole. */
+/**
+ * How deep a patch is read: so many keys, or whether the value at a path is read key by key. Below that a value is
+ * replaced whole.
+ */
+export type Depth = number | ((path: readonly string[]) => boolean);
+/** Whether the value at `path` is read key by key. */
+export const opens = (depth: Depth, path: readonly string[]) =>
+	typeof depth === 'number' ? path.length < depth : depth(path);
+/** How many of a path's keys reach the value a patch replaces whole: the rest name a part of that value. */
+export const leafLength = (depth: Depth, path: readonly string[]): number => {
+	for (let length = 1; length < path.length; length++)
+		if (!opens(depth, path.slice(0, length))) return length;
+	return path.length;
+};
+
+/** The values a patch names, by path. A patch is read as deep as `depth` says; below that a value is replaced whole. */
 export const leaves = (
 	patch: JsonObject,
-	depth: number,
-	prefix = ''
+	depth: Depth,
+	prefix: readonly string[] = []
 ): readonly (readonly [string, Json])[] =>
 	Object.entries(patch).flatMap(([key, value]) =>
-		depth > 1 && isJsonObject(value)
-			? leaves(value, depth - 1, `${prefix}${key}${SEP}`)
-			: [[`${prefix}${key}`, value] as const]
+		isJsonObject(value) && opens(depth, [...prefix, key])
+			? leaves(value, depth, [...prefix, key])
+			: [[[...prefix, key].join(SEP), value] as const]
 	);
 
-const applied = (state: JsonObject, patch: JsonObject, depth: number): JsonObject => {
+const applied = (
+	state: JsonObject,
+	patch: JsonObject,
+	depth: Depth,
+	prefix: readonly string[] = []
+): JsonObject => {
 	const next: Record<string, Json> = { ...state };
 	for (const [key, value] of Object.entries(patch)) {
 		const held = next[key];
 		if (value === null) delete next[key];
-		else if (depth > 1 && isJsonObject(value))
-			next[key] = applied(isJsonObject(held) ? held : {}, value, depth - 1);
+		else if (isJsonObject(value) && opens(depth, [...prefix, key]))
+			next[key] = applied(isJsonObject(held) ? held : {}, value, depth, [...prefix, key]);
 		else next[key] = value;
 	}
 	return next;
 };
+
+/**
+ * The patch that turns `before` into `after`, both whole documents: a changed value whole, a value gone as `null`.
+ * Read as deep as the document is folded, so what the edit left alone is not restated.
+ */
+export const patchOf = (
+	before: JsonObject,
+	after: JsonObject,
+	depth: Depth,
+	prefix: readonly string[] = []
+): JsonObject =>
+	Object.fromEntries(
+		[...new Set([...Object.keys(before), ...Object.keys(after)])].flatMap(
+			(key): (readonly [string, Json])[] => {
+				const was = before[key];
+				const now = after[key];
+				if (now === undefined || now === null)
+					return was === undefined || was === null ? [] : [[key, null]];
+				if (isJsonObject(now) && opens(depth, [...prefix, key])) {
+					const inner = patchOf(isJsonObject(was) ? was : {}, now, depth, [...prefix, key]);
+					return Object.keys(inner).length === 0 ? [] : [[key, inner]];
+				}
+				return stableJson(was) === stableJson(now) ? [] : [[key, now]];
+			}
+		)
+	);
 
 const ordered = (rows: readonly Change[]) =>
 	rows.toSorted(
@@ -55,7 +101,7 @@ const ordered = (rows: readonly Change[]) =>
 export const inForce = (
 	rows: readonly Change[],
 	day: string,
-	depth = 1
+	depth: Depth = 1
 ): { readonly state: JsonObject; readonly set_by: Readonly<Record<string, string>> } => {
 	let state: JsonObject = {};
 	const set_by: Record<string, string> = {};
@@ -64,7 +110,7 @@ export const inForce = (
 		state = applied(state, row.patch, depth);
 		for (const [path, value] of leaves(row.patch, depth)) {
 			// a key taken away, or replaced above the deepest level, takes everything under it
-			if (value === null || path.split(SEP).length < depth)
+			if (value === null || opens(depth, path.split(SEP)))
 				for (const known of Object.keys(set_by))
 					if (known === path || known.startsWith(`${path}${SEP}`)) delete set_by[known];
 			if (value !== null) set_by[path] = row.id;
@@ -86,7 +132,7 @@ export const reachOf = (
 	others: readonly Change[],
 	before: Change | undefined,
 	after: Change | undefined,
-	depth = 1,
+	depth: Depth = 1,
 	read: (path: string) => boolean = () => true
 ): { readonly from: string; readonly to: string | null } | undefined => {
 	const was = new Map(before === undefined ? [] : leaves(before.patch, depth));
@@ -152,7 +198,7 @@ export const corrected = (
 	rows: readonly Change[],
 	set_by: Readonly<Record<string, string>>,
 	patch: JsonObject,
-	depth = 1
+	depth: Depth = 1
 ): ReadonlyMap<string, JsonObject> => {
 	const first = ordered(rows)[0];
 	const held = new Map(rows.map((row) => [row.id, row.patch]));

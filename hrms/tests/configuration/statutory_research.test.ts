@@ -179,13 +179,9 @@ describe('statutory research', () => {
 				assert.notEqual(HELD, 0.12);
 				assert.equal(changes[0]?.finding_id, findings[0]?.id);
 				assert.equal(changes[0]?.effective_from, '2027-03-01');
-				// the patch holds the row's whole table, with the one value changed
+				// the patch names the one lookup key that changed
 				assert.deepEqual(changes[0]?.law, {
-					statutory_contribution_catalog: {
-						EPF: {
-							lookup: { ...(isJsonObject(HELD_LOOKUP) ? HELD_LOOKUP : {}), employee_rate: 0.12 }
-						}
-					}
+					statutory_contribution_catalog: { EPF: { lookup: { employee_rate: 0.12 } } }
 				});
 				// filed, not in force
 				assert.equal(yield* rateOn(t, '2027-03-01'), HELD);

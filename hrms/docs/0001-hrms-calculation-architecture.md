@@ -270,7 +270,7 @@ Three tests guard this: `tests/configuration/configuration_ownership.test.ts` (e
 A law is one `jurisdiction` row (`code` such as `MY` or `SG`, name, currency, time zone, tax year start) and its `jurisdiction_change` rows. A change has a `jurisdiction_code`, an `effective_from` and a `law` document keyed by family, then row code, then field.
 
 - The first change holds the whole law: `conversions`, `ledger`, `lookup`, `work_regions`, the two extension schemas, the subtotal chain, the nine catalogue families, registered rules and registered effects.
-- Each later change is a patch: only what changes from its date. A field or a row set to `null` is removed. A table or an expression is replaced whole.
+- Each later change is a patch: only what changes from its date. A field or a row set to `null` is removed. A row's `lookup` is patched key by key: a change names only the keys it changes, and a key set to `null` is removed. Anything else, a table inside a lookup key, a list of citations or an expression, is replaced whole.
 - The law on a day is the fold: the changes dated on or before it, applied oldest first (`src/lib/dated.ts`, `src/lib/law.ts`). A day before the first change answers to the first change.
 - Nothing in a law has an id. A catalogue row names its subtotal by code (`subtotal`), a subtotal its predecessor (`previous`), and an entry its catalogue row (`catalog_code`).
 - The seed starts on 1 December 2025. Each later change is dated the day a change in law took effect.

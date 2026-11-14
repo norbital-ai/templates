@@ -25,7 +25,7 @@ import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf, type Reader } from '../src/lib/payroll_engine/reads.ts';
 import { inForce } from '../src/lib/dated.ts';
-import { LAW_DEPTH, lawsOf, type Law } from '../src/lib/law.ts';
+import { lawsOf, type Law } from '../src/lib/law.ts';
 
 /** One scoped real workspace over this template's source, seeded by the rows a test writes. */
 export const workspace = <P extends TestPorts = never>(
@@ -251,7 +251,8 @@ export const lawWith = <P extends { readonly [model: string]: readonly JsonObjec
 			{ id: 'b', effective_from: '2', patch }
 		],
 		'2',
-		LAW_DEPTH
+		// the patch states each field whole, a lookup included
+		3
 	).state;
 	const without = (law: JsonObject, named: JsonObject, depth: number): JsonObject =>
 		Object.fromEntries(
@@ -267,7 +268,7 @@ export const lawWith = <P extends { readonly [model: string]: readonly JsonObjec
 		...seed,
 		jurisdiction_change: [
 			{ ...first, law: base },
-			...later.map((row) => ({ ...row, law: without(lawOf(row), patch, LAW_DEPTH) }))
+			...later.map((row) => ({ ...row, law: without(lawOf(row), patch, 3) }))
 		]
 	};
 };

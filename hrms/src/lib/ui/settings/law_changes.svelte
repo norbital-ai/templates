@@ -31,7 +31,9 @@
 									? [ctx.t('law_changes.removed')]
 									: [];
 						});
-						const shown = names.length > 4 ? [...names.slice(0, 4), '…'] : names;
+						// a lookup changed key by key names its field once
+						const fields = [...new Set(names)];
+						const shown = fields.length > 4 ? [...fields.slice(0, 4), '…'] : fields;
 						return shown.length === 0 ? code : `${code} (${shown.join(', ')})`;
 					}
 				);

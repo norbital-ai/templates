@@ -1298,7 +1298,7 @@
 					"subtotal": "NET",
 					"employer_cost_subtotal": "NET",
 					"lookup": {
-						"rate": 0.00002
+						"rate": 2e-5
 					},
 					"eligibility": "const classification = get(ctx.subject.employment.terms, 'work_classification', 'EMPLOYEE');\nreturn classification !== 'OFFICER' && get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) > 0;",
 					"employee_amount": "return 0;",
@@ -11337,51 +11337,7 @@
 								"offset": 0
 							}
 						],
-						"monthly_tax": [
-							{
-								"up_to": 162500,
-								"rate": 0.05105,
-								"offset": 0
-							},
-							{
-								"up_to": 275000,
-								"rate": 0.1021,
-								"offset": -8296
-							},
-							{
-								"up_to": 579166,
-								"rate": 0.2042,
-								"offset": -36374
-							},
-							{
-								"up_to": 750000,
-								"rate": 0.23483,
-								"offset": -54113
-							},
-							{
-								"up_to": 1500000,
-								"rate": 0.33693,
-								"offset": -130688
-							},
-							{
-								"up_to": 3333333,
-								"rate": 0.4084,
-								"offset": -237893
-							},
-							{
-								"up_to": null,
-								"rate": 0.45945,
-								"offset": -408061
-							}
-						],
-						"dependant_monthly_deduction": 31667,
-						"otsu_small_salary_rate": 0.03063,
 						"otsu_small_salary_ceiling": 105000,
-						"ten_units": 10,
-						"otsu_dependant_deduction": 1610,
-						"bonus_prior_pay_multiple": 10,
-						"bonus_divisor": 6,
-						"bonus_long_period_divisor": 12,
 						"bonus_rate_ko": [
 							[
 								{
@@ -13628,8 +13584,7 @@
 								"up_to": null,
 								"amount": 259200
 							}
-						],
-						"below_zero": "REFUND"
+						]
 					},
 					"references": [
 						{
@@ -13820,7 +13775,7 @@
 				},
 				"HEALTH_BONUS": {
 					"lookup": {
-						"below_zero": "REFUND"
+						"annual_bonus_salary_ceiling": null
 					}
 				},
 				"CHILD_SUPPORT": {
@@ -13868,8 +13823,7 @@
 			"registered_effect": {
 				"DISABILITY_EMPLOYMENT_REPORT": {
 					"lookup": {
-						"employee_count_threshold": 37.5,
-						"date_offset_days": 15
+						"employee_count_threshold": 37.5
 					},
 					"references": [
 						{
@@ -14036,9 +13990,7 @@
 								"rate": 0,
 								"offset": 1950000
 							}
-						],
-						"midyear_salary_limit": 1230000,
-						"below_zero": "REFUND"
+						]
 					},
 					"references": [
 						{
@@ -14125,51 +14077,7 @@
 								"offset": 0
 							}
 						],
-						"monthly_tax": [
-							{
-								"up_to": 162500,
-								"rate": 0.05105,
-								"offset": 0
-							},
-							{
-								"up_to": 275000,
-								"rate": 0.1021,
-								"offset": -8296
-							},
-							{
-								"up_to": 579166,
-								"rate": 0.2042,
-								"offset": -36374
-							},
-							{
-								"up_to": 750000,
-								"rate": 0.23483,
-								"offset": -54113
-							},
-							{
-								"up_to": 1500000,
-								"rate": 0.33693,
-								"offset": -130688
-							},
-							{
-								"up_to": 3333333,
-								"rate": 0.4084,
-								"offset": -237893
-							},
-							{
-								"up_to": null,
-								"rate": 0.45945,
-								"offset": -408061
-							}
-						],
-						"dependant_monthly_deduction": 31667,
-						"otsu_small_salary_rate": 0.03063,
 						"otsu_small_salary_ceiling": 111000,
-						"ten_units": 10,
-						"otsu_dependant_deduction": 1610,
-						"bonus_prior_pay_multiple": 10,
-						"bonus_divisor": 6,
-						"bonus_long_period_divisor": 12,
 						"bonus_rate_ko": [
 							[
 								{
@@ -16408,8 +16316,7 @@
 								"up_to": null,
 								"amount": 259000
 							}
-						],
-						"below_zero": "REFUND"
+						]
 					},
 					"references": [
 						{

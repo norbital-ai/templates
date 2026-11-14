@@ -1,7 +1,8 @@
 // The one fold a person's, a company's and a law's dated changes are read by, and how far a write to one reaches.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { corrected, inForce, reachOf, type Change } from '../../src/lib/dated.ts';
+import { corrected, inForce, patchOf, reachOf, type Change } from '../../src/lib/dated.ts';
+import { LAW_DEPTH } from '../../src/lib/law.ts';
 
 const row = (id: string, effective_from: string, patch: Change['patch']): Change => ({
 	id,
@@ -153,5 +154,58 @@ describe('a correction', () => {
 			subtotal: { GROSS: { expression: 'a', name: 'Gross' } }
 		});
 		assert.deepEqual(fixed.get('patch'), { subtotal: { GROSS: { expression: 'b' } } });
+	});
+});
+
+describe('a law row’s lookup', () => {
+	const law = [
+		row('base', '2026-01-01', {
+			leave_catalog: {
+				ANNUAL: { name: 'Annual', lookup: { days: 8, carry: 4, table: { a: 1, b: 2 } } }
+			},
+			lookup: { EPF: { table: { low: 1, high: 2 } } }
+		}),
+		row('patch', '2026-07-01', {
+			leave_catalog: { ANNUAL: { lookup: { days: 12, carry: null, table: { a: 3 } } } }
+		})
+	];
+	it('is read one key deeper: a change names only the keys it changes, and a key below is replaced whole', () => {
+		const folded = inForce(law, '2026-07-01', LAW_DEPTH);
+		assert.deepEqual(folded.state.leave_catalog, {
+			ANNUAL: { name: 'Annual', lookup: { days: 12, table: { a: 3 } } }
+		});
+		assert.deepEqual(folded.set_by, {
+			'leave_catalog/ANNUAL/name': 'base',
+			'leave_catalog/ANNUAL/lookup/days': 'patch',
+			'leave_catalog/ANNUAL/lookup/table': 'patch',
+			'lookup/EPF/table': 'base'
+		});
+	});
+	it('is patched by its changed keys, a key gone as null, and corrected on the change that set each key', () => {
+		const before = inForce(law, '2026-01-01', LAW_DEPTH).state;
+		const after = inForce(law, '2026-07-01', LAW_DEPTH).state;
+		assert.deepEqual(patchOf(before, after, LAW_DEPTH), law[1]?.patch);
+		const { set_by } = inForce(law, '2026-12-31', LAW_DEPTH);
+		const fixed = corrected(
+			law,
+			set_by,
+			{ leave_catalog: { ANNUAL: { lookup: { days: 14, extra: 1 } } } },
+			LAW_DEPTH
+		);
+		assert.deepEqual(fixed.get('patch'), {
+			leave_catalog: { ANNUAL: { lookup: { days: 14, carry: null, table: { a: 3 } } } }
+		});
+		assert.deepEqual(fixed.get('base')?.leave_catalog, {
+			ANNUAL: { name: 'Annual', lookup: { days: 8, carry: 4, table: { a: 1, b: 2 }, extra: 1 } }
+		});
+	});
+	it('reaches until the next change to the same key, not to any key of the lookup', () => {
+		const later = row('later', '2026-10-01', {
+			leave_catalog: { ANNUAL: { lookup: { carry: 2 } } }
+		});
+		assert.deepEqual(reachOf([law[0]!, later], undefined, law[1], LAW_DEPTH), {
+			from: '2026-07-01',
+			to: null
+		});
 	});
 });

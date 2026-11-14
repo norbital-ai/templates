@@ -27,9 +27,9 @@ const LOOKUP = objectValue(
 );
 const LAWFUL = LOOKUP.employee_rate ?? null;
 const MISTAKEN = 0.125;
-/** A patch is read three keys deep, so a change to one rate carries the row's whole table. */
+/** A row's lookup is patched key by key: a change to one rate names that rate alone. */
 const rated = (rate: Json): JsonObject => ({
-	statutory_contribution_catalog: { [ROW]: { lookup: { ...LOOKUP, employee_rate: rate } } }
+	statutory_contribution_catalog: { [ROW]: { lookup: { employee_rate: rate } } }
 });
 const answer = (value: unknown) => ({
 	content: JSON.stringify(value),
