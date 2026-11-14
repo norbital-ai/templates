@@ -857,14 +857,27 @@ const known = Effect.fn('ledger.known')(function* (
 					}
 				})).leave_catalog_entry_day ?? [])
 			: [];
+	return knownOf(found, stored, captures, lawsOf(found));
+});
+/**
+ * `Known` from rows already read: the people's stints with their dated rows (`stintsRead`'s roots), their balances,
+ * ledger rows and plan rows in `found`, their stored `entries` and those entries' slots. A page builds it from its own
+ * queries, so the checks below judge there exactly as they do before the write.
+ */
+export const knownOf = (
+	found: Readonly<Record<string, readonly JsonObject[] | undefined>>,
+	entries: readonly JsonObject[],
+	captures: readonly JsonObject[],
+	laws: Known['laws']
+): Known => {
 	const { parts, lineage, cumulative } = stintsOf(found);
 	return {
 		parts: new Map(parts.map((held) => [String(held.stint.id), held])),
 		lineage,
 		cumulative,
-		laws: lawsOf(found),
+		laws,
 		balance: new Map((found.employee_balance ?? []).map((row) => [String(row.employee_id), row])),
-		entries: stored,
+		entries,
 		posted: found.ledger_entry ?? [],
 		captures: Map.groupBy(captures, (row) => String(row.leave_entry_id)),
 		plan: {
@@ -874,8 +887,8 @@ const known = Effect.fn('ledger.known')(function* (
 			shift_definition: found.shift_definition ?? [],
 			roster_entry: found.roster_entry ?? []
 		}
-	} satisfies Known;
-});
+	};
+};
 /**
  * A batch of entries' one read (`Known`), and with an `operation` its registered rules' validation beside it: both go
  * out together, one crossing.
@@ -1169,42 +1182,49 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 const LEAVE = 'leave_catalog_entry';
 const sourceOf = (row: JsonObject) => `${LEAVE}:${String(row.id)}`;
 
+/** A check's verdict as the write's refusal: the check says why in its own words. */
+const refuse = (problem: string | undefined) =>
+	problem === undefined ? Effect.void : Effect.fail(new Refusal({ message: problem }));
 /**
- * The check before a leave entry commits: each window it draws on has the days, from what its batch read. The balance
- * does not show an entry held for approval, so a held one counts here.
+ * The half-days of an entry, as `person/date/part`: a person's leave is one calendar across their stints. A stored
+ * entry's slots are its captured children; an entry being written carries them on `days`.
  */
-export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
+const slotsOf = (known: Known, row: JsonObject) => [
+	...new Set(
+		[...(known.captures.get(String(row.id)) ?? []), ...(Array.isArray(row.days) ? row.days : [])]
+			.filter(isJsonObject)
+			.map(
+				(day) =>
+					`${String(known.parts.get(String(row.employment_id))?.stint.employee_id)}/${String(day.date ?? day.incurred_on)}/${String(day.part)}`
+			)
+	)
+];
+/** The half-days the people's stored leave already covers (`person/date/part`), but for the entries being `replaced`. */
+export const leaveTaken = (known: Known, replaced: readonly JsonObject[] = []) => {
+	const gone = new Set(replaced.map((row) => String(row.id)));
+	return new Set(
+		known.entries
+			.filter((row) => row.encashment !== true && !gone.has(String(row.id)))
+			.flatMap((row) => slotsOf(known, row))
+	);
+};
+/**
+ * Why a leave entry may not commit, if it may not: a half-day other leave covers, or a window it draws on without the
+ * days. The balance does not show an entry held for approval, so a held one counts here. The form asks it as the write
+ * does.
+ */
+export const leaveShort = (
 	known: Known,
 	entries: readonly JsonObject[],
 	today: string,
 	replaced: readonly JsonObject[] = []
-) {
+): string | undefined => {
 	const taking = entries.filter((row) => row.encashment !== true);
 	const ids = uniqueIds(entries, 'employment_id');
 	const held = known.entries;
-	const person = new Map(
-		[...known.parts].map(([id, held]) => [id, String(held.stint.employee_id)])
-	);
-	// a stored entry's slots are its captured children; an entry in this batch carries them on `days`
-	const slots = (row: JsonObject) => [
-		...new Set(
-			[...(known.captures.get(String(row.id)) ?? []), ...(Array.isArray(row.days) ? row.days : [])]
-				.filter(isJsonObject)
-				.map(
-					(day) =>
-						`${person.get(String(row.employment_id))}/${String(day.date ?? day.incurred_on)}/${String(day.part)}`
-				)
-		)
-	];
-	const gone = new Set(replaced.map((row) => String(row.id)));
-	const taken = new Set(
-		held.filter((row) => row.encashment !== true && !gone.has(String(row.id))).flatMap(slots)
-	);
-	for (const slot of taking.flatMap(slots)) {
-		if (taken.has(slot))
-			return yield* Effect.fail(
-				new Refusal({ message: `Leave already covers ${slot.split('/')[1]}.` })
-			);
+	const taken = leaveTaken(known, replaced);
+	for (const slot of taking.flatMap((row) => slotsOf(known, row))) {
+		if (taken.has(slot)) return `Leave already covers ${slot.split('/')[1]}.`;
 		taken.add(slot);
 	}
 	const open = held.filter(
@@ -1215,7 +1235,7 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	const waiting = open.filter((row) => !posted.has(sourceOf(row)) && !editing.has(sourceOf(row)));
 	const undone = replaced.filter((row) => posted.has(sourceOf(row)));
 	const plans = entryPlans(known, 'leave', LEAVE, entries);
-	if (plans.length === 0) return;
+	if (plans.length === 0) return undefined;
 	const limited = new Map<string, boolean>();
 	const opened = new Set<string>();
 	for (const entry of entries)
@@ -1257,16 +1277,18 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 				BigDecimal.round(BigDecimal.fromNumberUnsafe(remaining - amount), { scale: 8 })
 			)
 		)
-			return yield* Effect.fail(new Refusal({ message: `${row.code}: insufficient balance.` }));
+			return `${row.code}: insufficient balance.`;
 	}
-});
+	return undefined;
+};
+export const assertLeft = (...given: Parameters<typeof leaveShort>) =>
+	Effect.suspend(() => refuse(leaveShort(...given)));
 
-/** A cash-out pays its row's `payout`: a row that declares none has nothing a run could pay for the days drawn. */
-/** Leave is taken on days the person works: a rest day or a holiday of theirs is refused. A row counted in calendar days takes every day. */
-export const assertWorked = Effect.fn('ledger.assertWorked')(function* (
-	known: Known,
-	entries: readonly JsonObject[]
-) {
+/**
+ * Why these leave days may not be taken, if they may not: leave is taken on days the person works, so a rest day or a
+ * holiday of theirs is refused. A row counted in calendar days takes every day.
+ */
+export const leaveOff = (known: Known, entries: readonly JsonObject[]): string | undefined => {
 	for (const entry of entries) {
 		const held = known.parts.get(String(entry.employment_id));
 		const row = lawOf(known, entry)?.rows.leave_catalog.find(
@@ -1283,17 +1305,16 @@ export const assertWorked = Effect.fn('ledger.assertWorked')(function* (
 			const date = String(day.date ?? day.incurred_on);
 			const off = leaveOffDay(date, own);
 			if (off !== undefined)
-				return yield* Effect.fail(
-					new Refusal({
-						message:
-							off === 'HOLIDAY'
-								? `${date} is a holiday: no leave is taken on it.`
-								: `${date} is a rest day: no leave is taken on it.`
-					})
-				);
+				return off === 'HOLIDAY'
+					? `${date} is a holiday: no leave is taken on it.`
+					: `${date} is a rest day: no leave is taken on it.`;
 		}
 	}
-});
+	return undefined;
+};
+export const assertWorked = (...given: Parameters<typeof leaveOff>) =>
+	Effect.suspend(() => refuse(leaveOff(...given)));
+/** A cash-out pays its row's `payout`: a row that declares none has nothing a run could pay for the days drawn. */
 export const assertCashable = Effect.fn('ledger.assertCashable')(function* (
 	known: Known,
 	entries: readonly JsonObject[]

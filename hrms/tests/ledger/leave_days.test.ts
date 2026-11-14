@@ -3,15 +3,19 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
-import { Effect } from 'effect';
+import { DateTime, Effect } from 'effect';
+import { lawsOf } from '../../src/lib/law.ts';
+import { knownOf, leaveShort, leaveTaken } from '../../src/lib/ledger/service.ts';
 import { leaveOffDay, type LeaveDays } from '../../src/lib/payroll_engine/attendance.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
+import { idOf, queryAllRows } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	leaveCreate,
 	pack,
 	packTerms,
 	refusal,
+	storedReader,
 	syncAll,
 	uuid,
 	wholeDays,
@@ -114,6 +118,69 @@ describe('a leave entry written to the server', () => {
 					assert.match(String(off.message), /2026-07-21 is a holiday/);
 				}
 				yield* admin.act({ 'leave_catalog_entry.create': [ask(MONDAY)] });
+			}).pipe(Effect.provide(workspace({ seed, now: '2026-08-05T02:00:00.000Z' })))
+	);
+	it.live(
+		'is judged by the form, from the rows a page reads, in the words the write refuses with',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				const admin = yield* t.as(t.admin);
+				yield* admin.act({ 'leave_catalog_entry.create': [ask(MONDAY)] });
+				yield* t.run_due();
+				// the roots the leave form queries, with an entry's half-days under it
+				const found = yield* queryAllRows(storedReader(t), {
+					employment: { limit: 100, entity_id: { fields: ['settings_code'] } },
+					contract_terms: { limit: 100 },
+					statutory_parameters: { limit: 100 },
+					employee_profile: { limit: 100 },
+					dependant: { limit: 100 },
+					employee_balance: { limit: 100 },
+					ledger_entry: { where: { source: { like: 'leave_catalog_entry:%' } }, limit: 1000 },
+					leave_catalog_entry: { limit: 100, leave_catalog_entry_day: { limit: 1000 } },
+					jurisdiction: { limit: 100 },
+					jurisdiction_change: { limit: 1000, finding_id: { fields: ['status'] } }
+				});
+				const filed = found.leave_catalog_entry ?? [];
+				const known = knownOf(
+					found,
+					filed,
+					filed.flatMap((row) =>
+						(Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : []).map(
+							jsonObject
+						)
+					),
+					lawsOf(found)
+				);
+				assert.deepEqual(
+					[...leaveTaken(known)].map((slot) => slot.slice(slot.indexOf('/') + 1)).toSorted(),
+					[`${MONDAY}/AM`, `${MONDAY}/PM`]
+				);
+				const weekdays = Array.from({ length: 400 }, (_, index) =>
+					DateTime.formatIsoDateUtc(
+						DateTime.add(DateTime.makeUnsafe('2026-08-10'), { days: index })
+					)
+				).filter(
+					(date) => ![0, 6].includes(DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay)
+				);
+				for (const [days, said] of [
+					[wholeDays(MONDAY), /^Leave already covers 2026-07-20\.$/],
+					[wholeDays(...weekdays.slice(0, 40)), /^ANNUAL_LEAVE: insufficient balance\.$/]
+				] as const) {
+					const entry = {
+						entity_id: ENTITY,
+						employment_id: idOf('employment', uuid(6)),
+						catalog_code: 'ANNUAL_LEAVE',
+						days
+					};
+					const verdict = leaveShort(known, [jsonObject(entry)], '2026-08-05');
+					assert.match(String(verdict), said);
+					const refused = yield* refusal(
+						admin.act({ 'leave_catalog_entry.create': [leaveCreate(entry)] })
+					);
+					assert.equal(refused.message, verdict);
+				}
 			}).pipe(Effect.provide(workspace({ seed, now: '2026-08-05T02:00:00.000Z' })))
 	);
 });

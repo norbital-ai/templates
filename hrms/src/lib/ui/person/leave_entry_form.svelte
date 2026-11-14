@@ -10,7 +10,17 @@
 	import { isJsonObject, jsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
 	import { inForce } from '../../dated.js';
 	import { leaveOffDay } from '../../payroll_engine/attendance.js';
-	import { chainOf, leaveDaysOf, startsOf, termsChange } from '../../person.js';
+	import { knownOf, leaveOff, leaveShort, leaveTaken } from '../../ledger/service.js';
+	import {
+		PARAMETER_FIELDS,
+		PROFILE_FIELDS,
+		STINT_FIELDS,
+		TERM_FIELDS,
+		chainOf,
+		leaveDaysOf,
+		startsOf,
+		termsChange
+	} from '../../person.js';
 	import { pageLaws } from '../law.svelte.js';
 	import { PAID_NOTE, paidPeriods } from '../payroll/paid_period.svelte.js';
 
@@ -128,32 +138,71 @@
 	const code = $derived(contract?.entity_id?.settings_code);
 	const laws = pageLaws(ctx, () => (code === undefined ? [] : [code]));
 	const law = $derived(laws.on(code, String(today)));
-	// the person's stints, for the service start their windows count from
-	const stints = $derived(
-		contract?.employee_id == null
+	// everything of the person the write's checks read: their stints with dated rows, balance, leave and what it posted
+	const stints = $derived.by(() => {
+		const who = contract?.employee_id?.id;
+		if (who == null) return null;
+		const theirs = { employment_id: { is: { employee_id: { eq: who } } } };
+		return ctx.query({
+			employment: {
+				where: { employee_id: { eq: who } },
+				fields: [...STINT_FIELDS],
+				limit: 1000,
+				entity_id: { fields: ['settings_code'] }
+			},
+			contract_terms: {
+				where: theirs,
+				fields: ['id', 'employment_id', 'effective_from', 'clears', 'signed_on', ...TERM_FIELDS],
+				limit: 10000
+			},
+			statutory_parameters: {
+				where: theirs,
+				fields: ['id', 'employment_id', 'effective_from', 'clears', ...PARAMETER_FIELDS],
+				limit: 10000
+			},
+			employee_profile: { where: { id: { eq: who } }, fields: [...PROFILE_FIELDS], limit: 1 },
+			dependant: { where: { employee_id: { eq: who } }, limit: 1000 },
+			employee_balance: {
+				where: { employee_id: { eq: who } },
+				fields: ['employee_id', 'account', 'revision'],
+				limit: 1
+			},
+			leave_catalog_entry: {
+				where: theirs,
+				limit: 10000,
+				leave_catalog_entry_day: {
+					fields: ['leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
+					limit: 10000
+				}
+			}
+		});
+	});
+	// what their leave posted, on their one balance
+	const posted = $derived.by(() => {
+		const balance = stints?.current?.employee_balance.rows[0]?.id;
+		return balance === undefined
 			? null
 			: ctx.query({
-					employment: {
-						where: { employee_id: { eq: contract.employee_id.id } },
-						fields: ['employee_id', 'effective_range', 'entity_id', 'service_started_on'],
-						limit: 1000,
-						entity_id: { fields: ['settings_code'] }
+					ledger_entry: {
+						where: { balance_id: { eq: balance }, source: { like: 'leave_catalog_entry:%' } },
+						fields: [
+							'balance_id',
+							'source',
+							'operation',
+							'account',
+							'code',
+							'period',
+							'measure',
+							'amount',
+							'unit',
+							'effective_on'
+						],
+						limit: 10000
 					}
-				})
-	);
-	const balance = $derived(
-		chosen === null || contract?.employee_id == null
-			? null
-			: ctx.query({
-					employee_balance: {
-						where: { employee_id: { eq: contract.employee_id.id } },
-						fields: ['account'],
-						limit: 1
-					}
-				})
-	);
+				});
+	});
 	const leaveAccount = $derived(
-		accountsOf(balance?.current?.employee_balance.rows[0]?.account ?? {})
+		accountsOf(stints?.current?.employee_balance.rows[0]?.account ?? {})
 	);
 	const subject = $derived.by(() => {
 		if (contract === null || law === undefined) return null;
@@ -289,33 +338,60 @@
 	const holidayByDate = $derived(
 		new Map((holidays.current?.holiday.rows ?? []).map((row) => [String(row.date), row.name]))
 	);
-	const occupied = $derived(
-		chosen === null
-			? new Set<string>()
-			: new Set(
-					(
-						ctx.query({
-							leave_catalog_entry: {
-								where: { employment_id: { eq: chosen } },
-								fields: ['id', 'employment_id'],
-								limit: 10000,
-								leave_catalog_entry_day: {
-									fields: ['id', 'incurred_on', 'part', 'payroll_run_id'],
-									limit: 10000
-								}
-							}
-						}).current?.leave_catalog_entry.rows ?? []
-					)
-						.filter((row) => row.id !== entry)
-						.flatMap((row) =>
-							(row.leave_catalog_entry_day ?? []).flatMap((child) => {
-								const date = String(child.incurred_on ?? '');
-								const part = String(child.part ?? '');
-								return date !== '' ? [`${date}:${part}`] : [];
-							})
-						)
-				)
-	);
+	// what the write's checks read, from this page's rows: the same functions judge here and there
+	const known = $derived.by(() => {
+		const found = stints?.current;
+		// no balance row, nothing posted; one whose rows are still loading is not known yet
+		if (found === undefined || holidays.current === undefined) return null;
+		if (posted !== null && posted.current === undefined) return null;
+		const rows = (list: readonly object[]) => list.map(jsonObject);
+		return knownOf(
+			{
+				employment: rows(found.employment.rows),
+				contract_terms: rows(found.contract_terms.rows),
+				statutory_parameters: rows(found.statutory_parameters.rows),
+				employee_profile: rows(found.employee_profile.rows),
+				dependant: rows(found.dependant.rows),
+				employee_balance: rows(found.employee_balance.rows),
+				ledger_entry: rows(posted?.current?.ledger_entry.rows ?? []),
+				holiday: rows(holidays.current.holiday.rows),
+				pay_group: rows(holidays.current.pay_group.rows),
+				shift_pattern: rows(holidays.current.shift_pattern.rows),
+				shift_definition: rows(holidays.current.shift_definition.rows),
+				roster_entry: rows(rostered?.current?.roster_entry.rows ?? [])
+			},
+			rows(found.leave_catalog_entry.rows),
+			found.leave_catalog_entry.rows.flatMap((row) => rows(row.leave_catalog_entry_day ?? [])),
+			laws.on
+		);
+	});
+	// the filed entry as stored: what this change replaces
+	const replaced = $derived((known?.entries ?? []).filter((row) => row.id === entry));
+	const who = $derived(String(contract?.employee_id?.id));
+	const taken = $derived(known === null ? new Set<string>() : leaveTaken(known, replaced));
+	const occupied = (date: string, part: 'AM' | 'PM') => taken.has(`${who}/${date}/${part}`);
+	// why the days chosen may not be saved, in the write's own words
+	const problem = $derived.by(() => {
+		if (known === null || chosen === null || catalog === null || sessions.length === 0)
+			return undefined;
+		const stored = replaced[0];
+		const filed = new Set(
+			(captures?.current?.leave_catalog_entry_day.rows ?? []).map(
+				(row) => `${String(row.incurred_on)}:${row.part}`
+			)
+		);
+		const proposed = (days: typeof sessions) =>
+			jsonObject({
+				...(stored ?? { entity_id: entityId, employment_id: chosen, catalog_code: catalog }),
+				days
+			});
+		// only the days this change adds answer for the day they fall on: a day already filed stands
+		return (
+			leaveOff(known, [
+				proposed(sessions.filter((row) => !filed.has(`${row.date}:${row.part}`)))
+			]) ?? leaveShort(known, [proposed(sessions)], String(today), replaced)
+		);
+	});
 	// an entry's days may run across the person's stints: any of them answers for its dates
 	const employed = (date: string) =>
 		(stints?.current?.employment.rows ?? []).some(
@@ -332,21 +408,11 @@
 		sessions.some((row) => row.date === date && row.part === part);
 	const availableDays = $derived(chosenCatalog === null ? 0 : availableFor(chosenCatalog));
 	const selectedDays = $derived(sessions.length / 2);
-	const overLimit = $derived(selectedDays > availableDays);
-	let limitNotice = $state<string | null>(null);
 	const toggle = (date: string, part: 'AM' | 'PM') => {
-		if (catalog === null || blocked(date) || occupied.has(`${date}:${part}`)) return;
-		if (selected(date, part)) {
-			sessions = sessions.filter((row) => row.date !== date || row.part !== part);
-			limitNotice = null;
-			return;
-		}
-		if (selectedDays + 0.5 > availableDays) {
-			limitNotice = `Only ${availableDays} day(s) available for this leave type.`;
-			return;
-		}
-		sessions = [...sessions, { date, part }].sort((a, b) => a.date.localeCompare(b.date));
-		limitNotice = null;
+		if (catalog === null || blocked(date) || occupied(date, part)) return;
+		sessions = selected(date, part)
+			? sessions.filter((row) => row.date !== date || row.part !== part)
+			: [...sessions, { date, part }].sort((a, b) => a.date.localeCompare(b.date));
 	};
 	const submit = () => {
 		if (saving || chosen === null || catalog === null || sessions.length === 0) return;
@@ -472,7 +538,6 @@
 						chosen = value;
 						catalog = null;
 						sessions = [];
-						limitNotice = null;
 					}}
 				/>
 			</Stack>{/if}
@@ -484,10 +549,7 @@
 				placeholder="Select leave type"
 				aria-label="Leave type"
 				disabled={fixedCatalog}
-				on_change={(value) => {
-					catalog = value;
-					limitNotice = null;
-				}}
+				on_change={(value) => (catalog = value)}
 			/>
 			{#if chosenCatalog !== null && !isNoCap(chosenCatalog)}<span
 					class="pointer-events-none absolute top-6 right-9 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
@@ -532,11 +594,7 @@
 								type="button"
 								aria-label={`${date} ${part}`}
 								aria-pressed={selected(date, part)}
-								disabled={!editable ||
-									catalog === null ||
-									blocked(date) ||
-									occupied.has(`${date}:${part}`) ||
-									(!selected(date, part) && selectedDays >= availableDays)}
+								disabled={!editable || catalog === null || blocked(date) || occupied(date, part)}
 								class="min-h-10 flex-1 rounded-md border px-0.5 py-1 text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-30 {selected(
 									date,
 									part
@@ -559,11 +617,9 @@
 
 	<Cluster justify="between">
 		<span
-			class={overLimit || limitNotice !== null
-				? 'text-xs text-destructive'
-				: 'text-xs text-muted-foreground'}
+			class={problem === undefined ? 'text-xs text-muted-foreground' : 'text-xs text-destructive'}
 		>
-			{limitNotice ??
+			{(editable ? problem : undefined) ??
 				(editable && Number.isFinite(availableDays)
 					? `${selectedDays} of ${availableDays} day(s) selected`
 					: `${selectedDays} day(s)`)}
@@ -574,7 +630,7 @@
 					>{/if}
 				<Button
 					onclick={submit}
-					disabled={saving || sessions.length === 0 || catalog === null || overLimit}
+					disabled={saving || sessions.length === 0 || catalog === null || problem !== undefined}
 				>
 					{entry != null ? 'Save days' : 'Request leave'}
 				</Button>
