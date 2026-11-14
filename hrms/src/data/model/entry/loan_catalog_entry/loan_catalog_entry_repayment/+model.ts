@@ -3,6 +3,8 @@ import { sealOnly } from '../../../../../lib/entries.js';
 import { validateRegistered } from '../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../lib/payroll_engine/taps.js';
+import { repaymentProblem } from '../../../../../lib/payroll_engine/loan_schedule.js';
+import type { Id, WriteCtx } from '@norbital-ai/bolt';
 import { amendmentsFor, refusing } from '../../../../../lib/amendments.js';
 
 /** An instalment is deducted by the run whose attendance holds its date: a paid period holding it is worked out again. */
@@ -18,6 +20,37 @@ const touched = (
 			? []
 			: [{ employment: String(employment_id), from: String(paid_on), run: payroll_run_id ?? null }]
 	);
+
+type Repayment = {
+	readonly loan_id: Id<'loan_catalog_entry'>;
+	readonly employment_id: unknown;
+	readonly entity_id: unknown;
+};
+/** Each repayment against its loan as this act leaves it: a loan moved in the same act is read where it now stands. */
+const assertOfLoan = function* (
+	ctx: WriteCtx<'loan_catalog_entry_repayment'>,
+	rows: readonly Repayment[]
+) {
+	const { loan_catalog_entry: loans } = yield* ctx.query({
+		loan_catalog_entry: {
+			where: { id: { in: rows.map((row) => row.loan_id) } },
+			fields: ['employment_id', 'entity_id'],
+			as_of: 'act',
+			limit: 10000
+		}
+	});
+	for (const [index, row] of rows.entries()) {
+		const problem = repaymentProblem(
+			row,
+			loans.rows.find((loan) => loan.id === row.loan_id)
+		);
+		if (problem !== undefined)
+			return yield* ctx.refuse('errors.payroll_refused', {
+				row: index,
+				values: { message: problem }
+			});
+	}
+};
 
 export default model('loan_catalog_entry_repayment', {
 	description: 'One repayment against a loan entry.',
@@ -65,6 +98,7 @@ export default model('loan_catalog_entry_repayment', {
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
+			yield* assertOfLoan(ctx, rows);
 			return {
 				sets: changes.map((c) => c.set),
 				on_approved: yield* amendmentsFor(ctx.query, touched(rows))
@@ -92,6 +126,10 @@ export default model('loan_catalog_entry_repayment', {
 			if (sealOnly(changes)) return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject(change.after));
 			yield* validateRegistered(ctx.query, 'loan_catalog_entry_repayment', 'update', proposed);
+			yield* assertOfLoan(
+				ctx,
+				changes.map((change) => change.after)
+			);
 			return {
 				// a date that moves leaves the run that priced it: the period it joins prices it, and seals it
 				sets: changes.map((c) =>

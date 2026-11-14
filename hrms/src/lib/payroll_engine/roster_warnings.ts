@@ -2,7 +2,8 @@ import { DateTime, Duration, Effect } from 'effect';
 import { queryRows, type Reader } from './reads.js';
 import { startOf } from './registrations.js';
 import { lawReadOf, lawsOf } from '../law.js';
-import { isJsonObject, type Json } from './foundation.js';
+import { Refusal, isJsonObject, type Json } from './foundation.js';
+import { intervalSpans } from './time_evidence.js';
 import type { JsonObject } from './contracts.js';
 
 const minutes = (value: unknown): number => {
@@ -72,6 +73,34 @@ export const limits = (
 };
 
 type Finding = { code: string; message: string };
+
+const idIn = (ref: unknown) => String(isJsonObject(ref) ? ref.id : ref);
+/**
+ * Why a roster day may not be written, if it may not: its date falls outside its stint, its shift is another company's,
+ * or its intervals are ones no run could price. The stint and the shift are rows already read.
+ */
+export const rosterDayProblem = (
+	entry: JsonObject,
+	stint: JsonObject | undefined,
+	shift: JsonObject | undefined
+): string | undefined => {
+	const date = day(entry.work_date);
+	if (date === null || stint === undefined) return undefined;
+	const range = isJsonObject(stint.effective_range) ? stint.effective_range : {};
+	if (date < String(range.from) || (typeof range.to === 'string' && date > range.to))
+		return `${date} is outside this employment.`;
+	if (shift !== undefined && idIn(shift.entity_id) !== idIn(stint.entity_id))
+		return `${date}: the shift belongs to another company.`;
+	for (const intervals of [entry.planned_overtime_intervals, entry.actual_worked_intervals])
+		try {
+			// an interval still open is clocked in: it ends whenever it ends
+			intervalSpans(intervals, Number.MAX_SAFE_INTEGER);
+		} catch (error) {
+			if (!(error instanceof Refusal)) throw error;
+			return `${date}: ${error.message}`;
+		}
+	return undefined;
+};
 const EMPLOYMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -214,7 +243,6 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 					];
 		})
 	);
-	if (capsOf.size === 0) return findings;
 	// a streak can start before the batch: reach back by the longest run any law in force checks
 	const streak = Math.max(0, ...[...capsOf.values()].map((caps) => caps.consecutive_days ?? 0));
 	// the whole months and weeks the batch touches: what its monthly and weekly counts read
@@ -241,32 +269,45 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 		)
 	];
 	const { roster_entry: stored = [], shift_definition: shifts = [] } = yield* queryRows(read, {
-		roster_entry: {
-			where: {
-				employment_id: { in: [...capsOf.keys()] },
-				work_date: { gte: bounds[0]!, lte: bounds.at(-1)! }
-			},
-			fields: [
-				'employment_id',
-				'work_date',
-				'shift_definition_id',
-				'actual_worked_intervals',
-				'planned_overtime_intervals'
-			],
-			limit: 10000,
-			shift_definition_id: { fields: ['variant'] }
-		},
+		...(capsOf.size === 0
+			? {}
+			: {
+					roster_entry: {
+						where: {
+							employment_id: { in: [...capsOf.keys()] },
+							work_date: { gte: bounds[0]!, lte: bounds.at(-1)! }
+						},
+						fields: [
+							'employment_id',
+							'work_date',
+							'shift_definition_id',
+							'actual_worked_intervals',
+							'planned_overtime_intervals'
+						],
+						limit: 10000,
+						shift_definition_id: { fields: ['variant'] }
+					}
+				}),
 		...(named.length === 0
 			? {}
 			: {
 					shift_definition: {
 						where: { id: { in: named } },
-						fields: ['variant'],
+						fields: ['entity_id', 'variant'],
 						limit: 10000
 					}
 				})
 	});
 	const shiftOf = new Map(shifts.map((row) => [String(row.id), row]));
+	const stintOf = new Map((got.employment ?? []).map((row) => [String(row.id), row]));
+	for (const entry of supplied) {
+		const problem = rosterDayProblem(
+			entry,
+			stintOf.get(String(entry.employment_id)),
+			shiftOf.get(String(entry.shift_definition_id))
+		);
+		if (problem !== undefined) return yield* Effect.fail(new Refusal({ message: problem }));
+	}
 	const typeOf = (entry: JsonObject) =>
 		dayTypeOf(
 			isJsonObject(entry.shift_definition_id)

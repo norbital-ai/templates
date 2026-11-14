@@ -123,7 +123,7 @@ export default model('roster_entry', {
 			const findings = yield* rosterFindings(
 				ctx.query,
 				rows.map((row) => jsonObject(row))
-			);
+			).pipe(refusing(ctx));
 			return {
 				sets: rows.map((row, index) => ({ ...row, findings: findings[index] ?? [] })),
 				on_approved: yield* amendmentsFor(ctx.query, touched(rows))
@@ -160,7 +160,7 @@ export default model('roster_entry', {
 			const findings = yield* rosterFindings(
 				ctx.query,
 				changes.map((change) => jsonObject(change.after))
-			);
+			).pipe(refusing(ctx));
 			return {
 				sets: changes.map((change, index) => ({
 					...change.set,

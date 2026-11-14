@@ -644,3 +644,39 @@ describe('a loan row with an eligibility rule', () => {
 			}).pipe(Effect.provide(workspace({ seed: gated, now: NOW })))
 	);
 });
+
+describe('a repayment and its loan', () => {
+	it.live('stand under one employment and company: another company’s repayment is refused', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const admin = yield* t.as(t.admin);
+			const failed = yield* refused(
+				admin.act({
+					'loan_catalog_entry_repayment.create': [
+						{
+							entity_id: idOf('entity', uuid(999)),
+							employment_id: EMPLOYMENT,
+							loan_id: LOAN,
+							amount: '100',
+							paid_on: '2026-08-31'
+						}
+					]
+				})
+			);
+			assert.match(failed, /belongs to the employment and company of its loan/);
+		}).pipe(
+			Effect.provide(
+				workspace({
+					seed: {
+						...seed,
+						entity: [
+							...(seed.entity ?? []),
+							{ ...seed.entity?.[0], id: uuid(999), code: 'E2', name: 'Another' }
+						]
+					},
+					now: NOW
+				})
+			)
+		)
+	);
+});

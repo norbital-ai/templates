@@ -126,6 +126,20 @@ export const loanRecovery = (input: {
 	};
 };
 
+/**
+ * Why a repayment may not be written, if it may not: it is repaid by the stint and the company its loan stands under.
+ * The loan is the row as the write leaves it.
+ */
+export const repaymentProblem = (
+	repayment: { readonly employment_id: unknown; readonly entity_id: unknown },
+	loan: { readonly employment_id: unknown; readonly entity_id: unknown } | undefined
+): string | undefined =>
+	loan !== undefined &&
+	(String(repayment.employment_id) !== String(loan.employment_id) ||
+		String(repayment.entity_id) !== String(loan.entity_id))
+		? 'A repayment belongs to the employment and company of its loan.'
+		: undefined;
+
 export type LoanScheduleProblem =
 	| 'principal'
 	| 'period'

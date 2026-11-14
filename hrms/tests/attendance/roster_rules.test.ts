@@ -5,8 +5,13 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, storedQuery, uuid, workspace, packTerms } from '../kit.ts';
-import { dayFindings, limits, type DayType } from '../../src/lib/payroll_engine/roster_warnings.ts';
+import { ENTITY, pack, refusal, storedQuery, uuid, workspace, packTerms } from '../kit.ts';
+import {
+	dayFindings,
+	limits,
+	rosterDayProblem,
+	type DayType
+} from '../../src/lib/payroll_engine/roster_warnings.ts';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 
 const HOUR = 3_600_000;
@@ -113,5 +118,55 @@ describe('a contract shift pattern', () => {
 			assert.equal(refused.key, 'errors.contract_terms_shift_overlong');
 			assert.equal(refused.values?.hours, 8);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-11-20T02:00:00.000Z' })))
+	);
+});
+
+describe('a roster day', () => {
+	const stint = {
+		entity_id: { id: 'company' },
+		effective_range: { from: '2026-03-01', to: '2026-03-31' }
+	};
+	const at = (hour: number) => `2026-03-02T${String(hour).padStart(2, '0')}:00:00.000Z`;
+	it('falls inside its stint, on a shift of its company, with intervals a run can price', () => {
+		const on = (more: JsonObject, shift?: JsonObject) =>
+			rosterDayProblem({ work_date: '2026-03-02', ...more }, stint, shift);
+		assert.equal(on({}), undefined);
+		assert.equal(on({}, { entity_id: 'company' }), undefined);
+		assert.match(String(on({}, { entity_id: 'another' })), /shift belongs to another company/);
+		assert.match(
+			String(rosterDayProblem({ work_date: '2026-04-01' }, stint, undefined)),
+			/2026-04-01 is outside this employment/
+		);
+		// clocked in and not yet out is a day in progress
+		assert.equal(on({ actual_worked_intervals: [{ start: at(9) }] }), undefined);
+		assert.match(
+			String(on({ actual_worked_intervals: [{ start: at(17), end: at(9) }] })),
+			/positive and nonoverlapping/
+		);
+		assert.match(
+			String(
+				on({
+					planned_overtime_intervals: [
+						{ start: at(18), end: at(20) },
+						{ start: at(19), end: at(21) }
+					]
+				})
+			),
+			/positive and nonoverlapping/
+		);
+	});
+	it.live('is refused by the write when it falls outside its stint', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const admin = yield* t.as(t.admin);
+			const refused = yield* refusal(
+				admin.act({
+					'roster_entry.create': [
+						{ employment_id: idOf('employment', uuid(6)), work_date: '1990-01-01' }
+					]
+				})
+			);
+			assert.match(String(refused.message), /1990-01-01 is outside this employment/);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-03-20T02:00:00.000Z' })))
 	);
 });
