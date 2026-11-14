@@ -52,12 +52,14 @@ import {
 	TERM_FIELDS,
 	chainOf,
 	employmentOn,
+	leaveDaysOf,
 	partsIn,
 	startsOf,
 	type Parts,
 	type Starts
 } from '../person.js';
 import { lawRead, lawReadOf, lawsOf, type Law } from '../law.js';
+import { leaveOffDay } from '../payroll_engine/attendance.js';
 import { payPeriodOf } from '../payroll_engine/pay_cycle.js';
 import {
 	carriedOf,
@@ -787,6 +789,8 @@ export type Known = {
 	readonly entries: readonly JsonObject[];
 	readonly posted: readonly JsonObject[];
 	readonly captures: ReadonlyMap<string, readonly JsonObject[]>;
+	/** What plans the people's days, read for leave alone: holidays, pay groups, shifts, patterns and roster rows. */
+	readonly plan: Readonly<Record<string, readonly JsonObject[]>>;
 };
 const known = Effect.fn('ledger.known')(function* (
 	read: Reader,
@@ -796,9 +800,39 @@ const known = Effect.fn('ledger.known')(function* (
 	const who = holders(uniqueIds(entries, 'employment_id'));
 	const people = { employee_id: { is: who } };
 	const laws = yield* lawReadOf(read, { employment: { some: people } });
+	// leave falls only on days the person works: their companies' holidays, shifts and patterns, and their roster rows
+	// ponytail: roster rows a month either side of the days asked; a holiday replacing a day further off reads its plan
+	const dates = entries
+		.flatMap((entry) => (Array.isArray(entry.days) ? entry.days : []))
+		.filter(isJsonObject)
+		.map((day) => String(day.date ?? day.incurred_on))
+		.toSorted();
+	const [first, last] = [dates[0], dates.at(-1)];
+	const theirs = { where: { entity_id: { is: { employment: { some: people } } } }, limit: 10000 };
+	const month = (day: string, months: number) =>
+		DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(day), { months }));
 	const found = yield* queryAllRows(read, {
 		...stintsRead(who),
 		...laws,
+		...(model === LEAVE && first !== undefined && last !== undefined
+			? {
+					holiday: {
+						...theirs,
+						fields: ['date', 'published_at', 'employee_id', 'replaces', 'given_to']
+					},
+					pay_group: { ...theirs, fields: ['payment_schedule'] },
+					shift_pattern: { ...theirs, fields: ['pattern', 'effective_range'] },
+					shift_definition: { ...theirs, fields: ['variant'] },
+					roster_entry: {
+						where: {
+							employment_id: { is: people },
+							work_date: { gte: month(first, -1), lte: month(last, 1) }
+						},
+						fields: ['employment_id', 'work_date', 'shift_definition_id'],
+						limit: 10000
+					}
+				}
+			: {}),
 		employee_balance: {
 			where: people,
 			fields: ['employee_id', 'account', 'revision'],
@@ -832,7 +866,14 @@ const known = Effect.fn('ledger.known')(function* (
 		balance: new Map((found.employee_balance ?? []).map((row) => [String(row.employee_id), row])),
 		entries: stored,
 		posted: found.ledger_entry ?? [],
-		captures: Map.groupBy(captures, (row) => String(row.leave_entry_id))
+		captures: Map.groupBy(captures, (row) => String(row.leave_entry_id)),
+		plan: {
+			holiday: found.holiday ?? [],
+			pay_group: found.pay_group ?? [],
+			shift_pattern: found.shift_pattern ?? [],
+			shift_definition: found.shift_definition ?? [],
+			roster_entry: found.roster_entry ?? []
+		}
 	} satisfies Known;
 });
 /**
@@ -1221,6 +1262,38 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 });
 
 /** A cash-out pays its row's `payout`: a row that declares none has nothing a run could pay for the days drawn. */
+/** Leave is taken on days the person works: a rest day or a holiday of theirs is refused. A row counted in calendar days takes every day. */
+export const assertWorked = Effect.fn('ledger.assertWorked')(function* (
+	known: Known,
+	entries: readonly JsonObject[]
+) {
+	for (const entry of entries) {
+		const held = known.parts.get(String(entry.employment_id));
+		const row = lawOf(known, entry)?.rows.leave_catalog.find(
+			(item) => item.code === entry.catalog_code
+		);
+		if (
+			held === undefined ||
+			entry.encashment === true ||
+			objectValue(row?.lookup).unit === 'CALENDAR_DAY'
+		)
+			continue;
+		const own = leaveDaysOf(held, known.plan);
+		for (const day of (Array.isArray(entry.days) ? entry.days : []).filter(isJsonObject)) {
+			const date = String(day.date ?? day.incurred_on);
+			const off = leaveOffDay(date, own);
+			if (off !== undefined)
+				return yield* Effect.fail(
+					new Refusal({
+						message:
+							off === 'HOLIDAY'
+								? `${date} is a holiday: no leave is taken on it.`
+								: `${date} is a rest day: no leave is taken on it.`
+					})
+				);
+		}
+	}
+});
 export const assertCashable = Effect.fn('ledger.assertCashable')(function* (
 	known: Known,
 	entries: readonly JsonObject[]

@@ -114,6 +114,8 @@ export default policy({
 			outputs: { default: { where: { employment_id: { is: OWN_EMPLOYMENT } } } }
 		},
 		shift_definition: { outputs: { default: {} } },
-		shift_pattern: { outputs: { default: {} } }
+		shift_pattern: { outputs: { default: {} } },
+		// the working week their leave form plans days by
+		pay_group: { outputs: { default: {} } }
 	}
 });

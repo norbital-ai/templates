@@ -1,5 +1,6 @@
 import { DateTime, Duration } from 'effect';
 import { inForce, type Change } from './dated.js';
+import type { LeaveDays } from './payroll_engine/attendance.js';
 import {
 	isDynObject,
 	jsonObject,
@@ -335,3 +336,27 @@ export const chainOf = (rows: readonly JsonObject[]) => ({
 		})
 	)
 });
+
+/** One stint's days as the shared leave check reads them, from the plan rows read beside it: the same on a page and in a write. */
+export const leaveDaysOf = (
+	held: Pick<Parts, 'stint' | 'terms'>,
+	plan: Readonly<Record<string, readonly JsonObject[] | undefined>>
+): LeaveDays => {
+	const groups = new Map((plan.pay_group ?? []).map((row) => [String(row.id), row]));
+	const terms = (date: string) => inForce(held.terms.map(termsChange), date).state;
+	return {
+		terms,
+		employer: (date) => ({
+			payment_schedule: groups.get(String(terms(date).pay_group_id))?.payment_schedule ?? null
+		}),
+		shifts: new Map((plan.shift_definition ?? []).map((row) => [String(row.id), row])),
+		patterns: new Map((plan.shift_pattern ?? []).map((row) => [String(row.id), row])),
+		roster: new Map(
+			(plan.roster_entry ?? [])
+				.filter((row) => String(row.employment_id) === String(held.stint.id))
+				.map((row) => [String(row.work_date), row])
+		),
+		holidays: plan.holiday ?? [],
+		employee: String(held.stint.employee_id)
+	};
+};

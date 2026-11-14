@@ -13,6 +13,7 @@ import {
 	entriesUndone,
 	entryPostings,
 	entryRead,
+	assertWorked,
 	syncLatePosted
 } from '../../../../lib/ledger/service.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
@@ -100,6 +101,7 @@ export default model('leave_catalog_entry', {
 				// the balance checks say why in their own words: the refusal carries that text
 				yield* Effect.all([
 					assertCashable(known, entries),
+					assertWorked(known, entries),
 					assertLeft(known, entries, String(ctx.today))
 				]).pipe(refusing(ctx));
 			}
@@ -186,6 +188,19 @@ export default model('leave_catalog_entry', {
 				ctx.approving ? undefined : 'update'
 			).pipe(refusing(ctx));
 			if (!ctx.approving) {
+				// only the days this change adds: a day already filed stands
+				yield* assertWorked(
+					known,
+					changes.map((change) => {
+						const actions = actionsOf(change);
+						return jsonObject({
+							...change.after,
+							days: (Array.isArray(actions.create) ? actions.create : [])
+								.filter(isJsonObject)
+								.map((row) => ({ date: row.incurred_on, part: row.part }))
+						});
+					})
+				).pipe(refusing(ctx));
 				yield* assertLeft(
 					known,
 					proposed,

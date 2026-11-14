@@ -1,6 +1,9 @@
 import { DateTime, Duration } from 'effect';
 import type { JsonObject } from './contracts.js';
+import { isWorkingDay, offDaysFor } from './engine.js';
+import { isJsonObject } from './foundation.js';
 import { objectValue, valueText } from './reads.js';
+import { dateWeekday } from './time_evidence.js';
 
 /** `date` + clock time in an IANA zone, as epoch milliseconds. */
 // everyone on one shift shares its instants: a run works each out once
@@ -121,3 +124,80 @@ export function holidaysForDay(
 				data.roster_day_types?.[String(holiday.replaces)] !== 'WORK')
 	);
 }
+
+const WEEKDAYS = [
+	'SUNDAY',
+	'MONDAY',
+	'TUESDAY',
+	'WEDNESDAY',
+	'THURSDAY',
+	'FRIDAY',
+	'SATURDAY'
+] as const;
+/** What says how a stint's days are planned: the pay group's schedule as its employer, and the company's shifts and patterns by id. */
+export type Plan = {
+	readonly employer: JsonObject;
+	readonly shifts: ReadonlyMap<unknown, JsonObject>;
+	readonly patterns: ReadonlyMap<unknown, JsonObject>;
+};
+/** A contract's planned day with no roster entry: its pattern's day, else its ordinary week (undefined: no shift). */
+export const plannedWork = (terms: JsonObject, date: string, plan: Plan): boolean | undefined => {
+	const pattern = plan.patterns.get(terms.shift_pattern_id);
+	if (pattern === undefined) return isWorkingDay(date, offDaysFor(terms, plan.employer));
+	const cycle = objectValue(pattern.pattern);
+	const weekly = isJsonObject(cycle.days) ? cycle.days : null;
+	const rotation = Array.isArray(cycle.cycle) ? cycle.cycle : null;
+	const from = String(objectValue(pattern.effective_range).from ?? '');
+	let shiftId: string | null = null;
+	if (weekly !== null) {
+		const weekday = WEEKDAYS[dateWeekday(date)] ?? 'SUNDAY';
+		shiftId = String(weekly[weekday] ?? '');
+	} else if (rotation !== null && rotation.length > 0 && from !== '') {
+		const span = Duration.toDays(
+			DateTime.distance(DateTime.makeUnsafe(from), DateTime.makeUnsafe(date))
+		);
+		shiftId = String(
+			objectValue(rotation[((span % rotation.length) + rotation.length) % rotation.length])
+				.shift_definition_id
+		);
+	}
+	const shift = shiftId == null ? undefined : plan.shifts.get(shiftId);
+	return shift === undefined ? undefined : objectValue(shift.variant).day_type === 'WORK';
+};
+/** One person's days as leave reads them: the terms and employer in force on a day, their roster rows by date and their company's holidays. */
+export type LeaveDays = Omit<Plan, 'employer'> & {
+	readonly terms: (date: string) => JsonObject;
+	readonly employer: (date: string) => JsonObject;
+	readonly roster: ReadonlyMap<string, JsonObject>;
+	readonly holidays: readonly JsonObject[];
+	readonly employee: string;
+};
+/**
+ * Why no leave falls on a day: the person does not work it (`REST`: the roster's day, else the pattern's or the ordinary
+ * week's, exactly as a run plans it) or it is a holiday of theirs (`HOLIDAY`). A day no plan answers for is left open.
+ */
+export const leaveOffDay = (date: string, own: LeaveDays): 'REST' | 'HOLIDAY' | undefined => {
+	const works = (day: string) => {
+		const shift = own.shifts.get(own.roster.get(day)?.shift_definition_id);
+		return shift === undefined
+			? plannedWork(own.terms(day), day, { ...own, employer: own.employer(day) })
+			: objectValue(shift.variant).day_type === 'WORK';
+	};
+	const replaced = Object.fromEntries(
+		own.holidays.flatMap((row) =>
+			typeof row.replaces === 'string' && works(row.replaces) === true
+				? [[row.replaces, 'WORK'] as const]
+				: []
+		)
+	);
+	if (
+		holidaysForDay(date, {
+			holidays: own.holidays,
+			roster_day_types: replaced,
+			roster_days: [],
+			employee: own.employee
+		}).length > 0
+	)
+		return 'HOLIDAY';
+	return works(date) === false ? 'REST' : undefined;
+};

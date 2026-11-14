@@ -119,14 +119,19 @@ describe('cumulative service', () => {
 describe('an unpaid-leave entry', () => {
 	// two full years' service at the 12-day band; a month less and it is the 8-day band
 	const seed = seedOf({ started: '2024-11-01' });
-	const nine = dates('2026-11-23', 9);
+	// leave falls on no rest day: nine working days, and every working day of a month
+	const working = (days: readonly string[]) =>
+		days.filter(
+			(day) => ![0, 6].includes(DateTime.getPartUtc(DateTime.makeUnsafe(day), 'weekDay'))
+		);
+	const nine = working(dates('2026-11-23', 14)).slice(0, 9);
 	const layer = workspace({ seed, now: NOW });
 	const unpaid = (t: Kit, days: readonly string[]) => take(t, 'NPL', days);
 	it.live('deleted after its run is paid no longer counts against another entitlement', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
-			yield* unpaid(t, dates('2026-03-01', 31));
+			yield* unpaid(t, working(dates('2026-03-01', 31)));
 			yield* run(t, '2026-03');
 			const [march] = (yield* storedQuery(t, { payroll_run: { limit: 1 } })).payroll_run.rows;
 			const [priced] = (yield* storedQuery(t, { leave_catalog_entry: { limit: 1 } }))

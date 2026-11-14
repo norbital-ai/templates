@@ -353,15 +353,18 @@ describe('a day in lieu held both ways for one person and date', () => {
 			};
 		}).pipe(Effect.provide(workspace({ seed: from, now: FEBRUARY })));
 
-	it.live('taken as leave on their own holiday, the month pays what it pays without either', () =>
+	it.live('cannot be taken as leave on their own holiday, and the month pays what it pays', () =>
 		Effect.gen(function* () {
 			const plain = yield* february(base, () => Effect.void);
 			const holiday = yield* february(theirs, () => Effect.void);
+			let refused = '';
 			const both = yield* february(theirs, (t) =>
 				grant(t, 1, '2026-02-02').pipe(
-					Effect.andThen(enter(t, IN_LIEU, [DAY], { encashment: false }))
+					Effect.andThen(Effect.flip(enter(t, IN_LIEU, [DAY], { encashment: false }))),
+					Effect.tap((failed) => Effect.sync(() => (refused = String(failed))))
 				)
 			);
+			assert.match(refused, /is a holiday: no leave is taken on it/);
 			assert.deepEqual(holiday.lines, plain.lines);
 			assert.deepEqual(both.lines, plain.lines);
 			assert.equal(both.lines[IN_LIEU], undefined);

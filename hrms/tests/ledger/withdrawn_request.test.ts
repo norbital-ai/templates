@@ -30,7 +30,7 @@ describe('a leave request taken back', () => {
 						entity_id: ENTITY,
 						employment_id: idOf('employment', uuid(6)),
 						catalog_code: 'ANNUAL_LEAVE',
-						days: wholeDays('2026-07-18')
+						days: wholeDays('2026-07-20')
 					})
 				]
 			});

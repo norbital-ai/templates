@@ -3,6 +3,7 @@ import {
 	awardedMinutes,
 	holidaysForDay,
 	overlapSpans,
+	plannedWork as plannedWorkOf,
 	scheduled,
 	spanMinutes
 } from './attendance.js';
@@ -490,30 +491,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	const fullAward = Number(employer.overtime_full_award_percent ?? 100);
 	const shifts = new Map((data.shift_definition ?? []).map((row) => [row.id, row]));
 	const patterns = new Map((data.shift_pattern ?? []).map((row) => [row.id, row]));
-	/** A contract's planned day with no roster entry: its pattern's day, else its ordinary week (undefined: no shift). */
-	const plannedWork = (terms: JsonObject, date: string): boolean | undefined => {
-		const pattern = patterns.get(terms.shift_pattern_id);
-		if (pattern === undefined) return isWorkingDay(date, offDaysFor(terms, employer));
-		const cycle = objectValue(pattern.pattern);
-		const weekly = isJsonObject(cycle.days) ? cycle.days : null;
-		const rotation = Array.isArray(cycle.cycle) ? cycle.cycle : null;
-		const from = String(objectValue(pattern.effective_range).from ?? '');
-		let shiftId: string | null = null;
-		if (weekly !== null) {
-			const weekday = WEEKDAYS[dateWeekday(date)] ?? 'SUNDAY';
-			shiftId = String(weekly[weekday] ?? '');
-		} else if (rotation !== null && rotation.length > 0 && from !== '') {
-			const span = Duration.toDays(
-				DateTime.distance(DateTime.makeUnsafe(from), DateTime.makeUnsafe(date))
-			);
-			shiftId = String(
-				objectValue(rotation[((span % rotation.length) + rotation.length) % rotation.length])
-					.shift_definition_id
-			);
-		}
-		const shift = shiftId == null ? undefined : shifts.get(shiftId);
-		return shift === undefined ? undefined : objectValue(shift.variant).day_type === 'WORK';
-	};
+	const plan = { employer, shifts, patterns };
+	const plannedWork = (terms: JsonObject, date: string) => plannedWorkOf(terms, date, plan);
 	const zone = String(settings.timezone);
 	const planOf = (row: JsonObject) => {
 		const shift = shifts.get(row.shift_definition_id);

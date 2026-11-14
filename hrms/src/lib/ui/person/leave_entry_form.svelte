@@ -9,7 +9,8 @@
 	import { accountsOf, eventsOf, leftOn, unlimited } from '../../ledger/core.js';
 	import { isJsonObject, jsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
 	import { inForce } from '../../dated.js';
-	import { chainOf, startsOf, termsChange } from '../../person.js';
+	import { leaveOffDay } from '../../payroll_engine/attendance.js';
+	import { chainOf, leaveDaysOf, startsOf, termsChange } from '../../person.js';
 	import { pageLaws } from '../law.svelte.js';
 	import { PAID_NOTE, paidPeriods } from '../payroll/paid_period.svelte.js';
 
@@ -105,7 +106,18 @@
 					dependants: { fields: ['relation', 'born_on'], limit: 1000 }
 				},
 				entity_id: { fields: ['settings_code'] },
-				terms: { fields: ['effective_from', 'normal_hours_per_day', 'clears'], limit: 10000 }
+				terms: {
+					fields: [
+						'employment_id',
+						'effective_from',
+						'normal_hours_per_day',
+						'normal_days_per_week',
+						'pay_group_id',
+						'shift_pattern_id',
+						'clears'
+					],
+					limit: 10000
+				}
 			}
 		})
 	);
@@ -216,15 +228,64 @@
 			holiday: {
 				where: {
 					entity_id: { eq: entityId },
-					date: { gte: monthStart, lte: monthEnd },
-					published_at: { is_null: false },
-					employee_id: { is_null: true }
+					published_at: { is_null: false }
 				},
-				fields: ['date', 'name'],
+				fields: ['date', 'name', 'published_at', 'employee_id', 'replaces', 'given_to'],
+				limit: 10000
+			},
+			pay_group: {
+				where: { entity_id: { eq: entityId } },
+				fields: ['payment_schedule'],
+				limit: 1000
+			},
+			shift_pattern: {
+				where: { entity_id: { eq: entityId } },
+				fields: ['pattern', 'effective_range'],
+				limit: 10000
+			},
+			shift_definition: {
+				where: { entity_id: { eq: entityId } },
+				fields: ['variant'],
 				limit: 10000
 			}
 		})
 	);
+	// the person's roster a month either side of the one shown, as the server reads it
+	const rostered = $derived(
+		chosen === null
+			? null
+			: ctx.query({
+					roster_entry: {
+						where: {
+							employment_id: { eq: chosen },
+							work_date: {
+								gte: DateTime.formatIsoDateUtc(DateTime.add(at, { months: -1 })),
+								lte: DateTime.formatIsoDateUtc(
+									DateTime.add(DateTime.endOf(at, 'month'), { months: 1 })
+								)
+							}
+						},
+						fields: ['employment_id', 'work_date', 'shift_definition_id'],
+						limit: 10000
+					}
+				})
+	);
+	// why no leave falls on a day: the check the server refuses with, on the rows it reads
+	const own = $derived(
+		contract === null || holidays.current === undefined
+			? null
+			: leaveDaysOf(
+					{ stint: jsonObject(contract), terms: (contract.terms ?? []).map(jsonObject) },
+					{
+						holiday: holidays.current.holiday.rows.map(jsonObject),
+						pay_group: holidays.current.pay_group.rows.map(jsonObject),
+						shift_pattern: holidays.current.shift_pattern.rows.map(jsonObject),
+						shift_definition: holidays.current.shift_definition.rows.map(jsonObject),
+						roster_entry: (rostered?.current?.roster_entry.rows ?? []).map(jsonObject)
+					}
+				)
+	);
+	const off = (date: string) => (own === null ? undefined : leaveOffDay(date, own));
 	const holidayByDate = $derived(
 		new Map((holidays.current?.holiday.rows ?? []).map((row) => [String(row.date), row.name]))
 	);
@@ -255,20 +316,20 @@
 						)
 				)
 	);
-	const weekend = (date: string) =>
-		[0, 6].includes(DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay);
 	// an entry's days may run across the person's stints: any of them answers for its dates
 	const employed = (date: string) =>
 		(stints?.current?.employment.rows ?? []).some(
 			({ effective_range: range }) =>
 				String(range.from) <= date && (range.to == null || date <= String(range.to))
 		);
-	const blocked = (date: string) => weekend(date) || holidayByDate.has(date) || !employed(date);
+	const chosenCatalog = $derived(catalogRows.find((row) => row.code === catalog) ?? null);
+	// a row counted in calendar days takes every day; any other falls only on a day the person works
+	const calendar = $derived(jsonObject(chosenCatalog?.lookup ?? {}).unit === 'CALENDAR_DAY');
+	const blocked = (date: string) => !employed(date) || (!calendar && off(date) !== undefined);
 	// a half-day a payroll run paid: it may still be removed, and the next run carries the difference
 	const isSealed = (date: string, part: 'AM' | 'PM') => sealed.has(`${date}:${part}`);
 	const selected = (date: string, part: 'AM' | 'PM') =>
 		sessions.some((row) => row.date === date && row.part === part);
-	const chosenCatalog = $derived(catalogRows.find((row) => row.code === catalog) ?? null);
 	const availableDays = $derived(chosenCatalog === null ? 0 : availableFor(chosenCatalog));
 	const selectedDays = $derived(sessions.length / 2);
 	const overLimit = $derived(selectedDays > availableDays);
@@ -452,13 +513,13 @@
 		</div>
 		<div class="grid grid-cols-7">
 			{#each dates as date, index (date)}
-				{@const holiday = holidayByDate.get(date)}
+				{@const holiday = off(date) === 'HOLIDAY' ? holidayByDate.get(date) : undefined}
 				<div
 					class="flex min-h-24 flex-col border-b border-r p-1 text-xs last:border-r-0"
 					style:grid-column-start={index === 0
 						? DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay + 1
 						: undefined}
-					class:bg-muted={weekend(date) || holiday != null}
+					class:bg-muted={off(date) !== undefined}
 					class:opacity-40={blocked(date)}
 					title={holiday}
 				>

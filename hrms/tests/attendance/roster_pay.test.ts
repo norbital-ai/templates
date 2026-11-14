@@ -728,17 +728,23 @@ describe('a holiday and the days around it', () => {
 	);
 
 	it.live(
-		'a holiday inside leave pays the month as it stood, and grants nothing in lieu by itself',
+		'a holiday declared inside leave already filed pays the month as it stood, and grants nothing in lieu by itself',
 		() => {
-			const seed: Seed = {
-				...contract(5, []),
-				holiday: [{ ...published, id: uuid(20), date: HOLIDAY, name: 'Public' }]
+			const holiday = {
+				...published,
+				kind: 'PUBLIC_HOLIDAY' as const,
+				given_to: 'EVERYONE' as const,
+				date: HOLIDAY,
+				name: 'Public'
 			};
+			const seed: Seed = { ...contract(5, []), holiday: [{ ...holiday, id: uuid(20) }] };
 			return Effect.gen(function* () {
 				const plain = yield* paid(seed);
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);
-				yield* (yield* t.as(t.admin)).act({
+				const admin = yield* t.as(t.admin);
+				// leave is not taken on a holiday that stands: this one is declared after the leave was filed
+				yield* admin.act({
 					'leave_catalog_entry.create': [
 						leaveCreate({
 							entity_id: ENTITY,
@@ -748,6 +754,7 @@ describe('a holiday and the days around it', () => {
 						})
 					]
 				});
+				yield* admin.act({ 'holiday.create': [holiday] });
 				yield* run(t, '2026-02');
 				const onLeave = yield* slipOf(t);
 				assert.deepEqual(onLeave.checkpoints, plain.checkpoints);
@@ -756,7 +763,7 @@ describe('a holiday and the days around it', () => {
 				// the substitute day is HR's manual adjustment on the in-lieu row: nothing posts it
 				const accounts = yield* accountsIn(t);
 				assert.equal(measureOf(accounts, 'leave', 'PUBLIC_HOLIDAY_IN_LIEU', 'entitled'), 0);
-			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+			}).pipe(Effect.provide(workspace({ seed: { ...seed, holiday: [] }, now: NOW })));
 		}
 	);
 });
