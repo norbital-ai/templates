@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { Effect } from 'effect';
+import { Effect, Exit } from 'effect';
 import type { Accounts } from '../../src/lib/ledger/core.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { run } from '../amendment_kit.ts';
@@ -97,8 +97,30 @@ const firstEntry = (t: Kit) =>
 	);
 /** A run that prices the entry's slots: while it is unpaid, it holds the entry. */
 const price = (t: Kit) => run(t, '2026-09');
-/** Runs what is queued, then the ledger sync once more from the start. */
-const again = (t: Kit) => t.run_due().pipe(Effect.andThen(syncAll(t)));
+/** Lets each queued effect and posting finish its work, kills the host as it ends, runs it again once its lease has
+ * lapsed, then the ledger sync once more from the start. */
+const again = (t: Kit) =>
+	Effect.gen(function* () {
+		const killed = new Set<string>();
+		for (;;) {
+			const [queued] = yield* t.db.read([
+				{
+					text: `SELECT id::text AS id FROM sys_run WHERE state = 'queued' AND (automation LIKE '%.effect.%' OR automation = 'ledger')`,
+					params: []
+				}
+			]);
+			const id = (queued?.rows ?? [])
+				.map((row) => String(row['id']))
+				.find((run) => !killed.has(run));
+			// a run queued behind a killed one waits for that one's lease: it runs after it, uncrashed
+			if (id === undefined || Exit.isFailure(yield* Effect.exit(t.crash(id)))) break;
+			killed.add(id);
+		}
+		assert.ok(killed.size > 0, 'nothing queued');
+		t.clock.set(new Date(Date.parse(t.clock.now()) + 31 * 60_000).toISOString());
+		yield* t.run_due();
+		yield* syncAll(t);
+	});
 describe('a posting that runs again', () => {
 	it.live('a leave entry is posted once', () =>
 		Effect.gen(function* () {
