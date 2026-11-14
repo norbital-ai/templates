@@ -1,7 +1,8 @@
+# Written by `bolt templates lock` / `env relock` from @norbital-ai/host-api FIRST_PARTY_PACKAGES; do not edit.
 # Third-party releases younger than a day never resolve: a compromised publish has that long to be noticed.
 # The platform's own packages are exactly pinned in package.json, so they skip the gate by name.
 [install]
 # One layout everywhere: every package at its own node_modules root, never a peer linked into another directory's tree.
 linker = "hoisted"
 minimumReleaseAge = 86400
-minimumReleaseAgeExcludes = ["@norbital-ai/app-shell", "@norbital-ai/bolt", "@norbital-ai/bolt-cli", "@norbital-ai/bolt-server", "@norbital-ai/providers", "@norbital-ai/std", "@norbital-ai/store", "@norbital-ai/ui"]
+minimumReleaseAgeExcludes = ["@norbital-ai/app-shell", "@norbital-ai/bolt", "@norbital-ai/bolt-cli", "@norbital-ai/bolt-server", "@norbital-ai/host-api", "@norbital-ai/providers", "@norbital-ai/store", "@norbital-ai/ui"]
