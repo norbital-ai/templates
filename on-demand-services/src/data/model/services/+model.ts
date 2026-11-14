@@ -1,8 +1,8 @@
-import { model } from '../../../../.norbital/models/services.ts';
+import { model } from '@norbital-ai/bolt';
 import { SKILLS } from '../../../lib/matching.js';
 const columns = ['name', 'skill', 'duration_minutes', 'price', 'description', 'active'] as const;
 /** What a customer can book: the skill it needs and how long one visit takes. */
-export default model({
+export default model('services', {
 	description: 'A bookable service: the skill it needs, how long a visit takes and its price.',
 	icon: 'lucide:sparkles',
 	record_label: 'record.name',
@@ -22,7 +22,7 @@ export default model({
 		portal: { fields: ['name', 'duration_minutes', 'price', 'description'] },
 		helper: { fields: ['name', 'duration_minutes', 'description'] }
 	},
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } },
+	create: { fields: columns },
+	update: { fields: columns },
 	delete: {}
 });

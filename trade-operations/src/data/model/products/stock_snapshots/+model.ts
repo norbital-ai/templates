@@ -1,13 +1,6 @@
-import { model } from '../../../../../.norbital/models/stock_snapshots.ts';
+import { model } from '@norbital-ai/bolt';
 import { logisticsProduct } from '../../../../lib/logistics.js';
-import {
-	columns,
-	readSource,
-	SourceRowInvalid,
-	fromSource
-} from '../../../../integration/kingdee/polling.js';
-import { projections } from '../../../../integration/kingdee/projections.js';
-export default model({
+export default model('stock_snapshots', {
 	description: 'stock snapshots',
 	record_label:
 		"record.product.name + ' · ' + record.warehouse.name + (record.lot_number != null ? ' · ' + record.lot_number : '')",
@@ -63,45 +56,5 @@ export default model({
 	},
 	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
 	// availability names each snapshot's product and warehouse
-	indexes: { search: { text: ['product', 'warehouse', 'lot_number', 'external_code'] } },
-	syncs: {
-		kingdee: {
-			with: 'kingdee',
-			read: function* ({ cursor, instance }, ctx) {
-				const own = { source: { eq: instance } };
-				const { products, warehouses } = yield* ctx.query({
-					products: { where: own, fields: ['external_code'] },
-					warehouses: { where: own, fields: ['external_code'] }
-				});
-				return fromSource(
-					yield* readSource(projections.stock_snapshots, cursor, ctx, (row) => {
-						const r = columns(row);
-						const product = products.rows.find((p) => p.external_code === r.text('product_code'));
-						const warehouse = warehouses.rows.find(
-							(w) => w.external_code === r.text('warehouse_code')
-						);
-						if (!product || !warehouse)
-							throw new SourceRowInvalid({
-								column: '$row',
-								reason: 'Stock requires its synced product and warehouse'
-							});
-						return {
-							external_code: r.text('external_code'),
-							lot_number: r.text('lot_number', null),
-							unit_cost: r.decimalText('unit_cost', null),
-							currency: r.currency('currency', null),
-							unit: r.text('unit', null),
-							on_hand: r.decimalText('on_hand'),
-							erp_committed: r.decimalText('erp_committed', null),
-							as_of: r.instant('as_of'),
-							orders_as_of: r.instant('orders_as_of', null),
-							product: product.id,
-							warehouse: warehouse.id
-						};
-					}),
-					instance
-				);
-			}
-		}
-	}
+	indexes: { search: { text: ['product', 'warehouse', 'lot_number', 'external_code'] } }
 });

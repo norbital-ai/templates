@@ -9,8 +9,7 @@ export default policy({
 		helpers: { outputs: { default: {} } },
 		visits: {
 			outputs: { helper: {} },
-			update: { columns: { fields: ['shift_check', 'mc'] } }
+			update: { fields: ['shift_check', 'mc'] }
 		}
-	},
-	limits: { act: '120/min', read: '600/min' }
+	}
 });

@@ -1056,6 +1056,10 @@
 		},
 		"sys_conversation": {
 			"fields": {
+				"archived_at": {
+					"kind": "instant",
+					"optional": true
+				},
 				"created_at": {
 					"default": {
 						"var": "now"
@@ -1064,10 +1068,6 @@
 				},
 				"envoy": {
 					"kind": "text",
-					"optional": true
-				},
-				"goals": {
-					"kind": "json",
 					"optional": true
 				},
 				"inputs": {
@@ -2020,6 +2020,10 @@
 				"trigger": {
 					"kind": "json",
 					"optional": true
+				},
+				"wait": {
+					"kind": "json",
+					"optional": true
 				}
 			},
 			"indexes": [
@@ -2030,6 +2034,16 @@
 					"where": {
 						"state": {
 							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"due_at"
+					],
+					"where": {
+						"state": {
+							"eq": "waiting"
 						}
 					}
 				},

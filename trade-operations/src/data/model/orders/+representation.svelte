@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { translated } from '../../../lib/ui/message.js';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { attach, fork } from '@norbital-ai/ui/effect';
-	import { BigDecimal, Effect, Result, Schema, Scope } from 'effect';
+	import { BigDecimal, Effect, Result, Schema } from 'effect';
 	import { observe_once } from '@norbital-ai/ui/effect';
 	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
 	import { reportPages } from '../../../lib/reports.js';
@@ -26,6 +24,7 @@
 		Icon,
 		TimeRangeInput,
 		use_record_controller,
+		use_act,
 		type FieldEditor,
 		type FormState,
 		type RecordView,
@@ -53,7 +52,6 @@
 	// a narrower output (logistics) carries no commercial terms
 	const commercial = $derived(ctx.catalog?.orders?.output === undefined);
 	const recordController = use_record_controller();
-	let pending = $state(false);
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
 	const preset = createValues();
 	const purchase = $derived(
@@ -142,12 +140,13 @@
 		const rows = deliveryPage?.next === null ? deliveryPage.rows : remainingDeliveries.current;
 		return rows ? deliveredByLine(rows) : undefined;
 	});
+	const save = use_act(ctx);
 	const disabled = $derived(
 		Boolean(
 			recordController?.historical ||
 			recordController?.current?.dirty ||
 			recordController?.current?.capabilities?.update.reasons.includes('under_approval') ||
-			pending
+			save.pending
 		)
 	);
 	// the Kingdee SO as last read, or why there is none yet
@@ -185,80 +184,39 @@
 			detail: `Kingdee · ${so.reference} · ${ctx.t('component.kingdee_version')} ${so.version}`
 		};
 	});
-	let feedback = $state('');
-	let actionScope = $state.raw<Scope.Scope | undefined>(undefined);
-	const actionLifetime = attach(() =>
-		Effect.gen(function* () {
-			actionScope = yield* Scope.Scope;
-			yield* Effect.addFinalizer(() =>
-				Effect.sync(() => {
-					actionScope = undefined;
-				})
-			);
-			yield* Effect.never;
-		})
-	);
-	const confirmOrder = Effect.fn('Trading.confirmOrder')(function* () {
-		if (!id || view.mode === 'create' || !check || Result.isFailure(check) || pending || archived)
-			return;
-		const revision = view.record.revision;
-		const check_hash = yield* confirmationHash(check.success);
-		const target = id;
-		const awaiting = ctx.t('component.awaiting_approval');
-		const uncertain = ctx.t('component.seal_uncertain');
-		pending = true;
-		const result = yield* ctx.act({
-			'orders.update': [
-				{ target: { id: target, revision }, set: { status: 'confirmed', check_hash } }
-			]
-		});
-		const controller = recordController?.current;
-		if (
-			result.kind === 'committed' &&
-			controller?.spec.target.of === 'model' &&
-			controller.spec.target.model === 'orders' &&
-			controller.spec.target.id === target
-		)
-			controller.view();
-		feedback =
-			result.kind === 'committed' ? '' : result.kind === 'pending_approval' ? awaiting : uncertain;
-	});
-	const archiveOrder = Effect.fn('Trading.archiveOrder')(function* (archive: boolean) {
-		if (!id || view.mode === 'create' || pending) return;
-		pending = true;
-		feedback = '';
-		const result = yield* ctx.act({
-			'orders.update': [
-				{ target: { id, revision: view.record.revision }, set: { archived: archive } }
-			]
-		});
-		if (result.kind === 'pending_approval') feedback = ctx.t('component.awaiting_approval');
-		else if (result.kind !== 'committed') feedback = ctx.t('component.seal_uncertain');
-	});
-	function run(action: Effect.Effect<void, { readonly _tag: string; readonly message?: string }>) {
-		const owner = actionScope;
-		if (owner === undefined) return;
-		fork(
-			Effect.forkIn(
-				action.pipe(
-					Effect.catch((failure) =>
-						Effect.sync(() => {
-							feedback =
-								failure._tag === 'ActRefused'
-									? translated(ctx, failure.message ?? '')
-									: failure._tag === 'ActConflict'
-										? ctx.t('component.order_changed')
-										: ctx.t('component.seal_uncertain');
-						})
-					),
-					Effect.ensuring(
-						Effect.sync(() => {
-							pending = false;
-						})
+	function confirmOrder() {
+		if (!id || view.mode === 'create' || !check || Result.isFailure(check) || archived) return;
+		const target = { id, revision: view.record.revision };
+		save.run(
+			// a browser without Web Crypto cannot confirm: a defect, not an outcome
+			confirmationHash(check.success).pipe(
+				Effect.orDie,
+				Effect.flatMap((check_hash) =>
+					ctx.act({ 'orders.update': [{ target, set: { status: 'confirmed', check_hash } }] })
+				)
+			),
+			{
+				then: (result) => {
+					const controller = recordController?.current;
+					if (
+						result.kind === 'committed' &&
+						controller?.spec.target.of === 'model' &&
+						controller.spec.target.model === 'orders' &&
+						controller.spec.target.id === target.id
 					)
-				),
-				owner
-			)
+						controller.view();
+				}
+			}
+		);
+	}
+	function archiveOrder(archive: boolean) {
+		if (!id || view.mode === 'create') return;
+		save.run(
+			ctx.act({
+				'orders.update': [
+					{ target: { id, revision: view.record.revision }, set: { archived: archive } }
+				]
+			})
 		);
 	}
 </script>
@@ -384,9 +342,9 @@
 						? (checkRead.error?.message ?? ctx.t('component.check_loading'))
 						: null}
 		<Button
-			disabled={pending || form.pending || Boolean(blocked)}
+			disabled={save.pending || form.pending || Boolean(blocked)}
 			aria-describedby={blocked ? 'seal-blocked' : undefined}
-			onclick={() => run(confirmOrder())}
+			onclick={confirmOrder}
 			>{ctx.t(purchase ? 'component.record_commitment' : 'component.confirm_seal')}</Button
 		>
 		{#if blocked}<span id="seal-blocked" class="text-xs text-muted-foreground">{blocked}</span>{/if}
@@ -530,17 +488,6 @@
 		{#if form}{@render sealButton(form)}{/if}
 	</Cluster>{/snippet}
 {#snippet contractBody(form: FormState)}<Stack gap="md">
-		{#if feedback}<p
-				role={feedback === ctx.t('component.awaiting_approval') ? 'status' : 'alert'}
-				class={[
-					'rounded-md border px-3 py-2 text-sm font-medium',
-					feedback === ctx.t('component.awaiting_approval')
-						? 'border-info/50 bg-info/10 text-info'
-						: 'border-destructive/50 bg-destructive/10 text-destructive'
-				]}
-			>
-				{feedback}
-			</p>{/if}
 		{@render confirmationNotices(form)}
 		{#if purchase && draft}
 			<p class="text-sm text-muted-foreground">{ctx.t('component.commitment_help')}</p>
@@ -560,12 +507,11 @@
 			{disabled}
 			readonly={!ctx.catalog?.orders?.update}
 			on_change={(value) => {
-				if (value && (value === 'archived') !== archived) run(archiveOrder(value === 'archived'));
+				if (value && (value === 'archived') !== archived) archiveOrder(value === 'archived');
 			}}
 		/>
 	{/if}
 {/snippet}
-<span hidden {@attach actionLifetime}></span>
 <RecordForm
 	{ctx}
 	editable_presets={['document_template']}

@@ -1,4 +1,4 @@
-import { model } from '../../../../.norbital/models/projects.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'project_name',
 	'project_number',
@@ -13,7 +13,7 @@ const columns = [
 	'project_manager',
 	'description'
 ] as const;
-export default model({
+export default model('projects', {
 	description: 'Construction projects and their operating context.',
 	icon: 'lucide:building-2',
 	record_label:
@@ -34,11 +34,17 @@ export default model({
 		project_type: { kind: 'text', optional: true },
 		address: { kind: 'custom', of: 'project_address', optional: true },
 		project_manager: { kind: 'text', optional: true },
-		description: { kind: 'text', optional: true }
+		description: { kind: 'text', optional: true },
+		site_location_count: { kind: 'count', of: 'site_locations' },
+		document_count: {
+			kind: 'count',
+			of: 'asset_documents',
+			where: { status: { in: ['draft', 'in_review', 'issued'] } }
+		}
 	},
 	constraints: { project_number: { unique: ['project_number'] } },
 	indexes: { find: { text: ['project_name', 'project_number'] } },
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

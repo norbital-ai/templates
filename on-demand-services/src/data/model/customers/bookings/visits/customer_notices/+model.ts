@@ -1,37 +1,13 @@
-import type { SyncRow } from '@norbital-ai/bolt';
-import { model } from '../../../../../../../.norbital/models/customer_notices.ts';
-const DELIVERY = [
-	'queued',
-	'sent',
-	'deferred',
-	'delivered',
-	'opened',
-	'replied',
-	'bounced',
-	'failed'
-] as const;
-type Delivery = (typeof DELIVERY)[number];
-/** queued < sent < deferred < delivered < opened < replied; bounced and failed are final. */
-const RANK: { readonly [D in Delivery]: number } = {
-	queued: 0,
-	sent: 1,
-	deferred: 2,
-	delivered: 3,
-	opened: 4,
-	replied: 5,
-	bounced: 6,
-	failed: 6
-};
-/** Whether a report of `next` moves a mail standing at `current`: only forward, never past a bounce or failure; a reply always lands. */
-const moves = (current: Delivery | null, next: Delivery) =>
-	current === null || next === 'replied' || RANK[next] > RANK[current];
+import { model } from '@norbital-ai/bolt';
+import { DELIVERY, moves } from '../../../../../../lib/notice-delivery.js';
+
 /**
  * A message to a customer about their booking. The `deliver_notices` run sends it on WhatsApp to their number; when the
  * customer gave an email address, the `mail` sync sends it from the business mailbox (the `customer_mail` connection)
  * and records here every step the mailbox reports. Append-only: a notice is filed once; afterwards only its sends are
  * recorded. The customer's email address is taken when the notice is filed.
  */
-export default model({
+export default model('customer_notices', {
 	description:
 		'A notice to a customer about their booking: its WhatsApp send and, by email, where the mail got to.',
 	icon: 'lucide:mail',
@@ -92,7 +68,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: ['customer', 'visit', 'subject', 'body'] },
+		fields: ['customer', 'visit', 'subject', 'body'],
 		transform: function* (changes, ctx) {
 			const { rows: customers } = (yield* ctx.query({
 				customers: {
@@ -112,85 +88,23 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'whatsapp',
-				'delivery',
-				'delivery_reason',
-				'sent_at',
-				'delivered_at',
-				'delivery_presumed',
-				'opened_at',
-				'replied_at',
-				'reply_excerpt',
-				'auto_replied_at'
-			]
-		},
+		fields: [
+			'whatsapp',
+			'delivery',
+			'delivery_reason',
+			'sent_at',
+			'delivered_at',
+			'delivery_presumed',
+			'opened_at',
+			'replied_at',
+			'reply_excerpt',
+			'auto_replied_at'
+		],
 		// a report that arrives after a later one is stale: it writes nothing
 		transform: function* (changes) {
 			return changes.map(({ before, set }) =>
 				set.delivery == null || moves(before.delivery, set.delivery) ? set : {}
 			);
-		}
-	},
-	syncs: {
-		/**
-		 * The notice by email, once, when it is filed for a customer with an address; what the mailbox then reports
-		 * (sent, deferred while the server retries, delivered or presumed so, opened when tracking is on, bounced or failed
-		 * with the reason, replied, or an automatic answer kept apart) lands on the notice.
-		 */
-		mail: {
-			with: 'email',
-			write: function* ({ op, row }, ctx) {
-				if (op !== 'create' || row.to_address === null) return null;
-				const $id = yield* ctx.send({
-					to: [row.to_address],
-					subject: row.subject,
-					text: row.body,
-					thread: row.id
-				});
-				return { $id };
-			},
-			read: function* ({ deliveries }) {
-				// one row per mail, its reports folded in the order they came
-				const mails = new Map<string, SyncRow<'customer_notices'>>();
-				for (const d of deliveries) {
-					// inbound mail is not a report on a notice
-					if (d.kind === 'message') continue;
-					const set: SyncRow<'customer_notices'> | null =
-						d.kind === 'sent'
-							? { delivery: 'sent', sent_at: d.at }
-							: d.kind === 'deferred' || d.kind === 'bounced' || d.kind === 'failed'
-								? { delivery: d.kind, delivery_reason: d.reason ?? d.code ?? null }
-								: d.kind === 'delivered'
-									? {
-											delivery: 'delivered',
-											delivered_at: d.at,
-											delivery_presumed: d.presumed === true
-										}
-									: d.kind === 'opened'
-										? { delivery: 'opened', opened_at: d.at }
-										: d.kind === 'auto_replied'
-											? { auto_replied_at: d.at }
-											: d.kind === 'replied'
-												? {
-														delivery: 'replied',
-														replied_at: d.reply.sent_at,
-														reply_excerpt: d.reply.text.slice(0, 500)
-													}
-												: null;
-					if (set === null) continue;
-					const mail = mails.get(d.message);
-					// Equal-time inbox reports may arrive in either order; retain earlier delivery facts beneath the later state.
-					mails.set(
-						d.message,
-						set.delivery != null && !moves(mail?.delivery ?? null, set.delivery)
-							? { ...set, ...mail, $id: d.message }
-							: { ...mail, ...set, $id: d.message }
-					);
-				}
-				return { rows: [...mails.values()] };
-			}
 		}
 	}
 });

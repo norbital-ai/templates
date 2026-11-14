@@ -1,6 +1,6 @@
 import { policy, type Actor } from '@norbital-ai/bolt';
 
-const SELF = { user: { eq: { var: 'requestor.id' } } } as const;
+const SELF = { user: { eq: { var: 'actor.id' } } } as const;
 /** The member writing. */
 const memberOf = (actor: Actor) => (actor.kind === 'member' ? actor.id : null);
 

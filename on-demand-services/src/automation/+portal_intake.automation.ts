@@ -1,5 +1,5 @@
 import { Effect, Result } from 'effect';
-import { automation } from '@norbital-ai/bolt';
+import { automation, new_id } from '@norbital-ai/bolt';
 import { targetOf } from '../lib/dispatch.js';
 import { bookService } from '../lib/booking.js';
 /**
@@ -61,6 +61,8 @@ export default automation({
 				availability?.preference === 'preferred' && availability.helper !== null
 					? [availability.helper]
 					: [];
+			// the request is marked booked in the booking's own commit
+			const booking = new_id('bookings');
 			const booked = yield* Effect.result(
 				bookService(
 					{
@@ -75,18 +77,15 @@ export default automation({
 						repeat: r.repeat,
 						...(r.notes === null ? {} : { notes: r.notes })
 					},
-					ctx
+					ctx,
+					{
+						id: booking,
+						request: [{ target: targetOf(r), set: { status: 'booked', booking } }]
+					}
 				)
 			);
-			if (Result.isSuccess(booked)) {
-				yield* ctx.act({
-					'booking_requests.update': [
-						{ target: targetOf(r), set: { status: 'booked', booking: booked.success.booking } }
-					]
-				});
-				// `bookings_book` files the confirmation notice
-				continue;
-			}
+			// the booking files the confirmation notice
+			if (Result.isSuccess(booked)) continue;
 			const why = Result.isFailure(booked)
 				? booked.failure.message
 				: 'The booking could not be made.';

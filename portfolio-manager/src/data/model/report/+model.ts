@@ -1,4 +1,4 @@
-import { model } from '../../../../.norbital/models/report.ts';
+import { model } from '@norbital-ai/bolt';
 
 const columns = [
 	'for_date',
@@ -27,7 +27,7 @@ const columns = [
  * totals, allocation and rates stay on the record. The daily agent sends its record view, rendered to PDF, to the
  * subscribed users and the chats in the settings.
  */
-export default model({
+export default model('report', {
 	description:
 		'The daily report: the totals computed from the book and the market, and one call per holding.',
 	icon: 'lucide:newspaper',
@@ -119,7 +119,7 @@ export default model({
 	constraints: { one_per_day: { unique: ['for_date'], message: 'errors.report_exists' } },
 	indexes: { find: { text: ['headline', 'summary', 'market_view'] } },
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } },
+	create: { fields: columns },
+	update: { fields: columns },
 	delete: {}
 });

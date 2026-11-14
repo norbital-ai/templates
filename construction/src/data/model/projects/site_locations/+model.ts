@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/site_locations.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'location_name',
 	'location_code',
@@ -10,7 +10,7 @@ const columns = [
 	'coordinates',
 	'bim_model_element_id'
 ] as const;
-export default model({
+export default model('site_locations', {
 	description: 'Work fronts and delivery zones within a project.',
 	icon: 'lucide:map-pin',
 	record_label:
@@ -36,6 +36,6 @@ export default model({
 	constraints: { location_code: { unique: ['location_code'] } },
 	indexes: { find: { text: ['location_code', 'location_name'] } },
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

@@ -1,6 +1,6 @@
-import { model } from '../../../../../../.norbital/models/communication_logs.ts';
+import { model } from '@norbital-ai/bolt';
 /** A message is kept exactly as received: create only, so immutability is structural. */
-export default model({
+export default model('communication_logs', {
 	description:
 		'An immutable inbound field communication attached to a job assignment, retained independently of agent transcripts.',
 	icon: 'lucide:message-square-text',
@@ -26,9 +26,7 @@ export default model({
 		contractor: { fields: ['job_assignment_id', 'message', 'sent_at', 'sender'] }
 	},
 	create: {
-		columns: {
-			fields: ['job_assignment_id', 'message', 'sent_at', 'sender', 'source_message_id']
-		},
+		fields: ['job_assignment_id', 'message', 'sent_at', 'sender', 'source_message_id'],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
 			for (const [row, message] of rows.entries())

@@ -1,8 +1,5 @@
-import { model } from '../../../../../.norbital/models/source_payments.ts';
-import { fromSource } from '../../../../integration/kingdee/polling.js';
-import { readPaymentSource } from '../../../../integration/kingdee/financial-source.js';
 import { BigDecimal, Effect } from 'effect';
-import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type CreatedRow, model, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 
 type Payment = Pick<
 	CreatedRow<'source_payments'>,
@@ -72,7 +69,7 @@ const settle = Effect.fnUntraced(function* (
 		}
 	}
 });
-export default model({
+export default model('source_payments', {
 	description: 'Payments and refunds for each order.',
 	record_label: 'record.reference',
 	fields: {
@@ -102,7 +99,7 @@ export default model({
 	},
 	// the sync alone writes payments (no local columns); its rows pass through these checks
 	create: {
-		columns: { fields: [] },
+		fields: [],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ after }) => ({ value: after, old: null })),
@@ -112,22 +109,13 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: [] },
+		fields: [],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, after }) => ({ value: after, old: before })),
 				ctx
 			);
 			return changes.map(({ set }) => set);
-		}
-	},
-	syncs: {
-		kingdee: {
-			with: 'kingdee',
-			every: '5min',
-			read: function* ({ cursor, instance }, ctx) {
-				return fromSource(yield* readPaymentSource(instance, cursor, ctx), instance);
-			}
 		}
 	}
 });

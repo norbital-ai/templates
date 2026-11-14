@@ -40,6 +40,5 @@ export default policy({
 		sys_user: { outputs: { default: {} } },
 		// the WhatsApp account a visit's effect tells its helper through
 		sys_integration: { outputs: { default: {} } }
-	},
-	limits: { act: '600/min', read: '600/min', agent: '100/h' }
+	}
 });

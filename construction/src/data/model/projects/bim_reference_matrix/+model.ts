@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/bim_reference_matrix.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'reference_name',
 	'reference_code',
@@ -14,7 +14,7 @@ const columns = [
 	'bim_guid',
 	'data_source'
 ] as const;
-export default model({
+export default model('bim_reference_matrix', {
 	description:
 		'Reference matrix entries used as the BIM item master sheet for cost and embodied carbon estimation.',
 	icon: 'lucide:table-properties',
@@ -43,6 +43,6 @@ export default model({
 	constraints: { reference_code: { unique: ['reference_code'] } },
 	indexes: { find: { text: ['reference_name'] } },
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

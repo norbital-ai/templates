@@ -27,31 +27,6 @@ For all of them:
 - **Record** changes on someone's behalf when their access allows it. The team policies grant
   reading only, so a write or an automation start from anyone else is refused; relay the refusal.
 
-## Recipes
-
-No model here declares a nested write: a record and its link rows are separate writes.
-
-- **A record that may already exist.** Look it up first by its own reference (`project_number`,
-  `job_number`, `permit_number`, `claim_number`, `worker_number`, …). If it exists,
-  `<model>.update` it; if not, `<model>.create`. Never file a second record for the same reference.
-- **Assign a worker:** `job_assignments.create` with the worker, the site location and the job. It
-  is refused unless the worker holds active, in-force permits to work covering every certification
-  some job at that site location requires. On a refusal, read the worker's permits
-  (`permits_to_work_workers`, then `permits_to_work`) and the site's jobs' requirements
-  (`jobs_site_locations`, `jobs_certification_types`) and say what is missing. Moving an assignment
-  to another worker or site is checked the same way.
-- **A permit covering several workers or certifications:** `permits_to_work.create`, then one
-  `permits_to_work_workers.create` with a row per worker and one
-  `permits_to_work_certification_types.create` with a row per certification, each on the new
-  permit's id.
-- **What a job requires or where it runs:** one `jobs_certification_types.create` with a row per
-  certification type; one `jobs_site_locations.create` with a row per site location.
-- **An RFI about a defect:** `rfis.create` on the defect's project with `related_defect_id` set.
-- **A fresh digest:** the four automations run daily at 06:00 and publish the first 25 rows. Start
-  one now with `automation.permit_expiry_watch`, `automation.rfi_followup_watch`,
-  `automation.defect_closeout_digest` or `automation.payment_claim_readiness_watch` when someone
-  wants the extract itself; for a question, read the model directly.
-
 ## What the models mean
 
 - A **project** carries a contract value and the sites under it.
@@ -74,6 +49,9 @@ No model here declares a nested write: a record and its link rows are separate w
 
 - The business runs on **Singapore time (Asia/Singapore)**. A date a person says is a Singapore
   date; "today" is today's Singapore date.
+- A worker assignment, new or moved, is refused unless the worker holds active, in-force permits to work covering every
+  certification some job at that site location requires.
+- The four digest automations run daily at 06:00 and publish their first 25 rows.
 
 ## House rules
 

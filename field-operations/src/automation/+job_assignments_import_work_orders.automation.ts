@@ -1,7 +1,12 @@
-import { automation, type Id, type StartInput } from '@norbital-ai/bolt';
+import { Effect, Option, Schema } from 'effect';
+import { automation, type Id } from '@norbital-ai/bolt';
 import { siteKey } from '../lib/site-key.js';
-
-type Row = StartInput<'job_assignments_import_work_orders'>['rows'][number];
+import {
+	decodeWorkOrders,
+	IngestSheets,
+	sheetRecords,
+	type WorkOrder as Row
+} from '../lib/work-order-sheet.js';
 
 const UNIT = /#[0-9]+-[0-9A-Z]+/i;
 
@@ -17,41 +22,42 @@ const addressOf = (row: Row) => {
 /** A job with no dispatch reference is the same job when it is the same work, day and site. */
 const sameWork = (siteId: string, day: string, title: string) =>
 	`${siteId}|${day}|${title.trim().replace(/\s+/g, ' ').toLowerCase()}`;
-/** One sheet row, keyed by the lower-cased header (`csv.ts`, `xlsx.ts`). */
-const WORK_ORDER_ROW = {
-	kind: 'object',
-	fields: {
-		/** The location's formatted address, or an existing site code. */
-		site: { kind: 'text' },
-		/** The six-digit postal code, when the sheet keeps it in its own column. */
-		postal_code: { kind: 'text', optional: true },
-		/** Optional unit within the location; an embedded #05-12 is also accepted. */
-		unit_number: { kind: 'text', optional: true },
-		/** Both coordinates are required when the row creates a new site. */
-		latitude: { kind: 'number', optional: true },
-		longitude: { kind: 'number', optional: true },
-		/** `YYYY-MM-DD`, or the day serial an xlsx stores for a typed date. */
-		scheduled_for: { kind: 'date' },
-		title: { kind: 'text' },
-		nature: { kind: 'text', optional: true },
-		description: { kind: 'text', optional: true },
-		/** The contractor's email or phone number; the job links the member it names, else none. */
-		assignee_contact: { kind: 'text', optional: true },
-		/** The dispatch system's own reference, unique across assignments. */
-		external_ref: { kind: 'text', optional: true }
-	}
-} as const;
-
 export default automation({
 	description:
 		'Creates job assignments from a work-order sheet, matching existing sites and skipping filed rows. The complete sheet is checked before sites and jobs commit together.',
 	policies: ['field_ops_controller'],
-	input: { rows: { ...WORK_ORDER_ROW, many: true, min_items: 1, max_items: 5000 } },
+	input: {
+		/** Columns by lower-cased header: site, postal_code, unit_number, latitude, longitude, scheduled_for (YYYY-MM-DD
+		 * or an xlsx day serial), title, nature, description, assignee_contact (email or phone), external_ref. */
+		file: {
+			kind: 'file',
+			accept: [
+				'text/csv',
+				'application/vnd.ms-excel',
+				'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			],
+			max: '5MiB'
+		}
+	},
 	output: {
 		kind: 'object',
 		fields: { created: { kind: 'int' }, sites: { kind: 'int' }, skipped: { kind: 'int' } }
 	},
-	run: function* ({ rows }, ctx) {
+	run: function* ({ file }, ctx) {
+		const read = yield* ctx.convert.ingest(file);
+		const sheet =
+			read.kind === 'data'
+				? Option.getOrUndefined(Schema.decodeUnknownOption(IngestSheets)(read.json))?.sheets[0]
+				: undefined;
+		if (sheet === undefined) return yield* ctx.refuse('errors.sheet_unreadable');
+		const records = sheetRecords(sheet);
+		if (records.length === 0 || records.length > 5000)
+			return yield* ctx.refuse('errors.sheet_size');
+		const rows = yield* decodeWorkOrders(records).pipe(
+			Effect.catchTag('SheetInvalid', (invalid) =>
+				ctx.refuse('errors.sheet_invalid', { values: { detail: invalid.message } })
+			)
+		);
 		// the sheet's first problem refuses the whole import, naming its row and column
 		const problems: { row: number; refusal: ReturnType<typeof ctx.refuse> }[] = [];
 		/** The sheet row as a person finds it: its number, title, site and day. */

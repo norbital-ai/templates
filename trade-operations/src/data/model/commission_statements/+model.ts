@@ -1,12 +1,12 @@
-import { model } from '../../../../.norbital/models/commission_statements.ts';
+import { model } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { boardRead, calculateBoard, readCommissionBoard } from '../../../lib/monthly-commission.js';
-export default model({
+export default model('commission_statements', {
 	description: 'Monthly salesperson commission statement.',
 	record_label: 'record.number',
 	fields: {
 		owner: { kind: 'ref', to: 'sys_user' },
-		acknowledged_by: { kind: 'ref', to: 'sys_user', default: { var: 'requestor.id' } },
+		acknowledged_by: { kind: 'ref', to: 'sys_user', default: { var: 'actor.id' } },
 		number: { kind: 'seq', pattern: 'CS-{yyyy}-{0000}' },
 		period: { kind: 'date' },
 		currency: { kind: 'currency' },
@@ -38,7 +38,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: ['owner', 'period', 'currency', 'calculation_hash'] },
+		fields: ['owner', 'period', 'currency', 'calculation_hash'],
 		transform: function* (changes, ctx) {
 			if (ctx.actor.kind !== 'member') return yield* ctx.refuse('errors.commission_member');
 			const acknowledged_by = ctx.actor.id;

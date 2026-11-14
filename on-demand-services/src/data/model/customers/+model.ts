@@ -1,11 +1,11 @@
-import { model } from '../../../../.norbital/models/customers.ts';
+import { model } from '@norbital-ai/bolt';
 import { AREAS } from '../../../lib/matching.js';
 const columns = ['name', 'phone', 'email', 'address', 'location', 'area', 'notes'] as const;
 /**
  * A customer, known by their mobile number: it is unique, it is how a portal request finds them, and it is where their
  * notices go (WhatsApp; email as well when they gave one).
  */
-export default model({
+export default model('customers', {
 	description: 'A customer: contact details and the default service address.',
 	icon: 'lucide:house',
 	record_label: 'record.name',
@@ -25,7 +25,7 @@ export default model({
 		customer: { fields: ['name', 'phone', 'email', 'address', 'location', 'area'] },
 		helper: { fields: ['name', 'email', 'phone', 'address'] }
 	},
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } },
+	create: { fields: columns },
+	update: { fields: columns },
 	delete: {}
 });

@@ -1,6 +1,5 @@
 import { BigDecimal, Effect, Schema } from 'effect';
-import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
-import type { Json } from '@norbital-ai/bolt/engine';
+import type { InstanceId, SyncCtx, Json } from '@norbital-ai/bolt';
 import { currency, PlainDate } from './polling.js';
 import { kingdeeStockLotCostAccount } from './configuration.js';
 import { readChangedSnapshot, snapshotFingerprint, snapshotStatement } from './changed-snapshot.js';

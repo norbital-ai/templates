@@ -2,7 +2,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { BigDecimal } from 'effect';
 	import { Chart, EmptyState, Show, type RecordView } from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
 	let {
@@ -109,69 +109,75 @@
 	{/if}
 {/snippet}
 {#snippet pricing()}
-	<Stack gap="lg">
-		{#if id}
-			{#each groups as group}
-				<Chart
-					{ctx}
-					of={rows
-						.filter((r) => `${r.currency}/${r.unit}` === group)
-						.map((r) => ({
-							on: r.business_on,
-							[ctx.t('component.sold_price')]: r.sold_price,
-							[ctx.t('models.pricing_floors.fields.floor_price')]: r.floor_net
-						}))}
-					x="on"
-					y={[
-						ctx.t('component.sold_price'),
-						...(rows.some((r) => `${r.currency}/${r.unit}` === group && r.floor_net !== null)
-							? [ctx.t('models.pricing_floors.fields.floor_price')]
-							: [])
-					]}
-					kind="scatter"
-					title={`${ctx.t('component.pricing_history')} · ${group}`}
-				/>
-			{/each}
-			{#if sales?.error}<EmptyState
-					variant="inset"
-					tone="danger"
-					title={sales.error.message}
-				/>{/if}
-			{#if floors?.error}<EmptyState
-					variant="inset"
-					tone="danger"
-					title={floors.error.message}
-				/>{/if}
-			{#if sales?.current?.source_sales_lines.next || floors?.current?.pricing_floors.next}
-				<p class="text-sm text-muted-foreground">{ctx.t('reports.product.recent_prices')}</p>
+	<Scroll name="pricing" size="fill" inset
+		><Stack gap="lg">
+			{#if id}
+				{#each groups as group}
+					<Bound size="viewport">
+						<Chart
+							{ctx}
+							of={rows
+								.filter((r) => `${r.currency}/${r.unit}` === group)
+								.map((r) => ({
+									on: r.business_on,
+									[ctx.t('component.sold_price')]: r.sold_price,
+									[ctx.t('models.pricing_floors.fields.floor_price')]: r.floor_net
+								}))}
+							x="on"
+							y={[
+								ctx.t('component.sold_price'),
+								...(rows.some((r) => `${r.currency}/${r.unit}` === group && r.floor_net !== null)
+									? [ctx.t('models.pricing_floors.fields.floor_price')]
+									: [])
+							]}
+							kind="scatter"
+							title={`${ctx.t('component.pricing_history')} · ${group}`}
+						/>
+					</Bound>
+				{/each}
+				{#if sales?.error}<EmptyState
+						variant="inset"
+						tone="danger"
+						title={sales.error.message}
+					/>{/if}
+				{#if floors?.error}<EmptyState
+						variant="inset"
+						tone="danger"
+						title={floors.error.message}
+					/>{/if}
+				{#if sales?.current?.source_sales_lines.next || floors?.current?.pricing_floors.next}
+					<p class="text-sm text-muted-foreground">{ctx.t('reports.product.recent_prices')}</p>
+				{/if}
+				{#each [...new Set(rates.map((r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}`))] as group}
+					{@const points = rates.filter(
+						(r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}` === group
+					)}
+					{@const first = points[0]}
+					<Bound size="viewport">
+						<Chart
+							{ctx}
+							of={points.map((r) => ({
+								on: r.on,
+								[ctx.t('models.pricing_floors.fields.floor_price')]: r.price
+							}))}
+							x="on"
+							y={ctx.t('models.pricing_floors.fields.floor_price')}
+							kind="line"
+							interpolation="step"
+							title={`${ctx.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(first.threshold)) ? ` · ≥ ${first.threshold}` : ''}`}
+						/>
+					</Bound>
+				{/each}
+				{#if (sales?.loading || floors?.loading) && rows.length === 0 && rates.length === 0}
+					<p class="text-sm text-muted-foreground" role="status">
+						{ctx.t('component.pricing_history_loading')}
+					</p>
+				{:else if !sales?.error && !floors?.error && rows.length === 0 && rates.length === 0}
+					<EmptyState variant="inset" title={ctx.t('component.pricing_history_empty')} />
+				{/if}
 			{/if}
-			{#each [...new Set(rates.map((r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}`))] as group}
-				{@const points = rates.filter(
-					(r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}` === group
-				)}
-				{@const first = points[0]}
-				<Chart
-					{ctx}
-					of={points.map((r) => ({
-						on: r.on,
-						[ctx.t('models.pricing_floors.fields.floor_price')]: r.price
-					}))}
-					x="on"
-					y={ctx.t('models.pricing_floors.fields.floor_price')}
-					kind="line"
-					interpolation="step"
-					title={`${ctx.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(first.threshold)) ? ` · ≥ ${first.threshold}` : ''}`}
-				/>
-			{/each}
-			{#if (sales?.loading || floors?.loading) && rows.length === 0 && rates.length === 0}
-				<p class="text-sm text-muted-foreground" role="status">
-					{ctx.t('component.pricing_history_loading')}
-				</p>
-			{:else if !sales?.error && !floors?.error && rows.length === 0 && rates.length === 0}
-				<EmptyState variant="inset" title={ctx.t('component.pricing_history_empty')} />
-			{/if}
-		{/if}
-	</Stack>
+		</Stack></Scroll
+	>
 {/snippet}
 <RecordForm
 	{ctx}

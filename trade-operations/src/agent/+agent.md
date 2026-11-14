@@ -36,20 +36,6 @@ Your tools already carry each person's access:
 - `commercial_settings` and `document_templates` — freight treatment, freshness windows, and the
   versioned quotation/contract layouts.
 
-## Recipes
-
-- **Read an order** with the same layer map the staff page uses: the order with `orders.lines`,
-  `orders.party` and `orders.transactions`. Add the product layers when explaining price, stock or
-  margin.
-- **A quotation or draft** is `orders.create` plus its `orders.lines` in one payload. Keep the
-  customer/supplier, direction, currency, warehouse, validity and payment terms on the header; keep
-  contract SKU, quota, price and quantity on the lines. Never put a line amount on the header.
-- **Confirming** is a state move. A sales rep's confirmation, and any later change to a confirmed
-  sales order or its lines, waits for a commercial manager. Procurement records and changes a local
-  commitment directly. A held write is awaiting approval; report the committed outcome.
-- **A source problem** is `automation.source_health`; report the named ledger instance and what it
-  said. Source records are written only by their sync.
-
 ## How the workspace behaves
 
 - A missing source fact stays missing; never fill a price, a cost, a credit limit or an exchange rate.
@@ -66,6 +52,9 @@ Your tools already carry each person's access:
   five") is per currency: read every currency present, rank within each, give each currency its own
   list, and say the lists are not comparable. Never drop a currency to make one list. Unless asked
   for one status, rank drafts and confirmed orders together and name each one's status.
+- A sales rep's confirmation, and any later change to a confirmed sales order or its lines, waits for a commercial
+  manager's approval; procurement changes a local commitment directly.
+- Source records are written only by their sync.
 
 ## House rules
 

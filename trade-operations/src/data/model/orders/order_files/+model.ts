@@ -1,6 +1,6 @@
-import { model } from '../../../../../.norbital/models/order_files.ts';
+import { model } from '@norbital-ai/bolt';
 
-export default model({
+export default model('order_files', {
 	description: 'Documents received after confirming an order',
 	record_label: 'record.title',
 	fields: {
@@ -14,13 +14,13 @@ export default model({
 	},
 	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: { fields: ['order', 'title', 'file'] },
+		fields: ['order', 'title', 'file'],
 		transform: function* (changes, ctx) {
-			const orders = yield* ctx.query.after('orders', {
-				id: { in: changes.map(({ after }) => after.order) }
+			const { orders } = yield* ctx.query({
+				orders: { where: { id: { in: changes.map(({ after }) => after.order) } }, as_of: 'act' }
 			});
 			for (const [index, { after: row }] of changes.entries()) {
-				const order = orders.find((candidate) => candidate.id === row.order);
+				const order = orders.rows.find((candidate) => candidate.id === row.order);
 				if (!order || order.archived || order.status !== 'confirmed')
 					return yield* ctx.refuse('errors.file_recorded_version', { row: index });
 				if (!row.title.trim())

@@ -267,25 +267,6 @@
 				: '',
 			kind_label: ctx.t(`reports.sales.kind.${row.kind}`)
 		}));
-	let reportPages = $state({ customers: 0, entries: 0, commission: 0 });
-	const pageIndex = (kind: keyof typeof reportPages, total: number) =>
-		Math.min(reportPages[kind], Math.max(0, Math.ceil(total / pageSize) - 1));
-	$effect.pre(() => {
-		void as_of;
-		void agingView;
-		void agingBasis;
-		void agingCustomer;
-		reportPages.customers = 0;
-		reportPages.entries = 0;
-	});
-	$effect.pre(() => {
-		void commissionPeriod;
-		reportPages.commission = 0;
-	});
-	const visiblePage = <A,>(kind: keyof typeof reportPages, rows: readonly A[]) => {
-		const start = pageIndex(kind, rows.length) * pageSize;
-		return rows.slice(start, start + pageSize);
-	};
 	const downloadWorkbook = (
 		name: string,
 		columns: readonly (
@@ -379,32 +360,6 @@
 		>{String(value ?? '—')}</Badge
 	>{/snippet}
 
-{#snippet money({
-	value,
-	row
-}: {
-	value: ShowProps['value'];
-	row: NonNullable<ShowProps['row']>;
-})}<Show {ctx} kind={moneyKind} {value} {row} />{/snippet}
-{#snippet deliveryCost({
-	value,
-	row
-}: {
-	value: ShowProps['value'];
-	row: NonNullable<ShowProps['row']>;
-})}
-	<Show {ctx} kind={costKind} {value} {row} />
-{/snippet}
-{#snippet decimal({ value }: { value: ShowProps['value'] })}<Show
-		{ctx}
-		kind={{ kind: 'decimal', scale: 8 }}
-		{value}
-	/>{/snippet}
-{#snippet date({ value }: { value: ShowProps['value'] })}<Show
-		{ctx}
-		kind={{ kind: 'date' }}
-		{value}
-	/>{/snippet}
 {#snippet salesOrderCell({ row }: { row: ReturnType<typeof salesDetail>[number] })}
 	{#if row.order}
 		{@const order = row.order}
@@ -468,7 +423,7 @@
 								? 'reports.sales.date_invoice'
 								: 'reports.sales.date_delivery'
 						),
-						cell: date
+						kind: { kind: 'date' }
 					},
 					{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
 					{ field: 'product_name', label: ctx.t('reports.sales.product') },
@@ -478,8 +433,7 @@
 						field: 'quantity',
 						kind: { kind: 'decimal', scale: 3 },
 						label: label(ctx, 'orders', 'quantity'),
-						align: 'end' as const,
-						cell: decimal
+						align: 'end' as const
 					},
 					{ field: 'unit', label: ctx.t('reports.sales.unit') },
 					{ field: 'lot_number', label: ctx.t('models.stock_snapshots.fields.lot_number') },
@@ -489,15 +443,13 @@
 						field,
 						kind: { kind: 'decimal' as const, scale: 8 },
 						label: ctx.t(`reports.sales.${field}`),
-						align: 'end' as const,
-						cell: decimal
+						align: 'end' as const
 					})),
 					...(['source_net', 'net', 'tax', 'total', 'freight'] as const).map((field) => ({
 						field,
 						kind: moneyKind,
 						label: ctx.t(`reports.sales.${field}`),
-						align: 'end' as const,
-						cell: money
+						align: 'end' as const
 					})),
 					...(hasCost
 						? [
@@ -505,8 +457,7 @@
 									field: 'cost' as const,
 									kind: costKind,
 									label: ctx.t('reports.sales.cost'),
-									align: 'end' as const,
-									cell: deliveryCost
+									align: 'end' as const
 								}
 							]
 						: []),
@@ -517,8 +468,7 @@
 						field: 'margin',
 						kind: moneyKind,
 						label: ctx.t('reports.sales.margin'),
-						align: 'end',
-						cell: money
+						align: 'end'
 					}
 				]}
 			<Table
@@ -603,14 +553,6 @@
 		>
 	</div>
 {/snippet}
-{#snippet localPager(kind: keyof typeof reportPages, total: number)}
-	{@const index = pageIndex(kind, total)}
-	{@render pager(
-		index,
-		(index + 1) * pageSize < total,
-		(direction) => (reportPages[kind] = index + direction)
-	)}
-{/snippet}
 {#snippet agingReference({
 	row
 }: {
@@ -673,8 +615,6 @@
 		{/if}
 	</div>
 {/snippet}
-{#snippet customersPager()}{@render localPager('customers', agingCustomers?.length ?? 0)}{/snippet}
-{#snippet entriesPager()}{@render localPager('entries', visibleAgingRows?.length ?? 0)}{/snippet}
 {#snippet aging()}<Stack size="fill" min_height="18rem" gap="sm">
 		{#each snapshots as snapshot (snapshot.id)}
 			<p class="text-sm text-muted-foreground">
@@ -697,20 +637,18 @@
 						field,
 						kind: moneyKind,
 						label: ctx.t(`reports.aging.${field}`),
-						align: 'end' as const,
-						cell: money
+						align: 'end' as const
 					})),
 					{ field: 'ledger_name', label: ctx.t('reports.aging.ledger') },
 					{ field: 'currency', label: label(ctx, 'orders', 'currency') },
-					{ field: 'as_of', label: ctx.t('component.aging_as_of'), cell: date },
+					{ field: 'as_of', label: ctx.t('component.aging_as_of'), kind: { kind: 'date' } },
 					...(showAgingEstimate
 						? [
 								{
 									field: 'estimated_balance' as const,
 									kind: moneyKind,
 									label: ctx.t('reports.aging.estimated_balance'),
-									align: 'end' as const,
-									cell: money
+									align: 'end' as const
 								}
 							]
 						: []),
@@ -718,16 +656,13 @@
 						field,
 						kind: moneyKind,
 						label: ctx.t(`reports.aging.${field}`),
-						align: 'end' as const,
-						cell: money
+						align: 'end' as const
 					}))
 				]}
 			<Table
 				{ctx}
 				layout="grid"
-				of={visiblePage('customers', agingCustomers)}
-				controlled
-				footer={customersPager}
+				of={agingCustomers}
 				key="ar_customers"
 				on_open={(row) => {
 					agingCustomer = {
@@ -764,16 +699,14 @@
 						field,
 						kind: moneyKind,
 						label: ctx.t(`reports.aging.${field}`),
-						align: 'end' as const,
-						cell: money
+						align: 'end' as const
 					})),
 					...(showAgingEstimate
 						? (['estimated_applied', 'estimated_balance'] as const).map((field) => ({
 								field,
 								kind: moneyKind,
 								label: ctx.t(`reports.aging.${field}`),
-								align: 'end' as const,
-								cell: money
+								align: 'end' as const
 							}))
 						: []),
 					{ field: 'bucket_label', label: ctx.t('reports.aging.bucket'), cell: enumCell },
@@ -781,21 +714,19 @@
 					{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
 					{ field: 'ledger_name', label: ctx.t('reports.aging.ledger') },
 					{ field: 'currency', label: label(ctx, 'orders', 'currency') },
-					{ field: 'as_of', label: ctx.t('component.aging_as_of'), cell: date },
-					{ field: 'issued_on', label: ctx.t('models.transactions.fields.issued_on'), cell: date },
-					{ field: 'due_on', label: label(ctx, 'orders', 'due_on'), cell: date },
+					{ field: 'as_of', label: ctx.t('component.aging_as_of'), kind: { kind: 'date' } },
+					{ field: 'issued_on', label: ctx.t('models.transactions.fields.issued_on'), kind: { kind: 'date' } },
+					{ field: 'due_on', label: label(ctx, 'orders', 'due_on'), kind: { kind: 'date' } },
 					{
 						field: 'settled_on',
 						label: ctx.t('reports.aging.receipt_date'),
-						cell: date
+						kind: { kind: 'date' }
 					}
 				]}
 			<Table
 				{ctx}
 				layout="grid"
-				of={visiblePage('entries', agingEntryRows)}
-				controlled
-				footer={entriesPager}
+				of={agingEntryRows}
 				key="ar_aging"
 				columns={agingEntryColumns}
 				toolbar={{
@@ -828,7 +759,6 @@
 					...row,
 					state_label: ctx.t(`reports.commission_ack.${row.state}`)
 				}))}
-				{#snippet commissionPager()}{@render localPager('commission', rows.length)}{/snippet}
 				{@const commissionExport = [
 					{ field: 'owner_name', label: label(ctx, 'orders', 'owner_name') },
 					{ field: 'currency', label: label(ctx, 'orders', 'currency') },
@@ -852,9 +782,7 @@
 				<Table
 					{ctx}
 					layout="grid"
-					of={visiblePage('commission', rows)}
-					controlled
-					footer={commissionPager}
+					of={rows}
 					key="monthly_commission"
 					on_open={(row) => {
 						if (row.latest_statement) open_record('commission_statements', row.latest_statement);
@@ -867,15 +795,13 @@
 							field: 'amount',
 							kind: moneyKind,
 							label: label(ctx, 'orders', 'amount'),
-							align: 'end' as const,
-							cell: money
+							align: 'end' as const
 						},
 						{
 							field: 'latest_amount',
 							kind: moneyKind,
 							label: ctx.t('component.commission_previous'),
-							align: 'end' as const,
-							cell: money
+							align: 'end' as const
 						},
 						{ field: 'unresolved_lines', label: ctx.t('component.commission_unresolved_items') },
 

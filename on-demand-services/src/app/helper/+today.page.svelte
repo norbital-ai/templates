@@ -8,19 +8,17 @@
 		EmptyState,
 		Label,
 		Sheet,
+		StateBadge,
 		Textarea,
-		RunStatus,
-		notify_outcome
+		use_act
 	} from '@norbital-ai/ui';
 	/**
 	 * A helper's day on their phone: the visit under way, the ones still to come with the drive to each from where the
 	 * phone is now, the shift check to answer, and one tap to start and to finish. The native phone continues sharing while backgrounded; browser sharing requires the page. Its
 	 * position is shared with the scheduler (at most every two minutes).
 	 */
-	import { fork } from '@norbital-ai/ui/effect';
-	import { DateTime, Duration, Effect } from 'effect';
-	import type { Id, Outcome } from '@norbital-ai/bolt';
-	import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
+	import { DateTime, Duration } from 'effect';
+	import type { Id } from '@norbital-ai/bolt';
 	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { employeeLocation } from '../../lib/employee-location.svelte.js';
 	import { driveMinutes, type Point } from '../../lib/matching.js';
@@ -129,98 +127,45 @@
 	const here = $derived(employeeLocation.here);
 	const locationReady = $derived(employeeLocation.ready);
 	// ── acting ──
-	let problem = $state<string | null>(null);
-	let busy = $state(false);
-	let shiftRun = $state<{ id: string; automation: string } | null>(null);
+	const save = use_act(ctx);
 	let completing = $state<(typeof visits)[number] | null>(null);
 	let notes = $state('');
-	function answerShift(id: Id<'visits'>, mc?: boolean) {
-		const call =
-			mc === undefined
-				? ctx.run('visits_confirm_shift', { targets: [id] })
-				: ctx.run('visits_decline_shift', { targets: [id], mc });
-		return perform(() => call).pipe(
-			Effect.tap((queued) =>
-				Effect.sync(() => {
-					if (queued) shiftRun = { id: call.id, automation: call.automation };
-				})
-			)
-		);
-	}
-
-	function perform(outcome: () => Effect.Effect<Outcome<unknown>, ActFailure | ProtocolFailed>) {
-		return Effect.gen(function* () {
-			const ready = yield* Effect.sync(() => {
-				if (!locationReady || busy) return false;
-				busy = true;
-				problem = null;
-				return true;
-			});
-			if (!ready) return false;
-			return yield* outcome().pipe(
-				Effect.flatMap((result) =>
-					Effect.sync(() => {
-						const committed = result.kind === 'committed';
-						if (!committed) notify_outcome(ctx, result);
-						return committed;
-					})
-				),
-				Effect.catch((failure) =>
-					Effect.sync(() => {
-						if (failure._tag === 'ActConflict')
-							notify_outcome(ctx, { kind: 'conflict', records: failure.records });
-						else if (failure._tag === 'ActUnknown')
-							notify_outcome(ctx, { kind: 'unknown', invocation: failure.invocation });
-						else problem = failure.message;
-						return false;
-					})
-				),
-				Effect.ensuring(
-					Effect.sync(() => {
-						busy = false;
-					})
-				)
-			);
-		});
-	}
+	const answerShift = (id: Id<'visits'>, mc?: boolean) =>
+		mc === undefined
+			? save.run(ctx.run('visits_confirm_shift', { targets: [id] }))
+			: save.run(ctx.run('visits_decline_shift', { targets: [id], mc }));
 	const start = (v: { readonly id: Id<'visits'>; readonly revision: number }) =>
-		fork(
-			perform(() =>
-				ctx.act({
-					'visits.update': [
-						{ target: { id: v.id, revision: v.revision }, set: { status: 'in_progress' } }
-					]
-				})
-			)
+		save.run(
+			ctx.act({
+				'visits.update': [
+					{ target: { id: v.id, revision: v.revision }, set: { status: 'in_progress' } }
+				]
+			})
 		);
 	function complete() {
 		if (completing === null) return;
 		// the row as last read: its revision guards the write
 		const visit = visits.find((v) => v.id === completing?.id) ?? completing;
 		const completionNotes = notes.trim();
-		fork(
-			perform(() =>
-				ctx.act({
-					'visits.update': [
-						{
-							target: { id: visit.id, revision: visit.revision },
-							set: {
-								status: 'done',
-								...(completionNotes === '' ? {} : { completion_notes: completionNotes })
-							}
+		save.run(
+			ctx.act({
+				'visits.update': [
+					{
+						target: { id: visit.id, revision: visit.revision },
+						set: {
+							status: 'done',
+							...(completionNotes === '' ? {} : { completion_notes: completionNotes })
 						}
-					]
-				})
-			).pipe(
-				Effect.tap((committed) =>
-					Effect.sync(() => {
-						if (committed) {
-							completing = null;
-							notes = '';
-						}
-					})
-				)
-			)
+					}
+				]
+			}),
+			{
+				then: (outcome) => {
+					if (outcome.kind !== 'committed') return;
+					completing = null;
+					notes = '';
+				}
+			}
 		);
 	}
 	// ── formatting ──
@@ -256,7 +201,7 @@
 						: clockTime.format(new Date(v.slot.end))}
 				</p>
 				{#if v.status === 'in_progress'}
-					<Badge variant="info">{statusWord('in_progress')}</Badge>
+					<StateBadge {ctx} state="in_progress" label={statusWord('in_progress')} />
 				{:else if next && isToday(v.slot.start) && minutes !== null}
 					<!-- the next visit's drive is the one that can make them late; later ones are for planning -->
 					<Badge variant={!next ? 'outline' : minutes > 30 ? 'warning' : 'success'}
@@ -293,11 +238,11 @@
 				{/if}
 			</Cluster>
 			{#if v.status === 'in_progress'}
-				<Button size="lg" disabled={busy || !locationReady} onclick={() => (completing = v)}
+				<Button size="lg" disabled={save.pending || !locationReady} onclick={() => (completing = v)}
 					>{t('app.helper.complete')}</Button
 				>
 			{:else if next && current === undefined && isToday(v.slot.start)}
-				<Button size="lg" disabled={busy || here === null} onclick={() => start(v)}
+				<Button size="lg" disabled={save.pending || here === null} onclick={() => start(v)}
 					>{t('app.helper.start')}</Button
 				>
 			{/if}
@@ -329,8 +274,6 @@
 					/>{/if}
 				{#if helper !== undefined}
 					{#if here !== null}{@render sharingLine()}{/if}
-					{#if problem}<p class="text-sm text-destructive">{problem}</p>{/if}
-
 					{#if away}
 						<p role="status" class="border-b pb-5 font-medium">{t('app.helper.away_today')}</p>
 					{:else if asked?.shift_check === 'declined'}
@@ -351,9 +294,8 @@
 									})}
 								</p>
 								<Button
-									disabled={busy || !locationReady}
-									onclick={() => fork(answerShift(asked.id))}
-									>{t('app.helper.confirm_shift')}</Button
+									disabled={save.pending || !locationReady}
+									onclick={() => answerShift(asked.id)}>{t('app.helper.confirm_shift')}</Button
 								>
 							{/if}
 							<details>
@@ -363,14 +305,14 @@
 								<Stack gap="sm" class="pt-2">
 									<Button
 										variant="outline"
-										disabled={busy || !locationReady}
-										onclick={() => fork(answerShift(asked.id, true))}
+										disabled={save.pending || !locationReady}
+										onclick={() => answerShift(asked.id, true)}
 										>{t('app.helper.decline_with_mc')}</Button
 									>
 									<Button
 										variant="outline"
-										disabled={busy || !locationReady}
-										onclick={() => fork(answerShift(asked.id, false))}
+										disabled={save.pending || !locationReady}
+										onclick={() => answerShift(asked.id, false)}
 										>{t('app.helper.decline_without_mc')}</Button
 									>
 								</Stack>
@@ -436,7 +378,7 @@
 													>
 													· {v.address}
 												</p>
-												<Badge variant="success">{statusWord('done')}</Badge></Cluster
+												<StateBadge {ctx} state="done" label={statusWord('done')} /></Cluster
 											>
 										{:else}{@render visitCard(v, state === 'next')}{/if}
 									</li>
@@ -471,7 +413,7 @@
 					placeholder={t('app.helper.notes_hint')}
 				/>
 			</Stack>
-			<Button size="lg" disabled={busy || !locationReady} onclick={complete}
+			<Button size="lg" disabled={save.pending || !locationReady} onclick={complete}
 				>{t('app.helper.mark_complete')}</Button
 			>
 		</Stack>

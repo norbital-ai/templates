@@ -1,15 +1,13 @@
-import { model } from '../../../../../.norbital/models/source_sales_lines.ts';
-import { fromSource } from '../../../../integration/kingdee/polling.js';
-import { readSalesFactSource } from '../../../../integration/kingdee/financial-source.js';
-import { readInvoiceAnalysis } from '../../../../integration/kingdee/invoice-analysis.js';
+import { model } from '@norbital-ai/bolt';
 import { commercialSalesFields } from '../../../../lib/sales-fact-fields.js';
 
+// the sales reports price each line against its order (its party, its lines' products)
 const order = {
 	fields: 'all',
 	party: { fields: 'all' },
 	lines: { fields: 'all' }
 } as const;
-export default model({
+export default model('source_sales_lines', {
 	description: 'source_sales_lines',
 	record_label: 'record.reference',
 	fields: {
@@ -52,20 +50,5 @@ export default model({
 		default: { fields: 'all', order },
 		commercial: { fields: commercialSalesFields, order }
 	},
-	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
-	// the sales reports price each line against its order (its party, its lines' products)
-	syncs: {
-		kingdee: {
-			with: 'kingdee',
-			read: function* ({ cursor, instance }, ctx) {
-				return fromSource(yield* readSalesFactSource(instance, cursor, ctx), instance);
-			}
-		},
-		invoice_only: {
-			with: 'kingdee',
-			read: function* ({ cursor, instance }, ctx) {
-				return fromSource(yield* readInvoiceAnalysis(instance, cursor, ctx), instance);
-			}
-		}
-	}
+	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } }
 });

@@ -1,6 +1,5 @@
-import { model } from '../../../../../.norbital/models/credit_snapshots.ts';
-import { readCreditSource } from '../../../../integration/kingdee/financial-source.js';
-export default model({
+import { model } from '@norbital-ai/bolt';
+export default model('credit_snapshots', {
 	description: 'credit snapshots',
 	record_label: 'record.party.name',
 	fields: {
@@ -37,13 +36,5 @@ export default model({
 		}
 	},
 	constraints: { natural_key: { unique: ['source', 'external_code'], import_key: true } },
-	indexes: { search: { text: ['party', 'external_code'] } },
-	syncs: {
-		kingdee: {
-			with: 'kingdee',
-			read: function* () {
-				return yield* readCreditSource();
-			}
-		}
-	}
+	indexes: { search: { text: ['party', 'external_code'] } }
 });

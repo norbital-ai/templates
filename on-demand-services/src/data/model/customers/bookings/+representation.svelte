@@ -1,7 +1,5 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
 	import {
 		Button,
 		Combobox,
@@ -13,7 +11,8 @@
 		Table,
 		RunStatus,
 		type RecordSection,
-		type RecordView
+		type RecordView,
+		use_act
 	} from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
@@ -71,8 +70,6 @@
 	let from = $state<string>(day.today);
 	let start = $state<string | null>(null);
 	let repeat = $state<(typeof REPEATS)[number]>('once');
-	let message = $state<string | null>(null);
-	let booking = $state(false);
 	let started = $state<string | null>(null);
 	const names = $derived(
 		helpers.length === 0
@@ -132,37 +129,19 @@
 			(preference === 'any' || helpers.length > 0) &&
 			shown?.some((d) => d.starts.includes(start!)) === true
 	);
+	const save = use_act(ctx);
 	function book() {
-		const selectedCustomer = customer,
-			selectedService = service,
-			selectedStart = start;
-		if (selectedCustomer === null || selectedService === null || selectedStart === null) return;
-		booking = true;
-		message = null;
-		const order = helpers;
-		fork(
-			Effect.gen(function* () {
-				const call = ctx.run('bookings_book', {
-					customer: selectedCustomer,
-					service: selectedService,
-					preference,
-					...(preference === 'preferred' ? { helpers: order } : {}),
-					start: selectedStart,
-					repeat
-				});
-				const outcome = yield* call;
-				if (outcome.kind === 'committed') started = call.id;
-				else message = outcome.kind === 'refused' ? outcome.message : t('app.schedule.book_failed');
-			}).pipe(
-				Effect.ensuring(
-					Effect.sync(() => {
-						booking = false;
-					})
-				)
-			),
-			() => {
-				message = t('app.schedule.book_failed');
-			}
+		if (customer === null || service === null || start === null) return;
+		save.run(
+			ctx.run('bookings_book', {
+				customer,
+				service,
+				preference,
+				...(preference === 'preferred' ? { helpers } : {}),
+				start,
+				repeat
+			}),
+			{ then: ({ output }) => (started = output.id) }
 		);
 	}
 </script>
@@ -358,8 +337,7 @@
 					</p>{/if}
 			</Section>
 			<Cluster gap="sm" align="center">
-				<Button disabled={!ready || booking} onclick={book}>{t('app.schedule.book')}</Button>
-				{#if message}<p class="text-sm">{message}</p>{/if}
+				<Button disabled={!ready || save.pending} onclick={book}>{t('app.schedule.book')}</Button>
 				{#if started}<RunStatus {ctx} automation="bookings_book" run={started} />{/if}
 			</Cluster>
 		</Stack>

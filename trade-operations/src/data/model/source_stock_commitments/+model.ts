@@ -1,8 +1,6 @@
-import { model } from '../../../../.norbital/models/source_stock_commitments.ts';
-import { fromSource } from '../../../integration/kingdee/polling.js';
-import { readStockCommitments } from '../../../integration/kingdee/stock-commitments.js';
+import { model } from '@norbital-ai/bolt';
 
-export default model({
+export default model('source_stock_commitments', {
 	description: 'Open sales quantities by product and warehouse from Kingdee.',
 	record_label: 'record.source.name',
 	fields: {
@@ -23,14 +21,5 @@ export default model({
 		}
 	},
 	outputs: { default: { fields: 'all', source: { fields: ['name'] } } },
-	constraints: { one_per_source: { unique: ['source'], import_key: true } },
-	syncs: {
-		kingdee: {
-			with: 'kingdee',
-			every: '5min',
-			read: function* ({ instance, cursor }, ctx) {
-				return fromSource(yield* readStockCommitments(instance, cursor, ctx), instance);
-			}
-		}
-	}
+	constraints: { one_per_source: { unique: ['source'], import_key: true } }
 });

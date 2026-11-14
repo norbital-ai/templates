@@ -1,6 +1,5 @@
 import { BigDecimal, Effect } from 'effect';
-import type { CurrencyCode, StoredRow, Id } from '@norbital-ai/bolt';
-import type { Json } from '@norbital-ai/bolt/engine';
+import type { CurrencyCode, StoredRow, Id, Json } from '@norbital-ai/bolt';
 import {
 	erpId,
 	readSalesGraph,

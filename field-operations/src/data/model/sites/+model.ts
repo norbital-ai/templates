@@ -1,5 +1,4 @@
-import { type Point, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
-import { model } from '../../../../.norbital/models/sites.ts';
+import { model, type Point, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import * as Effect from 'effect/Effect';
 import { siteKey } from '../../../lib/site-key.js';
 const columns = [
@@ -95,7 +94,7 @@ const placed = Effect.fnUntraced(function* (
  * already carries is refused with that site's name, and a site may not move onto another's address. Jobs filed or moved
  * under a site are dispatched and re-keyed by their own callbacks.
  */
-export default model({
+export default model('sites', {
 	description: 'Physical site with tenant and dwelling context. Past jobs hang off the site.',
 	icon: 'lucide:map-pin',
 	record_label: 'record.name',
@@ -142,7 +141,8 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: columns, job_assignments: { fields: jobs } },
+		fields: columns,
+		job_assignments: { fields: jobs },
 		transform: function* (changes, ctx) {
 			const derived = yield* placed(
 				changes.map(({ set }) => ({ set, before: undefined })),
@@ -152,7 +152,8 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: columns, job_assignments: { fields: jobs } },
+		fields: columns,
+		job_assignments: { fields: jobs },
 		transform: function* (changes, ctx) {
 			// from the site's side a job is only filed or moved here; its own update changes it
 			const rewrite = changes.findIndex(

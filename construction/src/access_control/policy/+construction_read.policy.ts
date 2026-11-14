@@ -15,6 +15,5 @@ export default policy({
 		payment_claims: { outputs: { default: {} } },
 		bim_reference_matrix: { outputs: { default: {} } },
 		asset_documents: { outputs: { default: {} } }
-	},
-	limits: { act: '600/min', read: '600/min', agent: '100/h' }
+	}
 });

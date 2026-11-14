@@ -920,23 +920,24 @@ export const reviewAssignment = Effect.fnUntraced(function* (
 		});
 		if (standing.rows.some((log) => log.review_id === review.id)) status = 'suspicious_log_exists';
 		else if (standing.rows.length > 0) status = 'suspicious_open_exists';
-		else {
-			yield* ctx.act({
-				'suspicious_activity_logs.create': [
-					{
-						job_assignment_id: job,
-						origin: 'automation',
-						basis: review.basis,
-						review_id: review.id,
-						evidence_id: review.evidence_id,
-						reason: review.reason
-					}
-				]
-			});
-			status = 'suspicious';
-		}
+		else status = 'suspicious';
 	}
+	// the log and the checked mark commit together
 	yield* ctx.act({
+		...(status === 'suspicious'
+			? {
+					'suspicious_activity_logs.create': [
+						{
+							job_assignment_id: job,
+							origin: 'automation' as const,
+							basis: review.basis,
+							review_id: review.id,
+							evidence_id: review.evidence_id,
+							reason: review.reason
+						}
+					]
+				}
+			: {}),
 		'job_assignments.update': [
 			{ target: { id: job, revision }, set: { suspicion_checked_at: ctx.now } }
 		]

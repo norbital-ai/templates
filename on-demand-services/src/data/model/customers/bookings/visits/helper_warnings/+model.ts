@@ -1,9 +1,9 @@
-import { model } from '../../../../../../../.norbital/models/helper_warnings.ts';
+import { model } from '@norbital-ai/bolt';
 /**
  * A warning letter: a helper missed a shift without a medical certificate. Append-only: a warning is filed once; only
  * its letter is attached afterwards, by the `warning_letter` run.
  */
-export default model({
+export default model('helper_warnings', {
 	description: 'A warning letter issued to a helper, with the visit it concerns.',
 	icon: 'lucide:file-warning',
 	record_label: "record.helper.name + ' · ' + string(record.issued_at)",
@@ -35,11 +35,11 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: ['helper', 'visit', 'reason', 'issued_at', 'notes'] },
+		fields: ['helper', 'visit', 'reason', 'issued_at', 'notes'],
 		// the desk cannot attach the letter: `warning_letter` does, as dispatch
 		effect: function* (changes, ctx) {
 			yield* ctx.schedule('warning_letter', { ids: changes.map((c) => c.after.id) });
 		}
 	},
-	update: { columns: { fields: ['letter'] } }
+	update: { fields: ['letter'] }
 });

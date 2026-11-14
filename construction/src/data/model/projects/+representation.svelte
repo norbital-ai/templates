@@ -24,12 +24,6 @@
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const id = $derived(record?.id);
 	const text = (value: string | null, fallback: string) => value || fallback;
-	const sites = $derived(
-		record &&
-			ctx.query({
-				site_locations: { where: { project_id: { eq: record.id } }, aggregate: { count: true } }
-			})
-	);
 	const assignments = $derived(
 		record &&
 			ctx.query({
@@ -55,11 +49,11 @@
 	/** Claimed and certified per currency: `{ key: { currency }, sum: { claimed_amount, certified_amount } }` rows. */
 	const claims = $derived(
 		record &&
-			ctx.aggregate('payment_claims', {
-				where: { project_id: { eq: record.id } },
-				by: ['currency'],
-				sum: ['claimed_amount', 'certified_amount'],
-				all: true
+			ctx.query({
+				payment_claims: {
+					where: { project_id: { eq: record.id } },
+					aggregate: { by: ['currency'], sum: ['claimed_amount', 'certified_amount'] }
+				}
 			})
 	);
 	const ifc = $derived(
@@ -167,7 +161,7 @@
 	<Stack gap="md" class="border-t pt-4">
 		<p class="text-overline">{ctx.t('component.delivery_pulse')}</p>
 		<Stack as="dl" gap="none" divided class="text-sm">
-			{#each [['component.work_fronts', sites?.current?.site_locations.count], ['component.allocated_workers', assignments?.current?.job_assignments.count], ['component.project_documents', documents?.current?.asset_documents.rows.length]] as const as [label, count] (label)}
+			{#each [['component.work_fronts', record?.site_location_count], ['component.allocated_workers', assignments?.current?.job_assignments.count], ['component.project_documents', record?.document_count]] as const as [label, count] (label)}
 				<Inline as="div" justify="between" class="py-2">
 					<dt>{ctx.t(label)}</dt>
 					<dd class="font-medium tabular-nums">{count ?? 0}</dd>
@@ -261,7 +255,7 @@
 						<Stack class="border-b pb-3" gap="xs">
 							<p class="text-meta">{ctx.t(label)}</p>
 							<p class="text-heading">
-								{#each claims?.current?.rows ?? [] as total, i (i)}
+								{#each claims?.current?.payment_claims.rows ?? [] as total, i (i)}
 									{@const key = total.key}
 									{#if i > 0}
 										·
@@ -278,7 +272,7 @@
 					<Stack class="border-b pb-3" gap="xs">
 						<p class="text-meta">{ctx.t('component.documents')}</p>
 						<p class="text-heading tabular-nums">
-							{documents?.current?.asset_documents.rows.length ?? 0}
+							{record?.document_count ?? 0}
 						</p>
 					</Stack>
 				</Grid>

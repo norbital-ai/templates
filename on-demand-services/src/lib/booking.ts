@@ -1,12 +1,19 @@
 import { Effect } from 'effect';
-import type { AutomationCtx, StartInput } from '@norbital-ai/bolt';
+import type { ActInput, AutomationCtx, Id, StartInput } from '@norbital-ai/bolt';
 import { loadPool } from './dispatch.js';
 import { BOOKING_AHEAD, occurrences, planBooking } from './matching.js';
 
-/** Plan every occurrence before the booking, its children and its notice commit together. */
+/**
+ * Plan every occurrence before the booking, its children and its notice commit together; `also.request` (a portal
+ * request marked booked) commits with them, naming the booking by the id `also.id` mints for it.
+ */
 export const bookService = Effect.fnUntraced(function* (
 	input: StartInput<'bookings_book'>,
-	ctx: Pick<AutomationCtx, 'query' | 'act' | 'now' | 'tz' | 'refuse'>
+	ctx: Pick<AutomationCtx, 'query' | 'act' | 'now' | 'tz' | 'refuse'>,
+	also: {
+		readonly id?: Id<'bookings'>;
+		readonly request?: ActInput<'booking_requests.update'>;
+	} = {}
 ) {
 	const preferred = input.preference === 'preferred' ? (input.helpers ?? []) : [];
 	if (input.preference === 'preferred' && preferred.length === 0)
@@ -63,6 +70,7 @@ export const bookService = Effect.fnUntraced(function* (
 	const { records } = yield* ctx.act({
 		'bookings.create': [
 			{
+				...(also.id === undefined ? {} : { id: also.id }),
 				customer: customer.id,
 				service: service.id,
 				address,
@@ -81,7 +89,8 @@ export const bookService = Effect.fnUntraced(function* (
 				subject: `Booking confirmed: ${service.name}, ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(visits[0]!.slot.start))}`,
 				body: `Your ${service.name} is booked for ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(visits[0]!.slot.start))}${repeats} at ${address}. We will message you if anything changes.`
 			}
-		]
+		],
+		...(also.request === undefined ? {} : { 'booking_requests.update': also.request })
 	});
 	const booking = records.find((record) => record.model === 'bookings');
 	if (booking === undefined) return yield* ctx.refuse('errors.booking_not_created');

@@ -1,28 +1,11 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Effect, Option, Schema } from 'effect';
-	import { observe, run } from '@norbital-ai/ui/effect';
+	import { Schema } from 'effect';
 	import { watch } from 'runed';
 	import { input_schema, type ListRow } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Split, Stack } from '@norbital-ai/ui/layout';
-	import {
-		Board,
-		Button,
-		TimeInput,
-		EmptyState,
-		Map,
-		RunStatus,
-		notify_outcome
-	} from '@norbital-ai/ui';
+	import { Board, Button, TimeInput, EmptyState, Form, Map, Sheet } from '@norbital-ai/ui';
 	import Icon from '@iconify/svelte';
-	import { csvRecords } from '../../lib/csv.js';
-	import { getErrorMessage } from '../../lib/format.js';
-	import { xlsxRecords } from '../../lib/xlsx.js';
-	import { decodeWorkOrders } from '../../lib/work-order-sheet.js';
-	class SheetFileUnavailable extends Schema.TaggedError<SheetFileUnavailable>()(
-		'SheetFileUnavailable',
-		{ message: Schema.String }
-	) {}
 	let { ctx }: { ctx: PageContext } = $props();
 	const t = ctx.t;
 	/** Today in the workspace zone, rolling over at midnight. */
@@ -88,94 +71,7 @@
 			(open?.current?.suspicious_activity_logs.rows ?? []).map((log) => log.job_assignment_id)
 		)
 	);
-	let message = $state<string | null>(null);
 	let importing = $state(false);
-	let picker = $state<HTMLInputElement>();
-	let importRun = $state<{ id: string; file: string } | null>(null);
-	const importRuns = observe(() =>
-		importRun === null
-			? null
-			: ctx.runs('job_assignments_import_work_orders', {
-					where: { id: { eq: importRun.id } },
-					limit: 1
-				})
-	);
-	const recordedImport = $derived(importRuns.current?.rows[0]);
-	const importPending = $derived(
-		importRun !== null &&
-			importRuns.error === undefined &&
-			(recordedImport === undefined ||
-				recordedImport.status === 'queued' ||
-				recordedImport.status === 'running')
-	);
-	const ImportOutput = Schema.Struct({
-		created: Schema.Natural,
-		sites: Schema.Natural,
-		skipped: Schema.Natural
-	});
-	const importMessage = $derived.by(() => {
-		if (importRun === null) return message;
-		if (importRuns.error !== undefined) return getErrorMessage(importRuns.error);
-		if (recordedImport?.status === 'failed' || recordedImport?.status === 'stopped')
-			return recordedImport.error?.message ?? t('app.field_ops_controller.import_failed');
-		if (recordedImport?.status !== 'succeeded') return message;
-		const output = Schema.decodeUnknownOption(ImportOutput)(recordedImport.result);
-		return Option.isSome(output)
-			? t('app.field_ops_controller.import_done', {
-					count: output.value.created,
-					file: importRun.file
-				})
-			: t('app.field_ops_controller.import_failed');
-	});
-	const runImport = Effect.fn('Dispatch.importSheet')(function* (file: File) {
-		const rows = /\.xlsx$/i.test(file.name)
-			? yield* xlsxRecords(
-					yield* Effect.tryPromise({
-						try: () => file.arrayBuffer(),
-						catch: (cause) => new SheetFileUnavailable({ message: getErrorMessage(cause) })
-					})
-				)
-			: csvRecords(
-					yield* Effect.tryPromise({
-						try: () => file.text(),
-						catch: (cause) => new SheetFileUnavailable({ message: getErrorMessage(cause) })
-					})
-				);
-		if (rows.length === 0) {
-			message = t('app.field_ops_controller.import_empty', { file: file.name });
-			return;
-		}
-		const started = ctx.run('job_assignments_import_work_orders', {
-			rows: yield* decodeWorkOrders(rows)
-		});
-		const outcome = yield* started;
-		if (outcome.kind !== 'committed') {
-			message =
-				outcome.kind === 'refused' ? outcome.message : t('app.field_ops_controller.import_failed');
-			notify_outcome(ctx, outcome);
-			return;
-		}
-		importRun = { id: outcome.output.id, file: file.name };
-	});
-	function importSheet(file: File): Promise<void> {
-		importing = true;
-		message = null;
-		importRun = null;
-		return run(
-			runImport(file).pipe(
-				Effect.catch((error) =>
-					Effect.sync(() => {
-						message = getErrorMessage(error);
-					})
-				),
-				Effect.ensuring(
-					Effect.sync(() => {
-						importing = false;
-					})
-				)
-			)
-		);
-	}
 </script>
 
 {#snippet dayPicker()}
@@ -226,31 +122,9 @@
 >
 	{#snippet actions()}{@render dayPicker()}{/snippet}
 	<Stack gap="sm" size="fill">
-		<!-- the sheet picker the import action opens -->
-		<input
-			bind:this={picker}
-			type="file"
-			accept=".csv,text/csv,.xlsx"
-			class="hidden"
-			onchange={(event) => {
-				const file = event.currentTarget.files?.[0];
-				event.currentTarget.value = '';
-				if (file) void importSheet(file);
-			}}
-		/>
 		{#if open?.error}<p class="text-sm text-destructive" role="alert">
 				{t('app.field_ops_controller.review_status_failed')}
 			</p>{/if}
-		{#if importMessage}<p role="status" class="text-sm whitespace-pre-line text-muted-foreground">
-				{importMessage}
-			</p>{/if}
-		{#if importRun}
-			<RunStatus
-				{ctx}
-				automation="job_assignments_import_work_orders"
-				run={recordedImport ?? importRun.id}
-			/>
-		{/if}
 		<Split
 			ratio="wide"
 			collapse="switch"
@@ -278,9 +152,9 @@
 							{
 								icon: 'lucide:upload',
 								name: t('app.field_ops_controller.import_assignments'),
-								run: () => picker?.click(),
-								disabled: () =>
-									importing || importPending ? t('app.field_ops_controller.importing') : null
+								run: () => {
+									importing = true;
+								}
 							}
 						]
 					}}
@@ -291,17 +165,14 @@
 			{#snippet end()}
 				<Stack gap="sm" size="fill">
 					{#if mappedSites.length > 0}
-						<!-- `isolate`: the map's control z-indexes stay below the record sheet -->
-						<div class="isolate">
-							<Map
-								{ctx}
-								of="sites"
-								at="location"
-								label="name"
-								where={{ id: { in: mappedSites } }}
-								toolbar={{ new: false }}
-							/>
-						</div>
+						<Map
+							{ctx}
+							of="sites"
+							at="location"
+							label="name"
+							where={{ id: { in: mappedSites } }}
+							toolbar={{ new: false }}
+						/>
 					{:else}
 						<EmptyState variant="inset" title={t('app.field_ops_controller.map_empty', { date })} />
 					{/if}
@@ -310,3 +181,13 @@
 		</Split>
 	</Stack>
 </AppShell>
+
+<Sheet
+	open={importing}
+	on_open_change={(shown) => (importing = shown)}
+	title={t('app.field_ops_controller.import_assignments')}
+>
+	{#if importing}
+		<Form {ctx} of={{ automation: 'job_assignments_import_work_orders' }} fields={['file']} />
+	{/if}
+</Sheet>

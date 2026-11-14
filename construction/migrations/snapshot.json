@@ -874,6 +874,19 @@
 					"kind": "text",
 					"optional": true
 				},
+				"document_count": {
+					"kind": "count",
+					"of": "asset_documents",
+					"where": {
+						"status": {
+							"in": [
+								"draft",
+								"in_review",
+								"issued"
+							]
+						}
+					}
+				},
 				"main_contractor": {
 					"kind": "text",
 					"optional": true
@@ -897,6 +910,10 @@
 					"kind": "period",
 					"of": "date",
 					"optional": true
+				},
+				"site_location_count": {
+					"kind": "count",
+					"of": "site_locations"
 				},
 				"status": {
 					"kind": "enum",
@@ -1187,6 +1204,10 @@
 		},
 		"sys_conversation": {
 			"fields": {
+				"archived_at": {
+					"kind": "instant",
+					"optional": true
+				},
 				"created_at": {
 					"default": {
 						"var": "now"
@@ -1195,10 +1216,6 @@
 				},
 				"envoy": {
 					"kind": "text",
-					"optional": true
-				},
-				"goals": {
-					"kind": "json",
 					"optional": true
 				},
 				"inputs": {
@@ -2151,6 +2168,10 @@
 				"trigger": {
 					"kind": "json",
 					"optional": true
+				},
+				"wait": {
+					"kind": "json",
+					"optional": true
 				}
 			},
 			"indexes": [
@@ -2161,6 +2182,16 @@
 					"where": {
 						"state": {
 							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"due_at"
+					],
+					"where": {
+						"state": {
+							"eq": "waiting"
 						}
 					}
 				},

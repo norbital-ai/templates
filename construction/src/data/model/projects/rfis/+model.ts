@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/rfis.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'title',
 	'rfi_number',
@@ -16,7 +16,7 @@ const columns = [
 	'attachments',
 	'related_defect_id'
 ] as const;
-export default model({
+export default model('rfis', {
 	description: 'Design and coordination questions raised during delivery.',
 	icon: 'lucide:messages-square',
 	record_label: 'record.title',
@@ -46,6 +46,6 @@ export default model({
 	constraints: { rfi_number: { unique: ['rfi_number'] } },
 	indexes: { find: { text: ['title'] } },
 	outputs: { default: { fields: 'all', related_defect_id: { fields: ['title'] } } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

@@ -1,8 +1,6 @@
-import { model } from '../../../../.norbital/models/source_lot_costs.ts';
-import { fromSource } from '../../../integration/kingdee/polling.js';
-import { readStockLotCosts } from '../../../integration/kingdee/stock-lot-costs.js';
+import { model } from '@norbital-ai/bolt';
 
-export default model({
+export default model('source_lot_costs', {
 	description: 'Audited purchase receipt cost and first receipt date for on-hand lots.',
 	record_label: 'record.source.name',
 	fields: {
@@ -26,13 +24,5 @@ export default model({
 		}
 	},
 	outputs: { default: { fields: 'all', source: { fields: ['name'] } } },
-	constraints: { one_per_source: { unique: ['source'], import_key: true } },
-	syncs: {
-		kingdee: {
-			with: 'kingdee',
-			read: function* ({ instance, cursor }, ctx) {
-				return fromSource(yield* readStockLotCosts(instance, cursor, ctx), instance);
-			}
-		}
-	}
+	constraints: { one_per_source: { unique: ['source'], import_key: true } }
 });

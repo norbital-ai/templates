@@ -1,5 +1,5 @@
 import { DateTime } from 'effect';
-import { model } from '../../../../../.norbital/models/booking_requests.ts';
+import { model } from '@norbital-ai/bolt';
 import { AREAS, REPEATS } from '../../../../lib/matching.js';
 /** How long a customer's checked times hold before booking must check them again. */
 const QUOTE_FRESH = { minutes: 15 };
@@ -8,7 +8,7 @@ const QUOTE_FRESH = { minutes: 15 };
  * and otherwise leaves it for the desk to follow up. A request names the times its customer was shown: it is refused
  * when they no longer hold.
  */
-export default model({
+export default model('booking_requests', {
 	description: 'A booking request from the public portal, and what became of it.',
 	icon: 'lucide:inbox',
 	record_label: 'record.number',
@@ -50,20 +50,18 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'name',
-				'email',
-				'phone',
-				'address',
-				'area',
-				'service',
-				'start',
-				'repeat',
-				'notes',
-				'availability'
-			]
-		},
+		fields: [
+			'name',
+			'email',
+			'phone',
+			'address',
+			'area',
+			'service',
+			'start',
+			'repeat',
+			'notes',
+			'availability'
+		],
 		transform: function* (changes, ctx) {
 			const rows = changes.map((c) => c.set);
 			const ids = rows.flatMap((r) => r.availability ?? []);
@@ -104,5 +102,5 @@ export default model({
 			yield* ctx.schedule('portal_intake', { ids: changes.map((c) => c.after.id) });
 		}
 	},
-	update: { columns: { fields: ['status', 'booking', 'outcome'] } }
+	update: { fields: ['status', 'booking', 'outcome'] }
 });

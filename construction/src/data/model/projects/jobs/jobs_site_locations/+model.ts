@@ -1,7 +1,7 @@
-import { model } from '../../../../../../.norbital/models/jobs_site_locations.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = ['job_id', 'site_location_id'] as const;
 /** A join row: both sides are `ref` fields, and it is labelled by theirs. */
-export default model({
+export default model('jobs_site_locations', {
 	description: 'Join table linking jobs to site locations.',
 	record_label: "record.job_id.job_title + ' · ' + record.site_location_id.location_name",
 	fields: {
@@ -15,6 +15,6 @@ export default model({
 			site_location_id: { fields: ['location_name'] }
 		}
 	},
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

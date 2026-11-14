@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/jobs.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'job_title',
 	'job_number',
@@ -13,7 +13,7 @@ const columns = [
 	'description',
 	'priority'
 ] as const;
-export default model({
+export default model('jobs', {
 	description: 'Project work packages configured by site location and BIM reference context.',
 	icon: 'lucide:briefcase-business',
 	record_label: 'record.job_title',
@@ -56,6 +56,6 @@ export default model({
 			bim_reference_id: { fields: ['reference_name'] }
 		}
 	},
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

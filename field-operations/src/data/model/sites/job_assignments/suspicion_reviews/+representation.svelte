@@ -39,7 +39,7 @@
 						<Field {ctx} name="job_assignment_id" />
 						<Field {ctx} name="evidence_id" />
 						<Field {ctx} name="reviewed_at" />
-						<Field {ctx} name="reason" class="col-span-full" />
+						<Field {ctx} name="reason" wide />
 					</Grid>
 				</Section>
 				<Section

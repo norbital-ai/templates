@@ -1,4 +1,4 @@
-import { model } from '../../../../.norbital/models/holding.ts';
+import { model } from '@norbital-ai/bolt';
 
 /** Every field is written: the statement's by people, the calculated ones by the daily agent. */
 const columns = [
@@ -34,7 +34,7 @@ const columns = [
  * One line of the book: a security, a cash balance or a facility. The research on the line lives
  * here too: the direction the agent should follow, and the insights with the references behind them.
  */
-export default model({
+export default model('holding', {
 	description: 'A line of the book (security, cash or facility) with the research kept on it.',
 	icon: 'lucide:trending-up',
 	record_label: 'record.instrument',
@@ -127,7 +127,7 @@ export default model({
 		find: { text: ['instrument', 'symbol', 'detail', 'research_direction', 'research_summary'] }
 	},
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } },
+	create: { fields: columns },
+	update: { fields: columns },
 	delete: {}
 });

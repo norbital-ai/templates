@@ -10,8 +10,8 @@ export default automation({
 	run: function* ({ finding, resolution }, ctx) {
 		// the controller who started the run concludes it; a run nobody started records no one
 		const resolved_by =
-			ctx.run.trigger.kind === 'person' && ctx.run.trigger.actor.kind === 'member'
-				? ctx.run.trigger.actor.id
+			ctx.trigger.kind === 'person' && ctx.trigger.actor.kind === 'member'
+				? ctx.trigger.actor.id
 				: null;
 		yield* ctx.act({
 			'suspicious_activity_logs.update': finding.map((target) => ({

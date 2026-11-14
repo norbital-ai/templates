@@ -1,5 +1,5 @@
 import type { Id, WriteCtx } from '@norbital-ai/bolt';
-import { model } from '../../../../../../.norbital/models/job_assignments.ts';
+import { model } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 const columns = [
 	'assignment_code',
@@ -82,7 +82,7 @@ const certified = Effect.fnUntraced(function* (
  * An assignment is refused unless the worker is certified for the site location: checked on create and whenever the
  * worker or the site location changes, so an assignment cannot be moved onto work the worker is not certified for.
  */
-export default model({
+export default model('job_assignments', {
 	description: 'Worker assignments tied to project jobs and site locations.',
 	icon: 'lucide:hard-hat',
 	record_label: "record.worker_id.worker_name + ' · ' + record.site_location_id.location_name",
@@ -111,7 +111,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			yield* certified(
 				changes.map(({ after }) => ({ worker: after.worker_id, site: after.site_location_id })),
@@ -121,7 +121,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			yield* certified(
 				changes.flatMap((c) =>

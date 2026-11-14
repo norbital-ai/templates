@@ -1,6 +1,5 @@
-import { model } from '../../../../.norbital/models/commercial_settings.ts';
-import { type Id } from '@norbital-ai/bolt';
-export default model({
+import { type Id, model } from '@norbital-ai/bolt';
+export default model('commercial_settings', {
 	description: 'commercial settings',
 	record_label: "'Commercial settings'",
 	fields: {
@@ -41,16 +40,14 @@ export default model({
 	outputs: { default: { fields: 'all' }, logistics: { fields: ['code', 'stock_fresh_minutes'] } },
 	constraints: { natural_key: { unique: ['code'], import_key: true } },
 	update: {
-		columns: {
-			fields: [
-				'default_document_layout',
-				'default_purchase_document_layout',
-				'freight_treatment',
-				'require_floor',
-				'credit_fresh_minutes',
-				'stock_fresh_minutes'
-			]
-		},
+		fields: [
+			'default_document_layout',
+			'default_purchase_document_layout',
+			'freight_treatment',
+			'require_floor',
+			'credit_fresh_minutes',
+			'stock_fresh_minutes'
+		],
 		transform: function* (changes, ctx) {
 			const ids: Id<'document_templates'>[] = changes.flatMap(({ set }) => [
 				...(set.default_document_layout ? [set.default_document_layout] : []),

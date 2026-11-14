@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/permits_to_work.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'permit_number',
 	'permit_type',
@@ -14,7 +14,7 @@ const columns = [
 	'control_measures',
 	'signatures'
 ] as const;
-export default model({
+export default model('permits_to_work', {
 	description: 'Evidence-backed permit and competency validity records.',
 	icon: 'lucide:shield-check',
 	record_label: 'record.permit_number',
@@ -70,6 +70,6 @@ export default model({
 	constraints: { permit_number: { unique: ['permit_number'] } },
 	indexes: { find: { text: ['permit_number'] } },
 	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

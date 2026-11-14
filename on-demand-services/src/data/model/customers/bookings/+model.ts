@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/bookings.ts';
+import { model } from '@norbital-ai/bolt';
 import { AREAS, REPEATS } from '../../../../lib/matching.js';
 /**
  * One customer order: a service at an address, once or recurring, with or without preferred helpers. Each occurrence is
@@ -8,7 +8,7 @@ import { AREAS, REPEATS } from '../../../../lib/matching.js';
  * the customer's helpers in their order; without one, ranking balances added travel and weekly load, with a small
  * continuity bonus for the previous recurring cleaner.
  */
-export default model({
+export default model('bookings', {
 	description:
 		'A booking: customer, service, address, preference and repeat. Its visits are the occurrences.',
 	icon: 'lucide:calendar-check',
@@ -53,25 +53,14 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'customer',
-				'service',
-				'address',
-				'location',
-				'area',
-				'preference',
-				'repeat',
-				'notes'
-			],
-			preferred_helpers: { fields: ['helper', 'rank'] },
-			visits: { fields: ['slot', 'address', 'location', 'area', 'skill', 'helper', 'attention'] }
-		},
+		fields: ['customer', 'service', 'address', 'location', 'area', 'preference', 'repeat', 'notes'],
+		preferred_helpers: { fields: ['helper', 'rank'] },
+		visits: { fields: ['slot', 'address', 'location', 'area', 'skill', 'helper', 'attention'] },
 		// the portal's times and the drive checks are dispatch sweeps; a key coalesces a burst of writes into one run
 		effect: function* (_, ctx) {
 			yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
 			yield* ctx.schedule('check_drives', {}, { key: 'check_drives' });
 		}
 	},
-	update: { columns: { fields: ['notes', 'status'] } }
+	update: { fields: ['notes', 'status'] }
 });

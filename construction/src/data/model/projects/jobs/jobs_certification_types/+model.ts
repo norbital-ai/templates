@@ -1,7 +1,7 @@
-import { model } from '../../../../../../.norbital/models/jobs_certification_types.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = ['job_id', 'certification_type_id'] as const;
 /** A join row: both sides are `ref` fields, and it is labelled by theirs. */
-export default model({
+export default model('jobs_certification_types', {
 	description: 'Join table linking jobs to required certification types.',
 	record_label: "record.job_id.job_title + ' · ' + record.certification_type_id.certification_name",
 	fields: {
@@ -19,6 +19,6 @@ export default model({
 			certification_type_id: { fields: ['certification_name'] }
 		}
 	},
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

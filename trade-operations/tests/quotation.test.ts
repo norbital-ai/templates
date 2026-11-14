@@ -126,6 +126,12 @@ test.live(
 			const check = confirmationCheck(yield* read(), { as_of: '2026-08-02T00:00:00Z' });
 			if (Result.isFailure(check)) throw new Error(check.failure);
 			expect(sameDecimal(check.success.floors[0]?.net, '3')).toBe(true);
+			// the hashed terms carry the floor's own net of tax, as the model computes it
+			const floor = (yield* read()).pricing_floors.rows.find(
+				(row) => row.effective_on === '2026-07-01'
+			);
+			expect(sameDecimal(floor?.floor_net, '3')).toBe(true);
+			expect(check.success.basis.terms.lines[0]?.floor_net).toBe(floor?.floor_net);
 			expect(check.success.floors[0]?.effective_on).toBe('2026-07-01');
 			expect(check.success.floors[0]?.below).toBe(true);
 			const check_hash = yield* confirmationHash(check.success);

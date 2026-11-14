@@ -1,11 +1,9 @@
 <script lang="ts">
-	import { translated } from '../../lib/ui/message.js';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { run } from '@norbital-ai/ui/effect';
 	import type { CurrencyCode } from '@norbital-ai/bolt';
 	import { BigDecimal } from 'effect';
-	import { Combobox, CustomView, Table, Tabs, TimeInput } from '@norbital-ai/ui';
+	import { Combobox, CustomView, Table, Tabs, TimeInput, use_act } from '@norbital-ai/ui';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
@@ -86,11 +84,11 @@
 
 	let editing = $state<string | null>(null);
 	let draft = $state('');
-	let writing = $state<string | null>(null);
+	const save = use_act(ctx);
 	let error = $state<string | null>(null);
 	const keyOf = (row: PriceRow, day: string) => `${row.key}|${day}`;
 	function start(row: PriceRow, day: string) {
-		if (writing !== null) return;
+		if (save.pending) return;
 		error = null;
 		editing = keyOf(row, day);
 		const cell = row.cells[day];
@@ -100,7 +98,7 @@
 		editing = null;
 		draft = '';
 	}
-	async function commit(row: PriceRow, day: string) {
+	function commit(row: PriceRow, day: string) {
 		const key = keyOf(row, day);
 		if (editing !== key) return;
 		editing = null;
@@ -123,53 +121,28 @@
 			)
 		)
 			return;
-		const price = value;
 		error = null;
-		writing = key;
-		try {
-			const outcome = existing
-				? await run(
-						ctx.act({
-							'pricing_floors.update': [
-								{
-									target: { id: existing.id, revision: existing.revision },
-									set: { floor_price: price }
-								}
-							]
-						})
-					)
-				: await run(
-						ctx.act({
-							'pricing_floors.create': [
-								{
-									product: row.product,
-									group_code: group,
-									currency,
-									effective_on: day,
-									unit: row.latest.unit,
-									floor_price: price,
-									tax_inclusive: row.latest.tax_inclusive,
-									tax_rate: row.latest.tax_rate,
-									minimum_quantity: row.minimum_quantity
-								}
-							]
-						})
-					);
-			if (outcome.kind === 'pending_approval') error = ctx.t('component.awaiting_approval');
-			else if (outcome.kind !== 'committed') error = ctx.t('component.seal_uncertain');
-		} catch (failure) {
-			error =
-				typeof failure === 'object' &&
-				failure !== null &&
-				'_tag' in failure &&
-				failure._tag === 'ActRefused' &&
-				'message' in failure &&
-				typeof failure.message === 'string'
-					? translated(ctx, failure.message)
-					: ctx.t('component.seal_uncertain');
-		} finally {
-			writing = null;
-		}
+		// the day's floor is keyed by product, group, currency, day and minimum: one upsert sets its price
+		save.run(
+			ctx.act({
+				'pricing_floors.import': {
+					rows: [
+						{
+							product: row.product,
+							group_code: group,
+							currency,
+							effective_on: day,
+							unit: (existing ?? row.latest).unit,
+							floor_price: value,
+							tax_inclusive: (existing ?? row.latest).tax_inclusive,
+							tax_rate: (existing ?? row.latest).tax_rate,
+							minimum_quantity: row.minimum_quantity
+						}
+					],
+					on_conflict: 'update'
+				}
+			})
+		);
 	}
 	function create() {
 		openCreate('pricing_floors', {
@@ -326,13 +299,13 @@
 													onkeydown={(event) => {
 														if (event.key === 'Enter') {
 															event.preventDefault();
-															void commit(row, day);
+															commit(row, day);
 														} else if (event.key === 'Escape') {
 															event.preventDefault();
 															cancel();
 														}
 													}}
-													onblur={() => void commit(row, day)}
+													onblur={() => commit(row, day)}
 													use:focusInput
 													aria-label={`${row.name} ${day}`}
 												/>
@@ -341,7 +314,7 @@
 													type="button"
 													class="group/cell hover:bg-muted flex h-8 w-full items-center justify-end px-1.5 tabular-nums"
 													aria-label={`${row.name} ${day}`}
-													disabled={writing !== null}
+													disabled={save.pending}
 													onclick={() => start(row, day)}
 												>
 													{#if cell}

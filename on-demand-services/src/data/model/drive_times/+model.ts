@@ -1,10 +1,10 @@
-import { model } from '../../../../.norbital/models/drive_times.ts';
+import { model } from '@norbital-ai/bolt';
 /**
  * Google's drive time from one ~1 km square to another (`lib/matching.ts` `legOf`), fetched by the `check_drives` run
  * for every leg a helper's day will be driven. Matching reads it; a leg not here is estimated from straight-line distance.
  * Written only by the `check_drives` and `prepare_availability` runs.
  */
-export default model({
+export default model('drive_times', {
 	description: 'Google drive times between ~1 km squares, read by matching.',
 	icon: 'lucide:route',
 	record_label: 'record.leg',
@@ -15,5 +15,5 @@ export default model({
 	},
 	constraints: { leg: { unique: ['leg'] } },
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: ['leg', 'minutes'] } }
+	create: { fields: ['leg', 'minutes'] }
 });

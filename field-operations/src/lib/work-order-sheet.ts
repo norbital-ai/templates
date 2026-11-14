@@ -1,7 +1,6 @@
 import { DateTime, Effect, Schema, SchemaIssue } from 'effect';
-import { input_schema, type StartInput } from '@norbital-ai/bolt';
+import { input_schema, type Json } from '@norbital-ai/bolt';
 
-type Row = StartInput<'job_assignments_import_work_orders'>['rows'][number];
 const text = Schema.optionalKey(Schema.String);
 const decimal = Schema.optionalKey(Schema.FiniteFromString);
 /** A real calendar day as `YYYY-MM-DD`. */
@@ -23,7 +22,31 @@ const WORK_ORDER_ROW = Schema.Struct({
 	assignee_contact: text,
 	external_ref: text
 });
+/** One decoded sheet row. */
+export type WorkOrder = typeof WORK_ORDER_ROW.Type;
 const REQUIRED = ['site', 'scheduled_for', 'title'];
+/** `ctx.convert.ingest`'s answer for a spreadsheet or CSV: its sheets' header row and cells. */
+export const IngestSheets = Schema.Struct({
+	sheets: Schema.Array(
+		Schema.Struct({
+			columns: Schema.Array(Schema.String),
+			rows: Schema.Array(Schema.Array(Schema.Json))
+		})
+	)
+});
+/** A sheet's rows as records keyed by the lower-cased header, blank cells omitted. */
+export const sheetRecords = (sheet: (typeof IngestSheets.Type)['sheets'][number]) => {
+	const names = sheet.columns.map((name) => name.trim().toLowerCase());
+	return sheet.rows.flatMap((cells: readonly Json[]) => {
+		const record = Object.fromEntries(
+			names.flatMap((name, column) => {
+				const value = cells[column] == null ? '' : String(cells[column]).trim();
+				return name === '' || value === '' ? [] : [[name, value]];
+			})
+		);
+		return Object.keys(record).length === 0 ? [] : [record];
+	});
+};
 /** The calendar day an xlsx stores as its day serial (days since 1899-12-30). */
 const serialDay = (serial: string) =>
 	DateTime.formatIsoDateUtc(
@@ -44,7 +67,7 @@ export const decodeWorkOrders = Effect.fnUntraced(function* (
 			message: missing.map((column) => `Header: ${column}: Missing column`).join('\n')
 		});
 	const errors: string[] = [];
-	const rows: Row[] = [];
+	const rows: WorkOrder[] = [];
 	records.forEach((record, index) => {
 		const serial = record.scheduled_for;
 		const decoded = Schema.decodeUnknownResult(WORK_ORDER_ROW)(

@@ -1,4 +1,4 @@
-import { model } from '../../../../.norbital/models/workers.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'worker_name',
 	'worker_number',
@@ -13,7 +13,7 @@ const columns = [
 	'medical_check_date',
 	'safety_induction_date'
 ] as const;
-export default model({
+export default model('workers', {
 	description: 'Worker roster used for job assignment and compliance checks.',
 	icon: 'lucide:users',
 	record_label:
@@ -35,6 +35,6 @@ export default model({
 	constraints: { worker_number: { unique: ['worker_number'] } },
 	indexes: { find: { text: ['worker_name', 'worker_number'] } },
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

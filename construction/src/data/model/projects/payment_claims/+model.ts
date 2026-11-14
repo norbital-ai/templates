@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/payment_claims.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'claim_number',
 	'project_id',
@@ -14,7 +14,7 @@ const columns = [
 	'description',
 	'supporting_documents'
 ] as const;
-export default model({
+export default model('payment_claims', {
 	description: 'Commercial claim records with readiness and submission state.',
 	icon: 'lucide:banknote',
 	record_label: 'record.claim_number',
@@ -53,6 +53,6 @@ export default model({
 	constraints: { claim_number: { unique: ['claim_number'] } },
 	indexes: { find: { text: ['claim_number'] } },
 	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

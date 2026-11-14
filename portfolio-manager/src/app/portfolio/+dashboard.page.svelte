@@ -9,7 +9,7 @@
 		format,
 		type ShowProps
 	} from '@norbital-ai/ui';
-	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
 
 	const reports = ctx.query({ report: { order_by: { for_date: 'desc' }, limit: 90 } });
@@ -60,23 +60,28 @@
 						</div>
 					{/each}
 				</Grid>
+				<!-- a page that scrolls: each chart claims the space below the chrome -->
 				<Grid minimum="panel">
-					{#if trend.length > 1}<Chart
+					{#if trend.length > 1}<Bound size="viewport"
+							><Chart
+								{ctx}
+								of={trend}
+								x="for_date"
+								y="net_assets"
+								kind="line"
+								title="Net assets over time"
+							/></Bound
+						>{/if}
+					<Bound size="viewport">
+						<Chart
 							{ctx}
-							of={trend}
-							x="for_date"
-							y="net_assets"
-							kind="line"
-							title="Net assets over time"
-						/>{/if}
-					<Chart
-						{ctx}
-						of={latest.allocation ?? []}
-						x="label"
-						y="value"
-						kind="donut"
-						title="Allocation"
-					/>
+							of={latest.allocation ?? []}
+							x="label"
+							y="value"
+							kind="donut"
+							title="Allocation"
+						/>
+					</Bound>
 				</Grid>
 				<Table
 					{ctx}

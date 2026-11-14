@@ -1,6 +1,5 @@
 import { BigDecimal, Duration, Effect, Schema } from 'effect';
-import type { InstanceId, SyncCtx } from '@norbital-ai/bolt';
-import type { Json } from '@norbital-ai/bolt/engine';
+import type { InstanceId, SyncCtx, Json } from '@norbital-ai/bolt';
 import { sha256Hex } from '../../lib/commercial.js';
 import { kingdeeReceivablesAccount } from './configuration.js';
 import {

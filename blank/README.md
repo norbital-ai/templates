@@ -22,8 +22,8 @@ Replace or delete `notes` once the first real model exists.
 None. To build on the starter:
 
 - Models under `src/data/model/<name>/+model.ts`: storage, `ref` fields, exposure (`outputs`,
-  `create`, `update`, `delete`) and logic in one `model({ … })` call, imported from the binding
-  `bolt check` generates under `.norbital/models/<name>.ts` (a model without `outputs` is invisible).
+  `create`, `update`, `delete`) and logic in one `model('<name>', { … })` call, imported from
+  `@norbital-ai/bolt` (a model without `outputs` is invisible).
 - Apps under `src/app/<app>/+app.ts` with one `+<page>.page.svelte` per page.
 - Automations under `src/automation/+<name>.automation.ts`.
 - External accounts are integrations: a definition under `src/integration/<name>/+integration.ts`

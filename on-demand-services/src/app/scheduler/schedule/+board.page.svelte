@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { Badge, Board, TimeInput, Table, Tabs } from '@norbital-ai/ui';
+	import { Badge, Board, StateBadge, TimeInput, Table, Tabs } from '@norbital-ai/ui';
 	/**
 	 * The day's schedule. By helper: one lane per helper, and dragging a visit to another lane reassigns it (the same
 	 * guard as every write: skill, hours, time off and the drive between visits). As a list: row actions to hand a visit
@@ -97,13 +97,9 @@
 		<p class="line-clamp-1 text-meta leading-snug">{row.address}</p>
 		<Cluster gap="xs">
 			{#if row.status !== 'scheduled'}
-				<Badge variant={row.status === 'done' ? 'success' : 'info'}
-					>{word(`status.${row.status}`)}</Badge
-				>
+				<StateBadge {ctx} state={row.status} label={word(`status.${row.status}`)} />
 			{:else if row.shift_check !== 'not_due'}
-				<Badge variant={row.shift_check === 'confirmed' ? 'success' : 'outline'}
-					>{word(`shift_check.${row.shift_check}`)}</Badge
-				>
+				<StateBadge {ctx} state={row.shift_check} label={word(`shift_check.${row.shift_check}`)} />
 			{/if}
 			{#if row.attention !== 'none'}
 				<Badge variant="warning">{word(`attention.${row.attention}`)}</Badge>

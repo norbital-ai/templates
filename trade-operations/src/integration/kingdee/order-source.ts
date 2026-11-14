@@ -1,6 +1,5 @@
 import { BigDecimal, Effect, Schema } from 'effect';
-import type { Id, Row, SyncCtx } from '@norbital-ai/bolt';
-import type { Json } from '@norbital-ai/bolt/engine';
+import type { Id, Row, SyncCtx, Json } from '@norbital-ai/bolt';
 import { hash, sha256Hex } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';

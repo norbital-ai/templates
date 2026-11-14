@@ -7,10 +7,10 @@ import { rank, slotOf } from './matching.js';
  * trigger) must be the helper of every target.
  */
 export const ownVisits = Effect.fnUntraced(function* (
-	ctx: Pick<AutomationCtx, 'query' | 'run' | 'refuse'>,
+	ctx: Pick<AutomationCtx, 'query' | 'trigger' | 'refuse'>,
 	targets: readonly Id<'visits'>[]
 ) {
-	const by = ctx.run.trigger;
+	const by = ctx.trigger;
 	const user = by.kind === 'person' && by.actor.kind === 'member' ? by.actor.id : null;
 	if (user === null) return yield* ctx.refuse('errors.unreadable', { field: 'targets' });
 	const { visits, helpers } = yield* ctx.query({

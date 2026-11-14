@@ -1,4 +1,4 @@
-import { model } from '../../../../.norbital/models/dispatch_settings.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'eta_limit_minutes',
 	'eta_check_lead_minutes',
@@ -7,7 +7,7 @@ const columns = [
 	'free_change_hours'
 ] as const;
 /** The dispatch thresholds, one row. A missing row means the defaults in `lib/matching.ts`. */
-export default model({
+export default model('dispatch_settings', {
 	description:
 		'Dispatch thresholds: the ETA limit, the shift check timing and the free-change window.',
 	icon: 'lucide:sliders-horizontal',
@@ -52,6 +52,6 @@ export default model({
 		}
 	},
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

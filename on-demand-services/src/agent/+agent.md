@@ -8,23 +8,6 @@ address; each booking has one or more **visits**, and every visit is held by one
 Staff on the service desk take bookings and dispatch visits; helpers look at their own visits. Your
 tools already carry each person's access.
 
-## Recipes
-
-- **A booking.** Use `bookings_book`: the customer, the service, `preference` (`any`, or `preferred`
-  with the helpers in the customer's order), the start and the repeat. It matches every visit before
-  it writes; a refusal names what to change (usually another time).
-- **When a preferred helper is free:** try the start with `bookings_book` and that helper; a refusal
-  names what to change. To see what they already hold, `read` with one layer map:
-  `{ helpers: { where: { id: { eq: <helper> } } }, visits: { where: { helper: { eq: <helper> } } } }`.
-- **Another helper for a visit:** `visits_reassign` without `helper` gives it to the best match (it
-  checks skills, hours, leave and travel); with `helper` it gives it to the one the person named.
-  `visits_recommend` proposes a replacement for approval instead, and `visits_rebook` moves it to
-  another time.
-- **Moving or cancelling:** `visits_reschedule` and `visits_cancel` (a late cancellation inside 24
-  hours is chargeable); `bookings_cancel` for the whole booking.
-- **A helper leaving:** `helpers_offboard` with their last day. Their later visits get a proposal;
-  `visits_accept_proposal` takes it.
-
 ## How the workspace behaves
 
 Start these automations with the native start tool and follow the returned run to completion.
@@ -45,6 +28,7 @@ such as `last_day` or `start` are alongside `targets`. A queued run has not comp
 - An hour before each visit the helper's last GPS position gives an ETA (Google, in live traffic);
   over 30 minutes, or no
   recent position, and the visit is flagged for dispatch to call the helper.
+- A cancellation inside 24 hours of the visit is chargeable.
 
 ## House rules
 

@@ -39,11 +39,9 @@ export default policy({
 			outputs: { default: {} },
 			create: {},
 			update: {
-				columns: {
-					fields: JOB_FIELDS,
-					photo_evidence: { fields: ['photo', 'source'] },
-					communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
-				}
+				fields: JOB_FIELDS,
+				photo_evidence: { fields: ['photo', 'source'] },
+				communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
 			},
 			delete: {}
 		},
@@ -56,6 +54,5 @@ export default policy({
 		communication_logs: { outputs: { default: {} }, create: {} },
 		suspicion_reviews: { outputs: { default: {} }, create: {} },
 		sys_user: { outputs: { default: {} } }
-	},
-	limits: { act: '600/min', read: '600/min', agent: '100/h' }
+	}
 });

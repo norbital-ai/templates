@@ -1,4 +1,4 @@
-import { integration } from '../../../.norbital/integrations/kingdee.ts';
+import { integration } from '@norbital-ai/bolt';
 import { sourceState, SourceUnavailable } from './polling.js';
 import {
 	kingdeeConfiguration,
@@ -17,7 +17,7 @@ import { testStockLotCosts } from './stock-lot-costs.js';
 import { testDeliveryCosts } from './order-source.js';
 import { sourcePage } from './sql.js';
 
-export default integration({
+export default integration('kingdee', {
 	description:
 		'Kingdee SQL Server: direct SQL sync with the on-premises account set over the Alibaba link.',
 	driver: 'sqlserver',

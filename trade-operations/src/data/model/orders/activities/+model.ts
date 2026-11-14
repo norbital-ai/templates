@@ -1,10 +1,10 @@
-import { model } from '../../../../../.norbital/models/activities.ts';
-export default model({
+import { model } from '@norbital-ai/bolt';
+export default model('activities', {
 	description: 'activities',
 	record_label: 'record.title',
 	fields: {
 		order: { kind: 'ref', to: 'orders', inverse: 'activities' },
-		owner: { kind: 'ref', to: 'sys_user', default: { var: 'requestor.id' } },
+		owner: { kind: 'ref', to: 'sys_user', default: { var: 'actor.id' } },
 		title: {
 			kind: 'text'
 		},
@@ -28,6 +28,6 @@ export default model({
 	},
 	outputs: { default: { fields: 'all' } },
 	indexes: { search: { text: ['title', 'kind'] } },
-	create: { columns: { fields: ['order', 'owner', 'title', 'kind', 'due_on', 'done', 'notes'] } },
-	update: { columns: { fields: ['title', 'kind', 'due_on', 'done', 'notes'] } }
+	create: { fields: ['order', 'owner', 'title', 'kind', 'due_on', 'done', 'notes'] },
+	update: { fields: ['title', 'kind', 'due_on', 'done', 'notes'] }
 });

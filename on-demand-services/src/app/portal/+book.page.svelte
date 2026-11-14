@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { fork } from '@norbital-ai/ui/effect';
-	import { DateTime, Effect } from 'effect';
+	import { DateTime } from 'effect';
 	import {
 		Button,
 		Combobox,
@@ -9,13 +8,13 @@
 		Icon,
 		Input,
 		Label,
-		notify_outcome,
 		Section,
 		PhoneVerify,
 		PointInput,
 		Spinner,
 		Textarea,
-		type Point
+		type Point,
+		use_act
 	} from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
@@ -62,8 +61,6 @@
 	let step = $state<'details' | 'time' | 'done'>('details');
 	let start = $state<string | null>(null);
 	let request = $state<Id<'booking_requests'> | null>(null);
-	let busy = $state(false);
-	let error = $state<string | null>(null);
 	const quote = $derived(
 		availability === null
 			? null
@@ -199,50 +196,38 @@
 			address.trim() !== '' &&
 			(preference === 'any' || (helper !== null && !mismatch))
 	);
+	const save = use_act(ctx);
 	function chooseTime() {
 		const phone = me?.phone,
 			selectedService = service;
 		if (!ready || phone == null || selectedService === null) return;
-		busy = true;
-		error = null;
 		start = null;
 		availability = null;
-		fork(
-			Effect.gen(function* () {
-				const outcome = yield* ctx.act({
-					'availability_requests.create': [
-						{
-							phone,
-							service: selectedService,
-							address: address.trim(),
-							...(location === null ? {} : { location }),
-							preference,
-							repeat,
-							...(preference === 'preferred' && helper !== null ? { helper } : {})
-						}
-					]
-				});
+		save.run(
+			ctx.act({
+				'availability_requests.create': [
+					{
+						phone,
+						service: selectedService,
+						address: address.trim(),
+						...(location === null ? {} : { location }),
+						preference,
+						repeat,
+						...(preference === 'preferred' && helper !== null ? { helper } : {})
+					}
+				]
+			}),
+			{
 				// past the person-wait the request runs on: its run reports the outcome
-				if (outcome.kind === 'running') return notify_outcome(ctx, outcome);
-				const record =
-					outcome.kind === 'committed'
-						? outcome.records.find((record) => record.model === 'availability_requests')
-						: undefined;
-				if (record === undefined) {
-					error = t('app.portal.failed');
-					return;
+				then: (outcome) => {
+					const record =
+						outcome.kind === 'committed'
+							? outcome.records.find((r) => r.model === 'availability_requests')
+							: undefined;
+					if (record === undefined) return;
+					availability = record.id;
+					step = 'time';
 				}
-				availability = record.id;
-				step = 'time';
-			}).pipe(
-				Effect.ensuring(
-					Effect.sync(() => {
-						busy = false;
-					})
-				)
-			),
-			(failure) => {
-				error = failure._tag === 'ActRefused' ? failure.message : t('app.portal.failed');
 			}
 		);
 	}
@@ -259,45 +244,31 @@
 			quoted?.status !== 'ready'
 		)
 			return;
-		busy = true;
-		error = null;
-		fork(
-			Effect.gen(function* () {
-				const outcome = yield* ctx.act({
-					'booking_requests.create': [
-						{
-							availability: selectedAvailability,
-							name: name.trim(),
-							phone,
-							address: address.trim(),
-							service: selectedService,
-							start: selectedStart,
-							repeat,
-							...(notes.trim() === '' ? {} : { notes: notes.trim() })
-						}
-					]
-				});
-				// past the person-wait the request runs on: its run reports the outcome
-				if (outcome.kind === 'running') return notify_outcome(ctx, outcome);
-				const record =
-					outcome.kind === 'committed'
-						? outcome.records.find((record) => record.model === 'booking_requests')
-						: undefined;
-				if (record === undefined) {
-					error = t('app.portal.failed');
-					return;
+		save.run(
+			ctx.act({
+				'booking_requests.create': [
+					{
+						availability: selectedAvailability,
+						name: name.trim(),
+						phone,
+						address: address.trim(),
+						service: selectedService,
+						start: selectedStart,
+						repeat,
+						...(notes.trim() === '' ? {} : { notes: notes.trim() })
+					}
+				]
+			}),
+			{
+				then: (outcome) => {
+					const record =
+						outcome.kind === 'committed'
+							? outcome.records.find((r) => r.model === 'booking_requests')
+							: undefined;
+					if (record === undefined) return;
+					request = record.id;
+					step = 'done';
 				}
-				request = record.id;
-				step = 'done';
-			}).pipe(
-				Effect.ensuring(
-					Effect.sync(() => {
-						busy = false;
-					})
-				)
-			),
-			(failure) => {
-				error = failure._tag === 'ActRefused' ? failure.message : t('app.portal.failed');
 			}
 		);
 	}
@@ -428,9 +399,8 @@
 								bind:value={notes}
 							/>
 						</Section>
-						{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
-						<Button size="lg" class="w-full" disabled={!ready || busy} onclick={chooseTime}>
-							{#if busy}<Spinner class="size-4" />{/if}{t('app.portal.choose_time')}
+						<Button size="lg" class="w-full" disabled={!ready || save.pending} onclick={chooseTime}>
+							{#if save.pending}<Spinner class="size-4" />{/if}{t('app.portal.choose_time')}
 						</Button>
 					</Stack>
 				{/if}
@@ -457,15 +427,14 @@
 					{#if quoted?.estimated}<p class="text-caption">
 							{t('app.booking.travel_estimated')}
 						</p>{/if}
-					{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 					<Stack gap="sm">
 						<Button
 							size="lg"
 							class="w-full"
-							disabled={start === null || busy || quoted?.status !== 'ready'}
+							disabled={start === null || save.pending || quoted?.status !== 'ready'}
 							onclick={confirm}
 						>
-							{#if busy}<Spinner class="h-4 w-4" />{/if}{t('app.portal.confirm')}
+							{#if save.pending}<Spinner class="h-4 w-4" />{/if}{t('app.portal.confirm')}
 						</Button>
 						<Button
 							variant="ghost"

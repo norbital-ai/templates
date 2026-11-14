@@ -27,6 +27,15 @@ export default workspace({
 		via: ['phone'],
 		policies: ['customer'],
 		party: { model: 'customers', match: { phone: 'phone' } },
-		challenge: 'turnstile'
+		challenge: true
+	},
+	// rate limits per policy
+	limits: {
+		customer: { read: '300/min', act: '30/h' },
+		dispatch_automation: { act: '600/min', read: '600/min' },
+		helper: { act: '120/min', read: '600/min', agent: '50/h' },
+		helper_shift: { act: '120/min', read: '600/min' },
+		operations: { act: '600/min', read: '600/min', agent: '100/h' },
+		portal_visitor: { read: '120/min' }
 	}
 });

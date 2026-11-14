@@ -48,7 +48,6 @@ export default messages({
 	'app.field_ops_controller.tab_dispatch': '派单排期',
 	'app.field_ops_controller.tab_sites': '工地',
 	'app.field_ops_controller.today': '今天',
-	'app.field_ops_controller.importing': '正在导入…',
 	'app.field_ops_controller.select_dispatch_date': '选择派单日期',
 	'app.field_ops_controller.map_empty': '计划于 {date} 执行的承包商作业均未关联已标注工地。',
 	'app.field_ops_controller.sites_description': '工地信息、即将进行的任务以及已完成活动的证据。',
@@ -127,10 +126,7 @@ export default messages({
 	'app.field_ops_controller.suspicion_review_description':
 		'用 AI 审查所有未检查工作的证据，并记录可疑项。每 15 分钟也会自动运行。',
 	'app.field_ops_controller.import_assignments': '导入',
-	'app.field_ops_controller.import_done': '已从 {file} 导入 {count} 个工作分派。',
-	'app.field_ops_controller.import_empty': '{file} 的表头下没有数据行。',
 	'component.conversation_to_latest': '最新',
-	'app.field_ops_controller.import_failed': '无法确认导入结果；请先查看看板再重新导入。',
 	'app.field_ops_controller.site_handover': '工地移交',
 	'component.shown_to_review_agent': '已提供给审查代理',
 	'component.similar_photo_distance': '距离 {distance}',
@@ -174,5 +170,9 @@ export default messages({
 	'errors.sheet_ref_repeated':
 		'无法导入表格：第 {row} 行（{title}，{site}，{date}）的外部编号 {ref} 重复。',
 	'errors.sheet_site_unlocated':
-		'无法导入表格：第 {row} 行（{title}，{site}，{date}）：新工地需要纬度（-90 至 90）和经度（-180 至 180）。'
+		'无法导入表格：第 {row} 行（{title}，{site}，{date}）：新工地需要纬度（-90 至 90）和经度（-180 至 180）。',
+	'errors.sheet_unreadable': '无法将该文件读取为电子表格或 CSV。',
+	'errors.sheet_size': '表头下需要 1 至 5000 行数据。',
+	'errors.sheet_invalid': '无法导入表格：\n{detail}',
+	'automations.job_assignments_import_work_orders.input.fields.file': '工单表（CSV 或 xlsx）'
 });

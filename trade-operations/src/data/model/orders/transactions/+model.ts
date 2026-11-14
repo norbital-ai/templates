@@ -1,9 +1,6 @@
-import { model } from '../../../../../.norbital/models/transactions.ts';
-import { fromSource } from '../../../../integration/kingdee/polling.js';
 import { BigDecimal, Effect } from 'effect';
 import { logisticsDocument, logisticsOrder } from '../../../../lib/logistics.js';
-import { readTransactions } from '../../../../integration/kingdee/order-source.js';
-import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type CreatedRow, model, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 
 const transactionItems = {
 	kind: 'object',
@@ -156,7 +153,7 @@ const settle = Effect.fnUntraced(function* (
 		}
 	}
 });
-export default model({
+export default model('transactions', {
 	description: 'Issued deliveries and invoices against an order.',
 	record_label: 'record.reference',
 	fields: {
@@ -189,7 +186,7 @@ export default model({
 	indexes: { search: { text: ['reference', 'kind'] } },
 	// the sync alone writes transactions (no local columns); its rows pass through these checks
 	create: {
-		columns: { fields: [] },
+		fields: [],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ after }) => ({ value: after, old: null })),
@@ -199,22 +196,13 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: [] },
+		fields: [],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, after }) => ({ value: after, old: before })),
 				ctx
 			);
 			return changes.map(({ set }) => set);
-		}
-	},
-	syncs: {
-		kingdee: {
-			with: 'kingdee',
-			every: '5min',
-			read: function* ({ cursor, instance }, ctx) {
-				return fromSource(yield* readTransactions(instance, cursor, ctx), instance);
-			}
 		}
 	}
 });

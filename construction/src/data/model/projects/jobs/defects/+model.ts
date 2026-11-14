@@ -1,4 +1,4 @@
-import { model } from '../../../../../../.norbital/models/defects.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'title',
 	'defect_number',
@@ -17,7 +17,7 @@ const columns = [
 	'photos',
 	'resolution_notes'
 ] as const;
-export default model({
+export default model('defects', {
 	description: 'Quality issues and closeout items tracked in project context.',
 	icon: 'lucide:triangle-alert',
 	record_label: 'record.title',
@@ -58,6 +58,6 @@ export default model({
 	constraints: { defect_number: { unique: ['defect_number'] } },
 	indexes: { find: { text: ['title'] } },
 	outputs: { default: { fields: 'all', job_id: { fields: ['job_title'] } } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

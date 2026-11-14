@@ -1,9 +1,5 @@
-import type { AutomationCtx, Duration, Instant, Point, ValueOf } from '@norbital-ai/bolt';
+import type { ImageFacts, Instant, Point, ValueOf } from '@norbital-ai/bolt';
 import * as DateTime from 'effect/DateTime';
-import type * as Effect from 'effect/Effect';
-
-/** What `ctx.files.image(ref)` answers: a cached run's `files.image` has only that overload. */
-type ImageFacts = Effect.Success<ReturnType<AutomationCtx<{ cache: Duration }>['files']['image']>>;
 import { exceedsSiteTolerance } from './geo.js';
 /**
  * The template's photo rules over the host's `ctx.files.image` facts (§5.8.1): the host decodes (JPEG, PNG, HEIC),

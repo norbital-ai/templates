@@ -1,4 +1,4 @@
-import { model } from '../../../../../../.norbital/models/photo_evidence.ts';
+import { model } from '@norbital-ai/bolt';
 import { photoSourceKey, uninspectedPhotoFacts } from '../../../../../lib/photo-integrity.js';
 const PROBE = { vector: { kind: 'number', many: true } } as const;
 /**
@@ -11,7 +11,7 @@ const PROBE = { vector: { kind: 'number', many: true } } as const;
  * assignment's update, whose `job_assignments.photo_evidence` layer states the message `source`. Provenance (the file, the
  * parent, the source and its key) never changes; the facts may. The indexes read the vectors the review writes (image facts need the host).
  */
-export default model({
+export default model('photo_evidence', {
 	description:
 		'One explicitly selected photo and its deterministic integrity facts, linked to one job assignment. Flags and similarity are evidence for a later AI or human judgement, never suspicion by themselves.',
 	icon: 'lucide:scan-search',
@@ -92,7 +92,7 @@ export default model({
 		contractor: { fields: ['job_assignment_id', 'photo', 'source'] }
 	},
 	create: {
-		columns: { fields: ['job_assignment_id', 'photo'] },
+		fields: ['job_assignment_id', 'photo'],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
 			const orphan = rows.findIndex((row) => row.job_assignment_id == null);
@@ -116,18 +116,16 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'sha256',
-				'inspection_failed_at',
-				'inspection_failure_reason',
-				'inspection_claimed_at',
-				'perceptual_embedding',
-				'scene_embedding',
-				'flags',
-				'matched_evidence_ids'
-			]
-		}
+		fields: [
+			'sha256',
+			'inspection_failed_at',
+			'inspection_failure_reason',
+			'inspection_claimed_at',
+			'perceptual_embedding',
+			'scene_embedding',
+			'flags',
+			'matched_evidence_ids'
+		]
 	},
 	delete: {}
 });

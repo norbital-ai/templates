@@ -1,4 +1,4 @@
--- 0001_initial.sql: 309 step(s), from an empty database to 88f2de9850c166bf0d699f656df6f1119402f17cb206fae867d0eed6786a107a.
+-- 0001_initial.sql: 302 step(s), from an empty database to ba46a6f4c7995437d7373e951d41f5287dd007fb32f271b75ced7b14b4c70f67.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -126,8 +126,7 @@ begin
 			float_value := (value #>> '{}')::double precision;
 			return float_value not in ('NaN'::double precision,'Infinity'::double precision,'-Infinity'::double precision);
 		end if;
-		text_value := case when shape = 'object' and jsonb_typeof(value->'$dec') = 'string' then value->>'$dec'
-			when shape = 'string' then value #>> '{}' else null end;
+		text_value := case when shape = 'string' then value #>> '{}' else null end;
 		return coalesce(text_value ~ '^-?[0-9]+(\.[0-9]+)?$',false);
 	when 'seq' then
 		return case when spec ? 'pattern' then shape = 'string' else store_json_valid(value,'{"kind":"int"}'::jsonb) end;
@@ -178,28 +177,26 @@ declare
 	state_name text;
 	state_spec jsonb;
 	state_rule jsonb;
-	field_name text;
-	columns jsonb;
 	column_name text;
-	parent jsonb;
-	parent_id jsonb;
-	parent_row jsonb;
 	trusted boolean;
-	locked_rule jsonb;
-	locked boolean;
 	stamp_name text;
-	stamped jsonb := '[]'::jsonb;
 	stamps jsonb := '{}'::jsonb;
-	anonymised jsonb := '[]'::jsonb;
 	at_time timestamptz;
 begin
 	if mode not in ('write', 'seed', 'restore') or
 		(context is not null and jsonb_typeof(context) <> 'object') then
 		raise exception 'invalid native write context' using errcode = '22023';
 	end if;
-	trusted := mode in ('seed', 'restore');
-	if tg_op <> 'INSERT' then before_row := to_jsonb(old); end if;
-	if tg_op <> 'DELETE' then after_row := to_jsonb(new); end if;
+	-- a restore trusts only the rows it restores (`rows`: '<table>/<id>'); the statement's other rows keep their rules
+	trusted := mode = 'seed';
+	if mode = 'restore' then
+		trusted := coalesce(context->'rows' ? (tg_table_name || '/' || (coalesce(to_jsonb(new), to_jsonb(old))->>'id')), false);
+	end if;
+	-- whole-row JSON only where a key or state is compared: a plain insert or delete reads none
+	if tg_op = 'UPDATE' or (tg_op = 'INSERT' and rules->'states' <> '{}'::jsonb) then
+		if tg_op = 'UPDATE' then before_row := to_jsonb(old); end if;
+		after_row := to_jsonb(new);
+	end if;
 	if tg_op = 'UPDATE' then
 		for column_name in select jsonb_array_elements_text(rules->'key') loop
 			if before_row->column_name is distinct from after_row->column_name then
@@ -215,7 +212,6 @@ begin
 				stamp_name := state_spec->'states'->(after_row->>state_name)->>'stamp';
 				if stamp_name is not null then
 					after_row := jsonb_set(after_row, array[stamp_name], to_jsonb(at_time), true);
-					stamped := stamped || jsonb_build_array(stamp_name);
 					stamps := stamps || jsonb_build_object(stamp_name, to_jsonb(at_time));
 				end if;
 			end if;
@@ -236,50 +232,6 @@ begin
 						using errcode = '23514', column = state_name;
 				end if;
 			end if;
-		end loop;
-		if tg_op in ('DELETE', 'UPDATE') then
-			for locked_rule in select value from jsonb_array_elements(rules->'locks') loop
-				execute format('select coalesce((%s),false) from jsonb_populate_record(null::%I.%I,$1) t',
-					locked_rule->>'sql', tg_table_schema, tg_table_name) into locked using before_row;
-				if not locked then continue; end if;
-				if tg_op = 'DELETE' then
-					raise exception 'record is locked by %', locked_rule->>'name' using errcode = '23514', column = 'id', constraint = locked_rule->>'constraint';
-				end if;
-				if to_regprocedure(format('%I.%I(text,text)', tg_table_schema, 'store_anonymise_fields')) is not null then
-					execute format('select %I.%I($1,$2)', tg_table_schema, 'store_anonymise_fields')
-						into anonymised using tg_table_name, after_row->>'id';
-				end if;
-				for field_name, columns in select key, value from jsonb_each(rules->'fields') loop
-					if locked_rule->'except' ? field_name or stamped ? field_name or anonymised ? field_name then continue; end if;
-					for column_name in select jsonb_array_elements_text(columns) loop
-						if before_row->column_name is distinct from after_row->column_name then
-							raise exception '% is locked by %', field_name, locked_rule->>'name'
-								using errcode = '23514', column = field_name, constraint = locked_rule->>'constraint';
-						end if;
-					end loop;
-				end loop;
-			end loop;
-		end if;
-		for parent in select value from jsonb_array_elements(rules->'parents') loop
-			for parent_id in
-				select distinct value from jsonb_array_elements(jsonb_build_array(
-					before_row->(parent->>'column'), after_row->(parent->>'column')
-				)) where value <> 'null'::jsonb order by value
-			loop
-				execute format('select to_jsonb(p) from %I.%I p where p.%I = $1::%s for share',
-					tg_table_schema, parent->>'table', parent->>'key', parent->>'type')
-					into parent_row using parent_id #>> '{}';
-				if parent_row is null then continue; end if;
-				for locked_rule in select value from jsonb_array_elements(parent->'locks') loop
-					if locked_rule->'except' ? (parent->>'relation') then continue; end if;
-					execute format('select coalesce((%s),false) from jsonb_populate_record(null::%I.%I,$1) t',
-						locked_rule->>'sql', tg_table_schema, parent->>'table') into locked using parent_row;
-					if locked then
-						raise exception 'relation % is locked by %', parent->>'relation', locked_rule->>'name'
-							using errcode = '23514', column = parent->>'column', constraint = locked_rule->>'constraint';
-					end if;
-				end loop;
-			end loop;
 		end loop;
 	end if;
 	if coalesce((rules->>'audit')::boolean, false) and tg_op <> 'DELETE' then
@@ -310,6 +262,89 @@ begin
 	end if;
 	if tg_op = 'DELETE' then return old; end if;
 	return new;
+end;
+$store_rules$;
+
+-- step create:function:store_statement_rules (additive)
+create or replace function store_statement_rules() returns trigger language plpgsql as $store_rules$
+declare
+	rules jsonb := tg_argv[0]::jsonb;
+	context jsonb := nullif(current_setting('store.write', true), '')::jsonb;
+	pairs text;
+	locked_rule jsonb;
+	before_row jsonb;
+	after_row jsonb;
+	state_name text;
+	state_spec jsonb;
+	stamp_name text;
+	stamped jsonb;
+	anonymised jsonb;
+	field_name text;
+	columns jsonb;
+	column_name text;
+	parent jsonb;
+	ids text;
+	locked boolean;
+	trusted jsonb := case when context->>'mode' = 'restore' then coalesce(context->'rows', '[]'::jsonb) else '[]'::jsonb end;
+begin
+	if coalesce(context->>'mode', 'write') = 'seed' then return null; end if;
+	if tg_op <> 'INSERT' then
+		select string_agg(format('o.%I = n.%I', k, k), ' and ') into pairs from jsonb_array_elements_text(rules->'key') k;
+		for locked_rule in select value from jsonb_array_elements(rules->'locks') loop
+			for before_row, after_row in execute format(
+				'select to_jsonb(o), %s from store_old o %s cross join lateral jsonb_populate_record(null::%I.%I, to_jsonb(o)) t where coalesce((%s), false) and not $1 ? (%L || ''/'' || (to_jsonb(o)->>''id''))',
+				case when tg_op = 'UPDATE' then 'to_jsonb(n)' else 'null::jsonb' end,
+				case when tg_op = 'UPDATE' then 'join store_new n on ' || pairs else '' end,
+				tg_table_schema, tg_table_name, locked_rule->>'sql', tg_table_name) using trusted
+			loop
+				if tg_op = 'DELETE' then
+					raise exception 'record is locked by %', locked_rule->>'name' using errcode = '23514', column = 'id', constraint = locked_rule->>'constraint';
+				end if;
+				stamped := '[]'::jsonb;
+				for state_name, state_spec in select key, value from jsonb_each(rules->'states') loop
+					stamp_name := state_spec->'states'->(after_row->>state_name)->>'stamp';
+					if before_row->state_name is distinct from after_row->state_name and stamp_name is not null then
+						stamped := stamped || jsonb_build_array(stamp_name);
+					end if;
+				end loop;
+				anonymised := null;
+				for field_name, columns in select key, value from jsonb_each(rules->'fields') loop
+					if locked_rule->'except' ? field_name or stamped ? field_name then continue; end if;
+					for column_name in select jsonb_array_elements_text(columns) loop
+						if before_row->column_name is distinct from after_row->column_name then
+							if anonymised is null then
+								anonymised := '[]'::jsonb;
+								if to_regprocedure(format('%I.%I(text,text)', tg_table_schema, 'store_anonymise_fields')) is not null then
+									execute format('select %I.%I($1,$2)', tg_table_schema, 'store_anonymise_fields')
+										into anonymised using tg_table_name, after_row->>'id';
+								end if;
+							end if;
+							exit when anonymised ? field_name;
+							raise exception '% is locked by %', field_name, locked_rule->>'name'
+								using errcode = '23514', column = field_name, constraint = locked_rule->>'constraint';
+						end if;
+					end loop;
+				end loop;
+			end loop;
+		end loop;
+	end if;
+	for parent in select value from jsonb_array_elements(rules->'parents') loop
+		ids := format('select v::%s from (%s) s where v is not null', parent->>'type', concat_ws(' union ',
+			case when tg_op <> 'INSERT' then format('select %I::text v from store_old r where not $1 ? (%L || ''/'' || (to_jsonb(r)->>''id''))', parent->>'column', tg_table_name) end,
+			case when tg_op <> 'DELETE' then format('select %I::text v from store_new r where not $1 ? (%L || ''/'' || (to_jsonb(r)->>''id''))', parent->>'column', tg_table_name) end));
+		execute format('select 1 from %I.%I p where p.%I in (%s) order by p.%I for share',
+			tg_table_schema, parent->>'table', parent->>'key', ids, parent->>'key') using trusted;
+		for locked_rule in select value from jsonb_array_elements(parent->'locks') loop
+			execute format('select exists(select 1 from %I.%I p cross join lateral jsonb_populate_record(null::%I.%I, to_jsonb(p)) t where p.%I in (%s) and coalesce((%s), false))',
+				tg_table_schema, parent->>'table', tg_table_schema, parent->>'table', parent->>'key', ids, locked_rule->>'sql')
+				into locked using trusted;
+			if locked then
+				raise exception 'relation % is locked by %', parent->>'relation', locked_rule->>'name'
+					using errcode = '23514', column = parent->>'column', constraint = locked_rule->>'constraint';
+			end if;
+		end loop;
+	end loop;
+	return null;
 end;
 $store_rules$;
 
@@ -536,15 +571,15 @@ create function "bolt_record_label_certification_types_55a9d530"(text) returns t
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['certification_name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('certification_name', to_jsonb("certification_name")) AS j FROM (SELECT $1 AS "certification_name") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_projects_ad9256b5 (additive)
-create function "bolt_record_label_projects_ad9256b5"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_projects_20ce88de (additive)
+create function "bolt_record_label_projects_20ce88de"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (to_jsonb((SELECT coalesce(string_agg(label_1.value #>> '{}', (to_jsonb(' · '::text) #>> '{}') ORDER BY label_1.ord), '') FROM jsonb_array_elements((SELECT coalesce(jsonb_agg(label_0.value ORDER BY label_0.ord) FILTER (WHERE (CASE WHEN jsonb_typeof(to_jsonb((label_0.value <> to_jsonb(''::text)))) = 'boolean' THEN (to_jsonb((label_0.value <> to_jsonb(''::text))) #>> '{}') END)::boolean), '[]'::jsonb) FROM jsonb_array_elements(jsonb_build_array((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) #>> '{}')) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb(''::text) ELSE 'null'::jsonb END), (CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['project_name']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['project_name']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN to_jsonb((coalesce((label_row.j #> ARRAY['project_name']), 'null'::jsonb) #>> '{}')) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['project_name']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['project_name']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb(''::text) ELSE 'null'::jsonb END))) WITH ORDINALITY label_0(value, ord))) WITH ORDINALITY label_1(value, ord))) #>> '{}') AS value FROM (SELECT jsonb_build_object('project_number', to_jsonb("project_number"), 'project_name', to_jsonb("project_name")) AS j FROM (SELECT $1 AS "project_name", $2 AS "project_number") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value) label_0) AS left_value, coalesce((label_row.j #> ARRAY['project_name']), 'null'::jsonb) AS right_value) label_1) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['project_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN coalesce((label_row.j #> ARRAY['project_name']), 'null'::jsonb) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('project_number', to_jsonb("project_number"), 'project_name', to_jsonb("project_name")) AS j FROM (SELECT $1 AS "project_name", $2 AS "project_number") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_record_label_asset_documents_06f5fc13 (additive)
 create function "bolt_record_label_asset_documents_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -586,36 +621,6 @@ create function "bolt_record_label_defects_06f5fc13"(text) returns text language
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_job_assignments_6dd9c366 (additive)
-create function "bolt_record_label_job_assignments_6dd9c366"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['assignment_code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('assignment_code', to_jsonb("assignment_code")) AS j FROM (SELECT $1 AS "assignment_code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_jobs_certification_typ_93340fdd (additive)
-create function "bolt_record_label_jobs_certification_typ_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_jobs_site_locations_93340fdd (additive)
-create function "bolt_record_label_jobs_site_locations_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
-
 -- step create:function:bolt_record_label_payment_claims_3ecd7377 (additive)
 create function "bolt_record_label_payment_claims_3ecd7377"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
@@ -636,26 +641,6 @@ create function "bolt_record_label_permits_to_work_e2445a92"(text) returns text 
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['permit_number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('permit_number', to_jsonb("permit_number")) AS j FROM (SELECT $1 AS "permit_number") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_permits_to_work_certif_93340fdd (additive)
-create function "bolt_record_label_permits_to_work_certif_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_permits_to_work_worker_93340fdd (additive)
-create function "bolt_record_label_permits_to_work_worker_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
-
 -- step create:function:bolt_record_label_rfis_06f5fc13 (additive)
 create function "bolt_record_label_rfis_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
@@ -666,25 +651,25 @@ create function "bolt_record_label_rfis_06f5fc13"(text) returns text language sq
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_site_locations_604354fe (additive)
-create function "bolt_record_label_site_locations_604354fe"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_site_locations_b8c81273 (additive)
+create function "bolt_record_label_site_locations_b8c81273"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (to_jsonb((SELECT coalesce(string_agg(label_1.value #>> '{}', (to_jsonb(' · '::text) #>> '{}') ORDER BY label_1.ord), '') FROM jsonb_array_elements((SELECT coalesce(jsonb_agg(label_0.value ORDER BY label_0.ord) FILTER (WHERE (CASE WHEN jsonb_typeof(to_jsonb((label_0.value <> to_jsonb(''::text)))) = 'boolean' THEN (to_jsonb((label_0.value <> to_jsonb(''::text))) #>> '{}') END)::boolean), '[]'::jsonb) FROM jsonb_array_elements(jsonb_build_array((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) #>> '{}')) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb(''::text) ELSE 'null'::jsonb END), (CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['location_name']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['location_name']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN to_jsonb((coalesce((label_row.j #> ARRAY['location_name']), 'null'::jsonb) #>> '{}')) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['location_name']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['location_name']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb(''::text) ELSE 'null'::jsonb END))) WITH ORDINALITY label_0(value, ord))) WITH ORDINALITY label_1(value, ord))) #>> '{}') AS value FROM (SELECT jsonb_build_object('location_code', to_jsonb("location_code"), 'location_name', to_jsonb("location_name")) AS j FROM (SELECT $1 AS "location_code", $2 AS "location_name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value) label_0) AS left_value, coalesce((label_row.j #> ARRAY['location_name']), 'null'::jsonb) AS right_value) label_1) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['location_code']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN coalesce((label_row.j #> ARRAY['location_name']), 'null'::jsonb) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('location_code', to_jsonb("location_code"), 'location_name', to_jsonb("location_name")) AS j FROM (SELECT $1 AS "location_code", $2 AS "location_name") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_workers_9880e3e2 (additive)
-create function "bolt_record_label_workers_9880e3e2"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_workers_e447ce69 (additive)
+create function "bolt_record_label_workers_e447ce69"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (to_jsonb((SELECT coalesce(string_agg(label_1.value #>> '{}', (to_jsonb(' · '::text) #>> '{}') ORDER BY label_1.ord), '') FROM jsonb_array_elements((SELECT coalesce(jsonb_agg(label_0.value ORDER BY label_0.ord) FILTER (WHERE (CASE WHEN jsonb_typeof(to_jsonb((label_0.value <> to_jsonb(''::text)))) = 'boolean' THEN (to_jsonb((label_0.value <> to_jsonb(''::text))) #>> '{}') END)::boolean), '[]'::jsonb) FROM jsonb_array_elements(jsonb_build_array((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) #>> '{}')) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb(''::text) ELSE 'null'::jsonb END), (CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['worker_name']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['worker_name']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN to_jsonb((coalesce((label_row.j #> ARRAY['worker_name']), 'null'::jsonb) #>> '{}')) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['worker_name']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['worker_name']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb(''::text) ELSE 'null'::jsonb END))) WITH ORDINALITY label_0(value, ord))) WITH ORDINALITY label_1(value, ord))) #>> '{}') AS value FROM (SELECT jsonb_build_object('worker_number', to_jsonb("worker_number"), 'worker_name', to_jsonb("worker_name")) AS j FROM (SELECT $1 AS "worker_name", $2 AS "worker_number") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value) label_0) AS left_value, coalesce((label_row.j #> ARRAY['worker_name']), 'null'::jsonb) AS right_value) label_1) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['worker_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN coalesce((label_row.j #> ARRAY['worker_name']), 'null'::jsonb) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('worker_number', to_jsonb("worker_number"), 'worker_name', to_jsonb("worker_name")) AS j FROM (SELECT $1 AS "worker_name", $2 AS "worker_number") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_minor_units (additive)
 create or replace function bolt_minor_units(c text) returns int language sql immutable parallel safe as $$ select case when c in ('BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW', 'PYG', 'RWF', 'UGX', 'UYI', 'VND', 'VUV', 'XAF', 'XOF', 'XPF') then 0 when c in ('BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND') then 3 when c in ('CLF', 'UYW') then 4 else 2 end $$;
@@ -914,9 +899,9 @@ create table "sys_conversation" ("id" text primary key,
 	"outputs" jsonb default '[]'::jsonb not null,
 	"status" text default 'idle'::text not null,
 	"lease_until" timestamptz,
+	"archived_at" timestamptz,
 	"model" text default 'default'::text not null,
 	"plan" jsonb,
-	"goals" jsonb,
 	"read" jsonb default '{}'::jsonb not null,
 	"revision" int default '1'::int not null,
 	"updated_at" timestamptz default (now()) not null,
@@ -928,8 +913,8 @@ create table "sys_conversation" ("id" text primary key,
 	constraint "sys_conversation__ck__cc931632" check (("inputs" is null or store_json_valid("inputs", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__44b2543d" check (("outputs" is null or store_json_valid("outputs", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__13b8fb0a" check (isfinite("lease_until")),
+	constraint "sys_conversation__ck__fe05365b" check (isfinite("archived_at")),
 	constraint "sys_conversation__ck__14aaee8f" check (("plan" is null or store_json_valid("plan", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_conversation__ck__85277cdf" check (("goals" is null or store_json_valid("goals", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_conversation__ck__56b593d1" check (("read" is null or store_json_valid("read", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -1185,6 +1170,7 @@ create table "sys_run" ("id" text primary key,
 	"actor" text,
 	"starter" jsonb,
 	"trigger" jsonb,
+	"wait" jsonb,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_run_09f15580"("automation")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_run_09f15580"("automation"), ''))) stored,
 	constraint "sys_run__ck__fcb01943" check (("input" is null or store_json_valid("input", '{"kind":"json"}'::jsonb) is true)),
@@ -1197,6 +1183,7 @@ create table "sys_run" ("id" text primary key,
 	constraint "sys_run__ck__f38716e4" check (("results" is null or store_json_valid("results", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__20970459" check (("starter" is null or store_json_valid("starter", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_run__ck__f6780d31" check (("wait" is null or store_json_valid("wait", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__uq__f1a22a1c" unique ("key")
 );
 
@@ -1273,6 +1260,8 @@ create table "sys_user" ("id" text primary key,
 	"party" jsonb,
 	"phone" text,
 	"telegram" text,
+	"slack" text,
+	"discord" text,
 	"revision" int default '1'::int not null,
 	"created_at" timestamptz default (now()) not null,
 	"last_seen" timestamptz,
@@ -1319,8 +1308,10 @@ create table "projects" ("id" uuid primary key, revision int not null default 1,
 	"address" jsonb,
 	"project_manager" text,
 	"description" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_projects_ad9256b5"("project_name", "project_number")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_projects_ad9256b5"("project_name", "project_number"), '') || ' ' || coalesce("project_name"::text, '') || ' ' || coalesce("project_number"::text, ''))) stored,
+	"site_location_count" int default 0 not null,
+	"document_count" int default 0 not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_projects_20ce88de"("project_name", "project_number")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_projects_20ce88de"("project_name", "project_number"), '') || ' ' || coalesce("project_name"::text, '') || ' ' || coalesce("project_number"::text, ''))) stored,
 	constraint "projects__ck__158c37ce" check ("status" in ('planned', 'active', 'on_hold', 'complete', 'cancelled')),
 	constraint "projects__ck__b6684727" check (not isempty("schedule_range") and not lower_inf("schedule_range")),
 	constraint "projects__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
@@ -1339,6 +1330,7 @@ create table "asset_documents" ("id" uuid primary key, revision int not null def
 	"status" text,
 	"validity_range" daterange,
 	"document_url" text,
+	"document_file" jsonb,
 	"version" text,
 	"tags" text[],
 	"bolt_record_label" text generated always as ("bolt_record_label_asset_documents_06f5fc13"("title")) stored,
@@ -1349,6 +1341,7 @@ create table "asset_documents" ("id" uuid primary key, revision int not null def
 	constraint "asset_documents__ck__56cbf9f7" check ("asset_category" in ('bim_model', 'handover', 'operations')),
 	constraint "asset_documents__ck__08fbede8" check ("status" in ('draft', 'in_review', 'issued', 'superseded', 'archived')),
 	constraint "asset_documents__ck__ee5ea8e4" check (not isempty("validity_range") and not lower_inf("validity_range")),
+	constraint "asset_documents__ck__09c57de9" check (("document_file" is null or store_json_valid("document_file", '{"accept":["*/*"],"kind":"file","max":"50MiB","optional":true}'::jsonb) is true)),
 	constraint "asset_documents__ck__fa91f7e0" check (not jsonb_path_exists(to_jsonb("tags"), 'strict $[*] ? (@.type() != "string")')),
 	constraint "asset_documents__uq__d3c8108e" unique ("document_number") deferrable initially immediate
 );
@@ -1437,8 +1430,7 @@ create table "job_assignments" ("id" uuid primary key, revision int not null def
 	"status" text,
 	"hours_per_day" numeric,
 	"required_certifications" text[],
-	"bolt_record_label" text generated always as ("bolt_record_label_job_assignments_6dd9c366"("assignment_code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_job_assignments_6dd9c366"("assignment_code"), '') || ' ' || coalesce("assignment_code"::text, ''))) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("assignment_code"::text, ''))) stored,
 	"worker_id" uuid not null,
 	"job_id" uuid,
 	"site_location_id" uuid not null,
@@ -1450,18 +1442,12 @@ create table "job_assignments" ("id" uuid primary key, revision int not null def
 
 -- step create:table:jobs_certification_types (additive)
 create table "jobs_certification_types" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"name" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_jobs_certification_typ_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_jobs_certification_typ_93340fdd"("name"), ''))) stored,
 	"job_id" uuid not null,
 	"certification_type_id" uuid not null
 );
 
 -- step create:table:jobs_site_locations (additive)
 create table "jobs_site_locations" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"name" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_jobs_site_locations_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_jobs_site_locations_93340fdd"("name"), ''))) stored,
 	"job_id" uuid not null,
 	"site_location_id" uuid not null
 );
@@ -1524,18 +1510,12 @@ create table "permits_to_work" ("id" uuid primary key, revision int not null def
 
 -- step create:table:permits_to_work_certification_types (additive)
 create table "permits_to_work_certification_types" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"name" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_permits_to_work_certif_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_permits_to_work_certif_93340fdd"("name"), ''))) stored,
 	"permits_to_work_id" uuid not null,
 	"certification_type_id" uuid not null
 );
 
 -- step create:table:permits_to_work_workers (additive)
 create table "permits_to_work_workers" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"name" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_permits_to_work_worker_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_permits_to_work_worker_93340fdd"("name"), ''))) stored,
 	"permits_to_work_id" uuid not null,
 	"worker_id" uuid not null
 );
@@ -1577,8 +1557,8 @@ create table "site_locations" ("id" uuid primary key, revision int not null defa
 	"description" text,
 	"coordinates" jsonb,
 	"bim_model_element_id" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_site_locations_604354fe"("location_code", "location_name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_site_locations_604354fe"("location_code", "location_name"), '') || ' ' || coalesce("location_code"::text, '') || ' ' || coalesce("location_name"::text, ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_site_locations_b8c81273"("location_code", "location_name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_site_locations_b8c81273"("location_code", "location_name"), '') || ' ' || coalesce("location_code"::text, '') || ' ' || coalesce("location_name"::text, ''))) stored,
 	"project_id" uuid,
 	"parent_location_id" uuid,
 	constraint "site_locations__ck__c5efa9b8" check (("coordinates" is null or store_json_valid("coordinates", '{"kind":"custom","of":"site_coordinates","optional":true}'::jsonb) is true)),
@@ -1599,8 +1579,8 @@ create table "workers" ("id" uuid primary key, revision int not null default 1, 
 	"work_permit_expiry" date,
 	"medical_check_date" date,
 	"safety_induction_date" date,
-	"bolt_record_label" text generated always as ("bolt_record_label_workers_9880e3e2"("worker_name", "worker_number")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_workers_9880e3e2"("worker_name", "worker_number"), '') || ' ' || coalesce("worker_name"::text, '') || ' ' || coalesce("worker_number"::text, ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_workers_e447ce69"("worker_name", "worker_number")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_workers_e447ce69"("worker_name", "worker_number"), '') || ' ' || coalesce("worker_name"::text, '') || ' ' || coalesce("worker_number"::text, ''))) stored,
 	constraint "workers__ck__27bee027" check ("status" in ('active', 'inactive', 'suspended')),
 	constraint "workers__ck__5d4c81c7" check (("emergency_contact" is null or store_json_valid("emergency_contact", '{"kind":"custom","of":"emergency_contact","optional":true}'::jsonb) is true)),
 	constraint "workers__ck__01e02f9e" check (isfinite("date_of_birth")),
@@ -1644,7 +1624,7 @@ select bolt_history_register('approval_request','{"fields":{"action":{"kind":"en
 select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text"},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name","unique":[{"fields":["prefix"],"name":"prefix"}]}'::jsonb);
 
 -- step create:history:schema:sys_conversation (additive)
-select bolt_history_register('sys_conversation','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"goals":{"kind":"json","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
+select bolt_history_register('sys_conversation','{"fields":{"archived_at":{"kind":"instant","optional":true},"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
 
 -- step create:history:schema:sys_envoy (additive)
 select bolt_history_register('sys_envoy','{"fields":{"active":{"default":true,"kind":"bool"},"audience":{"default":"private","kind":"enum","values":["private","public"]},"created_at":{"default":{"var":"now"},"kind":"instant"},"delegation":{"default":"disabled","kind":"enum","values":["enabled","disabled"]},"dm":{"default":"union","kind":"enum","values":["union","envoy"]},"group_messages":{"default":"mention_or_reply","kind":"enum","values":["disabled","mention_or_reply","all"]},"name":{"kind":"text"},"policies":{"default":[],"kind":"text","many":true},"revision":{"default":1,"kind":"int"},"task":{"default":"","format":"markdown","kind":"text"},"triage":{"default":false,"kind":"bool"},"triage_scope":{"default":"all","hidden":true,"kind":"enum","values":["dm","group","all"]}},"key":"uuid","record_label":"record.name"}'::jsonb);
@@ -1659,16 +1639,16 @@ select bolt_history_register('sys_integration','{"fields":{"active":{"default":t
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
 
 -- step create:history:schema:sys_user (additive)
-select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:certification_types (additive)
 select bolt_history_register('certification_types','{"audit":true,"fields":{"category":{"kind":"text","optional":true},"certification_code":{"kind":"text","optional":true},"certification_name":{"kind":"text"},"description":{"kind":"text","optional":true},"issuing_body":{"kind":"text","optional":true},"requirements":{"kind":"text","many":true,"optional":true},"requires_refresher":{"kind":"bool","optional":true},"validity_period_months":{"kind":"decimal","optional":true,"scale":2}},"record_label":"record.certification_name","search":{"text":["certification_name"]},"unique":[{"fields":["certification_code"],"name":"certification_code"}]}'::jsonb);
 
 -- step create:history:schema:projects (additive)
-select bolt_history_register('projects','{"audit":true,"fields":{"address":{"kind":"custom","of":"project_address","optional":true},"client":{"kind":"text","optional":true},"contract_value":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"main_contractor":{"kind":"text","optional":true},"project_manager":{"kind":"text","optional":true},"project_name":{"kind":"text"},"project_number":{"kind":"text","optional":true},"project_type":{"kind":"text","optional":true},"schedule_range":{"kind":"period","of":"date","optional":true},"status":{"kind":"enum","optional":true,"values":["planned","active","on_hold","complete","cancelled"]}},"record_label":"[record.project_number != null ? string(record.project_number) : '''', record.project_name != null ? string(record.project_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["project_name","project_number"]},"unique":[{"fields":["project_number"],"name":"project_number"}]}'::jsonb);
+select bolt_history_register('projects','{"audit":true,"fields":{"address":{"kind":"custom","of":"project_address","optional":true},"client":{"kind":"text","optional":true},"contract_value":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"document_count":{"kind":"count","of":"asset_documents","where":{"status":{"in":["draft","in_review","issued"]}}},"main_contractor":{"kind":"text","optional":true},"project_manager":{"kind":"text","optional":true},"project_name":{"kind":"text"},"project_number":{"kind":"text","optional":true},"project_type":{"kind":"text","optional":true},"schedule_range":{"kind":"period","of":"date","optional":true},"site_location_count":{"kind":"count","of":"site_locations"},"status":{"kind":"enum","optional":true,"values":["planned","active","on_hold","complete","cancelled"]}},"record_label":"record.project_number != null ? record.project_number + '' · '' + record.project_name : record.project_name","search":{"text":["project_name","project_number"]},"unique":[{"fields":["project_number"],"name":"project_number"}]}'::jsonb);
 
 -- step create:history:schema:asset_documents (additive)
-select bolt_history_register('asset_documents','{"audit":true,"fields":{"asset_category":{"kind":"enum","optional":true,"values":["bim_model","handover","operations"]},"asset_tag":{"kind":"text","optional":true},"document_number":{"kind":"text","optional":true},"document_type":{"kind":"enum","optional":true,"values":["ifc_model","handover_pack","o_and_m","drawing","specification","certificate"]},"document_url":{"kind":"text","optional":true},"project_id":{"inverse":"asset_documents","kind":"ref","optional":true,"to":"projects"},"site_location_id":{"inverse":"asset_documents","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["draft","in_review","issued","superseded","archived"]},"tags":{"kind":"text","many":true,"optional":true},"title":{"kind":"text"},"validity_range":{"kind":"period","of":"date","optional":true},"version":{"kind":"text","optional":true}},"record_label":"record.title","search":{"text":["title"]},"unique":[{"fields":["document_number"],"name":"document_number"}]}'::jsonb);
+select bolt_history_register('asset_documents','{"audit":true,"fields":{"asset_category":{"kind":"enum","optional":true,"values":["bim_model","handover","operations"]},"asset_tag":{"kind":"text","optional":true},"document_file":{"accept":["*/*"],"kind":"file","max":"50MiB","optional":true},"document_number":{"kind":"text","optional":true},"document_type":{"kind":"enum","optional":true,"values":["ifc_model","handover_pack","o_and_m","drawing","specification","certificate"]},"document_url":{"kind":"text","optional":true},"project_id":{"inverse":"asset_documents","kind":"ref","optional":true,"to":"projects"},"site_location_id":{"inverse":"asset_documents","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["draft","in_review","issued","superseded","archived"]},"tags":{"kind":"text","many":true,"optional":true},"title":{"kind":"text"},"validity_range":{"kind":"period","of":"date","optional":true},"version":{"kind":"text","optional":true}},"record_label":"record.title","search":{"text":["title"]},"unique":[{"fields":["document_number"],"name":"document_number"}]}'::jsonb);
 
 -- step create:history:schema:bim_reference_matrix (additive)
 select bolt_history_register('bim_reference_matrix','{"audit":true,"fields":{"bim_guid":{"kind":"text","optional":true},"carbon_unit":{"kind":"text","optional":true},"category":{"kind":"text","optional":true},"currency":{"kind":"currency","optional":true},"data_source":{"kind":"text","optional":true},"embodied_carbon_per_unit":{"kind":"decimal","optional":true,"scale":4},"project_id":{"inverse":"bim_references","kind":"ref","on_delete":"set_null","optional":true,"to":"projects"},"rate":{"currency":"currency","kind":"money","optional":true},"reference_code":{"kind":"text","optional":true},"reference_name":{"kind":"text"},"specification":{"kind":"text","optional":true},"subcategory":{"kind":"text","optional":true},"unit_of_measure":{"kind":"text","optional":true}},"record_label":"record.reference_name","search":{"text":["reference_name"]},"unique":[{"fields":["reference_code"],"name":"reference_code"}]}'::jsonb);
@@ -1680,13 +1660,13 @@ select bolt_history_register('jobs','{"audit":true,"fields":{"bim_reference_id":
 select bolt_history_register('defects','{"audit":true,"fields":{"assigned_to":{"kind":"text","optional":true},"category":{"kind":"text","optional":true},"closed_date":{"kind":"date","optional":true},"defect_number":{"kind":"text","optional":true},"description":{"kind":"text","optional":true},"due_date":{"kind":"date","optional":true},"job_id":{"inverse":"defects","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"photos":{"accept":["image/jpeg","image/png"],"kind":"file","many":true,"max":"20MiB","optional":true},"project_id":{"inverse":"defects","kind":"ref","optional":true,"to":"projects"},"reported_by":{"kind":"text","optional":true},"reported_date":{"kind":"date","optional":true},"resolution_notes":{"kind":"text","optional":true},"severity":{"kind":"enum","optional":true,"values":["low","medium","high","critical"]},"site_location_id":{"inverse":"defects","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["open","in_review","ready_for_closeout","closed"]},"title":{"kind":"text"}},"record_label":"record.title","search":{"text":["title"]},"unique":[{"fields":["defect_number"],"name":"defect_number"}]}'::jsonb);
 
 -- step create:history:schema:job_assignments (additive)
-select bolt_history_register('job_assignments','{"audit":true,"fields":{"assignment_code":{"kind":"text","optional":true},"assignment_range":{"kind":"period","of":"date","optional":true},"hours_per_day":{"kind":"decimal","optional":true,"scale":2},"job_id":{"inverse":"job_assignments","kind":"ref","optional":true,"to":"jobs"},"required_certifications":{"kind":"text","many":true,"optional":true},"role":{"kind":"text","optional":true},"site_location_id":{"inverse":"job_assignments","kind":"ref","to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["assigned","in_progress","completed","cancelled"]},"worker_id":{"inverse":"job_assignments","kind":"ref","to":"workers"}},"record_label":"record.assignment_code","search":{"text":["assignment_code"]}}'::jsonb);
+select bolt_history_register('job_assignments','{"audit":true,"fields":{"assignment_code":{"kind":"text","optional":true},"assignment_range":{"kind":"period","of":"date","optional":true},"hours_per_day":{"kind":"decimal","optional":true,"scale":2},"job_id":{"inverse":"job_assignments","kind":"ref","optional":true,"to":"jobs"},"required_certifications":{"kind":"text","many":true,"optional":true},"role":{"kind":"text","optional":true},"site_location_id":{"inverse":"job_assignments","kind":"ref","to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["assigned","in_progress","completed","cancelled"]},"worker_id":{"inverse":"job_assignments","kind":"ref","to":"workers"}},"record_label":"record.worker_id.worker_name + '' · '' + record.site_location_id.location_name","search":{"text":["assignment_code"]}}'::jsonb);
 
 -- step create:history:schema:jobs_certification_types (additive)
-select bolt_history_register('jobs_certification_types','{"audit":true,"fields":{"certification_type_id":{"inverse":"jobs_certification_types","kind":"ref","to":"certification_types"},"job_id":{"inverse":"jobs_certification_types","kind":"ref","to":"jobs"},"name":{"kind":"text","optional":true}},"record_label":"record.name"}'::jsonb);
+select bolt_history_register('jobs_certification_types','{"audit":true,"fields":{"certification_type_id":{"inverse":"jobs_certification_types","kind":"ref","to":"certification_types"},"job_id":{"inverse":"jobs_certification_types","kind":"ref","to":"jobs"}},"record_label":"record.job_id.job_title + '' · '' + record.certification_type_id.certification_name"}'::jsonb);
 
 -- step create:history:schema:jobs_site_locations (additive)
-select bolt_history_register('jobs_site_locations','{"audit":true,"fields":{"job_id":{"inverse":"jobs_site_locations","kind":"ref","to":"jobs"},"name":{"kind":"text","optional":true},"site_location_id":{"inverse":"jobs_site_locations","kind":"ref","to":"site_locations"}},"record_label":"record.name"}'::jsonb);
+select bolt_history_register('jobs_site_locations','{"audit":true,"fields":{"job_id":{"inverse":"jobs_site_locations","kind":"ref","to":"jobs"},"site_location_id":{"inverse":"jobs_site_locations","kind":"ref","to":"site_locations"}},"record_label":"record.job_id.job_title + '' · '' + record.site_location_id.location_name"}'::jsonb);
 
 -- step create:history:schema:payment_claims (additive)
 select bolt_history_register('payment_claims','{"audit":true,"fields":{"certified_amount":{"currency":"currency","kind":"money","optional":true},"claim_number":{"kind":"text"},"claim_period":{"kind":"period","of":"date","optional":true},"claim_type":{"kind":"enum","optional":true,"values":["progress","variation","final"]},"claimed_amount":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency","optional":true},"description":{"kind":"text","optional":true},"job_id":{"inverse":"payment_claims","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"paid_date":{"kind":"date","optional":true},"project_id":{"inverse":"payment_claims","kind":"ref","optional":true,"to":"projects"},"status":{"kind":"enum","optional":true,"values":["draft","submitted","certified","paid","rejected"]},"submitted_date":{"kind":"date","optional":true},"supporting_documents":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true}},"record_label":"record.claim_number","search":{"text":["claim_number"]},"unique":[{"fields":["claim_number"],"name":"claim_number"}]}'::jsonb);
@@ -1695,19 +1675,19 @@ select bolt_history_register('payment_claims','{"audit":true,"fields":{"certifie
 select bolt_history_register('permits_to_work','{"audit":true,"fields":{"approved_by":{"kind":"text","optional":true},"control_measures":{"kind":"text","many":true,"optional":true},"hazards_identified":{"kind":"text","many":true,"optional":true},"job_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"jobs"},"permit_number":{"kind":"text"},"permit_type":{"kind":"enum","optional":true,"values":["work_at_height","site_supervision","electrical","confined_space","hot_work","lifting","excavation"]},"project_id":{"inverse":"permits_to_work","kind":"ref","optional":true,"to":"projects"},"requested_date":{"kind":"date","optional":true},"signatures":{"kind":"custom","of":"permit_signatures","optional":true},"site_location_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"status":{"kind":"enum","optional":true,"values":["draft","pending","active","expiring_soon","expired","suspended","closed"]},"validity_range":{"kind":"period","of":"date","optional":true},"worker_id":{"inverse":"permits_to_work","kind":"ref","on_delete":"set_null","optional":true,"to":"workers"}},"record_label":"record.permit_number","search":{"text":["permit_number"]},"unique":[{"fields":["permit_number"],"name":"permit_number"}]}'::jsonb);
 
 -- step create:history:schema:permits_to_work_certification_types (additive)
-select bolt_history_register('permits_to_work_certification_types','{"audit":true,"fields":{"certification_type_id":{"inverse":"permits_to_work_certification_types","kind":"ref","to":"certification_types"},"name":{"kind":"text","optional":true},"permits_to_work_id":{"inverse":"permits_to_work_certification_types","kind":"ref","to":"permits_to_work"}},"record_label":"record.name"}'::jsonb);
+select bolt_history_register('permits_to_work_certification_types','{"audit":true,"fields":{"certification_type_id":{"inverse":"permits_to_work_certification_types","kind":"ref","to":"certification_types"},"permits_to_work_id":{"inverse":"permits_to_work_certification_types","kind":"ref","to":"permits_to_work"}},"record_label":"record.permits_to_work_id.permit_number + '' · '' + record.certification_type_id.certification_name"}'::jsonb);
 
 -- step create:history:schema:permits_to_work_workers (additive)
-select bolt_history_register('permits_to_work_workers','{"audit":true,"fields":{"name":{"kind":"text","optional":true},"permits_to_work_id":{"inverse":"permits_to_work_workers","kind":"ref","to":"permits_to_work"},"worker_id":{"inverse":"permits_to_work_workers","kind":"ref","to":"workers"}},"record_label":"record.name"}'::jsonb);
+select bolt_history_register('permits_to_work_workers','{"audit":true,"fields":{"permits_to_work_id":{"inverse":"permits_to_work_workers","kind":"ref","to":"permits_to_work"},"worker_id":{"inverse":"permits_to_work_workers","kind":"ref","to":"workers"}},"record_label":"record.permits_to_work_id.permit_number + '' · '' + record.worker_id.worker_name"}'::jsonb);
 
 -- step create:history:schema:rfis (additive)
 select bolt_history_register('rfis','{"audit":true,"fields":{"answer":{"kind":"text","optional":true},"asked_by":{"kind":"text","optional":true},"assigned_to":{"kind":"text","optional":true},"attachments":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"due_date":{"kind":"date","optional":true},"priority":{"kind":"enum","optional":true,"values":["low","medium","high","critical"]},"project_id":{"inverse":"rfis","kind":"ref","optional":true,"to":"projects"},"question":{"kind":"text","optional":true},"related_defect_id":{"inverse":"related_rfis","kind":"ref","on_delete":"set_null","optional":true,"to":"defects"},"resolved_date":{"kind":"date","optional":true},"rfi_number":{"kind":"text","optional":true},"status":{"kind":"enum","optional":true,"values":["open","answered","closed"]},"subject":{"kind":"text","optional":true},"submitted_date":{"kind":"date","optional":true},"title":{"kind":"text"}},"record_label":"record.title","search":{"text":["title"]},"unique":[{"fields":["rfi_number"],"name":"rfi_number"}]}'::jsonb);
 
 -- step create:history:schema:site_locations (additive)
-select bolt_history_register('site_locations','{"audit":true,"fields":{"bim_model_element_id":{"kind":"text","optional":true},"coordinates":{"kind":"custom","of":"site_coordinates","optional":true},"description":{"kind":"text","optional":true},"grid_reference":{"kind":"text","optional":true},"location_code":{"kind":"text","optional":true},"location_name":{"kind":"text"},"location_type":{"kind":"text","optional":true},"parent_location_id":{"inverse":"child_locations","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"project_id":{"inverse":"site_locations","kind":"ref","optional":true,"to":"projects"}},"record_label":"[record.location_code != null ? string(record.location_code) : '''', record.location_name != null ? string(record.location_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["location_code","location_name"]},"unique":[{"fields":["location_code"],"name":"location_code"}]}'::jsonb);
+select bolt_history_register('site_locations','{"audit":true,"fields":{"bim_model_element_id":{"kind":"text","optional":true},"coordinates":{"kind":"custom","of":"site_coordinates","optional":true},"description":{"kind":"text","optional":true},"grid_reference":{"kind":"text","optional":true},"location_code":{"kind":"text","optional":true},"location_name":{"kind":"text"},"location_type":{"kind":"text","optional":true},"parent_location_id":{"inverse":"child_locations","kind":"ref","on_delete":"set_null","optional":true,"to":"site_locations"},"project_id":{"inverse":"site_locations","kind":"ref","optional":true,"to":"projects"}},"record_label":"record.location_code != null ? record.location_code + '' · '' + record.location_name : record.location_name","search":{"text":["location_code","location_name"]},"unique":[{"fields":["location_code"],"name":"location_code"}]}'::jsonb);
 
 -- step create:history:schema:workers (additive)
-select bolt_history_register('workers','{"audit":true,"fields":{"date_of_birth":{"kind":"date","optional":true},"email":{"kind":"text","optional":true},"emergency_contact":{"kind":"custom","of":"emergency_contact","optional":true},"medical_check_date":{"kind":"date","optional":true},"nationality":{"kind":"text","optional":true},"phone":{"kind":"text","optional":true},"safety_induction_date":{"kind":"date","optional":true},"status":{"kind":"enum","optional":true,"values":["active","inactive","suspended"]},"trade":{"kind":"text","optional":true},"work_permit_expiry":{"kind":"date","optional":true},"worker_name":{"kind":"text"},"worker_number":{"kind":"text","optional":true}},"record_label":"[record.worker_number != null ? string(record.worker_number) : '''', record.worker_name != null ? string(record.worker_name) : ''''].filter(part, part != '''').join('' · '')","search":{"text":["worker_name","worker_number"]},"unique":[{"fields":["worker_number"],"name":"worker_number"}]}'::jsonb);
+select bolt_history_register('workers','{"audit":true,"fields":{"date_of_birth":{"kind":"date","optional":true},"email":{"kind":"text","optional":true},"emergency_contact":{"kind":"custom","of":"emergency_contact","optional":true},"medical_check_date":{"kind":"date","optional":true},"nationality":{"kind":"text","optional":true},"phone":{"kind":"text","optional":true},"safety_induction_date":{"kind":"date","optional":true},"status":{"kind":"enum","optional":true,"values":["active","inactive","suspended"]},"trade":{"kind":"text","optional":true},"work_permit_expiry":{"kind":"date","optional":true},"worker_name":{"kind":"text"},"worker_number":{"kind":"text","optional":true}},"record_label":"record.worker_number != null ? record.worker_number + '' · '' + record.worker_name : record.worker_name","search":{"text":["worker_name","worker_number"]},"unique":[{"fields":["worker_number"],"name":"worker_number"}]}'::jsonb);
 
 -- step create:fk:requestor.requestor__fk__5c80de5d (additive)
 alter table "requestor" add constraint "requestor__fk__5c80de5d" foreign key ("approval_request_id") references "approval_request" ("id") on delete restrict on update restrict;
@@ -1839,7 +1819,7 @@ alter table "site_locations" add constraint "site_locations__fk__dae3478d" forei
 alter table "site_locations" add constraint "site_locations__fk__d7008274" foreign key ("parent_location_id") references "site_locations" ("id") on delete set null on update restrict;
 
 -- step create:trigger:approval_request.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"fields":{"action":["action"],"approver_teams":["approver_teams"],"approver_users":["approver_users"],"closed_at":["closed_at"],"closed_by":["closed_by"],"collection_name":["collection_name"],"created_at":["created_at"],"record_id":["record_id"],"revision":["revision"],"status":["status"],"step":["step"],"step_names":["step_names"],"steps":["steps"],"superseder_teams":["superseder_teams"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:approval_request.approval_request__gin__73732636 (additive)
 create index "approval_request__gin__73732636" on "approval_request" using gin (bolt_search);
@@ -1848,37 +1828,37 @@ create index "approval_request__gin__73732636" on "approval_request" using gin (
 create unique index "approval_request__ux__2e4b03bd" on "approval_request" ("collection_name", "record_id") where ("status" = 'ONGOING'::text);
 
 -- step create:trigger:requestor.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "requestor" for each row execute function store_row_rules('{"audit":false,"fields":{"approval_request_id":["approval_request_id"],"user_id":["user_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "requestor" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:requestor.requestor__gin__73732636 (additive)
 create index "requestor__gin__73732636" on "requestor" using gin (bolt_search);
 
 -- step create:trigger:sys_api_key.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_api_key" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"hash":["hash"],"last_used_at":["last_used_at"],"name":["name"],"prefix":["prefix"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_api_key" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_api_key.sys_api_key__gin__73732636 (additive)
 create index "sys_api_key__gin__73732636" on "sys_api_key" using gin (bolt_search);
 
 -- step create:trigger:sys_challenge.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_challenge" for each row execute function store_row_rules('{"audit":false,"fields":{"address_mac":["address_mac"],"attempts":["attempts"],"code_mac":["code_mac"],"expires_at":["expires_at"]},"key":["address_mac"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_challenge" for each row execute function store_row_rules('{"audit":false,"key":["address_mac"],"states":{}}');
 
 -- step create:index:sys_challenge.sys_challenge__gin__73732636 (additive)
 create index "sys_challenge__gin__73732636" on "sys_challenge" using gin (bolt_search);
 
 -- step create:trigger:sys_config.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_config" for each row execute function store_row_rules('{"audit":false,"fields":{"key":["key"],"value":["value"]},"key":["key"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_config" for each row execute function store_row_rules('{"audit":false,"key":["key"],"states":{}}');
 
 -- step create:index:sys_config.sys_config__gin__73732636 (additive)
 create index "sys_config__gin__73732636" on "sys_config" using gin (bolt_search);
 
 -- step create:trigger:sys_conversation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"envoy":["envoy"],"goals":["goals"],"inputs":["inputs"],"integration":["integration"],"kind":["kind"],"lease_until":["lease_until"],"model":["model"],"outputs":["outputs"],"owner":["owner"],"parent":["parent"],"participants":["participants"],"plan":["plan"],"read":["read"],"restart_at":["restart_at"],"restart_from":["restart_from"],"revision":["revision"],"run":["run"],"status":["status"],"thread":["thread"],"title":["title"],"updated_at":["updated_at"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_conversation.sys_conversation__gin__73732636 (additive)
 create index "sys_conversation__gin__73732636" on "sys_conversation" using gin (bolt_search);
 
 -- step create:trigger:sys_envoy.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"audience":["audience"],"created_at":["created_at"],"delegation":["delegation"],"dm":["dm"],"group_messages":["group_messages"],"name":["name"],"policies":["policies"],"revision":["revision"],"task":["task"],"triage":["triage"],"triage_scope":["triage_scope"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_envoy.sys_envoy__gin__0061abf6 (additive)
 create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
@@ -1887,13 +1867,13 @@ create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
 create index "sys_envoy__gin__73732636" on "sys_envoy" using gin (bolt_search);
 
 -- step create:trigger:sys_file.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"field":["field"],"key":["key"],"mime":["mime"],"name":["name"],"revision":["revision"],"sha256":["sha256"],"size":["size"],"updated_at":["updated_at"],"updated_by":["updated_by"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_file.sys_file__gin__73732636 (additive)
 create index "sys_file__gin__73732636" on "sys_file" using gin (bolt_search);
 
 -- step create:trigger:sys_inbox.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_inbox" for each row execute function store_row_rules('{"audit":false,"fields":{"body":["body"],"consumed_at":["consumed_at"],"delivery":["delivery"],"headers":["headers"],"instance":["instance"],"received_at":["received_at"],"sync":["sync"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_inbox" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_inbox.sys_inbox__gin__73732636 (additive)
 create index "sys_inbox__gin__73732636" on "sys_inbox" using gin (bolt_search);
@@ -1902,7 +1882,7 @@ create index "sys_inbox__gin__73732636" on "sys_inbox" using gin (bolt_search);
 create index "sys_inbox__ix__e6ba37d2" on "sys_inbox" ("sync", "instance", "received_at") where ("consumed_at" is null);
 
 -- step create:trigger:sys_integration.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_integration" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"configuration":["configuration"],"envoy":["envoy"],"epoch":["epoch"],"import_start":["import_start"],"integration":["integration"],"name":["name"],"owner":["owner"],"revision":["revision"],"status":["status"],"updated_at":["updated_at"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_integration" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_integration.sys_integration__gin__73732636 (additive)
 create index "sys_integration__gin__73732636" on "sys_integration" using gin (bolt_search);
@@ -1911,7 +1891,7 @@ create index "sys_integration__gin__73732636" on "sys_integration" using gin (bo
 create unique index "sys_integration__ux__3c46fc6b" on "sys_integration" ("owner", "integration") where ("owner" is not null);
 
 -- step create:trigger:sys_invitation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_invitation" for each row execute function store_row_rules('{"audit":false,"fields":{"accepted_at":["accepted_at"],"email":["email"],"expires_at":["expires_at"],"external":["external"],"invited_by":["invited_by"],"party":["party"],"phone":["phone"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_invitation" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_invitation.sys_invitation__gin__73732636 (additive)
 create index "sys_invitation__gin__73732636" on "sys_invitation" using gin (bolt_search);
@@ -1923,7 +1903,7 @@ create index "sys_invitation__ix__08e69363" on "sys_invitation" (lower("email"))
 create index "sys_invitation__ix__55565b71" on "sys_invitation" ("phone");
 
 -- step create:trigger:sys_message.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_message" for each row execute function store_row_rules('{"audit":false,"fields":{"about":["about"],"addressed":["addressed"],"as":["as"],"attempts":["attempts"],"author":["author"],"claimed_at":["claimed_at"],"content":["content"],"conversation":["conversation"],"copied_from":["copied_from"],"created_at":["created_at"],"deleted_at":["deleted_at"],"delivered_turn":["delivered_turn"],"delivery":["delivery"],"direction":["direction"],"edited_at":["edited_at"],"email":["email"],"epoch":["epoch"],"error":["error"],"integration":["integration"],"invocation":["invocation"],"message":["message"],"meta":["meta"],"mode":["mode"],"next_attempt_at":["next_attempt_at"],"origin":["origin"],"presume_at":["presume_at"],"preview":["preview"],"provider_id":["provider_id"],"read_by":["read_by"],"refused":["refused"],"reply_to":["reply_to"],"role":["role"],"sender":["sender"],"sender_name":["sender_name"],"sent_at":["sent_at"],"seq":["seq"],"source_at":["source_at"],"state":["state"],"status":["status"],"supersedes":["supersedes"],"text":["text"],"thread":["thread"],"turn":["turn"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_message" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_message.sys_message__gin__73732636 (additive)
 create index "sys_message__gin__73732636" on "sys_message" using gin (bolt_search);
@@ -1944,7 +1924,7 @@ create index "sys_message__ix__ddeff634" on "sys_message" ("conversation") where
 create index "sys_message__ix__5c3f70a3" on "sys_message" ("seq") where ("status" in ('queued'::text, 'sending'::text));
 
 -- step create:trigger:sys_notification.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_notification" for each row execute function store_row_rules('{"audit":false,"fields":{"at":["at"],"attachments":["attachments"],"body":["body"],"link":["link"],"member":["member"],"once":["once"],"read_at":["read_at"],"recipient":["recipient"],"title":["title"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_notification" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_notification.sys_notification__gin__73732636 (additive)
 create index "sys_notification__gin__73732636" on "sys_notification" using gin (bolt_search);
@@ -1953,7 +1933,7 @@ create index "sys_notification__gin__73732636" on "sys_notification" using gin (
 create index "sys_notification__ix__846c656b" on "sys_notification" ("member", "at") where ("member" is not null);
 
 -- step create:trigger:sys_outbox.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_outbox" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_at":["acked_at"],"at":["at"],"attempts":["attempts"],"changed":["changed"],"claimed_at":["claimed_at"],"delivery_op":["delivery_op"],"epoch":["epoch"],"error":["error"],"image":["image"],"instance":["instance"],"key":["key"],"model":["model"],"next_attempt_at":["next_attempt_at"],"op":["op"],"preserve_local":["preserve_local"],"record":["record"],"record_revision":["record_revision"],"result":["result"],"seq":["seq"],"status":["status"],"sync":["sync"],"writer":["writer"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_outbox" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_outbox.sys_outbox__gin__73732636 (additive)
 create index "sys_outbox__gin__73732636" on "sys_outbox" using gin (bolt_search);
@@ -1974,7 +1954,7 @@ create index "sys_outbox__ix__564640ab" on "sys_outbox" ("sync") where ("status"
 create index "sys_outbox__ix__276b72a8" on "sys_outbox" ("sync", "instance", "record", "record_revision");
 
 -- step create:trigger:sys_run.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_run" for each row execute function store_row_rules('{"audit":false,"fields":{"actor":["actor"],"attempts":["attempts"],"automation":["automation"],"cause":["cause"],"depth":["depth"],"due_at":["due_at"],"error":["error"],"finished_at":["finished_at"],"input":["input"],"key":["key"],"leases":["leases"],"output":["output"],"progress":["progress"],"results":["results"],"run_key":["run_key"],"started_at":["started_at"],"starter":["starter"],"state":["state"],"trigger":["trigger"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_run" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_run.sys_run__gin__73732636 (additive)
 create index "sys_run__gin__73732636" on "sys_run" using gin (bolt_search);
@@ -1982,23 +1962,26 @@ create index "sys_run__gin__73732636" on "sys_run" using gin (bolt_search);
 -- step create:index:sys_run.sys_run__ix__1ee5eb39 (additive)
 create index "sys_run__ix__1ee5eb39" on "sys_run" ("due_at") where ("state" = 'queued'::text);
 
+-- step create:index:sys_run.sys_run__ix__4309c70d (additive)
+create index "sys_run__ix__4309c70d" on "sys_run" ("due_at") where ("state" = 'waiting'::text);
+
 -- step create:index:sys_run.sys_run__ix__f2739d46 (additive)
 create index "sys_run__ix__f2739d46" on "sys_run" ("automation", "state");
 
 -- step create:trigger:sys_session.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_session" for each row execute function store_row_rules('{"audit":false,"fields":{"agent":["agent"],"created_at":["created_at"],"expires_at":["expires_at"],"impersonated_by":["impersonated_by"],"refreshed_at":["refreshed_at"],"token_hash":["token_hash"],"user":["user"],"via":["via"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_session" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_session.sys_session__gin__73732636 (additive)
 create index "sys_session__gin__73732636" on "sys_session" using gin (bolt_search);
 
 -- step create:trigger:sys_sync.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_sync" for each row execute function store_row_rules('{"audit":false,"fields":{"cursor":["cursor"],"cycle":["cycle"],"digest":["digest"],"health":["health"],"instance":["instance"],"last_change_at":["last_change_at"],"last_hint_at":["last_hint_at"],"last_read_at":["last_read_at"],"partition":["partition"],"phase":["phase"],"started_at":["started_at"],"sync":["sync"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_sync" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_sync.sys_sync__gin__73732636 (additive)
 create index "sys_sync__gin__73732636" on "sys_sync" using gin (bolt_search);
 
 -- step create:trigger:sys_sync_row.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_sync_row" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_revision":["acked_revision"],"cycle":["cycle"],"instance":["instance"],"partition":["partition"],"record":["record"],"remote_id":["remote_id"],"remote_version":["remote_version"],"sync":["sync"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_sync_row" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_sync_row.sys_sync_row__gin__73732636 (additive)
 create index "sys_sync_row__gin__73732636" on "sys_sync_row" using gin (bolt_search);
@@ -2010,7 +1993,7 @@ create unique index "sys_sync_row__ux__b176bf1e" on "sys_sync_row" ("sync", "ins
 create index "sys_sync_row__ix__c5cc52ee" on "sys_sync_row" ("sync", "instance", "partition", "cycle");
 
 -- step create:trigger:sys_user.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_user" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"admin":["admin"],"created_at":["created_at"],"email":["email"],"kind":["kind"],"last_seen":["last_seen"],"name":["name"],"party":["party"],"phone":["phone"],"revision":["revision"],"signup":["signup"],"team":["team"],"telegram":["telegram"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_user" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_user.sys_user__gin__73732636 (additive)
 create index "sys_user__gin__73732636" on "sys_user" using gin (bolt_search);
@@ -2022,7 +2005,7 @@ create unique index "sys_user__ux__08e69363" on "sys_user" (lower("email"));
 create unique index "sys_user__ux__1c9f4db2" on "sys_user" ("phone_key");
 
 -- step create:trigger:certification_types.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "certification_types" for each row execute function store_row_rules('{"audit":true,"fields":{"category":["category"],"certification_code":["certification_code"],"certification_name":["certification_name"],"description":["description"],"issuing_body":["issuing_body"],"requirements":["requirements"],"requires_refresher":["requires_refresher"],"validity_period_months":["validity_period_months"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "certification_types" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:certification_types.certification_types__gin__554332e2 (additive)
 create index "certification_types__gin__554332e2" on "certification_types" using gin ("requirements");
@@ -2031,13 +2014,13 @@ create index "certification_types__gin__554332e2" on "certification_types" using
 create index "certification_types__gin__73732636" on "certification_types" using gin (bolt_search);
 
 -- step create:trigger:projects.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "projects" for each row execute function store_row_rules('{"audit":true,"fields":{"address":["address"],"client":["client"],"contract_value":["contract_value"],"currency":["currency"],"description":["description"],"main_contractor":["main_contractor"],"project_manager":["project_manager"],"project_name":["project_name"],"project_number":["project_number"],"project_type":["project_type"],"schedule_range":["schedule_range"],"status":["status"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "projects" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:projects.projects__gin__73732636 (additive)
 create index "projects__gin__73732636" on "projects" using gin (bolt_search);
 
 -- step create:trigger:asset_documents.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "asset_documents" for each row execute function store_row_rules('{"audit":true,"fields":{"asset_category":["asset_category"],"asset_tag":["asset_tag"],"document_number":["document_number"],"document_type":["document_type"],"document_url":["document_url"],"project_id":["project_id"],"site_location_id":["site_location_id"],"status":["status"],"tags":["tags"],"title":["title"],"validity_range":["validity_range"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "asset_documents" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:asset_documents.asset_documents__gin__a86fc5db (additive)
 create index "asset_documents__gin__a86fc5db" on "asset_documents" using gin ("tags");
@@ -2046,25 +2029,25 @@ create index "asset_documents__gin__a86fc5db" on "asset_documents" using gin ("t
 create index "asset_documents__gin__73732636" on "asset_documents" using gin (bolt_search);
 
 -- step create:trigger:bim_reference_matrix.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "bim_reference_matrix" for each row execute function store_row_rules('{"audit":true,"fields":{"bim_guid":["bim_guid"],"carbon_unit":["carbon_unit"],"category":["category"],"currency":["currency"],"data_source":["data_source"],"embodied_carbon_per_unit":["embodied_carbon_per_unit"],"project_id":["project_id"],"rate":["rate"],"reference_code":["reference_code"],"reference_name":["reference_name"],"specification":["specification"],"subcategory":["subcategory"],"unit_of_measure":["unit_of_measure"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "bim_reference_matrix" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:bim_reference_matrix.bim_reference_matrix__gin__73732636 (additive)
 create index "bim_reference_matrix__gin__73732636" on "bim_reference_matrix" using gin (bolt_search);
 
 -- step create:trigger:jobs.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "jobs" for each row execute function store_row_rules('{"audit":true,"fields":{"bim_reference_id":["bim_reference_id"],"budget":["budget"],"currency":["currency"],"description":["description"],"job_number":["job_number"],"job_title":["job_title"],"job_type":["job_type"],"priority":["priority"],"project_id":["project_id"],"schedule_range":["schedule_range"],"site_location_id":["site_location_id"],"status":["status"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "jobs" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:jobs.jobs__gin__73732636 (additive)
 create index "jobs__gin__73732636" on "jobs" using gin (bolt_search);
 
 -- step create:trigger:defects.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "defects" for each row execute function store_row_rules('{"audit":true,"fields":{"assigned_to":["assigned_to"],"category":["category"],"closed_date":["closed_date"],"defect_number":["defect_number"],"description":["description"],"due_date":["due_date"],"job_id":["job_id"],"photos":["photos"],"project_id":["project_id"],"reported_by":["reported_by"],"reported_date":["reported_date"],"resolution_notes":["resolution_notes"],"severity":["severity"],"site_location_id":["site_location_id"],"status":["status"],"title":["title"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "defects" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:defects.defects__gin__73732636 (additive)
 create index "defects__gin__73732636" on "defects" using gin (bolt_search);
 
 -- step create:trigger:job_assignments.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "job_assignments" for each row execute function store_row_rules('{"audit":true,"fields":{"assignment_code":["assignment_code"],"assignment_range":["assignment_range"],"hours_per_day":["hours_per_day"],"job_id":["job_id"],"required_certifications":["required_certifications"],"role":["role"],"site_location_id":["site_location_id"],"status":["status"],"worker_id":["worker_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "job_assignments" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:job_assignments.job_assignments__gin__2f5cee5b (additive)
 create index "job_assignments__gin__2f5cee5b" on "job_assignments" using gin ("required_certifications");
@@ -2073,25 +2056,19 @@ create index "job_assignments__gin__2f5cee5b" on "job_assignments" using gin ("r
 create index "job_assignments__gin__73732636" on "job_assignments" using gin (bolt_search);
 
 -- step create:trigger:jobs_certification_types.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "jobs_certification_types" for each row execute function store_row_rules('{"audit":true,"fields":{"certification_type_id":["certification_type_id"],"job_id":["job_id"],"name":["name"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:index:jobs_certification_types.jobs_certification_types__gin__73732636 (additive)
-create index "jobs_certification_types__gin__73732636" on "jobs_certification_types" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "jobs_certification_types" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:jobs_site_locations.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "jobs_site_locations" for each row execute function store_row_rules('{"audit":true,"fields":{"job_id":["job_id"],"name":["name"],"site_location_id":["site_location_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:index:jobs_site_locations.jobs_site_locations__gin__73732636 (additive)
-create index "jobs_site_locations__gin__73732636" on "jobs_site_locations" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "jobs_site_locations" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:payment_claims.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "payment_claims" for each row execute function store_row_rules('{"audit":true,"fields":{"certified_amount":["certified_amount"],"claim_number":["claim_number"],"claim_period":["claim_period"],"claim_type":["claim_type"],"claimed_amount":["claimed_amount"],"currency":["currency"],"description":["description"],"job_id":["job_id"],"paid_date":["paid_date"],"project_id":["project_id"],"status":["status"],"submitted_date":["submitted_date"],"supporting_documents":["supporting_documents"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "payment_claims" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:payment_claims.payment_claims__gin__73732636 (additive)
 create index "payment_claims__gin__73732636" on "payment_claims" using gin (bolt_search);
 
 -- step create:trigger:permits_to_work.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "permits_to_work" for each row execute function store_row_rules('{"audit":true,"fields":{"approved_by":["approved_by"],"control_measures":["control_measures"],"hazards_identified":["hazards_identified"],"job_id":["job_id"],"permit_number":["permit_number"],"permit_type":["permit_type"],"project_id":["project_id"],"requested_date":["requested_date"],"signatures":["signatures"],"site_location_id":["site_location_id"],"status":["status"],"validity_range":["validity_range"],"worker_id":["worker_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "permits_to_work" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:permits_to_work.permits_to_work__gin__f36a08fc (additive)
 create index "permits_to_work__gin__f36a08fc" on "permits_to_work" using gin ("hazards_identified");
@@ -2103,31 +2080,25 @@ create index "permits_to_work__gin__ff2cdd52" on "permits_to_work" using gin ("c
 create index "permits_to_work__gin__73732636" on "permits_to_work" using gin (bolt_search);
 
 -- step create:trigger:permits_to_work_certification_types.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "permits_to_work_certification_types" for each row execute function store_row_rules('{"audit":true,"fields":{"certification_type_id":["certification_type_id"],"name":["name"],"permits_to_work_id":["permits_to_work_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:index:permits_to_work_certification_types.permits_to_work_certification_types__gin__73732636 (additive)
-create index "permits_to_work_certification_types__gin__73732636" on "permits_to_work_certification_types" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "permits_to_work_certification_types" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:permits_to_work_workers.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "permits_to_work_workers" for each row execute function store_row_rules('{"audit":true,"fields":{"name":["name"],"permits_to_work_id":["permits_to_work_id"],"worker_id":["worker_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:index:permits_to_work_workers.permits_to_work_workers__gin__73732636 (additive)
-create index "permits_to_work_workers__gin__73732636" on "permits_to_work_workers" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "permits_to_work_workers" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:rfis.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "rfis" for each row execute function store_row_rules('{"audit":true,"fields":{"answer":["answer"],"asked_by":["asked_by"],"assigned_to":["assigned_to"],"attachments":["attachments"],"due_date":["due_date"],"priority":["priority"],"project_id":["project_id"],"question":["question"],"related_defect_id":["related_defect_id"],"resolved_date":["resolved_date"],"rfi_number":["rfi_number"],"status":["status"],"subject":["subject"],"submitted_date":["submitted_date"],"title":["title"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "rfis" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:rfis.rfis__gin__73732636 (additive)
 create index "rfis__gin__73732636" on "rfis" using gin (bolt_search);
 
 -- step create:trigger:site_locations.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "site_locations" for each row execute function store_row_rules('{"audit":true,"fields":{"bim_model_element_id":["bim_model_element_id"],"coordinates":["coordinates"],"description":["description"],"grid_reference":["grid_reference"],"location_code":["location_code"],"location_name":["location_name"],"location_type":["location_type"],"parent_location_id":["parent_location_id"],"project_id":["project_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "site_locations" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:site_locations.site_locations__gin__73732636 (additive)
 create index "site_locations__gin__73732636" on "site_locations" using gin (bolt_search);
 
 -- step create:trigger:workers.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "workers" for each row execute function store_row_rules('{"audit":true,"fields":{"date_of_birth":["date_of_birth"],"email":["email"],"emergency_contact":["emergency_contact"],"medical_check_date":["medical_check_date"],"nationality":["nationality"],"phone":["phone"],"safety_induction_date":["safety_induction_date"],"status":["status"],"trade":["trade"],"work_permit_expiry":["work_permit_expiry"],"worker_name":["worker_name"],"worker_number":["worker_number"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "workers" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:workers.workers__gin__73732636 (additive)
 create index "workers__gin__73732636" on "workers" using gin (bolt_search);

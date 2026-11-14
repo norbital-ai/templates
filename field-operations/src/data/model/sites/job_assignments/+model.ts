@@ -1,5 +1,4 @@
-import { type WorkspaceQuery } from '@norbital-ai/bolt';
-import { model } from '../../../../../.norbital/models/job_assignments.ts';
+import { model, type WorkspaceQuery } from '@norbital-ai/bolt';
 import * as Effect from 'effect/Effect';
 import { dispatchFacts, memberByContact } from '../../../../lib/dispatch.js';
 const contacted = (contact: string | null | undefined) => (contact?.trim() ?? '') !== '';
@@ -41,7 +40,7 @@ const progress = [
  * create callback stamps it). `suspicion_checked_at` is the review's stamp; any other change clears it, so the review
  * judges the job again.
  */
-export default model({
+export default model('job_assignments', {
 	description:
 		'One dispatched day job: the work order, who holds it and where it got to. Evidence facts and suspicion judgements live in their own models.',
 	icon: 'lucide:clipboard-check',
@@ -120,7 +119,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: ['external_ref', ...progress, 'source_message_id'] },
+		fields: ['external_ref', ...progress, 'source_message_id'],
 		transform: function* (changes, ctx) {
 			const members = yield* membersFor(
 				ctx,
@@ -138,11 +137,9 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [...progress, 'suspicion_checked_at'],
-			photo_evidence: { fields: ['photo', 'source'] },
-			communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
-		},
+		fields: [...progress, 'suspicion_checked_at'],
+		photo_evidence: { fields: ['photo', 'source'] },
+		communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] },
 		transform: function* (changes, ctx) {
 			// a report files photos and messages; it never changes or removes one already filed
 			const rewrite = changes.findIndex(({ set }) =>

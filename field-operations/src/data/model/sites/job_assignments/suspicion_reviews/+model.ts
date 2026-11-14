@@ -1,7 +1,7 @@
-import { model } from '../../../../../../.norbital/models/suspicion_reviews.ts';
+import { model } from '@norbital-ai/bolt';
 import { REVIEW_BASIS } from '../../../../../lib/basis.js';
 /** An immutable inference audit ledger: the review automation appends; nothing changes or deletes a row. */
-export default model({
+export default model('suspicion_reviews', {
 	description:
 		'Controller-only audit ledger for every automated suspicion review, including clear decisions that must not create a suspicion log.',
 	icon: 'lucide:scan-search',
@@ -37,18 +37,16 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'job_assignment_id',
-				'basis_hash',
-				'basis',
-				'suspicious',
-				'reason',
-				'evidence_id',
-				'model',
-				'reviewed_at',
-				'source_key'
-			]
-		}
+		fields: [
+			'job_assignment_id',
+			'basis_hash',
+			'basis',
+			'suspicious',
+			'reason',
+			'evidence_id',
+			'model',
+			'reviewed_at',
+			'source_key'
+		]
 	}
 });

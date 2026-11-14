@@ -1,9 +1,9 @@
-import { model } from '../../../../../.norbital/models/document_templates.ts';
+import { model } from '@norbital-ai/bolt';
 import { Result } from 'effect';
 import { validateDocumentTemplate } from '../../../../lib/order-document.js';
 import { printFieldKind, validPrintFields } from '../../../../lib/print-details.js';
 const valid = (body: string) => Result.isSuccess(Result.try(() => validateDocumentTemplate(body)));
-export default model({
+export default model('document_templates', {
 	record_label: 'record.title',
 	description: 'Versioned commercial document layouts.',
 	fields: {
@@ -26,19 +26,17 @@ export default model({
 	outputs: { default: { fields: 'all' } },
 	indexes: { search: { text: ['title'] } },
 	create: {
-		columns: {
-			fields: [
-				'locale',
-				'version',
-				'title',
-				'body',
-				'layout',
-				'print_layout',
-				'print_fields',
-				'letterhead',
-				'contract_stamp'
-			]
-		},
+		fields: [
+			'locale',
+			'version',
+			'title',
+			'body',
+			'layout',
+			'print_layout',
+			'print_fields',
+			'letterhead',
+			'contract_stamp'
+		],
 		transform: function* (changes, ctx) {
 			if (changes.some(({ after }) => after.body !== undefined && !valid(after.body)))
 				return yield* ctx.refuse('errors.document_template_invalid');
@@ -48,18 +46,16 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'title',
-				'body',
-				'layout',
-				'print_layout',
-				'print_fields',
-				'letterhead',
-				'contract_stamp',
-				'status'
-			]
-		},
+		fields: [
+			'title',
+			'body',
+			'layout',
+			'print_layout',
+			'print_fields',
+			'letterhead',
+			'contract_stamp',
+			'status'
+		],
 		transform: function* (changes, ctx) {
 			for (const { set, after } of changes) {
 				if (!valid(after.body)) return yield* ctx.refuse('errors.document_template_invalid');

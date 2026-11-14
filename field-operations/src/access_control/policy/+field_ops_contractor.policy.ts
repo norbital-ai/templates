@@ -1,6 +1,6 @@
 import { policy, type Actor } from '@norbital-ai/bolt';
 /** Their own assignments: the one model where the member appears as a column. */
-const OWN = { assignee_user_id: { eq: { var: 'requestor.id' } } } as const;
+const OWN = { assignee_user_id: { eq: { var: 'actor.id' } } } as const;
 const OWN_JOB = { job_assignment_id: { is: OWN } } as const;
 const memberOf = (actor: Actor) => (actor.kind === 'member' ? actor.id : null);
 /**
@@ -24,16 +24,14 @@ export default policy({
 		job_assignments: {
 			outputs: { contractor: { where: OWN } },
 			update: {
-				columns: {
-					fields: [
-						'status',
-						'completed_at',
-						'amount_charged',
-						'location',
-						'location_address',
-						'summary'
-					]
-				},
+				fields: [
+					'status',
+					'completed_at',
+					'amount_charged',
+					'location',
+					'location_address',
+					'summary'
+				],
 				verdict: function* (changes, ctx) {
 					const me = memberOf(ctx.actor);
 					const other = changes.findIndex(({ before }) => before.assignee_user_id !== me);
@@ -46,13 +44,12 @@ export default policy({
 		photo_evidence: {
 			outputs: { contractor: { where: OWN_JOB } },
 			create: {
-				columns: { fields: ['job_assignment_id', 'photo'] }
+				fields: ['job_assignment_id', 'photo']
 			}
 		},
 		communication_logs: {
 			outputs: { contractor: { where: OWN_JOB } },
 			create: {}
 		}
-	},
-	limits: { act: '600/min', read: '600/min', agent: '100/h' }
+	}
 });

@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/asset_documents.ts';
+import { model } from '@norbital-ai/bolt';
 const columns = [
 	'title',
 	'document_number',
@@ -14,7 +14,7 @@ const columns = [
 	'version',
 	'tags'
 ] as const;
-export default model({
+export default model('asset_documents', {
 	description: 'Handover and asset-linked document records.',
 	icon: 'lucide:file-text',
 	record_label: 'record.title',
@@ -54,6 +54,6 @@ export default model({
 	constraints: { document_number: { unique: ['document_number'] } },
 	indexes: { find: { text: ['title'] } },
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: columns } },
-	update: { columns: { fields: columns } }
+	create: { fields: columns },
+	update: { fields: columns }
 });

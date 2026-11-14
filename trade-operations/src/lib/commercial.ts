@@ -270,35 +270,7 @@ export function currentFloors(
 			)[0];
 		return {
 			...line,
-			floor_net:
-				floor && floor.unit === line.unit
-					? floor.tax_inclusive
-						? new Intl.NumberFormat('en', {
-								useGrouping: false,
-								minimumFractionDigits: 8,
-								maximumFractionDigits: 8
-							}).format(
-								BigDecimal.format(
-									BigDecimal.round(
-										BigDecimal.divideUnsafe(
-											BigDecimal.fromStringUnsafe(floor.floor_price),
-											BigDecimal.sum(
-												BigDecimal.fromBigInt(1n),
-												BigDecimal.round(
-													BigDecimal.divideUnsafe(
-														BigDecimal.fromStringUnsafe(floor.tax_rate),
-														BigDecimal.fromBigInt(100n)
-													),
-													{ scale: 6 }
-												)
-											)
-										),
-										{ scale: 8 }
-									)
-								) as Intl.StringNumericLiteral
-							)
-						: floor.floor_price
-					: null,
+			floor_net: floor && floor.unit === line.unit ? floor.floor_net : null,
 			floor_on: floor?.effective_on ?? null
 		};
 	});

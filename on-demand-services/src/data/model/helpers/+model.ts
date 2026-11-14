@@ -1,5 +1,5 @@
 import type { Instant, StoredRow } from '@norbital-ai/bolt';
-import { model } from '../../../../.norbital/models/helpers.ts';
+import { model } from '@norbital-ai/bolt';
 import { AREAS, DAYS, SKILLS, type Point } from '../../../lib/matching.js';
 const columns = [
 	'name',
@@ -32,7 +32,7 @@ const located = <S extends { readonly last_location?: Point | null }>(
  * A helper's app reports their position into `last_location`, stamped with when. `src/lib/slots.ts` lays out when each of a
  * customer's preferred helpers could come; `helpers_offboard` records a helper leaving. A helper signs in as the member `user` names.
  */
-export default model({
+export default model('helpers', {
 	description:
 		'A helper: skills, working days and hours, home area, and the last GPS position their app reported.',
 	icon: 'lucide:user-round-check',
@@ -82,13 +82,13 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			return changes.map(({ set }) => located(set, null, ctx.now));
 		}
 	},
 	update: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			return changes.map(({ before, set }) => located(set, before, ctx.now));
 		},

@@ -1,10 +1,10 @@
 import { policy, type Actor } from '@norbital-ai/bolt';
 /** The customer record the signed-in member is (bound by their mobile number). */
-const ME = { eq: { var: 'requestor.party' } } as const;
+const ME = { eq: { var: 'actor.party' } } as const;
 const MINE = { customer: ME } as const;
 const MY_VISITS = { booking: { is: MINE } } as const;
 /** A request is theirs by the number they signed in with. */
-const MY_NUMBER = { phone: { eq: { var: 'requestor.phone' } } } as const;
+const MY_NUMBER = { phone: { eq: { var: 'actor.phone' } } } as const;
 /** The first request raised under another number than the one the member signed in with; -1 when none. */
 const notMine = (
 	changes: readonly { readonly set: { readonly phone?: string | null } }[],
@@ -33,20 +33,18 @@ export default policy({
 		openings: { outputs: { portal: {} } },
 		booking_requests: {
 			create: {
-				columns: {
-					fields: [
-						'name',
-						'email',
-						'phone',
-						'address',
-						'area',
-						'service',
-						'start',
-						'repeat',
-						'notes',
-						'availability'
-					]
-				},
+				fields: [
+					'name',
+					'email',
+					'phone',
+					'address',
+					'area',
+					'service',
+					'start',
+					'repeat',
+					'notes',
+					'availability'
+				],
 				verdict: function* (changes, ctx) {
 					const row = notMine(changes, ctx.actor);
 					return row < 0 ? ctx.allow() : yield* ctx.refuse(OTHER_NUMBER, { row, field: 'phone' });
@@ -65,18 +63,16 @@ export default policy({
 		},
 		availability_requests: {
 			create: {
-				columns: {
-					fields: [
-						'phone',
-						'address',
-						'location',
-						'area',
-						'service',
-						'preference',
-						'helper',
-						'repeat'
-					]
-				},
+				fields: [
+					'phone',
+					'address',
+					'location',
+					'area',
+					'service',
+					'preference',
+					'helper',
+					'repeat'
+				],
 				verdict: function* (changes, ctx) {
 					const row = notMine(changes, ctx.actor);
 					return row < 0 ? ctx.allow() : yield* ctx.refuse(OTHER_NUMBER, { row, field: 'phone' });
@@ -87,6 +83,5 @@ export default policy({
 		customer_notices: {
 			outputs: { customer: { where: MINE } }
 		}
-	},
-	limits: { read: '300/min', act: '30/h' }
+	}
 });

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { fork } from '@norbital-ai/ui/effect';
 	import {
 		Button,
 		Combobox,
@@ -8,11 +7,10 @@
 		TimeInput,
 		Label,
 		RunStatus,
-		notify_outcome
+		use_act
 	} from '@norbital-ai/ui';
-	import { DateTime, Duration, Effect } from 'effect';
-	import type { Id, Outcome } from '@norbital-ai/bolt';
-	import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
+	import { DateTime, Duration } from 'effect';
+	import type { Id } from '@norbital-ai/bolt';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from './SlotPicker.svelte';
 	import Countdown from './Countdown.svelte';
@@ -28,7 +26,6 @@
 	} = $props();
 	const zone = ctx.tz;
 	const t = ctx.t;
-	const getErrorMessage = (e: unknown) => String(e instanceof Error ? e.message : e);
 	const stored = $derived(
 		ctx.query({
 			visits: {
@@ -106,77 +103,34 @@
 			? undefined
 			: rebookingSlots(rematch, fortnight, ahead.current, zone, clock.now)
 	);
-	let busy = $state(false);
+	const save = use_act(ctx);
 	let medical = $state<'yes' | 'no'>('no');
 	let started = $state<{ id: string; automation: string } | null>(null);
-	let message = $state<string | null>(null);
-	function feedback(outcome: Outcome<unknown>) {
-		message = outcome.kind === 'refused' ? outcome.message : null;
-		if (outcome.kind !== 'committed' && outcome.kind !== 'refused') notify_outcome(ctx, outcome);
-	}
-	function perform(work: Effect.Effect<void, ActFailure | ProtocolFailed>): void {
-		busy = true;
-		message = null;
-		fork(
-			work.pipe(
-				Effect.ensuring(
-					Effect.sync(() => {
-						busy = false;
-					})
-				)
-			),
-			(failure) => {
-				if (failure._tag === 'ActConflict')
-					notify_outcome(ctx, { kind: 'conflict', records: failure.records });
-				else if (failure._tag === 'ActUnknown')
-					notify_outcome(ctx, { kind: 'unknown', invocation: failure.invocation });
-				else message = getErrorMessage(failure);
-			}
-		);
-	}
+	/** Follows the started run below. */
+	const follow = (then?: () => void) => ({
+		then: ({
+			output
+		}: {
+			readonly output: { readonly id: string; readonly automation: string };
+		}) => {
+			started = { id: output.id, automation: output.automation };
+			then?.();
+		}
+	});
 	function approve() {
-		const at = start,
-			replacement = best;
-		if (at === null || replacement === undefined) return;
-		perform(
-			Effect.gen(function* () {
-				const call = ctx.run('visits_rebook', {
-					targets: [visit],
-					start: at,
-					helper: replacement.helper
-				});
-				const outcome = yield* call;
-				feedback(outcome);
-				if (outcome.kind === 'committed') started = { id: call.id, automation: call.automation };
-			})
-		);
+		if (start === null || best === undefined) return;
+		save.run(ctx.run('visits_rebook', { targets: [visit], start, helper: best.helper }), follow());
 	}
-	function refresh() {
-		perform(
-			Effect.gen(function* () {
-				const call = ctx.run('visits_recommend', { targets: [visit] });
-				const outcome = yield* call;
-				feedback(outcome);
-				if (outcome.kind === 'committed') {
-					started = { id: call.id, automation: call.automation };
-					chosen = null;
-				}
-			})
+	const refresh = () =>
+		save.run(
+			ctx.run('visits_recommend', { targets: [visit] }),
+			follow(() => (chosen = null))
 		);
-	}
-	function report() {
-		perform(
-			Effect.gen(function* () {
-				const call = ctx.run('visits_report_unavailable', {
-					targets: [visit],
-					mc: medical === 'yes'
-				});
-				const outcome = yield* call;
-				feedback(outcome);
-				if (outcome.kind === 'committed') started = { id: call.id, automation: call.automation };
-			})
+	const report = () =>
+		save.run(
+			ctx.run('visits_report_unavailable', { targets: [visit], mc: medical === 'yes' }),
+			follow()
 		);
-	}
 </script>
 
 <Stack gap="lg">
@@ -252,7 +206,7 @@
 					</p>
 					<p class="text-sm text-muted-foreground">{t('app.recovery.planning')}</p>
 					<Button
-						disabled={busy || start === null || Date.parse(start) <= Date.now()}
+						disabled={save.pending || start === null || Date.parse(start) <= Date.now()}
 						onclick={approve}>{t('app.recovery.approve', { name: best.name })}</Button
 					>
 				</Stack>
@@ -261,12 +215,12 @@
 					title={t('app.recovery.no_match')}
 				/>{/if}
 			<Cluster gap="sm">
-				<Button variant="outline" disabled={busy} onclick={refresh}
+				<Button variant="outline" disabled={save.pending} onclick={refresh}
 					>{t('app.recovery.refresh')}</Button
 				>
 				<Button
 					variant="ghost"
-					disabled={busy}
+					disabled={save.pending}
 					onclick={() => {
 						newTime = !newTime;
 						picked = null;
@@ -291,7 +245,7 @@
 								if (m !== null) medical = m;
 							}}
 						/>
-						<Button variant="outline" disabled={busy} onclick={report}
+						<Button variant="outline" disabled={save.pending} onclick={report}
 							>{t('app.recovery.prepare')}</Button
 						>
 					</Stack>
@@ -299,7 +253,6 @@
 			{/if}
 			<p class="text-caption">{t('app.recovery.scope')}</p>
 		{/if}
-		{#if message}<p role="status" class="text-sm">{message}</p>{/if}
 		{#if started}<RunStatus {ctx} automation={started.automation} run={started.id} />{/if}
 	{/if}
 </Stack>

@@ -1,6 +1,6 @@
-import { model } from '../../../../../.norbital/models/availability_requests.ts';
+import { model } from '@norbital-ai/bolt';
 import { AREAS, REPEATS } from '../../../../lib/matching.js';
-export default model({
+export default model('availability_requests', {
 	description:
 		'A verified customer’s destination-specific availability, computed privately by dispatch.',
 	icon: 'lucide:calendar-search',
@@ -49,17 +49,13 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: ['phone', 'address', 'location', 'area', 'service', 'preference', 'helper', 'repeat']
-		},
+		fields: ['phone', 'address', 'location', 'area', 'service', 'preference', 'helper', 'repeat'],
 		// the writer (a customer) cannot time drives: `prepare_availability` does, as dispatch
 		effect: function* (changes, ctx) {
 			yield* ctx.schedule('prepare_availability', { ids: changes.map((c) => c.after.id) });
 		}
 	},
 	update: {
-		columns: {
-			fields: ['location', 'starts', 'estimated', 'checked_at', 'problem', 'status']
-		}
+		fields: ['location', 'starts', 'estimated', 'checked_at', 'problem', 'status']
 	}
 });

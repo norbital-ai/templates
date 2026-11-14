@@ -1,4 +1,4 @@
--- 0001_initial.sql: 153 step(s), from an empty database to bbe2e50f3ab6caeced44acf90b973a33d85399b68331672456441f72a53433e0.
+-- 0001_initial.sql: 155 step(s), from an empty database to c4d6b489fc99736624527d898a9a179bcbce9db5866ed00617b00c20af0803df.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -126,8 +126,7 @@ begin
 			float_value := (value #>> '{}')::double precision;
 			return float_value not in ('NaN'::double precision,'Infinity'::double precision,'-Infinity'::double precision);
 		end if;
-		text_value := case when shape = 'object' and jsonb_typeof(value->'$dec') = 'string' then value->>'$dec'
-			when shape = 'string' then value #>> '{}' else null end;
+		text_value := case when shape = 'string' then value #>> '{}' else null end;
 		return coalesce(text_value ~ '^-?[0-9]+(\.[0-9]+)?$',false);
 	when 'seq' then
 		return case when spec ? 'pattern' then shape = 'string' else store_json_valid(value,'{"kind":"int"}'::jsonb) end;
@@ -178,28 +177,26 @@ declare
 	state_name text;
 	state_spec jsonb;
 	state_rule jsonb;
-	field_name text;
-	columns jsonb;
 	column_name text;
-	parent jsonb;
-	parent_id jsonb;
-	parent_row jsonb;
 	trusted boolean;
-	locked_rule jsonb;
-	locked boolean;
 	stamp_name text;
-	stamped jsonb := '[]'::jsonb;
 	stamps jsonb := '{}'::jsonb;
-	anonymised jsonb := '[]'::jsonb;
 	at_time timestamptz;
 begin
 	if mode not in ('write', 'seed', 'restore') or
 		(context is not null and jsonb_typeof(context) <> 'object') then
 		raise exception 'invalid native write context' using errcode = '22023';
 	end if;
-	trusted := mode in ('seed', 'restore');
-	if tg_op <> 'INSERT' then before_row := to_jsonb(old); end if;
-	if tg_op <> 'DELETE' then after_row := to_jsonb(new); end if;
+	-- a restore trusts only the rows it restores (`rows`: '<table>/<id>'); the statement's other rows keep their rules
+	trusted := mode = 'seed';
+	if mode = 'restore' then
+		trusted := coalesce(context->'rows' ? (tg_table_name || '/' || (coalesce(to_jsonb(new), to_jsonb(old))->>'id')), false);
+	end if;
+	-- whole-row JSON only where a key or state is compared: a plain insert or delete reads none
+	if tg_op = 'UPDATE' or (tg_op = 'INSERT' and rules->'states' <> '{}'::jsonb) then
+		if tg_op = 'UPDATE' then before_row := to_jsonb(old); end if;
+		after_row := to_jsonb(new);
+	end if;
 	if tg_op = 'UPDATE' then
 		for column_name in select jsonb_array_elements_text(rules->'key') loop
 			if before_row->column_name is distinct from after_row->column_name then
@@ -215,7 +212,6 @@ begin
 				stamp_name := state_spec->'states'->(after_row->>state_name)->>'stamp';
 				if stamp_name is not null then
 					after_row := jsonb_set(after_row, array[stamp_name], to_jsonb(at_time), true);
-					stamped := stamped || jsonb_build_array(stamp_name);
 					stamps := stamps || jsonb_build_object(stamp_name, to_jsonb(at_time));
 				end if;
 			end if;
@@ -236,50 +232,6 @@ begin
 						using errcode = '23514', column = state_name;
 				end if;
 			end if;
-		end loop;
-		if tg_op in ('DELETE', 'UPDATE') then
-			for locked_rule in select value from jsonb_array_elements(rules->'locks') loop
-				execute format('select coalesce((%s),false) from jsonb_populate_record(null::%I.%I,$1) t',
-					locked_rule->>'sql', tg_table_schema, tg_table_name) into locked using before_row;
-				if not locked then continue; end if;
-				if tg_op = 'DELETE' then
-					raise exception 'record is locked by %', locked_rule->>'name' using errcode = '23514', column = 'id', constraint = locked_rule->>'constraint';
-				end if;
-				if to_regprocedure(format('%I.%I(text,text)', tg_table_schema, 'store_anonymise_fields')) is not null then
-					execute format('select %I.%I($1,$2)', tg_table_schema, 'store_anonymise_fields')
-						into anonymised using tg_table_name, after_row->>'id';
-				end if;
-				for field_name, columns in select key, value from jsonb_each(rules->'fields') loop
-					if locked_rule->'except' ? field_name or stamped ? field_name or anonymised ? field_name then continue; end if;
-					for column_name in select jsonb_array_elements_text(columns) loop
-						if before_row->column_name is distinct from after_row->column_name then
-							raise exception '% is locked by %', field_name, locked_rule->>'name'
-								using errcode = '23514', column = field_name, constraint = locked_rule->>'constraint';
-						end if;
-					end loop;
-				end loop;
-			end loop;
-		end if;
-		for parent in select value from jsonb_array_elements(rules->'parents') loop
-			for parent_id in
-				select distinct value from jsonb_array_elements(jsonb_build_array(
-					before_row->(parent->>'column'), after_row->(parent->>'column')
-				)) where value <> 'null'::jsonb order by value
-			loop
-				execute format('select to_jsonb(p) from %I.%I p where p.%I = $1::%s for share',
-					tg_table_schema, parent->>'table', parent->>'key', parent->>'type')
-					into parent_row using parent_id #>> '{}';
-				if parent_row is null then continue; end if;
-				for locked_rule in select value from jsonb_array_elements(parent->'locks') loop
-					if locked_rule->'except' ? (parent->>'relation') then continue; end if;
-					execute format('select coalesce((%s),false) from jsonb_populate_record(null::%I.%I,$1) t',
-						locked_rule->>'sql', tg_table_schema, parent->>'table') into locked using parent_row;
-					if locked then
-						raise exception 'relation % is locked by %', parent->>'relation', locked_rule->>'name'
-							using errcode = '23514', column = parent->>'column', constraint = locked_rule->>'constraint';
-					end if;
-				end loop;
-			end loop;
 		end loop;
 	end if;
 	if coalesce((rules->>'audit')::boolean, false) and tg_op <> 'DELETE' then
@@ -310,6 +262,89 @@ begin
 	end if;
 	if tg_op = 'DELETE' then return old; end if;
 	return new;
+end;
+$store_rules$;
+
+-- step create:function:store_statement_rules (additive)
+create or replace function store_statement_rules() returns trigger language plpgsql as $store_rules$
+declare
+	rules jsonb := tg_argv[0]::jsonb;
+	context jsonb := nullif(current_setting('store.write', true), '')::jsonb;
+	pairs text;
+	locked_rule jsonb;
+	before_row jsonb;
+	after_row jsonb;
+	state_name text;
+	state_spec jsonb;
+	stamp_name text;
+	stamped jsonb;
+	anonymised jsonb;
+	field_name text;
+	columns jsonb;
+	column_name text;
+	parent jsonb;
+	ids text;
+	locked boolean;
+	trusted jsonb := case when context->>'mode' = 'restore' then coalesce(context->'rows', '[]'::jsonb) else '[]'::jsonb end;
+begin
+	if coalesce(context->>'mode', 'write') = 'seed' then return null; end if;
+	if tg_op <> 'INSERT' then
+		select string_agg(format('o.%I = n.%I', k, k), ' and ') into pairs from jsonb_array_elements_text(rules->'key') k;
+		for locked_rule in select value from jsonb_array_elements(rules->'locks') loop
+			for before_row, after_row in execute format(
+				'select to_jsonb(o), %s from store_old o %s cross join lateral jsonb_populate_record(null::%I.%I, to_jsonb(o)) t where coalesce((%s), false) and not $1 ? (%L || ''/'' || (to_jsonb(o)->>''id''))',
+				case when tg_op = 'UPDATE' then 'to_jsonb(n)' else 'null::jsonb' end,
+				case when tg_op = 'UPDATE' then 'join store_new n on ' || pairs else '' end,
+				tg_table_schema, tg_table_name, locked_rule->>'sql', tg_table_name) using trusted
+			loop
+				if tg_op = 'DELETE' then
+					raise exception 'record is locked by %', locked_rule->>'name' using errcode = '23514', column = 'id', constraint = locked_rule->>'constraint';
+				end if;
+				stamped := '[]'::jsonb;
+				for state_name, state_spec in select key, value from jsonb_each(rules->'states') loop
+					stamp_name := state_spec->'states'->(after_row->>state_name)->>'stamp';
+					if before_row->state_name is distinct from after_row->state_name and stamp_name is not null then
+						stamped := stamped || jsonb_build_array(stamp_name);
+					end if;
+				end loop;
+				anonymised := null;
+				for field_name, columns in select key, value from jsonb_each(rules->'fields') loop
+					if locked_rule->'except' ? field_name or stamped ? field_name then continue; end if;
+					for column_name in select jsonb_array_elements_text(columns) loop
+						if before_row->column_name is distinct from after_row->column_name then
+							if anonymised is null then
+								anonymised := '[]'::jsonb;
+								if to_regprocedure(format('%I.%I(text,text)', tg_table_schema, 'store_anonymise_fields')) is not null then
+									execute format('select %I.%I($1,$2)', tg_table_schema, 'store_anonymise_fields')
+										into anonymised using tg_table_name, after_row->>'id';
+								end if;
+							end if;
+							exit when anonymised ? field_name;
+							raise exception '% is locked by %', field_name, locked_rule->>'name'
+								using errcode = '23514', column = field_name, constraint = locked_rule->>'constraint';
+						end if;
+					end loop;
+				end loop;
+			end loop;
+		end loop;
+	end if;
+	for parent in select value from jsonb_array_elements(rules->'parents') loop
+		ids := format('select v::%s from (%s) s where v is not null', parent->>'type', concat_ws(' union ',
+			case when tg_op <> 'INSERT' then format('select %I::text v from store_old r where not $1 ? (%L || ''/'' || (to_jsonb(r)->>''id''))', parent->>'column', tg_table_name) end,
+			case when tg_op <> 'DELETE' then format('select %I::text v from store_new r where not $1 ? (%L || ''/'' || (to_jsonb(r)->>''id''))', parent->>'column', tg_table_name) end));
+		execute format('select 1 from %I.%I p where p.%I in (%s) order by p.%I for share',
+			tg_table_schema, parent->>'table', parent->>'key', ids, parent->>'key') using trusted;
+		for locked_rule in select value from jsonb_array_elements(parent->'locks') loop
+			execute format('select exists(select 1 from %I.%I p cross join lateral jsonb_populate_record(null::%I.%I, to_jsonb(p)) t where p.%I in (%s) and coalesce((%s), false))',
+				tg_table_schema, parent->>'table', tg_table_schema, parent->>'table', parent->>'key', ids, locked_rule->>'sql')
+				into locked using trusted;
+			if locked then
+				raise exception 'relation % is locked by %', parent->>'relation', locked_rule->>'name'
+					using errcode = '23514', column = parent->>'column', constraint = locked_rule->>'constraint';
+			end if;
+		end loop;
+	end loop;
+	return null;
 end;
 $store_rules$;
 
@@ -761,9 +796,9 @@ create table "sys_conversation" ("id" text primary key,
 	"outputs" jsonb default '[]'::jsonb not null,
 	"status" text default 'idle'::text not null,
 	"lease_until" timestamptz,
+	"archived_at" timestamptz,
 	"model" text default 'default'::text not null,
 	"plan" jsonb,
-	"goals" jsonb,
 	"read" jsonb default '{}'::jsonb not null,
 	"revision" int default '1'::int not null,
 	"updated_at" timestamptz default (now()) not null,
@@ -775,8 +810,8 @@ create table "sys_conversation" ("id" text primary key,
 	constraint "sys_conversation__ck__cc931632" check (("inputs" is null or store_json_valid("inputs", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__44b2543d" check (("outputs" is null or store_json_valid("outputs", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__13b8fb0a" check (isfinite("lease_until")),
+	constraint "sys_conversation__ck__fe05365b" check (isfinite("archived_at")),
 	constraint "sys_conversation__ck__14aaee8f" check (("plan" is null or store_json_valid("plan", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_conversation__ck__85277cdf" check (("goals" is null or store_json_valid("goals", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_conversation__ck__56b593d1" check (("read" is null or store_json_valid("read", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -1032,6 +1067,7 @@ create table "sys_run" ("id" text primary key,
 	"actor" text,
 	"starter" jsonb,
 	"trigger" jsonb,
+	"wait" jsonb,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_run_09f15580"("automation")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_run_09f15580"("automation"), ''))) stored,
 	constraint "sys_run__ck__fcb01943" check (("input" is null or store_json_valid("input", '{"kind":"json"}'::jsonb) is true)),
@@ -1044,6 +1080,7 @@ create table "sys_run" ("id" text primary key,
 	constraint "sys_run__ck__f38716e4" check (("results" is null or store_json_valid("results", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__20970459" check (("starter" is null or store_json_valid("starter", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_run__ck__f6780d31" check (("wait" is null or store_json_valid("wait", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__uq__f1a22a1c" unique ("key")
 );
 
@@ -1120,6 +1157,8 @@ create table "sys_user" ("id" text primary key,
 	"party" jsonb,
 	"phone" text,
 	"telegram" text,
+	"slack" text,
+	"discord" text,
 	"revision" int default '1'::int not null,
 	"created_at" timestamptz default (now()) not null,
 	"last_seen" timestamptz,
@@ -1177,7 +1216,7 @@ select bolt_history_register('approval_request','{"fields":{"action":{"kind":"en
 select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text"},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name","unique":[{"fields":["prefix"],"name":"prefix"}]}'::jsonb);
 
 -- step create:history:schema:sys_conversation (additive)
-select bolt_history_register('sys_conversation','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"goals":{"kind":"json","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
+select bolt_history_register('sys_conversation','{"fields":{"archived_at":{"kind":"instant","optional":true},"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
 
 -- step create:history:schema:sys_envoy (additive)
 select bolt_history_register('sys_envoy','{"fields":{"active":{"default":true,"kind":"bool"},"audience":{"default":"private","kind":"enum","values":["private","public"]},"created_at":{"default":{"var":"now"},"kind":"instant"},"delegation":{"default":"disabled","kind":"enum","values":["enabled","disabled"]},"dm":{"default":"union","kind":"enum","values":["union","envoy"]},"group_messages":{"default":"mention_or_reply","kind":"enum","values":["disabled","mention_or_reply","all"]},"name":{"kind":"text"},"policies":{"default":[],"kind":"text","many":true},"revision":{"default":1,"kind":"int"},"task":{"default":"","format":"markdown","kind":"text"},"triage":{"default":false,"kind":"bool"},"triage_scope":{"default":"all","hidden":true,"kind":"enum","values":["dm","group","all"]}},"key":"uuid","record_label":"record.name"}'::jsonb);
@@ -1192,7 +1231,7 @@ select bolt_history_register('sys_integration','{"fields":{"active":{"default":t
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
 
 -- step create:history:schema:sys_user (additive)
-select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:notes (additive)
 select bolt_history_register('notes','{"audit":true,"fields":{"body":{"kind":"text","optional":true},"title":{"kind":"text"}},"record_label":"record.title"}'::jsonb);
@@ -1237,7 +1276,7 @@ alter table "sys_sync" add constraint "sys_sync__fk__328a1493" foreign key ("ins
 alter table "sys_sync_row" add constraint "sys_sync_row__fk__328a1493" foreign key ("instance") references "sys_integration" ("id") on delete cascade on update restrict;
 
 -- step create:trigger:approval_request.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"fields":{"action":["action"],"approver_teams":["approver_teams"],"approver_users":["approver_users"],"closed_at":["closed_at"],"closed_by":["closed_by"],"collection_name":["collection_name"],"created_at":["created_at"],"record_id":["record_id"],"revision":["revision"],"status":["status"],"step":["step"],"step_names":["step_names"],"steps":["steps"],"superseder_teams":["superseder_teams"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:approval_request.approval_request__gin__73732636 (additive)
 create index "approval_request__gin__73732636" on "approval_request" using gin (bolt_search);
@@ -1246,37 +1285,37 @@ create index "approval_request__gin__73732636" on "approval_request" using gin (
 create unique index "approval_request__ux__2e4b03bd" on "approval_request" ("collection_name", "record_id") where ("status" = 'ONGOING'::text);
 
 -- step create:trigger:requestor.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "requestor" for each row execute function store_row_rules('{"audit":false,"fields":{"approval_request_id":["approval_request_id"],"user_id":["user_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "requestor" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:requestor.requestor__gin__73732636 (additive)
 create index "requestor__gin__73732636" on "requestor" using gin (bolt_search);
 
 -- step create:trigger:sys_api_key.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_api_key" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"hash":["hash"],"last_used_at":["last_used_at"],"name":["name"],"prefix":["prefix"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_api_key" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_api_key.sys_api_key__gin__73732636 (additive)
 create index "sys_api_key__gin__73732636" on "sys_api_key" using gin (bolt_search);
 
 -- step create:trigger:sys_challenge.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_challenge" for each row execute function store_row_rules('{"audit":false,"fields":{"address_mac":["address_mac"],"attempts":["attempts"],"code_mac":["code_mac"],"expires_at":["expires_at"]},"key":["address_mac"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_challenge" for each row execute function store_row_rules('{"audit":false,"key":["address_mac"],"states":{}}');
 
 -- step create:index:sys_challenge.sys_challenge__gin__73732636 (additive)
 create index "sys_challenge__gin__73732636" on "sys_challenge" using gin (bolt_search);
 
 -- step create:trigger:sys_config.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_config" for each row execute function store_row_rules('{"audit":false,"fields":{"key":["key"],"value":["value"]},"key":["key"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_config" for each row execute function store_row_rules('{"audit":false,"key":["key"],"states":{}}');
 
 -- step create:index:sys_config.sys_config__gin__73732636 (additive)
 create index "sys_config__gin__73732636" on "sys_config" using gin (bolt_search);
 
 -- step create:trigger:sys_conversation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"envoy":["envoy"],"goals":["goals"],"inputs":["inputs"],"integration":["integration"],"kind":["kind"],"lease_until":["lease_until"],"model":["model"],"outputs":["outputs"],"owner":["owner"],"parent":["parent"],"participants":["participants"],"plan":["plan"],"read":["read"],"restart_at":["restart_at"],"restart_from":["restart_from"],"revision":["revision"],"run":["run"],"status":["status"],"thread":["thread"],"title":["title"],"updated_at":["updated_at"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_conversation.sys_conversation__gin__73732636 (additive)
 create index "sys_conversation__gin__73732636" on "sys_conversation" using gin (bolt_search);
 
 -- step create:trigger:sys_envoy.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"audience":["audience"],"created_at":["created_at"],"delegation":["delegation"],"dm":["dm"],"group_messages":["group_messages"],"name":["name"],"policies":["policies"],"revision":["revision"],"task":["task"],"triage":["triage"],"triage_scope":["triage_scope"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_envoy.sys_envoy__gin__0061abf6 (additive)
 create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
@@ -1285,13 +1324,13 @@ create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
 create index "sys_envoy__gin__73732636" on "sys_envoy" using gin (bolt_search);
 
 -- step create:trigger:sys_file.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"field":["field"],"key":["key"],"mime":["mime"],"name":["name"],"revision":["revision"],"sha256":["sha256"],"size":["size"],"updated_at":["updated_at"],"updated_by":["updated_by"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_file.sys_file__gin__73732636 (additive)
 create index "sys_file__gin__73732636" on "sys_file" using gin (bolt_search);
 
 -- step create:trigger:sys_inbox.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_inbox" for each row execute function store_row_rules('{"audit":false,"fields":{"body":["body"],"consumed_at":["consumed_at"],"delivery":["delivery"],"headers":["headers"],"instance":["instance"],"received_at":["received_at"],"sync":["sync"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_inbox" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_inbox.sys_inbox__gin__73732636 (additive)
 create index "sys_inbox__gin__73732636" on "sys_inbox" using gin (bolt_search);
@@ -1300,7 +1339,7 @@ create index "sys_inbox__gin__73732636" on "sys_inbox" using gin (bolt_search);
 create index "sys_inbox__ix__e6ba37d2" on "sys_inbox" ("sync", "instance", "received_at") where ("consumed_at" is null);
 
 -- step create:trigger:sys_integration.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_integration" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"configuration":["configuration"],"envoy":["envoy"],"epoch":["epoch"],"import_start":["import_start"],"integration":["integration"],"name":["name"],"owner":["owner"],"revision":["revision"],"status":["status"],"updated_at":["updated_at"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_integration" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_integration.sys_integration__gin__73732636 (additive)
 create index "sys_integration__gin__73732636" on "sys_integration" using gin (bolt_search);
@@ -1309,7 +1348,7 @@ create index "sys_integration__gin__73732636" on "sys_integration" using gin (bo
 create unique index "sys_integration__ux__3c46fc6b" on "sys_integration" ("owner", "integration") where ("owner" is not null);
 
 -- step create:trigger:sys_invitation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_invitation" for each row execute function store_row_rules('{"audit":false,"fields":{"accepted_at":["accepted_at"],"email":["email"],"expires_at":["expires_at"],"external":["external"],"invited_by":["invited_by"],"party":["party"],"phone":["phone"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_invitation" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_invitation.sys_invitation__gin__73732636 (additive)
 create index "sys_invitation__gin__73732636" on "sys_invitation" using gin (bolt_search);
@@ -1321,7 +1360,7 @@ create index "sys_invitation__ix__08e69363" on "sys_invitation" (lower("email"))
 create index "sys_invitation__ix__55565b71" on "sys_invitation" ("phone");
 
 -- step create:trigger:sys_message.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_message" for each row execute function store_row_rules('{"audit":false,"fields":{"about":["about"],"addressed":["addressed"],"as":["as"],"attempts":["attempts"],"author":["author"],"claimed_at":["claimed_at"],"content":["content"],"conversation":["conversation"],"copied_from":["copied_from"],"created_at":["created_at"],"deleted_at":["deleted_at"],"delivered_turn":["delivered_turn"],"delivery":["delivery"],"direction":["direction"],"edited_at":["edited_at"],"email":["email"],"epoch":["epoch"],"error":["error"],"integration":["integration"],"invocation":["invocation"],"message":["message"],"meta":["meta"],"mode":["mode"],"next_attempt_at":["next_attempt_at"],"origin":["origin"],"presume_at":["presume_at"],"preview":["preview"],"provider_id":["provider_id"],"read_by":["read_by"],"refused":["refused"],"reply_to":["reply_to"],"role":["role"],"sender":["sender"],"sender_name":["sender_name"],"sent_at":["sent_at"],"seq":["seq"],"source_at":["source_at"],"state":["state"],"status":["status"],"supersedes":["supersedes"],"text":["text"],"thread":["thread"],"turn":["turn"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_message" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_message.sys_message__gin__73732636 (additive)
 create index "sys_message__gin__73732636" on "sys_message" using gin (bolt_search);
@@ -1342,7 +1381,7 @@ create index "sys_message__ix__ddeff634" on "sys_message" ("conversation") where
 create index "sys_message__ix__5c3f70a3" on "sys_message" ("seq") where ("status" in ('queued'::text, 'sending'::text));
 
 -- step create:trigger:sys_notification.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_notification" for each row execute function store_row_rules('{"audit":false,"fields":{"at":["at"],"attachments":["attachments"],"body":["body"],"link":["link"],"member":["member"],"once":["once"],"read_at":["read_at"],"recipient":["recipient"],"title":["title"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_notification" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_notification.sys_notification__gin__73732636 (additive)
 create index "sys_notification__gin__73732636" on "sys_notification" using gin (bolt_search);
@@ -1351,7 +1390,7 @@ create index "sys_notification__gin__73732636" on "sys_notification" using gin (
 create index "sys_notification__ix__846c656b" on "sys_notification" ("member", "at") where ("member" is not null);
 
 -- step create:trigger:sys_outbox.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_outbox" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_at":["acked_at"],"at":["at"],"attempts":["attempts"],"changed":["changed"],"claimed_at":["claimed_at"],"delivery_op":["delivery_op"],"epoch":["epoch"],"error":["error"],"image":["image"],"instance":["instance"],"key":["key"],"model":["model"],"next_attempt_at":["next_attempt_at"],"op":["op"],"preserve_local":["preserve_local"],"record":["record"],"record_revision":["record_revision"],"result":["result"],"seq":["seq"],"status":["status"],"sync":["sync"],"writer":["writer"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_outbox" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_outbox.sys_outbox__gin__73732636 (additive)
 create index "sys_outbox__gin__73732636" on "sys_outbox" using gin (bolt_search);
@@ -1372,7 +1411,7 @@ create index "sys_outbox__ix__564640ab" on "sys_outbox" ("sync") where ("status"
 create index "sys_outbox__ix__276b72a8" on "sys_outbox" ("sync", "instance", "record", "record_revision");
 
 -- step create:trigger:sys_run.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_run" for each row execute function store_row_rules('{"audit":false,"fields":{"actor":["actor"],"attempts":["attempts"],"automation":["automation"],"cause":["cause"],"depth":["depth"],"due_at":["due_at"],"error":["error"],"finished_at":["finished_at"],"input":["input"],"key":["key"],"leases":["leases"],"output":["output"],"progress":["progress"],"results":["results"],"run_key":["run_key"],"started_at":["started_at"],"starter":["starter"],"state":["state"],"trigger":["trigger"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_run" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_run.sys_run__gin__73732636 (additive)
 create index "sys_run__gin__73732636" on "sys_run" using gin (bolt_search);
@@ -1380,23 +1419,26 @@ create index "sys_run__gin__73732636" on "sys_run" using gin (bolt_search);
 -- step create:index:sys_run.sys_run__ix__1ee5eb39 (additive)
 create index "sys_run__ix__1ee5eb39" on "sys_run" ("due_at") where ("state" = 'queued'::text);
 
+-- step create:index:sys_run.sys_run__ix__4309c70d (additive)
+create index "sys_run__ix__4309c70d" on "sys_run" ("due_at") where ("state" = 'waiting'::text);
+
 -- step create:index:sys_run.sys_run__ix__f2739d46 (additive)
 create index "sys_run__ix__f2739d46" on "sys_run" ("automation", "state");
 
 -- step create:trigger:sys_session.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_session" for each row execute function store_row_rules('{"audit":false,"fields":{"agent":["agent"],"created_at":["created_at"],"expires_at":["expires_at"],"impersonated_by":["impersonated_by"],"refreshed_at":["refreshed_at"],"token_hash":["token_hash"],"user":["user"],"via":["via"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_session" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_session.sys_session__gin__73732636 (additive)
 create index "sys_session__gin__73732636" on "sys_session" using gin (bolt_search);
 
 -- step create:trigger:sys_sync.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_sync" for each row execute function store_row_rules('{"audit":false,"fields":{"cursor":["cursor"],"cycle":["cycle"],"digest":["digest"],"health":["health"],"instance":["instance"],"last_change_at":["last_change_at"],"last_hint_at":["last_hint_at"],"last_read_at":["last_read_at"],"partition":["partition"],"phase":["phase"],"started_at":["started_at"],"sync":["sync"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_sync" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_sync.sys_sync__gin__73732636 (additive)
 create index "sys_sync__gin__73732636" on "sys_sync" using gin (bolt_search);
 
 -- step create:trigger:sys_sync_row.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_sync_row" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_revision":["acked_revision"],"cycle":["cycle"],"instance":["instance"],"partition":["partition"],"record":["record"],"remote_id":["remote_id"],"remote_version":["remote_version"],"sync":["sync"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_sync_row" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_sync_row.sys_sync_row__gin__73732636 (additive)
 create index "sys_sync_row__gin__73732636" on "sys_sync_row" using gin (bolt_search);
@@ -1408,7 +1450,7 @@ create unique index "sys_sync_row__ux__b176bf1e" on "sys_sync_row" ("sync", "ins
 create index "sys_sync_row__ix__c5cc52ee" on "sys_sync_row" ("sync", "instance", "partition", "cycle");
 
 -- step create:trigger:sys_user.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_user" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"admin":["admin"],"created_at":["created_at"],"email":["email"],"kind":["kind"],"last_seen":["last_seen"],"name":["name"],"party":["party"],"phone":["phone"],"revision":["revision"],"signup":["signup"],"team":["team"],"telegram":["telegram"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_user" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_user.sys_user__gin__73732636 (additive)
 create index "sys_user__gin__73732636" on "sys_user" using gin (bolt_search);
@@ -1420,7 +1462,7 @@ create unique index "sys_user__ux__08e69363" on "sys_user" (lower("email"));
 create unique index "sys_user__ux__1c9f4db2" on "sys_user" ("phone_key");
 
 -- step create:trigger:notes.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "notes" for each row execute function store_row_rules('{"audit":true,"fields":{"body":["body"],"title":["title"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "notes" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:notes.notes__gin__73732636 (additive)
 create index "notes__gin__73732636" on "notes" using gin (bolt_search);

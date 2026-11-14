@@ -19,7 +19,7 @@ export default policy({
 		booking_requests: {
 			outputs: { default: {} },
 			update: {
-				columns: { fields: ['status', 'booking', 'outcome'] },
+				fields: ['status', 'booking', 'outcome'],
 				moves: { status: ['received->booked', 'received->follow_up'] }
 			}
 		},
@@ -27,33 +27,30 @@ export default policy({
 		visits: {
 			outputs: { default: {} },
 			update: {
-				columns: {
-					fields: [
-						'helper',
-						'shift_check',
-						'shift_asked_at',
-						'eta_minutes',
-						'eta_checked_at',
-						'attention',
-						'proposed_helper',
-						'proposed_slot',
-						'unavailable_helper'
-					]
-				}
+				fields: [
+					'helper',
+					'shift_check',
+					'shift_asked_at',
+					'eta_minutes',
+					'eta_checked_at',
+					'attention',
+					'proposed_helper',
+					'proposed_slot',
+					'unavailable_helper'
+				]
 			}
 		},
 		helper_warnings: {
 			outputs: { default: {} },
 			create: {},
-			update: { columns: { fields: ['letter'] } }
+			update: { fields: ['letter'] }
 		},
 		customer_notices: {
 			outputs: { default: {} },
 			create: {},
-			update: { columns: { fields: ['whatsapp'] } }
+			update: { fields: ['whatsapp'] }
 		},
 		// the shared WhatsApp and Google Routes accounts the runs send and time drives through
 		sys_integration: { outputs: { default: {} } }
-	},
-	limits: { act: '600/min', read: '600/min' }
+	}
 });

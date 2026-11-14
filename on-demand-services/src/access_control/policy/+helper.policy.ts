@@ -1,5 +1,5 @@
 import { policy, type Actor } from '@norbital-ai/bolt';
-const SELF = { user: { eq: { var: 'requestor.id' } } } as const;
+const SELF = { user: { eq: { var: 'actor.id' } } } as const;
 const OWN = { helper: { is: SELF } } as const;
 /** The member writing. */
 const memberOf = (actor: Actor) => (actor.kind === 'member' ? actor.id : null);
@@ -17,7 +17,7 @@ export default policy({
 		helpers: {
 			outputs: { helper: { where: SELF } },
 			update: {
-				columns: { fields: ['last_location'] },
+				fields: ['last_location'],
 				verdict: function* (changes, ctx) {
 					const me = memberOf(ctx.actor);
 					const row = changes.findIndex((c) => me === null || c.before.user !== me);
@@ -38,7 +38,7 @@ export default policy({
 				}
 			},
 			update: {
-				columns: { fields: ['status', 'shift_check', 'mc', 'completion_notes'] },
+				fields: ['status', 'shift_check', 'mc', 'completion_notes'],
 				moves: { status: ['scheduled->in_progress', 'in_progress->done'] },
 				// their own visits: the visit's helper is the member (the helper column is not theirs to write)
 				verdict: function* (changes, ctx) {
@@ -65,6 +65,5 @@ export default policy({
 				helper: { where: { bookings: { some: { visits: { some: OWN } } } } }
 			}
 		}
-	},
-	limits: { act: '120/min', read: '600/min', agent: '50/h' }
+	}
 });

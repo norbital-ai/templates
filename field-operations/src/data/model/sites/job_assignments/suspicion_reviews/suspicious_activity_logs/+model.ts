@@ -1,4 +1,4 @@
-import { model } from '../../../../../../../.norbital/models/suspicious_activity_logs.ts';
+import { model } from '@norbital-ai/bolt';
 import * as Effect from 'effect/Effect';
 import { SUSPICION_BASIS } from '../../../../../../lib/basis.js';
 /**
@@ -6,7 +6,7 @@ import { SUSPICION_BASIS } from '../../../../../../lib/basis.js';
  * with an immutable basis; it is closed once, by `resolve`, with all three resolution fields together, and that sentence
  * is the record. The judgement is outside the update columns, so it cannot be rewritten.
  */
-export default model({
+export default model('suspicious_activity_logs', {
 	description:
 		'A suspicion log (finding): an AI or authorized-human suspicion judgement against one job assignment, with immutable evidence basis and an explicit controller resolution.',
 	icon: 'lucide:shield-alert',
@@ -49,9 +49,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: ['job_assignment_id', 'origin', 'basis', 'review_id', 'evidence_id', 'reason']
-		},
+		fields: ['job_assignment_id', 'origin', 'basis', 'review_id', 'evidence_id', 'reason'],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
 			const reviewIds = [
@@ -128,7 +126,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: ['resolution', 'resolved_at', 'resolved_by'] },
+		fields: ['resolution', 'resolved_at', 'resolved_by'],
 		transform: function* (changes, ctx) {
 			for (const [row, { before, set }] of changes.entries()) {
 				if (before.resolved_at != null)

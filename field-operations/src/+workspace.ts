@@ -8,5 +8,18 @@ export default workspace({
 	locale: 'en-SG',
 	currency: 'SGD',
 	apps: ['field_ops_controller', 'field_ops_contractor'],
-	ai: { embeddings: ['scene', 'default'] }
+	ai: { embeddings: ['scene', 'default'] },
+	// rate limits per policy
+	limits: {
+		field_ops_contractor: { act: '600/min', read: '600/min', agent: '100/h' },
+		field_ops_controller: { act: '600/min', read: '600/min', agent: '100/h' },
+		field_ops_whatsapp: {
+			act: '60/min',
+			'envoys.receive': [
+				{ rate: '30/min', per: 'sender' },
+				{ rate: '300/min', per: 'subject' }
+			]
+		},
+		suspicion_review_automation: { act: '600/min', read: '600/min', agent: '500/h' }
+	}
 });

@@ -1,8 +1,6 @@
-import { model } from '../../../../../.norbital/models/order_lines.ts';
 import { logisticsLine } from '../../../../lib/logistics.js';
-import { type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type Id, model, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
-import { pushOrder, readKingdeeOrderLines } from '../../../../integration/kingdee/sales-orders.js';
 import { price } from '../../../../lib/commercial.js';
 import {
 	printValueKind,
@@ -40,11 +38,8 @@ const priced = Effect.fnUntraced(function* (
 	});
 	// an order created with its lines in the same act is read as the act leaves it
 	const ids = [...new Set(lines.map((l) => l.order))];
-	const stored = (yield* ctx.query({ orders: { where: { id: { in: ids } } } })).orders.rows;
-	const pending = ids.filter((id) => !stored.some((order) => order.id === id));
-	const orders = pending.length
-		? [...stored, ...(yield* ctx.query.after('orders', { id: { in: pending } }))]
-		: stored;
+	const orders = (yield* ctx.query({ orders: { where: { id: { in: ids } }, as_of: 'act' } })).orders
+		.rows;
 	const out: (Pick<
 		StoredRow<'order_lines'>,
 		| 'source_entry_id'
@@ -150,34 +145,7 @@ const priced = Effect.fnUntraced(function* (
 					)
 			)[0];
 		if (floor && floor.unit !== unit) return yield* ctx.refuse('errors.unit_mismatch');
-		const floor_net = floor
-			? floor.tax_inclusive
-				? new Intl.NumberFormat('en', {
-						useGrouping: false,
-						minimumFractionDigits: 8,
-						maximumFractionDigits: 8
-					}).format(
-						BigDecimal.format(
-							BigDecimal.round(
-								BigDecimal.divideUnsafe(
-									BigDecimal.fromStringUnsafe(floor.floor_price),
-									BigDecimal.sum(
-										BigDecimal.fromBigInt(1n),
-										BigDecimal.round(
-											BigDecimal.divideUnsafe(
-												BigDecimal.fromStringUnsafe(floor.tax_rate),
-												BigDecimal.fromBigInt(100n)
-											),
-											{ scale: 6 }
-										)
-									)
-								),
-								{ scale: 8 }
-							)
-						) as Intl.StringNumericLiteral
-					)
-				: floor.floor_price
-			: null;
+		const floor_net = floor ? floor.floor_net : null;
 		const amounts = price(order, { quantity, unit_price, discount_pct, tax_rate });
 		out.push({
 			source_entry_id,
@@ -214,7 +182,7 @@ const priced = Effect.fnUntraced(function* (
 	}
 	return out;
 });
-export default model({
+export default model('order_lines', {
 	description: 'order lines',
 	record_label: "record.order.number + ' · ' + record.product_name",
 	fields: {
@@ -317,9 +285,7 @@ export default model({
 	indexes: { search: { text: ['product', 'product_code'] } },
 	// a line created through its order's `'orders.lines'` layer runs this after the order's own `create.transform`
 	create: {
-		columns: {
-			fields: ['order', 'line_key', 'product', ...cells, 'print_values', 'source_entry_id']
-		},
+		fields: ['order', 'line_key', 'product', ...cells, 'print_values', 'source_entry_id'],
 		filled: { fields: ['unit_price', 'tax_rate'] },
 		transform: function* (changes, ctx) {
 			const derived = yield* priced(
@@ -340,7 +306,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: [...cells, 'print_values', 'source_entry_id'] },
+		fields: [...cells, 'print_values', 'source_entry_id'],
 		transform: function* (changes, ctx) {
 			const derived = yield* priced(
 				ctx,
@@ -356,22 +322,5 @@ export default model({
 		}
 	},
 	// a line delete is judged by its holders' policies (`lineDeletes` in `order-review.ts`)
-	delete: {},
-	syncs: {
-		// The Kingdee SO's lines: the read mirrors each entry, a write sends the whole order.
-		kingdee: {
-			with: 'kingdee',
-			every: '1min',
-			read: function* ({ cursor, instance }, ctx) {
-				return yield* readKingdeeOrderLines(instance, cursor, ctx);
-			},
-			write: function* ({ op, row, instance }, ctx) {
-				const written = yield* pushOrder(row.order, instance, ctx);
-				const entry = written?.lines.find((line) => line.line === row.id);
-				return op === 'delete' || !written || !entry
-					? null
-					: { $id: `${written.$id}:${entry.entry}` };
-			}
-		}
-	}
+	delete: {}
 });

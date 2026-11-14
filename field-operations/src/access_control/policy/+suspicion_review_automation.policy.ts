@@ -26,7 +26,7 @@ export default policy({
 		job_assignments: {
 			outputs: { default: {} },
 			update: {
-				columns: { fields: ['suspicion_checked_at'] },
+				fields: ['suspicion_checked_at'],
 				verdict: function* (changes, ctx) {
 					const twice = changes.findIndex(
 						({ before, set }) =>
@@ -95,6 +95,5 @@ export default policy({
 				}
 			}
 		}
-	},
-	limits: { act: '600/min', read: '600/min', agent: '500/h' }
+	}
 });

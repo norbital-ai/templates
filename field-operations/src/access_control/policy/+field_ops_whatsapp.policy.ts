@@ -14,22 +14,13 @@ export default policy({
 		job_assignments: {
 			outputs: { default: {} },
 			update: {
-				columns: {
-					fields: ['status', 'completed_at', 'summary'],
-					photo_evidence: { fields: ['photo', 'source'] },
-					communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
-				}
+				fields: ['status', 'completed_at', 'summary'],
+				photo_evidence: { fields: ['photo', 'source'] },
+				communication_logs: { fields: ['message', 'sent_at', 'sender', 'source_message_id'] }
 			}
 		},
 		sites: { outputs: { default: {} } },
 		communication_logs: { create: {} },
 		sys_user: { outputs: { directory: {} } }
-	},
-	limits: {
-		act: '60/min',
-		'envoys.receive': [
-			{ rate: '30/min', per: 'sender' },
-			{ rate: '300/min', per: 'subject' }
-		]
 	}
 });

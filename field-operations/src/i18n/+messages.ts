@@ -50,7 +50,6 @@ export default messages({
 	'app.field_ops_controller.tab_dispatch': 'Dispatch schedule',
 	'app.field_ops_controller.tab_sites': 'Sites',
 	'app.field_ops_controller.today': 'Today',
-	'app.field_ops_controller.importing': 'Importing…',
 	'app.field_ops_controller.select_dispatch_date': 'Select dispatch date',
 	'app.field_ops_controller.map_empty':
 		'No contractor assignment with a mapped site is scheduled for {date}.',
@@ -144,10 +143,6 @@ export default messages({
 	'app.field_ops_controller.suspicion_review_description':
 		"Review every unchecked assignment's evidence with AI and log the suspicious ones. Also runs every 15 minutes.",
 	'app.field_ops_controller.import_assignments': 'Import',
-	'app.field_ops_controller.import_done': 'Imported {count} job assignments from {file}.',
-	'app.field_ops_controller.import_empty': '{file} has no rows under its header.',
-	'app.field_ops_controller.import_failed':
-		'The import could not be confirmed; check the board before importing again.',
 	'app.field_ops_controller.site_handover': 'Site handover',
 	'component.conversation_to_latest': 'Latest',
 	'section.job': 'Job',
@@ -191,5 +186,10 @@ export default messages({
 	'errors.sheet_ref_repeated':
 		'The sheet could not be imported: row {row} ({title} at {site} on {date}): external_ref {ref} is repeated.',
 	'errors.sheet_site_unlocated':
-		'The sheet could not be imported: row {row} ({title} at {site} on {date}): a new site needs latitude (-90 to 90) and longitude (-180 to 180).'
+		'The sheet could not be imported: row {row} ({title} at {site} on {date}): a new site needs latitude (-90 to 90) and longitude (-180 to 180).',
+	'errors.sheet_unreadable': 'The file could not be read as a spreadsheet or CSV.',
+	'errors.sheet_size': 'The sheet needs 1 to 5,000 rows under its header.',
+	'errors.sheet_invalid': 'The sheet could not be imported:\n{detail}',
+	'automations.job_assignments_import_work_orders.input.fields.file':
+		'Work-order sheet (CSV or xlsx)'
 });

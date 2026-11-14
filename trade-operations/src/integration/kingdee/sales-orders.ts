@@ -1,6 +1,5 @@
 import { BigDecimal, Effect } from 'effect';
-import type { Id, InstanceId, Row } from '@norbital-ai/bolt';
-import type { Json } from '@norbital-ai/bolt/engine';
+import type { Id, InstanceId, Row, Json } from '@norbital-ai/bolt';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { hash } from '../../lib/commercial.js';
 import type { SourceRowInvalid } from './polling.js';

@@ -8,6 +8,5 @@ export default policy({
 	grants: {
 		services: { outputs: { portal: { where: { active: { eq: true } } } } },
 		openings: { outputs: { portal: {} } }
-	},
-	limits: { read: '120/min' }
+	}
 });

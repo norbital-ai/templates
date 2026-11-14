@@ -1,7 +1,6 @@
-import { model } from '../../../../../.norbital/models/ext_purchase_orders.ts';
 import { Effect } from 'effect';
 import { logisticsReceipt } from '../../../../lib/logistics.js';
-import { type CreatedRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { type CreatedRow, model, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 type Header = Pick<
 	CreatedRow<'ext_purchase_orders'>,
 	'order' | 'source' | 'external_id' | 'currency' | 'reference' | 'status' | 'source_updated_at'
@@ -47,7 +46,7 @@ const settle = Effect.fnUntraced(function* (
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 	}
 });
-export default model({
+export default model('ext_purchase_orders', {
 	description: 'Supplier order confirmation.',
 	record_label: 'record.reference',
 	fields: {
@@ -63,7 +62,7 @@ export default model({
 	constraints: { natural_key: { unique: ['source', 'external_id'], import_key: true } },
 	// Retain existing confirmation evidence. No PO sync is scheduled without a verified source binding.
 	create: {
-		columns: { fields: [] },
+		fields: [],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ after }) => ({ value: after, old: null })),
@@ -73,7 +72,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: [] },
+		fields: [],
 		transform: function* (changes, ctx) {
 			yield* settle(
 				changes.map(({ before, after }) => ({ value: after, old: before })),

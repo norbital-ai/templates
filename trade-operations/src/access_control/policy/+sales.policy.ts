@@ -9,14 +9,14 @@ import {
 	reviewOrders
 } from '../../lib/order-review.js';
 const own = {
-	order: { is: { direction: { eq: 'sales' }, owner: { eq: { var: 'requestor.id' } } } }
+	order: { is: { direction: { eq: 'sales' }, owner: { eq: { var: 'actor.id' } } } }
 } as const;
 export default policy({
 	description: 'sales commercial work scoped by order.',
 	capabilities: { apps: ['operations'] },
 	grants: {
 		sys_user: {
-			outputs: { default: { where: { id: { eq: { var: 'requestor.id' } } } } }
+			outputs: { default: { where: { id: { eq: { var: 'actor.id' } } } } }
 		},
 		source_stock_commitments: {
 			outputs: { default: {} }
@@ -28,7 +28,7 @@ export default policy({
 			outputs: { default: { where: own, history: true } }
 		},
 		commission_statements: {
-			outputs: { default: { where: { owner: { eq: { var: 'requestor.id' } } }, history: true } }
+			outputs: { default: { where: { owner: { eq: { var: 'actor.id' } } }, history: true } }
 		},
 		parties: {
 			outputs: { default: {} }
@@ -68,7 +68,7 @@ export default policy({
 			// the layers under an own order (its party, lines and documents) are read with it
 			outputs: {
 				default: {
-					where: { direction: { eq: 'sales' }, owner: { eq: { var: 'requestor.id' } } },
+					where: { direction: { eq: 'sales' }, owner: { eq: { var: 'actor.id' } } },
 					history: true
 				}
 			},

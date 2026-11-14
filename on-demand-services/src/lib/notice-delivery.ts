@@ -27,3 +27,29 @@ export const deliverNoticeRows = Effect.fnUntraced(function* <E>(
 	);
 	if (set.length > 0) yield* write(set).pipe(Effect.catchTag('ActConflict', () => write(set)));
 });
+
+export const DELIVERY = [
+	'queued',
+	'sent',
+	'deferred',
+	'delivered',
+	'opened',
+	'replied',
+	'bounced',
+	'failed'
+] as const;
+type Delivery = (typeof DELIVERY)[number];
+/** queued < sent < deferred < delivered < opened < replied; bounced and failed are final. */
+const RANK: { readonly [D in Delivery]: number } = {
+	queued: 0,
+	sent: 1,
+	deferred: 2,
+	delivered: 3,
+	opened: 4,
+	replied: 5,
+	bounced: 6,
+	failed: 6
+};
+/** Whether a report of `next` moves a mail standing at `current`: only forward, never past a bounce or failure; a reply always lands. */
+export const moves = (current: Delivery | null, next: Delivery) =>
+	current === null || next === 'replied' || RANK[next] > RANK[current];

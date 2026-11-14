@@ -1,6 +1,6 @@
-import { model } from '../../../../../.norbital/models/helper_time_off.ts';
+import { model } from '@norbital-ai/bolt';
 /** Days a helper is not available: leave, medical leave, anything else. */
-export default model({
+export default model('helper_time_off', {
 	description: 'A span of days a helper cannot take visits.',
 	icon: 'lucide:calendar-off',
 	record_label: "record.helper.name + ' · ' + string(record.period.from)",
@@ -12,11 +12,11 @@ export default model({
 	constraints: { one_absence: { no_overlap: 'period', per: ['helper'] } },
 	outputs: { default: { fields: 'all', helper: { fields: ['name'] } } },
 	create: {
-		columns: { fields: ['helper', 'period', 'reason'] },
+		fields: ['helper', 'period', 'reason'],
 		effect: function* (_, ctx) {
 			yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
 		}
 	},
-	update: { columns: { fields: ['period', 'reason'] } },
+	update: { fields: ['period', 'reason'] },
 	delete: {}
 });

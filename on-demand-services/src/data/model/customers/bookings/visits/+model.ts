@@ -1,6 +1,6 @@
 import type { Instant } from '@norbital-ai/bolt';
 import { DateTime } from 'effect';
-import { model } from '../../../../../../.norbital/models/visits.ts';
+import { model } from '@norbital-ai/bolt';
 import { alertHelpers } from '../../../../../lib/dispatch.js';
 import { AREAS, lookups, refusal, SKILLS, type Refusal } from '../../../../../lib/matching.js';
 const WHY = {
@@ -32,7 +32,7 @@ const stamped = <
  * Visits are created with their booking. Every write that names a helper or moves a visit is held to the hard
  * requirements here, whoever makes it; a change of helper starts that helper's shift check afresh.
  */
-export default model({
+export default model('visits', {
 	description:
 		'A visit: when, where, which helper, and where its shift confirmation and ETA check stand.',
 	icon: 'lucide:calendar-clock',
@@ -160,7 +160,7 @@ export default model({
 	},
 	// visits are created with their booking (its `visits` layer); the effect tells each helper of their new visits
 	create: {
-		columns: { fields: ['slot', 'address', 'location', 'area', 'skill', 'helper', 'attention'] },
+		fields: ['slot', 'address', 'location', 'area', 'skill', 'helper', 'attention'],
 		effect: function* (changes, ctx) {
 			yield* alertHelpers(
 				changes.flatMap(({ after }) => (after.helper === null ? [] : [after.id])),
@@ -169,24 +169,22 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'helper',
-				'slot',
-				'status',
-				'shift_check',
-				'shift_asked_at',
-				'mc',
-				'eta_minutes',
-				'eta_checked_at',
-				'attention',
-				'proposed_helper',
-				'unavailable_helper',
-				'proposed_slot',
-				'late_cancellation',
-				'completion_notes'
-			]
-		},
+		fields: [
+			'helper',
+			'slot',
+			'status',
+			'shift_check',
+			'shift_asked_at',
+			'mc',
+			'eta_minutes',
+			'eta_checked_at',
+			'attention',
+			'proposed_helper',
+			'unavailable_helper',
+			'proposed_slot',
+			'late_cancellation',
+			'completion_notes'
+		],
 		transform: function* (changes, ctx) {
 			const touched = changes.flatMap(({ set, after }) => {
 				const moved = set.helper !== undefined || set.slot !== undefined;

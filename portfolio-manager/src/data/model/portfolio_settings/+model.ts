@@ -1,11 +1,11 @@
-import { model } from '../../../../.norbital/models/portfolio_settings.ts';
+import { model } from '@norbital-ai/bolt';
 
 /**
  * The workspace's portfolio configuration, one row: the currency the book is valued in, and who receives the daily
  * report through which paired account. A workspace in another currency or with other recipients changes this row,
  * never the source.
  */
-export default model({
+export default model('portfolio_settings', {
 	description:
 		'The base currency, the benchmarks, and the paired account and chats the daily report is sent to.',
 	icon: 'lucide:settings',
@@ -30,7 +30,7 @@ export default model({
 		}
 	},
 	outputs: { default: { fields: 'all' } },
-	create: { columns: { fields: ['base_currency', 'report_via', 'recipients', 'benchmarks'] } },
-	update: { columns: { fields: ['base_currency', 'report_via', 'recipients', 'benchmarks'] } },
+	create: { fields: ['base_currency', 'report_via', 'recipients', 'benchmarks'] },
+	update: { fields: ['base_currency', 'report_via', 'recipients', 'benchmarks'] },
 	delete: {}
 });
