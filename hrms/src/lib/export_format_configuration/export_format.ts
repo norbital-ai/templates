@@ -11,14 +11,7 @@ export interface PayrollExportRow {
 	readonly bank_account_number: string;
 	readonly bank_account_name: string;
 	readonly currency: string;
-	readonly basic_earnings: number;
-	readonly allowances: number;
-	readonly npl: number;
-	readonly proration: number;
-	readonly gross_earnings: number;
 	readonly net_pay: number;
-	readonly total_deductions: number;
-	readonly employer_cost: number;
 }
 
 export type ExportRecord = Readonly<Record<string, string | number | null>>;
@@ -36,14 +29,4 @@ export const fixed = (value: string | number, width: number, align: 'left' | 'ri
 	if (text.length > width)
 		throw new Error(`Export value '${text}' exceeds its ${width}-character field.`);
 	return align === 'left' ? text.padEnd(width, ' ') : text.padStart(width, '0');
-};
-
-/** The exported employee reference: HR-<digits>-<entity name in snake case>. */
-export const employeeReference = (number: string, entity: string): string => {
-	const digits = /(\d+)\s*$/.exec(number)?.[1] ?? number.replace(/^HR-/, '');
-	const suffix = entity
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '_')
-		.replace(/^_+|_+$/g, '');
-	return suffix === '' ? `HR-${digits}` : `HR-${digits}-${suffix}`;
 };

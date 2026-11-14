@@ -7,7 +7,6 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { metroBank, ocbcFast } from '../../src/lib/export_format_configuration/bank_files.ts';
-import { employeeReference } from '../../src/lib/export_format_configuration/export_format.ts';
 import { exportRows } from '../../src/lib/export_format_configuration/export_rows.ts';
 import {
 	sheetsOf,
@@ -196,7 +195,7 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 		[]
 	);
 	it.live(
-		'one row a payslip, its net, its allowances and the person’s bank as stored; each bank file lays it out once',
+		'one row a payslip, its net and the person’s bank as stored; each bank file lays it out once',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -212,10 +211,7 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 				assert.ok(run !== undefined && slip !== undefined);
 				assert.deepEqual(more, []);
 				const net = Number(decimalNumber(slip.net_pay));
-				const allowances = Schema.decodeUnknownSync(PayslipBreakdown)(slip.breakdown)
-					.lines.filter((line) => line.source === 'allowance_catalog')
-					.reduce((total, line) => total + line.amount, 0);
-				assert.ok(net > 0 && allowances > 0);
+				assert.ok(net > 0);
 				const rows = yield* exportRows(storedReader(t), run.id);
 				assert.equal(rows.length, 1);
 				const [row] = rows;
@@ -225,8 +221,6 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 					['W1', '001', '1', 'Worker']
 				);
 				assert.equal(row.net_pay, net);
-				assert.equal(row.gross_earnings, decimalNumber(slip.gross_earnings));
-				assert.equal(row.allowances, allowances);
 				// the amount is whole cents, zero-filled, once in each file's one line
 				const cents = String(Math.round(net * 100));
 				for (const [format, width, amount] of [
@@ -247,15 +241,4 @@ describe('a run’s payments, as the bank files and the listing rows read them',
 				);
 			}).pipe(Effect.provide(workspace({ seed: paid, now: '2026-03-05T02:00:00.000Z' })))
 	);
-});
-
-describe('employee export reference', () => {
-	it('formats the rolling number with the entity name in snake case', () => {
-		assert.equal(
-			employeeReference('HR-0001', 'Demo Singapore Pte. Ltd.'),
-			'HR-0001-demo_singapore_pte_ltd'
-		);
-		assert.equal(employeeReference('CN0001', 'CN Demo'), 'HR-0001-cn_demo');
-		assert.equal(employeeReference('HR-0042', ''), 'HR-0042');
-	});
 });
