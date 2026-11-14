@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
-	import { format, RecordShell, type RecordView } from '@norbital-ai/ui';
+	import { DescriptionHint, format, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import {
 		emptyPayslipBreakdown,
 		PayslipBreakdown
@@ -96,14 +96,12 @@
 					{@const description = describe(line)}
 					<li class="flex items-start justify-between gap-3 py-1.5 text-sm">
 						<span class="min-w-0">
-							<span class="block">{description ?? line.label}</span>
-							{#if description !== undefined || measure(line) !== ''}
-								<span class="block text-xs text-muted-foreground">
-									{#if description !== undefined}<span class="font-mono">{line.label}</span
-										>{/if}{#if description !== undefined && measure(line) !== ''}
-										·
-									{/if}{measure(line)}
-								</span>
+							<span class="flex items-center gap-1"
+								><span class="font-mono">{line.code}</span
+								>{#if description !== undefined}<DescriptionHint text={description} />{/if}</span
+							>
+							{#if measure(line) !== ''}
+								<span class="block text-xs text-muted-foreground">{measure(line)}</span>
 							{/if}
 						</span>
 						<span class="shrink-0 tabular-nums"
@@ -156,7 +154,12 @@
 								{@const description = describe(line)}
 								<li class="flex items-start justify-between gap-3 py-1.5 text-sm">
 									<span class="min-w-0">
-										<span class="block">{description ?? line.label}</span>
+										<span class="flex items-center gap-1"
+											><span class="font-mono">{line.code}</span
+											>{#if description !== undefined}<DescriptionHint
+													text={description}
+												/>{/if}</span
+										>
 										{#if line.party === 'EMPLOYER'}<span class="block text-xs text-muted-foreground"
 												>{ctx.t('app.payroll.adjustment_employer')}</span
 											>{/if}
