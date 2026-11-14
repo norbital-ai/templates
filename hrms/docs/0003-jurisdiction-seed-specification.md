@@ -91,7 +91,7 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 - Minification, opaque helpers and copied orchestration are rejected.
 - Expressions carry statute citations, never working notes.
 - A rule or effect validates nothing the model's own write boundary already checks (the agreed rate, normal time, category, work region and shift length). Seed JSON holds law, not guards.
-- The extension schemas are authored in `src/lib/payroll_engine/extension_schema.json`, not in the seed. After a change to a lookup key or a row param, or to an extension field there, run `bun run registry:generate`: it rewrites `tables.ts` and `params.ts` from the seed and copies the extension schemas into each law's first change. `bolt check` does not; `tests/configuration/configuration_ownership.test.ts`, `tests/configuration/extension_fields.test.ts` and `tests/configuration/lookup_keys.test.ts` fail until they match.
+- The extension schemas are authored in the seed, on each law's first change. After a change to a row param, run `bun run registry:generate`: it rewrites `params.ts` from the seed. `bolt check` does not; `tests/configuration/configuration_ownership.test.ts` fails until they match.
 - A seed edit or audit across the law packs is one agent per jurisdiction, each with the same brief.
 
 ### Structure

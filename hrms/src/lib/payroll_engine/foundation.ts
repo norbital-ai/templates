@@ -86,12 +86,6 @@ export const completedMonths = (from: string, to: string): number => {
 	return n;
 };
 
-export const decodeNumber = (value: unknown): number => {
-	const result = numberOf(value);
-	if (result === null) throw new Refusal({ message: 'An actual finite number is required.' });
-	return result;
-};
-
 // everyone a run prices shares the same periods: each list of days is worked out once
 const dayLists = new Map<string, readonly string[]>();
 /** Every calendar day from `from` to `to`, both included. */

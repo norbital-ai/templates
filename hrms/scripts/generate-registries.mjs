@@ -1,4 +1,4 @@
-// Generate tables.ts and params.ts from the seed rows. Run after a seed/model vocabulary change:
+// Generate params.ts from the seed rows. Run after a seed/model vocabulary change:
 //   node scripts/generate-registries.mjs
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -80,29 +80,6 @@ const schema = (values) => {
 		: `Schema.Union([${[...new Set(shapes)].join(', ')}])`;
 };
 
-// tables.ts
-const tables = {};
-for (const law of laws)
-	for (const [key, value] of Object.entries(law.lookup ?? {})) (tables[key] ??= []).push(value);
-writeFileSync(
-	'src/lib/payroll_engine/tables.ts',
-	[
-		"import { Schema } from 'effect';",
-		'',
-		'/** Every settings lookup key, with the row shape its values declare. Shared tables only. */',
-		'export const TABLES = {',
-		...Object.entries(tables)
-			.toSorted(([left], [right]) => left.localeCompare(right))
-			.map(([key, values]) => `\t${JSON.stringify(key)}: ${schema(values)},`),
-		'} as const;',
-		'',
-		'export type TableKey = keyof typeof TABLES;',
-		'export const tableOf = (key: string): (typeof TABLES)[TableKey] | undefined =>',
-		'\tTABLES[key as TableKey];',
-		''
-	].join('\n')
-);
-
 // params.ts
 const families = [
 	'allowance_catalog',
@@ -155,17 +132,7 @@ paramLines.push(
 	'',
 	'export const paramsFor = (family: string, code: string) =>',
 	'\t(ROW_PARAMS as Record<string, Record<string, Schema.ConstraintDecoder<unknown>>>)[family]?.[code];',
-	'',
-	'/** Every param key a family can declare, for the ownership test. */',
-	'export const PARAM_KEYS = {'
+	''
 );
-for (const [family, codes] of Object.entries(perCode))
-	paramLines.push(
-		`\t${family}: [${[...new Set(Object.values(codes).flatMap((held) => Object.keys(held.values)))]
-			.toSorted()
-			.map((key) => JSON.stringify(key))
-			.join(', ')}] as const,`
-	);
-paramLines.push('} as const;', '');
 writeFileSync('src/lib/payroll_engine/params.ts', paramLines.join('\n'));
-console.log('generated tables.ts and params.ts');
+console.log('generated params.ts');

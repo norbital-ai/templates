@@ -4,8 +4,7 @@ import { Schema } from 'effect';
 import { describe, it } from 'vitest';
 import { LAW_ROWS } from '../../src/lib/law.ts';
 import { settingsConstants } from '../../src/lib/payroll_engine/contracts.ts';
-import { PARAM_KEYS, paramsFor } from '../../src/lib/payroll_engine/params.ts';
-import { TABLES } from '../../src/lib/payroll_engine/tables.ts';
+import { paramsFor } from '../../src/lib/payroll_engine/params.ts';
 import { SEEDED } from './seeded.ts';
 
 /** Keys the engine builds in code rather than naming in a seed expression. `constants` is spread into `ctx.lookup`. */
@@ -56,22 +55,15 @@ const readerCount = (key: string, code: string): number => {
 };
 
 describe('configuration ownership', () => {
-	it('declares every settings key as a shared-table shape', () => {
+	it('keeps every settings key a shared table, never a scalar or a code list', () => {
 		for (const law of LAWS) {
 			const lookup = isObject(law.settings.lookup) ? law.settings.lookup : {};
-			for (const [key, value] of Object.entries(lookup)) {
-				assert.ok(
-					Object.hasOwn(TABLES, key),
-					`${law.code}/${law.on}: settings lookup.${key} is not a declared shared table`
-				);
+			for (const [key, value] of Object.entries(lookup))
 				assert.equal(
 					typeof value === 'object' && value !== null,
 					true,
 					`${law.code}/${law.on}: settings lookup.${key} is a scalar or code list, not a table`
 				);
-				const schema = TABLES[key as keyof typeof TABLES];
-				Schema.decodeUnknownSync(schema as Schema.ConstraintDecoder<unknown>)(value);
-			}
 		}
 	});
 
@@ -87,17 +79,12 @@ describe('configuration ownership', () => {
 		] as const;
 		for (const law of LAWS)
 			for (const family of families) {
-				const declared: ReadonlySet<string> = new Set(PARAM_KEYS[family]);
 				for (const row of law.rows[family]) {
 					const lookup = isObject(row.lookup) ? row.lookup : {};
 					const schema = paramsFor(family, String(row.code ?? ''));
 					assert.ok(schema !== undefined, `${law.code}/${law.on}/${family}: no param schema`);
-					Schema.decodeUnknownSync(schema)(lookup);
-					for (const key of Object.keys(lookup))
-						assert.ok(
-							declared.has(key),
-							`${law.code}/${law.on}/${family}: lookup.${key} is not a typed param`
-						);
+					// a key the row's schema does not declare is not a typed param
+					Schema.decodeUnknownSync(schema, { onExcessProperty: 'error' })(lookup);
 				}
 			}
 	});

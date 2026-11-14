@@ -4,12 +4,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'vitest';
 import { LAW_ROWS } from '../../src/lib/law.ts';
-import SCHEMA_SOURCE_JSON from '../../src/lib/payroll_engine/extension_schema.json';
 import { SEEDED } from './seeded.ts';
 
-const SCHEMA_SOURCE: Readonly<
-	Record<string, { readonly employee: unknown; readonly entity: unknown }>
-> = SCHEMA_SOURCE_JSON;
 const LABELS = ['employee_extension_schema', 'entity_extension_schema'] as const;
 const BUCKETS = new Set(['facts', 'term_facts', 'exit_facts', 'elections']);
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -81,13 +77,6 @@ describe('country extension fields', () => {
 				`${code}: the catalogue names a field no schema declares`
 			);
 			assert.deepEqual(unread, [], 'a country field nothing reads: read it, or remove it');
-		});
-
-		it(`${code}: the schema in force is generated from its source declaration`, () => {
-			const latest = standing.at(-1);
-			assert.ok(latest !== undefined);
-			assert.deepEqual(latest.settings.employee_extension_schema, SCHEMA_SOURCE[code]?.employee);
-			assert.deepEqual(latest.settings.entity_extension_schema, SCHEMA_SOURCE[code]?.entity);
 		});
 
 		it(`${code}: every direct extension path is declared`, () => {

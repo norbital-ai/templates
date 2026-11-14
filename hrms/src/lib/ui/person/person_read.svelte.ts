@@ -83,19 +83,6 @@ export function personRead(
 export type PersonRead = ReturnType<typeof personRead>;
 export type StintRow = PersonRead['stints'][number];
 
-/** A stint as the fold reads it. */
-export const partsOf = (
-	stint: StintRow,
-	profile: unknown,
-	dependants: PersonRead['dependants']
-): Parts => ({
-	stint: jsonObject(stint),
-	terms: stint.terms.map(jsonObject),
-	parameters: stint.parameters.map(jsonObject),
-	profile: jsonObject(profile),
-	dependants: dependants.map(jsonObject)
-});
-
 /** Whether a stint covers a day. */
 export const covers = (stint: StintRow, day: string) =>
 	String(stint.effective_range.from) <= day &&

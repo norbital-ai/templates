@@ -263,7 +263,7 @@ Before a field is added, five questions decide whether it has a second owner. A 
 | Which period a payslip line belongs to                 | The line's `period`; empty is the payslip's own       |
 | Which row prices back pay                              | `conversions.back_pay` in the law                     |
 
-Three tests guard this: `tests/configuration/configuration_ownership.test.ts` (every `lookup` key of a law is a declared shared table, no contract-term duplicate, no bare `ctx.` read), `tests/configuration/extension_fields.test.ts` (every extension field has a reader) and `tests/configuration/lookup_keys.test.ts` (no declared key without a reader).
+Three tests guard this: `tests/configuration/configuration_ownership.test.ts` (every `lookup` key of a law is a shared table, every row's params match its declared shape, no contract-term duplicate, no bare `ctx.` read), `tests/configuration/extension_fields.test.ts` (every extension field has a reader) and `tests/configuration/lookup_keys.test.ts` (no declared key without a reader).
 
 ## 3. The law by date
 
