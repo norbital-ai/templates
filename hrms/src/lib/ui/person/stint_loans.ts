@@ -1,7 +1,7 @@
 import type { Id, PlainDate } from '@norbital-ai/bolt';
 import type { PageContext } from '@norbital-ai/bolt/page';
 import { run } from '@norbital-ai/ui/effect';
-import { BigDecimal, DateTime } from 'effect';
+import { DateTime } from 'effect';
 import type { Law } from '../../law.js';
 import { isJsonObject, type Json } from '../../payroll_engine/foundation.js';
 import {
@@ -242,69 +242,43 @@ export async function transferOrSettleLoans(
 	}
 	return {
 		writes,
+		// one write: each replacement loan arrives with its schedule
 		follow: async (stint) => {
-			for (const item of moving) {
-				const period = item.row.repayment_period;
-				const start = DateTime.add(DateTime.makeUnsafe(day), { days: 1 });
-				const oldEnd = isJsonObject(period) && typeof period.to === 'string' ? period.to : '';
-				const end =
-					oldEnd !== '' && oldEnd > DateTime.formatIsoDateUtc(start)
-						? oldEnd
-						: DateTime.formatIsoDateUtc(DateTime.add(start, { months: 12 }));
-				const created = await run(
-					ctx.act({
-						'loan_catalog_entry.create': [
-							{
-								entity_id: target.entityId,
-								employment_id: stint,
-								catalog_code: item.row.catalog_code,
-								quantity: plain(item.amount),
-								repayment_period: { from: DateTime.formatIsoDateUtc(start), to: end }
-							}
-						]
-					})
-				);
-				if (created.kind !== 'committed')
-					throw new Error('The replacement loan could not be created.');
-				const newLoanId = created.records.flatMap((row) =>
-					row.model === 'loan_catalog_entry' ? [row.id] : []
-				)[0];
-				if (newLoanId === undefined) throw new Error('The replacement loan has no id.');
-				const last = DateTime.toPartsUtc(DateTime.makeUnsafe(end)),
-					first = DateTime.toPartsUtc(start);
-				const months = Math.max(
-					1,
-					Math.min(120, (last.year - first.year) * 12 + last.month - first.month + 1)
-				);
-				const amount = BigDecimal.fromNumberUnsafe(item.amount);
-				const base = BigDecimal.round(
-					BigDecimal.divideUnsafe(amount, BigDecimal.fromNumberUnsafe(months)),
-					{ scale: 2, mode: 'floor' }
-				);
-				const scheduled = await run(
-					ctx.act({
-						'loan_catalog_entry_repayment.create': Array.from({ length: months }, (_, index) => ({
+			if (moving.length === 0) return;
+			const start = DateTime.add(DateTime.makeUnsafe(day), { days: 1 });
+			const opened = await run(
+				ctx.act({
+					'loan_catalog_entry.create': moving.map((item) => {
+						const period = item.row.repayment_period;
+						const oldEnd = isJsonObject(period) && typeof period.to === 'string' ? period.to : '';
+						const from = DateTime.formatIsoDateUtc(start);
+						const to =
+							oldEnd !== '' && oldEnd > from
+								? oldEnd
+								: DateTime.formatIsoDateUtc(DateTime.add(start, { months: 12 }));
+						return {
 							entity_id: target.entityId,
 							employment_id: stint,
-							loan_id: newLoanId,
-							amount: BigDecimal.format(
-								index === months - 1
-									? BigDecimal.round(
-											BigDecimal.subtract(
-												amount,
-												BigDecimal.multiply(base, BigDecimal.fromNumberUnsafe(months - 1))
-											),
-											{ scale: 2, mode: 'half-ceil' }
-										)
-									: base
-							),
-							paid_on: DateTime.formatIsoDateUtc(DateTime.add(start, { months: index }))
-						}))
+							catalog_code: item.row.catalog_code,
+							quantity: plain(item.amount),
+							repayment_period: { from, to },
+							repayments: buildLoanSchedule({
+								principal: item.amount,
+								from,
+								to,
+								repayments: []
+							}).create.map((row) => ({
+								entity_id: target.entityId,
+								employment_id: stint,
+								amount: plain(row.amount),
+								paid_on: row.paid_on
+							}))
+						};
 					})
-				);
-				if (scheduled.kind !== 'committed')
-					throw new Error('The replacement loan schedule could not be created.');
-			}
+				})
+			);
+			if (opened.kind !== 'committed')
+				throw new Error('The replacement loans could not be created.');
 		}
 	};
 }

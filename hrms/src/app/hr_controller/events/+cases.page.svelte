@@ -20,7 +20,9 @@
 	const scope = companyScope(ctx);
 	const laws = pageLaws(ctx, () => scope.entities.map((row) => row.settings_code));
 	const t = ctx.t;
-	const caseName = listedKindNames(ctx, 'case_kinds');
+	const caseName = listedKindNames(ctx, 'case_kinds', () =>
+		scope.entities.map((row) => row.settings_code)
+	);
 	let creating = $state<'workplace_case_catalog_entry' | null>(null);
 	let importing = $state(false);
 	let warnings: readonly string[] = [];

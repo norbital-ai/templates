@@ -1360,6 +1360,7 @@
 					"fields": [
 						"occurrence_key"
 					],
+					"import_key": true,
 					"name": "one_occurrence"
 				}
 			]

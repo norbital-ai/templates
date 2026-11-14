@@ -38,7 +38,9 @@
 	let { view, ctx }: { view: RecordView<'employee_profile'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
-	const caseName = listedKindNames(ctx, 'case_kinds');
+	const caseName = listedKindNames(ctx, 'case_kinds', () =>
+		read.stints.flatMap((stint) => read.company(stint.entity_id)?.settings_code ?? [])
+	);
 	let enrolling = $state(false),
 		adjusting = $state(false),
 		saving = $state(false);

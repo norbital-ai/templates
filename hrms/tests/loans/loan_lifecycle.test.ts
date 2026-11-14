@@ -122,6 +122,39 @@ const amended = (t: Kit) =>
 		pay_amendment: { where: { payroll_run_id: { is_null: true } }, limit: 100 }
 	}).pipe(Effect.map(({ pay_amendment }) => pay_amendment.rows.map((row) => row.period)));
 const HELD = /Run \d+ holds this person and is not paid yet/;
+
+describe('a loan and its schedule', () => {
+	it.live('are one write: the loan arrives with its instalments', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const instalment = (paid_on: string) => ({
+				entity_id: ENTITY,
+				employment_id: EMPLOYMENT,
+				amount: '500',
+				paid_on
+			});
+			yield* (yield* t.as(t.admin)).act({
+				'loan_catalog_entry.create': [
+					{
+						entity_id: ENTITY,
+						employment_id: EMPLOYMENT,
+						catalog_code: FESTIVE,
+						quantity: '1000',
+						repayment_period: { from: '2026-09-01', to: '2026-10-31' },
+						repayments: [instalment('2026-09-01'), instalment('2026-10-01')]
+					}
+				]
+			});
+			const { loan_catalog_entry_repayment } = yield* storedQuery(t, {
+				loan_catalog_entry_repayment: { where: { loan_id: { ne: LOAN } }, limit: 10 }
+			});
+			assert.deepEqual(
+				loan_catalog_entry_repayment.rows.map((row) => String(row.paid_on)).toSorted(),
+				['2026-09-01', '2026-10-01']
+			);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+});
 const repayments = (t: Kit) =>
 	storedQuery(t, { loan_catalog_entry_repayment: { limit: 100 } }).pipe(
 		Effect.map(({ loan_catalog_entry_repayment }) =>

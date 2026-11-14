@@ -182,23 +182,29 @@
 					toast.error(error instanceof Error ? error.message : ctx.t('component.error'));
 					return;
 				}
+				// one write: the old open instalments go and the new ones arrive together
 				const removing = rows.filter((row) => plan.remove.includes(row.id));
-				if (removing.length > 0)
+				if (removing.length > 0 || plan.create.length > 0)
 					yield* ctx.act({
-						'loan_catalog_entry_repayment.delete': removing.map((target) => ({ target }))
-					});
-				if (plan.create.length > 0)
-					yield* ctx.act({
-						'loan_catalog_entry_repayment.create': plan.create.map((row) => ({
-							entity_id: record.entity_id,
-							employment_id: record.employment_id,
-							loan_id: record.id,
-							amount: new Intl.NumberFormat('en', {
-								useGrouping: false,
-								maximumFractionDigits: 20
-							}).format(row.amount),
-							paid_on: row.paid_on
-						}))
+						...(removing.length === 0
+							? {}
+							: {
+									'loan_catalog_entry_repayment.delete': removing.map((target) => ({ target }))
+								}),
+						...(plan.create.length === 0
+							? {}
+							: {
+									'loan_catalog_entry_repayment.create': plan.create.map((row) => ({
+										entity_id: record.entity_id,
+										employment_id: record.employment_id,
+										loan_id: record.id,
+										amount: new Intl.NumberFormat('en', {
+											useGrouping: false,
+											maximumFractionDigits: 20
+										}).format(row.amount),
+										paid_on: row.paid_on
+									}))
+								})
 					});
 				toast.success(ctx.t('loan.generated'));
 				refresh();
@@ -250,7 +256,14 @@
 						paid_on: row.paid_on
 					}))
 				});
-			}).pipe(Effect.ignore)
+			}).pipe(
+				// the loan is saved; its schedule is not: say so, Generate makes it
+				Effect.catch((error) =>
+					Effect.sync(() =>
+						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
+					)
+				)
+			)
 		);
 	};
 

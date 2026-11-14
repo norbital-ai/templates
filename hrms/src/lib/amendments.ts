@@ -49,6 +49,7 @@ const windowsOf = (payslips: readonly JsonObject[], schedules: ReadonlyMap<strin
 		return [
 			{
 				employee: String(slip.employee_id),
+				entity: String(slip.entity_id),
 				run,
 				from: attendance.from < salary.from ? attendance.from : salary.from,
 				to: attendance.to > salary.to ? attendance.to : salary.to
@@ -59,6 +60,8 @@ const windowsOf = (payslips: readonly JsonObject[], schedules: ReadonlyMap<strin
 const carried = (
 	touched: readonly {
 		readonly employee: string;
+		/** The company whose day it is: its own payslips only. */
+		readonly entity?: string;
 		readonly from: string;
 		readonly to: string | null;
 		readonly run?: unknown;
@@ -69,10 +72,11 @@ const carried = (
 	open: readonly JsonObject[]
 ) =>
 	Effect.gen(function* () {
-		const reached = (window: { employee: string; from: string; to: string; run: JsonObject }) =>
+		const reached = (window: ReturnType<typeof windowsOf>[number]) =>
 			touched.some(
 				(touch) =>
 					touch.employee === window.employee &&
+					(touch.entity === undefined || touch.entity === window.entity) &&
 					((touch.undated !== true &&
 						touch.from <= window.to &&
 						(touch.to === null || touch.to >= window.from)) ||
@@ -86,6 +90,7 @@ const carried = (
 					(touch) =>
 						touch.soft !== true &&
 						touch.employee === window.employee &&
+						(touch.entity === undefined || touch.entity === window.entity) &&
 						(touch.undated === true
 							? touch.run != null && String(touch.run) === String(window.run.id)
 							: touch.from <= window.to)
@@ -165,7 +170,7 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 					{ payroll_run_id: { in: sealing } }
 				]
 			},
-			fields: ['employee_id', 'payroll_run_id'],
+			fields: ['employee_id', 'entity_id', 'payroll_run_id'],
 			limit: REACH,
 			payroll_run_id: RUN
 		},
@@ -205,31 +210,35 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 	);
 });
 
-/** The amendment rows a company-wide correction carries: everyone the company paid for those days. */
+/** A company's days: everyone it paid for them, or the one person named. */
+export interface Span {
+	readonly entity: string;
+	readonly from: string;
+	readonly to: string | null;
+	readonly employee?: string;
+}
+
+/** The amendment rows a company-wide correction carries: everyone each company paid for its days. */
 export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 	read: Reader,
-	entities: readonly string[],
-	spans: readonly {
-		readonly from: string;
-		readonly to: string | null;
-		readonly employee?: string;
-	}[]
+	spans: readonly Span[]
 ) {
-	if (entities.length === 0 || spans.length === 0) return {};
+	if (spans.length === 0) return {};
+	const entities = [...new Set(spans.map((span) => span.entity))];
 	const known = yield* queryRows(read, {
 		payslip: {
 			where: {
-				entity_id: { in: [...entities] },
+				entity_id: { in: entities },
 				payroll_run_id: {
 					is: { salary_coverage: { overlaps: { from: since(spans), to: null } } }
 				}
 			},
-			fields: ['employee_id', 'payroll_run_id'],
+			fields: ['employee_id', 'entity_id', 'payroll_run_id'],
 			limit: REACH,
 			payroll_run_id: RUN
 		},
 		pay_group: {
-			where: { entity_id: { in: [...entities] } },
+			where: { entity_id: { in: entities } },
 			fields: ['payment_schedule'],
 			limit: 10000
 		},
@@ -242,14 +251,13 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 	const slips = known.payslip ?? [];
 	// a full page is one the read could not finish: the correction is too wide for one save
 	if (slips.length >= REACH) return yield* Effect.fail(new Refusal({ message: TOO_WIDE }));
-	const people = [...new Set(slips.map((slip) => String(slip.employee_id)))];
+	const people = Map.groupBy(slips, (slip) => String(slip.entity_id));
 	return yield* carried(
 		spans.flatMap((span) =>
-			(span.employee === undefined ? people : [span.employee]).map((employee) => ({
-				employee,
-				from: span.from,
-				to: span.to
-			}))
+			(span.employee === undefined
+				? [...new Set((people.get(span.entity) ?? []).map((slip) => String(slip.employee_id)))]
+				: [span.employee]
+			).map((employee) => ({ employee, entity: span.entity, from: span.from, to: span.to }))
 		),
 		windowsOf(
 			slips,
@@ -260,6 +268,16 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 		known.pay_amendment ?? []
 	);
 });
+
+/** The amendment rows of several parts of one write: one row a person and period. */
+export const amendmentsIn = (...parts: readonly CarriedWrites[]): CarriedWrites => {
+	const rows = new Map(
+		parts
+			.flatMap((part) => part.pay_amendment?.create ?? [])
+			.map((row) => [`${row.employee_id}/${row.pay_group_id}/${row.period}`, row])
+	);
+	return rows.size === 0 ? {} : { pay_amendment: { create: [...rows.values()] } };
+};
 
 /** Whether a paid run answers this filter. What paid periods were worked out on keeps its shape: a change is a new one. */
 export const paidUnder = Effect.fn('payroll.paidUnder')(function* (

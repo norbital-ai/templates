@@ -50,8 +50,11 @@
 	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
 	const today = ctx.clock('day').today;
 	const paid = paidPeriods(ctx);
-	const laws = pageLaws(ctx, () => null);
 	const codeOf = (entity: unknown) => read.company(entity)?.settings_code;
+	// the law of the company chosen, not every jurisdiction's
+	const laws = pageLaws(ctx, () =>
+		entity === null ? [] : [codeOf(entity)].flatMap((code) => code ?? [])
+	);
 	/** The months a transfer can start: this one, if no run has taken it, and the year ahead. */
 	const months = Array.from({ length: 13 }, (_, index) => {
 		const first = DateTime.formatIsoDateUtc(

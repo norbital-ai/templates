@@ -327,6 +327,8 @@ export default messages({
 	'kiosk.too_soon': 'Please wait',
 	'kiosk.too_soon_detail': 'Try again in {seconds} seconds.',
 	'kiosk.tools': 'Kiosk tools',
+	'kiosk.refused': 'Not recorded',
+	'kiosk.refused_detail': 'This punch was refused. Please see your supervisor.',
 	'kiosk.unchanged': 'Attendance unchanged',
 	'kiosk.unchanged_detail': 'No new attendance time was saved.',
 	'kiosk.unknown_hint': 'No approved profile matches this face. Please ask HR.',

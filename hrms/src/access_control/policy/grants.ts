@@ -97,7 +97,8 @@ export const HR_OPERATIONS = {
 		update: {},
 		delete: {}
 	},
-	leave_catalog_entry_day: { ...READ, create: {}, update: {}, delete: {} },
+	// slots are written through their leave, which checks the balance and posts to the ledger
+	leave_catalog_entry_day: { ...READ, update: {} },
 	claim_catalog_entry: {
 		...READ_ALL.claim_catalog_entry,
 		create: {},

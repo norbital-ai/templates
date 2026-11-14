@@ -45,7 +45,11 @@ export default model({
 				'quantity',
 				'repayment_period',
 				'evidence_file'
-			]
+			],
+			// a loan arrives with its schedule: one write, so none is left without instalments
+			repayments: {
+				fields: ['entity_id', 'employment_id', 'amount', 'paid_on', 'payment_reference']
+			}
 		},
 		transform: function* (changes, ctx) {
 			const rows = changes.map((c) => jsonObject(c.after));

@@ -1,7 +1,7 @@
 import { automation } from '@norbital-ai/bolt';
-import { DateTime, Effect } from 'effect';
+import { Cause, DateTime, Effect } from 'effect';
 import { raiseFindings } from '../lib/integrity.js';
-import { getErrorMessage } from '../lib/payroll_engine/foundation.js';
+import { getErrorMessage, isJsonObject } from '../lib/payroll_engine/foundation.js';
 import { raiseFailure, retire, syncEntitlements } from '../lib/ledger/service.js';
 
 const ATTEMPTS = 8;
@@ -36,12 +36,15 @@ export default automation({
 			yield* raiseFindings(ctx);
 		});
 		yield* work.pipe(
-			// what can pass waits out its retries, which outlast an outage; a refusal will not change
-			Effect.tapError((error) =>
-				ctx.attempt < ATTEMPTS && error._tag !== 'ActRefused'
+			// what can pass waits out its retries, which outlast an outage; a refusal will not change. A thrown error is
+			// a failure too: every cause is reported, not only a typed one
+			Effect.tapCause((cause) => {
+				const error = Cause.squash(cause);
+				const tag = isJsonObject(error) ? error._tag : undefined;
+				return ctx.attempt < ATTEMPTS && tag !== 'ActRefused' && tag !== 'Refusal'
 					? Effect.void
-					: raiseFailure(ctx, 'entitlement sync', getErrorMessage(error))
-			)
+					: raiseFailure(ctx, 'entitlement sync', getErrorMessage(error));
+			})
 		);
 	}
 });

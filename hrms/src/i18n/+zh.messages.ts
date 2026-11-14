@@ -303,6 +303,8 @@ export default messages({
 	'kiosk.too_soon': '请稍候',
 	'kiosk.too_soon_detail': '请在 {seconds} 秒后重试。',
 	'kiosk.tools': '打卡机工具',
+	'kiosk.refused': '未记录',
+	'kiosk.refused_detail': '本次打卡被拒绝，请联系主管。',
 	'kiosk.unchanged': '考勤未变更',
 	'kiosk.unchanged_detail': '没有保存新的考勤时间。',
 	'kiosk.unknown_hint': '没有已批准的员工档案与此人脸匹配。请联系人事。',

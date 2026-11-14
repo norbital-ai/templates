@@ -1,6 +1,9 @@
 import { model } from '../../../../../.norbital/models/work_event.ts';
+import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
+import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { amendmentsFor, amendmentsOf } from '../../../../lib/amendments.js';
+import { amendmentsFor, amendmentsIn, amendmentsOf } from '../../../../lib/amendments.js';
+import type { WriteCtx } from '@norbital-ai/bolt';
 import type { Reader } from '../../../../lib/payroll_engine/reads.js';
 import { Effect } from 'effect';
 
@@ -18,18 +21,34 @@ const amended = Effect.fnUntraced(function* (read: Reader, rows: readonly Dated[
 	});
 	const own = rows.filter((row) => row.employment_id != null);
 	const wide = rows.filter((row) => row.employment_id == null);
-	return {
-		...(yield* amendmentsOf(
+	return amendmentsIn(
+		yield* amendmentsOf(
 			read,
-			[...new Set(wide.map((row) => String(row.entity_id)))],
-			wide.map(span)
-		)),
-		...(yield* amendmentsFor(
+			wide.map((row) => ({ entity: String(row.entity_id), ...span(row) }))
+		),
+		yield* amendmentsFor(
 			read,
 			own.map((row) => ({ employment: String(row.employment_id), ...span(row) }))
-		))
-	};
+		)
+	);
 });
+
+/** An event names a row its company's law holds, and answers that law's registered rules. */
+const placed = (
+	ctx: Pick<WriteCtx<'work_event'>, 'query' | 'refuse'>,
+	operation: 'create' | 'update',
+	changes: readonly { readonly after: object }[]
+) =>
+	validateRegistered(
+		ctx.query,
+		'work_event',
+		operation,
+		changes.map(({ after }) => jsonObject(after))
+	).pipe(
+		Effect.catchTag('Refusal', (error) =>
+			ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+		)
+	);
 
 export default model({
 	description:
@@ -72,6 +91,7 @@ export default model({
 		},
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
+			yield* placed(ctx, 'create', changes);
 			return { sets: rows, on_approved: yield* amended(ctx.query, rows) };
 		},
 		effect: function* (changes, ctx) {
@@ -96,6 +116,7 @@ export default model({
 			]
 		},
 		transform: function* (changes, ctx) {
+			yield* placed(ctx, 'update', changes);
 			return {
 				sets: changes.map((change) => change.set),
 				on_approved: yield* amended(ctx.query, [

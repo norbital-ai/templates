@@ -10,18 +10,6 @@
 
 	const scope = companyScope(ctx);
 	let creating = $state(false);
-	const jurisdiction = $derived(
-		scope.company == null
-			? null
-			: ctx.query({
-					jurisdiction: {
-						where: { code: { eq: scope.company.settings_code } },
-						fields: ['timezone'],
-						limit: 1
-					}
-				})
-	);
-	const zone = $derived(jurisdiction?.current?.jurisdiction.rows[0]?.timezone ?? undefined);
 </script>
 
 {#snippet periodCell({ value }: { value: unknown })}
@@ -34,13 +22,8 @@
 		· {ctx.t(key.endsWith('1') ? 'app.payroll.first_half' : 'app.payroll.second_half')}{/if}
 {/snippet}
 
-{#snippet payDateCell({ row, value }: { row: { state: string }; value: unknown })}
-	{row.state === 'PAID'
-		? format({ kind: 'instant', precision: 'day' }, String(value), {
-				locale: ctx.locale,
-				...(zone === undefined ? {} : { zone })
-			})
-		: ''}
+{#snippet payDateCell({ value }: { value: unknown })}
+	{value == null ? '' : format({ kind: 'date' }, String(value), { locale: ctx.locale })}
 {/snippet}
 
 <AppShell
@@ -78,7 +61,7 @@
 				{ field: 'pay_group_id', label: ctx.t('app.payroll.pay_group') },
 				'kind',
 				{
-					field: 'updated_at',
+					field: 'pay_date',
 					label: ctx.t('models.payroll_run.fields.pay_date'),
 					cell: payDateCell
 				},

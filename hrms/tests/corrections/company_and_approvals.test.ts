@@ -71,6 +71,51 @@ const twoPeople = (): Seed => {
 		]
 	};
 };
+const OTHER = uuid(950);
+const OTHER_GROUP = uuid(951);
+/** The second person works for a sister company with its own payroll. */
+const twoCompanies = (months: readonly string[]): Seed => {
+	const from: Seed = { ...twoPeople(), ...sisterRoster(months) };
+	const [company] = from.entity ?? [];
+	const [change] = from.entity_change ?? [];
+	const [group] = from.pay_group ?? [];
+	assert.ok(company !== undefined && change !== undefined && group !== undefined);
+	return {
+		...from,
+		entity: [...(from.entity ?? []), { ...company, id: OTHER, code: 'E2', name: 'Sister' }],
+		entity_change: [...(from.entity_change ?? []), { ...change, id: uuid(952), entity_id: OTHER }],
+		pay_group: [...(from.pay_group ?? []), { ...group, id: OTHER_GROUP, entity_id: OTHER }],
+		employment: (from.employment ?? []).map((row) =>
+			row.id === SECOND ? { ...row, entity_id: OTHER } : row
+		),
+		contract_terms: (from.contract_terms ?? []).map((row) =>
+			row.employment_id === SECOND ? { ...row, pay_group_id: OTHER_GROUP } : row
+		)
+	};
+};
+/** Both people on the roster for these months. */
+const sisterRoster = (months: readonly string[]): Pick<Seed, 'roster_entry'> => {
+	const roster = rostered(months).roster_entry ?? [];
+	return {
+		roster_entry: [
+			...roster,
+			...roster.map((row, index) => ({ ...row, id: uuid(5000 + index), employment_id: SECOND }))
+		]
+	};
+};
+const holiday = (entity: string, date: string) => ({
+	entity_id: idOf('entity', entity),
+	date,
+	name: `Declared ${date}`,
+	kind: 'PUBLIC_HOLIDAY' as const,
+	given_to: 'EVERYONE' as const,
+	published_at: DateTime.formatIso(DateTime.makeUnsafe('2026-03-19T00:00:00.000Z'))
+});
+/** The open amendment rows as `person period`. */
+const opened = (t: Kit) =>
+	amendments(t).pipe(
+		Effect.map((rows) => rows.map((row) => `${String(row.employee_id)} ${row.period}`).toSorted())
+	);
 const overtimeKeyed = (t: Kit, date: string) =>
 	Effect.gen(function* () {
 		const { roster_entry } = yield* storedQuery(t, {
@@ -168,6 +213,67 @@ describe('what the company corrects', () => {
 				[]
 			);
 		}).pipe(Effect.provide(workspace({ seed: twoPeople(), now: NOW })))
+	);
+
+	it.live('holidays of two companies saved together amend each company for its own day', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			for (const period of ['2026-01', '2026-02']) {
+				yield* pay(t, period);
+				yield* pay(t, period, OTHER_GROUP, OTHER);
+			}
+			yield* (yield* t.as(t.admin)).act({
+				'holiday.create': [holiday(ENTITY, '2026-01-13'), holiday(OTHER, DAY)]
+			});
+			yield* t.run_due();
+			assert.deepEqual(yield* opened(t), [`${uuid(4)} 2026-01`, `${uuid(904)} 2026-02`].toSorted());
+		}).pipe(
+			Effect.provide(workspace({ seed: twoCompanies(['2026-01', '2026-02', '2026-03']), now: NOW }))
+		)
+	);
+
+	it.live('a holiday moved to another company amends that company too', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const admin = yield* t.as(t.admin);
+			yield* admin.act({ 'holiday.create': [holiday(ENTITY, DAY)] });
+			yield* pay(t, '2026-02');
+			yield* pay(t, '2026-02', OTHER_GROUP, OTHER);
+			const [declared] = (yield* storedQuery(t, { holiday: { limit: 1 } })).holiday.rows;
+			assert.ok(declared !== undefined);
+			yield* admin.act({
+				'holiday.update': [{ target: declared, set: { entity_id: idOf('entity', OTHER) } }]
+			});
+			yield* t.run_due();
+			assert.deepEqual(yield* opened(t), [`${uuid(4)} 2026-02`, `${uuid(904)} 2026-02`].toSorted());
+		}).pipe(Effect.provide(workspace({ seed: twoCompanies(MONTHS), now: NOW })))
+	);
+
+	it.live('work events for the company and for one person, saved together, amend both', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* pay(t, '2026-01');
+			yield* pay(t, '2026-02');
+			const event = { entity_id: ENTITY, catalog_code: 'EMPLOYER_SHUTDOWN' };
+			yield* (yield* t.as(t.admin)).act({
+				'work_event.create': [
+					{ ...event, from: DAY, to: DAY },
+					{ ...event, from: '2026-01-13', to: '2026-01-13', employment_id: FIRST }
+				]
+			});
+			yield* t.run_due();
+			assert.deepEqual(
+				yield* opened(t),
+				[`${uuid(4)} 2026-01`, `${uuid(4)} 2026-02`, `${uuid(904)} 2026-02`].toSorted()
+			);
+		}).pipe(
+			Effect.provide(
+				workspace({
+					seed: { ...twoPeople(), ...sisterRoster(['2026-01', '2026-02', '2026-03']) },
+					now: NOW
+				})
+			)
+		)
 	);
 
 	it.live('a shift paid days used keeps its hours', () =>

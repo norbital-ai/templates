@@ -110,15 +110,14 @@ const companyWrite = Effect.fnUntraced(function* (
 		for (const day of [...days].toSorted()) entries.push(entryOn(entity, after, day));
 		const amended: CarriedWrites = yield* amendmentsOf(
 			read,
-			[String(entity.id)],
-			written.flatMap(
-				(id) =>
-					reachOf(
-						[...post.values()].filter((row) => row.id !== id),
-						prior.get(id),
-						post.get(id)
-					) ?? []
-			)
+			written.flatMap((id) => {
+				const span = reachOf(
+					[...post.values()].filter((row) => row.id !== id),
+					prior.get(id),
+					post.get(id)
+				);
+				return span === undefined ? [] : [{ entity: String(entity.id), ...span }];
+			})
 		);
 		carried.push(...(amended.pay_amendment?.create ?? []));
 	}

@@ -598,6 +598,23 @@ export const afterDated = Effect.fnUntraced(function* (
 		rows.map((row) => row.employment_id)
 	);
 	const own = new Set(rows.map((row) => String(row.id)));
+	// the ledger first: a registered effect that fails must not leave it unsynced
+	const today = String(ctx.today);
+	const due = new Set(
+		rows.flatMap((row) => (String(row.effective_from) <= today ? [String(row.employment_id)] : []))
+	);
+	const employees = [
+		...new Set(
+			got.parts.flatMap(({ stint }) =>
+				due.has(String(stint.id)) ? [idOf('employee_profile', stint.employee_id)] : []
+			)
+		)
+	];
+	if (employees.length > 0) yield* ctx.schedule('ledger', { employees });
+	yield* syncLedgerOn(
+		ctx,
+		rows.map((row) => String(row.effective_from)).filter((day) => day > today)
+	);
 	yield* tap(
 		ctx,
 		verb,
@@ -627,22 +644,6 @@ export const afterDated = Effect.fnUntraced(function* (
 						}
 					];
 		})
-	);
-	const today = String(ctx.today);
-	const due = new Set(
-		rows.flatMap((row) => (String(row.effective_from) <= today ? [String(row.employment_id)] : []))
-	);
-	const employees = [
-		...new Set(
-			got.parts.flatMap(({ stint }) =>
-				due.has(String(stint.id)) ? [idOf('employee_profile', stint.employee_id)] : []
-			)
-		)
-	];
-	if (employees.length > 0) yield* ctx.schedule('ledger', { employees });
-	yield* syncLedgerOn(
-		ctx,
-		rows.map((row) => String(row.effective_from)).filter((day) => day > today)
 	);
 });
 

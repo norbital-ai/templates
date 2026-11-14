@@ -750,6 +750,84 @@ const registered = (
 		(row) => row[side] === collection && Array.isArray(row.events) && row.events.includes(operation)
 	);
 
+/** The law family an entry's `catalog_code` names. */
+const CATALOG = {
+	adhoc_catalog_entry: 'adhoc_catalog',
+	claim_catalog_entry: 'claim_catalog',
+	leave_catalog_entry: 'leave_catalog',
+	loan_catalog_entry: 'loan_catalog',
+	workplace_case_catalog_entry: 'workplace_case_catalog',
+	work_event: 'work_event_catalog'
+} as const satisfies Readonly<Record<string, keyof Law['rows']>>;
+/** The days of an entry payroll prices by date, and whether one after the stint's last day may stand. */
+const PRICED_DAYS: Readonly<
+	Record<
+		string,
+		{ readonly days: (row: JsonObject) => readonly unknown[]; readonly after: boolean }
+	>
+> = {
+	// a bonus or correction may be paid after the last day, by an off-cycle run
+	adhoc_catalog_entry: { days: (row) => [row.incurred_on], after: true },
+	claim_catalog_entry: { days: (row) => [row.incurred_on], after: false },
+	leave_catalog_entry: {
+		// a cash-out's days are placeholders
+		days: (row) =>
+			row.encashment === true || !Array.isArray(row.days)
+				? []
+				: row.days.map((day) => (isJsonObject(day) ? day.date : undefined)),
+		after: false
+	}
+};
+/**
+ * An entry names a row its company's law holds, and the days payroll prices fall in its stint: an entry on neither
+ * would save and post nothing.
+ */
+const assertPlaced = Effect.fnUntraced(function* (
+	read: Reader,
+	collection: string,
+	rows: readonly JsonObject[],
+	laws: readonly UnderLaw[]
+) {
+	const family = Object.hasOwn(CATALOG, collection)
+		? CATALOG[collection as keyof typeof CATALOG]
+		: undefined;
+	if (family === undefined) return;
+	for (const { law, at } of laws) {
+		const codes = new Set(law.rows[family].map((row) => String(row.code)));
+		const unknown = at.find((index) => !codes.has(String(rows[index]?.catalog_code)));
+		if (unknown !== undefined)
+			return yield* new Refusal({
+				message: `${String(rows[unknown]?.catalog_code)} is not a row of the law this company follows (${law.code}).`
+			});
+	}
+	const priced = PRICED_DAYS[collection];
+	if (priced === undefined) return;
+	const { employment: stints = [] } = yield* queryRows(read, {
+		employment: {
+			where: { id: { in: idsIn(rows.map((row) => refId(row.employment_id))) } },
+			fields: ['effective_range'],
+			limit: 10000
+		}
+	});
+	const range = new Map(stints.map((row) => [String(row.id), rangeObject(row.effective_range)]));
+	for (const row of rows) {
+		const stint = range.get(String(refId(row.employment_id)));
+		const from = typeof stint?.from === 'string' ? stint.from : undefined;
+		if (from === undefined) continue;
+		const to = typeof stint?.to === 'string' ? stint.to : null;
+		const outside = priced
+			.days(row)
+			.find(
+				(day) =>
+					typeof day === 'string' && (day < from || (!priced.after && to !== null && day > to))
+			);
+		if (outside !== undefined)
+			return yield* new Refusal({
+				message: `${String(outside)} is outside this employment (${from} to ${to ?? 'now'}).`
+			});
+	}
+});
+
 /**
  * Every rule the law in force registers for this collection and operation validates the proposed rows, for the whole
  * batch in two reads: the law, its lookups and the rows' subjects together, then every rule's declared reads together.
@@ -765,6 +843,8 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 	if (rows.length === 0) return;
 	const cache: SubjectCache = { stints: new Map(), employers: new Map(), employees: new Map() };
 	const { laws, on } = yield* lawsFor(read, collection, operation, rows, cache);
+	if (operation === 'create' || operation === 'update')
+		yield* assertPlaced(read, collection, rows, laws);
 	const applied = laws.flatMap(({ law, at }) =>
 		registered(law.rows.registered_rule, 'target_collection', collection, operation)
 			.toSorted((left, right) => Number(left.order ?? 0) - Number(right.order ?? 0))
@@ -974,6 +1054,7 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 		new Map(),
 		(rule, row) => on(applied[rule]?.at[row] ?? -1)
 	);
+	const writes: Record<string, JsonObject[]> = {};
 	for (const [nth, { effect, law, at }] of applied.entries()) {
 		const code = String(effect.code ?? '');
 		const action = effect.target_action;
@@ -1008,34 +1089,20 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 			if (Array.isArray(result))
 				input.push(...Schema.decodeUnknownSync(Schema.Array(JsonObject))(result));
 		}
-		if (input.length === 0) continue;
-		// A task is raised once, whatever fires its effect again (a retried run, a host that replays): one with its key
-		// already on file, or twice in this batch, is left out.
-		const keyed = target === 'obligation' && action === 'create';
-		const keys = keyed
-			? input.flatMap((row) => (typeof row.occurrence_key === 'string' ? [row.occurrence_key] : []))
-			: [];
-		const onFile = new Set(
-			keys.length === 0
-				? []
-				: (
-						(yield* queryRows(ctx.query, {
-							obligation: {
-								where: { occurrence_key: { in: [...new Set(keys)] } },
-								fields: ['occurrence_key'],
-								limit: 10000
-							}
-						})).obligation ?? []
-					).map((row) => String(row.occurrence_key))
-		);
-		const fresh = !keyed
-			? input
-			: input.filter((row) => {
-					if (typeof row.occurrence_key !== 'string') return true;
-					if (onFile.has(row.occurrence_key)) return false;
-					onFile.add(row.occurrence_key);
-					return true;
-				});
-		if (fresh.length > 0) yield* ctx.act({ [`${target}.${action}`]: fresh });
+		if (input.length > 0) (writes[`${target}.${action}`] ??= []).push(...input);
 	}
+	// A task is raised once, whatever fires its effect again (a retried run, a host that replays, two effects of one
+	// save): the import keeps one whose key is on file. One write for every effect together.
+	const { 'obligation.create': raised = [], ...rest } = writes;
+	const tasks = [...new Map(raised.map((row) => [row.occurrence_key, row])).values()];
+	const acts: Record<string, Json> = { ...rest };
+	if (tasks.length > 0) acts['obligation.import'] = { rows: tasks, on_conflict: 'keep' };
+	if (Object.keys(acts).length === 0) return;
+	// two effects of one save may raise the same task at once: the one that lost the key writes again, and keeps it
+	yield* ctx.act(acts).pipe(
+		Effect.catchIf(
+			(error) => tasks.length > 0 && error._tag === 'ActRefused' && error.code === 'unique',
+			() => ctx.act(acts)
+		)
+	);
 });

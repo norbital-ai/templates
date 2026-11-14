@@ -5,6 +5,7 @@ import { amendmentsOf } from '../../../../lib/amendments.js';
 /** The day a published holiday prices, for everyone the company paid or the one person it names. */
 const spans = (
 	rows: readonly {
+		readonly entity_id: string;
 		readonly date: string;
 		readonly published_at?: unknown;
 		readonly employee_id?: string | null | undefined;
@@ -15,6 +16,7 @@ const spans = (
 			? []
 			: [
 					{
+						entity: String(row.entity_id),
 						from: String(row.date),
 						to: String(row.date),
 						...(row.employee_id == null ? {} : { employee: String(row.employee_id) })
@@ -90,11 +92,7 @@ export default model({
 			const rows = changes.map(({ set }) => set);
 			return {
 				sets: rows,
-				on_approved: yield* amendmentsOf(
-					ctx.query,
-					[...new Set(rows.map((row) => String(row.entity_id)))],
-					spans(rows)
-				)
+				on_approved: yield* amendmentsOf(ctx.query, spans(rows))
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -137,14 +135,10 @@ export default model({
 			return {
 				sets: changes.map((change) => change.set),
 				// the day as it was and the day as it is now: published, moved or taken back
-				on_approved: yield* amendmentsOf(
-					ctx.query,
-					[...new Set(moved.map((change) => String(change.before.entity_id)))],
-					[
-						...spans(moved.map((change) => change.before)),
-						...spans(moved.map((change) => change.after))
-					]
-				)
+				on_approved: yield* amendmentsOf(ctx.query, [
+					...spans(moved.map((change) => change.before)),
+					...spans(moved.map((change) => change.after))
+				])
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -155,11 +149,7 @@ export default model({
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ before }) => before);
 			return {
-				on_approved: yield* amendmentsOf(
-					ctx.query,
-					[...new Set(rows.map((row) => String(row.entity_id)))],
-					spans(rows)
-				)
+				on_approved: yield* amendmentsOf(ctx.query, spans(rows))
 			};
 		},
 		effect: function* (changes, ctx) {

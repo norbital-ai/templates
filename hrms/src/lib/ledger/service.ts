@@ -1364,11 +1364,15 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			}))
 		});
 	const day = String(ctx.today);
+	// a sync for some people reads their stints and the laws their companies follow, not the workspace
+	const theirs = employees === undefined ? undefined : { id: { in: [...employees] } };
 	const read = yield* queryAllRows(ctx.query, {
-		...stintsRead(),
+		...stintsRead(theirs),
 		entity: { fields: ['id', 'settings_code'], limit: 1000 },
 		entity_change: { limit: 10000 },
-		...lawRead(),
+		...(theirs === undefined
+			? lawRead()
+			: yield* lawReadOf(ctx.query, { employment: { some: { employee_id: { is: theirs } } } })),
 		work_event: {
 			fields: ['id', 'entity_id', 'employment_id', 'catalog_code', 'from', 'to', 'location'],
 			limit: 10000

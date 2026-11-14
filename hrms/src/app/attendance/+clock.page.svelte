@@ -252,6 +252,14 @@
 					seconds: Math.ceil((punch.retryAfterMs ?? 0) / 1000)
 				})
 			};
+		// a punch the server refused was not saved: say so, never "unchanged"
+		if (punch?.reason === 'refused')
+			return {
+				tone: 'error',
+				icon: 'lucide:circle-x',
+				title: ctx.t('kiosk.refused'),
+				detail: ctx.t('kiosk.refused_detail')
+			};
 		return {
 			tone: 'warning',
 			icon: 'lucide:circle-alert',

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { watch } from 'runed';
 	/**
 	 * The legal entities this workspace operates, their holiday calendar, and the one-file holiday import:
 	 * a workbook with one sheet per entity. Existing days are skipped; imported days land unpublished.
@@ -21,15 +22,21 @@
 	import { importDataRequest } from '../../../lib/ui/workbook/data_request_import.js';
 	let { ctx }: { ctx: PageContext } = $props();
 
-	const held = $derived.by(() =>
-		ctx.query({ entity: { fields: ['name'] }, holiday: { fields: ['entity_id', 'date'] } })
+	// read when the page opens, so an import knows the holidays already on file
+	const held = ctx.query({
+		entity: { fields: ['name'] },
+		holiday: { fields: ['entity_id', 'date'], limit: 10000 }
+	});
+	watch(
+		() => held.current,
+		() => {}
 	);
 
 	function holidayRows(grids: WorkbookGrids): ActInput<'holiday.create'> {
-		const parsed = parseEntityHolidaySheets(grids, held?.current?.entity.rows ?? []);
+		const parsed = parseEntityHolidaySheets(grids, held.current?.entity.rows ?? []);
 		if ('error' in parsed)
 			throw new WorkbookImportError({ message: parsed.error, detail: parsed.detail ?? [] });
-		const { insert } = skipHeldHolidays(parsed.rows, held?.current?.holiday.rows ?? []);
+		const { insert } = skipHeldHolidays(parsed.rows, held.current?.holiday.rows ?? []);
 		if (insert.length === 0)
 			throw new WorkbookImportError({
 				message: 'This file has no holidays to import.',

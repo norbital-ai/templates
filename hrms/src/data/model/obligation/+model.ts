@@ -31,7 +31,8 @@ export default model({
 		}
 	},
 	constraints: {
-		one_occurrence: { unique: ['occurrence_key'] },
+		// a task is raised once: an effect that raises one already on file keeps it (`obligation.import`)
+		one_occurrence: { unique: ['occurrence_key'], import_key: true },
 		// a completed task keeps its record; a waived one keeps only its reason and may reopen
 		fulfilled_task: { locked: { state: { eq: 'FULFILLED' } } },
 		waived_task: { locked: { state: { eq: 'WAIVED' } }, except: ['waiver_reason', 'state'] }

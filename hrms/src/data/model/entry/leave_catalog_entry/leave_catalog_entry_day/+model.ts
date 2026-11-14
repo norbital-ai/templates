@@ -30,6 +30,8 @@ export default model({
 			payroll_run_id: { fields: ['id', 'period', 'state'] }
 		}
 	},
+	// a slot arrives and leaves through its leave, whose write checks the balance and posts to the ledger: no policy
+	// grants these directly
 	create: { columns: { fields: ['incurred_on', 'part'] } },
 	update: { columns: { fields: ['payroll_run_id'] } },
 	delete: {}

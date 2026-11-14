@@ -3,20 +3,20 @@ import { lawsOf, type Law } from '../law.js';
 import { jsonObject } from '../payroll_engine/foundation.js';
 
 /**
- * The laws of these jurisdictions, live: `on(code, day)` is the law in force on a day. `codes` answering null reads
- * every jurisdiction. Call during component initialisation.
+ * The laws of these jurisdictions, live: `on(code, day)` is the law in force on a day. A law is megabytes: a screen
+ * names the ones it shows. Call during component initialisation.
  */
-export function pageLaws(ctx: Pick<PageContext, 'query'>, codes: () => readonly string[] | null) {
+export function pageLaws(ctx: Pick<PageContext, 'query'>, codes: () => readonly string[]) {
 	const read = $derived.by(() => {
 		const only = codes();
 		return ctx.query({
 			jurisdiction: {
-				where: { code: only === null ? { is_null: false } : { in: [...only] } },
+				where: { code: { in: [...only] } },
 				limit: 1000
 			},
 			jurisdiction_change: {
 				where: {
-					jurisdiction_code: only === null ? { is_null: false } : { in: [...only] }
+					jurisdiction_code: { in: [...only] }
 				},
 				fields: ['jurisdiction_code', 'effective_from', 'finding_id', 'law'],
 				limit: 10000,

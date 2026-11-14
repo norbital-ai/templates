@@ -294,19 +294,19 @@ export const lawWrite = Effect.fn('payroll.lawWrite')(function* (
 					})
 				);
 		}
+		const reached = written.flatMap(
+			(id) =>
+				reachOf(
+					after.filter((row) => row.id !== id),
+					prior.get(id),
+					post.get(id),
+					LAW_DEPTH,
+					priced
+				) ?? []
+		);
 		const amended: CarriedWrites = yield* amendmentsOf(
 			read,
-			entities,
-			written.flatMap(
-				(id) =>
-					reachOf(
-						after.filter((row) => row.id !== id),
-						prior.get(id),
-						post.get(id),
-						LAW_DEPTH,
-						priced
-					) ?? []
-			)
+			entities.flatMap((entity) => reached.map((span) => ({ entity, ...span })))
 		);
 		carried.push(...(amended.pay_amendment?.create ?? []));
 	}
