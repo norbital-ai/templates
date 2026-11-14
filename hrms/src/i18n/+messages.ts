@@ -471,6 +471,12 @@ export default messages({
 	'models.roster_entry.fields.overtime_as_time_off': 'Overtime as time off',
 	'models.roster_entry.help.overtime_as_time_off':
 		"The worker takes this day's planned overtime as time off: no overtime pay, and its hours are owed as time off.",
+	'app.month_close.title': 'Month close',
+	'app.month_close.description':
+		'What waits on you for this company: runs to pay, open tasks and proposed law changes.',
+	'app.month_close.runs': 'Runs to pay',
+	'app.month_close.duties': 'Open tasks',
+	'app.month_close.law': 'Law changes to confirm',
 	'app.obligations.title': 'Obligations',
 	'app.obligations.description':
 		'Track due duties, assessed authority payments and employer benefit payments with their actual evidence.',

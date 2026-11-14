@@ -445,6 +445,12 @@ export default messages({
 	'models.roster_entry.fields.overtime_as_time_off': '加班改为补休',
 	'models.roster_entry.help.overtime_as_time_off':
 		'员工将当天计划加班改为补休：不支付加班费，其工时计为应补休时数。',
+	'app.month_close.title': '月结',
+	'app.month_close.description':
+		'本公司待您处理的事项：待支付的薪资批次、未完成的任务和待确认的法规变更。',
+	'app.month_close.runs': '待支付批次',
+	'app.month_close.duties': '未完成任务',
+	'app.month_close.law': '待确认法规变更',
 	'app.obligations.title': '义务',
 	'app.obligations.description': '跟踪到期事项、法定缴款及雇主福利付款，并保留实际证据。',
 	'models.obligation.label': '线下合规义务',

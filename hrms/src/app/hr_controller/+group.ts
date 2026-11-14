@@ -8,5 +8,5 @@ export default group({
 	title: 'app.hr_controller.title',
 	description: 'app.hr_controller.description',
 	icon: 'lucide:briefcase-business',
-	default_child: 'people'
+	default_child: 'month_close'
 });
